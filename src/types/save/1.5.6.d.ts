@@ -709,12 +709,12 @@ export interface Fridge {
     isLostItem: boolean;
     category: number;
     hasBeenInInventory: boolean;
-    name: Name;
+    name: string;
     parentSheetIndex: number;
     specialItem: boolean;
     SpecialVariable: number;
-    DisplayName: Name;
-    Name: Name;
+    DisplayName: string;
+    Name: string;
     Stack: number;
     tileLocation: IncubatingEgg;
     owner: number;
@@ -764,8 +764,6 @@ export interface Fridge {
     synchronized: boolean;
     specialChestType: string;
 }
-
-export type Name = "Sprinkler" | "Seasonal Plant" | "Artifact Spot" | "Crystalarium" | "Grave Stone" | "Rarecrow" | "Furnace" | "Quality Sprinkler" | "Stone Fence" | "Twig" | "Seasonal Decor" | "Chest" | "Stone" | "Gate" | "Tapper" | "Lightning Rod" | "Mushroom Box" | "Crocus" | "Stone Junimo" | "Nautilus Shell" | "Coral" | "Oyster" | "Sea Urchin" | "Campfire" | "Crystal Fruit" | "Holly" | "Weeds" | "Cactus Fruit" | "Coconut" | "Cask" | "Fiddlehead Fern" | "Common Mushroom" | "Chanterelle" | "Purple Mushroom" | "House Plant";
 
 export interface FridgeItems {
     Item: string[];
@@ -826,12 +824,12 @@ export interface ObjectClass {
     isLostItem: boolean;
     category: number;
     hasBeenInInventory: boolean;
-    name: Name;
+    name: string;
     parentSheetIndex: number;
     specialItem: boolean;
     SpecialVariable: number;
-    DisplayName: Name;
-    Name: Name;
+    DisplayName: string;
+    Name: string;
     Stack: number;
     tileLocation: IncubatingEgg;
     owner: number;
@@ -1452,7 +1450,7 @@ export interface LastGiftDate {
     TotalDays: number;
 }
 
-export type Status = "Friendly" | "Dating";
+export type Status = "Friendly" | "Dating" | "Married";
 
 export interface GiftedItems {
     item: GiftedItemsItem[];
@@ -1509,6 +1507,7 @@ export interface Item {
     addedPrecision?: number;
     addedDefense?: number;
     addedAreaOfEffect?: number;
+    addedImmunity?: number;
     knockback?: number;
     critChance?: number;
     critMultiplier?: number;
@@ -1559,6 +1558,7 @@ export interface Item {
     clothesColor: HairstyleColor;
     otherData: string;
     isPrismatic: boolean;
+    indexInColorSheet: number;
 }
 
 export interface AttachmentsClass {

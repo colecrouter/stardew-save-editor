@@ -42,7 +42,7 @@
             on:change={() => {
                 return submit.click();
             }} />
-        <input type="submit" value="Upload" bind:this={submit} />
+        <input type="submit" value="Upload" bind:this={submit} hidden />
         <small>
             Default save locations:
             <ul>
@@ -50,6 +50,8 @@
                 <li>Mac: <code>~/Library/Application Support/StardewValley/Saves</code></li>
                 <li>Linux: <code>~/.config/StardewValley/Saves</code></li>
             </ul>
+
+            <div class="warning">Backup your save file. Invalid save files may break the game.</div>
         </small>
     </form>
 </Container>
@@ -106,5 +108,13 @@
 
     li {
         margin-top: 0.3em;
+    }
+
+    .warning {
+        background-color: rgba(255, 0, 0, 0.35);
+        border-left: solid 4px rgba(255, 0, 0, 0.7);
+        font-weight: bold;
+        padding: 2px;
+        font-size: 1.1em;
     }
 </style>

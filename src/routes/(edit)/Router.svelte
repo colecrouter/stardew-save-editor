@@ -3,10 +3,10 @@
 </script>
 
 <nav>
-    <a href="/inventory"><SidebarButton>🎒</SidebarButton></a>
-    <a href="/character"><SidebarButton>🪞</SidebarButton></a>
-    <a href="/relationships"><SidebarButton>💖</SidebarButton></a>
-    <a href="/bundles"><SidebarButton>📦</SidebarButton></a>
+    <a href="/inventory" aria-label="Inventory"><SidebarButton>🎒</SidebarButton></a>
+    <a href="/character" aria-label="Character"><SidebarButton>🪞</SidebarButton></a>
+    <a href="/relationships" aria-label="Relationships"><SidebarButton>💖</SidebarButton></a>
+    <a href="/bundles" aria-label="Community Center bundles"><SidebarButton>📦</SidebarButton></a>
 </nav>
 
 <style>

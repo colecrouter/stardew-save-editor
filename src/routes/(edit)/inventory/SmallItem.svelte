@@ -1,11 +1,12 @@
 <script lang="ts">
     import { getContext } from 'svelte';
-    import type { Item } from '../../../types/save/1.5.6';
     import type { BigCraftable, Boots, Clothing, Furniture, Hat, ObjectInformation, Tool, Weapon } from '../../../types/dump';
+    import type { Item } from '../../../types/save/1.5.6';
 
     let spritesheet: string | undefined;
     let lookupItem: ObjectInformation | BigCraftable | Boots | Clothing | Furniture | Hat | Weapon | Tool | undefined;
     export let item: Item | string;
+    export let selectedItem: Item | undefined;
 
     if (typeof item == 'object') {
         const itemData = getContext('itemData') as Map<string, ObjectInformation | BigCraftable | Boots | Clothing | Furniture | Hat | Weapon | Tool>;
@@ -44,10 +45,12 @@
 
         if (item.name === 'Fishing Rod') console.log(item);
     }
+
+    const handleClick = () => (selectedItem = typeof item == 'object' ? item : undefined);
 </script>
 
 <!-- {item.IndexOfMenuItemView} -->
-<div class="wrapper">
+<div class="wrapper" on:click={handleClick}>
     <div class="item" style:--x={spritesheet && `${lookupItem?.sprite.x}px`} style:--y={spritesheet && `${lookupItem?.sprite.y}px`} style:--sprite={spritesheet && `url(/assets/${spritesheet})`} />
 </div>
 
@@ -59,6 +62,15 @@
         background-position: right var(--x) bottom var(--y);
         image-rendering: pixelated;
         margin-top: -1px;
+    }
+
+    .item:hover::after {
+        content: '';
+        width: 16px;
+        height: 16px;
+        position: absolute;
+        background-color: rgba(255, 255, 255, 0.5);
+        cursor: pointer;
     }
 
     .wrapper {

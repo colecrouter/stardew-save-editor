@@ -198,3 +198,43 @@ await copyFile(`./content/Characters/Farmer/shirts.png`, `./static/assets/shirts
 await copyFile(`./content/Characters/Farmer/shoeColors.png`, `./static/assets/shoeColors.png`);
 await copyFile('./content/maps/springobjects.png', './static/assets/springobjects.png');
 await copyFile('./content/Characters/Farmer/hats.png', './static/assets/hats.png');
+
+// Copy all portraits into assets folder
+const chars = [
+    'Abigail',
+    'Alex',
+    'Caroline',
+    'Clint',
+    'Demetrius',
+    'Dwarf',
+    'Elliott',
+    'Emily',
+    'Evelyn',
+    'George',
+    'Gus',
+    'Haley',
+    'Harvey',
+    'Jas',
+    'Jodi',
+    'Kent',
+    'Krobus',
+    'Leah',
+    'Lewis',
+    'Linus',
+    'Marnie',
+    'Maru',
+    'Pam',
+    'Penny',
+    'Pierre',
+    'Robin',
+    'Sam',
+    'Sandy',
+    'Sebastian',
+    'Shane',
+    'Vincent',
+    'Willy',
+    'Wizard',
+];
+for (const char of chars) {
+    await copyFile(`./content/Portraits/${char}.png`, `./static/assets/portraits/${char}.png`);
+};

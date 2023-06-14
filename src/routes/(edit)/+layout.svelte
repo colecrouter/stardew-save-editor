@@ -1,7 +1,7 @@
 <script lang="ts">
     import { goto } from '$app/navigation';
     import { page } from '$app/stores';
-    import { SaveGame } from '$lib/Upload';
+    import { FileName, SaveGame } from '$lib/Upload';
     import { get } from 'svelte/store';
     import type { LayoutData } from './$types';
     import { setContext } from 'svelte';
@@ -15,7 +15,39 @@
 
     const cancel = () => {
         SaveGame.set(undefined);
+        FileName.set(undefined);
         goto('/');
+    };
+
+    const save = async () => {
+        const save = get(SaveGame);
+        const filename = get(FileName);
+        if (!save || !filename) {
+            console.error('Save or filename is undefined');
+            return;
+        }
+
+        const res = await fetch('/api/toXML', {
+            method: 'POST',
+            body: JSON.stringify(save),
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
+
+        if (!res.ok) {
+            console.error(res);
+            return;
+        }
+
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(url);
+        a.remove();
     };
 </script>
 
@@ -27,7 +59,7 @@
         </div>
         <div class="sidebar">
             <SidebarButton on:click={() => cancel()}>❌</SidebarButton>
-            <SidebarButton>💾</SidebarButton>
+            <SidebarButton on:click={() => save()}>💾</SidebarButton>
         </div>
     </div>
 </div>

@@ -14,7 +14,7 @@ export const POST = async (event: RequestEvent) => {
         xml += value.toString();
     }
 
-    const parser = new XMLParser();
+    const parser = new XMLParser({ ignoreAttributes: false, allowBooleanAttributes: true });
     const json = parser.parse(xml) as unknown;
 
     if (!json || typeof json !== 'object' || 'gameVersion'! in json) return new Response("Not valid save file", { status: 400 });

@@ -5,11 +5,10 @@
     import HeartBar from './HeartBar.svelte';
 
     let characters: FriendshipDataItem[] = [];
+    SaveGame.subscribe((s) => {
+        if (!s) return;
 
-    SaveGame.subscribe((save) => {
-        if (!save) return;
-
-        characters = save.SaveGame.player.friendshipData.item;
+        characters = s.SaveGame.player.friendshipData.item;
     });
 </script>
 

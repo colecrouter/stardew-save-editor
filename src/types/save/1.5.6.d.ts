@@ -896,97 +896,7 @@ export interface ObjectClass {
 }
 
 export interface ObjectItems {
-    Item: ItemsItemClass[];
-}
-
-export interface ItemsItemClass {
-    isLostItem: boolean;
-    category: number;
-    hasBeenInInventory: boolean;
-    name: string;
-    parentSheetIndex?: number;
-    specialItem: boolean;
-    SpecialVariable: number;
-    DisplayName: string;
-    Name: string;
-    Stack: number;
-    tileLocation?: IncubatingEgg;
-    owner?: number;
-    type?: TypeEnum | number;
-    canBeSetDown?: boolean;
-    canBeGrabbed?: boolean;
-    isHoedirt?: boolean;
-    isSpawnedObject?: boolean;
-    questItem?: boolean;
-    questId?: number;
-    isOn?: boolean;
-    fragility?: number;
-    price?: number;
-    edibility?: number;
-    stack?: number;
-    quality?: number;
-    bigCraftable?: boolean;
-    setOutdoors?: boolean;
-    setIndoors?: boolean;
-    readyForHarvest?: boolean;
-    showNextIndex?: boolean;
-    flipped?: boolean;
-    hasBeenPickedUpByFarmer?: boolean;
-    isRecipe?: boolean;
-    isLamp?: boolean;
-    minutesUntilReady?: number;
-    boundingBox?: BoundingBox;
-    scale?: IncubatingEgg;
-    uses?: number;
-    preservedParentSheetIndex?: number;
-    destroyOvernight?: boolean;
-    which?: number;
-    skipHairDraw?: boolean;
-    ignoreHairstyleOffset?: boolean;
-    hairDrawType?: number;
-    isPrismatic?: boolean;
-    initialParentTileIndex?: number;
-    currentParentTileIndex?: number;
-    indexOfMenuItemView?: number;
-    stackable?: boolean;
-    instantUse?: boolean;
-    isEfficient?: boolean;
-    animationSpeedModifier?: number;
-    upgradeLevel?: number;
-    numAttachmentSlots?: number;
-    attachments?: string;
-    BaseName?: string;
-    InitialParentTileIndex?: number;
-    IndexOfMenuItemView?: number;
-    InstantUse?: boolean;
-    IsEfficient?: boolean;
-    AnimationSpeedModifier?: number;
-    Stackable?: boolean;
-    minDamage?: number;
-    maxDamage?: number;
-    speed?: number;
-    addedPrecision?: number;
-    addedDefense?: number;
-    addedAreaOfEffect?: number;
-    knockback?: number;
-    critChance?: number;
-    critMultiplier?: number;
-    appearance?: number;
-    isOnSpecial?: boolean;
-    furniture_type?: number;
-    rotations?: number;
-    currentRotation?: number;
-    sourceRect?: BoundingBox;
-    defaultSourceRect?: BoundingBox;
-    defaultBoundingBox?: BoundingBox;
-    drawHeldObjectLow?: boolean;
-    preserve?: string;
-    indexInTileSheet?: number;
-    uniqueID?: number;
-    defenseBonus?: number;
-    immunityBonus?: number;
-    indexInColorSheet?: number;
-    appliedBootSheetIndex?: number;
+    Item: Item[];
 }
 
 export interface Umps {
@@ -1253,10 +1163,12 @@ export interface Player {
     hairstyleColor: HairstyleColor;
     pantsColor: HairstyleColor;
     newEyeColor: HairstyleColor;
-    boots: Boots;
-    rightRing: RightRing;
-    shirtItem: Item;
-    pantsItem: Item;
+    boots?: Item;
+    hat?: Item;
+    leftRing?: Item;
+    rightRing?: Item;
+    shirtItem?: Item;
+    pantsItem?: Item;
     divorceTonight: boolean;
     changeWalletTypeTonight: boolean;
     woodPieces: number;
@@ -1396,24 +1308,6 @@ export interface BasicShippedItem {
     value: MaxEntries;
 }
 
-export interface Boots {
-    isLostItem: boolean;
-    category: number;
-    hasBeenInInventory: boolean;
-    name: string;
-    specialItem: boolean;
-    SpecialVariable: number;
-    DisplayName: string;
-    Name: string;
-    Stack: number;
-    defenseBonus: number;
-    immunityBonus: number;
-    indexInTileSheet: number;
-    price: number;
-    indexInColorSheet: number;
-    appliedBootSheetIndex: number;
-}
-
 export interface CookingRecipes {
     item: ActiveDialogueEventsItem[];
 }
@@ -1470,7 +1364,7 @@ export interface Dictionary {
 }
 
 export interface PlayerItems {
-    Item: Array<Item | string>;
+    Item: Array<Item>;
 }
 
 export interface Item {
@@ -1559,6 +1453,15 @@ export interface Item {
     otherData: string;
     isPrismatic: boolean;
     indexInColorSheet: number;
+    which?: number;
+    skipHairDraw?: boolean;
+    ignoreHairstyleOffset?: boolean;
+    hairDrawType?: number;
+    preserve?: string;
+    uniqueID?: number;
+    defenseBonus?: number;
+    immunityBonus?: number;
+    appliedBootSheetIndex?: number;
 }
 
 export interface AttachmentsClass {
@@ -1597,22 +1500,6 @@ export interface Quest {
 
 export interface RecipesCooked {
     item: BasicShippedItem;
-}
-
-export interface RightRing {
-    isLostItem: boolean;
-    category: number;
-    hasBeenInInventory: boolean;
-    name: string;
-    parentSheetIndex: number;
-    specialItem: boolean;
-    SpecialVariable: number;
-    DisplayName: string;
-    Name: string;
-    Stack: number;
-    price: number;
-    indexInTileSheet: number;
-    uniqueID: number;
 }
 
 export interface Stats {

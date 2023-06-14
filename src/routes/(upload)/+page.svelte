@@ -1,12 +1,13 @@
 <script lang="ts">
     import { goto } from '$app/navigation';
-    import { SaveGame } from '$lib/Upload';
+    import { FileName, SaveGame } from '$lib/Upload';
     import Container from '../Container.svelte';
 
     let submit: HTMLInputElement;
 
     const handle = async (event: Event) => {
         const formData = new FormData(event.target as HTMLFormElement);
+        const filename = (formData.get('file') as File).name;
 
         const res = await fetch('/api/toJSON', {
             method: 'POST',
@@ -28,6 +29,7 @@
 
         const json = (await res.json()) as SaveFile;
         SaveGame.set(json);
+        FileName.set(filename);
         goto('/inventory');
     };
 </script>

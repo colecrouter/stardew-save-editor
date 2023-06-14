@@ -5,40 +5,47 @@
 
     let spritesheet: string | undefined;
     let lookupItem: ObjectInformation | BigCraftable | Boots | Clothing | Furniture | Hat | Weapon | Tool | undefined;
-    export let item: Item | string;
+    export let item: Item | undefined;
     export let selectedItem: Item | undefined;
 
-    if (typeof item == 'object') {
-        const itemData = getContext('itemData') as Map<string, ObjectInformation | BigCraftable | Boots | Clothing | Furniture | Hat | Weapon | Tool>;
-        if (!itemData) throw new Error('No item data found');
+    const itemData = getContext('itemData') as Map<string, ObjectInformation | BigCraftable | Boots | Clothing | Furniture | Hat | Weapon | Tool>;
+    if (!itemData) throw new Error('No item data found');
 
-        lookupItem = itemData.get(item.Name);
-        switch (lookupItem?._type) {
-            case 'ObjectInformation':
-            case 'Boots':
-                spritesheet = 'springobjects.png';
-                break;
-            case 'BigCraftable':
-                spritesheet = 'Craftables.png';
-                break;
-            case 'Hat':
-                spritesheet = 'hats.png';
-            case 'Clothing':
-                // TODO
-                break;
-            case 'Furniture':
-                spritesheet = 'furniture.png';
-                break;
-            case 'RangedWeapon':
-            case 'MeleeWeapon':
-                spritesheet = 'weapons.png';
-                break;
-            case 'Tool':
-                spritesheet = 'tools.png';
-                break;
-            default:
-                // @ts-expect-error
-                console.warn('Unknown item type', lookupItem?._type);
+    if (item) {
+        // This doesn't work for empty slots
+        // Empty inventory slots are <string xsi:nil="true" />, so we need to pretend like they don't exist.
+        if (!('Name' in item)) {
+            lookupItem = undefined;
+            spritesheet = undefined;
+        } else {
+            lookupItem = itemData.get(item.Name);
+            switch (lookupItem?._type) {
+                case 'ObjectInformation':
+                case 'Boots':
+                    spritesheet = 'springobjects.png';
+                    break;
+                case 'BigCraftable':
+                    spritesheet = 'Craftables.png';
+                    break;
+                case 'Hat':
+                    spritesheet = 'hats.png';
+                case 'Clothing':
+                    // TODO
+                    break;
+                case 'Furniture':
+                    spritesheet = 'furniture.png';
+                    break;
+                case 'RangedWeapon':
+                case 'MeleeWeapon':
+                    spritesheet = 'weapons.png';
+                    break;
+                case 'Tool':
+                    spritesheet = 'tools.png';
+                    break;
+                default:
+                    // @ts-expect-error
+                    console.warn('Unknown item type', lookupItem?._type);
+            }
         }
 
         // console.log(item);
@@ -46,12 +53,12 @@
         if (item.name === 'Fishing Rod') console.log(item);
     }
 
-    const handleClick = () => (selectedItem = typeof item == 'object' ? item : undefined);
+    const handleClick = () => (selectedItem = lookupItem ? item : undefined);
 </script>
 
 <!-- {item.IndexOfMenuItemView} -->
 <div class="wrapper" on:click={handleClick}>
-    <div class="item" style:--x={spritesheet && `${lookupItem?.sprite.x}px`} style:--y={spritesheet && `${lookupItem?.sprite.y}px`} style:--sprite={spritesheet && `url(/assets/${spritesheet})`} />
+    <div class="item" style:--x={spritesheet && lookupItem && `${lookupItem?.sprite.x}px`} style:--y={spritesheet && lookupItem && `${lookupItem?.sprite.y}px`} style:--sprite={spritesheet && lookupItem && `url(/assets/${spritesheet})`} />
 </div>
 
 <style>

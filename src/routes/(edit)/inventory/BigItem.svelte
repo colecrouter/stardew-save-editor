@@ -2,6 +2,7 @@
     import { getContext } from 'svelte';
     import type { Item } from '../../../types/save/1.5.6';
     import type { BigCraftable, Boots, Clothing, Furniture, Hat, ObjectInformation, Tool, Weapon } from '../../../types/dump';
+    import { GetSpritesheet } from '$lib/Spritesheet';
 
     let spritesheet: string | undefined;
     let lookupItem: ObjectInformation | BigCraftable | Boots | Clothing | Furniture | Hat | Weapon | Tool | undefined;
@@ -17,46 +18,21 @@
             break $;
         }
 
-        // This doesn't work for empty slots
-        // Empty inventory slots are <string xsi:nil="true" />, so we need to pretend like they don't exist.
-
         lookupItem = itemData.get(item.Name);
-        switch (lookupItem?._type) {
-            case 'ObjectInformation':
-            case 'Boots':
-                spritesheet = 'springobjects.png';
-                break;
-            case 'BigCraftable':
-                spritesheet = 'Craftables.png';
-                break;
-            case 'Hat':
-                spritesheet = 'hats.png';
-            case 'Clothing':
-                // TODO
-                break;
-            case 'Furniture':
-                spritesheet = 'furniture.png';
-                break;
-            case 'RangedWeapon':
-            case 'MeleeWeapon':
-                spritesheet = 'weapons.png';
-                break;
-            case 'Tool':
-                spritesheet = 'tools.png';
-                break;
-            default:
-                spritesheet = undefined;
-                lookupItem = undefined;
-                // @ts-expect-error
-                console.warn('Unknown item type', lookupItem?._type);
-        }
+        if (!lookupItem) break $;
+        spritesheet = GetSpritesheet(lookupItem);
 
         // if (item.name === 'Fishing Rod') console.log(item);
     }
 </script>
 
 <div class="wrapper">
-    <div class="item" style:--x={spritesheet && lookupItem && `${lookupItem?.sprite.x}px`} style:--y={spritesheet && lookupItem && `${lookupItem?.sprite.y}px`} style:--sprite={spritesheet && lookupItem && `url(/assets/${spritesheet})`} />
+    <div
+        class="item"
+        style:--x={spritesheet && lookupItem && `${lookupItem?.sprite.x}px`}
+        style:--y={spritesheet && lookupItem && `${lookupItem?.sprite.y}px`}
+        style:--sprite={spritesheet && lookupItem && `url(/assets/${spritesheet})`}
+        class:clothing={lookupItem && lookupItem._type === 'Clothing' && lookupItem.type === 'Shirt'} />
 </div>
 
 <style>
@@ -66,6 +42,12 @@
         background-image: var(--sprite);
         background-position: right var(--x) bottom var(--y);
         image-rendering: pixelated;
+    }
+
+    .item.clothing {
+        width: 8px;
+        height: 8px;
+        margin: 4px;
     }
 
     .wrapper {

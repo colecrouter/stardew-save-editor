@@ -7,24 +7,52 @@ const indexToSprite = (index: number, itemWidth: number, sheetWidth: number) => 
     return { x, y };
 };
 
+const indexToSpriteShirts = (index: number) => {
+    const sheetW = 128;
+    const itemW = 8;
+
+    // We have to offset shirts by -1000 https://stardewvalleywiki.com/Modding:Items#Data_format_4
+    index = index - 1000;
+
+    const x = (index * itemW) % sheetW + itemW;
+    const y = Math.floor((index * itemW) / sheetW) * (itemW * 4) + itemW;
+
+    return { x, y };
+};
+
+const indexToSpritePants = (index: number) => {
+    const sheetW = 192;
+    const itemW = 8;
+
+    const x = (index * itemW * 12) % sheetW + (itemW * 2);
+    const y = Math.floor((index * itemW) / sheetW) * (688) + (itemW * 4);
+
+    return { x, y };
+};
+
 const objects = JSON.parse(await readFile('./content/Data/ObjectInformation.json', 'utf-8')) as Record<string, string>;
 const objectsArray = Object.entries(objects).map(([key, value]) => {
     const props = value.split('/');
+    const [type, category] = props[3].split(' ');
+
+    // There's a ton of "Stone" entries in objects, only use the one that has an id of 390
+    if (props[0] === 'Stone' && Number(key) !== 390) return undefined;
+
     return {
         _type: 'ObjectInformation',
         name: props[0],
         price: Number(props[1]),
         edibility: Number(props[2]),
-        type: props[3] as ObjectType,
-        category: Number(props[4]),
-        displayName: props[5],
-        description: props[6],
-        misc1: props[7] ? Number(props[7]) : undefined,
-        misc2: props[8] ? Number(props[8]) : undefined,
-        buffDuration: props[9] ? Number(props[9]) : undefined,
+        type: type as ObjectType,
+        category: Number(category),
+        displayName: props[4],
+        description: props[5],
+        misc1: props[6] ? Number(props[7]) : undefined,
+        misc2: props[7] ? Number(props[8]) : undefined,
+        buffDuration: props[8] ? Number(props[9]) : undefined,
         sprite: indexToSprite(Number(key), 16, 384),
     } satisfies ObjectInformation;
-});
+}).filter((x) => x !== undefined) as ObjectInformation[];
 
 const bigCraftables = JSON.parse(await readFile('./content/Data/BigCraftablesInformation.json', 'utf-8')) as Record<string, string>;
 const bigCraftablesArray = Object.entries(bigCraftables).map(([key, value]) => {
@@ -34,7 +62,7 @@ const bigCraftablesArray = Object.entries(bigCraftables).map(([key, value]) => {
         name: props[0],
         price: Number(props[1]),
         edibility: Number(props[2]),
-        type: props[3] as ObjectType,
+        type: props[3].split(' ')[0] as ObjectType,
         category: -9,
         description: props[4],
         outdoors: props[5] === 'true',
@@ -66,6 +94,14 @@ const clothing = JSON.parse(await readFile('./content/Data/ClothingInformation.j
 const clothingArray = Object.entries(clothing).map(([key, value]) => {
     const props = value.split('/');
     const color = props[6].split(' ');
+
+    let sprite;
+    if ((props[8] as ClothingType) === 'Shirt') {
+        sprite = indexToSpriteShirts(Number(key));
+    } else {
+        sprite = indexToSpritePants(Number(key));  // Pants
+    }
+
     return {
         _type: 'Clothing',
         name: props[0],
@@ -82,7 +118,7 @@ const clothingArray = Object.entries(clothing).map(([key, value]) => {
         dyeable: props[7] === 'true',
         type: props[8] as ClothingType,
         extraData: props[9],
-        sprite: indexToSprite(Number(key), 16, 384),
+        sprite: sprite,
     } satisfies Clothing;
 });
 
@@ -152,10 +188,13 @@ const weaponsArray = Object.entries(weapons).map(([key, value]) => {
 
 // 320
 const tools = {
-    "9": "Training Rod",
+    "6": "Milk Pail",
+    "7": "Shears",
     "8": "Bamboo Pole",
+    "9": "Training Rod",
     "10": "Fiberglass Rod",
     "11": "Iridium Rod",
+    "12": "Copper Pan",
     "47": "Hoe",
     "54": "Copper Hoe",
     "61": "Steel Hoe",

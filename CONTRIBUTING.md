@@ -10,7 +10,7 @@ If you need assets that aren't copied from that command, you can modify it in `s
 
 ## Reading the Save File
 
-The save format is really unorganized and poorly designed. My recommendation is to use a website like [this](https://jsonformatter.org/xml-parser) to format the save file into something more readable, then use a text editor to search for the data you need.
+The save format is somewhat inconsistent (in structure and consistency). My recommendation is to use a website like [this](https://jsonformatter.org/xml-parser) to format the save file into something more readable, then use a text editor to search for the data you need.
 
 ## Making Changes
 

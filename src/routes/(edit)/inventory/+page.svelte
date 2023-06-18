@@ -1,16 +1,51 @@
+<script lang="ts" context="module">
+    const hexToRGB = (hex: string): Partial<HairstyleColor> => {
+        const R = parseInt(hex.slice(1, 3), 16);
+        const G = parseInt(hex.slice(3, 5), 16);
+        const B = parseInt(hex.slice(5, 7), 16);
+
+        return { R, G, B };
+    };
+
+    const RGBToHex = (rgb: HairstyleColor): string => {
+        const { R, B, G } = rgb;
+
+        const hex = ((R << 16) | (G << 8) | B).toString(16);
+
+        return '#' + new Array(Math.abs(hex.length - 7)).join('0') + hex;
+    };
+</script>
+
 <script lang="ts">
     import { SaveGame } from '$lib/Upload';
     import { getContext } from 'svelte';
-    import type { Item } from '../../../types/save/1.5.6';
+    import type { BigCraftable, Boots, Clothing, Furniture, Hat, ObjectInformation, Tool, Weapon } from '../../../types/dump';
+    import { Category, type HairstyleColor, type Item } from '../../../types/save/1.5.6';
     import Container from '../../Container.svelte';
     import BigItem from './BigItem.svelte';
+    import QualitySelector from './QualitySelector.svelte';
     import SmallItem from './SmallItem.svelte';
-    import type { ObjectInformation, BigCraftable, Clothing, Furniture, Hat, Weapon, Tool, Boots } from '../../../types/dump';
+
+    // TODO: I don't know what items are allowed to have quality, or if there's some sort of rule.
+    const qualityCategories: Array<Category> = [
+        Category.Fish,
+        Category.Egg,
+        Category.Milk,
+        Category.Cooking,
+        Category.SellAtPierres,
+        Category.SellAtPierresAndMarnies,
+        Category.ArtisanGoods,
+        Category.Syrup,
+        Category.Vegetable,
+        Category.Fruit,
+        Category.Flower,
+        Category.Forage,
+    ];
 
     const itemData = getContext<Map<string, ObjectInformation | BigCraftable | Boots | Clothing | Furniture | Hat | Weapon | Tool>>('itemData');
 
-    let hotbar: Array<Item> = [];
-    let inventory: Array<Item> = [];
+    let hotbar: Array<Item | undefined> = [];
+    let inventory: Array<Item | undefined> = [];
     let selectedItem: Item | undefined;
 
     let boots: Item | undefined;
@@ -63,6 +98,7 @@
     // Selected item attributes
     let type: 'Tool' | 'ObjectInformation' | 'BigCraftable' | 'Boots' | 'Clothing' | 'Furniture' | 'Hat' | 'MeleeWeapon' | 'RangedWeapon' | undefined;
     $: (() => {
+        console.log(selectedItem);
         const item = selectedItem ? itemData.get(selectedItem?.Name) : undefined;
         type = item?._type;
 
@@ -134,10 +170,10 @@
                     <small>Display Name</small>
                     <input type="text" bind:value={selectedItem.DisplayName} />
                 </label>
-                {#if selectedItem.Stackable === undefined || selectedItem.Stackable === true}
+                {#if (selectedItem.Stackable === undefined || selectedItem.Stackable === true) && type !== 'Clothing' && type !== 'Boots' && type !== 'Hat'}
                     <label>
                         <small>Amount</small>
-                        <input type="number" bind:value={selectedItem.stack} min="0" />
+                        <input type="number" bind:value={selectedItem.stack} min="0" max="999" />
                     </label>
                 {/if}
                 {#if type === 'MeleeWeapon'}
@@ -207,7 +243,7 @@
                     </label> -->
                     <label>
                         <small>Produces Light</small>
-                        <input type="check" bind:value={selectedItem.isLamp} />
+                        <input type="checkbox" bind:checked={selectedItem.isLamp} />
                     </label>
                 {:else if type === 'Boots'}
                     <label>
@@ -227,10 +263,18 @@
                         <small>Price</small>
                         <input type="number" bind:value={selectedItem.price} min="0" />
                     </label>
-                    <label>
-                        <small>Dyable</small>
-                        <input type="checkbox" bind:value={selectedItem.dyeable} />
-                    </label>
+                    {#if selectedItem.dyeable}
+                        <label>
+                            <small>Color</small>
+                            <input
+                                type="color"
+                                value={RGBToHex(selectedItem.clothesColor)}
+                                on:change={(e) => {
+                                    // @ts-expect-error
+                                    selectedItem.clothesColor = hexToRGB(e.target.value ?? '#000000');
+                                }} />
+                        </label>
+                    {/if}
                 {:else if type === 'Furniture'}
                     <label>
                         <small>Price</small>
@@ -238,6 +282,15 @@
                     </label>
                 {:else if type === 'Hat'}
                     <!-- Need more info? -->
+                {/if}
+
+                <!-- Quality selector -->
+                <!-- svelte-ignore a11y-label-has-associated-control -->
+                {#if selectedItem.quality !== 0 || qualityCategories.includes(selectedItem.category)}
+                    <label>
+                        <small>Quality</small>
+                        <QualitySelector bind:item={selectedItem} />
+                    </label>
                 {/if}
             </div>
         {/if}
@@ -322,5 +375,9 @@
 
     .character-name {
         width: 10em;
+    }
+
+    small {
+        min-width: 5em;
     }
 </style>

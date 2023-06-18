@@ -2,6 +2,7 @@
     import { getContext } from 'svelte';
     import type { BigCraftable, Boots, Clothing, Furniture, Hat, ObjectInformation, Tool, Weapon } from '../../../types/dump';
     import type { Item } from '../../../types/save/1.5.6';
+    import { GetSpritesheet } from '$lib/Spritesheet';
 
     let spritesheet: string | undefined;
     let lookupItem: ObjectInformation | BigCraftable | Boots | Clothing | Furniture | Hat | Weapon | Tool | undefined;
@@ -11,46 +12,19 @@
     const itemData = getContext('itemData') as Map<string, ObjectInformation | BigCraftable | Boots | Clothing | Furniture | Hat | Weapon | Tool>;
     if (!itemData) throw new Error('No item data found');
 
+    // TODO clean up
     if (item) {
-        // This doesn't work for empty slots
-        // Empty inventory slots are <string xsi:nil="true" />, so we need to pretend like they don't exist.
-        if (!('Name' in item)) {
-            lookupItem = undefined;
-            spritesheet = undefined;
+        lookupItem = itemData.get(item.Name);
+        if (lookupItem) {
+            spritesheet = GetSpritesheet(lookupItem);
+
+            if (item.name === 'Fishing Rod') console.log(item);
         } else {
-            lookupItem = itemData.get(item.Name);
-            switch (lookupItem?._type) {
-                case 'ObjectInformation':
-                case 'Boots':
-                    spritesheet = 'springobjects.png';
-                    break;
-                case 'BigCraftable':
-                    spritesheet = 'Craftables.png';
-                    break;
-                case 'Hat':
-                    spritesheet = 'hats.png';
-                case 'Clothing':
-                    // TODO
-                    break;
-                case 'Furniture':
-                    spritesheet = 'furniture.png';
-                    break;
-                case 'RangedWeapon':
-                case 'MeleeWeapon':
-                    spritesheet = 'weapons.png';
-                    break;
-                case 'Tool':
-                    spritesheet = 'tools.png';
-                    break;
-                default:
-                    // @ts-expect-error
-                    console.warn('Unknown item type', lookupItem?._type);
-            }
+            console.error(`No item found for ${item.Name}`);
         }
-
-        // console.log(item);
-
-        if (item.name === 'Fishing Rod') console.log(item);
+    } else {
+        lookupItem = undefined;
+        spritesheet = undefined;
     }
 
     const handleClick = () => (selectedItem = lookupItem ? item : undefined);
@@ -58,7 +32,16 @@
 
 <!-- {item.IndexOfMenuItemView} -->
 <div class="wrapper" on:click={handleClick}>
-    <div class="item" style:--x={spritesheet && lookupItem && `${lookupItem?.sprite.x}px`} style:--y={spritesheet && lookupItem && `${lookupItem?.sprite.y}px`} style:--sprite={spritesheet && lookupItem && `url(/assets/${spritesheet})`} />
+    <div
+        class="item"
+        style:--x={spritesheet && lookupItem && `${lookupItem?.sprite.x}px`}
+        style:--y={spritesheet && lookupItem && `${lookupItem?.sprite.y}px`}
+        style:--sprite={spritesheet && lookupItem && `url(/assets/${spritesheet})`}
+        style:--r={item?.clothesColor?.R}
+        style:--g={item?.clothesColor?.G}
+        style:--b={item?.clothesColor?.B}
+        class:tint={(lookupItem?._type === 'Clothing' && lookupItem.dyeable) || item?.dyeable}
+        class:clothing={lookupItem?._type === 'Clothing' && lookupItem.type === 'Shirt'} />
 </div>
 
 <style>
@@ -71,6 +54,22 @@
         margin-top: -1px;
     }
 
+    /* .item.tint::after {
+        content: '';
+        width: 16px;
+        height: 16px;
+        position: absolute;
+        background-color: rgba(var(--r), var(--g), var(--b), 0.5);
+        cursor: pointer;
+        background-blend-mode: multiply;
+    } */
+
+    .item.clothing {
+        width: 8px;
+        height: 8px;
+        margin: 4px;
+    }
+
     .item:hover::after {
         content: '';
         width: 16px;
@@ -78,6 +77,11 @@
         position: absolute;
         background-color: rgba(255, 255, 255, 0.5);
         cursor: pointer;
+    }
+
+    .item.item.clothing:hover::after {
+        margin-top: -4px;
+        margin-left: -4px;
     }
 
     .wrapper {

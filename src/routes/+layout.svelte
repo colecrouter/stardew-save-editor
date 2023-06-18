@@ -23,8 +23,8 @@
         display: flex;
         flex-direction: column;
         align-items: center;
-        justify-content: center;
-        min-height: 100svh;
+        justify-content: start;
+        padding-top: 5rem;
     }
 
     :global(code) {

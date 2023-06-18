@@ -196,7 +196,7 @@ export type Season = "fall" | "winter" | "summer" | "spring";
 
 export interface DishOfTheDay {
     isLostItem: boolean;
-    category: number;
+    category: Category;
     hasBeenInInventory: boolean;
     name: string;
     parentSheetIndex: number;
@@ -707,7 +707,7 @@ export interface NPCElement {
 
 export interface Fridge {
     isLostItem: boolean;
-    category: number;
+    category: Category;
     hasBeenInInventory: boolean;
     name: string;
     parentSheetIndex: number;
@@ -822,7 +822,7 @@ export interface IndecentValue {
 
 export interface ObjectClass {
     isLostItem: boolean;
-    category: number;
+    category: Category;
     hasBeenInInventory: boolean;
     name: string;
     parentSheetIndex: number;
@@ -1364,12 +1364,12 @@ export interface Dictionary {
 }
 
 export interface PlayerItems {
-    Item: Array<Item>;
+    Item: Array<Item | undefined>;
 }
 
 export interface Item {
     isLostItem: boolean;
-    category: number;
+    category: Category;
     hasBeenInInventory: boolean;
     name: string;
     specialItem: boolean;
@@ -1614,7 +1614,7 @@ export interface Stats {
 
 export interface ToolBeingUpgraded {
     isLostItem: boolean;
-    category: number;
+    category: Category;
     hasBeenInInventory: boolean;
     name: string;
     specialItem: boolean;
@@ -1699,4 +1699,40 @@ export interface SpecialOrderReward {
     noLetter?: SleptInTemporaryBed;
     grantedMails?: AcceptedSpecialOrderTypes;
     host?: SleptInTemporaryBed;
+}
+
+export const enum Category {
+    Gem = -2,
+    Fish = -4,
+    Egg = -5,
+    Milk = -6,
+    Cooking = -7,
+    Crafting = -8,
+    BigCraftable = -9,
+    Mineral = -12,
+    Meat = -14,
+    MetalResources = -15,
+    BuildingResources = -16,
+    SellAtPierres = -17,
+    SellAtPierresAndMarnies = -18,
+    Fertilizer = -19,
+    Junk = -20,
+    Bait = -21,
+    Tackle = -22,
+    SellAtFishShop = -23,
+    Furniture = -24,
+    Ingredients = -25,
+    ArtisanGoods = -26,
+    Syrup = -27,
+    MonsterLoot = -28,
+    Equipment = -29,
+    Seeds = -74,
+    Vegetable = -75,
+    Fruit = -79,
+    Flower = -80,
+    Forage = -81,
+    Hat = -95,
+    Ring = -96,
+    Weapon = -98,
+    Tool = -99,
 }

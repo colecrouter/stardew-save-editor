@@ -25,7 +25,9 @@
 
 <div class="row">
     <div class="left">
-        <div class="portrait" style:background-image={`url('/assets/portraits/${name}.png')`} />
+        <div class="portrait-wrapper">
+            <div class="portrait" style:background-image={`url('/assets/portraits/${name}.png')`} />
+        </div>
         <strong>
             {name}
         </strong>
@@ -56,11 +58,20 @@
         text-align: center;
     }
 
+    .portrait-wrapper {
+        background-color: #d9ab6f;
+        box-shadow: 0 0 0 2px #b14e05, 0 0 0 4px #dc7b05, 0 0 0 6px #5b2b29;
+        margin: 6px;
+        box-sizing: border-box;
+        border-radius: 1px;
+    }
+
     .portrait {
         width: 64px;
         height: 64px;
         background-size: 200% auto;
-        margin-bottom: 2px;
+        border: 2px solid #f0d2a8;
+        border-radius: 2px;
     }
 
     .right {

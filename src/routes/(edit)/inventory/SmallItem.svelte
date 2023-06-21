@@ -17,8 +17,6 @@
         lookupItem = itemData.get(item.Name);
         if (lookupItem) {
             spritesheet = GetSpritesheet(lookupItem);
-
-            if (item.name === 'Fishing Rod') console.log(item);
         } else {
             console.error(`No item found for ${item.Name}`);
         }
@@ -30,7 +28,6 @@
     const handleClick = () => (selectedItem = lookupItem ? item : undefined);
 </script>
 
-<!-- {item.IndexOfMenuItemView} -->
 <div class="wrapper" on:click={handleClick}>
     <div
         class="item"

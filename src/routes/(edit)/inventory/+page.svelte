@@ -98,7 +98,6 @@
     // Selected item attributes
     let type: 'Tool' | 'ObjectInformation' | 'BigCraftable' | 'Boots' | 'Clothing' | 'Furniture' | 'Hat' | 'MeleeWeapon' | 'RangedWeapon' | undefined;
     $: (() => {
-        console.log(selectedItem);
         const item = selectedItem ? itemData.get(selectedItem?.Name) : undefined;
         type = item?._type;
 

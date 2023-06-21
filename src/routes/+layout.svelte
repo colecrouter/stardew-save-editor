@@ -17,6 +17,7 @@
         background-position: center;
         background-attachment: fixed;
         image-rendering: pixelated;
+        text-shadow: -0.05em 0.05em 0 rgba(0, 0, 0, 0.2);
     }
 
     main {
@@ -33,5 +34,15 @@
         padding: 0.2em 0.4em;
         border-radius: 0.3em;
         font-size: 85%;
+    }
+
+    :global(h1, h2, h3, h4, h5) {
+        margin: 0;
+        margin-bottom: 8px;
+        padding: 0 8px;
+    }
+
+    :global(h3) {
+        border-bottom: solid 2px #5b2b2a;
     }
 </style>

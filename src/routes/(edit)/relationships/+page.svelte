@@ -13,6 +13,7 @@
 </script>
 
 <Container>
+    <h3>Relationships</h3>
     <div class="wrapper">
         {#each characters as character}
             <HeartBar {character} />
@@ -24,8 +25,5 @@
     .wrapper {
         overflow-y: scroll;
         height: 20rem;
-    }
-
-    .inner {
     }
 </style>

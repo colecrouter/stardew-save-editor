@@ -186,7 +186,6 @@ const weaponsArray = Object.entries(weapons).map(([key, value]) => {
         } satisfies MeleeWeapon;
 });
 
-// 320
 const tools = {
     "6": "Milk Pail",
     "7": "Shears",
@@ -223,6 +222,14 @@ const toolsArray = Object.entries(tools).map(([key, value]) => {
         sprite: indexToSprite(Number(key), 16, 336),
     } satisfies Tool;
 });
+
+const cookingRecipes = JSON.parse(await readFile('./content/Data/CookingRecipes.json', 'utf-8')) as Record<string, string>;
+const cookingRecipesArray = Object.entries(cookingRecipes).map(([key]) => key);
+await writeFile('./static/cookingrecipes.json', JSON.stringify(cookingRecipesArray));
+
+const craftingRecipes = JSON.parse(await readFile('./content/Data/CraftingRecipes.json', 'utf-8')) as Record<string, string>;
+const craftingRecipesArray = Object.entries(craftingRecipes).map(([key]) => key);
+await writeFile('./static/craftingrecipes.json', JSON.stringify(craftingRecipesArray));
 
 const writeToFile = JSON.stringify([...objectsArray, ...bigCraftablesArray, ...bootsArray, ...clothingArray, ...furnitureArray, ...hatsArray, ...weaponsArray, ...toolsArray].map(item => [item.name, item]));
 await writeFile('./static/iteminfo.json', writeToFile);

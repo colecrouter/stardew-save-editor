@@ -48,9 +48,9 @@
         <small>
             Default save locations:
             <ul>
-                <li>Windows: <code>%appdata%\StardewValley\Saves</code></li>
-                <li>Mac: <code>~/Library/Application Support/StardewValley/Saves</code></li>
-                <li>Linux: <code>~/.config/StardewValley/Saves</code></li>
+                <li><span class="noselect">Windows: </span><code>%appdata%\StardewValley\Saves</code></li>
+                <li><span class="noselect">Mac: </span><code>~/Library/Application Support/StardewValley/Saves</code></li>
+                <li><span class="noselect">Linux: </span><code>~/.config/StardewValley/Saves</code></li>
             </ul>
 
             <div class="warning">Backup your save file. Invalid save files may break the game.</div>
@@ -110,6 +110,10 @@
 
     li {
         margin-top: 0.3em;
+    }
+
+    .noselect {
+        user-select: none;
     }
 
     .warning {

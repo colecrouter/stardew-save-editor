@@ -21,8 +21,6 @@
         lookupItem = itemData.get(item.Name);
         if (!lookupItem) break $;
         spritesheet = GetSpritesheet(lookupItem);
-
-        // if (item.name === 'Fishing Rod') console.log(item);
     }
 </script>
 

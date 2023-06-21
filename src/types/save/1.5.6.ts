@@ -1,4 +1,4 @@
-export interface SaveGame {
+export interface Save {
     player: Player;
     locations: Locations;
     currentSeason: Season;
@@ -65,7 +65,7 @@ export interface SaveGame {
     specialOrders: SpecialOrders;
     availableSpecialOrders: AvailableSpecialOrders;
     completedSpecialOrders: BroadcastedMail;
-    acceptedSpecialOrderTypes: AcceptedSpecialOrderTypes;
+    acceptedSpecialOrderTypes: String;
     returnedDonations: string;
     junimoChest: string;
     collectedNutTracker: string;
@@ -76,7 +76,7 @@ export interface SaveGame {
     gameVersionLabel: string;
 }
 
-export interface AcceptedSpecialOrderTypes {
+export interface String {
     string: string;
 }
 
@@ -142,15 +142,15 @@ export interface SleptInTemporaryBed {
 }
 
 export interface RewardsReward {
-    amount?: MaxEntries | number;
+    amount?: Number | number;
     multiplier?: Scale;
     noLetter?: SleptInTemporaryBed;
-    grantedMails?: AcceptedSpecialOrderTypes;
+    grantedMails?: String;
     host?: SleptInTemporaryBed;
     targetName?: string;
 }
 
-export interface MaxEntries {
+export interface Number {
     int: number;
 }
 
@@ -159,7 +159,7 @@ export interface Scale {
 }
 
 export interface RewardsClass {
-    amount: MaxEntries;
+    amount: Number;
 }
 
 export interface BroadcastedMail {
@@ -171,8 +171,8 @@ export interface BundleData {
 }
 
 export interface BundleDataItem {
-    key: AcceptedSpecialOrderTypes;
-    value: AcceptedSpecialOrderTypes;
+    key: String;
+    value: String;
 }
 
 export interface CellarAssignments {
@@ -180,7 +180,7 @@ export interface CellarAssignments {
 }
 
 export interface CellarAssignmentsItem {
-    key: MaxEntries;
+    key: Number;
     value: OwnerUIDClass;
 }
 
@@ -260,7 +260,7 @@ export type TypeEnum = "Cooking" | "Crafting" | "Basic" | "Minerals" | "asdf" | 
 
 export interface JunimoKartLeaderboards {
     entries: string;
-    maxEntries: MaxEntries;
+    maxEntries: Number;
 }
 
 export interface LocationWeather {
@@ -281,7 +281,7 @@ export interface PurpleValue {
 }
 
 export interface LocationWeatherClass {
-    weatherForTomorrow: MaxEntries;
+    weatherForTomorrow: Number;
     isRaining: SleptInTemporaryBed;
     isSnowing: SleptInTemporaryBed;
     isLightning: SleptInTemporaryBed;
@@ -408,7 +408,7 @@ export interface SerializableDictionaryOfStringString {
 }
 
 export interface SerializableDictionaryOfStringStringItem {
-    key: AcceptedSpecialOrderTypes;
+    key: String;
     value: FluffyValue;
 }
 
@@ -444,22 +444,24 @@ export interface Building {
     owner: number;
     isMoving: boolean;
     indoors?: Indoors;
+    fridge?: Fridge;
+    farmhand?: Player;
 }
 
 export interface BuildingPaintColor {
-    ColorName: AcceptedSpecialOrderTypes;
+    ColorName: String;
     Color1Default: SleptInTemporaryBed;
-    Color1Hue: MaxEntries;
-    Color1Saturation: MaxEntries;
-    Color1Lightness: MaxEntries;
+    Color1Hue: Number;
+    Color1Saturation: Number;
+    Color1Lightness: Number;
     Color2Default: SleptInTemporaryBed;
-    Color2Hue: MaxEntries;
-    Color2Saturation: MaxEntries;
-    Color2Lightness: MaxEntries;
+    Color2Hue: Number;
+    Color2Saturation: Number;
+    Color2Lightness: Number;
     Color3Default: SleptInTemporaryBed;
-    Color3Hue: MaxEntries;
-    Color3Saturation: MaxEntries;
-    Color3Lightness: MaxEntries;
+    Color3Hue: Number;
+    Color3Saturation: Number;
+    Color3Lightness: Number;
 }
 
 export interface HairstyleColor {
@@ -500,7 +502,7 @@ export interface Indoors {
     appliedWallpaper?: IndoorsAppliedFloor;
     floor?: string;
     appliedFloor?: IndoorsAppliedFloor;
-    upgradeLevel?: MaxEntries;
+    upgradeLevel?: Number;
 }
 
 export interface IndoorsAnimals {
@@ -616,7 +618,7 @@ export interface ChestConsumedLevels {
 }
 
 export interface ChestConsumedLevelsItem {
-    key: MaxEntries;
+    key: Number;
     value: SleptInTemporaryBed;
 }
 
@@ -625,7 +627,7 @@ export interface Bundles {
 }
 
 export interface BundlesItem {
-    key: MaxEntries;
+    key: Number;
     value: IndigoValue;
 }
 
@@ -690,7 +692,7 @@ export interface NPCElement {
     queuedSchedulePaths: string;
     lastAttemptedSchedule: number;
     dayScheduleName?: string;
-    endOfRouteBehaviorName: AcceptedSpecialOrderTypes;
+    endOfRouteBehaviorName: String;
     squareMovementFacingPreference: number;
     DefaultFacingDirection: number;
     DefaultMap?: string;
@@ -747,7 +749,7 @@ export interface Fridge {
     preservedParentSheetIndex: number;
     destroyOvernight: boolean;
     currentLidFrame: number;
-    lidFrameCount: MaxEntries;
+    lidFrameCount: Number;
     frameCounter: number;
     coins: number;
     items: FridgeItems;
@@ -804,7 +806,7 @@ export interface MuseumPieces {
 
 export interface MuseumPiecesItem {
     key: FluffyKey;
-    value: MaxEntries;
+    value: Number;
 }
 
 export interface ObjectsObjects {
@@ -869,7 +871,7 @@ export interface ObjectClass {
     gateMotion?: number;
     isGate?: boolean;
     currentLidFrame?: number;
-    lidFrameCount?: MaxEntries;
+    lidFrameCount?: Number;
     frameCounter?: number;
     coins?: number;
     items?: ObjectItems;
@@ -973,7 +975,7 @@ export interface Crop {
     maxHarvestIncreasePerFarmingLevel: number;
     daysOfUnclutteredGrowth: number;
     whichForageCrop: number;
-    seasonsToGrowIn: AcceptedSpecialOrderTypes | string;
+    seasonsToGrowIn: String | string;
     tintColor: HairstyleColor;
     flip: boolean;
     fullGrown: boolean;
@@ -990,7 +992,7 @@ export interface MinePermanentMineChanges {
 }
 
 export interface MinePermanentMineChangesItem {
-    key: MaxEntries;
+    key: Number;
     value: AmbitiousValue;
 }
 
@@ -1125,8 +1127,8 @@ export interface Player {
     items: PlayerItems;
     dialogueQuestionsAnswered: CropsOfTheWeek;
     furnitureOwned: string;
-    cookingRecipes: CookingRecipes;
-    craftingRecipes: CookingRecipes;
+    cookingRecipes: Recipes;
+    craftingRecipes: Recipes;
     activeDialogueEvents: ActiveDialogueEvents;
     eventsSeen: CropsOfTheWeek;
     secretNotesSeen: string;
@@ -1136,8 +1138,8 @@ export interface Player {
     specialBigCraftables: CropsOfTheWeek;
     mailReceived: BroadcastedMail;
     mailForTomorrow: string;
-    mailbox: AcceptedSpecialOrderTypes;
-    timeWentToBed: MaxEntries;
+    mailbox: String;
+    timeWentToBed: Number;
     sleptInTemporaryBed: SleptInTemporaryBed;
     stats: Stats;
     blueprints: string;
@@ -1278,12 +1280,12 @@ export interface Player {
 }
 
 export interface ActiveDialogueEvents {
-    item: ActiveDialogueEventsItem;
+    item: KV;
 }
 
-export interface ActiveDialogueEventsItem {
-    key: AcceptedSpecialOrderTypes;
-    value: MaxEntries;
+export interface KV {
+    key: String;
+    value: Number;
 }
 
 export interface ArchaeologyFound {
@@ -1291,7 +1293,7 @@ export interface ArchaeologyFound {
 }
 
 export interface ArchaeologyFoundItem {
-    key: MaxEntries;
+    key: Number;
     value: CunningValue;
 }
 
@@ -1304,12 +1306,12 @@ export interface BasicShipped {
 }
 
 export interface BasicShippedItem {
-    key: MaxEntries;
-    value: MaxEntries;
+    key: Number;
+    value: Number;
 }
 
-export interface CookingRecipes {
-    item: ActiveDialogueEventsItem[];
+export interface Recipes {
+    item: KV[];
 }
 
 export interface FriendshipData {
@@ -1317,7 +1319,7 @@ export interface FriendshipData {
 }
 
 export interface FriendshipDataItem {
-    key: AcceptedSpecialOrderTypes;
+    key: String;
     value: MagentaValue;
 }
 
@@ -1351,7 +1353,7 @@ export interface GiftedItems {
 }
 
 export interface GiftedItemsItem {
-    key: AcceptedSpecialOrderTypes;
+    key: String;
     value: FriskyValue;
 }
 
@@ -1407,7 +1409,7 @@ export interface Item {
     critMultiplier?: number;
     appearance?: number;
     isOnSpecial?: boolean;
-    additionalPower?: MaxEntries;
+    additionalPower?: Number;
     parentSheetIndex?: number;
     tileLocation?: IncubatingEgg;
     owner?: number;
@@ -1488,7 +1490,7 @@ export interface Quest {
     questType: number;
     daysLeft: number;
     dayQuestAccepted: number;
-    nextQuests: MaxEntries;
+    nextQuests: Number;
     questTitle: string;
     targetMessage?: string;
     target?: string;
@@ -1556,7 +1558,7 @@ export interface Stats {
     goodFriends: number;
     totalMoneyGifted: number;
     individualMoneyEarned: number;
-    specificMonstersKilled: CookingRecipes;
+    specificMonstersKilled: Recipes;
     stat_dictionary: string;
     GoodFriends: number;
     CropsShipped: number;
@@ -1694,10 +1696,10 @@ export interface ParticipantsIDsItem {
 }
 
 export interface SpecialOrderReward {
-    amount?: MaxEntries;
+    amount?: Number;
     multiplier?: Scale;
     noLetter?: SleptInTemporaryBed;
-    grantedMails?: AcceptedSpecialOrderTypes;
+    grantedMails?: String;
     host?: SleptInTemporaryBed;
 }
 

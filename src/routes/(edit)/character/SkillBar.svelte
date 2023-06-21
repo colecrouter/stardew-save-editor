@@ -4,7 +4,6 @@
 
 <script lang="ts">
     export let skill: number;
-    console.log(skill);
 </script>
 
 <div class="wrapper">

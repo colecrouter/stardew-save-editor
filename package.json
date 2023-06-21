@@ -13,7 +13,6 @@
 	"devDependencies": {
 		"@sveltejs/adapter-auto": "^2.0.0",
 		"@sveltejs/kit": "^1.5.0",
-		"@total-typescript/ts-reset": "^0.4.2",
 		"@types/node": "^18.15.11",
 		"fast-xml-parser": "^4.2.0",
 		"svelte": "^3.54.0",

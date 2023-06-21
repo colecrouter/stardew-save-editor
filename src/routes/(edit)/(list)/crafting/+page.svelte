@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { SaveGame } from '$lib/Upload';
+    import { Character, SaveGame } from '$lib/SaveFile';
     import type { KV } from '$types/save/1.5.6';
     import Container from '../../../Container.svelte';
     import List from '../List.svelte';
@@ -9,10 +9,10 @@
     const recipes = data.recipes;
 
     let recipesUnlocked: KV[];
-    SaveGame.subscribe((s) => {
-        if (!s) return;
+    Character.character.subscribe((c) => {
+        if (!c) return;
 
-        recipesUnlocked = s.SaveGame.player.craftingRecipes.item;
+        recipesUnlocked = c.craftingRecipes?.item ?? [];
     });
 </script>
 

@@ -1,11 +1,10 @@
 <script lang="ts">
-    import { SaveGame } from '$lib/Upload';
+    import { Character, SaveGame } from '$lib/SaveFile';
     import type { GameLocation, Player, Save } from '../../../types/save/1.5.6';
     import Container from '../../Container.svelte';
     import SkillBar from './SkillBar.svelte';
     import WalletItem from './WalletItem.svelte';
 
-    let save: Save;
     let player: Player;
     let skillValues: number[];
 
@@ -19,33 +18,32 @@
     let hasMagicInk: boolean;
     let hasTownKey: boolean;
 
+    Character.character.subscribe((c) => {
+        if (!c) return;
+        player = c;
+
+        hasTranslation = c.canUnderstandDwarves;
+        hasRustyKey = c.hasRustyKey;
+        hasClubCard = c.hasClubCard;
+        hasSpecialCharm = c.hasSpecialCharm;
+        hasSkullKey = c.hasSkullKey;
+        hasMagnifyingGlass = c.hasMagnifyingGlass;
+        hasDarkTalisman = c.hasDarkTalisman;
+        hasMagicInk = c.hasMagicInk;
+        hasTownKey = c.HasTownKey;
+
+        skillValues = c.experiencePoints.int.slice(0, 5);
+    });
+
+    let save: Save;
     let farm: GameLocation;
     SaveGame.subscribe((s) => {
         if (!s) return;
         save = s.SaveGame;
-        player = s.SaveGame.player;
         farm = s.SaveGame.locations.GameLocation.find((l) => l.name === 'Farm')!;
-        skillValues = player.experiencePoints.int.slice(0, 5);
-
-        hasTranslation = player.canUnderstandDwarves;
-        hasRustyKey = player.hasRustyKey;
-        hasClubCard = player.hasClubCard;
-        hasSpecialCharm = player.hasSpecialCharm;
-        hasSkullKey = player.hasSkullKey;
-        hasMagnifyingGlass = player.hasMagnifyingGlass;
-        hasDarkTalisman = player.hasDarkTalisman;
-        hasMagicInk = player.hasMagicInk;
-        hasTownKey = player.HasTownKey;
     });
 
     const skills = ['Farming 🥕', 'Mining ⛏️', 'Foraging 🌳', 'Fishing 🎣', 'Combat ⚔️'];
-
-    $: {
-        if (!player) break $;
-        for (let i = 0; i < skillValues.length; i++) {
-            player.experiencePoints.int[i] = skillValues[i];
-        }
-    }
 
     $: player.canUnderstandDwarves = hasTranslation;
     $: player.hasRustyKey = hasRustyKey;

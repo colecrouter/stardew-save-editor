@@ -1,24 +1,31 @@
 <script lang="ts">
     import { goto } from '$app/navigation';
     import { page } from '$app/stores';
-    import { FileName, SaveGame } from '$lib/Upload';
+    import { FileName, SaveGame, Character } from '$lib/SaveFile';
     import { get } from 'svelte/store';
     import type { LayoutData } from './$types';
     import { setContext } from 'svelte';
     import SidebarButton from './SidebarButton.svelte';
     import Router from './Router.svelte';
-
-    page.subscribe(() => get(SaveGame) == undefined && goto('/'));
+    import { tooltip } from '$lib/Tooltip';
 
     export let data: LayoutData;
+
+    // If the save changes for whatever reason, go back to the main screen
+    page.subscribe(() => get(SaveGame) == undefined && goto('/'));
+
+    // Set the context for the item data for components to use
+    // TODO move this to a data load function for the inventory page
     setContext('itemData', data.itemData);
 
+    // Go back to the upload page
     const cancel = () => {
         SaveGame.set(undefined);
         FileName.set(undefined);
         goto('/');
     };
 
+    // Download the save file
     const save = async () => {
         const save = get(SaveGame);
         const filename = get(FileName);
@@ -58,8 +65,10 @@
             <slot />
         </div>
         <div class="sidebar">
-            <SidebarButton on:click={() => cancel()}>❌</SidebarButton>
-            <SidebarButton on:click={() => save()}>💾</SidebarButton>
+            <div use:tooltip aria-label="Exit"><SidebarButton on:click={() => cancel()}>❌</SidebarButton></div>
+            <div use:tooltip aria-label="Save"><SidebarButton on:click={() => save()}>💾</SidebarButton></div>
+            <div use:tooltip aria-label="Previous Character"><SidebarButton on:click={Character.prev}>⬅️</SidebarButton></div>
+            <div use:tooltip aria-label="Next Character"><SidebarButton on:click={Character.next}>➡️</SidebarButton></div>
         </div>
     </div>
 </div>

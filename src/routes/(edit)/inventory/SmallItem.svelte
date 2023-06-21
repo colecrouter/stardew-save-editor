@@ -13,12 +13,12 @@
     if (!itemData) throw new Error('No item data found');
 
     // TODO clean up
-    if (item) {
+    $: if (item) {
         lookupItem = itemData.get(item.Name);
         if (lookupItem) {
             spritesheet = GetSpritesheet(lookupItem);
         } else {
-            console.error(`No item found for ${item.Name}`);
+            console.error(`No item found for ${JSON.stringify(item)}`);
         }
     } else {
         lookupItem = undefined;

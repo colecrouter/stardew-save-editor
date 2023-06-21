@@ -9,18 +9,16 @@
 
     let name = character.key.string;
     let dateable = DateableCharacters.some((c) => c == name);
-    let amount = character.value.Friendship.Points;
+    let amount: number;
     let relationship: string;
     let hearts: number;
     let maxhearts: number;
 
     // Update values for visuals
+    $: amount = character.value.Friendship.Points;
     $: relationship = character.value.Friendship.Status;
     $: hearts = Math.floor(amount / 250);
     $: maxhearts = dateable ? (relationship == 'Married' ? 14 : relationship == 'Dating' ? 10 : 8) : 10;
-
-    // Reapply changes to amount
-    $: character.value.Friendship.Points = Math.max(0, amount);
 </script>
 
 <div class="row">
@@ -35,16 +33,16 @@
     <div class="right">
         <div class="hearts">
             {#each Array(hearts) as _, i}
-                ❤️
+                <span>❤️</span>
             {/each}
             {#each Array(maxhearts - hearts) as _, i}
-                🖤
+                <span>🖤</span>
             {/each}
             {#each Array(14 - maxhearts) as _, i}
-                🏳️
+                <span>🏳️</span>
             {/each}
         </div>
-        <input type="number" class="amount" bind:value={amount} />
+        <input type="number" class="amount" bind:value={amount} on:change={() => (character.value.Friendship.Points = Math.max(0, amount))} />
     </div>
 </div>
 
@@ -84,6 +82,10 @@
 
     .hearts {
         text-shadow: -1px 1px 0 #000;
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
+        align-items: center;
     }
 
     .amount {

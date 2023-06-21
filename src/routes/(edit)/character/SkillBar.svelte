@@ -42,7 +42,7 @@
     .pill.active {
         width: 6px;
         height: 16px;
-        margin: 0 5px;
+        margin: -1px 5px;
         background-color: #dd003b;
         border-top-color: #ff6948;
         border-right-color: #ff6948;

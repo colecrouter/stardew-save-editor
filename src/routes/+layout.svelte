@@ -45,4 +45,35 @@
     :global(h3) {
         border-bottom: solid 2px #5b2b2a;
     }
+
+    :global(.tooltip) {
+        white-space: nowrap;
+        position: relative;
+    }
+
+    :global(#tooltip) {
+        position: absolute;
+        bottom: 120%;
+        right: 1rem;
+        transform: translate(50%, 0);
+        padding: 0.2rem 0.35rem;
+        background: hsl(0, 0%, 20%);
+        color: hsl(0, 0%, 98%);
+        font-size: 0.95em;
+        border-radius: 0.25rem;
+        filter: drop-shadow(0 1px 2px hsla(0, 0%, 0%, 0.2));
+        width: max-content;
+    }
+
+    :global(.tooltip:not(:focus) #tooltip::before) {
+        content: '';
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 0.6em;
+        height: 0.25em;
+        background: inherit;
+        clip-path: polygon(0% 0%, 100% 0%, 50% 100%);
+    }
 </style>

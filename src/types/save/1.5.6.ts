@@ -2,19 +2,19 @@ export interface Save {
     player: Player;
     locations: Locations;
     currentSeason: Season;
-    samBandName: string;
-    elliottBookName: string;
+    samBandName?: string;
+    elliottBookName?: string;
     broadcastedMail: BroadcastedMail;
     worldStateIDs: string;
-    lostBooksFound: number;
-    goldenWalnuts: number;
-    goldenWalnutsFound: number;
-    miniShippingBinsObtained: number;
-    mineShrineActivated: boolean;
-    goldenCoconutCracked: boolean;
-    parrotPlatformsUnlocked: boolean;
-    farmPerfect: boolean;
-    foundBuriedNuts: string;
+    lostBooksFound?: number;
+    goldenWalnuts?: number;
+    goldenWalnutsFound?: number;
+    miniShippingBinsObtained?: number;
+    mineShrineActivated?: boolean;
+    goldenCoconutCracked?: boolean;
+    parrotPlatformsUnlocked?: boolean;
+    farmPerfect?: boolean;
+    foundBuriedNuts?: string;
     visitsUntilY1Guarantee: number;
     shuffleMineChests: string;
     dayOfMonth: number;
@@ -445,7 +445,6 @@ export interface Building {
     isMoving: boolean;
     indoors?: Indoors;
     fridge?: Fridge;
-    farmhand?: Player;
 }
 
 export interface BuildingPaintColor {
@@ -503,6 +502,7 @@ export interface Indoors {
     floor?: string;
     appliedFloor?: IndoorsAppliedFloor;
     upgradeLevel?: Number;
+    farmhand?: Player;
 }
 
 export interface IndoorsAnimals {
@@ -1127,8 +1127,8 @@ export interface Player {
     items: PlayerItems;
     dialogueQuestionsAnswered: CropsOfTheWeek;
     furnitureOwned: string;
-    cookingRecipes: Recipes;
-    craftingRecipes: Recipes;
+    cookingRecipes?: Recipes;
+    craftingRecipes?: Recipes;
     activeDialogueEvents: ActiveDialogueEvents;
     eventsSeen: CropsOfTheWeek;
     secretNotesSeen: string;

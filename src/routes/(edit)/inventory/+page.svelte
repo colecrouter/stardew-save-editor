@@ -17,10 +17,10 @@
 </script>
 
 <script lang="ts">
-    import { SaveGame } from '$lib/Upload';
+    import { SaveGame, Character } from '$lib/SaveFile';
     import { getContext } from 'svelte';
     import type { BigCraftable, Boots, Clothing, Furniture, Hat, ObjectInformation, Tool, Weapon } from '../../../types/dump';
-    import { Category, type HairstyleColor, type Item } from '../../../types/save/1.5.6';
+    import { Category, type HairstyleColor, type Item, type Player } from '../../../types/save/1.5.6';
     import Container from '../../Container.svelte';
     import BigItem from './BigItem.svelte';
     import QualitySelector from './QualitySelector.svelte';
@@ -60,40 +60,40 @@
     let currentFunds: number;
     let totalEarnings: number;
 
-    let save: SaveFile;
-    SaveGame.subscribe((s) => {
-        if (!s) return;
+    let player: Player;
+    Character.character.subscribe((c) => {
+        if (!c) return;
 
-        save = s;
+        player = c;
 
-        hotbar = save.SaveGame.player.items.Item.slice(0, 12);
-        inventory = save.SaveGame.player.items.Item.slice(12);
+        hotbar = c.items.Item.slice(0, 12);
+        inventory = c.items.Item.slice(12);
 
-        boots = save.SaveGame.player.boots;
-        pants = save.SaveGame.player.pantsItem;
-        shirt = save.SaveGame.player.shirtItem;
-        hat = save.SaveGame.player.hat;
-        leftRing = save.SaveGame.player.leftRing;
-        rightRing = save.SaveGame.player.rightRing;
+        boots = c.boots;
+        pants = c.pantsItem;
+        shirt = c.shirtItem;
+        hat = c.hat;
+        leftRing = c.leftRing;
+        rightRing = c.rightRing;
 
-        playerName = save.SaveGame.player.name;
-        farmName = save.SaveGame.player.farmName;
-        currentFunds = save.SaveGame.player.money;
-        totalEarnings = save.SaveGame.player.totalMoneyEarned;
+        playerName = c.name;
+        farmName = c.farmName;
+        currentFunds = c.money;
+        totalEarnings = c.totalMoneyEarned;
     });
 
     // Update save when changes are made
-    $: save && (save.SaveGame.player.boots = typeof boots == 'string' ? undefined : boots);
-    $: save && (save.SaveGame.player.pantsItem = typeof pants == 'string' ? undefined : pants);
-    $: save && (save.SaveGame.player.shirtItem = typeof shirt == 'string' ? undefined : shirt);
-    $: save && (save.SaveGame.player.hat = typeof hat == 'string' ? undefined : hat);
-    $: save && (save.SaveGame.player.leftRing = typeof leftRing == 'string' ? undefined : leftRing);
-    $: save && (save.SaveGame.player.rightRing = typeof rightRing == 'string' ? undefined : rightRing);
+    $: player && (player.boots = typeof boots == 'string' ? undefined : boots);
+    $: player && (player.pantsItem = typeof pants == 'string' ? undefined : pants);
+    $: player && (player.shirtItem = typeof shirt == 'string' ? undefined : shirt);
+    $: player && (player.hat = typeof hat == 'string' ? undefined : hat);
+    $: player && (player.leftRing = typeof leftRing == 'string' ? undefined : leftRing);
+    $: player && (player.rightRing = typeof rightRing == 'string' ? undefined : rightRing);
 
-    $: save && (save.SaveGame.player.name = playerName);
-    $: save && (save.SaveGame.player.farmName = farmName);
-    $: save && (save.SaveGame.player.money = currentFunds);
-    $: save && (save.SaveGame.player.totalMoneyEarned = totalEarnings);
+    $: player && (player.name = playerName);
+    $: player && (player.farmName = farmName);
+    $: player && (player.money = currentFunds);
+    $: player && (player.totalMoneyEarned = totalEarnings);
 
     // Selected item attributes
     let type: 'Tool' | 'ObjectInformation' | 'BigCraftable' | 'Boots' | 'Clothing' | 'Furniture' | 'Hat' | 'MeleeWeapon' | 'RangedWeapon' | undefined;

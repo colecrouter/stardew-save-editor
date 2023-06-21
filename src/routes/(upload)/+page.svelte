@@ -1,6 +1,6 @@
 <script lang="ts">
     import { goto } from '$app/navigation';
-    import { FileName, SaveGame } from '$lib/Upload';
+    import { FileName, SaveGame } from '$lib/SaveFile';
     import Container from '../Container.svelte';
 
     let submit: HTMLInputElement;

@@ -9,11 +9,10 @@ Open source web-based save editor for Stardew Valley. Contributions welcome.
 - [x] Modfy relationships
 - [X] Modify skills
 - [X] Unlock recipes
+- [X] Switch characters
 - [ ] Add/remove items
-- [ ] Switch characters
 - [ ] Edit animals
 - [ ] Edit day/weather
-- [ ] Edit builds
 - [ ] Edit farm layout
 - [ ] Edit chests
 - [ ] Map editor

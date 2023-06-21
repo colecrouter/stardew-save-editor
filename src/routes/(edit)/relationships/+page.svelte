@@ -1,14 +1,14 @@
 <script lang="ts">
-    import { SaveGame } from '$lib/Upload';
+    import { Character, SaveGame } from '$lib/SaveFile';
     import type { FriendshipDataItem } from '../../../types/save/1.5.6';
     import Container from '../../Container.svelte';
     import HeartBar from './HeartBar.svelte';
 
     let characters: FriendshipDataItem[] = [];
-    SaveGame.subscribe((s) => {
-        if (!s) return;
+    Character.character.subscribe((c) => {
+        if (!c) return;
 
-        characters = s.SaveGame.player.friendshipData.item;
+        characters = c.friendshipData.item;
     });
 </script>
 

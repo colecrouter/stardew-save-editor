@@ -15,7 +15,8 @@ const config = {
 		alias: {
 			$types: './src/types',
 		}
-	}
+	},
+	vitePlugin: { inspector: true },
 };
 
 export default config;

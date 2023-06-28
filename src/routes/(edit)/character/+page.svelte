@@ -1,6 +1,7 @@
 <script lang="ts">
     import { Character, SaveGame } from '$lib/SaveFile';
-    import type { GameLocation, Player, Save } from '../../../types/save/1.5.6';
+    import { tooltip } from '$lib/Tooltip';
+    import type { GameLocation, Player, Save } from '../../../types/save/1.5';
     import Container from '../../Container.svelte';
     import SkillBar from './SkillBar.svelte';
     import WalletItem from './WalletItem.svelte';
@@ -105,15 +106,15 @@
     <h3>Wallet</h3>
 
     <div class="wallet">
-        <WalletItem bind:value={hasTranslation}>📙</WalletItem>
-        <WalletItem bind:value={hasRustyKey}>🗝️</WalletItem>
-        <WalletItem bind:value={hasClubCard}>🃏</WalletItem>
-        <WalletItem bind:value={hasSpecialCharm}>🍀</WalletItem>
-        <WalletItem bind:value={hasSkullKey}>💀</WalletItem>
-        <WalletItem bind:value={hasMagnifyingGlass}>🔍</WalletItem>
-        <WalletItem bind:value={hasDarkTalisman}>🌑</WalletItem>
-        <WalletItem bind:value={hasMagicInk}>🖋️</WalletItem>
-        <WalletItem bind:value={hasTownKey}>🏘️</WalletItem>
+        <div aria-label="Dwarvish Translation Guide" use:tooltip><WalletItem bind:value={hasTranslation}>📙</WalletItem></div>
+        <div aria-label="Rusty Key" use:tooltip><WalletItem bind:value={hasRustyKey}>🗝️</WalletItem></div>
+        <div aria-label="Club Card" use:tooltip><WalletItem bind:value={hasClubCard}>🃏</WalletItem></div>
+        <div aria-label="Special Charm" use:tooltip><WalletItem bind:value={hasSpecialCharm}>🍀</WalletItem></div>
+        <div aria-label="Skull Key" use:tooltip><WalletItem bind:value={hasSkullKey}>💀</WalletItem></div>
+        <div aria-label="Magnifying Glass" use:tooltip><WalletItem bind:value={hasMagnifyingGlass}>🔍</WalletItem></div>
+        <div aria-label="Dark Talisman" use:tooltip><WalletItem bind:value={hasDarkTalisman}>🌑</WalletItem></div>
+        <div aria-label="Magic Ink" use:tooltip><WalletItem bind:value={hasMagicInk}>🖋️</WalletItem></div>
+        <div aria-label="Town Key" use:tooltip><WalletItem bind:value={hasTownKey}>🏘️</WalletItem></div>
     </div>
 </Container>
 

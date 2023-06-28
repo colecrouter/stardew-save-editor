@@ -4,15 +4,16 @@
     import { FileName, SaveGame, Character } from '$lib/SaveFile';
     import { get } from 'svelte/store';
     import type { LayoutData } from './$types';
-    import { setContext } from 'svelte';
-    import SidebarButton from './SidebarButton.svelte';
+    import { onDestroy, setContext } from 'svelte';
+    import SidebarButton from '../SidebarButton.svelte';
     import Router from './Router.svelte';
     import { tooltip } from '$lib/Tooltip';
 
     export let data: LayoutData;
 
     // If the save changes for whatever reason, go back to the main screen
-    page.subscribe(() => get(SaveGame) == undefined && goto('/'));
+    const unsub = page.subscribe(() => get(SaveGame) == undefined && goto('/'));
+    onDestroy(() => unsub());
 
     // Set the context for the item data for components to use
     // TODO move this to a data load function for the inventory page
@@ -26,7 +27,7 @@
     };
 
     // Download the save file
-    const save = async () => {
+    const download = async () => {
         const save = get(SaveGame);
         const filename = get(FileName);
         if (!save || !filename) {
@@ -66,7 +67,7 @@
         </div>
         <div class="sidebar">
             <div use:tooltip aria-label="Exit"><SidebarButton on:click={() => cancel()}>❌</SidebarButton></div>
-            <div use:tooltip aria-label="Save"><SidebarButton on:click={() => save()}>💾</SidebarButton></div>
+            <div use:tooltip aria-label="Save"><SidebarButton on:click={() => download()}>💾</SidebarButton></div>
             <div use:tooltip aria-label="Previous Character"><SidebarButton on:click={Character.prev}>⬅️</SidebarButton></div>
             <div use:tooltip aria-label="Next Character"><SidebarButton on:click={Character.next}>➡️</SidebarButton></div>
         </div>
@@ -96,18 +97,5 @@
         display: flex;
         flex-direction: column;
         gap: 8px;
-    }
-
-    :global(input[type='text'], input[type='number']) {
-        border: solid 2px;
-        border-bottom-color: #ffe4a1;
-        border-left-color: #ffe4a1;
-        border-right-color: #d68f54;
-        border-top-color: #d68f54;
-        background-color: #ffc677;
-    }
-
-    :global(input[type='text']:focus, input[type='number']:focus) {
-        outline: none;
     }
 </style>

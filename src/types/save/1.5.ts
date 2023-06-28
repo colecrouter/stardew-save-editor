@@ -25,7 +25,7 @@ export interface Save {
     currentFloor: number;
     currentSongIndex: number;
     countdownToWedding: string;
-    incubatingEgg: IncubatingEgg;
+    incubatingEgg: TileLocation;
     chanceToRainTomorrow: number;
     dailyLuck: number;
     uniqueIDForThisGame: number;
@@ -41,7 +41,7 @@ export interface Save {
     musicVolume: number;
     soundVolume: number;
     cropsOfTheWeek: CropsOfTheWeek;
-    dishOfTheDay: DishOfTheDay;
+    Item: Item;
     highestPlayerLimit: number;
     moveBuildingPermissionMode: number;
     locationWeather: LocationWeather;
@@ -116,7 +116,7 @@ export interface ObjectivesObjective {
     acceptableContextTagSets?: string;
     dropBox?: string;
     dropBoxGameLocation?: string;
-    dropBoxTileLocation?: IncubatingEgg;
+    dropBoxTileLocation?: TileLocation;
     minimumCapacity?: number;
     confirmed?: boolean;
     targetNames?: string;
@@ -124,7 +124,7 @@ export interface ObjectivesObjective {
     message?: string;
 }
 
-export interface IncubatingEgg {
+export interface TileLocation {
     X: number;
     Y: number;
 }
@@ -194,66 +194,12 @@ export interface CropsOfTheWeek {
 
 export type Season = "fall" | "winter" | "summer" | "spring";
 
-export interface DishOfTheDay {
-    isLostItem: boolean;
-    category: Category;
-    hasBeenInInventory: boolean;
-    name: string;
-    parentSheetIndex: number;
-    specialItem: boolean;
-    SpecialVariable: number;
-    DisplayName: string;
-    Name: string;
-    Stack: number;
-    tileLocation: IncubatingEgg;
-    owner: number;
-    type?: TypeEnum;
-    canBeSetDown: boolean;
-    canBeGrabbed: boolean;
-    isHoedirt: boolean;
-    isSpawnedObject: boolean;
-    questItem: boolean;
-    questId: number;
-    isOn: boolean;
-    fragility: number;
-    price: number;
-    edibility: number;
-    stack: number;
-    quality: number;
-    bigCraftable: boolean;
-    setOutdoors: boolean;
-    setIndoors: boolean;
-    readyForHarvest: boolean;
-    showNextIndex: boolean;
-    flipped: boolean;
-    hasBeenPickedUpByFarmer: boolean;
-    isRecipe: boolean;
-    isLamp: boolean;
-    minutesUntilReady: number;
-    boundingBox: BoundingBox;
-    scale: IncubatingEgg;
-    uses: number;
-    preservedParentSheetIndex: number;
-    destroyOvernight: boolean;
-    heldObject?: DishOfTheDay;
-    preserve?: string;
-    furniture_type?: number;
-    rotations?: number;
-    currentRotation?: number;
-    sourceRect?: BoundingBox;
-    defaultSourceRect?: BoundingBox;
-    defaultBoundingBox?: BoundingBox;
-    drawHeldObjectLow?: boolean;
-    bedType?: string;
-}
-
 export interface BoundingBox {
     X: number;
     Y: number;
     Width: number;
     Height: number;
-    Location: IncubatingEgg;
-    Size: IncubatingEgg;
+    Location: TileLocation;
 }
 
 export type TypeEnum = "Cooking" | "Crafting" | "Basic" | "Minerals" | "asdf" | "Fish" | "Arch" | "Seeds";
@@ -324,7 +270,7 @@ export interface GameLocation {
     greenhouseUnlocked?: boolean;
     greenhouseMoved?: boolean;
     petBowlWatered?: SleptInTemporaryBed;
-    spousePatioSpot?: IncubatingEgg;
+    spousePatioSpot?: TileLocation;
     Animals?: GameLocationAnimals;
     wallPaper?: string;
     appliedWallpaper?: GameLocationAppliedFloor;
@@ -333,7 +279,7 @@ export interface GameLocation {
     farmerNumberOfOwner?: number;
     fireplaceOn?: boolean;
     fridge?: Fridge;
-    fridgePosition?: IncubatingEgg;
+    fridgePosition?: TileLocation;
     cribStyle?: number;
     daysUntilCommunityUpgrade?: number;
     itemsFromPlayerToSell?: string;
@@ -374,7 +320,7 @@ export interface GameLocation {
     farmhouseRestored?: boolean;
     farmhouseMailbox?: boolean;
     farmObelisk?: boolean;
-    shippingBinPosition?: IncubatingEgg;
+    shippingBinPosition?: TileLocation;
     traderActivated?: boolean;
     boulderRemoved?: boolean;
     caveOpened?: boolean;
@@ -435,8 +381,8 @@ export interface Building {
     daysUntilUpgrade: number;
     buildingType: string;
     buildingPaintColor: BuildingPaintColor;
-    humanDoor: IncubatingEgg;
-    animalDoor: IncubatingEgg;
+    humanDoor: TileLocation;
+    animalDoor: TileLocation;
     color: HairstyleColor;
     animalDoorOpen: boolean;
     magical: boolean;
@@ -495,7 +441,7 @@ export interface Indoors {
     animals?: Animals;
     animalLimit?: number;
     animalsThatLiveHere?: AnimalsThatLiveHere;
-    incubatingEgg?: IncubatingEgg;
+    incubatingEgg?: TileLocation;
     Animals?: IndoorsAnimals;
     wallPaper?: string;
     appliedWallpaper?: IndoorsAppliedFloor;
@@ -539,7 +485,7 @@ export interface FarmAnimal {
     glowingTransparency: number;
     glowRate: number;
     willDestroyObjectsUnderfoot: boolean;
-    Position: IncubatingEgg;
+    Position: TileLocation;
     Speed: number;
     FacingDirection: number;
     IsEmoting: boolean;
@@ -582,7 +528,7 @@ export interface FarmAnimal {
     myID: number;
     ownerID: number;
     parentId: number;
-    homeLocation: IncubatingEgg;
+    homeLocation: TileLocation;
     moodMessage: number;
     isEating: boolean;
     displayName: string;
@@ -606,11 +552,11 @@ export interface ObjectsItemClass {
 }
 
 export interface FluffyKey {
-    Vector2: IncubatingEgg;
+    Vector2: TileLocation;
 }
 
 export interface StickyValue {
-    Object: DishOfTheDay;
+    Object: Item;
 }
 
 export interface ChestConsumedLevels {
@@ -656,7 +602,7 @@ export interface NPCElement {
     glowingTransparency: number;
     glowRate: number;
     willDestroyObjectsUnderfoot: boolean;
-    Position: IncubatingEgg;
+    Position: TileLocation;
     Speed: number;
     FacingDirection: number;
     IsEmoting: boolean;
@@ -696,7 +642,7 @@ export interface NPCElement {
     squareMovementFacingPreference: number;
     DefaultFacingDirection: number;
     DefaultMap?: string;
-    DefaultPosition: IncubatingEgg;
+    DefaultPosition: TileLocation;
     IsWalkingInSquare: boolean;
     IsWalkingTowardPlayer: boolean;
     whichBreed?: number;
@@ -707,47 +653,7 @@ export interface NPCElement {
     CurrentBehavior?: number;
 }
 
-export interface Fridge {
-    isLostItem: boolean;
-    category: Category;
-    hasBeenInInventory: boolean;
-    name: string;
-    parentSheetIndex: number;
-    specialItem: boolean;
-    SpecialVariable: number;
-    DisplayName: string;
-    Name: string;
-    Stack: number;
-    tileLocation: IncubatingEgg;
-    owner: number;
-    type: TypeEnum;
-    canBeSetDown: boolean;
-    canBeGrabbed: boolean;
-    isHoedirt: boolean;
-    isSpawnedObject: boolean;
-    questItem: boolean;
-    questId: number;
-    isOn: boolean;
-    fragility: number;
-    price: number;
-    edibility: number;
-    stack: number;
-    quality: number;
-    bigCraftable: boolean;
-    setOutdoors: boolean;
-    setIndoors: boolean;
-    readyForHarvest: boolean;
-    showNextIndex: boolean;
-    flipped: boolean;
-    hasBeenPickedUpByFarmer: boolean;
-    isRecipe: boolean;
-    isLamp: boolean;
-    minutesUntilReady: number;
-    boundingBox: BoundingBox;
-    scale: IncubatingEgg;
-    uses: number;
-    preservedParentSheetIndex: number;
-    destroyOvernight: boolean;
+export interface Fridge extends Item {
     currentLidFrame: number;
     lidFrameCount: Number;
     frameCounter: number;
@@ -776,7 +682,7 @@ export interface SeparateWalletItems {
 }
 
 export interface FurnitureClass {
-    Furniture: DishOfTheDay[];
+    Furniture: Item[];
 }
 
 export interface HousePaintColor {
@@ -788,7 +694,7 @@ export interface LargeTerrainFeaturesClass {
 }
 
 export interface LargeTerrainFeatureElement {
-    tilePosition: IncubatingEgg;
+    tilePosition: TileLocation;
     size: number;
     datePlanted: number;
     tileSheetOffset: number;
@@ -833,7 +739,7 @@ export interface ObjectClass {
     DisplayName: string;
     Name: string;
     Stack: number;
-    tileLocation: IncubatingEgg;
+    tileLocation: TileLocation;
     owner: number;
     type?: TypeEnum;
     canBeSetDown: boolean;
@@ -859,11 +765,11 @@ export interface ObjectClass {
     isLamp: boolean;
     minutesUntilReady: number;
     boundingBox: BoundingBox;
-    scale: IncubatingEgg;
+    scale: TileLocation;
     uses: number;
     preservedParentSheetIndex: number;
     destroyOvernight: boolean;
-    heldObject?: DishOfTheDay;
+    heldObject?: Item;
     health?: number;
     maxHealth?: number;
     whichType?: number;
@@ -890,7 +796,7 @@ export interface ObjectClass {
     agingRate?: number;
     daysToMature?: number;
     pedestalType?: number;
-    requiredItem?: DishOfTheDay;
+    requiredItem?: Item;
     successColor?: HairstyleColor;
     lockOnSuccess?: boolean;
     locked?: boolean;
@@ -910,7 +816,7 @@ export interface ResourceClump {
     height: number;
     parentSheetIndex: number;
     health: number;
-    tile: IncubatingEgg;
+    tile: TileLocation;
 }
 
 export interface SandDuggy {
@@ -1114,7 +1020,7 @@ export interface Player {
     glowingTransparency: number;
     glowRate: number;
     willDestroyObjectsUnderfoot: boolean;
-    Position: IncubatingEgg;
+    Position: TileLocation;
     Speed: number;
     FacingDirection: number;
     IsEmoting: boolean;
@@ -1153,15 +1059,15 @@ export interface Player {
     catPerson: boolean;
     whichPetBreed: number;
     acceptedDailyQuest: boolean;
-    mostRecentBed: IncubatingEgg;
+    mostRecentBed: TileLocation;
     performedEmotes: string;
-    shirt: number;
+    shirt: -1;
     hair: number;
     skin: number;
     shoes: number;
     accessory: number;
     facialHair: number;
-    pants: number;
+    pants: -1;
     hairstyleColor: HairstyleColor;
     pantsColor: HairstyleColor;
     newEyeColor: HairstyleColor;
@@ -1261,7 +1167,7 @@ export interface Player {
     isCustomized: boolean;
     homeLocation: string;
     lastSleepLocation: string;
-    lastSleepPoint: IncubatingEgg;
+    lastSleepPoint: TileLocation;
     daysMarried: number;
     movementMultiplier: number;
     theaterBuildDate: number;
@@ -1370,15 +1276,14 @@ export interface PlayerItems {
 }
 
 export interface Item {
-    isLostItem: boolean;
+    isLostItem?: boolean;
     category: Category;
     hasBeenInInventory: boolean;
     name: string;
-    specialItem: boolean;
+    specialItem?: boolean;
     SpecialVariable: number;
     DisplayName: string;
-    Name: string;
-    Stack: number;
+    stack: number;
     initialParentTileIndex?: number;
     currentParentTileIndex?: number;
     indexOfMenuItemView?: number;
@@ -1395,7 +1300,6 @@ export interface Item {
     InstantUse?: boolean;
     IsEfficient?: boolean;
     AnimationSpeedModifier?: number;
-    Stackable?: boolean;
     type?: TypeEnum | number;
     minDamage?: number;
     maxDamage?: number;
@@ -1411,7 +1315,7 @@ export interface Item {
     isOnSpecial?: boolean;
     additionalPower?: Number;
     parentSheetIndex?: number;
-    tileLocation?: IncubatingEgg;
+    tileLocation?: TileLocation;
     owner?: number;
     canBeSetDown?: boolean;
     canBeGrabbed?: boolean;
@@ -1423,7 +1327,6 @@ export interface Item {
     fragility?: number;
     price?: number;
     edibility?: number;
-    stack?: number;
     quality?: number;
     bigCraftable?: boolean;
     setOutdoors?: boolean;
@@ -1436,7 +1339,7 @@ export interface Item {
     isLamp?: boolean;
     minutesUntilReady?: number;
     boundingBox?: BoundingBox;
-    scale?: IncubatingEgg;
+    scale?: TileLocation;
     uses?: number;
     preservedParentSheetIndex?: number;
     destroyOvernight?: boolean;
@@ -1447,13 +1350,13 @@ export interface Item {
     defaultSourceRect?: BoundingBox;
     defaultBoundingBox?: BoundingBox;
     drawHeldObjectLow?: boolean;
-    indexInTileSheet: number;
-    indexInTileSheetFemale: number;
-    clothesType: number;
-    dyeable: boolean;
-    clothesColor: HairstyleColor;
-    otherData: string;
-    isPrismatic: boolean;
+    indexInTileSheet?: number;
+    indexInTileSheetFemale?: number;
+    clothesType?: number;
+    dyeable?: boolean;
+    clothesColor?: HairstyleColor;
+    otherData?: string;
+    isPrismatic?: boolean;
     indexInColorSheet: number;
     which?: number;
     skipHairDraw?: boolean;
@@ -1464,10 +1367,12 @@ export interface Item {
     defenseBonus?: number;
     immunityBonus?: number;
     appliedBootSheetIndex?: number;
+    heldObject?: Item;
+    bedType?: string;
 }
 
 export interface AttachmentsClass {
-    Object: string[] | DishOfTheDay;
+    Object: string[] | Item;
 }
 
 export interface QuestLog {
@@ -1735,6 +1640,8 @@ export const enum Category {
     Forage = -81,
     Hat = -95,
     Ring = -96,
+    Boots = -97,
     Weapon = -98,
     Tool = -99,
+    Clothing = -100,
 }

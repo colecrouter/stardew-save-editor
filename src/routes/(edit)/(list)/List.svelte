@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type { KV } from '$types/save/1.5.6';
+    import type { KV } from '$types/save/1.5';
 
     export let keys: string[];
     export let values: KV[]; // 'values' is a bit misleading, more like "which keys are true"
@@ -10,7 +10,7 @@
         const value = target.checked;
 
         if (value) {
-            values.push({ key: { string: key }, value: { int: 0 } } as KV);
+            values.push({ key: { string: key }, value: { int: 0 } });
         } else {
             const index = values.findIndex((v) => v.key.string === key);
             values.splice(index, 1);
@@ -31,8 +31,8 @@
     .wrapper {
         display: flex;
         flex-direction: column;
-        overflow-y: scroll;
         height: 20rem;
+        overflow-y: scroll;
     }
 
     .entry {

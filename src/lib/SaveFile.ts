@@ -1,4 +1,4 @@
-import type { Player } from "$types/save/1.5.6";
+import type { Player } from "$types/save/1.5";
 import { get, writable, type Readable, type Writable } from "svelte/store";
 
 export const SaveGame = writable<SaveFile | undefined>();

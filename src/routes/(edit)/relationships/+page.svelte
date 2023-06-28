@@ -1,6 +1,6 @@
 <script lang="ts">
     import { Character, SaveGame } from '$lib/SaveFile';
-    import type { FriendshipDataItem } from '../../../types/save/1.5.6';
+    import type { FriendshipDataItem } from '../../../types/save/1.5';
     import Container from '../../Container.svelte';
     import HeartBar from './HeartBar.svelte';
 

@@ -13,5 +13,6 @@
         margin: 6px;
         cursor: pointer;
         text-shadow: 0 0 2px #000;
+        user-select: none;
     }
 </style>

@@ -1,13 +1,19 @@
 <script lang="ts">
     import { goto } from '$app/navigation';
+    import { page } from '$app/stores';
     import { FileName, SaveGame } from '$lib/SaveFile';
+    import { onDestroy, onMount } from 'svelte';
     import Container from '../Container.svelte';
+    import { get } from 'svelte/store';
+    import type { HttpError } from '@sveltejs/kit';
 
     let submit: HTMLInputElement;
+    let files: FileList;
 
-    const handle = async (event: Event) => {
-        const formData = new FormData(event.target as HTMLFormElement);
-        const filename = (formData.get('file') as File).name;
+    const handle = async () => {
+        const file = files[0];
+        const formData = new FormData();
+        formData.append('file', file);
 
         const res = await fetch('/api/toJSON', {
             method: 'POST',
@@ -15,21 +21,18 @@
         });
 
         if (!res.ok) {
-            let text = '';
-            switch (res.status) {
-                case 400:
-                case 500:
-                    text = await res.text();
-                default:
-                    text = 'Unknown error';
-                    break;
-            }
-            return alert(text);
+            const error = (await res.json()) as HttpError['body'];
+            alert(error.message);
+            return;
         }
+
+        // Save is good, back it up
+        const { BackupManager: Backups } = await import('$lib/Backups');
+        Backups.push(file);
 
         const json = (await res.json()) as SaveFile;
         SaveGame.set(json);
-        FileName.set(filename);
+        FileName.set(file.name);
         goto('/inventory');
     };
 </script>
@@ -41,6 +44,7 @@
             accept=""
             name="file"
             required
+            bind:files
             on:change={() => {
                 return submit.click();
             }} />

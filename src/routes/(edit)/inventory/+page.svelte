@@ -1,121 +1,286 @@
-<script lang="ts" context="module">
-    const hexToRGB = (hex: string): Partial<HairstyleColor> => {
-        const R = parseInt(hex.slice(1, 3), 16);
-        const G = parseInt(hex.slice(3, 5), 16);
-        const B = parseInt(hex.slice(5, 7), 16);
-
-        return { R, G, B };
-    };
-
-    const RGBToHex = (rgb: HairstyleColor): string => {
-        const { R, B, G } = rgb;
-
-        const hex = ((R << 16) | (G << 8) | B).toString(16);
-
-        return '#' + new Array(Math.abs(hex.length - 7)).join('0') + hex;
-    };
-</script>
-
 <script lang="ts">
-    import { SaveGame, Character } from '$lib/SaveFile';
+    import { CategoriesWithQuality, DefaultFurnitureSizes, FishingRodSpriteIndex, FishingRodUpgradeNumber, FurnitureTypeToNumber, HatWhichNumber } from '$lib/ItemData';
+    import type { ParentIndex } from '$lib/ItemParentIndex';
+    import { CalculateEdibility, CalculatePrice } from '$lib/ItemQuality';
+    import { Character } from '$lib/SaveFile';
+    import { HexToRGB, RGBToHex } from '$lib/Spritesheet';
     import { getContext } from 'svelte';
-    import type { BigCraftable, Boots, Clothing, Furniture, Hat, ObjectInformation, Tool, Weapon } from '../../../types/dump';
-    import { Category, type HairstyleColor, type Item, type Player } from '../../../types/save/1.5.6';
+    import { FurnitureType, type ItemInformation } from '../../../types/items';
+    import { Category, type Item, type Player } from '../../../types/save/1.5';
     import Container from '../../Container.svelte';
     import BigItem from './BigItem.svelte';
     import QualitySelector from './QualitySelector.svelte';
     import SmallItem from './SmallItem.svelte';
 
-    // TODO: I don't know what items are allowed to have quality, or if there's some sort of rule.
-    const qualityCategories: Array<Category> = [
-        Category.Fish,
-        Category.Egg,
-        Category.Milk,
-        Category.Cooking,
-        Category.SellAtPierres,
-        Category.SellAtPierresAndMarnies,
-        Category.ArtisanGoods,
-        Category.Syrup,
-        Category.Vegetable,
-        Category.Fruit,
-        Category.Flower,
-        Category.Forage,
-    ];
+    const itemData = getContext<Map<string, ItemInformation>>('itemData');
+    let selectedItemData: ItemInformation | undefined;
 
-    const itemData = getContext<Map<string, ObjectInformation | BigCraftable | Boots | Clothing | Furniture | Hat | Weapon | Tool>>('itemData');
-
-    let hotbar: Array<Item | undefined> = [];
     let inventory: Array<Item | undefined> = [];
     let selectedItem: Item | undefined;
+    let selectedIndex: ParentIndex;
 
-    let boots: Item | undefined;
-    let pants: Item | undefined;
-    let shirt: Item | undefined;
-    let hat: Item | undefined;
-    let leftRing: Item | undefined;
-    let rightRing: Item | undefined;
-
-    let playerName: string;
-    let farmName: string;
-    let currentFunds: number;
-    let totalEarnings: number;
-
+    // Update our reference to the select player
     let player: Player;
     Character.character.subscribe((c) => {
         if (!c) return;
 
         player = c;
-
-        hotbar = c.items.Item.slice(0, 12);
-        inventory = c.items.Item.slice(12);
-
-        boots = c.boots;
-        pants = c.pantsItem;
-        shirt = c.shirtItem;
-        hat = c.hat;
-        leftRing = c.leftRing;
-        rightRing = c.rightRing;
-
-        playerName = c.name;
-        farmName = c.farmName;
-        currentFunds = c.money;
-        totalEarnings = c.totalMoneyEarned;
+        inventory = c.items.Item;
     });
-
-    // Update save when changes are made
-    $: player && (player.boots = typeof boots == 'string' ? undefined : boots);
-    $: player && (player.pantsItem = typeof pants == 'string' ? undefined : pants);
-    $: player && (player.shirtItem = typeof shirt == 'string' ? undefined : shirt);
-    $: player && (player.hat = typeof hat == 'string' ? undefined : hat);
-    $: player && (player.leftRing = typeof leftRing == 'string' ? undefined : leftRing);
-    $: player && (player.rightRing = typeof rightRing == 'string' ? undefined : rightRing);
-
-    $: player && (player.name = playerName);
-    $: player && (player.farmName = farmName);
-    $: player && (player.money = currentFunds);
-    $: player && (player.totalMoneyEarned = totalEarnings);
 
     // Selected item attributes
     let type: 'Tool' | 'ObjectInformation' | 'BigCraftable' | 'Boots' | 'Clothing' | 'Furniture' | 'Hat' | 'MeleeWeapon' | 'RangedWeapon' | undefined;
-    $: (() => {
-        const item = selectedItem ? itemData.get(selectedItem?.Name) : undefined;
-        type = item?._type;
 
-        selectedItem && console.debug('Selected item:', selectedItem?.Name);
+    // Price/edibility calculation
+    let oldQuality: number | undefined;
+
+    $: (() => {
+        // Refresh the selected item hardcoded data
+        selectedItemData = selectedItem ? itemData.get(selectedItem?.name) : undefined;
+        type = selectedItemData?._type;
+
+        selectedItem && console.debug('Selected item:', selectedItem?.name, selectedIndex);
+
+        // Calculate price/edibility for default price/edibility items
+        if (selectedItem?.quality === undefined) return;
+
+        try {
+            // When the item is first clicked, oldQuality will be undefined
+            if (oldQuality === undefined) oldQuality = selectedItem.quality;
+
+            // If the quality hasn't changed, we don't need to do anything
+            if (oldQuality === selectedItem.quality) return;
+
+            if (!selectedItemData) return;
+
+            // Check if the items price is the same as the default price
+            // If so, we need to change the price whenever the quality changes
+            // If not, we can assume the user has changed it, so just leave it alone
+            if ('price' in selectedItemData && selectedItem.price) {
+                const theoreticalOldPrice = CalculatePrice(selectedItemData.price, oldQuality ?? 0);
+                if (theoreticalOldPrice === selectedItem.price) {
+                    selectedItem.price = CalculatePrice(selectedItemData.price, selectedItem.quality);
+                }
+            }
+
+            if ('edibility' in selectedItemData && selectedItem.edibility) {
+                const theoreticalOldEdibility = CalculateEdibility(selectedItemData.edibility, oldQuality ?? 0);
+                if (theoreticalOldEdibility === selectedItem.edibility) {
+                    selectedItem.edibility = CalculateEdibility(selectedItemData.edibility, selectedItem.quality);
+                }
+            }
+        } finally {
+            // Store the previous quality value at the end
+            oldQuality = selectedItem.quality;
+        }
     })();
+
+    let newItemName: string;
+
+    const deleteItem = (symbol: ParentIndex) => {
+        if (typeof symbol === 'number') {
+            inventory[symbol] = undefined;
+        } else {
+            player[symbol] = undefined;
+        }
+
+        // Clear item from the editor window
+        selectedItem = undefined;
+        oldQuality = undefined;
+    };
+
+    const createItem = (symbol: ParentIndex) => {
+        const newItemData = itemData.get(newItemName);
+        if (!newItemData) {
+            alert(`Item "${newItemName}" not found!`);
+            return;
+        }
+
+        let category: number;
+        switch (newItemData._type) {
+            case 'ObjectInformation':
+            case 'BigCraftable':
+                category = newItemData.category ?? 0; // TODO not sure if anything can be done about this, reasonably
+                break;
+            case 'Boots':
+                category = Category.Boots;
+                break;
+            case 'Clothing':
+                category = Category.Clothing;
+                break;
+            case 'Furniture':
+                category = Category.Furniture;
+                break;
+            case 'Hat':
+                category = Category.Hat;
+                break;
+            case 'MeleeWeapon':
+
+            case 'RangedWeapon':
+                category = Category.Weapon;
+                break;
+            case 'Tool':
+                category = Category.Tool;
+                break;
+        }
+
+        let type: string | undefined;
+        switch (newItemData._type) {
+            case 'ObjectInformation':
+            case 'BigCraftable':
+                type = 'Object';
+                break;
+            case 'Furniture':
+                type = 'Furniture';
+                break;
+            case 'MeleeWeapon':
+                type = 'MeleeWeapon';
+                break;
+            case 'RangedWeapon':
+                type = 'Weapon';
+                break;
+            case 'Tool':
+                if (newItemName === 'Milk Pail') {
+                    type = 'MilkPail';
+                } else if (newItemName.endsWith('Pickaxe')) {
+                    type = 'Pickaxe';
+                } else if (newItemName.endsWith('Axe')) {
+                    type = 'Axe';
+                } else if (newItemName.endsWith('Hoe')) {
+                    type = 'Hoe';
+                } else if (newItemName.endsWith('Watering Can')) {
+                    type = 'WateringCan';
+                } else if (newItemName.endsWith('Rod')) {
+                    type = 'FishingRod';
+                    // All fishing rods are called "Fishing Rod" in the game data
+                    // This actually still works if you don't have the right name, but might as well fix it
+                    newItemName = 'Fishing Rod';
+                } else if (newItemName.endsWith('Pan')) {
+                    type = 'Pan';
+                }
+                // TODO
+                break;
+        }
+
+        const newItem: Item = {
+            name: newItemName,
+            stack: 1,
+            parentSheetIndex: 'parentSheetIndex' in newItemData ? newItemData.parentSheetIndex : 0,
+            category: category,
+            hasBeenInInventory: true,
+            hasBeenPickedUpByFarmer: true,
+            DisplayName: newItemData.name,
+            SpecialVariable: 0, // TODO ?
+            indexInColorSheet: 0, // TODO
+            isLostItem: false,
+            specialItem: false,
+            tileLocation: { X: 0, Y: 0 },
+            canBeSetDown: true,
+            canBeGrabbed: true,
+        };
+
+        if (type) {
+            // @ts-expect-error
+            newItem['@_xsi:type'] = type;
+        }
+
+        if (newItemData._type === 'ObjectInformation') {
+            newItem.price = 0;
+            newItem.quality = 0;
+        }
+
+        if (newItemData._type !== 'Tool') {
+            newItem.parentSheetIndex = newItemData.parentSheetIndex;
+        }
+
+        if (newItem.name === 'Fishing Rod') {
+            newItem.BaseName = 'Fishing Rod';
+            newItem.upgradeLevel = FishingRodUpgradeNumber.get(newItemData.name) ?? 0;
+            newItem.parentSheetIndex = 685;
+            newItem.initialParentTileIndex = FishingRodSpriteIndex.get(newItemData.name) ?? 0;
+            newItem.indexOfMenuItemView = newItem.initialParentTileIndex;
+        }
+
+        if (newItemData._type === 'Hat') {
+            newItem.which = HatWhichNumber.get(newItemName) ?? 0;
+        }
+
+        if (newItemData._type === 'Furniture') {
+            newItem.canBeGrabbed = true;
+            newItem.parentSheetIndex = newItemData.parentSheetIndex;
+            newItem.furniture_type = FurnitureTypeToNumber.get(newItemData.type);
+
+            // sourceRect is the sprite data, if I understand correctly
+            if (newItemData.tilesheetSize !== -1) {
+                newItem.sourceRect = {
+                    X: newItemData.sprite.x,
+                    Y: newItemData.sprite.y,
+                    Width: newItemData.tilesheetSize.width,
+                    Height: newItemData.tilesheetSize.height,
+                    Location: {
+                        X: newItemData.sprite.x,
+                        Y: newItemData.sprite.y,
+                    },
+                };
+                newItem.defaultSourceRect = newItem.sourceRect;
+            }
+
+            // Bounding box is the hitbox/placement box
+            if (newItemData.boundingBoxSize !== -1) {
+                newItem.boundingBox = {
+                    X: 0,
+                    Y: 0,
+                    Width: newItemData.boundingBoxSize.width,
+                    Height: newItemData.boundingBoxSize.height,
+                    Location: {
+                        X: 0,
+                        Y: 0,
+                    },
+                };
+
+                newItem.defaultBoundingBox = newItem.boundingBox;
+            }
+
+            // If the item is a lamp, enable the lamp property
+            if (newItemData.type === FurnitureType.Lamp) {
+                newItem.isLamp = true;
+            }
+        }
+
+        if ('edibility' in newItemData) {
+            newItem.edibility = newItemData.edibility ?? -300;
+        }
+
+        if ('price' in newItemData) {
+            newItem.price = newItemData.price ?? 0;
+        }
+
+        if (typeof symbol === 'number') {
+            inventory[symbol] = newItem;
+        } else {
+            player[symbol] = newItem;
+        }
+
+        // Clear item from the editor window
+        newItemName = '';
+
+        // Select the new item
+        selectedItem = newItem;
+    };
 </script>
+
+<!-- Data list for adding new items -->
+<datalist id="new-items">
+    {#each Array.from(itemData.keys()) as name}
+        <option value={name} />
+    {/each}
+</datalist>
 
 <!-- Inventory view -->
 <Container>
-    <div class="grid-group">
-        {#each hotbar as item}
-            <SmallItem {item} bind:selectedItem />
-        {/each}
-    </div>
-    <br />
-    <div class="grid-group">
-        {#each inventory as item}
-            <SmallItem {item} bind:selectedItem />
+    <div class="item-grid">
+        {#each inventory as item, index}
+            <SmallItem {item} {index} bind:selectedItem bind:selectedIndex />
         {/each}
     </div>
 </Container>
@@ -126,34 +291,35 @@
         <div class="character-inner">
             <div class="character-group">
                 <div class="character-armor">
-                    <SmallItem item={leftRing} bind:selectedItem />
-                    <SmallItem item={rightRing} bind:selectedItem />
-                    <SmallItem item={boots} bind:selectedItem />
+                    <SmallItem item={player.leftRing} index={'leftRing'} bind:selectedItem bind:selectedIndex />
+                    <SmallItem item={player.rightRing} index={'rightRing'} bind:selectedItem bind:selectedIndex />
+                    <SmallItem item={player.boots} index={'boots'} bind:selectedItem bind:selectedIndex />
                 </div>
                 <div class="character-appearance">
                     <!-- TODO -->
                 </div>
                 <div class="character-armor">
-                    <SmallItem item={hat} bind:selectedItem />
-                    <SmallItem item={shirt} bind:selectedItem />
-                    <SmallItem item={pants} bind:selectedItem />
+                    <SmallItem item={player.hat} index={'hat'} bind:selectedItem bind:selectedIndex />
+                    <SmallItem item={player.shirtItem} index={'shirtItem'} bind:selectedItem bind:selectedIndex />
+                    <SmallItem item={player.pantsItem} index={'pantsItem'} bind:selectedItem bind:selectedIndex />
                 </div>
             </div>
 
-            <input type="text" class="character-name" bind:value={playerName} />
+            <input type="text" class="character-name" bind:value={player.name} />
         </div>
         <div class="character-info">
             <label>
                 <span hidden>Farm Name:</span>
-                <input type="text" bind:value={farmName} />
+                <input type="text" bind:value={player.farmName} />
+                Farm
             </label>
             <label>
                 Current Funds:
-                <input type="number" bind:value={currentFunds} />
+                <input type="number" bind:value={player.money} />
             </label>
             <label>
                 Total Earnings:
-                <input type="number" bind:value={totalEarnings} />
+                <input type="number" bind:value={player.totalMoneyEarned} />
             </label>
         </div>
     </div>
@@ -162,14 +328,17 @@
 <!-- Item view -->
 <Container>
     <div class="editor">
-        <BigItem item={selectedItem} />
-        {#if selectedItem}
-            <div class="column">
+        <!-- Item icon -->
+        <BigItem bind:item={selectedItem} />
+
+        <!-- Item stats -->
+        <div class="stats">
+            {#if selectedItem}
                 <label>
                     <small>Display Name</small>
                     <input type="text" bind:value={selectedItem.DisplayName} />
                 </label>
-                {#if (selectedItem.Stackable === undefined || selectedItem.Stackable === true) && type !== 'Clothing' && type !== 'Boots' && type !== 'Hat'}
+                {#if (selectedItem.stackable === undefined || selectedItem.stackable === true) && type !== 'Clothing' && type !== 'Boots' && type !== 'Hat'}
                     <label>
                         <small>Amount</small>
                         <input type="number" bind:value={selectedItem.stack} min="0" max="999" />
@@ -267,53 +436,100 @@
                             <small>Color</small>
                             <input
                                 type="color"
-                                value={RGBToHex(selectedItem.clothesColor)}
+                                value={RGBToHex(selectedItem.clothesColor ?? { R: 0, G: 0, B: 0, A: 0, PackedValue: 0 })}
                                 on:change={(e) => {
                                     // @ts-expect-error
-                                    selectedItem.clothesColor = hexToRGB(e.target.value ?? '#000000');
+                                    selectedItem.clothesColor = HexToRGB(e.target.value ?? '#000000');
                                 }} />
                         </label>
                     {/if}
                 {:else if type === 'Furniture'}
-                    <label>
-                        <small>Price</small>
-                        <input type="number" bind:value={selectedItem.price} min="0" />
-                    </label>
+                    <!-- Need more info -->
+                    <!-- House plant selector -->
                 {:else if type === 'Hat'}
                     <!-- Need more info? -->
                 {/if}
 
                 <!-- Quality selector -->
                 <!-- svelte-ignore a11y-label-has-associated-control -->
-                {#if selectedItem.quality !== 0 || qualityCategories.includes(selectedItem.category)}
+                {#if selectedItem.quality !== 0 || CategoriesWithQuality.has(selectedItem.category)}
                     <label>
                         <small>Quality</small>
                         <QualitySelector bind:item={selectedItem} />
                     </label>
                 {/if}
-            </div>
-        {/if}
+
+                <!-- Edibility -->
+                {#if selectedItemData && 'edibility' in selectedItemData && selectedItemData.edibility !== -300}
+                    <label>
+                        <small>Edibility</small>
+                        <input type="number" bind:value={selectedItem.edibility} min="0" />
+                    </label>
+                {/if}
+
+                <!-- Price -->
+                {#if type === 'ObjectInformation' || type === 'BigCraftable' || type === 'Furniture' || type === 'Hat' || type === 'Clothing'}
+                    <label>
+                        <small>Price</small>
+                        <input type="number" bind:value={selectedItem.price} min="0" />
+                    </label>
+                {/if}
+            {:else if selectedIndex}
+                <label>
+                    <small>Item Name</small>
+                    <input type="text" list="new-items" bind:value={newItemName} />
+                </label>
+            {/if}
+        </div>
+
+        <!-- Delete/create the item -->
+        <div class="edit">
+            {#if selectedItem}
+                <button class="btn btn-danger" on:click={() => deleteItem(selectedIndex)}>🗑️</button>
+            {:else if selectedIndex}
+                <button class="btn btn-success" on:click={() => createItem(selectedIndex)}>➕</button>
+            {/if}
+        </div>
     </div>
 </Container>
 
 <style>
-    .grid-group {
+    .item-grid {
         display: grid;
         grid-template-columns: repeat(12, 1fr);
         grid-auto-rows: 32px;
+        grid-template-rows: 48px auto auto;
     }
 
     .editor {
-        display: flex;
+        /* Three sections, edges are fix size, middle expands */
+        display: grid;
+        grid-template-columns: min-content 5fr 1fr;
         flex-direction: row;
-        align-items: start;
         gap: 8px;
     }
 
-    .column {
+    .stats {
         display: flex;
         flex-direction: column;
         gap: 8px;
+    }
+
+    .edit {
+        display: flex;
+        flex-direction: column;
+        justify-content: start;
+        align-items: center;
+    }
+
+    .edit button {
+        background: none;
+        border: none;
+        padding: 0;
+        margin: 0;
+        margin-top: 16px;
+        font-size: 1.5em;
+        cursor: pointer;
     }
 
     .editor label {
@@ -321,8 +537,12 @@
         width: 100%;
         flex-direction: row;
         gap: 2px;
-        white-space: nowrap;
+        align-items: center;
         justify-content: space-between;
+    }
+
+    .editor small {
+        margin-right: 2em;
     }
 
     .character-inner {
@@ -335,6 +555,7 @@
         display: flex;
         flex-direction: row;
         gap: 4px;
+        align-items: center;
     }
 
     .character-group {
@@ -364,7 +585,7 @@
         display: block;
     }
 
-    .character-info input[type='number'] {
+    input[type='number'] {
         width: 6em;
     }
 
@@ -374,9 +595,5 @@
 
     .character-name {
         width: 10em;
-    }
-
-    small {
-        min-width: 5em;
     }
 </style>

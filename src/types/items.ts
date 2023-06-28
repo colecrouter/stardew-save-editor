@@ -3,6 +3,7 @@ export interface HasSprite {
         x: number;
         y: number;
     };
+    parentSheetIndex: number;
 }
 
 export interface ObjectInformation extends HasSprite {
@@ -40,6 +41,7 @@ export interface BigCraftable extends HasSprite {
     fragility: Fragility;
     isLamp: boolean;
     displayName?: string;
+    parentSheetIndex: number;
 }
 
 export interface Boots extends HasSprite {
@@ -53,7 +55,7 @@ export interface Boots extends HasSprite {
     displayName?: string;
 }
 
-type ClothingType = 'Pants' | 'Shirt' | 'Accessory';
+export type ClothingType = 'Pants' | 'Shirt' | 'Accessory';
 
 interface RGB {
     r: number;
@@ -75,27 +77,27 @@ export interface Clothing extends HasSprite {
     extraData: string;
 }
 
-type Size = number | { width: number; height: number; };
+export type Size = { width: number; height: number; };
 
 export enum FurnitureType {
-    Chair = 0,
-    Bench = 1,
-    Couch = 2,
-    Armchair = 3,
-    Dresser = 4,
-    LongTable = 5,
-    Painting = 6,
-    Lamp = 7,
-    Decor = 8,
-    Other = 9,
-    Bookcase = 10,
-    Table = 11,
-    Rug = 12,
-    Window = 13,
-    Fireplace = 14,
-    Bed = 15,
-    Torch = 16,
-    Sconce = 17,
+    Chair = 'chair',
+    Bench = 'bench',
+    Couch = 'couch',
+    Armchair = 'armchair',
+    Dresser = 'dresser',
+    LongTable = 'long table',
+    Painting = 'painting',
+    Lamp = 'lamp',
+    Decor = 'decor',
+    Other = 'other',
+    Bookcase = 'bookcase',
+    Table = 'table',
+    Rug = 'rug',
+    Window = 'window',
+    Fireplace = 'fireplace',
+    Bed = 'bed',
+    Torch = 'torch',
+    Sconce = 'sconce',
 }
 
 export enum FurniturePlacement {
@@ -109,8 +111,8 @@ export interface Furniture extends HasSprite {
     _type: 'Furniture';
     name: string;
     type: FurnitureType;
-    tilesheetSize: Size;
-    boundingBoxSize: Size;
+    tilesheetSize: Size | -1;
+    boundingBoxSize: Size | -1;
     rotations: number;
     price: number;
     displayName?: string;
@@ -168,3 +170,5 @@ export interface RangedWeapon extends HasSprite {
 }
 
 export type Weapon = MeleeWeapon | RangedWeapon;
+
+export type ItemInformation = ObjectInformation | BigCraftable | Boots | Clothing | Furniture | Hat | Tool | Weapon;

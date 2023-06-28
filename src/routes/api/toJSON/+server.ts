@@ -1,23 +1,33 @@
 import { XMLParser } from 'fast-xml-parser';
 import type { RequestEvent } from './$types';
+import { error } from '@sveltejs/kit';
 
 export const POST = async (event: RequestEvent) => {
     const file = event.request.body;
-    if (!file) return new Response("No file provided", { status: 400 });
+    if (!file) { throw error(400, "No file provided"); }
 
     // Big xml file, need to read it in chunks
     let xml = "";
     const reader = file.getReader();
-    while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        xml += value.toString();
+    try {
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            xml += value.toString();
+        }
+    } catch (e) {
+        console.error(e);
+        throw error(400, `Unable to parse file: ${(e as Error).message}`);
     }
 
     const parser = new XMLParser({ ignoreAttributes: false, allowBooleanAttributes: true });
-    const json = parser.parse(xml) as SaveFile;
+    const json = parser.parse(xml) as unknown;
+    if (!isSaveFile(json)) { throw error(400, "Invalid save file"); }
 
-    if (!json || typeof json !== 'object' || 'gameVersion'! in json) return new Response("Not valid save file", { status: 400 });
+    const gameVersion = json.SaveGame.gameVersion as string | undefined;
+    if (!["1.5"].some((v) => gameVersion?.startsWith(v))) {
+        throw error(400, `Unsupported game version: ${gameVersion}`);
+    }
 
     // Get an array of player and farmhands
     // We have to apply a handful of changes to each of them, so it's easier to do it in a loop, rather than doing them separately
@@ -37,4 +47,12 @@ export const POST = async (event: RequestEvent) => {
     });
 
     return new Response(JSON.stringify(json, null, 2));
+};
+
+const isSaveFile = (obj: unknown): obj is SaveFile => {
+    return typeof obj === "object"
+        && obj !== null
+        && "SaveGame" in obj
+        && typeof obj.SaveGame === "object"
+        && obj.SaveGame !== null;
 };

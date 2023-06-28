@@ -1,34 +1,7 @@
-import { copyFile, readdir, readFile, writeFile } from 'fs/promises';
-import type { BigCraftable, Boots, Clothing, ClothingType, MeleeWeapon, ObjectInformation, ObjectType, RangedWeapon, Weapon, MeleeWeaponType, Hat, Furniture, FurnitureType, Tool } from './types/dump';
-
-const indexToSprite = (index: number, itemWidth: number, sheetWidth: number) => {
-    const x = (index * itemWidth) % sheetWidth + itemWidth;
-    const y = Math.floor((index * itemWidth) / sheetWidth) * itemWidth + itemWidth;
-    return { x, y };
-};
-
-const indexToSpriteShirts = (index: number) => {
-    const sheetW = 128;
-    const itemW = 8;
-
-    // We have to offset shirts by -1000 https://stardewvalleywiki.com/Modding:Items#Data_format_4
-    index = index - 1000;
-
-    const x = (index * itemW) % sheetW + itemW;
-    const y = Math.floor((index * itemW) / sheetW) * (itemW * 4) + itemW;
-
-    return { x, y };
-};
-
-const indexToSpritePants = (index: number) => {
-    const sheetW = 192;
-    const itemW = 8;
-
-    const x = (index * itemW * 12) % sheetW + (itemW * 2);
-    const y = Math.floor((index * itemW) / sheetW) * (688) + (itemW * 4);
-
-    return { x, y };
-};
+import { copyFile, readFile, writeFile } from 'fs/promises';
+import type { BigCraftable, Boots, Clothing, ClothingType, Furniture, FurnitureType, Hat, MeleeWeapon, MeleeWeaponType, ObjectInformation, ObjectType, RangedWeapon, Tool } from './types/items';
+// @ts-expect-error
+import { GetSprite } from './lib/Spritesheet.ts';
 
 const objects = JSON.parse(await readFile('./content/Data/ObjectInformation.json', 'utf-8')) as Record<string, string>;
 const objectsArray = Object.entries(objects).map(([key, value]) => {
@@ -50,12 +23,19 @@ const objectsArray = Object.entries(objects).map(([key, value]) => {
         misc1: props[6] ? Number(props[7]) : undefined,
         misc2: props[7] ? Number(props[8]) : undefined,
         buffDuration: props[8] ? Number(props[9]) : undefined,
-        sprite: indexToSprite(Number(key), 16, 384),
+        sprite: GetSprite('ObjectInformation', Number(key)),
+        parentSheetIndex: Number(key),
     } satisfies ObjectInformation;
 }).filter((x) => x !== undefined) as ObjectInformation[];
 
 const bigCraftables = JSON.parse(await readFile('./content/Data/BigCraftablesInformation.json', 'utf-8')) as Record<string, string>;
 const bigCraftablesArray = Object.entries(bigCraftables).map(([key, value]) => {
+    // Skip 22 and 23, weird table business
+    if (Number(key) === 22 || Number(key) === 23) return undefined;
+
+    // Unobtainable items
+    if ([26, 27, 64].includes(Number(key))) return undefined;
+
     const props = value.split('/');
     return {
         _type: 'BigCraftable',
@@ -70,9 +50,10 @@ const bigCraftablesArray = Object.entries(bigCraftables).map(([key, value]) => {
         fragility: Number(props[7]),
         isLamp: props[8] === 'true',
         displayName: props[9],
-        sprite: indexToSprite(Number(key), 16, 384),
+        sprite: GetSprite('BigCraftable', Number(key)),
+        parentSheetIndex: Number(key),
     } satisfies BigCraftable;
-});
+}).filter((x) => x !== undefined) as BigCraftable[];
 
 const boots = JSON.parse(await readFile('./content/Data/Boots.json', 'utf-8')) as Record<string, string>;
 const bootsArray = Object.entries(boots).map(([key, value]) => {
@@ -86,7 +67,8 @@ const bootsArray = Object.entries(boots).map(([key, value]) => {
         addedImmunity: Number(props[4]),
         colorIndex: Number(props[5]),
         displayName: props[6],
-        sprite: indexToSprite(Number(key), 16, 384),
+        sprite: GetSprite('Boots', Number(key)),
+        parentSheetIndex: Number(key),
     } satisfies Boots;
 });
 
@@ -94,12 +76,13 @@ const clothing = JSON.parse(await readFile('./content/Data/ClothingInformation.j
 const clothingArray = Object.entries(clothing).map(([key, value]) => {
     const props = value.split('/');
     const color = props[6].split(' ');
+    const type = props[8] as ClothingType;
 
     let sprite;
-    if ((props[8] as ClothingType) === 'Shirt') {
-        sprite = indexToSpriteShirts(Number(key));
+    if (type === 'Shirt') {
+        sprite = GetSprite('Clothing', Number(key), type);
     } else {
-        sprite = indexToSpritePants(Number(key));  // Pants
+        sprite = GetSprite('Clothing', Number(key), type);
     }
 
     return {
@@ -116,26 +99,31 @@ const clothingArray = Object.entries(clothing).map(([key, value]) => {
             b: Number(color[2]),
         },
         dyeable: props[7] === 'true',
-        type: props[8] as ClothingType,
+        type: type,
         extraData: props[9],
         sprite: sprite,
+        parentSheetIndex: Number(key),
     } satisfies Clothing;
 });
 
 const furniture = JSON.parse(await readFile('./content/Data/Furniture.json', 'utf-8')) as Record<string, string>;
 const furnitureArray = Object.entries(furniture).map(([key, value]) => {
     const props = value.split('/');
+    const split2 = props[2].split(' ');
+    const split3 = props[3].split(' ');
+
     return {
         _type: 'Furniture',
         name: props[0],
-        type: Number(props[1]) as FurnitureType,
-        tilesheetSize: Number(props[2]),
-        boundingBoxSize: Number(props[3]),
+        type: props[1] as FurnitureType,
+        tilesheetSize: split2[0] === '-1' ? -1 : { width: Number(split2[0]), height: Number(split2[1]) },
+        boundingBoxSize: split3[0] === '-1' ? -1 : { width: Number(split3[0]), height: Number(split3[1]) },
         rotations: Number(props[4]),
         price: Number(props[5]),
         displayName: props[6],
         placementRestriction: Number(props[7]),
-        sprite: indexToSprite(Number(key), 16, 512),
+        sprite: GetSprite('Furniture', Number(key)),
+        parentSheetIndex: Number(key),
     } satisfies Furniture;
 });
 
@@ -149,7 +137,8 @@ const hatsArray = Object.entries(hats).map(([key, value]) => {
         showRealHair: props[2] === 'true',
         skipHairstyleOffset: props[3] === 'true',
         displayName: props[4],
-        sprite: indexToSprite(Number(key), 16, 240),
+        sprite: GetSprite('Hat', Number(key)),
+        parentSheetIndex: Number(key),
     } satisfies Hat;
 });
 
@@ -163,7 +152,8 @@ const weaponsArray = Object.entries(weapons).map(([key, value]) => {
         minDamage: Number(props[2]),
         maxDamage: Number(props[3]),
         displayName: props[4],
-        sprite: indexToSprite(Number(key), 16, 128),
+        sprite: GetSprite('RangedWeapon', Number(key)),
+        parentSheetIndex: Number(key),
     } satisfies RangedWeapon :
         {
             _type: 'MeleeWeapon',
@@ -182,7 +172,8 @@ const weaponsArray = Object.entries(weapons).map(([key, value]) => {
             criticalChance: Number(props[12]),
             criticalDamage: Number(props[13]),
             displayName: props[14],
-            sprite: indexToSprite(Number(key), 16, 128),
+            sprite: GetSprite('MeleeWeapon', Number(key)),
+            parentSheetIndex: Number(key),
         } satisfies MeleeWeapon;
 });
 
@@ -219,7 +210,8 @@ const toolsArray = Object.entries(tools).map(([key, value]) => {
     return {
         _type: 'Tool',
         name: value,
-        sprite: indexToSprite(Number(key), 16, 336),
+        sprite: GetSprite('Tool', Number(key)),
+        parentSheetIndex: Number(key),
     } satisfies Tool;
 });
 

@@ -1,6 +1,6 @@
 <script lang="ts">
     import { DateableCharacters } from '$lib/Characters';
-    import type { FriendshipDataItem } from '../../../types/save/1.5.6';
+    import type { FriendshipDataItem } from '../../../types/save/1.5';
 
     // export let character: string;
     // export let amount: number;

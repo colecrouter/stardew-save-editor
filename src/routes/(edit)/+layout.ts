@@ -1,4 +1,4 @@
-import type { ObjectInformation, BigCraftable, Boots, Clothing, Furniture, Hat, Weapon, Tool } from "../../types/dump";
+import type { ObjectInformation, BigCraftable, Boots, Clothing, Furniture, Hat, Weapon, Tool, ItemInformation } from "../../types/items";
 
 export const ssr = false;
 
@@ -6,7 +6,7 @@ export const ssr = false;
 export const load = async ({ fetch }) => {
     const data = await fetch('/iteminfo.json');
 
-    const Items = new Map<string, ObjectInformation | BigCraftable | Boots | Clothing | Furniture | Hat | Weapon | Tool>(await data.json() as any);
+    const Items = new Map<string, ItemInformation>(await data.json() as any);
     return {
         itemData: Items,
     };

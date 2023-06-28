@@ -8,14 +8,15 @@
 		"preview": "vite preview",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
-		"dump": "node --no-warnings --loader ts-node/esm src/dump.ts"
+		"dump": "node --no-warnings --loader ts-node/esm src/dump.ts -O \"{'allowImportingTsExtensions': true,}\""
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-auto": "^2.0.0",
-		"@sveltejs/kit": "^1.5.0",
+		"@sveltejs/kit": "^1.20.5",
 		"@types/node": "^18.15.11",
 		"fast-xml-parser": "^4.2.0",
-		"svelte": "^3.54.0",
+		"idb": "^7.1.1",
+		"svelte": "^4.0.0",
 		"svelte-check": "^3.0.1",
 		"ts-node": "^10.9.1",
 		"tslib": "^2.4.1",

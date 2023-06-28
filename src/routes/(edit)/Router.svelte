@@ -1,13 +1,13 @@
 <script lang="ts">
     import { tooltip } from '$lib/Tooltip';
-    import SidebarButton from './SidebarButton.svelte';
+    import SidebarButton from '../SidebarButton.svelte';
 </script>
 
 <nav>
     <a href="/inventory" aria-label="Inventory" use:tooltip><SidebarButton>🎒</SidebarButton></a>
     <a href="/character" aria-label="Character" use:tooltip><SidebarButton>🙋</SidebarButton></a>
     <a href="/relationships" aria-label="Relationships" use:tooltip><SidebarButton>💖</SidebarButton></a>
-    <a href="/crafting" aria-label="Crafting" use:tooltip><SidebarButton>📏</SidebarButton></a>
+    <a href="/crafting" aria-label="Crafting" use:tooltip><SidebarButton>🔨</SidebarButton></a>
     <a href="/cooking" aria-label="Cooking" use:tooltip><SidebarButton>🍕</SidebarButton></a>
     <a href="/bundles" aria-label="Community Center bundles" use:tooltip><SidebarButton>🎁</SidebarButton></a>
 </nav>

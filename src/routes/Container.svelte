@@ -5,7 +5,7 @@
 <style>
     .container {
         width: min-content;
-        min-width: 432px;
+        min-width: 445px;
         /* min-height: 200px; */
         background-color: #ffc677;
         padding: 16px;

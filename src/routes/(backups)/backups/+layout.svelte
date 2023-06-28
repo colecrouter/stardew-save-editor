@@ -3,7 +3,7 @@
     import { page } from '$app/stores';
     import { SaveGame } from '$lib/SaveFile';
     import { get } from 'svelte/store';
-    import SidebarButton from '../SidebarButton.svelte';
+    import SidebarButton from '../../SidebarButton.svelte';
     import { tooltip } from '$lib/Tooltip';
 
     // https://github.com/sveltejs/kit/issues/5434
@@ -14,8 +14,8 @@
     <slot />
 
     <nav>
-        <a href="/backups" aria-label="Backups" use:tooltip>
-            <SidebarButton>💿</SidebarButton>
+        <a href="/" aria-label="Cancel" use:tooltip>
+            <SidebarButton>❌</SidebarButton>
         </a>
     </nav>
 </div>

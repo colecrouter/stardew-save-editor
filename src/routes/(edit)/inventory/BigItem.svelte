@@ -1,6 +1,6 @@
 <script lang="ts">
     import { DefaultFurnitureSizes } from '$lib/ItemData';
-    import { GetSprite, GetSpritesheet } from '$lib/Spritesheet';
+    import { GetSpritesheet } from '$lib/Spritesheet';
     import { getContext } from 'svelte';
     import type { BigCraftable, Boots, Clothing, Furniture, FurnitureType, Hat, ItemInformation, ObjectInformation, Tool, Weapon } from '../../../types/items';
     import type { Item } from '../../../types/save/1.5';
@@ -54,8 +54,6 @@
         if (lookupItem) {
             spritesheet = GetSpritesheet(lookupItem);
             if (lookupItem._type === 'Furniture') {
-                console.log(lookupItem);
-
                 const size = DefaultFurnitureSizes.get(lookupItem.type as FurnitureType);
                 h = size?.height ?? 16;
                 w = size?.width ?? 16;
@@ -65,7 +63,7 @@
                     w = lookupItem.tilesheetSize.width * 16;
                     h = lookupItem.tilesheetSize.height * 16;
                 }
-            } else if (lookupItem._type === 'Clothing') {
+            } else if (lookupItem._type === 'Clothing' && lookupItem.type === 'Shirt') {
                 w = h = 8;
             } else if (lookupItem._type === 'Hat') {
                 w = h = 20;
@@ -81,13 +79,13 @@
             // Clothes weren't items until 1.4, they were a character property before then.
             // https://stardewvalleywiki.com/Version_History#1.4
             if (item.clothesType === 0) {
-                const sprite = GetSprite(lookupItem._type, item.parentSheetIndex ?? 0, 'Shirt');
+                const sprite = lookupItem.sprite;
                 lookupItem = {
                     ...lookupItem,
                     sprite,
                 } as ItemInformation;
             } else if (item.clothesType === 1) {
-                const sprite = GetSprite(lookupItem._type, item.parentSheetIndex ?? 0, 'Pants');
+                const sprite = lookupItem.sprite;
                 lookupItem = {
                     ...lookupItem,
                     sprite,
@@ -107,7 +105,7 @@
         style:--y={spritesheet && lookupItem && `${lookupItem?.sprite.y}px`}
         style:--sprite={spritesheet && lookupItem && `url(/assets/${spritesheet})`}
         style:--tint={`rgb(${item?.clothesColor?.R ?? 0},${item?.clothesColor?.G ?? 0},${item?.clothesColor?.B ?? 0})`}
-        class:dyeable={item?.dyeable}
+        class:dyeable={lookupItem?._type === 'Clothing' && lookupItem.dyeable}
         class:shirt={lookupItem?._type === 'Clothing' && lookupItem.type === 'Shirt'}
         class:craftable={lookupItem?._type === 'BigCraftable'} />
 </div>

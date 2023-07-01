@@ -11,6 +11,7 @@
     import BigItem from './BigItem.svelte';
     import QualitySelector from './QualitySelector.svelte';
     import SmallItem from './SmallItem.svelte';
+    import Preview from '../appearance/Preview.svelte';
 
     const itemData = getContext<Map<string, ItemInformation>>('itemData');
     let selectedItemData: ItemInformation | undefined;
@@ -28,16 +29,12 @@
         inventory = c.items.Item;
     });
 
-    // Selected item attributes
-    let type: 'Tool' | 'ObjectInformation' | 'BigCraftable' | 'Boots' | 'Clothing' | 'Furniture' | 'Hat' | 'MeleeWeapon' | 'RangedWeapon' | undefined;
-
     // Price/edibility calculation
     let oldQuality: number | undefined;
 
     $: (() => {
         // Refresh the selected item hardcoded data
         selectedItemData = selectedItem ? itemData.get(selectedItem?.name) : undefined;
-        type = selectedItemData?._type;
 
         selectedItem && console.debug('Selected item:', selectedItem?.name, selectedIndex);
 
@@ -247,6 +244,10 @@
             }
         }
 
+        if (newItemData._type == 'Clothing' && newItemData.dyeable) {
+            newItem.clothesColor = { R: 255, G: 255, B: 255, A: 255, PackedValue: 0 };
+        }
+
         if ('edibility' in newItemData) {
             newItem.edibility = newItemData.edibility ?? -300;
         }
@@ -266,6 +267,14 @@
 
         // Select the new item
         selectedItem = newItem;
+    };
+
+    const rerender = (item: Item, index: ParentIndex) => {
+        if (typeof index === 'number') {
+            inventory[index] = item;
+        } else {
+            player[index] = item;
+        }
     };
 </script>
 
@@ -295,9 +304,7 @@
                     <SmallItem item={player.rightRing} index={'rightRing'} bind:selectedItem bind:selectedIndex />
                     <SmallItem item={player.boots} index={'boots'} bind:selectedItem bind:selectedIndex />
                 </div>
-                <div class="character-appearance">
-                    <!-- TODO -->
-                </div>
+                <Preview pantsItem={player.pantsItem} shirtItem={player.shirtItem} hat={player.hat} />
                 <div class="character-armor">
                     <SmallItem item={player.hat} index={'hat'} bind:selectedItem bind:selectedIndex />
                     <SmallItem item={player.shirtItem} index={'shirtItem'} bind:selectedItem bind:selectedIndex />
@@ -333,18 +340,18 @@
 
         <!-- Item stats -->
         <div class="stats">
-            {#if selectedItem}
+            {#if selectedItem && selectedItemData}
                 <label>
                     <small>Display Name</small>
                     <input type="text" bind:value={selectedItem.DisplayName} />
                 </label>
-                {#if (selectedItem.stackable === undefined || selectedItem.stackable === true) && type !== 'Clothing' && type !== 'Boots' && type !== 'Hat'}
+                {#if (selectedItem.stackable === undefined || selectedItem.stackable === true) && !['Clothing', 'Boots', 'Hat'].includes(selectedItemData._type)}
                     <label>
                         <small>Amount</small>
                         <input type="number" bind:value={selectedItem.stack} min="0" max="999" />
                     </label>
                 {/if}
-                {#if type === 'MeleeWeapon'}
+                {#if selectedItemData._type === 'MeleeWeapon'}
                     <label>
                         <small>Min Dmg</small>
                         <input type="number" bind:value={selectedItem.minDamage} min="0" />
@@ -392,15 +399,11 @@
                         <small>Crit Dmg</small>
                         <input type="number" bind:value={selectedItem.critMultiplier} min="0" />
                     </label>
-                {:else if type === 'RangedWeapon'}
+                {:else if selectedItemData._type === 'RangedWeapon'}
                     <!-- Nothing to edit -->
-                {:else if type === 'Tool'}
+                {:else if selectedItemData._type === 'Tool'}
                     <!-- Can't edit -->
-                {:else if type === 'BigCraftable'}
-                    <label>
-                        <small>Price</small>
-                        <input type="number" bind:value={selectedItem.price} min="0" />
-                    </label>
+                {:else if selectedItemData._type === 'BigCraftable'}
                     <!-- <label>
                         <small>Place Outdoors</small>
                         <input type="check" bind:value={selectedItem.setOutdoors} />
@@ -413,7 +416,7 @@
                         <small>Produces Light</small>
                         <input type="checkbox" bind:checked={selectedItem.isLamp} />
                     </label>
-                {:else if type === 'Boots'}
+                {:else if selectedItemData._type === 'Boots'}
                     <label>
                         <small>Added Defense</small>
                         <input type="number" bind:value={selectedItem.addedDefense} min="0" />
@@ -424,29 +427,38 @@
                     </label>
                     <label>
                         <small>Color Index</small>
-                        <input type="number" bind:value={selectedItem.indexInColorSheet} min="0" max="71" />
+                        <input
+                            type="number"
+                            bind:value={selectedItem.indexInColorSheet}
+                            min="0"
+                            max="71"
+                            on:change={() => {
+                                if (!selectedItem) return;
+                                // Force rerender on any other components watching this item
+                                rerender(selectedItem, selectedIndex);
+                            }} />
                     </label>
-                {:else if type === 'Clothing'}
-                    <label>
-                        <small>Price</small>
-                        <input type="number" bind:value={selectedItem.price} min="0" />
-                    </label>
-                    {#if selectedItem.dyeable}
+                {:else if selectedItemData._type === 'Clothing'}
+                    {#if selectedItemData.dyeable}
                         <label>
                             <small>Color</small>
                             <input
                                 type="color"
-                                value={RGBToHex(selectedItem.clothesColor ?? { R: 0, G: 0, B: 0, A: 0, PackedValue: 0 })}
+                                value={RGBToHex(selectedItem.clothesColor ?? { R: 255, G: 255, B: 255, A: 255, PackedValue: 0 })}
                                 on:change={(e) => {
+                                    if (!selectedItem) return;
                                     // @ts-expect-error
                                     selectedItem.clothesColor = HexToRGB(e.target.value ?? '#000000');
+
+                                    // Force rerender on any other components watching this item
+                                    rerender(selectedItem, selectedIndex);
                                 }} />
                         </label>
                     {/if}
-                {:else if type === 'Furniture'}
+                {:else if selectedItemData._type === 'Furniture'}
                     <!-- Need more info -->
                     <!-- House plant selector -->
-                {:else if type === 'Hat'}
+                {:else if selectedItemData._type === 'Hat'}
                     <!-- Need more info? -->
                 {/if}
 
@@ -468,7 +480,7 @@
                 {/if}
 
                 <!-- Price -->
-                {#if type === 'ObjectInformation' || type === 'BigCraftable' || type === 'Furniture' || type === 'Hat' || type === 'Clothing'}
+                {#if ['ObjectInformation', 'BigCraftable', 'Furniture', 'Hat', 'Clothing'].includes(selectedItemData._type)}
                     <label>
                         <small>Price</small>
                         <input type="number" bind:value={selectedItem.price} min="0" />

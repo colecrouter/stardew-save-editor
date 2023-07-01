@@ -183,3 +183,24 @@ export const FurnitureTypeToNumber = new Map<FurnitureType, number>([
     [FurnitureType.Torch, 16],
     [FurnitureType.Sconce, 17],
 ]);
+
+export const BootsColorSheetIndex = new Map<string, number>([
+    ["Sneakers", 0],
+    ["Rubber Boots", 1],
+    ["Leather Boots", 2],
+    ["Work Boots", 3],
+    ["Combat Boots", 4],
+    ["Tundra Boots", 5],
+    ["Leprechaun Shoes", 14],
+    ["Thermal Boots", 6],
+    ["Cowboy Boots", 12], // 11?
+    ["Dark Boots", 7],
+    ["Firewalker Boots", 8],
+    ["Genie Shoes", 9],
+    ["Space Boots", 10],
+    ["Emily's Magic Boots", 13],
+    ["Cinderclown Shoes", 15],
+    ["Merman's Boots", 16],
+    ["Dragonscale Boots", 17],
+    ["Crystal Shoes", 18],
+]);

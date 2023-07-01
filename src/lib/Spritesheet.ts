@@ -1,6 +1,20 @@
 import type { Clothing, ItemInformation } from "$types/items";
 import type { HairstyleColor } from "$types/save/1.5";
 
+const ShirtsWithFemaleVariant = new Set<string>([
+    "Plain Shirt",
+    "Tank Top",
+    "Crop Tank Top",
+    "80's Shirt",
+    "Basic Pullover",
+    "Classy Top",
+]);
+
+const ShirtsWithMessedUpSpriteIndex = new Map<number, { x: number, y: number; }>([
+    [1997, { x: 256, y: 64 }],
+    [1998, { x: 256, y: 0 }]
+]);
+
 export const GetSpritesheet = (lookupItem: ItemInformation): string => {
     let spritesheet = '';
     switch (lookupItem?._type) {
@@ -52,13 +66,14 @@ export const GetSpritesheet = (lookupItem: ItemInformation): string => {
     return spritesheet;
 };
 
-const IndexToSprite = (index: number, itemW: number, itemH: number, sheetW: number, sheetH: number, padRight: number = 0) => {
-    const x = sheetW + padRight - ((index * itemW) % sheetW);
+export const IndexToSprite = (index: number, itemW: number, itemH: number, sheetW: number, sheetH: number, padRight: number = 0) => {
+    const x = (sheetW + padRight) - ((index * itemW) % sheetW);
     const y = sheetH - (Math.floor((index * itemW) / sheetW) * itemH);
+    if (y < 0) { console.log(index); }
     return { x, y };
 };
 
-export const GetSprite = (type: ItemInformation['_type'], index: number, clothingType: Clothing['type'] | undefined = undefined): { x: number, y: number; } => {
+export const GetSprite = (type: ItemInformation['_type'], index: number, clothingType: Clothing['type'] | undefined = undefined, dyeable: boolean | undefined = undefined): { x: number, y: number; } => {
     switch (type) {
         case 'ObjectInformation':
             return IndexToSprite(index, 16, 16, 384, 624);
@@ -71,11 +86,14 @@ export const GetSprite = (type: ItemInformation['_type'], index: number, clothin
         case 'Clothing':
             switch (clothingType) {
                 case 'Pants':
-                    // Special case, each pants sprite is 2x the height, BUT the pants are at the bottom, and not the top
-                    const { x, y } = IndexToSprite(index, 64, 32, 1920, 1376);
-                    return { x: x - 4, y: y - 22 };
+                    // Special case, pants have 192x672 of animation frames, then the pants themselves are underneath on the left
+                    const pantSprite = IndexToSprite(index, 192, 686, 1920, 1376);
+                    return { x: pantSprite.x, y: pantSprite.y - 672 };
                 case 'Shirt':
-                    return IndexToSprite(index - 1000, 8, 32, 128, 608, 128);
+                    // let shirtSprite = ShirtsWithMessedUpSpriteIndex.get(index);
+                    // if (shirtSprite) { return shirtSprite; }
+                    let shirtSprite = IndexToSprite(index, 8, 32, 128, 608, 128);
+                    return dyeable ? { x: shirtSprite.x - 128, y: shirtSprite.y } : shirtSprite;
                 default:
                     throw new Error('Not real clothing type');
             };
@@ -93,67 +111,17 @@ export const GetSprite = (type: ItemInformation['_type'], index: number, clothin
     };
 };
 
-const IndexToSpriteShirts = (index: number) => {
-    const sheetW = 128;
-    const sheetH = 608;
-    const itemW = 8;
-    const itemH = 8;
-
-    // We have to offset shirts by -1000 https://stardewvalleywiki.com/Modding:Items#Data_format_4
-    index = index - 1000;
-
-    const x = 0 - ((index * itemW) % sheetW);
-    const y = sheetH - (Math.floor((index * itemH * 4) / sheetW) * itemH);
-
-    return { x, y };
+export const GetPlayerSpriteForPants = (index: number, isMale: boolean) => {
+    const { x, y } = IndexToSprite(index, 192, 688, 1920, 1376);
+    return isMale ? { x, y } : { x: x - 96, y };
 };
 
-const IndexToSpritePants = (index: number) => {
-    const sheetW = 1920;
-    const sheetH = 1376;
-    const itemW = 8;
-    const itemH = 8;
-
-    const x = 0 - (index * itemW * 12) % sheetW + (itemW * 1.5);
-    const y = sheetH - Math.floor((index * itemH) / sheetW); // * (688) + (30);
-
-    return { x, y };
-};
-
-const IndexToSpriteHats = (index: number) => {
-    const sheetW = 240;
-    const itemW = 20;
-
-    const x = (index * itemW + itemW) % sheetW - 2;
-    const y = Math.floor((index * itemW) / sheetW) * (itemW * 4) + itemW - 4;
-
-    return { x, y };
-};
-
-const IndexToBigCraftables = (index: number) => {
-    const sheetW = 128;
-    const sheetH = 1152;
-    const itemW = 16;
-    const itemH = 32;
-
-    const size = IndexToSprite(index, itemW, itemH, sheetW, sheetH);
-};
-
-const IndexToSpriteFurniture = (index: number) => {
-    const sheetW = 512;
-    const sheetH = 1488;
-    const itemW = 16;
-    const itemH = 16;
-
-    return IndexToSprite(index, itemW, itemH, sheetW, sheetH);
-};
-
-export const HexToRGB = (hex: string): Partial<HairstyleColor> => {
+export const HexToRGB = (hex: string): HairstyleColor => {
     const R = parseInt(hex.slice(1, 3), 16);
     const G = parseInt(hex.slice(3, 5), 16);
     const B = parseInt(hex.slice(5, 7), 16);
 
-    return { R, G, B };
+    return { R, G, B, A: 255, PackedValue: 0 };
 };
 
 export const RGBToHex = (rgb: HairstyleColor): string => {

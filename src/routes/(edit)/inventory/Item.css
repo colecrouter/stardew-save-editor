@@ -12,7 +12,7 @@
     align-items: center;
 }
 
-.wrapper.item-wrapper::after {
+.item-wrapper:hover::after {
     content: '';
     width: 36px;
     height: 36px;

@@ -3,6 +3,10 @@ export interface HasSprite {
         x: number;
         y: number;
     };
+    femaleSprite?: {
+        x: number;
+        y: number;
+    };
     parentSheetIndex: number;
 }
 

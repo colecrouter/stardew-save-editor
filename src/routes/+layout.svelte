@@ -76,12 +76,14 @@
     }
 
     :global(input[type='text'], input[type='number']) {
+        border-radius: 4px;
         border: solid 2px;
-        border-bottom-color: #ffe4a1;
-        border-left-color: #ffe4a1;
-        border-right-color: #d68f54;
-        border-top-color: #d68f54;
-        background-color: #ffc677;
+        border-bottom-color: #9c613b;
+        border-left-color: #9c613b;
+        border-right-color: #6f3b31;
+        border-top-color: #6f3b31;
+        background-color: #f9bb65;
+        box-shadow: inset -2px 2px 0 #e38813, -2px 2px 1px rgba(0, 0, 0, 0.2);
     }
 
     :global(input[type='text']:focus, input[type='number']:focus) {

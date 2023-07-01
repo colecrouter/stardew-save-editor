@@ -77,10 +77,16 @@ const clothingArray = Object.entries(clothing).map(([key, value]) => {
     const props = value.split('/');
     const color = props[6].split(' ');
     const type = props[8] as ClothingType;
+    const dyeable = props[7] === 'true';
 
     let sprite;
+    let femaleSprite;
     if (type === 'Shirt') {
-        sprite = GetSprite('Clothing', Number(key), type);
+        sprite = GetSprite('Clothing', Number(props[3]), type, dyeable);
+
+        if (props[4] !== '-1') {
+            femaleSprite = GetSprite('Clothing', Number(props[4]), type, dyeable);
+        }
     } else {
         sprite = GetSprite('Clothing', Number(key), type);
     }
@@ -98,10 +104,11 @@ const clothingArray = Object.entries(clothing).map(([key, value]) => {
             g: Number(color[1]),
             b: Number(color[2]),
         },
-        dyeable: props[7] === 'true',
+        dyeable: dyeable,
         type: type,
         extraData: props[9],
         sprite: sprite,
+        femaleSprite: femaleSprite,
         parentSheetIndex: Number(key),
     } satisfies Clothing;
 });
@@ -233,9 +240,16 @@ await copyFile(`./content/TileSheets/weapons.png`, `./static/assets/weapons.png`
 await copyFile(`./content/TileSheets/tools.png`, `./static/assets/tools.png`);
 await copyFile(`./content/Characters/Farmer/pants.png`, `./static/assets/pants.png`);
 await copyFile(`./content/Characters/Farmer/shirts.png`, `./static/assets/shirts.png`);
-await copyFile(`./content/Characters/Farmer/shoeColors.png`, `./static/assets/shoeColors.png`);
+await copyFile(`./content/Characters/Farmer/accessories.png`, `./static/assets/accessories.png`);
+// await copyFile(`./content/Characters/Farmer/farmer_base.png`, `./static/assets/farmer_base.png`);
+// await copyFile(`./content/Characters/Farmer/farmer_base_bald.png`, `./static/assets/farmer_base_bald.png`);
+// await copyFile(`./content/Characters/Farmer/farmer_girl_base.png`, `./static/assets/farmer_girl_base.png`);
+// await copyFile(`./content/Characters/Farmer/farmer_girl_base_bald.png`, `./static/assets/farmer_girl_base_bald.png`);
+await copyFile(`./content/Characters/Farmer/hairstyles.png`, `./static/assets/hairstyles.png`);
+await copyFile(`./content/Characters/Farmer/hairstyles2.png`, `./static/assets/hairstyles2.png`);
 await copyFile('./content/maps/springobjects.png', './static/assets/springobjects.png');
 await copyFile('./content/Characters/Farmer/hats.png', './static/assets/hats.png');
+await copyFile('./content/LooseSprites/daybg.png', './static/assets/daybg.png');
 
 // Copy all portraits into assets folder
 const chars = [

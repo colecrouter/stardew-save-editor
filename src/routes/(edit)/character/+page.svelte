@@ -97,10 +97,6 @@
             Golden Walnuts
             <input type="number" min="0" max="130" bind:value={save.goldenWalnuts} />
         </label>
-        <label>
-            Favorite Thing
-            <input type="text" bind:value={player.favoriteThing} />
-        </label>
     </div>
 
     <h3>Wallet</h3>
@@ -151,9 +147,9 @@
         align-items: center;
     }
 
-    .stats > label:last-child {
+    /* .stats > label:last-child {
         grid-column: 1 / -1;
-    }
+    } */
 
     input[type='number'] {
         width: 4em;

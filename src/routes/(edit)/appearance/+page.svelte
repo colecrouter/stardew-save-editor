@@ -1,11 +1,14 @@
 <script lang="ts">
-    import { AccessoryIsTinted } from '$lib/CharacterColors';
+    import { Character } from '$lib/SaveFile';
+    import { HexToRGB, RGBToHex } from '$lib/Spritesheet';
+    import type { Player } from '$types/save/1.5';
+    import type { Writable } from 'svelte/store';
+    import Container from '../../Container.svelte';
+    import Preview from './Preview.svelte';
 
     let character: Player | undefined;
     let skinColor: number = 0;
     let hairStyle: number = 0;
-    let shirt: number = 0;
-    let pants: number = 0;
     let acc: number = 0;
 
     Character.character.subscribe((c) => {
@@ -16,10 +19,12 @@
         acc = c.accessory + 2;
     });
 
-    import { Character } from '$lib/SaveFile';
-    import type { Player } from '$types/save/1.5';
-    import Container from '../../Container.svelte';
-    import Preview from './Preview.svelte';
+    // Need to rerender when hair/eye color changes, because that doesn't trigger a rerender
+    // TODO - Find a better way to do this
+    const rerender = () => {
+        if (!character) return;
+        (Character.character as Writable<Player>).set(character);
+    };
 </script>
 
 <Container>
@@ -27,7 +32,7 @@
         <div class="wrapper">
             <div class="editor1">
                 <Preview isMale={character.isMale} skinColor={character.skinColor} hairStyle={character.hair} acc={character.accessory} />
-                <div class="gender">
+                <div class="selector">
                     <label>
                         🚹
                         <input type="radio" name="gender" value="male" checked={character && character.isMale} on:click={() => character && (character.isMale = true)} />
@@ -72,6 +77,53 @@
                         <input type="text" bind:value={character.favoriteThing} />
                     </label>
                 </div>
+                <div>
+                    <label>
+                        <small>Animal Preference</small>
+                        <div class="selector">
+                            <label>
+                                🐱
+                                <input type="radio" name="pet" value="cat" checked={character && character.catPerson} on:click={() => character && (character.catPerson = true)} />
+                            </label>
+                            <label>
+                                🐶
+                                <input type="radio" name="pet" value="dog" checked={character && !character.catPerson} on:click={() => character && (character.catPerson = false)} />
+                            </label>
+                        </div>
+                    </label>
+                </div>
+                <div>
+                    <label>
+                        <small>Eye Color</small>
+                        <div class="selector">
+                            <input
+                                type="color"
+                                value={RGBToHex(character?.newEyeColor ?? { R: 255, G: 255, B: 255, A: 255, PackedValue: 0 })}
+                                on:change={(e) => {
+                                    if (!character) return;
+                                    // @ts-expect-error
+                                    character.newEyeColor = HexToRGB(e.target.value ?? '#000000');
+                                    rerender();
+                                }} />
+                        </div>
+                    </label>
+                </div>
+                <div>
+                    <label>
+                        <small>Hair Color</small>
+                        <div class="selector">
+                            <input
+                                type="color"
+                                value={RGBToHex(character?.hairstyleColor ?? { R: 255, G: 255, B: 255, A: 255, PackedValue: 0 })}
+                                on:change={(e) => {
+                                    if (!character) return;
+                                    // @ts-expect-error
+                                    character.hairstyleColor = HexToRGB(e.target.value ?? '#000000');
+                                    rerender();
+                                }} />
+                        </div>
+                    </label>
+                </div>
             </div>
         </div>
     {/if}
@@ -81,6 +133,7 @@
     .wrapper {
         display: grid;
         grid-template-columns: 1fr 3fr;
+        gap: 16px;
     }
 
     .editor1 {
@@ -116,18 +169,17 @@
         text-align: center;
     }
 
-    .gender {
+    .selector {
         display: flex;
-        gap: 8px;
+        flex-direction: row;
         justify-content: center;
-        width: 100%;
     }
 
-    .gender input {
+    .selector input {
         appearance: none;
     }
 
-    .gender label {
+    .selector label {
         border-radius: 4px;
         display: flex;
         justify-content: center;
@@ -136,17 +188,19 @@
         padding-bottom: 0.1em;
         font-size: 1.5em;
         cursor: pointer;
+        /* Beef up the text shadow a little bit, some emojis might blend into the bg too much */
+        text-shadow: -0.05em 0.05em 0.1em rgba(0, 0, 0, 0.6);
     }
 
-    .gender label:has(input:checked) {
+    .selector label:has(input:checked) {
         border: solid 3px #d93703;
     }
 
-    .gender label:has(input:not(:checked)) {
+    .selector label:has(input:not(:checked)) {
         border: solid 3px #00000000;
     }
 
-    .gender label input {
+    .selector label input {
         position: absolute;
     }
 

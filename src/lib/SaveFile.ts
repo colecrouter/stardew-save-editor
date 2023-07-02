@@ -58,3 +58,51 @@ class CharacterSelector {
 }
 
 export const Character = new CharacterSelector(SaveGame);
+
+export const Download = async (save: SaveFile, filename: string) => {
+    if (!save || !filename) {
+        console.error('Save or filename is undefined');
+        return;
+    }
+
+    const res = await fetch('/api/toXML', {
+        method: 'POST',
+        body: JSON.stringify(save),
+        headers: {
+            'Content-Type': 'application/json',
+        },
+    });
+
+    if (!res.ok) {
+        console.error(res);
+        return;
+    }
+
+    const blob = await res.blob();
+
+    // If supported, use file picker
+    if ('showSaveFilePicker' in window) {
+        const handle = await window.showSaveFilePicker({
+            types: [
+                {
+                    description: 'Stardew Valley Save File',
+                    accept: { 'text/text': [] },
+                },
+            ],
+            suggestedName: filename,
+        });
+        const writable = await handle.createWritable();
+        await writable.write(blob);
+        await writable.close();
+        return;
+    }
+
+    // Otherwise just download the file to downloads
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+    a.remove();
+};

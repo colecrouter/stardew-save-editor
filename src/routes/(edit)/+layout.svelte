@@ -1,7 +1,7 @@
 <script lang="ts">
     import { goto } from '$app/navigation';
     import { page } from '$app/stores';
-    import { FileName, SaveGame, Character } from '$lib/SaveFile';
+    import { FileName, SaveGame, Character, Download } from '$lib/SaveFile';
     import { get } from 'svelte/store';
     import type { LayoutData } from './$types';
     import { onDestroy, setContext } from 'svelte';
@@ -35,27 +35,7 @@
             return;
         }
 
-        const res = await fetch('/api/toXML', {
-            method: 'POST',
-            body: JSON.stringify(save),
-            headers: {
-                'Content-Type': 'application/json',
-            },
-        });
-
-        if (!res.ok) {
-            console.error(res);
-            return;
-        }
-
-        const blob = await res.blob();
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        a.click();
-        URL.revokeObjectURL(url);
-        a.remove();
+        await Download(save, filename);
     };
 </script>
 

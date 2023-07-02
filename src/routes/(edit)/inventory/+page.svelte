@@ -121,6 +121,24 @@
                 break;
         }
 
+        const newItem: Item = {
+            name: newItemName,
+            stack: 1,
+            parentSheetIndex: 'parentSheetIndex' in newItemData ? newItemData.parentSheetIndex : 0,
+            category: category,
+            hasBeenInInventory: true,
+            hasBeenPickedUpByFarmer: true,
+            DisplayName: newItemData.name,
+            SpecialVariable: 0, // TODO ?
+            indexInColorSheet: 0, // TODO
+            isLostItem: false,
+            specialItem: false,
+            tileLocation: { X: 0, Y: 0 },
+            boundingBox: { X: 0, Y: 0, Width: 64, Height: 64, Location: { X: 0, Y: 0 } },
+            canBeSetDown: true,
+            canBeGrabbed: true,
+        };
+
         let type: string | undefined;
         switch (newItemData._type) {
             case 'ObjectInformation':
@@ -159,24 +177,8 @@
                 break;
         }
 
-        const newItem: Item = {
-            name: newItemName,
-            stack: 1,
-            parentSheetIndex: 'parentSheetIndex' in newItemData ? newItemData.parentSheetIndex : 0,
-            category: category,
-            hasBeenInInventory: true,
-            hasBeenPickedUpByFarmer: true,
-            DisplayName: newItemData.name,
-            SpecialVariable: 0, // TODO ?
-            indexInColorSheet: 0, // TODO
-            isLostItem: false,
-            specialItem: false,
-            tileLocation: { X: 0, Y: 0 },
-            canBeSetDown: true,
-            canBeGrabbed: true,
-        };
-
         if (type) {
+            // This is required for the game to recognize the item as the correct type, but isn't part of the XML structureS
             // @ts-expect-error
             newItem['@_xsi:type'] = type;
         }

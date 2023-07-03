@@ -317,6 +317,10 @@
         top: 16px;
     }
 
+    .appearance.female .hair {
+        top: 2px;
+    }
+
     /* .appearance.pants .accessory {
         height: ;
     } */

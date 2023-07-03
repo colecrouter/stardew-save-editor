@@ -1,11 +1,11 @@
 <script lang="ts">
     import { DefaultFurnitureSizes } from '$lib/ItemData';
     import type { ParentIndex } from '$lib/ItemParentIndex';
-    import { getContext } from 'svelte';
-    import type { Item } from '../../../types/save/1.5';
-    import './Item.css';
-    import { GetSprite, GetSpritesheet } from '$lib/Spritesheet';
+    import { GetSpritesheet } from '$lib/Spritesheet';
     import type { FurnitureType, ItemInformation } from '$types/items';
+    import type { Item } from '$types/save/1.5';
+    import { getContext } from 'svelte';
+    import './Item.css';
 
     let spritesheet: string | undefined;
     let lookupItem: ItemInformation | undefined;

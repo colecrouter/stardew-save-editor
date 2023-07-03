@@ -8,7 +8,7 @@
     export let data: PageData;
     const recipes = data.recipes;
 
-    let recipesUnlocked: KV[];
+    let recipesUnlocked: KV[] = [];
     Character.character.subscribe((c) => {
         if (!c) return;
 

@@ -5,9 +5,10 @@
     import { get } from 'svelte/store';
     import SidebarButton from '../SidebarButton.svelte';
     import { tooltip } from '$lib/Tooltip';
+    import { browser } from '$app/environment';
 
     // https://github.com/sveltejs/kit/issues/5434
-    page.subscribe((p) => p.url.pathname === '/' && get(SaveGame) && goto('/inventory'));
+    page.subscribe((p) => browser && p.url.pathname === '/' && get(SaveGame) && goto('/inventory'));
 </script>
 
 <div class="wrapper">

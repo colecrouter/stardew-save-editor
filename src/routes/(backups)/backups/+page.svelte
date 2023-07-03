@@ -9,7 +9,7 @@
 <Container>
     <div class="wrapper">
         {#if $backups.length > 0}
-            {#each [...$backups].reverse() as backup, i}
+            {#each $backups as backup, i}
                 <div class="line">
                     <Backup
                         {backup}

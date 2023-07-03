@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type { Item } from '../../../types/save/1.5';
+    import type { Item } from '$types/save/1.5';
 
     export let item: Item;
 

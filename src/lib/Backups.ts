@@ -1,6 +1,8 @@
 import { browser } from "$app/environment";
-import { get, writable } from "svelte/store";
+import { error } from "@sveltejs/kit";
+import { XMLBuilder, XMLParser } from "fast-xml-parser";
 import { openDB } from "idb";
+import { get, writable } from "svelte/store";
 
 const BACKUP_LIMIT = 5;
 
@@ -107,7 +109,7 @@ class BackupController {
 
         const newFiles = new Array<File>();
         for (const file of backupFiles) {
-            newFiles.push(new File([file.data], file.name, { lastModified: file.lastModified, type: 'text/text' }));
+            newFiles.unshift(new File([file.data], file.name, { lastModified: file.lastModified, type: 'text/text' }));
         }
 
         this.backups.set(newFiles);
@@ -116,7 +118,7 @@ class BackupController {
     private async save() {
         let files: Array<SerializedFile> = [];
         for (const file of get(this.backups)) {
-            files.push({
+            files.unshift({
                 name: file.name,
                 data: await file.text(),
                 lastModified: file.lastModified,
@@ -136,9 +138,9 @@ class BackupController {
         const backups = get(this.backups);
 
         for (const file of files) {
-            // Check if the file is the same as the last one, if so, replace it
-            if (backups.length > 0 && await backups.at(-1)?.text() === await file.text()) {
-                backups.pop();
+            // Check if the file is the same as any of the current ones, if so, return
+            if (backups.some((backup) => backup.name === file.name && backup.lastModified === file.lastModified && backup.size === file.size)) {
+                return 0;
             }
 
             // Add the file to the array
@@ -151,6 +153,31 @@ class BackupController {
         };
 
         this.backups.set(backups);
+
+        await this.save();
+
+        return 0;
+    }
+
+    public async unshift(...files: File[]): Promise<number> {
+        const backups = get(this.backups);
+
+        for (const file of files) {
+            // Check if the file is the same as any of the current ones, if so, return
+            if (backups.some((backup) => backup.name === file.name && backup.lastModified === file.lastModified && backup.size === file.size)) {
+                return 0;
+            }
+
+            // Add the file to the array
+            backups.unshift(file);
+
+            // If we have too many files, remove the oldest one
+            if (backups.length > BACKUP_LIMIT) {
+                backups.shift();
+            }
+
+            this.backups.set(backups);
+        };
 
         await this.save();
 

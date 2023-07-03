@@ -1,11 +1,7 @@
 <script lang="ts">
     import { goto } from '$app/navigation';
-    import { page } from '$app/stores';
-    import { FileName, SaveGame } from '$lib/SaveFile';
-    import { onDestroy, onMount } from 'svelte';
+    import { FileName, SaveConverter, SaveGame } from '$lib/SaveFile';
     import Container from '../Container.svelte';
-    import { get } from 'svelte/store';
-    import type { HttpError } from '@sveltejs/kit';
 
     let submit: HTMLInputElement;
     let files: FileList;
@@ -15,22 +11,18 @@
         const formData = new FormData();
         formData.append('file', file);
 
-        const res = await fetch('/api/toJSON', {
-            method: 'POST',
-            body: formData,
-        });
-
-        if (!res.ok) {
-            const error = (await res.json()) as HttpError['body'];
-            alert(error.message);
+        let json: SaveFile;
+        try {
+            json = await SaveConverter.toJSON(file);
+        } catch (e) {
+            alert((e as Error).message);
             return;
         }
 
         // Save is good, back it up
         const { BackupManager: Backups } = await import('$lib/Backups');
-        Backups.push(file);
+        Backups.unshift(file);
 
-        const json = (await res.json()) as SaveFile;
         SaveGame.set(json);
         FileName.set(file.name);
         goto('/inventory');
@@ -57,7 +49,12 @@
                 <li><span class="noselect">Linux: </span><code>~/.config/StardewValley/Saves</code></li>
             </ul>
 
-            <div class="warning">Backup your save file. Invalid save files may break the game.</div>
+            <div class="warning">
+                <p><strong>Backup your save file. Invalid save files may break the game.</strong> You take full responsibility by using this tool.</p>
+            </div>
+
+            <p>You can access previous versions of your save by clicking the CD icon.</p>
+            <p>If you find a problem, please report it <a href="https://github.com/Mexican-Man/stardew-save-editor/issues">on GitHub</a>.</p>
         </small>
     </form>
 </Container>
@@ -123,8 +120,12 @@
     .warning {
         background-color: rgba(255, 0, 0, 0.35);
         border-left: solid 4px rgba(255, 0, 0, 0.7);
-        font-weight: bold;
-        padding: 2px;
-        font-size: 1.1em;
+    }
+
+    .warning > * {
+        padding: 0.2rem;
+        padding-left: 0.5rem;
+        margin-block-start: 0.2em;
+        margin-block-end: 0.2em;
     }
 </style>

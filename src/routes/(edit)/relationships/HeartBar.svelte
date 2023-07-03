@@ -1,34 +1,25 @@
 <script lang="ts">
     import { DateableCharacters } from '$lib/NPCs';
-    import type { FriendshipDataItem } from '../../../types/save/1.5';
-
-    // export let character: string;
-    // export let amount: number;
+    import type { FriendshipDataItem } from '$types/save/1.5';
 
     export let character: FriendshipDataItem;
 
     let name = character.key.string;
     let dateable = DateableCharacters.some((c) => c == name);
-    let amount: number;
-    let relationship: string;
+    let amount: number = character.value.Friendship.Points;
+    let relationship: string = character.value.Friendship.Status;
     let hearts: number;
-    let maxhearts: number;
+    let maxhearts: number = dateable ? (relationship == 'Married' ? 14 : relationship == 'Dating' ? 10 : 8) : 10;
+    let maxamount: number = maxhearts * 250 + 249; // 250 points per heart, plus 249 points after the last heart
 
     // Update values for visuals
-    $: amount = character.value.Friendship.Points;
-    $: relationship = character.value.Friendship.Status;
+    $: character.value.Friendship.Points = Math.max(Math.min(amount, maxamount), 0);
     $: hearts = Math.floor(amount / 250);
-    $: maxhearts = dateable ? (relationship == 'Married' ? 14 : relationship == 'Dating' ? 10 : 8) : 10;
 </script>
 
 <div class="row">
-    <div class="left">
-        <div class="portrait-wrapper">
-            <div class="portrait" style:background-image={`url('/assets/portraits/${name}.png')`} />
-        </div>
-        <strong>
-            {name}
-        </strong>
+    <div class="portrait-wrapper">
+        <div class="portrait" style:background-image={`url('/assets/portraits/${name}.png')`} />
     </div>
     <div class="right">
         <div class="hearts">
@@ -42,18 +33,22 @@
                 <span>🏳️</span>
             {/each}
         </div>
-        <input type="number" class="amount" bind:value={amount} on:change={() => (character.value.Friendship.Points = Math.max(0, amount))} />
+        <input type="number" class="amount" min="0" max={maxamount} bind:value={amount} />
     </div>
+    <strong>
+        {name}
+    </strong>
 </div>
 
 <style>
     .row {
-        display: flex;
+        display: grid;
+        grid-template-columns: min-content auto;
+        grid-template-rows: min-content 1em;
         flex-direction: row;
         gap: 8px;
         padding: 8px 0;
         border-bottom: 2px solid #da9457;
-        text-align: center;
     }
 
     .portrait-wrapper {
@@ -75,20 +70,24 @@
     .right {
         display: flex;
         flex-direction: column;
-        justify-content: center;
-        align-items: center;
+        justify-content: space-between;
+        align-items: start;
         gap: 8px;
     }
 
     .hearts {
-        text-shadow: -1px 1px 0 #000;
         display: flex;
         flex-direction: row;
-        justify-content: center;
-        align-items: center;
+        justify-content: space-evenly;
+        width: 100%;
+        text-shadow: -1px 1px 0 #000;
     }
 
     .amount {
         width: 5em;
+    }
+
+    strong {
+        text-align: center;
     }
 </style>

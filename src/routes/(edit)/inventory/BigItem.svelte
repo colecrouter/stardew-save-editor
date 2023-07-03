@@ -1,9 +1,9 @@
 <script lang="ts">
     import { DefaultFurnitureSizes } from '$lib/ItemData';
     import { GetSpritesheet } from '$lib/Spritesheet';
+    import type { BigCraftable, Boots, Clothing, Furniture, FurnitureType, Hat, ItemInformation, ObjectInformation, Tool, Weapon } from '$types/items';
+    import type { Item } from '$types/save/1.5';
     import { getContext } from 'svelte';
-    import type { BigCraftable, Boots, Clothing, Furniture, FurnitureType, Hat, ItemInformation, ObjectInformation, Tool, Weapon } from '../../../types/items';
-    import type { Item } from '../../../types/save/1.5';
     import './Item.css';
 
     let spritesheet: string | undefined;

@@ -8,11 +8,12 @@
     import SidebarButton from '../SidebarButton.svelte';
     import Router from './Router.svelte';
     import { tooltip } from '$lib/Tooltip';
+    import { browser } from '$app/environment';
 
     export let data: LayoutData;
 
     // If the save changes for whatever reason, go back to the main screen
-    const unsub = page.subscribe(() => get(SaveGame) == undefined && goto('/'));
+    const unsub = page.subscribe(() => browser && get(SaveGame) == undefined && goto('/'));
     onDestroy(() => unsub());
 
     // Set the context for the item data for components to use

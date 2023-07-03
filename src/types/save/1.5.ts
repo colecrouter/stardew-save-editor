@@ -202,7 +202,7 @@ export interface BoundingBox {
     Location: TileLocation;
 }
 
-export type TypeEnum = "Cooking" | "Crafting" | "Basic" | "Minerals" | "asdf" | "Fish" | "Arch" | "Seeds";
+export type TypeEnum = "Cooking" | "Crafting" | "Basic" | "Minerals" | "asdf" | "Fish" | "Arch" | "Seeds" | "Ring" | "Quest";
 
 export interface JunimoKartLeaderboards {
     entries: string;
@@ -1277,7 +1277,7 @@ export interface PlayerItems {
 
 export interface Item {
     isLostItem?: boolean;
-    category: Category;
+    category?: Category;
     hasBeenInInventory: boolean;
     name: string;
     specialItem?: boolean;

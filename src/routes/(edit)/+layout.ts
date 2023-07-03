@@ -1,6 +1,4 @@
-import type { ObjectInformation, BigCraftable, Boots, Clothing, Furniture, Hat, Weapon, Tool, ItemInformation } from "../../types/items";
-
-export const ssr = false;
+import type { ItemInformation } from "$types/items";
 
 // Prefetch dumped data
 export const load = async ({ fetch }) => {

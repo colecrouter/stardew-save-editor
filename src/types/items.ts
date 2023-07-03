@@ -15,7 +15,7 @@ export interface ObjectInformation extends HasSprite {
     name: string;
     price: number;
     edibility: number;
-    type: ObjectType;
+    type: import('./save/1.5').TypeEnum;
     category?: number;
     displayName?: string;
     description: string;
@@ -23,8 +23,6 @@ export interface ObjectInformation extends HasSprite {
     misc2?: number;
     buffDuration?: number;
 }
-
-export type ObjectType = 'Ring' | 'Fish' | 'Arch' | 'asdf' | 'Seeds' | 'Crafting' | 'Quest' | 'Basic' | 'Cooking' | 'Minerals';
 
 export enum Fragility {
     PickUpWithAnyTool = 0,
@@ -37,7 +35,7 @@ export interface BigCraftable extends HasSprite {
     name: string;
     price: number;
     edibility: number;
-    type: ObjectType;
+    type: import('./save/1.5').TypeEnum;
     category: -9;
     description: string;
     outdoors: boolean;

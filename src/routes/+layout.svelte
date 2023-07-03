@@ -1,6 +1,24 @@
+<svelte:head>
+    <link rel="icon" type="image/png" href="https://stardewcommunitywiki.com/mediawiki/images/3/33/Stardew_Checkup_Icon.png" />
+    <title>Stardew Valley Save Editor</title>
+    <meta name="description" content="A save editor for Stardew Valley" />
+
+    <meta property="og:title" content="Stardew Valley Save Editor" />
+    <meta property="og:description" content="A save editor for Stardew Valley" />
+    <meta property="og:image" content="/wallpaper.jpg" />
+</svelte:head>
+
+<!-- GITHUB LOGO -->
+<a href="https://github.com/Mexican-Man/stardew-save-editor" aria-label="GitHub repository link" target="_blank" rel="noreferrer">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/91/Octicons-mark-github.svg/600px-Octicons-mark-github.svg.png?20180806170715" alt="Github Logo" />
+</a>
+
 <main>
     <slot />
 </main>
+
+<!-- FOOTER -->
+<small>Some assets utilized belong to ConcernedApe. Used under Fair Use and not affiliated with ConcernedApe or Stardew Valley</small>
 
 <style>
     :global(body) {
@@ -22,6 +40,7 @@
         align-items: center;
         justify-content: start;
         padding-top: 5rem;
+        min-height: 100%;
     }
 
     :global(code) {
@@ -100,5 +119,44 @@
 
     :global(button:hover) {
         filter: brightness(1.2);
+    }
+
+    a {
+        position: absolute;
+        top: 0;
+        right: 0;
+        z-index: 1;
+        padding: 0.5rem;
+    }
+
+    a > img {
+        width: 2rem;
+        height: 2rem;
+        transition: filter 0.2s ease-in-out;
+        image-rendering: auto !important;
+        filter: invert(1);
+    }
+
+    a::before {
+        /* top right wedge */
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        height: 160%;
+        width: 160%;
+        background: #0008;
+        clip-path: polygon(0% 0%, 100% 100%, 100% 0%);
+    }
+
+    a:hover > img {
+        filter: invert(0.8);
+    }
+
+    small {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        margin: 0.1rem;
     }
 </style>

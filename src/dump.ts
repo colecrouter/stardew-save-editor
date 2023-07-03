@@ -1,7 +1,8 @@
 import { copyFile, readFile, writeFile } from 'fs/promises';
-import type { BigCraftable, Boots, Clothing, ClothingType, Furniture, FurnitureType, Hat, MeleeWeapon, MeleeWeaponType, ObjectInformation, ObjectType, RangedWeapon, Tool } from './types/items';
+import type { BigCraftable, Boots, Clothing, ClothingType, Furniture, FurnitureType, Hat, MeleeWeapon, MeleeWeaponType, ObjectInformation, RangedWeapon, Tool } from './types/items';
 // @ts-expect-error
 import { GetSprite } from './lib/Spritesheet.ts';
+import type { TypeEnum } from '$types/save/1.5';
 
 const objects = JSON.parse(await readFile('./content/Data/ObjectInformation.json', 'utf-8')) as Record<string, string>;
 const objectsArray = Object.entries(objects).map(([key, value]) => {
@@ -16,7 +17,7 @@ const objectsArray = Object.entries(objects).map(([key, value]) => {
         name: props[0],
         price: Number(props[1]),
         edibility: Number(props[2]),
-        type: type as ObjectType,
+        type: type as TypeEnum,
         category: Number(category),
         displayName: props[4],
         description: props[5],
@@ -42,7 +43,7 @@ const bigCraftablesArray = Object.entries(bigCraftables).map(([key, value]) => {
         name: props[0],
         price: Number(props[1]),
         edibility: Number(props[2]),
-        type: props[3].split(' ')[0] as ObjectType,
+        type: props[3].split(' ')[0] as TypeEnum,
         category: -9,
         description: props[4],
         outdoors: props[5] === 'true',

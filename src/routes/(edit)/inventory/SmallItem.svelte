@@ -6,6 +6,7 @@
     import type { Item } from '$types/save/1.5';
     import { getContext } from 'svelte';
     import './Item.css';
+    import { base } from '$app/paths';
 
     let spritesheet: string | undefined;
     let lookupItem: ItemInformation | undefined;
@@ -110,7 +111,7 @@
         style:--z={`${32 / Math.max(w, h, 16)}`}
         style:--x={spritesheet && lookupItem && `${lookupItem?.sprite.x}px`}
         style:--y={spritesheet && lookupItem && `${lookupItem?.sprite.y}px`}
-        style:--sprite={spritesheet && lookupItem && `url(/assets/${spritesheet})`}
+        style:--sprite={spritesheet && lookupItem && `url(${base}/assets/${spritesheet})`}
         style:--tint={`rgb(${item?.clothesColor?.R ?? 0},${item?.clothesColor?.G ?? 0},${item?.clothesColor?.B ?? 0})`}
         class:dyeable={lookupItem?._type === 'Clothing' && lookupItem.dyeable} />
 </div>

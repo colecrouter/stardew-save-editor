@@ -6,16 +6,17 @@
     import SidebarButton from '../SidebarButton.svelte';
     import { tooltip } from '$lib/Tooltip';
     import { browser } from '$app/environment';
+    import { base } from '$app/paths';
 
     // https://github.com/sveltejs/kit/issues/5434
-    page.subscribe((p) => browser && p.url.pathname === '/' && get(SaveGame) && goto('/inventory'));
+    page.subscribe((p) => browser && p.url.pathname === '/' && get(SaveGame) && goto(base + '/inventory'));
 </script>
 
 <div class="wrapper">
     <slot />
 
     <nav>
-        <a href="/backups" aria-label="Backups" use:tooltip>
+        <a href={`${base}/backups`} aria-label="Backups" use:tooltip>
             <SidebarButton>💿</SidebarButton>
         </a>
     </nav>

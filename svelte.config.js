@@ -14,7 +14,11 @@ const config = {
 		adapter: adapter(),
 		alias: {
 			$types: './src/types',
-		}
+		},
+		paths: {
+			base: process.env.NODE_ENV === "production" ? "/stardew-save-editor" : "",
+		},
+
 	},
 	vitePlugin: { inspector: true },
 };

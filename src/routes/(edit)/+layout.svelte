@@ -9,11 +9,12 @@
     import Router from './Router.svelte';
     import { tooltip } from '$lib/Tooltip';
     import { browser } from '$app/environment';
+    import { base } from '$app/paths';
 
     export let data: LayoutData;
 
     // If the save changes for whatever reason, go back to the main screen
-    const unsub = page.subscribe(() => browser && get(SaveGame) == undefined && goto('/'));
+    const unsub = page.subscribe(() => browser && get(SaveGame) == undefined && goto(base + '/'));
     onDestroy(() => unsub());
 
     // Set the context for the item data for components to use
@@ -24,7 +25,7 @@
     const cancel = () => {
         SaveGame.set(undefined);
         FileName.set(undefined);
-        goto('/');
+        goto(base + '/');
     };
 
     // Download the save file

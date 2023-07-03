@@ -1,5 +1,6 @@
 <script lang="ts">
     import { goto } from '$app/navigation';
+    import { base } from '$app/paths';
     import { FileName, SaveConverter, SaveGame } from '$lib/SaveFile';
     import Container from '../Container.svelte';
 
@@ -25,7 +26,7 @@
 
         SaveGame.set(json);
         FileName.set(file.name);
-        goto('/inventory');
+        goto(base + '/inventory');
     };
 </script>
 

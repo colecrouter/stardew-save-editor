@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { base } from '$app/paths';
     import { DateableCharacters } from '$lib/NPCs';
     import type { FriendshipDataItem } from '$types/save/1.5';
 
@@ -19,7 +20,7 @@
 
 <div class="row">
     <div class="portrait-wrapper">
-        <div class="portrait" style:background-image={`url('/assets/portraits/${name}.png')`} />
+        <div class="portrait" style:background-image={`url('${base}/assets/portraits/${name}.png')`} />
     </div>
     <div class="right">
         <div class="hearts">

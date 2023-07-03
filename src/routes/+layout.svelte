@@ -1,3 +1,7 @@
+<script lang="ts">
+    import { base } from '$app/paths';
+</script>
+
 <svelte:head>
     <link rel="icon" type="image/png" href="https://stardewcommunitywiki.com/mediawiki/images/3/33/Stardew_Checkup_Icon.png" />
     <title>Stardew Valley Save Editor</title>
@@ -5,7 +9,7 @@
 
     <meta property="og:title" content="Stardew Valley Save Editor" />
     <meta property="og:description" content="A save editor for Stardew Valley" />
-    <meta property="og:image" content="/wallpaper.jpg" />
+    <meta property="og:image" content={`${base}/wallpaper.jpg`} />
 </svelte:head>
 
 <!-- GITHUB LOGO -->

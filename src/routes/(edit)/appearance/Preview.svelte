@@ -135,7 +135,7 @@
                 }
 
                 const hair = character.hair;
-                hairPosition = IndexToSprite(hair, 16, 128, 128, 672);
+                hairPosition = IndexToSprite(hair, 16, 96, 128, 672);
                 hairTint = character.hairstyleColor;
                 showHair = hatData?._type !== 'Hat' || hatData.showRealHair;
 

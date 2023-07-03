@@ -54,7 +54,7 @@
                 <p><strong>Backup your save file. Invalid save files may break the game.</strong> You take full responsibility by using this tool.</p>
             </div>
 
-            <p>You can access previous versions of your save by clicking the CD icon.</p>
+            <p>You can access temporary backups of your saves by clicking the CD icon.</p>
             <p>If you find a problem, please report it <a href="https://github.com/Mexican-Man/stardew-save-editor/issues">on GitHub</a>.</p>
         </small>
     </form>

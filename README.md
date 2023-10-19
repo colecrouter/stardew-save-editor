@@ -1,4 +1,4 @@
-# [LINK TO THE INVENTORY EDITOR HERE](colecrouter.github.io/stardew-save-editor/)
+# [LINK TO THE INVENTORY EDITOR HERE](https://colecrouter.github.io/stardew-save-editor/)
 
 # [WIP] Stardew Valley Save Editor
 

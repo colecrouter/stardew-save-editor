@@ -1,3 +1,5 @@
+# [LINK TO THE INVENTORY EDITOR HERE](https://colecrouter.github.io/stardew-save-editor/)
+
 # [WIP] Stardew Valley Save Editor
 
 Open source web-based save editor for Stardew Valley. Contributions welcome.

@@ -22,6 +22,27 @@
     </nav>
 </div>
 
+<!-- SEO data -->
+<main hidden>
+    <h1>Stardew Valley Save Editor</h1>
+    <p>
+        This is an online editor for the hit game <a href="https://stardewvalley.net/">Stardew Valley</a>. Upload your save file here, modify your it, then download your edited save file. Make sure to make a backup of your save file!
+    </p>
+
+    <nav>
+        <h2>Inventory</h2>
+        <h2>Character</h2>
+        <h2>Appearance</h2>
+        <h2>Relationships</h2>
+        <h2>Crafting</h2>
+        <h2>Cooking</h2>
+    </nav>
+
+    <h3>
+        <a href="https://github.com/colecrouter/stardew-save-editor">Link to the GitHub project</a>
+    </h3>
+</main>
+
 <style>
     .wrapper {
         display: flex;

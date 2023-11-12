@@ -1,4 +1,4 @@
-Copyright ©️ 2023 [Contributors](https://github.com/Mexican-Man/Stardew-Save-Editor/graphs/contributors)
+Copyright ©️ 2023 [Contributors](https://github.com/colecrouter/Stardew-Save-Editor/graphs/contributors)
 
 --- ADDITIONAL CLARIFICATION ---
 

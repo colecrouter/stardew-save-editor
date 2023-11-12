@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { goto } from "$app/navigation";
-  import { base } from "$app/paths";
-  import { FileName, SaveConverter, SaveGame } from "$lib/SaveFile";
-  import Container from "../Container.svelte";
+  import { goto } from '$app/navigation';
+  import { base } from '$app/paths';
+  import { FileName, SaveConverter, SaveGame } from '$lib/SaveFile';
+  import Container from '../Container.svelte';
 
   let submit: HTMLInputElement;
   let files: FileList;
@@ -10,7 +10,7 @@
   const handle = async () => {
     const file = files[0];
     const formData = new FormData();
-    formData.append("file", file);
+    formData.append('file', file);
 
     let json: SaveFile;
     try {
@@ -21,12 +21,12 @@
     }
 
     // Save is good, back it up
-    const { BackupManager: Backups } = await import("$lib/Backups");
+    const { BackupManager: Backups } = await import('$lib/Backups');
     Backups.unshift(file);
 
     SaveGame.set(json);
     FileName.set(file.name);
-    goto(base + "/inventory");
+    goto(base + '/inventory');
   };
 </script>
 
@@ -46,35 +46,25 @@
       Default save locations:
       <ul>
         <li>
-          <span class="noselect">Windows: </span><code
-            >%appdata%\StardewValley\Saves</code>
+          <span class="noselect">Windows: </span><code>%appdata%\StardewValley\Saves</code>
         </li>
         <li>
-          <span class="noselect">Mac: </span><code
-            >~/Library/Application Support/StardewValley/Saves</code>
+          <span class="noselect">Mac: </span><code>~/Library/Application Support/StardewValley/Saves</code>
         </li>
         <li>
-          <span class="noselect">Linux: </span><code
-            >~/.config/StardewValley/Saves</code>
+          <span class="noselect">Linux: </span><code>~/.config/StardewValley/Saves</code>
         </li>
       </ul>
 
       <div class="warning">
         <p>
-          <strong
-            >Always backup your save file. Corrupt save files may break the
-            game.</strong> You take full responsibility by using this tool.
+          <strong>Always backup your save file. Corrupt save files may break the game.</strong> You take full responsibility by using this tool.
         </p>
       </div>
 
+      <p>You can access temporary backups of your saves by clicking the CD icon.</p>
       <p>
-        You can access temporary backups of your saves by clicking the CD icon.
-      </p>
-      <p>
-        If you find a problem, please report it <a
-          href="https://github.com/Mexican-Man/stardew-save-editor/issues"
-          >on GitHub</a
-        >.
+        If you find a problem, please report it <a href="https://github.com/colecrouter/stardew-save-editor/issues">on GitHub</a>.
       </p>
     </small>
   </form>
@@ -88,7 +78,7 @@
   }
 
   /* Big striped Drag and Drop File Upload */
-  input[type="file"] {
+  input[type='file'] {
     position: relative;
     border: 2px dashed #8e3d04;
     border-radius: 5px;
@@ -104,20 +94,20 @@
     font-size: 0;
   }
 
-  input[type="file"]:focus {
+  input[type='file']:focus {
     outline: none;
   }
 
-  input[type="file"]:hover {
+  input[type='file']:hover {
     cursor: pointer;
   }
 
-  input[type="file"]::file-selector-button {
+  input[type='file']::file-selector-button {
     display: none;
   }
 
-  input[type="file"]::after {
-    content: "Drag and Drop or Click";
+  input[type='file']::after {
+    content: 'Drag and Drop or Click';
     display: flex;
     align-items: center;
     justify-content: center;

@@ -13,7 +13,7 @@
 </svelte:head>
 
 <!-- GITHUB LOGO -->
-<a href="https://github.com/Mexican-Man/stardew-save-editor" aria-label="GitHub repository link" target="_blank" rel="noreferrer">
+<a href="https://github.com/colecrouter/stardew-save-editor" aria-label="GitHub repository link" target="_blank" rel="noreferrer">
     <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/91/Octicons-mark-github.svg/600px-Octicons-mark-github.svg.png?20180806170715" alt="Github Logo" />
 </a>
 

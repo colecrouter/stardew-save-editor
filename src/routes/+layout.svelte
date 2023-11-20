@@ -14,6 +14,14 @@
     <meta property="og:type" content="website" />
 
     <meta name="twitter:card" content="summary" />
+
+    <link rel="canonical" href={`${base}/backups`} />
+    <link rel="canonical" href={`${base}/inventory`} />
+    <link rel="canonical" href={`${base}/character`} />
+    <link rel="canonical" href={`${base}/appearance`} />
+    <link rel="canonical" href={`${base}/relationships`} />
+    <link rel="canonical" href={`${base}/crafting`} />
+    <link rel="canonical" href={`${base}/cooking`} />
 </svelte:head>
 
 <!-- GITHUB LOGO -->

@@ -3,13 +3,17 @@
 </script>
 
 <svelte:head>
-    <link rel="icon" type="image/png" href="https://stardewcommunitywiki.com/mediawiki/images/3/33/Stardew_Checkup_Icon.png" />
+    <link rel="icon" type="image/png" href={`${base}/img/favicon.png`} />
     <title>Stardew Valley Save Editor</title>
-    <meta name="description" content="A save editor for Stardew Valley" />
+    <meta name="description" content="An online save editor for Stardew Valley. Upload your save, then change your appearance, inventory, skills, and more." />
 
     <meta property="og:title" content="Stardew Valley Save Editor" />
-    <meta property="og:description" content="A save editor for Stardew Valley" />
-    <meta property="og:image" content={`${base}/wallpaper.jpg`} />
+    <meta property="og:description" content="An online save editor for Stardew Valley. Upload your save, then change your appearance, inventory, skills, and more." />
+    <meta property="og:image" content={`${base}/img/summary.png`} />
+    <meta property="og:url" content="https://colecrouter.github.io/stardew-save-editor/" />
+    <meta property="og:type" content="website" />
+
+    <meta name="twitter:card" content="summary" />
 </svelte:head>
 
 <!-- GITHUB LOGO -->
@@ -24,13 +28,38 @@
 <!-- FOOTER -->
 <small>Some assets utilized belong to ConcernedApe. Used under Fair Use and not affiliated with ConcernedApe or Stardew Valley</small>
 
+<!-- SEO data -->
+<footer hidden>
+    <h1>Stardew Valley Save Editor</h1>
+
+    <p>
+        This is an online editor for the hit game <a href="https://stardewvalley.net/">Stardew Valley</a>. Upload your save file here, modify your it, then download your edited save file. Make sure to make a backup of your save file! With
+        this too, you can change your appearance, inventory, skills, crafting recipes, and more. More features will be added in the future. If you find a problem, please report it
+        <a href="https://github.com/colecrouter/stardew-save-editor/issues">on GitHub</a>. PRs are welcome!
+    </p>
+
+    <nav>
+        <h2><a href={`${base}/`}>Upload</a></h2>
+        <h2><a href={`${base}/backups`}>Backups</a></h2>
+
+        <h2><a href={`${base}/inventory`}>Inventory</a></h2>
+        <h2><a href={`${base}/character`}>Character</a></h2>
+        <h2><a href={`${base}/appearance`}>Appearance</a></h2>
+        <h2><a href={`${base}/relationships`}>Relationships</a></h2>
+        <h2><a href={`${base}/crafting`}>Crafting</a></h2>
+        <h2><a href={`${base}/cooking`}>Cooking</a></h2>
+    </nav>
+
+    <h3><a href="https://github.com/colecrouter/stardew-save-editor">Link to the GitHub project</a></h3>
+</footer>
+
 <style>
     :global(body) {
         margin: 0;
         padding: 0;
         font-family: sans-serif;
         font-size: 16px;
-        background-image: url(/wallpaper.jpg);
+        background-image: url(/img/wallpaper.jpg);
         background-size: cover;
         background-position: center;
         background-attachment: fixed;

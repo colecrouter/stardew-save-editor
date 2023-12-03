@@ -165,7 +165,7 @@ export const SaveConverter = {
         });
 
         // Copy name to Name, and stack to Stack for every item in the inventory
-        players.forEach((player) => [player.pantsItem, player.shirtItem, player.boots, player.leftRing, player.rightRing, ...player.items.Item].forEach((item) => {
+        players.forEach((player) => [player.hat, player.pantsItem, player.shirtItem, player.boots, player.leftRing, player.rightRing, ...player.items.Item].forEach((item) => {
             if (item) {
                 // @ts-expect-error
                 item.Name = item.name;

@@ -208,6 +208,11 @@
             // This is required for the game to recognize the item as the correct type, but isn't part of the XML structureS
             // @ts-expect-error
             newItem['@_xsi:type'] = type;
+
+            if (symbol === 'hat' && newItemName === 'Copper Pan') {
+                // @ts-expect-error
+                newItem['@_xsi:type'] = 'Hat';
+            }
         }
 
         if (newItemData._type === 'ObjectInformation') {
@@ -306,6 +311,14 @@
             inventory[symbol] = newItem;
         } else {
             player[symbol] = newItem;
+        }
+
+        if (symbol === 'hat' && newItem.name === 'Copper Pan') {
+            newItem.ignoreHairstyleOffset = true;
+            newItem.parentSheetIndex = 71;
+            newItem.indexInTileSheet = 71;
+            newItem.category = Category.Hat;
+            newItem.which = 71;
         }
 
         // Clear item from the editor window

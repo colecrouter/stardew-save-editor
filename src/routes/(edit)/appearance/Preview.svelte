@@ -128,7 +128,18 @@
                     }
                 }
 
-                const hatData = character.hat && itemData.get(character.hat.name);
+                let hatData: ItemInformation | undefined;
+                if (character.hat?.name === 'Copper Pan') {
+                    // I hate this so much, but there's no way to grab the info from itemData because +layout.ts converts iteminfo.json into a Map,
+                    // so the hat entry gets nuked. Maybe in the future we'll use a Map<string, Array<ItemInformation>> instead.
+                    const res = await fetch(base + '/iteminfo.json');
+                    const allItems = (await res.json()) as Array<[string, ItemInformation]>;
+                    const pan = allItems.find(([name]) => name === 'Copper Pan')![1];
+                    hatData = pan;
+                } else {
+                    hatData = character.hat && itemData.get(character.hat.name);
+                }
+
                 if (hatData) {
                     hatPosition = hatData.sprite;
                     showHair = hatData?._type == 'Hat' && hatData.showRealHair;
@@ -257,7 +268,10 @@
         position: absolute;
         width: 100%;
         height: 100%;
-        box-shadow: 0 0 0 2px #8e3d04, 0 0 0 4px #d97804, 0 0 0 6px #5b2b29;
+        box-shadow:
+            0 0 0 2px #8e3d04,
+            0 0 0 4px #d97804,
+            0 0 0 6px #5b2b29;
         border-radius: 2px;
     }
 

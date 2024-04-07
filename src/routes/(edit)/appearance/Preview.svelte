@@ -2,9 +2,9 @@
     import { base } from '$app/paths';
     import { AccessoryIsTinted } from '$lib/CharacterColors';
     import { Character } from '$lib/SaveFile';
-    import { GetPlayerSpriteForPants, IndexToSprite } from '$lib/Spritesheet';
-    import type { Clothing, ItemInformation } from '$types/items';
-    import type { HairstyleColor, Item, Player } from '$types/save/1.5';
+    import { GetPlayerSpriteForPants, GetSprite, IndexToSprite } from '$lib/Spritesheet';
+    import type { Clothing, Hat, ItemInformation } from '$types/items/1.6';
+    import { type Item, type HairstyleColor, type Player, Gender } from '$types/save/1.6';
     import { getContext } from 'svelte';
 
     const itemData = getContext<Map<string, ItemInformation>>('itemData');
@@ -39,7 +39,7 @@
     export let shirtItem: Item | undefined = undefined;
     export let pantsItem: Item | undefined = undefined;
     export let hat: Item | undefined = undefined;
-    export let isMale: boolean | undefined = undefined;
+    export let gender: Gender = Gender.Male;
     export let skinColor: number | undefined = undefined;
     export let hairStyle: number | undefined = undefined;
     export let shirt: number | undefined = undefined;
@@ -80,11 +80,11 @@
     });
 
     // Just here for reactivity
-    $: shirtItem || pantsItem || hat || isMale || skinColor || hairStyle || shirt || pants || acc,
+    $: shirtItem || pantsItem || hat || gender || skinColor || hairStyle || shirt || pants || acc,
         (async () => {
             await loaded;
             if (character) {
-                if (character.isMale) {
+                if (gender === Gender.Male) {
                     baseSheet = 'male_farmer.png';
                     armsSheet = 'male_farmer_arms.png';
                 } else {
@@ -92,63 +92,65 @@
                     armsSheet = 'female_farmer_arms.png';
                 }
 
-                isMale = character.isMale;
-                otherSheet = character.isMale ? 'male_farmer_other.png' : 'female_farmer_other.png';
-                bootsSheet = character.isMale ? 'male_farmer_boots.png' : 'female_farmer_boots.png';
+                const isMale = gender === Gender.Male;
+                otherSheet = isMale ? 'male_farmer_other.png' : 'female_farmer_other.png';
+                bootsSheet = isMale ? 'male_farmer_boots.png' : 'female_farmer_boots.png';
 
-                baseTint[0] = PrimarySkinColors[character.skinColor];
-                baseTint[1] = SecondarySkinColors[character.skinColor];
-                baseTint[2] = TertiarySkinColors[character.skinColor];
+                baseTint[0] = PrimarySkinColors[character.skin];
+                baseTint[1] = SecondarySkinColors[character.skin];
+                baseTint[2] = TertiarySkinColors[character.skin];
                 eyeTint = character.newEyeColor;
 
                 if (!character.pantsItem) {
                     // Underwear/default
-                    pantsPosition = GetPlayerSpriteForPants(itemData.get('Polka Dot Shorts')!.parentSheetIndex, character.isMale);
+                    const underwear = itemData.get('Polka Dot Shorts') as Clothing;
+                    pantsPosition = GetPlayerSpriteForPants(underwear.SpriteIndex, isMale);
                     pantsTint = defaultTint;
                 } else {
                     const pants = character.pantsItem;
-                    const pantsData = itemData.get(pants.name);
+                    const pantsData = itemData.get(pants.name) as Clothing;
 
-                    pantsData && (pantsPosition = GetPlayerSpriteForPants(pantsData.parentSheetIndex, character.isMale)); // We don't use pants.sprite because there are seperate sprites for item and on character
+                    pantsData && (pantsPosition = GetPlayerSpriteForPants(pantsData.SpriteIndex, isMale)); // We don't use pants.sprite because there are seperate sprites for item and on character
                     pants.clothesColor && (pantsTint = pants.clothesColor);
                 }
 
                 const shirt = character.shirtItem;
                 if (!shirt) {
                     // White shirt/default
-                    const shirtData = itemData.get('Basic Pullover')!;
-                    shirtPosition = character.isMale ? shirtData.sprite : shirtData.femaleSprite!;
+                    console.log(isMale);
+                    const shirtData = itemData.get(isMale ? 'Basic Pullover (M)' : 'Basic Pullover (F)') as Clothing;
+                    shirtPosition = GetSprite('Shirt', shirtData.SpriteIndex, shirtData.CanBeDyed);
                     shirtTint = defaultTint;
                 } else {
                     const shirtData = itemData.get(shirt.name) as Clothing;
 
                     if (shirtData) {
-                        shirtPosition = (!character.isMale && shirtData.femaleSprite) || shirtData.sprite;
-                        shirtTint = (shirtData.dyeable && shirt.clothesColor) || defaultTint;
+                        shirtPosition = GetSprite('Shirt', shirtData.SpriteIndex, shirtData.CanBeDyed);
+                        shirtTint = (shirtData.CanBeDyed && shirt.clothesColor) || defaultTint;
                     }
                 }
 
-                let hatData: ItemInformation | undefined;
+                let hatData: Hat | undefined;
                 if (character.hat?.name === 'Copper Pan') {
                     // I hate this so much, but there's no way to grab the info from itemData because +layout.ts converts iteminfo.json into a Map,
                     // so the hat entry gets nuked. Maybe in the future we'll use a Map<string, Array<ItemInformation>> instead.
                     const res = await fetch(base + '/iteminfo.json');
                     const allItems = (await res.json()) as Array<[string, ItemInformation]>;
                     const pan = allItems.find(([name]) => name === 'Copper Pan')![1];
-                    hatData = pan;
+                    hatData = pan as Hat;
                 } else {
-                    hatData = character.hat && itemData.get(character.hat.name);
+                    hatData = character.hat && (itemData.get(character.hat.name) as Hat);
                 }
 
                 if (hatData) {
-                    hatPosition = hatData.sprite;
-                    showHair = hatData?._type == 'Hat' && hatData.showRealHair;
+                    hatPosition = hatData.Sprite;
+                    showHair = hatData?._type == 'Hat' && hatData.ShowRealHair;
                 }
 
                 const hair = character.hair;
                 hairPosition = IndexToSprite(hair, 16, 96, 128, 672);
                 hairTint = character.hairstyleColor;
-                showHair = hatData?._type !== 'Hat' || hatData.showRealHair;
+                showHair = hatData?._type !== 'Hat' || hatData.ShowRealHair;
 
                 if (character.accessory !== -1) {
                     accessoryPosition = IndexToSprite(character.accessory, 16, 32, 128, 96);
@@ -170,29 +172,74 @@
         })();
 </script>
 
-<div class="appearance" class:female={isMale === false}>
+<div class="appearance" class:female={gender === Gender.Female}>
     {#await loaded then}
         <!-- START LAYERED TINT -->
-        <div class="base" style:--spritesheet={`url(${base}/assets/${baseSheet})`} style:--tint={`rgba(${baseTint[2].R},${baseTint[2].G},${baseTint[2].B},${baseTint[2].A})`} style:--x={'16px'} style:--y={'0'} />
-        <div class="base" style:--spritesheet={`url(${base}/assets/${baseSheet})`} style:--tint={`rgba(${baseTint[1].R},${baseTint[1].G},${baseTint[1].B},${baseTint[1].A})`} style:--x={'32px'} style:--y={'0'} />
-        <div class="base" style:--spritesheet={`url(${base}/assets/${baseSheet})`} style:--tint={`rgba(${baseTint[0].R},${baseTint[0].G},${baseTint[0].B},${baseTint[0].A})`} style:--x={'48px'} style:--y={'0'} />
+        <div
+            class="base"
+            style:--spritesheet={`url(${base}/img/${baseSheet})`}
+            style:--tint={`rgba(${baseTint[2].R},${baseTint[2].G},${baseTint[2].B},${baseTint[2].A})`}
+            style:--x={'16px'}
+            style:--y={'0'} />
+        <div
+            class="base"
+            style:--spritesheet={`url(${base}/img/${baseSheet})`}
+            style:--tint={`rgba(${baseTint[1].R},${baseTint[1].G},${baseTint[1].B},${baseTint[1].A})`}
+            style:--x={'32px'}
+            style:--y={'0'} />
+        <div
+            class="base"
+            style:--spritesheet={`url(${base}/img/${baseSheet})`}
+            style:--tint={`rgba(${baseTint[0].R},${baseTint[0].G},${baseTint[0].B},${baseTint[0].A})`}
+            style:--x={'48px'}
+            style:--y={'0'} />
         <!-- END LAYERED TINT -->
 
-        <div class="eyes" style:--spritesheet={`url(${base}/assets/${otherSheet})`} />
+        <div class="eyes" style:--spritesheet={`url(${base}/img/${otherSheet})`} />
 
         <!-- START LAYERED TINT -->
-        <div class="iris" style:--spritesheet={`url(${base}/assets/${otherSheet})`} style:--tint={`rgba(${eyeTint.R},${eyeTint.G},${eyeTint.B},${eyeTint.A})`} style:--x={'32px'} style:--y={'0'} />
+        <div class="iris" style:--spritesheet={`url(${base}/img/${otherSheet})`} style:--tint={`rgba(${eyeTint.R},${eyeTint.G},${eyeTint.B},${eyeTint.A})`} style:--x={'32px'} style:--y={'0'} />
         <!-- END LAYERED TINT -->
 
         <!-- START LAYERED TINT -->
-        <div class="boots" style:--spritesheet={`url(${base}/assets/${bootsSheet})`} style:--x={'48px'} style:--y={'0'} style:--tint={`rgba(${bootsTint[0].R},${bootsTint[0].G},${bootsTint[0].B},${bootsTint[0].A})`} />
-        <div class="boots" style:--spritesheet={`url(${base}/assets/${bootsSheet})`} style:--x={'32px'} style:--y={'0'} style:--tint={`rgba(${bootsTint[1].R},${bootsTint[1].G},${bootsTint[1].B},${bootsTint[1].A})`} />
-        <div class="boots" style:--spritesheet={`url(${base}/assets/${bootsSheet})`} style:--x={'0px'} style:--y={'0'} style:--tint={`rgba(${bootsTint[2].R},${bootsTint[2].G},${bootsTint[2].B},${bootsTint[2].A})`} />
-        <div class="boots" style:--spritesheet={`url(${base}/assets/${bootsSheet})`} style:--x={'16px'} style:--y={'0'} style:--tint={`rgba(${bootsTint[3].R},${bootsTint[3].G},${bootsTint[3].B},${bootsTint[3].A})`} />
+        <div
+            class="boots"
+            style:--spritesheet={`url(${base}/img/${bootsSheet})`}
+            style:--x={'48px'}
+            style:--y={'0'}
+            style:--tint={`rgba(${bootsTint[0].R},${bootsTint[0].G},${bootsTint[0].B},${bootsTint[0].A})`} />
+        <div
+            class="boots"
+            style:--spritesheet={`url(${base}/img/${bootsSheet})`}
+            style:--x={'32px'}
+            style:--y={'0'}
+            style:--tint={`rgba(${bootsTint[1].R},${bootsTint[1].G},${bootsTint[1].B},${bootsTint[1].A})`} />
+        <div
+            class="boots"
+            style:--spritesheet={`url(${base}/img/${bootsSheet})`}
+            style:--x={'0px'}
+            style:--y={'0'}
+            style:--tint={`rgba(${bootsTint[2].R},${bootsTint[2].G},${bootsTint[2].B},${bootsTint[2].A})`} />
+        <div
+            class="boots"
+            style:--spritesheet={`url(${base}/img/${bootsSheet})`}
+            style:--x={'16px'}
+            style:--y={'0'}
+            style:--tint={`rgba(${bootsTint[3].R},${bootsTint[3].G},${bootsTint[3].B},${bootsTint[3].A})`} />
         <!-- END LAYERED TINT -->
 
-        <div class="pants" style:--spritesheet={`url(${base}/assets/${pantsSheet})`} style:--x={`${pantsPosition.x}px`} style:--y={`${pantsPosition.y}px`} style:--tint={`rgba(${pantsTint.R},${pantsTint.G},${pantsTint.B},${pantsTint.A})`} />
-        <div class="shirt" style:--spritesheet={`url(${base}/assets/${shirtSheet})`} style:--x={`${shirtPosition.x}px`} style:--y={`${shirtPosition.y}px`} style:--tint={`rgba(${shirtTint.R},${shirtTint.G},${shirtTint.B},${shirtTint.A})`} />
+        <div
+            class="pants"
+            style:--spritesheet={`url(${base}/assets/${pantsSheet})`}
+            style:--x={`${pantsPosition.x}px`}
+            style:--y={`${pantsPosition.y}px`}
+            style:--tint={`rgba(${pantsTint.R},${pantsTint.G},${pantsTint.B},${pantsTint.A})`} />
+        <div
+            class="shirt"
+            style:--spritesheet={`url(${base}/assets/${shirtSheet})`}
+            style:--x={`${shirtPosition.x}px`}
+            style:--y={`${shirtPosition.y}px`}
+            style:--tint={`rgba(${shirtTint.R},${shirtTint.G},${shirtTint.B},${shirtTint.A})`} />
 
         {#if character?.accessory !== -1}
             <!-- START LAYERED TINT -->
@@ -206,7 +253,12 @@
         {/if}
 
         {#if showHair}
-            <div class="hair" style:--spritesheet={`url(${base}/assets/${hairSheet})`} style:--x={`${hairPosition.x}px`} style:--y={`${hairPosition.y}px`} style:--tint={`rgba(${hairTint.R},${hairTint.G},${hairTint.B},${hairTint.A})`} />
+            <div
+                class="hair"
+                style:--spritesheet={`url(${base}/assets/${hairSheet})`}
+                style:--x={`${hairPosition.x}px`}
+                style:--y={`${hairPosition.y}px`}
+                style:--tint={`rgba(${hairTint.R},${hairTint.G},${hairTint.B},${hairTint.A})`} />
         {/if}
 
         {#if character?.hat}
@@ -214,9 +266,24 @@
         {/if}
 
         <!-- START LAYERED TINT -->
-        <div class="arms" style:--spritesheet={`url(${base}/assets/${armsSheet})`} style:--tint={`rgba(${baseTint[2].R},${baseTint[2].G},${baseTint[2].B},${baseTint[2].A})`} style:--x={'16px'} style:--y={'0'} />
-        <div class="arms" style:--spritesheet={`url(${base}/assets/${armsSheet})`} style:--tint={`rgba(${baseTint[1].R},${baseTint[1].G},${baseTint[1].B},${baseTint[1].A})`} style:--x={'32px'} style:--y={'0'} />
-        <div class="arms" style:--spritesheet={`url(${base}/assets/${armsSheet})`} style:--tint={`rgba(${baseTint[0].R},${baseTint[0].G},${baseTint[0].B},${baseTint[0].A})`} style:--x={'48px'} style:--y={'0'} />
+        <div
+            class="arms"
+            style:--spritesheet={`url(${base}/img/${armsSheet})`}
+            style:--tint={`rgba(${baseTint[2].R},${baseTint[2].G},${baseTint[2].B},${baseTint[2].A})`}
+            style:--x={'16px'}
+            style:--y={'0'} />
+        <div
+            class="arms"
+            style:--spritesheet={`url(${base}/img/${armsSheet})`}
+            style:--tint={`rgba(${baseTint[1].R},${baseTint[1].G},${baseTint[1].B},${baseTint[1].A})`}
+            style:--x={'32px'}
+            style:--y={'0'} />
+        <div
+            class="arms"
+            style:--spritesheet={`url(${base}/img/${armsSheet})`}
+            style:--tint={`rgba(${baseTint[0].R},${baseTint[0].G},${baseTint[0].B},${baseTint[0].A})`}
+            style:--x={'48px'}
+            style:--y={'0'} />
         <!-- END LAYERED TINT -->
     {/await}
 </div>

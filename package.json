@@ -8,11 +8,12 @@
 		"preview": "vite preview",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
-		"dump": "node --no-warnings --loader ts-node/esm src/dump.ts -O \"{'allowImportingTsExtensions': true,}\""
+		"dump": "node --no-warnings --loader ts-node/esm src/dump.ts"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-static": "^2.0.2",
 		"@sveltejs/kit": "^1.20.5",
+		"@total-typescript/ts-reset": "^0.5.1",
 		"@types/node": "^18.15.11",
 		"@types/wicg-file-system-access": "^2020.9.6",
 		"fast-xml-parser": "^4.2.0",

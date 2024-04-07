@@ -1,5 +1,5 @@
 import { base } from "$app/paths";
-import type { ItemInformation } from "$types/items";
+import type { ItemInformation } from "$types/items/1.6";
 
 // Prefetch dumped data
 export const load = async ({ fetch }) => {

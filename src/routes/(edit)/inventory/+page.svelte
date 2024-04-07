@@ -4,14 +4,15 @@
     import { CalculateEdibility, CalculatePrice } from '$lib/ItemQuality';
     import { Character } from '$lib/SaveFile';
     import { HexToRGB, RGBToHex } from '$lib/Spritesheet';
-    import { FurnitureType, type ItemInformation } from '$types/items';
-    import { Category, type Item, type Player } from '$types/save/1.5';
+    import { FurnitureType, type ItemInformation } from '$types/items/1.6';
     import { getContext } from 'svelte';
     import Container from '../../Container.svelte';
     import Preview from '../appearance/Preview.svelte';
     import BigItem from './BigItem.svelte';
     import QualitySelector from './QualitySelector.svelte';
     import SmallItem from './SmallItem.svelte';
+    import type { Item, Player } from '$types/save/1.6';
+    import { Category } from '$types/save/1.5';
 
     const itemData = getContext<Map<string, ItemInformation>>('itemData');
     let selectedItemData: ItemInformation | undefined;
@@ -53,17 +54,17 @@
             // Check if the items price is the same as the default price
             // If so, we need to change the price whenever the quality changes
             // If not, we can assume the user has changed it, so just leave it alone
-            if ('price' in selectedItemData && selectedItem.price) {
-                const theoreticalOldPrice = CalculatePrice(selectedItemData.price, oldQuality ?? 0);
+            if ('Price' in selectedItemData && selectedItem.price) {
+                const theoreticalOldPrice = CalculatePrice(selectedItemData.Price, oldQuality ?? 0);
                 if (theoreticalOldPrice === selectedItem.price) {
-                    selectedItem.price = CalculatePrice(selectedItemData.price, selectedItem.quality);
+                    selectedItem.price = CalculatePrice(selectedItemData.Price, selectedItem.quality);
                 }
             }
 
-            if ('edibility' in selectedItemData && selectedItem.edibility) {
-                const theoreticalOldEdibility = CalculateEdibility(selectedItemData.edibility, oldQuality ?? 0);
+            if ('Edibility' in selectedItemData && selectedItem.edibility) {
+                const theoreticalOldEdibility = CalculateEdibility(selectedItemData.Edibility, oldQuality ?? 0);
                 if (theoreticalOldEdibility === selectedItem.edibility) {
-                    selectedItem.edibility = CalculateEdibility(selectedItemData.edibility, selectedItem.quality);
+                    selectedItem.edibility = CalculateEdibility(selectedItemData.Edibility, selectedItem.quality);
                 }
             }
         } finally {
@@ -99,36 +100,15 @@
 
         let category: number | undefined;
         switch (newItemData._type) {
-            case 'ObjectInformation':
+            case 'Object':
+                break;
             case 'BigCraftable':
-                category = newItemData.category;
-
-                // This is reduntant and pointless in most cases, but we might as well try to guess the category if it's not specified
-                switch (newItemData.type) {
-                    case 'Cooking':
-                        category = Category.Cooking;
-                        break;
-                    case 'Seeds':
-                        category = Category.Seeds;
-                        break;
-                    case 'Ring':
-                        category = Category.Ring;
-                        break;
-                    case 'Arch':
-                    case 'asdf':
-                    case 'Quest':
-                    case 'Basic':
-                    case 'Crafting':
-                    case 'Fish':
-                    case 'Minerals':
-                    // TODO
-                }
-
                 break;
             case 'Boots':
                 category = Category.Boots;
                 break;
-            case 'Clothing':
+            case 'Pants':
+            case 'Shirt':
                 category = Category.Clothing;
                 break;
             case 'Furniture':
@@ -137,9 +117,7 @@
             case 'Hat':
                 category = Category.Hat;
                 break;
-            case 'MeleeWeapon':
-
-            case 'RangedWeapon':
+            case 'Weapon':
                 category = Category.Weapon;
                 break;
             case 'Tool':
@@ -150,12 +128,12 @@
         const newItem: Item = {
             name: newItemName,
             stack: 1,
-            parentSheetIndex: 'parentSheetIndex' in newItemData ? newItemData.parentSheetIndex : 0,
-            indexInTileSheet: 'parentSheetIndex' in newItemData ? newItemData.parentSheetIndex : 0,
+            parentSheetIndex: 'Texture' in newItemData ? newItemData.SpriteIndex : 0,
+            indexInTileSheet: 'Texture' in newItemData ? newItemData.SpriteIndex : 0,
             category: category,
             hasBeenInInventory: true,
             hasBeenPickedUpByFarmer: true,
-            DisplayName: newItemData.name,
+            DisplayName: newItemData.Name,
             SpecialVariable: 0, // TODO ?
             indexInColorSheet: 0, // TODO
             isLostItem: false,
@@ -168,18 +146,15 @@
 
         let type: string | undefined;
         switch (newItemData._type) {
-            case 'ObjectInformation':
+            case 'Object':
             case 'BigCraftable':
                 type = 'Object';
                 break;
             case 'Furniture':
                 type = 'Furniture';
                 break;
-            case 'MeleeWeapon':
+            case 'Weapon':
                 type = 'MeleeWeapon';
-                break;
-            case 'RangedWeapon':
-                type = 'Weapon';
                 break;
             case 'Tool':
                 if (newItemName === 'Milk Pail') {
@@ -205,7 +180,7 @@
         }
 
         if (type) {
-            // This is required for the game to recognize the item as the correct type, but isn't part of the XML structureS
+            // This is required for the game to recognize the item as the correct type, but isn't part of the XML structures
             // @ts-expect-error
             newItem['@_xsi:type'] = type;
 
@@ -215,11 +190,11 @@
             }
         }
 
-        if (newItemData._type === 'ObjectInformation') {
+        if (newItemData._type === 'Object') {
             newItem.price = 0;
             newItem.quality = 0;
 
-            if (newItemData.type === 'Ring') {
+            if (newItemData.Type === 'Ring') {
                 const id = RingsUniqueID.get(newItemName);
                 if (id) {
                     newItem.uniqueID = id;
@@ -228,7 +203,7 @@
         }
 
         if (newItemData._type !== 'Tool') {
-            newItem.parentSheetIndex = newItemData.parentSheetIndex;
+            newItem.parentSheetIndex = newItemData.Sprite;
         }
 
         if (newItem.name === 'Fishing Rod') {
@@ -285,11 +260,11 @@
             }
         }
 
-        if (newItemData._type === 'Clothing' && newItemData.dyeable) {
+        if ('CanBeDyed' in newItemData && newItemData.CanBeDyed) {
             newItem.clothesColor = { R: 255, G: 255, B: 255, A: 255, PackedValue: 0 };
         }
 
-        if (newItemData._type === 'ObjectInformation' || newItemData._type === 'BigCraftable') {
+        if (newItemData._type === 'Object' || newItemData._type === 'BigCraftable') {
             newItem.type = newItemData.type;
             switch (newItemData.type) {
                 case 'Ring':
@@ -366,7 +341,7 @@
                         <SmallItem item={player.rightRing} index={'rightRing'} bind:selectedItem bind:selectedIndex />
                         <SmallItem item={player.boots} index={'boots'} bind:selectedItem bind:selectedIndex />
                     </div>
-                    <Preview pantsItem={player.pantsItem} shirtItem={player.shirtItem} hat={player.hat} />
+                    <Preview pantsItem={player.pantsItem} shirtItem={player.shirtItem} hat={player.hat} gender={player.gender} />
                     <div class="character-armor">
                         <SmallItem item={player.hat} index={'hat'} bind:selectedItem bind:selectedIndex />
                         <SmallItem item={player.shirtItem} index={'shirtItem'} bind:selectedItem bind:selectedIndex />
@@ -414,7 +389,7 @@
                                 <input type="number" bind:value={selectedItem.stack} min="0" max="999" />
                             </label>
                         {/if}
-                        {#if selectedItemData._type === 'MeleeWeapon'}
+                        {#if selectedItemData._type === 'Weapon'}
                             <label>
                                 <small>Min Dmg</small>
                                 <input type="number" bind:value={selectedItem.minDamage} min="0" />
@@ -462,8 +437,6 @@
                                 <small>Crit Dmg</small>
                                 <input type="number" bind:value={selectedItem.critMultiplier} min="0" />
                             </label>
-                        {:else if selectedItemData._type === 'RangedWeapon'}
-                            <!-- Nothing to edit -->
                         {:else if selectedItemData._type === 'Tool'}
                             <!-- Can't edit -->
                         {:else if selectedItemData._type === 'BigCraftable'}
@@ -501,8 +474,8 @@
                                         rerender(selectedItem, selectedIndex);
                                     }} />
                             </label>
-                        {:else if selectedItemData._type === 'Clothing'}
-                            {#if selectedItemData.dyeable}
+                        {:else if selectedItemData._type === 'Shirt'}
+                            {#if selectedItemData.CanBeDyed}
                                 <label>
                                     <small>Color</small>
                                     <input

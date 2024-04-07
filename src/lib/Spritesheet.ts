@@ -1,4 +1,4 @@
-import type { Clothing, ItemInformation } from "$types/items";
+import type { Clothing, ItemInformation } from "$types/items/1.6";
 import type { HairstyleColor } from "$types/save/1.5";
 
 const ShirtsWithFemaleVariant = new Set<string>([
@@ -18,41 +18,26 @@ const ShirtsWithMessedUpSpriteIndex = new Map<number, { x: number, y: number; }>
 export const GetSpritesheet = (lookupItem: ItemInformation): string => {
     let spritesheet = '';
     switch (lookupItem?._type) {
-        case 'ObjectInformation':
+        case 'Object':
         case 'Boots':
             spritesheet = 'springobjects.png';
             break;
         case 'BigCraftable':
             spritesheet = 'Craftables.png';
             break;
+        case 'Pants':
+            spritesheet = 'pants.png';
+            break;
+        case 'Shirt':
+            spritesheet = 'shirts.png';
+            break;
         case 'Hat':
             spritesheet = 'hats.png';
-        case 'Clothing':
-            switch (lookupItem._type) {
-                case 'Clothing':
-                    switch (lookupItem.type) {
-                        case 'Pants':
-                            spritesheet = 'pants.png';
-                            break;
-                        case 'Shirt':
-                            spritesheet = 'shirts.png';
-                            break;
-                        default: // Accessory
-                            throw new Error('Not real clothing type');
-                            break;
-                    }
-                    break;
-                case 'Hat':
-                    spritesheet = 'hats.png';
-                    break;
-            }
-            // TODO
             break;
         case 'Furniture':
             spritesheet = 'furniture.png';
             break;
-        case 'RangedWeapon':
-        case 'MeleeWeapon':
+        case 'Weapon':
             spritesheet = 'weapons.png';
             break;
         case 'Tool':
@@ -73,34 +58,28 @@ export const IndexToSprite = (index: number, itemW: number, itemH: number, sheet
     return { x, y };
 };
 
-export const GetSprite = (type: ItemInformation['_type'], index: number, clothingType: Clothing['type'] | undefined = undefined, dyeable: boolean | undefined = undefined): { x: number, y: number; } => {
+export const GetSprite = (type: ItemInformation['_type'], index: number, dyeable: boolean | undefined = undefined): { x: number, y: number; } => {
     switch (type) {
-        case 'ObjectInformation':
+        case 'Object':
             return IndexToSprite(index, 16, 16, 384, 624);
         case 'BigCraftable':
-            return IndexToSprite(index, 16, 32, 128, 1152);
+            return IndexToSprite(index, 16, 32, 128, 1472);
         case 'Boots':
             return IndexToSprite(index, 16, 16, 384, 624);
         case 'Hat':
-            return IndexToSprite(index, 20, 80, 240, 640);
-        case 'Clothing':
-            switch (clothingType) {
-                case 'Pants':
-                    // Special case, pants have 192x672 of animation frames, then the pants themselves are underneath on the left
-                    const pantSprite = IndexToSprite(index, 192, 686, 1920, 1376);
-                    return { x: pantSprite.x, y: pantSprite.y - 672 };
-                case 'Shirt':
-                    // let shirtSprite = ShirtsWithMessedUpSpriteIndex.get(index);
-                    // if (shirtSprite) { return shirtSprite; }
-                    let shirtSprite = IndexToSprite(index, 8, 32, 128, 608, 128);
-                    return dyeable ? { x: shirtSprite.x - 128, y: shirtSprite.y } : shirtSprite;
-                default:
-                    throw new Error('Not real clothing type');
-            };
+            return IndexToSprite(index, 20, 80, 240, 880);
+        case 'Pants':
+            // Special case, pants have 192x672 of animation frames, then the pants themselves are underneath on the left
+            const pantSprite = IndexToSprite(index, 192, 686, 1920, 1376);
+            return { x: pantSprite.x, y: pantSprite.y - 672 };
+        case 'Shirt':
+            // let shirtSprite = ShirtsWithMessedUpSpriteIndex.get(index);
+            // if (shirtSprite) { return shirtSprite; }
+            let shirtSprite = IndexToSprite(index, 8, 32, 128, 608, 128);
+            return dyeable ? { x: shirtSprite.x - 128, y: shirtSprite.y } : shirtSprite;
         case 'Furniture':
             return IndexToSprite(index, 16, 16, 512, 1488);
-        case 'MeleeWeapon':
-        case 'RangedWeapon':
+        case 'Weapon':
             return IndexToSprite(index, 16, 16, 128, 144);
         case 'Tool':
             return IndexToSprite(index, 16, 16, 336, 384);

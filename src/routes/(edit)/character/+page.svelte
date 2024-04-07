@@ -1,7 +1,7 @@
 <script lang="ts">
     import { Character, SaveGame } from '$lib/SaveFile';
     import { tooltip } from '$lib/Tooltip';
-    import type { GameLocation, Player, Save } from '$types/save/1.5';
+    import type { GameLocation, Player, Save } from '$types/save/1.6';
     import Container from '../../Container.svelte';
     import SkillBar from './SkillBar.svelte';
     import WalletItem from './WalletItem.svelte';
@@ -23,15 +23,15 @@
         if (!c) return;
         player = c;
 
-        hasTranslation = c.canUnderstandDwarves;
-        hasRustyKey = c.hasRustyKey;
-        hasClubCard = c.hasClubCard;
-        hasSpecialCharm = c.hasSpecialCharm;
-        hasSkullKey = c.hasSkullKey;
-        hasMagnifyingGlass = c.hasMagnifyingGlass;
-        hasDarkTalisman = c.hasDarkTalisman;
-        hasMagicInk = c.hasMagicInk;
-        hasTownKey = c.HasTownKey;
+        hasTranslation = !!c.canUnderstandDwarves;
+        hasRustyKey = !!c.hasRustyKey;
+        hasClubCard = !!c.hasClubCard;
+        hasSpecialCharm = !!c.hasSpecialCharm;
+        hasSkullKey = !!c.hasSkullKey;
+        hasMagnifyingGlass = !!c.hasMagnifyingGlass;
+        hasDarkTalisman = !!c.hasDarkTalisman;
+        hasMagicInk = !!c.hasMagicInk;
+        hasTownKey = !!c.HasTownKey;
 
         skillValues = c.experiencePoints.int.slice(0, 5);
     });
@@ -46,15 +46,15 @@
 
     const skills = ['Farming 🥕', 'Mining ⛏️', 'Foraging 🌳', 'Fishing 🎣', 'Combat ⚔️'];
 
-    $: player && (player.canUnderstandDwarves = hasTranslation);
-    $: player && (player.hasRustyKey = hasRustyKey);
-    $: player && (player.hasClubCard = hasClubCard);
-    $: player && (player.hasSpecialCharm = hasSpecialCharm);
-    $: player && (player.hasSkullKey = hasSkullKey);
-    $: player && (player.hasMagnifyingGlass = hasMagnifyingGlass);
-    $: player && (player.hasDarkTalisman = hasDarkTalisman);
-    $: player && (player.hasMagicInk = hasMagicInk);
-    $: player && (player.HasTownKey = hasTownKey);
+    $: player && (player.canUnderstandDwarves = hasTranslation ? '' : undefined);
+    $: player && (player.hasRustyKey = hasRustyKey ? '' : undefined);
+    $: player && (player.hasClubCard = hasClubCard ? '' : undefined);
+    $: player && (player.hasSpecialCharm = hasSpecialCharm ? '' : undefined);
+    $: player && (player.hasSkullKey = hasSkullKey ? '' : undefined);
+    $: player && (player.hasMagnifyingGlass = hasMagnifyingGlass ? '' : undefined);
+    $: player && (player.hasDarkTalisman = hasDarkTalisman ? '' : undefined);
+    $: player && (player.hasMagicInk = hasMagicInk ? '' : undefined);
+    $: player && (player.HasTownKey = hasTownKey ? '' : undefined);
 </script>
 
 {#if player}
@@ -162,7 +162,10 @@
     }
 
     .wallet {
-        box-shadow: 0 0 0 2px #b14e05, 0 0 0 4px #dc7b05, 0 0 0 6px #5b2b29;
+        box-shadow:
+            0 0 0 2px #b14e05,
+            0 0 0 4px #dc7b05,
+            0 0 0 6px #5b2b29;
         margin: 0;
         margin-top: 24px;
         padding: 6px;

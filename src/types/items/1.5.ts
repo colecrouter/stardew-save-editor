@@ -1,27 +1,27 @@
 export interface HasSprite {
-    sprite: {
+    Sprite: {
         x: number;
         y: number;
     };
-    femaleSprite?: {
+    FemaleSprite?: {
         x: number;
         y: number;
     };
-    parentSheetIndex: number;
+    ParentSheetIndex: number;
 }
 
 export interface ObjectInformation extends HasSprite {
     _type: 'ObjectInformation';
-    name: string;
-    price: number;
-    edibility: number;
-    type: import('./save/1.5').TypeEnum;
-    category?: number;
-    displayName?: string;
-    description: string;
-    misc1?: number;
-    misc2?: number;
-    buffDuration?: number;
+    Name: string;
+    Price: number;
+    Edibility: number;
+    Type: import('../save/1.5').TypeEnum;
+    Category?: number;
+    DisplayName?: string;
+    Description: string;
+    Misc1?: number;
+    Misc2?: number;
+    BuffDuration?: number;
 }
 
 export enum Fragility {
@@ -32,29 +32,29 @@ export enum Fragility {
 
 export interface BigCraftable extends HasSprite {
     _type: 'BigCraftable';
-    name: string;
-    price: number;
-    edibility: number;
-    type: import('./save/1.5').TypeEnum;
-    category: -9;
-    description: string;
-    outdoors: boolean;
-    indoors: boolean;
-    fragility: Fragility;
-    isLamp: boolean;
-    displayName?: string;
-    parentSheetIndex: number;
+    Name: string;
+    Price: number;
+    Edibility: number;
+    Type: import('../save/1.5').TypeEnum;
+    Category: -9;
+    Description: string;
+    CanBePlacedOutdoors: boolean;
+    CanBePlacedIutdoors: boolean;
+    Fragility: Fragility;
+    IsLamp: boolean;
+    DisplayName?: string;
+    ParentSheetIndex: number;
 }
 
 export interface Boots extends HasSprite {
     _type: 'Boots';
-    name: string;
-    description: string;
-    price: number;
-    addedDefense: number;
-    addedImmunity: number;
-    colorIndex: number;
-    displayName?: string;
+    Name: string;
+    Description: string;
+    Price: number;
+    Defense: number;
+    Immunity: number;
+    ColorIndex: number;
+    DisplayName?: string;
 }
 
 export type ClothingType = 'Pants' | 'Shirt' | 'Accessory';
@@ -67,16 +67,16 @@ interface RGB {
 
 export interface Clothing extends HasSprite {
     _type: 'Clothing';
-    name: string;
-    displayName?: string;
-    description: string;
-    maleIndex: number;
-    femaleIndex: number;
-    price: number;
-    defaultColor: RGB;
-    dyeable: boolean;
-    type: ClothingType;
-    extraData: string;
+    Name: string;
+    DisplayName?: string;
+    Description: string;
+    MaleIndex: number;
+    FemaleIndex: number;
+    Price: number;
+    DefaultColor: RGB;
+    Dyeable: boolean;
+    Type: ClothingType;
+    ExtraData: string;
 }
 
 export type Size = { width: number; height: number; };
@@ -111,29 +111,29 @@ export enum FurniturePlacement {
 
 export interface Furniture extends HasSprite {
     _type: 'Furniture';
-    name: string;
-    type: FurnitureType;
-    tilesheetSize: Size | -1;
-    boundingBoxSize: Size | -1;
-    rotations: number;
-    price: number;
-    displayName?: string;
-    placementRestriction: FurniturePlacement;
+    Name: string;
+    Type: FurnitureType;
+    TilesheetSize: Size | -1;
+    BoundingBoxSize: Size | -1;
+    Rotations: number;
+    Price: number;
+    DisplayName?: string;
+    PlacementRestriction: FurniturePlacement;
 }
 
 export interface Hat extends HasSprite {
     _type: 'Hat';
-    name: string;
-    description: string;
-    showRealHair: boolean;
-    skipHairstyleOffset: boolean;
-    displayName?: string;
+    Name: string;
+    Description: string;
+    ShowRealHair: boolean;
+    SkipHairstyleOffset: boolean;
+    DisplayName?: string;
 }
 
 // Tools are hardcoded
 export interface Tool extends HasSprite {
     _type: 'Tool';
-    name: string;
+    Name: string;
 }
 
 export enum MeleeWeaponType {
@@ -145,30 +145,30 @@ export enum MeleeWeaponType {
 
 export interface MeleeWeapon extends HasSprite {
     _type: 'MeleeWeapon';
-    name: string;
-    description: string;
-    minDamage: number;
-    maxDamage: number;
-    knockback: number;
-    speed: number;
-    addedPrecision: number;
-    addedDefense: number;
-    type: MeleeWeaponType;
-    baseMineLevel: number;
-    minMineLevel: number;
-    addedAreaOfEffect: number;
-    criticalChance: number;
-    criticalDamage: number;
-    displayName?: string;
+    Name: string;
+    Description: string;
+    MinDamage: number;
+    MaxDamage: number;
+    Knockback: number;
+    Speed: number;
+    Precision: number;
+    Defense: number;
+    Type: MeleeWeaponType;
+    MineBaseLevel: number;
+    MineMinLevel: number;
+    AreaOfEffect: number;
+    CritChance: number;
+    CritMultiplier: number;
+    DisplayName?: string;
 }
 
 export interface RangedWeapon extends HasSprite {
     _type: 'RangedWeapon';
-    name: string;
-    description: string;
-    minDamage: number;
-    maxDamage: number;
-    displayName?: string;
+    Name: string;
+    Description: string;
+    MinDamage: number;
+    MaxDamage: number;
+    DisplayName?: string;
 }
 
 export type Weapon = MeleeWeapon | RangedWeapon;

@@ -1,4 +1,4 @@
-import type { Player } from "$types/save/1.5";
+import type { Player } from "$types/save/1.6";
 import { error } from "@sveltejs/kit";
 import { XMLParser, XMLBuilder } from "fast-xml-parser";
 import { get, writable, type Readable, type Writable } from "svelte/store";
@@ -120,7 +120,7 @@ export const SaveConverter = {
         if (!isSaveFile(json)) { throw error(400, "Invalid save file"); }
 
         const gameVersion = json.SaveGame.gameVersion as string | undefined;
-        if (!["1.5"].some((v) => gameVersion?.startsWith(v))) {
+        if (!["1.6"].some((v) => gameVersion?.startsWith(v))) {
             throw new Error(`Unsupported game version: ${gameVersion}`);
         }
 

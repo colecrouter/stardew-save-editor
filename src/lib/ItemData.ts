@@ -1,4 +1,4 @@
-import { FurnitureType, type Size } from "$types/items";
+import { FurnitureType, type Size } from "$types/items/1.6";
 import { Category } from "$types/save/1.5";
 
 export const HatWhichNumber = new Map([

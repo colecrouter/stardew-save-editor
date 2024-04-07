@@ -1,7 +1,7 @@
 <script lang="ts">
     import { Character } from '$lib/SaveFile';
     import { HexToRGB, RGBToHex } from '$lib/Spritesheet';
-    import type { Player } from '$types/save/1.5';
+    import { Gender, type Player } from '$types/save/1.6';
     import type { Writable } from 'svelte/store';
     import Container from '../../Container.svelte';
     import Preview from './Preview.svelte';
@@ -14,7 +14,7 @@
     Character.character.subscribe((c) => {
         if (!c) return;
         character = c;
-        skinColor = c.skinColor + 1;
+        skinColor = c.skin + 1;
         hairStyle = c.hair + 1;
         acc = c.accessory + 2;
     });
@@ -31,21 +31,21 @@
     {#if character}
         <div class="wrapper">
             <div class="editor1">
-                <Preview isMale={character.isMale} skinColor={character.skinColor} hairStyle={character.hair} acc={character.accessory} />
+                <Preview gender={character.gender} skinColor={character.skin} hairStyle={character.hair} acc={character.accessory} />
                 <div class="selector">
                     <label>
                         🚹
-                        <input type="radio" name="gender" value="male" checked={character && character.isMale} on:click={() => character && (character.isMale = true)} />
+                        <input type="radio" name="gender" value="male" checked={character && character.gender === Gender.Male} on:click={() => character && (character.gender = Gender.Male)} />
                     </label>
                     <label>
                         🚺
-                        <input type="radio" name="gender" value="female" checked={character && !character.isMale} on:click={() => character && (character.isMale = false)} />
+                        <input type="radio" name="gender" value="female" checked={character && character.gender === Gender.Female} on:click={() => character && (character.gender = Gender.Female)} />
                     </label>
                 </div>
                 <div class="appearance">
                     <label>
                         Skin
-                        <input type="number" min="1" max="24" bind:value={skinColor} on:change={() => character && (character.skinColor = (skinColor ?? 1) - 1)} />
+                        <input type="number" min="1" max="24" bind:value={skinColor} on:change={() => character && (character.skin = (skinColor ?? 1) - 1)} />
                     </label>
                     <label>
                         Hair
@@ -75,21 +75,6 @@
                     <label>
                         <small>Favorite Thing</small>
                         <input type="text" bind:value={character.favoriteThing} />
-                    </label>
-                </div>
-                <div>
-                    <label>
-                        <small>Animal Preference</small>
-                        <div class="selector">
-                            <label>
-                                🐱
-                                <input type="radio" name="pet" value="cat" checked={character && character.catPerson} on:click={() => character && (character.catPerson = true)} />
-                            </label>
-                            <label>
-                                🐶
-                                <input type="radio" name="pet" value="dog" checked={character && !character.catPerson} on:click={() => character && (character.catPerson = false)} />
-                            </label>
-                        </div>
                     </label>
                 </div>
                 <div>

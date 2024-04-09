@@ -165,16 +165,16 @@ export const SaveConverter = {
         });
 
         // Copy name to Name, and stack to Stack for every item in the inventory
-        players.forEach((player) => [player.hat, player.pantsItem, player.shirtItem, player.boots, player.leftRing, player.rightRing, ...player.items.Item].forEach((item) => {
-            if (item) {
-                // @ts-expect-error
-                item.Name = item.name;
-                // @ts-expect-error
-                item.Stack = item.stack;
-                // @ts-expect-error
-                item.Stackable = item.stackable;
-            }
-        }));
+        // players.forEach((player) => [player.hat, player.pantsItem, player.shirtItem, player.boots, player.leftRing, player.rightRing, ...player.items.Item].forEach((item) => {
+        //     if (item) {
+        //         // @ts-expect-error
+        //         item.Name = item.name;
+        //         // @ts-expect-error
+        //         item.Stack = item.stack;
+        //         // @ts-expect-error
+        //         item.Stackable = item.stackable;
+        //     }
+        // }));
 
         const builder = new XMLBuilder({ attributeNamePrefix: '@_', ignoreAttributes: false, suppressUnpairedNode: false, suppressEmptyNode: true, suppressBooleanAttributes: false });
         const raw = builder.build(json) as string;

@@ -63,6 +63,7 @@
     let accessoryPosition: pos = { x: 0, y: 0 };
     let hatPosition: pos = { x: 0, y: 0 };
     let showHair = true;
+    let showAccessory = true;
 
     let defaultTint: HairstyleColor = { R: 0, G: 0, B: 0, A: 0, PackedValue: 0 };
     let hairTint: HairstyleColor = defaultTint;
@@ -145,6 +146,7 @@
                 if (hatData) {
                     hatPosition = hatData.Sprite;
                     showHair = hatData?._type == 'Hat' && hatData.ShowRealHair;
+                    showAccessory = hatData?._type == 'Hat' && hatData.ShowRealHair;
                 }
 
                 const hair = character.hair;
@@ -241,7 +243,7 @@
             style:--y={`${shirtPosition.y}px`}
             style:--tint={`rgba(${shirtTint.R},${shirtTint.G},${shirtTint.B},${shirtTint.A})`} />
 
-        {#if character?.accessory !== -1}
+        {#if character?.accessory !== -1 && showAccessory}
             <!-- START LAYERED TINT -->
             <div
                 class="accessory"

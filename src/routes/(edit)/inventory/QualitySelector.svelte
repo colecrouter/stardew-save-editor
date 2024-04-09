@@ -1,10 +1,10 @@
 <script lang="ts">
-    import type { Item } from '$types/save/1.5';
+    import type { Item } from '$types/save/1.6';
 
     export let item: Item;
 
     // Set default quality to 0 if it doesn't exist
-    $: if (!('quality' in item)) item.quality = 0;
+    $: if (!item.quality) item.quality = 0;
 </script>
 
 <div class="container">
@@ -56,17 +56,23 @@
     }
 
     .container label:nth-child(2) {
-        text-shadow: 0 0 0 #dadfe5, 0 0 2px #aaadb2;
+        text-shadow:
+            0 0 0 #dadfe5,
+            0 0 2px #aaadb2;
         color: transparent;
     }
 
     .container label:nth-child(3) {
-        text-shadow: 0 0 0 #ffff18, 0 0 2px #cccc13;
+        text-shadow:
+            0 0 0 #ffff18,
+            0 0 2px #cccc13;
         color: transparent;
     }
 
     .container label:nth-child(4) {
-        text-shadow: 0 0 0 #db67c4, 0 0 2px #a74f96;
+        text-shadow:
+            0 0 0 #db67c4,
+            0 0 2px #a74f96;
         color: transparent;
     }
 </style>

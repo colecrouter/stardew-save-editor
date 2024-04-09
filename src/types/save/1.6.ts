@@ -1,3 +1,5 @@
+import type { FurnitureType } from "$types/items/1.6";
+
 export interface Save {
     player: Player;
     farmhands: string;
@@ -43,7 +45,7 @@ export interface Save {
     builders: string;
     bannedUsers: string;
     bundleData: BundleData;
-    limitedNutDrops: LimitedNutDrops;
+    limitedNutDrops: ItemArray;
     latestID: number;
     options: Options;
     splitscreenOptions: string;
@@ -206,68 +208,6 @@ export interface ItemsLostLastDeathClass {
     Item: DishOfTheDay[];
 }
 
-export interface HeldObject {
-    isLostItem: boolean;
-    category: number;
-    hasBeenInInventory: boolean;
-    name: string;
-    parentSheetIndex?: number;
-    itemId: number;
-    specialItem: boolean;
-    isRecipe: boolean;
-    quality: number;
-    stack: number;
-    SpecialVariable: number;
-    tileLocation: TileLocationClass;
-    owner: number;
-    type?: TypeEnum;
-    canBeSetDown: boolean;
-    canBeGrabbed: boolean;
-    isSpawnedObject: boolean;
-    questItem: boolean;
-    questId: number;
-    isOn: boolean;
-    fragility: number;
-    price: number;
-    edibility: number;
-    bigCraftable: boolean;
-    setOutdoors: boolean;
-    setIndoors: boolean;
-    readyForHarvest: boolean;
-    showNextIndex: boolean;
-    flipped: boolean;
-    isLamp: boolean;
-    minutesUntilReady: number;
-    boundingBox: BoundingBox;
-    scale: TileLocationClass;
-    uses: number;
-    destroyOvernight: boolean;
-    currentLidFrame?: number;
-    lidFrameCount?: MaxEntries;
-    frameCounter?: number;
-    items?: ItemsLostLastDeathClass;
-    separateWalletItems?: SeparateWalletItems;
-    tint?: HairstyleColor;
-    playerChoiceColor?: HairstyleColor;
-    playerChest?: boolean;
-    fridge?: boolean;
-    giftbox?: boolean;
-    giftboxIndex?: number;
-    giftboxIsStarterGift?: SleptInTemporaryBed;
-    spriteIndexOverride?: number;
-    dropContents?: boolean;
-    synchronized?: boolean;
-    specialChestType?: SpecialChestType;
-    globalInventoryId?: AcceptedSpecialOrderTypes;
-    furniture_type?: number;
-    rotations?: number;
-    currentRotation?: number;
-    sourceRect?: BoundingBox;
-    defaultSourceRect?: BoundingBox;
-    defaultBoundingBox?: BoundingBox;
-    drawHeldObjectLow?: boolean;
-}
-
 export interface DishOfTheDay {
     isLostItem: boolean;
     category: number;
@@ -304,7 +244,7 @@ export interface DishOfTheDay {
     uses: number;
     destroyOvernight: boolean;
     questId?: number;
-    heldObject?: HeldObject;
+    heldObject?: Item;
     lastOutputRuleId?: string;
     lastInputItem?: DishOfTheDay;
     preservedParentSheetIndex?: number;
@@ -372,7 +312,7 @@ export interface NetLeaderboardsEntry {
     score: MaxEntries;
 }
 
-export interface LimitedNutDrops {
+export interface ItemArray {
     item: ActiveDialogueEventsItem[];
 }
 
@@ -1127,92 +1067,7 @@ export interface ObjectClass {
 }
 
 export interface ItemsItems {
-    Item: FluffyItem[];
-}
-
-export interface FluffyItem {
-    isLostItem: boolean;
-    category: number;
-    hasBeenInInventory: boolean;
-    name: string;
-    parentSheetIndex?: number;
-    itemId: number;
-    specialItem: boolean;
-    isRecipe: boolean;
-    quality: number;
-    stack: number;
-    SpecialVariable: number;
-    tileLocation?: TileLocationClass;
-    owner?: number;
-    type?: TypeEnum | number;
-    canBeSetDown?: boolean;
-    canBeGrabbed?: boolean;
-    isSpawnedObject?: boolean;
-    questItem?: boolean;
-    questId?: number;
-    isOn?: boolean;
-    fragility?: number;
-    price?: number;
-    edibility?: number;
-    bigCraftable?: boolean;
-    setOutdoors?: boolean;
-    setIndoors?: boolean;
-    readyForHarvest?: boolean;
-    showNextIndex?: boolean;
-    flipped?: boolean;
-    isLamp?: boolean;
-    minutesUntilReady?: number;
-    boundingBox?: BoundingBox;
-    scale?: TileLocationClass;
-    uses?: number;
-    destroyOvernight?: boolean;
-    which?: string;
-    skipHairDraw?: boolean;
-    ignoreHairstyleOffset?: boolean;
-    hairDrawType?: number;
-    isPrismatic?: boolean;
-    furniture_type?: number;
-    rotations?: number;
-    currentRotation?: number;
-    sourceRect?: BoundingBox;
-    defaultSourceRect?: BoundingBox;
-    defaultBoundingBox?: BoundingBox;
-    drawHeldObjectLow?: boolean;
-    initialParentTileIndex?: number;
-    currentParentTileIndex?: number;
-    indexOfMenuItemView?: number;
-    instantUse?: boolean;
-    isEfficient?: boolean;
-    animationSpeedModifier?: number;
-    swingTicker?: number;
-    upgradeLevel?: number;
-    numAttachmentSlots?: number;
-    attachments?: AttachmentsClass | string;
-    InitialParentTileIndex?: number;
-    IndexOfMenuItemView?: number;
-    InstantUse?: boolean;
-    IsEfficient?: boolean;
-    AnimationSpeedModifier?: number;
-    defenseBonus?: number;
-    immunityBonus?: number;
-    indexInTileSheet?: number | string;
-    indexInColorSheet?: number;
-    minDamage?: number;
-    maxDamage?: number;
-    speed?: number;
-    addedPrecision?: number;
-    addedDefense?: number;
-    addedAreaOfEffect?: number;
-    knockback?: number;
-    critChance?: number;
-    critMultiplier?: number;
-    isOnSpecial?: boolean;
-    uniqueID?: number;
-    preserve?: string;
-    preservedParentSheetIndex?: number;
-    color?: HairstyleColor;
-    colorSameIndexAsParentSheetIndex?: boolean;
-    ColorSameIndexAsParentSheetIndex?: boolean;
+    Item: Item[];
 }
 
 export interface RaceTrack {
@@ -1442,8 +1297,8 @@ export interface Player {
     experiencePoints: Achievements;
     items: PurpleItems;
     dialogueQuestionsAnswered: Achievements;
-    cookingRecipes: LimitedNutDrops;
-    craftingRecipes: LimitedNutDrops;
+    cookingRecipes: ItemArray;
+    craftingRecipes: ItemArray;
     activeDialogueEvents: Ents;
     previousActiveDialogueEvents: string;
     triggerActionsRun: BroadcastedMail;
@@ -1493,12 +1348,12 @@ export interface Player {
     hairstyleColor: HairstyleColor;
     pantsColor: HairstyleColor;
     newEyeColor: HairstyleColor;
-    hat: Hat;
-    boots: Boots;
-    leftRing: Item;
-    rightRing: Item;
-    shirtItem: Item;
-    pantsItem: Item;
+    hat?: Item;
+    boots?: Item;
+    leftRing?: Item;
+    rightRing?: Item;
+    shirtItem?: Item;
+    pantsItem?: Item;
     divorceTonight: boolean;
     changeWalletTypeTonight: boolean;
     gameVersion: string;
@@ -1583,24 +1438,6 @@ export interface BasicShippedItem {
     value: MaxEntries;
 }
 
-export interface Boots {
-    isLostItem: boolean;
-    category: number;
-    hasBeenInInventory: boolean;
-    name: string;
-    itemId: number;
-    specialItem: boolean;
-    isRecipe: boolean;
-    quality: number;
-    stack: number;
-    SpecialVariable: number;
-    defenseBonus: number;
-    immunityBonus: number;
-    indexInTileSheet: number;
-    price: number;
-    indexInColorSheet: number;
-}
-
 export interface FishCaught {
     item: FishCaughtItem[];
 }
@@ -1663,24 +1500,6 @@ export interface CunningValue {
 
 export interface Dictionary {
     item: BasicShippedItem[] | BasicShippedItem;
-}
-
-export interface Hat {
-    isLostItem: boolean;
-    category: number;
-    hasBeenInInventory: boolean;
-    name: string;
-    itemId: number;
-    specialItem: boolean;
-    isRecipe: boolean;
-    quality: number;
-    stack: number;
-    SpecialVariable: number;
-    which: string;
-    skipHairDraw: boolean;
-    ignoreHairstyleOffset: boolean;
-    hairDrawType: number;
-    isPrismatic: boolean;
 }
 
 export interface PurpleItems {
@@ -1760,8 +1579,55 @@ export interface Item {
     clothesColor?: HairstyleColor;
     isPrismatic?: boolean;
     Price?: number;
+    uniqueID?: number;
+    currentLidFrame?: number;
+    lidFrameCount?: MaxEntries;
+    frameCounter?: number;
+    items?: ItemsLostLastDeathClass;
+    separateWalletItems?: SeparateWalletItems;
+    tint?: HairstyleColor;
+    playerChoiceColor?: HairstyleColor;
+    playerChest?: boolean;
+    fridge?: boolean;
+    giftbox?: boolean;
+    giftboxIndex?: number;
+    giftboxIsStarterGift?: SleptInTemporaryBed;
+    spriteIndexOverride?: number;
+    dropContents?: boolean;
+    synchronized?: boolean;
+    specialChestType?: SpecialChestType;
+    globalInventoryId?: AcceptedSpecialOrderTypes;
+    preserve?: string;
+    preservedParentSheetIndex?: number;
+    color?: HairstyleColor;
+    colorSameIndexAsParentSheetIndex?: boolean;
+    ColorSameIndexAsParentSheetIndex?: boolean;
+    defenseBonus?: number;
+    immunityBonus?: number;
+    indexInColorSheet?: number;
+    which?: string;
+    furniture_type?: FurnitureType;
+    rotations?: number;
+    currentRotation?: number;
+    sourceRect?: BoundingBox;
+    defaultSourceRect?: BoundingBox;
+    defaultBoundingBox?: BoundingBox;
+    drawHeldObjectLow?: boolean;
 }
 
+export interface BoundingBox {
+    X: number;
+    Y: number;
+    Width: number;
+    Height: number;
+    Location: Scale;
+    Size: Scale;
+}
+
+export interface Scale {
+    X: number;
+    Y: number;
+}
 export interface AttachmentsAttachments {
     Object: Array<DishOfTheDay | string>;
 }
@@ -1802,7 +1668,7 @@ export interface Quest {
 }
 
 export interface Stats {
-    specificMonstersKilled: LimitedNutDrops;
+    specificMonstersKilled: ItemArray;
     Values: Values;
     averageBedtime: string;
     beveragesMade: string;

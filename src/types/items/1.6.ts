@@ -121,7 +121,15 @@ export enum FurnitureType {
 
 export type Furniture = import('./1.5').Furniture;
 
-export type Hat = import('./1.5').Hat;
+export interface Hat {
+    _type: 'Hat';
+    Name: string;
+    Description: string;
+    ShowRealHair: boolean;
+    SkipHairstyleOffset: boolean;
+    DisplayName: string;
+    ParentSheetIndex: number;
+}
 
 export interface Weapon {
     _type: 'Weapon';

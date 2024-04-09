@@ -11,7 +11,7 @@
     import BigItem from './BigItem.svelte';
     import QualitySelector from './QualitySelector.svelte';
     import SmallItem from './SmallItem.svelte';
-    import type { Item, Player } from '$types/save/1.6';
+    import type { Item, Player, TypeEnum } from '$types/save/1.6';
     import { Category } from '$types/save/1.5';
 
     const itemData = getContext<Map<string, ItemInformation>>('itemData');
@@ -127,19 +127,19 @@
 
         const newItem: Item = {
             name: newItemName,
+            itemId: 'ParentSheetIndex' in newItemData ? newItemData.ParentSheetIndex : 0,
             stack: 1,
-            parentSheetIndex: 'Texture' in newItemData ? newItemData.SpriteIndex : 0,
-            indexInTileSheet: 'Texture' in newItemData ? newItemData.SpriteIndex : 0,
+            quality: 0,
+            isRecipe: false,
+            parentSheetIndex: 'SpriteIndex' in newItemData ? newItemData.SpriteIndex : 0,
+            indexInTileSheet: 'SpriteIndex' in newItemData ? newItemData.SpriteIndex : 0,
             category: category,
             hasBeenInInventory: true,
-            hasBeenPickedUpByFarmer: true,
-            DisplayName: newItemData.Name,
             SpecialVariable: 0, // TODO ?
-            indexInColorSheet: 0, // TODO
             isLostItem: false,
             specialItem: false,
             tileLocation: { X: 0, Y: 0 },
-            boundingBox: { X: 0, Y: 0, Width: 64, Height: 64, Location: { X: 0, Y: 0 } },
+            boundingBox: { X: 0, Y: 0, Width: 64, Height: 64, Size: { X: 64, Y: 64 }, Location: { X: 0, Y: 0 } },
             canBeSetDown: true,
             canBeGrabbed: true,
         };
@@ -203,48 +203,55 @@
         }
 
         if (newItemData._type !== 'Tool') {
-            newItem.parentSheetIndex = newItemData.Sprite;
+            newItem.parentSheetIndex = 'SpriteIndex' in newItemData ? newItemData.SpriteIndex : 0;
         }
 
         if (newItem.name === 'Fishing Rod') {
-            newItem.BaseName = 'Fishing Rod';
-            newItem.upgradeLevel = FishingRodUpgradeNumber.get(newItemData.name) ?? 0;
+            newItem.upgradeLevel = FishingRodUpgradeNumber.get(newItemData.Name) ?? 0;
             newItem.parentSheetIndex = 685;
-            newItem.initialParentTileIndex = FishingRodSpriteIndex.get(newItemData.name) ?? 0;
+            newItem.initialParentTileIndex = FishingRodSpriteIndex.get(newItemData.Name) ?? 0;
             newItem.indexOfMenuItemView = newItem.initialParentTileIndex;
         }
 
         if (newItemData._type === 'Hat') {
-            newItem.which = HatWhichNumber.get(newItemName) ?? 0;
+            newItem.which = '';
         }
 
         if (newItemData._type === 'Furniture') {
             newItem.canBeGrabbed = true;
-            newItem.parentSheetIndex = newItemData.parentSheetIndex;
-            newItem.furniture_type = FurnitureTypeToNumber.get(newItemData.type);
+            newItem.parentSheetIndex = newItemData.ParentSheetIndex;
+            newItem.type = FurnitureTypeToNumber.get(newItemData.Type);
 
             // sourceRect is the sprite data, if I understand correctly
-            if (newItemData.tilesheetSize !== -1) {
+            if (newItemData.TilesheetSize !== -1) {
                 newItem.sourceRect = {
-                    X: newItemData.sprite.x,
-                    Y: newItemData.sprite.y,
-                    Width: newItemData.tilesheetSize.width,
-                    Height: newItemData.tilesheetSize.height,
+                    X: newItemData.Sprite.x,
+                    Y: newItemData.Sprite.y,
+                    Width: newItemData.TilesheetSize.width,
+                    Height: newItemData.TilesheetSize.height,
                     Location: {
-                        X: newItemData.sprite.x,
-                        Y: newItemData.sprite.y,
+                        X: newItemData.Sprite.x,
+                        Y: newItemData.Sprite.y,
+                    },
+                    Size: {
+                        X: newItemData.TilesheetSize.width,
+                        Y: newItemData.TilesheetSize.height,
                     },
                 };
                 newItem.defaultSourceRect = newItem.sourceRect;
             }
 
             // Bounding box is the hitbox/placement box
-            if (newItemData.boundingBoxSize !== -1) {
+            if (newItemData.BoundingBoxSize !== -1) {
                 newItem.boundingBox = {
                     X: 0,
                     Y: 0,
-                    Width: newItemData.boundingBoxSize.width,
-                    Height: newItemData.boundingBoxSize.height,
+                    Width: newItemData.BoundingBoxSize.width,
+                    Height: newItemData.BoundingBoxSize.height,
+                    Size: {
+                        X: newItemData.BoundingBoxSize.width,
+                        Y: newItemData.BoundingBoxSize.height,
+                    },
                     Location: {
                         X: 0,
                         Y: 0,
@@ -255,7 +262,7 @@
             }
 
             // If the item is a lamp, enable the lamp property
-            if (newItemData.type === FurnitureType.Lamp) {
+            if (newItemData.Type === FurnitureType.Lamp) {
                 newItem.isLamp = true;
             }
         }
@@ -264,22 +271,20 @@
             newItem.clothesColor = { R: 255, G: 255, B: 255, A: 255, PackedValue: 0 };
         }
 
-        if (newItemData._type === 'Object' || newItemData._type === 'BigCraftable') {
-            newItem.type = newItemData.type;
-            switch (newItemData.type) {
-                case 'Ring':
-                    // @ts-expect-error
-                    newItem['@_xsi:type'] = 'Ring';
-                    break;
+        if (newItemData._type === 'Object') {
+            newItem.type = newItemData.Type as TypeEnum;
+            if (newItemData._type === 'Object' && newItemData.Type === 'Ring') {
+                // @ts-expect-error
+                newItem['@_xsi:type'] = 'Ring';
             }
         }
 
-        if ('edibility' in newItemData) {
-            newItem.edibility = newItemData.edibility ?? -300;
+        if ('Edibility' in newItemData) {
+            newItem.Price = newItemData.Edibility ?? -300;
         }
 
-        if ('price' in newItemData) {
-            newItem.price = newItemData.price ?? 0;
+        if ('Price' in newItemData) {
+            newItem.Price = newItemData.Price ?? 0;
         }
 
         if (typeof symbol === 'number') {
@@ -289,10 +294,12 @@
         }
 
         if (symbol === 'hat' && newItem.name === 'Copper Pan') {
+            // @ts-expect-error This is exlusive to the copper pan
             newItem.ignoreHairstyleOffset = true;
             newItem.parentSheetIndex = 71;
             newItem.indexInTileSheet = 71;
             newItem.category = Category.Hat;
+            // @ts-expect-error This is exlusive to the copper pan
             newItem.which = 71;
         }
 
@@ -380,10 +387,11 @@
                 {#if selectedItem}
                     <label>
                         <small>Display Name</small>
-                        <input type="text" bind:value={selectedItem.DisplayName} />
+                        <input type="text" bind:value={selectedItem.name} />
                     </label>
                     {#if selectedItemData}
-                        {#if (selectedItem.stackable === undefined || selectedItem.stackable === true) && !['Clothing', 'Boots', 'Hat'].includes(selectedItemData._type)}
+                        <!-- TODO: Since 1.6 removed stackable field, not sure how to actually know -->
+                        {#if !['Clothing', 'Boots', 'Hat', 'Weapon', 'Pants', 'Shirt'].includes(selectedItemData._type)}
                             <label>
                                 <small>Amount</small>
                                 <input type="number" bind:value={selectedItem.stack} min="0" max="999" />
@@ -455,11 +463,11 @@
                         {:else if selectedItemData._type === 'Boots'}
                             <label>
                                 <small>Added Defense</small>
-                                <input type="number" bind:value={selectedItem.addedDefense} min="0" />
+                                <input type="number" bind:value={selectedItem.defenseBonus} min="0" />
                             </label>
                             <label>
                                 <small>Added Immunity</small>
-                                <input type="number" bind:value={selectedItem.addedImmunity} min="0" />
+                                <input type="number" bind:value={selectedItem.immunityBonus} min="0" />
                             </label>
                             <label>
                                 <small>Color Index</small>

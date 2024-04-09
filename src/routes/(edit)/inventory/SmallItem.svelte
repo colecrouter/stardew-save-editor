@@ -118,7 +118,7 @@
     };
 </script>
 
-<div class="item-wrapper" on:click={handleClick}>
+<div class="item-wrapper" on:click={handleClick} on:keydown={handleClick} role="radio" aria-checked={index === selectedIndex} tabindex="0">
     <div
         class="item"
         style:--w={`${w}px`}

@@ -92,19 +92,11 @@
             // Clothes weren't items until 1.4, they were a character property before then.
             // https://stardewvalleywiki.com/Version_History#1.4
             if (lookupItem._type === 'Shirt') {
-                if (item.clothesType === 0) {
-                    const sprite = lookupItem.SpriteIndex;
-                    lookupItem = {
-                        ...lookupItem,
-                        SpriteIndex: sprite,
-                    } satisfies ItemInformation;
-                } else if (item.clothesType === 1) {
-                    const sprite = lookupItem.SpriteIndex;
-                    lookupItem = {
-                        ...lookupItem,
-                        SpriteIndex: sprite,
-                    } satisfies ItemInformation;
-                }
+                const sprite = lookupItem.SpriteIndex;
+                lookupItem = {
+                    ...lookupItem,
+                    SpriteIndex: sprite,
+                } satisfies ItemInformation;
             }
         }
     } else {

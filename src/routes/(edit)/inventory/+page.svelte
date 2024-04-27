@@ -451,8 +451,8 @@
       <div class="stats">
         {#if selectedItem}
           <label>
-            <small>Display Name</small>
-            <input type="text" bind:value={selectedItem.name} />
+            <small>Item Name</small>
+            <input type="text" value={selectedItem.name} disabled />
           </label>
           {#if selectedItemData}
             <!-- TODO: Since 1.6 removed stackable field, not sure how to actually know -->

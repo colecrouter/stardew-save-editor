@@ -54,7 +54,6 @@ export const GetSpritesheet = (lookupItem: ItemInformation): string => {
 export const IndexToSprite = (index: number, itemW: number, itemH: number, sheetW: number, sheetH: number, padRight: number = 0) => {
     const x = (sheetW + padRight) - ((index * itemW) % sheetW);
     const y = sheetH - (Math.floor((index * itemW) / sheetW) * itemH);
-    if (y < 0) { console.log(index); }
     return { x, y };
 };
 

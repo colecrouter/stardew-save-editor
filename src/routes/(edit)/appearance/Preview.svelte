@@ -2,9 +2,18 @@
     import { base } from '$app/paths';
     import { AccessoryIsTinted } from '$lib/CharacterColors';
     import { Character } from '$lib/SaveFile';
-    import { GetPlayerSpriteForPants, GetSprite, IndexToSprite } from '$lib/Spritesheet';
+    import {
+        GetPlayerSpriteForPants,
+        GetSprite,
+        IndexToSprite,
+    } from '$lib/Spritesheet';
     import type { Clothing, Hat, ItemInformation } from '$types/items/1.6';
-    import { type Item, type HairstyleColor, type Player, Gender } from '$types/save/1.6';
+    import {
+        type Item,
+        type HairstyleColor,
+        type Player,
+        Gender,
+    } from '$types/save/1.6';
     import { getContext } from 'svelte';
 
     const itemData = getContext<Map<string, ItemInformation>>('itemData');
@@ -63,15 +72,29 @@
     let accessoryPosition: pos = { x: 0, y: 0 };
     let hatPosition: pos = { x: 0, y: 0 };
     let showHair = true;
-    let showAccessory = true;
 
-    let defaultTint: HairstyleColor = { R: 0, G: 0, B: 0, A: 0, PackedValue: 0 };
+    let defaultTint: HairstyleColor = {
+        R: 0,
+        G: 0,
+        B: 0,
+        A: 0,
+        PackedValue: 0,
+    };
     let hairTint: HairstyleColor = defaultTint;
     let pantsTint: HairstyleColor = defaultTint;
     let shirtTint: HairstyleColor = defaultTint;
-    let baseTint: [HairstyleColor, HairstyleColor, HairstyleColor] = [defaultTint, defaultTint, defaultTint];
+    let baseTint: [HairstyleColor, HairstyleColor, HairstyleColor] = [
+        defaultTint,
+        defaultTint,
+        defaultTint,
+    ];
     let eyeTint: HairstyleColor = { R: 0, G: 0, B: 0, A: 0, PackedValue: 0 };
-    let bootsTint: [HairstyleColor, HairstyleColor, HairstyleColor, HairstyleColor] = [defaultTint, defaultTint, defaultTint, defaultTint];
+    let bootsTint: [
+        HairstyleColor,
+        HairstyleColor,
+        HairstyleColor,
+        HairstyleColor,
+    ] = [defaultTint, defaultTint, defaultTint, defaultTint];
 
     let character: Player | undefined;
     Character.character.subscribe((c) => {
@@ -81,7 +104,15 @@
     });
 
     // Just here for reactivity
-    $: shirtItem || pantsItem || hat || gender || skinColor || hairStyle || shirt || pants || acc,
+    $: shirtItem ||
+        pantsItem ||
+        hat ||
+        gender ||
+        skinColor ||
+        hairStyle ||
+        shirt ||
+        pants ||
+        acc,
         (async () => {
             await loaded;
             if (character) {
@@ -94,8 +125,12 @@
                 }
 
                 const isMale = gender === Gender.Male;
-                otherSheet = isMale ? 'male_farmer_other.png' : 'female_farmer_other.png';
-                bootsSheet = isMale ? 'male_farmer_boots.png' : 'female_farmer_boots.png';
+                otherSheet = isMale
+                    ? 'male_farmer_other.png'
+                    : 'female_farmer_other.png';
+                bootsSheet = isMale
+                    ? 'male_farmer_boots.png'
+                    : 'female_farmer_boots.png';
 
                 baseTint[0] = PrimarySkinColors[character.skin];
                 baseTint[1] = SecondarySkinColors[character.skin];
@@ -104,14 +139,23 @@
 
                 if (!character.pantsItem) {
                     // Underwear/default
-                    const underwear = itemData.get('Polka Dot Shorts') as Clothing;
-                    pantsPosition = GetPlayerSpriteForPants(underwear.SpriteIndex, isMale);
+                    const underwear = itemData.get(
+                        'Polka Dot Shorts',
+                    ) as Clothing;
+                    pantsPosition = GetPlayerSpriteForPants(
+                        underwear.SpriteIndex,
+                        isMale,
+                    );
                     pantsTint = defaultTint;
                 } else {
                     const pants = character.pantsItem;
                     const pantsData = itemData.get(pants.name) as Clothing;
 
-                    pantsData && (pantsPosition = GetPlayerSpriteForPants(pantsData.SpriteIndex, isMale)); // We don't use pants.sprite because there are seperate sprites for item and on character
+                    pantsData &&
+                        (pantsPosition = GetPlayerSpriteForPants(
+                            pantsData.SpriteIndex,
+                            isMale,
+                        )); // We don't use pants.sprite because there are seperate sprites for item and on character
                     pants.clothesColor && (pantsTint = pants.clothesColor);
                 }
 
@@ -119,15 +163,27 @@
                 if (!shirt) {
                     // White shirt/default
                     console.log(isMale);
-                    const shirtData = itemData.get(isMale ? 'Basic Pullover (M)' : 'Basic Pullover (F)') as Clothing;
-                    shirtPosition = GetSprite('Shirt', shirtData.SpriteIndex, shirtData.CanBeDyed);
+                    const shirtData = itemData.get(
+                        isMale ? 'Basic Pullover (M)' : 'Basic Pullover (F)',
+                    ) as Clothing;
+                    shirtPosition = GetSprite(
+                        'Shirt',
+                        shirtData.SpriteIndex,
+                        shirtData.CanBeDyed,
+                    );
                     shirtTint = defaultTint;
                 } else {
                     const shirtData = itemData.get(shirt.name) as Clothing;
 
                     if (shirtData) {
-                        shirtPosition = GetSprite('Shirt', shirtData.SpriteIndex, shirtData.CanBeDyed);
-                        shirtTint = (shirtData.CanBeDyed && shirt.clothesColor) || defaultTint;
+                        shirtPosition = GetSprite(
+                            'Shirt',
+                            shirtData.SpriteIndex,
+                            shirtData.CanBeDyed,
+                        );
+                        shirtTint =
+                            (shirtData.CanBeDyed && shirt.clothesColor) ||
+                            defaultTint;
                     }
                 }
 
@@ -136,17 +192,22 @@
                     // I hate this so much, but there's no way to grab the info from itemData because +layout.ts converts iteminfo.json into a Map,
                     // so the hat entry gets nuked. Maybe in the future we'll use a Map<string, Array<ItemInformation>> instead.
                     const res = await fetch(base + '/iteminfo.json');
-                    const allItems = (await res.json()) as Array<[string, ItemInformation]>;
-                    const pan = allItems.find(([name]) => name === 'Copper Pan')![1];
+                    const allItems = (await res.json()) as Array<
+                        [string, ItemInformation]
+                    >;
+                    const pan = allItems.find(
+                        ([name]) => name === 'Copper Pan',
+                    )![1];
                     hatData = pan as Hat;
                 } else {
-                    hatData = character.hat && (itemData.get(character.hat.name) as Hat);
+                    hatData =
+                        character.hat &&
+                        (itemData.get(character.hat.name) as Hat);
                 }
 
                 if (hatData) {
                     hatPosition = hatData.Sprite;
                     showHair = hatData?._type == 'Hat' && hatData.ShowRealHair;
-                    showAccessory = hatData?._type == 'Hat' && hatData.ShowRealHair;
                 }
 
                 const hair = character.hair;
@@ -155,7 +216,13 @@
                 showHair = hatData?._type !== 'Hat' || hatData.ShowRealHair;
 
                 if (character.accessory !== -1) {
-                    accessoryPosition = IndexToSprite(character.accessory, 16, 32, 128, 96);
+                    accessoryPosition = IndexToSprite(
+                        character.accessory, // Because index starts at 0 but game displays at 1
+                        16,
+                        32,
+                        128,
+                        128,
+                    );
                 }
 
                 if (character.boots) {
@@ -163,7 +230,8 @@
                     bootsTint[0] = PrimaryBootColors[boots.indexInColorSheet];
                     bootsTint[1] = SecondaryBootColors[boots.indexInColorSheet];
                     bootsTint[2] = TertiaryBootColors[boots.indexInColorSheet];
-                    bootsTint[3] = QuaternaryBootColors[boots.indexInColorSheet];
+                    bootsTint[3] =
+                        QuaternaryBootColors[boots.indexInColorSheet];
                 } else {
                     bootsTint[0] = defaultTint;
                     bootsTint[1] = defaultTint;
@@ -197,10 +265,17 @@
             style:--y={'0'} />
         <!-- END LAYERED TINT -->
 
-        <div class="eyes" style:--spritesheet={`url(${base}/img/${otherSheet})`} />
+        <div
+            class="eyes"
+            style:--spritesheet={`url(${base}/img/${otherSheet})`} />
 
         <!-- START LAYERED TINT -->
-        <div class="iris" style:--spritesheet={`url(${base}/img/${otherSheet})`} style:--tint={`rgba(${eyeTint.R},${eyeTint.G},${eyeTint.B},${eyeTint.A})`} style:--x={'32px'} style:--y={'0'} />
+        <div
+            class="iris"
+            style:--spritesheet={`url(${base}/img/${otherSheet})`}
+            style:--tint={`rgba(${eyeTint.R},${eyeTint.G},${eyeTint.B},${eyeTint.A})`}
+            style:--x={'32px'}
+            style:--y={'0'} />
         <!-- END LAYERED TINT -->
 
         <!-- START LAYERED TINT -->
@@ -243,12 +318,15 @@
             style:--y={`${shirtPosition.y}px`}
             style:--tint={`rgba(${shirtTint.R},${shirtTint.G},${shirtTint.B},${shirtTint.A})`} />
 
-        {#if character?.accessory !== -1 && showAccessory}
+        {#if character?.accessory !== -1}
             <!-- START LAYERED TINT -->
             <div
                 class="accessory"
                 style:--spritesheet={`url(${base}/assets/${accessoriesSheet})`}
-                style:--tint={character?.accessory !== undefined && AccessoryIsTinted(character?.accessory) ? `rgba(${hairTint.R},${hairTint.G},${hairTint.B},${hairTint.A})` : ''}
+                style:--tint={character?.accessory !== undefined &&
+                AccessoryIsTinted(character?.accessory)
+                    ? `rgba(${hairTint.R},${hairTint.G},${hairTint.B},${hairTint.A})`
+                    : ''}
                 style:--x={`${accessoryPosition.x}px`}
                 style:--y={`${accessoryPosition.y}px`} />
             <!-- END LAYERED TINT -->
@@ -264,7 +342,11 @@
         {/if}
 
         {#if character?.hat}
-            <div class="hat" style:--spritesheet={`url(${base}/assets/${hatSheet})`} style:--x={`${hatPosition.x}px`} style:--y={`${hatPosition.y}px`} />
+            <div
+                class="hat"
+                style:--spritesheet={`url(${base}/assets/${hatSheet})`}
+                style:--x={`${hatPosition.x}px`}
+                style:--y={`${hatPosition.y}px`} />
         {/if}
 
         <!-- START LAYERED TINT -->

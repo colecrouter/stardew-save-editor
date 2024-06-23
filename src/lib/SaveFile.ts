@@ -41,7 +41,7 @@ class CharacterSelector {
         this._character.set(save.SaveGame.player);
 
         // Set the players array, so we can iterate over it
-        this._players = [save.SaveGame.player, ...save.SaveGame.locations.GameLocation.find((loc) => loc.name === "Farm")?.buildings?.Building.map((b) => b.indoors?.farmhand!).filter((f) => f) ?? []];
+        this._players = [save.SaveGame.player, ...save.SaveGame.farmhands.Farmer ?? []];
     };
 
     public next = () => {
@@ -126,11 +126,11 @@ export const SaveConverter = {
 
         // Get an array of player and farmhands
         // We have to apply a handful of changes to each of them, so it's easier to do it in a loop, rather than doing them separately
-        const players = [json.SaveGame.player, ...json.SaveGame.locations.GameLocation.find((loc) => loc.name === "Farm")?.buildings?.Building.map((b) => b.indoors?.farmhand!).filter((f) => f) ?? []];
+        const players = [json.SaveGame.player, ...json.SaveGame.farmhands.Farmer ?? []];
 
         // Type safety enhancements
         // 1. Inventory, switch <string xsi:nil="true" /> into undefined
-        players.forEach((player) => player.items.Item = player.items.Item.map((item) => JSON.stringify(item) === '{"@_xsi:nil":"true"}' ? undefined : item));
+        players.forEach((player) => player.items.Item = player.items.Item.map((item) => JSON.stringify(item) === '{"@_xsi:nil":"true"}' ? undefined : item) as any);
         // 2. For some reason, if your character knows only 1 crafting or cooking recipe, it will be an object, not an array
         players.forEach((player) => {
             if (player.craftingRecipes?.item && !Array.isArray(player.craftingRecipes.item)) {
@@ -149,7 +149,7 @@ export const SaveConverter = {
 
         // Get an array of player and farmhands
         // We have to apply a handful of changes to each of them, so it's easier to do it in a loop, rather than doing them separately
-        const players = [json.SaveGame.player, ...json.SaveGame.locations.GameLocation.find((loc) => loc.name === "Farm")?.buildings?.Building.map((b) => b.indoors?.farmhand!).filter((f) => f) ?? []];
+        const players = [json.SaveGame.player, ...json.SaveGame.farmhands.Farmer ?? []];
 
         // Undo type safety enhancements
         // 1. Inventory, switch undefined into <string xsi:nil="true" /> (for farmhands, too)

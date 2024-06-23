@@ -2,7 +2,7 @@ import type { FurnitureType } from "$types/items/1.6";
 
 export interface Save {
     player: Player;
-    farmhands: string;
+    farmhands: { Farmer: Player[]; };
     locations: Locations;
     currentSeason: Season;
     samBandName?: string;
@@ -624,7 +624,6 @@ export interface Indoors {
     appliedWallpaper?: IndoorsAppliedFloor;
     floor?: string;
     appliedFloor?: IndoorsAppliedFloor;
-    farmhand?: Player;
 }
 
 export interface IndoorsAnimals {

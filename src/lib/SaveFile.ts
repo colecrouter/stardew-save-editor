@@ -129,23 +129,25 @@ export const SaveConverter = {
         const players = [json.SaveGame.player, ...json.SaveGame.farmhands.Farmer ?? []];
 
         // Type safety enhancements
-        // 1. Inventory, switch <string xsi:nil="true" /> into undefined
-        players.forEach((player) => player.items.Item = player.items.Item.map((item) => JSON.stringify(item) === '{"@_xsi:nil":"true"}' ? undefined : item) as any);
-        // 2. For some reason, if your character knows only 1 crafting or cooking recipe, it will be an object, not an array
-        players.forEach((player) => {
+        for (const player of players) {
+            // 1. Inventory, switch <string xsi:nil="true" /> into undefined
+            // Need to check for null, because undefined gets converted to null when JSON is stringified
+            player.items.Item = player.items.Item.map((item) => JSON.stringify(item) === '{"@_xsi:nil":"true"}' ? undefined : item).filter((item) => item !== undefined);
+            // 2. For some reason, if your character knows only 1 crafting or cooking recipe, it will be an object, not an array
             if (player.craftingRecipes?.item && !Array.isArray(player.craftingRecipes.item)) {
                 player.craftingRecipes.item = [player.craftingRecipes.item];
             }
             if (player.cookingRecipes?.item && !Array.isArray(player.cookingRecipes.item)) {
                 player.cookingRecipes.item = [player.cookingRecipes.item];
             }
-        });
+        }
 
         return json;
     },
     toXML: async (json: SaveFile): Promise<Blob> => {
         if (!json) { throw new Error("No file provided"); }
-        if (!json || typeof json !== 'object' || 'gameVersion'! in json) { throw new Error("Not valid save file"); }
+        console.log(json);
+        if (!json || typeof json !== 'object' || !('gameVersion' in json.SaveGame)) { throw new Error("Not valid save file"); }
 
         // Get an array of player and farmhands
         // We have to apply a handful of changes to each of them, so it's easier to do it in a loop, rather than doing them separately
@@ -153,16 +155,18 @@ export const SaveConverter = {
 
         // Undo type safety enhancements
         // 1. Inventory, switch undefined into <string xsi:nil="true" /> (for farmhands, too)
-        // @ts-expect-error
-        players.forEach((player) => player.items.Item = player.items.Item.map((item) => item === null ? { '@_xsi:nil': 'true' } : item)); // Need to check for null, because undefined gets converted to null when JSON is stringified
-        // 2. For some reason, if your character knows only 1 crafting or cooking recipe, it will be an object, not an array (we probably don't need to undo this)
-        players.forEach((player) => {
+        for (const player of players) {
+            // @ts-expect-error
+            player.items.Item = player.items.Item.map((item) => item === undefined ? { '@_xsi:nil': 'true' } : item);
+            // @ts-expect-error
+            player.items.Item = player.items.Item.map((item) => 'which' in item ? { ...item, which: { '@_xsi:nil': 'true' } } : item);
+            // 2. For some reason, if your character knows only 1 crafting or cooking recipe, it will be an object, not an array (we probably don't need to undo this)
             for (const recipe of [player.craftingRecipes, player.cookingRecipes]) {
                 if (recipe?.item && !Array.isArray(recipe.item)) {
                     recipe.item = [recipe.item];
                 }
             }
-        });
+        };
 
         // Copy name to Name, and stack to Stack for every item in the inventory
         // players.forEach((player) => [player.hat, player.pantsItem, player.shirtItem, player.boots, player.leftRing, player.rightRing, ...player.items.Item].forEach((item) => {

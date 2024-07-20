@@ -5,22 +5,22 @@
     FishingRodUpgradeNumber,
     FurnitureTypeToNumber,
     RingsUniqueID,
-  } from "$lib/ItemData";
-  import type { ParentIndex } from "$lib/ItemParentIndex";
-  import { CalculateEdibility, CalculatePrice } from "$lib/ItemQuality";
-  import { Character } from "$lib/SaveFile";
-  import { HexToRGB, RGBToHex } from "$lib/Spritesheet";
-  import { FurnitureType, type ItemInformation } from "$types/items/1.6";
-  import { Category } from "$types/save/1.5";
-  import type { Item, Player, TypeEnum } from "$types/save/1.6";
-  import { getContext } from "svelte";
-  import Container from "../../Container.svelte";
-  import Preview from "../appearance/Preview.svelte";
-  import BigItem from "./BigItem.svelte";
-  import QualitySelector from "./QualitySelector.svelte";
-  import SmallItem from "./SmallItem.svelte";
+  } from '$lib/ItemData';
+  import type { ParentIndex } from '$lib/ItemParentIndex';
+  import { CalculateEdibility, CalculatePrice } from '$lib/ItemQuality';
+  import { Character } from '$lib/SaveFile';
+  import { HexToRGB, RGBToHex } from '$lib/Spritesheet';
+  import { FurnitureType, type ItemInformation } from '$types/items/1.6';
+  import { Category } from '$types/save/1.5';
+  import type { Item, Player, TypeEnum } from '$types/save/1.6';
+  import { getContext } from 'svelte';
+  import Container from '../../Container.svelte';
+  import Preview from '../appearance/Preview.svelte';
+  import BigItem from './BigItem.svelte';
+  import QualitySelector from './QualitySelector.svelte';
+  import SmallItem from './SmallItem.svelte';
 
-  const itemData = getContext<Map<string, ItemInformation>>("itemData");
+  const itemData = getContext<Map<string, ItemInformation>>('itemData');
   let selectedItemData: ItemInformation | undefined;
 
   let inventory: Array<Item | undefined> = [];
@@ -46,7 +46,7 @@
       : undefined;
 
     selectedItem &&
-      console.debug("Selected item:", selectedItem?.name, selectedIndex);
+      console.debug('Selected item:', selectedItem?.name, selectedIndex);
 
     // Calculate price/edibility for default price/edibility items
     if (selectedItem?.quality === undefined) return;
@@ -63,28 +63,28 @@
       // Check if the items price is the same as the default price
       // If so, we need to change the price whenever the quality changes
       // If not, we can assume the user has changed it, so just leave it alone
-      if ("Price" in selectedItemData && selectedItem.price) {
+      if ('Price' in selectedItemData && selectedItem.price) {
         const theoreticalOldPrice = CalculatePrice(
           selectedItemData.Price,
-          oldQuality ?? 0
+          oldQuality ?? 0,
         );
         if (theoreticalOldPrice === selectedItem.price) {
           selectedItem.price = CalculatePrice(
             selectedItemData.Price,
-            selectedItem.quality
+            selectedItem.quality,
           );
         }
       }
 
-      if ("Edibility" in selectedItemData && selectedItem.edibility) {
+      if ('Edibility' in selectedItemData && selectedItem.edibility) {
         const theoreticalOldEdibility = CalculateEdibility(
           selectedItemData.Edibility,
-          oldQuality ?? 0
+          oldQuality ?? 0,
         );
         if (theoreticalOldEdibility === selectedItem.edibility) {
           selectedItem.edibility = CalculateEdibility(
             selectedItemData.Edibility,
-            selectedItem.quality
+            selectedItem.quality,
           );
         }
       }
@@ -99,7 +99,7 @@
   const deleteItem = (symbol: ParentIndex) => {
     if (!player) return;
 
-    if (typeof symbol === "number") {
+    if (typeof symbol === 'number') {
       inventory[symbol] = undefined;
     } else {
       player[symbol] = undefined;
@@ -121,27 +121,27 @@
 
     let category: number | undefined;
     switch (newItemData._type) {
-      case "Object":
+      case 'Object':
         break;
-      case "BigCraftable":
+      case 'BigCraftable':
         break;
-      case "Boots":
+      case 'Boots':
         category = Category.Boots;
         break;
-      case "Pants":
-      case "Shirt":
+      case 'Pants':
+      case 'Shirt':
         category = Category.Clothing;
         break;
-      case "Furniture":
+      case 'Furniture':
         category = Category.Furniture;
         break;
-      case "Hat":
+      case 'Hat':
         category = Category.Hat;
         break;
-      case "Weapon":
+      case 'Weapon':
         category = Category.Weapon;
         break;
-      case "Tool":
+      case 'Tool':
         category = Category.Tool;
         break;
     }
@@ -149,18 +149,18 @@
     const newItem: Item = {
       name: newItemName,
       itemId:
-        "ParentSheetIndex" in newItemData
+        'ParentSheetIndex' in newItemData
           ? newItemData.ParentSheetIndex
-          : "SpriteIndex" in newItemData
+          : 'SpriteIndex' in newItemData
             ? newItemData.SpriteIndex
             : 0,
       stack: 1,
       quality: 0,
       isRecipe: false,
       parentSheetIndex:
-        "ParentSheetIndex" in newItemData ? newItemData.ParentSheetIndex : 0,
+        'ParentSheetIndex' in newItemData ? newItemData.ParentSheetIndex : 0,
       indexInTileSheet:
-        "SpriteIndex" in newItemData ? newItemData.SpriteIndex : 0,
+        'SpriteIndex' in newItemData ? newItemData.SpriteIndex : 0,
       category: category,
       hasBeenInInventory: true,
       SpecialVariable: 0, // TODO ?
@@ -181,55 +181,59 @@
 
     let type: string | undefined;
     switch (newItemData._type) {
-      case "Object":
-      case "BigCraftable":
-        type = "Object";
+      case 'Object':
+      case 'BigCraftable':
+        type = 'Object';
         break;
-      case "Furniture":
-        type = "Furniture";
+      case 'Furniture':
+        type = 'Furniture';
         break;
-      case "Weapon":
-        type = "MeleeWeapon";
+      case 'Weapon':
+        type = 'MeleeWeapon';
         break;
-      case "Tool":
-        if (newItemName === "Milk Pail") {
-          type = "MilkPail";
-        } else if (newItemName.endsWith("Pickaxe")) {
-          type = "Pickaxe";
-        } else if (newItemName.endsWith("Axe")) {
-          type = "Axe";
-        } else if (newItemName.endsWith("Hoe")) {
-          type = "Hoe";
-        } else if (newItemName.endsWith("Watering Can")) {
-          type = "WateringCan";
-        } else if (newItemName.endsWith("Rod")) {
-          type = "FishingRod";
+      case 'Tool':
+        if (newItemName === 'Milk Pail') {
+          type = 'MilkPail';
+        } else if (newItemName.endsWith('Pickaxe')) {
+          type = 'Pickaxe';
+        } else if (newItemName.endsWith('Axe')) {
+          type = 'Axe';
+        } else if (newItemName.endsWith('Hoe')) {
+          type = 'Hoe';
+        } else if (newItemName.endsWith('Watering Can')) {
+          type = 'WateringCan';
+        } else if (newItemName.endsWith('Rod')) {
+          type = 'FishingRod';
           // All fishing rods are called "Fishing Rod" in the game data
           // This actually still works if you don't have the right name, but might as well fix it
-          newItemName = "Fishing Rod";
-        } else if (newItemName.endsWith("Pan")) {
-          type = "Pan";
+          newItemName = 'Fishing Rod';
+        } else if (newItemName.endsWith('Pan')) {
+          type = 'Pan';
         }
-        // TODO
         break;
+      case 'Hat':
+        type = 'Hat';
+        break;
+      // TODO
     }
 
+    console.log(type);
     if (type) {
       // This is required for the game to recognize the item as the correct type, but isn't part of the XML structures
       // @ts-expect-error
-      newItem["@_xsi:type"] = type;
+      newItem['@_xsi:type'] = type;
 
-      if (symbol === "hat" && newItemName === "Copper Pan") {
+      if (symbol === 'hat' && newItemName === 'Copper Pan') {
         // @ts-expect-error
-        newItem["@_xsi:type"] = "Hat";
+        newItem['@_xsi:type'] = 'Hat';
       }
     }
 
-    if (newItemData._type === "Object") {
+    if (newItemData._type === 'Object') {
       newItem.price = 0;
       newItem.quality = 0;
 
-      if (newItemData.Type === "Ring") {
+      if (newItemData.Type === 'Ring') {
         const id = RingsUniqueID.get(newItemName);
         if (id) {
           newItem.uniqueID = id;
@@ -237,12 +241,12 @@
       }
     }
 
-    if (newItemData._type !== "Tool") {
+    if (newItemData._type !== 'Tool') {
       newItem.parentSheetIndex =
-        "SpriteIndex" in newItemData ? newItemData.SpriteIndex : 0;
+        'SpriteIndex' in newItemData ? newItemData.SpriteIndex : 0;
     }
 
-    if (newItem.name === "Fishing Rod") {
+    if (newItem.name === 'Fishing Rod') {
       newItem.upgradeLevel = FishingRodUpgradeNumber.get(newItemData.Name) ?? 0;
       newItem.parentSheetIndex = 685;
       newItem.initialParentTileIndex =
@@ -250,11 +254,11 @@
       newItem.indexOfMenuItemView = newItem.initialParentTileIndex;
     }
 
-    if (newItemData._type === "Hat") {
-      newItem.which = "";
+    if (newItemData._type === 'Hat') {
+      newItem.which = '';
     }
 
-    if (newItemData._type === "Furniture") {
+    if (newItemData._type === 'Furniture') {
       newItem.canBeGrabbed = true;
       newItem.parentSheetIndex = newItemData.ParentSheetIndex;
       newItem.type = FurnitureTypeToNumber.get(newItemData.Type);
@@ -304,33 +308,33 @@
       }
     }
 
-    if ("CanBeDyed" in newItemData && newItemData.CanBeDyed) {
+    if ('CanBeDyed' in newItemData && newItemData.CanBeDyed) {
       newItem.clothesColor = { R: 255, G: 255, B: 255, A: 255, PackedValue: 0 };
     }
 
-    if (newItemData._type === "Object") {
+    if (newItemData._type === 'Object') {
       newItem.type = newItemData.Type as TypeEnum;
-      if (newItemData._type === "Object" && newItemData.Type === "Ring") {
+      if (newItemData._type === 'Object' && newItemData.Type === 'Ring') {
         // @ts-expect-error
-        newItem["@_xsi:type"] = "Ring";
+        newItem['@_xsi:type'] = 'Ring';
       }
     }
 
-    if ("Edibility" in newItemData) {
+    if ('Edibility' in newItemData) {
       newItem.Price = newItemData.Edibility ?? -300;
     }
 
-    if ("Price" in newItemData) {
+    if ('Price' in newItemData) {
       newItem.Price = newItemData.Price ?? 0;
     }
 
-    if (typeof symbol === "number") {
+    if (typeof symbol === 'number') {
       inventory[symbol] = newItem;
     } else {
       player[symbol] = newItem;
     }
 
-    if (symbol === "hat" && newItem.name === "Copper Pan") {
+    if (symbol === 'hat' && newItem.name === 'Copper Pan') {
       // @ts-expect-error This is exlusive to the copper pan
       newItem.ignoreHairstyleOffset = true;
       newItem.parentSheetIndex = 71;
@@ -341,7 +345,7 @@
     }
 
     // Clear item from the editor window
-    newItemName = "";
+    newItemName = '';
 
     // Select the new item
     selectedItem = newItem;
@@ -350,7 +354,7 @@
   const rerender = (item: Item, index: ParentIndex) => {
     if (!player) return;
 
-    if (typeof index === "number") {
+    if (typeof index === 'number') {
       inventory[index] = item;
     } else {
       player[index] = item;
@@ -383,17 +387,17 @@
           <div class="character-armor">
             <SmallItem
               item={player.leftRing}
-              index={"leftRing"}
+              index={'leftRing'}
               bind:selectedItem
               bind:selectedIndex />
             <SmallItem
               item={player.rightRing}
-              index={"rightRing"}
+              index={'rightRing'}
               bind:selectedItem
               bind:selectedIndex />
             <SmallItem
               item={player.boots}
-              index={"boots"}
+              index={'boots'}
               bind:selectedItem
               bind:selectedIndex />
           </div>
@@ -405,17 +409,17 @@
           <div class="character-armor">
             <SmallItem
               item={player.hat}
-              index={"hat"}
+              index={'hat'}
               bind:selectedItem
               bind:selectedIndex />
             <SmallItem
               item={player.shirtItem}
-              index={"shirtItem"}
+              index={'shirtItem'}
               bind:selectedItem
               bind:selectedIndex />
             <SmallItem
               item={player.pantsItem}
-              index={"pantsItem"}
+              index={'pantsItem'}
               bind:selectedItem
               bind:selectedIndex />
           </div>
@@ -456,7 +460,7 @@
           </label>
           {#if selectedItemData}
             <!-- TODO: Since 1.6 removed stackable field, not sure how to actually know -->
-            {#if !["Clothing", "Boots", "Hat", "Weapon", "Pants", "Shirt"].includes(selectedItemData._type)}
+            {#if !['Clothing', 'Boots', 'Hat', 'Weapon', 'Pants', 'Shirt'].includes(selectedItemData._type)}
               <label>
                 <small>Amount</small>
                 <input
@@ -466,7 +470,7 @@
                   max="999" />
               </label>
             {/if}
-            {#if selectedItemData._type === "Weapon"}
+            {#if selectedItemData._type === 'Weapon'}
               <label>
                 <small>Min Dmg</small>
                 <input
@@ -538,9 +542,9 @@
                   bind:value={selectedItem.critMultiplier}
                   min="0" />
               </label>
-            {:else if selectedItemData._type === "Tool"}
+            {:else if selectedItemData._type === 'Tool'}
               <!-- Can't edit -->
-            {:else if selectedItemData._type === "BigCraftable"}
+            {:else if selectedItemData._type === 'BigCraftable'}
               <!-- <label>
                         <small>Place Outdoors</small>
                         <input type="check" bind:value={selectedItem.setOutdoors} />
@@ -553,7 +557,7 @@
                 <small>Produces Light</small>
                 <input type="checkbox" bind:checked={selectedItem.isLamp} />
               </label>
-            {:else if selectedItemData._type === "Boots"}
+            {:else if selectedItemData._type === 'Boots'}
               <label>
                 <small>Added Defense</small>
                 <input
@@ -581,7 +585,7 @@
                     rerender(selectedItem, selectedIndex);
                   }} />
               </label>
-            {:else if selectedItemData._type === "Shirt"}
+            {:else if selectedItemData._type === 'Shirt'}
               {#if selectedItemData.CanBeDyed}
                 <label>
                   <small>Color</small>
@@ -594,13 +598,13 @@
                         B: 255,
                         A: 255,
                         PackedValue: 0,
-                      }
+                      },
                     )}
                     on:change={(e) => {
                       if (!selectedItem) return;
                       selectedItem.clothesColor = HexToRGB(
                         // @ts-expect-error
-                        e.target.value ?? "#000000"
+                        e.target.value ?? '#000000',
                       );
 
                       // Force rerender on any other components watching this item
@@ -608,10 +612,10 @@
                     }} />
                 </label>
               {/if}
-            {:else if selectedItemData._type === "Furniture"}
+            {:else if selectedItemData._type === 'Furniture'}
               <!-- Need more info -->
               <!-- House plant selector -->
-            {:else if selectedItemData._type === "Hat"}
+            {:else if selectedItemData._type === 'Hat'}
               <!-- Need more info? -->
             {/if}
 
@@ -625,7 +629,7 @@
             {/if}
 
             <!-- Edibility -->
-            {#if selectedItemData && "edibility" in selectedItemData && selectedItemData.edibility !== -300}
+            {#if selectedItemData && 'edibility' in selectedItemData && selectedItemData.edibility !== -300}
               <label>
                 <small>Edibility</small>
                 <input
@@ -636,7 +640,7 @@
             {/if}
 
             <!-- Price -->
-            {#if ["ObjectInformation", "BigCraftable", "Furniture", "Hat", "Clothing"].includes(selectedItemData._type)}
+            {#if ['ObjectInformation', 'BigCraftable', 'Furniture', 'Hat', 'Clothing'].includes(selectedItemData._type)}
               <label>
                 <small>Price</small>
                 <input type="number" bind:value={selectedItem.price} min="0" />
@@ -751,7 +755,7 @@
     display: block;
   }
 
-  input[type="number"] {
+  input[type='number'] {
     width: 6em;
   }
 

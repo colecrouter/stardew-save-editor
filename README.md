@@ -23,3 +23,13 @@ Open source web-based save editor for Stardew Valley. Contributions welcome.
 ## Disclaimer
 
 This project uses assets from the video game *Stardew Valley*, which were created and are owned by ConcernedApe. The usage of these materials does not negatively affect the original creator's ability to market or profit from their copyrighted material. If you believe that copyrighted materials have been used in a way that goes beyond fair use, please [contact me](mailto:colecrouter@hotmail.com).
+
+## Version Support
+
+Code for version 1.5 exists within the repo, but the published uses the latest code (which only supports 1.6). There is currently *no branch* pointing to that last working 1.5 commit.
+
+## Android/iOS/NSW Support
+
+Both Android & iOS are supported. However, only SDV 1.6 is currently supported, so both mobile versions are currently unsupported (until they are updated to 1.6).
+
+SDV on Nintendo Switch is unsupported.

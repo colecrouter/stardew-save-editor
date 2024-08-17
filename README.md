@@ -26,7 +26,7 @@ This project uses assets from the video game *Stardew Valley*, which were create
 
 ## Version Support
 
-Code for version 1.5 exists within the repo, but the published uses the latest code (which only supports 1.6). There is currently *no branch* pointing to that last working 1.5 commit.
+Support 1.6.X. Code for version 1.5 exists within the repo, but the published uses the latest code (which only supports 1.6). There is currently *no branch* pointing to that last working 1.5 commit.
 
 ## Android/iOS/NSW Support
 

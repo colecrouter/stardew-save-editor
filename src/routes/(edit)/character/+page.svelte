@@ -41,20 +41,31 @@
     SaveGame.subscribe((s) => {
         if (!s) return;
         save = s.SaveGame;
-        farm = s.SaveGame.locations.GameLocation.find((l) => l.name === 'Farm')!;
+        farm = s.SaveGame.locations.GameLocation.find(
+            (l) => l.name === 'Farm',
+        )!;
     });
 
-    const skills = ['Farming 🥕', 'Mining ⛏️', 'Foraging 🌳', 'Fishing 🎣', 'Combat ⚔️'];
+    const skills = [
+        'Farming 🥕',
+        'Mining ⛏️',
+        'Foraging 🌳',
+        'Fishing 🎣',
+        'Combat ⚔️',
+    ];
 
-    $: player && (player.canUnderstandDwarves = hasTranslation ? '' : undefined);
-    $: player && (player.hasRustyKey = hasRustyKey ? '' : undefined);
-    $: player && (player.hasClubCard = hasClubCard ? '' : undefined);
-    $: player && (player.hasSpecialCharm = hasSpecialCharm ? '' : undefined);
-    $: player && (player.hasSkullKey = hasSkullKey ? '' : undefined);
-    $: player && (player.hasMagnifyingGlass = hasMagnifyingGlass ? '' : undefined);
-    $: player && (player.hasDarkTalisman = hasDarkTalisman ? '' : undefined);
-    $: player && (player.hasMagicInk = hasMagicInk ? '' : undefined);
-    $: player && (player.HasTownKey = hasTownKey ? '' : undefined);
+    // TODO god help us
+    $: player &&
+        (player.canUnderstandDwarves = hasTranslation ? null : undefined);
+    $: player && (player.hasRustyKey = hasRustyKey ? null : undefined);
+    $: player && (player.hasClubCard = hasClubCard ? null : undefined);
+    $: player && (player.hasSpecialCharm = hasSpecialCharm ? null : undefined);
+    $: player && (player.hasSkullKey = hasSkullKey ? null : undefined);
+    $: player &&
+        (player.hasMagnifyingGlass = hasMagnifyingGlass ? null : undefined);
+    $: player && (player.hasDarkTalisman = hasDarkTalisman ? null : undefined);
+    $: player && (player.hasMagicInk = hasMagicInk ? null : undefined);
+    $: player && (player.HasTownKey = hasTownKey ? null : undefined);
 </script>
 
 {#if player}
@@ -66,7 +77,11 @@
                 <label>
                     {skills[i]}
                     <SkillBar bind:skill />
-                    <input type="number" min="0" max="99999" bind:value={skill} />
+                    <input
+                        type="number"
+                        min="0"
+                        max="99999"
+                        bind:value={skill} />
                 </label>
             {/each}
         </div>
@@ -76,42 +91,84 @@
         <div class="stats">
             <label>
                 Health
-                <input type="number" min="0" max="99999" bind:value={player.maxHealth} />
+                <input
+                    type="number"
+                    min="0"
+                    max="99999"
+                    bind:value={player.maxHealth} />
             </label>
             <label>
                 Stamina
-                <input type="number" min="0" max="99999" bind:value={player.maxStamina} />
+                <input
+                    type="number"
+                    min="0"
+                    max="99999"
+                    bind:value={player.maxStamina} />
             </label>
             <label>
                 Qi Gems
-                <input type="number" min="0" max="99999" bind:value={player.qiGems} />
+                <input
+                    type="number"
+                    min="0"
+                    max="99999"
+                    bind:value={player.qiGems} />
             </label>
             <label>
                 Qi Coins
-                <input type="number" min="0" max="99999" bind:value={player.clubCoins} />
+                <input
+                    type="number"
+                    min="0"
+                    max="99999"
+                    bind:value={player.clubCoins} />
             </label>
             <label>
                 Hay
-                <input type="number" min="0" max="99999" bind:value={farm.piecesOfHay} />
+                <input
+                    type="number"
+                    min="0"
+                    max="99999"
+                    bind:value={farm.piecesOfHay} />
             </label>
             <label>
                 Golden Walnuts
-                <input type="number" min="0" max="130" bind:value={save.goldenWalnuts} />
+                <input
+                    type="number"
+                    min="0"
+                    max="130"
+                    bind:value={save.goldenWalnuts} />
             </label>
         </div>
 
         <h3>Wallet</h3>
 
         <div class="wallet">
-            <div aria-label="Dwarvish Translation Guide" use:tooltip><WalletItem bind:value={hasTranslation}>📙</WalletItem></div>
-            <div aria-label="Rusty Key" use:tooltip><WalletItem bind:value={hasRustyKey}>🗝️</WalletItem></div>
-            <div aria-label="Club Card" use:tooltip><WalletItem bind:value={hasClubCard}>🃏</WalletItem></div>
-            <div aria-label="Special Charm" use:tooltip><WalletItem bind:value={hasSpecialCharm}>🍀</WalletItem></div>
-            <div aria-label="Skull Key" use:tooltip><WalletItem bind:value={hasSkullKey}>💀</WalletItem></div>
-            <div aria-label="Magnifying Glass" use:tooltip><WalletItem bind:value={hasMagnifyingGlass}>🔍</WalletItem></div>
-            <div aria-label="Dark Talisman" use:tooltip><WalletItem bind:value={hasDarkTalisman}>🌑</WalletItem></div>
-            <div aria-label="Magic Ink" use:tooltip><WalletItem bind:value={hasMagicInk}>🖋️</WalletItem></div>
-            <div aria-label="Town Key" use:tooltip><WalletItem bind:value={hasTownKey}>🏘️</WalletItem></div>
+            <div aria-label="Dwarvish Translation Guide" use:tooltip>
+                <WalletItem bind:value={hasTranslation}>📙</WalletItem>
+            </div>
+            <div aria-label="Rusty Key" use:tooltip>
+                <WalletItem bind:value={hasRustyKey}>🗝️</WalletItem>
+            </div>
+            <div aria-label="Club Card" use:tooltip>
+                <WalletItem bind:value={hasClubCard}>🃏</WalletItem>
+            </div>
+            <div aria-label="Special Charm" use:tooltip>
+                <WalletItem bind:value={hasSpecialCharm}>🍀</WalletItem>
+            </div>
+            <div aria-label="Skull Key" use:tooltip>
+                <WalletItem bind:value={hasSkullKey}>💀</WalletItem>
+            </div>
+            <div aria-label="Magnifying Glass" use:tooltip>
+                <WalletItem bind:value={hasMagnifyingGlass}>🔍</WalletItem>
+            </div>
+            <div aria-label="Dark Talisman" use:tooltip>
+                <WalletItem bind:value={hasDarkTalisman}>🌑</WalletItem>
+            </div>
+            <div aria-label="Magic Ink" use:tooltip>
+                <WalletItem bind:value={hasMagicInk}>🖋️</WalletItem>
+            </div>
+            <div aria-label="Town Key" use:tooltip>
+                <WalletItem bind:value={hasTownKey}>🏘️</WalletItem>
+            </div>
         </div>
     </Container>
 {/if}

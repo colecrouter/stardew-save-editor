@@ -43,10 +43,14 @@ class CharacterSelector {
 		this._character.set(save.SaveGame.player);
 
 		// Set the players array, so we can iterate over it
-		this._players = [
-			save.SaveGame.player,
-			...(save.SaveGame.farmhands.Farmer ?? []),
-		];
+		const farmers =
+			save.SaveGame.farmhands.Farmer === undefined
+				? []
+				: Array.isArray(save.SaveGame.farmhands.Farmer)
+					? save.SaveGame.farmhands.Farmer
+					: [save.SaveGame.farmhands.Farmer];
+		const player = save.SaveGame.player;
+		this._players = [player, ...farmers];
 	};
 
 	public next = () => {
@@ -139,10 +143,14 @@ export const SaveConverter = {
 
 		// Get an array of player and farmhands
 		// We have to apply a handful of changes to each of them, so it's easier to do it in a loop, rather than doing them separately
-		const players = [
-			json.SaveGame.player,
-			...(json.SaveGame.farmhands.Farmer ?? []),
-		];
+		const farmers =
+			json.SaveGame.farmhands.Farmer === undefined
+				? []
+				: Array.isArray(json.SaveGame.farmhands.Farmer)
+					? json.SaveGame.farmhands.Farmer
+					: [json.SaveGame.farmhands.Farmer];
+		const player = json.SaveGame.player;
+		const players = [player, ...farmers];
 
 		// Type safety enhancements
 		for (const player of players) {
@@ -183,10 +191,14 @@ export const SaveConverter = {
 
 		// Get an array of player and farmhands
 		// We have to apply a handful of changes to each of them, so it's easier to do it in a loop, rather than doing them separately
-		const players = [
-			json.SaveGame.player,
-			...(json.SaveGame.farmhands.Farmer ?? []),
-		];
+		const farmers =
+			json.SaveGame.farmhands.Farmer === undefined
+				? []
+				: Array.isArray(json.SaveGame.farmhands.Farmer)
+					? json.SaveGame.farmhands.Farmer
+					: [json.SaveGame.farmhands.Farmer];
+		const player = json.SaveGame.player;
+		const players = [player, ...farmers];
 
 		// Undo type safety enhancements
 		// 1. Inventory, switch undefined into <string xsi:nil="true" /> (for farmhands, too) (flags too)

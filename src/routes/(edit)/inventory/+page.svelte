@@ -9,10 +9,15 @@
   import type { ParentIndex } from '$lib/ItemParentIndex';
   import { CalculateEdibility, CalculatePrice } from '$lib/ItemQuality';
   import { Character } from '$lib/SaveFile';
-  import { HexToRGB, RGBToHex } from '$lib/Spritesheet';
+  import { HexToRGB, PackedValue, RGBToHex } from '$lib/Spritesheet';
   import { FurnitureType, type ItemInformation } from '$types/items/1.6';
   import { Category } from '$types/save/1.5';
-  import type { Item, Player, TypeEnum } from '$types/save/1.6';
+  import {
+    ClothesType,
+    type Item,
+    type Player,
+    type TypeEnum,
+  } from '$types/save/1.6';
   import { getContext } from 'svelte';
   import Container from '../../Container.svelte';
   import Preview from '../appearance/Preview.svelte';
@@ -149,11 +154,12 @@
     const newItem: Item = {
       name: newItemName,
       itemId:
-        'ParentSheetIndex' in newItemData
-          ? newItemData.ParentSheetIndex
-          : 'SpriteIndex' in newItemData
-            ? newItemData.SpriteIndex
+        'id' in newItemData
+          ? newItemData.id
+          : 'ParentSheetIndex' in newItemData
+            ? newItemData.ParentSheetIndex
             : 0,
+      // Kinda hacky, but it works I think
       stack: 1,
       quality: 0,
       isRecipe: false,
@@ -309,7 +315,14 @@
     }
 
     if ('CanBeDyed' in newItemData && newItemData.CanBeDyed) {
-      newItem.clothesColor = { R: 255, G: 255, B: 255, A: 255, PackedValue: 0 };
+      let defaultColor = '#000000';
+      if ('DefaultColor' in newItemData && newItemData.DefaultColor) {
+        const [R, G, B] = newItemData.DefaultColor.split(' ').map(Number);
+        const A = 255;
+        defaultColor = RGBToHex({ R, G, B, A, PackedValue: 0 });
+      }
+
+      newItem.clothesColor = HexToRGB(defaultColor);
     }
 
     if (newItemData._type === 'Object') {
@@ -326,6 +339,12 @@
 
     if ('Price' in newItemData) {
       newItem.Price = newItemData.Price ?? 0;
+    }
+
+    if (newItemData._type === 'Shirt') {
+      newItem.clothesType = ClothesType.Shirt;
+    } else if (newItemData._type === 'Pants') {
+      newItem.clothesType = ClothesType.Pants;
     }
 
     if (typeof symbol === 'number') {
@@ -585,26 +604,21 @@
                     rerender(selectedItem, selectedIndex);
                   }} />
               </label>
-            {:else if selectedItemData._type === 'Shirt'}
+            {:else if selectedItemData._type === 'Shirt' || selectedItemData._type === 'Pants'}
               {#if selectedItemData.CanBeDyed}
                 <label>
                   <small>Color</small>
                   <input
                     type="color"
                     value={RGBToHex(
-                      selectedItem.clothesColor ?? {
-                        R: 255,
-                        G: 255,
-                        B: 255,
-                        A: 255,
-                        PackedValue: 0,
-                      },
+                      selectedItem.clothesColor ??
+                        PackedValue(255, 255, 255, 255),
                     )}
                     on:change={(e) => {
                       if (!selectedItem) return;
                       selectedItem.clothesColor = HexToRGB(
                         // @ts-expect-error
-                        e.target.value ?? '#000000',
+                        e.target.value,
                       );
 
                       // Force rerender on any other components watching this item

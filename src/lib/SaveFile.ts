@@ -239,6 +239,12 @@ export const SaveConverter = {
 					recipe.item = [recipe.item];
 				}
 			}
+
+			// Don't forget to add which nil="true" on hats;
+			if (player.hat) {
+				// @ts-expect-error
+				player.hat.which = { "@_xsi:nil": "true" };
+			}
 		}
 
 		// Copy name to Name, and stack to Stack for every item in the inventory

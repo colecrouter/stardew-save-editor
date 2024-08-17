@@ -157,7 +157,7 @@ export const SaveConverter = {
 			// 1. Inventory, switch <string xsi:nil="true" /> into undefined
 			// Need to check for null, because undefined gets converted to null when JSON is stringified
 			player.items.Item = player.items.Item.map((item) =>
-				JSON.stringify(item) === '{"@_xsi:nil":"true"}' ? undefined : item,
+				JSON.stringify(item) === '{"xsi:nil":"true"}' ? undefined : item,
 			).filter((item) => item !== undefined);
 			// 2. For some reason, if your character knows only 1 crafting or cooking recipe, it will be an object, not an array
 			if (

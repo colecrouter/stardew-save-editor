@@ -33,7 +33,7 @@
         hasMagicInk = !!c.hasMagicInk;
         hasTownKey = !!c.HasTownKey;
 
-        skillValues = c.experiencePoints.int.slice(0, 5);
+        skillValues = c.experiencePoints.int;
     });
 
     let save: Save;
@@ -71,18 +71,19 @@
 {#if player}
     <Container>
         <h3>Skills</h3>
-
         <div class="wrapper">
             {#each skillValues as skill, i}
-                <label>
-                    {skills[i]}
-                    <SkillBar bind:skill />
-                    <input
-                        type="number"
-                        min="0"
-                        max="99999"
-                        bind:value={skill} />
-                </label>
+                {#if skills[i] !== undefined}
+                    <label>
+                        {skills[i]}
+                        <SkillBar bind:skill />
+                        <input
+                            type="number"
+                            min="0"
+                            max="99999"
+                            bind:value={skill} />
+                    </label>
+                {/if}
             {/each}
         </div>
 

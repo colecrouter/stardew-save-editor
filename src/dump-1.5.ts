@@ -46,7 +46,7 @@ const bigCraftablesArray = Object.entries(bigCraftables).map(([key, value]) => {
         Category: -9,
         Description: props[4],
         CanBePlacedOutdoors: props[5] === 'true',
-        CanBePlacedIutdoors: props[6] === 'true',
+        CanBePlacedIndoors: props[6] === 'true',
         Fragility: Number(props[7]),
         IsLamp: props[8] === 'true',
         DisplayName: props[9],

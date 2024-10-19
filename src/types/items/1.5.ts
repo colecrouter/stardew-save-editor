@@ -39,7 +39,7 @@ export interface BigCraftable extends HasSprite {
     Category: -9;
     Description: string;
     CanBePlacedOutdoors: boolean;
-    CanBePlacedIutdoors: boolean;
+    CanBePlacedIndoors: boolean;
     Fragility: Fragility;
     IsLamp: boolean;
     DisplayName?: string;

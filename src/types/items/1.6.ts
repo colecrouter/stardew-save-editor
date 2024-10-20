@@ -1,10 +1,18 @@
-import type { HasSprite } from "$types/items/1.5";
+import type { FurniturePlacement, HasSprite, Size } from "$types/items/1.5";
 
-export interface Object {
-	_type: "Object";
+interface Base {
+	_type: string;
 	Name: string;
+	ItemId: number;
 	DisplayName: string;
 	Description: string;
+	Price?: number;
+	Texture?: string | null;
+	SpriteIndex?: number;
+	CustomFields?: never[] | null;
+}
+
+export interface Object extends Base {
 	Type: string;
 	Category: number;
 	Price: number;
@@ -29,7 +37,7 @@ export interface GeodeDrop {
 	Precedence: number;
 	Condition: null | string;
 	Id: string;
-	ItemId: `(O)${number}`;
+	ItemId: `(O)${number}` | null;
 	RandomItemId: `(O)${number}`[] | null;
 	MaxItems: null;
 	MinStack: -1;
@@ -54,6 +62,153 @@ export interface StackModifier {
 	Amount: number;
 	RandomAmount: number | null;
 }
+
+export enum Fragility {
+	PickUpWithAnyTool = 0,
+	DestroyedIfHitWithAxeHoeOrPickaxe = 1,
+	Indestructible = 2,
+}
+
+export interface BigCraftable extends Base {
+	Price: number;
+	Fragility: number;
+	CanBePlacedOutdoors: boolean;
+	CanBePlacedIndoors: boolean;
+	IsLamp: boolean;
+	Texture: null;
+	SpriteIndex: number;
+	ContextTags: ContextTag[] | null;
+	CustomFields: never[] | null;
+}
+
+export interface Boots extends Base, HasSprite {
+	_type: "Boots";
+	Defense: number;
+	Immunity: number;
+	ColorIndex: number;
+}
+
+export interface Clothing extends Base {
+	_type: "Pants" | "Shirt";
+	Price: number;
+	Texture: null;
+	SpriteIndex: number;
+	DefaultColor: string | null;
+	CanBeDyed: boolean;
+	IsPrismatic: boolean;
+	CustomFields: null;
+	HasSleeves?: boolean;
+	CanChooseDuringCharacterCustomization?: boolean;
+}
+
+export enum FurnitureType {
+	Chair = "chair",
+	Bench = "bench",
+	Couch = "couch",
+	Armchair = "armchair",
+	Dresser = "dresser",
+	LongTable = "long table",
+	Painting = "painting",
+	Lamp = "lamp",
+	Decor = "decor",
+	Other = "other",
+	Bookcase = "bookcase",
+	Table = "table",
+	Rug = "rug",
+	Window = "window",
+	Fireplace = "fireplace",
+	Bed = "bed",
+	Torch = "torch",
+	Sconce = "sconce",
+}
+
+export interface Furniture extends Base, HasSprite {
+	_type: "Furniture";
+	Type: FurnitureType;
+	TilesheetSize: Size | -1;
+	BoundingBoxSize: Size | -1;
+	Rotations: number;
+}
+
+export interface Hat extends Base, HasSprite {
+	ShowRealHair: boolean;
+	SkipHairstyleOffset: boolean;
+}
+
+export interface Weapon extends Base {
+	MinDamage: number;
+	MaxDamage: number;
+	Knockback: number;
+	Speed: number;
+	Precision: number;
+	Defense: number;
+	Type: WeaponType;
+	MineBaseLevel: number;
+	MineMinLevel: number;
+	AreaOfEffect: number;
+	CritChance: number;
+	CritMultiplier: number;
+	CanBeLostOnDeath: boolean;
+	Texture: string | null;
+	SpriteIndex: number;
+	Projectiles: null;
+	CustomFields: never[] | null;
+}
+export enum WeaponType {
+	Saber = 0,
+	Knife = 1,
+	Club = 2,
+	Sword = 3,
+	Slingshot = 4,
+}
+
+export interface Tool extends Base {
+	ClassName: ToolClassName;
+	AttachMentSlots: number;
+	SalePrice: number;
+	Texture: string | null;
+	currentParentTileIndex: number;
+	MenuSpriteIndex: number;
+	UpgradeLevel: number;
+	ApplyUpgradeToDisplayName: boolean;
+	ConventionalUpgradeFrom: string | null;
+	UpgradeFrom: UpgradeFrom[] | null;
+	CanBeLostOnDeath: boolean;
+	SetProperties: null;
+	ModData: null;
+	CustomFields: never[] | null;
+}
+
+export interface UpgradeFrom {
+	Condition: string;
+	Price: number;
+	RequireToolId: string | null;
+	TradeItemId: string | null;
+	TradeItemAmount: number;
+}
+
+export type ToolClassName =
+	| "Axe"
+	| "FishingRod"
+	| "Hoe"
+	| "Lantern"
+	| "MilkPail"
+	| "Pan"
+	| "Pickaxe"
+	| "Wand"
+	| "Shears"
+	| "WateringCan"
+	| "GenericTool";
+
+export type ItemInformation =
+	| Object
+	| BigCraftable
+	| Boots
+	| Clothing
+	| Furniture
+	| Hat
+	| Tool
+	| Weapon;
 
 export type ContextTag =
 	| "color_brown"
@@ -223,164 +378,3 @@ export type ContextTag =
 	| "torch_item"
 	| "campfire_item"
 	| "tapper_multiplier_2";
-
-export enum Fragility {
-	PickUpWithAnyTool = 0,
-	DestroyedIfHitWithAxeHoeOrPickaxe = 1,
-	Indestructible = 2,
-}
-
-export interface BigCraftable {
-	_type: "BigCraftable";
-	Name: string;
-	DisplayName: string;
-	Description: string;
-	Price: number;
-	Fragility: number;
-	CanBePlacedOutdoors: boolean;
-	CanBePlacedIndoors: boolean;
-	IsLamp: boolean;
-	Texture: null;
-	SpriteIndex: number;
-	ContextTags: ContextTag[] | null;
-	CustomFields: never[] | null;
-}
-
-export type Boots = import("./1.5").Boots;
-
-export interface Clothing {
-	_type: "Pants" | "Shirt";
-	id: string;
-	Name: string;
-	DisplayName: string;
-	Description: string;
-	Price: number;
-	Texture: null;
-	SpriteIndex: number;
-	DefaultColor: string | null;
-	CanBeDyed: boolean;
-	IsPrismatic: boolean;
-	CustomFields: null;
-	HasSleeves?: boolean;
-	CanChooseDuringCharacterCustomization?: boolean;
-}
-
-export type Size = import("./1.5").Size;
-
-export enum FurnitureType {
-	Chair = "chair",
-	Bench = "bench",
-	Couch = "couch",
-	Armchair = "armchair",
-	Dresser = "dresser",
-	LongTable = "long table",
-	Painting = "painting",
-	Lamp = "lamp",
-	Decor = "decor",
-	Other = "other",
-	Bookcase = "bookcase",
-	Table = "table",
-	Rug = "rug",
-	Window = "window",
-	Fireplace = "fireplace",
-	Bed = "bed",
-	Torch = "torch",
-	Sconce = "sconce",
-}
-
-export type Furniture = import("./1.5").Furniture;
-
-export interface Hat extends HasSprite {
-	_type: "Hat";
-	id: string;
-	Name: string;
-	Description: string;
-	ShowRealHair: boolean;
-	SkipHairstyleOffset: boolean;
-	DisplayName: string;
-	ParentSheetIndex: number;
-}
-
-export interface Weapon {
-	_type: "Weapon";
-	Name: string;
-	DisplayName: string;
-	Description: string;
-	MinDamage: number;
-	MaxDamage: number;
-	Knockback: number;
-	Speed: number;
-	Precision: number;
-	Defense: number;
-	Type: WeaponType;
-	MineBaseLevel: number;
-	MineMinLevel: number;
-	AreaOfEffect: number;
-	CritChance: number;
-	CritMultiplier: number;
-	CanBeLostOnDeath: boolean;
-	Texture: string | null;
-	SpriteIndex: number;
-	Projectiles: null;
-	CustomFields: never[] | null;
-}
-
-export enum WeaponType {
-	Saber = 0,
-	Knife = 1,
-	Club = 2,
-	Sword = 3,
-	Slingshot = 4,
-}
-
-export interface Tool {
-	_type: "Tool";
-	ClassName: ToolClassName;
-	Name: string;
-	AttachMentSlots: number;
-	SalePrice: number;
-	DisplayName: string;
-	Description: string;
-	Texture: string | null;
-	currentParentTileIndex: number;
-	MenuSpriteIndex: number;
-	UpgradeLevel: number;
-	ApplyUpgradeToDisplayName: boolean;
-	ConventionalUpgradeFrom: string | null;
-	UpgradeFrom: UpgradeFrom[] | null;
-	CanBeLostOnDeath: boolean;
-	SetProperties: null;
-	ModData: null;
-	CustomFields: never[] | null;
-}
-
-export interface UpgradeFrom {
-	Condition: string;
-	Price: number;
-	RequireToolId: string | null;
-	TradeItemId: string | null;
-	TradeItemAmount: number;
-}
-
-export type ToolClassName =
-	| "Axe"
-	| "FishingRod"
-	| "Hoe"
-	| "Lantern"
-	| "MilkPail"
-	| "Pan"
-	| "Pickaxe"
-	| "Wand"
-	| "Shears"
-	| "WateringCan"
-	| "GenericTool";
-
-export type ItemInformation =
-	| Object
-	| BigCraftable
-	| Boots
-	| Clothing
-	| Furniture
-	| Hat
-	| Tool
-	| Weapon;

@@ -1,4 +1,4 @@
-import { copyFile, mkdir, readFile, writeFile } from "fs/promises";
+import { copyFile, mkdir, readFile, writeFile } from "node:fs/promises";
 import { GetSprite } from "./lib/Spritesheet.js";
 import type {
 	BigCraftable,
@@ -7,6 +7,7 @@ import type {
 	Furniture,
 	FurnitureType,
 	Hat,
+	// biome-ignore lint/suspicious/noShadowRestrictedNames: lazy
 	Object,
 	Tool,
 	Weapon,
@@ -37,6 +38,7 @@ const bootsArray = Object.entries(boots).map(([key, value]) => {
 	const props = value.split("/");
 	return {
 		_type: "Boots",
+		ItemId: Number(key),
 		Name: props[0],
 		Description: props[1],
 		Price: Number(props[2]),
@@ -81,6 +83,7 @@ const furnitureArray = Object.entries(furniture).map(([key, value]) => {
 
 	return {
 		_type: "Furniture",
+		ItemId: Number(key),
 		Name: props[0],
 		Type: props[1] as FurnitureType,
 		TilesheetSize:
@@ -94,7 +97,7 @@ const furnitureArray = Object.entries(furniture).map(([key, value]) => {
 		Rotations: Number(props[4]),
 		Price: Number(props[5]),
 		DisplayName: props[6],
-		PlacementRestriction: Number(props[7]),
+		Description: props[7],
 		Sprite: GetSprite("Furniture", Number(key)),
 		ParentSheetIndex: Number(key),
 	} satisfies Furniture;
@@ -107,14 +110,14 @@ const hatsArray = Object.entries(hats).map(([key, value], i) => {
 	const props = value.split("/");
 	return {
 		_type: "Hat",
-		id: key,
+		ItemId: Number(key),
 		Name: props[0],
 		Description: props[1],
 		ShowRealHair: props[2] === "true",
 		SkipHairstyleOffset: props[3] === "true",
 		DisplayName: props[4],
-		ParentSheetIndex: Number(key),
 		Sprite: GetSprite("Hat", Number(key)),
+		ParentSheetIndex: Number(key),
 	} satisfies Hat;
 });
 
@@ -153,6 +156,7 @@ await writeFile(
 	JSON.stringify(craftingRecipesArray),
 );
 
+const notUndefined = <T>(x: T | undefined): x is T => x !== undefined;
 const writeToFile = JSON.stringify(
 	[
 		...objectsArray,
@@ -164,60 +168,60 @@ const writeToFile = JSON.stringify(
 		...weaponsArray,
 		...toolsArray,
 	]
-		.filter((o) => o)
+		.filter(notUndefined)
 		.map((item) => [item.Name, item]),
 );
 await writeFile("./static/iteminfo.json", writeToFile);
 
 // Copy all textures into assets folder
 await copyFile(
-	`./content/TileSheets/Craftables.png`,
-	`./static/assets/Craftables.png`,
+	"./content/TileSheets/Craftables.png",
+	"./static/assets/Craftables.png",
 );
 await copyFile(
-	`./content/TileSheets/furniture.png`,
-	`./static/assets/furniture.png`,
+	"./content/TileSheets/furniture.png",
+	"./static/assets/furniture.png",
 );
 await copyFile(
-	`./content/TileSheets/weapons.png`,
-	`./static/assets/weapons.png`,
+	"./content/TileSheets/weapons.png",
+	"./static/assets/weapons.png",
 );
-await copyFile(`./content/TileSheets/tools.png`, `./static/assets/tools.png`);
+await copyFile("./content/TileSheets/tools.png", "./static/assets/tools.png");
 await copyFile(
-	`./content/Characters/Farmer/pants.png`,
-	`./static/assets/pants.png`,
-);
-await copyFile(
-	`./content/Characters/Farmer/shirts.png`,
-	`./static/assets/shirts.png`,
+	"./content/Characters/Farmer/pants.png",
+	"./static/assets/pants.png",
 );
 await copyFile(
-	`./content/Characters/Farmer/accessories.png`,
-	`./static/assets/accessories.png`,
+	"./content/Characters/Farmer/shirts.png",
+	"./static/assets/shirts.png",
 );
 await copyFile(
-	`./content/Characters/Farmer/farmer_base.png`,
-	`./static/assets/farmer_base.png`,
+	"./content/Characters/Farmer/accessories.png",
+	"./static/assets/accessories.png",
 );
 await copyFile(
-	`./content/Characters/Farmer/farmer_base_bald.png`,
-	`./static/assets/farmer_base_bald.png`,
+	"./content/Characters/Farmer/farmer_base.png",
+	"./static/assets/farmer_base.png",
 );
 await copyFile(
-	`./content/Characters/Farmer/farmer_girl_base.png`,
-	`./static/assets/farmer_girl_base.png`,
+	"./content/Characters/Farmer/farmer_base_bald.png",
+	"./static/assets/farmer_base_bald.png",
 );
 await copyFile(
-	`./content/Characters/Farmer/farmer_girl_base_bald.png`,
-	`./static/assets/farmer_girl_base_bald.png`,
+	"./content/Characters/Farmer/farmer_girl_base.png",
+	"./static/assets/farmer_girl_base.png",
 );
 await copyFile(
-	`./content/Characters/Farmer/hairstyles.png`,
-	`./static/assets/hairstyles.png`,
+	"./content/Characters/Farmer/farmer_girl_base_bald.png",
+	"./static/assets/farmer_girl_base_bald.png",
 );
 await copyFile(
-	`./content/Characters/Farmer/hairstyles2.png`,
-	`./static/assets/hairstyles2.png`,
+	"./content/Characters/Farmer/hairstyles.png",
+	"./static/assets/hairstyles.png",
+);
+await copyFile(
+	"./content/Characters/Farmer/hairstyles2.png",
+	"./static/assets/hairstyles2.png",
 );
 await copyFile(
 	"./content/maps/springobjects.png",

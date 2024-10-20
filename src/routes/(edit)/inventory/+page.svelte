@@ -12,12 +12,7 @@
   import { HexToRGB, PackedValue, RGBToHex } from '$lib/Spritesheet';
   import { FurnitureType, type ItemInformation } from '$types/items/1.6';
   import { Category } from '$types/save/1.5';
-  import {
-    ClothesType,
-    type Item,
-    type Player,
-    type TypeEnum,
-  } from '$types/save/1.6';
+  import { ClothesType, type Item, type Player } from '$types/save/1.6';
   import { getContext } from 'svelte';
   import Container from '../../Container.svelte';
   import Preview from '../appearance/Preview.svelte';
@@ -68,7 +63,11 @@
       // Check if the items price is the same as the default price
       // If so, we need to change the price whenever the quality changes
       // If not, we can assume the user has changed it, so just leave it alone
-      if ('Price' in selectedItemData && selectedItem.price) {
+      if (
+        'Price' in selectedItemData &&
+        selectedItemData.Price !== undefined &&
+        selectedItem.price
+      ) {
         const theoreticalOldPrice = CalculatePrice(
           selectedItemData.Price,
           oldQuality ?? 0,
@@ -153,20 +152,16 @@
 
     const newItem: Item = {
       name: newItemName,
-      itemId:
-        'id' in newItemData
-          ? newItemData.id
-          : 'ParentSheetIndex' in newItemData
-            ? newItemData.ParentSheetIndex
-            : 0,
-      // Kinda hacky, but it works I think
+      itemId: newItemData.ItemId,
       stack: 1,
       quality: 0,
       isRecipe: false,
       parentSheetIndex:
-        'ParentSheetIndex' in newItemData ? newItemData.ParentSheetIndex : 0,
+        'ParentSheetIndex' in newItemData
+          ? newItemData.ParentSheetIndex
+          : undefined,
       indexInTileSheet:
-        'SpriteIndex' in newItemData ? newItemData.SpriteIndex : 0,
+        'SpriteIndex' in newItemData ? newItemData.SpriteIndex : undefined,
       category: category,
       hasBeenInInventory: true,
       SpecialVariable: 0, // TODO ?
@@ -239,7 +234,7 @@
       newItem.price = 0;
       newItem.quality = 0;
 
-      if (newItemData.Type === 'Ring') {
+      if ('Type' in newItemData && newItemData.Type === 'Ring') {
         const id = RingsUniqueID.get(newItemName);
         if (id) {
           newItem.uniqueID = id;
@@ -264,13 +259,15 @@
       newItem.which = '';
     }
 
-    if (newItemData._type === 'Furniture') {
+    if ('Type' in newItemData && newItemData._type === 'Furniture') {
       newItem.canBeGrabbed = true;
-      newItem.parentSheetIndex = newItemData.ParentSheetIndex;
-      newItem.type = FurnitureTypeToNumber.get(newItemData.Type);
+      newItem.parentSheetIndex = newItemData.ItemId;
+      newItem.type = FurnitureTypeToNumber.get(
+        newItemData.Type as FurnitureType,
+      );
 
       // sourceRect is the sprite data, if I understand correctly
-      if (newItemData.TilesheetSize !== -1) {
+      if ('TilesheetSize' in newItemData && newItemData.TilesheetSize !== -1) {
         newItem.sourceRect = {
           X: newItemData.Sprite.x,
           Y: newItemData.Sprite.y,
@@ -289,7 +286,10 @@
       }
 
       // Bounding box is the hitbox/placement box
-      if (newItemData.BoundingBoxSize !== -1) {
+      if (
+        'BoundingBoxSize' in newItemData &&
+        newItemData.BoundingBoxSize !== -1
+      ) {
         newItem.boundingBox = {
           X: 0,
           Y: 0,
@@ -326,8 +326,14 @@
     }
 
     if (newItemData._type === 'Object') {
-      newItem.type = newItemData.Type as TypeEnum;
-      if (newItemData._type === 'Object' && newItemData.Type === 'Ring') {
+      if ('Type' in newItemData && typeof newItemData.Type === 'number') {
+        newItem.type = newItemData.Type;
+      }
+      if (
+        newItemData._type === 'Object' &&
+        'Type' in newItemData &&
+        newItemData.Type === 'Ring'
+      ) {
         // @ts-expect-error
         newItem['@_xsi:type'] = 'Ring';
       }
@@ -605,7 +611,7 @@
                   }} />
               </label>
             {:else if selectedItemData._type === 'Shirt' || selectedItemData._type === 'Pants'}
-              {#if selectedItemData.CanBeDyed}
+              {#if 'CanBeDyed' in selectedItemData && selectedItemData.CanBeDyed}
                 <label>
                   <small>Color</small>
                   <input

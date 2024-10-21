@@ -104,7 +104,7 @@ const furnitureArray = Object.entries(furniture).map(([key, value]) => {
 });
 
 const hats = JSON.parse(
-	await readFile("./content/Data/Hats.json", "utf-8"),
+	await readFile("./content/Data/hats.json", "utf-8"),
 ) as Record<string, string>;
 const hatsArray = Object.entries(hats).map(([key, value], i) => {
 	const props = value.split("/");
@@ -224,7 +224,7 @@ await copyFile(
 	"./static/assets/hairstyles2.png",
 );
 await copyFile(
-	"./content/maps/springobjects.png",
+	"./content/Maps/springobjects.png",
 	"./static/assets/springobjects.png",
 );
 await copyFile(

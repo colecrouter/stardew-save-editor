@@ -54,18 +54,19 @@
         'Combat ⚔️',
     ];
 
-    // TODO god help us
-    $: player &&
-        (player.canUnderstandDwarves = hasTranslation ? null : undefined);
-    $: player && (player.hasRustyKey = hasRustyKey ? null : undefined);
-    $: player && (player.hasClubCard = hasClubCard ? null : undefined);
-    $: player && (player.hasSpecialCharm = hasSpecialCharm ? null : undefined);
-    $: player && (player.hasSkullKey = hasSkullKey ? null : undefined);
-    $: player &&
-        (player.hasMagnifyingGlass = hasMagnifyingGlass ? null : undefined);
-    $: player && (player.hasDarkTalisman = hasDarkTalisman ? null : undefined);
-    $: player && (player.hasMagicInk = hasMagicInk ? null : undefined);
-    $: player && (player.HasTownKey = hasTownKey ? null : undefined);
+    $: {
+        if (player) {
+            player.canUnderstandDwarves = hasTranslation ? '' : undefined;
+            player.hasRustyKey = hasRustyKey ? '' : undefined;
+            player.hasClubCard = hasClubCard ? '' : undefined;
+            player.hasSpecialCharm = hasSpecialCharm ? '' : undefined;
+            player.hasSkullKey = hasSkullKey ? '' : undefined;
+            player.hasMagnifyingGlass = hasMagnifyingGlass ? '' : undefined;
+            player.hasDarkTalisman = hasDarkTalisman ? '' : undefined;
+            player.hasMagicInk = hasMagicInk ? '' : undefined;
+            player.HasTownKey = hasTownKey ? '' : undefined;
+        }
+    }
 </script>
 
 {#if player}

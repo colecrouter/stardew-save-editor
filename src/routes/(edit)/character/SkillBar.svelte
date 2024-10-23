@@ -8,7 +8,10 @@
 
 <div class="wrapper">
     {#each levels as level}
-        <div class="pill" class:active={skill >= level} on:click={() => (skill = level)} />
+        <button
+            class="pill"
+            class:active={skill >= level}
+            on:click={() => (skill = level)} />
     {/each}
 </div>
 
@@ -21,6 +24,7 @@
     }
 
     .pill {
+        all: unset;
         width: 4px;
         height: 14px;
         background-color: #c87c1e;
@@ -31,8 +35,15 @@
         border-bottom-color: #c98426;
         border-left-color: #c98426;
         margin: 0 6px;
-        box-shadow: 0 0 0 2px #ca9133, 0 0 0 4px #8c5721, -2px 2px 0 4px rgba(0, 0, 0, 0.3);
+        box-shadow:
+            0 0 0 2px #ca9133,
+            0 0 0 4px #8c5721,
+            -2px 2px 0 4px rgba(0, 0, 0, 0.3);
         cursor: pointer;
+    }
+
+    .pill:hover {
+        outline: revert;
     }
 
     .pill:nth-child(5n) {
@@ -48,7 +59,9 @@
         border-right-color: #ff6948;
         border-bottom-color: #bc004a;
         border-left-color: #bc004a;
-        box-shadow: 0 0 0 3px #960027, -2px 2px 0 4px rgba(0, 0, 0, 0.3);
+        box-shadow:
+            0 0 0 3px #960027,
+            -2px 2px 0 4px rgba(0, 0, 0, 0.3);
     }
 
     .pill.active:nth-child(5n) {

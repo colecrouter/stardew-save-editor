@@ -225,11 +225,14 @@
 
                 if (character.boots) {
                     const boots = character.boots;
-                    bootsTint[0] = PrimaryBootColors[boots.indexInColorSheet];
-                    bootsTint[1] = SecondaryBootColors[boots.indexInColorSheet];
-                    bootsTint[2] = TertiaryBootColors[boots.indexInColorSheet];
+                    bootsTint[0] =
+                        PrimaryBootColors[boots.indexInColorSheet ?? 0];
+                    bootsTint[1] =
+                        SecondaryBootColors[boots.indexInColorSheet ?? 0];
+                    bootsTint[2] =
+                        TertiaryBootColors[boots.indexInColorSheet ?? 0];
                     bootsTint[3] =
-                        QuaternaryBootColors[boots.indexInColorSheet];
+                        QuaternaryBootColors[boots.indexInColorSheet ?? 0];
                 } else {
                     bootsTint[0] = defaultTint;
                     bootsTint[1] = defaultTint;

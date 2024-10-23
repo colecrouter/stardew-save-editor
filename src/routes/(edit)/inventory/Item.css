@@ -13,7 +13,7 @@
 }
 
 .item-wrapper:hover::after {
-    content: '';
+    content: "";
     width: 36px;
     height: 36px;
     position: absolute;
@@ -28,7 +28,7 @@
 }
 
 .item::before {
-    content: '';
+    content: "";
     display: block;
     background-image: var(--sprite);
     background-position: left var(--x) top var(--y);
@@ -39,7 +39,7 @@
 }
 
 .item.dyeable::after {
-    content: '';
+    content: "";
     position: absolute;
     top: 0;
     width: var(--w);

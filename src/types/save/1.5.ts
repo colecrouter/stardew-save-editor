@@ -72,7 +72,7 @@ export interface Save {
     farmerFriendships: string;
     cellarAssignments: CellarAssignments;
     lastAppliedSaveFix: number;
-    gameVersion: '1.5.6';
+    gameVersion: "1.5.6";
     gameVersionLabel: string;
 }
 
@@ -202,7 +202,17 @@ export interface BoundingBox {
     Location: TileLocation;
 }
 
-export type TypeEnum = "Cooking" | "Crafting" | "Basic" | "Minerals" | "asdf" | "Fish" | "Arch" | "Seeds" | "Ring" | "Quest";
+export type TypeEnum =
+    | "Cooking"
+    | "Crafting"
+    | "Basic"
+    | "Minerals"
+    | "asdf"
+    | "Fish"
+    | "Arch"
+    | "Seeds"
+    | "Ring"
+    | "Quest";
 
 export interface JunimoKartLeaderboards {
     entries: string;
@@ -690,7 +700,9 @@ export interface HousePaintColor {
 }
 
 export interface LargeTerrainFeaturesClass {
-    LargeTerrainFeature: LargeTerrainFeatureElement[] | LargeTerrainFeatureElement;
+    LargeTerrainFeature:
+        | LargeTerrainFeatureElement[]
+        | LargeTerrainFeatureElement;
 }
 
 export interface LargeTerrainFeatureElement {
@@ -1608,7 +1620,7 @@ export interface SpecialOrderReward {
     host?: SleptInTemporaryBed;
 }
 
-export const enum Category {
+export enum Category {
     Gem = -2,
     Fish = -4,
     Egg = -5,

@@ -14,7 +14,6 @@ interface SerializedFile {
     type: string;
 }
 
-
 // class BackupManager extends Array<File> {
 //     constructor() {
 //         super();
@@ -96,7 +95,9 @@ class BackupController {
     public backups = writable<Array<File>>([]);
 
     constructor() {
-        if (!browser) { return; }
+        if (!browser) {
+            return;
+        }
 
         // Load the files from the database
         this.load();
@@ -104,33 +105,41 @@ class BackupController {
 
     private async load() {
         // Get the backup files from local storage
-        const db = await openDB('backups', 1, { upgrade: (db) => db.createObjectStore('files', { autoIncrement: true }) });
-        const backupFiles = await db.getAll('files') as Array<SerializedFile>;
+        const db = await openDB("backups", 1, {
+            upgrade: (db) =>
+                db.createObjectStore("files", { autoIncrement: true }),
+        });
+        const backupFiles = (await db.getAll("files")) as Array<SerializedFile>;
 
         const newFiles = new Array<File>();
         for (const file of backupFiles) {
-            newFiles.unshift(new File([file.data], file.name, { lastModified: file.lastModified, type: 'text/text' }));
+            newFiles.unshift(
+                new File([file.data], file.name, {
+                    lastModified: file.lastModified,
+                    type: "text/text",
+                }),
+            );
         }
 
         this.backups.set(newFiles);
     }
 
     private async save() {
-        let files: Array<SerializedFile> = [];
+        const files: Array<SerializedFile> = [];
         for (const file of get(this.backups)) {
             files.unshift({
                 name: file.name,
                 data: await file.text(),
                 lastModified: file.lastModified,
                 size: file.size,
-                type: 'text/text'
+                type: "text/text",
             });
-        };
+        }
 
-        const db = await openDB('backups', 1);
-        await db.clear('files');
+        const db = await openDB("backups", 1);
+        await db.clear("files");
         for (const file of files) {
-            await db.add('files', file);
+            await db.add("files", file);
         }
     }
 
@@ -139,7 +148,14 @@ class BackupController {
 
         for (const file of files) {
             // Check if the file is the same as any of the current ones, if so, return
-            if (backups.some((backup) => backup.name === file.name && backup.lastModified === file.lastModified && backup.size === file.size)) {
+            if (
+                backups.some(
+                    (backup) =>
+                        backup.name === file.name &&
+                        backup.lastModified === file.lastModified &&
+                        backup.size === file.size,
+                )
+            ) {
                 return 0;
             }
 
@@ -150,7 +166,7 @@ class BackupController {
             if (backups.length > BACKUP_LIMIT) {
                 backups.shift();
             }
-        };
+        }
 
         this.backups.set(backups);
 
@@ -164,7 +180,14 @@ class BackupController {
 
         for (const file of files) {
             // Check if the file is the same as any of the current ones, if so, return
-            if (backups.some((backup) => backup.name === file.name && backup.lastModified === file.lastModified && backup.size === file.size)) {
+            if (
+                backups.some(
+                    (backup) =>
+                        backup.name === file.name &&
+                        backup.lastModified === file.lastModified &&
+                        backup.size === file.size,
+                )
+            ) {
                 return 0;
             }
 
@@ -177,7 +200,7 @@ class BackupController {
             }
 
             this.backups.set(backups);
-        };
+        }
 
         await this.save();
 
@@ -210,7 +233,11 @@ class BackupController {
         return file;
     }
 
-    public async splice(start: number, deleteCount?: number, ...items: File[]): Promise<File[]> {
+    public async splice(
+        start: number,
+        deleteCount?: number,
+        ...items: File[]
+    ): Promise<File[]> {
         const backups = get(this.backups);
 
         // Remove the newest file

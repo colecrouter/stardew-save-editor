@@ -1,17 +1,14 @@
 <script lang="ts">
+    import { browser } from '$app/environment';
     import { goto } from '$app/navigation';
+    import { base } from '$app/paths';
     import { page } from '$app/stores';
-    import { FileName, SaveGame, Character, Download } from '$lib/SaveFile';
+    import { Character, Download, FileName, SaveGame } from '$lib/SaveFile';
+    import { tooltip } from '$lib/Tooltip';
+    import { onDestroy } from 'svelte';
     import { get } from 'svelte/store';
-    import type { LayoutData } from './$types';
-    import { onDestroy, setContext } from 'svelte';
     import SidebarButton from '../SidebarButton.svelte';
     import Router from './Router.svelte';
-    import { tooltip } from '$lib/Tooltip';
-    import { browser } from '$app/environment';
-    import { base } from '$app/paths';
-
-    export let data: LayoutData;
 
     // If the save changes for whatever reason, go back to the main screen
     const unsub = page.subscribe(

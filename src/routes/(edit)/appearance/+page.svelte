@@ -31,29 +31,70 @@
     {#if character}
         <div class="wrapper">
             <div class="editor1">
-                <Preview gender={character.gender} skinColor={character.skin} hairStyle={character.hair} acc={character.accessory} />
+                <Preview
+                    gender={character.gender}
+                    skinColor={character.skin}
+                    hairStyle={character.hair}
+                    acc={character.accessory} />
                 <div class="selector">
                     <label>
                         🚹
-                        <input type="radio" name="gender" value="male" checked={character && character.gender === Gender.Male} on:click={() => character && (character.gender = Gender.Male)} />
+                        <input
+                            type="radio"
+                            name="gender"
+                            value="male"
+                            checked={character &&
+                                character.gender === Gender.Male}
+                            on:click={() =>
+                                character &&
+                                (character.gender = Gender.Male)} />
                     </label>
                     <label>
                         🚺
-                        <input type="radio" name="gender" value="female" checked={character && character.gender === Gender.Female} on:click={() => character && (character.gender = Gender.Female)} />
+                        <input
+                            type="radio"
+                            name="gender"
+                            value="female"
+                            checked={character &&
+                                character.gender === Gender.Female}
+                            on:click={() =>
+                                character &&
+                                (character.gender = Gender.Female)} />
                     </label>
                 </div>
                 <div class="appearance">
                     <label>
                         Skin
-                        <input type="number" min="1" max="24" bind:value={skinColor} on:change={() => character && (character.skin = (skinColor ?? 1) - 1)} />
+                        <input
+                            type="number"
+                            min="1"
+                            max="24"
+                            bind:value={skinColor}
+                            on:change={() =>
+                                character &&
+                                (character.skin = (skinColor ?? 1) - 1)} />
                     </label>
                     <label>
                         Hair
-                        <input type="number" min="1" max="73" bind:value={hairStyle} on:change={() => character && (character.hair = (hairStyle ?? 1) - 1)} />
+                        <input
+                            type="number"
+                            min="1"
+                            max="73"
+                            bind:value={hairStyle}
+                            on:change={() =>
+                                character &&
+                                (character.hair = (hairStyle ?? 1) - 1)} />
                     </label>
                     <label>
                         Acc
-                        <input type="number" min="1" max="20" bind:value={acc} on:change={() => character && (character.accessory = (acc ?? 1) - 2)} />
+                        <input
+                            type="number"
+                            min="1"
+                            max="20"
+                            bind:value={acc}
+                            on:change={() =>
+                                character &&
+                                (character.accessory = (acc ?? 1) - 2)} />
                     </label>
                 </div>
             </div>
@@ -74,7 +115,9 @@
                 <div>
                     <label>
                         <small>Favorite Thing</small>
-                        <input type="text" bind:value={character.favoriteThing} />
+                        <input
+                            type="text"
+                            bind:value={character.favoriteThing} />
                     </label>
                 </div>
                 <div>
@@ -83,11 +126,21 @@
                         <div class="selector">
                             <input
                                 type="color"
-                                value={RGBToHex(character?.newEyeColor ?? { R: 255, G: 255, B: 255, A: 255, PackedValue: 0 })}
+                                value={RGBToHex(
+                                    character?.newEyeColor ?? {
+                                        R: 255,
+                                        G: 255,
+                                        B: 255,
+                                        A: 255,
+                                        PackedValue: 0,
+                                    },
+                                )}
                                 on:change={(e) => {
                                     if (!character) return;
-                                    // @ts-expect-error
-                                    character.newEyeColor = HexToRGB(e.target.value ?? '#000000');
+                                    character.newEyeColor = HexToRGB(
+                                        // @ts-expect-error
+                                        e.target.value ?? '#000000',
+                                    );
                                     rerender();
                                 }} />
                         </div>
@@ -99,11 +152,21 @@
                         <div class="selector">
                             <input
                                 type="color"
-                                value={RGBToHex(character?.hairstyleColor ?? { R: 255, G: 255, B: 255, A: 255, PackedValue: 0 })}
+                                value={RGBToHex(
+                                    character?.hairstyleColor ?? {
+                                        R: 255,
+                                        G: 255,
+                                        B: 255,
+                                        A: 255,
+                                        PackedValue: 0,
+                                    },
+                                )}
                                 on:change={(e) => {
                                     if (!character) return;
-                                    // @ts-expect-error
-                                    character.hairstyleColor = HexToRGB(e.target.value ?? '#000000');
+                                    character.hairstyleColor = HexToRGB(
+                                        // @ts-expect-error
+                                        e.target.value ?? '#000000',
+                                    );
                                     rerender();
                                 }} />
                         </div>

@@ -123,9 +123,9 @@ export const QualityToPriceMultiplier = new Map([
 // https://stardewvalleywiki.com/User:IBugOne/Item_Quality#Healing_effect
 export const QualityToEdibilityMultiplier = new Map([
     [0, 1],
-    [1, 1.40],
-    [2, 1.80],
-    [4, 2.60],
+    [1, 1.4],
+    [2, 1.8],
+    [4, 2.6],
 ]);
 
 // TODO: I don't know what items are allowed to have quality, or if there's some sort of rule.

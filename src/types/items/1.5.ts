@@ -11,11 +11,11 @@ export interface HasSprite {
 }
 
 export interface ObjectInformation extends HasSprite {
-    _type: 'ObjectInformation';
+    _type: "ObjectInformation";
     Name: string;
     Price: number;
     Edibility: number;
-    Type: import('../save/1.5').TypeEnum;
+    Type: import("../save/1.5").TypeEnum;
     Category?: number;
     DisplayName?: string;
     Description: string;
@@ -31,11 +31,11 @@ export enum Fragility {
 }
 
 export interface BigCraftable extends HasSprite {
-    _type: 'BigCraftable';
+    _type: "BigCraftable";
     Name: string;
     Price: number;
     Edibility: number;
-    Type: import('../save/1.5').TypeEnum;
+    Type: import("../save/1.5").TypeEnum;
     Category: -9;
     Description: string;
     CanBePlacedOutdoors: boolean;
@@ -47,7 +47,7 @@ export interface BigCraftable extends HasSprite {
 }
 
 export interface Boots extends HasSprite {
-    _type: 'Boots';
+    _type: "Boots";
     Name: string;
     Description: string;
     Price: number;
@@ -57,7 +57,7 @@ export interface Boots extends HasSprite {
     DisplayName?: string;
 }
 
-export type ClothingType = 'Pants' | 'Shirt' | 'Accessory';
+export type ClothingType = "Pants" | "Shirt" | "Accessory";
 
 interface RGB {
     r: number;
@@ -66,7 +66,7 @@ interface RGB {
 }
 
 export interface Clothing extends HasSprite {
-    _type: 'Clothing';
+    _type: "Clothing";
     Name: string;
     DisplayName?: string;
     Description: string;
@@ -79,27 +79,27 @@ export interface Clothing extends HasSprite {
     ExtraData: string;
 }
 
-export type Size = { width: number; height: number; };
+export type Size = { width: number; height: number };
 
 export enum FurnitureType {
-    Chair = 'chair',
-    Bench = 'bench',
-    Couch = 'couch',
-    Armchair = 'armchair',
-    Dresser = 'dresser',
-    LongTable = 'long table',
-    Painting = 'painting',
-    Lamp = 'lamp',
-    Decor = 'decor',
-    Other = 'other',
-    Bookcase = 'bookcase',
-    Table = 'table',
-    Rug = 'rug',
-    Window = 'window',
-    Fireplace = 'fireplace',
-    Bed = 'bed',
-    Torch = 'torch',
-    Sconce = 'sconce',
+    Chair = "chair",
+    Bench = "bench",
+    Couch = "couch",
+    Armchair = "armchair",
+    Dresser = "dresser",
+    LongTable = "long table",
+    Painting = "painting",
+    Lamp = "lamp",
+    Decor = "decor",
+    Other = "other",
+    Bookcase = "bookcase",
+    Table = "table",
+    Rug = "rug",
+    Window = "window",
+    Fireplace = "fireplace",
+    Bed = "bed",
+    Torch = "torch",
+    Sconce = "sconce",
 }
 
 export enum FurniturePlacement {
@@ -110,7 +110,7 @@ export enum FurniturePlacement {
 }
 
 export interface Furniture extends HasSprite {
-    _type: 'Furniture';
+    _type: "Furniture";
     Name: string;
     Type: FurnitureType;
     TilesheetSize: Size | -1;
@@ -122,7 +122,7 @@ export interface Furniture extends HasSprite {
 }
 
 export interface Hat extends HasSprite {
-    _type: 'Hat';
+    _type: "Hat";
     Name: string;
     Description: string;
     ShowRealHair: boolean;
@@ -132,7 +132,7 @@ export interface Hat extends HasSprite {
 
 // Tools are hardcoded
 export interface Tool extends HasSprite {
-    _type: 'Tool';
+    _type: "Tool";
     Name: string;
 }
 
@@ -144,7 +144,7 @@ export enum MeleeWeaponType {
 }
 
 export interface MeleeWeapon extends HasSprite {
-    _type: 'MeleeWeapon';
+    _type: "MeleeWeapon";
     Name: string;
     Description: string;
     MinDamage: number;
@@ -163,7 +163,7 @@ export interface MeleeWeapon extends HasSprite {
 }
 
 export interface RangedWeapon extends HasSprite {
-    _type: 'RangedWeapon';
+    _type: "RangedWeapon";
     Name: string;
     Description: string;
     MinDamage: number;
@@ -173,4 +173,12 @@ export interface RangedWeapon extends HasSprite {
 
 export type Weapon = MeleeWeapon | RangedWeapon;
 
-export type ItemInformation = ObjectInformation | BigCraftable | Boots | Clothing | Furniture | Hat | Tool | Weapon;
+export type ItemInformation =
+    | ObjectInformation
+    | BigCraftable
+    | Boots
+    | Clothing
+    | Furniture
+    | Hat
+    | Tool
+    | Weapon;

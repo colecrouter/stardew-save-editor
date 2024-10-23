@@ -1,5 +1,11 @@
-import { FishingRodSpriteIndex, FishingRodUpgradeNumber, FurnitureTypeToNumber, ItemData, RingsUniqueID } from "$lib/ItemData";
-import { RGBToHex, HexToRGB } from "$lib/Spritesheet";
+import {
+    FishingRodSpriteIndex,
+    FishingRodUpgradeNumber,
+    FurnitureTypeToNumber,
+    ItemData,
+    RingsUniqueID,
+} from "$lib/ItemData";
+import { HexToRGB, RGBToHex } from "$lib/Spritesheet";
 import { FurnitureType } from "$types/items/1.5";
 import { Category } from "$types/save/1.5";
 import { ClothesType, type Item } from "$types/save/1.6";
@@ -13,27 +19,27 @@ export const createItem = (name: string) => {
 
     let category: number | undefined;
     switch (data._type) {
-        case 'Object':
+        case "Object":
             break;
-        case 'BigCraftable':
+        case "BigCraftable":
             break;
-        case 'Boots':
+        case "Boots":
             category = Category.Boots;
             break;
-        case 'Pants':
-        case 'Shirt':
+        case "Pants":
+        case "Shirt":
             category = Category.Clothing;
             break;
-        case 'Furniture':
+        case "Furniture":
             category = Category.Furniture;
             break;
-        case 'Hat':
+        case "Hat":
             category = Category.Hat;
             break;
-        case 'Weapon':
+        case "Weapon":
             category = Category.Weapon;
             break;
-        case 'Tool':
+        case "Tool":
             category = Category.Tool;
             break;
     }
@@ -46,11 +52,8 @@ export const createItem = (name: string) => {
         isRecipe: false,
         price: data.Price ?? 0,
         parentSheetIndex:
-            'ParentSheetIndex' in data
-                ? data.ParentSheetIndex
-                : undefined,
-        indexInTileSheet:
-            'SpriteIndex' in data ? data.SpriteIndex : undefined,
+            "ParentSheetIndex" in data ? data.ParentSheetIndex : undefined,
+        indexInTileSheet: "SpriteIndex" in data ? data.SpriteIndex : undefined,
         category: category,
         hasBeenInInventory: true,
         SpecialVariable: 0, // TODO ?
@@ -71,35 +74,35 @@ export const createItem = (name: string) => {
 
     let type: string | undefined;
     switch (data._type) {
-        case 'Object':
-        case 'BigCraftable':
-            type = 'Object';
+        case "Object":
+        case "BigCraftable":
+            type = "Object";
             break;
-        case 'Furniture':
-            type = 'Furniture';
+        case "Furniture":
+            type = "Furniture";
             break;
-        case 'Weapon':
-            type = 'MeleeWeapon';
+        case "Weapon":
+            type = "MeleeWeapon";
             break;
-        case 'Tool':
-            if (name === 'Milk Pail') {
-                type = 'MilkPail';
-            } else if (name.endsWith('Pickaxe')) {
-                type = 'Pickaxe';
-            } else if (name.endsWith('Axe')) {
-                type = 'Axe';
-            } else if (name.endsWith('Hoe')) {
-                type = 'Hoe';
-            } else if (name.endsWith('Watering Can')) {
-                type = 'WateringCan';
-            } else if (name.endsWith('Rod')) {
-                type = 'FishingRod';
-            } else if (name.endsWith('Pan')) {
-                type = 'Pan';
+        case "Tool":
+            if (name === "Milk Pail") {
+                type = "MilkPail";
+            } else if (name.endsWith("Pickaxe")) {
+                type = "Pickaxe";
+            } else if (name.endsWith("Axe")) {
+                type = "Axe";
+            } else if (name.endsWith("Hoe")) {
+                type = "Hoe";
+            } else if (name.endsWith("Watering Can")) {
+                type = "WateringCan";
+            } else if (name.endsWith("Rod")) {
+                type = "FishingRod";
+            } else if (name.endsWith("Pan")) {
+                type = "Pan";
             }
             break;
-        case 'Hat':
-            type = 'Hat';
+        case "Hat":
+            type = "Hat";
             break;
         // TODO
     }
@@ -108,7 +111,7 @@ export const createItem = (name: string) => {
     if (type) {
         // This is required for the game to recognize the item as the correct type, but isn't part of the XML structures
         // @ts-expect-error
-        item['@_xsi:type'] = type;
+        item["@_xsi:type"] = type;
 
         // TODO: copper pan hat
         // if (symbol === 'hat' && name === 'Copper Pan') {
@@ -117,11 +120,11 @@ export const createItem = (name: string) => {
         // }
     }
 
-    if (data._type === 'Object') {
+    if (data._type === "Object") {
         item.price = 0;
         item.quality = 0;
 
-        if ('Type' in data && data.Type === 'Ring') {
+        if ("Type" in data && data.Type === "Ring") {
             const id = RingsUniqueID.get(name);
             if (id) {
                 item.uniqueID = id;
@@ -129,32 +132,28 @@ export const createItem = (name: string) => {
         }
     }
 
-    if (data._type !== 'Tool') {
-        item.parentSheetIndex =
-            'SpriteIndex' in data ? data.SpriteIndex : 0;
+    if (data._type !== "Tool") {
+        item.parentSheetIndex = "SpriteIndex" in data ? data.SpriteIndex : 0;
     }
 
-    if (item.name === 'Fishing Rod') {
+    if (item.name === "Fishing Rod") {
         item.upgradeLevel = FishingRodUpgradeNumber.get(data.Name) ?? 0;
         item.parentSheetIndex = 685;
-        item.initialParentTileIndex =
-            FishingRodSpriteIndex.get(data.Name) ?? 0;
+        item.initialParentTileIndex = FishingRodSpriteIndex.get(data.Name) ?? 0;
         item.indexOfMenuItemView = item.initialParentTileIndex;
     }
 
-    if (data._type === 'Hat') {
-        item.which = '';
+    if (data._type === "Hat") {
+        item.which = "";
     }
 
-    if ('Type' in data && data._type === 'Furniture') {
+    if ("Type" in data && data._type === "Furniture") {
         item.canBeGrabbed = true;
         item.parentSheetIndex = data.ItemId;
-        item.type = FurnitureTypeToNumber.get(
-            data.Type as FurnitureType,
-        );
+        item.type = FurnitureTypeToNumber.get(data.Type as FurnitureType);
 
         // sourceRect is the sprite data, if I understand correctly
-        if ('TilesheetSize' in data && data.TilesheetSize !== -1) {
+        if ("TilesheetSize" in data && data.TilesheetSize !== -1) {
             item.sourceRect = {
                 X: data.Sprite.x,
                 Y: data.Sprite.y,
@@ -173,10 +172,7 @@ export const createItem = (name: string) => {
         }
 
         // Bounding box is the hitbox/placement box
-        if (
-            'BoundingBoxSize' in data &&
-            data.BoundingBoxSize !== -1
-        ) {
+        if ("BoundingBoxSize" in data && data.BoundingBoxSize !== -1) {
             item.boundingBox = {
                 X: 0,
                 Y: 0,
@@ -201,10 +197,10 @@ export const createItem = (name: string) => {
         }
     }
 
-    if ('CanBeDyed' in data && data.CanBeDyed) {
-        let defaultColor = '#000000';
-        if ('DefaultColor' in data && data.DefaultColor) {
-            const [R, G, B] = data.DefaultColor.split(' ').map(Number);
+    if ("CanBeDyed" in data && data.CanBeDyed) {
+        let defaultColor = "#000000";
+        if ("DefaultColor" in data && data.DefaultColor) {
+            const [R, G, B] = data.DefaultColor.split(" ").map(Number);
             const A = 255;
             defaultColor = RGBToHex({ R, G, B, A, PackedValue: 0 });
         }
@@ -212,31 +208,27 @@ export const createItem = (name: string) => {
         item.clothesColor = HexToRGB(defaultColor);
     }
 
-    if (data._type === 'Object') {
-        if ('Type' in data && typeof data.Type === 'number') {
+    if (data._type === "Object") {
+        if ("Type" in data && typeof data.Type === "number") {
             item.type = data.Type;
         }
-        if (
-            data._type === 'Object' &&
-            'Type' in data &&
-            data.Type === 'Ring'
-        ) {
+        if (data._type === "Object" && "Type" in data && data.Type === "Ring") {
             // @ts-expect-error
-            item['@_xsi:type'] = 'Ring';
+            item["@_xsi:type"] = "Ring";
         }
     }
 
-    if ('Edibility' in data) {
+    if ("Edibility" in data) {
         item.Price = data.Edibility ?? -300;
     }
 
-    if ('Price' in data) {
+    if ("Price" in data) {
         item.Price = data.Price ?? 0;
     }
 
-    if (data._type === 'Shirt') {
+    if (data._type === "Shirt") {
         item.clothesType = ClothesType.Shirt;
-    } else if (data._type === 'Pants') {
+    } else if (data._type === "Pants") {
         item.clothesType = ClothesType.Pants;
     }
 

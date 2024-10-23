@@ -1,7 +1,7 @@
 <script lang="ts">
     import { base } from '$app/paths';
     import { DateableCharacters } from '$lib/NPCs';
-    import type { FriendshipDataItem } from '$types/save/1.5';
+    import type { FriendshipDataItem } from '$types/save/1.6';
 
     export let character: FriendshipDataItem;
 
@@ -10,17 +10,28 @@
     let amount: number = character.value.Friendship.Points;
     let relationship: string = character.value.Friendship.Status;
     let hearts: number;
-    let maxhearts: number = dateable ? (relationship == 'Married' ? 14 : relationship == 'Dating' ? 10 : 8) : 10;
+    let maxhearts: number = dateable
+        ? relationship == 'Married'
+            ? 14
+            : relationship == 'Dating'
+              ? 10
+              : 8
+        : 10;
     let maxamount: number = maxhearts * 250 + 249; // 250 points per heart, plus 249 points after the last heart
 
     // Update values for visuals
-    $: character.value.Friendship.Points = Math.max(Math.min(amount, maxamount), 0);
+    $: character.value.Friendship.Points = Math.max(
+        Math.min(amount, maxamount),
+        0,
+    );
     $: hearts = Math.floor(amount / 250);
 </script>
 
 <div class="row">
     <div class="portrait-wrapper">
-        <div class="portrait" style:background-image={`url('${base}/assets/portraits/${name}.png')`} />
+        <div
+            class="portrait"
+            style:background-image={`url('${base}/assets/portraits/${name}.png')`} />
     </div>
     <div class="right">
         <div class="hearts">
@@ -34,7 +45,12 @@
                 <span>🏳️</span>
             {/each}
         </div>
-        <input type="number" class="amount" min="0" max={maxamount} bind:value={amount} />
+        <input
+            type="number"
+            class="amount"
+            min="0"
+            max={maxamount}
+            bind:value={amount} />
     </div>
     <strong>
         {name}
@@ -54,7 +70,10 @@
 
     .portrait-wrapper {
         background-color: #d9ab6f;
-        box-shadow: 0 0 0 2px #b14e05, 0 0 0 4px #dc7b05, 0 0 0 6px #5b2b29;
+        box-shadow:
+            0 0 0 2px #b14e05,
+            0 0 0 4px #dc7b05,
+            0 0 0 6px #5b2b29;
         margin: 6px;
         box-sizing: border-box;
         border-radius: 1px;

@@ -1,5 +1,7 @@
-import { FurnitureType, type Size } from "$types/items/1.6";
+import type { Size } from "$types/items/1.5";
+import { FurnitureType, type ItemInformation } from "$types/items/1.6";
 import { Category } from "$types/save/1.5";
+import jsondata from "../../static/iteminfo.json";
 
 export const HatWhichNumber = new Map([
     ["Cowboy Hat", 0],
@@ -236,3 +238,5 @@ export const RingsUniqueID = new Map<string, number>([
     ["Combined Ring", 1601],
     ["Glowstone Ring", 1609],
 ]);
+
+export const ItemData = new Map<string, ItemInformation>(jsondata);

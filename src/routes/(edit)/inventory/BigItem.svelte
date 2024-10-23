@@ -1,18 +1,14 @@
 <script lang="ts">
-  import { base } from "$app/paths";
-  import { DefaultFurnitureSizes } from "$lib/ItemData";
-  import { GetSprite, GetSpritesheet } from "$lib/Spritesheet";
-  import type { FurnitureType, ItemInformation } from "$types/items/1.6";
-  import { getContext } from "svelte";
-  import "./Item.css";
-  import type { Item } from "$types/save/1.6";
+  import { base } from '$app/paths';
+  import { DefaultFurnitureSizes, ItemData } from '$lib/ItemData';
+  import { GetSprite, GetSpritesheet } from '$lib/Spritesheet';
+  import type { FurnitureType, ItemInformation } from '$types/items/1.6';
+  import type { Item } from '$types/save/1.6';
+  import './Item.css';
 
   let spritesheet: string | undefined;
   let lookupItem: ItemInformation | undefined;
   export let item: Item | undefined;
-
-  const itemData = getContext("itemData") as Map<string, ItemInformation>;
-  if (!itemData) throw new Error("No item data found");
 
   let x: number, y: number, w: number, h: number;
 
@@ -23,35 +19,34 @@
       break $;
     }
 
-    lookupItem = itemData.get(
-      item.name === "Clothing"
+    lookupItem = ItemData.get(
+      item.name === 'Clothing'
         ? item.parentSheetIndex === 1064
-          ? "Shirt"
-          : "Pants"
-        : item.name
+          ? 'Shirt'
+          : 'Pants'
+        : item.name,
     );
 
-    if (item.name === "Fishing Rod") {
-      spritesheet = "tools.png";
+    if (item.name === 'Fishing Rod') {
+      spritesheet = 'tools.png';
 
       let name: string;
       switch (item.upgradeLevel) {
-        default:
         case 0:
-          name = "Training Rod";
+          name = 'Training Rod';
           break;
         case 1:
-          name = "Bamboo Pole";
+          name = 'Bamboo Pole';
           break;
         case 2:
-          name = "Fiberglass Rod";
+          name = 'Fiberglass Rod';
           break;
         case 3:
-          name = "Iridium Rod";
+          name = 'Iridium Rod';
           break;
       }
 
-      lookupItem = itemData.get(name);
+      lookupItem = ItemData.get(name);
     }
 
     if (!lookupItem) {
@@ -60,9 +55,9 @@
 
     if (lookupItem) {
       spritesheet = GetSpritesheet(lookupItem);
-      if (lookupItem._type === "Furniture") {
+      if (lookupItem._type === 'Furniture') {
         const size = DefaultFurnitureSizes.get(
-          lookupItem.Type as FurnitureType
+          lookupItem.Type as FurnitureType,
         );
         h = size?.height ?? 16;
         w = size?.width ?? 16;
@@ -72,11 +67,11 @@
           w = lookupItem.TilesheetSize.width * 16;
           h = lookupItem.TilesheetSize.height * 16;
         }
-      } else if (lookupItem._type === "Shirt") {
+      } else if (lookupItem._type === 'Shirt') {
         w = h = 8;
-      } else if (lookupItem._type === "Hat") {
+      } else if (lookupItem._type === 'Hat') {
         w = h = 20;
-      } else if (lookupItem._type === "BigCraftable") {
+      } else if (lookupItem._type === 'BigCraftable') {
         w = 16;
         h = 32;
       } else {
@@ -84,17 +79,17 @@
       }
 
       if (
-        "MenuSpriteIndex" in lookupItem &&
+        'MenuSpriteIndex' in lookupItem &&
         lookupItem.MenuSpriteIndex !== -1
       ) {
         const sprite = GetSprite(lookupItem._type, lookupItem.MenuSpriteIndex);
         x = sprite.x;
         y = sprite.y;
-      } else if ("SpriteIndex" in lookupItem) {
+      } else if ('SpriteIndex' in lookupItem) {
         const sprite = GetSprite(lookupItem._type, lookupItem.SpriteIndex);
         x = sprite.x;
         y = sprite.y;
-      } else if ("Sprite" in lookupItem) {
+      } else if ('Sprite' in lookupItem) {
         x = lookupItem.Sprite.x;
         y = lookupItem.Sprite.y;
       }
@@ -104,7 +99,7 @@
       // Word on clothes, if your save is older than 1.4, then you'll have to update before your clothes will show up.
       // Clothes weren't items until 1.4, they were a character property before then.
       // https://stardewvalleywiki.com/Version_History#1.4
-      if (lookupItem._type === "Shirt") {
+      if (lookupItem._type === 'Shirt') {
         const sprite = lookupItem.SpriteIndex;
         lookupItem = {
           ...lookupItem,
@@ -127,11 +122,11 @@
       lookupItem &&
       `url(${base}/assets/${spritesheet})`}
     style:--tint={`rgb(${item?.clothesColor?.R ?? 0},${item?.clothesColor?.G ?? 0},${item?.clothesColor?.B ?? 0})`}
-    class:dyeable={(lookupItem?._type === "Shirt" ||
-      lookupItem?._type === "Pants") &&
+    class:dyeable={(lookupItem?._type === 'Shirt' ||
+      lookupItem?._type === 'Pants') &&
       lookupItem.CanBeDyed}
-    class:shirt={lookupItem?._type === "Shirt"}
-    class:craftable={lookupItem?._type === "BigCraftable"} />
+    class:shirt={lookupItem?._type === 'Shirt'}
+    class:craftable={lookupItem?._type === 'BigCraftable'} />
 </div>
 
 <style>

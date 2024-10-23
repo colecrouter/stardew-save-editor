@@ -14,12 +14,10 @@
     export let data: LayoutData;
 
     // If the save changes for whatever reason, go back to the main screen
-    const unsub = page.subscribe(() => browser && get(SaveGame) == undefined && goto(base + '/'));
+    const unsub = page.subscribe(
+        () => browser && get(SaveGame) == undefined && goto(base + '/'),
+    );
     onDestroy(() => unsub());
-
-    // Set the context for the item data for components to use
-    // TODO move this to a data load function for the inventory page
-    setContext('itemData', data.itemData);
 
     // Go back to the upload page
     const cancel = () => {
@@ -48,10 +46,18 @@
             <slot />
         </div>
         <div class="sidebar">
-            <div use:tooltip aria-label="Exit"><SidebarButton on:click={() => cancel()}>❌</SidebarButton></div>
-            <div use:tooltip aria-label="Save"><SidebarButton on:click={() => download()}>💾</SidebarButton></div>
-            <div use:tooltip aria-label="Previous Character"><SidebarButton on:click={Character.prev}>⬅️</SidebarButton></div>
-            <div use:tooltip aria-label="Next Character"><SidebarButton on:click={Character.next}>➡️</SidebarButton></div>
+            <div use:tooltip aria-label="Exit">
+                <SidebarButton on:click={() => cancel()}>❌</SidebarButton>
+            </div>
+            <div use:tooltip aria-label="Save">
+                <SidebarButton on:click={() => download()}>💾</SidebarButton>
+            </div>
+            <div use:tooltip aria-label="Previous Character">
+                <SidebarButton on:click={Character.prev}>⬅️</SidebarButton>
+            </div>
+            <div use:tooltip aria-label="Next Character">
+                <SidebarButton on:click={Character.next}>➡️</SidebarButton>
+            </div>
         </div>
     </div>
 </div>

@@ -1,6 +1,7 @@
 <script lang="ts">
     import { base } from '$app/paths';
     import { AccessoryIsTinted } from '$lib/CharacterColors';
+    import { ItemData } from '$lib/ItemData';
     import { Character } from '$lib/SaveFile';
     import {
         GetPlayerSpriteForPants,
@@ -14,9 +15,6 @@
         type Player,
         Gender,
     } from '$types/save/1.6';
-    import { getContext } from 'svelte';
-
-    const itemData = getContext<Map<string, ItemInformation>>('itemData');
 
     // Async load data
     let PrimarySkinColors: typeof import('$lib/CharacterColors').PrimarySkinColors;
@@ -139,7 +137,7 @@
 
                 if (!character.pantsItem) {
                     // Underwear/default
-                    const underwear = itemData.get(
+                    const underwear = ItemData.get(
                         'Polka Dot Shorts',
                     ) as Clothing;
                     pantsPosition = GetPlayerSpriteForPants(
@@ -149,7 +147,7 @@
                     pantsTint = defaultTint;
                 } else {
                     const pants = character.pantsItem;
-                    const pantsData = itemData.get(pants.name) as Clothing;
+                    const pantsData = ItemData.get(pants.name) as Clothing;
 
                     pantsData &&
                         (pantsPosition = GetPlayerSpriteForPants(
@@ -163,7 +161,7 @@
                 if (!shirt) {
                     // White shirt/default
                     console.log(isMale);
-                    const shirtData = itemData.get(
+                    const shirtData = ItemData.get(
                         isMale ? 'Basic Pullover (M)' : 'Basic Pullover (F)',
                     ) as Clothing;
                     shirtPosition = GetSprite(
@@ -173,7 +171,7 @@
                     );
                     shirtTint = defaultTint;
                 } else {
-                    const shirtData = itemData.get(shirt.name) as Clothing;
+                    const shirtData = ItemData.get(shirt.name) as Clothing;
 
                     if (shirtData) {
                         shirtPosition = GetSprite(
@@ -189,7 +187,7 @@
 
                 let hatData: Hat | undefined;
                 if (character.hat?.name === 'Copper Pan') {
-                    // I hate this so much, but there's no way to grab the info from itemData because +layout.ts converts iteminfo.json into a Map,
+                    // I hate this so much, but there's no way to grab the info from ItemData because +layout.ts converts iteminfo.json into a Map,
                     // so the hat entry gets nuked. Maybe in the future we'll use a Map<string, Array<ItemInformation>> instead.
                     const res = await fetch(base + '/iteminfo.json');
                     const allItems = (await res.json()) as Array<
@@ -202,7 +200,7 @@
                 } else {
                     hatData =
                         character.hat &&
-                        (itemData.get(character.hat.name) as Hat);
+                        (ItemData.get(character.hat.name) as Hat);
                 }
 
                 if (hatData) {

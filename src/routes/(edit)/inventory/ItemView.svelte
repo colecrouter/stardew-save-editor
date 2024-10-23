@@ -193,7 +193,7 @@
 
                 <!-- Quality selector -->
                 <!-- svelte-ignore a11y-label-has-associated-control -->
-                {#if selectedItem.quality !== 0 || (selectedItem.category && CategoriesWithQuality.has(selectedItem.category))}
+                {#if selectedItem.category && CategoriesWithQuality.has(selectedItem.category)}
                     <label>
                         <small>Quality</small>
                         <QualitySelector bind:item={selectedItem} />

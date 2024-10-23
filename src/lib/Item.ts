@@ -1,4 +1,5 @@
 import {
+    CategoriesWithQuality,
     FishingRodSpriteIndex,
     FishingRodUpgradeNumber,
     FurnitureTypeToNumber,
@@ -9,15 +10,6 @@ import { HexToRGB, RGBToHex } from "$lib/Spritesheet";
 import { FurnitureType } from "$types/items/1.5";
 import { Category } from "$types/save/1.5";
 import { ClothesType, type Item } from "$types/save/1.6";
-
-const categoriesWithQuality = new Set([
-    -75, // Crops
-    -80, // Foraging
-    -4, // Fishing
-    -7, // Cooking
-    -6, // Animal Produce
-    -26, // Artisan Goods
-]);
 
 export const createItem = (name: string) => {
     const data = ItemData.get(name);
@@ -63,7 +55,7 @@ export const createItem = (name: string) => {
         parentSheetIndex:
             "ParentSheetIndex" in data ? data.ParentSheetIndex : undefined,
         indexInTileSheet: "SpriteIndex" in data ? data.SpriteIndex : undefined,
-        category: category,
+        category: 'Category' in data ? data.Category : undefined,
         hasBeenInInventory: true,
         SpecialVariable: 0, // TODO ?
         isLostItem: false,
@@ -116,7 +108,6 @@ export const createItem = (name: string) => {
         // TODO
     }
 
-    console.log(type);
     if (type) {
         // This is required for the game to recognize the item as the correct type, but isn't part of the XML structures
         // @ts-expect-error
@@ -129,14 +120,13 @@ export const createItem = (name: string) => {
         // }
     }
 
-    if (categoriesWithQuality.has(data.Category)) {
+    // Add item quality if applicable
+    if ('Category' in data && CategoriesWithQuality.has(data.Category)) {
         item.quality = 0;
     }
 
+    // Special case for rings
     if (data._type === "Object") {
-        item.price = 0;
-        item.quality = 0;
-
         if ("Type" in data && data.Type === "Ring") {
             const id = RingsUniqueID.get(name);
             if (id) {

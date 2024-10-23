@@ -98,7 +98,7 @@
                 x = lookupItem.Sprite.x;
                 y = lookupItem.Sprite.y;
             }
-            console.log(lookupItem);
+            console.log(item);
 
             // Shirt, there are multiple "Shirt"s, so we have to create a copy item object with the correct sprite.
             // Word on clothes, if your save is older than 1.4, then you'll have to update before your clothes will show up.

@@ -8,9 +8,14 @@
 		"preview": "vite preview",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
-		"dump": "node --no-warnings --loader ts-node/esm src/dump.ts"
+		"dump": "node --no-warnings --loader ts-node/esm src/dump.ts",
+		"lint": "biome lint ./src",
+		"lint:fix": "biome lint ./src --write",
+		"format": "biome check ./src",
+		"format:fix": "biome check ./src --write"
 	},
 	"devDependencies": {
+		"@biomejs/biome": "^1.9.4",
 		"@sveltejs/adapter-static": "^2.0.2",
 		"@sveltejs/kit": "^1.20.5",
 		"@total-typescript/ts-reset": "^0.5.1",

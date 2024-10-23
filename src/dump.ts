@@ -48,6 +48,7 @@ const bootsArray = Object.entries(boots).map(([key, value]) => {
         DisplayName: props[6],
         Sprite: GetSprite("Boots", Number(key)),
         ParentSheetIndex: Number(key),
+        Category: -97,
     } satisfies Boots;
 });
 
@@ -273,7 +274,7 @@ const chars = [
 // Create portraits folder if it doesn't exist
 try {
     await mkdir("./static/assets/portraits");
-} catch (e) {}
+} catch (e) { }
 
 for (const char of chars) {
     await copyFile(

@@ -10,6 +10,15 @@ import { FurnitureType } from "$types/items/1.5";
 import { Category } from "$types/save/1.5";
 import { ClothesType, type Item } from "$types/save/1.6";
 
+const categoriesWithQuality = new Set([
+    -75, // Crops
+    -80, // Foraging
+    -4, // Fishing
+    -7, // Cooking
+    -6, // Animal Produce
+    -26, // Artisan Goods
+]);
+
 export const createItem = (name: string) => {
     const data = ItemData.get(name);
 
@@ -120,6 +129,10 @@ export const createItem = (name: string) => {
         // }
     }
 
+    if (categoriesWithQuality.has(data.Category)) {
+        item.quality = 0;
+    }
+
     if (data._type === "Object") {
         item.price = 0;
         item.quality = 0;
@@ -219,11 +232,11 @@ export const createItem = (name: string) => {
     }
 
     if ("Edibility" in data) {
-        item.Price = data.Edibility ?? -300;
+        item.edibility = data.Edibility;
     }
 
     if ("Price" in data) {
-        item.Price = data.Price ?? 0;
+        item.price = data.Price ?? 0;
     }
 
     if (data._type === "Shirt") {

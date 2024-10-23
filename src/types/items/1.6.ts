@@ -84,6 +84,7 @@ export interface BigCraftable extends Base {
 
 export interface Boots extends Base, HasSprite {
     _type: "Boots";
+    Category: -97;
     Defense: number;
     Immunity: number;
     ColorIndex: number;
@@ -91,6 +92,7 @@ export interface Boots extends Base, HasSprite {
 
 export interface Clothing extends Base {
     _type: "Pants" | "Shirt";
+    Category: -100;
     Price: number;
     Texture: null;
     SpriteIndex: number;

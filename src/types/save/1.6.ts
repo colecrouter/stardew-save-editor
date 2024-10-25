@@ -1504,7 +1504,7 @@ export interface Dictionary {
 }
 
 export interface PurpleItems {
-    Item: Item[];
+    Item: (undefined | Item)[];
 }
 
 export interface Item {
@@ -1512,7 +1512,7 @@ export interface Item {
     category?: number;
     hasBeenInInventory: boolean;
     name: string;
-    itemId: number | string;
+    itemId: string;
     specialItem: boolean;
     isRecipe: boolean;
     quality: number;

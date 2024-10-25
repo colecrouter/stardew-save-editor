@@ -1,9 +1,10 @@
-import type { FurniturePlacement, HasSprite, Size } from "$types/items/1.5";
+import type { HasSprite, Size } from "$types/items/1.5";
+import type { TypeEnum } from "$types/save/1.6";
 
 interface Base {
     _type: string;
     Name: string;
-    ItemId: number;
+    ItemId: string;
     DisplayName: string;
     Description: string;
     Price?: number;
@@ -14,6 +15,7 @@ interface Base {
 
 export interface Object extends Base {
     _type: "Object";
+    Type: TypeEnum;
     Category: number;
     Price: number;
     Texture: null;

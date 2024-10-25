@@ -16,18 +16,19 @@ import type {
 const objects = JSON.parse(
     await readFile("./content/Data/Objects.json", "utf-8"),
 ) as Record<string, Object>;
-const objectsArray = Object.values(objects).map((obj) =>
+const objectsArray = Object.entries(objects).map(([key, obj]) =>
     // There's a ton of "Stone" entries in objects, only use the one that has an id of 390
     obj.Name === "Stone" && obj.SpriteIndex !== 390
         ? undefined
-        : { ...obj, _type: "Object" },
+        : { ...obj, ItemId: key, _type: "Object" },
 );
 
 const bigCraftables = JSON.parse(
     await readFile("./content/Data/BigCraftables.json", "utf-8"),
 ) as Record<string, BigCraftable>;
-const bigCraftablesArray = Object.values(bigCraftables).map((obj) => ({
+const bigCraftablesArray = Object.entries(bigCraftables).map(([key, obj]) => ({
     ...obj,
+    ItemId: key,
     _type: "BigCraftable",
 }));
 
@@ -38,7 +39,7 @@ const bootsArray = Object.entries(boots).map(([key, value]) => {
     const props = value.split("/");
     return {
         _type: "Boots",
-        ItemId: Number(key),
+        ItemId: key,
         Name: props[0],
         Description: props[1],
         Price: Number(props[2]),
@@ -60,14 +61,14 @@ const pants = JSON.parse(
 ) as Record<string, Clothing>;
 const shirtsArray = Object.entries(shirts).map(([key, value], i) => ({
     ...value,
-    id: key,
+    ItemId: key,
     _type: "Shirt",
     ParentSheetIndex: i,
     Type: "Shirt",
 }));
 const pantsArray = Object.entries(pants).map(([key, value], i) => ({
     ...value,
-    id: key,
+    ItemId: key,
     _type: "Pants",
     ParentSheetIndex: i,
     Type: "Pants",
@@ -84,7 +85,7 @@ const furnitureArray = Object.entries(furniture).map(([key, value]) => {
 
     return {
         _type: "Furniture",
-        ItemId: Number(key),
+        ItemId: key,
         Name: props[0],
         Type: props[1] as FurnitureType,
         TilesheetSize:
@@ -111,7 +112,7 @@ const hatsArray = Object.entries(hats).map(([key, value], i) => {
     const props = value.split("/");
     return {
         _type: "Hat",
-        ItemId: Number(key),
+        ItemId: key,
         Name: props[0],
         Description: props[1],
         ShowRealHair: props[2] === "true",
@@ -125,15 +126,17 @@ const hatsArray = Object.entries(hats).map(([key, value], i) => {
 const weapons = JSON.parse(
     await readFile("./content/Data/Weapons.json", "utf-8"),
 ) as Record<string, Weapon>;
-const weaponsArray = Object.values(weapons).map((weapon) => ({
+const weaponsArray = Object.entries(weapons).map(([key, weapon]) => ({
     ...weapon,
+    ItemId: key,
     _type: "Weapon",
 }));
 const tools = JSON.parse(
     await readFile("./content/Data/Tools.json", "utf-8"),
 ) as Record<string, Tool>;
-const toolsArray = Object.values(tools).map((tool) => ({
+const toolsArray = Object.entries(tools).map(([key, tool]) => ({
     ...tool,
+    ItemId: key,
     _type: "Tool",
 }));
 

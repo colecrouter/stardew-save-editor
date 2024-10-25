@@ -71,6 +71,7 @@ export const createItem = (name: string) => {
         },
         canBeSetDown: true,
         canBeGrabbed: true,
+        type: (data._type === 'Object') ? data.Type : undefined,
     };
 
     let type: string | undefined;
@@ -123,11 +124,9 @@ export const createItem = (name: string) => {
     // Add item quality if applicable
     if ('Category' in data && CategoriesWithQuality.has(data.Category)) {
         item.quality = 0;
-    }
 
-    // Special case for rings
-    if (data._type === "Object") {
-        if ("Type" in data && data.Type === "Ring") {
+        // Special case for rings
+        if (data.Category === Category.Ring) {
             const id = RingsUniqueID.get(name);
             if (id) {
                 item.uniqueID = id;
@@ -152,7 +151,7 @@ export const createItem = (name: string) => {
 
     if ("Type" in data && data._type === "Furniture") {
         item.canBeGrabbed = true;
-        item.parentSheetIndex = data.ItemId;
+        item.parentSheetIndex = Number(data.ItemId);
         item.type = FurnitureTypeToNumber.get(data.Type as FurnitureType);
 
         // sourceRect is the sprite data, if I understand correctly
@@ -211,14 +210,9 @@ export const createItem = (name: string) => {
         item.clothesColor = HexToRGB(defaultColor);
     }
 
-    if (data._type === "Object") {
-        if ("Type" in data && typeof data.Type === "number") {
-            item.type = data.Type;
-        }
-        if (data._type === "Object" && "Type" in data && data.Type === "Ring") {
-            // @ts-expect-error
-            item["@_xsi:type"] = "Ring";
-        }
+    if ('Category' in data && data.Category === Category.Ring) {
+        // @ts-expect-error
+        item["@_xsi:type"] = "Ring";
     }
 
     if ("Edibility" in data) {

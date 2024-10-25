@@ -46,9 +46,10 @@
 </main>
 
 <!-- FOOTER -->
-<small
-    >Some assets utilized belong to ConcernedApe. Used under Fair Use and not
-    affiliated with ConcernedApe or Stardew Valley</small>
+<small>
+    Some assets utilized belong to ConcernedApe. Used under Fair Use and not
+    affiliated with ConcernedApe or Stardew Valley
+</small>
 
 <!-- SEO data -->
 <footer hidden>
@@ -90,6 +91,7 @@
         margin: 0;
         padding: 0;
         font-family: sans-serif;
+        position: relative;
         font-size: 16px;
         background-image: url(/img/wallpaper.jpg);
         background-size: cover;
@@ -97,6 +99,7 @@
         background-attachment: fixed;
         image-rendering: pixelated;
         text-shadow: -0.05em 0.05em 0 rgba(0, 0, 0, 0.2);
+        min-height: 100dvh;
     }
 
     main {
@@ -106,6 +109,7 @@
         justify-content: start;
         padding-top: 5rem;
         min-height: 100%;
+        padding-bottom: 4rem;
     }
 
     :global(code) {
@@ -226,9 +230,10 @@
     }
 
     small {
-        position: fixed;
+        position: absolute;
         bottom: 0;
-        left: 0;
-        margin: 0.1rem;
+        /* margin: 0.1rem; */
+        z-index: -1;
+        padding: 4px;
     }
 </style>

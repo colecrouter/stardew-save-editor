@@ -2,7 +2,7 @@ import type { FurnitureType } from "$types/items/1.6";
 
 export interface Save {
     player: Player;
-    farmhands: { Farmer?: Player | Player[]; };
+    farmhands: { Farmer?: Player | Player[] };
     locations: Locations;
     currentSeason: Season;
     samBandName?: string;
@@ -956,8 +956,8 @@ export interface HousePaintColor {
 
 export interface LargeTerrainFeaturesClass {
     LargeTerrainFeature:
-    | LargeTerrainFeatureElement[]
-    | LargeTerrainFeatureElement;
+        | LargeTerrainFeatureElement[]
+        | LargeTerrainFeatureElement;
 }
 
 export interface LargeTerrainFeatureElement {

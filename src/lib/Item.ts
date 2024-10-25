@@ -56,7 +56,7 @@ export const createItem = (name: string) => {
         parentSheetIndex:
             "ParentSheetIndex" in data ? data.ParentSheetIndex : undefined,
         indexInTileSheet: "SpriteIndex" in data ? data.SpriteIndex : undefined,
-        category: 'Category' in data ? data.Category : undefined,
+        category: "Category" in data ? data.Category : undefined,
         hasBeenInInventory: true,
         SpecialVariable: 0, // TODO ?
         isLostItem: false,
@@ -72,7 +72,7 @@ export const createItem = (name: string) => {
         },
         canBeSetDown: true,
         canBeGrabbed: true,
-        type: (data._type === 'Object') ? data.Type : undefined,
+        type: data._type === "Object" ? data.Type : undefined,
     };
 
     let type: string | undefined;
@@ -111,8 +111,18 @@ export const createItem = (name: string) => {
     }
 
     // Fix tool names and set upgrade level
-    if (type === "Pickaxe" || type === "Axe" || type === "Hoe" || type === "WateringCan") {
-        const levels = [["Copper", 1], ["Steel", 2], ["Gold", 3], ["Iridium", 4]] as const;
+    if (
+        type === "Pickaxe" ||
+        type === "Axe" ||
+        type === "Hoe" ||
+        type === "WateringCan"
+    ) {
+        const levels = [
+            ["Copper", 1],
+            ["Steel", 2],
+            ["Gold", 3],
+            ["Iridium", 4],
+        ] as const;
         item.upgradeLevel = 0;
         for (const [level, upgradeLevel] of levels) {
             if (name.includes(level)) {
@@ -138,7 +148,7 @@ export const createItem = (name: string) => {
     }
 
     // Add item quality if applicable
-    if ('Category' in data && CategoriesWithQuality.has(data.Category)) {
+    if ("Category" in data && CategoriesWithQuality.has(data.Category)) {
         item.quality = 0;
 
         // Special case for rings
@@ -226,7 +236,7 @@ export const createItem = (name: string) => {
         item.clothesColor = HexToRGB(defaultColor);
     }
 
-    if ('Category' in data && data.Category === Category.Ring) {
+    if ("Category" in data && data.Category === Category.Ring) {
         // @ts-expect-error
         item["@_xsi:type"] = "Ring";
     }

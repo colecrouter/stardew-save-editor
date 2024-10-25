@@ -47,8 +47,8 @@ class CharacterSelector {
             save.SaveGame.farmhands.Farmer === undefined
                 ? []
                 : Array.isArray(save.SaveGame.farmhands.Farmer)
-                    ? save.SaveGame.farmhands.Farmer
-                    : [save.SaveGame.farmhands.Farmer];
+                  ? save.SaveGame.farmhands.Farmer
+                  : [save.SaveGame.farmhands.Farmer];
         const player = save.SaveGame.player;
         this._players = [player, ...farmers];
     };
@@ -147,8 +147,8 @@ export const SaveConverter = {
             json.SaveGame.farmhands.Farmer === undefined
                 ? []
                 : Array.isArray(json.SaveGame.farmhands.Farmer)
-                    ? json.SaveGame.farmhands.Farmer
-                    : [json.SaveGame.farmhands.Farmer];
+                  ? json.SaveGame.farmhands.Farmer
+                  : [json.SaveGame.farmhands.Farmer];
         const player = json.SaveGame.player;
         const players = [player, ...farmers];
 
@@ -156,7 +156,10 @@ export const SaveConverter = {
         for (const player of players) {
             // 1. Inventory, switch <string xsi:nil="true" /> into undefined
             // Need to check for null, because undefined gets converted to null when JSON is stringified
-            const undefinedItems = ['{"xsi:nil":"true"}', '{"@_xsi:nil":"true"}'];
+            const undefinedItems = [
+                '{"xsi:nil":"true"}',
+                '{"@_xsi:nil":"true"}',
+            ];
             player.items.Item = player.items.Item.map((item) =>
                 undefinedItems.includes(JSON.stringify(item))
                     ? undefined
@@ -198,8 +201,8 @@ export const SaveConverter = {
             json.SaveGame.farmhands.Farmer === undefined
                 ? []
                 : Array.isArray(json.SaveGame.farmhands.Farmer)
-                    ? json.SaveGame.farmhands.Farmer
-                    : [json.SaveGame.farmhands.Farmer];
+                  ? json.SaveGame.farmhands.Farmer
+                  : [json.SaveGame.farmhands.Farmer];
         const player = json.SaveGame.player;
         const players = [player, ...farmers];
 
@@ -234,7 +237,7 @@ export const SaveConverter = {
             );
             // @ts-expect-error
             player.items.Item = player.items.Item.map((item) =>
-                (item && "which" in item)
+                item && "which" in item
                     ? { ...item, which: { "@_xsi:nil": "true" } }
                     : item,
             );

@@ -277,7 +277,7 @@ const chars = [
 // Create portraits folder if it doesn't exist
 try {
     await mkdir("./static/assets/portraits");
-} catch (e) { }
+} catch (e) {}
 
 for (const char of chars) {
     await copyFile(

@@ -275,6 +275,5 @@ export const ItemNameHelper = (item: Item) => {
         }
     }
 
-
     return item.name;
 };

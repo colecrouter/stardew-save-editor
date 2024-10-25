@@ -16,5 +16,10 @@ jobs:
           version: latest
       - name: Run Biome
         run: biome ci ./src
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 22
+          cache: 'npm'
+      - run: npm ci
       - name: Run `svelte-check`
         run: npx svelte-check --output human

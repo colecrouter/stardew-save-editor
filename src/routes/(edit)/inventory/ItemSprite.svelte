@@ -1,35 +1,27 @@
 <script lang="ts">
-    import { base } from '$app/paths';
     import {
         DefaultFurnitureSizes,
         ItemData,
         ItemNameHelper,
     } from '$lib/ItemData';
-    import { GetSprite, GetSpritesheet } from '$lib/Spritesheet';
-    import type { ItemInformation } from '$types/items/1.6';
     import type { Item } from '$types/save/1.6';
-    import './Item.css';
-    import ItemSprite from './ItemSprite.svelte';
+    import { base } from '$app/paths';
+    import { GetSpritesheet, GetSprite } from '$lib/Spritesheet';
+    import type { FurnitureType, ItemInformation } from '$types/items/1.6';
 
+    export let item: Partial<Item> | undefined;
+
+    let lookupItem = ItemData.get(item?.name ?? 'Clothing');
     let spritesheet: string | undefined;
-    let lookupItem: ItemInformation | undefined;
-    export let item: Item | undefined;
-
     let x: number, y: number, w: number, h: number;
 
-    $: {
-        if (!item) {
-            spritesheet = undefined;
-            lookupItem = undefined;
-            break $;
-        }
-
+    $: if (item) {
         lookupItem = ItemData.get(
             item.name === 'Clothing'
                 ? item.parentSheetIndex === 1064
                     ? 'Shirt'
                     : 'Pants'
-                : ItemNameHelper(item),
+                : ItemNameHelper(item as Item),
         );
 
         if (item.name === 'Fishing Rod') {
@@ -59,15 +51,14 @@
         if (lookupItem) {
             spritesheet = GetSpritesheet(lookupItem);
             if (lookupItem._type === 'Furniture') {
-                const size = DefaultFurnitureSizes.get(lookupItem.Type);
+                const size = DefaultFurnitureSizes.get(
+                    lookupItem.Type as FurnitureType,
+                );
                 h = size?.height ?? 16;
                 w = size?.width ?? 16;
 
                 // -1 means default size
-                if (
-                    'TilesheetSize' in lookupItem &&
-                    lookupItem.TilesheetSize !== -1
-                ) {
+                if (lookupItem.TilesheetSize !== -1) {
                     w = lookupItem.TilesheetSize.width * 16;
                     h = lookupItem.TilesheetSize.height * 16;
                 }
@@ -103,7 +94,6 @@
                 x = lookupItem.Sprite.x;
                 y = lookupItem.Sprite.y;
             }
-            console.log(item);
 
             // Shirt, there are multiple "Shirt"s, so we have to create a copy item object with the correct sprite.
             // Word on clothes, if your save is older than 1.4, then you'll have to update before your clothes will show up.
@@ -117,19 +107,23 @@
                 } satisfies ItemInformation;
             }
         }
+    } else {
+        lookupItem = undefined;
+        spritesheet = undefined;
     }
 </script>
 
-<div class="item-wrapper">
-    <ItemSprite {item} />
-</div>
-
-<style>
-    .item-wrapper {
-        zoom: 2;
-    }
-
-    .item-wrapper:hover::after {
-        display: none;
-    }
-</style>
+<div
+    class="item"
+    style:--w={`${w}px`}
+    style:--h={`${h}px`}
+    style:--z={`${32 / Math.max(w, h, 16)}`}
+    style:--x={spritesheet && lookupItem && `${x}px`}
+    style:--y={spritesheet && lookupItem && `${y}px`}
+    style:--sprite={spritesheet &&
+        lookupItem &&
+        `url(${base}/assets/${spritesheet})`}
+    style:--tint={`rgb(${item?.clothesColor?.R ?? 0},${item?.clothesColor?.G ?? 0},${item?.clothesColor?.B ?? 0})`}
+    class:dyeable={(lookupItem?._type === 'Shirt' ||
+        lookupItem?._type === 'Pants') &&
+        lookupItem.CanBeDyed} />

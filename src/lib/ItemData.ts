@@ -1,6 +1,7 @@
 import type { Size } from "$types/items/1.5";
 import { FurnitureType, type ItemInformation } from "$types/items/1.6";
 import { Category } from "$types/save/1.5";
+import type { Item } from "$types/save/1.6";
 import jsondata from "../../static/iteminfo.json";
 
 export const HatWhichNumber = new Map([
@@ -240,3 +241,40 @@ export const RingsUniqueID = new Map<string, number>([
 ]);
 
 export const ItemData = new Map<string, ItemInformation>(jsondata);
+
+export const ItemNameHelper = (item: Item) => {
+    if (item.name === "Fishing Rod") {
+        switch (item.upgradeLevel) {
+            case 0:
+                return "Bamboo Pole";
+            case 1:
+                return "Training Rod";
+            case 2:
+                return "Fiberglass Rod";
+            case 3:
+                return "Iridium Rod";
+        }
+    }
+
+    // No scythe, milking pail, or shears
+    const tools = ["Pickaxe", "Axe", "Hoe", "Watering Can"];
+    for (const tool of tools) {
+        if (item.name.endsWith(tool)) {
+            switch (item.upgradeLevel) {
+                case 4:
+                    return `Iridium ${tool}`;
+                case 3:
+                    return `Gold ${tool}`;
+                case 2:
+                    return `Steel ${tool}`;
+                case 1:
+                    return `Copper ${tool}`;
+                default:
+                    return tool;
+            }
+        }
+    }
+
+
+    return item.name;
+};

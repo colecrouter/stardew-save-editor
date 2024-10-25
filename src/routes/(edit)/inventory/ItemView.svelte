@@ -1,5 +1,9 @@
 <script lang="ts">
-    import { CategoriesWithQuality, ItemData } from '$lib/ItemData';
+    import {
+        CategoriesWithQuality,
+        ItemData,
+        ItemNameHelper,
+    } from '$lib/ItemData';
     import type { ParentIndex } from '$lib/ItemParentIndex';
     import { HexToRGB, PackedValue, RGBToHex } from '$lib/Spritesheet';
     import type { Item } from '$types/save/1.6';
@@ -28,7 +32,10 @@
         {#if selectedItem}
             <label>
                 <small>Item Name</small>
-                <input type="text" value={selectedItem.name} disabled />
+                <input
+                    type="text"
+                    value={ItemNameHelper(selectedItem)}
+                    disabled />
             </label>
             {#if selectedItemData}
                 <!-- TODO: Since 1.6 removed stackable field, not sure how to actually know -->

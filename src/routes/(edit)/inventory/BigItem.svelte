@@ -1,6 +1,10 @@
 <script lang="ts">
     import { base } from '$app/paths';
-    import { DefaultFurnitureSizes, ItemData } from '$lib/ItemData';
+    import {
+        DefaultFurnitureSizes,
+        ItemData,
+        ItemNameHelper,
+    } from '$lib/ItemData';
     import { GetSprite, GetSpritesheet } from '$lib/Spritesheet';
     import type { ItemInformation } from '$types/items/1.6';
     import type { Item } from '$types/save/1.6';
@@ -24,7 +28,7 @@
                 ? item.parentSheetIndex === 1064
                     ? 'Shirt'
                     : 'Pants'
-                : item.name,
+                : ItemNameHelper(item),
         );
 
         if (item.name === 'Fishing Rod') {

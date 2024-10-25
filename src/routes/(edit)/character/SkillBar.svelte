@@ -9,6 +9,7 @@
 <div class="wrapper">
     {#each levels as level}
         <button
+            aria-label={`Set skill to ${level}`}
             class="pill"
             class:active={skill >= level}
             on:click={() => (skill = level)} />

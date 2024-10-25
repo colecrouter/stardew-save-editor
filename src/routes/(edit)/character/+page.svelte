@@ -75,10 +75,11 @@
         <div class="wrapper">
             {#each skillValues as skill, i}
                 {#if skills[i] !== undefined}
-                    <label>
+                    <label for={`skills-${i}`}>
                         {skills[i]}
                         <SkillBar bind:skill />
                         <input
+                            id={`skills-${i}`}
                             type="number"
                             min="0"
                             max="99999"

@@ -1,10 +1,25 @@
 <script lang="ts">
+    import { ItemData } from '$lib/ItemData';
     import type { Item } from '$types/save/1.6';
 
     export let item: Item;
 
     // Set default quality to 0 if it doesn't exist
     $: if (!item.quality) item.quality = 0;
+
+    const priceIncrease = [1.0, 1.25, 1.5, NaN, 2.0];
+
+    const changePrice = (newQuality: number) => {
+        const data = ItemData.get(item.name);
+        if (!data) return;
+
+        const basePrice = data.Price;
+        if (basePrice === undefined) return;
+
+        const newPrice = basePrice * priceIncrease[newQuality];
+        item.price = Math.floor(newPrice);
+        item.quality = newQuality;
+    };
 </script>
 
 <div class="container">
@@ -17,10 +32,13 @@
                 {:else}
                     ⭐
                 {/if}
-                <input type="radio" checked={item.quality === i} value={i} bind:group={item.quality} on:click={() => (item.quality = i)} />
+                <input
+                    type="radio"
+                    checked={item.quality === i}
+                    value={i}
+                    bind:group={item.quality}
+                    on:click={() => changePrice(i)} />
             </label>
-            <!-- <button on:click={() => (item.quality = i)}>
-            </button> -->
         {/each}
     {/if}
 </div>
@@ -41,6 +59,7 @@
 
     .container label {
         cursor: pointer;
+        user-select: none;
     }
 
     .container label input:checked::after {

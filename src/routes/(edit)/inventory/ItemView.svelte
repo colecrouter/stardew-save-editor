@@ -219,7 +219,7 @@
                 {/if}
 
                 <!-- Price -->
-                {#if ['ObjectInformation', 'BigCraftable', 'Furniture', 'Hat', 'Clothing'].includes(selectedItemData._type)}
+                {#if ['Object', 'BigCraftable', 'Furniture', 'Hat', 'Clothing'].includes(selectedItemData._type)}
                     <label>
                         <small>Price</small>
                         <input

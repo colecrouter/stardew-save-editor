@@ -190,7 +190,7 @@
     }
 
     :global(button:hover) {
-        filter: brightness(1.2);
+        filter: brightness(1.2) !important;
     }
 
     a {

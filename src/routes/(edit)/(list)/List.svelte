@@ -1,5 +1,7 @@
 <script lang="ts">
     import type { KV } from '$types/save/1.5';
+    import ItemSprite from '../inventory/ItemSprite.svelte';
+    import SmallItem from '../inventory/SmallItem.svelte';
 
     export let keys: string[];
     export let values: KV[]; // 'values' is a bit misleading, more like "which keys are true"
@@ -21,8 +23,18 @@
 <div class="wrapper">
     {#each keys as key}
         <label class="entry">
-            {key}
-            <input type="checkbox" aria-label={key} checked={values.some((v) => v.key.string === key)} on:change={handleCheck} />
+            <div class="key">
+                <div class="img">
+                    <ItemSprite item={{ name: key }} />
+                </div>
+                {key}
+            </div>
+
+            <input
+                type="checkbox"
+                aria-label={key}
+                checked={values.some((v) => v.key.string === key)}
+                on:change={handleCheck} />
         </label>
     {/each}
 </div>
@@ -41,7 +53,7 @@
         align-items: center;
         border-bottom: #5b2b2a 1px solid;
         padding-left: 0.5em;
-        margin: 0.1em 0;
+        margin: 2px 0;
     }
 
     input[type='checkbox'] {
@@ -67,5 +79,20 @@
         content: '❌';
         font-weight: bold;
         font-size: 1.2em;
+    }
+
+    .key {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding-bottom: 2px;
+    }
+
+    .img {
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
 </style>

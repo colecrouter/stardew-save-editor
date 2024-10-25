@@ -13,6 +13,7 @@ import { ClothesType, type Item } from "$types/save/1.6";
 
 export const createItem = (name: string) => {
     const data = ItemData.get(name);
+    console.log(name, data);
 
     if (!data) {
         throw new Error(`Item "${name}" not found in ItemData`);
@@ -107,6 +108,21 @@ export const createItem = (name: string) => {
             type = "Hat";
             break;
         // TODO
+    }
+
+    // Fix tool names and set upgrade level
+    if (type === "Pickaxe" || type === "Axe" || type === "Hoe" || type === "WateringCan") {
+        const levels = [["Copper", 1], ["Steel", 2], ["Gold", 3], ["Iridium", 4]] as const;
+        item.upgradeLevel = 0;
+        for (const [level, upgradeLevel] of levels) {
+            if (name.includes(level)) {
+                item.upgradeLevel = upgradeLevel;
+                break;
+            }
+        }
+
+        // Remove prefix from name
+        item.name = item.name.split(" ", 2)[1];
     }
 
     if (type) {

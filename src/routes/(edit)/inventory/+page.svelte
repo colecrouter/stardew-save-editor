@@ -155,7 +155,7 @@
 
     <!-- Character View -->
     <Container>
-        <CharacterView {player} {selectedIndex} {selectedItem} />
+        <CharacterView {player} bind:selectedIndex bind:selectedItem />
     </Container>
 
     <!-- Item view -->

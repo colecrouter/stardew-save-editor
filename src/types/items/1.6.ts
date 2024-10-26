@@ -1,4 +1,5 @@
 import type { HasSprite, Size } from "$types/items/1.5";
+import type { Category } from "$types/save/1.5";
 import type { TypeEnum } from "$types/save/1.6";
 
 interface Base {
@@ -16,7 +17,7 @@ interface Base {
 export interface Object extends Base {
     _type: "Object";
     Type: TypeEnum;
-    Category: number;
+    Category: Category;
     Price: number;
     Texture: null;
     SpriteIndex: number;
@@ -86,7 +87,7 @@ export interface BigCraftable extends Base {
 
 export interface Boots extends Base, HasSprite {
     _type: "Boots";
-    Category: -97;
+    Category: Category.Boots;
     Defense: number;
     Immunity: number;
     ColorIndex: number;
@@ -94,7 +95,7 @@ export interface Boots extends Base, HasSprite {
 
 export interface Clothing extends Base {
     _type: "Pants" | "Shirt";
-    Category: -100;
+    Category: Category.Clothing;
     Price: number;
     Texture: null;
     SpriteIndex: number;

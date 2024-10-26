@@ -8,44 +8,61 @@ import {
 } from "$lib/ItemData";
 import { HexToRGB, RGBToHex } from "$lib/Spritesheet";
 import { FurnitureType } from "$types/items/1.5";
+import type { ItemInformation, ToolClassName } from "$types/items/1.6";
 import { Category } from "$types/save/1.5";
 import { ClothesType, type Item } from "$types/save/1.6";
 
+// Mapping of data types to item types
+const typeToItemTypeMap = new Map<ItemInformation['_type'], string>([
+    ["Object", "Object"],
+    ["BigCraftable", "Object"],
+    ["Furniture", "Furniture"],
+    ["Weapon", "MeleeWeapon"],
+    ["Hat", "Hat"],
+]);
+
+// Mapping of tool names to tool types
+const toolTypeMap = new Map<string, ToolClassName>([
+    ["Milk Pail", "MilkPail"],
+    ["Pickaxe", "Pickaxe"],
+    ["Axe", "Axe"],
+    ["Hoe", "Hoe"],
+    ["Watering Can", "WateringCan"],
+    ["Rod", "FishingRod"],
+    ["Pan", "Pan"],
+]);
+
+// Mapping of level names to upgrade levels
+const upgradeLevels = new Map([
+    ["Copper", 1],
+    ["Steel", 2],
+    ["Gold", 3],
+    ["Iridium", 4],
+]);
+
+const typeToCategoryMap = {
+    Object: undefined,
+    BigCraftable: undefined,
+    Boots: Category.Boots,
+    Pants: Category.Clothing,
+    Shirt: Category.Clothing,
+    Furniture: Category.Furniture,
+    Hat: Category.Hat,
+    Weapon: Category.Weapon,
+    Tool: Category.Tool,
+};
+
+
 export const createItem = (name: string) => {
     const data = ItemData.get(name);
-    console.log(name, data);
 
-    if (!data) {
-        throw new Error(`Item "${name}" not found in ItemData`);
-    }
+    if (!data) throw new Error(`Item "${name}" not found in ItemData`);
 
-    let category: Category | undefined;
-    switch (data._type) {
-        case "Object":
-            break;
-        case "BigCraftable":
-            break;
-        case "Boots":
-            category = Category.Boots;
-            break;
-        case "Pants":
-        case "Shirt":
-            category = Category.Clothing;
-            break;
-        case "Furniture":
-            category = Category.Furniture;
-            break;
-        case "Hat":
-            category = Category.Hat;
-            break;
-        case "Weapon":
-            category = Category.Weapon;
-            break;
-        case "Tool":
-            category = Category.Tool;
-            break;
-    }
+    // Determine the category
+    // Lots of items are missing a category in the data, so we need to handle them separately
+    const category = 'Category' in data ? data.Category : typeToCategoryMap[data._type];
 
+    // Initialize the item
     const item: Item = {
         name,
         itemId: data.ItemId,
@@ -53,12 +70,11 @@ export const createItem = (name: string) => {
         quality: 0,
         isRecipe: false,
         price: data.Price ?? 0,
-        parentSheetIndex:
-            "ParentSheetIndex" in data ? data.ParentSheetIndex : undefined,
+        parentSheetIndex: "ParentSheetIndex" in data ? data.ParentSheetIndex : undefined,
         indexInTileSheet: "SpriteIndex" in data ? data.SpriteIndex : undefined,
-        category: "Category" in data ? data.Category : category,
+        category: category,
         hasBeenInInventory: true,
-        SpecialVariable: 0, // TODO ?
+        SpecialVariable: 0, // TODO: Verify if needed
         isLostItem: false,
         specialItem: false,
         tileLocation: { X: 0, Y: 0 },
@@ -75,113 +91,68 @@ export const createItem = (name: string) => {
         type: data._type === "Object" ? data.Type : undefined,
     };
 
-    let type: string | undefined;
-    switch (data._type) {
-        case "Object":
-        case "BigCraftable":
-            type = "Object";
-            break;
-        case "Furniture":
-            type = "Furniture";
-            break;
-        case "Weapon":
-            type = "MeleeWeapon";
-            break;
-        case "Tool":
-            if (name === "Milk Pail") {
-                type = "MilkPail";
-            } else if (name.endsWith("Pickaxe")) {
-                type = "Pickaxe";
-            } else if (name.endsWith("Axe")) {
-                type = "Axe";
-            } else if (name.endsWith("Hoe")) {
-                type = "Hoe";
-            } else if (name.endsWith("Watering Can")) {
-                type = "WateringCan";
-            } else if (name.endsWith("Rod")) {
-                type = "FishingRod";
-            } else if (name.endsWith("Pan")) {
-                type = "Pan";
-            }
-            break;
-        case "Hat":
-            type = "Hat";
-            break;
-        // TODO
+    // Set quality for items that can have quality
+    if (category && CategoriesWithQuality.has(category)) {
+        item.quality = 0;
     }
 
-    // Fix tool names and set upgrade level
-    if (
-        type === "Pickaxe" ||
-        type === "Axe" ||
-        type === "Hoe" ||
-        type === "WateringCan"
-    ) {
-        const levels = [
-            ["Copper", 1],
-            ["Steel", 2],
-            ["Gold", 3],
-            ["Iridium", 4],
-        ] as const;
-        item.upgradeLevel = 0;
-        for (const [level, upgradeLevel] of levels) {
-            if (name.startsWith(level)) {
-                console.log(name);
-                item.upgradeLevel = upgradeLevel;
-                break;
+    // Set ID for rings
+    if (category === Category.Ring) {
+        item.uniqueID = RingsUniqueID.get(name);
+        // @ts-expect-error
+        item["@_xsi:type"] = "Ring";
+    }
+
+    // Determine the item type
+    let itemType = typeToItemTypeMap.get(data._type);
+
+    // Handle tools separately
+    if (data._type === "Tool") {
+        itemType = toolTypeMap.get(name);
+
+        // Special handling for upgrade levels
+        if (["Pickaxe", "Axe", "Hoe", "WateringCan"].includes(itemType ?? "")) {
+            item.upgradeLevel = 0;
+            for (const [levelName, levelValue] of upgradeLevels) {
+                if (name.startsWith(levelName)) {
+                    item.upgradeLevel = levelValue;
+                    // Remove prefix from name
+                    item.name = item.name.replace(`${levelName} `, "");
+                    break;
+                }
             }
+        } else if (itemType === "FishingRod") {
+            item.upgradeLevel = FishingRodUpgradeNumber.get(data.Name) ?? 0;
+            item.parentSheetIndex = 685;
+            item.initialParentTileIndex = FishingRodSpriteIndex.get(data.Name) ?? 0;
+            item.indexOfMenuItemView = item.initialParentTileIndex;
         }
-
-        // Remove prefix from name
-        item.name = item.name.split(" ").slice(1).join(" ");
     }
 
-    if (type) {
+    // Set the xsi:type if itemType is determined
+    if (itemType) {
         // This is required for the game to recognize the item as the correct type, but isn't part of the XML structures
         // @ts-expect-error
-        item["@_xsi:type"] = type;
-
-        // TODO: copper pan hat
-        // if (symbol === 'hat' && name === 'Copper Pan') {
-        //   // @ts-expect-error
-        //   item['@_xsi:type'] = 'Hat';
-        // }
+        item["@_xsi:type"] = itemType;
     }
 
-    // Add item quality if applicable
-    if ("Category" in data && CategoriesWithQuality.has(data.Category)) {
-        item.quality = 0;
-
-        // Special case for rings
-        if (data.Category === Category.Ring) {
-            const id = RingsUniqueID.get(name);
-            if (id) {
-                item.uniqueID = id;
-            }
-        }
-    }
-
+    // Set parentSheetIndex for non-tools
     if (data._type !== "Tool") {
         item.parentSheetIndex = "SpriteIndex" in data ? data.SpriteIndex : 0;
     }
 
-    if (item.name === "Fishing Rod") {
-        item.upgradeLevel = FishingRodUpgradeNumber.get(data.Name) ?? 0;
-        item.parentSheetIndex = 685;
-        item.initialParentTileIndex = FishingRodSpriteIndex.get(data.Name) ?? 0;
-        item.indexOfMenuItemView = item.initialParentTileIndex;
-    }
-
+    // Handle hats
     if (data._type === "Hat") {
         item.which = "";
     }
 
-    if ("Type" in data && data._type === "Furniture") {
+    // Handle furniture
+    if (data._type === "Furniture") {
         item.canBeGrabbed = true;
         item.parentSheetIndex = Number(data.ItemId);
         item.type = FurnitureTypeToNumber.get(data.Type as FurnitureType);
 
-        // sourceRect is the sprite data, if I understand correctly
+        // Set sourceRect if TilesheetSize is available
         if ("TilesheetSize" in data && data.TilesheetSize !== -1) {
             item.sourceRect = {
                 X: data.Sprite.x,
@@ -200,7 +171,7 @@ export const createItem = (name: string) => {
             item.defaultSourceRect = item.sourceRect;
         }
 
-        // Bounding box is the hitbox/placement box
+        // Set boundingBox if BoundingBoxSize is available
         if ("BoundingBoxSize" in data && data.BoundingBoxSize !== -1) {
             item.boundingBox = {
                 X: 0,
@@ -216,32 +187,26 @@ export const createItem = (name: string) => {
                     Y: 0,
                 },
             };
-
             item.defaultBoundingBox = item.boundingBox;
         }
 
-        // If the item is a lamp, enable the lamp property
+        // Enable lamp property for lamp-type furniture
         if (data.Type === FurnitureType.Lamp) {
             item.isLamp = true;
         }
     }
 
-    if ("CanBeDyed" in data && data.CanBeDyed) {
+    // Handle dyeable items
+    if ('CanBeDyed' in data && data.CanBeDyed) {
         let defaultColor = "#000000";
-        if ("DefaultColor" in data && data.DefaultColor) {
+        if (data.DefaultColor) {
             const [R, G, B] = data.DefaultColor.split(" ").map(Number);
-            const A = 255;
-            defaultColor = RGBToHex({ R, G, B, A, PackedValue: 0 });
+            defaultColor = RGBToHex({ R, G, B, A: 255, PackedValue: 0 });
         }
-
         item.clothesColor = HexToRGB(defaultColor);
     }
 
-    if ("Category" in data && data.Category === Category.Ring) {
-        // @ts-expect-error
-        item["@_xsi:type"] = "Ring";
-    }
-
+    // Set edibility and price if available
     if ("Edibility" in data) {
         item.edibility = data.Edibility;
     }
@@ -250,22 +215,12 @@ export const createItem = (name: string) => {
         item.price = data.Price ?? 0;
     }
 
-    if (data._type === "Shirt") {
-        item.clothesType = ClothesType.Shirt;
-    } else if (data._type === "Pants") {
-        item.clothesType = ClothesType.Pants;
+    // Handle clothes types
+    if (data._type in ClothesType) {
+        item.clothesType = ClothesType[data._type as keyof typeof ClothesType];
     }
 
-    // TODO: copper pan hat
-    // if (symbol === 'hat' && item.name === 'Copper Pan') {
-    //     // @ts-expect-error This is exlusive to the copper pan
-    //     item.ignoreHairstyleOffset = true;
-    //     item.parentSheetIndex = 71;
-    //     item.indexInTileSheet = 71;
-    //     item.category = Category.Hat;
-    //     // @ts-expect-error This is exlusive to the copper pan
-    //     item.which = 71;
-    // }
+    // TODO: Handle the Copper Pan hat special case if needed
 
     return item;
 };

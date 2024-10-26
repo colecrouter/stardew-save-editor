@@ -1,6 +1,5 @@
 <script lang="ts">
     import type { ParentIndex } from '$lib/ItemParentIndex';
-    import type { ItemInformation } from '$types/items/1.6';
     import type { Item } from '$types/save/1.6';
     import './Item.css';
     import ItemSprite from './ItemSprite.svelte';

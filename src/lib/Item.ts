@@ -19,7 +19,7 @@ export const createItem = (name: string) => {
         throw new Error(`Item "${name}" not found in ItemData`);
     }
 
-    let category: number | undefined;
+    let category: Category | undefined;
     switch (data._type) {
         case "Object":
             break;
@@ -56,7 +56,7 @@ export const createItem = (name: string) => {
         parentSheetIndex:
             "ParentSheetIndex" in data ? data.ParentSheetIndex : undefined,
         indexInTileSheet: "SpriteIndex" in data ? data.SpriteIndex : undefined,
-        category: "Category" in data ? data.Category : undefined,
+        category: "Category" in data ? data.Category : category,
         hasBeenInInventory: true,
         SpecialVariable: 0, // TODO ?
         isLostItem: false,
@@ -125,14 +125,15 @@ export const createItem = (name: string) => {
         ] as const;
         item.upgradeLevel = 0;
         for (const [level, upgradeLevel] of levels) {
-            if (name.includes(level)) {
+            if (name.startsWith(level)) {
+                console.log(name);
                 item.upgradeLevel = upgradeLevel;
                 break;
             }
         }
 
         // Remove prefix from name
-        item.name = item.name.split(" ", 2)[1];
+        item.name = item.name.split(" ").slice(1).join(" ");
     }
 
     if (type) {

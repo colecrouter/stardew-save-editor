@@ -64,7 +64,7 @@ export const createItem = (name: string) => {
 
     // Initialize the item
     const item: Item = {
-        name,
+        name: data.Name,
         itemId: data.ItemId,
         stack: 1,
         quality: 0,
@@ -108,7 +108,8 @@ export const createItem = (name: string) => {
 
     // Handle tools separately
     if (data._type === "Tool") {
-        itemType = toolTypeMap.get(name);
+        const nameWithoutPrefix = name.split(" ").slice(1).join(" ");
+        itemType = toolTypeMap.get(nameWithoutPrefix);
 
         // Special handling for upgrade levels
         if (["Pickaxe", "Axe", "Hoe", "WateringCan"].includes(itemType ?? "")) {
@@ -117,7 +118,7 @@ export const createItem = (name: string) => {
                 if (name.startsWith(levelName)) {
                     item.upgradeLevel = levelValue;
                     // Remove prefix from name
-                    item.name = item.name.replace(`${levelName} `, "");
+                    item.name = nameWithoutPrefix;
                     break;
                 }
             }

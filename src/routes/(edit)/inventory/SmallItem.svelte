@@ -4,10 +4,19 @@
     import './Item.css';
     import ItemSprite from './ItemSprite.svelte';
 
-    export let item: Item | undefined;
-    export let index: ParentIndex;
-    export let selectedItem: Item | undefined;
-    export let selectedIndex: ParentIndex;
+    interface Props {
+        item: Item | undefined;
+        index: ParentIndex;
+        selectedItem: Item | undefined;
+        selectedIndex: ParentIndex;
+    }
+
+    let {
+        item,
+        index,
+        selectedItem = $bindable(),
+        selectedIndex = $bindable()
+    }: Props = $props();
 
     const handleClick = () => {
         selectedItem = item;
@@ -17,8 +26,8 @@
 
 <div
     class="item-wrapper"
-    on:click={handleClick}
-    on:keydown={handleClick}
+    onclick={handleClick}
+    onkeydown={handleClick}
     role="radio"
     aria-checked={index === selectedIndex}
     tabindex="0">

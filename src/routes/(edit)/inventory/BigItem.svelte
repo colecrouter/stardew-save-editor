@@ -3,7 +3,11 @@
     import './Item.css';
     import ItemSprite from './ItemSprite.svelte';
 
-    export let item: Item | undefined;
+    interface Props {
+        item: Item | undefined;
+    }
+
+    let { item }: Props = $props();
 </script>
 
 <div class="item-wrapper">

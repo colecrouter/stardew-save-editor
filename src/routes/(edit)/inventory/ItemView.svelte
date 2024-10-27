@@ -10,17 +10,27 @@
     import BigItem from './BigItem.svelte';
     import QualitySelector from './QualitySelector.svelte';
 
-    export let selectedItem: Item | undefined;
-    export let selectedIndex: ParentIndex | undefined;
-    export let rerender: () => void;
-    export let deleteItem: () => void;
-    export let createItem: (name: string) => void;
+    interface Props {
+        selectedItem: Item | undefined;
+        selectedIndex: ParentIndex | undefined;
+        rerender: () => void;
+        deleteItem: () => void;
+        createItem: (name: string) => void;
+    }
 
-    let newItemName = '';
+    let {
+        selectedItem = $bindable(),
+        selectedIndex,
+        rerender,
+        deleteItem,
+        createItem
+    }: Props = $props();
 
-    $: selectedItemData = selectedItem
+    let newItemName = $state('');
+
+    let selectedItemData = $derived(selectedItem
         ? ItemData.get(selectedItem.name)
-        : undefined;
+        : undefined);
 </script>
 
 <div class="editor">
@@ -163,7 +173,7 @@
                             bind:value={selectedItem.indexInColorSheet}
                             min="0"
                             max="71"
-                            on:change={() => {
+                            onchange={() => {
                                 if (!selectedItem) return;
                                 // Force rerender on any other components watching this item
                                 rerender();
@@ -179,7 +189,7 @@
                                     selectedItem.clothesColor ??
                                         PackedValue(255, 255, 255, 255),
                                 )}
-                                on:change={(e) => {
+                                onchange={(e) => {
                                     if (!selectedItem) return;
                                     selectedItem.clothesColor = HexToRGB(
                                         // @ts-expect-error
@@ -199,7 +209,7 @@
                 {/if}
 
                 <!-- Quality selector -->
-                <!-- svelte-ignore a11y-label-has-associated-control -->
+                <!-- svelte-ignore a11y_label_has_associated_control -->
                 {#if selectedItem.category && CategoriesWithQuality.has(selectedItem.category)}
                     <label>
                         <small>Quality</small>
@@ -242,7 +252,7 @@
         {#if selectedItem}
             <button
                 class="btn btn-danger"
-                on:click={() => {
+                onclick={() => {
                     if (selectedIndex) {
                         deleteItem();
                     }
@@ -252,7 +262,7 @@
         {:else if selectedIndex}
             <button
                 class="btn btn-success"
-                on:click={() => {
+                onclick={() => {
                     if (selectedIndex) {
                         createItem(newItemName);
                         newItemName = '';

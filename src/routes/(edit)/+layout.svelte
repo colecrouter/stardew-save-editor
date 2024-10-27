@@ -9,6 +9,11 @@
     import { get } from 'svelte/store';
     import SidebarButton from '../SidebarButton.svelte';
     import Router from './Router.svelte';
+    interface Props {
+        children?: import('svelte').Snippet;
+    }
+
+    let { children }: Props = $props();
 
     // If the save changes for whatever reason, go back to the main screen
     const unsub = page.subscribe(
@@ -40,7 +45,7 @@
     <Router />
     <div class="inner-wrapper">
         <div class="content">
-            <slot />
+            {@render children?.()}
         </div>
         <div class="sidebar">
             <div use:tooltip aria-label="Exit">

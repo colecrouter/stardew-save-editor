@@ -1,4 +1,6 @@
 <script lang="ts">
+    import { run } from 'svelte/legacy';
+
     import { Character, SaveGame } from '$lib/SaveFile';
     import { tooltip } from '$lib/Tooltip';
     import type { GameLocation, Player, Save } from '$types/save/1.6';
@@ -6,18 +8,18 @@
     import SkillBar from './SkillBar.svelte';
     import WalletItem from './WalletItem.svelte';
 
-    let player: Player | undefined;
-    let skillValues: number[] = [];
+    let player: Player | undefined = $state();
+    let skillValues: number[] = $state([]);
 
-    let hasTranslation = false;
-    let hasRustyKey = false;
-    let hasClubCard = false;
-    let hasSpecialCharm = false;
-    let hasSkullKey = false;
-    let hasMagnifyingGlass = false;
-    let hasDarkTalisman = false;
-    let hasMagicInk = false;
-    let hasTownKey = false;
+    let hasTranslation = $state(false);
+    let hasRustyKey = $state(false);
+    let hasClubCard = $state(false);
+    let hasSpecialCharm = $state(false);
+    let hasSkullKey = $state(false);
+    let hasMagnifyingGlass = $state(false);
+    let hasDarkTalisman = $state(false);
+    let hasMagicInk = $state(false);
+    let hasTownKey = $state(false);
 
     Character.character.subscribe((c) => {
         if (!c) return;
@@ -36,8 +38,8 @@
         skillValues = c.experiencePoints.int;
     });
 
-    let save: Save;
-    let farm: GameLocation;
+    let save: Save = $state();
+    let farm: GameLocation = $state();
     SaveGame.subscribe((s) => {
         if (!s) return;
         save = s.SaveGame;
@@ -54,7 +56,7 @@
         'Combat ⚔️',
     ];
 
-    $: {
+    run(() => {
         if (player) {
             player.canUnderstandDwarves = hasTranslation ? '' : undefined;
             player.hasRustyKey = hasRustyKey ? '' : undefined;
@@ -66,7 +68,7 @@
             player.hasMagicInk = hasMagicInk ? '' : undefined;
             player.HasTownKey = hasTownKey ? '' : undefined;
         }
-    }
+    });
 </script>
 
 {#if player}

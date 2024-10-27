@@ -4,7 +4,7 @@
     import Container from '../../Container.svelte';
     import HeartBar from './HeartBar.svelte';
 
-    let characters: FriendshipDataItem[] = [];
+    let characters: FriendshipDataItem[] = $state([]);
     Character.character.subscribe((c) => {
         if (!c) return;
 

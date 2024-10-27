@@ -1,5 +1,10 @@
 <script lang="ts">
     import { base } from '$app/paths';
+    interface Props {
+        children?: import('svelte').Snippet;
+    }
+
+    let { children }: Props = $props();
 </script>
 
 <svelte:head>
@@ -42,7 +47,7 @@
 </a>
 
 <main>
-    <slot />
+    {@render children?.()}
 </main>
 
 <!-- FOOTER -->

@@ -1,9 +1,14 @@
 <script lang="ts">
-    export let value: boolean;
+    interface Props {
+        value: boolean;
+        children?: import('svelte').Snippet;
+    }
+
+    let { value = $bindable(), children }: Props = $props();
 </script>
 
-<button class:disabled={!value} on:click={() => (value = !value)}>
-    <slot />
+<button class:disabled={!value} onclick={() => (value = !value)}>
+    {@render children?.()}
 </button>
 
 <style>

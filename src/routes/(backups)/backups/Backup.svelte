@@ -1,9 +1,13 @@
 <script lang="ts">
-    export let backup: File;
-    export let deleteFunc: () => void;
+    interface Props {
+        backup: File;
+        deleteFunc: () => void;
+    }
 
-    let date: Date;
-    $: date = new Date(backup.lastModified);
+    let { backup, deleteFunc }: Props = $props();
+
+    let date: Date = $derived(new Date(backup.lastModified));
+    
 
     const download = () => {
         const a = document.createElement('a');
@@ -20,8 +24,8 @@
         <small>{((backup.size >> 10) / 1024).toPrecision(3)} MB</small>
     </div>
     <div>
-        <button aria-label="Download" on:click={download}>💾</button>
-        <button aria-label="Delete" on:click={deleteFunc}>🗑️</button>
+        <button aria-label="Download" onclick={download}>💾</button>
+        <button aria-label="Delete" onclick={deleteFunc}>🗑️</button>
     </div>
 </div>
 

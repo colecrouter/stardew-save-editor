@@ -4,9 +4,13 @@
     import Preview from '../appearance/Preview.svelte';
     import SmallItem from './SmallItem.svelte';
 
-    export let player: Player;
-    export let selectedItem: Item | undefined;
-    export let selectedIndex: ParentIndex;
+    interface Props {
+        player: Player;
+        selectedItem: Item | undefined;
+        selectedIndex: ParentIndex;
+    }
+
+    let { player = $bindable(), selectedItem = $bindable(), selectedIndex = $bindable() }: Props = $props();
 </script>
 
 <div class="character-details">

@@ -6,10 +6,10 @@
     import Container from '../../Container.svelte';
     import Preview from './Preview.svelte';
 
-    let character: Player | undefined;
-    let skinColor: number = 0;
-    let hairStyle: number = 0;
-    let acc: number = 0;
+    let character: Player | undefined = $state();
+    let skinColor: number = $state(0);
+    let hairStyle: number = $state(0);
+    let acc: number = $state(0);
 
     Character.character.subscribe((c) => {
         if (!c) return;
@@ -45,7 +45,7 @@
                             value="male"
                             checked={character &&
                                 character.gender === Gender.Male}
-                            on:click={() =>
+                            onclick={() =>
                                 character &&
                                 (character.gender = Gender.Male)} />
                     </label>
@@ -57,7 +57,7 @@
                             value="female"
                             checked={character &&
                                 character.gender === Gender.Female}
-                            on:click={() =>
+                            onclick={() =>
                                 character &&
                                 (character.gender = Gender.Female)} />
                     </label>
@@ -70,7 +70,7 @@
                             min="1"
                             max="24"
                             bind:value={skinColor}
-                            on:change={() =>
+                            onchange={() =>
                                 character &&
                                 (character.skin = (skinColor ?? 1) - 1)} />
                     </label>
@@ -81,7 +81,7 @@
                             min="1"
                             max="73"
                             bind:value={hairStyle}
-                            on:change={() =>
+                            onchange={() =>
                                 character &&
                                 (character.hair = (hairStyle ?? 1) - 1)} />
                     </label>
@@ -92,7 +92,7 @@
                             min="1"
                             max="20"
                             bind:value={acc}
-                            on:change={() =>
+                            onchange={() =>
                                 character &&
                                 (character.accessory = (acc ?? 1) - 2)} />
                     </label>
@@ -135,7 +135,7 @@
                                         PackedValue: 0,
                                     },
                                 )}
-                                on:change={(e) => {
+                                onchange={(e) => {
                                     if (!character) return;
                                     character.newEyeColor = HexToRGB(
                                         // @ts-expect-error
@@ -161,7 +161,7 @@
                                         PackedValue: 0,
                                     },
                                 )}
-                                on:change={(e) => {
+                                onchange={(e) => {
                                     if (!character) return;
                                     character.hairstyleColor = HexToRGB(
                                         // @ts-expect-error

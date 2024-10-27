@@ -3,8 +3,12 @@
     import ItemSprite from '../inventory/ItemSprite.svelte';
     import SmallItem from '../inventory/SmallItem.svelte';
 
-    export let keys: string[];
-    export let values: KV[]; // 'values' is a bit misleading, more like "which keys are true"
+    interface Props {
+        keys: string[];
+        values: KV[];
+    }
+
+    let { keys, values }: Props = $props();
 
     const handleCheck = (e: Event) => {
         const target = e.target as HTMLInputElement;
@@ -34,7 +38,7 @@
                 type="checkbox"
                 aria-label={key}
                 checked={values.some((v) => v.key.string === key)}
-                on:change={handleCheck} />
+                onchange={handleCheck} />
         </label>
     {/each}
 </div>

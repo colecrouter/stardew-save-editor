@@ -5,10 +5,14 @@
     import List from '../List.svelte';
     import type { PageData } from './$types';
 
-    export let data: PageData;
+    interface Props {
+        data: PageData;
+    }
+
+    let { data }: Props = $props();
     const recipes = data.recipes;
 
-    let recipesUnlocked: KV[] = [];
+    let recipesUnlocked: KV[] = $state([]);
     Character.character.subscribe((c) => {
         if (!c) return;
 

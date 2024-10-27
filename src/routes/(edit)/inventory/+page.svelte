@@ -1,4 +1,6 @@
 <script lang="ts">
+    import { run } from 'svelte/legacy';
+
     import { createItem as create } from '$lib/Item';
     import { ItemData } from '$lib/ItemData';
     import type { ParentIndex } from '$lib/ItemParentIndex';
@@ -11,14 +13,14 @@
     import ItemView from './ItemView.svelte';
     import SmallItem from './SmallItem.svelte';
 
-    let selectedItemData: ItemInformation | undefined;
+    let selectedItemData: ItemInformation | undefined = $state();
 
-    let inventory: Array<Item | undefined> = [];
-    let selectedItem: Item | undefined;
-    let selectedIndex: ParentIndex;
+    let inventory: Array<Item | undefined> = $state([]);
+    let selectedItem: Item | undefined = $state();
+    let selectedIndex: ParentIndex = $state();
 
     // Update our reference to the select player
-    let player: Player | undefined;
+    let player: Player | undefined = $state();
     Character.character.subscribe((c) => {
         if (!c) return;
 
@@ -27,66 +29,68 @@
     });
 
     // Price/edibility calculation
-    let oldQuality: number | undefined;
+    let oldQuality: number | undefined = $state();
 
-    $: (() => {
-        // Refresh the selected item hardcoded data
-        selectedItemData = selectedItem
-            ? ItemData.get(selectedItem?.name)
-            : undefined;
+    run(() => {
+        (() => {
+            // Refresh the selected item hardcoded data
+            selectedItemData = selectedItem
+                ? ItemData.get(selectedItem?.name)
+                : undefined;
 
-        selectedItem &&
-            console.debug('Selected item:', selectedItem?.name, selectedIndex);
+            selectedItem &&
+                console.debug('Selected item:', selectedItem?.name, selectedIndex);
 
-        // Calculate price/edibility for default price/edibility items
-        if (selectedItem?.quality === undefined) return;
+            // Calculate price/edibility for default price/edibility items
+            if (selectedItem?.quality === undefined) return;
 
-        try {
-            // When the item is first clicked, oldQuality will be undefined
-            if (oldQuality === undefined) oldQuality = selectedItem.quality;
+            try {
+                // When the item is first clicked, oldQuality will be undefined
+                if (oldQuality === undefined) oldQuality = selectedItem.quality;
 
-            // If the quality hasn't changed, we don't need to do anything
-            if (oldQuality === selectedItem.quality) return;
+                // If the quality hasn't changed, we don't need to do anything
+                if (oldQuality === selectedItem.quality) return;
 
-            if (!selectedItemData) return;
+                if (!selectedItemData) return;
 
-            // Check if the items price is the same as the default price
-            // If so, we need to change the price whenever the quality changes
-            // If not, we can assume the user has changed it, so just leave it alone
-            if (
-                'Price' in selectedItemData &&
-                selectedItemData.Price !== undefined &&
-                selectedItem.price
-            ) {
-                const theoreticalOldPrice = CalculatePrice(
-                    selectedItemData.Price,
-                    oldQuality ?? 0,
-                );
-                if (theoreticalOldPrice === selectedItem.price) {
-                    selectedItem.price = CalculatePrice(
+                // Check if the items price is the same as the default price
+                // If so, we need to change the price whenever the quality changes
+                // If not, we can assume the user has changed it, so just leave it alone
+                if (
+                    'Price' in selectedItemData &&
+                    selectedItemData.Price !== undefined &&
+                    selectedItem.price
+                ) {
+                    const theoreticalOldPrice = CalculatePrice(
                         selectedItemData.Price,
-                        selectedItem.quality,
+                        oldQuality ?? 0,
                     );
+                    if (theoreticalOldPrice === selectedItem.price) {
+                        selectedItem.price = CalculatePrice(
+                            selectedItemData.Price,
+                            selectedItem.quality,
+                        );
+                    }
                 }
-            }
 
-            if ('Edibility' in selectedItemData && selectedItem.edibility) {
-                const theoreticalOldEdibility = CalculateEdibility(
-                    selectedItemData.Edibility,
-                    oldQuality ?? 0,
-                );
-                if (theoreticalOldEdibility === selectedItem.edibility) {
-                    selectedItem.edibility = CalculateEdibility(
+                if ('Edibility' in selectedItemData && selectedItem.edibility) {
+                    const theoreticalOldEdibility = CalculateEdibility(
                         selectedItemData.Edibility,
-                        selectedItem.quality,
+                        oldQuality ?? 0,
                     );
+                    if (theoreticalOldEdibility === selectedItem.edibility) {
+                        selectedItem.edibility = CalculateEdibility(
+                            selectedItemData.Edibility,
+                            selectedItem.quality,
+                        );
+                    }
                 }
+            } finally {
+                // Store the previous quality value at the end
+                oldQuality = selectedItem.quality;
             }
-        } finally {
-            // Store the previous quality value at the end
-            oldQuality = selectedItem.quality;
-        }
-    })();
+        })();
+    });
 
     const deleteItem = (symbol: ParentIndex) => {
         if (!player) return;
@@ -135,7 +139,7 @@
 <!-- Data list for adding new items -->
 <datalist id="new-items">
     {#each Array.from(ItemData.keys()) as name}
-        <option value={name} />
+        <option value={name}></option>
     {/each}
 </datalist>
 

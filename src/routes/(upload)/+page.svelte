@@ -1,11 +1,13 @@
 <script lang="ts">
+  import { preventDefault } from 'svelte/legacy';
+
   import { goto } from '$app/navigation';
   import { base } from '$app/paths';
   import { FileName, SaveConverter, SaveGame } from '$lib/SaveFile';
   import Container from '../Container.svelte';
 
-  let submit: HTMLInputElement;
-  let files: FileList;
+  let submit: HTMLInputElement = $state();
+  let files: FileList = $state();
 
   const handle = async () => {
     const file = files[0];
@@ -31,14 +33,14 @@
 </script>
 
 <Container>
-  <form on:submit|preventDefault={handle} method="POST">
+  <form onsubmit={preventDefault(handle)} method="POST">
     <input
       type="file"
       accept=""
       name="file"
       required
       bind:files
-      on:change={() => {
+      onchange={() => {
         return submit.click();
       }} />
     <input type="submit" value="Upload" bind:this={submit} hidden />

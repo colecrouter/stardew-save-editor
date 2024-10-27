@@ -1,6 +1,19 @@
-<!-- svelte-ignore a11y-click-events-have-key-events -->
-<button on:click>
-    <slot />
+<script>
+    import { createBubbler } from 'svelte/legacy';
+
+    const bubble = createBubbler();
+    /**
+     * @typedef {Object} Props
+     * @property {import('svelte').Snippet} [children]
+     */
+
+    /** @type {Props} */
+    let { children } = $props();
+</script>
+
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+<button onclick={bubble('click')}>
+    {@render children?.()}
 </button>
 
 <style>

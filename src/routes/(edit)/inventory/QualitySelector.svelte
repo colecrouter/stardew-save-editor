@@ -1,11 +1,19 @@
 <script lang="ts">
+    import { run } from 'svelte/legacy';
+
     import { ItemData } from '$lib/ItemData';
     import type { Item } from '$types/save/1.6';
 
-    export let item: Item;
+    interface Props {
+        item: Item;
+    }
+
+    let { item = $bindable() }: Props = $props();
 
     // Set default quality to 0 if it doesn't exist
-    $: if (!item.quality) item.quality = 0;
+    run(() => {
+        if (!item.quality) item.quality = 0;
+    });
 
     const priceIncrease = [1.0, 1.25, 1.5, NaN, 2.0];
 
@@ -37,7 +45,7 @@
                     checked={item.quality === i}
                     value={i}
                     bind:group={item.quality}
-                    on:click={() => changePrice(i)} />
+                    onclick={() => changePrice(i)} />
             </label>
         {/each}
     {/if}

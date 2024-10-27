@@ -7,13 +7,18 @@
     import { tooltip } from '$lib/Tooltip';
     import { browser } from '$app/environment';
     import { base } from '$app/paths';
+    interface Props {
+        children?: import('svelte').Snippet;
+    }
+
+    let { children }: Props = $props();
 
     // https://github.com/sveltejs/kit/issues/5434
     page.subscribe((p) => browser && p.url.pathname === '/' && get(SaveGame) && goto(base + '/inventory'));
 </script>
 
 <div class="wrapper">
-    <slot />
+    {@render children?.()}
 
     <nav>
         <a href={`${base}/backups`} aria-label="Backups" use:tooltip>

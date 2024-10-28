@@ -13,7 +13,7 @@ import { Category } from "$types/save/1.5";
 import { ClothesType, type Item } from "$types/save/1.6";
 
 // Mapping of data types to item types
-const typeToItemTypeMap = new Map<ItemInformation['_type'], string>([
+const typeToItemTypeMap = new Map<ItemInformation["_type"], string>([
     ["Object", "Object"],
     ["BigCraftable", "Object"],
     ["Furniture", "Furniture"],
@@ -52,7 +52,6 @@ const typeToCategoryMap = {
     Tool: Category.Tool,
 };
 
-
 export const createItem = (name: string) => {
     const data = ItemData.get(name);
 
@@ -60,7 +59,8 @@ export const createItem = (name: string) => {
 
     // Determine the category
     // Lots of items are missing a category in the data, so we need to handle them separately
-    const category = 'Category' in data ? data.Category : typeToCategoryMap[data._type];
+    const category =
+        "Category" in data ? data.Category : typeToCategoryMap[data._type];
 
     // Initialize the item
     const item: Item = {
@@ -70,7 +70,8 @@ export const createItem = (name: string) => {
         quality: 0,
         isRecipe: false,
         price: data.Price ?? 0,
-        parentSheetIndex: "ParentSheetIndex" in data ? data.ParentSheetIndex : undefined,
+        parentSheetIndex:
+            "ParentSheetIndex" in data ? data.ParentSheetIndex : undefined,
         indexInTileSheet: "SpriteIndex" in data ? data.SpriteIndex : undefined,
         category: category,
         hasBeenInInventory: true,
@@ -125,9 +126,23 @@ export const createItem = (name: string) => {
         } else if (itemType === "FishingRod") {
             item.upgradeLevel = FishingRodUpgradeNumber.get(data.Name) ?? 0;
             item.parentSheetIndex = 685;
-            item.initialParentTileIndex = FishingRodSpriteIndex.get(data.Name) ?? 0;
+            item.initialParentTileIndex =
+                FishingRodSpriteIndex.get(data.Name) ?? 0;
             item.indexOfMenuItemView = item.initialParentTileIndex;
         }
+    }
+
+    // Handle weapon properties
+    if (data._type === "Weapon") {
+        item.minDamage = data.MinDamage;
+        item.maxDamage = data.MaxDamage;
+        item.speed = data.Speed;
+        // item.addedPrecision = data.AddedPrecision;
+        // item.addedDefense = data.AddedDefense;
+        // item.addedAreaOfEffect = data.AddedAreaOfEffect;
+        item.knockback = data.Knockback;
+        item.critChance = data.CritChance;
+        item.critMultiplier = data.CritMultiplier;
     }
 
     // Set the xsi:type if itemType is determined
@@ -198,7 +213,7 @@ export const createItem = (name: string) => {
     }
 
     // Handle dyeable items
-    if ('CanBeDyed' in data && data.CanBeDyed) {
+    if ("CanBeDyed" in data && data.CanBeDyed) {
         let defaultColor = "#000000";
         if (data.DefaultColor) {
             const [R, G, B] = data.DefaultColor.split(" ").map(Number);

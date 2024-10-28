@@ -150,7 +150,6 @@ export interface Weapon extends Base {
     Speed: number;
     Precision: number;
     Defense: number;
-    Type: WeaponType;
     MineBaseLevel: number;
     MineMinLevel: number;
     AreaOfEffect: number;
@@ -161,13 +160,6 @@ export interface Weapon extends Base {
     SpriteIndex: number;
     Projectiles: null;
     CustomFields: never[] | null;
-}
-export enum WeaponType {
-    Saber = 0,
-    Knife = 1,
-    Club = 2,
-    Sword = 3,
-    Slingshot = 4,
 }
 
 export interface Tool extends Base {

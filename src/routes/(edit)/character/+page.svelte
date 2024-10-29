@@ -1,52 +1,32 @@
 <script lang="ts">
-    import { run } from "svelte/legacy";
-
-    import { Character, SaveGame } from "$lib/SaveFile";
+    import { saveManager } from "$lib/SaveFile.svelte";
     import { tooltip } from "$lib/Tooltip";
-    import type { GameLocation, Player, Save } from "$types/save/1.6";
+    import type { Player, Save } from "$types/save/1.6";
     import Container from "../../Container.svelte";
     import SkillBar from "./SkillBar.svelte";
     import WalletItem from "./WalletItem.svelte";
 
-    let player: Player | undefined = $state();
-    let skillValues: number[] = $state([]);
+    if (!saveManager.player || !saveManager.farm || !saveManager.saveData)
+        throw new Error("No player data found");
 
-    let hasTranslation = $state(false);
-    let hasRustyKey = $state(false);
-    let hasClubCard = $state(false);
-    let hasSpecialCharm = $state(false);
-    let hasSkullKey = $state(false);
-    let hasMagnifyingGlass = $state(false);
-    let hasDarkTalisman = $state(false);
-    let hasMagicInk = $state(false);
-    let hasTownKey = $state(false);
+    const unlocks = [
+        ["📙", "canUnderstandDwarves", "Dwarvish Translation Guide"],
+        ["🗝️", "hasRustyKey", "Rusty Key"],
+        ["🃏", "hasClubCard", "Club Card"],
+        ["🍀", "hasSpecialCharm", "Special Charm"],
+        ["💀", "hasSkullKey", "Skull Key"],
+        ["🔍", "hasMagnifyingGlass", "Magnifying Glass"],
+        ["🌑", "hasDarkTalisman", "Dark Talisman"],
+        ["🖋️", "hasMagicInk", "Magic Ink"],
+        ["🏘️", "HasTownKey", "Town Key"],
+    ] satisfies [string, keyof Player, string][];
 
-    Character.character.subscribe((c) => {
-        if (!c) return;
-        player = c;
-
-        hasTranslation = !!c.canUnderstandDwarves;
-        hasRustyKey = !!c.hasRustyKey;
-        hasClubCard = !!c.hasClubCard;
-        hasSpecialCharm = !!c.hasSpecialCharm;
-        hasSkullKey = !!c.hasSkullKey;
-        hasMagnifyingGlass = !!c.hasMagnifyingGlass;
-        hasDarkTalisman = !!c.hasDarkTalisman;
-        hasMagicInk = !!c.hasMagicInk;
-        hasTownKey = !!c.HasTownKey;
-
-        skillValues = c.experiencePoints.int;
-    });
-
-    let save: Save = $state();
-    let farm: GameLocation = $state();
-    SaveGame.subscribe((s) => {
-        if (!s) return;
-        save = s.SaveGame;
-        farm = s.SaveGame.locations.GameLocation.find(
-            (l) => l.name === "Farm",
-        )!;
-    });
+    function updateUnlock(key: keyof Player, value: boolean) {
+        if (saveManager.player) {
+            // @ts-ignore
+            saveManager.player[key] = value ? "" : undefined;
+        }
+    }
 
     const skills = [
         "Farming 🥕",
@@ -56,36 +36,51 @@
         "Combat ⚔️",
     ];
 
-    run(() => {
-        if (player) {
-            player.canUnderstandDwarves = hasTranslation ? "" : undefined;
-            player.hasRustyKey = hasRustyKey ? "" : undefined;
-            player.hasClubCard = hasClubCard ? "" : undefined;
-            player.hasSpecialCharm = hasSpecialCharm ? "" : undefined;
-            player.hasSkullKey = hasSkullKey ? "" : undefined;
-            player.hasMagnifyingGlass = hasMagnifyingGlass ? "" : undefined;
-            player.hasDarkTalisman = hasDarkTalisman ? "" : undefined;
-            player.hasMagicInk = hasMagicInk ? "" : undefined;
-            player.HasTownKey = hasTownKey ? "" : undefined;
+    type S = typeof saveManager;
+    type Stat = {
+        [T in keyof S]: NonNullable<S[T]> extends object
+            ? {
+                  [U in keyof NonNullable<S[T]>]: [string, T, U];
+              }[keyof NonNullable<S[T]>]
+            : never;
+    }[keyof S];
+    const stats = [
+        ["Health ❤️", "player", "maxHealth"],
+        ["Stamina ⚡", "player", "maxStamina"],
+        ["Qi Gems 💎", "player", "qiGems"],
+        ["Qi Coins 💰", "player", "clubCoins"],
+        ["Hay 🌾", "farm", "piecesOfHay"],
+        ["Golden Walnuts 🌰", "saveData", "goldenWalnuts"],
+    ] satisfies Stat[];
+
+    function updateStat(
+        firstKey: keyof S,
+        secondKey: keyof NonNullable<S[typeof firstKey]>,
+        value: number,
+    ) {
+        if (saveManager[firstKey]) {
+            // @ts-ignore
+            saveManager[firstKey][secondKey] = value;
         }
-    });
+    }
 </script>
 
-{#if player}
+{#if saveManager.player && saveManager.farm}
+    {@const player = saveManager.player}
     <Container>
         <h3>Skills</h3>
         <div class="wrapper">
-            {#each skillValues as skill, i}
+            {#each player.experiencePoints.int as skill, i}
                 {#if skills[i] !== undefined}
                     <label for={`skills-${i}`}>
                         {skills[i]}
-                        <SkillBar bind:skill />
+                        <SkillBar bind:skill={player.experiencePoints.int[i]} />
                         <input
                             id={`skills-${i}`}
                             type="number"
                             min="0"
                             max="99999"
-                            bind:value={skill}
+                            bind:value={player.experiencePoints.int[i]}
                         />
                     </label>
                 {/if}
@@ -95,92 +90,33 @@
         <h3>Stats</h3>
 
         <div class="stats">
-            <label>
-                Health
-                <input
-                    type="number"
-                    min="0"
-                    max="99999"
-                    bind:value={player.maxHealth}
-                />
-            </label>
-            <label>
-                Stamina
-                <input
-                    type="number"
-                    min="0"
-                    max="99999"
-                    bind:value={player.maxStamina}
-                />
-            </label>
-            <label>
-                Qi Gems
-                <input
-                    type="number"
-                    min="0"
-                    max="99999"
-                    bind:value={player.qiGems}
-                />
-            </label>
-            <label>
-                Qi Coins
-                <input
-                    type="number"
-                    min="0"
-                    max="99999"
-                    bind:value={player.clubCoins}
-                />
-            </label>
-            <label>
-                Hay
-                <input
-                    type="number"
-                    min="0"
-                    max="99999"
-                    bind:value={farm.piecesOfHay}
-                />
-            </label>
-            <label>
-                Golden Walnuts
-                <input
-                    type="number"
-                    min="0"
-                    max="130"
-                    bind:value={save.goldenWalnuts}
-                />
-            </label>
+            {#each stats as [label, key1, key2]}
+                <label>
+                    {label}
+                    <input
+                        type="number"
+                        min="0"
+                        max="99999"
+                        bind:value={saveManager[key1 as never][key2]}
+                    />
+                    <!-- Why does this work ^ ???? -->
+                </label>
+            {/each}
         </div>
 
         <h3>Wallet</h3>
 
         <div class="wallet">
-            <div aria-label="Dwarvish Translation Guide" use:tooltip>
-                <WalletItem bind:value={hasTranslation}>📙</WalletItem>
-            </div>
-            <div aria-label="Rusty Key" use:tooltip>
-                <WalletItem bind:value={hasRustyKey}>🗝️</WalletItem>
-            </div>
-            <div aria-label="Club Card" use:tooltip>
-                <WalletItem bind:value={hasClubCard}>🃏</WalletItem>
-            </div>
-            <div aria-label="Special Charm" use:tooltip>
-                <WalletItem bind:value={hasSpecialCharm}>🍀</WalletItem>
-            </div>
-            <div aria-label="Skull Key" use:tooltip>
-                <WalletItem bind:value={hasSkullKey}>💀</WalletItem>
-            </div>
-            <div aria-label="Magnifying Glass" use:tooltip>
-                <WalletItem bind:value={hasMagnifyingGlass}>🔍</WalletItem>
-            </div>
-            <div aria-label="Dark Talisman" use:tooltip>
-                <WalletItem bind:value={hasDarkTalisman}>🌑</WalletItem>
-            </div>
-            <div aria-label="Magic Ink" use:tooltip>
-                <WalletItem bind:value={hasMagicInk}>🖋️</WalletItem>
-            </div>
-            <div aria-label="Town Key" use:tooltip>
-                <WalletItem bind:value={hasTownKey}>🏘️</WalletItem>
-            </div>
+            {#each unlocks as [emoji, key, alt]}
+                <div aria-label={alt} use:tooltip>
+                    <WalletItem
+                        value={player[key] === ""}
+                        onclick={(v: boolean) => updateUnlock(key, v)}
+                    >
+                        {emoji}
+                    </WalletItem>
+                </div>
+            {/each}
         </div>
     </Container>
 {/if}

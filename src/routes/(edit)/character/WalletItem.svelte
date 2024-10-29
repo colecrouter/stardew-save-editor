@@ -1,13 +1,17 @@
 <script lang="ts">
     interface Props {
-        value: boolean;
+        value?: boolean;
         children?: import("svelte").Snippet;
+        onclick?: (v: boolean) => void;
     }
 
-    let { value = $bindable(), children }: Props = $props();
+    let { value = $bindable(), children, onclick }: Props = $props();
 </script>
 
-<button class:disabled={!value} onclick={() => (value = !value)}>
+<button
+    class:disabled={!value}
+    onclick={() => (value = !value) && onclick?.(value)}
+>
     {@render children?.()}
 </button>
 

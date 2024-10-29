@@ -1,18 +1,18 @@
-<script>
-    import { createBubbler } from "svelte/legacy";
+<script lang="ts">
+    import type { Snippet } from "svelte";
+    import type { MouseEventHandler } from "svelte/elements";
+    import Page from "./(upload)/+page.svelte";
 
-    const bubble = createBubbler();
-    /**
-     * @typedef {Object} Props
-     * @property {import('svelte').Snippet} [children]
-     */
+    interface Props {
+        children?: Snippet;
+        onclick?: MouseEventHandler<HTMLButtonElement>;
+    }
 
-    /** @type {Props} */
-    let { children } = $props();
+    let { children, onclick }: Props = $props();
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
-<button onclick={bubble("click")}>
+<button {onclick}>
     {@render children?.()}
 </button>
 

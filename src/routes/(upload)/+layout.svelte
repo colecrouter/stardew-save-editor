@@ -8,7 +8,7 @@
     import { browser } from "$app/environment";
     import { base } from "$app/paths";
     interface Props {
-        children?: import("svelte").Snippet;
+        children: import("svelte").Snippet;
     }
 
     let { children }: Props = $props();
@@ -24,7 +24,7 @@
 </script>
 
 <div class="wrapper">
-    {@render children?.()}
+    {@render children()}
 
     <nav>
         <a href={`${base}/backups`} aria-label="Backups" use:tooltip>

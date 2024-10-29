@@ -3,20 +3,25 @@
 
     import { goto } from "$app/navigation";
     import { base } from "$app/paths";
-    import { FileName, SaveConverter, SaveGame } from "$lib/SaveFile";
     import Container from "../Container.svelte";
+    import { saveManager } from "$lib/SaveFile.svelte";
 
-    let submit: HTMLInputElement = $state();
-    let files: FileList = $state();
+    let submit = $state<HTMLInputElement>();
+    let files = $state<FileList>();
 
     const handle = async () => {
+        // We have to instantiate the filelist here because it's not available in node
+        if (!files) files = new FileList();
+
         const file = files[0];
+        if (!file) return;
+
         const formData = new FormData();
         formData.append("file", file);
 
         let json: SaveFile;
         try {
-            json = await SaveConverter.toJSON(file);
+            await saveManager.import(file);
         } catch (e) {
             alert((e as Error).message);
             return;
@@ -26,8 +31,6 @@
         const { BackupManager: Backups } = await import("$lib/Backups");
         Backups.unshift(file);
 
-        SaveGame.set(json);
-        FileName.set(file.name);
         goto(base + "/inventory");
     };
 </script>
@@ -41,7 +44,7 @@
             required
             bind:files
             onchange={() => {
-                return submit.click();
+                return submit?.click();
             }}
         />
         <input type="submit" value="Upload" bind:this={submit} hidden />

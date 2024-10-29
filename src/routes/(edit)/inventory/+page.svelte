@@ -5,9 +5,9 @@
     import { ItemData } from "$lib/ItemData";
     import type { ParentIndex } from "$lib/ItemParentIndex";
     import { CalculateEdibility, CalculatePrice } from "$lib/ItemQuality";
-    import { Character } from "$lib/SaveFile";
+    import { saveManager } from "$lib/SaveFile.svelte";
     import type { ItemInformation } from "$types/items/1.6";
-    import type { Item, Player } from "$types/save/1.6";
+    import type { Item } from "$types/save/1.6";
     import Container from "../../Container.svelte";
     import CharacterView from "./CharacterView.svelte";
     import ItemView from "./ItemView.svelte";
@@ -15,18 +15,8 @@
 
     let selectedItemData: ItemInformation | undefined = $state();
 
-    let inventory: Array<Item | undefined> = $state([]);
     let selectedItem: Item | undefined = $state();
-    let selectedIndex: ParentIndex = $state();
-
-    // Update our reference to the select player
-    let player: Player | undefined = $state();
-    Character.character.subscribe((c) => {
-        if (!c) return;
-
-        player = c;
-        inventory = c.items.Item;
-    });
+    let selectedIndex: ParentIndex = $state(0);
 
     // Price/edibility calculation
     let oldQuality: number | undefined = $state();
@@ -97,12 +87,12 @@
     });
 
     const deleteItem = (symbol: ParentIndex) => {
-        if (!player) return;
+        if (!saveManager.player || !saveManager.inventory) return;
 
         if (typeof symbol === "number") {
-            inventory[symbol] = undefined;
+            saveManager.inventory[symbol] = undefined;
         } else {
-            player[symbol] = undefined;
+            saveManager.player[symbol] = undefined;
         }
 
         // Clear item from the editor window
@@ -111,15 +101,15 @@
     };
 
     const createItem = (symbol: ParentIndex, item: string) => {
-        if (!player) return;
+        if (!saveManager.player || !saveManager.inventory) return;
 
         try {
             const newItem = create(item);
 
             if (typeof symbol === "number") {
-                inventory[symbol] = newItem;
+                saveManager.inventory[symbol] = newItem;
             } else {
-                player[symbol] = newItem;
+                saveManager.player[symbol] = newItem;
             }
 
             // Select the new item
@@ -130,12 +120,12 @@
     };
 
     const rerender = (item: Item, index: ParentIndex) => {
-        if (!player) return;
+        if (!saveManager.player || !saveManager.inventory) return;
 
         if (typeof index === "number") {
-            inventory[index] = item;
+            saveManager.inventory[index] = item;
         } else {
-            player[index] = item;
+            saveManager.player[index] = item;
         }
     };
 </script>
@@ -147,11 +137,11 @@
     {/each}
 </datalist>
 
-{#if player}
+{#if saveManager.inventory}
     <!-- Inventory view -->
     <Container>
         <div class="item-grid">
-            {#each inventory as item, index}
+            {#each saveManager.inventory as item, index}
                 <SmallItem
                     {item}
                     {index}
@@ -164,7 +154,13 @@
 
     <!-- Character View -->
     <Container>
-        <CharacterView {player} bind:selectedIndex bind:selectedItem />
+        {#if saveManager.player}
+            <CharacterView
+                player={saveManager.player}
+                bind:selectedIndex
+                bind:selectedItem
+            />
+        {/if}
     </Container>
 
     <!-- Item view -->

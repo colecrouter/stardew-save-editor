@@ -7,7 +7,7 @@
         item: Item | undefined;
     }
 
-    let { item }: Props = $props();
+    let { item = $bindable() }: Props = $props();
 </script>
 
 <div class="item-wrapper">

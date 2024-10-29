@@ -1,10 +1,10 @@
 <script lang="ts">
-    import { Character } from '$lib/SaveFile';
-    import { HexToRGB, RGBToHex } from '$lib/Spritesheet';
-    import { Gender, type Player } from '$types/save/1.6';
-    import type { Writable } from 'svelte/store';
-    import Container from '../../Container.svelte';
-    import Preview from './Preview.svelte';
+    import { Character } from "$lib/SaveFile";
+    import { HexToRGB, RGBToHex } from "$lib/Spritesheet";
+    import { Gender, type Player } from "$types/save/1.6";
+    import type { Writable } from "svelte/store";
+    import Container from "../../Container.svelte";
+    import Preview from "./Preview.svelte";
 
     let character: Player | undefined = $state();
     let skinColor: number = $state(0);
@@ -35,7 +35,8 @@
                     gender={character.gender}
                     skinColor={character.skin}
                     hairStyle={character.hair}
-                    acc={character.accessory} />
+                    acc={character.accessory}
+                />
                 <div class="selector">
                     <label>
                         🚹
@@ -46,8 +47,8 @@
                             checked={character &&
                                 character.gender === Gender.Male}
                             onclick={() =>
-                                character &&
-                                (character.gender = Gender.Male)} />
+                                character && (character.gender = Gender.Male)}
+                        />
                     </label>
                     <label>
                         🚺
@@ -58,8 +59,8 @@
                             checked={character &&
                                 character.gender === Gender.Female}
                             onclick={() =>
-                                character &&
-                                (character.gender = Gender.Female)} />
+                                character && (character.gender = Gender.Female)}
+                        />
                     </label>
                 </div>
                 <div class="appearance">
@@ -72,7 +73,8 @@
                             bind:value={skinColor}
                             onchange={() =>
                                 character &&
-                                (character.skin = (skinColor ?? 1) - 1)} />
+                                (character.skin = (skinColor ?? 1) - 1)}
+                        />
                     </label>
                     <label>
                         Hair
@@ -83,7 +85,8 @@
                             bind:value={hairStyle}
                             onchange={() =>
                                 character &&
-                                (character.hair = (hairStyle ?? 1) - 1)} />
+                                (character.hair = (hairStyle ?? 1) - 1)}
+                        />
                     </label>
                     <label>
                         Acc
@@ -94,7 +97,8 @@
                             bind:value={acc}
                             onchange={() =>
                                 character &&
-                                (character.accessory = (acc ?? 1) - 2)} />
+                                (character.accessory = (acc ?? 1) - 2)}
+                        />
                     </label>
                 </div>
             </div>
@@ -117,7 +121,8 @@
                         <small>Favorite Thing</small>
                         <input
                             type="text"
-                            bind:value={character.favoriteThing} />
+                            bind:value={character.favoriteThing}
+                        />
                     </label>
                 </div>
                 <div>
@@ -139,10 +144,11 @@
                                     if (!character) return;
                                     character.newEyeColor = HexToRGB(
                                         // @ts-expect-error
-                                        e.target.value ?? '#000000',
+                                        e.target.value ?? "#000000",
                                     );
                                     rerender();
-                                }} />
+                                }}
+                            />
                         </div>
                     </label>
                 </div>
@@ -165,10 +171,11 @@
                                     if (!character) return;
                                     character.hairstyleColor = HexToRGB(
                                         // @ts-expect-error
-                                        e.target.value ?? '#000000',
+                                        e.target.value ?? "#000000",
                                     );
                                     rerender();
-                                }} />
+                                }}
+                            />
                         </div>
                     </label>
                 </div>

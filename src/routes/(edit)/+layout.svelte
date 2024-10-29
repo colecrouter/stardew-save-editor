@@ -1,23 +1,23 @@
 <script lang="ts">
-    import { browser } from '$app/environment';
-    import { goto } from '$app/navigation';
-    import { base } from '$app/paths';
-    import { page } from '$app/stores';
-    import { Character, Download, FileName, SaveGame } from '$lib/SaveFile';
-    import { tooltip } from '$lib/Tooltip';
-    import { onDestroy } from 'svelte';
-    import { get } from 'svelte/store';
-    import SidebarButton from '../SidebarButton.svelte';
-    import Router from './Router.svelte';
+    import { browser } from "$app/environment";
+    import { goto } from "$app/navigation";
+    import { base } from "$app/paths";
+    import { page } from "$app/stores";
+    import { Character, Download, FileName, SaveGame } from "$lib/SaveFile";
+    import { tooltip } from "$lib/Tooltip";
+    import { onDestroy } from "svelte";
+    import { get } from "svelte/store";
+    import SidebarButton from "../SidebarButton.svelte";
+    import Router from "./Router.svelte";
     interface Props {
-        children?: import('svelte').Snippet;
+        children?: import("svelte").Snippet;
     }
 
     let { children }: Props = $props();
 
     // If the save changes for whatever reason, go back to the main screen
     const unsub = page.subscribe(
-        () => browser && get(SaveGame) == undefined && goto(base + '/'),
+        () => browser && get(SaveGame) == undefined && goto(base + "/"),
     );
     onDestroy(() => unsub());
 
@@ -25,7 +25,7 @@
     const cancel = () => {
         SaveGame.set(undefined);
         FileName.set(undefined);
-        goto(base + '/');
+        goto(base + "/");
     };
 
     // Download the save file
@@ -33,7 +33,7 @@
         const save = get(SaveGame);
         const filename = get(FileName);
         if (!save || !filename) {
-            console.error('Save or filename is undefined');
+            console.error("Save or filename is undefined");
             return;
         }
 

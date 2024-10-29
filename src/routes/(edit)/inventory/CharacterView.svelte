@@ -1,8 +1,8 @@
 <script lang="ts">
-    import type { ParentIndex } from '$lib/ItemParentIndex';
-    import type { Item, Player } from '$types/save/1.6';
-    import Preview from '../appearance/Preview.svelte';
-    import SmallItem from './SmallItem.svelte';
+    import type { ParentIndex } from "$lib/ItemParentIndex";
+    import type { Item, Player } from "$types/save/1.6";
+    import Preview from "../appearance/Preview.svelte";
+    import SmallItem from "./SmallItem.svelte";
 
     interface Props {
         player: Player;
@@ -10,7 +10,11 @@
         selectedIndex: ParentIndex;
     }
 
-    let { player = $bindable(), selectedItem = $bindable(), selectedIndex = $bindable() }: Props = $props();
+    let {
+        player = $bindable(),
+        selectedItem = $bindable(),
+        selectedIndex = $bindable(),
+    }: Props = $props();
 </script>
 
 <div class="character-details">
@@ -19,41 +23,48 @@
             <div class="character-armor">
                 <SmallItem
                     item={player.leftRing}
-                    index={'leftRing'}
+                    index={"leftRing"}
                     bind:selectedItem
-                    bind:selectedIndex />
+                    bind:selectedIndex
+                />
                 <SmallItem
                     item={player.rightRing}
-                    index={'rightRing'}
+                    index={"rightRing"}
                     bind:selectedItem
-                    bind:selectedIndex />
+                    bind:selectedIndex
+                />
                 <SmallItem
                     item={player.boots}
-                    index={'boots'}
+                    index={"boots"}
                     bind:selectedItem
-                    bind:selectedIndex />
+                    bind:selectedIndex
+                />
             </div>
             <Preview
                 pantsItem={player.pantsItem}
                 shirtItem={player.shirtItem}
                 hat={player.hat}
-                gender={player.gender} />
+                gender={player.gender}
+            />
             <div class="character-armor">
                 <SmallItem
                     item={player.hat}
-                    index={'hat'}
+                    index={"hat"}
                     bind:selectedItem
-                    bind:selectedIndex />
+                    bind:selectedIndex
+                />
                 <SmallItem
                     item={player.shirtItem}
-                    index={'shirtItem'}
+                    index={"shirtItem"}
                     bind:selectedItem
-                    bind:selectedIndex />
+                    bind:selectedIndex
+                />
                 <SmallItem
                     item={player.pantsItem}
-                    index={'pantsItem'}
+                    index={"pantsItem"}
                     bind:selectedItem
-                    bind:selectedIndex />
+                    bind:selectedIndex
+                />
             </div>
         </div>
 

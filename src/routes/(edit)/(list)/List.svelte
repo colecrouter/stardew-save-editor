@@ -1,7 +1,7 @@
 <script lang="ts">
-    import type { KV } from '$types/save/1.5';
-    import ItemSprite from '../inventory/ItemSprite.svelte';
-    import SmallItem from '../inventory/SmallItem.svelte';
+    import type { KV } from "$types/save/1.5";
+    import ItemSprite from "../inventory/ItemSprite.svelte";
+    import SmallItem from "../inventory/SmallItem.svelte";
 
     interface Props {
         keys: string[];
@@ -38,7 +38,8 @@
                 type="checkbox"
                 aria-label={key}
                 checked={values.some((v) => v.key.string === key)}
-                onchange={handleCheck} />
+                onchange={handleCheck}
+            />
         </label>
     {/each}
 </div>
@@ -60,7 +61,7 @@
         margin: 2px 0;
     }
 
-    input[type='checkbox'] {
+    input[type="checkbox"] {
         position: relative;
         appearance: none;
         width: 1.2rem;
@@ -70,17 +71,17 @@
         cursor: pointer;
     }
 
-    input[type='checkbox']:hover {
+    input[type="checkbox"]:hover {
         filter: brightness(1.15);
     }
 
-    input[type='checkbox']:checked::after {
+    input[type="checkbox"]:checked::after {
         position: absolute;
         top: -0.25rem;
         left: -0.175rem;
         color: transparent;
         text-shadow: 0 0 0 #32c523;
-        content: '❌';
+        content: "❌";
         font-weight: bold;
         font-size: 1.2em;
     }

@@ -1,7 +1,7 @@
 <script lang="ts">
     interface Props {
         value: boolean;
-        children?: import('svelte').Snippet;
+        children?: import("svelte").Snippet;
     }
 
     let { value = $bindable(), children }: Props = $props();

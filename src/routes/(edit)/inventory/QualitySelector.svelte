@@ -1,8 +1,8 @@
 <script lang="ts">
-    import { run } from 'svelte/legacy';
+    import { run } from "svelte/legacy";
 
-    import { ItemData } from '$lib/ItemData';
-    import type { Item } from '$types/save/1.6';
+    import { ItemData } from "$lib/ItemData";
+    import type { Item } from "$types/save/1.6";
 
     interface Props {
         item: Item;
@@ -32,7 +32,7 @@
 
 <div class="container">
     <!-- Create 4 button containing star emoji-->
-    {#if 'quality' in item}
+    {#if "quality" in item}
         {#each [0, 1, 2, 4] as i}
             <label>
                 {#if i === 0}
@@ -45,7 +45,8 @@
                     checked={item.quality === i}
                     value={i}
                     bind:group={item.quality}
-                    onclick={() => changePrice(i)} />
+                    onclick={() => changePrice(i)}
+                />
             </label>
         {/each}
     {/if}
@@ -58,7 +59,7 @@
         align-items: center;
     }
 
-    input[type='radio'] {
+    input[type="radio"] {
         appearance: none;
         width: 0;
         position: relative;
@@ -74,7 +75,7 @@
         position: absolute;
         top: -0.75em;
         left: -1.25em;
-        content: '✅';
+        content: "✅";
         font-size: 0.8em;
     }
 

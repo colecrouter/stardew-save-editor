@@ -1,9 +1,9 @@
 <script lang="ts">
-    import { Character, SaveGame } from '$lib/SaveFile';
-    import type { KV } from '$types/save/1.5';
-    import Container from '../../../Container.svelte';
-    import List from '../List.svelte';
-    import type { PageData } from './$types';
+    import { Character, SaveGame } from "$lib/SaveFile";
+    import type { KV } from "$types/save/1.5";
+    import Container from "../../../Container.svelte";
+    import List from "../List.svelte";
+    import type { PageData } from "./$types";
 
     interface Props {
         data: PageData;

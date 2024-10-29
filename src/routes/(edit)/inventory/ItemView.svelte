@@ -3,12 +3,12 @@
         CategoriesWithQuality,
         ItemData,
         ItemNameHelper,
-    } from '$lib/ItemData';
-    import type { ParentIndex } from '$lib/ItemParentIndex';
-    import { HexToRGB, PackedValue, RGBToHex } from '$lib/Spritesheet';
-    import type { Item } from '$types/save/1.6';
-    import BigItem from './BigItem.svelte';
-    import QualitySelector from './QualitySelector.svelte';
+    } from "$lib/ItemData";
+    import type { ParentIndex } from "$lib/ItemParentIndex";
+    import { HexToRGB, PackedValue, RGBToHex } from "$lib/Spritesheet";
+    import type { Item } from "$types/save/1.6";
+    import BigItem from "./BigItem.svelte";
+    import QualitySelector from "./QualitySelector.svelte";
 
     interface Props {
         selectedItem: Item | undefined;
@@ -23,14 +23,14 @@
         selectedIndex,
         rerender,
         deleteItem,
-        createItem
+        createItem,
     }: Props = $props();
 
-    let newItemName = $state('');
+    let newItemName = $state("");
 
-    let selectedItemData = $derived(selectedItem
-        ? ItemData.get(selectedItem.name)
-        : undefined);
+    let selectedItemData = $derived(
+        selectedItem ? ItemData.get(selectedItem.name) : undefined,
+    );
 </script>
 
 <div class="editor">
@@ -45,62 +45,70 @@
                 <input
                     type="text"
                     value={ItemNameHelper(selectedItem)}
-                    disabled />
+                    disabled
+                />
             </label>
             {#if selectedItemData}
                 <!-- TODO: Since 1.6 removed stackable field, not sure how to actually know -->
-                {#if !['Clothing', 'Boots', 'Hat', 'Weapon', 'Pants', 'Shirt'].includes(selectedItemData._type)}
+                {#if !["Clothing", "Boots", "Hat", "Weapon", "Pants", "Shirt"].includes(selectedItemData._type)}
                     <label>
                         <small>Amount</small>
                         <input
                             type="number"
                             bind:value={selectedItem.stack}
                             min="0"
-                            max="999" />
+                            max="999"
+                        />
                     </label>
                 {/if}
-                {#if selectedItemData._type === 'Weapon'}
+                {#if selectedItemData._type === "Weapon"}
                     <label>
                         <small>Min Dmg</small>
                         <input
                             type="number"
                             bind:value={selectedItem.minDamage}
-                            min="0" />
+                            min="0"
+                        />
                     </label>
                     <label>
                         <small>Max Dmg</small>
                         <input
                             type="number"
                             bind:value={selectedItem.maxDamage}
-                            min="0" />
+                            min="0"
+                        />
                     </label>
                     <label>
                         <small>Knockback</small>
                         <input
                             type="number"
                             bind:value={selectedItem.knockback}
-                            min="0" />
+                            min="0"
+                        />
                     </label>
                     <label>
                         <small>Speed</small>
                         <input
                             type="number"
                             bind:value={selectedItem.speed}
-                            min="0" />
+                            min="0"
+                        />
                     </label>
                     <label>
                         <small>Added Precision</small>
                         <input
                             type="number"
                             bind:value={selectedItem.addedPrecision}
-                            min="0" />
+                            min="0"
+                        />
                     </label>
                     <label>
                         <small>Added Defense</small>
                         <input
                             type="number"
                             bind:value={selectedItem.addedDefense}
-                            min="0" />
+                            min="0"
+                        />
                     </label>
                     <!-- {#if 'weaponType' in selectedItem}
                       <label>
@@ -118,25 +126,28 @@
                         <input
                             type="number"
                             bind:value={selectedItem.addedAreaOfEffect}
-                            min="0" />
+                            min="0"
+                        />
                     </label>
                     <label>
                         <small>Crit Chance</small>
                         <input
                             type="number"
                             bind:value={selectedItem.critChance}
-                            min="0" />
+                            min="0"
+                        />
                     </label>
                     <label>
                         <small>Crit Dmg</small>
                         <input
                             type="number"
                             bind:value={selectedItem.critMultiplier}
-                            min="0" />
+                            min="0"
+                        />
                     </label>
-                {:else if selectedItemData._type === 'Tool'}
+                {:else if selectedItemData._type === "Tool"}
                     <!-- Can't edit -->
-                {:else if selectedItemData._type === 'BigCraftable'}
+                {:else if selectedItemData._type === "BigCraftable"}
                     <!-- <label>
                       <small>Place Outdoors</small>
                       <input type="check" bind:value={selectedItem.setOutdoors} />
@@ -149,22 +160,25 @@
                         <small>Produces Light</small>
                         <input
                             type="checkbox"
-                            bind:checked={selectedItem.isLamp} />
+                            bind:checked={selectedItem.isLamp}
+                        />
                     </label>
-                {:else if selectedItemData._type === 'Boots'}
+                {:else if selectedItemData._type === "Boots"}
                     <label>
                         <small>Added Defense</small>
                         <input
                             type="number"
                             bind:value={selectedItem.defenseBonus}
-                            min="0" />
+                            min="0"
+                        />
                     </label>
                     <label>
                         <small>Added Immunity</small>
                         <input
                             type="number"
                             bind:value={selectedItem.immunityBonus}
-                            min="0" />
+                            min="0"
+                        />
                     </label>
                     <label>
                         <small>Color Index</small>
@@ -177,10 +191,11 @@
                                 if (!selectedItem) return;
                                 // Force rerender on any other components watching this item
                                 rerender();
-                            }} />
+                            }}
+                        />
                     </label>
-                {:else if selectedItemData._type === 'Shirt' || selectedItemData._type === 'Pants'}
-                    {#if 'CanBeDyed' in selectedItemData && selectedItemData.CanBeDyed}
+                {:else if selectedItemData._type === "Shirt" || selectedItemData._type === "Pants"}
+                    {#if "CanBeDyed" in selectedItemData && selectedItemData.CanBeDyed}
                         <label>
                             <small>Color</small>
                             <input
@@ -198,13 +213,14 @@
 
                                     // Force rerender on any other components watching this item
                                     rerender();
-                                }} />
+                                }}
+                            />
                         </label>
                     {/if}
-                {:else if selectedItemData._type === 'Furniture'}
+                {:else if selectedItemData._type === "Furniture"}
                     <!-- Need more info -->
                     <!-- House plant selector -->
-                {:else if selectedItemData._type === 'Hat'}
+                {:else if selectedItemData._type === "Hat"}
                     <!-- Need more info? -->
                 {/if}
 
@@ -218,24 +234,26 @@
                 {/if}
 
                 <!-- Edibility -->
-                {#if selectedItemData && 'edibility' in selectedItemData && selectedItemData.edibility !== -300}
+                {#if selectedItemData && "edibility" in selectedItemData && selectedItemData.edibility !== -300}
                     <label>
                         <small>Edibility</small>
                         <input
                             type="number"
                             bind:value={selectedItem.edibility}
-                            min="0" />
+                            min="0"
+                        />
                     </label>
                 {/if}
 
                 <!-- Price -->
-                {#if ['Object', 'BigCraftable', 'Furniture', 'Hat', 'Clothing'].includes(selectedItemData._type)}
+                {#if ["Object", "BigCraftable", "Furniture", "Hat", "Clothing"].includes(selectedItemData._type)}
                     <label>
                         <small>Price</small>
                         <input
                             type="number"
                             bind:value={selectedItem.price}
-                            min="0" />
+                            min="0"
+                        />
                     </label>
                 {/if}
             {/if}
@@ -256,7 +274,8 @@
                     if (selectedIndex) {
                         deleteItem();
                     }
-                }}>
+                }}
+            >
                 🗑️
             </button>
         {:else if selectedIndex}
@@ -265,9 +284,10 @@
                 onclick={() => {
                     if (selectedIndex) {
                         createItem(newItemName);
-                        newItemName = '';
+                        newItemName = "";
                     }
-                }}>
+                }}
+            >
                 ➕
             </button>
         {/if}

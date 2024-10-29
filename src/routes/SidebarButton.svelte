@@ -1,5 +1,5 @@
 <script>
-    import { createBubbler } from 'svelte/legacy';
+    import { createBubbler } from "svelte/legacy";
 
     const bubble = createBubbler();
     /**
@@ -12,7 +12,7 @@
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
-<button onclick={bubble('click')}>
+<button onclick={bubble("click")}>
     {@render children?.()}
 </button>
 

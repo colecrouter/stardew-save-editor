@@ -19,8 +19,8 @@ class SaveClass {
                 this.saveData.farmhands.Farmer === undefined
                     ? []
                     : Array.isArray(this.saveData.farmhands.Farmer)
-                        ? this.saveData.farmhands.Farmer
-                        : [this.saveData.farmhands.Farmer];
+                      ? this.saveData.farmhands.Farmer
+                      : [this.saveData.farmhands.Farmer];
             const mainPlayer = this.saveData.player;
 
             this.players = [mainPlayer, ...farmers];

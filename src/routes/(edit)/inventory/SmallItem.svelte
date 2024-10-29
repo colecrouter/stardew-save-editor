@@ -1,8 +1,8 @@
 <script lang="ts">
-    import type { ParentIndex } from '$lib/ItemParentIndex';
-    import type { Item } from '$types/save/1.6';
-    import './Item.css';
-    import ItemSprite from './ItemSprite.svelte';
+    import type { ParentIndex } from "$lib/ItemParentIndex";
+    import type { Item } from "$types/save/1.6";
+    import "./Item.css";
+    import ItemSprite from "./ItemSprite.svelte";
 
     interface Props {
         item: Item | undefined;
@@ -15,7 +15,7 @@
         item,
         index,
         selectedItem = $bindable(),
-        selectedIndex = $bindable()
+        selectedIndex = $bindable(),
     }: Props = $props();
 
     const handleClick = () => {
@@ -30,6 +30,7 @@
     onkeydown={handleClick}
     role="radio"
     aria-checked={index === selectedIndex}
-    tabindex="0">
+    tabindex="0"
+>
     <ItemSprite {item} />
 </div>

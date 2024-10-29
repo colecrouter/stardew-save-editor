@@ -16,7 +16,8 @@
             aria-label={`Set skill to ${level}`}
             class="pill"
             class:active={skill >= level}
-            onclick={() => (skill = level)}></button>
+            onclick={() => (skill = level)}
+        ></button>
     {/each}
 </div>
 

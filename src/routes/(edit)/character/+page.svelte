@@ -1,12 +1,12 @@
 <script lang="ts">
-    import { run } from 'svelte/legacy';
+    import { run } from "svelte/legacy";
 
-    import { Character, SaveGame } from '$lib/SaveFile';
-    import { tooltip } from '$lib/Tooltip';
-    import type { GameLocation, Player, Save } from '$types/save/1.6';
-    import Container from '../../Container.svelte';
-    import SkillBar from './SkillBar.svelte';
-    import WalletItem from './WalletItem.svelte';
+    import { Character, SaveGame } from "$lib/SaveFile";
+    import { tooltip } from "$lib/Tooltip";
+    import type { GameLocation, Player, Save } from "$types/save/1.6";
+    import Container from "../../Container.svelte";
+    import SkillBar from "./SkillBar.svelte";
+    import WalletItem from "./WalletItem.svelte";
 
     let player: Player | undefined = $state();
     let skillValues: number[] = $state([]);
@@ -44,29 +44,29 @@
         if (!s) return;
         save = s.SaveGame;
         farm = s.SaveGame.locations.GameLocation.find(
-            (l) => l.name === 'Farm',
+            (l) => l.name === "Farm",
         )!;
     });
 
     const skills = [
-        'Farming 🥕',
-        'Mining ⛏️',
-        'Foraging 🌳',
-        'Fishing 🎣',
-        'Combat ⚔️',
+        "Farming 🥕",
+        "Mining ⛏️",
+        "Foraging 🌳",
+        "Fishing 🎣",
+        "Combat ⚔️",
     ];
 
     run(() => {
         if (player) {
-            player.canUnderstandDwarves = hasTranslation ? '' : undefined;
-            player.hasRustyKey = hasRustyKey ? '' : undefined;
-            player.hasClubCard = hasClubCard ? '' : undefined;
-            player.hasSpecialCharm = hasSpecialCharm ? '' : undefined;
-            player.hasSkullKey = hasSkullKey ? '' : undefined;
-            player.hasMagnifyingGlass = hasMagnifyingGlass ? '' : undefined;
-            player.hasDarkTalisman = hasDarkTalisman ? '' : undefined;
-            player.hasMagicInk = hasMagicInk ? '' : undefined;
-            player.HasTownKey = hasTownKey ? '' : undefined;
+            player.canUnderstandDwarves = hasTranslation ? "" : undefined;
+            player.hasRustyKey = hasRustyKey ? "" : undefined;
+            player.hasClubCard = hasClubCard ? "" : undefined;
+            player.hasSpecialCharm = hasSpecialCharm ? "" : undefined;
+            player.hasSkullKey = hasSkullKey ? "" : undefined;
+            player.hasMagnifyingGlass = hasMagnifyingGlass ? "" : undefined;
+            player.hasDarkTalisman = hasDarkTalisman ? "" : undefined;
+            player.hasMagicInk = hasMagicInk ? "" : undefined;
+            player.HasTownKey = hasTownKey ? "" : undefined;
         }
     });
 </script>
@@ -85,7 +85,8 @@
                             type="number"
                             min="0"
                             max="99999"
-                            bind:value={skill} />
+                            bind:value={skill}
+                        />
                     </label>
                 {/if}
             {/each}
@@ -100,7 +101,8 @@
                     type="number"
                     min="0"
                     max="99999"
-                    bind:value={player.maxHealth} />
+                    bind:value={player.maxHealth}
+                />
             </label>
             <label>
                 Stamina
@@ -108,7 +110,8 @@
                     type="number"
                     min="0"
                     max="99999"
-                    bind:value={player.maxStamina} />
+                    bind:value={player.maxStamina}
+                />
             </label>
             <label>
                 Qi Gems
@@ -116,7 +119,8 @@
                     type="number"
                     min="0"
                     max="99999"
-                    bind:value={player.qiGems} />
+                    bind:value={player.qiGems}
+                />
             </label>
             <label>
                 Qi Coins
@@ -124,7 +128,8 @@
                     type="number"
                     min="0"
                     max="99999"
-                    bind:value={player.clubCoins} />
+                    bind:value={player.clubCoins}
+                />
             </label>
             <label>
                 Hay
@@ -132,7 +137,8 @@
                     type="number"
                     min="0"
                     max="99999"
-                    bind:value={farm.piecesOfHay} />
+                    bind:value={farm.piecesOfHay}
+                />
             </label>
             <label>
                 Golden Walnuts
@@ -140,7 +146,8 @@
                     type="number"
                     min="0"
                     max="130"
-                    bind:value={save.goldenWalnuts} />
+                    bind:value={save.goldenWalnuts}
+                />
             </label>
         </div>
 
@@ -215,11 +222,11 @@
         grid-column: 1 / -1;
     } */
 
-    input[type='number'] {
+    input[type="number"] {
         width: 4em;
     }
 
-    input[type='number']::-webkit-inner-spin-button {
+    input[type="number"]::-webkit-inner-spin-button {
         appearance: none;
     }
 

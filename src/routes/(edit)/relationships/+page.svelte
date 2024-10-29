@@ -1,8 +1,8 @@
 <script lang="ts">
-    import { Character, SaveGame } from '$lib/SaveFile';
-    import type { FriendshipDataItem } from '$types/save/1.6';
-    import Container from '../../Container.svelte';
-    import HeartBar from './HeartBar.svelte';
+    import { Character, SaveGame } from "$lib/SaveFile";
+    import type { FriendshipDataItem } from "$types/save/1.6";
+    import Container from "../../Container.svelte";
+    import HeartBar from "./HeartBar.svelte";
 
     let characters: FriendshipDataItem[] = $state([]);
     Character.character.subscribe((c) => {

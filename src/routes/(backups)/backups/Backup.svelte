@@ -7,10 +7,9 @@
     let { backup, deleteFunc }: Props = $props();
 
     let date: Date = $derived(new Date(backup.lastModified));
-    
 
     const download = () => {
-        const a = document.createElement('a');
+        const a = document.createElement("a");
         a.href = URL.createObjectURL(backup);
         a.download = backup.name;
         a.click();

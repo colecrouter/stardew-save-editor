@@ -1,17 +1,17 @@
 <script lang="ts">
-    import { run } from 'svelte/legacy';
+    import { run } from "svelte/legacy";
 
-    import { createItem as create } from '$lib/Item';
-    import { ItemData } from '$lib/ItemData';
-    import type { ParentIndex } from '$lib/ItemParentIndex';
-    import { CalculateEdibility, CalculatePrice } from '$lib/ItemQuality';
-    import { Character } from '$lib/SaveFile';
-    import type { ItemInformation } from '$types/items/1.6';
-    import type { Item, Player } from '$types/save/1.6';
-    import Container from '../../Container.svelte';
-    import CharacterView from './CharacterView.svelte';
-    import ItemView from './ItemView.svelte';
-    import SmallItem from './SmallItem.svelte';
+    import { createItem as create } from "$lib/Item";
+    import { ItemData } from "$lib/ItemData";
+    import type { ParentIndex } from "$lib/ItemParentIndex";
+    import { CalculateEdibility, CalculatePrice } from "$lib/ItemQuality";
+    import { Character } from "$lib/SaveFile";
+    import type { ItemInformation } from "$types/items/1.6";
+    import type { Item, Player } from "$types/save/1.6";
+    import Container from "../../Container.svelte";
+    import CharacterView from "./CharacterView.svelte";
+    import ItemView from "./ItemView.svelte";
+    import SmallItem from "./SmallItem.svelte";
 
     let selectedItemData: ItemInformation | undefined = $state();
 
@@ -39,7 +39,11 @@
                 : undefined;
 
             selectedItem &&
-                console.debug('Selected item:', selectedItem?.name, selectedIndex);
+                console.debug(
+                    "Selected item:",
+                    selectedItem?.name,
+                    selectedIndex,
+                );
 
             // Calculate price/edibility for default price/edibility items
             if (selectedItem?.quality === undefined) return;
@@ -57,7 +61,7 @@
                 // If so, we need to change the price whenever the quality changes
                 // If not, we can assume the user has changed it, so just leave it alone
                 if (
-                    'Price' in selectedItemData &&
+                    "Price" in selectedItemData &&
                     selectedItemData.Price !== undefined &&
                     selectedItem.price
                 ) {
@@ -73,7 +77,7 @@
                     }
                 }
 
-                if ('Edibility' in selectedItemData && selectedItem.edibility) {
+                if ("Edibility" in selectedItemData && selectedItem.edibility) {
                     const theoreticalOldEdibility = CalculateEdibility(
                         selectedItemData.Edibility,
                         oldQuality ?? 0,
@@ -95,7 +99,7 @@
     const deleteItem = (symbol: ParentIndex) => {
         if (!player) return;
 
-        if (typeof symbol === 'number') {
+        if (typeof symbol === "number") {
             inventory[symbol] = undefined;
         } else {
             player[symbol] = undefined;
@@ -112,7 +116,7 @@
         try {
             const newItem = create(item);
 
-            if (typeof symbol === 'number') {
+            if (typeof symbol === "number") {
                 inventory[symbol] = newItem;
             } else {
                 player[symbol] = newItem;
@@ -128,7 +132,7 @@
     const rerender = (item: Item, index: ParentIndex) => {
         if (!player) return;
 
-        if (typeof index === 'number') {
+        if (typeof index === "number") {
             inventory[index] = item;
         } else {
             player[index] = item;
@@ -152,7 +156,8 @@
                     {item}
                     {index}
                     bind:selectedItem
-                    bind:selectedIndex />
+                    bind:selectedIndex
+                />
             {/each}
         </div>
     </Container>
@@ -170,7 +175,8 @@
             rerender={() =>
                 selectedItem && rerender(selectedItem, selectedIndex)}
             createItem={(item) => createItem(selectedIndex, item)}
-            deleteItem={() => deleteItem(selectedIndex)} />
+            deleteItem={() => deleteItem(selectedIndex)}
+        />
     </Container>
 {/if}
 
@@ -182,7 +188,7 @@
         grid-template-rows: 48px auto auto;
     }
 
-    :global([type='number']) {
+    :global([type="number"]) {
         width: 6em;
     }
 </style>

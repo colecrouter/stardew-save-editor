@@ -1,9 +1,9 @@
 <script lang="ts">
-    import { run } from 'svelte/legacy';
+    import { run } from "svelte/legacy";
 
-    import { base } from '$app/paths';
-    import { DateableCharacters } from '$lib/NPCs';
-    import type { FriendshipDataItem } from '$types/save/1.6';
+    import { base } from "$app/paths";
+    import { DateableCharacters } from "$lib/NPCs";
+    import type { FriendshipDataItem } from "$types/save/1.6";
 
     interface Props {
         character: FriendshipDataItem;
@@ -17,9 +17,9 @@
     let relationship: string = character.value.Friendship.Status;
     let hearts: number = $derived(Math.floor(amount / 250));
     let maxhearts: number = dateable
-        ? relationship == 'Married'
+        ? relationship == "Married"
             ? 14
-            : relationship == 'Dating'
+            : relationship == "Dating"
               ? 10
               : 8
         : 10;
@@ -32,14 +32,14 @@
             0,
         );
     });
-    
 </script>
 
 <div class="row">
     <div class="portrait-wrapper">
         <div
             class="portrait"
-            style:background-image={`url('${base}/assets/portraits/${name}.png')`}></div>
+            style:background-image={`url('${base}/assets/portraits/${name}.png')`}
+        ></div>
     </div>
     <div class="right">
         <div class="hearts">
@@ -58,7 +58,8 @@
             class="amount"
             min="0"
             max={maxamount}
-            bind:value={amount} />
+            bind:value={amount}
+        />
     </div>
     <strong>
         {name}

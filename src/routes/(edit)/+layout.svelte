@@ -3,12 +3,11 @@
     import { goto } from "$app/navigation";
     import { base } from "$app/paths";
     import { page } from "$app/stores";
+    import { saveManager } from "$lib/SaveFile.svelte";
     import { tooltip } from "$lib/Tooltip";
     import { onDestroy } from "svelte";
-    import { get } from "svelte/store";
     import SidebarButton from "../SidebarButton.svelte";
     import Router from "./Router.svelte";
-    import { saveManager } from "$lib/SaveFile.svelte";
     interface Props {
         children: import("svelte").Snippet;
     }
@@ -16,11 +15,9 @@
     let { children }: Props = $props();
 
     // If the save changes for whatever reason, go back to the main screen
-    const unsub = page.subscribe(
-        () => browser && saveManager.saveData == undefined && goto(base + "/"),
-    );
-
-    onDestroy(() => unsub());
+    if (!saveManager.saveData) {
+        goto(base + "/");
+    }
 
     // Go back to the upload page
     const cancel = () => {

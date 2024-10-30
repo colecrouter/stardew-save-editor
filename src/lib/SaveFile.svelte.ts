@@ -1,3 +1,4 @@
+import { browser } from "$app/environment";
 import type { Player, Save } from "$types/save/1.6";
 import { error, json } from "@sveltejs/kit";
 import { XMLBuilder, XMLParser } from "fast-xml-parser";
@@ -177,8 +178,8 @@ class SaveClass {
             this.saveData.farmhands.Farmer === undefined
                 ? []
                 : Array.isArray(this.saveData.farmhands.Farmer)
-                  ? this.saveData.farmhands.Farmer
-                  : [this.saveData.farmhands.Farmer];
+                    ? this.saveData.farmhands.Farmer
+                    : [this.saveData.farmhands.Farmer];
         const mainPlayer = this.saveData.player;
 
         return [mainPlayer, ...farmers];

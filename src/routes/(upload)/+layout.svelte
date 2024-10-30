@@ -1,7 +1,6 @@
 <script lang="ts">
     import { goto } from "$app/navigation";
     import { page } from "$app/stores";
-    import { SaveGame } from "$lib/SaveFile";
     import { get } from "svelte/store";
     import SidebarButton from "../SidebarButton.svelte";
     import { tooltip } from "$lib/Tooltip";
@@ -12,15 +11,6 @@
     }
 
     let { children }: Props = $props();
-
-    // https://github.com/sveltejs/kit/issues/5434
-    page.subscribe(
-        (p) =>
-            browser &&
-            p.url.pathname === "/" &&
-            get(SaveGame) &&
-            goto(base + "/inventory"),
-    );
 </script>
 
 <div class="wrapper">

@@ -1,7 +1,5 @@
 <script lang="ts">
-    import { Character, SaveGame } from "$lib/SaveFile";
     import { saveManager } from "$lib/SaveFile.svelte";
-    import type { FriendshipDataItem } from "$types/save/1.6";
     import Container from "../../Container.svelte";
     import HeartBar from "./HeartBar.svelte";
 

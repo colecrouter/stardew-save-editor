@@ -1,7 +1,6 @@
 <script lang="ts">
-    import { run } from "svelte/legacy";
-
     import { ItemData } from "$lib/ItemData";
+    import { CalculateEdibility, CalculatePrice } from "$lib/ItemQuality";
     import type { Item } from "$types/save/1.6";
 
     interface Props {
@@ -10,23 +9,22 @@
 
     let { item = $bindable() }: Props = $props();
 
-    // Set default quality to 0 if it doesn't exist
-    run(() => {
-        if (!item.quality) item.quality = 0;
-    });
-
-    const priceIncrease = [1.0, 1.25, 1.5, NaN, 2.0];
+    const changeQuality = (newQuality: number) => {
+        item.quality = newQuality;
+    };
 
     const changePrice = (newQuality: number) => {
         const data = ItemData.get(item.name);
-        if (!data) return;
+        if (!data || !("Price" in data) || data.Price === undefined) return;
 
-        const basePrice = data.Price;
-        if (basePrice === undefined) return;
+        item.price = CalculatePrice(data.Price, newQuality);
+    };
 
-        const newPrice = basePrice * priceIncrease[newQuality];
-        item.price = Math.floor(newPrice);
-        item.quality = newQuality;
+    const changeEdibility = (newQuality: number) => {
+        const data = ItemData.get(item.name);
+        if (!data || !("Edibility" in data)) return;
+
+        item.edibility = CalculateEdibility(data.Edibility, newQuality);
     };
 </script>
 
@@ -45,7 +43,9 @@
                     checked={item.quality === i}
                     value={i}
                     bind:group={item.quality}
-                    onclick={() => changePrice(i)}
+                    onclick={() => (
+                        changeQuality(i), changePrice(i), changeEdibility(i)
+                    )}
                 />
             </label>
         {/each}

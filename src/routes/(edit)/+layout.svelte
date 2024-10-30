@@ -20,7 +20,7 @@
         () => browser && saveManager.saveData == undefined && goto(base + "/"),
     );
 
-    // onDestroy(() => unsub());
+    onDestroy(() => unsub());
 
     // Go back to the upload page
     const cancel = () => {

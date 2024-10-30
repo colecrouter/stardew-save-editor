@@ -6,8 +6,10 @@
     import SkillBar from "./SkillBar.svelte";
     import WalletItem from "./WalletItem.svelte";
 
-    if (!saveManager.player || !saveManager.farm || !saveManager.saveData)
-        throw new Error("No player data found");
+    const player = saveManager.player;
+    const farm = saveManager.farm;
+    const saveData = saveManager.saveData;
+    if (!player || !farm || !saveData) throw new Error("No player data found");
 
     const unlocks = [
         ["📙", "canUnderstandDwarves", "Dwarvish Translation Guide"],
@@ -36,6 +38,7 @@
         "Combat ⚔️",
     ];
 
+    // TODO gotta be a better way to do this
     type S = typeof saveManager;
     type Stat = {
         [T in keyof S]: NonNullable<S[T]> extends object
@@ -65,61 +68,58 @@
     }
 </script>
 
-{#if saveManager.player && saveManager.farm}
-    {@const player = saveManager.player}
-    <Container>
-        <h3>Skills</h3>
-        <div class="wrapper">
-            {#each player.experiencePoints.int as skill, i}
-                {#if skills[i] !== undefined}
-                    <label for={`skills-${i}`}>
-                        {skills[i]}
-                        <SkillBar bind:skill={player.experiencePoints.int[i]} />
-                        <input
-                            id={`skills-${i}`}
-                            type="number"
-                            min="0"
-                            max="99999"
-                            bind:value={player.experiencePoints.int[i]}
-                        />
-                    </label>
-                {/if}
-            {/each}
-        </div>
-
-        <h3>Stats</h3>
-
-        <div class="stats">
-            {#each stats as [label, key1, key2]}
-                <label>
-                    {label}
+<Container>
+    <h3>Skills</h3>
+    <div class="wrapper">
+        {#each player.experiencePoints.int as skill, i}
+            {#if skills[i] !== undefined}
+                <label for={`skills-${i}`}>
+                    {skills[i]}
+                    <SkillBar bind:skill={player.experiencePoints.int[i]} />
                     <input
+                        id={`skills-${i}`}
                         type="number"
                         min="0"
                         max="99999"
-                        bind:value={saveManager[key1 as never][key2]}
+                        bind:value={player.experiencePoints.int[i]}
                     />
-                    <!-- Why does this work ^ ???? -->
                 </label>
-            {/each}
-        </div>
+            {/if}
+        {/each}
+    </div>
 
-        <h3>Wallet</h3>
+    <h3>Stats</h3>
 
-        <div class="wallet">
-            {#each unlocks as [emoji, key, alt]}
-                <div aria-label={alt} use:tooltip>
-                    <WalletItem
-                        value={player[key] === ""}
-                        onclick={(v: boolean) => updateUnlock(key, v)}
-                    >
-                        {emoji}
-                    </WalletItem>
-                </div>
-            {/each}
-        </div>
-    </Container>
-{/if}
+    <div class="stats">
+        {#each stats as [label, key1, key2]}
+            <label>
+                {label}
+                <input
+                    type="number"
+                    min="0"
+                    max="99999"
+                    bind:value={saveManager[key1 as never][key2]}
+                />
+                <!-- Why does this work ^ ???? -->
+            </label>
+        {/each}
+    </div>
+
+    <h3>Wallet</h3>
+
+    <div class="wallet">
+        {#each unlocks as [emoji, key, alt]}
+            <div aria-label={alt} use:tooltip>
+                <WalletItem
+                    value={player[key] === ""}
+                    onclick={(v: boolean) => updateUnlock(key, v)}
+                >
+                    {emoji}
+                </WalletItem>
+            </div>
+        {/each}
+    </div>
+</Container>
 
 <style>
     .wrapper {

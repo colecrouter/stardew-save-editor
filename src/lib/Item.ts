@@ -204,7 +204,7 @@ export const createItem = (name: string) => {
         let defaultColor = "#000000";
         if (data.DefaultColor) {
             const [R, G, B] = data.DefaultColor.split(" ").map(Number);
-            defaultColor = RGBToHex({ R, G, B, A: 255, PackedValue: 0 });
+            defaultColor = RGBToHex({ R: R ?? 0, G: G ?? 0, B: B ?? 0, A: 255, PackedValue: 0 });
         }
         item.clothesColor = HexToRGB(defaultColor);
     }

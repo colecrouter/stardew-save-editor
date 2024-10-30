@@ -13,7 +13,6 @@
     interface Props {
         selectedItem: Item | undefined;
         selectedIndex: ParentIndex | undefined;
-        rerender: () => void;
         deleteItem: () => void;
         createItem: (name: string) => void;
     }
@@ -21,7 +20,6 @@
     let {
         selectedItem = $bindable(),
         selectedIndex,
-        rerender,
         deleteItem,
         createItem,
     }: Props = $props();
@@ -187,11 +185,6 @@
                             bind:value={selectedItem.indexInColorSheet}
                             min="0"
                             max="71"
-                            onchange={() => {
-                                if (!selectedItem) return;
-                                // Force rerender on any other components watching this item
-                                rerender();
-                            }}
                         />
                     </label>
                 {:else if selectedItemData._type === "Shirt" || selectedItemData._type === "Pants"}
@@ -210,9 +203,6 @@
                                         // @ts-expect-error
                                         e.target.value,
                                     );
-
-                                    // Force rerender on any other components watching this item
-                                    rerender();
                                 }}
                             />
                         </label>

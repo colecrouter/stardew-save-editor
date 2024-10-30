@@ -47,8 +47,8 @@ class CharacterSelector {
             save.SaveGame.farmhands.Farmer === undefined
                 ? []
                 : Array.isArray(save.SaveGame.farmhands.Farmer)
-                  ? save.SaveGame.farmhands.Farmer
-                  : [save.SaveGame.farmhands.Farmer];
+                    ? save.SaveGame.farmhands.Farmer
+                    : [save.SaveGame.farmhands.Farmer];
         const player = save.SaveGame.player;
         this._players = [player, ...farmers];
     };
@@ -147,8 +147,8 @@ export const SaveConverter = {
             json.SaveGame.farmhands.Farmer === undefined
                 ? []
                 : Array.isArray(json.SaveGame.farmhands.Farmer)
-                  ? json.SaveGame.farmhands.Farmer
-                  : [json.SaveGame.farmhands.Farmer];
+                    ? json.SaveGame.farmhands.Farmer
+                    : [json.SaveGame.farmhands.Farmer];
         const player = json.SaveGame.player;
         const players = [player, ...farmers];
 
@@ -201,8 +201,8 @@ export const SaveConverter = {
             json.SaveGame.farmhands.Farmer === undefined
                 ? []
                 : Array.isArray(json.SaveGame.farmhands.Farmer)
-                  ? json.SaveGame.farmhands.Farmer
-                  : [json.SaveGame.farmhands.Farmer];
+                    ? json.SaveGame.farmhands.Farmer
+                    : [json.SaveGame.farmhands.Farmer];
         const player = json.SaveGame.player;
         const players = [player, ...farmers];
 
@@ -280,9 +280,10 @@ export const SaveConverter = {
         const raw = builder.build(json) as string;
         const xml = raw
             .split("------WebKitFormBoundary")[0]
-            .trim()
+            ?.trim()
             .replaceAll("&apos;", "'")
             .replaceAll("/>", " />");
+        if (!xml) throw new Error("Failed to convert to XML");
         const blob = new Blob([xml], { type: "text/text" });
 
         return blob;

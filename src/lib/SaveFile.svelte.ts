@@ -41,7 +41,7 @@ class SaveClass {
             // 1. Inventory, switch <string xsi:nil="true" /> into undefined
             // Need to check for null, because undefined gets converted to null when JSON is stringified
             player.items.Item = player.items.Item.map((item) =>
-                (!item || 'xsi:nil' in item || '@_xsi:nil' in item)
+                !item || "xsi:nil" in item || "@_xsi:nil" in item
                     ? undefined
                     : item,
             );
@@ -177,8 +177,8 @@ class SaveClass {
             this.saveData.farmhands.Farmer === undefined
                 ? []
                 : Array.isArray(this.saveData.farmhands.Farmer)
-                    ? this.saveData.farmhands.Farmer
-                    : [this.saveData.farmhands.Farmer];
+                  ? this.saveData.farmhands.Farmer
+                  : [this.saveData.farmhands.Farmer];
         const mainPlayer = this.saveData.player;
 
         return [mainPlayer, ...farmers];

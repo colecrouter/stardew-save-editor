@@ -22,10 +22,14 @@
             values.splice(index, 1);
         }
     };
+
+    let filter = $state("");
 </script>
 
+<input type="text" placeholder="Search..." bind:value={filter} />
+
 <div class="wrapper">
-    {#each keys as key}
+    {#each keys.filter((e) => e.search(new RegExp(filter, "i")) !== -1) as key}
         <label class="entry">
             <div class="key">
                 <div class="img">
@@ -45,6 +49,13 @@
 </div>
 
 <style>
+    input[type="text"] {
+        width: 100%;
+        margin: 4px;
+        margin-bottom: 8px;
+        font-size: large;
+    }
+
     .wrapper {
         display: flex;
         flex-direction: column;

@@ -1,19 +1,30 @@
 <script lang="ts">
-    import { goto } from '$app/navigation';
-    import { page } from '$app/stores';
-    import { SaveGame } from '$lib/SaveFile';
-    import { get } from 'svelte/store';
-    import SidebarButton from '../../SidebarButton.svelte';
-    import { tooltip } from '$lib/Tooltip';
-    import { browser } from '$app/environment';
-    import { base } from '$app/paths';
+    import { goto } from "$app/navigation";
+    import { page } from "$app/stores";
+    import { SaveGame } from "$lib/SaveFile";
+    import { get } from "svelte/store";
+    import SidebarButton from "../../SidebarButton.svelte";
+    import { tooltip } from "$lib/Tooltip";
+    import { browser } from "$app/environment";
+    import { base } from "$app/paths";
+    interface Props {
+        children?: import("svelte").Snippet;
+    }
+
+    let { children }: Props = $props();
 
     // https://github.com/sveltejs/kit/issues/5434
-    page.subscribe((p) => browser && p.url.pathname === '/' && get(SaveGame) && goto(base + '/inventory'));
+    page.subscribe(
+        (p) =>
+            browser &&
+            p.url.pathname === "/" &&
+            get(SaveGame) &&
+            goto(base + "/inventory"),
+    );
 </script>
 
 <div class="wrapper">
-    <slot />
+    {@render children?.()}
 
     <nav>
         <a href={`${base}/`} aria-label="Cancel" use:tooltip>

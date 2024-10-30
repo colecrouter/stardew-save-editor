@@ -1,9 +1,13 @@
-<script lang="ts" context="module">
+<script lang="ts" module>
     const levels = [100, 380, 770, 1300, 2150, 3300, 4800, 6900, 10000, 15000];
 </script>
 
 <script lang="ts">
-    export let skill: number;
+    interface Props {
+        skill: number | undefined;
+    }
+
+    let { skill = $bindable() }: Props = $props();
 </script>
 
 <div class="wrapper">
@@ -11,8 +15,9 @@
         <button
             aria-label={`Set skill to ${level}`}
             class="pill"
-            class:active={skill >= level}
-            on:click={() => (skill = level)} />
+            class:active={(skill ?? 0) >= level}
+            onclick={() => (skill = level)}
+        ></button>
     {/each}
 </div>
 

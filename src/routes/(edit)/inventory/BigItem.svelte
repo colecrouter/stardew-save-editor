@@ -1,9 +1,13 @@
 <script lang="ts">
-    import type { Item } from '$types/save/1.6';
-    import './Item.css';
-    import ItemSprite from './ItemSprite.svelte';
+    import type { Item } from "$types/save/1.6";
+    import "./Item.css";
+    import ItemSprite from "./ItemSprite.svelte";
 
-    export let item: Item | undefined;
+    interface Props {
+        item: Item | undefined;
+    }
+
+    let { item = $bindable() }: Props = $props();
 </script>
 
 <div class="item-wrapper">

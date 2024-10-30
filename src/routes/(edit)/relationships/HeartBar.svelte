@@ -1,37 +1,41 @@
 <script lang="ts">
-    import { base } from '$app/paths';
-    import { DateableCharacters } from '$lib/NPCs';
-    import type { FriendshipDataItem } from '$types/save/1.6';
+    import { base } from "$app/paths";
+    import { DateableCharacters } from "$lib/NPCs";
+    import type { FriendshipDataItem } from "$types/save/1.6";
 
-    export let character: FriendshipDataItem;
+    interface Props {
+        npc: FriendshipDataItem;
+    }
 
-    let name = character.key.string;
+    let { npc = $bindable() }: Props = $props();
+
+    let name = npc.key.string;
     let dateable = DateableCharacters.some((c) => c == name);
-    let amount: number = character.value.Friendship.Points;
-    let relationship: string = character.value.Friendship.Status;
-    let hearts: number;
+    let amount: number = $state(npc.value.Friendship.Points);
+    let relationship: string = npc.value.Friendship.Status;
+    let hearts: number = $derived(Math.floor(amount / 250));
     let maxhearts: number = dateable
-        ? relationship == 'Married'
+        ? relationship == "Married"
             ? 14
-            : relationship == 'Dating'
+            : relationship == "Dating"
               ? 10
               : 8
         : 10;
     let maxamount: number = maxhearts * 250 + 249; // 250 points per heart, plus 249 points after the last heart
 
-    // Update values for visuals
-    $: character.value.Friendship.Points = Math.max(
-        Math.min(amount, maxamount),
-        0,
-    );
-    $: hearts = Math.floor(amount / 250);
+    function update(value: number) {
+        npc.value.Friendship.Points = Math.floor(
+            Math.max(0, Math.min(value, maxamount)),
+        );
+    }
 </script>
 
 <div class="row">
     <div class="portrait-wrapper">
         <div
             class="portrait"
-            style:background-image={`url('${base}/assets/portraits/${name}.png')`} />
+            style:background-image={`url('${base}/assets/portraits/${name}.png')`}
+        ></div>
     </div>
     <div class="right">
         <div class="hearts">
@@ -50,7 +54,9 @@
             class="amount"
             min="0"
             max={maxamount}
-            bind:value={amount} />
+            bind:value={amount}
+            onfocusout={() => update(amount)}
+        />
     </div>
     <strong>
         {name}

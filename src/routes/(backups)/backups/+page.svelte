@@ -1,7 +1,7 @@
 <script lang="ts">
-    import { BackupManager } from '$lib/Backups';
-    import Container from '../../Container.svelte';
-    import Backup from './Backup.svelte';
+    import { BackupManager } from "$lib/Backups";
+    import Container from "../../Container.svelte";
+    import Backup from "./Backup.svelte";
 
     const backups = BackupManager.backups;
 </script>
@@ -15,7 +15,8 @@
                         {backup}
                         deleteFunc={() => {
                             BackupManager.splice(i, 1);
-                        }} />
+                        }}
+                    />
                 </div>
             {/each}
         {:else}

@@ -1,30 +1,36 @@
 <script lang="ts">
-    import { ItemData } from '$lib/ItemData';
-    import type { Item } from '$types/save/1.6';
+    import { ItemData } from "$lib/ItemData";
+    import { CalculateEdibility, CalculatePrice } from "$lib/ItemQuality";
+    import type { Item } from "$types/save/1.6";
 
-    export let item: Item;
+    interface Props {
+        item: Item;
+    }
 
-    // Set default quality to 0 if it doesn't exist
-    $: if (!item.quality) item.quality = 0;
+    let { item = $bindable() }: Props = $props();
 
-    const priceIncrease = [1.0, 1.25, 1.5, NaN, 2.0];
+    const changeQuality = (newQuality: number) => {
+        item.quality = newQuality;
+    };
 
     const changePrice = (newQuality: number) => {
         const data = ItemData.get(item.name);
-        if (!data) return;
+        if (!data || !("Price" in data) || data.Price === undefined) return;
 
-        const basePrice = data.Price;
-        if (basePrice === undefined) return;
+        item.price = CalculatePrice(data.Price, newQuality);
+    };
 
-        const newPrice = basePrice * priceIncrease[newQuality];
-        item.price = Math.floor(newPrice);
-        item.quality = newQuality;
+    const changeEdibility = (newQuality: number) => {
+        const data = ItemData.get(item.name);
+        if (!data || !("Edibility" in data)) return;
+
+        item.edibility = CalculateEdibility(data.Edibility, newQuality);
     };
 </script>
 
 <div class="container">
     <!-- Create 4 button containing star emoji-->
-    {#if 'quality' in item}
+    {#if "quality" in item}
         {#each [0, 1, 2, 4] as i}
             <label>
                 {#if i === 0}
@@ -37,7 +43,10 @@
                     checked={item.quality === i}
                     value={i}
                     bind:group={item.quality}
-                    on:click={() => changePrice(i)} />
+                    onclick={() => (
+                        changeQuality(i), changePrice(i), changeEdibility(i)
+                    )}
+                />
             </label>
         {/each}
     {/if}
@@ -50,7 +59,7 @@
         align-items: center;
     }
 
-    input[type='radio'] {
+    input[type="radio"] {
         appearance: none;
         width: 0;
         position: relative;
@@ -66,7 +75,7 @@
         position: absolute;
         top: -0.75em;
         left: -1.25em;
-        content: '✅';
+        content: "✅";
         font-size: 0.8em;
     }
 

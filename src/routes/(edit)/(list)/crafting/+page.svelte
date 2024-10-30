@@ -1,19 +1,19 @@
 <script lang="ts">
-    import { Character, SaveGame } from '$lib/SaveFile';
-    import type { KV } from '$types/save/1.5';
-    import Container from '../../../Container.svelte';
-    import List from '../List.svelte';
-    import type { PageData } from './$types';
+    import { saveManager } from "$lib/SaveFile.svelte";
+    import type { KV } from "$types/save/1.5";
+    import Container from "../../../Container.svelte";
+    import List from "../List.svelte";
+    import type { PageData } from "./$types";
 
-    export let data: PageData;
+    interface Props {
+        data: PageData;
+    }
+
+    let { data }: Props = $props();
     const recipes = data.recipes;
 
-    let recipesUnlocked: KV[] = [];
-    Character.character.subscribe((c) => {
-        if (!c) return;
-
-        recipesUnlocked = c.craftingRecipes?.item ?? [];
-    });
+    if (!saveManager.player) throw new Error("Character not found");
+    let recipesUnlocked: KV[] = saveManager.player.craftingRecipes.item;
 </script>
 
 <Container>

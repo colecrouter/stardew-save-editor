@@ -1,5 +1,10 @@
 <script lang="ts">
-    import { base } from '$app/paths';
+    import { base } from "$app/paths";
+    interface Props {
+        children?: import("svelte").Snippet;
+    }
+
+    let { children }: Props = $props();
 </script>
 
 <svelte:head>
@@ -7,16 +12,19 @@
     <title>Stardew Valley Save Editor</title>
     <meta
         name="description"
-        content="An online save editor for Stardew Valley. Upload your save, then change your appearance, inventory, skills, and more." />
+        content="An online save editor for Stardew Valley. Upload your save, then change your appearance, inventory, skills, and more."
+    />
 
     <meta property="og:title" content="Stardew Valley Save Editor" />
     <meta
         property="og:description"
-        content="An online save editor for Stardew Valley. Upload your save, then change your appearance, inventory, skills, and more." />
+        content="An online save editor for Stardew Valley. Upload your save, then change your appearance, inventory, skills, and more."
+    />
     <meta property="og:image" content={`${base}/img/summary.png`} />
     <meta
         property="og:url"
-        content="https://colecrouter.github.io/stardew-save-editor/" />
+        content="https://colecrouter.github.io/stardew-save-editor/"
+    />
     <meta property="og:type" content="website" />
 
     <meta name="twitter:card" content="summary" />
@@ -35,14 +43,16 @@
     href="https://github.com/colecrouter/stardew-save-editor"
     aria-label="GitHub repository link"
     target="_blank"
-    rel="noreferrer">
+    rel="noreferrer"
+>
     <img
         src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/91/Octicons-mark-github.svg/600px-Octicons-mark-github.svg.png?20180806170715"
-        alt="Github Logo" />
+        alt="Github Logo"
+    />
 </a>
 
 <main>
-    <slot />
+    {@render children?.()}
 </main>
 
 <!-- FOOTER -->
@@ -82,7 +92,8 @@
 
     <h3>
         <a href="https://github.com/colecrouter/stardew-save-editor"
-            >Link to the GitHub project</a>
+            >Link to the GitHub project</a
+        >
     </h3>
 </footer>
 
@@ -152,7 +163,7 @@
     }
 
     :global(.tooltip:not(:focus) #tooltip::before) {
-        content: '';
+        content: "";
         position: absolute;
         top: 100%;
         left: 50%;
@@ -163,7 +174,7 @@
         clip-path: polygon(0% 0%, 100% 0%, 50% 100%);
     }
 
-    :global(input[type='text'], input[type='number']) {
+    :global(input[type="text"], input[type="number"]) {
         border-radius: 4px;
         border: solid 2px;
         border-bottom-color: #9c613b;
@@ -176,12 +187,12 @@
             -2px 2px 1px rgba(0, 0, 0, 0.2);
     }
 
-    :global(input[type='text']:disabled, input[type='number']:disabled) {
+    :global(input[type="text"]:disabled, input[type="number"]:disabled) {
         background-color: #de9a3c;
         color: #000;
     }
 
-    :global(input[type='text']:focus, input[type='number']:focus) {
+    :global(input[type="text"]:focus, input[type="number"]:focus) {
         outline: none;
     }
 
@@ -215,7 +226,7 @@
 
     a::before {
         /* top right wedge */
-        content: '';
+        content: "";
         position: absolute;
         top: 0;
         right: 0;

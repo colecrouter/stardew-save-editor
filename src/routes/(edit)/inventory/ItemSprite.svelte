@@ -3,54 +3,39 @@
         DefaultFurnitureSizes,
         ItemData,
         ItemNameHelper,
-    } from '$lib/ItemData';
-    import type { Item } from '$types/save/1.6';
-    import { base } from '$app/paths';
-    import { GetSpritesheet, GetSprite } from '$lib/Spritesheet';
-    import type { FurnitureType, ItemInformation } from '$types/items/1.6';
+    } from "$lib/ItemData";
+    import type { Item } from "$types/save/1.6";
+    import { base } from "$app/paths";
+    import { GetSpritesheet, GetSprite } from "$lib/Spritesheet";
+    import type { FurnitureType, ItemInformation } from "$types/items/1.6";
 
-    export let item: Partial<Item> | undefined;
+    interface Props {
+        item: Partial<Item> | undefined;
+    }
 
-    let lookupItem = ItemData.get(item?.name ?? 'Clothing');
-    let spritesheet: string | undefined;
-    let x: number, y: number, w: number, h: number;
+    let { item }: Props = $props();
 
-    $: if (item) {
-        lookupItem = ItemData.get(
-            item.name === 'Clothing'
-                ? item.parentSheetIndex === 1064
-                    ? 'Shirt'
-                    : 'Pants'
-                : ItemNameHelper(item as Item),
-        );
+    let lookupItem = $derived(
+        item
+            ? ItemData.get(
+                  item.name === "Clothing"
+                      ? item.parentSheetIndex === 1064
+                          ? "Shirt"
+                          : "Pants"
+                      : ItemNameHelper(item as Item),
+              )
+            : undefined,
+    );
 
-        if (item.name === 'Fishing Rod') {
-            // spritesheet = 'tools.png';
-            // let name: string;
-            // switch (item.upgradeLevel) {
-            //   case 0:
-            //     name = 'Training Rod';
-            //     break;
-            //   case 1:
-            //     name = 'Bamboo Pole';
-            //     break;
-            //   case 2:
-            //     name = 'Fiberglass Rod';
-            //     break;
-            //   case 3:
-            //     name = 'Iridium Rod';
-            //     break;
-            // }
-            // lookupItem = ItemData.get(name);
-        }
+    let spritesheet = $derived(lookupItem && GetSpritesheet(lookupItem));
+    let x = $state(0);
+    let y = $state(0);
+    let w = $state(0);
+    let h = $state(0);
 
-        if (!lookupItem) {
-            console.error(`No item found for ${item.name}`);
-        }
-
+    $effect(() => {
         if (lookupItem) {
-            spritesheet = GetSpritesheet(lookupItem);
-            if (lookupItem._type === 'Furniture') {
+            if (lookupItem._type === "Furniture") {
                 const size = DefaultFurnitureSizes.get(
                     lookupItem.Type as FurnitureType,
                 );
@@ -62,11 +47,11 @@
                     w = lookupItem.TilesheetSize.width * 16;
                     h = lookupItem.TilesheetSize.height * 16;
                 }
-            } else if (lookupItem._type === 'Shirt') {
+            } else if (lookupItem._type === "Shirt") {
                 w = h = 8;
-            } else if (lookupItem._type === 'Hat') {
+            } else if (lookupItem._type === "Hat") {
                 w = h = 20;
-            } else if (lookupItem._type === 'BigCraftable') {
+            } else if (lookupItem._type === "BigCraftable") {
                 w = 16;
                 h = 32;
             } else {
@@ -74,7 +59,7 @@
             }
 
             if (
-                'MenuSpriteIndex' in lookupItem &&
+                "MenuSpriteIndex" in lookupItem &&
                 lookupItem.MenuSpriteIndex !== -1
             ) {
                 const sprite = GetSprite(
@@ -83,14 +68,14 @@
                 );
                 x = sprite.x;
                 y = sprite.y;
-            } else if ('SpriteIndex' in lookupItem) {
+            } else if ("SpriteIndex" in lookupItem) {
                 const sprite = GetSprite(
                     lookupItem._type,
                     lookupItem.SpriteIndex ?? 0,
                 );
                 x = sprite.x;
                 y = sprite.y;
-            } else if ('Sprite' in lookupItem) {
+            } else if ("Sprite" in lookupItem) {
                 x = lookupItem.Sprite.x;
                 y = lookupItem.Sprite.y;
             }
@@ -99,18 +84,15 @@
             // Word on clothes, if your save is older than 1.4, then you'll have to update before your clothes will show up.
             // Clothes weren't items until 1.4, they were a character property before then.
             // https://stardewvalleywiki.com/Version_History#1.4
-            if (lookupItem._type === 'Shirt') {
-                const sprite = lookupItem.SpriteIndex;
-                lookupItem = {
-                    ...lookupItem,
-                    SpriteIndex: sprite,
-                } satisfies ItemInformation;
-            }
+            // if (lookupItem._type === 'Shirt') {
+            //     const sprite = lookupItem.SpriteIndex;
+            //     lookupItem = {
+            //         ...lookupItem,
+            //         SpriteIndex: sprite,
+            //     } satisfies ItemInformation;
+            // }
         }
-    } else {
-        lookupItem = undefined;
-        spritesheet = undefined;
-    }
+    });
 </script>
 
 <div
@@ -124,6 +106,7 @@
         lookupItem &&
         `url(${base}/assets/${spritesheet})`}
     style:--tint={`rgb(${item?.clothesColor?.R ?? 0},${item?.clothesColor?.G ?? 0},${item?.clothesColor?.B ?? 0})`}
-    class:dyeable={(lookupItem?._type === 'Shirt' ||
-        lookupItem?._type === 'Pants') &&
-        lookupItem.CanBeDyed} />
+    class:dyeable={(lookupItem?._type === "Shirt" ||
+        lookupItem?._type === "Pants") &&
+        lookupItem.CanBeDyed}
+></div>

@@ -40,13 +40,13 @@ const bootsArray = Object.entries(boots).map(([key, value]) => {
     return {
         _type: "Boots",
         ItemId: key,
-        Name: props[0],
-        Description: props[1],
+        Name: props[0] ?? "",
+        Description: props[1] ?? "",
         Price: Number(props[2]),
         Defense: Number(props[3]),
         Immunity: Number(props[4]),
         ColorIndex: Number(props[5]),
-        DisplayName: props[6],
+        DisplayName: props[6] ?? "",
         Sprite: GetSprite("Boots", Number(key)),
         ParentSheetIndex: Number(key),
         Category: -97,
@@ -80,26 +80,26 @@ const furniture = JSON.parse(
 ) as Record<string, string>;
 const furnitureArray = Object.entries(furniture).map(([key, value]) => {
     const props = value.split("/");
-    const split2 = props[2].split(" ");
-    const split3 = props[3].split(" ");
+    const split2 = props[2]?.split(" ");
+    const split3 = props[3]?.split(" ");
 
     return {
         _type: "Furniture",
         ItemId: key,
-        Name: props[0],
+        Name: props[0] ?? "",
         Type: props[1] as FurnitureType,
         TilesheetSize:
-            split2[0] === "-1"
+            split2?.[0] === "-1"
                 ? -1
-                : { width: Number(split2[0]), height: Number(split2[1]) },
+                : { width: Number(split2?.[0]), height: Number(split2?.[1]) },
         BoundingBoxSize:
-            split3[0] === "-1"
+            split3?.[0] === "-1"
                 ? -1
-                : { width: Number(split3[0]), height: Number(split3[1]) },
+                : { width: Number(split3?.[0]), height: Number(split3?.[1]) },
         Rotations: Number(props[4]),
         Price: Number(props[5]),
-        DisplayName: props[6],
-        Description: props[7],
+        DisplayName: props[6] ?? "",
+        Description: props[7] ?? "",
         Sprite: GetSprite("Furniture", Number(key)),
         ParentSheetIndex: Number(key),
     } satisfies Furniture;
@@ -113,11 +113,11 @@ const hatsArray = Object.entries(hats).map(([key, value], i) => {
     return {
         _type: "Hat",
         ItemId: key,
-        Name: props[0],
-        Description: props[1],
+        Name: props[0] ?? "",
+        Description: props[1] ?? "",
         ShowRealHair: props[2] === "true",
         SkipHairstyleOffset: props[3] === "true",
-        DisplayName: props[4],
+        DisplayName: props[4] ?? "",
         Sprite: GetSprite("Hat", Number(key)),
         ParentSheetIndex: Number(key),
     } satisfies Hat;

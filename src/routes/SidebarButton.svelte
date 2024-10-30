@@ -1,6 +1,19 @@
-<!-- svelte-ignore a11y-click-events-have-key-events -->
-<button on:click>
-    <slot />
+<script lang="ts">
+    import type { Snippet } from "svelte";
+    import type { MouseEventHandler } from "svelte/elements";
+    import Page from "./(upload)/+page.svelte";
+
+    interface Props {
+        children?: Snippet;
+        onclick?: MouseEventHandler<HTMLButtonElement>;
+    }
+
+    let { children, onclick }: Props = $props();
+</script>
+
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+<button {onclick}>
+    {@render children?.()}
 </button>
 
 <style>

@@ -280,9 +280,10 @@ export const SaveConverter = {
         const raw = builder.build(json) as string;
         const xml = raw
             .split("------WebKitFormBoundary")[0]
-            .trim()
+            ?.trim()
             .replaceAll("&apos;", "'")
             .replaceAll("/>", " />");
+        if (!xml) throw new Error("Failed to convert to XML");
         const blob = new Blob([xml], { type: "text/text" });
 
         return blob;

@@ -7,6 +7,8 @@
         npc: FriendshipDataItem;
     }
 
+    const INTERVAL = 250;
+
     let { npc = $bindable() }: Props = $props();
 
     let name = npc.key.string;
@@ -21,7 +23,7 @@
               ? 10
               : 8
         : 10;
-    let maxamount: number = maxhearts * 250 + 249; // 250 points per heart, plus 249 points after the last heart
+    let maxamount: number = maxhearts * INTERVAL + INTERVAL - 1; // 250 points per heart, plus 249 points after the last heart
 
     function update(value: number) {
         npc.value.Friendship.Points = Math.floor(
@@ -40,12 +42,19 @@
     <div class="right">
         <div class="hearts">
             {#each Array(hearts) as _, i}
-                <span>❤️</span>
+                <button onclick={() => (amount = i * INTERVAL + INTERVAL)}>
+                    ❤️
+                </button>
             {/each}
             {#each Array(maxhearts - hearts) as _, i}
-                <span>🖤</span>
+                <button
+                    onclick={() =>
+                        (amount = hearts * INTERVAL + i * INTERVAL + INTERVAL)}
+                >
+                    🖤
+                </button>
             {/each}
-            {#each Array(14 - maxhearts) as _, i}
+            {#each Array(14 - maxhearts) as _}
                 <span>🏳️</span>
             {/each}
         </div>
@@ -111,6 +120,10 @@
 
     .amount {
         width: 5em;
+    }
+
+    button {
+        all: unset;
     }
 
     strong {

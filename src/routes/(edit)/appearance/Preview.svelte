@@ -18,40 +18,19 @@
         IndexToSprite,
     } from "$lib/Spritesheet";
     import type { Clothing, Hat } from "$types/items/1.6";
-    import { type HairstyleColor, type Item, Gender } from "$types/save/1.6";
-
-    // These props are just here for reactivity, if you would like the preview to update while changing the player's inventory
+    import { type HairstyleColor, type Player, Gender } from "$types/save/1.6";
 
     interface Props {
-        // TODO this is probably a huge anti pattern, but I can't think of a beter way to do this without getting jankier
-        shirtItem?: Item | undefined;
-        pantsItem?: Item | undefined;
-        hat?: Item | undefined;
-        gender?: Gender;
-        skinColor?: number | undefined;
-        hairStyle?: number | undefined;
-        shirt?: number | undefined;
-        pants?: number | undefined;
-        acc?: number | undefined;
+        player: Player;
     }
 
-    let {
-        shirtItem = undefined,
-        pantsItem = undefined,
-        hat = undefined,
-        gender = Gender.Male,
-        skinColor = undefined,
-        hairStyle = undefined,
-        shirt = undefined,
-        pants = undefined,
-        acc = undefined,
-    }: Props = $props();
+    let { player }: Props = $props();
 
     let baseSheet = $state("male_farmer.png");
     let otherSheet = $state("male_farmer_other.png");
     let hairSheet = "hairstyles.png";
     let armsSheet = $state("male_farmer_arms.png");
-    let bootsSheet = $state("farmer_boots.png");
+    let bootsSheet = $state("male_farmer_boots.png");
     const pantsSheet = "pants.png";
     const shirtSheet = "shirts.png";
     const accessoriesSheet = "accessories.png";
@@ -96,9 +75,9 @@
 
     // Just here for reactivity
     $effect(() => {
-        if (!saveManager.player) return;
+        if (!player) return;
 
-        if (gender === Gender.Male) {
+        if (player.gender === Gender.Male) {
             baseSheet = "male_farmer.png";
             armsSheet = "male_farmer_arms.png";
         } else {
@@ -106,7 +85,7 @@
             armsSheet = "female_farmer_arms.png";
         }
 
-        const isMale = gender === Gender.Male;
+        const isMale = player.gender === Gender.Male;
         otherSheet = isMale
             ? "male_farmer_other.png"
             : "female_farmer_other.png";
@@ -114,14 +93,12 @@
             ? "male_farmer_boots.png"
             : "female_farmer_boots.png";
 
-        baseTint[0] = PrimarySkinColors[saveManager.player.skin] ?? defaultTint;
-        baseTint[1] =
-            SecondarySkinColors[saveManager.player.skin] ?? defaultTint;
-        baseTint[2] =
-            TertiarySkinColors[saveManager.player.skin] ?? defaultTint;
-        eyeTint = saveManager.player.newEyeColor;
+        baseTint[0] = PrimarySkinColors[player.skin] ?? defaultTint;
+        baseTint[1] = SecondarySkinColors[player.skin] ?? defaultTint;
+        baseTint[2] = TertiarySkinColors[player.skin] ?? defaultTint;
+        eyeTint = player.newEyeColor;
 
-        if (!saveManager.player.pantsItem) {
+        if (!player.pantsItem) {
             // Underwear/default
             const underwear = ItemData.get("Polka Dot Shorts") as Clothing;
             pantsPosition = GetPlayerSpriteForPants(
@@ -130,7 +107,7 @@
             );
             pantsTint = defaultTint;
         } else {
-            const pants = saveManager.player.pantsItem;
+            const pants = player.pantsItem;
             const pantsData = ItemData.get(pants.name) as Clothing;
 
             pantsData &&
@@ -141,7 +118,7 @@
             pants.clothesColor && (pantsTint = pants.clothesColor);
         }
 
-        const shirt = saveManager.player.shirtItem;
+        const shirt = player.shirtItem;
         if (!shirt) {
             // White shirt/default
             console.log(isMale);
@@ -169,7 +146,7 @@
         }
 
         let hatData: Hat | undefined;
-        if (saveManager.player.hat?.name === "Copper Pan") {
+        if (player.hat?.name === "Copper Pan") {
             // I hate this so much, but there's no way to grab the info from ItemData because +layout.ts converts iteminfo.json into a Map,
             // so the hat entry gets nuked. Maybe in the future we'll use a Map<string, Array<ItemInformation>> instead.
             // const res = await fetch(base + "/iteminfo.json");
@@ -181,9 +158,7 @@
             // )![1];
             // hatData = pan as Hat;
         } else {
-            hatData =
-                saveManager.player.hat &&
-                (ItemData.get(saveManager.player.hat.name) as Hat);
+            hatData = player.hat && (ItemData.get(player.hat.name) as Hat);
         }
 
         if (hatData) {
@@ -191,14 +166,14 @@
             showHair = hatData?._type == "Hat" && hatData.ShowRealHair;
         }
 
-        const hair = saveManager.player.hair;
+        const hair = player.hair;
         hairPosition = IndexToSprite(hair, 16, 96, 128, 672);
-        hairTint = saveManager.player.hairstyleColor;
+        hairTint = player.hairstyleColor;
         showHair = hatData?._type !== "Hat" || hatData.ShowRealHair;
 
-        if (saveManager.player.accessory !== -1) {
+        if (player.accessory !== -1) {
             accessoryPosition = IndexToSprite(
-                saveManager.player.accessory, // Because index starts at 0 but game displays at 1
+                player.accessory, // Because index starts at 0 but game displays at 1
                 16,
                 32,
                 128,
@@ -206,8 +181,8 @@
             );
         }
 
-        if (saveManager.player.boots) {
-            const boots = saveManager.player.boots;
+        if (player.boots) {
+            const boots = player.boots;
             bootsTint[0] =
                 PrimaryBootColors[boots.indexInColorSheet ?? 0] ?? defaultTint;
             bootsTint[1] =
@@ -227,10 +202,7 @@
     });
 </script>
 
-<div
-    class="appearance"
-    class:female={saveManager.player?.gender === Gender.Female}
->
+<div class="appearance" class:female={player?.gender === Gender.Female}>
     <!-- START LAYERED TINT -->
     <div
         class="base"
@@ -316,13 +288,13 @@
         style:--tint={`rgba(${shirtTint.R},${shirtTint.G},${shirtTint.B},${shirtTint.A})`}
     ></div>
 
-    {#if saveManager.player?.accessory !== -1}
+    {#if player?.accessory !== -1}
         <!-- START LAYERED TINT -->
         <div
             class="accessory"
             style:--spritesheet={`url(${base}/assets/${accessoriesSheet})`}
-            style:--tint={saveManager.player?.accessory !== undefined &&
-            AccessoryIsTinted(saveManager.player?.accessory)
+            style:--tint={player?.accessory !== undefined &&
+            AccessoryIsTinted(player?.accessory)
                 ? `rgba(${hairTint.R},${hairTint.G},${hairTint.B},${hairTint.A})`
                 : ""}
             style:--x={`${accessoryPosition.x}px`}
@@ -341,7 +313,7 @@
         ></div>
     {/if}
 
-    {#if saveManager.player?.hat}
+    {#if player?.hat}
         <div
             class="hat"
             style:--spritesheet={`url(${base}/assets/${hatSheet})`}

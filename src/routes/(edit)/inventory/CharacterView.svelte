@@ -40,12 +40,7 @@
                     bind:selectedIndex
                 />
             </div>
-            <Preview
-                pantsItem={player.pantsItem}
-                shirtItem={player.shirtItem}
-                hat={player.hat}
-                gender={player.gender}
-            />
+            <Preview {player} />
             <div class="character-armor">
                 <SmallItem
                     item={player.hat}

@@ -1,22 +1,20 @@
 <script lang="ts">
     import { Character, SaveGame } from "$lib/SaveFile";
+    import { saveManager } from "$lib/SaveFile.svelte";
     import type { FriendshipDataItem } from "$types/save/1.6";
     import Container from "../../Container.svelte";
     import HeartBar from "./HeartBar.svelte";
 
-    let characters: FriendshipDataItem[] = $state([]);
-    Character.character.subscribe((c) => {
-        if (!c) return;
+    if (!saveManager.player) throw new Error("Character not found");
 
-        characters = c.friendshipData.item;
-    });
+    let npcs = saveManager.player.friendshipData.item;
 </script>
 
 <Container>
     <h3>Relationships</h3>
     <div class="wrapper">
-        {#each characters as character}
-            <HeartBar {character} />
+        {#each npcs as character}
+            <HeartBar npc={character} />
         {/each}
     </div>
 </Container>

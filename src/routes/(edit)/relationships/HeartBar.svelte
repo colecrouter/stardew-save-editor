@@ -1,20 +1,18 @@
 <script lang="ts">
-    import { run } from "svelte/legacy";
-
     import { base } from "$app/paths";
     import { DateableCharacters } from "$lib/NPCs";
     import type { FriendshipDataItem } from "$types/save/1.6";
 
     interface Props {
-        character: FriendshipDataItem;
+        npc: FriendshipDataItem;
     }
 
-    let { character = $bindable() }: Props = $props();
+    let { npc = $bindable() }: Props = $props();
 
-    let name = character.key.string;
+    let name = npc.key.string;
     let dateable = DateableCharacters.some((c) => c == name);
-    let amount: number = $state(character.value.Friendship.Points);
-    let relationship: string = character.value.Friendship.Status;
+    let amount: number = $state(npc.value.Friendship.Points);
+    let relationship: string = npc.value.Friendship.Status;
     let hearts: number = $derived(Math.floor(amount / 250));
     let maxhearts: number = dateable
         ? relationship == "Married"
@@ -25,13 +23,11 @@
         : 10;
     let maxamount: number = maxhearts * 250 + 249; // 250 points per heart, plus 249 points after the last heart
 
-    // Update values for visuals
-    run(() => {
-        character.value.Friendship.Points = Math.max(
-            Math.min(amount, maxamount),
-            0,
+    function update(value: number) {
+        npc.value.Friendship.Points = Math.floor(
+            Math.max(0, Math.min(value, maxamount)),
         );
-    });
+    }
 </script>
 
 <div class="row">
@@ -59,6 +55,7 @@
             min="0"
             max={maxamount}
             bind:value={amount}
+            onfocusout={() => update(amount)}
         />
     </div>
     <strong>

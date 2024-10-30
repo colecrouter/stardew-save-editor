@@ -13,7 +13,9 @@ const config = {
 		paths: {
 			base: process.env.NODE_ENV === "production" ? "/stardew-save-editor" : "",
 		},
-
+		prerender: {
+			handleHttpError: 'warn',
+		}
 	},
 	vitePlugin: { inspector: true },
 };

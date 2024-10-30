@@ -47,8 +47,8 @@ class CharacterSelector {
             save.SaveGame.farmhands.Farmer === undefined
                 ? []
                 : Array.isArray(save.SaveGame.farmhands.Farmer)
-                    ? save.SaveGame.farmhands.Farmer
-                    : [save.SaveGame.farmhands.Farmer];
+                  ? save.SaveGame.farmhands.Farmer
+                  : [save.SaveGame.farmhands.Farmer];
         const player = save.SaveGame.player;
         this._players = [player, ...farmers];
     };
@@ -147,8 +147,8 @@ export const SaveConverter = {
             json.SaveGame.farmhands.Farmer === undefined
                 ? []
                 : Array.isArray(json.SaveGame.farmhands.Farmer)
-                    ? json.SaveGame.farmhands.Farmer
-                    : [json.SaveGame.farmhands.Farmer];
+                  ? json.SaveGame.farmhands.Farmer
+                  : [json.SaveGame.farmhands.Farmer];
         const player = json.SaveGame.player;
         const players = [player, ...farmers];
 
@@ -201,8 +201,8 @@ export const SaveConverter = {
             json.SaveGame.farmhands.Farmer === undefined
                 ? []
                 : Array.isArray(json.SaveGame.farmhands.Farmer)
-                    ? json.SaveGame.farmhands.Farmer
-                    : [json.SaveGame.farmhands.Farmer];
+                  ? json.SaveGame.farmhands.Farmer
+                  : [json.SaveGame.farmhands.Farmer];
         const player = json.SaveGame.player;
         const players = [player, ...farmers];
 

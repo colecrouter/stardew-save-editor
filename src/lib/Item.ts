@@ -132,6 +132,19 @@ export const createItem = (name: string) => {
         }
     }
 
+    // Handle weapon properties
+    if (data._type === "Weapon") {
+        item.minDamage = data.MinDamage;
+        item.maxDamage = data.MaxDamage;
+        item.speed = data.Speed;
+        // item.addedPrecision = data.AddedPrecision;
+        // item.addedDefense = data.AddedDefense;
+        // item.addedAreaOfEffect = data.AddedAreaOfEffect;
+        item.knockback = data.Knockback;
+        item.critChance = data.CritChance;
+        item.critMultiplier = data.CritMultiplier;
+    }
+
     // Set the xsi:type if itemType is determined
     if (itemType) {
         // This is required for the game to recognize the item as the correct type, but isn't part of the XML structures
@@ -204,7 +217,13 @@ export const createItem = (name: string) => {
         let defaultColor = "#000000";
         if (data.DefaultColor) {
             const [R, G, B] = data.DefaultColor.split(" ").map(Number);
-            defaultColor = RGBToHex({ R: R ?? 0, G: G ?? 0, B: B ?? 0, A: 255, PackedValue: 0 });
+            defaultColor = RGBToHex({
+                R: R ?? 0,
+                G: G ?? 0,
+                B: B ?? 0,
+                A: 255,
+                PackedValue: 0,
+            });
         }
         item.clothesColor = HexToRGB(defaultColor);
     }

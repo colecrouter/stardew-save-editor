@@ -127,7 +127,7 @@ class SaveClass {
             suppressEmptyNode: true,
             suppressBooleanAttributes: false,
         });
-        const raw = builder.build(json) as string;
+        const raw = builder.build({ SaveGame: this.saveData }) as string;
         const xml = raw
             .split("------WebKitFormBoundary")[0]
             ?.trim()
@@ -177,8 +177,8 @@ class SaveClass {
             this.saveData.farmhands.Farmer === undefined
                 ? []
                 : Array.isArray(this.saveData.farmhands.Farmer)
-                  ? this.saveData.farmhands.Farmer
-                  : [this.saveData.farmhands.Farmer];
+                    ? this.saveData.farmhands.Farmer
+                    : [this.saveData.farmhands.Farmer];
         const mainPlayer = this.saveData.player;
 
         return [mainPlayer, ...farmers];

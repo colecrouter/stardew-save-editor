@@ -133,6 +133,8 @@
                             type="number"
                             bind:value={selectedItem.critChance}
                             min="0"
+                            max="1"
+                            step="0.01"
                         />
                     </label>
                     <label>

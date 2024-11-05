@@ -3,10 +3,10 @@
         "editor.defaultFormatter": "svelte.svelte-vscode"
     },
     "[javascript]": {
-        "editor.defaultFormatter": "vscode.typescript-language-features"
+        "editor.defaultFormatter": "biomejs.biome"
     },
     "[typescript]": {
-        "editor.defaultFormatter": "vscode.typescript-language-features"
+        "editor.defaultFormatter": "biomejs.biome"
     },
     "prettier.prettierPath": "node_modules/prettier",
 }

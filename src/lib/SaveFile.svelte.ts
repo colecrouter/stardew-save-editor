@@ -128,7 +128,7 @@ class SaveClass {
             suppressEmptyNode: true,
             suppressBooleanAttributes: false,
         });
-        const raw = builder.build(json) as string;
+        const raw = builder.build({ SaveGame: this.saveData }) as string;
         const xml = raw
             .split("------WebKitFormBoundary")[0]
             ?.trim()

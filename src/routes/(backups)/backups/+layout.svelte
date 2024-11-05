@@ -1,12 +1,11 @@
 <script lang="ts">
-    import { goto } from "$app/navigation";
-    import { page } from "$app/stores";
-    import { SaveGame } from "$lib/SaveFile";
-    import { get } from "svelte/store";
-    import SidebarButton from "../../SidebarButton.svelte";
-    import { tooltip } from "$lib/Tooltip";
     import { browser } from "$app/environment";
+    import { goto } from "$app/navigation";
     import { base } from "$app/paths";
+    import { page } from "$app/stores";
+    import { saveManager } from "$lib/SaveFile.svelte";
+    import { tooltip } from "$lib/Tooltip";
+    import SidebarButton from "../../SidebarButton.svelte";
     interface Props {
         children?: import("svelte").Snippet;
     }
@@ -18,7 +17,7 @@
         (p) =>
             browser &&
             p.url.pathname === "/" &&
-            get(SaveGame) &&
+            saveManager.saveData &&
             goto(base + "/inventory"),
     );
 </script>

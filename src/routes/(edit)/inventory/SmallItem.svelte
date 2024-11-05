@@ -34,3 +34,9 @@
 >
     <ItemSprite {item} />
 </div>
+
+<style>
+    .item-wrapper {
+        box-sizing: content-box !important;
+    }
+</style>

@@ -17,6 +17,7 @@
 <style>
     .item-wrapper {
         zoom: 2;
+        box-sizing: content-box !important;
     }
 
     .item-wrapper:hover::after {

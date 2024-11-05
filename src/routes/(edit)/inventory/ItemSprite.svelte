@@ -1,13 +1,13 @@
 <script lang="ts">
+    import { base } from "$app/paths";
     import {
         DefaultFurnitureSizes,
         ItemData,
         ItemNameHelper,
     } from "$lib/ItemData";
+    import { GetSprite, GetSpritesheet } from "$lib/Spritesheet";
+    import type { FurnitureType } from "$types/items/1.6";
     import type { Item } from "$types/save/1.6";
-    import { base } from "$app/paths";
-    import { GetSpritesheet, GetSprite } from "$lib/Spritesheet";
-    import type { FurnitureType, ItemInformation } from "$types/items/1.6";
 
     interface Props {
         item: Partial<Item> | undefined;

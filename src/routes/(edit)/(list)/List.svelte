@@ -1,7 +1,7 @@
 <script lang="ts">
     import type { KV } from "$types/save/1.5";
     import ItemSprite from "../inventory/ItemSprite.svelte";
-    import SmallItem from "../inventory/SmallItem.svelte";
+    import { recipeMapping } from "./mapping";
 
     interface Props {
         keys: string[];
@@ -33,7 +33,13 @@
         <label class="entry">
             <div class="key">
                 <div class="img">
-                    <ItemSprite item={{ name: key }} />
+                    <ItemSprite
+                        item={{
+                            name: recipeMapping.has(key)
+                                ? recipeMapping.get(key)
+                                : key,
+                        }}
+                    />
                 </div>
                 {key}
             </div>

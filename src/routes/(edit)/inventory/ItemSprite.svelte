@@ -63,14 +63,14 @@
                 lookupItem.MenuSpriteIndex !== -1
             ) {
                 const sprite = GetSprite(
-                    lookupItem._type,
+                    lookupItem,
                     lookupItem.MenuSpriteIndex,
                 );
                 x = sprite.x;
                 y = sprite.y;
             } else if ("SpriteIndex" in lookupItem) {
                 const sprite = GetSprite(
-                    lookupItem._type,
+                    lookupItem,
                     lookupItem.SpriteIndex ?? 0,
                 );
                 x = sprite.x;

@@ -47,7 +47,7 @@ const bootsArray = Object.entries(boots).map(([key, value]) => {
         Immunity: Number(props[4]),
         ColorIndex: Number(props[5]),
         DisplayName: props[6] ?? "",
-        Sprite: GetSprite("Boots", Number(key)),
+        Sprite: GetSprite({ _type: "Boots" }, Number(key)),
         ParentSheetIndex: Number(key),
         Category: -97,
     } satisfies Boots;
@@ -100,7 +100,7 @@ const furnitureArray = Object.entries(furniture).map(([key, value]) => {
         Price: Number(props[5]),
         DisplayName: props[6] ?? "",
         Description: props[7] ?? "",
-        Sprite: GetSprite("Furniture", Number(key)),
+        Sprite: GetSprite({ _type: "Furniture" }, Number(key)),
         ParentSheetIndex: Number(key),
     } satisfies Furniture;
 });
@@ -118,7 +118,7 @@ const hatsArray = Object.entries(hats).map(([key, value], i) => {
         ShowRealHair: props[2] === "true",
         SkipHairstyleOffset: props[3] === "true",
         DisplayName: props[4] ?? "",
-        Sprite: GetSprite("Hat", Number(key)),
+        Sprite: GetSprite({ _type: "Hat" }, Number(key)),
         ParentSheetIndex: Number(key),
     } satisfies Hat;
 });
@@ -230,6 +230,10 @@ await copyFile(
 await copyFile(
     "./content/Maps/springobjects.png",
     "./static/assets/springobjects.png",
+);
+await copyFile(
+    "./content/TileSheets/Objects_2.png",
+    "./static/assets/Objects_2.png",
 );
 await copyFile(
     "./content/Characters/Farmer/hats.png",

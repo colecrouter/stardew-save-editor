@@ -19,10 +19,14 @@ const ShirtsWithMessedUpSpriteIndex = new Map<number, { x: number; y: number }>(
 
 export const GetSpritesheet = (lookupItem: ItemInformation): string => {
     let spritesheet = "";
-    switch (lookupItem?._type) {
+    switch (lookupItem._type) {
         case "Object":
         case "Boots":
-            spritesheet = "springobjects.png";
+            if (lookupItem.Texture === "TileSheets\\Objects_2") {
+                spritesheet = "Objects_2.png";
+            } else {
+                spritesheet = "springobjects.png";
+            }
             break;
         case "BigCraftable":
             spritesheet = "Craftables.png";
@@ -64,12 +68,15 @@ export const IndexToSprite = (
 };
 
 export const GetSprite = (
-    type: ItemInformation["_type"],
+    info: Pick<ItemInformation, "_type" | "Texture">,
     index: number,
     dyeable: boolean | undefined = undefined,
 ): { x: number; y: number } => {
-    switch (type) {
+    switch (info._type) {
         case "Object":
+            if (info.Texture === "TileSheets\\Objects_2") {
+                return IndexToSprite(index, 16, 16, 128, 320);
+            }
             return IndexToSprite(index, 16, 16, 384, 624);
         case "BigCraftable":
             return IndexToSprite(index, 16, 32, 128, 1472);

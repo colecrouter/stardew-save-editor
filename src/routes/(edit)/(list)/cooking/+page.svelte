@@ -4,13 +4,13 @@
     import Container from "../../../Container.svelte";
     import List from "../List.svelte";
     import type { PageData } from "./$types";
+    import recipes from "../../../../../static/cookingrecipes.json";
 
     interface Props {
         data: PageData;
     }
 
     let { data }: Props = $props();
-    const recipes = data.recipes;
 
     if (!saveManager.player) throw new Error("Character not found");
     let recipesUnlocked: KV[] = saveManager.player.cookingRecipes.item;

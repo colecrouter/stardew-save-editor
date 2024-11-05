@@ -126,7 +126,7 @@
                 isMale ? "Basic Pullover (M)" : "Basic Pullover (F)",
             ) as Clothing;
             shirtPosition = GetSprite(
-                "Shirt",
+                { _type: "Shirt" },
                 shirtData.SpriteIndex,
                 shirtData.CanBeDyed,
             );
@@ -136,7 +136,7 @@
 
             if (shirtData) {
                 shirtPosition = GetSprite(
-                    "Shirt",
+                    { _type: "Shirt" },
                     shirtData.SpriteIndex,
                     shirtData.CanBeDyed,
                 );

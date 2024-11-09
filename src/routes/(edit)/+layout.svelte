@@ -1,11 +1,8 @@
 <script lang="ts">
-    import { browser } from "$app/environment";
     import { goto } from "$app/navigation";
     import { base } from "$app/paths";
-    import { page } from "$app/stores";
     import { saveManager } from "$lib/SaveFile.svelte";
     import { tooltip } from "$lib/Tooltip";
-    import { onDestroy } from "svelte";
     import SidebarButton from "../SidebarButton.svelte";
     import Router from "./Router.svelte";
     interface Props {
@@ -27,7 +24,7 @@
 
     // Download the save file
     const download = async () => {
-        await saveManager.download("todo");
+        await saveManager.download();
     };
 </script>
 

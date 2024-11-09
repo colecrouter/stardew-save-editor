@@ -6,6 +6,7 @@ import { XMLBuilder, XMLParser } from "fast-xml-parser";
 class SaveClass {
     private i = $state(0);
     public saveData = $state<Save>();
+    public filename = $state<string>();
     public player = $derived(this.players?.[this.i]);
     public inventory = $derived(this.player?.items.Item);
 
@@ -36,6 +37,7 @@ class SaveClass {
             throw new Error(`Unsupported game version: ${gameVersion}`);
 
         this.saveData = json.SaveGame;
+        this.filename = file.name;
 
         // Type safety enhancements
         for (const player of this.players) {
@@ -140,7 +142,7 @@ class SaveClass {
         return blob;
     }
 
-    public async download(filename: string) {
+    public async download() {
         if (!this.saveData) throw new Error("No file provided");
 
         const blob = await this.export();
@@ -154,7 +156,7 @@ class SaveClass {
                         accept: { "text/text": [] },
                     },
                 ],
-                suggestedName: filename,
+                suggestedName: this.filename,
             });
             const writable = await handle.createWritable();
             await writable.write(blob);
@@ -166,7 +168,7 @@ class SaveClass {
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = filename;
+        a.download = this.filename ?? "";
         a.click();
         URL.revokeObjectURL(url);
         a.remove();
@@ -178,8 +180,8 @@ class SaveClass {
             this.saveData.farmhands.Farmer === undefined
                 ? []
                 : Array.isArray(this.saveData.farmhands.Farmer)
-                    ? this.saveData.farmhands.Farmer
-                    : [this.saveData.farmhands.Farmer];
+                  ? this.saveData.farmhands.Farmer
+                  : [this.saveData.farmhands.Farmer];
         const mainPlayer = this.saveData.player;
 
         return [mainPlayer, ...farmers];

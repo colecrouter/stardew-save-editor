@@ -23,6 +23,9 @@ A clear and concise description of what you expected to happen.
 **Screenshots**
 Take a screenshot of what you see. It is greatly encouraged to open your console (More Tools -> Developer Tools) and take a screenshot of any errors in red. You can paste images directly into here.
 
+**Save file**
+Please upload your save file here. This can significantly help solving the issue.
+
 **Device info**
  - OS: [e.g. iOS, Windows, macOS]
  - Browser [e.g. chrome, safari]

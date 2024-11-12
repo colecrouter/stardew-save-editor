@@ -15,5 +15,8 @@ assignees: ''
 **Screenshots**
 If applicable, you can paste screenshots directly in this box.
 
+**Save file**
+Please upload your save file here. This can significantly help solving the issue.
+
 **Additional context**
 Add any other context about the problem here.

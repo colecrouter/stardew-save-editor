@@ -14,14 +14,14 @@
     // If the save changes for whatever reason, go back to the main screen
     const save = saveManager.save;
     if (!save) {
-        goto(base + "/");
+        goto(`${base}/`);
     }
 
     // Go back to the upload page
     const cancel = () => {
         if (!save) return;
         save.raw = undefined;
-        goto(base + "/");
+        goto(`${base}/`);
     };
 
     // Download the save file

@@ -10,7 +10,7 @@
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"dump": "tsx --no-warnings src/dump.ts",
 		"lint": "biome lint ./src",
-		"lint:fix": "biome lint ./src --write",
+		"lint:fix": "biome lint ./src --fix",
 		"format": "prettier src && biome check ./src",
 		"format:fix": "prettier src --write && biome check ./src --write",
 		"test": "vitest run"

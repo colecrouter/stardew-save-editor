@@ -12,14 +12,14 @@
     let { npc = $bindable() }: Props = $props();
 
     let name = npc.key.string;
-    let dateable = DateableCharacters.some((c) => c == name);
+    let dateable = DateableCharacters.some((c) => c === name);
     let amount: number = $state(npc.value.Friendship.Points);
     let relationship: string = npc.value.Friendship.Status;
     let hearts: number = $derived(Math.floor(amount / 250));
     let maxhearts: number = dateable
-        ? relationship == "Married"
+        ? relationship === "Married"
             ? 14
-            : relationship == "Dating"
+            : relationship === "Dating"
               ? 10
               : 8
         : 10;

@@ -39,6 +39,7 @@
         ["Qi Coins 💰", player, "clubCoins"],
         ["Hay 🌾", farm, "piecesOfHay"],
         ["Golden Walnuts 🌰", save, "goldenWalnuts"],
+        // biome-ignore lint/suspicious/noExplicitAny: todo
     ] as [string, any, keyof any][];
 </script>
 

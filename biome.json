@@ -3,13 +3,19 @@
     "files": {
         "ignore": [
             "**/node_modules/**",
-            "**/.svelte-kit/**",
-            "**/*.svelte"
+            "**/.svelte-kit/**"
         ]
     },
     "formatter": {
         "indentStyle": "space",
         "indentWidth": 4,
         "lineEnding": "lf"
+    },
+    "linter": {
+        "rules": {
+            "style": {
+                "useConst": "off"
+            }
+        }
     }
 }

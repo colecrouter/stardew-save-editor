@@ -18,7 +18,7 @@
             browser &&
             p.url.pathname === "/" &&
             saveManager.save?.raw &&
-            goto(base + "/inventory"),
+            goto(`${base}/inventory`),
     );
 </script>
 

@@ -49,7 +49,7 @@ export class SaveProxy {
             suppressEmptyNode: true,
             suppressBooleanAttributes: false,
         });
-        const raw = builder.build({ SaveGame: this.raw }) as string;
+        const raw = builder.build(this.raw) as string;
         const xml = raw
             .split("------WebKitFormBoundary")[0]
             ?.trim()

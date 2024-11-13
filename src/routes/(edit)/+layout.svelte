@@ -1,8 +1,7 @@
 <script lang="ts">
-    import { browser } from "$app/environment";
     import { goto } from "$app/navigation";
     import { base } from "$app/paths";
-    import { downloadBlob, saveManager } from "$lib/save.svelte";
+    import { saveManager } from "$lib/save.svelte";
     import { tooltip } from "$lib/Tooltip";
     import SidebarButton from "../SidebarButton.svelte";
     import Router from "./Router.svelte";
@@ -27,8 +26,7 @@
 
     // Download the save file
     const download = async () => {
-        if (!save) throw new Error("No save data found");
-        await downloadBlob(await save.toXML(), "savegame");
+        await saveManager.export();
     };
 </script>
 
@@ -46,10 +44,10 @@
                 <SidebarButton onclick={() => download()}>💾</SidebarButton>
             </div>
             <div use:tooltip aria-label="Previous Character">
-                <SidebarButton onclick={save.prevFarmer}>⬅️</SidebarButton>
+                <SidebarButton onclick={save?.prevFarmer}>⬅️</SidebarButton>
             </div>
             <div use:tooltip aria-label="Next Character">
-                <SidebarButton onclick={save.nextFarmer}>➡️</SidebarButton>
+                <SidebarButton onclick={save?.nextFarmer}>➡️</SidebarButton>
             </div>
         </div>
     </div>

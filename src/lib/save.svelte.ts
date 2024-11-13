@@ -1,13 +1,12 @@
-import type { SaveProxy } from "$lib/proxies/SaveFile.svelte";
+import { SaveProxy } from "$lib/proxies/SaveFile.svelte";
 import { XMLParser } from "fast-xml-parser";
-import { getContext, setContext } from "svelte";
 
 // The XML parser has no idea what should be an array and what should be an object
 // This isn't a huge deal, but we can make it a little easier to work with by
 // supplying a list of things we want to be arrays
 const arrayTags = new Set(["item", "GameLocations", "characters", "objects"]);
 
-export const importSave = async (file: File) => {
+const importSave = async (file: File) => {
     if (!file) {
         throw new Error("No file provided");
     }
@@ -30,7 +29,7 @@ export const importSave = async (file: File) => {
     return json;
 };
 
-export const downloadBlob = async (blob: Blob, filename: string) => {
+const downloadBlob = async (blob: Blob, filename: string) => {
     // If supported, use file picker
     if ("showSaveFilePicker" in window) {
         const handle = await window.showSaveFilePicker({
@@ -70,6 +69,18 @@ const isSaveFile = (obj: unknown): obj is SaveFile => {
 
 export class SaveManager {
     save = $state<SaveProxy>();
+    filename = $state("");
+
+    async import(file: File) {
+        this.save = new SaveProxy(await importSave(file));
+        this.filename = file.name;
+    }
+
+    async export() {
+        if (!this.save) throw new Error("No save file provided");
+        const blob = await this.save.toXML();
+        return downloadBlob(blob, this.filename);
+    }
 }
 
 export const saveManager = new SaveManager();

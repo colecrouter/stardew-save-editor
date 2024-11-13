@@ -1,15 +1,15 @@
 <script lang="ts">
-    import { saveManager } from "$lib/SaveFile.svelte";
+    import type { Farmer } from "$lib/proxies/Farmer";
+    import { saveManager } from "$lib/save.svelte";
     import { tooltip } from "$lib/Tooltip";
-    import type { Player, Save } from "$types/save/1.6";
     import Container from "../../Container.svelte";
     import SkillBar from "./SkillBar.svelte";
     import WalletItem from "./WalletItem.svelte";
 
-    const player = saveManager.player;
-    const farm = saveManager.farm;
-    const saveData = saveManager.saveData;
-    if (!player || !farm || !saveData) throw new Error("No player data found");
+    const player = saveManager.save?.player;
+    const farm = saveManager.save?.farm;
+    const save = saveManager.save;
+    if (!player || !farm || !save) throw new Error("No player data found");
 
     const unlocks = [
         ["📙", "canUnderstandDwarves", "Dwarvish Translation Guide"],
@@ -21,70 +21,42 @@
         ["🌑", "hasDarkTalisman", "Dark Talisman"],
         ["🖋️", "hasMagicInk", "Magic Ink"],
         ["🏘️", "HasTownKey", "Town Key"],
-    ] satisfies [string, keyof Player, string][];
-
-    function updateUnlock(key: keyof Player, value: boolean) {
-        if (saveManager.player) {
-            // @ts-ignore
-            saveManager.player[key] = value ? "" : undefined;
-        }
-    }
+    ] satisfies [string, keyof Farmer["flags"], string][];
 
     const skills = [
-        "Farming 🥕",
-        "Mining ⛏️",
-        "Foraging 🌳",
-        "Fishing 🎣",
-        "Combat ⚔️",
-    ];
+        ["Farming 🥕", "farming"],
+        ["Mining ⛏️", "mining"],
+        ["Foraging 🌳", "foraging"],
+        ["Fishing 🎣", "fishing"],
+        ["Combat ⚔️", "combat"],
+    ] satisfies [string, keyof Farmer["skills"]][];
 
     // TODO gotta be a better way to do this
-    type S = typeof saveManager;
-    type Stat = {
-        [T in keyof S]: NonNullable<S[T]> extends object
-            ? {
-                  [U in keyof NonNullable<S[T]>]: [string, T, U];
-              }[keyof NonNullable<S[T]>]
-            : never;
-    }[keyof S];
     const stats = [
-        ["Health ❤️", "player", "maxHealth"],
-        ["Stamina ⚡", "player", "maxStamina"],
-        ["Qi Gems 💎", "player", "qiGems"],
-        ["Qi Coins 💰", "player", "clubCoins"],
-        ["Hay 🌾", "farm", "piecesOfHay"],
-        ["Golden Walnuts 🌰", "saveData", "goldenWalnuts"],
-    ] satisfies Stat[];
-
-    function updateStat(
-        firstKey: keyof S,
-        secondKey: keyof NonNullable<S[typeof firstKey]>,
-        value: number,
-    ) {
-        if (saveManager[firstKey]) {
-            // @ts-ignore
-            saveManager[firstKey][secondKey] = value;
-        }
-    }
+        ["Health ❤️", player, "maxHealth"],
+        ["Stamina ⚡", player, "maxStamina"],
+        ["Qi Gems 💎", player, "qiGems"],
+        ["Qi Coins 💰", player, "clubCoins"],
+        ["Hay 🌾", farm, "piecesOfHay"],
+        ["Golden Walnuts 🌰", save, "goldenWalnuts"],
+    ] as [string, any, keyof any][];
 </script>
 
 <Container>
     <h3>Skills</h3>
     <div class="wrapper">
-        {#each player.experiencePoints.int as skill, i}
-            {#if skills[i] !== undefined}
-                <label for={`skills-${i}`}>
-                    {skills[i]}
-                    <SkillBar bind:skill={player.experiencePoints.int[i]} />
-                    <input
-                        id={`skills-${i}`}
-                        type="number"
-                        min="0"
-                        max="99999"
-                        bind:value={player.experiencePoints.int[i]}
-                    />
-                </label>
-            {/if}
+        {#each skills as [label, key]}
+            <label for={`skills-${key}`}>
+                {label}
+                <SkillBar bind:skill={player.skills[key]} />
+                <input
+                    id={`skills-${key}`}
+                    type="number"
+                    min="0"
+                    max="99999"
+                    bind:value={player.skills[key]}
+                />
+            </label>
         {/each}
     </div>
 
@@ -98,9 +70,8 @@
                     type="number"
                     min="0"
                     max="99999"
-                    bind:value={saveManager[key1 as never][key2]}
+                    bind:value={key1[key2]}
                 />
-                <!-- Why does this work ^ ???? -->
             </label>
         {/each}
     </div>
@@ -110,10 +81,7 @@
     <div class="wallet">
         {#each unlocks as [emoji, key, alt]}
             <div aria-label={alt} use:tooltip>
-                <WalletItem
-                    value={player[key] === ""}
-                    onclick={(v: boolean) => updateUnlock(key, v)}
-                >
+                <WalletItem bind:value={player.flags[key]}>
                     {emoji}
                 </WalletItem>
             </div>

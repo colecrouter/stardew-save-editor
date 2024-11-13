@@ -1,11 +1,12 @@
 <script lang="ts">
     import type { ParentIndex } from "$lib/ItemParentIndex";
-    import type { Item, Player } from "$types/save/1.6";
+    import type { Farmer } from "$lib/proxies/Farmer";
+    import type { Item } from "$types/save/1.6";
     import Preview from "../appearance/Preview.svelte";
     import SmallItem from "./SmallItem.svelte";
 
     interface Props {
-        player: Player;
+        player: Farmer;
         selectedItem: Item | undefined;
         selectedIndex: ParentIndex;
     }
@@ -49,14 +50,14 @@
                     bind:selectedIndex
                 />
                 <SmallItem
-                    item={player.shirtItem}
-                    index={"shirtItem"}
+                    item={player.shirt}
+                    index={"shirt"}
                     bind:selectedItem
                     bind:selectedIndex
                 />
                 <SmallItem
-                    item={player.pantsItem}
-                    index={"pantsItem"}
+                    item={player.pants}
+                    index={"pants"}
                     bind:selectedItem
                     bind:selectedIndex
                 />

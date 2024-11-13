@@ -1,7 +1,8 @@
 <script lang="ts">
-    import { saveManager } from "$lib/SaveFile.svelte";
+    import type { Farmer } from "$lib/proxies/Farmer";
+    import { saveManager } from "$lib/save.svelte";
     import { HexToRGB, RGBToHex } from "$lib/Spritesheet";
-    import { Gender, type Player } from "$types/save/1.6";
+    import { Gender } from "$types/save/1.6";
     import Container from "../../Container.svelte";
     import Preview from "./Preview.svelte";
 
@@ -9,21 +10,20 @@
         ["Name", "name"],
         ["Farm Name", "farmName"],
         ["Favorite Thing", "favoriteThing"],
-    ] satisfies [string, keyof Player][];
+    ] satisfies [string, keyof Farmer][];
 
     const colorFields = [
-        ["Eye Color", "newEyeColor"],
-        ["Hair Color", "hairstyleColor"],
-    ] satisfies [string, keyof Player][];
+        ["Eye Color", "eyeColor"],
+        ["Hair Color", "hairColor"],
+    ] satisfies [string, keyof Farmer][];
 
     // Label, key, min, max
     const numberFields = [
         ["Skin", "skin", 0, 23],
-        ["Hair", "hair", 0, 72],
+        ["Hair", "hairstyle", 0, 72],
         ["Acc", "accessory", -1, 19],
-    ] satisfies [string, keyof Player, number, number][];
-
-    let player = saveManager.player;
+    ] satisfies [string, keyof Farmer, number, number][];
+    let player = saveManager.save?.player;
 </script>
 
 <Container>

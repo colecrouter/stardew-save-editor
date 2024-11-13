@@ -4,7 +4,7 @@
 
 <script lang="ts">
     interface Props {
-        skill: number | undefined;
+        skill: number;
     }
 
     let { skill = $bindable() }: Props = $props();
@@ -15,7 +15,7 @@
         <button
             aria-label={`Set skill to ${level}`}
             class="pill"
-            class:active={(skill ?? 0) >= level}
+            class:active={skill >= level}
             onclick={() => (skill = level)}
         ></button>
     {/each}

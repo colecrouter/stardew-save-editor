@@ -1,11 +1,7 @@
 <script lang="ts">
-    import { goto } from "$app/navigation";
-    import { page } from "$app/stores";
-    import { get } from "svelte/store";
-    import SidebarButton from "../SidebarButton.svelte";
-    import { tooltip } from "$lib/Tooltip";
-    import { browser } from "$app/environment";
     import { base } from "$app/paths";
+    import { tooltip } from "$lib/Tooltip";
+    import SidebarButton from "../SidebarButton.svelte";
     interface Props {
         children: import("svelte").Snippet;
     }

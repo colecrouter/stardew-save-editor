@@ -2,9 +2,9 @@
     import { preventDefault } from "svelte/legacy";
 
     import { goto } from "$app/navigation";
-    import { base } from "$app/paths";
+    import { SaveProxy } from "$lib/proxies/SaveFile.svelte";
+    import { importSave, saveManager } from "$lib/save.svelte";
     import Container from "../Container.svelte";
-    import { saveManager } from "$lib/SaveFile.svelte";
 
     let submit = $state<HTMLInputElement>();
     let files = $state<FileList>();
@@ -19,19 +19,18 @@
         const formData = new FormData();
         formData.append("file", file);
 
-        let json: SaveFile;
         try {
-            await saveManager.import(file);
+            const json = await importSave(file);
+            // Save is good, back it up
+            const { BackupManager: Backups } = await import("$lib/Backups");
+            Backups.unshift(file);
+
+            saveManager.save = new SaveProxy(json);
+            goto("/inventory");
         } catch (e) {
             alert((e as Error).message);
             return;
         }
-
-        // Save is good, back it up
-        const { BackupManager: Backups } = await import("$lib/Backups");
-        Backups.unshift(file);
-
-        goto(base + "/inventory");
     };
 </script>
 

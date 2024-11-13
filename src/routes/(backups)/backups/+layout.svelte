@@ -3,7 +3,7 @@
     import { goto } from "$app/navigation";
     import { base } from "$app/paths";
     import { page } from "$app/stores";
-    import { saveManager } from "$lib/SaveFile.svelte";
+    import { saveManager } from "$lib/save.svelte";
     import { tooltip } from "$lib/Tooltip";
     import SidebarButton from "../../SidebarButton.svelte";
     interface Props {
@@ -17,7 +17,7 @@
         (p) =>
             browser &&
             p.url.pathname === "/" &&
-            saveManager.saveData &&
+            saveManager.save?.raw &&
             goto(base + "/inventory"),
     );
 </script>

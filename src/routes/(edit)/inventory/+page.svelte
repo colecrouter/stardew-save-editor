@@ -2,7 +2,7 @@
     import { createItem as create } from "$lib/Item";
     import { ItemData } from "$lib/ItemData";
     import type { ParentIndex } from "$lib/ItemParentIndex";
-    import { saveManager } from "$lib/SaveFile.svelte";
+    import { saveManager } from "$lib/save.svelte";
     import type { Item } from "$types/save/1.6";
     import Container from "../../Container.svelte";
     import CharacterView from "./CharacterView.svelte";
@@ -11,14 +11,16 @@
 
     let selectedItem: Item | undefined = $state();
     let selectedIndex: ParentIndex = $state(0);
+    const save = saveManager.save;
+    if (!save) throw new Error("No save data found");
 
     const deleteItem = (symbol: ParentIndex) => {
-        if (!saveManager.player || !saveManager.inventory) return;
+        if (!save.player || !save.player.inventory) return;
 
         if (typeof symbol === "number") {
-            saveManager.inventory[symbol] = undefined;
+            save.player.inventory[symbol] = undefined;
         } else {
-            saveManager.player[symbol] = undefined;
+            save.player[symbol] = undefined;
         }
 
         // Clear item from the editor window
@@ -26,15 +28,15 @@
     };
 
     const createItem = (symbol: ParentIndex, item: string) => {
-        if (!saveManager.player || !saveManager.inventory) return;
+        if (!save.player || !save.player.inventory) return;
 
         try {
             const newItem = create(item);
 
             if (typeof symbol === "number") {
-                saveManager.inventory[symbol] = newItem;
+                save.player.inventory[symbol] = newItem;
             } else {
-                saveManager.player[symbol] = newItem;
+                save.player[symbol] = newItem;
             }
 
             // Select the new item
@@ -52,11 +54,11 @@
     {/each}
 </datalist>
 
-{#if saveManager.inventory}
+{#if save.player}
     <!-- Inventory view -->
     <Container>
         <div class="item-grid">
-            {#each saveManager.inventory as item, index}
+            {#each save.player.inventory as item, index}
                 <SmallItem
                     {item}
                     {index}
@@ -69,9 +71,9 @@
 
     <!-- Character View -->
     <Container>
-        {#if saveManager.player}
+        {#if save.player}
             <CharacterView
-                player={saveManager.player}
+                player={save.player}
                 bind:selectedIndex
                 bind:selectedItem
             />

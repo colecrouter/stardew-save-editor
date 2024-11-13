@@ -1,8 +1,8 @@
-import type { Player } from "$types/save/1.5";
+import type { Player } from "$types/save/1.6";
 
 export type ParentIndex =
     | number
     | keyof Pick<
           Player,
-          "shirtItem" | "pantsItem" | "hat" | "leftRing" | "rightRing" | "boots"
+          "shirt" | "pants" | "hat" | "leftRing" | "rightRing" | "boots"
       >;

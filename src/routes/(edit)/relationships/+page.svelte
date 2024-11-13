@@ -1,11 +1,14 @@
 <script lang="ts">
-    import { saveManager } from "$lib/SaveFile.svelte";
+    import { saveManager } from "$lib/save.svelte";
     import Container from "../../Container.svelte";
     import HeartBar from "./HeartBar.svelte";
 
-    if (!saveManager.player) throw new Error("Character not found");
+    const save = saveManager.save;
+    if (!save) throw new Error("Save not found");
 
-    let npcs = saveManager.player.friendshipData.item;
+    if (!save.player) throw new Error("Character not found");
+
+    let npcs = save.player.raw.friendshipData.item;
 </script>
 
 <Container>

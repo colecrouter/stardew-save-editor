@@ -8,27 +8,8 @@
 </script>
 
 <svelte:head>
-    <link rel="icon" type="image/png" href={`${base}/img/favicon.png`} />
-    <title>Stardew Valley Save Editor</title>
-    <meta
-        name="description"
-        content="An online save editor for Stardew Valley. Upload your save, then change your appearance, inventory, skills, and more."
-    />
-
-    <meta property="og:title" content="Stardew Valley Save Editor" />
-    <meta
-        property="og:description"
-        content="An online save editor for Stardew Valley. Upload your save, then change your appearance, inventory, skills, and more."
-    />
     <meta property="og:image" content={`${base}/img/summary.png`} />
-    <meta
-        property="og:url"
-        content="https://colecrouter.github.io/stardew-save-editor/"
-    />
-    <meta property="og:type" content="website" />
-
-    <meta name="twitter:card" content="summary" />
-
+    <link rel="icon" type="image/png" href={`${base}/img/favicon.png`} />
     <link rel="canonical" href={`${base}/backups`} />
     <link rel="canonical" href={`${base}/inventory`} />
     <link rel="canonical" href={`${base}/character`} />

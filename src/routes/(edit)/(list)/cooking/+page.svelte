@@ -1,22 +1,8 @@
 <script lang="ts">
-    import { saveManager } from "$lib/SaveFile.svelte";
-    import type { KV } from "$types/save/1.5";
-    import Container from "../../../Container.svelte";
-    import List from "../List.svelte";
-    import type { PageData } from "./$types";
-    import recipes from "../../../../../static/cookingrecipes.json";
-
-    interface Props {
-        data: PageData;
-    }
-
-    let { data }: Props = $props();
-
-    if (!saveManager.player) throw new Error("Character not found");
-    let recipesUnlocked: KV[] = saveManager.player.cookingRecipes.item;
+    import { saveManager } from "$lib/save.svelte";
+    import Recipes from "../Recipes.svelte";
 </script>
 
-<Container>
-    <h3>Cooking Recipes</h3>
-    <List keys={recipes} values={recipesUnlocked} />
-</Container>
+{#if saveManager.save}
+    <Recipes bind:recipes={saveManager.save.player.cookingRecipes} />
+{/if}

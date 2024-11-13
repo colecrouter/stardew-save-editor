@@ -11,217 +11,139 @@
         TertiarySkinColors,
     } from "$lib/CharacterColors";
     import { ItemData } from "$lib/ItemData";
-    import { saveManager } from "$lib/SaveFile.svelte";
+    import { Color } from "$lib/proxies/Color";
+    import type { Farmer } from "$lib/proxies/Farmer";
     import {
         GetPlayerSpriteForPants,
         GetSprite,
         IndexToSprite,
     } from "$lib/Spritesheet";
     import type { Clothing, Hat } from "$types/items/1.6";
-    import { type HairstyleColor, type Player, Gender } from "$types/save/1.6";
+    import { type Color as ColorType, Gender } from "$types/save/1.6";
 
     interface Props {
-        player: Player;
+        player: Farmer;
     }
 
     let { player }: Props = $props();
 
-    let baseSheet = $state("male_farmer.png");
-    let otherSheet = $state("male_farmer_other.png");
-    let hairSheet = "hairstyles.png";
-    let armsSheet = $state("male_farmer_arms.png");
-    let bootsSheet = $state("male_farmer_boots.png");
+    let gender = $derived(player.gender.toLowerCase());
+
+    // Spritesheets
+    let baseSheet = $derived(`${gender}_farmer.png`);
+    let otherSheet = $derived(`${gender}_farmer_other.png`);
+    let armsSheet = $derived(`${gender}_farmer_arms.png`);
+    let bootsSheet = $derived(`${gender}_farmer_boots.png`);
+    const hairSheet = "hairstyles.png";
     const pantsSheet = "pants.png";
     const shirtSheet = "shirts.png";
     const accessoriesSheet = "accessories.png";
     const hatSheet = "hats.png";
 
-    type pos = { x: number; y: number };
-    let pantsPosition: pos = $state({ x: 0, y: 0 });
-    let shirtPosition: pos = $state({ x: 0, y: 0 });
-    let hairPosition: pos = $state({ x: 0, y: 0 });
-    let accessoryPosition: pos = $state({ x: 0, y: 0 });
-    let hatPosition: pos = $state({ x: 0, y: 0 });
-    let showHair = $state(true);
+    // Item data
+    let hatData = $derived(
+        player.hat === undefined
+            ? undefined
+            : (ItemData.get(player.hat.name) as Hat),
+    );
+    let shirtData = $derived(
+        player.shirt === undefined
+            ? (ItemData.get(
+                  player.gender === Gender.Male
+                      ? "Basic Pullover (M)"
+                      : "Basic Pullover (F)",
+              ) as Clothing)
+            : (ItemData.get(player.shirt.name) as Clothing),
+    );
+    const underwear = ItemData.get("Polka Dot Shorts") as Clothing;
+    let pantsData = $derived(
+        player.pants === undefined
+            ? underwear
+            : (ItemData.get(player.pants.name) as Clothing),
+    );
 
-    let defaultTint: HairstyleColor = {
-        R: 0,
-        G: 0,
-        B: 0,
-        A: 0,
-        PackedValue: 0,
-    };
-    let hairTint: HairstyleColor = $state(defaultTint);
-    let pantsTint: HairstyleColor = $state(defaultTint);
-    let shirtTint: HairstyleColor = $state(defaultTint);
-    let baseTint: [HairstyleColor, HairstyleColor, HairstyleColor] = $state([
-        defaultTint,
-        defaultTint,
-        defaultTint,
+    // Calculate sprite X and Y positions
+    let hatPosition = $derived(
+        hatData === undefined ? { x: 0, y: 0 } : hatData.Sprite,
+    );
+    let hairPosition = IndexToSprite(0, 16, 96, 128, 672);
+    let accessoryPosition = $derived(
+        IndexToSprite(
+            player.accessory, // Because index starts at 0 but game displays at 1
+            16,
+            32,
+            128,
+            128,
+        ),
+    );
+    let shirtPosition = $derived(
+        GetSprite(
+            { _type: "Shirt" },
+            shirtData.SpriteIndex,
+            shirtData.CanBeDyed,
+        ),
+    );
+    let pantsPosition = $derived(
+        // If the player has no pants, use the underwear sprite
+        GetPlayerSpriteForPants(
+            player.pants === undefined
+                ? underwear.SpriteIndex
+                : pantsData.SpriteIndex,
+            player.gender === Gender.Male,
+        ),
+    );
+
+    let showHair = $derived(hatData?._type !== "Hat" || hatData.ShowRealHair);
+
+    // Tint colors
+    let defaultTint = new Color("#00000000");
+    let pantsTint = $derived(
+        pantsData.CanBeDyed && player.pants?.clothesColor
+            ? new Color(player.pants.clothesColor)
+            : new Color(pantsData.DefaultColor ?? "#00000000"),
+    );
+    let hairTint: ColorType = $derived(player.hairColor);
+    let shirtTint: ColorType = $derived(
+        shirtData.CanBeDyed && player.shirt?.clothesColor
+            ? new Color(player.shirt.clothesColor)
+            : new Color(shirtData.DefaultColor ?? "#00000000"),
+    );
+    let skinTones = $derived<[ColorType, ColorType, ColorType]>([
+        PrimarySkinColors[player.skin] ?? defaultTint,
+        SecondarySkinColors[player.skin] ?? defaultTint,
+        TertiarySkinColors[player.skin] ?? defaultTint,
     ]);
-    let eyeTint: HairstyleColor = $state({
-        R: 0,
-        G: 0,
-        B: 0,
-        A: 0,
-        PackedValue: 0,
-    });
-    let bootsTint: [
-        HairstyleColor,
-        HairstyleColor,
-        HairstyleColor,
-        HairstyleColor,
-    ] = $state([defaultTint, defaultTint, defaultTint, defaultTint]);
-
-    // Just here for reactivity
-    $effect(() => {
-        if (!player) return;
-
-        if (player.gender === Gender.Male) {
-            baseSheet = "male_farmer.png";
-            armsSheet = "male_farmer_arms.png";
-        } else {
-            baseSheet = "female_farmer.png";
-            armsSheet = "female_farmer_arms.png";
-        }
-
-        const isMale = player.gender === Gender.Male;
-        otherSheet = isMale
-            ? "male_farmer_other.png"
-            : "female_farmer_other.png";
-        bootsSheet = isMale
-            ? "male_farmer_boots.png"
-            : "female_farmer_boots.png";
-
-        baseTint[0] = PrimarySkinColors[player.skin] ?? defaultTint;
-        baseTint[1] = SecondarySkinColors[player.skin] ?? defaultTint;
-        baseTint[2] = TertiarySkinColors[player.skin] ?? defaultTint;
-        eyeTint = player.newEyeColor;
-
-        if (!player.pantsItem) {
-            // Underwear/default
-            const underwear = ItemData.get("Polka Dot Shorts") as Clothing;
-            pantsPosition = GetPlayerSpriteForPants(
-                underwear.SpriteIndex,
-                isMale,
-            );
-            pantsTint = defaultTint;
-        } else {
-            const pants = player.pantsItem;
-            const pantsData = ItemData.get(pants.name) as Clothing;
-
-            pantsData &&
-                (pantsPosition = GetPlayerSpriteForPants(
-                    pantsData.SpriteIndex,
-                    isMale,
-                )); // We don't use pants.sprite because there are seperate sprites for item and on character
-            pants.clothesColor && (pantsTint = pants.clothesColor);
-        }
-
-        const shirt = player.shirtItem;
-        if (!shirt) {
-            // White shirt/default
-            console.log(isMale);
-            const shirtData = ItemData.get(
-                isMale ? "Basic Pullover (M)" : "Basic Pullover (F)",
-            ) as Clothing;
-            shirtPosition = GetSprite(
-                { _type: "Shirt" },
-                shirtData.SpriteIndex,
-                shirtData.CanBeDyed,
-            );
-            shirtTint = defaultTint;
-        } else {
-            const shirtData = ItemData.get(shirt.name) as Clothing;
-
-            if (shirtData) {
-                shirtPosition = GetSprite(
-                    { _type: "Shirt" },
-                    shirtData.SpriteIndex,
-                    shirtData.CanBeDyed,
-                );
-                shirtTint =
-                    (shirtData.CanBeDyed && shirt.clothesColor) || defaultTint;
-            }
-        }
-
-        let hatData: Hat | undefined;
-        if (player.hat?.name === "Copper Pan") {
-            // I hate this so much, but there's no way to grab the info from ItemData because +layout.ts converts iteminfo.json into a Map,
-            // so the hat entry gets nuked. Maybe in the future we'll use a Map<string, Array<ItemInformation>> instead.
-            // const res = await fetch(base + "/iteminfo.json");
-            // const allItems = (await res.json()) as Array<
-            //     [string, ItemInformation]
-            // >;
-            // const pan = allItems.find(
-            //     ([name]) => name === "Copper Pan",
-            // )![1];
-            // hatData = pan as Hat;
-        } else {
-            hatData = player.hat && (ItemData.get(player.hat.name) as Hat);
-        }
-
-        if (hatData) {
-            hatPosition = hatData.Sprite;
-            showHair = hatData?._type == "Hat" && hatData.ShowRealHair;
-        }
-
-        const hair = player.hair;
-        hairPosition = IndexToSprite(hair, 16, 96, 128, 672);
-        hairTint = player.hairstyleColor;
-        showHair = hatData?._type !== "Hat" || hatData.ShowRealHair;
-
-        if (player.accessory !== -1) {
-            accessoryPosition = IndexToSprite(
-                player.accessory, // Because index starts at 0 but game displays at 1
-                16,
-                32,
-                128,
-                128,
-            );
-        }
-
-        if (player.boots) {
-            const boots = player.boots;
-            bootsTint[0] =
-                PrimaryBootColors[boots.indexInColorSheet ?? 0] ?? defaultTint;
-            bootsTint[1] =
-                SecondaryBootColors[boots.indexInColorSheet ?? 0] ??
-                defaultTint;
-            bootsTint[2] =
-                TertiaryBootColors[boots.indexInColorSheet ?? 0] ?? defaultTint;
-            bootsTint[3] =
-                QuaternaryBootColors[boots.indexInColorSheet ?? 0] ??
-                defaultTint;
-        } else {
-            bootsTint[0] = defaultTint;
-            bootsTint[1] = defaultTint;
-            bootsTint[2] = defaultTint;
-            bootsTint[3] = defaultTint;
-        }
-    });
+    let eyeTint = $derived(player.eyeColor);
+    let bootTints = $derived<[ColorType, ColorType, ColorType, ColorType]>([
+        PrimaryBootColors[player.boots?.indexInColorSheet ?? 0] ?? defaultTint,
+        SecondaryBootColors[player.boots?.indexInColorSheet ?? 0] ??
+            defaultTint,
+        TertiaryBootColors[player.boots?.indexInColorSheet ?? 0] ?? defaultTint,
+        QuaternaryBootColors[player.boots?.indexInColorSheet ?? 0] ??
+            defaultTint,
+    ]);
 </script>
 
-<div class="appearance" class:female={player?.gender === Gender.Female}>
+<div class="appearance" class:female={player.gender === Gender.Female}>
     <!-- START LAYERED TINT -->
     <div
         class="base"
         style:--spritesheet={`url(${base}/img/${baseSheet})`}
-        style:--tint={`rgba(${baseTint[2].R},${baseTint[2].G},${baseTint[2].B},${baseTint[2].A})`}
+        style:--tint={`rgba(${skinTones[2].R},${skinTones[2].G},${skinTones[2].B},${skinTones[2].A})`}
         style:--x={"16px"}
         style:--y={"0"}
     ></div>
     <div
         class="base"
         style:--spritesheet={`url(${base}/img/${baseSheet})`}
-        style:--tint={`rgba(${baseTint[1].R},${baseTint[1].G},${baseTint[1].B},${baseTint[1].A})`}
+        style:--tint={`rgba(${skinTones[1].R},${skinTones[1].G},${skinTones[1].B},${skinTones[1].A})`}
         style:--x={"32px"}
         style:--y={"0"}
     ></div>
     <div
         class="base"
         style:--spritesheet={`url(${base}/img/${baseSheet})`}
-        style:--tint={`rgba(${baseTint[0].R},${baseTint[0].G},${baseTint[0].B},${baseTint[0].A})`}
+        style:--tint={`rgba(${skinTones[0].R},${skinTones[0].G},${skinTones[0].B},${skinTones[0].A})`}
         style:--x={"48px"}
         style:--y={"0"}
     ></div>
@@ -248,28 +170,28 @@
         style:--spritesheet={`url(${base}/img/${bootsSheet})`}
         style:--x={"48px"}
         style:--y={"0"}
-        style:--tint={`rgba(${bootsTint[0].R},${bootsTint[0].G},${bootsTint[0].B},${bootsTint[0].A})`}
+        style:--tint={`rgba(${bootTints[0].R},${bootTints[0].G},${bootTints[0].B},${bootTints[0].A})`}
     ></div>
     <div
         class="boots"
         style:--spritesheet={`url(${base}/img/${bootsSheet})`}
         style:--x={"32px"}
         style:--y={"0"}
-        style:--tint={`rgba(${bootsTint[1].R},${bootsTint[1].G},${bootsTint[1].B},${bootsTint[1].A})`}
+        style:--tint={`rgba(${bootTints[1].R},${bootTints[1].G},${bootTints[1].B},${bootTints[1].A})`}
     ></div>
     <div
         class="boots"
         style:--spritesheet={`url(${base}/img/${bootsSheet})`}
         style:--x={"0px"}
         style:--y={"0"}
-        style:--tint={`rgba(${bootsTint[2].R},${bootsTint[2].G},${bootsTint[2].B},${bootsTint[2].A})`}
+        style:--tint={`rgba(${bootTints[2].R},${bootTints[2].G},${bootTints[2].B},${bootTints[2].A})`}
     ></div>
     <div
         class="boots"
         style:--spritesheet={`url(${base}/img/${bootsSheet})`}
         style:--x={"16px"}
         style:--y={"0"}
-        style:--tint={`rgba(${bootsTint[3].R},${bootsTint[3].G},${bootsTint[3].B},${bootsTint[3].A})`}
+        style:--tint={`rgba(${bootTints[3].R},${bootTints[3].G},${bootTints[3].B},${bootTints[3].A})`}
     ></div>
     <!-- END LAYERED TINT -->
 
@@ -288,13 +210,13 @@
         style:--tint={`rgba(${shirtTint.R},${shirtTint.G},${shirtTint.B},${shirtTint.A})`}
     ></div>
 
-    {#if player?.accessory !== -1}
+    {#if player.accessory !== -1}
         <!-- START LAYERED TINT -->
         <div
             class="accessory"
             style:--spritesheet={`url(${base}/assets/${accessoriesSheet})`}
-            style:--tint={player?.accessory !== undefined &&
-            AccessoryIsTinted(player?.accessory)
+            style:--tint={player.accessory !== undefined &&
+            AccessoryIsTinted(player.accessory)
                 ? `rgba(${hairTint.R},${hairTint.G},${hairTint.B},${hairTint.A})`
                 : ""}
             style:--x={`${accessoryPosition.x}px`}
@@ -313,7 +235,7 @@
         ></div>
     {/if}
 
-    {#if player?.hat}
+    {#if player.hat}
         <div
             class="hat"
             style:--spritesheet={`url(${base}/assets/${hatSheet})`}
@@ -326,21 +248,21 @@
     <div
         class="arms"
         style:--spritesheet={`url(${base}/img/${armsSheet})`}
-        style:--tint={`rgba(${baseTint[2].R},${baseTint[2].G},${baseTint[2].B},${baseTint[2].A})`}
+        style:--tint={`rgba(${skinTones[2].R},${skinTones[2].G},${skinTones[2].B},${skinTones[2].A})`}
         style:--x={"16px"}
         style:--y={"0"}
     ></div>
     <div
         class="arms"
         style:--spritesheet={`url(${base}/img/${armsSheet})`}
-        style:--tint={`rgba(${baseTint[1].R},${baseTint[1].G},${baseTint[1].B},${baseTint[1].A})`}
+        style:--tint={`rgba(${skinTones[1].R},${skinTones[1].G},${skinTones[1].B},${skinTones[1].A})`}
         style:--x={"32px"}
         style:--y={"0"}
     ></div>
     <div
         class="arms"
         style:--spritesheet={`url(${base}/img/${armsSheet})`}
-        style:--tint={`rgba(${baseTint[0].R},${baseTint[0].G},${baseTint[0].B},${baseTint[0].A})`}
+        style:--tint={`rgba(${skinTones[0].R},${skinTones[0].G},${skinTones[0].B},${skinTones[0].A})`}
         style:--x={"48px"}
         style:--y={"0"}
     ></div>

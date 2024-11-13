@@ -2,10 +2,8 @@
     import { browser } from "$app/environment";
     import { goto } from "$app/navigation";
     import { base } from "$app/paths";
-    import { page } from "$app/stores";
-    import { saveManager } from "$lib/SaveFile.svelte";
+    import { downloadBlob, saveManager } from "$lib/save.svelte";
     import { tooltip } from "$lib/Tooltip";
-    import { onDestroy } from "svelte";
     import SidebarButton from "../SidebarButton.svelte";
     import Router from "./Router.svelte";
     interface Props {
@@ -15,19 +13,22 @@
     let { children }: Props = $props();
 
     // If the save changes for whatever reason, go back to the main screen
-    if (!saveManager.saveData) {
+    const save = saveManager.save;
+    if (!save) {
         goto(base + "/");
     }
 
     // Go back to the upload page
     const cancel = () => {
-        saveManager.saveData = undefined;
+        if (!save) return;
+        save.raw = undefined;
         goto(base + "/");
     };
 
     // Download the save file
     const download = async () => {
-        await saveManager.download("todo");
+        if (!save) throw new Error("No save data found");
+        await downloadBlob(await save.toXML(), "savegame");
     };
 </script>
 
@@ -45,14 +46,10 @@
                 <SidebarButton onclick={() => download()}>💾</SidebarButton>
             </div>
             <div use:tooltip aria-label="Previous Character">
-                <SidebarButton onclick={saveManager.prevFarmer}
-                    >⬅️</SidebarButton
-                >
+                <SidebarButton onclick={save.prevFarmer}>⬅️</SidebarButton>
             </div>
             <div use:tooltip aria-label="Next Character">
-                <SidebarButton onclick={saveManager.nextFarmer}
-                    >➡️</SidebarButton
-                >
+                <SidebarButton onclick={save.nextFarmer}>➡️</SidebarButton>
             </div>
         </div>
     </div>

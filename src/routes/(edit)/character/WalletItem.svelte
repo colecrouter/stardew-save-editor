@@ -5,13 +5,10 @@
         onclick?: (v: boolean) => void;
     }
 
-    let { value = $bindable(), children, onclick }: Props = $props();
+    let { value = $bindable(false), children }: Props = $props();
 </script>
 
-<button
-    class:disabled={!value}
-    onclick={() => (value = !value) && onclick?.(value)}
->
+<button class:disabled={!value} onclick={() => (value = !value)}>
     {@render children?.()}
 </button>
 

@@ -1,7 +1,7 @@
 <script lang="ts">
+    import { HexToRGB, RGBToHex } from "$lib/Spritesheet";
     import type { Farmer } from "$lib/proxies/Farmer";
     import { saveManager } from "$lib/save.svelte";
-    import { HexToRGB, RGBToHex } from "$lib/Spritesheet";
     import { Gender } from "$types/save/1.6";
     import Container from "../../Container.svelte";
     import Preview from "./Preview.svelte";

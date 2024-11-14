@@ -2,9 +2,9 @@
     import { preventDefault } from "svelte/legacy";
 
     import { goto } from "$app/navigation";
+    import { base } from "$app/paths";
     import { saveManager } from "$lib/save.svelte";
     import Container from "../Container.svelte";
-    import { base } from "$app/paths";
 
     let submit = $state<HTMLInputElement>();
     let files = $state<FileList>();

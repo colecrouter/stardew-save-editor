@@ -1,7 +1,7 @@
 <script lang="ts">
+    import { tooltip } from "$lib/Tooltip";
     import type { Farmer } from "$lib/proxies/Farmer";
     import { saveManager } from "$lib/save.svelte";
-    import { tooltip } from "$lib/Tooltip";
     import Container from "../../Container.svelte";
     import SkillBar from "./SkillBar.svelte";
     import WalletItem from "./WalletItem.svelte";

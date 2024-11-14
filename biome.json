@@ -9,7 +9,10 @@
     "formatter": {
         "indentStyle": "space",
         "indentWidth": 4,
-        "lineEnding": "lf"
+        "lineEnding": "lf",
+        "ignore": [
+            "**/*.svelte"
+        ]
     },
     "linter": {
         "rules": {

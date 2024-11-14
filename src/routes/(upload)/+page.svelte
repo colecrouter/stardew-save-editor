@@ -4,6 +4,7 @@
     import { goto } from "$app/navigation";
     import { saveManager } from "$lib/save.svelte";
     import Container from "../Container.svelte";
+    import { base } from "$app/paths";
 
     let submit = $state<HTMLInputElement>();
     let files = $state<FileList>();
@@ -24,7 +25,7 @@
             const { BackupManager: Backups } = await import("$lib/Backups");
             Backups.unshift(file);
 
-            goto("/inventory");
+            goto(`${base}/inventory`);
         } catch (e) {
             alert((e as Error).message);
             return;

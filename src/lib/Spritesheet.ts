@@ -120,7 +120,6 @@ export const HexToRGB = (hex: string): HairstyleColor => {
     const G = Number.parseInt(hex.slice(3, 5), 16);
     const B = Number.parseInt(hex.slice(5, 7), 16);
 
-    console.log(PackedValue(R, G, B, 255));
     return PackedValue(R, G, B, 255);
 };
 

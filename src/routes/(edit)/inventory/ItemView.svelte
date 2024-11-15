@@ -252,7 +252,12 @@
         {:else if selectedIndex}
             <label>
                 <small>Item Name</small>
-                <input type="text" list="new-items" bind:value={newItemName} />
+                <input
+                    type="text"
+                    list="new-items"
+                    data-testid="item-name"
+                    bind:value={newItemName}
+                />
             </label>
         {/if}
     </div>
@@ -273,6 +278,7 @@
         {:else if selectedIndex}
             <button
                 class="btn btn-success"
+                data-testid="create-item"
                 onclick={() => {
                     if (selectedIndex) {
                         createItem(newItemName);

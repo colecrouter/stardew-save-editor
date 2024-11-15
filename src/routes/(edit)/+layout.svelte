@@ -26,7 +26,7 @@
 
     // Download the save file
     const download = async () => {
-        await saveManager.export();
+        await saveManager.download();
     };
 </script>
 
@@ -38,10 +38,16 @@
         </div>
         <div class="sidebar">
             <div use:tooltip aria-label="Exit">
-                <SidebarButton onclick={() => cancel()}>❌</SidebarButton>
+                <SidebarButton
+                    onclick={() => cancel()}
+                    data-testid="cancel-button">❌</SidebarButton
+                >
             </div>
             <div use:tooltip aria-label="Save">
-                <SidebarButton onclick={() => download()}>💾</SidebarButton>
+                <SidebarButton
+                    onclick={() => download()}
+                    data-testid="save-button">💾</SidebarButton
+                >
             </div>
             <div use:tooltip aria-label="Previous Character">
                 <SidebarButton onclick={save?.prevFarmer}>⬅️</SidebarButton>

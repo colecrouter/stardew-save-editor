@@ -6,13 +6,14 @@
     interface Props {
         children?: Snippet;
         onclick?: MouseEventHandler<HTMLButtonElement>;
+        [key: string]: unknown;
     }
 
-    let { children, onclick }: Props = $props();
+    let { children, onclick, ...props }: Props = $props();
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
-<button {onclick}>
+<button {onclick} {...props}>
     {@render children?.()}
 </button>
 

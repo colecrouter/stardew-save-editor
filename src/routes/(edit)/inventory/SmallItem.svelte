@@ -31,6 +31,7 @@
     role="radio"
     aria-checked={index === selectedIndex}
     tabindex="0"
+    data-testid={`item-${index}`}
 >
     <ItemSprite {item} />
 </div>

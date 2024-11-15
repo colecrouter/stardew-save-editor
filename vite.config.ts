@@ -1,11 +1,16 @@
-import { sveltekit } from '@sveltejs/kit/vite';
-import { defineConfig } from 'vite';
+import { sveltekit } from "@sveltejs/kit/vite";
+import { defineConfig } from "vitest/config";
+import { svelteTesting } from "@testing-library/svelte/vite";
 
 export default defineConfig({
-	plugins: [sveltekit()],
-	server: {
-		fs: {
-			allow: ['..']
-		}
-	}
+    plugins: [sveltekit(), svelteTesting()],
+    server: {
+        fs: {
+            allow: [".."],
+        },
+    },
+    test: {
+        environment: "happy-dom",
+        setupFiles: ["./test/vitest-setup.ts"],
+    },
 });

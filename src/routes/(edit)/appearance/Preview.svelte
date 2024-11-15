@@ -48,12 +48,6 @@
             : (ItemData.get(player.hat.name) as Hat),
     );
 
-    $effect(() => {
-        if (player.shirt) {
-            console.log(Shirts.get(player.shirt.itemId.toString()));
-        }
-    });
-    console.log(Shirts.get("1097"));
     let shirtData = $derived(
         player.shirt === undefined
             ? (ItemData.get(

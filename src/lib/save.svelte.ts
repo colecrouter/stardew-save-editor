@@ -6,7 +6,7 @@ import { XMLParser } from "fast-xml-parser";
 // supplying a list of things we want to be arrays
 const arrayTags = new Set(["item", "GameLocations", "characters", "objects"]);
 
-const importSave = async (file: File) => {
+export const importSave = async (file: File) => {
     if (!file) {
         throw new Error("No file provided");
     }
@@ -20,7 +20,6 @@ const importSave = async (file: File) => {
     });
     const json = parser.parse(xml) as unknown;
     if (!isSaveFile(json)) throw new Error("Invalid save file");
-    console.log(json);
 
     const gameVersion = json.SaveGame.gameVersion as string | undefined;
     if (!["1.6"].some((v) => gameVersion?.startsWith(v)))
@@ -76,10 +75,16 @@ export class SaveManager {
         this.filename = file.name;
     }
 
-    async export() {
+    async download() {
         if (!this.save) throw new Error("No save file provided");
         const blob = await this.save.toXML();
         return downloadBlob(blob, this.filename);
+    }
+
+    async export() {
+        if (!this.save) throw new Error("No save file provided");
+        const blob = await this.save.toXML();
+        return blob;
     }
 }
 

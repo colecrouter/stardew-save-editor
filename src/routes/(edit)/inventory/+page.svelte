@@ -34,7 +34,16 @@
             const newItem = create(item);
 
             if (typeof symbol === "number") {
-                save.player.inventory[symbol] = newItem;
+                // Womp womp this kinda sucks
+                // TODO find a better way to get this reactivity without
+                // triggering getter, or add a proxy for the inventory or something
+                // TODO then also do the same thing for crafting recipes
+                save.player.inventory = save.player.inventory.map(
+                    (i, index) => {
+                        if (index === symbol) return newItem;
+                        return i;
+                    },
+                );
             } else {
                 save.player[symbol] = newItem;
             }

@@ -4,6 +4,7 @@
         DefaultFurnitureSizes,
         ItemData,
         ItemNameHelper,
+        Shirts,
     } from "$lib/ItemData";
     import { GetSprite, GetSpritesheet } from "$lib/Spritesheet";
     import type { FurnitureType } from "$types/items/1.6";
@@ -17,13 +18,18 @@
 
     let lookupItem = $derived(
         item
-            ? ItemData.get(
-                  item.name === "Clothing"
-                      ? item.parentSheetIndex === 1064
-                          ? "Shirt"
-                          : "Pants"
-                      : ItemNameHelper(item as Item),
-              )
+            ? // Shirt hack
+              "itemId" in item &&
+              item.itemId !== undefined &&
+              item.name === "Shirt"
+                ? Shirts.get(item.itemId.toString())
+                : ItemData.get(
+                      item.name === "Clothing"
+                          ? item.parentSheetIndex === 1064
+                              ? "Shirt"
+                              : "Pants"
+                          : ItemNameHelper(item as Item),
+                  )
             : undefined,
     );
 

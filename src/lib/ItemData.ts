@@ -1,5 +1,9 @@
 import type { Size } from "$types/items/1.5";
-import { FurnitureType, type ItemInformation } from "$types/items/1.6";
+import {
+    type Clothing,
+    FurnitureType,
+    type ItemInformation,
+} from "$types/items/1.6";
 import { Category } from "$types/save/1.5";
 import type { Item } from "$types/save/1.6";
 import jsondata from "../../static/iteminfo.json";
@@ -277,3 +281,9 @@ export const ItemNameHelper = (item: Item) => {
 
     return item.name;
 };
+
+export const Shirts = new Map<string, Clothing>(
+    jsondata
+        .filter(([name, item]) => item._type === "Shirt")
+        .map(([name, item]) => [item.ItemId, item]),
+);

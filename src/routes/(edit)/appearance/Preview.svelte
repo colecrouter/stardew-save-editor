@@ -10,7 +10,7 @@
         TertiaryBootColors,
         TertiarySkinColors,
     } from "$lib/CharacterColors";
-    import { ItemData } from "$lib/ItemData";
+    import { ItemData, Shirts } from "$lib/ItemData";
     import {
         GetPlayerSpriteForPants,
         GetSprite,
@@ -20,6 +20,7 @@
     import type { Farmer } from "$lib/proxies/Farmer";
     import type { Clothing, Hat } from "$types/items/1.6";
     import { type Color as ColorType, Gender } from "$types/save/1.6";
+    import { error } from "@sveltejs/kit";
 
     interface Props {
         player: Farmer;
@@ -46,6 +47,13 @@
             ? undefined
             : (ItemData.get(player.hat.name) as Hat),
     );
+
+    $effect(() => {
+        if (player.shirt) {
+            console.log(Shirts.get(player.shirt.itemId.toString()));
+        }
+    });
+    console.log(Shirts.get("1097"));
     let shirtData = $derived(
         player.shirt === undefined
             ? (ItemData.get(
@@ -53,7 +61,9 @@
                       ? "Basic Pullover (M)"
                       : "Basic Pullover (F)",
               ) as Clothing)
-            : (ItemData.get(player.shirt.name) as Clothing),
+            : player.shirt.name === "Shirt"
+              ? (Shirts.get(player.shirt.itemId.toString()) as Clothing)
+              : (ItemData.get(player.shirt.name) as Clothing),
     );
     const underwear = ItemData.get("Polka Dot Shorts") as Clothing;
     let pantsData = $derived(
@@ -77,11 +87,13 @@
         ),
     );
     let shirtPosition = $derived(
-        GetSprite(
-            { _type: "Shirt" },
-            shirtData.SpriteIndex,
-            shirtData.CanBeDyed,
-        ),
+        shirtData
+            ? GetSprite(
+                  { _type: "Shirt" },
+                  shirtData.SpriteIndex ?? 0,
+                  shirtData.CanBeDyed ?? false,
+              )
+            : { x: 0, y: 0 },
     );
     let pantsPosition = $derived(
         // If the player has no pants, use the underwear sprite
@@ -104,9 +116,11 @@
     );
     let hairTint: ColorType = $derived(player.hairColor);
     let shirtTint: ColorType = $derived(
-        shirtData.CanBeDyed && player.shirt?.clothesColor
-            ? new Color(player.shirt.clothesColor)
-            : new Color(shirtData.DefaultColor ?? "#00000000"),
+        shirtData
+            ? shirtData.CanBeDyed && player.shirt?.clothesColor
+                ? new Color(player.shirt.clothesColor)
+                : new Color(shirtData.DefaultColor ?? "#00000000")
+            : new Color("#00000000"),
     );
     let skinTones = $derived<[ColorType, ColorType, ColorType]>([
         PrimarySkinColors[player.skin] ?? defaultTint,
@@ -114,14 +128,20 @@
         TertiarySkinColors[player.skin] ?? defaultTint,
     ]);
     let eyeTint = $derived(player.eyeColor);
-    let bootTints = $derived<[ColorType, ColorType, ColorType, ColorType]>([
-        PrimaryBootColors[player.boots?.indexInColorSheet ?? 0] ?? defaultTint,
-        SecondaryBootColors[player.boots?.indexInColorSheet ?? 0] ??
-            defaultTint,
-        TertiaryBootColors[player.boots?.indexInColorSheet ?? 0] ?? defaultTint,
-        QuaternaryBootColors[player.boots?.indexInColorSheet ?? 0] ??
-            defaultTint,
-    ]);
+    let bootTints = $derived<[ColorType, ColorType, ColorType, ColorType]>(
+        player.boots
+            ? [
+                  PrimaryBootColors[player.boots?.indexInColorSheet ?? 0] ??
+                      defaultTint,
+                  SecondaryBootColors[player.boots?.indexInColorSheet ?? 0] ??
+                      defaultTint,
+                  TertiaryBootColors[player.boots?.indexInColorSheet ?? 0] ??
+                      defaultTint,
+                  QuaternaryBootColors[player.boots?.indexInColorSheet ?? 0] ??
+                      defaultTint,
+              ]
+            : [defaultTint, defaultTint, defaultTint, defaultTint],
+    );
 </script>
 
 <div class="appearance" class:female={player.gender === Gender.Female}>

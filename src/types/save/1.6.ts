@@ -1391,7 +1391,7 @@ export interface Item {
     category?: number;
     hasBeenInInventory: boolean;
     name: string;
-    itemId: string;
+    itemId: string | number;
     specialItem: boolean;
     isRecipe: boolean;
     quality: number;

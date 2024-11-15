@@ -30,6 +30,6 @@ Support 1.6.X. Code for version 1.5 exists within the repo, but the published us
 
 ## Android/iOS/NSW Support
 
-Both Android & iOS are supported. However, only SDV 1.6 is currently supported, so both mobile versions are currently unsupported (until they are updated to 1.6).
+Both Android & iOS are supported.
 
 SDV on Nintendo Switch is unsupported.

@@ -16,11 +16,11 @@ export class Skills {
     }
 
     get mining() {
-        return this.raw[1] ?? 0;
+        return this.raw[3] ?? 0;
     }
 
     set mining(value) {
-        this.raw[1] = value;
+        this.raw[3] = value;
     }
 
     get foraging() {
@@ -32,11 +32,11 @@ export class Skills {
     }
 
     get fishing() {
-        return this.raw[3] ?? 0;
+        return this.raw[1] ?? 0;
     }
 
     set fishing(value) {
-        this.raw[3] = value;
+        this.raw[1] = value;
     }
 
     get combat() {

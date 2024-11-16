@@ -8,20 +8,28 @@ export class Color implements ColorType {
     G = 0;
     B = 0;
 
-    constructor(color: `#${string}` | string | OptionalPick<ColorType, "A">) {
+    constructor(
+        color:
+            | `#${string}`
+            | string
+            | OptionalPick<Omit<ColorType, "PackedValue">, "A">,
+    ) {
         if (typeof color === "string") {
             if (color.startsWith("#")) {
-                this.R = Number.parseInt(color.slice(1, 3), 16) || 0;
-                this.G = Number.parseInt(color.slice(3, 5), 16) || 0;
-                this.B = Number.parseInt(color.slice(5, 7), 16) || 0;
-                this.A = Number.parseInt(color.slice(7, 9), 16) || 0;
+                this.R = Number.parseInt(color.slice(1, 3) || "0", 16);
+                this.G = Number.parseInt(color.slice(3, 5) || "0", 16);
+                this.B = Number.parseInt(color.slice(5, 7) || "0", 16);
+                this.A =
+                    color.length === 9
+                        ? Number.parseInt(color.slice(7, 9) || "255", 16)
+                        : 255;
             } else {
                 // RRR GGG BBB (AAA)
                 const split = color.split(" ");
                 this.R = Number.parseInt(split[0] ?? "0");
                 this.G = Number.parseInt(split[1] ?? "0");
                 this.B = Number.parseInt(split[2] ?? "0");
-                this.A = Number.parseInt(split[3] ?? "0");
+                this.A = Number.parseInt(split[3] ?? "255");
             }
         } else {
             this.R = color.R;
@@ -32,10 +40,25 @@ export class Color implements ColorType {
     }
 
     get PackedValue() {
-        const hex = [this.R, this.G, this.B, this.A]
-            .map((n) => n.toString(16))
+        const hex = [this.A, this.R, this.G, this.B]
+            .map((n) => n.toString(16).padStart(2, "0"))
             .reverse()
             .join("");
         return Number(`0x${hex}`);
+    }
+
+    toHex(length: 3 | 6 | 8 = 6) {
+        const hex = [this.R, this.G, this.B, this.A].map((val) =>
+            val.toString(16).padStart(2, "0"),
+        ) as [string, string, string, string];
+
+        switch (length) {
+            case 3:
+                return `#${hex[0][0]}${hex[1][0]}${hex[2][0]}`;
+            case 6:
+                return `#${hex[0]}${hex[1]}${hex[2]}`;
+            case 8:
+                return `#${hex[0]}${hex[1]}${hex[2]}${hex[3]}`;
+        }
     }
 }

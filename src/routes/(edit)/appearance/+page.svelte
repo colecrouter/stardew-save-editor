@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { HexToRGB, RGBToHex } from "$lib/Spritesheet";
+    import { Color } from "$lib/proxies/Color";
     import type { Farmer } from "$lib/proxies/Farmer";
     import { saveManager } from "$lib/save.svelte";
     import { Gender } from "$types/save/1.6";
@@ -85,21 +85,13 @@
                             <div class="selector">
                                 <input
                                     type="color"
-                                    value={RGBToHex(
-                                        player[key] ?? {
-                                            R: 255,
-                                            G: 255,
-                                            B: 255,
-                                            A: 255,
-                                            PackedValue: 0,
-                                        },
-                                    )}
+                                    value={player[key].toHex()}
                                     onchange={(e) => {
-                                        if (!player) return;
-                                        player[key] = HexToRGB(
+                                        player[key] = new Color(
                                             // @ts-expect-error
-                                            e.target.value ?? "#000000",
+                                            e.target.value ?? "#0000FF",
                                         );
+                                        // console.log(player[key].toHex());
                                     }}
                                 />
                             </div>

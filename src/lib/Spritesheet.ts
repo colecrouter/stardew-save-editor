@@ -1,5 +1,4 @@
-import type { Clothing, ItemInformation } from "$types/items/1.6";
-import type { HairstyleColor } from "$types/save/1.5";
+import type { ItemInformation } from "$types/items/1.6";
 
 const ShirtsWithFemaleVariant = new Set<string>([
     "Plain Shirt",
@@ -113,42 +112,4 @@ export const GetSprite = (
 export const GetPlayerSpriteForPants = (index: number, isMale: boolean) => {
     const { x, y } = IndexToSprite(index, 192, 688, 1920, 1376);
     return isMale ? { x, y } : { x: x - 96, y };
-};
-
-export const HexToRGB = (hex: string): HairstyleColor => {
-    const R = Number.parseInt(hex.slice(1, 3), 16);
-    const G = Number.parseInt(hex.slice(3, 5), 16);
-    const B = Number.parseInt(hex.slice(5, 7), 16);
-
-    return PackedValue(R, G, B, 255);
-};
-
-export const RGBToHex = (rgb: HairstyleColor): string => {
-    const { R, B, G } = rgb;
-
-    const hex = ((R << 16) | (G << 8) | B).toString(16);
-
-    return `#${new Array(Math.abs(hex.length - 7)).join("0")}${hex}`;
-};
-
-export const PackedValue = (
-    red: number,
-    green: number,
-    blue: number,
-    alpha = 255,
-) => {
-    // Ensure the values are within the valid range
-    const r = Math.max(0, Math.min(255, red));
-    const g = Math.max(0, Math.min(255, green));
-    const b = Math.max(0, Math.min(255, blue));
-
-    // Combine the values into a single integer
-    const packedValue = (r << 16) | (g << 8) | b;
-    return {
-        R: r,
-        G: g,
-        B: b,
-        A: alpha,
-        PackedValue: packedValue,
-    } as HairstyleColor;
 };

@@ -106,16 +106,18 @@
     // Tint colors
     let defaultTint = new Color("#00000000");
     let pantsTint = $derived(
-        pantsData.CanBeDyed && player.pants?.clothesColor
-            ? new Color(player.pants.clothesColor)
-            : new Color(pantsData.DefaultColor ?? "#00000000"),
+        pantsData
+            ? pantsData.CanBeDyed && player.pants?.clothesColor
+                ? new Color(player.pants.clothesColor)
+                : new Color("#00000000") // Default clothes color seems to always be red, so nvm
+            : new Color("#00000000"),
     );
     let hairTint: ColorType = $derived(player.hairColor);
     let shirtTint: ColorType = $derived(
         shirtData
             ? shirtData.CanBeDyed && player.shirt?.clothesColor
                 ? new Color(player.shirt.clothesColor)
-                : new Color(shirtData.DefaultColor ?? "#00000000")
+                : new Color("#00000000")
             : new Color("#00000000"),
     );
     let skinTones = $derived<[ColorType, ColorType, ColorType]>([

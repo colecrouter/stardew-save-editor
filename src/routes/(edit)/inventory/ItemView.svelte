@@ -5,7 +5,7 @@
         ItemNameHelper,
     } from "$lib/ItemData";
     import type { ParentIndex } from "$lib/ItemParentIndex";
-    import { HexToRGB, PackedValue, RGBToHex } from "$lib/Spritesheet";
+    import { Color } from "$lib/proxies/Color";
     import type { Item } from "$types/save/1.6";
     import BigItem from "./BigItem.svelte";
     import QualitySelector from "./QualitySelector.svelte";
@@ -195,13 +195,12 @@
                             <small>Color</small>
                             <input
                                 type="color"
-                                value={RGBToHex(
-                                    selectedItem.clothesColor ??
-                                        PackedValue(255, 255, 255, 255),
-                                )}
+                                value={(
+                                    selectedItem.clothesColor as Color
+                                ).toHex()}
                                 onchange={(e) => {
                                     if (!selectedItem) return;
-                                    selectedItem.clothesColor = HexToRGB(
+                                    selectedItem.clothesColor = new Color(
                                         // @ts-expect-error
                                         e.target.value,
                                     );

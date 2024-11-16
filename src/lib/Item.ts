@@ -6,7 +6,7 @@ import {
     ItemData,
     RingsUniqueID,
 } from "$lib/ItemData";
-import { HexToRGB, RGBToHex } from "$lib/Spritesheet";
+import { Color } from "$lib/proxies/Color";
 import { FurnitureType } from "$types/items/1.5";
 import type { ItemInformation, ToolClassName } from "$types/items/1.6";
 import { Category } from "$types/save/1.5";
@@ -214,18 +214,14 @@ export const createItem = (name: string) => {
 
     // Handle dyeable items
     if ("CanBeDyed" in data && data.CanBeDyed) {
-        let defaultColor = "#000000";
+        let defaultColor = new Color("#FFFFFF");
         if (data.DefaultColor) {
             const [R, G, B] = data.DefaultColor.split(" ").map(Number);
-            defaultColor = RGBToHex({
-                R: R ?? 0,
-                G: G ?? 0,
-                B: B ?? 0,
-                A: 255,
-                PackedValue: 0,
-            });
+            if (!R || !G || !B)
+                throw new Error(`Invalid color for item "${name}"`);
+            defaultColor = new Color({ R, G, B });
         }
-        item.clothesColor = HexToRGB(defaultColor);
+        item.clothesColor = defaultColor;
     }
 
     // Set edibility and price if available

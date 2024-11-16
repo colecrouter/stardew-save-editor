@@ -9,6 +9,9 @@ export default defineConfig({
             allow: [".."],
         },
     },
+    optimizeDeps: {
+        include: ["idb"],
+    },
     test: {
         environment: "happy-dom",
         setupFiles: ["./test/vitest-setup.ts"],

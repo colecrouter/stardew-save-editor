@@ -70,7 +70,9 @@
     let hatPosition = $derived(
         hatData === undefined ? { x: 0, y: 0 } : hatData.Sprite,
     );
-    let hairPosition = IndexToSprite(0, 16, 96, 128, 672);
+    let hairPosition = $derived(
+        IndexToSprite(player.hairstyle, 16, 96, 128, 672),
+    );
     let accessoryPosition = $derived(
         IndexToSprite(
             player.accessory, // Because index starts at 0 but game displays at 1

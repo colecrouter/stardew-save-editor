@@ -56,6 +56,7 @@
                     min="0"
                     max="99999"
                     bind:value={player.skills[key]}
+                    data-testid={`skills-${key}`}
                 />
             </label>
         {/each}

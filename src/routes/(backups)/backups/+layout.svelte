@@ -3,9 +3,8 @@
     import { goto } from "$app/navigation";
     import { base } from "$app/paths";
     import { page } from "$app/stores";
-    import { tooltip } from "$lib/Tooltip";
     import { saveManager } from "$lib/save.svelte";
-    import SidebarButton from "../../SidebarButton.svelte";
+    import UiButton from "$lib/ui/UIButton.svelte";
     interface Props {
         children?: import("svelte").Snippet;
     }
@@ -26,9 +25,7 @@
     {@render children?.()}
 
     <nav>
-        <a href={`${base}/`} aria-label="Cancel" use:tooltip>
-            <SidebarButton>❌</SidebarButton>
-        </a>
+        <UiButton href={`${base}/`} alt="Cancel">❌</UiButton>
     </nav>
 </div>
 
@@ -46,9 +43,5 @@
         gap: 8px;
         justify-content: start;
         padding: 2px;
-    }
-
-    a {
-        text-decoration: none;
     }
 </style>

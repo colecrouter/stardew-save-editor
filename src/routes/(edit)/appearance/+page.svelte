@@ -2,8 +2,8 @@
     import { Color } from "$lib/proxies/Color";
     import type { Farmer } from "$lib/proxies/Farmer";
     import { saveManager } from "$lib/save.svelte";
+    import UiContainer from "$lib/ui/UIContainer.svelte";
     import { Gender } from "$types/save/1.6";
-    import Container from "../../Container.svelte";
     import Preview from "./Preview.svelte";
 
     const textFields = [
@@ -26,7 +26,7 @@
     let player = saveManager.save?.player;
 </script>
 
-<Container>
+<UiContainer>
     {#if player}
         <div class="wrapper">
             <div class="editor1">
@@ -101,7 +101,7 @@
             </div>
         </div>
     {/if}
-</Container>
+</UiContainer>
 
 <style>
     .wrapper {

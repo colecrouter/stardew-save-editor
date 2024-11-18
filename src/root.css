@@ -1,0 +1,65 @@
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: sans-serif;
+    position: relative;
+    font-size: 16px;
+    background-image: url(/img/wallpaper.jpg);
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    image-rendering: pixelated;
+    text-shadow: -0.05em 0.05em 0 rgba(0, 0, 0, 0.2);
+    min-height: 100dvh;
+}
+
+code {
+    background-color: #555;
+    color: #fff;
+    padding: 0.2em 0.4em;
+    border-radius: 0.3em;
+    font-size: 85%;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5 {
+    margin: 0;
+    margin-bottom: 8px;
+    padding: 0 8px;
+}
+
+h3 {
+    border-bottom: solid 2px #5b2b2a;
+}
+
+input[type="text"],
+input[type="number"] {
+    border-radius: 4px;
+    border: solid 2px;
+    border-bottom-color: #9c613b;
+    border-left-color: #9c613b;
+    border-right-color: #6f3b31;
+    border-top-color: #6f3b31;
+    background-color: #f9bb65;
+    box-shadow:
+        inset -2px 2px 0 #e38813,
+        -2px 2px 1px rgba(0, 0, 0, 0.2);
+}
+
+input[type="text"]:disabled,
+input[type="number"]:disabled {
+    background-color: #de9a3c;
+    color: #000;
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus {
+    outline: none;
+}

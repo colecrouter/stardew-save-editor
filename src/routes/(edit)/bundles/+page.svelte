@@ -1,7 +1,7 @@
 <script lang="ts">
-    import Container from "../../Container.svelte";
+    import UiContainer from "$lib/ui/UIContainer.svelte";
 </script>
 
-<Container>
+<UiContainer>
     <h2>Under Construction</h2>
-</Container>
+</UiContainer>

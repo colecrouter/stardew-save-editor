@@ -1,9 +1,8 @@
 <script lang="ts">
     import { goto } from "$app/navigation";
     import { base } from "$app/paths";
-    import { tooltip } from "$lib/Tooltip";
     import { saveManager } from "$lib/save.svelte";
-    import SidebarButton from "../SidebarButton.svelte";
+    import UiButton from "$lib/ui/UIButton.svelte";
     import Router from "./Router.svelte";
     interface Props {
         children: import("svelte").Snippet;
@@ -37,24 +36,26 @@
             {@render children()}
         </div>
         <div class="sidebar">
-            <div use:tooltip aria-label="Exit">
-                <SidebarButton
-                    onclick={() => cancel()}
-                    data-testid="cancel-button">❌</SidebarButton
-                >
-            </div>
-            <div use:tooltip aria-label="Save">
-                <SidebarButton
-                    onclick={() => download()}
-                    data-testid="save-button">💾</SidebarButton
-                >
-            </div>
-            <div use:tooltip aria-label="Previous Character">
-                <SidebarButton onclick={save?.prevFarmer}>⬅️</SidebarButton>
-            </div>
-            <div use:tooltip aria-label="Next Character">
-                <SidebarButton onclick={save?.nextFarmer}>➡️</SidebarButton>
-            </div>
+            <UiButton
+                onclick={() => cancel()}
+                alt="Exit"
+                data-testid="cancel-button"
+            >
+                ❌
+            </UiButton>
+            <UiButton
+                onclick={() => download()}
+                alt="Save"
+                data-testid="save-button"
+            >
+                💾
+            </UiButton>
+            <UiButton alt="Previous Character" onclick={save?.prevFarmer}
+                >⬅️</UiButton
+            >
+            <UiButton alt="Next Character" onclick={save?.nextFarmer}
+                >➡️</UiButton
+            >
         </div>
     </div>
 </div>
@@ -82,5 +83,6 @@
         display: flex;
         flex-direction: column;
         gap: 8px;
+        width: 500px;
     }
 </style>

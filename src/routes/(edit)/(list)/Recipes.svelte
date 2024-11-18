@@ -1,6 +1,6 @@
 <script lang="ts">
     import type { Recipes } from "$lib/proxies/Recipes";
-    import Container from "../../Container.svelte";
+    import UiContainer from "$lib/ui/UIContainer.svelte";
     import List from "./List.svelte";
 
     interface Props {
@@ -12,10 +12,10 @@
     let cache = recipes.recipes;
 </script>
 
-<Container>
+<UiContainer>
     <h3>Crafting Recipes</h3>
     <List record={cache} {input} />
-</Container>
+</UiContainer>
 
 {#snippet input(key: string)}
     <input

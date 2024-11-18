@@ -4,7 +4,7 @@
     import { goto } from "$app/navigation";
     import { base } from "$app/paths";
     import { saveManager } from "$lib/save.svelte";
-    import Container from "../Container.svelte";
+    import UiContainer from "$lib/ui/UIContainer.svelte";
 
     let submit = $state<HTMLInputElement>();
     let files = $state<FileList>();
@@ -33,63 +33,69 @@
     };
 </script>
 
-<Container>
-    <form onsubmit={preventDefault(handle)} method="POST">
-        <input
-            type="file"
-            accept=""
-            name="file"
-            required
-            bind:files
-            onchange={() => {
-                return submit?.click();
-            }}
-        />
-        <input type="submit" value="Upload" bind:this={submit} hidden />
-        <small>
-            Default save locations:
-            <ul>
-                <li>
-                    <span class="noselect">Windows: </span><code
-                        >%appdata%\StardewValley\Saves</code
-                    >
-                </li>
-                <li>
-                    <span class="noselect">Mac: </span><code
-                        >~/Library/Application Support/StardewValley/Saves</code
-                    >
-                </li>
-                <li>
-                    <span class="noselect">Linux: </span><code
-                        >~/.config/StardewValley/Saves</code
-                    >
-                </li>
-            </ul>
+<section>
+    <UiContainer>
+        <form onsubmit={preventDefault(handle)} method="POST">
+            <input
+                type="file"
+                accept=""
+                name="file"
+                required
+                bind:files
+                onchange={() => {
+                    return submit?.click();
+                }}
+            />
+            <input type="submit" value="Upload" bind:this={submit} hidden />
+            <small>
+                Default save locations:
+                <ul>
+                    <li>
+                        <span class="noselect">Windows: </span><code
+                            >%appdata%\StardewValley\Saves</code
+                        >
+                    </li>
+                    <li>
+                        <span class="noselect">Mac: </span><code
+                            >~/Library/Application Support/StardewValley/Saves</code
+                        >
+                    </li>
+                    <li>
+                        <span class="noselect">Linux: </span><code
+                            >~/.config/StardewValley/Saves</code
+                        >
+                    </li>
+                </ul>
 
-            <div class="warning">
+                <div class="warning">
+                    <p>
+                        <strong
+                            >Always backup your save file. Corrupt save files
+                            may break the game.</strong
+                        > You take full responsibility by using this tool.
+                    </p>
+                </div>
+
                 <p>
-                    <strong
-                        >Always backup your save file. Corrupt save files may
-                        break the game.</strong
-                    > You take full responsibility by using this tool.
+                    You can access temporary backups of your saves by clicking
+                    the CD icon.
                 </p>
-            </div>
-
-            <p>
-                You can access temporary backups of your saves by clicking the
-                CD icon.
-            </p>
-            <p>
-                If you find a problem, please report it <a
-                    href="https://github.com/colecrouter/stardew-save-editor/issues"
-                    >on GitHub</a
-                >.
-            </p>
-        </small>
-    </form>
-</Container>
+                <p>
+                    If you find a problem, please report it <a
+                        href="https://github.com/colecrouter/stardew-save-editor/issues"
+                        >on GitHub</a
+                    >.
+                </p>
+            </small>
+        </form>
+    </UiContainer>
+</section>
 
 <style>
+    section {
+        max-width: min-content;
+    }
+
     form {
         display: flex;
         flex-direction: column;

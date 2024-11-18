@@ -3,8 +3,8 @@
     import { ItemData } from "$lib/ItemData";
     import type { ParentIndex } from "$lib/ItemParentIndex";
     import { saveManager } from "$lib/save.svelte";
+    import UiContainer from "$lib/ui/UIContainer.svelte";
     import type { Item } from "$types/save/1.6";
-    import Container from "../../Container.svelte";
     import CharacterView from "./CharacterView.svelte";
     import ItemView from "./ItemView.svelte";
     import SmallItem from "./SmallItem.svelte";
@@ -72,7 +72,7 @@
 
 {#if save.player}
     <!-- Inventory view -->
-    <Container>
+    <UiContainer>
         <div class="item-grid">
             {#each save.player.inventory as item, index}
                 <SmallItem
@@ -83,10 +83,10 @@
                 />
             {/each}
         </div>
-    </Container>
+    </UiContainer>
 
     <!-- Character View -->
-    <Container>
+    <UiContainer>
         {#if save.player}
             <CharacterView
                 player={save.player}
@@ -94,17 +94,17 @@
                 bind:selectedItem
             />
         {/if}
-    </Container>
+    </UiContainer>
 
     <!-- Item view -->
-    <Container>
+    <UiContainer>
         <ItemView
             {selectedItem}
             {selectedIndex}
             createItem={(item) => createItem(selectedIndex, item)}
             deleteItem={() => deleteItem(selectedIndex)}
         />
-    </Container>
+    </UiContainer>
 {/if}
 
 <style>

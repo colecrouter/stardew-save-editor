@@ -1,6 +1,6 @@
 <script lang="ts">
     import { saveManager } from "$lib/save.svelte";
-    import Container from "../../Container.svelte";
+    import UiContainer from "$lib/ui/UIContainer.svelte";
     import HeartBar from "./HeartBar.svelte";
 
     const save = saveManager.save;
@@ -11,14 +11,14 @@
     let npcs = save.player.raw.friendshipData.item;
 </script>
 
-<Container>
+<UiContainer>
     <h3>Relationships</h3>
     <div class="wrapper">
         {#each npcs as character}
             <HeartBar npc={character} />
         {/each}
     </div>
-</Container>
+</UiContainer>
 
 <style>
     .wrapper {

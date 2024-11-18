@@ -1,8 +1,8 @@
 <script lang="ts">
-    import { tooltip } from "$lib/Tooltip";
     import type { Farmer } from "$lib/proxies/Farmer";
     import { saveManager } from "$lib/save.svelte";
-    import Container from "../../Container.svelte";
+    import UiContainer from "$lib/ui/UIContainer.svelte";
+    import UiContainerSmall from "$lib/ui/UIContainerSmall.svelte";
     import SkillBar from "./SkillBar.svelte";
     import WalletItem from "./WalletItem.svelte";
 
@@ -43,7 +43,7 @@
     ] as [string, any, keyof any][];
 </script>
 
-<Container>
+<UiContainer>
     <h3>Skills</h3>
     <div class="wrapper">
         {#each skills as [label, key]}
@@ -80,16 +80,18 @@
 
     <h3>Wallet</h3>
 
-    <div class="wallet">
-        {#each unlocks as [emoji, key, alt]}
-            <div aria-label={alt} use:tooltip>
-                <WalletItem bind:value={player.flags[key]}>
-                    {emoji}
-                </WalletItem>
+    <div class="wallet-wrapper">
+        <UiContainerSmall>
+            <div class="wallet">
+                {#each unlocks as [emoji, key, alt]}
+                    <WalletItem {alt} bind:value={player.flags[key]}>
+                        {emoji}
+                    </WalletItem>
+                {/each}
             </div>
-        {/each}
+        </UiContainerSmall>
     </div>
-</Container>
+</UiContainer>
 
 <style>
     .wrapper {
@@ -124,10 +126,6 @@
         align-items: center;
     }
 
-    /* .stats > label:last-child {
-        grid-column: 1 / -1;
-    } */
-
     input[type="number"] {
         width: 4em;
     }
@@ -137,17 +135,17 @@
     }
 
     .wallet {
-        box-shadow:
-            0 0 0 2px #b14e05,
-            0 0 0 4px #dc7b05,
-            0 0 0 6px #5b2b29;
         margin: 0;
-        margin-top: 24px;
+        margin-top: 8px;
         padding: 6px;
         border-radius: 1px;
         display: flex;
-        flex-direction: row;
         justify-content: space-evenly;
         align-items: center;
+    }
+
+    .wallet-wrapper {
+        display: flex;
+        justify-content: center;
     }
 </style>

@@ -1,35 +1,16 @@
 <script lang="ts">
     import { base } from "$app/paths";
-    import { tooltip } from "$lib/Tooltip";
-    import SidebarButton from "../SidebarButton.svelte";
+    import UiButton from "$lib/ui/UIButton.svelte";
 </script>
 
 <nav>
-    <a href={`${base}/inventory`} aria-label="Inventory" use:tooltip>
-        <SidebarButton>🎒</SidebarButton>
-    </a>
-    <a href={`${base}/character`} aria-label="Character" use:tooltip>
-        <SidebarButton>🙋</SidebarButton>
-    </a>
-    <a href={`${base}/appearance`} aria-label="Appearance" use:tooltip>
-        <SidebarButton>🪞</SidebarButton>
-    </a>
-    <a href={`${base}/relationships`} aria-label="Relationships" use:tooltip>
-        <SidebarButton>💖</SidebarButton>
-    </a>
-    <a href={`${base}/crafting`} aria-label="Crafting" use:tooltip>
-        <SidebarButton>🔨</SidebarButton>
-    </a>
-    <a href={`${base}/cooking`} aria-label="Cooking" use:tooltip>
-        <SidebarButton>🍫</SidebarButton>
-    </a>
-    <a
-        href={`${base}/bundles`}
-        aria-label="Community Center bundles"
-        use:tooltip
-    >
-        <SidebarButton>🎁</SidebarButton>
-    </a>
+    <UiButton href={`${base}/inventory`} alt="Inventory">🎒</UiButton>
+    <UiButton href={`${base}/character`} alt="Character">🙋</UiButton>
+    <UiButton href={`${base}/appearance`} alt="Appearance">🪞</UiButton>
+    <UiButton href={`${base}/relationships`} alt="Relationships">💖</UiButton>
+    <UiButton href={`${base}/crafting`} alt="Crafting">🔨</UiButton>
+    <UiButton href={`${base}/cooking`} alt="Cooking">🍫</UiButton>
+    <UiButton href={`${base}/bundles`} alt="Community Center">🎁</UiButton>
 </nav>
 
 <style>
@@ -39,9 +20,5 @@
         gap: 8px;
         justify-content: start;
         padding: 2px;
-    }
-
-    a {
-        text-decoration: none;
     }
 </style>

@@ -1,7 +1,6 @@
 <script lang="ts">
     import { base } from "$app/paths";
-    import { tooltip } from "$lib/Tooltip";
-    import SidebarButton from "../SidebarButton.svelte";
+    import UiButton from "$lib/ui/UIButton.svelte";
     interface Props {
         children: import("svelte").Snippet;
     }
@@ -13,9 +12,7 @@
     {@render children()}
 
     <nav>
-        <a href={`${base}/backups`} aria-label="Backups" use:tooltip>
-            <SidebarButton>💿</SidebarButton>
-        </a>
+        <UiButton href={`${base}/backups`} alt="Backups">💿</UiButton>
     </nav>
 </div>
 
@@ -33,9 +30,5 @@
         gap: 8px;
         justify-content: start;
         padding: 2px;
-    }
-
-    a {
-        text-decoration: none;
     }
 </style>

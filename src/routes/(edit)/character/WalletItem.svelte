@@ -1,16 +1,21 @@
 <script lang="ts">
+    import Tooltip from "$lib/ui/Tooltip.svelte";
+
     interface Props {
         value?: boolean;
+        alt: string;
         children?: import("svelte").Snippet;
-        onclick?: (v: boolean) => void;
+        [key: string]: unknown;
     }
 
-    let { value = $bindable(false), children }: Props = $props();
+    let { value = $bindable(false), alt, children, ...props }: Props = $props();
 </script>
 
-<button class:disabled={!value} onclick={() => (value = !value)}>
-    {@render children?.()}
-</button>
+<Tooltip text={alt}>
+    <button class:disabled={!value} onclick={() => (value = !value)} {...props}>
+        {@render children?.()}
+    </button>
+</Tooltip>
 
 <style>
     button {

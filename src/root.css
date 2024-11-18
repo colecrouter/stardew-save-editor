@@ -48,9 +48,7 @@ input[type="number"] {
     border-right-color: #6f3b31;
     border-top-color: #6f3b31;
     background-color: #f9bb65;
-    box-shadow:
-        inset -2px 2px 0 #e38813,
-        -2px 2px 1px rgba(0, 0, 0, 0.2);
+    box-shadow: inset -2px 2px 0 #e38813, -2px 2px 1px rgba(0, 0, 0, 0.2);
 }
 
 input[type="text"]:disabled,

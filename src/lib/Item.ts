@@ -42,7 +42,7 @@ const upgradeLevels = new Map([
 
 const typeToCategoryMap = {
     Object: undefined,
-    BigCraftable: undefined,
+    BigCraftable: Category.BigCraftable,
     Boots: Category.Boots,
     Pants: Category.Clothing,
     Shirt: Category.Clothing,
@@ -89,7 +89,14 @@ export const createItem = (name: string) => {
         },
         canBeSetDown: true,
         canBeGrabbed: true,
-        type: data._type === "Object" ? data.Type : undefined,
+        // @ts-expect-error TODO fix later
+        type:
+            data._type === "Object"
+                ? data.Type
+                : data._type === "BigCraftable"
+                  ? "Crafting"
+                  : undefined,
+        bigCraftable: data._type === "BigCraftable" ? true : undefined,
     };
 
     // Set quality for items that can have quality

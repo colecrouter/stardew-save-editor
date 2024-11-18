@@ -195,8 +195,8 @@
                             <small>Color</small>
                             <input
                                 type="color"
-                                value={(
-                                    selectedItem.clothesColor as Color
+                                value={new Color(
+                                    selectedItem.clothesColor || "#ffffff",
                                 ).toHex()}
                                 onchange={(e) => {
                                     if (!selectedItem) return;
@@ -205,6 +205,7 @@
                                         e.target.value,
                                     );
                                 }}
+                                data-testid="color-picker"
                             />
                         </label>
                     {/if}

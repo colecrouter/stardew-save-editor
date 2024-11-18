@@ -70,4 +70,15 @@ describe("Upload save, edit, export", () => {
         const save = saveManager.export();
         expect(save).toBeTruthy();
     });
+
+    it("should show color picker for dyeable clothing", async () => {
+        const page = render(editorPage);
+        const slot = page.getByTestId("item-pants");
+        slot.click();
+
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
+        const colorPicker = page.getByTestId("color-picker");
+        expect(colorPicker).toBeTruthy();
+    });
 });

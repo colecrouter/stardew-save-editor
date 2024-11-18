@@ -18,9 +18,16 @@
         if (!save.player || !save.player.inventory) return;
 
         if (typeof symbol === "number") {
-            save.player.inventory[symbol] = undefined;
+            save.player.inventory = save.player.inventory.map((i, index) => {
+                if (index === symbol) return undefined;
+                return i;
+            });
         } else {
-            save.player[symbol] = undefined;
+            // @ts-ignore
+            save.player = {
+                ...save.player,
+                [symbol]: undefined,
+            };
         }
 
         // Clear item from the editor window

@@ -1,6 +1,7 @@
 <script lang="ts">
     import { base } from "$app/paths";
     import { DateableCharacters } from "$lib/NPCs";
+    import UiContainerSmall from "$lib/ui/UIContainerSmall.svelte";
     import type { FriendshipDataItem } from "$types/save/1.6";
 
     interface Props {
@@ -33,12 +34,12 @@
 </script>
 
 <div class="row">
-    <div class="portrait-wrapper">
+    <UiContainerSmall>
         <div
             class="portrait"
             style:background-image={`url('${base}/assets/portraits/${name}.png')`}
         ></div>
-    </div>
+    </UiContainerSmall>
     <div class="right">
         <div class="hearts">
             {#each Array(hearts) as _, i}
@@ -79,19 +80,8 @@
         grid-template-rows: min-content 1em;
         flex-direction: row;
         gap: 8px;
-        padding: 8px 0;
+        padding: 8px 2px;
         border-bottom: 2px solid #da9457;
-    }
-
-    .portrait-wrapper {
-        background-color: #d9ab6f;
-        box-shadow:
-            0 0 0 2px #b14e05,
-            0 0 0 4px #dc7b05,
-            0 0 0 6px #5b2b29;
-        margin: 6px;
-        box-sizing: border-box;
-        border-radius: 1px;
     }
 
     .portrait {

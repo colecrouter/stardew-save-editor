@@ -22,6 +22,7 @@
         type="checkbox"
         name={key}
         checked={cache[key]}
+        data-testid={`recipe-${key.toLowerCase()}`}
         onchange={() =>
             (recipes.recipes = {
                 ...cache,

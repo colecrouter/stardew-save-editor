@@ -4,6 +4,8 @@ import { beforeAll, describe, expect, it, vi } from "vitest";
 import { saveManager } from "../src/lib/save.svelte";
 import editorPage from "../src/routes/(edit)/inventory/+page.svelte";
 import characterPage from "../src/routes/(edit)/character/+page.svelte";
+import craftingPage from "../src/routes/(edit)/(list)/crafting/+page.svelte";
+import exp from "node:constants";
 
 describe("Upload save, edit, export", () => {
     beforeAll(async () => {
@@ -80,5 +82,22 @@ describe("Upload save, edit, export", () => {
 
         const colorPicker = page.getByTestId("color-picker");
         expect(colorPicker).toBeTruthy();
+    });
+
+    it("should modify crafting recipes", () => {
+        // Check beforehand
+        // Player should not be able to craft a "Keg" item
+        expect(saveManager.save.player.craftingRecipes.recipes.Keg).toBeFalsy();
+
+        const page = render(craftingPage);
+        const kegCheckbox = page.getByTestId("recipe-keg");
+
+        // Toggle the checkbox
+        kegCheckbox.click();
+
+        // Check after
+        expect(
+            saveManager.save.player.craftingRecipes.recipes.Keg,
+        ).toBeTruthy();
     });
 });

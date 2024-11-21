@@ -4,5 +4,5 @@
 </script>
 
 {#if saveManager.save}
-    <Recipes bind:recipes={saveManager.save.player.cookingRecipes} />
+    <Recipes recipes={saveManager.save.player.cookingRecipes} />
 {/if}

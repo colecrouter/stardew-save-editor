@@ -31,6 +31,8 @@
         transform: translateX(-50%);
         display: none; /* Hide by default */
         padding-bottom: 4px;
+        pointer-events: none;
+        touch-action: none;
     }
 
     .tooltip-wrapper:hover > .tooltip {

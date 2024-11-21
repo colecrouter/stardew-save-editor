@@ -12,19 +12,30 @@
     align-items: center;
 }
 
-.item-wrapper:hover::after {
+.item-wrapper::before {
     content: "";
     width: 36px;
     height: 36px;
     position: absolute;
     top: -2px;
     left: -2px;
-    background-color: rgba(255, 255, 255, 0.5);
     cursor: pointer;
+}
+
+.item-wrapper.active::before {
+    content: "";
+    background-color: rgba(255, 255, 255, 0.5);
 }
 
 .item {
     position: relative;
+    transition: transform 0.1s;
+    cursor: pointer;
+}
+
+.item-wrapper:hover .item {
+    transform: scale(1.2);
+    transform-origin: center;
 }
 
 .item::before {

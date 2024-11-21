@@ -18,9 +18,7 @@
     .item-wrapper {
         zoom: 2;
         box-sizing: content-box !important;
-    }
-
-    .item-wrapper:hover::after {
-        display: none;
+        pointer-events: none;
+        touch-action: none;
     }
 </style>

@@ -28,6 +28,7 @@
     class="item-wrapper"
     onclick={handleClick}
     onkeydown={handleClick}
+    class:active={index === selectedIndex}
     role="radio"
     aria-checked={index === selectedIndex}
     tabindex="0"

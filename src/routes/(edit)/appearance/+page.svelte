@@ -61,6 +61,7 @@
                             {label}
                             <input
                                 type="number"
+                                data-testid={`appearance-${key}`}
                                 {min}
                                 {max}
                                 bind:value={player[key]}
@@ -74,7 +75,11 @@
                     <div>
                         <label>
                             <small>{label}</small>
-                            <input type="text" bind:value={player[key]} />
+                            <input
+                                type="text"
+                                data-testid={`appearance-${key}`}
+                                bind:value={player[key]}
+                            />
                         </label>
                     </div>
                 {/each}
@@ -85,6 +90,7 @@
                             <div class="selector">
                                 <input
                                     type="color"
+                                    data-testid={`appearance-${key}`}
                                     value={player[key].toHex()}
                                     onchange={(e) => {
                                         player[key] = new Color(

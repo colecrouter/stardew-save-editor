@@ -6,8 +6,8 @@
         ItemNameHelper,
         Shirts,
     } from "$lib/ItemData";
-    import type { Item } from "$lib/proxies/Item";
     import { GetSprite, GetSpritesheet } from "$lib/Spritesheet";
+    import type { Item } from "$lib/proxies/Item";
     import type { FurnitureType } from "$types/items/1.6";
 
     interface Props {

@@ -1,14 +1,13 @@
 <script lang="ts">
     import { ItemData } from "$lib/ItemData";
     import type { ParentIndex } from "$lib/ItemParentIndex";
-    // biome-ignore lint/style/useImportType: bug(?) static method being used below
     import { Item } from "$lib/proxies/Item";
     import { saveManager } from "$lib/save.svelte";
     import UiContainer from "$lib/ui/UIContainer.svelte";
     import {
+        type DragDropState,
         draggable,
         droppable,
-        type DragDropState,
     } from "@thisux/sveltednd";
     import CharacterView from "./CharacterView.svelte";
     import ItemSlot from "./ItemSlot.svelte";

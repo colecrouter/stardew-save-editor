@@ -5,19 +5,20 @@
     import { Item } from "$lib/proxies/Item";
     import { saveManager } from "$lib/save.svelte";
     import UiContainer from "$lib/ui/UIContainer.svelte";
-    import CharacterView from "./CharacterView.svelte";
-    import ItemView from "./ItemView.svelte";
-    import SmallItem from "./SmallItem.svelte";
     import {
         draggable,
         droppable,
         type DragDropState,
     } from "@thisux/sveltednd";
+    import CharacterView from "./CharacterView.svelte";
+    import ItemSlot from "./ItemSlot.svelte";
+    import ItemSprite from "./ItemSprite.svelte";
+    import ItemView from "./ItemView.svelte";
 
-    let selectedItem: Item | undefined = $state();
-    let selectedIndex: ParentIndex = $state(0);
     const save = saveManager.save;
     if (!save) throw new Error("No save data found");
+    let selectedIndex: ParentIndex = $state(0);
+    let selectedItem = $derived(save.player.inventory.getItem(selectedIndex));
 
     function handleDrop(state: DragDropState) {
         if (!save) return;
@@ -34,7 +35,11 @@
         }
 
         selectedIndex = targetIndex;
-        selectedItem = currentItem;
+    }
+
+    function handleClick(index: number) {
+        if (!save) return;
+        selectedIndex = index;
     }
 </script>
 
@@ -57,24 +62,26 @@
                             onDrop: handleDrop,
                         },
                     }}
-                    onclick={() => {
-                        selectedItem = item;
-                        selectedIndex = index;
+                    onclick={() => handleClick(index)}
+                    role="gridcell"
+                    tabindex="0"
+                    onkeydown={(e) => {
+                        if (e.key === "Enter") handleClick(index);
                     }}
                 >
-                    <div
-                        use:draggable={{
-                            container: index.toString(),
-                            dragData: "asd",
-                        }}
+                    <ItemSlot
+                        data-testid={`item-${index}`}
+                        active={index === selectedIndex}
                     >
-                        <SmallItem
-                            {item}
-                            {index}
-                            bind:selectedItem
-                            bind:selectedIndex
-                        />
-                    </div>
+                        <div
+                            use:draggable={{
+                                container: index.toString(),
+                                dragData: "asd",
+                            }}
+                        >
+                            <ItemSprite {item} />
+                        </div>
+                    </ItemSlot>
                 </div>
             {/each}
         </div>
@@ -83,11 +90,7 @@
     <!-- Character View -->
     <UiContainer>
         {#if save.player}
-            <CharacterView
-                player={save.player}
-                bind:selectedIndex
-                bind:selectedItem
-            />
+            <CharacterView player={save.player} bind:selectedIndex />
         {/if}
     </UiContainer>
 
@@ -99,11 +102,9 @@
             createItem={(item) => {
                 const newItem = Item.fromName(item);
                 save.player.inventory.setItem(selectedIndex, newItem);
-                selectedItem = newItem;
             }}
             deleteItem={() => {
                 save.player.inventory.deleteItem(selectedIndex);
-                selectedItem = undefined; // Clear the editor
             }}
         />
     </UiContainer>
@@ -115,9 +116,5 @@
         grid-template-columns: repeat(12, 1fr);
         grid-auto-rows: 32px;
         grid-template-rows: 48px auto auto;
-    }
-
-    :global([type="number"]) {
-        width: 6em;
     }
 </style>

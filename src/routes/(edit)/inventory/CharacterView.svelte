@@ -1,66 +1,44 @@
 <script lang="ts">
     import type { ParentIndex } from "$lib/ItemParentIndex";
     import type { Farmer } from "$lib/proxies/Farmer";
-    import type { Item } from "$lib/proxies/Item";
     import Preview from "../appearance/Preview.svelte";
-    import SmallItem from "./SmallItem.svelte";
-
+    import ItemSlot from "./ItemSlot.svelte";
+    import ItemSprite from "./ItemSprite.svelte";
     interface Props {
         player: Farmer;
-        selectedItem: Item | undefined;
         selectedIndex: ParentIndex;
     }
 
-    let {
-        player = $bindable(),
-        selectedItem = $bindable(),
-        selectedIndex = $bindable(),
-    }: Props = $props();
+    let { player = $bindable(), selectedIndex = $bindable() }: Props = $props();
+
+    function handleClick(index: ParentIndex) {
+        selectedIndex = index;
+    }
 </script>
+
+{#snippet slot(index: ParentIndex)}
+    <ItemSlot
+        data-testid={`item-${index}`}
+        onclick={() => handleClick(index)}
+        active={selectedIndex === index}
+    >
+        <ItemSprite item={player.inventory.getItem(index)} />
+    </ItemSlot>
+{/snippet}
 
 <div class="character-details">
     <div class="character-inner">
         <div class="character-group">
             <div class="character-armor">
-                <SmallItem
-                    item={player.inventory.leftRing}
-                    index={"leftRing"}
-                    bind:selectedItem
-                    bind:selectedIndex
-                />
-                <SmallItem
-                    item={player.inventory.rightRing}
-                    index={"rightRing"}
-                    bind:selectedItem
-                    bind:selectedIndex
-                />
-                <SmallItem
-                    item={player.inventory.boots}
-                    index={"boots"}
-                    bind:selectedItem
-                    bind:selectedIndex
-                />
+                {@render slot("leftRing")}
+                {@render slot("rightRing")}
+                {@render slot("boots")}
             </div>
             <Preview {player} />
             <div class="character-armor">
-                <SmallItem
-                    item={player.inventory.hat}
-                    index={"hat"}
-                    bind:selectedItem
-                    bind:selectedIndex
-                />
-                <SmallItem
-                    item={player.inventory.shirt}
-                    index={"shirtItem"}
-                    bind:selectedItem
-                    bind:selectedIndex
-                />
-                <SmallItem
-                    item={player.inventory.pants}
-                    index={"pantsItem"}
-                    bind:selectedItem
-                    bind:selectedIndex
-                />
+                {@render slot("hat")}
+                {@render slot("shirtItem")}
+                {@render slot("pantsItem")}
             </div>
         </div>
 
@@ -122,5 +100,9 @@
 
     .character-info > label {
         display: block;
+    }
+
+    input[type="number"] {
+        width: 6em;
     }
 </style>

@@ -3,7 +3,8 @@
     import type { ParentIndex } from "$lib/ItemParentIndex";
     import { Color } from "$lib/proxies/Color";
     import type { Item } from "$lib/proxies/Item";
-    import BigItem from "./BigItem.svelte";
+    import ItemSlot from "./ItemSlot.svelte";
+    import ItemSprite from "./ItemSprite.svelte";
     import QualitySelector from "./QualitySelector.svelte";
 
     interface Props {
@@ -47,7 +48,11 @@
 
 <div class="editor">
     <!-- Item icon -->
-    <BigItem bind:item={selectedItem} />
+    <div class="big-icon">
+        <ItemSlot>
+            <ItemSprite item={selectedItem} />
+        </ItemSlot>
+    </div>
 
     <!-- Item stats -->
     <div class="stats">
@@ -138,6 +143,12 @@
 </div>
 
 <style>
+    .big-icon {
+        pointer-events: none;
+        touch-action: none;
+        zoom: 2;
+    }
+
     .editor {
         /* Three sections, edges are fix size, middle expands */
         display: grid;

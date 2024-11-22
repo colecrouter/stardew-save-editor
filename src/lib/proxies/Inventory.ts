@@ -23,11 +23,13 @@ export class Inventory {
         return new Item(raw);
     }
 
-    setItem(index: ParentIndex, value: Item) {
+    setItem(index: ParentIndex, value: Item | undefined) {
         if (typeof index === "number") {
-            this.raw.items.Item[index] = value.raw;
+            // @ts-expect-error
+            this.raw.items.Item[index] = value ? value.raw : nil;
         } else {
-            this.raw[index] = value.raw;
+            // @ts-expect-error
+            this.raw[index] = value ? value.raw : nil;
         }
     }
 

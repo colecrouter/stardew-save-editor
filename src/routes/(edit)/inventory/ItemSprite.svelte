@@ -6,8 +6,8 @@
         ItemNameHelper,
         Shirts,
     } from "$lib/ItemData";
-    import type { Item } from "$lib/proxies/Item";
     import { GetSprite, GetSpritesheet } from "$lib/Spritesheet";
+    import type { Item } from "$lib/proxies/Item";
     import type { FurnitureType } from "$types/items/1.6";
 
     interface Props {
@@ -115,3 +115,42 @@
         lookupItem?._type === "Pants") &&
         lookupItem.CanBeDyed}
 ></div>
+
+<style>
+    .item {
+        position: relative;
+        transition: transform 0.1s;
+        cursor: pointer;
+    }
+
+    .item:hover {
+        transform: scale(1.2);
+        transform-origin: center;
+    }
+
+    .item::before {
+        content: "";
+        display: block;
+        background-image: var(--sprite);
+        background-position: left var(--x) top var(--y);
+        image-rendering: pixelated;
+        width: var(--w);
+        height: var(--h);
+        zoom: var(--z);
+    }
+
+    .item.dyeable::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        width: var(--w);
+        height: var(--h);
+        mix-blend-mode: multiply;
+        background-color: var(--tint);
+        -webkit-mask-image: var(--sprite);
+        mask-image: var(--sprite);
+        -webkit-mask-position: left var(--x) top var(--y);
+        mask-position: left var(--x) top var(--y);
+        zoom: var(--z);
+    }
+</style>

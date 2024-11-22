@@ -21,7 +21,7 @@
     const numberFields = [
         ["Skin", "skin", 0, 23],
         ["Hair", "hairstyle", 0, 72],
-        ["Acc", "accessory", -1, 19],
+        ["Acc", "accessory", -1, 29],
     ] satisfies [string, keyof Farmer, number, number][];
     let player = saveManager.save?.player;
 </script>

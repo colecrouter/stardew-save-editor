@@ -185,4 +185,27 @@ describe("Upload save, edit, export", () => {
         // Ensure item is quantity 5
         expect(saveManager.save.player.inventory.getItem(4).amount).toBe(5);
     });
+
+    it("should drag and drop items", async () => {
+        // Drag the parsnip from slot 4 to slot 6
+        const page = render(editorPage);
+
+        const draggable = page.getByTestId("draggable-4");
+        const destination = page.getByTestId("slot-6");
+
+        // Simulate drag and drop
+        await fireEvent.dragStart(draggable);
+        await fireEvent.dragEnter(destination);
+        await fireEvent.dragOver(destination);
+        await fireEvent.drop(destination);
+        await fireEvent.dragEnd(draggable);
+
+        // Verify the item was moved to slot 6
+        expect(saveManager.save.player.inventory.getItem(6).name).toBe(
+            "Parsnip",
+        );
+
+        // Verify slot 4 is now empty
+        expect(saveManager.save.player.inventory.getItem(4)).toBeUndefined();
+    });
 });

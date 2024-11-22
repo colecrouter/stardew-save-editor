@@ -68,6 +68,7 @@
                     onkeydown={(e) => {
                         if (e.key === "Enter") handleClick(index);
                     }}
+                    data-testid={`slot-${index}`}
                 >
                     <ItemSlot
                         data-testid={`item-${index}`}
@@ -78,6 +79,7 @@
                                 container: index.toString(),
                                 dragData: "asd",
                             }}
+                            data-testid={`draggable-${index}`}
                         >
                             <ItemSprite {item} />
                         </div>

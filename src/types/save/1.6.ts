@@ -1175,7 +1175,7 @@ export interface Player {
     professions: Achievements;
     newLevels: string;
     experiencePoints: Achievements;
-    items: PurpleItems;
+    items: Inventory;
     dialogueQuestionsAnswered: Achievements;
     cookingRecipes: ItemArray;
     craftingRecipes: ItemArray;
@@ -1382,7 +1382,7 @@ export interface Dictionary {
     item: BasicShippedItem[] | BasicShippedItem;
 }
 
-export interface PurpleItems {
+export interface Inventory {
     Item: (undefined | Item)[];
 }
 

@@ -1,7 +1,7 @@
 <script lang="ts">
     import { ItemData } from "$lib/ItemData";
     import { CalculateEdibility, CalculatePrice } from "$lib/ItemQuality";
-    import type { Item } from "$types/save/1.6";
+    import type { Item } from "$lib/proxies/Item";
 
     interface Props {
         item: Item;

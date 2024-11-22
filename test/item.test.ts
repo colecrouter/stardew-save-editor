@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { createItem } from "../src/lib/Item";
+import { Item } from "../src/lib/proxies/Item";
 
 describe("Item", () => {
     it("should create a Galaxy Sword item correctly", () => {
-        expect(createItem("Galaxy Sword")).toMatchObject({
+        expect(Item.fromName("Galaxy Sword").raw).toMatchObject({
             category: -98,
             name: "Galaxy Sword",
             itemId: "4",
@@ -19,7 +19,7 @@ describe("Item", () => {
     });
 
     it("should create an Iridium Sprinkler item correctly", () => {
-        expect(createItem("Iridium Sprinkler")).toMatchObject({
+        expect(Item.fromName("Iridium Sprinkler").raw).toMatchObject({
             category: -8,
             name: "Iridium Sprinkler",
             parentSheetIndex: 645,
@@ -34,7 +34,7 @@ describe("Item", () => {
     });
 
     it("should create an auto-grabber item correctly", () => {
-        expect(createItem("Auto-Grabber")).toMatchObject({
+        expect(Item.fromName("Auto-Grabber").raw).toMatchObject({
             name: "Auto-Grabber",
             itemId: "165",
             stack: 1,

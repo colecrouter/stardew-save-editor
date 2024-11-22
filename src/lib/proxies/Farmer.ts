@@ -1,8 +1,9 @@
 import { Color } from "$lib/proxies/Color";
 import { Flags } from "$lib/proxies/Flags";
+import { Inventory } from "$lib/proxies/Inventory";
 import { Recipes } from "$lib/proxies/Recipes";
 import { Skills } from "$lib/proxies/Skills";
-import type { Item, Player } from "$types/save/1.6";
+import type { Player } from "$types/save/1.6";
 
 export class Farmer {
     public raw: Player;
@@ -94,14 +95,6 @@ export class Farmer {
         this.raw.clubCoins = value;
     }
 
-    public get shirt() {
-        return this.raw.shirtItem;
-    }
-
-    public set shirt(value) {
-        this.raw.shirtItem = value;
-    }
-
     public get hairstyle() {
         return this.raw.hair;
     }
@@ -134,65 +127,28 @@ export class Farmer {
         this.raw.accessory = value;
     }
 
-    public get pants() {
-        return this.raw.pantsItem;
-    }
-
-    public set pants(value) {
-        this.raw.pantsItem = value;
-    }
-
-    public get boots() {
-        return this.raw.boots;
-    }
-
-    public set boots(value) {
-        this.raw.boots = value;
-    }
-
-    public get hat() {
-        return this.raw.hat;
-    }
-
-    public set hat(value) {
-        this.raw.hat = value;
-    }
-
-    public get leftRing() {
-        return this.raw.leftRing;
-    }
-
-    public set leftRing(value) {
-        this.raw.leftRing = value;
-    }
-
-    public get rightRing() {
-        return this.raw.rightRing;
-    }
-
-    public set rightRing(value) {
-        this.raw.rightRing = value;
-    }
-
     get inventory() {
-        if (!this.raw) return [];
-
-        // switch <string xsi:nil="true" /> into undefined
-        const newValue = this.raw.items.Item.map((item) =>
-            item === undefined || "@_xsi:nil" in item ? undefined : item,
-        );
-
-        return newValue;
+        return new Inventory(this.raw);
     }
 
-    set inventory(value: Array<Item | undefined>) {
-        // switch undefined into <string xsi:nil="true" />
-        const newValue = value.map((item) =>
-            item === undefined ? { "@_xsi:nil": "true" } : item,
-        );
+    set inventory(value) {
+        this.raw = { ...this.raw, ...value.raw };
+    }
 
-        // @ts-expect-error
-        this.raw.items.Item = newValue;
+    get hat() {
+        return this.inventory.hat;
+    }
+
+    get shirt() {
+        return this.inventory.shirt;
+    }
+
+    get pants() {
+        return this.inventory.pants;
+    }
+
+    get boots() {
+        return this.inventory.boots;
     }
 
     get eyeColor() {

@@ -1,12 +1,8 @@
 <script lang="ts">
-    import {
-        CategoriesWithQuality,
-        ItemData,
-        ItemNameHelper,
-    } from "$lib/ItemData";
+    import { ItemNameHelper } from "$lib/ItemData";
     import type { ParentIndex } from "$lib/ItemParentIndex";
     import { Color } from "$lib/proxies/Color";
-    import type { Item } from "$types/save/1.6";
+    import type { Item } from "$lib/proxies/Item";
     import BigItem from "./BigItem.svelte";
     import QualitySelector from "./QualitySelector.svelte";
 
@@ -26,9 +22,27 @@
 
     let newItemName = $state("");
 
-    let selectedItemData = $derived(
-        selectedItem ? ItemData.get(selectedItem.name) : undefined,
-    );
+    const properties = [
+        ["Amount", "amount", 0, 999],
+        ["Min Dmg", "minDamage", 0, 999],
+        ["Max Dmg", "maxDamage", 0, 999],
+        ["Knockback", "knockback", 0, 999],
+        ["Speed", "speed", 0, 999],
+        ["Precision", "precision", 0, 999],
+        ["Defense", "defense", 0, 999],
+        ["Area of Effect", "areaOfEffect", 0, 999],
+        ["Crit Chance", "critChance", 0, 1],
+        ["Crit Multiplier", "critMultiplier", 0, 999],
+        ["Immunity Bonus", "immunityBonus", 0, 999],
+        ["Color Index", "raw.indexInColorSheet", 0, 71],
+        ["Edibility", "edibility", 0, 999],
+        // ["Place Outdoors", "setOutdoors", 0, 1],
+        // ["Place Indoors", "setIndoors", 0, 1],
+        // ["Produces Light", "isLamp", 0, 1],
+        ["Price", "price", 0, 2 ** 31 - 1], // 32 bit signed int
+        ["Color", "color", null, null],
+        ["Quality", "quality", null, null],
+    ] as [string, keyof Item, number | null, number | null][];
 </script>
 
 <div class="editor">
@@ -42,213 +56,43 @@
                 <small>Item Name</small>
                 <input
                     type="text"
-                    value={ItemNameHelper(selectedItem)}
+                    value={ItemNameHelper(selectedItem.raw)}
                     disabled
                 />
             </label>
-            {#if selectedItemData}
-                <!-- TODO: Since 1.6 removed stackable field, not sure how to actually know -->
-                {#if !["Clothing", "Boots", "Hat", "Weapon", "Pants", "Shirt"].includes(selectedItemData._type)}
+            {#each properties as [label, key, min, max]}
+                {#if selectedItem[key] !== undefined}
                     <label>
-                        <small>Amount</small>
-                        <input
-                            type="number"
-                            bind:value={selectedItem.stack}
-                            min="0"
-                            max="999"
-                        />
-                    </label>
-                {/if}
-                {#if selectedItemData._type === "Weapon"}
-                    <label>
-                        <small>Min Dmg</small>
-                        <input
-                            type="number"
-                            bind:value={selectedItem.minDamage}
-                            min="0"
-                        />
-                    </label>
-                    <label>
-                        <small>Max Dmg</small>
-                        <input
-                            type="number"
-                            bind:value={selectedItem.maxDamage}
-                            min="0"
-                        />
-                    </label>
-                    <label>
-                        <small>Knockback</small>
-                        <input
-                            type="number"
-                            bind:value={selectedItem.knockback}
-                            min="0"
-                        />
-                    </label>
-                    <label>
-                        <small>Speed</small>
-                        <input
-                            type="number"
-                            bind:value={selectedItem.speed}
-                            min="0"
-                        />
-                    </label>
-                    <label>
-                        <small>Added Precision</small>
-                        <input
-                            type="number"
-                            bind:value={selectedItem.addedPrecision}
-                            min="0"
-                        />
-                    </label>
-                    <label>
-                        <small>Added Defense</small>
-                        <input
-                            type="number"
-                            bind:value={selectedItem.addedDefense}
-                            min="0"
-                        />
-                    </label>
-                    <!-- {#if 'weaponType' in selectedItem}
-                      <label>
-                          <small>Weapon Type</small>
-                          <select>
-                              <option value="0">Stabbing Sword</option>
-                              <option value="1">Dagger</option>
-                              <option value="2">Club/Hammer</option>
-                              <option value="3">Slashing Sword</option>
-                          </select>
-                      </label>
-                  {/if} -->
-                    <label>
-                        <small>Added Area of Effect</small>
-                        <input
-                            type="number"
-                            bind:value={selectedItem.addedAreaOfEffect}
-                            min="0"
-                        />
-                    </label>
-                    <label>
-                        <small>Crit Chance</small>
-                        <input
-                            type="number"
-                            bind:value={selectedItem.critChance}
-                            min="0"
-                            max="1"
-                            step="0.01"
-                        />
-                    </label>
-                    <label>
-                        <small>Crit Dmg</small>
-                        <input
-                            type="number"
-                            bind:value={selectedItem.critMultiplier}
-                            min="0"
-                        />
-                    </label>
-                {:else if selectedItemData._type === "Tool"}
-                    <!-- Can't edit -->
-                {:else if selectedItemData._type === "BigCraftable"}
-                    <!-- <label>
-                      <small>Place Outdoors</small>
-                      <input type="check" bind:value={selectedItem.setOutdoors} />
-                  </label>
-                  <label>
-                      <small>Place Indoors</small>
-                      <input type="check" bind:value={selectedItem.setIndoors} />
-                  </label> -->
-                    <label>
-                        <small>Produces Light</small>
-                        <input
-                            type="checkbox"
-                            bind:checked={selectedItem.isLamp}
-                        />
-                    </label>
-                {:else if selectedItemData._type === "Boots"}
-                    <label>
-                        <small>Added Defense</small>
-                        <input
-                            type="number"
-                            bind:value={selectedItem.defenseBonus}
-                            min="0"
-                        />
-                    </label>
-                    <label>
-                        <small>Added Immunity</small>
-                        <input
-                            type="number"
-                            bind:value={selectedItem.immunityBonus}
-                            min="0"
-                        />
-                    </label>
-                    <label>
-                        <small>Color Index</small>
-                        <input
-                            type="number"
-                            bind:value={selectedItem.indexInColorSheet}
-                            min="0"
-                            max="71"
-                        />
-                    </label>
-                {:else if selectedItemData._type === "Shirt" || selectedItemData._type === "Pants"}
-                    {#if "CanBeDyed" in selectedItemData && selectedItemData.CanBeDyed}
-                        <label>
-                            <small>Color</small>
+                        <small>{label}</small>
+                        {#if key === "quality"}
+                            <QualitySelector bind:item={selectedItem} />
+                        {:else if typeof selectedItem[key] === "number"}
+                            <input
+                                type="number"
+                                bind:value={selectedItem[key]}
+                                {min}
+                                {max}
+                            />
+                        {:else if typeof selectedItem[key] === "string"}
+                            <input type="text" bind:value={selectedItem[key]} />
+                        {:else if selectedItem[key] instanceof Color}
                             <input
                                 type="color"
-                                value={new Color(
-                                    selectedItem.clothesColor || "#ffffff",
-                                ).toHex()}
+                                value={selectedItem[key].toHex()}
                                 onchange={(e) => {
                                     if (!selectedItem) return;
-                                    selectedItem.clothesColor = new Color(
+                                    // @ts-expect-error some props are readonly
+                                    selectedItem[key] = new Color(
                                         // @ts-expect-error
                                         e.target.value,
                                     );
                                 }}
                                 data-testid="color-picker"
                             />
-                        </label>
-                    {/if}
-                {:else if selectedItemData._type === "Furniture"}
-                    <!-- Need more info -->
-                    <!-- House plant selector -->
-                {:else if selectedItemData._type === "Hat"}
-                    <!-- Need more info? -->
-                {/if}
-
-                <!-- Quality selector -->
-                <!-- svelte-ignore a11y_label_has_associated_control -->
-                {#if selectedItem.category && CategoriesWithQuality.has(selectedItem.category)}
-                    <label>
-                        <small>Quality</small>
-                        <QualitySelector bind:item={selectedItem} />
+                        {/if}
                     </label>
                 {/if}
-
-                <!-- Edibility -->
-                {#if selectedItemData && "edibility" in selectedItemData && selectedItemData.edibility !== -300}
-                    <label>
-                        <small>Edibility</small>
-                        <input
-                            type="number"
-                            bind:value={selectedItem.edibility}
-                            min="0"
-                        />
-                    </label>
-                {/if}
-
-                <!-- Price -->
-                {#if ["Object", "BigCraftable", "Furniture", "Hat", "Clothing"].includes(selectedItemData._type)}
-                    <label>
-                        <small>Price</small>
-                        <input
-                            type="number"
-                            bind:value={selectedItem.price}
-                            min="0"
-                        />
-                    </label>
-                {/if}
-            {/if}
+            {/each}
         {:else if selectedIndex}
             <label>
                 <small>Item Name</small>

@@ -56,7 +56,7 @@
                       : "Basic Pullover (F)",
               ) as Clothing)
             : player.shirt.name === "Shirt"
-              ? (Shirts.get(player.shirt.itemId.toString()) as Clothing)
+              ? (Shirts.get(player.shirt.id) as Clothing)
               : (ItemData.get(player.shirt.name) as Clothing),
     );
     const underwear = ItemData.get("Polka Dot Shorts") as Clothing;
@@ -107,16 +107,16 @@
     let defaultTint = new Color("#00000000");
     let pantsTint = $derived(
         pantsData
-            ? pantsData.CanBeDyed && player.pants?.clothesColor
-                ? new Color(player.pants.clothesColor)
+            ? pantsData.CanBeDyed && player.pants?.color
+                ? new Color(player.pants.color)
                 : new Color("#00000000") // Default clothes color seems to always be red, so nvm
             : new Color("#00000000"),
     );
     let hairTint: ColorType = $derived(player.hairColor);
     let shirtTint: ColorType = $derived(
         shirtData
-            ? shirtData.CanBeDyed && player.shirt?.clothesColor
-                ? new Color(player.shirt.clothesColor)
+            ? shirtData.CanBeDyed && player.shirt?.color
+                ? new Color(player.shirt.color)
                 : new Color("#00000000")
             : new Color("#00000000"),
     );
@@ -129,14 +129,17 @@
     let bootTints = $derived<[ColorType, ColorType, ColorType, ColorType]>(
         player.boots
             ? [
-                  PrimaryBootColors[player.boots?.indexInColorSheet ?? 0] ??
+                  PrimaryBootColors[player.boots?.raw.indexInColorSheet ?? 0] ??
                       defaultTint,
-                  SecondaryBootColors[player.boots?.indexInColorSheet ?? 0] ??
-                      defaultTint,
-                  TertiaryBootColors[player.boots?.indexInColorSheet ?? 0] ??
-                      defaultTint,
-                  QuaternaryBootColors[player.boots?.indexInColorSheet ?? 0] ??
-                      defaultTint,
+                  SecondaryBootColors[
+                      player.boots?.raw.indexInColorSheet ?? 0
+                  ] ?? defaultTint,
+                  TertiaryBootColors[
+                      player.boots?.raw.indexInColorSheet ?? 0
+                  ] ?? defaultTint,
+                  QuaternaryBootColors[
+                      player.boots?.raw.indexInColorSheet ?? 0
+                  ] ?? defaultTint,
               ]
             : [defaultTint, defaultTint, defaultTint, defaultTint],
     );

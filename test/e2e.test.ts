@@ -40,7 +40,7 @@ describe("Upload save, edit, export", () => {
 
         // Ensure the item was created
         expect(saveManager.save).toBeDefined();
-        expect(saveManager.save.player.inventory[9].name).toBe("Leek");
+        expect(saveManager.save.player.inventory.getItem(9).name).toBe("Leek");
 
         // Save the file
         // Not checking anything yet, just making sure it completes
@@ -75,7 +75,7 @@ describe("Upload save, edit, export", () => {
 
     it("should show color picker for dyeable clothing", async () => {
         const page = render(editorPage);
-        const slot = page.getByTestId("item-pants");
+        const slot = page.getByTestId("item-pantsItem");
         slot.click();
 
         await new Promise((resolve) => setTimeout(resolve, 100));

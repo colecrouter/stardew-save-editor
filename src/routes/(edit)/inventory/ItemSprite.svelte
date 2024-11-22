@@ -6,9 +6,9 @@
         ItemNameHelper,
         Shirts,
     } from "$lib/ItemData";
+    import type { Item } from "$lib/proxies/Item";
     import { GetSprite, GetSpritesheet } from "$lib/Spritesheet";
     import type { FurnitureType } from "$types/items/1.6";
-    import type { Item } from "$types/save/1.6";
 
     interface Props {
         item: Partial<Item> | undefined;
@@ -19,16 +19,15 @@
     let lookupItem = $derived(
         item
             ? // Shirt hack
-              "itemId" in item &&
-              item.itemId !== undefined &&
-              item.name === "Shirt"
-                ? Shirts.get(item.itemId.toString())
+              "id" in item && item.id !== undefined && item.name === "Shirt"
+                ? Shirts.get(item.id)
                 : ItemData.get(
                       item.name === "Clothing"
-                          ? item.parentSheetIndex === 1064
+                          ? item.raw?.parentSheetIndex === 1064
                               ? "Shirt"
                               : "Pants"
-                          : ItemNameHelper(item as Item),
+                          : // @ts-expect-error
+                            ItemNameHelper(item),
                   )
             : undefined,
     );
@@ -111,7 +110,7 @@
     style:--sprite={spritesheet &&
         lookupItem &&
         `url(${base}/assets/${spritesheet})`}
-    style:--tint={`rgb(${item?.clothesColor?.R ?? 0},${item?.clothesColor?.G ?? 0},${item?.clothesColor?.B ?? 0})`}
+    style:--tint={`rgb(${item?.color?.R ?? 0},${item?.color?.G ?? 0},${item?.color?.B ?? 0})`}
     class:dyeable={(lookupItem?._type === "Shirt" ||
         lookupItem?._type === "Pants") &&
         lookupItem.CanBeDyed}

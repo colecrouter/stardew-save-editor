@@ -1,7 +1,7 @@
 <script lang="ts">
     import type { ParentIndex } from "$lib/ItemParentIndex";
     import type { Farmer } from "$lib/proxies/Farmer";
-    import type { Item } from "$types/save/1.6";
+    import type { Item } from "$lib/proxies/Item";
     import Preview from "../appearance/Preview.svelte";
     import SmallItem from "./SmallItem.svelte";
 
@@ -23,19 +23,19 @@
         <div class="character-group">
             <div class="character-armor">
                 <SmallItem
-                    item={player.leftRing}
+                    item={player.inventory.leftRing}
                     index={"leftRing"}
                     bind:selectedItem
                     bind:selectedIndex
                 />
                 <SmallItem
-                    item={player.rightRing}
+                    item={player.inventory.rightRing}
                     index={"rightRing"}
                     bind:selectedItem
                     bind:selectedIndex
                 />
                 <SmallItem
-                    item={player.boots}
+                    item={player.inventory.boots}
                     index={"boots"}
                     bind:selectedItem
                     bind:selectedIndex
@@ -44,20 +44,20 @@
             <Preview {player} />
             <div class="character-armor">
                 <SmallItem
-                    item={player.hat}
+                    item={player.inventory.hat}
                     index={"hat"}
                     bind:selectedItem
                     bind:selectedIndex
                 />
                 <SmallItem
-                    item={player.shirt}
-                    index={"shirt"}
+                    item={player.inventory.shirt}
+                    index={"shirtItem"}
                     bind:selectedItem
                     bind:selectedIndex
                 />
                 <SmallItem
-                    item={player.pants}
-                    index={"pants"}
+                    item={player.inventory.pants}
+                    index={"pantsItem"}
                     bind:selectedItem
                     bind:selectedIndex
                 />

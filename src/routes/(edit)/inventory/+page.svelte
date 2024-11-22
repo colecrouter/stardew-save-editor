@@ -1,10 +1,10 @@
 <script lang="ts">
-    import { createItem as create } from "$lib/Item";
     import { ItemData } from "$lib/ItemData";
     import type { ParentIndex } from "$lib/ItemParentIndex";
+    // biome-ignore lint/style/useImportType: bug(?) static method being used below
+    import { Item } from "$lib/proxies/Item";
     import { saveManager } from "$lib/save.svelte";
     import UiContainer from "$lib/ui/UIContainer.svelte";
-    import type { Item } from "$types/save/1.6";
     import CharacterView from "./CharacterView.svelte";
     import ItemView from "./ItemView.svelte";
     import SmallItem from "./SmallItem.svelte";
@@ -13,54 +13,6 @@
     let selectedIndex: ParentIndex = $state(0);
     const save = saveManager.save;
     if (!save) throw new Error("No save data found");
-
-    const deleteItem = (symbol: ParentIndex) => {
-        if (!save.player || !save.player.inventory) return;
-
-        if (typeof symbol === "number") {
-            save.player.inventory = save.player.inventory.map((i, index) => {
-                if (index === symbol) return undefined;
-                return i;
-            });
-        } else {
-            // @ts-ignore
-            save.player = {
-                ...save.player,
-                [symbol]: undefined,
-            };
-        }
-
-        // Clear item from the editor window
-        selectedItem = undefined;
-    };
-
-    const createItem = (symbol: ParentIndex, item: string) => {
-        if (!save.player || !save.player.inventory) return;
-
-        try {
-            const newItem = create(item);
-
-            if (typeof symbol === "number") {
-                // Womp womp this kinda sucks
-                // TODO find a better way to get this reactivity without
-                // triggering getter, or add a proxy for the inventory or something
-                // TODO then also do the same thing for crafting recipes
-                save.player.inventory = save.player.inventory.map(
-                    (i, index) => {
-                        if (index === symbol) return newItem;
-                        return i;
-                    },
-                );
-            } else {
-                save.player[symbol] = newItem;
-            }
-
-            // Select the new item
-            selectedItem = newItem;
-        } catch (e) {
-            alert(`Unable to create item: ${e}`);
-        }
-    };
 </script>
 
 <!-- Data list for adding new items -->
@@ -74,7 +26,7 @@
     <!-- Inventory view -->
     <UiContainer>
         <div class="item-grid">
-            {#each save.player.inventory as item, index}
+            {#each save.player.inventory.items as item, index}
                 <SmallItem
                     {item}
                     {index}
@@ -101,8 +53,15 @@
         <ItemView
             {selectedItem}
             {selectedIndex}
-            createItem={(item) => createItem(selectedIndex, item)}
-            deleteItem={() => deleteItem(selectedIndex)}
+            createItem={(item) => {
+                const newItem = Item.fromName(item);
+                save.player.inventory.setItem(selectedIndex, newItem);
+                selectedItem = newItem;
+            }}
+            deleteItem={() => {
+                save.player.inventory.deleteItem(selectedIndex);
+                selectedItem = undefined; // Clear the editor
+            }}
         />
     </UiContainer>
 {/if}

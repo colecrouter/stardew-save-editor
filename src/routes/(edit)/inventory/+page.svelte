@@ -8,11 +8,34 @@
     import CharacterView from "./CharacterView.svelte";
     import ItemView from "./ItemView.svelte";
     import SmallItem from "./SmallItem.svelte";
+    import {
+        draggable,
+        droppable,
+        type DragDropState,
+    } from "@thisux/sveltednd";
 
     let selectedItem: Item | undefined = $state();
     let selectedIndex: ParentIndex = $state(0);
     const save = saveManager.save;
     if (!save) throw new Error("No save data found");
+
+    function handleDrop(state: DragDropState) {
+        if (!save) return;
+        const { sourceContainer, targetContainer } = state;
+
+        const sourceIndex = Number(sourceContainer);
+        const targetIndex = Number(targetContainer);
+        const currentItem = save.player.inventory.getItem(sourceIndex);
+        const swappingItem = save.player.inventory.getItem(targetIndex);
+
+        if (targetContainer && sourceContainer) {
+            save.player.inventory.setItem(sourceIndex, swappingItem);
+            save.player.inventory.setItem(targetIndex, currentItem);
+        }
+
+        selectedIndex = targetIndex;
+        selectedItem = currentItem;
+    }
 </script>
 
 <!-- Data list for adding new items -->
@@ -27,12 +50,32 @@
     <UiContainer>
         <div class="item-grid">
             {#each save.player.inventory.items as item, index}
-                <SmallItem
-                    {item}
-                    {index}
-                    bind:selectedItem
-                    bind:selectedIndex
-                />
+                <div
+                    use:droppable={{
+                        container: index.toString(),
+                        callbacks: {
+                            onDrop: handleDrop,
+                        },
+                    }}
+                    onclick={() => {
+                        selectedItem = item;
+                        selectedIndex = index;
+                    }}
+                >
+                    <div
+                        use:draggable={{
+                            container: index.toString(),
+                            dragData: "asd",
+                        }}
+                    >
+                        <SmallItem
+                            {item}
+                            {index}
+                            bind:selectedItem
+                            bind:selectedIndex
+                        />
+                    </div>
+                </div>
             {/each}
         </div>
     </UiContainer>

@@ -8,7 +8,6 @@
 </script>
 
 <script lang="ts">
-    import { ItemData } from "$lib/ItemData";
     import { CalculateEdibility, CalculatePrice } from "$lib/ItemQuality";
     import type { Item } from "$lib/proxies/Item";
 
@@ -23,27 +22,23 @@
     };
 
     const changePrice = (newQuality: number) => {
-        const data = ItemData.get(item.name);
-        if (!data || !("Price" in data) || data.Price === undefined) return;
+        if (!("Price" in item.info) || item.info.Price === undefined) return;
 
-        item.price = CalculatePrice(data.Price, newQuality);
+        item.price = CalculatePrice(item.info.Price, newQuality);
     };
 
     const changeEdibility = (newQuality: number) => {
-        const data = ItemData.get(item.name);
-        if (!data || !("Edibility" in data)) return;
+        if (!("Edibility" in item.info)) return;
 
-        item.edibility = CalculateEdibility(data.Edibility, newQuality);
+        item.edibility = CalculateEdibility(item.info.Edibility, newQuality);
     };
 </script>
 
 <div class="container">
-    <!-- Create 4 button containing star emoji-->
-    {#if "quality" in item}
-        {#each [0, 1, 2, 4] as i}
-            <label
-                data-testid={`quality-${qualityLevels.get(i)?.toLowerCase()}`}
-            >
+    <!-- Create 4 buttons containing star emoji-->
+    {#if item.quality !== undefined}
+        {#each qualityLevels as [i]}
+            <label data-testid={`quality-${i}`}>
                 {#if i === 0}
                     ☆
                 {:else}

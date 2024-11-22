@@ -322,7 +322,7 @@ export class Item {
 
     set quality(quality) {
         if (this.quality === undefined) throw new Error("Item has no quality");
-        if (!quality) throw new Error("Quality must be a number");
+        if (quality === undefined) throw new Error("Quality must be a number");
 
         if (quality < 0 || quality > 4)
             throw new Error("Quality must be between 0 and 4");

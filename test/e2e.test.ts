@@ -144,22 +144,23 @@ describe("Upload save, edit, export", () => {
     });
 
     it("should be able to change item quality", async () => {
-        // There is a parsnip in slot 4, change the quality from silver to gold
+        // There is a parsnip in slot 4, change the quality to 0, 1, 2, and 4
         const page = render(editorPage);
         const slot = page.getByTestId("item-4");
         slot.click();
 
         await tick();
 
-        // Ensure item is silver quality
-        expect(saveManager.save.player.inventory.getItem(4).quality).toBe(1);
+        for (const quality of [0, 1, 2, 4]) {
+            // Change quality to quality
+            const button = page.getByTestId(`quality-${quality}`);
+            button.click();
 
-        // Change quality to gold
-        const goldButton = page.getByTestId("quality-gold");
-        goldButton.click();
-
-        // Ensure item is gold quality
-        expect(saveManager.save.player.inventory.getItem(4).quality).toBe(2);
+            // Ensure item is quality
+            expect(saveManager.save.player.inventory.getItem(4).quality).toBe(
+                quality,
+            );
+        }
     });
 
     it("should be able to change item quantity", async () => {

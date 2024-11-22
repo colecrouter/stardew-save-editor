@@ -6,6 +6,7 @@ import editorPage from "../src/routes/(edit)/inventory/+page.svelte";
 import characterPage from "../src/routes/(edit)/character/+page.svelte";
 import craftingPage from "../src/routes/(edit)/(list)/crafting/+page.svelte";
 import appearancePage from "../src/routes/(edit)/appearance/+page.svelte";
+import { tick } from "svelte";
 
 describe("Upload save, edit, export", () => {
     beforeAll(async () => {
@@ -26,7 +27,7 @@ describe("Upload save, edit, export", () => {
         const slot = page.getByTestId("item-9");
         slot.click();
 
-        await new Promise((resolve) => setTimeout(resolve, 100));
+        await tick();
 
         // Create a new item
         const inputElement = page.getByTestId("item-name");
@@ -78,7 +79,7 @@ describe("Upload save, edit, export", () => {
         const slot = page.getByTestId("item-pantsItem");
         slot.click();
 
-        await new Promise((resolve) => setTimeout(resolve, 100));
+        await tick();
 
         const colorPicker = page.getByTestId("color-picker");
         expect(colorPicker).toBeTruthy();
@@ -140,5 +141,47 @@ describe("Upload save, edit, export", () => {
 
         const save = saveManager.export();
         expect(save).toBeTruthy();
+    });
+
+    it("should be able to change item quality", async () => {
+        // There is a parsnip in slot 4, change the quality from silver to gold
+        const page = render(editorPage);
+        const slot = page.getByTestId("item-4");
+        slot.click();
+
+        await tick();
+
+        // Ensure item is silver quality
+        expect(saveManager.save.player.inventory.getItem(4).quality).toBe(1);
+
+        // Change quality to gold
+        const goldButton = page.getByTestId("quality-gold");
+        goldButton.click();
+
+        // Ensure item is gold quality
+        expect(saveManager.save.player.inventory.getItem(4).quality).toBe(2);
+    });
+
+    it("should be able to change item quantity", async () => {
+        // Change the quantity of the parsnip in slot 4 from 1 to 5
+        const page = render(editorPage);
+        const slot = page.getByTestId("item-4");
+        slot.click();
+
+        await tick();
+
+        // Ensure item is quantity 1
+        expect(saveManager.save.player.inventory.getItem(4).amount).toBe(1);
+
+        // Change quantity to 5
+        const inputElement = page.getByTestId("property-amount");
+        if (!(inputElement instanceof HTMLInputElement)) {
+            throw new Error("Input not found");
+        }
+
+        fireEvent.input(inputElement, { target: { value: "5" } });
+
+        // Ensure item is quantity 5
+        expect(saveManager.save.player.inventory.getItem(4).amount).toBe(5);
     });
 });

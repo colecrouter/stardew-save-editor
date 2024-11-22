@@ -70,6 +70,7 @@
                             <input
                                 type="number"
                                 bind:value={selectedItem[key]}
+                                data-testid={`property-${key}`}
                                 {min}
                                 {max}
                             />

@@ -1,3 +1,12 @@
+<script lang="ts" module>
+    const qualityLevels = new Map([
+        [0, "Normal"],
+        [1, "Silver"],
+        [2, "Gold"],
+        [4, "Iridium"],
+    ]);
+</script>
+
 <script lang="ts">
     import { ItemData } from "$lib/ItemData";
     import { CalculateEdibility, CalculatePrice } from "$lib/ItemQuality";
@@ -32,7 +41,9 @@
     <!-- Create 4 button containing star emoji-->
     {#if "quality" in item}
         {#each [0, 1, 2, 4] as i}
-            <label>
+            <label
+                data-testid={`quality-${qualityLevels.get(i)?.toLowerCase()}`}
+            >
                 {#if i === 0}
                     ☆
                 {:else}

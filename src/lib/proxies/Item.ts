@@ -290,9 +290,15 @@ export class Item {
     get amount() {
         // TODO: Since 1.6 removed stackable field, not sure how to actually know
         if (
-            !["Clothing", "Boots", "Hat", "Weapon", "Pants", "Shirt"].includes(
-                this.info._type,
-            )
+            [
+                "Clothing",
+                "Boots",
+                "Hat",
+                "Weapon",
+                "Pants",
+                "Shirt",
+                "Tool",
+            ].includes(this.info._type)
         )
             return undefined;
         return this.raw.stack;

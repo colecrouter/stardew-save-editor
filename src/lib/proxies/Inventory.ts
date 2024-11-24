@@ -20,6 +20,9 @@ export class Inventory {
                 : this.raw[index];
         if (!raw || isNil(raw)) return undefined;
 
+        // TODO fix this
+        if (raw.name.startsWith("Secret Note")) return undefined;
+
         return new Item(raw);
     }
 
@@ -131,9 +134,12 @@ export class Inventory {
     }
 
     get items() {
+        // TODO fix this
         return this.raw.items.Item.map((raw) =>
-            // @ts-expect-error we need to replace nil with undefined
-            isNil(raw) ? undefined : new Item(raw),
+            isNil(raw) || raw?.name.startsWith("Secret Note")
+                ? undefined
+                : // @ts-expect-error we need to replace nil with undefined
+                  new Item(raw),
         );
     }
 

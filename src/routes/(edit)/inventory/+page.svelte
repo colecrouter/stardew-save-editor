@@ -114,8 +114,7 @@
 <style>
     .item-grid {
         display: grid;
-        grid-template-columns: repeat(12, 1fr);
-        grid-auto-rows: 32px;
-        grid-template-rows: 48px auto auto;
+        grid-template-columns: repeat(12, min-content);
+        grid-template-rows: 48px 36px auto;
     }
 </style>

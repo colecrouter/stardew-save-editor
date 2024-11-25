@@ -1,7 +1,7 @@
 <script lang="ts">
     import type { ParentIndex } from "$lib/ItemParentIndex";
     import type { Farmer } from "$lib/proxies/Farmer";
-    import Preview from "../appearance/Preview.svelte";
+    import Preview from "../appearance/CharacterPreview.svelte";
     import ItemSlot from "./ItemSlot.svelte";
     import ItemSprite from "./ItemSprite.svelte";
     interface Props {

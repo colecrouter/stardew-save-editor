@@ -4,7 +4,7 @@
     import { saveManager } from "$lib/save.svelte";
     import UiContainer from "$lib/ui/UIContainer.svelte";
     import { Gender } from "$types/save/1.6";
-    import Preview from "./Preview.svelte";
+    import Preview from "./CharacterPreview.svelte";
 
     const textFields = [
         ["Name", "name"],

@@ -9,7 +9,7 @@
         draggable,
         droppable,
     } from "@thisux/sveltednd";
-    import CharacterView from "./CharacterView.svelte";
+    import CharacterView from "./CharacterEquipment.svelte";
     import ItemSlot from "./ItemSlot.svelte";
     import ItemSprite from "./ItemSprite.svelte";
     import ItemView from "./ItemView.svelte";

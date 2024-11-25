@@ -16,18 +16,14 @@
 
 <style>
     .item-wrapper {
-        box-sizing: content-box !important;
-    }
-
-    .item-wrapper {
         position: relative;
         border: solid 2px;
         border-bottom-color: #ffe4a1;
         border-left-color: #ffe4a1;
         border-right-color: #d68f54;
         border-top-color: #d68f54;
-        height: 32px;
-        width: 32px;
+        height: 36px;
+        width: 36px;
         display: flex;
         justify-content: center;
         align-items: center;

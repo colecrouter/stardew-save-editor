@@ -67,7 +67,7 @@ export class Item {
         this.info = info;
     }
 
-    static fromName(name: string): Item {
+    static fromName(name: string) {
         const data = ItemData.get(name);
 
         if (!data) throw new Error(`Item "${name}" not found in ItemData`);

@@ -11,7 +11,8 @@
         "indentWidth": 4,
         "lineEnding": "lf",
         "ignore": [
-            "**/*.svelte"
+            "**/*.svelte",
+            "**/*.css"
         ]
     },
     "linter": {

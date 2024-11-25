@@ -115,6 +115,6 @@
     .item-grid {
         display: grid;
         grid-template-columns: repeat(12, min-content);
-        grid-template-rows: 48px 36px auto;
+        grid-template-rows: 48px auto auto;
     }
 </style>

@@ -2,7 +2,7 @@ import type { Boots, Clothing, FurnitureType, Hat } from "$types/items/1.6";
 
 export interface Save {
     player: Player;
-    farmhands: { Farmer?: Player | Player[] };
+    farmhands: { Farmer: Player[] } | "";
     locations: Locations;
     currentSeason: Season;
     samBandName?: string;

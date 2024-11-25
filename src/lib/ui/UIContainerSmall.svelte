@@ -34,6 +34,7 @@
             0 0 0 2px #b14e05,
             0 0 0 4px #dc7b05,
             0 0 0 6px #5b2b29;
+        pointer-events: none;
     }
 
     .outer {

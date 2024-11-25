@@ -13,7 +13,7 @@
 
     <div class="wrapper">
         <UiContainerSmall>
-            <Profiles farmers={save.players} />
+            <Profiles bind:farmers={save.players} />
         </UiContainerSmall>
     </div>
 </UiContainer>

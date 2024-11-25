@@ -63,18 +63,17 @@ export class SaveProxy {
 
     get players() {
         if (!this.raw) return [];
-        const farmers =
-            this.raw.SaveGame.farmhands.Farmer === undefined
+        const unfiltered =
+            this.raw.SaveGame.farmhands === ""
                 ? []
-                : Array.isArray(this.raw.SaveGame.farmhands.Farmer)
-                  ? this.raw.SaveGame.farmhands.Farmer
-                  : [this.raw.SaveGame.farmhands.Farmer];
+                : this.raw.SaveGame.farmhands.Farmer;
+        const farmers = unfiltered.filter((f) => f !== undefined);
         const mainPlayer = this.raw.SaveGame.player;
 
         return [mainPlayer, ...farmers].map((f) => new Farmer(f));
     }
 
-    set players(players: Farmer[]) {
+    set players(players) {
         if (!this.raw) return;
         if (!players[0]) throw new Error("Main player is required");
 
@@ -86,11 +85,15 @@ export class SaveProxy {
 
         if (mainPlayer === undefined)
             throw new Error("Main player is required");
-        if (someTyped(farmhands) === false)
+        if (farmhands.length && someTyped(farmhands) === false)
             throw new Error("Farmhands are required");
 
         this.raw.SaveGame.player = mainPlayer;
-        this.raw.SaveGame.farmhands.Farmer = farmhands;
+        if (this.raw.SaveGame.farmhands === "") {
+            this.raw.SaveGame.farmhands = { Farmer: farmhands };
+        } else {
+            this.raw.SaveGame.farmhands.Farmer = farmhands;
+        }
     }
 
     get farm() {

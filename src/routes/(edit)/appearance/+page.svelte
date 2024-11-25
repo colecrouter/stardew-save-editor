@@ -23,90 +23,92 @@
         ["Hair", "hairstyle", 0, 72],
         ["Acc", "accessory", -1, 29],
     ] satisfies [string, keyof Farmer, number, number][];
-    let player = saveManager.save?.player;
+
+    const save = saveManager.save;
+    if (!save) throw new Error("No player data found");
 </script>
 
 <UiContainer>
-    {#if player}
-        <div class="wrapper">
-            <div class="editor1">
-                <Preview {player} />
-                <div class="selector">
-                    <label>
-                        🚹
-                        <input
-                            type="radio"
-                            name="gender"
-                            value="male"
-                            checked={player && player.gender === Gender.Male}
-                            onclick={() =>
-                                player && (player.gender = Gender.Male)}
-                        />
-                    </label>
-                    <label>
-                        🚺
-                        <input
-                            type="radio"
-                            name="gender"
-                            value="female"
-                            checked={player && player.gender === Gender.Female}
-                            onclick={() =>
-                                player && (player.gender = Gender.Female)}
-                        />
-                    </label>
-                </div>
-                <div class="appearance">
-                    {#each numberFields as [label, key, min, max]}
-                        <label>
-                            {label}
-                            <input
-                                type="number"
-                                data-testid={`appearance-${key}`}
-                                {min}
-                                {max}
-                                bind:value={player[key]}
-                            />
-                        </label>
-                    {/each}
-                </div>
+    <div class="wrapper">
+        <div class="editor1">
+            <Preview player={save.player} />
+            <div class="selector">
+                <label>
+                    🚹
+                    <input
+                        type="radio"
+                        name="gender"
+                        value="male"
+                        checked={save.player &&
+                            save.player.gender === Gender.Male}
+                        onclick={() =>
+                            save.player && (save.player.gender = Gender.Male)}
+                    />
+                </label>
+                <label>
+                    🚺
+                    <input
+                        type="radio"
+                        name="gender"
+                        value="female"
+                        checked={save.player &&
+                            save.player.gender === Gender.Female}
+                        onclick={() =>
+                            save.player && (save.player.gender = Gender.Female)}
+                    />
+                </label>
             </div>
-            <div class="editor2">
-                {#each textFields as [label, key]}
-                    <div>
-                        <label>
-                            <small>{label}</small>
-                            <input
-                                type="text"
-                                data-testid={`appearance-${key}`}
-                                bind:value={player[key]}
-                            />
-                        </label>
-                    </div>
-                {/each}
-                {#each colorFields as [label, key]}
-                    <div>
-                        <label>
-                            <small>{label}</small>
-                            <div class="selector">
-                                <input
-                                    type="color"
-                                    data-testid={`appearance-${key}`}
-                                    value={player[key].toHex()}
-                                    onchange={(e) => {
-                                        player[key] = new Color(
-                                            // @ts-expect-error
-                                            e.target.value ?? "#0000FF",
-                                        );
-                                        // console.log(player[key].toHex());
-                                    }}
-                                />
-                            </div>
-                        </label>
-                    </div>
+            <div class="appearance">
+                {#each numberFields as [label, key, min, max]}
+                    <label>
+                        {label}
+                        <input
+                            type="number"
+                            data-testid={`appearance-${key}`}
+                            {min}
+                            {max}
+                            bind:value={save.player[key]}
+                        />
+                    </label>
                 {/each}
             </div>
         </div>
-    {/if}
+        <div class="editor2">
+            {#each textFields as [label, key]}
+                <div>
+                    <label>
+                        <small>{label}</small>
+                        <input
+                            type="text"
+                            data-testid={`appearance-${key}`}
+                            bind:value={save.player[key]}
+                        />
+                    </label>
+                </div>
+            {/each}
+            {#each colorFields as [label, key]}
+                <div>
+                    <label>
+                        <small>{label}</small>
+                        <div class="selector">
+                            <input
+                                type="color"
+                                data-testid={`appearance-${key}`}
+                                value={save.player[key].toHex()}
+                                onchange={(e) => {
+                                    save.player[key] = new Color(
+                                        // @ts-expect-error
+                                        e.target.value ?? "#0000FF",
+                                    );
+                                    // console.log(save.player[key].toHex());
+                                }}
+                            />
+                        </div>
+                    </label>
+                </div>
+            {/each}
+        </div>
+    </div>
 </UiContainer>
 
 <style>

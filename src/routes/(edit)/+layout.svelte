@@ -50,10 +50,11 @@
             >
                 💾
             </UiButton>
-            <UiButton alt="Previous Character" onclick={save?.prevFarmer}
-                >⬅️</UiButton
+            <UiButton
+                alt="Previous Character"
+                onclick={() => save?.prevFarmer()}>⬅️</UiButton
             >
-            <UiButton alt="Next Character" onclick={save?.nextFarmer}
+            <UiButton alt="Next Character" onclick={() => save?.nextFarmer()}
                 >➡️</UiButton
             >
         </div>

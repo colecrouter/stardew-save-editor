@@ -30,17 +30,6 @@
         ["Fishing 🎣", "fishing"],
         ["Combat ⚔️", "combat"],
     ] satisfies [string, keyof Farmer["skills"]][];
-
-    // TODO gotta be a better way to do this
-    const stats = [
-        ["Health ❤️", player, "maxHealth"],
-        ["Stamina ⚡", player, "maxStamina"],
-        ["Qi Gems 💎", player, "qiGems"],
-        ["Qi Coins 💰", player, "clubCoins"],
-        ["Hay 🌾", farm, "piecesOfHay"],
-        ["Golden Walnuts 🌰", save, "goldenWalnuts"],
-        // biome-ignore lint/suspicious/noExplicitAny: todo
-    ] as [string, any, keyof any][];
 </script>
 
 <UiContainer>
@@ -49,13 +38,13 @@
         {#each skills as [label, key]}
             <label for={`skills-${key}`}>
                 {label}
-                <SkillBar bind:skill={player.skills[key]} />
+                <SkillBar bind:skill={save.player.skills[key]} />
                 <input
                     id={`skills-${key}`}
                     type="number"
                     min="0"
                     max="99999"
-                    bind:value={player.skills[key]}
+                    bind:value={save.player.skills[key]}
                     data-testid={`skills-${key}`}
                 />
             </label>
@@ -65,17 +54,60 @@
     <h3>Stats</h3>
 
     <div class="stats">
-        {#each stats as [label, key1, key2]}
-            <label>
-                {label}
-                <input
-                    type="number"
-                    min="0"
-                    max="99999"
-                    bind:value={key1[key2]}
-                />
-            </label>
-        {/each}
+        <label>
+            Health ❤️
+            <input
+                type="number"
+                min="0"
+                max="99999"
+                bind:value={save.player.maxHealth}
+            />
+        </label>
+        <label>
+            Stamina ⚡
+            <input
+                type="number"
+                min="0"
+                max="99999"
+                bind:value={save.player.maxStamina}
+            />
+        </label>
+        <label>
+            Qi Gems 💎
+            <input
+                type="number"
+                min="0"
+                max="99999"
+                bind:value={save.player.qiGems}
+            />
+        </label>
+        <label>
+            Qi Coins 💰
+            <input
+                type="number"
+                min="0"
+                max="99999"
+                bind:value={save.player.clubCoins}
+            />
+        </label>
+        <label>
+            Hay 🌾
+            <input
+                type="number"
+                min="0"
+                max="99999"
+                bind:value={farm.piecesOfHay}
+            />
+        </label>
+        <label>
+            Golden Walnuts 🌰
+            <input
+                type="number"
+                min="0"
+                max="99999"
+                bind:value={save.goldenWalnuts}
+            />
+        </label>
     </div>
 
     <h3>Wallet</h3>
@@ -84,7 +116,7 @@
         <UiContainerSmall>
             <div class="wallet">
                 {#each unlocks as [emoji, key, alt]}
-                    <WalletItem {alt} bind:value={player.flags[key]}>
+                    <WalletItem {alt} bind:value={save.player.flags[key]}>
                         {emoji}
                     </WalletItem>
                 {/each}

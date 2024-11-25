@@ -43,14 +43,14 @@
     <div class="right">
         <div class="hearts">
             {#each Array(hearts) as _, i}
-                <button onclick={() => (amount = i * INTERVAL + INTERVAL)}>
+                <button onclick={() => update(i * INTERVAL + INTERVAL)}>
                     ❤️
                 </button>
             {/each}
             {#each Array(maxhearts - hearts) as _, i}
                 <button
                     onclick={() =>
-                        (amount = hearts * INTERVAL + i * INTERVAL + INTERVAL)}
+                        update(hearts * INTERVAL + i * INTERVAL + INTERVAL)}
                 >
                     🖤
                 </button>

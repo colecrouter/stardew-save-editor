@@ -180,32 +180,30 @@ export class Item {
         }
 
         // Set parentSheetIndex for non-tools
-        if (data._type !== "Tool") {
-            item.parentSheetIndex =
-                "SpriteIndex" in data ? data.SpriteIndex : 0;
+        if (data._type !== "Tool" && "SpriteIndex" in data) {
+            item.parentSheetIndex = data.SpriteIndex;
         }
 
         // Handle hats
         if (data._type === "Hat") {
-            item.which = "";
+            item.which = "0";
         }
 
         // Handle furniture
         if (data._type === "Furniture") {
             item.canBeGrabbed = true;
-            item.parentSheetIndex = Number(data.ItemId);
             item.type = FurnitureTypeToNumber.get(data.Type as FurnitureType);
 
             // Set sourceRect if TilesheetSize is available
             if ("TilesheetSize" in data && data.TilesheetSize !== -1) {
                 item.sourceRect = {
-                    X: data.Sprite.x,
-                    Y: data.Sprite.y,
+                    X: data.Sprite.x ?? 0,
+                    Y: data.Sprite.y ?? 0,
                     Width: data.TilesheetSize.width,
                     Height: data.TilesheetSize.height,
                     Location: {
-                        X: data.Sprite.x,
-                        Y: data.Sprite.y,
+                        X: data.Sprite.x ?? 0,
+                        Y: data.Sprite.y ?? 0,
                     },
                     Size: {
                         X: data.TilesheetSize.width,

@@ -101,7 +101,6 @@ const furnitureArray = Object.entries(furniture).map(([key, value]) => {
         DisplayName: props[6] ?? "",
         Description: props[7] ?? "",
         Sprite: GetSprite({ _type: "Furniture" }, Number(key)),
-        ParentSheetIndex: Number(key),
     } satisfies Furniture;
 });
 

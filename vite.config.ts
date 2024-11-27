@@ -10,7 +10,7 @@ export default defineConfig({
         },
     },
     optimizeDeps: {
-        include: ["idb"],
+        include: ["idb", "@thisux/sveltednd"],
     },
     test: {
         environment: "happy-dom",

@@ -1,10 +1,10 @@
-import type { Size } from "$types/items/1.5";
+import type { Size } from "$types/items/1.6";
 import {
-    type Clothing,
     FurnitureType,
+    ObjectCategory,
     type ItemInformation,
+    type Shirt,
 } from "$types/items/1.6";
-import { Category } from "$types/save/1.5";
 import type { Item } from "$types/save/1.6";
 import jsondata from "../../static/iteminfo.json";
 
@@ -135,18 +135,18 @@ export const QualityToEdibilityMultiplier = new Map([
 
 // TODO: I don't know what items are allowed to have quality, or if there's some sort of rule.
 export const CategoriesWithQuality = new Set([
-    Category.Fish,
-    Category.Egg,
-    Category.Milk,
-    Category.Cooking,
-    Category.SellAtPierres,
-    Category.SellAtPierresAndMarnies,
-    Category.ArtisanGoods,
-    Category.Syrup,
-    Category.Vegetable,
-    Category.Fruit,
-    Category.Flower,
-    Category.Forage,
+    ObjectCategory.Fish,
+    ObjectCategory.Egg,
+    ObjectCategory.Milk,
+    ObjectCategory.Cooking,
+    ObjectCategory.SellAtPierres,
+    ObjectCategory.SellAtPierresAndMarnies,
+    ObjectCategory.ArtisanGoods,
+    ObjectCategory.Syrup,
+    ObjectCategory.Vegetable,
+    ObjectCategory.Fruit,
+    ObjectCategory.Flower,
+    ObjectCategory.Forage,
 ]);
 
 export const DefaultFurnitureSizes = new Map<FurnitureType, Size>([
@@ -282,8 +282,8 @@ export const ItemNameHelper = (item: Item) => {
     return item.name;
 };
 
-export const Shirts = new Map<string, Clothing>(
+export const Shirts = new Map<string, Shirt>(
     jsondata
-        .filter(([name, item]) => item._type === "Shirt")
-        .map(([name, item]) => [item.ItemId, item]),
+        .filter(([, item]) => item._type === "Shirt")
+        .map(([, item]) => [item._key, item]),
 );

@@ -1,4 +1,4 @@
-import type { Boots, Clothing, FurnitureType, Hat } from "$types/items/1.6";
+import type { FurnitureType } from "$types/items/1.6";
 
 export interface Save {
     player: Player;
@@ -1396,6 +1396,7 @@ export interface Item {
     isRecipe: boolean;
     quality: number;
     stack: number;
+    price: number;
     SpecialVariable: number;
     initialParentTileIndex?: number;
     currentParentTileIndex?: number;
@@ -1437,7 +1438,6 @@ export interface Item {
     questId?: number;
     isOn?: boolean;
     fragility?: number;
-    price?: number;
     edibility?: number;
     bigCraftable?: boolean;
     setOutdoors?: boolean;

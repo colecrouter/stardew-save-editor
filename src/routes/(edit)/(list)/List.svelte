@@ -2,6 +2,7 @@
     import type { Snippet } from "svelte";
     import ItemSprite from "../inventory/ItemSprite.svelte";
     import { recipeMapping } from "./mapping";
+    import { Item } from "$lib/proxies/Item";
 
     interface Props {
         record: Record<string, unknown>;
@@ -25,11 +26,7 @@
             <div class="key">
                 <div class="img">
                     <ItemSprite
-                        item={{
-                            name: recipeMapping.has(key)
-                                ? recipeMapping.get(key)
-                                : key,
-                        }}
+                        item={Item.fromName(recipeMapping.get(key) ?? key)}
                     />
                 </div>
                 {key}

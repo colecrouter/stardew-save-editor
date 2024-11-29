@@ -1,4 +1,9 @@
-import type { ItemInformation } from "$types/items/1.6";
+import { DefaultFurnitureSizes } from "$lib/ItemData";
+import {
+    FurnitureType,
+    type ItemInformation,
+    type Size,
+} from "$types/items/1.6";
 
 const ShirtsWithFemaleVariant = new Set<string>([
     "Plain Shirt",
@@ -9,19 +14,12 @@ const ShirtsWithFemaleVariant = new Set<string>([
     "Classy Top",
 ]);
 
-const ShirtsWithMessedUpSpriteIndex = new Map<number, { x: number; y: number }>(
-    [
-        [1997, { x: 256, y: 64 }],
-        [1998, { x: 256, y: 0 }],
-    ],
-);
-
 export const GetSpritesheet = (lookupItem: ItemInformation): string => {
     let spritesheet = "";
     switch (lookupItem._type) {
         case "Object":
         case "Boots":
-            if (lookupItem.Texture === "TileSheets\\Objects_2") {
+            if (lookupItem.texture === "TileSheets\\Objects_2") {
                 spritesheet = "Objects_2.png";
             } else {
                 spritesheet = "springobjects.png";
@@ -66,14 +64,17 @@ export const IndexToSprite = (
     return { x, y };
 };
 
-export const GetSprite = (
-    info: Pick<ItemInformation, "_type" | "Texture">,
-    index: number,
-    dyeable: boolean | undefined = undefined,
-): { x: number; y: number } => {
+export const GetSprite = (info: ItemInformation): { x: number; y: number } => {
+    const index =
+        "menuSpriteIndex" in info && info.menuSpriteIndex !== undefined
+            ? info.menuSpriteIndex
+            : (info.spriteIndex ?? Number(info.spriteIndex ?? info._key));
+    if (Number.isNaN(index)) throw new Error("Invalid sprite index");
+
+    const dyeable = "canBeDyed" in info && info.canBeDyed;
     switch (info._type) {
         case "Object":
-            if (info.Texture === "TileSheets\\Objects_2") {
+            if (info.texture === "TileSheets\\Objects_2") {
                 return IndexToSprite(index, 16, 16, 128, 320);
             }
             return IndexToSprite(index, 16, 16, 384, 624);
@@ -89,8 +90,13 @@ export const GetSprite = (
             return { x: pantSprite.x, y: pantSprite.y - 672 };
         }
         case "Shirt": {
-            // let shirtSprite = ShirtsWithMessedUpSpriteIndex.get(index);
-            // if (shirtSprite) { return shirtSprite; }
+            /*
+                Shirts are a bit weird, because the sprite sheet is 256x608, but the shirts are 8x8,
+                but it is split into two columns; one for regular shirts and one for dyeable shirts.
+                When the shirt is dyeable, the sprite index is the same as the regular shirt, but the
+                corresponding sprite is 128 pixels to the right.
+
+            */
             const shirtSprite = IndexToSprite(index, 8, 32, 128, 608, 128);
             return dyeable
                 ? { x: shirtSprite.x - 128, y: shirtSprite.y }
@@ -106,6 +112,34 @@ export const GetSprite = (
             // @ts-expect-error
             console.warn("Unknown item type", lookupItem?._type);
             return { x: 0, y: 0 };
+    }
+};
+
+export const GetSize = (info: ItemInformation): Size => {
+    switch (info._type) {
+        case "BigCraftable":
+            return { width: 16, height: 32 };
+        case "Shirt":
+            return { width: 8, height: 8 };
+        case "Hat":
+            return { width: 20, height: 20 };
+        case "Furniture": {
+            if (info.tilesheetSize) {
+                return {
+                    width: info.tilesheetSize.width * 16,
+                    height: info.tilesheetSize.height * 16,
+                };
+            }
+
+            return (
+                DefaultFurnitureSizes.get(info.type) ?? {
+                    width: 16,
+                    height: 16,
+                }
+            );
+        }
+        default:
+            return { width: 16, height: 16 };
     }
 };
 

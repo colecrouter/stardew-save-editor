@@ -10,17 +10,11 @@
         TertiaryBootColors,
         TertiarySkinColors,
     } from "$lib/CharacterColors";
-    import { ItemData, Shirts } from "$lib/ItemData";
-    import {
-        GetPlayerSpriteForPants,
-        GetSprite,
-        IndexToSprite,
-    } from "$lib/Spritesheet";
+    import { GetPlayerSpriteForPants, IndexToSprite } from "$lib/Spritesheet";
     import { Color } from "$lib/proxies/Color";
     import type { Farmer } from "$lib/proxies/Farmer";
-    import type { Clothing, Hat } from "$types/items/1.6";
+    import { Item } from "$lib/proxies/Item";
     import { type Color as ColorType, Gender } from "$types/save/1.6";
-    import { error } from "@sveltejs/kit";
 
     interface Props {
         player: Farmer;
@@ -41,83 +35,53 @@
     const accessoriesSheet = "accessories.png";
     const hatSheet = "hats.png";
 
-    // Item data
-    let hatData = $derived(
-        player.hat === undefined
-            ? undefined
-            : (ItemData.get(player.hat.name) as Hat),
-    );
-
-    let shirtData = $derived(
-        player.shirt === undefined
-            ? (ItemData.get(
-                  player.gender === Gender.Male
-                      ? "Basic Pullover (M)"
-                      : "Basic Pullover (F)",
-              ) as Clothing)
-            : player.shirt.name === "Shirt"
-              ? (Shirts.get(player.shirt.id) as Clothing)
-              : (ItemData.get(player.shirt.name) as Clothing),
-    );
-    const underwear = ItemData.get("Polka Dot Shorts") as Clothing;
-    let pantsData = $derived(
-        player.pants === undefined
-            ? underwear
-            : (ItemData.get(player.pants.name) as Clothing),
-    );
-
-    // Calculate sprite X and Y positions
-    let hatPosition = $derived(
-        hatData === undefined ? { x: 0, y: 0 } : hatData.Sprite,
-    );
-    let hairPosition = $derived(
-        IndexToSprite(player.hairstyle, 16, 96, 128, 672),
-    );
-    let accessoryPosition = $derived(
-        IndexToSprite(
-            player.accessory, // Because index starts at 0 but game displays at 1
-            16,
-            32,
-            128,
-            128,
+    const underwear = Item.fromName("Polka Dot Shorts");
+    const undershirt = $derived(
+        Item.fromName(
+            player.gender === Gender.Male
+                ? "Basic Pullover (M)"
+                : "Basic Pullover (F)",
         ),
     );
-    let shirtPosition = $derived(
-        shirtData
-            ? GetSprite(
-                  { _type: "Shirt" },
-                  shirtData.SpriteIndex ?? 0,
-                  shirtData.CanBeDyed ?? false,
-              )
-            : { x: 0, y: 0 },
-    );
-    let pantsPosition = $derived(
-        // If the player has no pants, use the underwear sprite
+
+    let hat = $derived(player.hat);
+    let shirt = $derived(player.shirt ?? undershirt);
+    let pants = $derived(player.pants ?? underwear);
+    let boots = $derived(player.boots);
+
+    // Pants are special
+    let pantsSprite = $derived(
         GetPlayerSpriteForPants(
-            player.pants === undefined
-                ? underwear.SpriteIndex
-                : pantsData.SpriteIndex,
+            Number(pants.info._key),
             player.gender === Gender.Male,
         ),
     );
 
-    let showHair = $derived(hatData?._type !== "Hat" || hatData.ShowRealHair);
+    // Calculate sprite X and Y positions
+    let hatPosition = $derived(hat?.sprite.dimensions);
+    let hairPosition = $derived(
+        IndexToSprite(player.hairstyle, 16, 96, 128, 672),
+    );
+    let accessoryPosition = $derived(
+        IndexToSprite(player.accessory, 16, 32, 128, 128),
+    );
+    let shirtPosition = $derived(shirt.sprite.dimensions);
+    let pantsPosition = $derived(pantsSprite);
+    let showHair = $derived(
+        hat === undefined || hat.info._type !== "Hat" || !hat.info.showRealHair,
+    );
 
     // Tint colors
     let defaultTint = new Color("#00000000");
     let pantsTint = $derived(
-        pantsData
-            ? pantsData.CanBeDyed && player.pants?.color
-                ? new Color(player.pants.color)
-                : new Color("#00000000") // Default clothes color seems to always be red, so nvm
+        pants.info._type === "Pants" && pants.info.canBeDyed && pants?.color
+            ? pants.color
             : new Color("#00000000"),
     );
     let hairTint: ColorType = $derived(player.hairColor);
     let shirtTint: ColorType = $derived(
-        shirtData
-            ? shirtData.CanBeDyed && player.shirt?.color
-                ? new Color(player.shirt.color)
-                : new Color("#00000000")
+        shirt?.info._type === "Shirt" && shirt.info.canBeDyed && shirt?.color
+            ? shirt.color
             : new Color("#00000000"),
     );
     let skinTones = $derived<[ColorType, ColorType, ColorType]>([
@@ -260,8 +224,8 @@
         <div
             class="hat"
             style:--spritesheet={`url(${base}/assets/${hatSheet})`}
-            style:--x={`${hatPosition.x}px`}
-            style:--y={`${hatPosition.y}px`}
+            style:--x={`${hatPosition?.x}px`}
+            style:--y={`${hatPosition?.y}px`}
         ></div>
     {/if}
 

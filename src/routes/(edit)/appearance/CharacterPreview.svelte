@@ -1,26 +1,5 @@
 <script lang="ts">
-    import { base } from "$app/paths";
-    import {
-        AccessoryIsTinted,
-        PrimaryBootColors,
-        PrimarySkinColors,
-        QuaternaryBootColors,
-        SecondaryBootColors,
-        SecondarySkinColors,
-        TertiaryBootColors,
-        TertiarySkinColors,
-    } from "$lib/CharacterColors";
-    import { ItemData, Shirts } from "$lib/ItemData";
-    import {
-        GetPlayerSpriteForPants,
-        GetSprite,
-        IndexToSprite,
-    } from "$lib/Spritesheet";
-    import { Color } from "$lib/proxies/Color";
     import type { Farmer } from "$lib/proxies/Farmer";
-    import type { Clothing, Hat } from "$types/items/1.6";
-    import { type Color as ColorType, Gender } from "$types/save/1.6";
-    import { error } from "@sveltejs/kit";
     import Character from "./Character.svelte";
 
     interface Props {

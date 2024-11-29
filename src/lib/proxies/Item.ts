@@ -6,18 +6,20 @@ import {
     ItemData,
     ItemNameHelper,
     RingsUniqueID,
+    Shirts,
 } from "$lib/ItemData";
 import { Color } from "$lib/proxies/Color";
+import { GetSize, GetSprite, GetSpritesheet } from "$lib/Spritesheet";
 import {
     FurnitureType,
     type ItemInformation,
-    type ToolClassName,
+    type ToolClass,
 } from "$types/items/1.6";
 import { Category } from "$types/save/1.5";
 import { ClothesType, type Item as ItemModel } from "$types/save/1.6";
 
 // Mapping of data types to item types
-const typeToItemTypeMap = new Map<ItemInformation["_type"], string>([
+const typeToItemTypeMap = new Map<Item["info"]["_type"], string>([
     ["Object", "Object"],
     ["BigCraftable", "Object"],
     ["Furniture", "Furniture"],
@@ -26,7 +28,7 @@ const typeToItemTypeMap = new Map<ItemInformation["_type"], string>([
 ]);
 
 // Mapping of tool names to tool types
-const toolTypeMap = new Map<string, ToolClassName>([
+const toolTypeMap = new Map<string, ToolClass>([
     ["Milk Pail", "MilkPail"],
     ["Pickaxe", "Pickaxe"],
     ["Axe", "Axe"],
@@ -62,33 +64,38 @@ export class Item {
 
     constructor(raw: ItemModel) {
         this.raw = raw;
-        const info = ItemData.get(ItemNameHelper(raw));
+        // TODO shirt hack, need to fix
+        const info =
+            raw.name === "Shirt"
+                ? Shirts.get(raw.itemId.toString())
+                : ItemData.get(ItemNameHelper(raw));
         if (!info) throw new Error(`Item "${raw.name}" not found in ItemData`);
         this.info = info;
     }
 
     static fromName(name: string) {
-        const data = ItemData.get(name);
+        let data = ItemData.get(name);
+        if (!data) {
+            data = Shirts.get(name);
+        }
 
         if (!data) throw new Error(`Item "${name}" not found in ItemData`);
 
         // Determine the category
         // Lots of items are missing a category in the data, so we need to handle them separately
         const category =
-            "Category" in data ? data.Category : typeToCategoryMap[data._type];
+            "category" in data ? data.category : typeToCategoryMap[data._type];
 
         // Initialize the item
         const item: ItemModel = {
-            name: data.Name,
-            itemId: data.ItemId,
+            name: data.name,
+            itemId: data._key,
             stack: 1,
             quality: 0,
             isRecipe: false,
-            price: data.Price ?? 0,
-            parentSheetIndex:
-                "ParentSheetIndex" in data ? data.ParentSheetIndex : undefined,
-            indexInTileSheet:
-                "SpriteIndex" in data ? data.SpriteIndex : undefined,
+            price: data.price ?? 0,
+            parentSheetIndex: data.spriteIndex,
+            indexInTileSheet: data.spriteIndex,
             category: category,
             hasBeenInInventory: true,
             SpecialVariable: 0, // TODO: Verify if needed
@@ -108,7 +115,7 @@ export class Item {
             // @ts-expect-error TODO fix later
             type:
                 data._type === "Object"
-                    ? data.Type
+                    ? data.type
                     : data._type === "BigCraftable"
                       ? "Crafting"
                       : undefined,
@@ -151,25 +158,25 @@ export class Item {
                     }
                 }
             } else if (itemType === "FishingRod") {
-                item.upgradeLevel = FishingRodUpgradeNumber.get(data.Name) ?? 0;
+                item.upgradeLevel = FishingRodUpgradeNumber.get(data.name) ?? 0;
                 item.parentSheetIndex = 685;
                 item.initialParentTileIndex =
-                    FishingRodSpriteIndex.get(data.Name) ?? 0;
+                    FishingRodSpriteIndex.get(data.name) ?? 0;
                 item.indexOfMenuItemView = item.initialParentTileIndex;
             }
         }
 
         // Handle weapon properties
         if (data._type === "Weapon") {
-            item.minDamage = data.MinDamage;
-            item.maxDamage = data.MaxDamage;
-            item.speed = data.Speed;
-            // item.addedPrecision = data.AddedPrecision;
-            // item.addedDefense = data.AddedDefense;
-            // item.addedAreaOfEffect = data.AddedAreaOfEffect;
-            item.knockback = data.Knockback;
-            item.critChance = data.CritChance;
-            item.critMultiplier = data.CritMultiplier;
+            item.minDamage = data.minDamage;
+            item.maxDamage = data.maxDamage;
+            item.speed = data.speed;
+            item.addedPrecision = data.precision;
+            item.addedDefense = data.defense;
+            item.addedAreaOfEffect = data.areaOfEffect;
+            item.knockback = data.knockback;
+            item.critChance = data.critChance;
+            item.critMultiplier = data.critMultiplier;
         }
 
         // Set the xsi:type if itemType is determined
@@ -177,11 +184,6 @@ export class Item {
             // This is required for the game to recognize the item as the correct type, but isn't part of the XML structures
             // @ts-expect-error
             item["@_xsi:type"] = itemType;
-        }
-
-        // Set parentSheetIndex for non-tools
-        if (data._type !== "Tool" && "SpriteIndex" in data) {
-            item.parentSheetIndex = data.SpriteIndex;
         }
 
         // Handle hats
@@ -192,37 +194,41 @@ export class Item {
         // Handle furniture
         if (data._type === "Furniture") {
             item.canBeGrabbed = true;
-            item.type = FurnitureTypeToNumber.get(data.Type as FurnitureType);
+            item.type = FurnitureTypeToNumber.get(data.type as FurnitureType);
 
             // Set sourceRect if TilesheetSize is available
-            if ("TilesheetSize" in data && data.TilesheetSize !== -1) {
+            const sprite = GetSprite(data);
+            if ("tilesheetSize" in data && data.tilesheetSize !== undefined) {
                 item.sourceRect = {
-                    X: data.Sprite.x ?? 0,
-                    Y: data.Sprite.y ?? 0,
-                    Width: data.TilesheetSize.width,
-                    Height: data.TilesheetSize.height,
+                    X: sprite.x,
+                    Y: sprite.y,
+                    Width: data.tilesheetSize.width,
+                    Height: data.tilesheetSize.height,
                     Location: {
-                        X: data.Sprite.x ?? 0,
-                        Y: data.Sprite.y ?? 0,
+                        X: sprite.x,
+                        Y: sprite.y,
                     },
                     Size: {
-                        X: data.TilesheetSize.width,
-                        Y: data.TilesheetSize.height,
+                        X: data.tilesheetSize.width,
+                        Y: data.tilesheetSize.height,
                     },
                 };
                 item.defaultSourceRect = item.sourceRect;
             }
 
             // Set boundingBox if BoundingBoxSize is available
-            if ("BoundingBoxSize" in data && data.BoundingBoxSize !== -1) {
+            if (
+                "boundingBoxSize" in data &&
+                data.boundingBoxSize !== undefined
+            ) {
                 item.boundingBox = {
                     X: 0,
                     Y: 0,
-                    Width: data.BoundingBoxSize.width,
-                    Height: data.BoundingBoxSize.height,
+                    Width: data.boundingBoxSize.width,
+                    Height: data.boundingBoxSize.height,
                     Size: {
-                        X: data.BoundingBoxSize.width,
-                        Y: data.BoundingBoxSize.height,
+                        X: data.boundingBoxSize.width,
+                        Y: data.boundingBoxSize.height,
                     },
                     Location: {
                         X: 0,
@@ -233,44 +239,53 @@ export class Item {
             }
 
             // Enable lamp property for lamp-type furniture
-            if (data.Type === FurnitureType.Lamp) {
+            if (data.type === FurnitureType.Lamp) {
                 item.isLamp = true;
             }
         }
 
         // Handle dyeable items
-        if ("CanBeDyed" in data && data.CanBeDyed) {
+        if ("canBeDyed" in data && data.canBeDyed) {
             let defaultColor = new Color("#FFFFFF");
-            if (data.DefaultColor) {
-                const [R, G, B] = data.DefaultColor.split(" ").map(Number);
-                if (!R || !G || !B)
-                    throw new Error(`Invalid color for item "${name}"`);
-                defaultColor = new Color({ R, G, B });
-            }
+            // if (data.defaultColor) {
+            //     console.log(data.defaultColor);
+            //     const [R, G, B] = data.defaultColor.split(" ").map(Number);
+            //     if (!R || !G || !B)
+            //         throw new Error(`Invalid color for item "${name}"`);
+            //     defaultColor = new Color({ R, G, B });
+            // }
+            // item.clothesColor = defaultColor;
+            // Default color is actually just RED for some reason
+
             item.clothesColor = defaultColor;
         }
 
         // Set edibility and price if available
-        if ("Edibility" in data) {
-            item.edibility = data.Edibility;
+        if ("edibility" in data) {
+            item.edibility = data.edibility;
         }
-
-        if ("Price" in data) {
-            item.price = data.Price ?? 0;
-        }
+        item.price = data.price ?? 0;
 
         // Handle clothes types
         if (data._type in ClothesType) {
             item.clothesType =
                 ClothesType[data._type as keyof typeof ClothesType];
             if (data._type === "Boots") {
-                item.indexInColorSheet = data.ColorIndex;
+                item.indexInColorSheet = data.colorIndex;
             }
         }
 
         // TODO: Handle the Copper Pan hat special case if needed
 
         return new Item(item);
+    }
+
+    get sprite() {
+        const coordinates = GetSprite(this.info);
+        const size = GetSize(this.info);
+        const sheet = GetSpritesheet(this.info);
+
+        return { dimensions: { ...coordinates, ...size }, sheet };
     }
 
     get name(): string {
@@ -369,8 +384,8 @@ export class Item {
 
     get color() {
         if (
-            !("CanBeDyed" in this.info) ||
-            !this.info.CanBeDyed ||
+            !("canBeDyed" in this.info) ||
+            !this.info.canBeDyed ||
             !this.raw.clothesColor
         )
             return undefined;

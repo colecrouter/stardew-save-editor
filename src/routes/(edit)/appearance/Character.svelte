@@ -14,6 +14,7 @@
     import { Color } from "$lib/proxies/Color";
     import type { Farmer } from "$lib/proxies/Farmer";
     import { Item } from "$lib/proxies/Item";
+    import type { Coordinates } from "$types/items/1.6";
     import { type Color as ColorType, Gender } from "$types/save/1.6";
 
     interface Props {
@@ -25,15 +26,15 @@
     let gender = $derived(player.gender.toLowerCase());
 
     // Spritesheets
-    let baseSheet = $derived(`${gender}_farmer.png`);
-    let otherSheet = $derived(`${gender}_farmer_other.png`);
-    let armsSheet = $derived(`${gender}_farmer_arms.png`);
-    let bootsSheet = $derived(`${gender}_farmer_boots.png`);
-    const hairSheet = "hairstyles.png";
-    const pantsSheet = "pants.png";
-    const shirtSheet = "shirts.png";
-    const accessoriesSheet = "accessories.png";
-    const hatSheet = "hats.png";
+    let baseSheet = $derived(`${base}/img/${gender}_farmer.png`);
+    let otherSheet = $derived(`${base}/img/${gender}_farmer_other.png`);
+    let armsSheet = $derived(`${base}/img/${gender}_farmer_arms.png`);
+    let bootsSheet = $derived(`${base}/img/${gender}_farmer_boots.png`);
+    const hairSheet = `${base}/assets/hairstyles.png`;
+    const pantsSheet = `${base}/assets/pants.png`;
+    const shirtSheet = `${base}/assets/shirts.png`;
+    const accessoriesSheet = `${base}/assets/accessories.png`;
+    const hatSheet = `${base}/assets/hats.png`;
 
     const underwear = Item.fromName("Polka Dot Shorts");
     const undershirt = $derived(
@@ -109,148 +110,67 @@
     );
 </script>
 
+{#snippet layer(
+    className: string,
+    spritesheet: string,
+    location?: Coordinates,
+    tint?: ColorType,
+)}
+    <div
+        class={className}
+        style:--spritesheet={`url(${spritesheet})`}
+        style:--tint={tint
+            ? `rgba(${tint.R}, ${tint.G}, ${tint.B}, ${tint.A})`
+            : undefined}
+        style:--x={location ? `${location.x}px` : undefined}
+        style:--y={location ? `${location.y}px` : undefined}
+    ></div>
+{/snippet}
+
 <div class="appearance" class:female={player.gender === Gender.Female}>
     <!-- START LAYERED TINT -->
-    <div
-        class="base"
-        style:--spritesheet={`url(${base}/img/${baseSheet})`}
-        style:--tint={`rgba(${skinTones[2].R},${skinTones[2].G},${skinTones[2].B},${skinTones[2].A})`}
-        style:--x={"16px"}
-        style:--y={"0"}
-    ></div>
-    <div
-        class="base"
-        style:--spritesheet={`url(${base}/img/${baseSheet})`}
-        style:--tint={`rgba(${skinTones[1].R},${skinTones[1].G},${skinTones[1].B},${skinTones[1].A})`}
-        style:--x={"32px"}
-        style:--y={"0"}
-    ></div>
-    <div
-        class="base"
-        style:--spritesheet={`url(${base}/img/${baseSheet})`}
-        style:--tint={`rgba(${skinTones[0].R},${skinTones[0].G},${skinTones[0].B},${skinTones[0].A})`}
-        style:--x={"48px"}
-        style:--y={"0"}
-    ></div>
+    {@render layer("base", baseSheet, { x: 16, y: 0 }, skinTones[2])}
+    {@render layer("base", baseSheet, { x: 32, y: 0 }, skinTones[1])}
+    {@render layer("base", baseSheet, { x: 48, y: 0 }, skinTones[0])}
     <!-- END LAYERED TINT -->
 
-    <div
-        class="eyes"
-        style:--spritesheet={`url(${base}/img/${otherSheet})`}
-    ></div>
+    {@render layer("eyes", otherSheet, { x: 0, y: 0 })}
 
     <!-- START LAYERED TINT -->
-    <div
-        class="iris"
-        style:--spritesheet={`url(${base}/img/${otherSheet})`}
-        style:--tint={`rgba(${eyeTint.R},${eyeTint.G},${eyeTint.B},${eyeTint.A})`}
-        style:--x={"32px"}
-        style:--y={"0"}
-    ></div>
+    {@render layer("iris", otherSheet, { x: 32, y: 0 }, eyeTint)}
     <!-- END LAYERED TINT -->
 
     <!-- START LAYERED TINT -->
-    <div
-        class="boots"
-        style:--spritesheet={`url(${base}/img/${bootsSheet})`}
-        style:--x={"48px"}
-        style:--y={"0"}
-        style:--tint={`rgba(${bootTints[0].R},${bootTints[0].G},${bootTints[0].B},${bootTints[0].A})`}
-    ></div>
-    <div
-        class="boots"
-        style:--spritesheet={`url(${base}/img/${bootsSheet})`}
-        style:--x={"32px"}
-        style:--y={"0"}
-        style:--tint={`rgba(${bootTints[1].R},${bootTints[1].G},${bootTints[1].B},${bootTints[1].A})`}
-    ></div>
-    <div
-        class="boots"
-        style:--spritesheet={`url(${base}/img/${bootsSheet})`}
-        style:--x={"0px"}
-        style:--y={"0"}
-        style:--tint={`rgba(${bootTints[2].R},${bootTints[2].G},${bootTints[2].B},${bootTints[2].A})`}
-    ></div>
-    <div
-        class="boots"
-        style:--spritesheet={`url(${base}/img/${bootsSheet})`}
-        style:--x={"16px"}
-        style:--y={"0"}
-        style:--tint={`rgba(${bootTints[3].R},${bootTints[3].G},${bootTints[3].B},${bootTints[3].A})`}
-    ></div>
+    {@render layer("boots", bootsSheet, { x: 48, y: 0 }, bootTints[0])}
+    {@render layer("boots", bootsSheet, { x: 32, y: 0 }, bootTints[1])}
+    {@render layer("boots", bootsSheet, { x: 0, y: 0 }, bootTints[2])}
+    {@render layer("boots", bootsSheet, { x: 16, y: 0 }, bootTints[3])}
     <!-- END LAYERED TINT -->
 
-    <div
-        class="pants"
-        style:--spritesheet={`url(${base}/assets/${pantsSheet})`}
-        style:--x={`${pantsPosition.x}px`}
-        style:--y={`${pantsPosition.y}px`}
-        style:--tint={`rgba(${pantsTint.R},${pantsTint.G},${pantsTint.B},${pantsTint.A})`}
-    ></div>
-    <div
-        class="shirt"
-        style:--spritesheet={`url(${base}/assets/${shirtSheet})`}
-        style:--x={`${shirtPosition.x}px`}
-        style:--y={`${shirtPosition.y}px`}
-        style:--tint={`rgba(${shirtTint.R},${shirtTint.G},${shirtTint.B},${shirtTint.A})`}
-    ></div>
+    {@render layer("pants", pantsSheet, pantsPosition, pantsTint)}
+    {@render layer("shirt", shirtSheet, shirtPosition, shirtTint)}
 
     {#if player.accessory !== -1}
-        <!-- START LAYERED TINT -->
-        <div
-            class="accessory"
-            style:--spritesheet={`url(${base}/assets/${accessoriesSheet})`}
-            style:--tint={player.accessory !== undefined &&
-            AccessoryIsTinted(player.accessory)
-                ? `rgba(${hairTint.R},${hairTint.G},${hairTint.B},${hairTint.A})`
-                : ""}
-            style:--x={`${accessoryPosition.x}px`}
-            style:--y={`${accessoryPosition.y}px`}
-        ></div>
-        <!-- END LAYERED TINT -->
+        {@render layer(
+            "accessory",
+            accessoriesSheet,
+            accessoryPosition,
+            hairTint,
+        )}
     {/if}
 
     {#if showHair}
-        <div
-            class="hair"
-            style:--spritesheet={`url(${base}/assets/${hairSheet})`}
-            style:--x={`${hairPosition.x}px`}
-            style:--y={`${hairPosition.y}px`}
-            style:--tint={`rgba(${hairTint.R},${hairTint.G},${hairTint.B},${hairTint.A})`}
-        ></div>
+        {@render layer("hair", hairSheet, hairPosition, hairTint)}
     {/if}
 
-    {#if player.hat}
-        <div
-            class="hat"
-            style:--spritesheet={`url(${base}/assets/${hatSheet})`}
-            style:--x={`${hatPosition?.x}px`}
-            style:--y={`${hatPosition?.y}px`}
-        ></div>
+    {#if hatPosition}
+        {@render layer("hat", hatSheet, hatPosition, new Color("#00000000"))}
     {/if}
 
     <!-- START LAYERED TINT -->
-    <div
-        class="arms"
-        style:--spritesheet={`url(${base}/img/${armsSheet})`}
-        style:--tint={`rgba(${skinTones[2].R},${skinTones[2].G},${skinTones[2].B},${skinTones[2].A})`}
-        style:--x={"16px"}
-        style:--y={"0"}
-    ></div>
-    <div
-        class="arms"
-        style:--spritesheet={`url(${base}/img/${armsSheet})`}
-        style:--tint={`rgba(${skinTones[1].R},${skinTones[1].G},${skinTones[1].B},${skinTones[1].A})`}
-        style:--x={"32px"}
-        style:--y={"0"}
-    ></div>
-    <div
-        class="arms"
-        style:--spritesheet={`url(${base}/img/${armsSheet})`}
-        style:--tint={`rgba(${skinTones[0].R},${skinTones[0].G},${skinTones[0].B},${skinTones[0].A})`}
-        style:--x={"48px"}
-        style:--y={"0"}
-    ></div>
+    {@render layer("arms", armsSheet, { x: 16, y: 0 }, skinTones[2])}
+    {@render layer("arms", armsSheet, { x: 32, y: 0 }, skinTones[1])}
+    {@render layer("arms", armsSheet, { x: 48, y: 0 }, skinTones[0])}
     <!-- END LAYERED TINT -->
 </div>
 

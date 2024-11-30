@@ -1,6 +1,4 @@
 import { browser } from "$app/environment";
-import { error } from "@sveltejs/kit";
-import { XMLBuilder, XMLParser } from "fast-xml-parser";
 import { openDB } from "idb";
 import { get, writable } from "svelte/store";
 
@@ -13,83 +11,6 @@ interface SerializedFile {
     size: number;
     type: string;
 }
-
-// class BackupManager extends Array<File> {
-//     constructor() {
-//         super();
-//         if (!browser) { return; }
-
-//         // Get the backup files from local storage
-//         const backupFiles = JSON.parse(localStorage.getItem("backups") ?? "[]") as Array<SerializedFile>;
-
-//         for (const file of backupFiles) {
-//             this.push(new File([file.data], file.name, { lastModified: file.lastModified, type: 'text/text' }));
-//         }
-//     }
-
-//     private async update() {
-//         let serialized: Array<SerializedFile> = [];
-//         for (const file of this) {
-//             serialized.push({
-//                 name: file.name,
-//                 data: await file.text(),
-//                 lastModified: file.lastModified,
-//                 size: file.size,
-//                 type: 'text/text'
-//             });
-//         };
-
-//         localStorage.setItem("backups", JSON.stringify(serialized));
-//     }
-
-//     public push(...files: File[]): number {
-//         (async () => {
-//             for (const file of files) {
-//                 // Check if the file is the same as the last one, if so, replace it
-//                 if (this.length > 0 && await this.last()?.text() === await file.text()) {
-//                     this.pop();
-//                 }
-
-//                 // Add the file to the array
-//                 super.push(file);
-
-//                 // If we have too many files, remove the oldest one
-//                 if (this.length > BACKUP_LIMIT) {
-//                     super.shift();
-//                 }
-//             };
-
-//             // Save the files to local storage
-//             this.update();
-//         })();
-
-//         return 0;
-//     }
-
-//     public shift(): File | undefined {
-//         // Remove the oldest file
-//         const file = super.shift();
-
-//         // Save the files to local storage
-//         this.update();
-
-//         return file;
-//     }
-
-//     public pop(): File | undefined {
-//         // Remove the newest file
-//         const file = super.pop();
-
-//         // Save the files to local storage
-//         this.update();
-
-//         return file;
-//     }
-
-//     public last(): File | undefined {
-//         return super.at(-1);
-//     }
-// }
 
 class BackupController {
     public backups = writable<Array<File>>([]);

@@ -1,6 +1,6 @@
 <script lang="ts">
     import { base } from "$app/paths";
-    import { DateableCharacters } from "$lib/NPCs";
+    import { dateableCharacters } from "$lib/NPCs";
     import UiContainerSmall from "$lib/ui/UIContainerSmall.svelte";
     import type { FriendshipDataItem } from "$types/save/1.6";
 
@@ -13,7 +13,7 @@
     let { npc = $bindable() }: Props = $props();
 
     let name = npc.key.string;
-    let dateable = DateableCharacters.some((c) => c === name);
+    let dateable = dateableCharacters.some((c) => c === name);
     let amount: number = $state(npc.value.Friendship.Points);
     let relationship: string = npc.value.Friendship.Status;
     let hearts: number = $derived(Math.floor(amount / 250));

@@ -1,4 +1,5 @@
 import { copyFile, mkdir, readFile, writeFile } from "node:fs/promises";
+import { characters } from "$lib/NPCs";
 import type {
     BigCraftable,
     Boots,
@@ -290,48 +291,12 @@ await Promise.all(
 );
 
 // Copy all portraits into assets folder
-const chars = [
-    "Abigail",
-    "Alex",
-    "Caroline",
-    "Clint",
-    "Demetrius",
-    "Dwarf",
-    "Elliott",
-    "Emily",
-    "Evelyn",
-    "George",
-    "Gus",
-    "Haley",
-    "Harvey",
-    "Jas",
-    "Jodi",
-    "Kent",
-    "Krobus",
-    "Leah",
-    "Lewis",
-    "Linus",
-    "Marnie",
-    "Maru",
-    "Pam",
-    "Penny",
-    "Pierre",
-    "Robin",
-    "Sam",
-    "Sandy",
-    "Sebastian",
-    "Shane",
-    "Vincent",
-    "Willy",
-    "Wizard",
-];
-
 // Create portraits folder if it doesn't exist
 try {
     await mkdir("./static/assets/portraits");
 } catch (e) {}
 
-for (const char of chars) {
+for (const char of characters) {
     await copyFile(
         `./content/Portraits/${char}.png`,
         `./static/assets/portraits/${char}.png`,

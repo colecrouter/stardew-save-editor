@@ -1,4 +1,42 @@
-export const DateableCharacters = [
+export const characters = [
+    "Abigail",
+    "Alex",
+    "Caroline",
+    "Clint",
+    "Demetrius",
+    "Dwarf",
+    "Elliott",
+    "Emily",
+    "Evelyn",
+    "George",
+    "Gus",
+    "Haley",
+    "Harvey",
+    "Jas",
+    "Jodi",
+    "Kent",
+    "Krobus",
+    "Leah",
+    "Lewis",
+    "Linus",
+    "Marnie",
+    "Maru",
+    "Pam",
+    "Penny",
+    "Pierre",
+    "Robin",
+    "Sam",
+    "Sandy",
+    "Sebastian",
+    "Shane",
+    "Vincent",
+    "Willy",
+    "Wizard",
+] as const;
+
+type Characters = (typeof characters)[number];
+
+export const dateableCharacters = [
     "Abigail",
     "Alex",
     "Elliott",
@@ -11,4 +49,4 @@ export const DateableCharacters = [
     "Sam",
     "Sebastian",
     "Shane",
-];
+] satisfies Characters[];

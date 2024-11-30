@@ -8,14 +8,14 @@ import {
     RingsUniqueID,
     Shirts,
 } from "$lib/ItemData";
-import { Color } from "$lib/proxies/Color";
 import { GetSize, GetSprite, GetSpritesheet } from "$lib/Spritesheet";
+import { Color } from "$lib/proxies/Color";
 import {
     FurnitureType,
     type ItemInformation,
+    ObjectCategory,
     type ToolClass,
 } from "$types/items/1.6";
-import { Category } from "$types/save/1.5";
 import { ClothesType, type Item as ItemModel } from "$types/save/1.6";
 
 // Mapping of data types to item types
@@ -48,14 +48,14 @@ const upgradeLevels = new Map([
 
 const typeToCategoryMap = {
     Object: undefined,
-    BigCraftable: Category.BigCraftable,
-    Boots: Category.Boots,
-    Pants: Category.Clothing,
-    Shirt: Category.Clothing,
-    Furniture: Category.Furniture,
-    Hat: Category.Hat,
-    Weapon: Category.Weapon,
-    Tool: Category.Tool,
+    BigCraftable: ObjectCategory.BigCraftable,
+    Boots: ObjectCategory.Boots,
+    Pants: ObjectCategory.Clothing,
+    Shirt: ObjectCategory.Clothing,
+    Furniture: ObjectCategory.Furniture,
+    Hat: ObjectCategory.Hat,
+    Weapon: ObjectCategory.Weapon,
+    Tool: ObjectCategory.Tool,
 };
 
 export class Item {
@@ -81,8 +81,8 @@ export class Item {
 
         if (!data) throw new Error(`Item "${name}" not found in ItemData`);
 
-        // Determine the category
-        // Lots of items are missing a category in the data, so we need to handle them separately
+        // Determine the ObjectCategory
+        // Lots of items are missing a ObjectCategory in the data, so we need to handle them separately
         const category =
             "category" in data ? data.category : typeToCategoryMap[data._type];
 
@@ -128,7 +128,7 @@ export class Item {
         }
 
         // Set ID for rings
-        if (category === Category.Ring) {
+        if (category === ObjectCategory.Ring) {
             item.uniqueID = RingsUniqueID.get(name);
             // @ts-expect-error
             item["@_xsi:type"] = "Ring";

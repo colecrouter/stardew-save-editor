@@ -1,6 +1,6 @@
-import type { HairstyleColor } from "$types/save/1.5";
+import type { Color } from "$types/save/1.6";
 
-export const PrimarySkinColors: Array<HairstyleColor> = [
+export const PrimarySkinColors: Array<Color> = [
     { R: 249, G: 174, B: 137, A: 255, PackedValue: 0 },
     { R: 225, G: 140, B: 102, A: 255, PackedValue: 0 },
     { R: 240, G: 160, B: 130, A: 255, PackedValue: 0 },
@@ -27,7 +27,7 @@ export const PrimarySkinColors: Array<HairstyleColor> = [
     { R: 255, G: 211, B: 181, A: 255, PackedValue: 0 },
 ];
 
-export const SecondarySkinColors: Array<HairstyleColor> = [
+export const SecondarySkinColors: Array<Color> = [
     { R: 224, G: 107, B: 101, A: 255, PackedValue: 0 },
     { R: 168, G: 67, B: 61, A: 255, PackedValue: 0 },
     { R: 209, G: 110, B: 72, A: 255, PackedValue: 0 },
@@ -54,7 +54,7 @@ export const SecondarySkinColors: Array<HairstyleColor> = [
     { R: 255, G: 155, B: 135, A: 255, PackedValue: 0 },
 ];
 
-export const TertiarySkinColors: Array<HairstyleColor> = [
+export const TertiarySkinColors: Array<Color> = [
     { R: 107, G: 0, B: 58, A: 255, PackedValue: 0 },
     { R: 85, G: 36, B: 53, A: 255, PackedValue: 0 },
     { R: 85, G: 36, B: 53, A: 255, PackedValue: 0 },
@@ -81,7 +81,7 @@ export const TertiarySkinColors: Array<HairstyleColor> = [
     { R: 114, G: 47, B: 50, A: 255, PackedValue: 0 },
 ];
 
-export const PrimaryBootColors: Array<HairstyleColor> = [
+export const PrimaryBootColors: Array<Color> = [
     { R: 212, G: 0, B: 0, A: 255, PackedValue: 0 },
     { R: 136, G: 178, B: 77, A: 255, PackedValue: 0 },
     { R: 179, G: 85, B: 0, A: 255, PackedValue: 0 },
@@ -103,7 +103,7 @@ export const PrimaryBootColors: Array<HairstyleColor> = [
     { R: 242, G: 242, B: 242, A: 255, PackedValue: 0 },
 ];
 
-export const SecondaryBootColors: Array<HairstyleColor> = [
+export const SecondaryBootColors: Array<Color> = [
     { R: 170, G: 0, B: 0, A: 255, PackedValue: 0 },
     { R: 95, G: 124, B: 50, A: 255, PackedValue: 0 },
     { R: 142, G: 66, B: 0, A: 255, PackedValue: 0 },
@@ -125,7 +125,7 @@ export const SecondaryBootColors: Array<HairstyleColor> = [
     { R: 219, G: 215, B: 206, A: 255, PackedValue: 0 },
 ];
 
-export const TertiaryBootColors: Array<HairstyleColor> = [
+export const TertiaryBootColors: Array<Color> = [
     { R: 125, G: 0, B: 0, A: 255, PackedValue: 0 },
     { R: 67, G: 89, B: 37, A: 255, PackedValue: 0 },
     { R: 105, G: 44, B: 0, A: 255, PackedValue: 0 },
@@ -147,7 +147,7 @@ export const TertiaryBootColors: Array<HairstyleColor> = [
     { R: 145, G: 140, B: 127, A: 255, PackedValue: 0 },
 ];
 
-export const QuaternaryBootColors: Array<HairstyleColor> = [
+export const QuaternaryBootColors: Array<Color> = [
     { R: 85, G: 0, B: 0, A: 255, PackedValue: 0 },
     { R: 3, G: 50, B: 43, A: 255, PackedValue: 0 },
     { R: 67, G: 22, B: 0, A: 255, PackedValue: 0 },

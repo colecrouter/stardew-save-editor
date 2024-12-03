@@ -54,7 +54,7 @@ A web-based save editor for Stardew Valley. Safely edit your save files directly
 
 - ✅ Windows/macOS/Linux
 - ✅ Android/iOS
-- ❌ Nintendo Switch
+- 🟡 Switch/PlayStation (see [SUPPORT.md](./SUPPORT.md))
 
 ## Development
 

@@ -1,35 +1,65 @@
-# [LINK TO THE INVENTORY EDITOR HERE](https://colecrouter.github.io/stardew-save-editor/)
+# Stardew Valley Save Editor
 
-# [WIP] Stardew Valley Save Editor
+> [!IMPORTANT]
+> [Link to editor here](https://colecrouter.github.io/stardew-save-editor/)
 
-Open source web-based save editor for Stardew Valley. Contributions welcome.
+A web-based save editor for Stardew Valley. Safely edit your save files directly in your browser.
 
 ## Features
 
-- [x] Edit player/farm name/money
-- [x] Modify inventory
-- [x] Modfy relationships
-- [X] Modify skills
-- [X] Unlock recipes
-- [X] Switch characters
-- [X] Add/remove items
-- [X] Change character appearance
-- [X] Backup save files
-- [ ] Edit animals
-- [ ] Edit day/weather
-- [ ] Change Community Center bundles
-- [ ] Change quests
+### Current Features
 
-## Disclaimer
+- ✅ Character Customization
+  - Edit appearance, name, and farm name
+  - Modify skills and money
+  - Change relationships with NPCs
+- ✅ Inventory Management  
+  - Add/remove items
+  - Modify existing items
+- ✅ Recipe Management
+  - Unlock cooking recipes
+  - Unlock crafting recipes
+- ✅ Save Management
+  - Switch between farmhands
+  - Automatic save backups
+  - Cross-platform support
 
-This project uses assets from the video game *Stardew Valley*, which were created and are owned by ConcernedApe. The usage of these materials does not negatively affect the original creator's ability to market or profit from their copyrighted material. If you believe that copyrighted materials have been used in a way that goes beyond fair use, please [contact me](mailto:colecrouter@hotmail.com).
+### Planned Features
 
-## Version Support
+- 🔄 Animal editing
+- 🔄 Weather/calendar controls
+- 🔄 Community Center bundle management
+- 🔄 Quest management
 
-Support 1.6.X. Code for version 1.5 exists within the repo, but the published uses the latest code (which only supports 1.6). There is currently *no branch* pointing to that last working 1.5 commit.
+## Usage
 
-## Android/iOS/NSW Support
+1. Visit the [live editor](https://colecrouter.github.io/stardew-save-editor/)
+2. Backup your original save file
+3. Upload your save file
+4. Make your desired changes
+5. Download the modified save
+6. Replace your original save with the modified version
 
-Both Android & iOS are supported.
+> [!WARNING]
+> Always backup your save files before editing. Save editing can potentially corrupt files or cause unexpected game behavior.
 
-SDV on Nintendo Switch is unsupported.
+## Compatibility
+
+### Game Versions
+
+- ✅ Stardew Valley 1.6.x (fully supported)
+- ❌ Stardew Valley 1.5.x (no longer supported)
+
+### Platforms
+
+- ✅ Windows/macOS/Linux
+- ✅ Android/iOS
+- ❌ Nintendo Switch
+
+## Development
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed development setup and contribution guidelines.
+
+## Legal
+
+This project uses assets from Stardew Valley under Fair Use. These assets are owned by ConcernedApe and are not covered by this project's license. See [LICENSE.md](./LICENSE.md) for details.

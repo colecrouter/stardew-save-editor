@@ -1,4 +1,6 @@
-Copyright ©️ 2023 [Contributors](https://github.com/colecrouter/Stardew-Save-Editor/graphs/contributors)
+# License
+
+Copyright ©️ 2024 [Contributors](https://github.com/colecrouter/Stardew-Save-Editor/graphs/contributors)
 
 --- ADDITIONAL CLARIFICATION ---
 

@@ -1483,7 +1483,7 @@ export interface Item {
     defenseBonus?: number;
     immunityBonus?: number;
     indexInColorSheet?: number;
-    which?: string;
+    which?: null;
     furniture_type?: FurnitureType;
     rotations?: number;
     currentRotation?: number;
@@ -1496,6 +1496,9 @@ export interface Item {
     lastInputItem?: Item;
     bedType?: string;
     signText?: string;
+    skipHairDraw?: boolean;
+    ignoreHairstyleOffset?: boolean;
+    hairDrawType?: number;
 }
 
 export interface AttachmentsAttachments {

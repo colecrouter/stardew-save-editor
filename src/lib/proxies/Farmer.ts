@@ -208,12 +208,6 @@ export class Farmer {
                 : item,
         );
 
-        // Don't forget to add which nil="true" on hats;
-        if (this.raw?.hat) {
-            // @ts-expect-error
-            this.raw.hat.which = { "@_xsi:nil": "true" };
-        }
-
         return JSON.stringify(this.raw);
     }
 }

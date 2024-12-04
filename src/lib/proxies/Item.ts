@@ -18,6 +18,8 @@ import {
 } from "$types/items/1.6";
 import { ClothesType, type Item as ItemModel } from "$types/save/1.6";
 
+const nil = { "@_xsi:nil": "true" };
+
 // Mapping of data types to item types
 const typeToItemTypeMap = new Map<Item["info"]["_type"], string>([
     ["Object", "Object"],
@@ -160,6 +162,7 @@ export class Item {
                         break;
                     }
                 }
+                item.indexOfMenuItemView = data.menuSpriteIndex;
             } else if (itemType === "FishingRod") {
                 item.upgradeLevel = FishingRodUpgradeNumber.get(data.name) ?? 0;
                 item.parentSheetIndex = 685;
@@ -191,7 +194,10 @@ export class Item {
 
         // Handle hats
         if (data._type === "Hat") {
-            item.which = "0";
+            // @ts-expect-error
+            item.which = nil;
+            item.skipHairDraw = !data.showRealHair;
+            item.ignoreHairstyleOffset = data.skipHairstyleOffset;
         }
 
         // Handle furniture

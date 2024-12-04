@@ -1,7 +1,6 @@
 <script lang="ts">
     import { base } from "$app/paths";
     import {
-        AccessoryIsTinted,
         PrimaryBootColors,
         PrimarySkinColors,
         QuaternaryBootColors,
@@ -10,7 +9,7 @@
         TertiaryBootColors,
         TertiarySkinColors,
     } from "$lib/CharacterColors";
-    import { GetPlayerSpriteForPants, IndexToSprite } from "$lib/Spritesheet";
+    import { Sprite } from "$lib/Sprite";
     import { Color } from "$lib/proxies/Color";
     import type { Farmer } from "$lib/proxies/Farmer";
     import { Item } from "$lib/proxies/Item";
@@ -50,24 +49,16 @@
     let pants = $derived(player.pants ?? underwear);
     let boots = $derived(player.boots);
 
-    // Pants are special
-    let pantsSprite = $derived(
-        GetPlayerSpriteForPants(
-            Number(pants.info._key),
-            player.gender === Gender.Male,
-        ),
-    );
-
     // Calculate sprite X and Y positions
     let hatPosition = $derived(hat?.sprite.dimensions);
     let hairPosition = $derived(
-        IndexToSprite(player.hairstyle, 16, 96, 128, 672),
+        Sprite.indexToSprite(player.hairstyle, 16, 96, 128, 672),
     );
     let accessoryPosition = $derived(
-        IndexToSprite(player.accessory, 16, 32, 128, 128),
+        Sprite.indexToSprite(player.accessory, 16, 32, 128, 128),
     );
     let shirtPosition = $derived(shirt.sprite.dimensions);
-    let pantsPosition = $derived(pantsSprite);
+    let pantsPosition = $derived(pants.sprite.dimensions);
     let showHair = $derived(
         hat === undefined || hat.info._type !== "Hat" || !hat.info.showRealHair,
     );
@@ -205,6 +196,7 @@
     .pants {
         height: 32px !important;
         width: 16px !important;
+        top: 17px;
     }
 
     .shirt {

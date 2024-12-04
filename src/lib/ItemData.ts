@@ -1,13 +1,11 @@
-import type { Size } from "$types/items/1.6";
 import {
     FurnitureType,
-    ObjectCategory,
     type ItemInformation,
+    ObjectCategory,
     type Shirt,
 } from "$types/items/1.6";
 import type { Item } from "$types/save/1.6";
 import jsondata from "../../static/iteminfo.json";
-
 export const HatWhichNumber = new Map([
     ["Cowboy Hat", 0],
     ["Bowler Hat", 1],
@@ -147,27 +145,6 @@ export const CategoriesWithQuality = new Set([
     ObjectCategory.Fruit,
     ObjectCategory.Flower,
     ObjectCategory.Forage,
-]);
-
-export const DefaultFurnitureSizes = new Map<FurnitureType, Size>([
-    [FurnitureType.Chair, { width: 16, height: 32 }],
-    [FurnitureType.Bench, { width: 32, height: 32 }],
-    [FurnitureType.Couch, { width: 48, height: 32 }],
-    [FurnitureType.Armchair, { width: 32, height: 32 }],
-    [FurnitureType.Dresser, { width: 32, height: 32 }],
-    [FurnitureType.LongTable, { width: 80, height: 48 }],
-    [FurnitureType.Painting, { width: 32, height: 32 }],
-    [FurnitureType.Lamp, { width: 16, height: 32 }],
-    [FurnitureType.Decor, { width: 16, height: 32 }],
-    [FurnitureType.Other, { width: 16, height: 16 }],
-    [FurnitureType.Bookcase, { width: 32, height: 48 }],
-    [FurnitureType.Table, { width: 32, height: 48 }],
-    [FurnitureType.Rug, { width: 48, height: 32 }],
-    [FurnitureType.Window, { width: 16, height: 32 }],
-    [FurnitureType.Fireplace, { width: 32, height: 80 }],
-    [FurnitureType.Bed, { width: 48, height: 64 }],
-    [FurnitureType.Torch, { width: 16, height: 32 }],
-    [FurnitureType.Sconce, { width: 16, height: 16 }],
 ]);
 
 export const FurnitureTypeToNumber = new Map<FurnitureType, number>([

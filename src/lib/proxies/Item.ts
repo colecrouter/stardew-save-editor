@@ -8,7 +8,7 @@ import {
     RingsUniqueID,
     Shirts,
 } from "$lib/ItemData";
-import { GetSize, GetSprite, GetSpritesheet } from "$lib/Spritesheet";
+import { Sprite } from "$lib/Sprite";
 import { Color } from "$lib/proxies/Color";
 import {
     FurnitureType,
@@ -59,8 +59,9 @@ const typeToCategoryMap = {
 };
 
 export class Item {
-    raw: ItemModel;
-    info: ItemInformation;
+    readonly raw: ItemModel;
+    readonly info: ItemInformation;
+    readonly sprite: Sprite;
 
     constructor(raw: ItemModel) {
         this.raw = raw;
@@ -71,6 +72,8 @@ export class Item {
                 : ItemData.get(ItemNameHelper(raw));
         if (!info) throw new Error(`Item "${raw.name}" not found in ItemData`);
         this.info = info;
+
+        this.sprite = new Sprite(info);
     }
 
     static fromName(name: string) {
@@ -94,8 +97,8 @@ export class Item {
             quality: 0,
             isRecipe: false,
             price: data.price ?? 0,
-            parentSheetIndex: data.spriteIndex,
-            indexInTileSheet: data.spriteIndex,
+            parentSheetIndex: data.spriteIndex || undefined,
+            indexInTileSheet: data.spriteIndex || undefined,
             category: category,
             hasBeenInInventory: true,
             SpecialVariable: 0, // TODO: Verify if needed
@@ -197,16 +200,16 @@ export class Item {
             item.type = FurnitureTypeToNumber.get(data.type as FurnitureType);
 
             // Set sourceRect if TilesheetSize is available
-            const sprite = GetSprite(data);
+            const sprite = new Sprite(data);
             if ("tilesheetSize" in data && data.tilesheetSize !== undefined) {
                 item.sourceRect = {
-                    X: sprite.x,
-                    Y: sprite.y,
+                    X: sprite.dimensions.x,
+                    Y: sprite.dimensions.y,
                     Width: data.tilesheetSize.width,
                     Height: data.tilesheetSize.height,
                     Location: {
-                        X: sprite.x,
-                        Y: sprite.y,
+                        X: sprite.dimensions.x,
+                        Y: sprite.dimensions.y,
                     },
                     Size: {
                         X: data.tilesheetSize.width,
@@ -278,14 +281,6 @@ export class Item {
         // TODO: Handle the Copper Pan hat special case if needed
 
         return new Item(item);
-    }
-
-    get sprite() {
-        const coordinates = GetSprite(this.info);
-        const size = GetSize(this.info);
-        const sheet = GetSpritesheet(this.info);
-
-        return { dimensions: { ...coordinates, ...size }, sheet };
     }
 
     get name(): string {

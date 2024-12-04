@@ -10,11 +10,16 @@ import type {
     PlacementRestriction,
     RegularObject,
     Shirt,
+    Size,
     Tool,
     ToolClass,
     Weapon,
 } from "$types/items/1.6.js";
 import type { TypeEnum } from "$types/save/1.6";
+import {
+    imageDimensionsFromData,
+    imageDimensionsFromStream,
+} from "image-dimensions";
 import bigCraftables from "../content/Data/BigCraftables.json";
 import boots from "../content/Data/Boots.json";
 import furniture from "../content/Data/Furniture.json";
@@ -214,13 +219,15 @@ const toolsArray = Object.entries(tools).map(
             name: obj.Name,
             displayName: obj.DisplayName,
             description: obj.Description,
-            attachmentSlots: obj.AttachmentSlots,
+            attachmentSlots:
+                obj.AttachmentSlots === -1 ? undefined : obj.AttachmentSlots,
             salePrice: obj.SalePrice,
             texture:
                 fixTexture(obj.Texture) ?? thrw("Tool must have a texture"),
             spriteIndex: obj.SpriteIndex,
             upgradeLevel: obj.UpgradeLevel,
-            menuSpriteIndex: obj.MenuSpriteIndex,
+            menuSpriteIndex:
+                obj.MenuSpriteIndex === -1 ? undefined : obj.MenuSpriteIndex,
             class: obj.ClassName as ToolClass,
         }) satisfies Tool,
 );
@@ -292,12 +299,19 @@ const filesToCopy = [
 await mkdir("./static/assets", { recursive: true });
 
 // Copy files concurrently
+let dimensions = new Map<string, Size>();
 await Promise.all(
-    filesToCopy.map((src) => {
+    filesToCopy.map(async (src) => {
         const filename = src.split("/").pop();
-        copyFile(`./content/${src}`, `./static/assets/${filename}`);
+        await copyFile(`./content/${src}`, `./static/assets/${filename}`);
+        dimensions.set(
+            filename ?? thrw("Filename not found"),
+            imageDimensionsFromData(await readFile(`./content/${src}`)) ??
+                thrw("Dimensions not found"),
+        );
     }),
 );
+await writeFile("./static/dimensions.json", JSON.stringify([...dimensions]));
 
 // Copy all portraits into assets folder
 // Create portraits folder if it doesn't exist

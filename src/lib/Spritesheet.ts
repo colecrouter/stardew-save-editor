@@ -1,9 +1,6 @@
 import { DefaultFurnitureSizes } from "$lib/ItemData";
-import {
-    FurnitureType,
-    type ItemInformation,
-    type Size,
-} from "$types/items/1.6";
+import type { ItemInformation, Size } from "$types/items/1.6";
+import dimensions from "../../static/dimensions.json";
 
 const ShirtsWithFemaleVariant = new Set<string>([
     "Plain Shirt",
@@ -78,16 +75,8 @@ export const GetSprite = (info: ItemInformation): { x: number; y: number } => {
 
     const dyeable = "canBeDyed" in info && info.canBeDyed;
     switch (info._type) {
-        case "Object":
-            if (info.texture === "TileSheets\\Objects_2") {
-                return IndexToSprite(index, 16, 16, 128, 320);
-            }
-            return IndexToSprite(index, 16, 16, 384, 624);
-        case "BigCraftable":
-            return IndexToSprite(index, 16, 32, 128, 1472);
-        case "Boots":
-            return IndexToSprite(index, 16, 16, 384, 624);
         case "Hat":
+            // Hats are 20x20, but the sprite sheet is 20x80 for 4 directions
             return IndexToSprite(index, 20, 80, 240, 880);
         case "Pants": {
             // Special case, pants have 192x672 of animation frames, then the pants themselves are underneath on the left
@@ -107,16 +96,19 @@ export const GetSprite = (info: ItemInformation): { x: number; y: number } => {
                 ? { x: shirtSprite.x - 128, y: shirtSprite.y }
                 : shirtSprite;
         }
-        case "Furniture":
-            return IndexToSprite(index, 16, 16, 512, 1488);
-        case "Weapon":
-            return IndexToSprite(index, 16, 16, 128, 144);
-        case "Tool":
-            return IndexToSprite(index, 16, 16, 336, 384);
-        default:
-            // @ts-expect-error
-            console.warn("Unknown item type", lookupItem?._type);
-            return { x: 0, y: 0 };
+        default: {
+            const sheet = GetSpritesheet(info);
+            const sheetSize = spritesheetSizes.get(sheet);
+            if (!sheetSize) throw new Error(`Invalid spritesheet ${sheet}`);
+
+            return IndexToSprite(
+                index,
+                16,
+                16,
+                sheetSize.width,
+                sheetSize.height,
+            );
+        }
     }
 };
 
@@ -153,3 +145,5 @@ export const GetPlayerSpriteForPants = (index: number, isMale: boolean) => {
     const { x, y } = IndexToSprite(index, 192, 688, 1920, 1376);
     return isMale ? { x, y } : { x: x - 96, y };
 };
+
+const spritesheetSizes = new Map<string, Size>(dimensions as [string, Size][]);

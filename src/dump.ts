@@ -29,6 +29,11 @@ const thrw = (msg: string): never => {
     throw new Error(msg);
 };
 
+const fixTexture = (texture: string | null | undefined) =>
+    texture
+        ? `${texture.replace("TileSheets\\", "").replace("TileSheets/", "")}.png`
+        : undefined;
+
 const objectsArray = Object.entries(objects)
     .map(
         ([key, obj]) =>
@@ -41,7 +46,7 @@ const objectsArray = Object.entries(objects)
                 price: obj.Price,
                 type: obj.Type as TypeEnum,
                 category: obj.Category,
-                texture: obj.Texture || undefined,
+                texture: fixTexture(obj.Texture),
                 spriteIndex: obj.SpriteIndex,
                 edibility: obj.Edibility,
                 isDrink: obj.IsDrink,
@@ -63,7 +68,7 @@ const bigCraftablesArray = Object.entries(bigCraftables).map(
             canBePlacedIndoors: obj.CanBePlacedIndoors,
             canBePlacedOutdoors: obj.CanBePlacedOutdoors,
             isLamp: obj.IsLamp,
-            texture: obj.Texture || undefined,
+            texture: fixTexture(obj.Texture),
             spriteIndex: obj.SpriteIndex,
         }) satisfies BigCraftable,
 );
@@ -95,7 +100,7 @@ const shirtsArray = Object.entries(shirts)
                 canBeDyed: obj.CanBeDyed,
                 isPrismatic: obj.IsPrismatic,
                 hasSleeves: obj.HasSleeves,
-                texture: obj.Texture || undefined,
+                texture: fixTexture(obj.Texture),
                 price: obj.Price,
                 spriteIndex: obj.SpriteIndex,
             }) satisfies Shirt,
@@ -116,13 +121,13 @@ const pantsArray = Object.entries(pants).map(
             spriteIndex: obj.SpriteIndex,
             canBeDyed: obj.CanBeDyed,
             isPrismatic: obj.IsPrismatic,
-            texture: obj.Texture || undefined,
+            texture: fixTexture(obj.Texture),
         }) satisfies Pants,
 );
 
 const furnitureArray = Object.entries(furniture).map(([key, obj]) => {
     const props = obj.split("/");
-    const placementRestriction = props[8] === "" ? -1 : Number(props[8]);
+    const placementRestriction = props[6] === "" ? -1 : Number(props[6]);
     const tilesheetSplit = props[2]?.split(" ");
     const boundingBoxSplit = props[3]?.split(" ");
     const tilesheetSize =
@@ -152,10 +157,10 @@ const furnitureArray = Object.entries(furniture).map(([key, obj]) => {
         ),
         price: Number(props[5] ?? thrw("Furniture must have a price")),
         placementRestriction: placementRestriction as PlacementRestriction,
-        displayName: props[6] ?? thrw("Furniture must have a display name"),
-        texture: props[9] || undefined,
-        spriteIndex: props[10] ? Number(props[10]) : undefined,
-        offLimitsForRandomSale: props[11] === "true",
+        displayName: props[7] ?? thrw("Furniture must have a display name"),
+        texture: fixTexture(props[9]),
+        spriteIndex: props[8] ? Number(props[8]) : undefined,
+        offLimitsForRandomSale: props[10] === "true",
     } satisfies Furniture;
 });
 
@@ -170,7 +175,7 @@ const hatsArray = Object.entries(hats).map(([key, obj]) => {
         skipHairstyleOffset: props[3] === "true",
         displayName: props[4] ?? thrw("Hat must have a display name"),
         spriteIndex: props[5] ? Number(props[5]) : undefined,
-        texture: props[6] || undefined,
+        texture: fixTexture(props[6]),
     } satisfies Hat;
 });
 
@@ -190,7 +195,8 @@ const weaponsArray = Object.entries(weapons).map(
             critMultiplier: obj.CritMultiplier,
             areaOfEffect: obj.AreaOfEffect,
             type: obj.Type,
-            texture: obj.Texture,
+            texture:
+                fixTexture(obj.Texture) ?? thrw("Weapon must have a texture"),
             spriteIndex: obj.SpriteIndex,
             canBeLostOnDeath: obj.CanBeLostOnDeath,
             defense: obj.Defense,
@@ -210,7 +216,8 @@ const toolsArray = Object.entries(tools).map(
             description: obj.Description,
             attachmentSlots: obj.AttachmentSlots,
             salePrice: obj.SalePrice,
-            texture: obj.Texture,
+            texture:
+                fixTexture(obj.Texture) ?? thrw("Tool must have a texture"),
             spriteIndex: obj.SpriteIndex,
             upgradeLevel: obj.UpgradeLevel,
             menuSpriteIndex: obj.MenuSpriteIndex,
@@ -261,15 +268,17 @@ await writeFile("./static/iteminfo.json", writeToFile);
 const filesToCopy = [
     "TileSheets/Craftables.png",
     "TileSheets/furniture.png",
+    "TileSheets/furniture_2.png",
+    "TileSheets/furniture_3.png",
+    "TileSheets/joja_furniture.png",
+    "TileSheets/junimo_furniture.png",
+    "TileSheets/retro_furniture.png",
+    "TileSheets/wizard_furniture.png",
     "TileSheets/weapons.png",
     "TileSheets/tools.png",
     "Characters/Farmer/pants.png",
     "Characters/Farmer/shirts.png",
     "Characters/Farmer/accessories.png",
-    "Characters/Farmer/farmer_base.png",
-    "Characters/Farmer/farmer_base_bald.png",
-    "Characters/Farmer/farmer_girl_base.png",
-    "Characters/Farmer/farmer_girl_base_bald.png",
     "Characters/Farmer/hairstyles.png",
     "Characters/Farmer/hairstyles2.png",
     "Characters/Farmer/hats.png",

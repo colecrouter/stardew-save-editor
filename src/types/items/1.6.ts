@@ -10,7 +10,7 @@ interface Base {
     price?: number;
     // Appearance
     texture?: string;
-    spriteIndex?: number;
+    spriteIndex?: number | null;
 }
 
 export interface RegularObject extends Base {

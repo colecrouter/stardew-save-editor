@@ -15,6 +15,10 @@ const ShirtsWithFemaleVariant = new Set<string>([
 ]);
 
 export const GetSpritesheet = (lookupItem: ItemInformation): string => {
+    if ("texture" in lookupItem && lookupItem.texture) {
+        return lookupItem.texture.replace("TileSheets\\", "");
+    }
+
     let spritesheet = "";
     switch (lookupItem._type) {
         case "Object":
@@ -69,6 +73,7 @@ export const GetSprite = (info: ItemInformation): { x: number; y: number } => {
         "menuSpriteIndex" in info && info.menuSpriteIndex !== undefined
             ? info.menuSpriteIndex
             : (info.spriteIndex ?? Number(info.spriteIndex ?? info._key));
+    console.log(info?.spriteIndex, info._key);
     if (Number.isNaN(index)) throw new Error("Invalid sprite index");
 
     const dyeable = "canBeDyed" in info && info.canBeDyed;
@@ -116,6 +121,7 @@ export const GetSprite = (info: ItemInformation): { x: number; y: number } => {
 };
 
 export const GetSize = (info: ItemInformation): Size => {
+    console.log(info);
     switch (info._type) {
         case "BigCraftable":
             return { width: 16, height: 32 };

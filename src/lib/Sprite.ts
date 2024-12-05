@@ -1,7 +1,7 @@
 import type { Farmer } from "$lib/proxies/Farmer";
 import {
-    FurnitureType,
     type Coordinates,
+    FurnitureType,
     type ItemInformation,
     type Size,
 } from "$types/items/1.6";

@@ -1,8 +1,8 @@
 <script lang="ts">
+    import { Item } from "$lib/proxies/Item";
     import type { Snippet } from "svelte";
     import ItemSprite from "../inventory/ItemSprite.svelte";
     import { recipeMapping } from "./mapping";
-    import { Item } from "$lib/proxies/Item";
 
     interface Props {
         record: Record<string, unknown>;

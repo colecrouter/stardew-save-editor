@@ -220,7 +220,7 @@
     .hat {
         height: 16px !important;
         width: 20px !important;
-        top: -1px;
+        top: -2px;
         left: -2px;
     }
 
@@ -240,7 +240,7 @@
     }
 
     .appearance.female .hat {
-        top: 0px;
+        top: -1px;
     }
     .appearance.female .accessory {
         top: 3px;

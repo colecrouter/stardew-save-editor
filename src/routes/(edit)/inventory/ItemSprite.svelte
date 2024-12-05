@@ -25,6 +25,7 @@
     style:--sprite={spritesheet && `url(${base}/assets/${spritesheet})`}
     style:--tint={`rgb(${item?.color?.R ?? 0},${item?.color?.G ?? 0},${item?.color?.B ?? 0})`}
     class:dyeable={item && "color" in item && item.color}
+    class:hat={item && item.type === "Hat"}
 ></div>
 
 <style>
@@ -63,5 +64,10 @@
         -webkit-mask-position: left var(--x) top var(--y);
         mask-position: left var(--x) top var(--y);
         zoom: var(--z);
+    }
+
+    /* If spritesheet its "/assets/hats.png", then move the item down by 6px */
+    .item.hat::before {
+        margin-top: 6px;
     }
 </style>

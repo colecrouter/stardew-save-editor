@@ -106,4 +106,25 @@ describe("Item", () => {
             "@_xsi:type": "Hat",
         });
     });
+
+    it("should create a WizardCatalogue", () => {
+        expect(Item.fromName("WizardCatalogue").raw).toMatchObject({
+            name: "WizardCatalogue",
+            itemId: "WizardCatalogue",
+            stack: 1,
+            price: 999,
+            parentSheetIndex: 168,
+            category: -24,
+            tileLocation: { X: 0, Y: 0 },
+            defaultSourceRect: {
+                X: 192,
+                Y: 192,
+                Width: 16,
+                Height: 32,
+                Location: { X: 192, Y: 192 },
+                Size: { X: 16, Y: 32 },
+            },
+            "@_xsi:type": "Furniture",
+        });
+    });
 });

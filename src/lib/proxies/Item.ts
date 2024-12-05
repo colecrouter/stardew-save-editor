@@ -208,18 +208,21 @@ export class Item {
             // Set sourceRect if TilesheetSize is available
             const sprite = new Sprite(data);
             if ("tilesheetSize" in data && data.tilesheetSize !== undefined) {
+                const invertedX = sprite.sheetSize.width - sprite.dimensions.x;
+                const invertedY = sprite.sheetSize.height - sprite.dimensions.y;
+                console.log(sprite.dimensions, invertedX, invertedY);
                 item.sourceRect = {
-                    X: sprite.dimensions.x,
-                    Y: sprite.dimensions.y,
-                    Width: data.tilesheetSize.width,
-                    Height: data.tilesheetSize.height,
+                    X: invertedX,
+                    Y: invertedY,
+                    Width: data.tilesheetSize.width * 16,
+                    Height: data.tilesheetSize.height * 16,
                     Location: {
-                        X: sprite.dimensions.x,
-                        Y: sprite.dimensions.y,
+                        X: invertedX,
+                        Y: invertedY,
                     },
                     Size: {
-                        X: data.tilesheetSize.width,
-                        Y: data.tilesheetSize.height,
+                        X: data.tilesheetSize.width * 16,
+                        Y: data.tilesheetSize.height * 16,
                     },
                 };
                 item.defaultSourceRect = item.sourceRect;

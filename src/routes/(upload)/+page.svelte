@@ -3,7 +3,7 @@
 
     import { goto } from "$app/navigation";
     import { base } from "$app/paths";
-    import { saveManager } from "$lib/save.svelte";
+    import { saveManager } from "$lib/SaveManager.svelte";
     import UiContainer from "$lib/ui/UIContainer.svelte";
 
     let submit = $state<HTMLInputElement>();

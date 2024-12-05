@@ -1,6 +1,6 @@
 <script lang="ts">
     import type { Farmer } from "$lib/proxies/Farmer";
-    import { saveManager } from "$lib/save.svelte";
+    import { saveManager } from "$lib/SaveManager.svelte";
     import UiContainer from "$lib/ui/UIContainer.svelte";
     import UiContainerSmall from "$lib/ui/UIContainerSmall.svelte";
     import SkillBar from "./SkillBar.svelte";

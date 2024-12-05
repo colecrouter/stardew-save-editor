@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { saveManager } from "$lib/save.svelte";
+    import { saveManager } from "$lib/SaveManager.svelte";
     import Recipes from "../Recipes.svelte";
 
     const save = saveManager.save;

@@ -3,7 +3,7 @@
     import { goto } from "$app/navigation";
     import { base } from "$app/paths";
     import { page } from "$app/stores";
-    import { saveManager } from "$lib/save.svelte";
+    import { saveManager } from "$lib/SaveManager.svelte";
     import UiButton from "$lib/ui/UIButton.svelte";
     interface Props {
         children?: import("svelte").Snippet;

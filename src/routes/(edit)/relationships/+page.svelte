@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { saveManager } from "$lib/save.svelte";
+    import { saveManager } from "$lib/SaveManager.svelte";
     import UiContainer from "$lib/ui/UIContainer.svelte";
     import HeartBar from "./HeartBar.svelte";
 

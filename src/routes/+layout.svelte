@@ -1,10 +1,13 @@
 <script lang="ts">
     import { base } from "$app/paths";
+    import { setSaveManager } from "$lib/SaveManager.svelte";
     interface Props {
         children?: import("svelte").Snippet;
     }
 
     let { children }: Props = $props();
+
+    const saveManager = setSaveManager();
 </script>
 
 <svelte:head>

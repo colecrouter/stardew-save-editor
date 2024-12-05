@@ -1,5 +1,8 @@
+import { browser } from "$app/environment";
 import { SaveProxy } from "$lib/proxies/SaveFile.svelte";
+import { error } from "@sveltejs/kit";
 import { XMLParser } from "fast-xml-parser";
+import { getContext, setContext } from "svelte";
 
 // The XML parser has no idea what should be an array and what should be an object
 // This isn't a huge deal, but we can make it a little easier to work with by
@@ -12,7 +15,7 @@ const arrayTags = new Set([
     "Farmer",
 ]);
 
-export const importSave = async (file: File) => {
+const importSave = async (file: File) => {
     if (!file) {
         throw new Error("No file provided");
     }
@@ -74,7 +77,11 @@ const isSaveFile = (obj: unknown): obj is SaveFile => {
 
 export class SaveManager {
     save = $state<SaveProxy>();
-    filename = $state("");
+    filename = "";
+
+    constructor() {
+        if (!browser) return;
+    }
 
     async import(file: File) {
         this.save = new SaveProxy(await importSave(file));
@@ -92,6 +99,16 @@ export class SaveManager {
         const blob = await this.save.toXML();
         return blob;
     }
+
+    reset() {
+        this.save = undefined;
+        this.filename = "";
+    }
 }
 
-export const saveManager = new SaveManager();
+const SAVE_KEY = Symbol("saveManager");
+
+export const setSaveManager = () => setContext(SAVE_KEY, new SaveManager());
+
+export const getSaveManager = () =>
+    getContext<SaveManager>(SAVE_KEY) ?? error(500, "No save manager found");

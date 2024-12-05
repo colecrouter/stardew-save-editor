@@ -1,11 +1,11 @@
 <script lang="ts">
-    import { saveManager } from "$lib/SaveManager.svelte";
+    import { getSaveManager } from "$lib/SaveManager.svelte";
     import UiContainer from "$lib/ui/UIContainer.svelte";
     import UiContainerSmall from "$lib/ui/UIContainerSmall.svelte";
     import Profiles from "./Profiles.svelte";
 
-    const save = saveManager.save;
-    if (!save) throw new Error("No player data found");
+    const save = getSaveManager().save;
+    if (!save) throw new Error("No save data found");
 </script>
 
 <UiContainer>

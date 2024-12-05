@@ -3,13 +3,15 @@
     import { goto } from "$app/navigation";
     import { base } from "$app/paths";
     import { page } from "$app/stores";
-    import { saveManager } from "$lib/SaveManager.svelte";
+    import { getSaveManager } from "$lib/SaveManager.svelte";
     import UiButton from "$lib/ui/UIButton.svelte";
     interface Props {
         children?: import("svelte").Snippet;
     }
 
     let { children }: Props = $props();
+
+    const saveManager = getSaveManager();
 
     // https://github.com/sveltejs/kit/issues/5434
     page.subscribe(

@@ -196,7 +196,7 @@ export class Item {
         if (data._type === "Hat") {
             // @ts-expect-error
             item.which = nil;
-            item.skipHairDraw = !data.showRealHair;
+            item.skipHairDraw = data.showRealHair;
             item.ignoreHairstyleOffset = data.skipHairstyleOffset;
         }
 
@@ -210,7 +210,6 @@ export class Item {
             if ("tilesheetSize" in data && data.tilesheetSize !== undefined) {
                 const invertedX = sprite.sheetSize.width - sprite.dimensions.x;
                 const invertedY = sprite.sheetSize.height - sprite.dimensions.y;
-                console.log(sprite.dimensions, invertedX, invertedY);
                 item.sourceRect = {
                     X: invertedX,
                     Y: invertedY,

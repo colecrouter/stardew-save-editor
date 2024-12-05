@@ -101,7 +101,7 @@ describe("Item", () => {
             itemId: "65",
             stack: 1,
             isRecipe: false,
-            skipHairDraw: true,
+            skipHairDraw: false,
             ignoreHairstyleOffset: true,
             "@_xsi:type": "Hat",
         });
@@ -125,6 +125,18 @@ describe("Item", () => {
                 Size: { X: 16, Y: 32 },
             },
             "@_xsi:type": "Furniture",
+        });
+    });
+
+    it("should create a Leprechaun Hat", () => {
+        expect(Item.fromName("Leprechaun Hat").raw).toMatchObject({
+            category: -95,
+            name: "Leprechaun Hat",
+            itemId: "LeprechuanHat",
+            stack: 1,
+            skipHairDraw: false,
+            ignoreHairstyleOffset: true,
+            "@_xsi:type": "Hat",
         });
     });
 });

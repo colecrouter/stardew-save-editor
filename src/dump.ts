@@ -79,6 +79,7 @@ const bigCraftablesArray = Object.entries(bigCraftables).map(
 );
 
 const bootsArray = Object.entries(boots).map(([key, obj]) => {
+    // 0 - name, 1 - description, 2 - price, 3 - defense, 4 - immunity, 5 - color index, 6 - display name, 7 - color texture, 8 - sprite index, 9 - texture name
     const props = obj.split("/");
     return {
         _type: "Boots",
@@ -131,6 +132,7 @@ const pantsArray = Object.entries(pants).map(
 );
 
 const furnitureArray = Object.entries(furniture).map(([key, obj]) => {
+    // 0 - name, 1 - type, 2 - tilesheet size, 3 - bounding box size, 4 - rotations, 5 - price, 6 - placement restriction, 7 - display name, 8 - sprite index, 9 - texture, 10 - off limits for random sale, 11 - tags
     const props = obj.split("/");
     const placementRestriction = props[6] === "" ? -1 : Number(props[6]);
     const tilesheetSplit = props[2]?.split(" ");
@@ -170,6 +172,7 @@ const furnitureArray = Object.entries(furniture).map(([key, obj]) => {
 });
 
 const hatsArray = Object.entries(hats).map(([key, obj]) => {
+    // 0 - name, 1 - description, 2 - show real hair, 3 - skip hairstyle offset, 4 - tags, 5 - display name, 6 - sprite index, 7 - texture name
     const props = obj.split("/");
     return {
         _type: "Hat",
@@ -178,9 +181,9 @@ const hatsArray = Object.entries(hats).map(([key, obj]) => {
         description: props[1] ?? thrw("Hat must have a description"),
         showRealHair: props[2] === "true",
         skipHairstyleOffset: props[3] === "true",
-        displayName: props[4] ?? thrw("Hat must have a display name"),
-        spriteIndex: props[5] ? Number(props[5]) : undefined,
-        texture: fixTexture(props[6]),
+        displayName: props[5] ?? thrw("Hat must have a display name"),
+        spriteIndex: props[6] ? Number(props[6]) : undefined,
+        texture: fixTexture(props[7]),
     } satisfies Hat;
 });
 
@@ -311,7 +314,10 @@ await Promise.all(
         );
     }),
 );
-await writeFile("./static/dimensions.json", JSON.stringify([...dimensions]));
+await writeFile(
+    "./static/dimensions.json",
+    JSON.stringify([...dimensions].sort(([a], [b]) => a.localeCompare(b))),
+);
 
 // Copy all portraits into assets folder
 // Create portraits folder if it doesn't exist

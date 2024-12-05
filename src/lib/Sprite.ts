@@ -64,9 +64,15 @@ export class Sprite {
         this.info = info;
         this.player = player;
 
-        this.sheet = this.getSpritesheet();
-        this.sheetSize = this.getSpritesheetSize();
-        this.dimensions = { ...this.getSize(), ...this.getSprite() };
+        try {
+            this.sheet = this.getSpritesheet();
+            this.sheetSize = this.getSpritesheetSize();
+            this.dimensions = { ...this.getSize(), ...this.getSprite() };
+        } catch (e) {
+            console.error("Failed to create sprite for", info.name);
+            // TODO set up error handling so the editor can proceed
+            throw e;
+        }
     }
 
     private getSpritesheet() {

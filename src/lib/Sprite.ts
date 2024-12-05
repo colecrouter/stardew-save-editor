@@ -155,11 +155,12 @@ export class Sprite {
                 const sheet = this.sheet;
                 const sheetSize = spritesheetSizes.get(sheet);
                 if (!sheetSize) throw new Error(`Invalid spritesheet ${sheet}`);
+                const { width, height } = this.getSize();
 
                 return Sprite.indexToSprite(
                     index,
-                    16,
-                    16,
+                    width,
+                    height,
                     sheetSize.width,
                     sheetSize.height,
                 );

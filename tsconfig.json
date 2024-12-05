@@ -19,4 +19,14 @@
 	//
 	// If you want to overwrite includes/excludes, make sure to copy over the relevant includes/excludes
 	// from the referenced tsconfig.json - TypeScript does not merge them in
+	"exclude": [
+		"node_modules/**",
+		"src/service-worker.js",
+		"src/service-worker/**/*.js",
+		"src/service-worker.ts",
+		"src/service-worker/**/*.ts",
+		"src/service-worker.d.ts",
+		"src/service-worker/**/*.d.ts",
+		"src/dump.ts"
+	],
 }

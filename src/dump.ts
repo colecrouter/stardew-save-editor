@@ -1,5 +1,15 @@
 import { copyFile, mkdir, readFile, writeFile } from "node:fs/promises";
-import { characters } from "$lib/NPCs";
+import { imageDimensionsFromData } from "image-dimensions";
+import bigCraftables from "../content/Data/BigCraftables.json";
+import boots from "../content/Data/Boots.json";
+import furniture from "../content/Data/Furniture.json";
+import objects from "../content/Data/Objects.json";
+import pants from "../content/Data/Pants.json";
+import shirts from "../content/Data/Shirts.json";
+import tools from "../content/Data/Tools.json";
+import weapons from "../content/Data/Weapons.json";
+import hats from "../content/Data/hats.json";
+import { characters } from "./lib/NPCs";
 import type {
     BigCraftable,
     Boots,
@@ -14,21 +24,8 @@ import type {
     Tool,
     ToolClass,
     Weapon,
-} from "$types/items/1.6.js";
-import type { TypeEnum } from "$types/save/1.6";
-import {
-    imageDimensionsFromData,
-    imageDimensionsFromStream,
-} from "image-dimensions";
-import bigCraftables from "../content/Data/BigCraftables.json";
-import boots from "../content/Data/Boots.json";
-import furniture from "../content/Data/Furniture.json";
-import objects from "../content/Data/Objects.json";
-import pants from "../content/Data/Pants.json";
-import shirts from "../content/Data/Shirts.json";
-import tools from "../content/Data/Tools.json";
-import weapons from "../content/Data/Weapons.json";
-import hats from "../content/Data/hats.json";
+} from "./types/items/1.6";
+import type { TypeEnum } from "./types/save/1.6";
 
 const thrw = (msg: string): never => {
     throw new Error(msg);

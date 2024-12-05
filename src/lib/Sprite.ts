@@ -70,8 +70,10 @@ export class Sprite {
             this.dimensions = { ...this.getSize(), ...this.getSprite() };
         } catch (e) {
             console.error("Failed to create sprite for", info.name);
-            // TODO set up error handling so the editor can proceed
-            throw e;
+
+            this.sheet = "springobjects.png";
+            this.sheetSize = { width: 0, height: 0 };
+            this.dimensions = { ...this.sheetSize, x: 0, y: 0 };
         }
     }
 

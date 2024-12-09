@@ -1,4 +1,4 @@
-import { browser } from "$app/environment";
+import { browser, dev } from "$app/environment";
 import { SaveProxy } from "$lib/proxies/SaveFile.svelte";
 import { error } from "@sveltejs/kit";
 import { XMLParser } from "fast-xml-parser";
@@ -65,15 +65,12 @@ const downloadBlob = async (blob: Blob, filename: string) => {
     a.remove();
 };
 
-const isSaveFile = (obj: unknown): obj is SaveFile => {
-    return (
-        typeof obj === "object" &&
-        obj !== null &&
-        "SaveGame" in obj &&
-        typeof obj.SaveGame === "object" &&
-        obj.SaveGame !== null
-    );
-};
+const isSaveFile = (obj: unknown): obj is SaveFile =>
+    typeof obj === "object" &&
+    obj !== null &&
+    "SaveGame" in obj &&
+    typeof obj.SaveGame === "object" &&
+    obj.SaveGame !== null;
 
 export class SaveManager {
     save = $state<SaveProxy>();
@@ -81,10 +78,35 @@ export class SaveManager {
 
     constructor() {
         if (!browser) return;
+
+        // Add HMR handling for development
+        if (dev) {
+            const saveData = localStorage.getItem("save");
+            const filename = localStorage.getItem("filename");
+            if (!saveData || !filename) return;
+
+            const parsed = JSON.parse(saveData);
+            if (!isSaveFile(parsed)) return;
+
+            this.save = new SaveProxy(parsed);
+            this.filename = filename;
+        }
+    }
+
+    async flushToLocalStorage() {
+        if (!this.save) {
+            localStorage.removeItem("save");
+            localStorage.removeItem("filename");
+            return;
+        }
+
+        localStorage.setItem("save", JSON.stringify(this.save.raw));
+        localStorage.setItem("filename", this.filename);
     }
 
     async import(file: File) {
-        this.save = new SaveProxy(await importSave(file));
+        const data = await importSave(file);
+        this.save = new SaveProxy(data);
         this.filename = file.name;
     }
 
@@ -103,6 +125,7 @@ export class SaveManager {
     reset() {
         this.save = undefined;
         this.filename = "";
+        this.flushToLocalStorage();
     }
 }
 

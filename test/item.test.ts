@@ -139,4 +139,58 @@ describe("Item", () => {
             "@_xsi:type": "Hat",
         });
     });
+
+    it("should create a furnace", () => {
+        expect(Item.fromName("Furnace").raw).toMatchObject({
+            name: "Furnace",
+            itemId: "13",
+            stack: 1,
+            price: 50,
+            parentSheetIndex: 13,
+            category: -9,
+            boundingBox: {
+                X: 0,
+                Y: 0,
+                Width: 64,
+                Height: 64,
+                Size: {
+                    X: 64,
+                    Y: 64,
+                },
+                Location: {
+                    X: 0,
+                    Y: 0,
+                },
+            },
+            type: "Crafting",
+            bigCraftable: true,
+            "@_xsi:type": "Object",
+        });
+    });
+
+    it("should create a WitchBroom", () => {
+        expect(Item.fromName("WitchBroom").raw).toMatchObject({
+            name: "WitchBroom",
+            itemId: "WitchBroom",
+            stack: 1,
+            price: 999,
+            category: -24,
+            type: 6,
+            "@_xsi:type": "Furniture",
+            defaultSourceRect: {
+                X: 192,
+                Y: 64,
+                Width: 16,
+                Height: 48,
+                Location: {
+                    X: 192,
+                    Y: 64,
+                },
+                Size: {
+                    X: 16,
+                    Y: 48,
+                },
+            },
+        });
+    });
 });

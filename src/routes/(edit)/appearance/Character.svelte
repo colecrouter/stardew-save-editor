@@ -52,10 +52,10 @@
     // Calculate sprite X and Y positions
     let hatPosition = $derived(hat?.sprite.dimensions);
     let hairPosition = $derived(
-        Sprite.indexToSprite(player.hairstyle, 16, 96, 128, 672),
+        Sprite.fromIndex(player.hairstyle, 16, 96, 128, 672),
     );
     let accessoryPosition = $derived(
-        Sprite.indexToSprite(player.accessory, 16, 32, 128, 128),
+        Sprite.fromIndex(player.accessory, 16, 32, 128, 128),
     );
     let shirtPosition = $derived(shirt.sprite.dimensions);
     let pantsPosition = $derived(pants.sprite.dimensions);

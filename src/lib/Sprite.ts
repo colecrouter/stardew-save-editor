@@ -122,10 +122,10 @@ export class Sprite {
         switch (this.info._type) {
             case "Hat":
                 // Hats are 20x20, but the sprite sheet is 20x80 for 4 directions
-                return Sprite.indexToSprite(index, 20, 80, 240, 880);
+                return Sprite.fromIndex(index, 20, 80, 240, 880);
             case "Pants": {
                 // Special case, pants have 192x672 of animation frames, then the pants themselves are underneath on the left
-                const pantSprite = Sprite.indexToSprite(
+                const pantSprite = Sprite.fromIndex(
                     index,
                     192,
                     686, // I don't know if this math checks out, but it seems to work ok?
@@ -147,7 +147,7 @@ export class Sprite {
                 corresponding sprite is 128 pixels to the right.
 
             */
-                const shirtSprite = Sprite.indexToSprite(
+                const shirtSprite = Sprite.fromIndex(
                     index,
                     8,
                     32,
@@ -170,7 +170,7 @@ export class Sprite {
                 const newHeight =
                     sheet.search("furniture") !== -1 ? 16 : height;
 
-                return Sprite.indexToSprite(
+                return Sprite.fromIndex(
                     index,
                     newWidth,
                     newHeight,
@@ -181,7 +181,7 @@ export class Sprite {
         }
     }
 
-    static indexToSprite(
+    static fromIndex(
         index: number,
         itemW: number,
         itemH: number,

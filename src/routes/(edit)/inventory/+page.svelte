@@ -1,8 +1,8 @@
 <script lang="ts">
     import { ItemData } from "$lib/ItemData";
     import type { ParentIndex } from "$lib/ItemParentIndex";
-    import { Item } from "$lib/proxies/Item";
     import { getSaveManager } from "$lib/SaveManager.svelte";
+    import { Item } from "$lib/proxies/Item";
     import UiContainer from "$lib/ui/UIContainer.svelte";
     import {
         type DragDropState,

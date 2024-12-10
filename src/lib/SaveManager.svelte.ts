@@ -124,14 +124,14 @@ export class SaveManager {
         this.filename = file.name;
 
         // Backup the save file
-        // First, check if the first backup is the same as the current save
-        const first = this.backups.files[0];
-        if (first) {
-            const firstData = await first.text();
-            if (firstData === (await file.text())) return;
-
-            this.backups.files.unshift(file);
+        // First, check if the file exists already
+        for (const backup of this.backups.files) {
+            if (backup.name === file.name) return;
+            const oldData = await backup.text();
+            const newData = await file.text();
+            if (oldData === newData) return;
         }
+        this.backups.files.unshift(file);
     }
 
     async download() {

@@ -1,7 +1,7 @@
 <script lang="ts">
     import { goto } from "$app/navigation";
     import { base } from "$app/paths";
-    import { saveManager } from "$lib/save.svelte";
+    import { getSaveManager } from "$lib/SaveManager.svelte";
     import UiButton from "$lib/ui/UIButton.svelte";
     import Router from "./Router.svelte";
     interface Props {
@@ -10,56 +10,52 @@
 
     let { children }: Props = $props();
 
-    // If the save changes for whatever reason, go back to the main screen
-    const save = saveManager.save;
-    if (!save) {
-        goto(`${base}/`);
-    }
+    const saveManager = getSaveManager();
 
-    // Go back to the upload page
-    const cancel = () => {
-        if (!save) return;
-        save.raw = undefined;
-        goto(`${base}/`);
-    };
+    const cancel = () => saveManager.reset();
+    const download = async () => saveManager.download();
 
-    // Download the save file
-    const download = async () => {
-        await saveManager.download();
-    };
+    $effect(() => {
+        if (!saveManager.save) {
+            goto(`${base}/`);
+        }
+    });
 </script>
 
-<div class="outer-wrapper">
-    <Router />
-    <div class="inner-wrapper">
-        <div class="content">
-            {@render children()}
-        </div>
-        <div class="sidebar">
-            <UiButton
-                onclick={() => cancel()}
-                alt="Exit"
-                data-testid="cancel-button"
-            >
-                ❌
-            </UiButton>
-            <UiButton
-                onclick={() => download()}
-                alt="Save"
-                data-testid="save-button"
-            >
-                💾
-            </UiButton>
-            <UiButton
-                alt="Previous Character"
-                onclick={() => save?.prevFarmer()}>⬅️</UiButton
-            >
-            <UiButton alt="Next Character" onclick={() => save?.nextFarmer()}
-                >➡️</UiButton
-            >
+{#if saveManager.save}
+    <div class="outer-wrapper">
+        <Router />
+        <div class="inner-wrapper">
+            <div class="content">
+                {@render children()}
+            </div>
+            <div class="sidebar">
+                <UiButton
+                    onclick={() => cancel()}
+                    alt="Exit"
+                    data-testid="cancel-button"
+                    >❌
+                </UiButton>
+                <UiButton
+                    onclick={() => download()}
+                    alt="Save"
+                    data-testid="save-button"
+                    >💾
+                </UiButton>
+                <UiButton
+                    alt="Previous Character"
+                    onclick={() => saveManager.save?.prevFarmer()}
+                    >⬅️
+                </UiButton>
+                <UiButton
+                    alt="Next Character"
+                    onclick={() => saveManager.save?.nextFarmer()}
+                    >➡️
+                </UiButton>
+            </div>
         </div>
     </div>
-</div>
+{/if}
 
 <style>
     .sidebar {

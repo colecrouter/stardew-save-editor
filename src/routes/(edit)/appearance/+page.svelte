@@ -1,7 +1,7 @@
 <script lang="ts">
+    import { getSaveManager } from "$lib/SaveManager.svelte";
     import { Color } from "$lib/proxies/Color";
     import type { Farmer } from "$lib/proxies/Farmer";
-    import { saveManager } from "$lib/save.svelte";
     import UiContainer from "$lib/ui/UIContainer.svelte";
     import { Gender } from "$types/save/1.6";
     import Preview from "./CharacterPreview.svelte";
@@ -24,7 +24,7 @@
         ["Acc", "accessory", -1, 29],
     ] satisfies [string, keyof Farmer, number, number][];
 
-    const save = saveManager.save;
+    const save = getSaveManager().save;
     if (!save) throw new Error("No player data found");
 </script>
 

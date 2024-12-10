@@ -1,21 +1,24 @@
 <script lang="ts">
-    import { BackupManager } from "$lib/Backups";
+    import { getSaveManager } from "$lib/SaveManager.svelte";
     import UiContainer from "$lib/ui/UIContainer.svelte";
     import Backup from "./Backup.svelte";
 
-    const backups = BackupManager.backups;
+    const saveManager = getSaveManager();
+    const backups = $derived(saveManager.backups.files);
 </script>
 
 <section>
     <UiContainer>
         <div class="wrapper">
-            {#if $backups.length > 0}
-                {#each $backups as backup, i}
+            {#if backups === undefined}
+                <h2>Loading...</h2>
+            {:else if backups.length > 0}
+                {#each backups as backup, i}
                     <div class="line">
                         <Backup
                             {backup}
                             deleteFunc={() => {
-                                BackupManager.splice(i, 1);
+                                backups.splice(i, 1);
                             }}
                         />
                     </div>

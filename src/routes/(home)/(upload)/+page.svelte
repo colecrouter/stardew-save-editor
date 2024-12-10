@@ -3,11 +3,12 @@
 
     import { goto } from "$app/navigation";
     import { base } from "$app/paths";
-    import { saveManager } from "$lib/save.svelte";
+    import { getSaveManager } from "$lib/SaveManager.svelte";
     import UiContainer from "$lib/ui/UIContainer.svelte";
 
     let submit = $state<HTMLInputElement>();
     let files = $state<FileList>();
+    const saveManager = getSaveManager();
 
     const handle = async () => {
         // We have to instantiate the filelist here because it's not available in node
@@ -21,9 +22,6 @@
 
         try {
             await saveManager.import(file);
-            // Save is good, back it up
-            const { BackupManager: Backups } = await import("$lib/Backups");
-            Backups.unshift(file);
 
             goto(`${base}/inventory`);
         } catch (e) {

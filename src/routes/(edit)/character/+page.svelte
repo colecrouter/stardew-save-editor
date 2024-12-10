@@ -1,14 +1,15 @@
 <script lang="ts">
+    import { getSaveManager } from "$lib/SaveManager.svelte";
     import type { Farmer } from "$lib/proxies/Farmer";
-    import { saveManager } from "$lib/save.svelte";
     import UiContainer from "$lib/ui/UIContainer.svelte";
     import UiContainerSmall from "$lib/ui/UIContainerSmall.svelte";
     import SkillBar from "./SkillBar.svelte";
     import WalletItem from "./WalletItem.svelte";
 
-    const player = saveManager.save?.player;
-    const farm = saveManager.save?.farm;
-    const save = saveManager.save;
+    const save = getSaveManager().save;
+    const player = save?.player;
+    const farm = save?.farm;
+    console.log(save);
     if (!player || !farm || !save) throw new Error("No player data found");
 
     const unlocks = [

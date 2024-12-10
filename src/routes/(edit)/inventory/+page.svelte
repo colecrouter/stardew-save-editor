@@ -1,8 +1,8 @@
 <script lang="ts">
     import { ItemData } from "$lib/ItemData";
     import type { ParentIndex } from "$lib/ItemParentIndex";
+    import { getSaveManager } from "$lib/SaveManager.svelte";
     import { Item } from "$lib/proxies/Item";
-    import { saveManager } from "$lib/save.svelte";
     import UiContainer from "$lib/ui/UIContainer.svelte";
     import {
         type DragDropState,
@@ -14,7 +14,7 @@
     import ItemSprite from "./ItemSprite.svelte";
     import ItemView from "./ItemView.svelte";
 
-    const save = saveManager.save;
+    const save = getSaveManager().save;
     if (!save) throw new Error("No save data found");
     let selectedIndex: ParentIndex = $state(0);
     let selectedItem = $derived(save.player.inventory.getItem(selectedIndex));

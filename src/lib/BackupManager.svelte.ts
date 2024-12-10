@@ -1,6 +1,5 @@
 import { browser } from "$app/environment";
 import { openDB } from "idb";
-import { get, writable } from "svelte/store";
 
 const BACKUP_LIMIT = 5;
 
@@ -12,15 +11,38 @@ interface SerializedFile {
     type: string;
 }
 
-class BackupController {
-    public backups = writable<Array<File>>([]);
+const isSerializedFile = (obj: unknown): obj is SerializedFile =>
+    typeof obj === "object" &&
+    obj !== null &&
+    "name" in obj &&
+    "data" in obj &&
+    "lastModified" in obj &&
+    "size" in obj &&
+    "type" in obj;
 
-    constructor() {
-        if (!browser) {
-            return;
-        }
+const isSerializedFileArray = (obj: unknown): obj is Array<SerializedFile> =>
+    Array.isArray(obj) && obj.every(isSerializedFile);
 
-        // Load the files from the database
+export class BackupManager {
+    files = $state<Array<File>>();
+    readonly limit: number;
+
+    constructor(limit = BACKUP_LIMIT) {
+        this.limit = limit;
+        if (!browser) return;
+    }
+
+    init() {
+        $effect(() => {
+            if (!this.files) return;
+
+            // Limit the number of backups
+            this.files.length = Math.min(this.files.length, this.limit);
+
+            // Save the files when backups change
+            this.save();
+        });
+
         this.load();
     }
 
@@ -30,7 +52,9 @@ class BackupController {
             upgrade: (db) =>
                 db.createObjectStore("files", { autoIncrement: true }),
         });
-        const backupFiles = (await db.getAll("files")) as Array<SerializedFile>;
+        const backupFiles = await db.getAll("files");
+        if (!isSerializedFileArray(backupFiles))
+            throw new Error("Invalid data");
 
         const newFiles = new Array<File>();
         for (const file of backupFiles) {
@@ -41,14 +65,15 @@ class BackupController {
                 }),
             );
         }
-
-        this.backups.set(newFiles);
+        this.files = newFiles;
     }
 
     private async save() {
-        const files: Array<SerializedFile> = [];
-        for (const file of get(this.backups)) {
-            files.unshift({
+        if (!this.files) throw new Error("Missing call to init()");
+        const serializedFiles = new Array<SerializedFile>();
+
+        for (const file of this.files) {
+            serializedFiles.unshift({
                 name: file.name,
                 data: await file.text(),
                 lastModified: file.lastModified,
@@ -59,117 +84,8 @@ class BackupController {
 
         const db = await openDB("backups", 1);
         await db.clear("files");
-        for (const file of files) {
+        for (const file of serializedFiles) {
             await db.add("files", file);
         }
     }
-
-    public async push(...files: File[]): Promise<number> {
-        const backups = get(this.backups);
-
-        for (const file of files) {
-            // Check if the file is the same as any of the current ones, if so, return
-            if (
-                backups.some(
-                    (backup) =>
-                        backup.name === file.name &&
-                        backup.lastModified === file.lastModified &&
-                        backup.size === file.size,
-                )
-            ) {
-                return 0;
-            }
-
-            // Add the file to the array
-            backups.push(file);
-
-            // If we have too many files, remove the oldest one
-            if (backups.length > BACKUP_LIMIT) {
-                backups.shift();
-            }
-        }
-
-        this.backups.set(backups);
-
-        await this.save();
-
-        return 0;
-    }
-
-    public async unshift(...files: File[]): Promise<number> {
-        const backups = get(this.backups);
-
-        for (const file of files) {
-            // Check if the file is the same as any of the current ones, if so, return
-            if (
-                backups.some(
-                    (backup) =>
-                        backup.name === file.name &&
-                        backup.lastModified === file.lastModified &&
-                        backup.size === file.size,
-                )
-            ) {
-                return 0;
-            }
-
-            // Add the file to the array
-            backups.unshift(file);
-
-            // If we have too many files, remove the oldest one
-            if (backups.length > BACKUP_LIMIT) {
-                backups.shift();
-            }
-
-            this.backups.set(backups);
-        }
-
-        await this.save();
-
-        return 0;
-    }
-
-    public async shift(): Promise<File | undefined> {
-        const backups = get(this.backups);
-
-        // Remove the oldest file
-        const file = backups.shift();
-
-        this.backups.set(backups);
-
-        await this.save();
-
-        return file;
-    }
-
-    public async pop(): Promise<File | undefined> {
-        const backups = get(this.backups);
-
-        // Remove the newest file
-        const file = backups.pop();
-
-        this.backups.set(backups);
-
-        await this.save();
-
-        return file;
-    }
-
-    public async splice(
-        start: number,
-        deleteCount?: number,
-        ...items: File[]
-    ): Promise<File[]> {
-        const backups = get(this.backups);
-
-        // Remove the newest file
-        const files = backups.splice(start, deleteCount ?? 1, ...items);
-
-        this.backups.set(backups);
-
-        await this.save();
-
-        return files;
-    }
 }
-
-export const BackupManager = new BackupController();

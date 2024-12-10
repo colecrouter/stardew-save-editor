@@ -1,4 +1,5 @@
 import { browser, dev } from "$app/environment";
+import { BackupManager } from "$lib/BackupManager.svelte";
 import { SaveProxy } from "$lib/proxies/SaveFile.svelte";
 import { error } from "@sveltejs/kit";
 import { XMLParser } from "fast-xml-parser";
@@ -75,6 +76,7 @@ const isSaveFile = (obj: unknown): obj is SaveFile =>
 export class SaveManager {
     save = $state<SaveProxy>();
     filename = "";
+    backups = new BackupManager();
 
     constructor() {
         if (!browser) return;
@@ -93,7 +95,7 @@ export class SaveManager {
         }
     }
 
-    async flushToLocalStorage() {
+    private async flushToLocalStorage() {
         if (!this.save) {
             localStorage.removeItem("save");
             localStorage.removeItem("filename");
@@ -104,10 +106,32 @@ export class SaveManager {
         localStorage.setItem("filename", this.filename);
     }
 
+    /** This must be called from a component lifecycle */
+    async init() {
+        if (dev) {
+            $effect(() => {
+                this.flushToLocalStorage();
+            });
+        }
+
+        this.backups.init();
+    }
+
     async import(file: File) {
+        if (!this.backups.files) throw new Error("Missing call to init()");
         const data = await importSave(file);
         this.save = new SaveProxy(data);
         this.filename = file.name;
+
+        // Backup the save file
+        // First, check if the first backup is the same as the current save
+        const first = this.backups.files[0];
+        if (first) {
+            const firstData = await first.text();
+            if (firstData === (await file.text())) return;
+
+            this.backups.files.unshift(file);
+        }
     }
 
     async download() {

@@ -1,5 +1,4 @@
 <script lang="ts">
-    import { dev } from "$app/environment";
     import { base } from "$app/paths";
     import { setSaveManager } from "$lib/SaveManager.svelte";
     interface Props {
@@ -9,12 +8,7 @@
     let { children }: Props = $props();
 
     const saveManager = setSaveManager();
-
-    $effect(() => {
-        if (dev) {
-            saveManager.flushToLocalStorage();
-        }
-    });
+    saveManager.init();
 </script>
 
 <svelte:head>

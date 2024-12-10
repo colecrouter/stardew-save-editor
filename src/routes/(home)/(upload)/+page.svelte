@@ -22,11 +22,6 @@
 
         try {
             await saveManager.import(file);
-            // Save is good, back it up
-            const { BackupManager: Backups } = await import(
-                "$lib/BackupManager.svelte"
-            );
-            Backups.unshift(file);
 
             goto(`${base}/inventory`);
         } catch (e) {

@@ -95,7 +95,15 @@ export class Sprite {
 
     private getSize() {
         if (this.info._type === "Furniture") {
-            return furnitureDefaultSizes.get(this.info.type) ?? defaultSize;
+            const furnitureType = this.info.type;
+            const explicitSize = this.info.tilesheetSize;
+            if (explicitSize) {
+                const newWidth = explicitSize.width * 16;
+                const newHeight = explicitSize.height * 16;
+                return { width: newWidth, height: newHeight };
+            }
+
+            return furnitureDefaultSizes.get(furnitureType) ?? defaultSize;
         }
 
         return spriteDefaultSizes.get(this.info._type) ?? defaultSize;
@@ -157,10 +165,15 @@ export class Sprite {
                 if (!sheetSize) throw new Error(`Invalid spritesheet ${sheet}`);
                 const { width, height } = this.getSize();
 
+                // Not sure what this is about
+                const newWidth = sheet.search("furniture") !== -1 ? 16 : width;
+                const newHeight =
+                    sheet.search("furniture") !== -1 ? 16 : height;
+
                 return Sprite.indexToSprite(
                     index,
-                    width,
-                    height,
+                    newWidth,
+                    newHeight,
                     sheetSize.width,
                     sheetSize.height,
                 );

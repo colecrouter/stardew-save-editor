@@ -159,3 +159,7 @@ export const setSaveManager = () => setContext(SAVE_KEY, new SaveManager());
 
 export const getSaveManager = () =>
     getContext<SaveManager>(SAVE_KEY) ?? error(500, "No save manager found");
+
+export const setSaveManagerContext = (s: SaveManager) => {
+    return new Map([[SAVE_KEY, s]]);
+};

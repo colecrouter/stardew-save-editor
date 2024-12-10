@@ -1,10 +1,10 @@
 <script lang="ts">
     import { preventDefault } from "svelte/legacy";
 
-    import { getSaveManager } from "$lib/SaveManager.svelte";
-    import UiContainer from "$lib/ui/UIContainer.svelte";
     import { goto } from "$app/navigation";
     import { base } from "$app/paths";
+    import { getSaveManager } from "$lib/SaveManager.svelte";
+    import UiContainer from "$lib/ui/UIContainer.svelte";
 
     let submit = $state<HTMLInputElement>();
     let files = $state<FileList>();
@@ -23,7 +23,9 @@
         try {
             await saveManager.import(file);
             // Save is good, back it up
-            const { BackupManager: Backups } = await import("$lib/Backups");
+            const { BackupManager: Backups } = await import(
+                "$lib/BackupManager.svelte"
+            );
             Backups.unshift(file);
 
             goto(`${base}/inventory`);

@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { BackupManager } from "$lib/Backups";
+    import { BackupManager } from "$lib/BackupManager.svelte";
     import UiContainer from "$lib/ui/UIContainer.svelte";
     import Backup from "./Backup.svelte";
 

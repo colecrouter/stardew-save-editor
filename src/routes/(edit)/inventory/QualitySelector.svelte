@@ -22,13 +22,22 @@
     };
 
     const changePrice = (newQuality: number) => {
-        if (!("price" in item.info) || item.info.price === undefined) return;
+        if (
+            !item.info! ||
+            "price" in item.info ||
+            item.info.price === undefined
+        )
+            return;
 
         item.price = CalculatePrice(item.info.price, newQuality);
     };
 
     const changeEdibility = (newQuality: number) => {
-        if (!("edibility" in item.info) || item.info.edibility === undefined)
+        if (
+            !item.info! ||
+            !("edibility" in item.info) ||
+            item.info.edibility === undefined
+        )
             return;
 
         item.edibility = CalculateEdibility(item.info.edibility, newQuality);

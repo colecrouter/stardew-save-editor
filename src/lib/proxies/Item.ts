@@ -21,7 +21,7 @@ import { ClothesType, type Item as ItemModel } from "$types/save/1.6";
 const nil = { "@_xsi:nil": "true" };
 
 // Mapping of data types to item types
-const typeToItemTypeMap = new Map<Item["info"]["_type"], string>([
+const typeToItemTypeMap = new Map<ItemInformation["_type"], string>([
     ["Object", "Object"],
     ["BigCraftable", "Object"],
     ["Furniture", "Furniture"],
@@ -62,8 +62,8 @@ const typeToCategoryMap = {
 
 export class Item {
     readonly raw: ItemModel;
-    readonly info: ItemInformation;
-    readonly sprite: Sprite;
+    readonly info?: ItemInformation;
+    readonly sprite?: Sprite;
 
     constructor(raw: ItemModel) {
         this.raw = raw;
@@ -72,9 +72,13 @@ export class Item {
             raw.name === "Shirt"
                 ? Shirts.get(raw.itemId.toString())
                 : ItemData.get(ItemNameHelper(raw));
-        if (!info) throw new Error(`Item "${raw.name}" not found in ItemData`);
-        this.info = info;
+        // if (!info) throw new Error(`Item "${raw.name}" not found in ItemData`);
+        if (!info) {
+            console.warn(`Item "${raw.name}" not found in ItemData`);
+            return;
+        }
 
+        this.info = info;
         this.sprite = new Sprite(info);
     }
 
@@ -300,10 +304,11 @@ export class Item {
     }
 
     get type() {
-        return this.info._type;
+        return this.info?._type;
     }
 
     get amount() {
+        if (!this.info) return undefined;
         // TODO: Since 1.6 removed stackable field, not sure how to actually know
         if (
             [
@@ -362,6 +367,7 @@ export class Item {
 
     get price() {
         if (
+            !this.info ||
             ![
                 "Object",
                 "BigCraftable",
@@ -387,6 +393,7 @@ export class Item {
 
     get color() {
         if (
+            !this.info ||
             !("canBeDyed" in this.info) ||
             !this.info.canBeDyed ||
             !this.raw.clothesColor
@@ -410,7 +417,7 @@ export class Item {
     }
 
     get minDamage() {
-        if (this.info._type !== "Weapon") return undefined;
+        if (this.info?._type !== "Weapon") return undefined;
 
         return this.raw.minDamage;
     }
@@ -426,7 +433,7 @@ export class Item {
     }
 
     get maxDamage() {
-        if (this.info._type !== "Weapon") return undefined;
+        if (this.info?._type !== "Weapon") return undefined;
 
         return this.raw.maxDamage;
     }
@@ -442,7 +449,7 @@ export class Item {
     }
 
     get speed() {
-        if (this.info._type !== "Weapon") return undefined;
+        if (this.info?._type !== "Weapon") return undefined;
 
         return this.raw.speed;
     }
@@ -457,7 +464,7 @@ export class Item {
     }
 
     get knockback() {
-        if (this.info._type !== "Weapon") return undefined;
+        if (this.info?._type !== "Weapon") return undefined;
 
         return this.raw.knockback;
     }
@@ -473,7 +480,7 @@ export class Item {
     }
 
     get critChance() {
-        if (this.info._type !== "Weapon") return undefined;
+        if (this.info?._type !== "Weapon") return undefined;
 
         return this.raw.critChance;
     }
@@ -489,7 +496,7 @@ export class Item {
     }
 
     get critMultiplier() {
-        if (this.info._type !== "Weapon") return undefined;
+        if (this.info?._type !== "Weapon") return undefined;
 
         return this.raw.critMultiplier;
     }
@@ -505,7 +512,7 @@ export class Item {
     }
 
     get precision() {
-        if (this.info._type !== "Weapon") return undefined;
+        if (this.info?._type !== "Weapon") return undefined;
 
         return this.raw.addedPrecision;
     }
@@ -521,7 +528,7 @@ export class Item {
     }
 
     get areaOfEffect() {
-        if (this.info._type !== "Weapon") return undefined;
+        if (this.info?._type !== "Weapon") return undefined;
 
         return this.raw.addedAreaOfEffect;
     }
@@ -541,7 +548,8 @@ export class Item {
     }
 
     get defense() {
-        if (!["Boots", "Weapon"].includes(this.info._type)) return undefined;
+        if (!this.info || !["Boots", "Weapon"].includes(this.info._type))
+            return undefined;
 
         return this.raw.addedDefense;
     }
@@ -557,7 +565,7 @@ export class Item {
     }
 
     get immunityBonus() {
-        if (this.info._type !== "Boots") return undefined;
+        if (this.info?._type !== "Boots") return undefined;
 
         return this.raw.immunityBonus;
     }

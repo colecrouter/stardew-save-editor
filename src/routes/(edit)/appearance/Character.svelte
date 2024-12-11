@@ -50,29 +50,31 @@
     let boots = $derived(player.boots);
 
     // Calculate sprite X and Y positions
-    let hatPosition = $derived(hat?.sprite.dimensions);
+    let hatPosition = $derived(hat?.sprite?.dimensions);
     let hairPosition = $derived(
         Sprite.fromIndex(player.hairstyle, 16, 96, 128, 672),
     );
     let accessoryPosition = $derived(
         Sprite.fromIndex(player.accessory, 16, 32, 128, 128),
     );
-    let shirtPosition = $derived(shirt.sprite.dimensions);
-    let pantsPosition = $derived(pants.sprite.dimensions);
+    let shirtPosition = $derived(shirt.sprite?.dimensions);
+    let pantsPosition = $derived(pants.sprite?.dimensions);
     let showHair = $derived(
-        hat === undefined || hat.info._type !== "Hat" || !hat.info.showRealHair,
+        hat === undefined ||
+            hat.info?._type !== "Hat" ||
+            !hat.info?.showRealHair,
     );
 
     // Tint colors
     let defaultTint = new Color("#00000000");
     let pantsTint = $derived(
-        pants.info._type === "Pants" && pants.info.canBeDyed && pants?.color
+        pants.info?._type === "Pants" && pants.info.canBeDyed && pants?.color
             ? pants.color
             : new Color("#00000000"),
     );
     let hairTint: ColorType = $derived(player.hairColor);
     let shirtTint: ColorType = $derived(
-        shirt?.info._type === "Shirt" && shirt.info.canBeDyed && shirt?.color
+        shirt?.info?._type === "Shirt" && shirt.info.canBeDyed && shirt?.color
             ? shirt.color
             : new Color("#00000000"),
     );

@@ -8,25 +8,31 @@
 
     let { item }: Props = $props();
 
-    let spritesheet = $derived(item?.sprite.sheet);
-    let x = $derived(item?.sprite.dimensions.x);
-    let y = $derived(item?.sprite.dimensions.y);
-    let w = $derived(item?.sprite.dimensions.width);
-    let h = $derived(item?.sprite.dimensions.height);
+    let spritesheet = $derived(item?.sprite?.sheet);
+    let x = $derived(item?.sprite?.dimensions.x);
+    let y = $derived(item?.sprite?.dimensions.y);
+    let w = $derived(item?.sprite?.dimensions.width);
+    let h = $derived(item?.sprite?.dimensions.height);
 </script>
 
-<div
-    class="item"
-    style:--w={`${w}px`}
-    style:--h={`${h}px`}
-    style:--z={`${32 / Math.max(w ?? 0, h ?? 0, 16)}`}
-    style:--x={`${x}px`}
-    style:--y={`${y}px`}
-    style:--sprite={spritesheet && `url(${base}/assets/${spritesheet})`}
-    style:--tint={`rgb(${item?.color?.R ?? 0},${item?.color?.G ?? 0},${item?.color?.B ?? 0})`}
-    class:dyeable={item && "color" in item && item.color}
-    class:hat={item && item.type === "Hat"}
-></div>
+{#if item}
+    {#if item.info}
+        <div
+            class="item"
+            style:--w={`${w}px`}
+            style:--h={`${h}px`}
+            style:--z={`${32 / Math.max(w ?? 0, h ?? 0, 16)}`}
+            style:--x={`${x}px`}
+            style:--y={`${y}px`}
+            style:--sprite={spritesheet && `url(${base}/assets/${spritesheet})`}
+            style:--tint={`rgb(${item?.color?.R ?? 0},${item?.color?.G ?? 0},${item?.color?.B ?? 0})`}
+            class:dyeable={item && "color" in item && item.color}
+            class:hat={item && item.type === "Hat"}
+        ></div>
+    {:else}
+        <div class="item">??</div>
+    {/if}
+{/if}
 
 <style>
     .item {

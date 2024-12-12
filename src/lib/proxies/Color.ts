@@ -1,4 +1,4 @@
-import type { Color as ColorType } from "$types/save/1.6";
+import type { Color as ColorType } from "$types/save";
 
 // Type to make the specified keys optional, but keep the rest of the keys the same.
 type OptionalPick<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;

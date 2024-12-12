@@ -1,4 +1,4 @@
-import type { Color } from "$types/save/1.6";
+import type { Color } from "$types/save";
 
 export const PrimarySkinColors: Array<Color> = [
     { R: 249, G: 174, B: 137, A: 255, PackedValue: 0 },

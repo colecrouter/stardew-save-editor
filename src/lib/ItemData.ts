@@ -1,11 +1,11 @@
+import jsondata from "$generated/iteminfo.json";
 import {
     FurnitureType,
     type ItemInformation,
     ObjectCategory,
     type Shirt,
-} from "$types/items/1.6";
-import type { Item } from "$types/save/1.6";
-import jsondata from "../../static/iteminfo.json";
+} from "$types/items";
+import type { Item } from "$types/save";
 export const HatWhichNumber = new Map([
     ["Cowboy Hat", 0],
     ["Bowler Hat", 1],

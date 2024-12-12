@@ -3,7 +3,7 @@
     import { Color } from "$lib/proxies/Color";
     import type { Farmer } from "$lib/proxies/Farmer";
     import UiContainer from "$lib/ui/UIContainer.svelte";
-    import { Gender } from "$types/save/1.6";
+    import { Gender } from "$types/save";
     import Preview from "./CharacterPreview.svelte";
 
     const textFields = [

@@ -1,6 +1,6 @@
 import type { ParentIndex } from "$lib/ItemParentIndex";
 import { Item } from "$lib/proxies/Item";
-import type { Inventory as InventoryModel, Player } from "$types/save/1.6";
+import type { Player } from "$types/save";
 
 const nil = { "@_xsi:nil": "true" };
 const isNil = (value: unknown): value is { "@_xsi:nil": "true" } =>

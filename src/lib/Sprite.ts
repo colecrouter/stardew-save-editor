@@ -1,12 +1,12 @@
+import dimensions from "$generated/dimensions.json";
 import type { Farmer } from "$lib/proxies/Farmer";
 import {
     type Coordinates,
     FurnitureType,
     type ItemInformation,
     type Size,
-} from "$types/items/1.6";
-import { Gender } from "$types/save/1.6";
-import dimensions from "../../static/dimensions.json";
+} from "$types/items";
+import { Gender } from "$types/save";
 
 const defaultSize = { width: 16, height: 16 } satisfies Size;
 

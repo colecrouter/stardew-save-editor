@@ -15,8 +15,8 @@ import {
     type ItemInformation,
     ObjectCategory,
     type ToolClass,
-} from "$types/items/1.6";
-import { ClothesType, type Item as ItemModel } from "$types/save/1.6";
+} from "$types/items";
+import { ClothesType, type Item as ItemModel } from "$types/save";
 
 const nil = { "@_xsi:nil": "true" };
 

@@ -9,7 +9,7 @@ import shirts from "../content/Data/Shirts.json";
 import tools from "../content/Data/Tools.json";
 import weapons from "../content/Data/Weapons.json";
 import hats from "../content/Data/hats.json";
-import { characters } from "./lib/NPCs";
+import { characters } from "../src/lib/NPCs";
 import type {
     BigCraftable,
     Boots,
@@ -24,8 +24,8 @@ import type {
     Tool,
     ToolClass,
     Weapon,
-} from "./types/items/1.6";
-import type { TypeEnum } from "./types/save/1.6";
+} from "./items";
+import type { TypeEnum } from "./save";
 
 const thrw = (msg: string): never => {
     throw new Error(msg);
@@ -237,7 +237,7 @@ const cookingRecipes = JSON.parse(
 ) as Record<string, string>;
 const cookingRecipesArray = Object.entries(cookingRecipes).map(([key]) => key);
 await writeFile(
-    "./static/cookingrecipes.json",
+    "./generated/cookingrecipes.json",
     JSON.stringify(cookingRecipesArray),
 );
 
@@ -248,7 +248,7 @@ const craftingRecipesArray = Object.entries(craftingRecipes).map(
     ([key]) => key,
 );
 await writeFile(
-    "./static/craftingrecipes.json",
+    "./generated/craftingrecipes.json",
     JSON.stringify(craftingRecipesArray),
 );
 
@@ -268,7 +268,7 @@ const writeToFile = JSON.stringify(
         .filter(notUndefined)
         .map((item) => [item.name, item]),
 );
-await writeFile("./static/iteminfo.json", writeToFile);
+await writeFile("./generated/iteminfo.json", writeToFile);
 
 // Copy all textures into assets folder
 // Copy assets
@@ -312,7 +312,7 @@ await Promise.all(
     }),
 );
 await writeFile(
-    "./static/dimensions.json",
+    "./generated/dimensions.json",
     JSON.stringify([...dimensions].sort(([a], [b]) => a.localeCompare(b))),
 );
 

@@ -1,4 +1,4 @@
-import type { FurnitureType } from "$types/items/1.6";
+import type { FurnitureType } from "./items";
 
 export interface Save {
     player: Player;

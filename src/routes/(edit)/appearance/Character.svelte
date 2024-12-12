@@ -13,8 +13,8 @@
     import { Color } from "$lib/proxies/Color";
     import type { Farmer } from "$lib/proxies/Farmer";
     import { Item } from "$lib/proxies/Item";
-    import type { Coordinates } from "$types/items/1.6";
-    import { type Color as ColorType, Gender } from "$types/save/1.6";
+    import type { Coordinates } from "$types/items";
+    import { type Color as ColorType, Gender } from "../../../../codegen/save";
 
     interface Props {
         player: Farmer;

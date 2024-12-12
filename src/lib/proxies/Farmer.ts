@@ -3,7 +3,7 @@ import { Flags } from "$lib/proxies/Flags";
 import { Inventory } from "$lib/proxies/Inventory";
 import { Recipes } from "$lib/proxies/Recipes";
 import { Skills } from "$lib/proxies/Skills";
-import type { Player } from "$types/save/1.6";
+import type { Player } from "$types/save";
 
 export class Farmer {
     public raw: Player;

@@ -1,6 +1,6 @@
-import type { Player } from "$types/save/1.6";
-import cookingRecipes from "../../../static/cookingrecipes.json";
-import craftingRecipes from "../../../static/craftingrecipes.json";
+import cookingRecipes from "$generated/cookingrecipes.json";
+import craftingRecipes from "$generated/craftingrecipes.json";
+import type { Player } from "$types/save";
 
 type RecipeType = "craftingRecipes" | "cookingRecipes";
 const _: Player[RecipeType]["item"] = [];

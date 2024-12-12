@@ -1,4 +1,4 @@
-import type { Player } from "$types/save/1.6";
+import type { Player } from "$types/save";
 
 const nil = { "@_xsi:nil": "true" } as const;
 

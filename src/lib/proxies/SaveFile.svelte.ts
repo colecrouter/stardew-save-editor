@@ -1,5 +1,5 @@
 import { Farmer } from "$lib/proxies/Farmer";
-import type { GameLocation } from "$types/save/1.6";
+import type { GameLocation } from "$types/save";
 import { XMLBuilder } from "fast-xml-parser";
 
 export class SaveProxy {

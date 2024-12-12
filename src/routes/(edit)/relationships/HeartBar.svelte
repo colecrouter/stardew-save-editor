@@ -2,7 +2,7 @@
     import { base } from "$app/paths";
     import { dateableCharacters } from "$lib/NPCs";
     import UiContainerSmall from "$lib/ui/UIContainerSmall.svelte";
-    import type { FriendshipDataItem } from "$types/save/1.6";
+    import type { FriendshipDataItem } from "$types/save";
 
     interface Props {
         npc: FriendshipDataItem;

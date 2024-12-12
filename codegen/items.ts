@@ -1,4 +1,4 @@
-import type { TypeEnum } from "$types/save/1.6";
+import type { TypeEnum } from "./save";
 
 interface Base {
     _type: string;

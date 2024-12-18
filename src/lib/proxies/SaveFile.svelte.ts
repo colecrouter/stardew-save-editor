@@ -56,7 +56,19 @@ export class SaveProxy {
             .replaceAll("&apos;", "'")
             .replaceAll("/>", " />");
         if (!xml) throw new Error("Failed to generate XML");
-        const blob = new Blob([xml], { type: "text/text" });
+
+        // Create UTF-8 BOM bytes
+        const bom = new Uint8Array([0xef, 0xbb, 0xbf]);
+        // Convert XML string to UTF-8 encoded bytes
+        const xmlBytes = new TextEncoder().encode(xml);
+        // Combine BOM and XML bytes
+        const combinedArray = new Uint8Array(bom.length + xmlBytes.length);
+        combinedArray.set(bom);
+        combinedArray.set(xmlBytes, bom.length);
+
+        const blob = new Blob([combinedArray], {
+            type: "text/text; charset=UTF-8",
+        });
 
         return blob;
     }

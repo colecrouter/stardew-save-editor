@@ -128,7 +128,7 @@ export class Sprite {
                 const pantSprite = Sprite.fromIndex(
                     index,
                     192,
-                    686, // I don't know if this math checks out, but it seems to work ok?
+                    688, // I don't know if this math checks out, but it seems to work ok?
                     1920,
                     1376,
                 );

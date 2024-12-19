@@ -34,7 +34,7 @@ const typeToItemTypeMap = new Map<ItemInformation["_type"], string>([
 
 // Mapping of tool names to tool types
 const toolTypeMap = new Map<string, ToolClass>([
-    ["Milk Pail", "MilkPail"],
+    ["Pail", "MilkPail"],
     ["Pickaxe", "Pickaxe"],
     ["Axe", "Axe"],
     ["Hoe", "Hoe"],
@@ -151,7 +151,7 @@ export class Item {
 
         // Handle tools separately
         if (data._type === "Tool") {
-            const nameWithoutPrefix = name.split(" ").slice(1).join(" ");
+            const nameWithoutPrefix = name.split(" ").pop() ?? "";
             itemType = toolTypeMap.get(nameWithoutPrefix);
 
             // Special handling for upgrade levels

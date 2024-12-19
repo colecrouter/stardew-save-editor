@@ -220,4 +220,13 @@ describe("Item", () => {
             "@_xsi:type": "Boots",
         });
     });
+
+    it("should create an Advanced Iridium Rod", () => {
+        expect(Item.fromName("Advanced Iridium Rod").raw).toMatchObject({
+            name: "Advanced Iridium Rod",
+            itemId: "AdvancedIridiumRod",
+            category: -99,
+            "@_xsi:type": "FishingRod",
+        });
+    });
 });

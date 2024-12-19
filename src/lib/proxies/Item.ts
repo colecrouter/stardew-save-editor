@@ -288,9 +288,9 @@ export class Item {
         if (data._type in ClothesType) {
             item.clothesType =
                 ClothesType[data._type as keyof typeof ClothesType];
-            if (data._type === "Boots") {
-                item.indexInColorSheet = data.colorIndex;
-            }
+        }
+        if (data._type === "Boots") {
+            item.indexInColorSheet = data.colorIndex;
         }
 
         // TODO: Handle the Copper Pan hat special case if needed

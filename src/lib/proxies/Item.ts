@@ -27,6 +27,9 @@ const typeToItemTypeMap = new Map<ItemInformation["_type"], string>([
     ["Furniture", "Furniture"],
     ["Weapon", "MeleeWeapon"],
     ["Hat", "Hat"],
+    ["Shirt", "Clothing"],
+    ["Pants", "Clothing"],
+    ["Boots", "Boots"],
 ]);
 
 // Mapping of tool names to tool types

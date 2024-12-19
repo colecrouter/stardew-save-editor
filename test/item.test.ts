@@ -193,4 +193,31 @@ describe("Item", () => {
             },
         });
     });
+
+    it("should create a Tank Top (M)", () => {
+        expect(Item.fromName("Tank Top (M)").raw).toMatchObject({
+            name: "Tank Top (M)",
+            itemId: "1129",
+            price: 50,
+            "@_xsi:type": "Clothing",
+        });
+    });
+
+    it("should create Polka Dot Shorts", () => {
+        expect(Item.fromName("Polka Dot Shorts").raw).toMatchObject({
+            name: "Polka Dot Shorts",
+            itemId: "14",
+            price: 50,
+            "@_xsi:type": "Clothing",
+        });
+    });
+
+    it("should create Combat Boots", () => {
+        expect(Item.fromName("Combat Boots").raw).toMatchObject({
+            name: "Combat Boots",
+            itemId: "508",
+            indexInColorSheet: 4,
+            "@_xsi:type": "Boots",
+        });
+    });
 });

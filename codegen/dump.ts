@@ -9,6 +9,7 @@ import shirts from "../content/Data/Shirts.json";
 import tools from "../content/Data/Tools.json";
 import weapons from "../content/Data/Weapons.json";
 import hats from "../content/Data/hats.json";
+import animals from "../content/Data/FarmAnimals.json";
 import { characters } from "../src/lib/NPCs";
 import type {
     BigCraftable,
@@ -328,3 +329,11 @@ for (const char of characters) {
         `./static/assets/portraits/${char}.png`,
     );
 }
+
+const farmAnimals = Object.entries(animals).map(([key, obj]) => ({
+    name: obj.DisplayName,
+    requiredBuilding: obj.RequiredBuilding,
+    house: obj.House,
+    canReproduce: obj.CanGetPregnant,
+}));
+await writeFile("./generated/farmanimals.json", JSON.stringify(farmAnimals));

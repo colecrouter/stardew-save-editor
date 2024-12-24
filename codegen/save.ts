@@ -544,7 +544,7 @@ export interface BuildingPaintColor {
 
 export interface Indoors {
     buildings: string;
-    animals: AnimalsClass | string;
+    animals: AnimalsArray | null;
     piecesOfHay: number;
     characters: string;
     objects: IndoorsObjects;
@@ -576,19 +576,19 @@ export interface Indoors {
 }
 
 export interface IndoorsAnimals {
-    SerializableDictionaryOfInt64FarmAnimal: AnimalsClass | string;
+    SerializableDictionaryOfInt64FarmAnimal: AnimalsArray | string;
 }
 
-export interface AnimalsClass {
-    item: AnimalsItem[];
+export interface AnimalsArray {
+    item: AnimalsKV[];
 }
 
-export interface AnimalsItem {
+export interface AnimalsKV {
     key: LongContainer;
-    value: FluffyValue;
+    value: AnimalValue;
 }
 
-export interface FluffyValue {
+export interface AnimalValue {
     FarmAnimal: FarmAnimal;
 }
 
@@ -629,7 +629,7 @@ export interface FarmAnimal {
     wasPet: boolean;
     allowReproduction: boolean;
     type: string;
-    buildingTypeILiveIn: BuildingTypeILiveIn;
+    buildingTypeILiveIn: string;
     myID: number;
     ownerID: number;
     parentId: number;
@@ -637,11 +637,6 @@ export interface FarmAnimal {
     moodMessage: number;
     isEating: boolean;
     displayName: string;
-}
-
-export enum BuildingTypeILiveIn {
-    Barn = "Barn",
-    Coop = "Coop",
 }
 
 export interface AnimalsThatLiveHere {

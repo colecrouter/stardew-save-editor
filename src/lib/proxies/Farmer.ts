@@ -191,6 +191,10 @@ export class Farmer {
         this.raw.experiencePoints.int = value.raw;
     }
 
+    get uniqueID() {
+        return this.raw.UniqueMultiplayerID;
+    }
+
     toJSON() {
         // Undo type safety enhancements
         // 1. Inventory, switch undefined into <string xsi:nil="true" /> (for farmhands, too) (flags too)

@@ -14,7 +14,7 @@ function getRandomInt() {
 }
 
 export class FarmAnimal {
-    private raw: AnimalsKV;
+    raw: AnimalsKV;
 
     constructor(raw: AnimalsKV) {
         this.raw = raw;

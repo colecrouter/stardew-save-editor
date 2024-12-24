@@ -310,7 +310,7 @@ export interface Locations {
 
 export interface GameLocation {
     buildings: BuildingsClass | undefined;
-    animals: string;
+    animals: AnimalsArray | null;
     piecesOfHay: number;
     characters: NPCContainer | undefined;
     objects: ObjectsObjects | undefined;
@@ -404,10 +404,11 @@ export interface GameLocation {
     puzzleFinished?: boolean;
     gourmandRequestsFulfilled?: number;
     raceTrack?: RaceTrack;
+    uniqueName?: string;
 }
 
 export interface GameLocationAnimals {
-    SerializableDictionaryOfInt64FarmAnimal: string;
+    SerializableDictionaryOfInt64FarmAnimal: AnimalsArray | null;
 }
 
 export interface Gil {
@@ -521,7 +522,7 @@ export interface Building {
     fadeWhenPlayerIsBehind: boolean;
     owner: number;
     isMoving: boolean;
-    indoors?: Indoors;
+    indoors?: GameLocation;
     watered?: boolean;
     petGuid?: string;
 }
@@ -540,39 +541,6 @@ export interface BuildingPaintColor {
     Color3Hue: IntContainer;
     Color3Saturation: IntContainer;
     Color3Lightness: IntContainer;
-}
-
-export interface Indoors {
-    buildings: string;
-    animals: AnimalsArray | null;
-    piecesOfHay: number;
-    characters: string;
-    objects: IndoorsObjects;
-    resourceClumps: string;
-    largeTerrainFeatures: string;
-    terrainFeatures: string;
-    uniqueName: string;
-    name: string;
-    waterColor: Color;
-    isFarm: boolean;
-    isOutdoors: boolean;
-    isStructure: boolean;
-    ignoreDebrisWeather: boolean;
-    ignoreOutdoorLighting: boolean;
-    ignoreLights: boolean;
-    treatAsOutdoors: boolean;
-    numberOfSpawnedObjectsOnMap: number;
-    miniJukeboxCount: number;
-    miniJukeboxTrack: string;
-    furniture: string;
-    Animals: IndoorsAnimals;
-    IsGreenhouse: boolean;
-    animalLimit?: number;
-    animalsThatLiveHere?: AnimalsThatLiveHere;
-    wallPaper?: string;
-    appliedWallpaper?: IndoorsAppliedFloor;
-    floor?: string;
-    appliedFloor?: IndoorsAppliedFloor;
 }
 
 export interface IndoorsAnimals {

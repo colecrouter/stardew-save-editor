@@ -1,5 +1,6 @@
 import { Farmer } from "$lib/proxies/Farmer";
-import type { GameLocation } from "$types/save";
+import { GameLocation } from "$lib/proxies/GameLocation";
+import type { GameLocation as Location } from "$types/save";
 import { XMLBuilder } from "fast-xml-parser";
 
 export class SaveProxy {
@@ -113,18 +114,33 @@ export class SaveProxy {
         const farm = this.raw?.SaveGame.locations.GameLocation.find(
             (l) => l.name === "Farm",
         );
+        if (!farm) throw new Error("Farm not found");
 
-        return farm;
+        return new GameLocation(farm);
     }
 
-    set farm(farm: GameLocation | undefined) {
+    set farm(farm) {
         if (!this.raw) return;
         if (!farm) throw new Error("Farm is required");
 
         const index = this.raw.SaveGame.locations.GameLocation.findIndex(
             (l) => l.name === "Farm",
         );
-        this.raw.SaveGame.locations.GameLocation[index] = farm;
+        this.raw.SaveGame.locations.GameLocation[index] = farm.raw;
+    }
+
+    get locations() {
+        if (!this.raw) return [];
+        return this.raw.SaveGame.locations.GameLocation.map(
+            (l) => new GameLocation(l),
+        );
+    }
+
+    set locations(locations) {
+        if (!this.raw) return;
+        if (!locations.length) throw new Error("Locations are required");
+
+        this.raw.SaveGame.locations.GameLocation = locations.map((l) => l.raw);
     }
 
     get goldenWalnuts() {

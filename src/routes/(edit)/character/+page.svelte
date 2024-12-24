@@ -9,7 +9,6 @@
     const save = getSaveManager().save;
     const player = save?.player;
     const farm = save?.farm;
-    console.log(save);
     if (!player || !farm || !save) throw new Error("No player data found");
 
     const unlocks = [

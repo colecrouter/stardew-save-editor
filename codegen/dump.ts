@@ -1,7 +1,8 @@
-import { copyFile, mkdir, readFile, writeFile } from "node:fs/promises";
 import { imageDimensionsFromData } from "image-dimensions";
+import { copyFile, mkdir, readFile, writeFile } from "node:fs/promises";
 import bigCraftables from "../content/Data/BigCraftables.json";
 import boots from "../content/Data/Boots.json";
+import animals from "../content/Data/FarmAnimals.json";
 import furniture from "../content/Data/Furniture.json";
 import objects from "../content/Data/Objects.json";
 import pants from "../content/Data/Pants.json";
@@ -9,8 +10,8 @@ import shirts from "../content/Data/Shirts.json";
 import tools from "../content/Data/Tools.json";
 import weapons from "../content/Data/Weapons.json";
 import hats from "../content/Data/hats.json";
-import animals from "../content/Data/FarmAnimals.json";
 import { characters } from "../src/lib/NPCs";
+import buildings from "../content/Data/Buildings.json";
 import type {
     BigCraftable,
     Boots,
@@ -337,3 +338,11 @@ const farmAnimals = Object.entries(animals).map(([key, obj]) => ({
     canReproduce: obj.CanGetPregnant,
 }));
 await writeFile("./generated/farmanimals.json", JSON.stringify(farmAnimals));
+
+const buildingsArray = Object.entries(buildings).map(([key, obj]) => ({
+    name: key,
+    size: obj.Size,
+    maxOccupants: obj.MaxOccupants,
+    hayCapacity: obj.HayCapacity,
+}));
+await writeFile("./generated/buildings.json", JSON.stringify(buildingsArray));

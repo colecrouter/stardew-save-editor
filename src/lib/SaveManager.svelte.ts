@@ -12,7 +12,7 @@ const arrayTags = new Set([
     "item",
     "GameLocations",
     "characters",
-    "objects",
+    // "objects",
     "Farmer",
 ]);
 

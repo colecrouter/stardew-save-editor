@@ -205,7 +205,7 @@ export enum Season {
 }
 
 export interface ItemContainer {
-    Item: Item[];
+    Object: Item;
 }
 
 export interface BoundingBox extends TileLocation {
@@ -313,7 +313,7 @@ export interface GameLocation {
     animals: AnimalsArray | null;
     piecesOfHay: number;
     characters: NPCContainer | undefined;
-    objects: ObjectsObjects | undefined;
+    objects: ObjectsArray | undefined;
     resourceClumps: ResourceClumpsClass | undefined;
     largeTerrainFeatures: LargeTerrainFeaturesClass | undefined;
     terrainFeatures: TerrainFeaturesClass | undefined;
@@ -405,6 +405,7 @@ export interface GameLocation {
     gourmandRequestsFulfilled?: number;
     raceTrack?: RaceTrack;
     uniqueName?: string;
+    animalsThatLiveHere?: LongArrContainer;
 }
 
 export interface GameLocationAnimals {
@@ -607,7 +608,7 @@ export interface FarmAnimal {
     displayName: string;
 }
 
-export interface AnimalsThatLiveHere {
+export interface LongArrContainer {
     long: number[];
 }
 
@@ -824,93 +825,13 @@ export interface MuseumPiecesItem {
     value: ValueClass;
 }
 
-export interface ObjectsObjects {
-    item: PurpleItem[];
+export interface ObjectsArray {
+    item: ItemKV[];
 }
 
-export interface PurpleItem {
+export interface ItemKV {
     key: TileLocationContainer;
-    value: StickyValue;
-}
-
-export interface StickyValue {
-    Object: ObjectClass;
-}
-
-export interface ObjectClass {
-    isLostItem: boolean;
-    category: number;
-    hasBeenInInventory: boolean;
-    name: string;
-    parentSheetIndex: number;
-    itemId: number;
-    specialItem: boolean;
-    isRecipe: boolean;
-    quality: number;
-    stack: number;
-    SpecialVariable: number;
-    tileLocation: TileLocation;
-    owner: number;
-    type: TypeEnum;
-    canBeSetDown: boolean;
-    canBeGrabbed: boolean;
-    isSpawnedObject: boolean;
-    questItem: boolean;
-    questId?: number;
-    isOn: boolean;
-    fragility: number;
-    price: number;
-    edibility: number;
-    bigCraftable: boolean;
-    setOutdoors: boolean;
-    setIndoors: boolean;
-    readyForHarvest: boolean;
-    showNextIndex: boolean;
-    flipped: boolean;
-    isLamp: boolean;
-    minutesUntilReady: number;
-    boundingBox: BoundingBox;
-    scale: TileLocation;
-    uses: number;
-    destroyOvernight: boolean;
-    health?: number;
-    maxHealth?: number;
-    whichType?: string;
-    gatePosition?: number;
-    gateMotion?: number;
-    isGate?: boolean;
-    currentLidFrame?: number;
-    lidFrameCount?: IntContainer;
-    frameCounter?: number;
-    items?: ItemContainer | string;
-    separateWalletItems?: SeparateWalletItems;
-    tint?: Color;
-    playerChoiceColor?: Color;
-    playerChest?: boolean;
-    fridge?: boolean;
-    giftbox?: boolean;
-    giftboxIndex?: number;
-    giftboxIsStarterGift?: BoolContainer;
-    spriteIndexOverride?: number;
-    dropContents?: boolean;
-    synchronized?: boolean;
-    specialChestType?: SpecialChestType;
-    globalInventoryId?: StringContainer;
-    heldObject?: Item;
-    lastOutputRuleId?: string;
-    lastInputItem?: Item;
-    agingRate?: number;
-    daysToMature?: number;
-    requiredItem?: Item;
-    successColor?: Color;
-    lockOnSuccess?: boolean;
-    locked?: boolean;
-    match?: boolean;
-    isIslandShrinePedestal?: boolean;
-}
-
-export interface ItemContainer {
-    Item: Item[];
+    value: ItemContainer;
 }
 
 export interface RaceTrack {
@@ -1462,6 +1383,20 @@ export interface Item {
     skipHairDraw?: boolean;
     ignoreHairstyleOffset?: boolean;
     hairDrawType?: number;
+    health?: number;
+    maxHealth?: number;
+    whichType?: string;
+    gatePosition?: number;
+    gateMotion?: number;
+    isGate?: boolean;
+    agingRate?: number;
+    daysToMature?: number;
+    requiredItem?: Item;
+    successColor?: Color;
+    lockOnSuccess?: boolean;
+    locked?: boolean;
+    match?: boolean;
+    isIslandShrinePedestal?: boolean;
 }
 
 export interface AttachmentsAttachments {

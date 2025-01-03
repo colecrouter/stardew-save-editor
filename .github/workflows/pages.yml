@@ -23,6 +23,11 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
+    env:
+      PUBLIC_SENTRY_DSN: ${{ vars.PUBLIC_SENTRY_DSN }}
+      BUILD_SENTRY_ORG: ${{ secrets.BUILD_SENTRY_ORG }}
+      BUILD_SENTRY_PROJECT: ${{ secrets.BUILD_SENTRY_PROJECT }}
+      BUILD_SENTRY_AUTH_TOKEN: ${{ secrets.BUILD_SENTRY_AUTH_TOKEN }}
 
     steps:
       - uses: actions/checkout@v3

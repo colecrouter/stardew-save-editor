@@ -17,9 +17,10 @@
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^1.9.4",
+		"@sentry/sveltekit": "^8.47.0",
 		"@sveltejs/adapter-static": "^3.0.6",
-		"@sveltejs/kit": "^2.7.3",
-		"@testing-library/svelte": "^5.2.4",
+		"@sveltejs/kit": "^2.15.1",
+		"@testing-library/svelte": "^5.2.6",
 		"@thisux/sveltednd": "^0.0.16",
 		"@total-typescript/ts-reset": "^0.5.1",
 		"@types/node": "^18.19.59",
@@ -35,8 +36,8 @@
 		"tslib": "^2.4.1",
 		"tsx": "^4.19.1",
 		"typescript": "^5.0.0",
-		"vite": "^6.0.0",
-		"vitest": "^2.1.4",
+		"vite": "^6.0.7",
+		"vitest": "^2.1.8",
 		"vitest-indexeddb": "^0.0.0"
 	},
 	"type": "module"

@@ -1,6 +1,6 @@
-import { Gender, type AnimalsKV } from "$types/save";
 import animals from "$generated/farmanimals.json";
 import type { Farmer } from "$lib/proxies/Farmer";
+import { type AnimalsKV, Gender } from "$types/save";
 
 // function getRandomLong() {
 //     const array = new Uint32Array(2);

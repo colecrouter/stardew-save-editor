@@ -1,5 +1,5 @@
-import * as Sentry from "@sentry/sveltekit";
 import * as Secrets from "$env/static/public";
+import * as Sentry from "@sentry/sveltekit";
 
 const { PUBLIC_SENTRY_DSN: dsn } = Secrets as Record<string, string>;
 

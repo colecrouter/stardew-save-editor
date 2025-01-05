@@ -47,7 +47,7 @@
     <div class="character-info">
         <label>
             <span hidden>Farm Name:</span>
-            <input type="text" bind:value={player.farmName} />
+            <input type="text" bind:value={player.farmName} data-sentry-mask />
             Farm
         </label>
         <label>

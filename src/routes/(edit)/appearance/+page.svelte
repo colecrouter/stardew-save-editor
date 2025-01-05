@@ -82,6 +82,7 @@
                             type="text"
                             data-testid={`appearance-${key}`}
                             bind:value={save.player[key]}
+                            data-sentry-mask
                         />
                     </label>
                 </div>

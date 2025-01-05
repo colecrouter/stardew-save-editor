@@ -29,8 +29,6 @@
 		"happy-dom": "^15.11.6",
 		"idb": "^7.1.1",
 		"image-dimensions": "^2.3.0",
-		"prettier": "^3.3.2",
-		"prettier-plugin-svelte": "^3.2.6",
 		"svelte": "^5.16.1",
 		"svelte-check": "^4.0.0",
 		"tslib": "^2.4.1",

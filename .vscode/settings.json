@@ -8,5 +8,5 @@
     "[typescript]": {
         "editor.defaultFormatter": "biomejs.biome"
     },
-    "prettier.prettierPath": "node_modules/prettier",
+    // "prettier.prettierPath": "node_modules/prettier",
 }

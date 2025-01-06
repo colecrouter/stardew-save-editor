@@ -20,6 +20,13 @@ const config = {
         prerender: {
             handleHttpError: "warn",
         },
+        csp: {
+            mode: "auto",
+            directives: {
+                "connect-src": ["self", "https://*.ingest.us.sentry.io"],
+                "script-src": ["self", "unsafe-eval"],
+            },
+        },
     },
     vitePlugin: { inspector: true },
 };

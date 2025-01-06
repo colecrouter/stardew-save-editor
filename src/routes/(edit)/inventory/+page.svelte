@@ -2,6 +2,7 @@
     import { ItemData } from "$lib/ItemData";
     import type { ParentIndex } from "$lib/ItemParentIndex";
     import { getSaveManager } from "$lib/SaveManager.svelte";
+    import { getToastManager, Toast } from "$lib/ToastManager.svelte";
     import { Item } from "$lib/proxies/Item";
     import UiContainer from "$lib/ui/UIContainer.svelte";
     import {
@@ -14,6 +15,7 @@
     import ItemSprite from "./ItemSprite.svelte";
     import ItemView from "./ItemView.svelte";
 
+    const toastManager = getToastManager();
     const save = getSaveManager().save;
     if (!save) throw new Error("No save data found");
     let selectedIndex: ParentIndex = $state(0);
@@ -101,8 +103,23 @@
             {selectedItem}
             {selectedIndex}
             createItem={(item) => {
-                const newItem = Item.fromName(item);
-                save.player.inventory.setItem(selectedIndex, newItem);
+                try {
+                    if (item === "") {
+                        return toastManager.add(
+                            new Toast(
+                                "You must enter an item name first",
+                                "failure",
+                            ),
+                        );
+                    }
+                    const newItem = Item.fromName(item);
+                    save.player.inventory.setItem(selectedIndex, newItem);
+                } catch (e) {
+                    toastManager.add(
+                        new Toast("Failed to create item", "failure"),
+                    );
+                    throw e;
+                }
             }}
             deleteItem={() => {
                 save.player.inventory.deleteItem(selectedIndex);

@@ -24,10 +24,11 @@
             .then(() =>
                 toastManager.add(new Toast("Save file downloaded!", "success")),
             )
-            .catch(() => {
+            .catch((e) => {
                 toastManager.add(
                     new Toast("Failed to download save file", "failure"),
                 );
+                if (e instanceof Error && e.name !== "AbortError") throw e;
                 console.warn("Aborted download");
             })
             .finally(() => {

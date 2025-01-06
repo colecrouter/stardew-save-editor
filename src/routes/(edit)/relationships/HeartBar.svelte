@@ -32,6 +32,8 @@
             Math.max(0, Math.min(value, maxamount)),
         );
     }
+
+    // TODO refactor some of this. Modding can cause more heart events (???)
 </script>
 
 <div class="row">
@@ -48,7 +50,7 @@
                     ❤️
                 </button>
             {/each}
-            {#each Array(maxhearts - hearts) as _, i}
+            {#each Array(Math.max(maxhearts - hearts, 0)) as _, i}
                 <button
                     onclick={() =>
                         update(hearts * INTERVAL + i * INTERVAL + INTERVAL)}
@@ -56,7 +58,7 @@
                     🖤
                 </button>
             {/each}
-            {#each Array(14 - maxhearts) as _}
+            {#each Array(14 - maxhearts)}
                 <span>🏳️</span>
             {/each}
         </div>

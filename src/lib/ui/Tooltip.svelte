@@ -2,19 +2,24 @@
     interface Props {
         children: import("svelte").Snippet;
         text: string;
+        disabled?: boolean;
     }
 
-    let { children, text }: Props = $props();
+    let { children, text, disabled }: Props = $props();
 </script>
 
-<div class="tooltip-wrapper">
+{#if disabled}
     {@render children()}
-    <div class="tooltip">
-        <div class="tooltip-content">
-            {text}
+{:else}
+    <div class="tooltip-wrapper">
+        {@render children()}
+        <div class="tooltip">
+            <div class="tooltip-content">
+                {text}
+            </div>
         </div>
     </div>
-</div>
+{/if}
 
 <style>
     .tooltip-wrapper {

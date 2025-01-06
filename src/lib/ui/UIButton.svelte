@@ -3,16 +3,30 @@
     import UiContainerSmall from "$lib/ui/UIContainerSmall.svelte";
     import type { Snippet } from "svelte";
 
-    interface Props {
-        children: Snippet;
-        alt?: string;
-        href?: string;
-        active?: boolean;
-        [key: string]: unknown;
-    }
-    import { page } from "$app/stores";
+    type Props = HTMLButtonAttributes &
+        HTMLAnchorAttributes & {
+            children: Snippet;
+            alt?: string;
+            href?: string;
+            active?: boolean;
+            disabled?: boolean;
 
-    let { children, alt, href, active = false, ...props }: Props = $props();
+            [key: string]: unknown;
+        };
+    import { page } from "$app/stores";
+    import type {
+        HTMLAnchorAttributes,
+        HTMLButtonAttributes,
+    } from "svelte/elements";
+
+    let {
+        children,
+        alt,
+        href,
+        disabled,
+        active = false,
+        ...props
+    }: Props = $props();
 </script>
 
 {#snippet content()}
@@ -21,21 +35,23 @@
     </UiContainerSmall>
 {/snippet}
 
-<Tooltip text={alt ?? ""}>
-    {#if href}
-        <a
-            {href}
-            aria-label={alt}
-            class:active={$page.url.pathname === href || active}
-            {...props}
-        >
-            {@render content()}
-        </a>
-    {:else}
-        <button {...props} aria-label={alt} class:active>
-            {@render content()}
-        </button>
-    {/if}
+<Tooltip text={alt ?? ""} {disabled}>
+    <div class="wrapper" class:disabled>
+        {#if href}
+            <a
+                {href}
+                aria-label={alt}
+                class:active={$page.url.pathname === href || active}
+                {...props}
+            >
+                {@render content()}
+            </a>
+        {:else}
+            <button {...props} aria-label={alt} class:active {disabled}>
+                {@render content()}
+            </button>
+        {/if}
+    </div>
 </Tooltip>
 
 <style>
@@ -60,5 +76,11 @@
 
     .active {
         filter: brightness(0.85);
+    }
+
+    .wrapper.disabled {
+        filter: brightness(0.75);
+        pointer-events: none;
+        touch-action: none;
     }
 </style>

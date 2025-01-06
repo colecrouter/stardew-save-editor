@@ -2,6 +2,7 @@
     import { goto } from "$app/navigation";
     import { base } from "$app/paths";
     import { getSaveManager } from "$lib/SaveManager.svelte";
+    import { getToastManager, Toast } from "$lib/ToastManager.svelte";
     import UiButton from "$lib/ui/UIButton.svelte";
     import Router from "./Router.svelte";
     interface Props {
@@ -10,10 +11,29 @@
 
     let { children }: Props = $props();
 
+    const toastManager = getToastManager();
     const saveManager = getSaveManager();
 
+    let isDownloading = $state(false);
+
     const cancel = () => saveManager.reset();
-    const download = async () => saveManager.download();
+    const download = async () => {
+        isDownloading = true;
+        return saveManager
+            .download()
+            .then(() =>
+                toastManager.add(new Toast("Save file downloaded!", "success")),
+            )
+            .catch(() => {
+                toastManager.add(
+                    new Toast("Failed to download save file", "failure"),
+                );
+                console.warn("Aborted download");
+            })
+            .finally(() => {
+                isDownloading = false;
+            });
+    };
 
     $effect(() => {
         if (!saveManager.save) {
@@ -45,11 +65,13 @@
                 <UiButton
                     alt="Previous Character"
                     onclick={() => saveManager.save?.prevFarmer()}
+                    disabled={saveManager.save.players.length <= 1}
                     >⬅️
                 </UiButton>
                 <UiButton
                     alt="Next Character"
                     onclick={() => saveManager.save?.nextFarmer()}
+                    disabled={saveManager.save.players.length <= 1}
                     >➡️
                 </UiButton>
             </div>

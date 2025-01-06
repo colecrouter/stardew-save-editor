@@ -1,12 +1,15 @@
 <script lang="ts">
     import { base } from "$app/paths";
     import { setSaveManager } from "$lib/SaveManager.svelte";
+    import { setToastManager, Toast } from "$lib/ToastManager.svelte";
+    import Toasts from "$lib/ui/Toasts.svelte";
     interface Props {
         children?: import("svelte").Snippet;
     }
 
     let { children }: Props = $props();
 
+    const toastManager = setToastManager();
     const saveManager = setSaveManager();
     saveManager.init();
 </script>
@@ -39,6 +42,8 @@
 <main>
     {@render children?.()}
 </main>
+
+<Toasts />
 
 <!-- FOOTER -->
 <small>

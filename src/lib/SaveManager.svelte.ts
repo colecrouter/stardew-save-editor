@@ -40,6 +40,7 @@ const importSave = async (file: File) => {
 
 const downloadBlob = async (blob: Blob, filename: string) => {
     // If supported, use file picker
+    // https://caniuse.com/mdn-api_window_showsavefilepicker
     if ("showSaveFilePicker" in window) {
         const handle = await window.showSaveFilePicker({
             types: [

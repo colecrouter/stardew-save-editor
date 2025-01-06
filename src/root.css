@@ -38,28 +38,3 @@ h5 {
 h3 {
     border-bottom: solid 2px #5b2b2a;
 }
-
-input[type="text"],
-input[type="number"] {
-    border-radius: 4px;
-    border: solid 2px;
-    border-bottom-color: #9c613b;
-    border-left-color: #9c613b;
-    border-right-color: #6f3b31;
-    border-top-color: #6f3b31;
-    background-color: #f9bb65;
-    box-shadow:
-        inset -2px 2px 0 #e38813,
-        -2px 2px 1px rgba(0, 0, 0, 0.2);
-}
-
-input[type="text"]:disabled,
-input[type="number"]:disabled {
-    background-color: #de9a3c;
-    color: #000;
-}
-
-input[type="text"]:focus,
-input[type="number"]:focus {
-    outline: none;
-}

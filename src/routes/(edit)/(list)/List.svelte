@@ -3,6 +3,7 @@
     import type { Snippet } from "svelte";
     import ItemSprite from "../inventory/ItemSprite.svelte";
     import { recipeMapping } from "./mapping";
+    import UiInput from "$lib/ui/UIInput.svelte";
 
     interface Props {
         record: Record<string, unknown>;
@@ -18,7 +19,9 @@
     );
 </script>
 
-<input type="text" placeholder="Search..." bind:value={filter} />
+<div class="search">
+    <UiInput type="text" placeholder="Search..." bind:value={filter} />
+</div>
 
 <div class="wrapper">
     {#each filtered as key}
@@ -38,7 +41,7 @@
 </div>
 
 <style>
-    input[type="text"] {
+    .search :global(input) {
         width: 100%;
         margin: 4px;
         margin-bottom: 8px;

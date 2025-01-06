@@ -3,6 +3,7 @@
     import type { ParentIndex } from "$lib/ItemParentIndex";
     import { Color } from "$lib/proxies/Color";
     import type { Item } from "$lib/proxies/Item";
+    import UiInput from "$lib/ui/UIInput.svelte";
     import ItemSlot from "./ItemSlot.svelte";
     import ItemSprite from "./ItemSprite.svelte";
     import QualitySelector from "./QualitySelector.svelte";
@@ -24,7 +25,7 @@
     let newItemName = $state("");
 
     const properties = [
-        ["Amount", "amount", 0, 999],
+        ["Amount", "amount", 1, 9999],
         ["Min Dmg", "minDamage", 0, 999],
         ["Max Dmg", "maxDamage", 0, 999],
         ["Knockback", "knockback", 0, 999],
@@ -32,7 +33,7 @@
         ["Precision", "precision", 0, 999],
         ["Defense", "defense", 0, 999],
         ["Area of Effect", "areaOfEffect", 0, 999],
-        ["Crit Chance", "critChance", 0, 1],
+        ["Crit Chance", "critChance", 0, 1, 0.01],
         ["Crit Multiplier", "critMultiplier", 0, 999],
         ["Immunity Bonus", "immunityBonus", 0, 999],
         ["Color Index", "raw.indexInColorSheet", 0, 71],
@@ -43,7 +44,13 @@
         ["Price", "price", 0, 2 ** 31 - 1], // 32 bit signed int
         ["Color", "color", null, null],
         ["Quality", "quality", null, null],
-    ] as [string, keyof Item, number | null, number | null][];
+    ] as [
+        string,
+        keyof Item,
+        number | null,
+        number | null,
+        number | undefined,
+    ][];
 </script>
 
 <div class="editor">
@@ -59,30 +66,34 @@
         {#if selectedItem}
             <label>
                 <small>Item Name</small>
-                <input
+                <UiInput
                     type="text"
                     value={ItemNameHelper(selectedItem.raw)}
                     disabled
                 />
             </label>
-            {#each properties as [label, key, min, max]}
+            {#each properties as [label, key, min, max, step]}
                 {#if selectedItem[key] !== undefined}
                     <label>
                         <small>{label}</small>
                         {#if key === "quality"}
                             <QualitySelector bind:item={selectedItem} />
                         {:else if typeof selectedItem[key] === "number"}
-                            <input
+                            <UiInput
                                 type="number"
                                 bind:value={selectedItem[key]}
                                 data-testid={`property-${key}`}
                                 {min}
                                 {max}
+                                {step}
                             />
                         {:else if typeof selectedItem[key] === "string"}
-                            <input type="text" bind:value={selectedItem[key]} />
+                            <UiInput
+                                type="text"
+                                bind:value={selectedItem[key]}
+                            />
                         {:else if selectedItem[key] instanceof Color}
-                            <input
+                            <UiInput
                                 type="color"
                                 value={selectedItem[key].toHex()}
                                 onchange={(e) => {
@@ -102,7 +113,7 @@
         {:else if selectedIndex}
             <label>
                 <small>Item Name</small>
-                <input
+                <UiInput
                     type="text"
                     list="new-items"
                     data-testid="item-name"

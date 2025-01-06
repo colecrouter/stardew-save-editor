@@ -1,6 +1,7 @@
 <script lang="ts">
     import type { ParentIndex } from "$lib/ItemParentIndex";
     import type { Farmer } from "$lib/proxies/Farmer";
+    import UiInput from "$lib/ui/UIInput.svelte";
     import Preview from "../appearance/CharacterPreview.svelte";
     import ItemSlot from "./ItemSlot.svelte";
     import ItemSprite from "./ItemSprite.svelte";
@@ -42,31 +43,37 @@
             </div>
         </div>
 
-        <input type="text" class="character-name" bind:value={player.name} />
+        <div class="character-name">
+            <UiInput type="text" bind:value={player.name} />
+        </div>
     </div>
     <div class="character-info">
         <label>
             <span hidden>Farm Name:</span>
-            <input type="text" bind:value={player.farmName} data-sentry-mask />
+            <UiInput
+                type="text"
+                bind:value={player.farmName}
+                data-sentry-mask
+            />
             Farm
         </label>
         <label>
             Current Funds:
-            <input type="number" bind:value={player.money} />
+            <UiInput type="number" bind:value={player.money} />
         </label>
         <label>
             Total Earnings:
-            <input type="number" bind:value={player.totalMoneyEarned} />
+            <UiInput type="number" bind:value={player.totalMoneyEarned} />
         </label>
     </div>
 </div>
 
 <style>
-    .character-details input {
+    .character-details :global(input) {
         text-align: center;
     }
 
-    .character-name {
+    .character-name :global(input) {
         width: 10em;
     }
 
@@ -102,7 +109,7 @@
         display: block;
     }
 
-    input[type="number"] {
+    .character-info :global(input[type="number"]) {
         width: 6em;
     }
 </style>

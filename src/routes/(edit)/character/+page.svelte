@@ -3,6 +3,7 @@
     import type { Farmer } from "$lib/proxies/Farmer";
     import UiContainer from "$lib/ui/UIContainer.svelte";
     import UiContainerSmall from "$lib/ui/UIContainerSmall.svelte";
+    import UiInput from "$lib/ui/UIInput.svelte";
     import SkillBar from "./SkillBar.svelte";
     import WalletItem from "./WalletItem.svelte";
 
@@ -39,7 +40,7 @@
             <label for={`skills-${key}`}>
                 {label}
                 <SkillBar bind:skill={save.player.skills[key]} />
-                <input
+                <UiInput
                     id={`skills-${key}`}
                     type="number"
                     min="0"
@@ -56,7 +57,7 @@
     <div class="stats">
         <label>
             Health ❤️
-            <input
+            <UiInput
                 type="number"
                 min="0"
                 max="99999"
@@ -65,7 +66,7 @@
         </label>
         <label>
             Stamina ⚡
-            <input
+            <UiInput
                 type="number"
                 min="0"
                 max="99999"
@@ -74,7 +75,7 @@
         </label>
         <label>
             Qi Gems 💎
-            <input
+            <UiInput
                 type="number"
                 min="0"
                 max="99999"
@@ -83,7 +84,7 @@
         </label>
         <label>
             Qi Coins 💰
-            <input
+            <UiInput
                 type="number"
                 min="0"
                 max="99999"
@@ -92,7 +93,7 @@
         </label>
         <label>
             Hay 🌾
-            <input
+            <UiInput
                 type="number"
                 min="0"
                 max="99999"
@@ -101,7 +102,7 @@
         </label>
         <label>
             Golden Walnuts 🌰
-            <input
+            <UiInput
                 type="number"
                 min="0"
                 max="99999"
@@ -156,14 +157,6 @@
         flex-direction: row;
         justify-content: space-between;
         align-items: center;
-    }
-
-    input[type="number"] {
-        width: 4em;
-    }
-
-    input[type="number"]::-webkit-inner-spin-button {
-        appearance: none;
     }
 
     .wallet {

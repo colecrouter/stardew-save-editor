@@ -325,7 +325,7 @@ export class Item {
             ].includes(this.info._type)
         )
             return undefined;
-        return this.raw.stack;
+        return this.raw.stack ?? 1;
     }
 
     set amount(amount) {
@@ -364,6 +364,8 @@ export class Item {
     set edibility(edibility) {
         if (this.edibility === undefined)
             throw new Error("Item has no edibility");
+        if (edibility === undefined || edibility < -300 || edibility > 100)
+            throw new Error("Edibility must be between -300 and 100");
 
         this.raw.edibility = edibility;
     }

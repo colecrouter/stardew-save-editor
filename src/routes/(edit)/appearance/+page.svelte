@@ -3,6 +3,7 @@
     import { Color } from "$lib/proxies/Color";
     import type { Farmer } from "$lib/proxies/Farmer";
     import UiContainer from "$lib/ui/UIContainer.svelte";
+    import UiInput from "$lib/ui/UIInput.svelte";
     import { Gender } from "$types/save";
     import Preview from "./CharacterPreview.svelte";
 
@@ -62,7 +63,7 @@
                 {#each numberFields as [label, key, min, max]}
                     <label>
                         {label}
-                        <input
+                        <UiInput
                             type="number"
                             data-testid={`appearance-${key}`}
                             {min}
@@ -78,7 +79,7 @@
                 <div>
                     <label>
                         <small>{label}</small>
-                        <input
+                        <UiInput
                             type="text"
                             data-testid={`appearance-${key}`}
                             bind:value={save.player[key]}
@@ -148,7 +149,7 @@
         gap: 8px;
     }
 
-    input {
+    .editor2 :global(input) {
         text-align: center;
     }
 

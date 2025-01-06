@@ -2,6 +2,7 @@
     import { base } from "$app/paths";
     import { dateableCharacters } from "$lib/NPCs";
     import UiContainerSmall from "$lib/ui/UIContainerSmall.svelte";
+    import UiInput from "$lib/ui/UIInput.svelte";
     import type { FriendshipDataItem } from "$types/save";
 
     interface Props {
@@ -59,7 +60,7 @@
                 <span>🏳️</span>
             {/each}
         </div>
-        <input
+        <UiInput
             type="number"
             class="amount"
             min="0"

@@ -109,15 +109,19 @@
                 bind:value={save.goldenWalnuts}
             />
         </label>
-        <label>
-            Deepest Mine ⛏️
-            <UiInput
-                type="number"
-                min="0"
-                max="120"
-                bind:value={save.deepestMineLevel}
-            />
-        </label>
+        <div>
+            <label>
+                Deepest Mine ⛏️
+                <UiInput
+                    type="number"
+                    min="0"
+                    max="77376"
+                    bind:value={save.deepestMineLevel}
+                />
+                <!-- 77377 is the quarry level -->
+            </label>
+            <small>1-120 (The Mines), 121- (Skull Cavern)</small>
+        </div>
     </div>
 
     <h3>Wallet</h3>
@@ -161,11 +165,16 @@
         padding-top: 8px;
     }
 
-    .stats > label {
+    .stats label {
         display: flex;
         flex-direction: row;
         justify-content: space-between;
         align-items: center;
+    }
+
+    .stats small {
+        font-size: x-small;
+        margin-top: 4px;
     }
 
     .wallet {

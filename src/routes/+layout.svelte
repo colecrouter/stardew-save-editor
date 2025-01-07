@@ -1,7 +1,7 @@
 <script lang="ts">
     import { base } from "$app/paths";
     import { setSaveManager } from "$lib/SaveManager.svelte";
-    import { setToastManager, Toast } from "$lib/ToastManager.svelte";
+    import { Toast, setToastManager } from "$lib/ToastManager.svelte";
     import Toasts from "$lib/ui/Toasts.svelte";
     interface Props {
         children?: import("svelte").Snippet;

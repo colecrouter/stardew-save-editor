@@ -1,9 +1,9 @@
 <script lang="ts">
     import { Item } from "$lib/proxies/Item";
+    import UiInput from "$lib/ui/UIInput.svelte";
     import type { Snippet } from "svelte";
     import ItemSprite from "../inventory/ItemSprite.svelte";
     import { recipeMapping } from "./mapping";
-    import UiInput from "$lib/ui/UIInput.svelte";
 
     interface Props {
         record: Record<string, unknown>;

@@ -2,7 +2,7 @@
     import { goto } from "$app/navigation";
     import { base } from "$app/paths";
     import { getSaveManager } from "$lib/SaveManager.svelte";
-    import { getToastManager, Toast } from "$lib/ToastManager.svelte";
+    import { Toast, getToastManager } from "$lib/ToastManager.svelte";
     import UiButton from "$lib/ui/UIButton.svelte";
     import Router from "./Router.svelte";
     interface Props {

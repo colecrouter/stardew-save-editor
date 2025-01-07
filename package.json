@@ -9,8 +9,8 @@
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"dump": "tsx --no-warnings codegen/dump.ts",
-		"lint": "biome lint ./src",
-		"lint:fix": "biome lint ./src --fix",
+		"lint": "biome lint ./src && tsc --noEmit",
+		"lint:fix": "biome lint ./src --fix && tsc --noEmit",
 		"format": "prettier src && biome check ./src",
 		"format:fix": "prettier src --write && biome check ./src --write",
 		"test": "vitest run"

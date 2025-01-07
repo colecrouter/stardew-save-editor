@@ -4,11 +4,15 @@
     import { goto } from "$app/navigation";
     import { base } from "$app/paths";
     import { getSaveManager } from "$lib/SaveManager.svelte";
+    import { Toast, getToastManager } from "$lib/ToastManager.svelte";
     import UiContainer from "$lib/ui/UIContainer.svelte";
 
     let submit = $state<HTMLInputElement>();
     let files = $state<FileList>();
     const saveManager = getSaveManager();
+    const toastManager = getToastManager();
+
+    let uploading = $state(false);
 
     const handle = async () => {
         // We have to instantiate the filelist here because it's not available in node
@@ -21,12 +25,17 @@
         formData.append("file", file);
 
         try {
+            uploading = true;
             await saveManager.import(file);
 
             goto(`${base}/inventory`);
+
+            toastManager.add(new Toast("Save file uploaded!", "success"));
         } catch (e) {
-            alert((e as Error).message);
-            return;
+            if (!(e instanceof Error)) throw e;
+            toastManager.add(new Toast(e.message, "failure"));
+        } finally {
+            uploading = false;
         }
     };
 </script>
@@ -40,6 +49,7 @@
                 name="file"
                 required
                 bind:files
+                disabled={uploading}
                 onchange={() => {
                     return submit?.click();
                 }}
@@ -136,6 +146,16 @@
         justify-content: center;
         font-size: 20px;
         color: #8e3d04;
+    }
+
+    input[type="file"]:disabled {
+        pointer-events: none;
+        touch-action: none;
+        backdrop-filter: brightness(0.75);
+    }
+
+    input[type="file"]:disabled::after {
+        content: "Uploading...";
     }
 
     ul {

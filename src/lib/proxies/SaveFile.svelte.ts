@@ -152,4 +152,14 @@ export class SaveProxy {
         if (!this.raw) return;
         this.raw.SaveGame.goldenWalnuts = value ?? 0;
     }
+
+    get deepestMineLevel() {
+        if (!this.raw) return 0;
+        return this.raw.SaveGame.player.deepestMineLevel ?? 0;
+    }
+
+    set deepestMineLevel(value) {
+        if (!this.raw) return;
+        this.raw.SaveGame.player.deepestMineLevel = value ?? 0;
+    }
 }

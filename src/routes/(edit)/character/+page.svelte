@@ -109,6 +109,15 @@
                 bind:value={save.goldenWalnuts}
             />
         </label>
+        <label>
+            Deepest Mine ⛏️
+            <UiInput
+                type="number"
+                min="0"
+                max="120"
+                bind:value={save.deepestMineLevel}
+            />
+        </label>
     </div>
 
     <h3>Wallet</h3>

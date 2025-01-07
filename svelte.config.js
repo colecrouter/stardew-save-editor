@@ -24,7 +24,7 @@ const config = {
             mode: "auto",
             directives: {
                 "connect-src": ["self", "https://*.ingest.us.sentry.io"],
-                "script-src": ["self", "unsafe-eval"],
+                "script-src": ["self", "unsafe-inline"],
             },
         },
     },

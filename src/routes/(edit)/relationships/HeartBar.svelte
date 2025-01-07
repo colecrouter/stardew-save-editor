@@ -111,10 +111,6 @@
         text-shadow: -1px 1px 0 #000;
     }
 
-    .amount {
-        width: 5em;
-    }
-
     button {
         all: unset;
     }

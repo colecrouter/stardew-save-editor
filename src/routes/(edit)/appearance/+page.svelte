@@ -21,7 +21,7 @@
     // Label, key, min, max
     const numberFields = [
         ["Skin", "skin", 0, 23],
-        ["Hair", "hairstyle", 0, 72],
+        ["Hair", "hairstyle", 0, 73],
         ["Acc", "accessory", -1, 29],
     ] satisfies [string, keyof Farmer, number, number][];
 

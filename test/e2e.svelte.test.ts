@@ -99,7 +99,7 @@ describe("Save Manager Integration Tests", () => {
                 ["farmName", "Test2"],
                 ["favoriteThing", "Integration Tests"],
                 ["skin", 1],
-                ["hairstyle", 113],
+                ["hairstyle", 68],
                 ["accessory", 26],
             ] as const;
 

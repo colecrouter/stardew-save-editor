@@ -96,11 +96,16 @@ export class Farmer {
     }
 
     public get hairstyle() {
+        if (this.raw.hair >= 100) return this.raw.hair - 100 + 56;
         return this.raw.hair;
     }
 
     public set hairstyle(value) {
-        this.raw.hair = value;
+        if (value >= 56) {
+            this.raw.hair = value + 100 - 56;
+        } else {
+            this.raw.hair = value;
+        }
     }
 
     public get hairColor() {

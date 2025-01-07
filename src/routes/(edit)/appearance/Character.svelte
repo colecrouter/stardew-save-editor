@@ -29,7 +29,10 @@
     let otherSheet = $derived(`${base}/img/${gender}_farmer_other.png`);
     let armsSheet = $derived(`${base}/img/${gender}_farmer_arms.png`);
     let bootsSheet = $derived(`${base}/img/${gender}_farmer_boots.png`);
-    const hairSheet = `${base}/assets/hairstyles.png`;
+    // const hairSheet = `${base}/assets/hairstyles.png`;
+    let hairSheet = $derived(
+        `${base}/assets/hairstyles${player.hairstyle >= 56 ? "2" : ""}.png`,
+    );
     const pantsSheet = `${base}/assets/pants.png`;
     const shirtSheet = `${base}/assets/shirts.png`;
     const accessoriesSheet = `${base}/assets/accessories.png`;
@@ -52,7 +55,13 @@
     // Calculate sprite X and Y positions
     let hatPosition = $derived(hat?.sprite?.dimensions);
     let hairPosition = $derived(
-        Sprite.fromIndex(player.hairstyle, 16, 96, 128, 672),
+        Sprite.fromIndex(
+            player.hairstyle >= 56 ? player.hairstyle - 56 : player.hairstyle,
+            16,
+            player.hairstyle >= 56 ? 128 : 96,
+            128,
+            672,
+        ),
     );
     let accessoryPosition = $derived(
         Sprite.fromIndex(player.accessory, 16, 32, 128, 128),
@@ -216,7 +225,7 @@
     }
 
     .hair {
-        top: 1px;
+        top: 0px;
     }
 
     .hat {

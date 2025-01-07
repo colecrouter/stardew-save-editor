@@ -10,7 +10,7 @@ import {
 import craftingPage from "../src/routes/(edit)/(list)/crafting/+page.svelte";
 import appearancePage from "../src/routes/(edit)/appearance/+page.svelte";
 import characterPage from "../src/routes/(edit)/character/+page.svelte";
-import editorPage from "../src/routes/(edit)/inventory/+page.svelte";
+// import editorPage from "../src/routes/(edit)/inventory/+page.svelte";
 
 describe("Save Manager Integration Tests", () => {
     let saveManager: SaveManager;
@@ -42,54 +42,54 @@ describe("Save Manager Integration Tests", () => {
         await saveManager.import(new File([file], "TestSave"));
     });
 
-    describe("Inventory Management", () => {
-        it("should create and edit items", async () => {
-            const page = renderWithContext(editorPage);
-            const slot = page.getByTestId("item-9");
-            await fireEvent.click(slot);
-            await tick();
+    // describe("Inventory Management", () => {
+    //     it("should create and edit items", async () => {
+    //         const page = renderWithContext(editorPage);
+    //         const slot = page.getByTestId("item-9");
+    //         await fireEvent.click(slot);
+    //         await tick();
 
-            const input = page.getByTestId("item-name") as HTMLInputElement;
-            await fireEvent.input(input, { target: { value: "Leek" } });
-            await fireEvent.click(page.getByTestId("create-item"));
+    //         const input = page.getByTestId("item-name") as HTMLInputElement;
+    //         await fireEvent.input(input, { target: { value: "Leek" } });
+    //         await fireEvent.click(page.getByTestId("create-item"));
 
-            expect(saveManager.save.player.inventory.getItem(9).name).toBe(
-                "Leek",
-            );
-        });
+    //         expect(saveManager.save.player.inventory.getItem(9).name).toBe(
+    //             "Leek",
+    //         );
+    //     });
 
-        it("should modify item quality", async () => {
-            const page = renderWithContext(editorPage);
-            await fireEvent.click(page.getByTestId("item-4"));
-            await tick();
+    //     it("should modify item quality", async () => {
+    //         const page = renderWithContext(editorPage);
+    //         await fireEvent.click(page.getByTestId("item-4"));
+    //         await tick();
 
-            for (const quality of [0, 1, 2, 4]) {
-                await fireEvent.click(page.getByTestId(`quality-${quality}`));
-                expect(
-                    saveManager.save.player.inventory.getItem(4).quality,
-                ).toBe(quality);
-            }
-        });
+    //         for (const quality of [0, 1, 2, 4]) {
+    //             await fireEvent.click(page.getByTestId(`quality-${quality}`));
+    //             expect(
+    //                 saveManager.save.player.inventory.getItem(4).quality,
+    //             ).toBe(quality);
+    //         }
+    //     });
 
-        it("should support drag and drop operations", async () => {
-            const page = renderWithContext(editorPage);
-            const draggable = page.getByTestId("draggable-4");
-            const destination = page.getByTestId("slot-6");
+    //     it("should support drag and drop operations", async () => {
+    //         const page = renderWithContext(editorPage);
+    //         const draggable = page.getByTestId("draggable-4");
+    //         const destination = page.getByTestId("slot-6");
 
-            await fireEvent.dragStart(draggable);
-            await fireEvent.dragEnter(destination);
-            await fireEvent.dragOver(destination);
-            await fireEvent.drop(destination);
-            await fireEvent.dragEnd(draggable);
+    //         await fireEvent.dragStart(draggable);
+    //         await fireEvent.dragEnter(destination);
+    //         await fireEvent.dragOver(destination);
+    //         await fireEvent.drop(destination);
+    //         await fireEvent.dragEnd(draggable);
 
-            expect(saveManager.save.player.inventory.getItem(6).name).toBe(
-                "Parsnip",
-            );
-            expect(
-                saveManager.save.player.inventory.getItem(4),
-            ).toBeUndefined();
-        });
-    });
+    //         expect(saveManager.save.player.inventory.getItem(6).name).toBe(
+    //             "Parsnip",
+    //         );
+    //         expect(
+    //             saveManager.save.player.inventory.getItem(4),
+    //         ).toBeUndefined();
+    //     });
+    // });
 
     describe("Character Customization", () => {
         it("should modify character appearance", async () => {

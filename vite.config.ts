@@ -10,6 +10,11 @@ export default defineConfig({
                 org: "cole-crouter",
                 project: "stardew-save-editor",
             },
+            bundleSizeOptimizations: {
+                excludeReplayIframe: true,
+                excludeReplayShadowDom: true,
+                excludeDebugStatements: true,
+            },
         }),
         sveltekit(),
         svelteTesting(),

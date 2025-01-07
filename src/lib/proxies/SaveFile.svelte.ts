@@ -1,7 +1,5 @@
 import { Farmer } from "$lib/proxies/Farmer";
 import { GameLocation } from "$lib/proxies/GameLocation";
-import type { GameLocation as Location } from "$types/save";
-import { XMLBuilder } from "fast-xml-parser";
 
 export class SaveProxy {
     private i = $state(0);
@@ -35,43 +33,6 @@ export class SaveProxy {
 
     public prevFarmer() {
         this.i = (this.i - 1 + this.players.length) % this.players.length;
-    }
-
-    public async toXML() {
-        if (!this.raw) throw new Error("No file provided");
-
-        if (!("gameVersion" in this.raw.SaveGame))
-            throw new Error("Not valid save file");
-
-        const builder = new XMLBuilder({
-            attributeNamePrefix: "@_",
-            ignoreAttributes: false,
-            suppressUnpairedNode: false,
-            suppressEmptyNode: true,
-            suppressBooleanAttributes: false,
-        });
-        const raw = builder.build(this.raw) as string;
-        const xml = raw
-            .split("------WebKitFormBoundary")[0]
-            ?.trim()
-            .replaceAll("&apos;", "'")
-            .replaceAll("/>", " />");
-        if (!xml) throw new Error("Failed to generate XML");
-
-        // Create UTF-8 BOM bytes
-        const bom = new Uint8Array([0xef, 0xbb, 0xbf]);
-        // Convert XML string to UTF-8 encoded bytes
-        const xmlBytes = new TextEncoder().encode(xml);
-        // Combine BOM and XML bytes
-        const combinedArray = new Uint8Array(bom.length + xmlBytes.length);
-        combinedArray.set(bom);
-        combinedArray.set(xmlBytes, bom.length);
-
-        const blob = new Blob([combinedArray], {
-            type: "text/text; charset=UTF-8",
-        });
-
-        return blob;
     }
 
     get players() {

@@ -25,6 +25,7 @@ const config = {
             directives: {
                 "connect-src": ["self", "https://*.ingest.us.sentry.io"],
                 "script-src": ["self", "unsafe-inline"],
+                "worker-src": ["self", "blob:"],
             },
         },
     },

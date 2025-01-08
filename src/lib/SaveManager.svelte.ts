@@ -127,6 +127,7 @@ export class SaveManager {
     }
 
     private async handleBackup(file: File) {
+        if (!this.backups.files) return;
         for (const backup of this.backups.files) {
             if (backup.name === file.name) return;
             const oldData = await backup.text();
@@ -144,7 +145,15 @@ export class SaveManager {
     async export() {
         if (!this.save) throw new Error("No save file provided");
         const xmlManager = await getXmlManager();
-        return await xmlManager.stringify(this.save.raw);
+        return await xmlManager.stringify(
+            /* 
+                DON'T REMOVE THESE
+
+                This fails because comlink fails to clone the object for whatever reason.
+                I couldn't get comlink working with vitest, so removing this will pass the tests, but it will break the app.
+            */
+            JSON.parse(JSON.stringify(this.save.raw)),
+        );
     }
 
     reset() {

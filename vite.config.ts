@@ -3,19 +3,21 @@ import { sveltekit } from "@sveltejs/kit/vite";
 import { svelteTesting } from "@testing-library/svelte/vite";
 import { defineConfig } from "vite";
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
     plugins: [
-        sentrySvelteKit({
-            sourceMapsUploadOptions: {
-                org: "cole-crouter",
-                project: "stardew-save-editor",
-            },
-            bundleSizeOptimizations: {
-                excludeReplayIframe: true,
-                excludeReplayShadowDom: true,
-                excludeDebugStatements: true,
-            },
-        }),
+        mode === "production"
+            ? sentrySvelteKit({
+                  sourceMapsUploadOptions: {
+                      org: "cole-crouter",
+                      project: "stardew-save-editor",
+                  },
+                  bundleSizeOptimizations: {
+                      excludeReplayIframe: true,
+                      excludeReplayShadowDom: true,
+                      excludeDebugStatements: true,
+                  },
+              })
+            : undefined,
         sveltekit(),
         svelteTesting(),
     ],
@@ -25,11 +27,16 @@ export default defineConfig({
         },
     },
     optimizeDeps: {
-        include: ["idb", "@thisux/sveltednd"],
+        include: [
+            "idb",
+            "@thisux/sveltednd",
+            "comlink",
+            "fast-xml-parser",
+            "@sentry/sveltekit",
+        ],
     },
-    // @ts-expect-error TODO: fix vitest/config
     test: {
         environment: "happy-dom",
-        setupFiles: ["./test/vitest-setup.ts"],
+        setupFiles: ["@vitest/web-worker", "./test/vitest-setup.ts"],
     },
-});
+}));

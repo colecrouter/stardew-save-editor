@@ -10,13 +10,18 @@ const SAVE_KEY = Symbol("saveManager");
 const SUPPORTED_VERSIONS = ["1.6"];
 
 // XML Manager singleton
-let xmlManager: Comlink.Remote<XMLManager> | undefined;
+let xmlManager: Comlink.Remote<XMLManager> | XMLManager | undefined;
 
 const getXmlManager = async () => {
     if (xmlManager) return xmlManager;
-    const { default: worker } = await import("$lib/workers/xml.ts?worker");
-    const wrapped = Comlink.wrap<{ new (): XMLManager }>(new worker());
-    xmlManager = await new wrapped();
+    if (import.meta.env.TEST) {
+        const manager = await import("$lib/workers/xml");
+        xmlManager = new manager.XMLManager();
+    } else {
+        const { default: worker } = await import("$lib/workers/xml.ts?worker");
+        const wrapped = Comlink.wrap<{ new (): XMLManager }>(new worker());
+        xmlManager = await new wrapped();
+    }
     return xmlManager;
 };
 

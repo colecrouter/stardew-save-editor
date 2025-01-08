@@ -28,7 +28,6 @@ export class XMLManager {
     });
 
     public parse<T>(xml: string) {
-        console.log("Parsing XML");
         return this.parser.parse(xml) as T;
     }
 

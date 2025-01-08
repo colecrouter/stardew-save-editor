@@ -25,6 +25,7 @@
 		"@total-typescript/ts-reset": "^0.5.1",
 		"@types/node": "^18.19.59",
 		"@types/wicg-file-system-access": "^2020.9.6",
+		"@vitest/web-worker": "^2.1.8",
 		"comlink": "^4.4.2",
 		"fast-xml-parser": "^4.5.0",
 		"happy-dom": "^15.11.6",

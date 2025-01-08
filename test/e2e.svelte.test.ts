@@ -1,6 +1,5 @@
-import { readFile } from "node:fs/promises";
 import { fireEvent, render } from "@testing-library/svelte";
-import { tick } from "svelte";
+import { readFile } from "node:fs/promises";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { setup as mockIDB } from "vitest-indexeddb";
 import {

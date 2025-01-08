@@ -52,20 +52,31 @@ export class BackupManager {
             upgrade: (db) =>
                 db.createObjectStore("files", { autoIncrement: true }),
         });
-        const backupFiles = await db.getAll("files");
-        if (!isSerializedFileArray(backupFiles))
-            throw new Error("Invalid data");
 
-        const newFiles = new Array<File>();
-        for (const file of backupFiles) {
-            newFiles.unshift(
-                new File([file.data], file.name, {
-                    lastModified: file.lastModified,
-                    type: "text/text",
-                }),
-            );
+        try {
+            const backupFiles = await db.getAll("files");
+            if (!isSerializedFileArray(backupFiles))
+                throw new Error("Invalid data");
+
+            const newFiles = new Array<File>();
+            for (const file of backupFiles) {
+                newFiles.unshift(
+                    new File([file.data], file.name, {
+                        lastModified: file.lastModified,
+                        type: "text/text",
+                    }),
+                );
+            }
+            this.files = newFiles;
+        } catch (e) {
+            // TODO investigate
+            console.warn("IndexedDB limit was exceeded");
+
+            // Empty the database
+            await db.clear("files");
+
+            this.files = [];
         }
-        this.files = newFiles;
     }
 
     private async save() {

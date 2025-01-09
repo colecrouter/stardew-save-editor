@@ -40,10 +40,16 @@ export class BackupManager {
             this.files.length = Math.min(this.files.length, this.limit);
 
             // Save the files when backups change
-            this.save();
+            try {
+                this.save();
+            } catch (e) {
+                console.error("Failed to save backups", e);
+            }
         });
 
-        this.load();
+        this.load().catch((e) => {
+            console.error("Failed to load backups", e);
+        });
     }
 
     private async load() {

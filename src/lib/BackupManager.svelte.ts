@@ -94,7 +94,7 @@ export class BackupManager {
         }
 
         const db = await openDB("backups", 1);
-        await db.clear("files");
+        await db.clear("files").catch(() => {});
         for (const file of serializedFiles) {
             await db.add("files", file);
         }

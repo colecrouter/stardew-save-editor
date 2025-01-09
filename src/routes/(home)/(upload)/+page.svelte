@@ -34,7 +34,6 @@
         } catch (e) {
             if (!(e instanceof Error)) throw e;
             toastManager.add(new Toast(e.message, "failure"));
-        } finally {
             uploading = false;
         }
     };

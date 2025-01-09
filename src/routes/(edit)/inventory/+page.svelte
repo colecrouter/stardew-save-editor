@@ -44,13 +44,6 @@
     }
 </script>
 
-<!-- Data list for adding new items -->
-<datalist id="new-items">
-    {#each Array.from(ItemData.keys()) as name}
-        <option value={name}></option>
-    {/each}
-</datalist>
-
 {#if save.player}
     <!-- Inventory view -->
     <UiContainer>

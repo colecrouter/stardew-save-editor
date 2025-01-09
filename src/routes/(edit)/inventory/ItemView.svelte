@@ -4,6 +4,7 @@
     import { Color } from "$lib/proxies/Color";
     import type { Item } from "$lib/proxies/Item";
     import UiInput from "$lib/ui/UIInput.svelte";
+    import ItemSelect from "./ItemSelect.svelte";
     import ItemSlot from "./ItemSlot.svelte";
     import ItemSprite from "./ItemSprite.svelte";
     import QualitySelector from "./QualitySelector.svelte";
@@ -21,8 +22,6 @@
         deleteItem,
         createItem,
     }: Props = $props();
-
-    let newItemName = $state("");
 
     const properties = [
         ["Amount", "amount", 1, 9999],
@@ -113,12 +112,13 @@
         {:else if selectedIndex}
             <label>
                 <small>Item Name</small>
-                <UiInput
+                <!-- <UiInput
                     type="text"
                     list="new-items"
                     data-testid="item-name"
                     bind:value={newItemName}
-                />
+                /> -->
+                <ItemSelect onsubmit={createItem} />
             </label>
         {/if}
     </div>
@@ -135,19 +135,6 @@
                 }}
             >
                 🗑️
-            </button>
-        {:else if selectedIndex}
-            <button
-                class="btn btn-success"
-                data-testid="create-item"
-                onclick={() => {
-                    if (selectedIndex) {
-                        createItem(newItemName);
-                        newItemName = "";
-                    }
-                }}
-            >
-                ➕
             </button>
         {/if}
     </div>

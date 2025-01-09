@@ -1,6 +1,10 @@
 import { dev } from "$app/environment";
 import * as Sentry from "@sentry/sveltekit";
-import { handleErrorWithSentry, replayIntegration } from "@sentry/sveltekit";
+import {
+    captureConsoleIntegration,
+    handleErrorWithSentry,
+    replayIntegration,
+} from "@sentry/sveltekit";
 
 dev ||
     Sentry.init({
@@ -23,6 +27,7 @@ dev ||
                 maskAllText: false,
                 blockAllMedia: false,
             }),
+            captureConsoleIntegration({ levels: ["error", "debug"] }),
         ],
 
         ignoreErrors: [

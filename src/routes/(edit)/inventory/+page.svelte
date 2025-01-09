@@ -1,5 +1,4 @@
 <script lang="ts">
-    import { ItemData } from "$lib/ItemData";
     import type { ParentIndex } from "$lib/ItemParentIndex";
     import { getSaveManager } from "$lib/SaveManager.svelte";
     import { Toast, getToastManager } from "$lib/ToastManager.svelte";
@@ -56,17 +55,12 @@
                             onDrop: handleDrop,
                         },
                     }}
-                    onclick={() => handleClick(index)}
-                    role="gridcell"
-                    tabindex="0"
-                    onkeydown={(e) => {
-                        if (e.key === "Enter") handleClick(index);
-                    }}
                     data-testid={`slot-${index}`}
                 >
                     <ItemSlot
                         data-testid={`item-${index}`}
                         active={index === selectedIndex}
+                        onclick={() => handleClick(index)}
                     >
                         <div
                             use:draggable={{

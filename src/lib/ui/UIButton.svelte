@@ -69,8 +69,9 @@
     }
 
     a:hover,
-    button:hover {
-        outline: revert;
+    a:focus-within,
+    button:hover button:focus-within {
+        outline: none;
         filter: brightness(0.85);
     }
 

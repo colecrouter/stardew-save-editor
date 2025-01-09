@@ -35,13 +35,7 @@
                         onsubmit(name);
                         filter = name;
                     }}
-                    <button
-                        class="item"
-                        onclick={submit}
-                        onkeydown={(e) => {
-                            if (e.key === "Enter") submit();
-                        }}
-                    >
+                    <button class="item" onclick={submit}>
                         <div class="icon">
                             <ItemSprite item={Item.fromName(name)} />
                         </div>

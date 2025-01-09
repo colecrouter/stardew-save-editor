@@ -40,7 +40,8 @@
         touch-action: none;
     }
 
-    .tooltip-wrapper:hover > .tooltip {
+    .tooltip-wrapper:hover > .tooltip,
+    .tooltip-wrapper:focus-within > .tooltip {
         display: block; /* Show on hover */
     }
 

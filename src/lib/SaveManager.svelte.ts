@@ -108,6 +108,7 @@ export class SaveManager {
 
         const xml = await file.text();
         const xmlManager = await getXmlManager();
+        // @ts-ignore Not sure why svelte-check doesn't like this line
         const json = await xmlManager.parse(xml);
 
         if (!isSaveFile(json)) {

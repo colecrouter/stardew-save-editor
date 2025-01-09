@@ -24,6 +24,12 @@ dev ||
                 blockAllMedia: false,
             }),
         ],
+
+        ignoreErrors: [
+            // This appears to be a common cache miss error(?)
+            "TypeError: error loading dynamically imported module",
+            "Error: Unable to preload CSS for",
+        ],
     });
 
 // If you have a custom error handler, pass it to `handleErrorWithSentry`

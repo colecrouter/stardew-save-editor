@@ -229,4 +229,12 @@ describe("Item", () => {
             "@_xsi:type": "FishingRod",
         });
     });
+
+    it("should create a Steel Watering Can", () => {
+        expect(Item.fromName("Steel Watering Can").raw).toMatchObject({
+            name: "Watering Can",
+            itemId: "SteelWateringCan",
+            "@_xsi:type": "WateringCan",
+        });
+    });
 });

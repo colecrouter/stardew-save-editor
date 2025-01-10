@@ -38,9 +38,15 @@ const toolTypeMap = new Map<string, ToolClass>([
     ["Pickaxe", "Pickaxe"],
     ["Axe", "Axe"],
     ["Hoe", "Hoe"],
-    ["Watering Can", "WateringCan"],
+    ["Can", "WateringCan"],
     ["Rod", "FishingRod"],
     ["Pan", "Pan"],
+]);
+
+const toolNameMap = new Map<string, string>([
+    ["Can", "Watering Can"],
+    ["Rod", "Fishing Rod"],
+    ["Pan", "Copper Pan"],
 ]);
 
 // Mapping of level names to upgrade levels
@@ -151,7 +157,8 @@ export class Item {
 
         // Handle tools separately
         if (data._type === "Tool") {
-            const nameWithoutPrefix = name.split(" ").pop() ?? "";
+            // Remove "Steel" from "Steel Watering Can" etc.
+            const nameWithoutPrefix = name.split(" ").pop() ?? name;
             itemType = toolTypeMap.get(nameWithoutPrefix);
 
             // Special handling for upgrade levels
@@ -165,7 +172,9 @@ export class Item {
                     if (name.startsWith(levelName)) {
                         item.upgradeLevel = levelValue;
                         // Remove prefix from name
-                        item.name = nameWithoutPrefix;
+                        item.name =
+                            toolNameMap.get(nameWithoutPrefix) ??
+                            nameWithoutPrefix;
                         break;
                     }
                 }
@@ -176,6 +185,11 @@ export class Item {
                 item.initialParentTileIndex =
                     FishingRodSpriteIndex.get(data.name) ?? 0;
                 item.indexOfMenuItemView = item.initialParentTileIndex;
+            }
+
+            if (itemType === "WateringCan") {
+                item.IsBottomless = false;
+                item.isBottomless = false;
             }
         }
 
@@ -583,5 +597,19 @@ export class Item {
             throw new Error("Immunity bonus must be at least 0");
 
         this.raw.immunityBonus = immunityBonus;
+    }
+
+    get isBottomless() {
+        if (this.raw.name !== "Watering Can") return undefined;
+
+        return this.raw.isBottomless;
+    }
+
+    set isBottomless(isBottomless) {
+        if (this.raw.name !== "Watering Can")
+            throw new Error("Item is not a watering can");
+
+        this.raw.isBottomless = isBottomless;
+        this.raw.IsBottomless = isBottomless;
     }
 }

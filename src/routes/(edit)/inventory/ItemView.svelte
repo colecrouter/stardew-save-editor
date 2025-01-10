@@ -3,6 +3,7 @@
     import type { ParentIndex } from "$lib/ItemParentIndex";
     import { Color } from "$lib/proxies/Color";
     import type { Item } from "$lib/proxies/Item";
+    import UiCheckbox from "$lib/ui/UICheckbox.svelte";
     import UiInput from "$lib/ui/UIInput.svelte";
     import ItemSelect from "./ItemSelect.svelte";
     import ItemSlot from "./ItemSlot.svelte";
@@ -43,6 +44,7 @@
         ["Price", "price", 0, 2 ** 31 - 1], // 32 bit signed int
         ["Color", "color", null, null],
         ["Quality", "quality", null, null],
+        ["Bottomless", "isBottomless"],
     ] as [
         string,
         keyof Item,
@@ -90,6 +92,11 @@
                             <UiInput
                                 type="text"
                                 bind:value={selectedItem[key]}
+                            />
+                        {:else if typeof selectedItem[key] === "boolean"}
+                            <UiCheckbox
+                                bind:checked={selectedItem[key]}
+                                data-testid={`property-${key}`}
                             />
                         {:else if selectedItem[key] instanceof Color}
                             <UiInput

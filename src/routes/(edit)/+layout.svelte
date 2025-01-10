@@ -28,8 +28,7 @@
                 toastManager.add(
                     new Toast("Failed to download save file", "failure"),
                 );
-                if (e instanceof Error && e.name !== "AbortError") throw e;
-                console.warn("Aborted download");
+                console.warn(e);
             })
             .finally(() => {
                 isDownloading = false;

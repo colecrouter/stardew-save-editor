@@ -101,7 +101,8 @@
         width: 100%;
     }
 
-    .wrapper:focus-within .menu {
+    .wrapper:focus-within .menu,
+    .wrapper:hover .menu {
         display: block;
     }
 </style>

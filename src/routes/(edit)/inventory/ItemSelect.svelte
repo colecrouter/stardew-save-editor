@@ -88,6 +88,15 @@
         backdrop-filter: brightness(0.8);
     }
 
+    .icon {
+        /* Center icons if they're not the standard size */
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
     .icon :global(*) {
         pointer-events: none;
     }

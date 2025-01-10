@@ -13,7 +13,8 @@
 		"lint:fix": "biome lint ./src --fix && tsc --noEmit",
 		"format": "prettier src && biome check ./src",
 		"format:fix": "prettier src --write && biome check ./src --write",
-		"test": "vitest run"
+		"test": "vitest run",
+		"emulate:webkit": "node test/webkit.js"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^1.9.4",
@@ -41,6 +42,9 @@
 		"vite": "^6.0.7",
 		"vitest": "^2.1.4",
 		"vitest-indexeddb": "^0.0.0"
+	},
+	"optionalDependencies": {
+		"playwright": "^1.49.1"
 	},
 	"type": "module"
 }

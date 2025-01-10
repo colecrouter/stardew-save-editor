@@ -33,9 +33,13 @@ const thrw = (msg: string): never => {
     throw new Error(msg);
 };
 
+const textureFilter = ["TileSheets", "/", "\\"];
 const fixTexture = (texture: string | null | undefined) =>
     texture
-        ? `${texture.replace("TileSheets\\", "").replace("TileSheets/", "")}.png`
+        ? `${textureFilter.reduce(
+              (acc, filter) => acc.replaceAll(filter, ""),
+              texture,
+          )}.png`
         : undefined;
 
 const objectsArray = Object.entries(objects)

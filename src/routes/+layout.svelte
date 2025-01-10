@@ -1,7 +1,9 @@
 <script lang="ts">
+    import { beforeNavigate } from "$app/navigation";
     import { base } from "$app/paths";
+    import { updated } from "$app/state";
     import { setSaveManager } from "$lib/SaveManager.svelte";
-    import { Toast, setToastManager } from "$lib/ToastManager.svelte";
+    import { setToastManager } from "$lib/ToastManager.svelte";
     import Toasts from "$lib/ui/Toasts.svelte";
     interface Props {
         children?: import("svelte").Snippet;
@@ -9,9 +11,16 @@
 
     let { children }: Props = $props();
 
-    const toastManager = setToastManager();
+    /* const toastManager = */ setToastManager();
     const saveManager = setSaveManager();
     saveManager.init();
+
+    // Should fix random import errors due to version mismatches
+    beforeNavigate(({ to, willUnload }) => {
+        if (updated && willUnload && to?.url) {
+            location.href = to.url.href;
+        }
+    });
 </script>
 
 <svelte:head>

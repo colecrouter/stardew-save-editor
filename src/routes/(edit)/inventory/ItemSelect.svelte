@@ -94,6 +94,11 @@
 
     .menu {
         display: none;
+        width: 100%;
+    }
+
+    .menu :global(> div) {
+        width: 100%;
     }
 
     .wrapper:focus-within .menu {

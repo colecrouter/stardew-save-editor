@@ -40,6 +40,14 @@
             <div>
                 <h3>{building.name}</h3>
                 <div class="options">
+                    {#if building.location?.animals}
+                        {@const max = building.data?.maxOccupants ?? "??"}
+                        {@const animals = building.location.animals.length}
+                        <small>
+                            <span>Animals</span>
+                            <var>{animals}/{max}</var>
+                        </small>
+                    {/if}
                     {#each properties as [label, prop, min, max]}
                         {#if building[prop] !== undefined}
                             <label>

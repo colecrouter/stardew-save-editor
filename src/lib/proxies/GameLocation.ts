@@ -38,12 +38,14 @@ export class GameLocation {
     }
 
     get animals() {
+        if (typeof this.raw.animals === "string") return undefined;
+
         return this.raw.animals?.item.map((a) => new FarmAnimal(a));
     }
 
     set animals(value) {
         if (!value) {
-            this.raw.animals = null;
+            this.raw.animals = "";
             this.raw.Animals.SerializableDictionaryOfInt64FarmAnimal = null;
         } else {
             this.raw.animals = value && { item: value.map((a) => a.raw) };

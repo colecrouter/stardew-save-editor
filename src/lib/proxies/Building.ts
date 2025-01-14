@@ -2,6 +2,7 @@ import type { Farmer } from "$lib/proxies/Farmer";
 import { GameLocation } from "$lib/proxies/GameLocation";
 import type { SaveProxy } from "$lib/proxies/SaveFile.svelte";
 import type { Building as BuildingType } from "$types/save";
+import buildings from "$generated/buildings.json";
 
 export class Building {
     raw: BuildingType;
@@ -10,6 +11,10 @@ export class Building {
     constructor(building: BuildingType, context: SaveProxy) {
         this.raw = building;
         this.#context = context;
+    }
+
+    get data() {
+        return buildings.find((b) => b.name === this.raw.buildingType);
     }
 
     get location() {

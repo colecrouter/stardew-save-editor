@@ -311,7 +311,7 @@ export interface Locations {
 
 export interface GameLocation {
     buildings: BuildingsClass | undefined;
-    animals: AnimalsArray | null;
+    animals: AnimalsArray | string;
     piecesOfHay: number;
     characters: NPCContainer | undefined;
     objects: ObjectsArray | undefined;

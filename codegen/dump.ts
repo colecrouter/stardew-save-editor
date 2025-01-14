@@ -376,6 +376,11 @@ const buildingsArray = await Promise.all(
             },
             upgradedFrom: obj.BuildingToUpgrade,
             texture: `${obj.Texture.replace("Buildings\\", "")}.png`,
+            skins:
+                obj.Skins.map((skin: (typeof obj)["Skins"][number]) => ({
+                    name: skin.Id,
+                    texture: `${skin.Texture}.png`,
+                })) || undefined,
         };
     }),
 );

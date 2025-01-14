@@ -1,7 +1,7 @@
 <script lang="ts">
     import { base } from "$app/paths";
-    import type { Building } from "$lib/proxies/Building.svelte";
     import buildings from "$generated/buildings.json";
+    import type { Building } from "$lib/proxies/Building.svelte";
 
     interface Props {
         building?: Building;
@@ -13,7 +13,13 @@
         buildings.find((b) => b.name === building?.name),
     );
 
-    let spritesheet = $derived(`buildings/${buildingData?.texture}`);
+    let spritesheet = $derived(
+        `buildings/${
+            buildingData?.skins?.find(
+                (s) => s.name === building?.raw.skinId.string,
+            )?.texture ?? buildingData?.texture
+        }`,
+    );
     let x = $derived(buildingData?.sprite.x);
     let y = $derived(
         buildingData && building?.name === "Greenhouse"

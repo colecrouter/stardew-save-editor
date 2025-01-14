@@ -32,10 +32,8 @@
     <div class="container">
         {#if building}
             <UiContainerSmall>
-                <div class="bg-wrapper">
-                    <div class="bg">
-                        <BuildingSprite {building} />
-                    </div>
+                <div class="bg">
+                    <BuildingSprite {building} />
                 </div>
             </UiContainerSmall>
             <div>
@@ -51,15 +49,18 @@
                     {/if}
 
                     {#if building.farmBuildingUpgrades.length > 1}
-                        <UiSelect
-                            bind:value={building.upgradeLevel!}
-                            options={building.farmBuildingUpgrades.map(
-                                (upgrade) => ({
-                                    label: upgrade ?? "",
-                                    value: upgrade ?? "",
-                                }),
-                            )}
-                        />
+                        <label>
+                            <small>Farm Upgrade Level</small>
+                            <UiSelect
+                                bind:value={building.farmUpgradeLevel}
+                                options={building.farmBuildingUpgrades.map(
+                                    (upgrade) => ({
+                                        label: upgrade ?? "",
+                                        value: upgrade ?? "",
+                                    }),
+                                )}
+                            />
+                        </label>
                     {/if}
 
                     {#each properties as [label, prop, min, max]}
@@ -96,12 +97,6 @@
 {/snippet}
 
 <style>
-    .bg-wrapper {
-        width: 100%;
-        display: flex;
-        justify-content: center;
-    }
-
     .bg {
         background-image: linear-gradient(
                 rgba(0, 0, 0, 0.5),
@@ -131,8 +126,17 @@
 
     label {
         display: flex;
-        gap: 4px;
         align-items: center;
-        padding-right: 8px;
+    }
+
+    .options > * {
+        display: flex;
+        justify-content: space-between;
+        max-width: 300px;
+    }
+
+    .options {
+        display: grid;
+        gap: 4px;
     }
 </style>

@@ -1,10 +1,7 @@
 import type { ParentIndex } from "$lib/ItemParentIndex";
 import { Item } from "$lib/proxies/Item";
+import { isNil, nil } from "$types/nil";
 import type { Player } from "$types/save";
-
-const nil = { "@_xsi:nil": "true" };
-const isNil = (value: unknown): value is { "@_xsi:nil": "true" } =>
-    typeof value === "object" && value !== null && "@_xsi:nil" in value;
 
 export class Inventory {
     raw: Player;
@@ -28,20 +25,16 @@ export class Inventory {
 
     setItem(index: ParentIndex, value: Item | undefined) {
         if (typeof index === "number") {
-            // @ts-expect-error
             this.raw.items.Item[index] = value ? value.raw : nil;
         } else {
-            // @ts-expect-error
             this.raw[index] = value ? value.raw : nil;
         }
     }
 
     deleteItem(index: ParentIndex) {
         if (typeof index === "number") {
-            // @ts-expect-error
             this.raw.items.Item[index] = nil;
         } else {
-            // @ts-expect-error
             this.raw[index] = nil;
         }
     }
@@ -138,13 +131,11 @@ export class Inventory {
         return this.raw.items.Item.map((raw) =>
             isNil(raw) || raw?.name.startsWith("Secret Note")
                 ? undefined
-                : // @ts-expect-error we need to replace nil with undefined
-                  new Item(raw),
+                : new Item(raw),
         );
     }
 
     set items(value) {
-        // @ts-expect-error same as above but vice versa
         this.raw.items.Item = value.map((item) =>
             item === undefined ? nil : item.raw,
         );

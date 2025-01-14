@@ -6,19 +6,29 @@
     Apparently this is an issue on some of the devices users are using (mainly mobile devices).
 */
 
+import type { Save } from "$types/save";
 import * as Comlink from "comlink";
 import { XMLBuilder, XMLParser } from "fast-xml-parser";
+
+type AllPropertyKeys<T, Visited = never> = T extends object
+    ? T extends Visited
+        ? never // Stop if T has already been visited (prevent infinite recursion)
+        :
+              | keyof T
+              | { [K in keyof T]: AllPropertyKeys<T[K], Visited | T> }[keyof T]
+    : never;
 
 // The XML parser has no idea what should be an array and what should be an object
 // This isn't a huge deal, but we can make it a little easier to work with by
 // supplying a list of things we want to be arrays
 const arrayTags = new Set([
     "item",
-    "GameLocations",
     "characters",
     // "objects",
     "Farmer",
-]);
+    "GameLocation",
+    "Building",
+] satisfies Array<AllPropertyKeys<Save>>);
 
 export class XMLManager {
     private parser = new XMLParser({

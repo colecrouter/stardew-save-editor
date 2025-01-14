@@ -1,4 +1,5 @@
 import type { FurnitureType } from "./items";
+import type { Nil } from "./nil";
 
 export interface Save {
     player: Player;
@@ -85,7 +86,7 @@ export interface KV<K, V> {
 }
 
 export interface StringContainer {
-    string: string;
+    string: string | Nil;
 }
 
 export interface AvailableSpecialOrders {
@@ -406,6 +407,7 @@ export interface GameLocation {
     raceTrack?: RaceTrack;
     uniqueName?: string;
     animalsThatLiveHere?: LongArrContainer;
+    farmhandReference?: number;
 }
 
 export interface GameLocationAnimals {
@@ -496,7 +498,7 @@ export interface BoolArrayContainer {
 }
 
 export interface BuildingsClass {
-    Building: Building[];
+    Building: Array<Building | Nil>;
 }
 
 export interface Building {
@@ -1112,12 +1114,12 @@ export interface Player {
     hairstyleColor: Color;
     pantsColor: Color;
     newEyeColor: Color;
-    hat?: Item;
-    boots?: Item;
-    leftRing?: Item;
-    rightRing?: Item;
-    shirtItem?: Item;
-    pantsItem?: Item;
+    hat?: Item | Nil;
+    boots?: Item | Nil;
+    leftRing?: Item | Nil;
+    rightRing?: Item | Nil;
+    shirtItem?: Item | Nil;
+    pantsItem?: Item | Nil;
     divorceTonight: boolean;
     changeWalletTypeTonight: boolean;
     gameVersion: string;
@@ -1267,7 +1269,7 @@ export interface Dictionary {
 }
 
 export interface Inventory {
-    Item: (undefined | Item)[];
+    Item: Array<Item | Nil>;
 }
 
 export interface Item {

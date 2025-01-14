@@ -3,6 +3,7 @@ import { Flags } from "$lib/proxies/Flags";
 import { Inventory } from "$lib/proxies/Inventory";
 import { Recipes } from "$lib/proxies/Recipes";
 import { Skills } from "$lib/proxies/Skills";
+import { nil } from "$types/nil";
 import type { Player } from "$types/save";
 
 export class Farmer {
@@ -206,15 +207,12 @@ export class Farmer {
         // To be honest this is all kind of a hack. Realistically, we need something to parse through each node and convert
         // undefined to the appropriate xsi:nil attribute, but I couldn't find such a feature in fast-xml-parser
 
-        // @ts-expect-error
         this.raw.items.Item = this.raw.items.Item.map((item) =>
-            item === undefined ? { "@_xsi:nil": "true" } : item,
+            item === undefined ? nil : item,
         );
         // @ts-expect-error
         this.raw.items.Item = this.raw.items.Item.map((item) =>
-            item && "which" in item
-                ? { ...item, which: { "@_xsi:nil": "true" } }
-                : item,
+            item && "which" in item ? { ...item, which: nil } : item,
         );
 
         return JSON.stringify(this.raw);

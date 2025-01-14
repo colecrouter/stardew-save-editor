@@ -1,5 +1,5 @@
 import buildings from "$generated/buildings.json";
-import { Building } from "$lib/proxies/Building";
+import { Building } from "$lib/proxies/Building.svelte";
 import { FarmAnimal } from "$lib/proxies/FarmAnimal";
 import { Item } from "$lib/proxies/Item";
 import type { SaveProxy } from "$lib/proxies/SaveFile.svelte";

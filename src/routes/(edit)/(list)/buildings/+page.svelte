@@ -1,11 +1,12 @@
 <script lang="ts">
     import { getSaveManager } from "$lib/SaveManager.svelte";
-    import type { Building } from "$lib/proxies/Building";
+    import type { Building } from "$lib/proxies/Building.svelte";
     import { GameLocation } from "$lib/proxies/GameLocation";
     import UiCheckbox from "$lib/ui/UICheckbox.svelte";
     import UiContainer from "$lib/ui/UIContainer.svelte";
     import UiContainerSmall from "$lib/ui/UIContainerSmall.svelte";
     import UiInput from "$lib/ui/UIInput.svelte";
+    import UiSelect from "$lib/ui/UISelect.svelte";
     import BuildingSprite from "../../inventory/BuildingSprite.svelte";
 
     let save = getSaveManager().save;
@@ -48,6 +49,19 @@
                             <var>{animals}/{max}</var>
                         </small>
                     {/if}
+
+                    {#if building.farmBuildingUpgrades.length > 1}
+                        <UiSelect
+                            bind:value={building.upgradeLevel!}
+                            options={building.farmBuildingUpgrades.map(
+                                (upgrade) => ({
+                                    label: upgrade ?? "",
+                                    value: upgrade ?? "",
+                                }),
+                            )}
+                        />
+                    {/if}
+
                     {#each properties as [label, prop, min, max]}
                         {#if building[prop] !== undefined}
                             <label>

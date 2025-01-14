@@ -7,10 +7,30 @@ import buildings from "$generated/buildings.json";
 export class Building {
     raw: BuildingType;
     #context: SaveProxy;
+    #name = $state<string>();
 
     constructor(building: BuildingType, context: SaveProxy) {
         this.raw = building;
         this.#context = context;
+        this.#name = this.raw.buildingType;
+    }
+
+    get farmBuildingUpgrades() {
+        // Each building in buildings.json has a "upgradedFrom" field, which is the name of the building it upgrades from.
+        // This maps to a linked list of sorts, where each building has a reference to the building it upgrades from.
+
+        let keyword = this.raw.buildingType.replace(/(?:Big|Deluxe)\s/, "");
+        const upgrades = keyword
+            ? [buildings.find((b) => b.name === keyword)?.name]
+            : [];
+        while (keyword) {
+            const building = buildings.find((b) => b.upgradedFrom === keyword);
+            if (!building) break;
+            upgrades.push(building.name);
+            keyword = building.name;
+        }
+
+        return upgrades;
     }
 
     get data() {
@@ -29,7 +49,7 @@ export class Building {
     }
 
     get name() {
-        return this.raw.buildingType;
+        return this.#name;
     }
 
     // set name(value) {
@@ -82,6 +102,29 @@ export class Building {
         if (!player) throw new Error("Player not found");
 
         player.raw.houseUpgradeLevel = value;
+    }
+
+    get farmUpgradeLevel() {
+        return this.raw.buildingType;
+    }
+
+    set farmUpgradeLevel(value) {
+        if (!this.farmBuildingUpgrades.includes(value))
+            throw new Error("Building cannot be upgraded to this type");
+
+        const newData = buildings.find((b) => b.name === value);
+        if (!newData) throw new Error("Building not found");
+
+        if (newData.maxOccupants < (this.location?.animals?.length ?? 0))
+            throw new Error("Not enough space current for animals");
+
+        this.raw.buildingType = value;
+        this.raw.maxOccupants = newData.maxOccupants;
+        this.raw.tilesWide = newData.size.X;
+        this.raw.tilesHigh = newData.size.Y;
+        this.raw.hayCapacity = newData.hayCapacity;
+        this.raw.animalDoor = newData.animalDoor;
+        this.#name = value;
     }
 
     get homeOf() {

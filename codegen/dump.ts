@@ -367,12 +367,14 @@ const buildingsArray = await Promise.all(
             size: obj.Size,
             maxOccupants: obj.MaxOccupants,
             hayCapacity: obj.HayCapacity,
+            animalDoor: obj.AnimalDoor,
             sprite: {
                 x,
                 y,
                 width,
                 height,
             },
+            upgradedFrom: obj.BuildingToUpgrade,
             texture: `${obj.Texture.replace("Buildings\\", "")}.png`,
         };
     }),

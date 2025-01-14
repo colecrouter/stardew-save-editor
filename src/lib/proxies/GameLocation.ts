@@ -2,21 +2,39 @@ import buildings from "$generated/buildings.json";
 import { Building } from "$lib/proxies/Building";
 import { FarmAnimal } from "$lib/proxies/FarmAnimal";
 import { Item } from "$lib/proxies/Item";
+import type { SaveProxy } from "$lib/proxies/SaveFile.svelte";
+import { isNil, nil } from "$types/nil";
 import type { GameLocation as Location } from "$types/save";
 
 export class GameLocation {
     raw: Location;
+    #context: SaveProxy;
 
-    constructor(location: Location) {
+    constructor(location: Location, context: SaveProxy) {
         this.raw = location;
+        this.#context = context;
+    }
+
+    get name() {
+        return this.raw.name;
+    }
+
+    set name(value) {
+        this.raw.name = value;
     }
 
     get buildings() {
-        return this.raw.buildings?.Building.map((b) => new Building(b));
+        return (
+            this.raw.buildings?.Building?.map((b) =>
+                isNil(b) ? undefined : new Building(b, this.#context),
+            ) ?? []
+        );
     }
 
     set buildings(value) {
-        this.raw.buildings = value && { Building: value.map((b) => b.raw) };
+        this.raw.buildings = value && {
+            Building: value.map((b) => (!b ? nil : b.raw)),
+        };
     }
 
     get animals() {

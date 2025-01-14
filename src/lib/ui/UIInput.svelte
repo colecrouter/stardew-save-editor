@@ -73,6 +73,7 @@
         box-shadow:
             inset -2px 2px 0 #e38813,
             -2px 2px 1px rgba(0, 0, 0, 0.2);
+        margin-left: 4px;
     }
 
     input[type="text"]:disabled,

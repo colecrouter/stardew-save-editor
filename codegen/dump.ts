@@ -343,10 +343,48 @@ const farmAnimals = Object.entries(animals).map(([key, obj]) => ({
 }));
 await writeFile("./generated/farmanimals.json", JSON.stringify(farmAnimals));
 
-const buildingsArray = Object.entries(buildings).map(([key, obj]) => ({
-    name: key,
-    size: obj.Size,
-    maxOccupants: obj.MaxOccupants,
-    hayCapacity: obj.HayCapacity,
-}));
+const buildingsArray = await Promise.all(
+    Object.entries(buildings).map(async ([key, obj]) => {
+        let height =
+            obj.SourceRect.Height ||
+            imageDimensionsFromData(
+                await readFile(
+                    `./content/Buildings/${obj.Texture.replace("Buildings\\", "")}.png`,
+                ),
+            )?.height;
+        let width =
+            obj.SourceRect.Width ||
+            imageDimensionsFromData(
+                await readFile(
+                    `./content/Buildings/${obj.Texture.replace("Buildings\\", "")}.png`,
+                ),
+            )?.width;
+
+        let y = obj.SourceRect.Y;
+        let x = key === "Pet Bowl" ? 0 : obj.SourceRect.X;
+        return {
+            name: key,
+            size: obj.Size,
+            maxOccupants: obj.MaxOccupants,
+            hayCapacity: obj.HayCapacity,
+            sprite: {
+                x,
+                y,
+                width,
+                height,
+            },
+            texture: `${obj.Texture.replace("Buildings\\", "")}.png`,
+        };
+    }),
+);
 await writeFile("./generated/buildings.json", JSON.stringify(buildingsArray));
+
+// Copy all building textures into assets folder
+await Promise.all(
+    buildingsArray.map(async ({ texture }) => {
+        await copyFile(
+            `./content/Buildings/${texture}`,
+            `./static/assets/buildings/${texture}`,
+        );
+    }),
+);

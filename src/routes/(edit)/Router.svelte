@@ -11,6 +11,7 @@
     <UiButton href={`${base}/crafting`} alt="Crafting">🔨</UiButton>
     <UiButton href={`${base}/cooking`} alt="Cooking">🍫</UiButton>
     <UiButton href={`${base}/farmhands`} alt="Farmhands">👩‍🌾</UiButton>
+    <UiButton href={`${base}/buildings`} alt="Buildings">🏠</UiButton>
     <UiButton href={`${base}/bundles`} alt="Community Center">🎁</UiButton>
 </nav>
 

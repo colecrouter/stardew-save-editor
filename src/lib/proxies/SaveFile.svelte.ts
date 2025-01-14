@@ -77,7 +77,7 @@ export class SaveProxy {
         );
         if (!farm) throw new Error("Farm not found");
 
-        return new GameLocation(farm);
+        return new GameLocation(farm, this);
     }
 
     set farm(farm) {
@@ -93,7 +93,7 @@ export class SaveProxy {
     get locations() {
         if (!this.raw) return [];
         return this.raw.SaveGame.locations.GameLocation.map(
-            (l) => new GameLocation(l),
+            (l) => new GameLocation(l, this),
         );
     }
 

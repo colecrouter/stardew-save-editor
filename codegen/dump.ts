@@ -2,6 +2,7 @@ import { imageDimensionsFromData } from "image-dimensions";
 import { copyFile, mkdir, readFile, writeFile } from "node:fs/promises";
 import bigCraftables from "../content/Data/BigCraftables.json";
 import boots from "../content/Data/Boots.json";
+import buildings from "../content/Data/Buildings.json";
 import animals from "../content/Data/FarmAnimals.json";
 import furniture from "../content/Data/Furniture.json";
 import objects from "../content/Data/Objects.json";
@@ -11,21 +12,22 @@ import tools from "../content/Data/Tools.json";
 import weapons from "../content/Data/Weapons.json";
 import hats from "../content/Data/hats.json";
 import { characters } from "../src/lib/NPCs";
-import buildings from "../content/Data/Buildings.json";
-import type {
-    BigCraftable,
-    Boots,
-    Furniture,
-    FurnitureType,
-    Hat,
-    Pants,
-    PlacementRestriction,
-    RegularObject,
-    Shirt,
-    Size,
-    Tool,
-    ToolClass,
-    Weapon,
+import { type ColorTag, colorMap } from "./colors";
+import {
+    type BigCraftable,
+    type Boots,
+    type Furniture,
+    type FurnitureType,
+    type Hat,
+    ObjectCategory,
+    type Pants,
+    type PlacementRestriction,
+    type RegularObject,
+    type Shirt,
+    type Size,
+    type Tool,
+    type ToolClass,
+    type Weapon,
 } from "./items";
 import type { TypeEnum } from "./save";
 
@@ -58,10 +60,170 @@ const objectsArray = Object.entries(objects)
                 spriteIndex: obj.SpriteIndex,
                 edibility: obj.Edibility,
                 isDrink: obj.IsDrink,
+                tags: obj.ContextTags ?? undefined,
+                color: undefined,
             }) satisfies RegularObject,
     )
     // Hack for multiple unused stone objects
     .filter((obj) => obj.name !== "Stone" || obj._key === "390");
+
+const smokedFish = objectsArray
+    .filter((i) => i.category === ObjectCategory.Fish)
+    .map((obj) => ({
+        ...obj,
+        name: `Smoked ${obj.name}`,
+        edibility: Math.floor(obj.edibility * 1.5),
+        price: Math.floor(obj.price * 2),
+        category: ObjectCategory.ArtisanGoods,
+    }));
+
+const driedMushrooms = objectsArray
+    .filter((i) => i.category === ObjectCategory.Forage)
+    .filter((i) =>
+        [
+            "Chanterelle",
+            "Common Mushroom",
+            "Morel",
+            "Magma Cap",
+            "Purple Mushroom",
+        ].includes(i.name),
+    )
+    .map((obj) => ({
+        ...obj,
+        name: `Dried ${obj.name}`,
+        edibility: Math.max(0, Math.floor(obj.edibility * 3)),
+        price: Math.floor((obj.price * 1.5 + 5) * 5),
+        category: ObjectCategory.ArtisanGoods,
+        texture: objectsArray.find((i) => i._key === "DriedMushrooms")?.texture,
+        spriteIndex: objectsArray.find((i) => i._key === "DriedMushrooms")
+            ?.spriteIndex,
+        color: obj.tags
+            ?.map((tag) => colorMap.get(tag as ColorTag))
+            .find((color) => color !== undefined),
+    }));
+
+const driedFruit = objectsArray
+    .filter((i) => i.category === ObjectCategory.Fruit)
+    .filter((i) => i.name !== "Grapes")
+    .map((obj) => ({
+        ...obj,
+        name: `Dried ${obj.name}`,
+        edibility: Math.max(0, Math.floor(obj.edibility * 3)),
+        price: Math.floor((obj.price * 1.5 + 5) * 5),
+        category: ObjectCategory.ArtisanGoods,
+        texture: objectsArray.find((i) => i._key === "DriedFruit")?.texture,
+        spriteIndex: objectsArray.find((i) => i._key === "DriedFruit")
+            ?.spriteIndex,
+        color: obj.tags
+            ?.map((tag) => colorMap.get(tag as ColorTag))
+            .find((color) => color !== undefined),
+    }));
+
+const wine = objectsArray
+    .filter((i) => i.category === ObjectCategory.Fruit)
+    .map((obj) => ({
+        ...obj,
+        name: `${obj.name} Wine`,
+        edibility: Math.min(0, Math.floor(obj.edibility * 1.75)),
+        price: Math.floor(obj.price * 3),
+        category: ObjectCategory.ArtisanGoods,
+        texture: objectsArray.find((i) => i.name === "Wine")?.texture,
+        spriteIndex: objectsArray.find((i) => i.name === "Wine")?.spriteIndex,
+        color: obj.tags
+            ?.map((tag) => colorMap.get(tag as ColorTag))
+            .find((color) => color !== undefined),
+    }));
+
+const pickles = objectsArray
+    .filter(
+        (i) =>
+            i.category === ObjectCategory.Vegetable ||
+            (i.category === ObjectCategory.Forage && i.edibility > 0),
+    )
+    .filter((i) => [
+        "Cave Carrot",
+        "Chanterelle",
+        "Common Mushroom",
+        "Dandelion",
+        "Ginger",
+        "Hazelnut",
+        "Leek",
+        "Magma Cap",
+        "Morel",
+        "Purple Mushroom",
+        "Snow Yam",
+        "Spring Onion",
+        "Wild Horseradish",
+        "Winter Root",
+    ])
+    .map((obj) => ({
+        ...obj,
+        name: `Pickled ${obj.name}`,
+        edibility: Math.max(
+            0,
+            obj.edibility ? Math.floor(obj.edibility * 1.75) : obj.price * 0.25,
+        ),
+        price: Math.floor(obj.price * 2.25),
+        category: ObjectCategory.ArtisanGoods,
+        texture: objectsArray.find((i) => i.name === "Pickles")?.texture,
+        spriteIndex: objectsArray.find((i) => i.name === "Pickles")
+            ?.spriteIndex,
+        color: obj.tags
+            ?.map((tag) => colorMap.get(tag as ColorTag))
+            .find((color) => color !== undefined),
+    }));
+
+const jelly = objectsArray
+    .filter((i) => i.category === ObjectCategory.Fruit)
+    .map((obj) => ({
+        ...obj,
+        name: `${obj.name} Jelly`,
+        edibility: Math.max(
+            0,
+            obj.edibility ? Math.floor(obj.edibility * 1.75) : obj.price * 0.2,
+        ),
+        price: Math.floor(obj.price * 2.25),
+        category: ObjectCategory.ArtisanGoods,
+        texture: objectsArray.find((i) => i.name === "Jelly")?.texture,
+        spriteIndex: objectsArray.find((i) => i.name === "Jelly")?.spriteIndex,
+        color: obj.tags
+            ?.map((tag) => colorMap.get(tag as ColorTag))
+            .find((color) => color !== undefined),
+    }));
+
+const juices = objectsArray
+    .filter((i) =>
+        [ObjectCategory.Fruit, ObjectCategory.Forage].includes(i.category),
+    )
+    .filter(
+        (i) =>
+            ![
+                "Chanterelle",
+                "Common Mushroom",
+                "Magma Cap",
+                "Morel",
+                "Purple Mushroom",
+                "Red Mushroom",
+                "Wheet",
+                "Hops",
+                "Tea Leaves",
+            ].includes(i.name),
+    )
+    .map((obj) => ({
+        ...obj,
+        name: `${obj.name} Juice`,
+        edibility: Math.max(
+            0,
+            obj.edibility ? Math.floor(obj.edibility * 2) : obj.price * 1.4,
+        ),
+        price: Math.floor(obj.price * 2.25),
+        category: ObjectCategory.ArtisanGoods,
+        texture: objectsArray.find((i) => i.name === "Juice")?.texture,
+        spriteIndex: objectsArray.find((i) => i.name === "Juice")?.spriteIndex,
+        color: obj.tags
+            ?.map((tag) => colorMap.get(tag as ColorTag))
+            .find((color) => color !== undefined),
+    }));
 
 const bigCraftablesArray = Object.entries(bigCraftables).map(
     ([key, obj]) =>
@@ -261,7 +423,9 @@ await writeFile(
 const notUndefined = <T>(x: T | undefined): x is T => x !== undefined;
 const writeToFile = JSON.stringify(
     [
-        ...objectsArray,
+        ...objectsArray.filter(
+            (i) => !["Dried", "Pickled", "Jelly", "Juice"].includes(i.name),
+        ),
         ...bigCraftablesArray,
         ...bootsArray,
         ...shirtsArray,
@@ -270,6 +434,13 @@ const writeToFile = JSON.stringify(
         ...hatsArray,
         ...weaponsArray,
         ...toolsArray,
+        ...smokedFish,
+        ...driedMushrooms,
+        ...driedFruit,
+        ...wine,
+        ...pickles,
+        ...jelly,
+        ...juices,
     ]
         .filter(notUndefined)
         .map((item) => [item.name, item]),

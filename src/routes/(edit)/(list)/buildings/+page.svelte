@@ -39,9 +39,10 @@
             <div>
                 <h3>{building.name}</h3>
                 <div class="options">
-                    {#if building.location?.animals}
+                    {#if building.indoorLocation?.animals}
                         {@const max = building.data?.maxOccupants ?? "??"}
-                        {@const animals = building.location.animals.length}
+                        {@const animals =
+                            building.indoorLocation.animals.length}
                         <small>
                             <span>Animals</span>
                             <var>{animals}/{max}</var>

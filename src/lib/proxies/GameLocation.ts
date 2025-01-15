@@ -24,6 +24,7 @@ export class GameLocation {
     }
 
     get buildings() {
+        console.log(this.#context);
         return (
             this.raw.buildings?.Building?.map((b) =>
                 isNil(b) ? undefined : new Building(b, this.#context),

@@ -330,7 +330,7 @@ export interface GameLocation {
     numberOfSpawnedObjectsOnMap: number;
     miniJukeboxCount: number;
     miniJukeboxTrack: string;
-    furniture: FurnitureClass | string;
+    furniture: FurnitureClass | undefined;
     Animals: GameLocationAnimals;
     IsGreenhouse: boolean;
     housePaintColor?: HousePaintColor;

@@ -11,6 +11,7 @@ import {
 import { Sprite } from "$lib/Sprite";
 import { Color } from "$lib/proxies/Color";
 import {
+    type Coordinates,
     FurnitureType,
     type ItemInformation,
     ObjectCategory,

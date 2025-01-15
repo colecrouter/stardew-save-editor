@@ -66,6 +66,7 @@ const objectsArray = Object.entries(objects)
     )
     // Hack for multiple unused stone objects
     .filter((obj) => obj.name !== "Stone" || obj._key === "390");
+
 const smokedFish = objectsArray
     .filter((i) => i.category === ObjectCategory.Fish)
     .map((obj) => ({
@@ -90,7 +91,7 @@ const driedMushrooms = objectsArray
     .map((obj) => ({
         ...obj,
         name: `Dried ${obj.name}`,
-        edibility: Math.floor(obj.edibility * 3),
+        edibility: Math.max(0, Math.floor(obj.edibility * 3)),
         price: Math.floor((obj.price * 1.5 + 5) * 5),
         category: ObjectCategory.ArtisanGoods,
         texture: objectsArray.find((i) => i._key === "DriedMushrooms")?.texture,
@@ -107,7 +108,7 @@ const driedFruit = objectsArray
     .map((obj) => ({
         ...obj,
         name: `Dried ${obj.name}`,
-        edibility: Math.floor(obj.edibility * 3),
+        edibility: Math.max(0, Math.floor(obj.edibility * 3)),
         price: Math.floor((obj.price * 1.5 + 5) * 5),
         category: ObjectCategory.ArtisanGoods,
         texture: objectsArray.find((i) => i._key === "DriedFruit")?.texture,
@@ -123,7 +124,7 @@ const wine = objectsArray
     .map((obj) => ({
         ...obj,
         name: `${obj.name} Wine`,
-        edibility: Math.floor(obj.edibility * 1.75),
+        edibility: Math.min(0, Math.floor(obj.edibility * 1.75)),
         price: Math.floor(obj.price * 3),
         category: ObjectCategory.ArtisanGoods,
         texture: objectsArray.find((i) => i.name === "Wine")?.texture,
@@ -158,9 +159,10 @@ const pickles = objectsArray
     .map((obj) => ({
         ...obj,
         name: `Pickled ${obj.name}`,
-        edibility: obj.edibility
-            ? Math.floor(obj.edibility * 1.75)
-            : obj.price * 0.25,
+        edibility: Math.max(
+            0,
+            obj.edibility ? Math.floor(obj.edibility * 1.75) : obj.price * 0.25,
+        ),
         price: Math.floor(obj.price * 2.25),
         category: ObjectCategory.ArtisanGoods,
         texture: objectsArray.find((i) => i.name === "Pickles")?.texture,
@@ -176,9 +178,10 @@ const jelly = objectsArray
     .map((obj) => ({
         ...obj,
         name: `${obj.name} Jelly`,
-        edibility: obj.edibility
-            ? Math.floor(obj.edibility * 1.75)
-            : obj.price * 0.2,
+        edibility: Math.max(
+            0,
+            obj.edibility ? Math.floor(obj.edibility * 1.75) : obj.price * 0.2,
+        ),
         price: Math.floor(obj.price * 2.25),
         category: ObjectCategory.ArtisanGoods,
         texture: objectsArray.find((i) => i.name === "Jelly")?.texture,
@@ -209,9 +212,10 @@ const juices = objectsArray
     .map((obj) => ({
         ...obj,
         name: `${obj.name} Juice`,
-        edibility: obj.edibility
-            ? Math.floor(obj.edibility * 2)
-            : obj.price * 1.4,
+        edibility: Math.max(
+            0,
+            obj.edibility ? Math.floor(obj.edibility * 2) : obj.price * 1.4,
+        ),
         price: Math.floor(obj.price * 2.25),
         category: ObjectCategory.ArtisanGoods,
         texture: objectsArray.find((i) => i.name === "Juice")?.texture,

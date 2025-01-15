@@ -11,6 +11,7 @@ interface Base {
     // Appearance
     texture?: string;
     spriteIndex?: number | null;
+    color?: string;
 }
 
 export interface RegularObject extends Base {
@@ -21,6 +22,8 @@ export interface RegularObject extends Base {
     // Edibility
     edibility?: number;
     isDrink?: boolean;
+    tags?: string[];
+    color?: string;
 }
 
 export interface BigCraftable extends Base {

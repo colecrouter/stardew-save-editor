@@ -8,7 +8,8 @@
 </script>
 
 <script lang="ts">
-    import { CalculateEdibility, CalculatePrice } from "$lib/ItemQuality";
+    import { calculatePrice, calculateEdibility } from "$lib/ItemQuality";
+
     import type { Item } from "$lib/proxies/Item";
 
     interface Props {
@@ -17,30 +18,20 @@
 
     let { item = $bindable() }: Props = $props();
 
-    const changeQuality = (newQuality: number) => {
+    /** Update an item's quality, and recalculate its price & edibility */
+    const updateQuality = (newQuality: number) => {
         item.quality = newQuality;
-    };
 
-    const changePrice = (newQuality: number) => {
-        if (
-            !item.info! ||
-            "price" in item.info ||
-            item.info.price === undefined
-        )
-            return;
+        if (item.info?.price !== undefined) {
+            item.price = calculatePrice(item.info.price, newQuality);
+        }
 
-        item.price = CalculatePrice(item.info.price, newQuality);
-    };
-
-    const changeEdibility = (newQuality: number) => {
-        if (
-            !item.info! ||
-            !("edibility" in item.info) ||
-            item.info.edibility === undefined
-        )
-            return;
-
-        item.edibility = CalculateEdibility(item.info.edibility, newQuality);
+        if (item.info?.edibility !== undefined) {
+            item.edibility = calculateEdibility(
+                item.info.edibility,
+                newQuality,
+            );
+        }
     };
 </script>
 
@@ -48,7 +39,7 @@
     <!-- Create 4 buttons containing star emoji-->
     {#if item.quality !== undefined}
         {#each qualityLevels as [i]}
-            <label data-testid={`quality-${i}`}>
+            <label>
                 {#if i === 0}
                     ☆
                 {:else}
@@ -59,9 +50,8 @@
                     checked={item.quality === i}
                     value={i}
                     bind:group={item.quality}
-                    onclick={() => (
-                        changeQuality(i), changePrice(i), changeEdibility(i)
-                    )}
+                    onclick={() => updateQuality(i)}
+                    data-testid={`quality-${i}`}
                 />
             </label>
         {/each}
@@ -82,12 +72,16 @@
         display: inline;
     }
 
-    .container label {
+    label {
         cursor: pointer;
         user-select: none;
     }
 
-    .container label input:checked::after {
+    label:has(input:focus-within) {
+        filter: drop-shadow(0 0 2px #000);
+    }
+
+    label input:checked::after {
         position: absolute;
         top: -0.75em;
         left: -1.25em;
@@ -95,25 +89,25 @@
         font-size: 0.8em;
     }
 
-    .container label:nth-child(1) {
+    label:nth-child(1) {
         font-size: 1.25em;
     }
 
-    .container label:nth-child(2) {
+    label:nth-child(2) {
         text-shadow:
             0 0 0 #dadfe5,
             0 0 2px #aaadb2;
         color: transparent;
     }
 
-    .container label:nth-child(3) {
+    label:nth-child(3) {
         text-shadow:
             0 0 0 #ffff18,
             0 0 2px #cccc13;
         color: transparent;
     }
 
-    .container label:nth-child(4) {
+    label:nth-child(4) {
         text-shadow:
             0 0 0 #db67c4,
             0 0 2px #a74f96;

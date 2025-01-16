@@ -23,6 +23,7 @@
 
     let { item }: Props = $props();
 
+    // Main properties
     let spritesheet = $derived(sheetUrl(item?.sprite?.sheet));
     let spritePosition = $derived(item?.sprite?.dimensions);
     let x = $derived(spritePosition?.x);
@@ -30,17 +31,18 @@
     let w = $derived(item?.sprite?.dimensions.width);
     let h = $derived(item?.sprite?.dimensions.height);
     let zoom = $derived(32 / Math.max(w ?? 0, h ?? 0, 16));
-    let tint = $derived(colorToString(item?.color) ?? item?.info?.color);
     let blendingMode = $derived(
         item?.color?.A !== undefined ? "multiply" : "normal",
     );
 
+    // Overlay properties
+    let tint = $derived(colorToString(item?.color) ?? item?.info?.color);
     let smoked = $derived(item?.name.startsWith("Smoked"));
     let hasArtisanOverlay = $derived(item?.info?.color);
     let overlayPosition = $derived(
         hasArtisanOverlay
-            ? { x: (x ?? 0) - 16, y }
-            : (item?.sprite?.dimensions ?? { x: 0, y: 0 }),
+            ? { x: (x ?? 0) - 16, y } // Artisan overlay is always 16px to the left
+            : (item?.sprite?.dimensions ?? { x: 0, y: 0 }), // For pants, its the same as the sprite
     );
     let overlayX = $derived(overlayPosition.x);
     let overlayY = $derived(overlayPosition.y);
@@ -61,6 +63,7 @@
             class:smoked
         >
             {#if smoked}
+                <!-- Smoke bubbles -->
                 <div class="smoke"></div>
                 <div class="smoke"></div>
                 <div class="smoke"></div>

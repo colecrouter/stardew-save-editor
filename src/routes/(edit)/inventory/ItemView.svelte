@@ -24,20 +24,21 @@
         createItem,
     }: Props = $props();
 
+    // List of generic properties, with min/max/step values
     const properties = [
         ["Amount", "amount", 1, 9999],
         ["Min Dmg", "minDamage", 0, 999],
         ["Max Dmg", "maxDamage", 0, 999],
         ["Knockback", "knockback", 0, 999],
-        ["Speed", "speed", 0, 999],
+        ["Speed", "speed", -999, 999],
         ["Precision", "precision", 0, 999],
         ["Defense", "defense", 0, 999],
         ["Area of Effect", "areaOfEffect", 0, 999],
         ["Crit Chance", "critChance", 0, 1, 0.01],
-        ["Crit Multiplier", "critMultiplier", 0, 999],
+        ["Crit Multiplier", "critMultiplier", 0, 999, 0.1],
         ["Immunity Bonus", "immunityBonus", 0, 999],
         ["Color Index", "raw.indexInColorSheet", 0, 71],
-        ["Edibility", "edibility", 0, 999],
+        ["Edibility", "edibility", -999, 999],
         // ["Place Outdoors", "setOutdoors", 0, 1],
         // ["Place Indoors", "setIndoors", 0, 1],
         // ["Produces Light", "isLamp", 0, 1],

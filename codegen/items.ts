@@ -1,20 +1,21 @@
 import type { TypeEnum } from "./save";
 
-interface Base {
-    _type: string;
+export interface ItemBase {
+    _type: unknown;
     _key: string;
     // Basic info
     name: string;
     displayName: string;
     description?: string;
     price?: number;
+    edibility?: number;
     // Appearance
     texture?: string;
     spriteIndex?: number | null;
     color?: string;
 }
 
-export interface RegularObject extends Base {
+export interface RegularObject extends ItemBase {
     _type: "Object";
     // Basic info
     type: TypeEnum;
@@ -26,7 +27,7 @@ export interface RegularObject extends Base {
     color?: string;
 }
 
-export interface BigCraftable extends Base {
+export interface BigCraftable extends ItemBase {
     _type: "BigCraftable";
     _key: string;
     // Behavior
@@ -36,7 +37,7 @@ export interface BigCraftable extends Base {
     isLamp?: boolean;
 }
 
-export interface Boots extends Base {
+export interface Boots extends ItemBase {
     _type: "Boots";
     defense: number;
     immunity: number;
@@ -45,7 +46,7 @@ export interface Boots extends Base {
     colorTexture?: string;
 }
 
-export interface Pants extends Base {
+export interface Pants extends ItemBase {
     _type: "Pants";
     // Appearance
     defaultColor?: string;
@@ -53,7 +54,7 @@ export interface Pants extends Base {
     isPrismatic?: boolean;
 }
 
-export interface Shirt extends Base {
+export interface Shirt extends ItemBase {
     _type: "Shirt";
     // Appearance
     defaultColor?: string;
@@ -62,7 +63,7 @@ export interface Shirt extends Base {
     hasSleeves?: boolean;
 }
 
-export interface Furniture extends Base {
+export interface Furniture extends ItemBase {
     _type: "Furniture";
     type: FurnitureType;
     tilesheetSize?: Size;
@@ -72,13 +73,13 @@ export interface Furniture extends Base {
     offLimitsForRandomSale?: boolean;
 }
 
-export interface Hat extends Base {
+export interface Hat extends ItemBase {
     _type: "Hat";
     showRealHair: boolean;
     skipHairstyleOffset: boolean;
 }
 
-export interface Tool extends Base {
+export interface Tool extends ItemBase {
     _type: "Tool";
     class: ToolClass;
     attachmentSlots?: number;
@@ -90,7 +91,7 @@ export interface Tool extends Base {
     upgradeLevel?: number;
 }
 
-export interface Weapon extends Base {
+export interface Weapon extends ItemBase {
     _type: "Weapon";
     // Basic info
     type: MeleeWeaponType;

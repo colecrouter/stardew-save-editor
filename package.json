@@ -11,8 +11,8 @@
 		"dump": "tsx --no-warnings codegen/dump.ts",
 		"lint": "biome lint ./src && tsc --noEmit",
 		"lint:fix": "biome lint ./src --fix && tsc --noEmit",
-		"format": "prettier src && biome check ./src",
-		"format:fix": "prettier src --write && biome check ./src --write",
+		"format": "prettier --log-level silent src && biome check ./src",
+		"format:fix": "prettier --log-level silent --write src && biome check ./src --fix --unsafe",
 		"test": "vitest run",
 		"emulate:webkit": "node test/webkit.js"
 	},

@@ -345,8 +345,7 @@ export class Item {
     set amount(amount) {
         if (this.amount === undefined)
             throw new Error("Amount is not applicable to this item");
-        if (amount === undefined || amount < 1 || amount > 999)
-            throw new Error("Amount must be between 1 and 999");
+        if (amount === undefined) throw new Error("Amount must be a number");
 
         this.raw.stack = amount;
     }
@@ -378,8 +377,6 @@ export class Item {
     set edibility(edibility) {
         if (this.edibility === undefined)
             throw new Error("Item has no edibility");
-        if (edibility === undefined || edibility < -300 || edibility > 100)
-            throw new Error("Edibility must be between -300 and 100");
 
         this.raw.edibility = edibility;
     }

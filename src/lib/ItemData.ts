@@ -115,22 +115,6 @@ export const FishingRodSpriteIndex = new Map([
     ["Iridium Rod", 11],
 ]);
 
-// https://stardewvalleywiki.com/User:IBugOne/Item_Quality#Sell_price
-export const QualityToPriceMultiplier = new Map([
-    [0, 1],
-    [1, 1.25],
-    [2, 1.5],
-    [4, 2],
-]);
-
-// https://stardewvalleywiki.com/User:IBugOne/Item_Quality#Healing_effect
-export const QualityToEdibilityMultiplier = new Map([
-    [0, 1],
-    [1, 1.4],
-    [2, 1.8],
-    [4, 2.6],
-]);
-
 // TODO: I don't know what items are allowed to have quality, or if there's some sort of rule.
 export const CategoriesWithQuality = new Set([
     ObjectCategory.Fish,

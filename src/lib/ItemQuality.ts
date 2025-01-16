@@ -1,15 +1,26 @@
-import {
-    QualityToEdibilityMultiplier,
-    QualityToPriceMultiplier,
-} from "$lib/ItemData";
+// https://stardewvalleywiki.com/User:IBugOne/Item_Quality#Sell_price
+export const QualityToPriceMultiplier = new Map([
+    [0, 1],
+    [1, 1.25],
+    [2, 1.5],
+    [4, 2],
+]);
 
-export const CalculateEdibility = (edibility: number, quality: number) =>
-    CalculateBase(edibility, quality, QualityToEdibilityMultiplier);
+// https://stardewvalleywiki.com/User:IBugOne/Item_Quality#Healing_effect
+export const QualityToEdibilityMultiplier = new Map([
+    [0, 1],
+    [1, 1.4],
+    [2, 1.8],
+    [4, 2.6],
+]);
 
-export const CalculatePrice = (price: number, quality: number) =>
-    CalculateBase(price, quality, QualityToPriceMultiplier);
+export const calculateEdibility = (edibility: number, quality: number) =>
+    calculate(edibility, quality, QualityToEdibilityMultiplier);
 
-const CalculateBase = (
+export const calculatePrice = (price: number, quality: number) =>
+    calculate(price, quality, QualityToPriceMultiplier);
+
+const calculate = (
     value: number,
     quality: number,
     lookup: Map<number, number>,

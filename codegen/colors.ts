@@ -1,47 +1,11 @@
-import type { Color } from "./save";
-
-export const colors = [
-    "color_gray",
-    "color_white",
-    "color_pink",
-    "color_red",
-    "color_orange",
-    "color_yellow",
-    "color_green",
-    "color_blue",
-    "color_purple",
-    "color_brown",
-    "color_light_cyan",
-    "color_cyan",
-    "color_aquamarine",
-    "color_sea_green",
-    "color_lime",
-    "color_yellow_green",
-    "color_pale_violet_red",
-    "color_salmon",
-    "color_jade",
-    "color_sand",
-    "color_poppyseed",
-    "color_dark_red",
-    "color_dark_orange",
-    "color_dark_yellow",
-    "color_dark_green",
-    "color_dark_blue",
-    "color_dark_purple",
-    "color_dark_pink",
-    "color_dark_cyan",
-    "color_dark_gray",
-    "color_dark_brown",
-    "color_gold",
-    "color_copper",
-    "color_iron",
-    "color_iridium",
-] as const;
-
-export type ColorTag = (typeof colors)[number];
-
-// https://github.com/WeDias/StardewValley/blob/b237fdf9d8b67b079454bb727626fefccc73e15d/Menus/TailoringMenu.cs#L482
-export const colorMap = new Map<ColorTag, string>([
+/**
+ * A map of color context tags to their respective RGB values as hardcoded in the game's code.
+ *
+ * https://github.com/WeDias/StardewValley/blob/b237fdf9d8b67b079454bb727626fefccc73e15d/Menus/TailoringMenu.cs#L482
+ *
+ * The colors don't need to be in this exact format, I am just using them for CSS so I did it this way.
+ */
+export const colorMap = new Map<string, string>([
     ["color_gray", "rgb(45, 45, 45)"],
     ["color_white", "rgb(255, 255, 255)"],
     ["color_pink", "rgb(255, 163, 186)"],

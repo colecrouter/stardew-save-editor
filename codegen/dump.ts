@@ -12,236 +12,30 @@ import tools from "../content/Data/Tools.json";
 import weapons from "../content/Data/Weapons.json";
 import hats from "../content/Data/hats.json";
 import { characters } from "../src/lib/NPCs";
-import { type ColorTag, colorMap } from "./colors";
 import {
-    type BigCraftable,
+    createArtisanGoods,
+    fixTexture,
+    thrw,
+    transformJSONItems,
+} from "./helpers";
+import {
     type Boots,
+    ObjectCategory as Category,
     type Furniture,
     type FurnitureType,
     type Hat,
-    ObjectCategory,
-    type Pants,
     type PlacementRestriction,
     type RegularObject,
-    type Shirt,
     type Size,
-    type Tool,
-    type ToolClass,
-    type Weapon,
 } from "./items";
-import type { TypeEnum } from "./save";
 
-const thrw = (msg: string): never => {
-    throw new Error(msg);
-};
+// **Items**
 
-const textureFilter = ["TileSheets", "/", "\\"];
-const fixTexture = (texture: string | null | undefined) =>
-    texture
-        ? `${textureFilter.reduce(
-              (acc, filter) => acc.replaceAll(filter, ""),
-              texture,
-          )}.png`
-        : undefined;
-
-const objectsArray = Object.entries(objects)
-    .map(
-        ([key, obj]) =>
-            ({
-                _type: "Object",
-                _key: key,
-                name: obj.Name,
-                displayName: obj.DisplayName,
-                description: obj.Description,
-                price: obj.Price,
-                type: obj.Type as TypeEnum,
-                category: obj.Category,
-                texture: fixTexture(obj.Texture),
-                spriteIndex: obj.SpriteIndex,
-                edibility: obj.Edibility,
-                isDrink: obj.IsDrink,
-                tags: obj.ContextTags ?? undefined,
-                color: undefined,
-            }) satisfies RegularObject,
-    )
+const objectsArray = transformJSONItems(objects, "Object")
     // Hack for multiple unused stone objects
     .filter((obj) => obj.name !== "Stone" || obj._key === "390");
 
-const smokedFish = objectsArray
-    .filter((i) => i.category === ObjectCategory.Fish)
-    .map((obj) => ({
-        ...obj,
-        name: `Smoked ${obj.name}`,
-        edibility: Math.floor(obj.edibility * 1.5),
-        price: Math.floor(obj.price * 2),
-        category: ObjectCategory.ArtisanGoods,
-    }));
-
-const driedMushrooms = objectsArray
-    .filter((i) => i.category === ObjectCategory.Forage)
-    .filter((i) =>
-        [
-            "Chanterelle",
-            "Common Mushroom",
-            "Morel",
-            "Magma Cap",
-            "Purple Mushroom",
-        ].includes(i.name),
-    )
-    .map((obj) => ({
-        ...obj,
-        name: `Dried ${obj.name}`,
-        edibility: Math.max(0, Math.floor(obj.edibility * 3)),
-        price: Math.floor((obj.price * 1.5 + 5) * 5),
-        category: ObjectCategory.ArtisanGoods,
-        texture: objectsArray.find((i) => i._key === "DriedMushrooms")?.texture,
-        spriteIndex: objectsArray.find((i) => i._key === "DriedMushrooms")
-            ?.spriteIndex,
-        color: obj.tags
-            ?.map((tag) => colorMap.get(tag as ColorTag))
-            .find((color) => color !== undefined),
-    }));
-
-const driedFruit = objectsArray
-    .filter((i) => i.category === ObjectCategory.Fruit)
-    .filter((i) => i.name !== "Grapes")
-    .map((obj) => ({
-        ...obj,
-        name: `Dried ${obj.name}`,
-        edibility: Math.max(0, Math.floor(obj.edibility * 3)),
-        price: Math.floor((obj.price * 1.5 + 5) * 5),
-        category: ObjectCategory.ArtisanGoods,
-        texture: objectsArray.find((i) => i._key === "DriedFruit")?.texture,
-        spriteIndex: objectsArray.find((i) => i._key === "DriedFruit")
-            ?.spriteIndex,
-        color: obj.tags
-            ?.map((tag) => colorMap.get(tag as ColorTag))
-            .find((color) => color !== undefined),
-    }));
-
-const wine = objectsArray
-    .filter((i) => i.category === ObjectCategory.Fruit)
-    .map((obj) => ({
-        ...obj,
-        name: `${obj.name} Wine`,
-        edibility: Math.min(0, Math.floor(obj.edibility * 1.75)),
-        price: Math.floor(obj.price * 3),
-        category: ObjectCategory.ArtisanGoods,
-        texture: objectsArray.find((i) => i.name === "Wine")?.texture,
-        spriteIndex: objectsArray.find((i) => i.name === "Wine")?.spriteIndex,
-        color: obj.tags
-            ?.map((tag) => colorMap.get(tag as ColorTag))
-            .find((color) => color !== undefined),
-    }));
-
-const pickles = objectsArray
-    .filter(
-        (i) =>
-            i.category === ObjectCategory.Vegetable ||
-            (i.category === ObjectCategory.Forage && i.edibility > 0),
-    )
-    .filter((i) => [
-        "Cave Carrot",
-        "Chanterelle",
-        "Common Mushroom",
-        "Dandelion",
-        "Ginger",
-        "Hazelnut",
-        "Leek",
-        "Magma Cap",
-        "Morel",
-        "Purple Mushroom",
-        "Snow Yam",
-        "Spring Onion",
-        "Wild Horseradish",
-        "Winter Root",
-    ])
-    .map((obj) => ({
-        ...obj,
-        name: `Pickled ${obj.name}`,
-        edibility: Math.max(
-            0,
-            obj.edibility ? Math.floor(obj.edibility * 1.75) : obj.price * 0.25,
-        ),
-        price: Math.floor(obj.price * 2.25),
-        category: ObjectCategory.ArtisanGoods,
-        texture: objectsArray.find((i) => i.name === "Pickles")?.texture,
-        spriteIndex: objectsArray.find((i) => i.name === "Pickles")
-            ?.spriteIndex,
-        color: obj.tags
-            ?.map((tag) => colorMap.get(tag as ColorTag))
-            .find((color) => color !== undefined),
-    }));
-
-const jelly = objectsArray
-    .filter((i) => i.category === ObjectCategory.Fruit)
-    .map((obj) => ({
-        ...obj,
-        name: `${obj.name} Jelly`,
-        edibility: Math.max(
-            0,
-            obj.edibility ? Math.floor(obj.edibility * 1.75) : obj.price * 0.2,
-        ),
-        price: Math.floor(obj.price * 2.25),
-        category: ObjectCategory.ArtisanGoods,
-        texture: objectsArray.find((i) => i.name === "Jelly")?.texture,
-        spriteIndex: objectsArray.find((i) => i.name === "Jelly")?.spriteIndex,
-        color: obj.tags
-            ?.map((tag) => colorMap.get(tag as ColorTag))
-            .find((color) => color !== undefined),
-    }));
-
-const juices = objectsArray
-    .filter((i) =>
-        [ObjectCategory.Fruit, ObjectCategory.Forage].includes(i.category),
-    )
-    .filter(
-        (i) =>
-            ![
-                "Chanterelle",
-                "Common Mushroom",
-                "Magma Cap",
-                "Morel",
-                "Purple Mushroom",
-                "Red Mushroom",
-                "Wheet",
-                "Hops",
-                "Tea Leaves",
-            ].includes(i.name),
-    )
-    .map((obj) => ({
-        ...obj,
-        name: `${obj.name} Juice`,
-        edibility: Math.max(
-            0,
-            obj.edibility ? Math.floor(obj.edibility * 2) : obj.price * 1.4,
-        ),
-        price: Math.floor(obj.price * 2.25),
-        category: ObjectCategory.ArtisanGoods,
-        texture: objectsArray.find((i) => i.name === "Juice")?.texture,
-        spriteIndex: objectsArray.find((i) => i.name === "Juice")?.spriteIndex,
-        color: obj.tags
-            ?.map((tag) => colorMap.get(tag as ColorTag))
-            .find((color) => color !== undefined),
-    }));
-
-const bigCraftablesArray = Object.entries(bigCraftables).map(
-    ([key, obj]) =>
-        ({
-            _type: "BigCraftable",
-            _key: key,
-            name: obj.Name,
-            displayName: obj.DisplayName,
-            description: obj.Description,
-            price: obj.Price,
-            fragility: obj.Fragility,
-            canBePlacedIndoors: obj.CanBePlacedIndoors,
-            canBePlacedOutdoors: obj.CanBePlacedOutdoors,
-            isLamp: obj.IsLamp,
-            texture: fixTexture(obj.Texture),
-            spriteIndex: obj.SpriteIndex,
-        }) satisfies BigCraftable,
-);
+const bigCraftablesArray = transformJSONItems(bigCraftables, "BigCraftable");
 
 const bootsArray = Object.entries(boots).map(([key, obj]) => {
     // 0 - name, 1 - description, 2 - price, 3 - defense, 4 - immunity, 5 - color index, 6 - display name, 7 - color texture, 8 - sprite index, 9 - texture name
@@ -258,43 +52,11 @@ const bootsArray = Object.entries(boots).map(([key, obj]) => {
     } satisfies Boots;
 });
 
-const shirtsArray = Object.entries(shirts)
-    .map(
-        ([key, obj]) =>
-            ({
-                _type: "Shirt",
-                _key: key,
-                description: obj.Description,
-                displayName: obj.DisplayName,
-                name: obj.Name,
-                defaultColor: obj.DefaultColor || undefined,
-                canBeDyed: obj.CanBeDyed,
-                isPrismatic: obj.IsPrismatic,
-                hasSleeves: obj.HasSleeves,
-                texture: fixTexture(obj.Texture),
-                price: obj.Price,
-                spriteIndex: obj.SpriteIndex,
-            }) satisfies Shirt,
-    )
-    // Filter out "SoftEdgePullover"
-    .filter((shirt) => shirt._key !== "SoftEdgePullover");
-
-const pantsArray = Object.entries(pants).map(
-    ([key, obj]) =>
-        ({
-            _type: "Pants",
-            _key: key,
-            description: obj.Description,
-            displayName: obj.DisplayName,
-            name: obj.Name,
-            defaultColor: obj.DefaultColor || undefined,
-            price: obj.Price,
-            spriteIndex: obj.SpriteIndex,
-            canBeDyed: obj.CanBeDyed,
-            isPrismatic: obj.IsPrismatic,
-            texture: fixTexture(obj.Texture),
-        }) satisfies Pants,
+const shirtsArray = transformJSONItems(shirts, "Shirt").filter(
+    (shirt) => shirt.name !== "Soft Edge Pullover",
 );
+
+const pantsArray = transformJSONItems(pants, "Pants");
 
 const furnitureArray = Object.entries(furniture).map(([key, obj]) => {
     // 0 - name, 1 - type, 2 - tilesheet size, 3 - bounding box size, 4 - rotations, 5 - price, 6 - placement restriction, 7 - display name, 8 - sprite index, 9 - texture, 10 - off limits for random sale, 11 - tags
@@ -352,79 +114,135 @@ const hatsArray = Object.entries(hats).map(([key, obj]) => {
     } satisfies Hat;
 });
 
-const weaponsArray = Object.entries(weapons).map(
-    ([key, obj]) =>
-        ({
-            _type: "Weapon",
-            _key: key,
-            name: obj.Name,
-            displayName: obj.DisplayName,
-            description: obj.Description,
-            minDamage: obj.MinDamage,
-            maxDamage: obj.MaxDamage,
-            speed: obj.Speed,
-            knockback: obj.Knockback,
-            critChance: obj.CritChance,
-            critMultiplier: obj.CritMultiplier,
-            areaOfEffect: obj.AreaOfEffect,
-            type: obj.Type,
-            texture:
-                fixTexture(obj.Texture) ?? thrw("Weapon must have a texture"),
-            spriteIndex: obj.SpriteIndex,
-            canBeLostOnDeath: obj.CanBeLostOnDeath,
-            defense: obj.Defense,
-            precision: obj.Precision,
-            mineBaseLevel: obj.MineBaseLevel,
-            mineMinLevel: obj.MineMinLevel,
-        }) satisfies Weapon,
+const weaponsArray = transformJSONItems(weapons, "Weapon");
+
+const toolsArray = transformJSONItems(tools, "Tool");
+
+// **Artisan Goods**
+
+const smokedFish = createArtisanGoods(
+    objectsArray.find((i) => i.name === "Smoked") as RegularObject,
+    {
+        filter: (i) => i.category === Category.Fish,
+        prefix: "Smoked",
+        edibilityMultiplier: 1.5,
+        keepTexture: true,
+        priceFunc: (obj) => Math.floor((obj.price ?? 0) * 2),
+    },
 );
 
-const toolsArray = Object.entries(tools).map(
-    ([key, obj]) =>
-        ({
-            _type: "Tool",
-            _key: key,
-            name: obj.Name,
-            displayName: obj.DisplayName,
-            description: obj.Description,
-            attachmentSlots:
-                obj.AttachmentSlots === -1 ? undefined : obj.AttachmentSlots,
-            salePrice: obj.SalePrice,
-            texture:
-                fixTexture(obj.Texture) ?? thrw("Tool must have a texture"),
-            spriteIndex: obj.SpriteIndex,
-            upgradeLevel: obj.UpgradeLevel,
-            menuSpriteIndex:
-                obj.MenuSpriteIndex === -1 ? undefined : obj.MenuSpriteIndex,
-            class: obj.ClassName as ToolClass,
-        }) satisfies Tool,
+const driedMushrooms = createArtisanGoods(
+    objectsArray.find((i) => i._key === "DriedMushrooms") as RegularObject,
+    {
+        filter: (i) =>
+            i.category === Category.Forage &&
+            [
+                "Chanterelle",
+                "Common Mushroom",
+                "Morel",
+                "Magma Cap",
+                "Purple Mushroom",
+            ].includes(i.name),
+        prefix: "Dried",
+        edibilityMultiplier: 3,
+        tinted: true,
+        priceFunc: (obj) => Math.floor((obj.price ?? 0) * 1.5 + 5) * 5,
+    },
 );
 
-const cookingRecipes = JSON.parse(
-    await readFile("./content/Data/CookingRecipes.json", "utf-8"),
-) as Record<string, string>;
-const cookingRecipesArray = Object.entries(cookingRecipes).map(([key]) => key);
-await writeFile(
-    "./generated/cookingrecipes.json",
-    JSON.stringify(cookingRecipesArray),
+const driedFruit = createArtisanGoods(
+    objectsArray.find((i) => i._key === "DriedFruit") as RegularObject,
+    {
+        filter: (i) => i.category === Category.Fruit && i.name !== "Grapes",
+        prefix: "Dried",
+        edibilityMultiplier: 3,
+        tinted: true,
+        priceFunc: (obj) => Math.floor((obj.price ?? 0) * 1.5 + 5) * 5,
+    },
 );
 
-const craftingRecipes = JSON.parse(
-    await readFile("./content/Data/CraftingRecipes.json", "utf-8"),
-) as Record<string, string>;
-const craftingRecipesArray = Object.entries(craftingRecipes).map(
-    ([key]) => key,
+const wine = createArtisanGoods(
+    objectsArray.find((i) => i.name === "Wine") as RegularObject,
+    {
+        filter: (i) => i.category === Category.Fruit,
+        suffix: "Wine",
+        edibilityMultiplier: 1.75,
+        tinted: true,
+        priceFunc: (obj) => Math.floor((obj.price ?? 0) * 3),
+    },
 );
-await writeFile(
-    "./generated/craftingrecipes.json",
-    JSON.stringify(craftingRecipesArray),
+
+const pickles = createArtisanGoods(
+    objectsArray.find((i) => i.name === "Pickles") as RegularObject,
+    {
+        filter: (i) =>
+            (i.category === Category.Vegetable ||
+                (i.category === Category.Forage && (i.edibility ?? 0) > 0)) &&
+            ![
+                "Cave Carrot",
+                "Chanterelle",
+                "Common Mushroom",
+                "Dandelion",
+                "Ginger",
+                "Hazelnut",
+                "Leek",
+                "Magma Cap",
+                "Morel",
+                "Purple Mushroom",
+                "Snow Yam",
+                "Spring Onion",
+                "Wild Horseradish",
+                "Winter Root",
+            ].includes(i.name),
+        prefix: "Pickled",
+        edibilityMultiplier: 1.75,
+        tinted: true,
+        priceFunc: (obj) => Math.floor((obj.price ?? 0) * 2.25),
+    },
+);
+
+const jelly = createArtisanGoods(
+    objectsArray.find((i) => i.name === "Jelly") as RegularObject,
+    {
+        filter: (i) => i.category === Category.Fruit,
+        suffix: "Jelly",
+        edibilityMultiplier: 1.75,
+        tinted: true,
+        priceFunc: (obj) => Math.floor((obj.price ?? 0) * 2.25),
+    },
+);
+
+const juices = createArtisanGoods(
+    objectsArray.find((i) => i.name === "Juice") as RegularObject,
+    {
+        filter: (i) =>
+            [Category.Fruit, Category.Forage].includes(i.category) &&
+            ![
+                "Chanterelle",
+                "Common Mushroom",
+                "Magma Cap",
+                "Morel",
+                "Purple Mushroom",
+                "Red Mushroom",
+                "Wheet",
+                "Hops",
+                "Tea Leaves",
+            ].includes(i.name),
+        suffix: "Juice",
+        edibilityMultiplier: 2,
+        tinted: true,
+        priceFunc: (obj) => Math.floor((obj.price ?? 0) * 2.25),
+    },
 );
 
 const notUndefined = <T>(x: T | undefined): x is T => x !== undefined;
 const writeToFile = JSON.stringify(
     [
         ...objectsArray.filter(
-            (i) => !["Dried", "Pickled", "Jelly", "Juice"].includes(i.name),
+            (obj) =>
+                !["Dried", "Pickled", "Juice", "Jelly", "Smoked"].includes(
+                    obj.name,
+                ),
         ),
         ...bigCraftablesArray,
         ...bootsArray,
@@ -446,6 +264,30 @@ const writeToFile = JSON.stringify(
         .map((item) => [item.name, item]),
 );
 await writeFile("./generated/iteminfo.json", writeToFile);
+
+// **Recipes**
+
+const cookingRecipes = JSON.parse(
+    await readFile("./content/Data/CookingRecipes.json", "utf-8"),
+) as Record<string, string>;
+const cookingRecipesArray = Object.entries(cookingRecipes).map(([key]) => key);
+await writeFile(
+    "./generated/cookingrecipes.json",
+    JSON.stringify(cookingRecipesArray),
+);
+
+const craftingRecipes = JSON.parse(
+    await readFile("./content/Data/CraftingRecipes.json", "utf-8"),
+) as Record<string, string>;
+const craftingRecipesArray = Object.entries(craftingRecipes).map(
+    ([key]) => key,
+);
+await writeFile(
+    "./generated/craftingrecipes.json",
+    JSON.stringify(craftingRecipesArray),
+);
+
+// **Assets**
 
 // Copy all textures into assets folder
 // Copy assets
@@ -506,6 +348,8 @@ for (const char of characters) {
     );
 }
 
+// **Farm Animals**
+
 const farmAnimals = Object.entries(animals).map(([key, obj]) => ({
     name: obj.DisplayName,
     requiredBuilding: obj.RequiredBuilding,
@@ -513,6 +357,8 @@ const farmAnimals = Object.entries(animals).map(([key, obj]) => ({
     canReproduce: obj.CanGetPregnant,
 }));
 await writeFile("./generated/farmanimals.json", JSON.stringify(farmAnimals));
+
+// **Buildings**
 
 const buildingsArray = Object.entries(buildings).map(([key, obj]) => ({
     name: key,

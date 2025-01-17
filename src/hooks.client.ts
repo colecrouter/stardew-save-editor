@@ -27,13 +27,14 @@ dev ||
                 maskAllText: false,
                 blockAllMedia: false,
             }),
-            captureConsoleIntegration({ levels: ["error", "debug"] }),
+            captureConsoleIntegration({ levels: ["error"] }),
         ],
 
         ignoreErrors: [
             // This appears to be a common cache miss error(?)
-            "TypeError: error loading dynamically imported module",
-            "Error: Unable to preload CSS for",
+            "dynamically imported module",
+            "Unable to preload CSS for",
+            "Importing a module script failed.",
         ],
     });
 

@@ -46,83 +46,78 @@
 
 <div class="container">
     {#each farmers as farmer, index}
-        {@const hoursPlayed = Math.floor(
-            farmer.raw.millisecondsPlayed / 1000 / 60 / 60,
-        )}
-        {@const minutesPlayed = Math.floor(
-            (farmer.raw.millisecondsPlayed / 1000 / 60) % 60,
-        )}
-        {@const moneyEarned = farmer.raw.totalMoneyEarned}
-        {@const season = seasons.get(farmer.raw.seasonForSaveGame)}
-        {@const day = farmer.raw.dayOfMonthForSaveGame}
-        {@const year = farmer.raw.yearForSaveGame}
-        {@const farmName = farmer.raw.farmName}
-
         <div
             use:droppable={{
                 container: index.toString(),
                 callbacks: { onDrop: swapFarmer },
             }}
+            class:disabled={farmers.length === 1}
         >
             <div
                 class="wrapper"
                 use:draggable={{ container: index.toString(), dragData: "asd" }}
             >
-                <div class="outer">
-                    <div class="inner">
-                        <div class="content">
-                            <div class="left">
-                                <div class="number">
-                                    {index + 1}.
-                                </div>
-                                <div class="character">
-                                    <Character player={farmer} />
-                                </div>
-                                <div class="details">
-                                    <h2 class="name">
-                                        {farmer.name}
-                                    </h2>
-                                    <div class="date">
-                                        Day {day} of {season}, Year {year}
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="right">
-                                <div class="farm-name">
-                                    {farmName} Farm
-                                </div>
-                                <div class="stats">
-                                    <div class="stat">
-                                        <label for="money-earned" hidden
-                                            >Money Earned</label
-                                        >
-                                        <span
-                                            id="money-earned"
-                                            aria-label="Money Earned"
-                                        >
-                                            💵 {moneyEarned}
-                                        </span>
-                                    </div>
-                                    <div class="stat">
-                                        <label for="time-played" hidden
-                                            >Time Played</label
-                                        >
-                                        <span
-                                            id="time-played"
-                                            aria-label="Time Played"
-                                        >
-                                            🕒 {hoursPlayed}:{minutesPlayed}
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
+                {@render card(farmer, index)}
+            </div>
+        </div>
+    {/each}
+</div>
+
+{#snippet card(farmer: Farmer, index: number)}
+    {@const hoursPlayed = Math.floor(
+        farmer.raw.millisecondsPlayed / 1000 / 60 / 60,
+    )}
+    {@const minutesPlayed = Math.floor(
+        (farmer.raw.millisecondsPlayed / 1000 / 60) % 60,
+    )}
+    {@const moneyEarned = farmer.raw.totalMoneyEarned}
+    {@const season = seasons.get(farmer.raw.seasonForSaveGame)}
+    {@const day = farmer.raw.dayOfMonthForSaveGame}
+    {@const year = farmer.raw.yearForSaveGame}
+    {@const farmName = farmer.raw.farmName}
+    <div class="outer">
+        <div class="inner">
+            <div class="content">
+                <div class="left">
+                    <div class="number">
+                        {index + 1}.
+                    </div>
+                    <div class="character">
+                        <Character player={farmer} />
+                    </div>
+                    <div class="details">
+                        <h2 class="name">
+                            {farmer.name}
+                        </h2>
+                        <div class="date">
+                            Day {day} of {season}, Year {year}
+                        </div>
+                    </div>
+                </div>
+                <div class="right">
+                    <div class="farm-name">
+                        {farmName} Farm
+                    </div>
+                    <div class="stats">
+                        <div class="stat">
+                            <label for="money-earned" hidden>Money Earned</label
+                            >
+                            <span id="money-earned" aria-label="Money Earned">
+                                💵 {moneyEarned}
+                            </span>
+                        </div>
+                        <div class="stat">
+                            <label for="time-played" hidden>Time Played</label>
+                            <span id="time-played" aria-label="Time Played">
+                                🕒 {hoursPlayed}:{minutesPlayed}
+                            </span>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-    {/each}
-</div>
+    </div>
+{/snippet}
 
 <style>
     .container {
@@ -210,5 +205,11 @@
     .container :global(.drag-over) {
         box-shadow: 0 2px 2px blue;
         margin-bottom: 3px;
+    }
+
+    .disabled {
+        opacity: 0.5;
+        pointer-events: none;
+        touch-action: none;
     }
 </style>

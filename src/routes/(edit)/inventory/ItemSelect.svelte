@@ -4,6 +4,7 @@
     import UiContainerSmall from "$lib/ui/UIContainerSmall.svelte";
     import UiInput from "$lib/ui/UIInput.svelte";
     import ItemSprite from "./ItemSprite.svelte";
+    import { stringSimilarity } from "string-similarity-js";
 
     interface Props {
         onsubmit: (name: string) => void;
@@ -15,6 +16,11 @@
     let values = $derived(
         [...ItemData.keys()]
             .filter((name) => name.toLowerCase().includes(filter.toLowerCase()))
+            .sort((a, b) => {
+                const aScore = stringSimilarity(filter, a);
+                const bScore = stringSimilarity(filter, b);
+                return bScore - aScore;
+            })
             .slice(0, 4),
     );
 </script>

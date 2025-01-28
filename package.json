@@ -34,6 +34,7 @@
 		"image-dimensions": "^2.3.0",
 		"prettier": "^3.4.2",
 		"prettier-plugin-svelte": "^3.3.2",
+		"string-similarity-js": "^2.1.4",
 		"svelte": "^5.16.1",
 		"svelte-check": "^4.1.1",
 		"tslib": "^2.4.1",

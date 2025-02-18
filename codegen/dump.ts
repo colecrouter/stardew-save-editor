@@ -293,6 +293,7 @@ await writeFile(
 // Copy assets
 const filesToCopy = [
     "TileSheets/Craftables.png",
+    "TileSheets/FreeCactuses.png",
     "TileSheets/furniture.png",
     "TileSheets/furniture_2.png",
     "TileSheets/furniture_3.png",

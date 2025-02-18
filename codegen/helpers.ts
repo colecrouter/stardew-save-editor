@@ -168,6 +168,7 @@ export const createArtisanGoods = (
         .filter(config.filter)
         .map((obj) => ({
             ...obj,
+            _key: artisanProduct._key,
             name: `${config.prefix ? `${config.prefix} ` : ""}${obj.name}${config.suffix ? ` ${config.suffix}` : ""}`,
             edibility: Math.max(
                 0,
@@ -184,6 +185,8 @@ export const createArtisanGoods = (
                       ?.map((tag) => colorMap.get(tag))
                       .find((color) => color !== undefined)
                 : undefined,
+            unpreservedItemId: obj._key,
+            preservedItemName: artisanProduct.name,
         }));
 
 const textureFilter = ["TileSheets", "/", "\\"];

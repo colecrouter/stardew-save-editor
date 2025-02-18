@@ -307,6 +307,29 @@ export class Item {
             item.indexInColorSheet = data.colorIndex;
         }
 
+        // Handle preserved items
+        if (
+            "unpreservedItemId" in data &&
+            data.unpreservedItemId &&
+            data.preservedItemName
+        ) {
+            item.preservedParentSheetIndex = Number.parseInt(
+                data.unpreservedItemId,
+            );
+
+            item.preserve = data.preservedItemName;
+        }
+
+        // Handle colored items (e.g. Wines, Juices)
+        if (data.color) {
+            item.color = new Color(data.color);
+
+            if (data._type === "Object") {
+                // @ts-expect-error
+                item["@_xsi:type"] = "ColoredObject";
+            }
+        }
+
         // TODO: Handle the Copper Pan hat special case if needed
 
         return new Item(item);

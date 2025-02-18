@@ -237,4 +237,24 @@ describe("Item", () => {
             "@_xsi:type": "WateringCan",
         });
     });
+
+    it("should create Banana Wine", () => {
+        expect(Item.fromName("Banana Wine").raw).toMatchObject({
+            name: "Banana Wine",
+            itemId: "348",
+            parentSheetIndex: 123,
+            category: -26,
+            type: "Basic",
+            preserve: "Wine",
+            preservedParentSheetIndex: 91,
+            color: {
+                R: 255,
+                G: 230,
+                B: 0,
+                A: 255,
+                PackedValue: 4278249215,
+            },
+            "@_xsi:type": "ColoredObject",
+        });
+    });
 });

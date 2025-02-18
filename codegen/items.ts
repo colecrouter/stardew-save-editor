@@ -25,8 +25,9 @@ export interface RegularObject extends ItemBase {
     isDrink?: boolean;
     tags?: string[];
     color?: string;
+    unpreservedItemId?: string;
+    preservedItemName?: string;
 }
-
 export interface BigCraftable extends ItemBase {
     _type: "BigCraftable";
     _key: string;

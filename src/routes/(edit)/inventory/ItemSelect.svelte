@@ -3,8 +3,8 @@
     import { Item } from "$lib/proxies/Item";
     import UiContainerSmall from "$lib/ui/UIContainerSmall.svelte";
     import UiInput from "$lib/ui/UIInput.svelte";
-    import ItemSprite from "./ItemSprite.svelte";
     import { stringSimilarity } from "string-similarity-js";
+    import ItemSprite from "./ItemSprite.svelte";
 
     interface Props {
         onsubmit: (name: string) => void;

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { Color } from "../../src/lib/proxies/Color";
+import { Color } from "./Color";
 
 describe("Color", () => {
     it("should return correct PackedValue for yellow", () => {

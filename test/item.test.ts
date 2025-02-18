@@ -257,4 +257,14 @@ describe("Item", () => {
             "@_xsi:type": "ColoredObject",
         });
     });
+
+    it("should create a Ruby Ring", () => {
+        expect(Item.fromName("Ruby Ring").raw).toMatchObject({
+            name: "Ruby Ring",
+            itemId: "534",
+            type: "Ring",
+            uniqueID: 1285,
+            "@_xsi:type": "Ring",
+        });
+    });
 });

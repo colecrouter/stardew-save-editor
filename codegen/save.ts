@@ -245,6 +245,7 @@ export enum TypeEnum {
     Litter = "Litter",
     Minerals = "Minerals",
     Seeds = "Seeds",
+    Ring = "Ring",
 }
 
 export interface JunimoKartLeaderboards {

@@ -16,7 +16,7 @@ import {
     ObjectCategory,
     type ToolClass,
 } from "$types/items";
-import { ClothesType, type Item as ItemModel } from "$types/save";
+import { ClothesType, TypeEnum, type Item as ItemModel } from "$types/save";
 
 const nil = { "@_xsi:nil": "true" };
 
@@ -145,13 +145,6 @@ export class Item {
             item.quality = 0;
         }
 
-        // Set ID for rings
-        if (category === ObjectCategory.Ring) {
-            item.uniqueID = RingsUniqueID.get(name);
-            // @ts-expect-error
-            item["@_xsi:type"] = "Ring";
-        }
-
         // Determine the item type
         let itemType = typeToItemTypeMap.get(data._type);
 
@@ -211,6 +204,14 @@ export class Item {
             // This is required for the game to recognize the item as the correct type, but isn't part of the XML structures
             // @ts-expect-error
             item["@_xsi:type"] = itemType;
+        }
+
+        // Set ID for rings
+        if (data._type === "Object" && data.type === TypeEnum.Ring) {
+            item.uniqueID = RingsUniqueID.get(name);
+            console.log(item.uniqueID);
+            // @ts-expect-error
+            item["@_xsi:type"] = "Ring";
         }
 
         // Handle hats

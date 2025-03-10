@@ -18,7 +18,7 @@
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^1.9.4",
-		"@sentry/sveltekit": "^8.47.0",
+		"@sentry/sveltekit": "^8.55.0",
 		"@sveltejs/adapter-static": "^3.0.8",
 		"@sveltejs/kit": "^2.16.0",
 		"@testing-library/svelte": "^5.2.4",

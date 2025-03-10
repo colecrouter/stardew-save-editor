@@ -1,3 +1,4 @@
+import { CommunityBundles } from "$lib/proxies/CommunityBundles";
 import { Farmer } from "$lib/proxies/Farmer";
 import { GameLocation } from "$lib/proxies/GameLocation";
 
@@ -122,5 +123,15 @@ export class SaveProxy {
     set deepestMineLevel(value) {
         if (!this.raw) return;
         this.raw.SaveGame.player.deepestMineLevel = value ?? 0;
+    }
+
+    get communityBundles() {
+        if (!this.raw) return undefined;
+        const location = this.locations.find(
+            (l) => l.raw.name === "CommunityCenter",
+        );
+        if (!location) throw new Error("CommunityCenter not found");
+
+        return new CommunityBundles(location, this.raw.SaveGame.bundleData);
     }
 }

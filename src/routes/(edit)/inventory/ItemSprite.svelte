@@ -90,13 +90,6 @@
 <style>
     .item {
         position: relative;
-        transition: transform 0.1s;
-        cursor: pointer;
-    }
-
-    .item:hover {
-        transform: scale(1.2);
-        transform-origin: center;
     }
 
     .item::before,

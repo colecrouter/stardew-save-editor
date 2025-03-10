@@ -69,7 +69,9 @@
                             }}
                             data-testid={`draggable-${index}`}
                         >
-                            <ItemSprite {item} />
+                            <div class="item">
+                                <ItemSprite {item} />
+                            </div>
                         </div>
                     </ItemSlot>
                 </div>
@@ -120,5 +122,16 @@
         display: grid;
         grid-template-columns: repeat(12, min-content);
         grid-template-rows: 48px auto auto;
+    }
+
+    .item {
+        position: relative;
+        transition: transform 0.1s;
+        cursor: pointer;
+    }
+
+    .item:hover {
+        transform: scale(1.2);
+        transform-origin: center;
     }
 </style>

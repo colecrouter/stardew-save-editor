@@ -3,6 +3,7 @@ import { Flags } from "$lib/proxies/Flags";
 import { Inventory } from "$lib/proxies/Inventory";
 import { Recipes } from "$lib/proxies/Recipes";
 import { Skills } from "$lib/proxies/Skills";
+import type { MailFlag } from "$lib/proxies/mail";
 import type { Player } from "$types/save";
 
 export class Farmer {
@@ -198,6 +199,14 @@ export class Farmer {
 
     get uniqueID() {
         return this.raw.UniqueMultiplayerID;
+    }
+
+    get mailReceived() {
+        return new Set(this.raw.mailReceived.string as MailFlag[]);
+    }
+
+    set mailReceived(value) {
+        this.raw.mailReceived.string = [...value];
     }
 
     toJSON() {

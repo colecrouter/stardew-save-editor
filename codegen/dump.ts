@@ -312,6 +312,8 @@ const filesToCopy = [
     "Maps/springobjects.png",
     "TileSheets/Objects_2.png",
     "LooseSprites/daybg.png",
+    "LooseSprites/JunimoNote.png",
+    "LooseSprites/font_colored.png",
     // Add any additional files you need to copy here
 ] as string[];
 

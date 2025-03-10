@@ -72,7 +72,7 @@ export interface Save {
     treasureTotemsUsed: number;
     perfectionWaivers: number;
     seasonOfCurrentRaccoonBundle: number;
-    raccoonBundles: BoolArrayContainer;
+    raccoonBundles: BoolArray;
     activatedGoldenParrot: boolean;
     daysPlayedWhenLastRaccoonBundleWasFinished: number;
     lastAppliedSaveFix: number;
@@ -361,10 +361,10 @@ export interface GameLocation {
     talkedToGil?: boolean;
     hasUnlockedStatue?: boolean;
     witchStatueGone?: boolean;
-    areasComplete?: BoolArrayContainer;
+    areasComplete?: BoolArray;
     numberOfStarsOnPlaque?: number;
     bundles?: Bundles;
-    bundleRewards?: ChestConsumedLevels;
+    bundleRewards?: BoolArray;
     submerged?: boolean;
     ascending?: boolean;
     dayFirstEntered?: number;
@@ -638,7 +638,7 @@ export interface AttachmentsClass {
     Object: Item;
 }
 
-export interface ChestConsumedLevels {
+export interface BoolArray {
     item: KV<IntContainer, BoolContainer>[];
 }
 
@@ -715,7 +715,7 @@ export interface NPC {
     petType?: string;
     whichBreed?: number;
     homeLocationName?: string;
-    lastPetDay?: LastPetDay;
+    lastPetDay?: LongIntArray;
     grantedFriendshipForPet?: boolean;
     friendshipTowardFarmer?: number;
     timesPet?: number;
@@ -727,7 +727,7 @@ export interface NPC {
     dayScheduleName?: WeatherForTomorrow;
 }
 
-export interface LastPetDay {
+export interface LongIntArray {
     item: KV<LongContainer, IntContainer>;
 }
 
@@ -1160,7 +1160,7 @@ export interface Player {
     seasonForSaveGame: number;
     yearForSaveGame: number;
     qiGems: number;
-    chestConsumedLevels: ChestConsumedLevels;
+    chestConsumedLevels: BoolArray;
     saveTime: number;
     isCustomized: boolean;
     homeLocation: string;

@@ -207,6 +207,12 @@ export const RingsUniqueID = new Map<string, number>([
 
 export const ItemData = new Map<string, ItemInformation>(jsondata);
 
+export const ObjectKeyToName = new Map<string, string>(
+    jsondata
+        .filter(([, item]) => item._type === "Object")
+        .map(([, item]) => [item._key, item.name]),
+);
+
 export const ItemNameHelper = (item: Item) => {
     if (item.name === "Fishing Rod") {
         switch (item.upgradeLevel) {

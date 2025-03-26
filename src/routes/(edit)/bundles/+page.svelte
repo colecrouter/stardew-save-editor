@@ -20,9 +20,11 @@
         <p>Parts of this page are still being worked on.</p>
     </div>
 
-    {#each bundles.bundles as bundle}
-        <Bundle {bundle} />
-    {/each}
+    <div class="wrapper">
+        {#each bundles.bundles as bundle}
+            <Bundle {bundle} />
+        {/each}
+    </div>
 </UiContainer>
 
 <style>
@@ -36,5 +38,10 @@
         padding-left: 0.5rem;
         margin-block-start: 0.2em;
         margin-block-end: 0.2em;
+    }
+
+    .wrapper {
+        height: 320px;
+        overflow-y: auto;
     }
 </style>

@@ -42,9 +42,26 @@
 </script>
 
 <UiContainer>
-    <h2>Under Construction 🏗️</h2>
+    <div class="warning">
+        <h2>Under Construction 🏗️</h2>
+        <p>Parts of this page are still being worked on.</p>
+    </div>
 
     {#each bundles.bundles as bundle}
         <Bundle {bundle} />
     {/each}
 </UiContainer>
+
+<style>
+    .warning {
+        background-color: rgba(255, 0, 0, 0.35);
+        border-left: solid 4px rgba(255, 0, 0, 0.7);
+    }
+
+    .warning > * {
+        padding: 0.2rem;
+        padding-left: 0.5rem;
+        margin-block-start: 0.2em;
+        margin-block-end: 0.2em;
+    }
+</style>

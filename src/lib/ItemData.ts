@@ -207,11 +207,15 @@ export const RingsUniqueID = new Map<string, number>([
 
 export const ItemData = new Map<string, ItemInformation>(jsondata);
 
-export const ObjectKeyToName = new Map<string, string>(
-    jsondata
-        .filter(([, item]) => item._type === "Object")
-        .map(([, item]) => [item._key, item.name]),
-);
+export const KeyToName = (key: string, type: string) => {
+    for (const [, item] of jsondata) {
+        if (item._key === key && item._type === type) {
+            return item.name;
+        }
+    }
+
+    throw new Error(`Key ${key} not found for type ${type}`);
+};
 
 export const ItemNameHelper = (item: Item) => {
     if (item.name === "Fishing Rod") {

@@ -5,7 +5,7 @@ import {
     FurnitureTypeToNumber,
     ItemData,
     ItemNameHelper,
-    ObjectKeyToName,
+    KeyToName,
     RingsUniqueID,
     Shirts,
 } from "$lib/ItemData";
@@ -337,9 +337,9 @@ export class Item {
         return new Item(item);
     }
 
-    static fromObjectKey(key: string) {
-        let name = ObjectKeyToName.get(key);
-        if (!name) throw new Error(`Item with key "${key}" not found`);
+    static fromKey(key: string, type: string) {
+        console.log(key, type, KeyToName(key, type));
+        let name = KeyToName(key, type);
 
         return Item.fromName(name);
     }

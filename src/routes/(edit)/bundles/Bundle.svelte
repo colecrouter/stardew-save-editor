@@ -42,12 +42,19 @@
             </div>
         </summary>
 
-        <h3>Required Items</h3>
+        <h3>
+            Required Items
+            <span>
+                ({bundle.requiredItems.filter((i) => i.submitted)
+                    .length}/{bundle.requiredItemCount})
+            </span>
+        </h3>
 
         <div class="container">
             {#each bundle.requiredItems as itemdata}
                 <BundleItem
                     itemId={itemdata.itemID}
+                    type="O"
                     quantity={itemdata.quantity}
                     quality={itemdata.quality}
                     bind:checked={itemdata.submitted}
@@ -58,13 +65,13 @@
         <h3>Reward</h3>
 
         <div class="row">
-            <!-- ??? -->
-            <!-- {#if ![9, 10, 12, 13, 15, 21, 25].includes(bundle.reward.itemID)}
+            {#if bundle.reward}
                 <BundleItem
                     itemId={bundle.reward.itemID}
+                    type={bundle.reward.type}
                     quantity={bundle.reward.quantity}
                 />
-            {/if} -->
+            {/if}
         </div>
     </details>
 </div>
@@ -103,7 +110,7 @@
         top: 0;
         left: 0;
         background-color: var(--color);
-        filter: contrast(0.6);
+        filter: contrast(0.5);
         border-radius: 8px;
     }
 

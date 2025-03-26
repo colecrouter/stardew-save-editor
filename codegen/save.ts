@@ -364,7 +364,7 @@ export interface GameLocation {
     areasComplete?: BoolArray;
     numberOfStarsOnPlaque?: number;
     bundles?: Bundles;
-    bundleRewards?: BoolArray;
+    bundleRewards?: KV<IntContainer, BoolContainer>;
     submerged?: boolean;
     ascending?: boolean;
     dayFirstEntered?: number;
@@ -639,7 +639,7 @@ export interface AttachmentsClass {
 }
 
 export interface BoolArray {
-    item: KV<IntContainer, BoolContainer>[];
+    boolean: boolean[];
 }
 
 export interface Bundles {
@@ -652,7 +652,7 @@ export interface BundlesItem {
 }
 
 export interface BoolArrayContainerContainer {
-    ArrayOfBoolean: BoolArrayContainer;
+    ArrayOfBoolean: BoolArray;
 }
 
 export interface NPCContainer {

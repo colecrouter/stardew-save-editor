@@ -1,4 +1,6 @@
+import { CCRoom, bundleSideEffects } from "$lib/bundleSideEffects";
 import type { GameLocation } from "$lib/proxies/GameLocation";
+import type { SaveProxy } from "$lib/proxies/SaveFile.svelte";
 import type {
     BoolArrayContainer,
     BoolContainer,
@@ -88,6 +90,55 @@ export class CommunityBundles {
             );
         });
     }
+
+    /**
+     * Takes the existing bundle completion data, applies the appropriate changes.
+     * Toggles "completeness" of CC rooms whose bundles are no longer completed.
+     * Gives the appropriate world changes, e.g. unlocking the bus stop.
+     *
+     * @param save The save file to apply side effects to. The save file isn't passed into the constructor to avoid unnecessary reactivity.
+     */
+    applySideEffects(save: SaveProxy) {
+        // Get all bundles, group by room
+        const bundlesByRoom = Map.groupBy(this.bundles, (b) => b.room);
+
+        // Figure out which rooms are completed
+        const completedRooms = [...bundlesByRoom.entries()].map(
+            ([room, bundles]) =>
+                [room, bundles.every((b) => b.completed)] as const,
+        );
+
+        // Apply side effects
+        for (const [room, completed] of completedRooms) {
+            const pair = bundleSideEffects.get(room);
+            if (!pair) continue;
+
+            if (completed) {
+                // Apply side effect
+                pair.add(save, this.communityCenter);
+                console.debug(`Applied side effect for room ${CCRoom[room]}`);
+            } else {
+                // Remove side effect
+                pair.remove(save, this.communityCenter);
+                console.debug(`Removed side effect for room ${CCRoom[room]}`);
+            }
+        }
+
+        // Apply side effect if all rooms are completed
+        if (completedRooms.every(([, completed]) => completed)) {
+            const pair = bundleSideEffects.get(null);
+            if (pair) {
+                pair.add(save, this.communityCenter);
+                console.debug("Applied side effect for completed CC");
+            }
+        } else {
+            const pair = bundleSideEffects.get(null);
+            if (pair) {
+                pair.remove(save, this.communityCenter);
+                console.debug("Removed side effect for completed CC");
+            }
+        }
+    }
 }
 
 export class Bundle {
@@ -129,8 +180,12 @@ export class Bundle {
     }
 
     set id(value) {
-        const { roomID } = parseKey(this.bundleKey.string);
-        this.bundleKey.string = updateKey({ roomID, spriteIndex: value });
+        const { roomName, room } = parseKey(this.bundleKey.string);
+        this.bundleKey.string = updateKey({
+            roomName,
+            room,
+            spriteIndex: value,
+        });
     }
 
     get completed() {
@@ -158,7 +213,21 @@ export class Bundle {
     }
 
     get reward() {
+        const { reward } = parseValue(this.bundleData.string);
+        if (!reward) return null;
+
         return new BundleReward(this.bundleData);
+    }
+
+    get room() {
+        return parseKey(this.bundleKey.string).room;
+    }
+
+    get requiredItemCount() {
+        return (
+            parseValue(this.bundleData.string).count ??
+            this.requiredItems.length
+        );
     }
 }
 
@@ -270,7 +339,7 @@ export class BundleReward {
     }
 
     get type() {
-        return this.parseReward()[0];
+        return this.parseReward()[0] as "O" | "BO";
     }
 
     set type(value) {
@@ -330,11 +399,38 @@ const parseValue = (s: string) => {
 };
 
 const parseKey = (s: string) => {
-    const [roomID, spriteIndex] = s.split("/");
+    const [roomName, spriteIndex] = s.split("/");
 
-    if (!spriteIndex) throw new Error("Invalid bundle key");
+    if (!roomName || !spriteIndex) throw new Error("Invalid bundle key");
 
-    return { roomID, spriteIndex: Number.parseInt(spriteIndex) };
+    let room: CCRoom;
+    switch (roomName) {
+        case "Pantry":
+            room = CCRoom.Pantry;
+            break;
+        case "Crafts Room":
+            room = CCRoom.CraftsRoom;
+            break;
+        case "Fish Tank":
+            room = CCRoom.FishTank;
+            break;
+        case "Boiler Room":
+            room = CCRoom.BoilerRoom;
+            break;
+        case "Vault":
+            room = CCRoom.Vault;
+            break;
+        case "Bulletin Board":
+            room = CCRoom.BulletinBoard;
+            break;
+        case "Abandoned Joja Mart":
+            room = CCRoom.AbandonedJojaMart;
+            break;
+        default:
+            throw new Error(`Invalid room name: ${roomName}`);
+    }
+
+    return { room, roomName, spriteIndex: Number.parseInt(spriteIndex) };
 };
 
 const updateValue = (o: ReturnType<typeof parseValue>) => {
@@ -345,6 +441,6 @@ const updateValue = (o: ReturnType<typeof parseValue>) => {
 };
 
 const updateKey = (o: ReturnType<typeof parseKey>) => {
-    const { roomID, spriteIndex } = o;
-    return `${roomID}/${spriteIndex}`;
+    const { roomName, spriteIndex } = o;
+    return `${roomName}/${spriteIndex}`;
 };

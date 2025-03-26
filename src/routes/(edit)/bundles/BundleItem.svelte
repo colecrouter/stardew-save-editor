@@ -6,6 +6,7 @@
 
     interface Props {
         itemId: number;
+        type: "O" | "BO" | "F" | "H" | "C" | "R";
         quantity?: number;
         quality?: number;
         checked?: boolean;
@@ -13,13 +14,33 @@
 
     let {
         itemId,
+        type,
         quantity = 1,
         quality = 0,
         checked = $bindable(),
     }: Props = $props();
 
+    let matchedType = $derived.by(() => {
+        switch (type) {
+            case "O":
+                return "Object";
+            case "BO":
+                return "BigCraftable";
+            case "F":
+                return "Furniture";
+            case "H":
+                return "Hat";
+            case "C":
+                return "Clothing";
+            case "R":
+                return "Object";
+            default:
+                throw new Error(`Unknown item type: ${type}`);
+        }
+    });
+
     const item = $derived(
-        itemId > 0 ? Item.fromObjectKey(itemId.toString()) : undefined,
+        itemId > 0 ? Item.fromKey(itemId.toString(), matchedType) : undefined,
     );
 </script>
 

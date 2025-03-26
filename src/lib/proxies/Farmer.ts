@@ -206,6 +206,10 @@ export class Farmer {
     }
 
     set mailReceived(value) {
+        // Compare first
+        const old = new Set(this.raw.mailReceived.string as MailFlag[]);
+        if (old.symmetricDifference(value).size === 0) return;
+
         this.raw.mailReceived.string = [...value];
     }
 

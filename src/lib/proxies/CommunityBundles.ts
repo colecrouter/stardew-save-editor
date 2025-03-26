@@ -279,12 +279,12 @@ export class BundleReward {
     }
 
     get itemID() {
-        return this.parseReward()[1];
+        return Number.parseInt(this.parseReward()[1]);
     }
 
     set itemID(value) {
         const [type, , quantity] = this.parseReward();
-        this.updateReward(type, value, quantity);
+        this.updateReward(type, value.toString(), quantity);
     }
 
     get quantity() {

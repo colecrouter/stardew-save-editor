@@ -35,7 +35,6 @@
                 <div hidden>gold</div></span
             >
         {/if}
-        <ItemSprite {item} />
     </div>
 
     {#if checked !== undefined}

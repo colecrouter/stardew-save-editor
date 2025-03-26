@@ -58,10 +58,13 @@
         <h3>Reward</h3>
 
         <div class="row">
-            <!-- <BundleItem
-                itemId={bundle.reward.itemID}
-                quantity={bundle.reward.quantity}
-            /> -->
+            <!-- ??? -->
+            <!-- {#if ![9, 10, 12, 13, 15, 21, 25].includes(bundle.reward.itemID)}
+                <BundleItem
+                    itemId={bundle.reward.itemID}
+                    quantity={bundle.reward.quantity}
+                />
+            {/if} -->
         </div>
     </details>
 </div>

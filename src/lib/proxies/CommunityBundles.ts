@@ -7,6 +7,7 @@ import type {
     BundleData,
     StringContainer,
 } from "$types/save";
+import { MailFlag } from "./mail";
 
 /*
     > Key: "Pantry/2"
@@ -124,8 +125,20 @@ export class CommunityBundles {
             }
         }
 
-        // Apply side effect if all rooms are completed
-        if (completedRooms.every(([, completed]) => completed)) {
+        if (
+            // If the user has Joja member, abandoned Joja Mart and Bulletin Board are not required (aka they can't be completed)
+            save.player.mailReceived.has(MailFlag.JojaMember)
+                ? completedRooms
+                      .filter(
+                          ([r]) =>
+                              ![
+                                  CCRoom.AbandonedJojaMart,
+                                  CCRoom.BulletinBoard,
+                              ].includes(r),
+                      )
+                      .every(([, completed]) => completed)
+                : completedRooms.every(([, completed]) => completed)
+        ) {
             const pair = bundleSideEffects.get(null);
             if (pair) {
                 pair.add(save, this.communityCenter);

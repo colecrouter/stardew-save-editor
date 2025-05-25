@@ -66,7 +66,7 @@
 
     {#if hasJojaMembership}
         {#if cc}
-            <JojaBundles {bundles} />
+            <JojaBundles {save} {bundles} />
         {/if}
     {:else}
         <div class="wrapper">

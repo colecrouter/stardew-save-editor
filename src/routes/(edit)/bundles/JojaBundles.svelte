@@ -1,6 +1,7 @@
 <script lang="ts">
-    import { bundleSideEffects, CCRoom } from "$lib/bundleSideEffects";
+    import { CCRoom, bundleSideEffects } from "$lib/bundleSideEffects";
     import type { CommunityBundles } from "$lib/proxies/CommunityBundles";
+    import type { SaveProxy } from "$lib/proxies/SaveFile.svelte";
 
     let projects = [
         { room: CCRoom.Vault, name: "Bus", price: 40000 },
@@ -32,9 +33,10 @@
 
     interface Props {
         bundles: CommunityBundles;
+        save: SaveProxy;
     }
 
-    let { bundles }: Props = $props();
+    let { bundles, save }: Props = $props();
 
     // Complete the bundle for each room
     // This probably is a fairly intuitive way to do it; enabling/disabling the membership won't affect the completed bundles
@@ -44,6 +46,36 @@
                 item.submitted = checked;
             }
         }
+
+        // As an edge case, if all bundles are completed when changing from Joja to Community Center,
+        // Complete the "missing" bundle, as the user would have otherwise had access to the movie theater
+        // I basically just copied and pasted this from CommunityBundles.svelte (todo refactor)
+        const bundlesByRoom = Map.groupBy(bundles.bundles, (b) => b.room);
+        const completedRooms = [...bundlesByRoom.entries()].map(
+            ([room, bundles]) =>
+                [room, bundles.every((b) => b.completed)] as const,
+        );
+        if (
+            completedRooms
+                .filter(
+                    ([r]) =>
+                        ![
+                            CCRoom.AbandonedJojaMart,
+                            CCRoom.BulletinBoard,
+                        ].includes(r),
+                )
+                .every(([, completed]) => completed)
+        ) {
+            const abandonedBundle = bundlesByRoom.get(CCRoom.AbandonedJojaMart);
+            for (const bundle of abandonedBundle ?? []) {
+                for (const item of bundle.requiredItems) {
+                    item.submitted = checked;
+                }
+            }
+        }
+
+        // Lastly, apply the side effects of the bundles
+        bundles.applySideEffects(save);
     }
 
     function getProject(room: CCRoom) {

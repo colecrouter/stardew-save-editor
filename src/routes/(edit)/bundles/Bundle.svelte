@@ -14,8 +14,10 @@
     // Junimo Note
     const sheet = "url(/assets/JunimoNote.png)";
 
-    const posX = $derived(`${(color % 2) * (-16 * 16)}px`);
-    const posY = $derived(`${Math.floor(color / 2) * 16 - 48}px`);
+    let posX = $derived(
+        `${(color % 2) * (-16 * 16) + (bundle.completed ? -224 : 0)}px`,
+    );
+    let posY = $derived(`${Math.floor(color / 2) * 16 - 48}px`);
 
     const colors = new Map<number, string>([
         [0, "color_green"],

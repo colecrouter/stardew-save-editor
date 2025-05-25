@@ -2,6 +2,7 @@ import type { GameLocation } from "$lib/proxies/GameLocation";
 import type { SaveProxy } from "$lib/proxies/SaveFile.svelte";
 import { MailFlag } from "$lib/proxies/mail";
 import type { BoolArray, BoolContainer, IntContainer, KV } from "$types/save";
+import { SvelteSet } from "svelte/reactivity";
 
 /*
     This file is responsible for managing the side effects of completing a bundle in the Community Center.
@@ -50,18 +51,23 @@ const updateRoom = (cc: GameLocation, room: CCRoom, completed: boolean) => {
 
 const pantry = {
     add: (s: SaveProxy, cc: GameLocation) => {
-        // TODO
         for (const player of s.players) {
+            // CC flag
             player.mailReceived = player.mailReceived.add(MailFlag.ccPantry);
+            // Joja‐member flag
+            if (player.mailReceived.has(MailFlag.JojaMember)) {
+                player.mailReceived = player.mailReceived.add(
+                    MailFlag.jojaPantry,
+                );
+            }
         }
         updateRoom(cc, CCRoom.Pantry, true);
     },
     remove: (s: SaveProxy, cc: GameLocation) => {
-        // TODO
         for (const player of s.players) {
-            const updated = new Set(player.mailReceived);
-            updated.delete(MailFlag.ccPantry);
-            player.mailReceived = updated;
+            const updated = new SvelteSet(player.mailReceived);
+            player.mailReceived.delete(MailFlag.ccPantry);
+            player.mailReceived.delete(MailFlag.jojaPantry);
         }
         updateRoom(cc, CCRoom.Pantry, false);
     },
@@ -69,19 +75,23 @@ const pantry = {
 
 const craftsRoom = {
     add: (s: SaveProxy, cc: GameLocation) => {
-        // TODO
         for (const player of s.players) {
             player.mailReceived = player.mailReceived.add(
                 MailFlag.ccCraftsRoom,
             );
+            if (player.mailReceived.has(MailFlag.JojaMember)) {
+                player.mailReceived = player.mailReceived.add(
+                    MailFlag.jojaCraftsRoom,
+                );
+            }
         }
         updateRoom(cc, CCRoom.CraftsRoom, true);
     },
     remove: (s: SaveProxy, cc: GameLocation) => {
-        // TODO
         for (const player of s.players) {
-            const updated = new Set(player.mailReceived);
+            const updated = new SvelteSet(player.mailReceived);
             updated.delete(MailFlag.ccCraftsRoom);
+            updated.delete(MailFlag.jojaCraftsRoom);
             player.mailReceived = updated;
         }
         updateRoom(cc, CCRoom.CraftsRoom, false);
@@ -90,17 +100,21 @@ const craftsRoom = {
 
 const fishTank = {
     add: (s: SaveProxy, cc: GameLocation) => {
-        // TODO
         for (const player of s.players) {
             player.mailReceived = player.mailReceived.add(MailFlag.ccFishTank);
+            if (player.mailReceived.has(MailFlag.JojaMember)) {
+                player.mailReceived = player.mailReceived.add(
+                    MailFlag.jojaFishTank,
+                );
+            }
         }
         updateRoom(cc, CCRoom.FishTank, true);
     },
     remove: (s: SaveProxy, cc: GameLocation) => {
-        // TODO
         for (const player of s.players) {
-            const updated = new Set(player.mailReceived);
+            const updated = new SvelteSet(player.mailReceived);
             updated.delete(MailFlag.ccFishTank);
+            updated.delete(MailFlag.jojaFishTank);
             player.mailReceived = updated;
         }
         updateRoom(cc, CCRoom.FishTank, false);
@@ -109,19 +123,23 @@ const fishTank = {
 
 const boilerRoom = {
     add: (s: SaveProxy, cc: GameLocation) => {
-        // TODO
         for (const player of s.players) {
             player.mailReceived = player.mailReceived.add(
                 MailFlag.ccBoilerRoom,
             );
+            if (player.mailReceived.has(MailFlag.JojaMember)) {
+                player.mailReceived = player.mailReceived.add(
+                    MailFlag.jojaBoilerRoom,
+                );
+            }
         }
         updateRoom(cc, CCRoom.BoilerRoom, true);
     },
     remove: (s: SaveProxy, cc: GameLocation) => {
-        // TODO
         for (const player of s.players) {
-            const updated = new Set(player.mailReceived);
+            const updated = new SvelteSet(player.mailReceived);
             updated.delete(MailFlag.ccBoilerRoom);
+            updated.delete(MailFlag.jojaBoilerRoom);
             player.mailReceived = updated;
         }
         updateRoom(cc, CCRoom.BoilerRoom, false);
@@ -130,16 +148,21 @@ const boilerRoom = {
 
 const vault = {
     add: (s: SaveProxy, cc: GameLocation) => {
-        // The letter seems to be what triggers the bus stop to be fixed
         for (const player of s.players) {
             player.mailReceived = player.mailReceived.add(MailFlag.ccVault);
+            if (player.mailReceived.has(MailFlag.JojaMember)) {
+                player.mailReceived = player.mailReceived.add(
+                    MailFlag.jojaVault,
+                );
+            }
         }
         updateRoom(cc, CCRoom.Vault, true);
     },
     remove: (s: SaveProxy, cc: GameLocation) => {
         for (const player of s.players) {
-            const updated = new Set(player.mailReceived);
+            const updated = new SvelteSet(player.mailReceived);
             updated.delete(MailFlag.ccVault);
+            updated.delete(MailFlag.jojaVault);
             player.mailReceived = updated;
         }
         updateRoom(cc, CCRoom.Vault, false);
@@ -157,7 +180,7 @@ const bulletinBoard = {
     remove: (s: SaveProxy, cc: GameLocation) => {
         // TODO
         for (const player of s.players) {
-            const updated = new Set(player.mailReceived);
+            const updated = new SvelteSet(player.mailReceived);
             updated.delete(MailFlag.ccBulletin);
             player.mailReceived = updated;
         }
@@ -167,19 +190,24 @@ const bulletinBoard = {
 
 const abandonedJojaMart = {
     add: (s: SaveProxy, cc: GameLocation) => {
-        // TODO
         for (const player of s.players) {
             player.mailReceived = player.mailReceived.add(
                 MailFlag.ccMovieTheater,
             );
+            // Joja movie‐theater flag
+            if (player.mailReceived.has(MailFlag.JojaMember)) {
+                player.mailReceived = player.mailReceived.add(
+                    MailFlag.ccMovieTheaterJoja,
+                );
+            }
         }
         updateRoom(cc, CCRoom.AbandonedJojaMart, true);
     },
     remove: (s: SaveProxy, cc: GameLocation) => {
-        // TODO
         for (const player of s.players) {
-            const updated = new Set(player.mailReceived);
+            const updated = new SvelteSet(player.mailReceived);
             updated.delete(MailFlag.ccMovieTheater);
+            updated.delete(MailFlag.ccMovieTheaterJoja);
             player.mailReceived = updated;
         }
         updateRoom(cc, CCRoom.AbandonedJojaMart, false);
@@ -199,7 +227,7 @@ const all = {
     },
     remove: (s: SaveProxy, cc: GameLocation) => {
         for (const player of s.players) {
-            const updated = new Set(player.mailReceived);
+            const updated = new SvelteSet(player.mailReceived);
             updated.delete(MailFlag.ccIsComplete);
             updated.delete(MailFlag.abandonedJojaMartAccessible);
             player.mailReceived = updated;

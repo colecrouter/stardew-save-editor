@@ -58,21 +58,41 @@
                 Default save locations:
                 <ul>
                     <li>
-                        <span class="noselect">Windows: </span><code
-                            >%appdata%\StardewValley\Saves</code
-                        >
+                        <span class="noselect">Windows:</span>
+                        <code>%appdata%\StardewValley\Saves </code>
                     </li>
                     <li>
-                        <span class="noselect">Mac: </span><code
-                            >~/Library/Application Support/StardewValley/Saves</code
-                        >
+                        <span class="noselect">Mac:</span><code>
+                            ~/Library/Application Support/StardewValley/Saves
+                        </code>
                     </li>
                     <li>
-                        <span class="noselect">Linux: </span><code
-                            >~/.config/StardewValley/Saves</code
-                        >
+                        <span class="noselect">Linux:</span>
+                        <code>~/.config/StardewValley/Saves</code>
+                    </li>
+                    <li>
+                        <span class="noselect">*Android:</span>
+                        <code>
+                            /Android/data/com.chucklefish.stardewvalley/files/Saves
+                        </code>
+                    </li>
+                    <li>
+                        <span class="noselect">iOS:</span>
+                        <code>
+                            Locations -> On My iPhone/iPad -> Stardew Valley
+                        </code>
                     </li>
                 </ul>
+
+                <p style="font-size: 0.8em">
+                    *On Android 14 or later, the apps folder is hidden. You can
+                    use an app
+                    <a
+                        href="https://play.google.com/store/apps/details?id=com.marc.files"
+                        target="_blank"
+                        rel="noopener noreferrer">such as this one</a
+                    > to access it.
+                </p>
 
                 <div class="warning">
                     <p>
@@ -164,6 +184,11 @@
 
     li {
         margin-top: 0.3em;
+        white-space: nowrap;
+    }
+
+    li span {
+        margin-right: 0.5em;
     }
 
     .noselect {

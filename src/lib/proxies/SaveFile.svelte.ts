@@ -42,33 +42,45 @@ export class SaveProxy {
             this.raw.SaveGame.farmhands === ""
                 ? []
                 : this.raw.SaveGame.farmhands.Farmer;
-        const farmers = unfiltered.filter((f) => f !== undefined);
+        // filter out undefined and any farmhand with blank name
+        const farmhands = unfiltered.filter(
+            (f): f is typeof f => f !== undefined && f.name?.trim() !== "",
+        );
         const mainPlayer = this.raw.SaveGame.player;
-
-        return [mainPlayer, ...farmers].map((f) => new Farmer(f));
+        return [mainPlayer, ...farmhands].map((f) => new Farmer(f));
     }
 
     set players(players) {
         if (!this.raw) return;
         if (!players[0]) throw new Error("Main player is required");
 
-        const someTyped = <T>(arr: (T | undefined)[]): arr is T[] =>
-            arr.some((a) => a !== undefined);
-
         const mainPlayer = players[0]?.raw;
-        const farmhands = players.slice(1).map((f) => f?.raw);
-
         if (mainPlayer === undefined)
             throw new Error("Main player is required");
-        if (farmhands.length && someTyped(farmhands) === false)
+
+        // grab original raw farmhands array (may be empty)
+        const orig =
+            this.raw.SaveGame.farmhands === ""
+                ? []
+                : this.raw.SaveGame.farmhands.Farmer;
+
+        // build new raw farmhands, but keep any “ghost” (blank-name) slots exactly as they were
+        const newFarmhands = orig.map((origRaw, i) => {
+            if (!origRaw.name?.trim()) {
+                return origRaw; // preserve ghost
+            }
+            const repl = players[i + 1]?.raw;
+            return repl !== undefined ? repl : origRaw;
+        });
+
+        const someTyped = <T>(arr: (T | undefined)[]): arr is T[] =>
+            arr.some((a) => a !== undefined);
+        if (newFarmhands.length && !someTyped(newFarmhands))
             throw new Error("Farmhands are required");
 
         this.raw.SaveGame.player = mainPlayer;
-        if (this.raw.SaveGame.farmhands === "") {
-            this.raw.SaveGame.farmhands = { Farmer: farmhands };
-        } else {
-            this.raw.SaveGame.farmhands.Farmer = farmhands;
-        }
+        // always set back the full array, even if empty
+        this.raw.SaveGame.farmhands = { Farmer: newFarmhands };
     }
 
     get farm() {

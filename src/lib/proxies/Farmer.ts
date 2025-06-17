@@ -190,7 +190,7 @@ export class Farmer {
     }
 
     get skills() {
-        return new Skills(this.raw.experiencePoints.int);
+        return new Skills(this.raw.experiencePoints.int, this.raw);
     }
 
     set skills(value) {

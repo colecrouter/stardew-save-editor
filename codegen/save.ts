@@ -921,7 +921,7 @@ export interface Crop {
 }
 
 export interface Achievements {
-    int: number[];
+    int?: number[];
 }
 
 export interface MinePermanentMineChanges {

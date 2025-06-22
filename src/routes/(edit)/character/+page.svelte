@@ -4,6 +4,7 @@
     import UiContainer from "$lib/ui/UIContainer.svelte";
     import UiContainerSmall from "$lib/ui/UIContainerSmall.svelte";
     import UiInput from "$lib/ui/UIInput.svelte";
+    import Professions from "./Professions.svelte";
     import SkillBar from "./SkillBar.svelte";
     import WalletItem from "./WalletItem.svelte";
 
@@ -51,6 +52,13 @@
             </label>
         {/each}
     </div>
+
+    <h3>Professions</h3>
+
+    <Professions
+        bind:professions={save.player.professions}
+        skills={save.player.skills}
+    />
 
     <h3>Stats</h3>
 

@@ -5,6 +5,7 @@ import { Recipes } from "$lib/proxies/Recipes";
 import { Skills } from "$lib/proxies/Skills";
 import type { MailFlag } from "$lib/proxies/mail";
 import type { Player } from "$types/save";
+import type { Profession } from "./Professions.svelte";
 
 export class Farmer {
     public raw: Player;
@@ -190,11 +191,25 @@ export class Farmer {
     }
 
     get skills() {
-        return new Skills(this.raw.experiencePoints.int, this.raw);
+        return new Skills(this.raw.experiencePoints.int ?? [], this.raw);
     }
 
     set skills(value) {
         this.raw.experiencePoints.int = value.raw;
+    }
+
+    get professions() {
+        return new Set(
+            this.raw.professions.int?.map((p) => p as Profession) ?? [],
+        );
+    }
+
+    set professions(value) {
+        const compare = new Set(this.raw.professions.int ?? []);
+        const diff = value.symmetricDifference(compare);
+        if (diff.size === 0) return;
+
+        this.raw.professions.int = [...value];
     }
 
     get uniqueID() {

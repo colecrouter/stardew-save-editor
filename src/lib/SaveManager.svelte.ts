@@ -5,6 +5,7 @@ import type { XMLManager } from "$lib/workers/xml";
 import { error } from "@sveltejs/kit";
 import * as Comlink from "comlink";
 import { getContext, setContext } from "svelte";
+import { nestedArrayTags } from "./workers/jank";
 
 const SAVE_KEY = Symbol("saveManager");
 const SUPPORTED_VERSIONS = ["1.6"];
@@ -122,6 +123,30 @@ export class SaveManager {
         }
 
         await this.handleBackup(file);
+
+        // I hate that I have to do this
+        function fixEmpty(obj: unknown) {
+            if (typeof obj !== "object" || obj === null) return;
+            for (const [child, parents] of nestedArrayTags.entries()) {
+                for (const parent of parents) {
+                    // @ts-ignore
+                    if (parent in obj && obj[parent] === "") {
+                        // @ts-ignore
+                        obj[parent] = { [child]: [] };
+                        console.debug(
+                            `Fixed empty "${parent}" tag by converting to object with empty "${child}" array`,
+                        );
+                    }
+                }
+            }
+        }
+
+        fixEmpty(json.SaveGame.player);
+        if (json.SaveGame.farmhands !== "") {
+            for (const farmer of json.SaveGame.farmhands.Farmer) {
+                fixEmpty(farmer);
+            }
+        }
 
         this.save = new SaveProxy(json);
         this.filename = file.name;

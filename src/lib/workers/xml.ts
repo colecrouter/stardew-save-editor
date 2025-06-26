@@ -8,23 +8,31 @@
 
 import * as Comlink from "comlink";
 import { XMLBuilder, XMLParser } from "fast-xml-parser";
-
-// The XML parser has no idea what should be an array and what should be an object
-// This isn't a huge deal, but we can make it a little easier to work with by
-// supplying a list of things we want to be arrays
-const arrayTags = new Set([
-    "item",
-    "GameLocations",
-    "characters",
-    // "objects",
-    "Farmer",
-]);
+import { arrayTags, nestedArrayTags } from "./jank";
 
 export class XMLManager {
     private parser = new XMLParser({
         ignoreAttributes: false,
         allowBooleanAttributes: true,
-        isArray: (tagName) => arrayTags.has(tagName),
+        isArray: (tagName, jPath) => {
+            if (arrayTags.has(tagName)) return true;
+
+            // Check if the tag is a nested array tag
+            const nestedTags = nestedArrayTags.get(tagName);
+            if (!nestedTags) return false;
+
+            // Check if the jPath ends with any of the nested tags
+            for (const nestedTag of nestedTags) {
+                if (jPath.endsWith(`.${nestedTag}.${tagName}`)) {
+                    console.debug(
+                        `Converted "${tagName}" to an array because it is nested under "${nestedTag}"`,
+                    );
+                    return true;
+                }
+            }
+
+            return false;
+        },
     });
 
     public parse<T>(xml: string) {

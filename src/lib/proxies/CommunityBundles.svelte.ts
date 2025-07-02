@@ -1,5 +1,5 @@
 import { CCRoom, bundleSideEffects } from "$lib/bundleSideEffects";
-import type { GameLocation } from "$lib/proxies/GameLocation";
+import type { GameLocation } from "$lib/proxies/GameLocation.svelte";
 import type { SaveProxy } from "$lib/proxies/SaveFile.svelte";
 import type {
     BoolArrayContainer,

@@ -15,7 +15,7 @@
 <script lang="ts">
     import { base } from "$app/paths";
     import type { Color } from "$lib/proxies/Color";
-    import type { Item } from "$lib/proxies/Item";
+    import type { Item } from "$lib/proxies/Item.svelte";
 
     interface Props {
         item: Item | undefined;

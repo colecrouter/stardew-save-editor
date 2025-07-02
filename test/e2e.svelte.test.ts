@@ -135,14 +135,14 @@ describe("Save Manager Integration Tests", () => {
         it("should modify crafting recipes", async () => {
             const page = renderWithContext(craftingPage);
             expect(
-                saveManager.save.player.craftingRecipes.recipes.Keg,
-            ).toBeFalsy();
+                saveManager.save.player.craftingRecipes.get("Keg"),
+            ).toBeNull();
 
             await fireEvent.click(page.getByTestId("recipe-keg"));
 
             expect(
-                saveManager.save.player.craftingRecipes.recipes.Keg,
-            ).toBeTruthy();
+                saveManager.save.player.craftingRecipes.get("Keg"),
+            ).not.toBeNull();
         });
     });
 });

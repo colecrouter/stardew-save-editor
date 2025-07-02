@@ -2,7 +2,7 @@
     import type { ParentIndex } from "$lib/ItemParentIndex";
     import { getSaveManager } from "$lib/SaveManager.svelte";
     import { Toast, getToastManager } from "$lib/ToastManager.svelte";
-    import { Item } from "$lib/proxies/Item";
+    import { Item } from "$lib/proxies/Item.svelte";
     import UiContainer from "$lib/ui/UIContainer.svelte";
     import {
         type DragDropState,

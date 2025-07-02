@@ -1,4 +1,4 @@
-import { GameLocation } from "$lib/proxies/GameLocation";
+import { GameLocation } from "$lib/proxies/GameLocation.svelte";
 import type { Building as BuildingType } from "$types/save";
 
 export class Building {

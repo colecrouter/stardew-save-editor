@@ -1,44 +1,84 @@
 <script lang="ts">
-    import { Item } from "$lib/proxies/Item";
+    import { Item } from "$lib/proxies/Item.svelte";
+    import type { Recipes } from "$lib/proxies/Recipes.svelte";
+    import UiCheckbox from "$lib/ui/UICheckbox.svelte";
+    import UiContainer from "$lib/ui/UIContainer.svelte";
     import UiInput from "$lib/ui/UIInput.svelte";
-    import type { Snippet } from "svelte";
     import ItemSprite from "../inventory/ItemSprite.svelte";
     import { recipeMapping } from "./mapping";
 
     interface Props {
-        record: Record<string, unknown>;
-        input?: Snippet<[string]>;
+        recipes: Recipes<"cookingRecipes" | "craftingRecipes">;
     }
 
-    let { record = $bindable(), input }: Props = $props();
+    let { recipes = $bindable() }: Props = $props();
 
     let filter = $state("");
     let regex = $derived(new RegExp(filter, "i"));
-    let filtered = $derived(
-        Object.keys(record).filter((e) => e.search(regex) !== -1),
-    );
 </script>
 
-<div class="search">
-    <UiInput type="text" placeholder="Search..." bind:value={filter} />
-</div>
+<UiContainer>
+    <h3>Crafting Recipes</h3>
 
-<div class="wrapper">
-    {#each filtered as key}
-        <label class="entry">
-            <div class="key">
-                <div class="img">
-                    <ItemSprite
-                        item={Item.fromName(recipeMapping.get(key) ?? key)}
-                    />
-                </div>
-                {key}
-            </div>
+    <div class="search">
+        <UiInput type="text" placeholder="Search..." bind:value={filter} />
+    </div>
 
-            {@render input?.(key)}
-        </label>
-    {/each}
-</div>
+    <div class="wrapper">
+        {#each recipes as [key, value]}
+            {#if regex.test(key)}
+                <label class="entry">
+                    <div class="key">
+                        <div class="img">
+                            <ItemSprite
+                                item={Item.fromName(
+                                    recipeMapping.get(key) ?? key,
+                                )}
+                            />
+                        </div>
+                        {key}
+                    </div>
+
+                    <div class="input-wrapper">
+                        <UiCheckbox
+                            data-testid="recipe-{key.toLowerCase()}"
+                            checked={value !== null}
+                            onchange={() => {
+                                // Toggle the unlock status by changing between `null` and `number` (0 is default)
+                                if (value === null) {
+                                    console.log("Unlocking recipe:", key);
+                                    recipes.set(key, 0);
+                                } else {
+                                    console.log("Locking recipe:", key);
+                                    recipes.set(key, null);
+                                }
+                            }}
+                        />
+                        <UiInput
+                            type="number"
+                            value={value === null ? "" : value}
+                            min="0"
+                            max={Number.MAX_SAFE_INTEGER}
+                            step="1"
+                            disabled={value === null}
+                            onchange={(e) => {
+                                const value = (e.target as HTMLInputElement)
+                                    .value;
+                                // If unlocked, ensure the value is a number (fallback to 0)
+                                if (value !== null) {
+                                    recipes.set(key, +value || 0);
+                                } else {
+                                    // If not unlocked, set to null
+                                    recipes.set(key, null);
+                                }
+                            }}
+                        />
+                    </div>
+                </label>
+            {/if}
+        {/each}
+    </div>
+</UiContainer>
 
 <style>
     .search :global(input) {
@@ -77,5 +117,11 @@
         display: flex;
         align-items: center;
         justify-content: center;
+    }
+
+    .input-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 8px;
     }
 </style>

@@ -1,6 +1,6 @@
 <script lang="ts">
-    import { Sprite } from "$lib/Sprite";
-    import { Item } from "$lib/proxies/Item";
+    import { Sprite } from "$lib/Sprite.svelte";
+    import { Item } from "$lib/proxies/Item.svelte";
     import UiCheckbox from "$lib/ui/UICheckbox.svelte";
     import ItemSprite from "../inventory/ItemSprite.svelte";
 

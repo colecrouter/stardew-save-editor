@@ -76,8 +76,8 @@
 </script>
 
 <script lang="ts">
-    import { Profession } from "$lib/proxies/Professions.svelte";
-    import type { Skills } from "$lib/proxies/Skills";
+    import { Profession } from "$lib/proxies/Professions";
+    import type { Skills } from "$lib/proxies/Skills.svelte";
     import UiButton from "$lib/ui/UIButton.svelte";
 
     interface Props {

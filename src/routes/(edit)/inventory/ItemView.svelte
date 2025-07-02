@@ -2,7 +2,7 @@
     import { ItemNameHelper } from "$lib/ItemData";
     import type { ParentIndex } from "$lib/ItemParentIndex";
     import { Color } from "$lib/proxies/Color";
-    import type { Item } from "$lib/proxies/Item";
+    import type { Item } from "$lib/proxies/Item.svelte";
     import UiCheckbox from "$lib/ui/UICheckbox.svelte";
     import UiInput from "$lib/ui/UIInput.svelte";
     import ItemSelect from "./ItemSelect.svelte";

@@ -10,7 +10,7 @@
 <script lang="ts">
     import { calculatePrice, calculateEdibility } from "$lib/ItemQuality";
 
-    import type { Item } from "$lib/proxies/Item";
+    import type { Item } from "$lib/proxies/Item.svelte";
 
     interface Props {
         item: Item;

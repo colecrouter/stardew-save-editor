@@ -9,7 +9,7 @@ import {
     RingsUniqueID,
     Shirts,
 } from "$lib/ItemData";
-import { Sprite } from "$lib/Sprite";
+import { Sprite } from "$lib/Sprite.svelte";
 import { Color } from "$lib/proxies/Color";
 import {
     FurnitureType,

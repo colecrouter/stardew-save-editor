@@ -1,4 +1,4 @@
-import { Item } from "$lib/proxies/Item";
+import { Item } from "$lib/proxies/Item.svelte";
 import { render, screen } from "@testing-library/svelte";
 import { beforeEach, describe, expect, test } from "vitest";
 import QualitySelector from "./QualitySelector.svelte";

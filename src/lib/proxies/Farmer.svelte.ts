@@ -1,19 +1,29 @@
 import { Color } from "$lib/proxies/Color";
-import { Flags } from "$lib/proxies/Flags";
-import { Inventory } from "$lib/proxies/Inventory";
-import { Recipes } from "$lib/proxies/Recipes";
-import { Skills } from "$lib/proxies/Skills";
+import { Flags } from "$lib/proxies/Flags.svelte";
+import { Inventory } from "$lib/proxies/Inventory.svelte";
+import { Recipes } from "$lib/proxies/Recipes.svelte";
+import { Skills } from "$lib/proxies/Skills.svelte";
 import type { MailFlag } from "$lib/proxies/mail";
 import type { Player } from "$types/save";
-import type { Profession } from "./Professions.svelte";
+import type { Profession } from "./Professions";
 
 export class Farmer {
     public raw: Player;
+    public readonly craftingRecipes: Recipes<"craftingRecipes">;
+    public readonly cookingRecipes: Recipes<"cookingRecipes">;
 
     constructor(player: Player | undefined) {
         if (!player) throw new Error("No player provided");
 
         this.raw = player;
+        this.craftingRecipes = new Recipes(
+            player.craftingRecipes,
+            "craftingRecipes",
+        );
+        this.cookingRecipes = new Recipes(
+            player.cookingRecipes,
+            "cookingRecipes",
+        );
     }
 
     public get maxHealth() {
@@ -164,22 +174,6 @@ export class Farmer {
 
     set eyeColor(value: Color) {
         this.raw.newEyeColor = value;
-    }
-
-    get craftingRecipes() {
-        return new Recipes(this.raw.craftingRecipes, "craftingRecipes");
-    }
-
-    set craftingRecipes(value: Recipes<"craftingRecipes">) {
-        this.raw.craftingRecipes = value.raw;
-    }
-
-    get cookingRecipes() {
-        return new Recipes(this.raw.cookingRecipes, "cookingRecipes");
-    }
-
-    set cookingRecipes(value: Recipes<"cookingRecipes">) {
-        this.raw.cookingRecipes = value.raw;
     }
 
     get flags() {

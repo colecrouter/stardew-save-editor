@@ -1,6 +1,6 @@
-import { CommunityBundles } from "$lib/proxies/CommunityBundles";
-import { Farmer } from "$lib/proxies/Farmer";
-import { GameLocation } from "$lib/proxies/GameLocation";
+import { CommunityBundles } from "$lib/proxies/CommunityBundles.svelte";
+import { Farmer } from "$lib/proxies/Farmer.svelte";
+import { GameLocation } from "$lib/proxies/GameLocation.svelte";
 
 export class SaveProxy {
     private i = $state(0);

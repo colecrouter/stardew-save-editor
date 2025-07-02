@@ -1,6 +1,6 @@
 <script lang="ts">
     import { ItemData } from "$lib/ItemData";
-    import { Item } from "$lib/proxies/Item";
+    import { Item } from "$lib/proxies/Item.svelte";
     import UiContainerSmall from "$lib/ui/UIContainerSmall.svelte";
     import UiInput from "$lib/ui/UIInput.svelte";
     import { stringSimilarity } from "string-similarity-js";

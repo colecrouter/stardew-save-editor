@@ -1,7 +1,7 @@
 <script lang="ts">
     import { getSaveManager } from "$lib/SaveManager.svelte";
     import { Color } from "$lib/proxies/Color";
-    import type { Farmer } from "$lib/proxies/Farmer";
+    import type { Farmer } from "$lib/proxies/Farmer.svelte";
     import UiContainer from "$lib/ui/UIContainer.svelte";
     import UiInput from "$lib/ui/UIInput.svelte";
     import { Gender } from "$types/save";

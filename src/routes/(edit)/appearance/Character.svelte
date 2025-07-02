@@ -9,10 +9,10 @@
         TertiaryBootColors,
         TertiarySkinColors,
     } from "$lib/CharacterColors";
-    import { Sprite } from "$lib/Sprite";
+    import { Sprite } from "$lib/Sprite.svelte";
     import { Color } from "$lib/proxies/Color";
-    import type { Farmer } from "$lib/proxies/Farmer";
-    import { Item } from "$lib/proxies/Item";
+    import type { Farmer } from "$lib/proxies/Farmer.svelte";
+    import { Item } from "$lib/proxies/Item.svelte";
     import type { Coordinates } from "$types/items";
     import { type Color as ColorType, Gender } from "../../../../codegen/save";
 

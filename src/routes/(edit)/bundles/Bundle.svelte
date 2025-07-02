@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type { Bundle } from "$lib/proxies/CommunityBundles";
+    import type { Bundle } from "$lib/proxies/CommunityBundles.svelte";
     import { colorMap } from "$types/colors";
     import BundleItem from "./BundleItem.svelte";
 

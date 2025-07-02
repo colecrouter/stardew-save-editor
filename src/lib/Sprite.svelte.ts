@@ -1,5 +1,5 @@
 import dimensions from "$generated/dimensions.json";
-import type { Farmer } from "$lib/proxies/Farmer";
+import type { Farmer } from "$lib/proxies/Farmer.svelte";
 import {
     type Coordinates,
     FurnitureType,

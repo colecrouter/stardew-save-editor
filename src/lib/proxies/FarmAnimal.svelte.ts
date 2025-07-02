@@ -1,5 +1,5 @@
 import animals from "$generated/farmanimals.json";
-import type { Farmer } from "$lib/proxies/Farmer";
+import type { Farmer } from "$lib/proxies/Farmer.svelte";
 import { type AnimalsKV, Gender } from "$types/save";
 
 // function getRandomLong() {

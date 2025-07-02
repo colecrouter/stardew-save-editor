@@ -1,6 +1,6 @@
 <script lang="ts">
     import { CCRoom, bundleSideEffects } from "$lib/bundleSideEffects";
-    import type { CommunityBundles } from "$lib/proxies/CommunityBundles";
+    import type { CommunityBundles } from "$lib/proxies/CommunityBundles.svelte";
     import type { SaveProxy } from "$lib/proxies/SaveFile.svelte";
 
     let projects = [

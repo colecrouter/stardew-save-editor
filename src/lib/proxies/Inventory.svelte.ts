@@ -1,5 +1,5 @@
 import type { ParentIndex } from "$lib/ItemParentIndex";
-import { Item } from "$lib/proxies/Item";
+import { Item } from "$lib/proxies/Item.svelte";
 import type { Player } from "$types/save";
 
 const nil = { "@_xsi:nil": "true" };

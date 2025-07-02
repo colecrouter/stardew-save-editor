@@ -1,6 +1,6 @@
 <script lang="ts">
     import type { ParentIndex } from "$lib/ItemParentIndex";
-    import type { Farmer } from "$lib/proxies/Farmer";
+    import type { Farmer } from "$lib/proxies/Farmer.svelte";
     import UiInput from "$lib/ui/UIInput.svelte";
     import Preview from "../appearance/CharacterPreview.svelte";
     import ItemSlot from "./ItemSlot.svelte";

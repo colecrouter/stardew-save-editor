@@ -1,5 +1,3 @@
-import { SvelteSet } from "svelte/reactivity";
-
 export enum Profession {
     Rancher = 0,
     Tiller = 1,

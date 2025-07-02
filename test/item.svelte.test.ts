@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { Item } from "../src/lib/proxies/Item";
+import { Item } from "../src/lib/proxies/Item.svelte";
 
 /*
     In this file are *known-to-be-correct* tests for the item save data.

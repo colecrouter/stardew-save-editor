@@ -1,7 +1,7 @@
 import buildings from "$generated/buildings.json";
-import { Building } from "$lib/proxies/Building";
-import { FarmAnimal } from "$lib/proxies/FarmAnimal";
-import { Item } from "$lib/proxies/Item";
+import { Building } from "$lib/proxies/Building.svelte";
+import { FarmAnimal } from "$lib/proxies/FarmAnimal.svelte";
+import { Item } from "$lib/proxies/Item.svelte";
 import type { GameLocation as Location } from "$types/save";
 
 export class GameLocation {

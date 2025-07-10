@@ -70,7 +70,7 @@
         {/if}
     {:else}
         <div class="wrapper">
-            {#each bundles.bundles as bundle}
+            {#each bundles.bundles.toSorted((a, b) => a.id - b.id) as bundle}
                 <Bundle {bundle} />
             {/each}
         </div>

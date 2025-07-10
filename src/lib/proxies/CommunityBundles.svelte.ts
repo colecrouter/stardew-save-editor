@@ -78,15 +78,23 @@ export class CommunityBundles {
         if (!this.communityCenter.raw.bundles)
             throw new Error("Invalid CommunityBundles location");
 
-        return this.communityCenter.raw.bundles.item.map((bundle, i) => {
-            if (!this.bundleData.item[i])
-                throw new Error("Invalid bundle data");
+        return this.communityCenter.raw.bundles.item.map((bundle) => {
+            // Find matching bundle data by key (bundle ID)
+            const bundleKey = bundle.key.int;
+            const matchingBundleData = this.bundleData.item.find((data) => {
+                // Parse the key to get the sprite index which should match the bundle key
+                const { spriteIndex } = parseKey(data.key.string);
+                return spriteIndex === bundleKey;
+            });
 
-            const submitted = bundle.value;
+            if (!matchingBundleData)
+                throw new Error(
+                    `No bundle data found for bundle key ${bundleKey}`,
+                );
 
             return new Bundle(
-                this.bundleData.item[i].value,
-                this.bundleData.item[i].key,
+                matchingBundleData.value,
+                matchingBundleData.key,
                 bundle.value.ArrayOfBoolean,
             );
         });
@@ -202,12 +210,18 @@ export class Bundle {
     }
 
     get completed() {
-        const submitted = this.submit.boolean.reduce(
-            (a, b) => (b ? a + 1 : a),
-            0,
-        );
         const { count: required, requirements } = parseValue(
             this.bundleData.string,
+        );
+
+        // Only count submissions up to the number of actual requirements
+        const relevantSubmissions = this.submit.boolean.slice(
+            0,
+            requirements.length,
+        );
+        const submitted = relevantSubmissions.reduce(
+            (a, b) => (b ? a + 1 : a),
+            0,
         );
 
         return submitted >= (required ?? requirements.length);

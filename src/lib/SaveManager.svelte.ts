@@ -4,6 +4,7 @@ import { SaveProxy } from "$lib/proxies/SaveFile.svelte";
 import type { XMLManager } from "$lib/workers/xml";
 import { error } from "@sveltejs/kit";
 import * as Comlink from "comlink";
+import pako from "pako";
 import { getContext, setContext } from "svelte";
 import { nestedArrayTags } from "./workers/jank";
 
@@ -107,10 +108,24 @@ export class SaveManager {
     async import(file: File) {
         if (!this.backups.files) throw new Error("Missing call to init()");
 
-        const xml = await file.text();
+        const buf = await file.arrayBuffer();
+        const content = new Uint8Array(buf);
+
+        let decompressedContent: string;
+
+        if (content[0] === 120) {
+            // This is also how vanilla checks if a save is compressed. Around SaveGame.cs Line 671
+            // File is zlib compressed
+            const decompressed = pako.inflate(content);
+            decompressedContent = new TextDecoder().decode(decompressed);
+        } else {
+            // File is not compressed
+            decompressedContent = new TextDecoder().decode(content);
+        }
+
         const xmlManager = await getXmlManager();
         // @ts-ignore Not sure why svelte-check doesn't like this line
-        const json = await xmlManager.parse(xml);
+        const json = await xmlManager.parse(decompressedContent);
 
         if (!isSaveFile(json)) {
             throw new Error("Invalid save file");

@@ -60,9 +60,16 @@ const downloadFile = async (blob: Blob, filename: string) => {
     const a = document.createElement("a");
     a.href = url;
     a.download = filename;
+    // Some browsers (Safari/WebKit, some Edge builds) can truncate downloads
+    // if the Object URL is revoked synchronously after click. Append to DOM
+    // and delay revocation to ensure the download stream is established.
+    // TODO https://developer.mozilla.org/en-US/docs/Web/API/File_System_API
+    document.body.appendChild(a);
     a.click();
-    URL.revokeObjectURL(url);
-    a.remove();
+    setTimeout(() => {
+        URL.revokeObjectURL(url);
+        a.remove();
+    }, 1000);
 };
 
 export class SaveManager {

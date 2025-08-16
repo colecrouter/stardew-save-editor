@@ -67,7 +67,7 @@ const downloadFile = async (blob: Blob, filename: string) => {
     document.body.appendChild(a);
     a.click();
     setTimeout(() => {
-        URL.revokeObjectURL(url);
+        // URL.revokeObjectURL(url);
         a.remove();
     }, 1000);
 };

@@ -67,7 +67,7 @@ const downloadFile = async (blob: Blob, filename: string) => {
     document.body.appendChild(a);
     a.click();
     setTimeout(() => {
-        // URL.revokeObjectURL(url);
+        URL.revokeObjectURL(url);
         a.remove();
     }, 1000);
 };
@@ -193,7 +193,7 @@ export class SaveManager {
     async export() {
         if (!this.save) throw new Error("No save file provided");
         const xmlManager = await getXmlManager();
-        return await xmlManager.stringify(
+        const bytes = await xmlManager.stringify(
             /* 
                 DON'T REMOVE THESE
 
@@ -202,6 +202,7 @@ export class SaveManager {
             */
             JSON.parse(JSON.stringify(this.save.raw)),
         );
+        return new Blob([bytes.buffer], { type: "text/xml; charset=UTF-8" });
     }
 
     reset() {

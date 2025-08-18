@@ -39,6 +39,10 @@ export class XMLManager {
         return this.parser.parse(xml) as T;
     }
 
+    /**
+     * Build XML UTF-8 bytes (with BOM) and return a Uint8Array. This is safer to
+     * transfer across threads on some mobile browsers than a Blob.
+     */
     public stringify<T>(obj: T) {
         const builder = new XMLBuilder({
             attributeNamePrefix: "@_",
@@ -64,11 +68,12 @@ export class XMLManager {
         combinedArray.set(bom);
         combinedArray.set(xmlBytes, bom.length);
 
-        const blob = new Blob([combinedArray], {
-            type: "text/text; charset=UTF-8",
-        });
-
-        return blob;
+        try {
+            // Prefer transferring the underlying buffer when used via Comlink.
+            return Comlink.transfer(combinedArray, [combinedArray.buffer]);
+        } catch {
+            return combinedArray;
+        }
     }
 }
 

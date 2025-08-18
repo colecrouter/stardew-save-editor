@@ -53,8 +53,7 @@ export class XMLManager {
         });
         const raw = builder.build(obj) as string;
         const xml = raw
-            .split("------WebKitFormBoundary")[0]
-            ?.trim()
+            .trim()
             .replaceAll("&apos;", "'")
             .replaceAll("/>", " />");
         if (!xml) throw new Error("Failed to generate XML");

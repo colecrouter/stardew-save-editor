@@ -202,7 +202,8 @@ export class SaveManager {
             */
             JSON.parse(JSON.stringify(this.save.raw)),
         );
-        return new Blob([bytes.buffer], { type: "text/xml; charset=UTF-8" });
+        // macOS uses mime type to determine file type, so we have to use text/text to prevent it from suggesting .xml
+        return new Blob([bytes.buffer], { type: "text/text; charset=UTF-8" });
     }
 
     reset() {

@@ -37,4 +37,4 @@ If you want to make a contribution, just make a pull request.
 
 ### Code Style
 
-This project uses BiomeJS for linting, and for formatting JS/TS files. Prettier is used for formatting markup files. You can run `npm run lint:fix` to check for linting errors, and `npm run format:fix` to format the files.
+This project uses BiomeJS for linting, and for formatting JS/TS files. Prettier is used for formatting markup files. You can run `npm run check` to check for linting errors, and `npm run format` to format the files.

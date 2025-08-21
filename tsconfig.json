@@ -9,11 +9,8 @@
 		"skipLibCheck": true,
 		"sourceMap": true,
 		"strict": true,
-		"typeRoots": [
-			"./node_modules/@types",
-			"./node_modules/@total-typescript"
-		],
-		"noUncheckedIndexedAccess": true,
+		"typeRoots": ["./node_modules/@types", "./node_modules/@total-typescript"],
+		"noUncheckedIndexedAccess": true
 	},
 	// Path aliases are handled by https://kit.svelte.dev/docs/configuration#alias
 	//
@@ -28,5 +25,5 @@
 		"src/service-worker.d.ts",
 		"src/service-worker/**/*.d.ts",
 		"codegen/dump.tss"
-	],
+	]
 }

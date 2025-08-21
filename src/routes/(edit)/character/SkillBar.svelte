@@ -1,81 +1,81 @@
 <script lang="ts" module>
-    const levels = [100, 380, 770, 1300, 2150, 3300, 4800, 6900, 10000, 15000];
+	const levels = [100, 380, 770, 1300, 2150, 3300, 4800, 6900, 10000, 15000];
 </script>
 
 <script lang="ts">
-    interface Props {
-        skill: number;
-    }
+	interface Props {
+		skill: number;
+	}
 
-    let { skill = $bindable() }: Props = $props();
+	let { skill = $bindable() }: Props = $props();
 </script>
 
 <div class="wrapper">
-    {#each levels as level}
-        <button
-            aria-label={`Set skill to ${level}`}
-            class="pill"
-            class:active={skill >= level}
-            onclick={() => (skill = level)}
-        ></button>
-    {/each}
+	{#each levels as level}
+		<button
+			aria-label={`Set skill to ${level}`}
+			class="pill"
+			class:active={skill >= level}
+			onclick={() => (skill = level)}
+		></button>
+	{/each}
 </div>
 
 <style>
-    .wrapper {
-        display: flex;
-        flex-direction: row;
-        align-items: center;
-        justify-content: center;
-    }
+	.wrapper {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		justify-content: center;
+	}
 
-    .pill {
-        all: unset;
-        width: 4px;
-        height: 14px;
-        background-color: #c87c1e;
-        border: solid 4px;
-        border-radius: 4px;
-        border-top-color: #b26922;
-        border-right-color: #b26922;
-        border-bottom-color: #c98426;
-        border-left-color: #c98426;
-        margin: 0 6px;
-        box-shadow:
-            0 0 0 2px #ca9133,
-            0 0 0 4px #8c5721,
-            -2px 2px 0 4px rgba(0, 0, 0, 0.3);
-        cursor: pointer;
-    }
+	.pill {
+		all: unset;
+		width: 4px;
+		height: 14px;
+		background-color: #c87c1e;
+		border: solid 4px;
+		border-radius: 4px;
+		border-top-color: #b26922;
+		border-right-color: #b26922;
+		border-bottom-color: #c98426;
+		border-left-color: #c98426;
+		margin: 0 6px;
+		box-shadow:
+			0 0 0 2px #ca9133,
+			0 0 0 4px #8c5721,
+			-2px 2px 0 4px rgba(0, 0, 0, 0.3);
+		cursor: pointer;
+	}
 
-    .pill:hover {
-        outline: revert;
-    }
+	.pill:hover {
+		outline: revert;
+	}
 
-    .pill:nth-child(5n) {
-        width: 24px;
-    }
+	.pill:nth-child(5n) {
+		width: 24px;
+	}
 
-    .pill.active {
-        width: 6px;
-        height: 16px;
-        margin: -1px 5px;
-        background-color: #dd003b;
-        border-top-color: #ff6948;
-        border-right-color: #ff6948;
-        border-bottom-color: #bc004a;
-        border-left-color: #bc004a;
-        box-shadow:
-            0 0 0 3px #960027,
-            -2px 2px 0 4px rgba(0, 0, 0, 0.3);
-    }
+	.pill.active {
+		width: 6px;
+		height: 16px;
+		margin: -1px 5px;
+		background-color: #dd003b;
+		border-top-color: #ff6948;
+		border-right-color: #ff6948;
+		border-bottom-color: #bc004a;
+		border-left-color: #bc004a;
+		box-shadow:
+			0 0 0 3px #960027,
+			-2px 2px 0 4px rgba(0, 0, 0, 0.3);
+	}
 
-    .pill.active:nth-child(5n) {
-        width: 26px;
-        background-color: #ffa400;
-        border-top-color: #ffc62e;
-        border-right-color: #ffc62e;
-        border-bottom-color: #e06a00;
-        border-left-color: #e06a00;
-    }
+	.pill.active:nth-child(5n) {
+		width: 26px;
+		background-color: #ffa400;
+		border-top-color: #ffc62e;
+		border-right-color: #ffc62e;
+		border-bottom-color: #e06a00;
+		border-left-color: #e06a00;
+	}
 </style>

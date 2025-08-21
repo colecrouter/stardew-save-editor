@@ -1,25 +1,26 @@
 {
-    "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
-    "files": {
-        "ignore": [
-            "**/node_modules/**",
-            "**/.svelte-kit/**"
-        ]
-    },
-    "formatter": {
-        "indentStyle": "space",
-        "indentWidth": 4,
-        "lineEnding": "lf",
-        "ignore": [
-            "**/*.svelte",
-            "**/*.css"
-        ]
-    },
-    "linter": {
-        "rules": {
-            "style": {
-                "useConst": "off"
-            }
-        }
-    }
+	"$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
+	"files": {
+		"ignore": [
+			"**/node_modules/**",
+			".svelte-kit/**",
+			"generated",
+			"content",
+			"build",
+			".vscode"
+		]
+	},
+	"formatter": {
+		"indentStyle": "tab",
+		"lineEnding": "lf",
+		"ignore": ["**/*.svelte"]
+	},
+	"overrides": [
+		{
+			"include": ["**/*.svelte"],
+			"linter": {
+				"rules": { "style": { "useConst": "off", "useImportType": "off" } }
+			}
+		}
+	]
 }

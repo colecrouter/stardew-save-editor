@@ -1,37 +1,37 @@
 import { getContext, setContext } from "svelte";
 
 export class Toast {
-    message: string;
-    icon: string;
+	message: string;
+	icon: string;
 
-    constructor(message: string, type: "success" | "failure") {
-        this.message = message;
+	constructor(message: string, type: "success" | "failure") {
+		this.message = message;
 
-        switch (type) {
-            case "success":
-                this.icon = "✅";
-                break;
-            case "failure":
-                this.icon = "❌";
-                break;
-        }
-    }
+		switch (type) {
+			case "success":
+				this.icon = "✅";
+				break;
+			case "failure":
+				this.icon = "❌";
+				break;
+		}
+	}
 }
 
 class ToastManager {
-    #toasts = $state<Toast[]>([]);
+	#toasts = $state<Toast[]>([]);
 
-    add(toast: Toast, duration = 5000) {
-        this.toasts.push(toast);
+	add(toast: Toast, duration = 5000) {
+		this.toasts.push(toast);
 
-        setTimeout(() => {
-            this.#toasts = this.#toasts.filter((t) => t !== toast);
-        }, duration);
-    }
+		setTimeout(() => {
+			this.#toasts = this.#toasts.filter((t) => t !== toast);
+		}, duration);
+	}
 
-    get toasts() {
-        return this.#toasts;
-    }
+	get toasts() {
+		return this.#toasts;
+	}
 }
 
 const TOAST_KEY = Symbol("ToastManager");

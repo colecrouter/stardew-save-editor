@@ -1,49 +1,49 @@
 <script lang="ts">
-    import { browser } from "$app/environment";
-    import { goto } from "$app/navigation";
-    import { base } from "$app/paths";
-    import { page } from "$app/stores";
-    import { getSaveManager } from "$lib/SaveManager.svelte";
-    import UiButton from "$lib/ui/UIButton.svelte";
-    interface Props {
-        children?: import("svelte").Snippet;
-    }
+	import { browser } from "$app/environment";
+	import { goto } from "$app/navigation";
+	import { base } from "$app/paths";
+	import { page } from "$app/stores";
+	import { getSaveManager } from "$lib/SaveManager.svelte";
+	import UiButton from "$lib/ui/UIButton.svelte";
+	interface Props {
+		children?: import("svelte").Snippet;
+	}
 
-    let { children }: Props = $props();
+	let { children }: Props = $props();
 
-    const saveManager = getSaveManager();
+	const saveManager = getSaveManager();
 
-    // https://github.com/sveltejs/kit/issues/5434
-    page.subscribe(
-        (p) =>
-            browser &&
-            p.url.pathname === "/" &&
-            saveManager.save?.raw &&
-            goto(`${base}/inventory`),
-    );
+	// https://github.com/sveltejs/kit/issues/5434
+	page.subscribe(
+		(p) =>
+			browser &&
+			p.url.pathname === "/" &&
+			saveManager.save?.raw &&
+			goto(`${base}/inventory`),
+	);
 </script>
 
 <div class="wrapper">
-    {@render children?.()}
+	{@render children?.()}
 
-    <nav>
-        <UiButton href={`${base}/`} alt="Cancel">❌</UiButton>
-    </nav>
+	<nav>
+		<UiButton href={`${base}/`} alt="Cancel">❌</UiButton>
+	</nav>
 </div>
 
 <style>
-    .wrapper {
-        display: flex;
-        flex-direction: row;
-        gap: 8px;
-        justify-content: start;
-    }
+	.wrapper {
+		display: flex;
+		flex-direction: row;
+		gap: 8px;
+		justify-content: start;
+	}
 
-    nav {
-        display: flex;
-        flex-direction: row;
-        gap: 8px;
-        justify-content: start;
-        padding: 2px;
-    }
+	nav {
+		display: flex;
+		flex-direction: row;
+		gap: 8px;
+		justify-content: start;
+		padding: 2px;
+	}
 </style>

@@ -1,5 +1,6 @@
 import { CCRoom, bundleSideEffects } from "$lib/bundleSideEffects";
 import type { GameLocation } from "$lib/proxies/GameLocation.svelte";
+import { Raw, type DataProxy } from ".";
 import type { SaveProxy } from "$lib/proxies/SaveFile.svelte";
 import type {
 	BoolArrayContainer,
@@ -7,7 +8,6 @@ import type {
 	BundleData,
 	StringContainer,
 } from "$types/save";
-import { type DataProxy, Raw } from ".";
 import { MailFlag } from "./mail";
 
 /*
@@ -333,11 +333,23 @@ export class BundleRequiredItem {
 	}
 
 	private writeRequirement() {
-		this.updateRequirements(
-			this.itemID.toString(),
-			this.quantity,
-			this.quality,
-		);
+		try {
+			this.updateRequirements(
+				this.itemID.toString(),
+				this.quantity,
+				this.quality,
+			);
+		} catch (e) {
+			console.error("Failed to write bundle requirement", {
+				index: this.index,
+				currentString: this.bundleData.string,
+				itemID: this.itemID,
+				quantity: this.quantity,
+				quality: this.quality,
+				error: e,
+			});
+			throw e;
+		}
 	}
 
 	private writeSubmitted() {
@@ -375,12 +387,11 @@ export class BundleReward {
 	}
 
 	private updateReward(type: string, itemID: string, quantity: number) {
-		const [name, , requirements, ...rest] = this.bundleData.string.split("/");
+		const [name, , requirements, color, count, displayName] =
+			this.bundleData.string.split("/");
 		if (!requirements) throw new Error("Invalid bundle data");
-
-		this.bundleData.string = `${name}/${type} ${itemID} ${quantity}/${requirements}/${rest.join(
-			"/",
-		)}`;
+		// Rebuild using same layout as updateValue
+		this.bundleData.string = `${name}/${type} ${itemID} ${quantity}/${requirements}/${color}/${count}/${displayName}`;
 	}
 
 	private writeReward() {
@@ -390,20 +401,28 @@ export class BundleReward {
 
 const parseValue = (s: string) => {
 	const [name, reward, requirements, color, count, displayName] = s.split("/");
-	if (!requirements) throw new Error("Invalid bundle data");
+	if (requirements === undefined) throw new Error("Invalid bundle data");
 
-	// Weird formatting sometimes
-	const splitRequirements = requirements.replaceAll(/\s+/g, " ").split(" ");
+	// Normalize whitespace and split; allow zeros; filter out empty tokens
+	const tokens = requirements
+		.trim()
+		.replace(/\s+/g, " ")
+		.split(" ")
+		.filter((t) => t.length > 0);
+
+	if (tokens.length % 3 !== 0) throw new Error("Invalid requirement data");
+
 	const items: [string, number, number][] = [];
-	for (let i = 0; i < splitRequirements.length; i += 3) {
-		const [itemID, quantity, quality] = splitRequirements.slice(i, i + 3);
-		if (!itemID || !quantity || !quality)
+	for (let i = 0; i < tokens.length; i += 3) {
+		const itemID = tokens[i];
+		const quantity = tokens[i + 1];
+		const quality = tokens[i + 2];
+		if (itemID === undefined || quantity === undefined || quality === undefined)
 			throw new Error("Invalid requirement data");
-
 		items.push([itemID, Number.parseInt(quantity), Number.parseInt(quality)]);
 	}
 
-	if (!color) throw new Error("Invalid color for bundle data");
+	if (color === undefined) throw new Error("Invalid color for bundle data");
 
 	return {
 		name,
@@ -452,9 +471,26 @@ const parseKey = (s: string) => {
 
 const updateValue = (o: ReturnType<typeof parseValue>) => {
 	const { name, reward, requirements, color, count, displayName } = o;
-	return `${name}/${reward}/${requirements
-		.map(([itemID, quantity, quality]) => `${itemID}${quantity}${quality}`)
-		.join("")}/${color}/${count}/${displayName}`;
+	// Requirements must be serialized as space-delimited triplets: "<id> <qty> <quality> ..."
+	const req = requirements
+		.map(([itemID, quantity, quality]) => `${itemID} ${quantity} ${quality}`)
+		.join(" ");
+	// Preserve segment count; if count/displayName are undefined keep empty field positions so parsing stays stable
+	const countSeg = count !== undefined ? count : "";
+	const displaySeg = displayName !== undefined ? displayName : "";
+	const result = `${name}/${reward}/${req}/${color}/${countSeg}/${displaySeg}`;
+	if (import.meta.env?.DEV) {
+		try {
+			parseValue(result); // round-trip validation
+		} catch (e) {
+			console.warn("updateValue produced unparsable string", {
+				input: o,
+				result,
+				error: e,
+			});
+		}
+	}
+	return result;
 };
 
 const updateKey = (o: ReturnType<typeof parseKey>) => {

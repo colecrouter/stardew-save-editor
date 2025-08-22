@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { getSaveManager } from "$lib/SaveManager.svelte";
+	import { Raw } from "$lib/proxies";
 	import { MailFlag } from "$lib/proxies/mail";
 	import UiCheckbox from "$lib/ui/UICheckbox.svelte";
 	import UiContainer from "$lib/ui/UIContainer.svelte";
@@ -8,7 +9,7 @@
 
 	const save = getSaveManager().save;
 	const bundles = save?.communityBundles;
-	const cc = save?.locations.find((l) => l.raw.name === "CommunityCenter");
+	const cc = save?.locations.find((l) => l[Raw].name === "CommunityCenter");
 	if (!save || !bundles) throw new Error("No save data found");
 
 	// Woohoo, side effects!
@@ -18,24 +19,23 @@
 	});
 
 	let hasJojaMembership = $derived(
-		save?.players?.some((player) =>
-			player.mailReceived.has(MailFlag.JojaMember),
-		),
+		save.players.some((player) => player.mailReceived.has(MailFlag.JojaMember)),
 	);
 
 	function enableJojaMembership() {
+		// IMPORTANT: mailReceived is a SvelteSet; do NOT replace the Set instance
+		// or we lose reactivity. Mutate it directly so hasJojaMembership updates.
 		for (const player of save?.players ?? []) {
-			const updated = new Set(player.mailReceived);
-			updated.add(MailFlag.JojaMember);
-			player.mailReceived = updated;
+			player.mailReceived.add(MailFlag.JojaMember);
+			console.log("Enabled Joja Membership for player:", player.name);
 		}
 	}
 
 	function disableJojaMembership() {
 		for (const player of save?.players ?? []) {
-			const updated = new Set(player.mailReceived);
-			updated.delete(MailFlag.JojaMember);
-			player.mailReceived = updated;
+			player.mailReceived.size;
+			player.mailReceived.delete(MailFlag.JojaMember);
+			console.log("Disabled Joja Membership for player:", player.name);
 		}
 	}
 </script>

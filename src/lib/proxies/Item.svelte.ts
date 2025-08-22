@@ -435,7 +435,14 @@ export class Item implements DataProxy<ItemModel> {
 
 		// TODO: Handle the Copper Pan hat special case if needed
 
-		return new Item(item);
+		// TODO what the heck do I do here?? memory leaks for everyone
+		let newItem: Item | undefined;
+		$effect.root(() => {
+			newItem = new Item(item);
+		});
+		if (!newItem) throw new Error("Failed to create item");
+
+		return newItem;
 	}
 
 	static fromKey(key: string, type: string) {

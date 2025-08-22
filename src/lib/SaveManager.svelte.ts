@@ -5,7 +5,7 @@ import type { XMLManager } from "$lib/workers/xml";
 import { error } from "@sveltejs/kit";
 import * as Comlink from "comlink";
 import pako from "pako";
-import { getContext, setContext } from "svelte";
+import { flushSync, getContext, setContext, tick } from "svelte";
 import { nestedArrayTags } from "./workers/jank";
 
 const SAVE_KEY = Symbol("saveManager");
@@ -168,14 +168,11 @@ export class SaveManager {
 			}
 		}
 
-		if (import.meta.env.TEST) {
-			// Woohoo, memory leaks!
-			$effect.root(() => {
-				this.save = new SaveProxy(json);
-			});
-		} else {
+		// Woohoo, memory leaks!
+		$effect.root(() => {
 			this.save = new SaveProxy(json);
-		}
+		});
+
 		this.filename = file.name;
 	}
 

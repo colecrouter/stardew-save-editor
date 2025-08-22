@@ -10,7 +10,7 @@
 		TertiarySkinColors,
 	} from "$lib/CharacterColors";
 	import { Sprite } from "$lib/Sprite.svelte";
-	import { Color } from "$lib/proxies/Color";
+	import { Color } from "$lib/proxies/Color.svelte";
 	import type { Farmer } from "$lib/proxies/Farmer.svelte";
 	import { Item } from "$lib/proxies/Item.svelte";
 	import type { Coordinates } from "$types/items";

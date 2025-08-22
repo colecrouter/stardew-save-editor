@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { Color } from "./Color";
+import { Color } from "./Color.svelte";
 
 describe("Color", () => {
 	it("should return correct PackedValue for yellow", () => {

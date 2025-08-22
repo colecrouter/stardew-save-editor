@@ -1,14 +1,16 @@
 import type { Color as ColorType } from "$types/save";
-
 const RGB_REGEX = /^rgb\((\d{1,3}),\s*(\d{1,3}),\s*(\d{1,3})\)$/;
 
 // Type to make the specified keys optional, but keep the rest of the keys the same.
 type OptionalPick<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
+
+// Doesn't need to implement DataProxy, it mimics the structure of ColorType
 export class Color implements ColorType {
-	A = 0;
-	R = 0;
-	G = 0;
-	B = 0;
+	public A: number;
+	public R: number;
+	public G: number;
+	public B: number;
+	public PackedValue: number;
 
 	constructor(
 		color:
@@ -16,6 +18,14 @@ export class Color implements ColorType {
 			| string
 			| OptionalPick<Omit<ColorType, "PackedValue">, "A">,
 	) {
+		this.A = $state(0);
+		this.R = $state(0);
+		this.G = $state(0);
+		this.B = $state(0);
+		this.PackedValue = $derived(
+			Color.computePackedValue(this.R, this.G, this.B, this.A),
+		);
+
 		if (typeof color === "string") {
 			if (color.startsWith("#")) {
 				this.R = Number.parseInt(color.slice(1, 3) || "0", 16);
@@ -48,13 +58,18 @@ export class Color implements ColorType {
 		}
 	}
 
-	get PackedValue() {
+	private static computePackedValue(
+		R: number,
+		G: number,
+		B: number,
+		A: number,
+	) {
 		// Updated packing order with unsigned conversion: A << 24 | B << 16 | G << 8 | R, then >>> 0 to convert to unsigned.
 		return (
-			(((this.A & 0xff) << 24) |
-				((this.B & 0xff) << 16) |
-				((this.G & 0xff) << 8) |
-				(this.R & 0xff)) >>>
+			(((A & 0xff) << 24) |
+				((B & 0xff) << 16) |
+				((G & 0xff) << 8) |
+				(R & 0xff)) >>>
 			0
 		);
 	}

@@ -10,7 +10,7 @@ import {
 	Shirts,
 } from "$lib/ItemData";
 import { Sprite } from "$lib/Sprite.svelte";
-import { Color } from "$lib/proxies/Color";
+import { Color } from "$lib/proxies/Color.svelte";
 import {
 	FurnitureType,
 	type ItemInformation,
@@ -18,6 +18,7 @@ import {
 	type ToolClass,
 } from "$types/items";
 import { ClothesType, type Item as ItemModel, TypeEnum } from "$types/save";
+import { type DataProxy, Raw } from ".";
 
 const nil = { "@_xsi:nil": "true" };
 
@@ -70,13 +71,35 @@ const typeToCategoryMap = {
 	Tool: ObjectCategory.Tool,
 };
 
-export class Item {
-	readonly raw: ItemModel;
+export class Item implements DataProxy<ItemModel> {
+	public [Raw]: ItemModel;
+	// Compatibility raw getter for legacy code
+	get raw() {
+		return this[Raw];
+	}
 	readonly info?: ItemInformation;
 	readonly sprite?: Sprite;
 
+	// Reactive mutable fields
+	public amount: number | undefined;
+	public quality: number | undefined;
+	public edibility: number | undefined;
+	public price: number | undefined;
+	public color: Color | undefined;
+	public minDamage: number | undefined;
+	public maxDamage: number | undefined;
+	public speed: number | undefined;
+	public knockback: number | undefined;
+	public critChance: number | undefined;
+	public critMultiplier: number | undefined;
+	public precision: number | undefined; // addedPrecision
+	public areaOfEffect: number | undefined; // addedAreaOfEffect
+	public defense: number | undefined; // addedDefense
+	public immunityBonus: number | undefined;
+	public isBottomless: boolean | undefined;
+
 	constructor(raw: ItemModel) {
-		this.raw = raw;
+		this[Raw] = raw;
 		// TODO shirt hack, need to fix
 		const info =
 			raw.name === "Shirt"
@@ -90,6 +113,97 @@ export class Item {
 
 		this.info = info;
 		this.sprite = new Sprite(info);
+
+		// Initialize reactive fields based on previous getter logic
+		this.amount = $state(this.computeAmount());
+		$effect(() => this.syncAmount());
+
+		this.quality = $state(this.computeQuality());
+		$effect(() => this.syncQuality());
+
+		this.edibility = $state(this.computeEdibility());
+		$effect(() => this.syncEdibility());
+
+		this.price = $state(this.computePrice());
+		$effect(() => this.syncPrice());
+
+		this.color = $state(this.computeColor());
+		$effect(() => this.syncColor());
+
+		// Weapon / boots stats
+		this.minDamage = $state(
+			this.info?._type === "Weapon" ? this[Raw].minDamage : undefined,
+		);
+		$effect(() => this.syncMinDamage());
+
+		this.maxDamage = $state(
+			this.info?._type === "Weapon" ? this[Raw].maxDamage : undefined,
+		);
+		$effect(() => this.syncMaxDamage());
+
+		this.speed = $state(
+			this.info?._type === "Weapon" ? this[Raw].speed : undefined,
+		);
+		$effect(() => this.syncSpeed());
+
+		this.knockback = $state(
+			this.info?._type === "Weapon" ? this[Raw].knockback : undefined,
+		);
+		$effect(() => this.syncKnockback());
+
+		this.critChance = $state(
+			this.info?._type === "Weapon" ? this[Raw].critChance : undefined,
+		);
+		$effect(() => this.syncCritChance());
+
+		this.critMultiplier = $state(
+			this.info?._type === "Weapon" ? this[Raw].critMultiplier : undefined,
+		);
+		$effect(() => this.syncCritMultiplier());
+
+		this.precision = $state(
+			this.info?._type === "Weapon" ? this[Raw].addedPrecision : undefined,
+		);
+		$effect(() => this.syncPrecision());
+
+		this.areaOfEffect = $state(
+			this.info?._type === "Weapon" ? this[Raw].addedAreaOfEffect : undefined,
+		);
+		$effect(() => this.syncAreaOfEffect());
+
+		this.defense = $state(
+			this.info && ["Boots", "Weapon"].includes(this.info._type)
+				? this[Raw].addedDefense
+				: undefined,
+		);
+		$effect(() => this.syncDefense());
+
+		this.immunityBonus = $state(
+			this.info?._type === "Boots" ? this[Raw].immunityBonus : undefined,
+		);
+		$effect(() => this.syncImmunity());
+
+		this.isBottomless = $state(
+			this[Raw].name === "Watering Can" ? this[Raw].isBottomless : undefined,
+		);
+		$effect(() => this.syncBottomless());
+	}
+
+	// Read-only derived properties retained as getters
+	get name(): string {
+		return ItemNameHelper(this[Raw]);
+	}
+
+	get id() {
+		return this[Raw].itemId;
+	}
+
+	get type() {
+		return this.info?._type;
+	}
+
+	get category() {
+		return this[Raw].category;
 	}
 
 	static fromName(name: string) {
@@ -331,69 +445,67 @@ export class Item {
 		return Item.fromName(name);
 	}
 
-	get name(): string {
-		return ItemNameHelper(this.raw);
-	}
-
-	get id() {
-		return this.raw.itemId;
-	}
-
-	get type() {
-		return this.info?._type;
-	}
-
-	get amount() {
+	// --- Validation & sync helpers ---
+	private computeAmount() {
 		if (!this.info) return undefined;
-		// TODO: Since 1.6 removed stackable field, not sure how to actually know
 		if (
 			["Clothing", "Boots", "Hat", "Weapon", "Pants", "Shirt", "Tool"].includes(
 				this.info._type,
 			)
 		)
 			return undefined;
-		return this.raw.stack ?? 1;
+		return this[Raw].stack ?? 1;
 	}
 
-	set amount(amount) {
-		if (this.amount === undefined)
-			throw new Error("Amount is not applicable to this item");
-		if (amount === undefined) throw new Error("Amount must be a number");
-
-		this.raw.stack = amount;
+	private syncAmount() {
+		// Re-check applicability (user might have forced a value onto a non-stackable item)
+		if (!this.info) return;
+		const applicable = ![
+			"Clothing",
+			"Boots",
+			"Hat",
+			"Weapon",
+			"Pants",
+			"Shirt",
+			"Tool",
+		].includes(this.info._type);
+		if (!applicable) {
+			if (this.amount !== undefined) {
+				console.warn("Amount not applicable to this item type; resetting.");
+			}
+			this.amount = undefined;
+			return;
+		}
+		if (this.amount === undefined) return;
+		if (this.amount < 1) this.amount = 1;
+		this[Raw].stack = this.amount;
 	}
 
-	get quality() {
-		if (!this.raw.category) return undefined;
-		if (!CategoriesWithQuality.has(this.raw.category)) return undefined;
-
-		return this.raw.quality;
+	private computeQuality() {
+		if (!this[Raw].category) return undefined;
+		if (!CategoriesWithQuality.has(this[Raw].category)) return undefined;
+		return this[Raw].quality;
 	}
 
-	set quality(quality) {
-		if (this.quality === undefined) throw new Error("Item has no quality");
-		if (quality === undefined) throw new Error("Quality must be a number");
-
-		if (quality < 0 || quality > 4)
-			throw new Error("Quality must be between 0 and 4");
-
-		this.raw.quality = quality;
+	private syncQuality() {
+		if (this.quality === undefined) return;
+		if (this.quality < 0) this.quality = 0;
+		if (this.quality > 4) this.quality = 4;
+		this[Raw].quality = this.quality;
 	}
 
-	get edibility() {
-		if (!("edibility" in this.raw) || this.raw.edibility === -300)
+	private computeEdibility() {
+		if (!("edibility" in this[Raw]) || this[Raw].edibility === -300)
 			return undefined;
-
-		return this.raw.edibility;
+		return this[Raw].edibility;
 	}
 
-	set edibility(edibility) {
-		if (this.edibility === undefined) throw new Error("Item has no edibility");
-
-		this.raw.edibility = edibility;
+	private syncEdibility() {
+		if (this.edibility === undefined) return;
+		this[Raw].edibility = this.edibility;
 	}
 
-	get price() {
+	private computePrice() {
 		if (
 			!this.info ||
 			!["Object", "BigCraftable", "Furniture", "Hat", "Clothing"].includes(
@@ -401,210 +513,103 @@ export class Item {
 			)
 		)
 			return undefined;
-
-		return this.raw.price;
+		return this[Raw].price;
 	}
 
-	set price(price) {
-		if (this.price === undefined)
-			throw new Error("Price is not applicable to this item");
-
-		if (price === undefined || price < 0 || price > 99999)
-			throw new Error("Price must be between 0 and 99999");
-
-		this.raw.price = price;
+	private syncPrice() {
+		if (this.price === undefined) return;
+		if (this.price < 0) this.price = 0;
+		if (this.price > 99999) this.price = 99999;
+		this[Raw].price = this.price;
 	}
 
-	get color() {
+	private computeColor() {
 		if (
 			!this.info ||
 			!("canBeDyed" in this.info) ||
 			!this.info.canBeDyed ||
-			!this.raw.clothesColor
+			!this[Raw].clothesColor
 		)
 			return undefined;
-
-		return new Color(this.raw.clothesColor);
+		return new Color(this[Raw].clothesColor);
 	}
 
-	set color(color) {
-		if (this.color === undefined)
-			throw new Error("Color is not applicable to this item");
-
-		if (color === undefined) throw new Error("Color must be a string");
-
-		this.raw.clothesColor = color;
+	private syncColor() {
+		if (!this.color) return;
+		this[Raw].clothesColor = this.color;
 	}
 
-	get category() {
-		return this.raw.category;
+	private syncMinDamage() {
+		if (this.minDamage === undefined) return;
+		if (this.minDamage < 0) this.minDamage = 0;
+		if (this.minDamage > 999) this.minDamage = 999;
+		this[Raw].minDamage = this.minDamage;
 	}
 
-	get minDamage() {
-		if (this.info?._type !== "Weapon") return undefined;
-
-		return this.raw.minDamage;
+	private syncMaxDamage() {
+		if (this.maxDamage === undefined) return;
+		if (this.maxDamage < 0) this.maxDamage = 0;
+		if (this.maxDamage > 999) this.maxDamage = 999;
+		this[Raw].maxDamage = this.maxDamage;
 	}
 
-	set minDamage(minDamage) {
-		if (this.minDamage === undefined) throw new Error("Item is not a weapon");
-
-		if (minDamage === undefined || minDamage < 0 || minDamage > 999)
-			throw new Error("Min damage must be between 0 and 999");
-
-		this.raw.minDamage = minDamage;
+	private syncSpeed() {
+		if (this.speed === undefined) return;
+		if (this.speed < 0) this.speed = 0;
+		if (this.speed > 999) this.speed = 999;
+		this[Raw].speed = this.speed;
 	}
 
-	get maxDamage() {
-		if (this.info?._type !== "Weapon") return undefined;
-
-		return this.raw.maxDamage;
+	private syncKnockback() {
+		if (this.knockback === undefined) return;
+		if (this.knockback < 0) this.knockback = 0;
+		if (this.knockback > 999) this.knockback = 999;
+		this[Raw].knockback = this.knockback;
 	}
 
-	set maxDamage(maxDamage) {
-		if (this.maxDamage === undefined) throw new Error("Item is not a weapon");
-
-		if (maxDamage === undefined || maxDamage < 0 || maxDamage > 999)
-			throw new Error("Max damage must be between 0 and 999");
-
-		this.raw.maxDamage = maxDamage;
+	private syncCritChance() {
+		if (this.critChance === undefined) return;
+		if (this.critChance < 0) this.critChance = 0;
+		if (this.critChance > 1) this.critChance = 1;
+		this[Raw].critChance = this.critChance;
 	}
 
-	get speed() {
-		if (this.info?._type !== "Weapon") return undefined;
-
-		return this.raw.speed;
+	private syncCritMultiplier() {
+		if (this.critMultiplier === undefined) return;
+		if (this.critMultiplier < 0) this.critMultiplier = 0;
+		this[Raw].critMultiplier = this.critMultiplier;
 	}
 
-	set speed(speed) {
-		if (this.speed === undefined) throw new Error("Item is not a weapon");
-
-		if (speed === undefined || speed < 0 || speed > 999)
-			throw new Error("Speed must be between 0 and 999");
-
-		this.raw.speed = speed;
+	private syncPrecision() {
+		if (this.precision === undefined) return;
+		if (this.precision < 0) this.precision = 0;
+		if (this.precision > 999) this.precision = 999;
+		this[Raw].addedPrecision = this.precision;
 	}
 
-	get knockback() {
-		if (this.info?._type !== "Weapon") return undefined;
-
-		return this.raw.knockback;
+	private syncAreaOfEffect() {
+		if (this.areaOfEffect === undefined) return;
+		if (this.areaOfEffect < 0) this.areaOfEffect = 0;
+		if (this.areaOfEffect > 999) this.areaOfEffect = 999;
+		this[Raw].addedAreaOfEffect = this.areaOfEffect;
 	}
 
-	set knockback(knockback) {
-		if (this.knockback === undefined) throw new Error("Item is not a weapon");
-
-		if (knockback === undefined || knockback < 0 || knockback > 999)
-			throw new Error("Knockback must be between 0 and 999");
-
-		this.raw.knockback = knockback;
+	private syncDefense() {
+		if (this.defense === undefined) return;
+		if (this.defense < 0) this.defense = 0;
+		if (this.defense > 999) this.defense = 999;
+		this[Raw].addedDefense = this.defense;
 	}
 
-	get critChance() {
-		if (this.info?._type !== "Weapon") return undefined;
-
-		return this.raw.critChance;
+	private syncImmunity() {
+		if (this.immunityBonus === undefined) return;
+		if (this.immunityBonus < 0) this.immunityBonus = 0;
+		this[Raw].immunityBonus = this.immunityBonus;
 	}
 
-	set critChance(critChance) {
-		if (this.critChance === undefined) throw new Error("Item is not a weapon");
-
-		if (critChance === undefined || critChance < 0 || critChance > 1)
-			throw new Error("Crit chance must be between 0 and 1");
-
-		this.raw.critChance = critChance;
-	}
-
-	get critMultiplier() {
-		if (this.info?._type !== "Weapon") return undefined;
-
-		return this.raw.critMultiplier;
-	}
-
-	set critMultiplier(critMultiplier) {
-		if (this.critMultiplier === undefined)
-			throw new Error("Item is not a weapon");
-
-		if (critMultiplier === undefined || critMultiplier < 0)
-			throw new Error("Crit multiplier must be at least 0");
-
-		this.raw.critMultiplier = critMultiplier;
-	}
-
-	get precision() {
-		if (this.info?._type !== "Weapon") return undefined;
-
-		return this.raw.addedPrecision;
-	}
-
-	set precision(precision) {
-		if (this.precision === undefined) throw new Error("Item is not a weapon");
-
-		if (precision === undefined || precision < 0 || precision > 999)
-			throw new Error("Precision must be between 0 and 999");
-
-		this.raw.addedPrecision = precision;
-	}
-
-	get areaOfEffect() {
-		if (this.info?._type !== "Weapon") return undefined;
-
-		return this.raw.addedAreaOfEffect;
-	}
-
-	set areaOfEffect(areaOfEffect) {
-		if (this.areaOfEffect === undefined)
-			throw new Error("Item is not a weapon");
-
-		if (areaOfEffect === undefined || areaOfEffect < 0 || areaOfEffect > 999)
-			throw new Error("Area of effect must be between 0 and 999");
-
-		this.raw.addedAreaOfEffect = areaOfEffect;
-	}
-
-	get defense() {
-		if (!this.info || !["Boots", "Weapon"].includes(this.info._type))
-			return undefined;
-
-		return this.raw.addedDefense;
-	}
-
-	set defense(defense) {
-		if (this.defense === undefined)
-			throw new Error("Item is not a weapon or boots");
-
-		if (defense === undefined || defense < 0 || defense > 999)
-			throw new Error("Defense must be between 0 and 999");
-
-		this.raw.addedDefense = defense;
-	}
-
-	get immunityBonus() {
-		if (this.info?._type !== "Boots") return undefined;
-
-		return this.raw.immunityBonus;
-	}
-
-	set immunityBonus(immunityBonus) {
-		if (this.immunityBonus === undefined) throw new Error("Item is not boots");
-
-		if (immunityBonus === undefined || immunityBonus < 0)
-			throw new Error("Immunity bonus must be at least 0");
-
-		this.raw.immunityBonus = immunityBonus;
-	}
-
-	get isBottomless() {
-		if (this.raw.name !== "Watering Can") return undefined;
-
-		return this.raw.isBottomless;
-	}
-
-	set isBottomless(isBottomless) {
-		if (this.raw.name !== "Watering Can")
-			throw new Error("Item is not a watering can");
-
-		this.raw.isBottomless = isBottomless;
-		this.raw.IsBottomless = isBottomless;
+	private syncBottomless() {
+		if (this.isBottomless === undefined) return;
+		this[Raw].isBottomless = this.isBottomless;
+		this[Raw].IsBottomless = this.isBottomless;
 	}
 }

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { ItemNameHelper } from "$lib/ItemData";
 	import type { ParentIndex } from "$lib/ItemParentIndex";
-	import { Color } from "$lib/proxies/Color";
+	import { Color } from "$lib/proxies/Color.svelte";
 	import type { Item } from "$lib/proxies/Item.svelte";
 	import UiCheckbox from "$lib/ui/UICheckbox.svelte";
 	import UiInput from "$lib/ui/UIInput.svelte";
@@ -78,7 +78,7 @@
 							<UiInput
 								type="number"
 								bind:value={selectedItem[key]}
-								data-testid={`property-${key}`}
+								data-testid={`property-${String(key)}`}
 								{min}
 								{max}
 								{step}
@@ -88,7 +88,7 @@
 						{:else if typeof selectedItem[key] === "boolean"}
 							<UiCheckbox
 								bind:checked={selectedItem[key]}
-								data-testid={`property-${key}`}
+								data-testid={`property-${String(key)}`}
 							/>
 						{:else if selectedItem[key] instanceof Color}
 							<UiInput

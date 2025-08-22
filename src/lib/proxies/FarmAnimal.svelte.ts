@@ -1,6 +1,7 @@
 import animals from "$generated/farmanimals.json";
 import type { Farmer } from "$lib/proxies/Farmer.svelte";
 import { type AnimalsKV, Gender } from "$types/save";
+import { type DataProxy, Raw } from ".";
 
 // function getRandomLong() {
 //     const array = new Uint32Array(2);
@@ -13,11 +14,49 @@ function getRandomInt() {
 	return Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
 }
 
-export class FarmAnimal {
-	raw: AnimalsKV;
+export class FarmAnimal implements DataProxy<AnimalsKV> {
+	public [Raw]: AnimalsKV;
+
+	// Reactive fields replacing former getters/setters
+	public name: string;
+	public gender: Gender;
+	public daysOwned: number;
+	public happiness: number;
+	public ownerID: number;
 
 	constructor(raw: AnimalsKV) {
-		this.raw = raw;
+		this[Raw] = raw;
+
+		// Initialize reactive state from raw animal
+		const animal = this[Raw].value.FarmAnimal;
+		this.name = $state(animal.name);
+		$effect(() => {
+			animal.name = this.name;
+			animal.displayName = this.name; // keep displayName in sync
+		});
+
+		this.gender = $state(animal.Gender);
+		$effect(() => {
+			animal.Gender = this.gender;
+		});
+
+		this.daysOwned = $state(animal.daysOwned);
+		$effect(() => {
+			animal.daysOwned = this.daysOwned;
+			animal.age = this.daysOwned; // original setter mirrored age
+		});
+
+		this.happiness = $state(animal.happiness);
+		$effect(() => {
+			if (this.happiness < 0 || this.happiness > 8)
+				throw new Error("Happiness must be between 0 and 8");
+			animal.happiness = this.happiness;
+		});
+
+		this.ownerID = $state(animal.ownerID);
+		$effect(() => {
+			animal.ownerID = this.ownerID;
+		});
 	}
 
 	static fromName(type: string, name: string, farmhand: Farmer) {
@@ -82,53 +121,5 @@ export class FarmAnimal {
 		};
 
 		return new FarmAnimal(raw);
-	}
-
-	private get animal() {
-		return this.raw.value.FarmAnimal;
-	}
-
-	get name() {
-		return this.animal.name;
-	}
-
-	set name(value) {
-		this.animal.name = value;
-		this.animal.displayName = value;
-	}
-
-	get gender() {
-		return this.animal.Gender;
-	}
-
-	set gender(value) {
-		this.animal.Gender = value;
-	}
-
-	get daysOwned() {
-		return this.animal.daysOwned;
-	}
-
-	set daysOwned(value) {
-		this.animal.daysOwned = value;
-		this.animal.age = value;
-	}
-
-	get happiness() {
-		return this.animal.happiness;
-	}
-
-	set happiness(value) {
-		if (value < 0 || value > 8)
-			throw new Error("Happiness must be between 0 and 8");
-		this.animal.happiness = value;
-	}
-
-	get ownerID() {
-		return this.animal.ownerID;
-	}
-
-	set ownerID(value) {
-		this.animal.ownerID = value;
 	}
 }

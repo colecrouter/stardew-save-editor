@@ -5,88 +5,65 @@ const nil = { "@_xsi:nil": "true" } as const;
 export class Flags {
 	raw: Player;
 
+	public canUnderstandDwarves: boolean;
+	public hasRustyKey: boolean;
+	public hasClubCard: boolean;
+	public hasSpecialCharm: boolean;
+	public hasSkullKey: boolean;
+	public hasMagnifyingGlass: boolean;
+	public hasDarkTalisman: boolean;
+	public hasMagicInk: boolean;
+	public HasTownKey: boolean;
+
 	constructor(player: Player) {
 		this.raw = player;
+
+		// Initialize $state properties from raw markers
+		this.canUnderstandDwarves = $state(this.raw?.canUnderstandDwarves === "");
+		$effect(() =>
+			this.setFlag("canUnderstandDwarves", this.canUnderstandDwarves),
+		);
+
+		this.hasRustyKey = $state(this.raw?.hasRustyKey === "");
+		$effect(() => this.setFlag("hasRustyKey", this.hasRustyKey));
+
+		this.hasClubCard = $state(this.raw?.hasClubCard === "");
+		$effect(() => this.setFlag("hasClubCard", this.hasClubCard));
+
+		this.hasSpecialCharm = $state(this.raw?.hasSpecialCharm === "");
+		$effect(() => this.setFlag("hasSpecialCharm", this.hasSpecialCharm));
+
+		this.hasSkullKey = $state(this.raw?.hasSkullKey === "");
+		$effect(() => this.setFlag("hasSkullKey", this.hasSkullKey));
+
+		this.hasMagnifyingGlass = $state(this.raw?.hasMagnifyingGlass === "");
+		$effect(() => this.setFlag("hasMagnifyingGlass", this.hasMagnifyingGlass));
+
+		this.hasDarkTalisman = $state(this.raw?.hasDarkTalisman === "");
+		$effect(() => this.setFlag("hasDarkTalisman", this.hasDarkTalisman));
+
+		this.hasMagicInk = $state(this.raw?.hasMagicInk === "");
+		$effect(() => this.setFlag("hasMagicInk", this.hasMagicInk));
+
+		this.HasTownKey = $state(this.raw?.HasTownKey === "");
+		$effect(() => this.setFlag("HasTownKey", this.HasTownKey));
 	}
 
-	get canUnderstandDwarves() {
-		return this.raw?.canUnderstandDwarves === "";
-	}
-
-	set canUnderstandDwarves(value) {
-		// @ts-expect-error
-		this.raw.canUnderstandDwarves = value ? "" : nil;
-	}
-
-	get hasRustyKey() {
-		return this.raw?.hasRustyKey === "";
-	}
-
-	set hasRustyKey(value) {
-		// @ts-expect-error
-		this.raw.hasRustyKey = value ? "" : nil;
-	}
-
-	get hasClubCard() {
-		return this.raw?.hasClubCard === "";
-	}
-
-	set hasClubCard(value) {
-		// @ts-expect-error
-		this.raw.hasClubCard = value ? "" : nil;
-	}
-
-	get hasSpecialCharm() {
-		return this.raw?.hasSpecialCharm === "";
-	}
-
-	set hasSpecialCharm(value) {
-		// @ts-expect-error
-		this.raw.hasSpecialCharm = value ? "" : nil;
-	}
-
-	get hasSkullKey() {
-		return this.raw?.hasSkullKey === "";
-	}
-
-	set hasSkullKey(value) {
-		// @ts-expect-error
-		this.raw.hasSkullKey = value ? "" : nil;
-	}
-
-	get hasMagnifyingGlass() {
-		return this.raw?.hasMagnifyingGlass === "";
-	}
-
-	set hasMagnifyingGlass(value) {
-		// @ts-expect-error
-		this.raw.hasMagnifyingGlass = value ? "" : nil;
-	}
-
-	get hasDarkTalisman() {
-		return this.raw?.hasDarkTalisman === "";
-	}
-
-	set hasDarkTalisman(value) {
-		// @ts-expect-error
-		this.raw.hasDarkTalisman = value ? "" : nil;
-	}
-
-	get hasMagicInk() {
-		return this.raw?.hasMagicInk === "";
-	}
-
-	set hasMagicInk(value) {
-		// @ts-expect-error
-		this.raw.hasMagicInk = value ? "" : nil;
-	}
-
-	get HasTownKey() {
-		return this.raw?.HasTownKey === "";
-	}
-
-	set HasTownKey(value) {
-		// @ts-expect-error
-		this.raw.HasTownKey = value ? "" : nil;
+	// Central helper to write a boolean flag to the raw player (empty string vs xsi:nil)
+	private setFlag(
+		field:
+			| "canUnderstandDwarves"
+			| "hasRustyKey"
+			| "hasClubCard"
+			| "hasSpecialCharm"
+			| "hasSkullKey"
+			| "hasMagnifyingGlass"
+			| "hasDarkTalisman"
+			| "hasMagicInk"
+			| "HasTownKey",
+		value: boolean,
+	) {
+		// @ts-expect-error dynamic assignment matches original shape (string or nil object)
+		this.raw[field] = value ? "" : nil;
 	}
 }

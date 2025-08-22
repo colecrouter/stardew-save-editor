@@ -1,6 +1,7 @@
 // [farming, mining, foraging, fishing, combat]
 
 import type { Player } from "$types/save";
+import { type DataProxy, Raw } from ".";
 
 const xpForLevel = [
 	0, 100, 380, 770, 1300, 2150, 3300, 4800, 6900, 10000, 15000,
@@ -16,102 +17,53 @@ const xpToLevel = (xp: number) => {
 	return level;
 };
 
-export class Skills {
-	raw: number[];
-	player: Player;
+export class Skills implements DataProxy<number[]> {
+	public [Raw]: number[];
+	private player: Player;
+
+	public farming: number; // index 0
+	public fishing: number; // index 1
+	public foraging: number; // index 2
+	public mining: number; // index 3
+	public combat: number; // index 4
+
+	get raw() {
+		return this[Raw];
+	}
 
 	constructor(skills: number[], player: Player) {
-		this.raw = skills;
+		this[Raw] = skills;
 		this.player = player;
-	}
 
-	get farming() {
-		return this.raw[0] ?? 0;
-	}
+		// Initialize reactive states for each skill and sync back with effects
+		this.farming = $state(this[Raw][0] ?? 0);
+		$effect(() => {
+			this[Raw][0] = this.farming;
+			this.player.farmingLevel = xpToLevel(this.farming);
+		});
 
-	set farming(value) {
-		this.raw[0] = value;
+		this.fishing = $state(this[Raw][1] ?? 0);
+		$effect(() => {
+			this[Raw][1] = this.fishing;
+			this.player.fishingLevel = xpToLevel(this.fishing);
+		});
 
-		// Update level based on farming XP
-		this.player.farmingLevel = xpToLevel(value);
+		this.foraging = $state(this[Raw][2] ?? 0);
+		$effect(() => {
+			this[Raw][2] = this.foraging;
+			this.player.foragingLevel = xpToLevel(this.foraging);
+		});
 
-		console.debug(
-			"Farming skill updated:",
-			value,
-			"Level:",
-			this.player.farmingLevel,
-		);
-	}
+		this.mining = $state(this[Raw][3] ?? 0);
+		$effect(() => {
+			this[Raw][3] = this.mining;
+			this.player.miningLevel = xpToLevel(this.mining);
+		});
 
-	get mining() {
-		return this.raw[3] ?? 0;
-	}
-
-	set mining(value) {
-		this.raw[3] = value;
-
-		// Update level based on mining XP
-		this.player.miningLevel = xpToLevel(value);
-
-		console.debug(
-			"Mining skill updated:",
-			value,
-			"Level:",
-			this.player.miningLevel,
-		);
-	}
-
-	get foraging() {
-		return this.raw[2] ?? 0;
-	}
-
-	set foraging(value) {
-		this.raw[2] = value;
-
-		// Update level based on foraging XP
-		this.player.foragingLevel = xpToLevel(value);
-
-		console.debug(
-			"Foraging skill updated:",
-			value,
-			"Level:",
-			this.player.foragingLevel,
-		);
-	}
-
-	get fishing() {
-		return this.raw[1] ?? 0;
-	}
-
-	set fishing(value) {
-		this.raw[1] = value;
-
-		// Update level based on fishing XP
-		this.player.fishingLevel = xpToLevel(value);
-
-		console.debug(
-			"Fishing skill updated:",
-			value,
-			"Level:",
-			this.player.fishingLevel,
-		);
-	}
-
-	get combat() {
-		return this.raw[4] ?? 0;
-	}
-
-	set combat(value) {
-		this.raw[4] = value;
-
-		// Update level based on combat XP
-		this.player.combatLevel = xpToLevel(value);
-
-		console.debug(
-			"Combat skill updated:",
-			value,
-			"Level:",
-			this.player.combatLevel,
-		);
+		this.combat = $state(this[Raw][4] ?? 0);
+		$effect(() => {
+			this[Raw][4] = this.combat;
+			this.player.combatLevel = xpToLevel(this.combat);
+		});
 	}
 }

@@ -106,7 +106,7 @@ export class SaveManager {
 	}
 
 	async init() {
-		if (dev) {
+		if (dev && !import.meta.env.TEST) {
 			$effect(() => this.saveDevState());
 		}
 		this.backups.init();
@@ -168,7 +168,14 @@ export class SaveManager {
 			}
 		}
 
-		this.save = new SaveProxy(json);
+		if (import.meta.env.TEST) {
+			// Woohoo, memory leaks!
+			$effect.root(() => {
+				this.save = new SaveProxy(json);
+			});
+		} else {
+			this.save = new SaveProxy(json);
+		}
 		this.filename = file.name;
 	}
 

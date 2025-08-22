@@ -17,7 +17,6 @@ function getRandomInt() {
 export class FarmAnimal implements DataProxy<AnimalsKV> {
 	public [Raw]: AnimalsKV;
 
-	// Reactive fields replacing former getters/setters
 	public name: string;
 	public gender: Gender;
 	public daysOwned: number;
@@ -32,7 +31,7 @@ export class FarmAnimal implements DataProxy<AnimalsKV> {
 		this.name = $state(animal.name);
 		$effect(() => {
 			animal.name = this.name;
-			animal.displayName = this.name; // keep displayName in sync
+			animal.displayName = this.name;
 		});
 
 		this.gender = $state(animal.Gender);
@@ -43,13 +42,11 @@ export class FarmAnimal implements DataProxy<AnimalsKV> {
 		this.daysOwned = $state(animal.daysOwned);
 		$effect(() => {
 			animal.daysOwned = this.daysOwned;
-			animal.age = this.daysOwned; // original setter mirrored age
+			animal.age = this.daysOwned;
 		});
 
 		this.happiness = $state(animal.happiness);
 		$effect(() => {
-			if (this.happiness < 0 || this.happiness > 8)
-				throw new Error("Happiness must be between 0 and 8");
 			animal.happiness = this.happiness;
 		});
 

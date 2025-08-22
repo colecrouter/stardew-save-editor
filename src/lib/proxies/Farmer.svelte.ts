@@ -8,6 +8,7 @@ import type { MailFlag } from "$lib/proxies/mail";
 import type { Gender, Player } from "$types/save";
 import { SvelteSet } from "svelte/reactivity";
 import { type DataProxy, Raw } from ".";
+import { Friendships } from "./Friendship.svelte";
 import type { Profession } from "./Professions";
 
 export class Farmer implements DataProxy<Player> {
@@ -43,6 +44,7 @@ export class Farmer implements DataProxy<Player> {
 	public professions: Set<Profession>;
 	public uniqueID: number; // Readonly snapshot (underlying value shouldn't change)
 	public mailReceived: Set<MailFlag>;
+	public friendships: Friendships; // reactive map of friendships keyed by NPC name
 
 	// Provide compatibility alias for underlying raw object
 	get raw() {
@@ -185,6 +187,9 @@ export class Farmer implements DataProxy<Player> {
 		$effect(() => {
 			this[Raw].mailReceived.string = Array.from(this.mailReceived);
 		});
+
+		// Friendships reactive map (lookup by NPC name)
+		this.friendships = new Friendships(this[Raw].friendshipData);
 
 		// Unique ID snapshot
 		this.uniqueID = this[Raw].UniqueMultiplayerID;

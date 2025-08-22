@@ -8,14 +8,12 @@
 </script>
 
 <UiContainer>
-	{#key save.player}
-		<h3>Relationships</h3>
-		<div class="wrapper">
-			{#each save.player.raw.friendshipData.item as character}
-				<HeartBar bind:npc={character} />
-			{/each}
-		</div>
-	{/key}
+	<h3>Relationships</h3>
+	<div class="wrapper">
+		{#each save.player.friendships as [name, npc]}
+			<HeartBar {name} {npc} />
+		{/each}
+	</div>
 </UiContainer>
 
 <style>

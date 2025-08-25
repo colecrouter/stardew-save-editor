@@ -42,8 +42,8 @@ export class GameLocation implements DataProxy<Location> {
 
 	private setBuildings(value: ReturnType<typeof this.getBuildings>) {
 		this[Raw].buildings = value.length
-			? undefined
-			: { Building: value?.map((b) => b[Raw]) };
+			? { Building: value?.map((b) => b[Raw]) }
+			: undefined;
 	}
 
 	private getAnimals() {

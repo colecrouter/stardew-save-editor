@@ -33,7 +33,6 @@
 
 	function disableJojaMembership() {
 		for (const player of save?.players ?? []) {
-			player.mailReceived.size;
 			player.mailReceived.delete(MailFlag.JojaMember);
 			console.log("Disabled Joja Membership for player:", player.name);
 		}

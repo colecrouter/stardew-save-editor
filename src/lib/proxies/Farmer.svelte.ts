@@ -9,7 +9,7 @@ import type { Gender, Player } from "$types/save";
 import { SvelteSet } from "svelte/reactivity";
 import { type DataProxy, Raw } from ".";
 import { Friendships } from "./Friendship.svelte";
-import type { Profession } from "./Professions";
+import { Professions } from "./Professions.svelte";
 
 export class Farmer implements DataProxy<Player> {
 	public [Raw]: Player;
@@ -41,7 +41,7 @@ export class Farmer implements DataProxy<Player> {
 	public eyeColor: Color;
 	public flags: Flags;
 	public skills: Skills;
-	public professions: Set<Profession>;
+	public professions: Professions;
 	public uniqueID: number; // Readonly snapshot (underlying value shouldn't change)
 	public mailReceived: Set<MailFlag>;
 	public friendships: Friendships; // reactive map of friendships keyed by NPC name
@@ -167,18 +167,7 @@ export class Farmer implements DataProxy<Player> {
 		this.skills = new Skills(this[Raw].experiencePoints.int ?? [], this[Raw]);
 
 		// Professions as reactive set
-		this.professions = new SvelteSet(
-			this[Raw].professions.int?.map((p: number) => p as Profession) ?? [],
-		);
-		$effect(() => {
-			this[Raw].professions.int = Array.from(this.professions);
-		});
-
-		$effect(() => {
-			const current = new Set(this[Raw].professions.int ?? []);
-			if (this.professions.symmetricDifference(current).size === 0) return;
-			this[Raw].professions.int = [...this.professions];
-		});
+		this.professions = new Professions(this[Raw].professions);
 
 		// Mail received reactive set
 		this.mailReceived = new SvelteSet(

@@ -4,17 +4,17 @@ import { fireEvent, render, within } from "@testing-library/svelte";
 import { flushSync, tick } from "svelte";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { setup as mockIDB } from "vitest-indexeddb";
+import { Gender } from "../codegen/save";
 import {
 	SaveManager,
 	setSaveManagerContext,
 } from "../src/lib/SaveManager.svelte";
 import craftingPage from "../src/routes/(edit)/(list)/crafting/+page.svelte";
 import appearancePage from "../src/routes/(edit)/appearance/+page.svelte";
+import bundlesPage from "../src/routes/(edit)/bundles/+page.svelte";
 import characterPage from "../src/routes/(edit)/character/+page.svelte";
 import editorPage from "../src/routes/(edit)/inventory/+page.svelte";
 import relationshipsPage from "../src/routes/(edit)/relationships/+page.svelte";
-import { Gender } from "../codegen/save";
-import bundlesPage from "../src/routes/(edit)/bundles/+page.svelte";
 
 describe("Save Manager Integration Tests", () => {
 	// Wrap in a root effect so we can initialize the SaveManager

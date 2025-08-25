@@ -1,6 +1,6 @@
 import type { Achievements } from "$types/save";
 import { SvelteSet } from "svelte/reactivity";
-import { Raw, type DataProxy } from ".";
+import { type DataProxy, Raw } from ".";
 
 export enum Profession {
 	Rancher = 0,

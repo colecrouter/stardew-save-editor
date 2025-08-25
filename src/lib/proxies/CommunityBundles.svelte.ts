@@ -1,6 +1,5 @@
 import { CCRoom, bundleSideEffects } from "$lib/bundleSideEffects";
 import type { GameLocation } from "$lib/proxies/GameLocation.svelte";
-import { Raw, type DataProxy } from ".";
 import type { SaveProxy } from "$lib/proxies/SaveFile.svelte";
 import type {
 	BoolArrayContainer,
@@ -8,6 +7,7 @@ import type {
 	BundleData,
 	StringContainer,
 } from "$types/save";
+import { type DataProxy, Raw } from ".";
 import { MailFlag } from "./mail";
 
 /*

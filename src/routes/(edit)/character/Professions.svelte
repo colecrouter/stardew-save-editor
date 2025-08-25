@@ -1,90 +1,24 @@
 <script lang="ts" module>
-	// Define profession groups by skill and unlock level
-	const skillGroups = [
-		{
-			name: "Farming",
-			primary: [Profession.Rancher, Profession.Tiller],
-			secondary: {
-				[Profession.Rancher]: [Profession.Coopmaster, Profession.Shepherd],
-				[Profession.Tiller]: [Profession.Artisan, Profession.Agriculturist],
-			},
-		},
-		{
-			name: "Fishing",
-			primary: [Profession.Fisher, Profession.Trapper],
-			secondary: {
-				[Profession.Fisher]: [Profession.Angler, Profession.Pirate],
-				[Profession.Trapper]: [Profession.Mariner, Profession.Luremaster],
-			},
-		},
-		{
-			name: "Foraging",
-			primary: [Profession.Forester, Profession.Gatherer],
-			secondary: {
-				[Profession.Forester]: [Profession.Lumberjack, Profession.Tapper],
-				[Profession.Gatherer]: [Profession.Botanist, Profession.Tracker],
-			},
-		},
-		{
-			name: "Mining",
-			primary: [Profession.Miner, Profession.Geologist],
-			secondary: {
-				[Profession.Miner]: [Profession.Blacksmith, Profession.Prospector],
-				[Profession.Geologist]: [Profession.Excavator, Profession.Gemologist],
-			},
-		},
-		{
-			name: "Combat",
-			primary: [Profession.Fighter, Profession.Scout],
-			secondary: {
-				[Profession.Fighter]: [Profession.Brute, Profession.Defender],
-				[Profession.Scout]: [Profession.Acrobat, Profession.Desperado],
-			},
-		},
-	] as {
-		name: string;
-		primary: Profession[];
-		secondary: Partial<Record<Profession, Profession[]>>; // changed to allow missing keys
-	}[];
-
+	import { Profession, skillGroups } from "$lib/proxies/Professions.svelte";
 	const getSprite = (p: Profession) => {
 		const x = (p % 6) * 16;
-		const y = Math.floor(p / 6) * 16 + 624; // 624 is the offset for professions in the sprite sheet
+		const y = Math.floor(p / 6) * 16 + 624;
 		return [x, y] as const;
 	};
 </script>
 
 <script lang="ts">
-	import { Profession } from "$lib/proxies/Professions";
-	import type { Skills } from "$lib/proxies/Skills.svelte";
+	import { Professions } from "$lib/proxies/Professions.svelte";
 	import UiButton from "$lib/ui/UIButton.svelte";
 
 	interface Props {
-		skills: Skills;
-		professions: Set<Profession>;
+		professions: Professions;
 	}
 
-	let { skills, professions = $bindable() }: Props = $props();
+	let { professions }: Props = $props();
 
-	const toggle = (p: Profession) => {
-		const s = new Set(professions);
-		if (s.has(p)) {
-			s.delete(p);
-
-			// Delete secondary professions if primary is removed
-			for (const sg of skillGroups) {
-				if (sg.primary.includes(p)) {
-					for (const secondary of sg.secondary[p] || []) {
-						s.delete(secondary);
-					}
-				}
-			}
-			professions = new Set(s); // Ensure reactivity
-		} else {
-			s.add(p);
-			professions = new Set(s); // Ensure reactivity
-		}
-	};
+	const toggle = (p: Profession) =>
+		professions.has(p) ? professions.delete(p) : professions.add(p);
 </script>
 
 {#snippet icon(p: Profession)}
@@ -150,10 +84,6 @@
 		display: flex;
 		justify-content: space-evenly;
 		gap: 8px;
-	}
-	label {
-		margin-bottom: 0.25rem;
-		cursor: pointer;
 	}
 	.profession-icon {
 		width: 16px;

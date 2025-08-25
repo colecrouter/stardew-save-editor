@@ -497,7 +497,7 @@ export interface BoolArrayContainer {
 }
 
 export interface BuildingsClass {
-	Building: Building[];
+	Building?: Building[];
 }
 
 export interface Building {
@@ -550,7 +550,7 @@ export interface IndoorsAnimals {
 }
 
 export interface AnimalsArray {
-	item: AnimalsKV[];
+	item?: AnimalsKV[];
 }
 
 export interface AnimalsKV {

@@ -1,42 +1,20 @@
 <script lang="ts">
 	import { base } from "$app/paths";
-	import { dateableCharacters } from "$lib/NPCs";
+	import type { Friendship } from "$lib/proxies/Friendship.svelte";
 	import UiContainerSmall from "$lib/ui/UIContainerSmall.svelte";
 	import UiInput from "$lib/ui/UIInput.svelte";
-	import type { FriendshipDataItem } from "$types/save";
 
 	interface Props {
-		npc: FriendshipDataItem;
+		name: string;
+		npc: Friendship;
 	}
 
-	const INTERVAL = 250;
+	let { npc, name }: Props = $props();
 
-	let { npc = $bindable() }: Props = $props();
-
-	let name = npc.key.string;
-	let dateable = dateableCharacters.some((c) => c === name);
-	let amount: number = $state(npc.value.Friendship.Points);
-	let relationship: string = npc.value.Friendship.Status;
-	let hearts: number = $derived(Math.floor(amount / 250));
-	let maxhearts: number = dateable
-		? relationship === "Married"
-			? 14
-			: relationship === "Dating"
-				? 10
-				: 8
-		: 10;
-	let maxamount: number = maxhearts * INTERVAL + INTERVAL - 1; // 250 points per heart, plus 249 points after the last heart
-
-	function update(value: number) {
-		npc.value.Friendship.Points = Math.floor(
-			Math.max(0, Math.min(value, maxamount)),
-		);
-	}
-
-	// TODO refactor some of this. Modding can cause more heart events (???)
+	// TODO modding can cause more heart events (???)
 </script>
 
-<div class="row">
+<div class="row" data-testid="friendship-row">
 	<UiContainerSmall>
 		<div
 			class="portrait"
@@ -45,17 +23,19 @@
 	</UiContainerSmall>
 	<div class="right">
 		<div class="hearts">
-			{#each Array(hearts) as _, i}
-				<button onclick={() => update(i * INTERVAL + INTERVAL)}> ❤️ </button>
-			{/each}
-			{#each Array(Math.max(maxhearts - hearts, 0)) as _, i}
+			{#each Array(npc.maxHearts) as _, i}
 				<button
-					onclick={() => update(hearts * INTERVAL + i * INTERVAL + INTERVAL)}
+					data-testid="friendship-heart"
+					onclick={() => (npc.hearts = i + 1)}
 				>
-					🖤
+					{#if i < npc.hearts}
+						❤️
+					{:else}
+						🖤
+					{/if}
 				</button>
 			{/each}
-			{#each Array(14 - maxhearts)}
+			{#each Array(14 - npc.maxHearts) as _}
 				<span>🏳️</span>
 			{/each}
 		</div>
@@ -63,12 +43,12 @@
 			type="number"
 			class="amount"
 			min="0"
-			max={maxamount}
-			bind:value={amount}
-			onfocusout={() => update(amount)}
+			max={npc.maxPoints}
+			bind:value={npc.points}
+			data-testid="friendship-points"
 		/>
 	</div>
-	<strong>
+	<strong data-testid="friendship-name">
 		{name}
 	</strong>
 </div>
@@ -110,6 +90,7 @@
 
 	button {
 		all: unset;
+		cursor: pointer;
 	}
 
 	strong {

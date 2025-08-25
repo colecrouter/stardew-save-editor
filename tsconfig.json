@@ -24,6 +24,6 @@
 		"src/service-worker/**/*.ts",
 		"src/service-worker.d.ts",
 		"src/service-worker/**/*.d.ts",
-		"codegen/dump.tss"
+		"codegen/dump.ts"
 	]
 }

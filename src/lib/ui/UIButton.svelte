@@ -70,7 +70,8 @@
 
 	a:hover,
 	a:focus-within,
-	button:hover button:focus-within {
+	button:hover,
+	button:focus-within {
 		outline: none;
 		filter: brightness(0.85);
 	}

@@ -2,15 +2,16 @@ import cookingRecipes from "$generated/cookingrecipes.json";
 import craftingRecipes from "$generated/craftingrecipes.json";
 import type { Player } from "$types/save";
 import { SvelteMap } from "svelte/reactivity";
+import { type DataProxy, Raw } from ".";
 
 type RecipeType = "craftingRecipes" | "cookingRecipes";
 const _: Player[RecipeType]["item"] = [];
 
-export class Recipes<T extends RecipeType> extends SvelteMap<
-	string,
-	number | null
-> {
-	#raw: Player[T];
+export class Recipes<T extends RecipeType>
+	extends SvelteMap<string, number | null>
+	implements DataProxy<Player[T]>
+{
+	public [Raw]: Player[T];
 
 	constructor(recipes: Player[T], type: T) {
 		// Pick complete list of recipes
@@ -29,31 +30,23 @@ export class Recipes<T extends RecipeType> extends SvelteMap<
 		);
 		super(values);
 
-		this.#raw = recipes;
-	}
-
-	get(key: string): number | null {
-		// If the key is not in the map, return null
-		if (!super.has(key)) return null;
-
-		// Otherwise, return the value from the map
-		return super.get(key) ?? null;
+		this[Raw] = recipes;
 	}
 
 	set(key: string, value: number | null): this {
 		if (value === null) {
-			this.#raw.item = this.#raw.item.filter((e) => e.key.string !== key);
+			this[Raw].item = this[Raw].item.filter((e) => e.key.string !== key);
 			super.set(key, null);
 		} else {
 			super.set(key, value);
 
-			const existing = this.#raw.item.find((e) => e.key.string === key);
+			const existing = this[Raw].item.find((e) => e.key.string === key);
 			if (existing) {
 				// Update existing value
 				existing.value.int = value;
 			} else {
 				// Add new value
-				this.#raw.item.push({
+				this[Raw].item.push({
 					key: { string: key },
 					value: { int: value },
 				});

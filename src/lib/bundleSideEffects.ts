@@ -2,6 +2,7 @@ import type { GameLocation } from "$lib/proxies/GameLocation.svelte";
 import type { SaveProxy } from "$lib/proxies/SaveFile.svelte";
 import { MailFlag } from "$lib/proxies/mail";
 import type { BoolArray, BoolContainer, IntContainer, KV } from "$types/save";
+import { Raw } from "./proxies";
 
 /*
     This file is responsible for managing the side effects of completing a bundle in the Community Center.
@@ -32,25 +33,24 @@ type SideEffectPair = {
 
 const updateRoom = (cc: GameLocation, room: CCRoom, completed: boolean) => {
 	// Initialize the room if it doesn't exist (not sure if this is necessary)
-	if (!cc.raw.areasComplete)
-		cc.raw.areasComplete = { boolean: new Array(7).fill(false) };
+	if (!cc[Raw].areasComplete)
+		cc[Raw].areasComplete = { boolean: new Array(7).fill(false) };
 
 	// If there aren't 7 entries, add them and fill with false
-	const roomCount = cc.raw.areasComplete.boolean.length;
+	const roomCount = cc[Raw].areasComplete.boolean.length;
 	if (roomCount < 7)
-		cc.raw.areasComplete.boolean.push(...new Array(7 - roomCount).fill(false));
+		cc[Raw].areasComplete.boolean.push(...new Array(7 - roomCount).fill(false));
 
 	// Update the room
-	cc.raw.areasComplete.boolean[room] = completed;
+	cc[Raw].areasComplete.boolean[room] = completed;
 };
 
-// new helper: applies a transform fn to every player's mailReceived
 function applyMail(
 	s: SaveProxy,
 	transform: (mail: Set<MailFlag>) => Set<MailFlag>,
 ) {
 	for (const player of s.players) {
-		player.mailReceived = transform(new Set(player.mailReceived));
+		player.mailReceived = transform(player.mailReceived);
 	}
 }
 

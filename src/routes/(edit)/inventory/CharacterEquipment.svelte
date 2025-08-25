@@ -23,7 +23,7 @@
 		onclick={() => handleClick(index)}
 		active={selectedIndex === index}
 	>
-		<ItemSprite item={player.inventory.getItem(index)} />
+		<ItemSprite item={player.inventory.get(index)} />
 	</ItemSlot>
 {/snippet}
 

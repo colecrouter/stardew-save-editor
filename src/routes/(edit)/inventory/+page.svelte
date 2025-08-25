@@ -14,7 +14,7 @@
 	const save = getSaveManager().save;
 	if (!save) throw new Error("No save data found");
 	let selectedIndex: ParentIndex = $state(0);
-	let selectedItem = $derived(save.player.inventory.getItem(selectedIndex));
+	let selectedItem = $derived(save.player.inventory.get(selectedIndex));
 
 	function handleDrop(state: DragDropState) {
 		if (!save) return;
@@ -22,18 +22,18 @@
 
 		const sourceIndex = Number(sourceContainer);
 		const targetIndex = Number(targetContainer);
-		const currentItem = save.player.inventory.getItem(sourceIndex);
-		const swappingItem = save.player.inventory.getItem(targetIndex);
+		const currentItem = save.player.inventory.get(sourceIndex);
+		const swappingItem = save.player.inventory.get(targetIndex);
 
 		if (targetContainer && sourceContainer) {
-			save.player.inventory.setItem(sourceIndex, swappingItem);
-			save.player.inventory.setItem(targetIndex, currentItem);
+			save.player.inventory.set(sourceIndex, swappingItem);
+			save.player.inventory.set(targetIndex, currentItem);
 		}
 
 		selectedIndex = targetIndex;
 	}
 
-	function handleClick(index: number) {
+	function handleClick(index: ParentIndex) {
 		if (!save) return;
 		selectedIndex = index;
 	}
@@ -43,7 +43,7 @@
 	<!-- Inventory view -->
 	<UiContainer>
 		<div class="item-grid">
-			{#each save.player.inventory.items as item, index}
+			{#each save.player.inventory.items as [index, item]}
 				<div
 					use:droppable={{
 						container: index.toString(),
@@ -95,14 +95,14 @@
 						);
 					}
 					const newItem = Item.fromName(item);
-					save.player.inventory.setItem(selectedIndex, newItem);
+					save.player.inventory.set(selectedIndex, newItem);
 				} catch (e) {
 					toastManager.add(new Toast("Failed to create item", "failure"));
 					throw e;
 				}
 			}}
 			deleteItem={() => {
-				save.player.inventory.deleteItem(selectedIndex);
+				save.player.inventory.delete(selectedIndex);
 			}}
 		/>
 	</UiContainer>

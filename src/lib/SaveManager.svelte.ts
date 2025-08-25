@@ -5,7 +5,7 @@ import type { XMLManager } from "$lib/workers/xml";
 import { error } from "@sveltejs/kit";
 import * as Comlink from "comlink";
 import pako from "pako";
-import { getContext, setContext } from "svelte";
+import { flushSync, getContext, setContext, tick } from "svelte";
 import { nestedArrayTags } from "./workers/jank";
 
 const SAVE_KEY = Symbol("saveManager");
@@ -78,9 +78,7 @@ export class SaveManager {
 	backups = new BackupManager();
 
 	constructor() {
-		if (browser && dev) {
-			this.loadDevState();
-		}
+		if (dev) $effect(() => this.loadDevState());
 	}
 
 	private loadDevState() {
@@ -105,16 +103,7 @@ export class SaveManager {
 		localStorage.setItem("filename", this.filename);
 	}
 
-	async init() {
-		if (dev) {
-			$effect(() => this.saveDevState());
-		}
-		this.backups.init();
-	}
-
 	async import(file: File) {
-		if (!this.backups.files) throw new Error("Missing call to init()");
-
 		const buf = await file.arrayBuffer();
 		const content = new Uint8Array(buf);
 
@@ -153,9 +142,9 @@ export class SaveManager {
 					if (parent in obj && obj[parent] === "") {
 						// @ts-ignore
 						obj[parent] = { [child]: [] };
-						console.debug(
-							`Fixed empty "${parent}" tag by converting to object with empty "${child}" array`,
-						);
+						// console.debug(
+						// 	`Fixed empty "${parent}" tag by converting to object with empty "${child}" array`,
+						// );
 					}
 				}
 			}
@@ -168,7 +157,11 @@ export class SaveManager {
 			}
 		}
 
-		this.save = new SaveProxy(json);
+		// Woohoo, memory leaks!
+		$effect.root(() => {
+			this.save = new SaveProxy(json);
+		});
+
 		this.filename = file.name;
 	}
 

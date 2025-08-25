@@ -88,12 +88,17 @@
 		</div>
 	</header>
 
-	<section class="projects-grid">
+	<section class="projects-grid" data-testid="joja-projects">
 		{#each projects as p}
-			<label class="project-row">
+			<label
+				class="project-row"
+				data-testid="joja-project-row"
+				data-project-name={p.name}
+			>
 				<input
 					type="checkbox"
 					checked={getProject(p.room)}
+					data-testid="joja-project-checkbox"
 					onchange={(e) => {
 						// @ts-ignore
 						setProject(p.room, e.target.checked);

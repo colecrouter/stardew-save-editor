@@ -24,9 +24,9 @@ export class XMLManager {
 			// Check if the jPath ends with any of the nested tags
 			for (const nestedTag of nestedTags) {
 				if (jPath.endsWith(`.${nestedTag}.${tagName}`)) {
-					console.debug(
-						`Converted "${tagName}" to an array because it is nested under "${nestedTag}"`,
-					);
+					// console.debug(
+					// 	`Converted "${tagName}" to an array because it is nested under "${nestedTag}"`,
+					// );
 					return true;
 				}
 			}

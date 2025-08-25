@@ -1,220 +1,193 @@
-import { Color } from "$lib/proxies/Color";
+import { Color } from "$lib/proxies/Color.svelte";
 import { Flags } from "$lib/proxies/Flags.svelte";
 import { Inventory } from "$lib/proxies/Inventory.svelte";
+import type { Item } from "$lib/proxies/Item.svelte";
 import { Recipes } from "$lib/proxies/Recipes.svelte";
 import { Skills } from "$lib/proxies/Skills.svelte";
 import type { MailFlag } from "$lib/proxies/mail";
-import type { Player } from "$types/save";
-import type { Profession } from "./Professions";
+import type { Gender, Player } from "$types/save";
+import { SvelteSet } from "svelte/reactivity";
+import { type DataProxy, Raw } from ".";
+import { Friendships } from "./Friendship.svelte";
+import { Professions } from "./Professions.svelte";
 
-export class Farmer {
-	public raw: Player;
+export class Farmer implements DataProxy<Player> {
+	public [Raw]: Player;
+
 	public readonly craftingRecipes: Recipes<"craftingRecipes">;
 	public readonly cookingRecipes: Recipes<"cookingRecipes">;
+
+	public maxHealth: number;
+	public maxStamina: number;
+	public qiGems: number;
+	public money: number;
+	public totalMoneyEarned: number;
+	public name: string;
+	public farmName: string;
+	public favoriteThing: string;
+	public clubCoins: number;
+	public skin: number;
+	public accessory: number;
+	public gender: Gender;
+	public hairstyle: number;
+	public hairColor: Color;
+	public inventory: Inventory;
+
+	// Newly reactive formerly getter/setter backed fields
+	public hat: Item | undefined;
+	public shirt: Item | undefined;
+	public pants: Item | undefined;
+	public boots: Item | undefined;
+	public eyeColor: Color;
+	public flags: Flags;
+	public skills: Skills;
+	public professions: Professions;
+	public uniqueID: number; // Readonly snapshot (underlying value shouldn't change)
+	public mailReceived: Set<MailFlag>;
+	public friendships: Friendships; // reactive map of friendships keyed by NPC name
+
+	// Provide compatibility alias for underlying raw object
+	get raw() {
+		return this[Raw];
+	}
 
 	constructor(player: Player | undefined) {
 		if (!player) throw new Error("No player provided");
 
-		this.raw = player;
+		this[Raw] = player;
+
+		this.maxHealth = $state(this[Raw].maxHealth);
+		$effect(() => {
+			this[Raw].maxHealth = this.maxHealth;
+		});
+
+		this.maxStamina = $state(this[Raw].maxStamina);
+		$effect(() => {
+			this[Raw].maxStamina = this.maxStamina;
+		});
+
+		this.qiGems = $state(this[Raw].qiGems);
+		$effect(() => {
+			this[Raw].qiGems = this.qiGems;
+		});
+
+		this.money = $state(this[Raw].money);
+		$effect(() => {
+			this[Raw].money = this.money;
+		});
+
+		this.totalMoneyEarned = $state(this[Raw].totalMoneyEarned);
+		$effect(() => {
+			this[Raw].totalMoneyEarned = this.totalMoneyEarned;
+		});
+
+		// Basic string/number fields converted to reactive state
+		this.name = $state(this[Raw].name);
+		$effect(() => {
+			this[Raw].name = this.name;
+		});
+
+		this.farmName = $state(this[Raw].farmName);
+		$effect(() => {
+			this[Raw].farmName = this.farmName;
+		});
+
+		this.favoriteThing = $state(this[Raw].favoriteThing);
+		$effect(() => {
+			this[Raw].favoriteThing = this.favoriteThing;
+		});
+
+		this.clubCoins = $state(this[Raw].clubCoins);
+		$effect(() => {
+			this[Raw].clubCoins = this.clubCoins;
+		});
+
+		this.skin = $state(this[Raw].skin);
+		$effect(() => {
+			this[Raw].skin = this.skin;
+		});
+
+		this.accessory = $state(this[Raw].accessory);
+		$effect(() => {
+			this[Raw].accessory = this.accessory;
+		});
+
+		this.gender = $state(this[Raw].gender);
+		$effect(() => {
+			this[Raw].gender = this.gender;
+			this[Raw].Gender = this.gender;
+		});
+
+		this.hairstyle = $state(
+			this[Raw].hair >= 100 ? this[Raw].hair - 100 + 56 : this[Raw].hair,
+		);
+		$effect(() => {
+			if (this.hairstyle >= 56) {
+				this[Raw].hair = this.hairstyle + 100 - 56;
+			} else {
+				this[Raw].hair = this.hairstyle;
+			}
+		});
+
+		this.hairColor = new Color(this[Raw].hairstyleColor);
+		$effect(() => {
+			this[Raw].hairstyleColor = this.hairColor;
+		});
+
+		this.inventory = new Inventory(this[Raw]);
+		$effect(() => {
+			this[Raw] = { ...this[Raw], ...this.inventory.raw };
+		});
+
+		// Equipment items (hat/shirt/pants/boots)
+		this.hat = $state(this.inventory.hat);
+		$effect(() => {
+			this.inventory.hat = this.hat;
+		});
+
+		this.shirt = $state(this.inventory.shirt);
+		$effect(() => {
+			this.inventory.shirt = this.shirt;
+		});
+
+		this.pants = $state(this.inventory.pants);
+		$effect(() => {
+			this.inventory.pants = this.pants;
+		});
+
+		this.boots = $state(this.inventory.boots);
+		$effect(() => {
+			this.inventory.boots = this.boots;
+		});
+
+		this.eyeColor = new Color(this[Raw].newEyeColor);
+
+		// Flags & skills proxies (no $state needed; they mutate raw directly)
+		this.flags = new Flags(this[Raw]);
+		this.skills = new Skills(this[Raw].experiencePoints.int ?? [], this[Raw]);
+
+		// Professions as reactive set
+		this.professions = new Professions(this[Raw].professions);
+
+		// Mail received reactive set
+		this.mailReceived = new SvelteSet(
+			this[Raw].mailReceived.string as MailFlag[],
+		);
+		$effect(() => {
+			this[Raw].mailReceived.string = Array.from(this.mailReceived);
+		});
+
+		// Friendships reactive map (lookup by NPC name)
+		this.friendships = new Friendships(this[Raw].friendshipData);
+
+		// Unique ID snapshot
+		this.uniqueID = this[Raw].UniqueMultiplayerID;
+
 		this.craftingRecipes = new Recipes(
 			player.craftingRecipes,
 			"craftingRecipes",
 		);
 		this.cookingRecipes = new Recipes(player.cookingRecipes, "cookingRecipes");
-	}
-
-	public get maxHealth() {
-		return this.raw?.maxHealth;
-	}
-
-	public set maxHealth(value) {
-		this.raw.maxHealth = value;
-	}
-
-	public get maxStamina() {
-		return this.raw?.maxStamina;
-	}
-
-	public set maxStamina(value) {
-		this.raw.maxStamina = value;
-	}
-
-	public get qiGems() {
-		return this.raw?.qiGems;
-	}
-
-	public set qiGems(value) {
-		this.raw.qiGems = value;
-	}
-
-	public get money() {
-		return this.raw?.money;
-	}
-
-	public set money(value) {
-		this.raw.money = value;
-	}
-
-	public get totalMoneyEarned() {
-		return this.raw?.totalMoneyEarned;
-	}
-
-	public set totalMoneyEarned(value) {
-		this.raw.totalMoneyEarned = value;
-	}
-
-	public get gender() {
-		return this.raw.gender;
-	}
-
-	public set gender(value) {
-		this.raw.Gender = value;
-		this.raw.gender = value;
-	}
-
-	public get name() {
-		return this.raw.name;
-	}
-
-	public set name(value) {
-		this.raw.name = value;
-	}
-
-	public get farmName() {
-		return this.raw.farmName;
-	}
-
-	public set farmName(value) {
-		this.raw.farmName = value;
-	}
-
-	public get favoriteThing() {
-		return this.raw.favoriteThing;
-	}
-
-	public set favoriteThing(value) {
-		this.raw.favoriteThing = value;
-	}
-
-	public get clubCoins() {
-		return this.raw.clubCoins;
-	}
-
-	public set clubCoins(value) {
-		this.raw.clubCoins = value;
-	}
-
-	public get hairstyle() {
-		if (this.raw.hair >= 100) return this.raw.hair - 100 + 56;
-		return this.raw.hair;
-	}
-
-	public set hairstyle(value) {
-		if (value >= 56) {
-			this.raw.hair = value + 100 - 56;
-		} else {
-			this.raw.hair = value;
-		}
-	}
-
-	public get hairColor() {
-		return new Color(this.raw.hairstyleColor);
-	}
-
-	public set hairColor(value) {
-		this.raw.hairstyleColor = value;
-	}
-
-	public get skin() {
-		return this.raw.skin;
-	}
-
-	public set skin(value) {
-		this.raw.skin = value;
-	}
-
-	public get accessory() {
-		return this.raw.accessory;
-	}
-
-	public set accessory(value) {
-		this.raw.accessory = value;
-	}
-
-	get inventory() {
-		return new Inventory(this.raw);
-	}
-
-	set inventory(value) {
-		this.raw = { ...this.raw, ...value.raw };
-	}
-
-	get hat() {
-		return this.inventory.hat;
-	}
-
-	get shirt() {
-		return this.inventory.shirt;
-	}
-
-	get pants() {
-		return this.inventory.pants;
-	}
-
-	get boots() {
-		return this.inventory.boots;
-	}
-
-	get eyeColor() {
-		return new Color(this.raw.newEyeColor);
-	}
-
-	set eyeColor(value: Color) {
-		this.raw.newEyeColor = value;
-	}
-
-	get flags() {
-		return new Flags(this.raw);
-	}
-
-	set flags(value: Flags) {
-		this.raw = value.raw;
-	}
-
-	get skills() {
-		return new Skills(this.raw.experiencePoints.int ?? [], this.raw);
-	}
-
-	set skills(value) {
-		this.raw.experiencePoints.int = value.raw;
-	}
-
-	get professions() {
-		return new Set(this.raw.professions.int?.map((p) => p as Profession) ?? []);
-	}
-
-	set professions(value) {
-		const compare = new Set(this.raw.professions.int ?? []);
-		const diff = value.symmetricDifference(compare);
-		if (diff.size === 0) return;
-
-		this.raw.professions.int = [...value];
-	}
-
-	get uniqueID() {
-		return this.raw.UniqueMultiplayerID;
-	}
-
-	get mailReceived() {
-		return new Set(this.raw.mailReceived.string as MailFlag[]);
-	}
-
-	set mailReceived(value) {
-		// Compare first
-		const old = new Set(this.raw.mailReceived.string as MailFlag[]);
-		if (old.symmetricDifference(value).size === 0) return;
-
-		this.raw.mailReceived.string = [...value];
 	}
 
 	toJSON() {

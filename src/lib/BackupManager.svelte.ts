@@ -29,10 +29,7 @@ export class BackupManager {
 
 	constructor(limit = BACKUP_LIMIT) {
 		this.limit = limit;
-		if (!browser) return;
-	}
 
-	init() {
 		$effect(() => {
 			if (!this.files) return;
 

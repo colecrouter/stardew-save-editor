@@ -1,148 +1,120 @@
 import { CommunityBundles } from "$lib/proxies/CommunityBundles.svelte";
 import { Farmer } from "$lib/proxies/Farmer.svelte";
 import { GameLocation } from "$lib/proxies/GameLocation.svelte";
+import { type DataProxy, Raw } from ".";
 
-export class SaveProxy {
-	private i = $state(0);
-	public raw = $state<SaveFile>();
+export class SaveProxy implements DataProxy<SaveFile> {
+	public [Raw]: SaveFile;
+
+	// Reactive index of current player
+	private index = $state(0);
+
+	// Cached reactive arrays
+	public players: Farmer[];
+	public locations: GameLocation[];
+	public farm: GameLocation | undefined; // derived
+	public player: Farmer; // current player derived
+
+	// Simple scalar reactive fields
+	public goldenWalnuts: number;
+	public deepestMineLevel: number;
+
+	public communityBundles: CommunityBundles | undefined; // derived
+
+	get raw() {
+		return this[Raw];
+	}
 
 	constructor(data: SaveFile) {
 		const gameVersion = data.SaveGame.gameVersion as string | undefined;
 		if (!["1.6"].some((v) => gameVersion?.startsWith(v)))
 			throw new Error(`Unsupported game version: ${gameVersion}`);
+		this[Raw] = data;
 
-		this.raw = data;
+		this.players = $state(this.buildPlayers());
+		$effect(() => this.syncPlayers());
+		this.player = $derived.by(() => {
+			const p = this.players[this.index];
+			if (!p) throw new Error("Player not found at current index");
+			return p;
+		});
+
+		this.locations = $state(
+			this[Raw].SaveGame.locations.GameLocation.map((l) => new GameLocation(l)),
+		);
+		$effect(() => {
+			this[Raw].SaveGame.locations.GameLocation = this.locations.map(
+				(l) => l[Raw],
+			);
+		});
+
+		this.farm = $derived.by(() =>
+			this.locations.find((l) => l[Raw].name === "Farm"),
+		);
+		this.communityBundles = $derived.by(() => {
+			const cc = this.locations.find((l) => l[Raw].name === "CommunityCenter");
+			if (!cc) return undefined;
+			return new CommunityBundles(cc, this[Raw].SaveGame.bundleData);
+		});
+
+		this.goldenWalnuts = $state(this[Raw].SaveGame.goldenWalnuts ?? 0);
+		$effect(() => {
+			this[Raw].SaveGame.goldenWalnuts = this.goldenWalnuts;
+		});
+
+		this.deepestMineLevel = $state(
+			this[Raw].SaveGame.player.deepestMineLevel ?? 0,
+		);
+		$effect(() => {
+			this[Raw].SaveGame.player.deepestMineLevel = this.deepestMineLevel;
+		});
 	}
 
-	public get player() {
-		const player = this.players[this.i];
-		if (!player) throw new Error("No player found");
-		return player;
-	}
-
-	public set player(player: Farmer) {
-		if (!player) {
-			delete this.players[this.i];
-		} else {
-			this.players[this.i] = player;
-		}
-	}
-
-	public nextFarmer() {
-		this.i = (this.i + 1) % this.players.length;
-	}
-
-	public prevFarmer() {
-		this.i = (this.i - 1 + this.players.length) % this.players.length;
-	}
-
-	get players() {
-		if (!this.raw) return [];
+	// Build initial Farmer proxy list
+	private buildPlayers(): Farmer[] {
 		const unfiltered =
-			this.raw.SaveGame.farmhands === ""
+			this[Raw].SaveGame.farmhands === ""
 				? []
-				: this.raw.SaveGame.farmhands.Farmer;
-		// filter out undefined and any farmhand with blank name
+				: this[Raw].SaveGame.farmhands.Farmer;
 		const farmhands = unfiltered.filter(
 			(f): f is typeof f => f !== undefined && f.name?.trim() !== "",
 		);
-		const mainPlayer = this.raw.SaveGame.player;
-		return [mainPlayer, ...farmhands].map((f) => new Farmer(f));
+		return [this[Raw].SaveGame.player, ...farmhands].map((p) => new Farmer(p));
 	}
 
-	set players(players) {
-		if (!this.raw) return;
-		if (!players[0]) throw new Error("Main player is required");
-
-		const mainPlayer = players[0]?.raw;
-		if (mainPlayer === undefined) throw new Error("Main player is required");
-
-		// grab original raw farmhands array (may be empty)
+	private syncPlayers() {
+		const main = this.players[0];
+		if (!main) return;
 		const orig =
-			this.raw.SaveGame.farmhands === ""
+			this[Raw].SaveGame.farmhands === ""
 				? []
-				: this.raw.SaveGame.farmhands.Farmer;
-
-		// build new raw farmhands, but keep any “ghost” (blank-name) slots exactly as they were
+				: this[Raw].SaveGame.farmhands.Farmer;
 		const newFarmhands = orig.map((origRaw, i) => {
-			if (!origRaw.name?.trim()) {
-				return origRaw; // preserve ghost
-			}
-			const repl = players[i + 1]?.raw;
-			return repl !== undefined ? repl : origRaw;
+			if (!origRaw.name?.trim()) return origRaw; // preserve ghost
+			const repl = this.players[i + 1]?.[Raw];
+			return repl ?? origRaw;
 		});
-
-		const someTyped = <T>(arr: (T | undefined)[]): arr is T[] =>
-			arr.some((a) => a !== undefined);
-		if (newFarmhands.length && !someTyped(newFarmhands))
-			throw new Error("Farmhands are required");
-
-		this.raw.SaveGame.player = mainPlayer;
-		// always set back the full array, even if empty
-		this.raw.SaveGame.farmhands = { Farmer: newFarmhands };
+		// Append any newly added farmhands beyond original length
+		for (let i = orig.length + 1; i < this.players.length; i++) {
+			const raw = this.players[i]?.[Raw];
+			if (raw) newFarmhands.push(raw);
+		}
+		this[Raw].SaveGame.player = main[Raw];
+		this[Raw].SaveGame.farmhands = { Farmer: newFarmhands };
 	}
 
-	get farm() {
-		if (!this.raw) return undefined;
-		const farm = this.raw?.SaveGame.locations.GameLocation.find(
-			(l) => l.name === "Farm",
-		);
-		if (!farm) throw new Error("Farm not found");
-
-		return new GameLocation(farm);
+	public nextFarmer() {
+		this.index = (this.index + 1) % this.players.length;
+	}
+	public prevFarmer() {
+		this.index = (this.index - 1 + this.players.length) % this.players.length;
 	}
 
-	set farm(farm) {
-		if (!this.raw) return;
-		if (!farm) throw new Error("Farm is required");
-
-		const index = this.raw.SaveGame.locations.GameLocation.findIndex(
-			(l) => l.name === "Farm",
-		);
-		this.raw.SaveGame.locations.GameLocation[index] = farm.raw;
-	}
-
-	get locations() {
-		if (!this.raw) return [];
-		return this.raw.SaveGame.locations.GameLocation.map(
-			(l) => new GameLocation(l),
-		);
-	}
-
-	set locations(locations) {
-		if (!this.raw) return;
-		if (!locations.length) throw new Error("Locations are required");
-
-		this.raw.SaveGame.locations.GameLocation = locations.map((l) => l.raw);
-	}
-
-	get goldenWalnuts() {
-		if (!this.raw) return 0;
-		return this.raw.SaveGame.goldenWalnuts ?? 0;
-	}
-
-	set goldenWalnuts(value) {
-		if (!this.raw) return;
-		this.raw.SaveGame.goldenWalnuts = value ?? 0;
-	}
-
-	get deepestMineLevel() {
-		if (!this.raw) return 0;
-		return this.raw.SaveGame.player.deepestMineLevel ?? 0;
-	}
-
-	set deepestMineLevel(value) {
-		if (!this.raw) return;
-		this.raw.SaveGame.player.deepestMineLevel = value ?? 0;
-	}
-
-	get communityBundles() {
-		if (!this.raw) return undefined;
-		const location = this.locations.find(
-			(l) => l.raw.name === "CommunityCenter",
-		);
-		if (!location) throw new Error("CommunityCenter not found");
-
-		return new CommunityBundles(location, this.raw.SaveGame.bundleData);
+	// To mutate farm location externally, provide a helper
+	public setFarm(f: GameLocation) {
+		if (!f) throw new Error("Farm is required");
+		const idx = this.locations.findIndex((l) => l[Raw].name === "Farm");
+		if (idx === -1) throw new Error("Farm not found");
+		this.locations[idx] = f;
 	}
 }

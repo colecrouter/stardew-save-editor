@@ -9,5 +9,10 @@
         "editor.defaultFormatter": "biomejs.biome"
     },
     "typescript.tsdk": "node_modules\\typescript\\lib",
-    // "prettier.prettierPath": "node_modules/prettier",
+    "[json]": {
+        "editor.defaultFormatter": "biomejs.biome"
+    },
+    "[jsonc]": {
+        "editor.defaultFormatter": "biomejs.biome"
+    },
 }

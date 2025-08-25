@@ -30,7 +30,12 @@
 	]);
 </script>
 
-<div class="card" style:--color={colorMap.get(colors.get(color) ?? "")}>
+<div
+	class="card"
+	data-testid="bundle-card"
+	data-bundle-name={bundle.name}
+	style:--color={colorMap.get(colors.get(color) ?? "")}
+>
 	<details>
 		<summary>
 			<div class="header">
@@ -52,21 +57,23 @@
 			</span>
 		</h3>
 
-		<div class="container">
+		<div class="container" data-testid="bundle-required-items">
 			{#each bundle.requiredItems as itemdata}
-				<BundleItem
-					itemId={itemdata.itemID}
-					type="O"
-					quantity={itemdata.quantity}
-					quality={itemdata.quality}
-					bind:checked={itemdata.submitted}
-				/>
+				<span data-testid="bundle-required-item">
+					<BundleItem
+						itemId={itemdata.itemID}
+						type="O"
+						quantity={itemdata.quantity}
+						quality={itemdata.quality}
+						bind:checked={itemdata.submitted}
+					/>
+				</span>
 			{/each}
 		</div>
 
 		<h3>Reward</h3>
 
-		<div class="row">
+		<div class="row" data-testid="bundle-reward">
 			{#if bundle.reward}
 				<BundleItem
 					itemId={bundle.reward.itemID}

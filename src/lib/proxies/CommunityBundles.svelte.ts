@@ -7,6 +7,7 @@ import type {
 	BundleData,
 	StringContainer,
 } from "$types/save";
+import { type DataProxy, Raw } from ".";
 import { MailFlag } from "./mail";
 
 /*
@@ -65,37 +66,45 @@ export enum BundleName {
 export class CommunityBundles {
 	private communityCenter: GameLocation;
 	private bundleData: BundleData;
+	public bundles: Bundle[]; // reactive collection of bundle proxies
 
 	constructor(location: GameLocation, bundleData: BundleData) {
-		if (location.raw?.bundles === undefined)
+		if (location[Raw]?.bundles === undefined)
 			throw new Error("Invalid CommunityBundles location");
 
 		this.communityCenter = location;
 		this.bundleData = bundleData;
+
+		// Initialize bundle proxies from raw state
+		this.bundles = $state(this.getBundles());
+		$effect(() => this.setBundles(this.bundles));
 	}
 
-	get bundles() {
-		if (!this.communityCenter.raw.bundles)
+	// Build bundle proxy list from raw save data
+	private getBundles(): Bundle[] {
+		if (!this.communityCenter[Raw].bundles)
 			throw new Error("Invalid CommunityBundles location");
 
-		return this.communityCenter.raw.bundles.item.map((bundle) => {
-			// Find matching bundle data by key (bundle ID)
+		return this.communityCenter[Raw].bundles.item.map((bundle) => {
 			const bundleKey = bundle.key.int;
 			const matchingBundleData = this.bundleData.item.find((data) => {
-				// Parse the key to get the sprite index which should match the bundle key
 				const { spriteIndex } = parseKey(data.key.string);
 				return spriteIndex === bundleKey;
 			});
-
 			if (!matchingBundleData)
 				throw new Error(`No bundle data found for bundle key ${bundleKey}`);
-
 			return new Bundle(
 				matchingBundleData.value,
 				matchingBundleData.key,
 				bundle.value.ArrayOfBoolean,
 			);
 		});
+	}
+
+	private setBundles(value: Bundle[]) {
+		this.communityCenter[Raw].bundles = {
+			item: value.map((b) => b.toRaw()),
+		};
 	}
 
 	/**
@@ -107,11 +116,12 @@ export class CommunityBundles {
 	 */
 	applySideEffects(save: SaveProxy) {
 		// Get all bundles, group by room
-		const bundlesByRoom = Map.groupBy(this.bundles, (b) => b.room);
+		const bundlesByRoom = Map.groupBy(this.bundles, (b: Bundle) => b.room);
 
 		// Figure out which rooms are completed
 		const completedRooms = [...bundlesByRoom.entries()].map(
-			([room, bundles]) => [room, bundles.every((b) => b.completed)] as const,
+			([room, bundles]) =>
+				[room, bundles.every((b: Bundle) => b.completed)] as const,
 		);
 
 		// Apply side effects
@@ -161,6 +171,18 @@ export class Bundle {
 	private bundleKey: StringContainer;
 	private submit: BoolArrayContainer;
 
+	public name: string; // internal name
+	public id: number; // sprite index
+	public requiredItems: BundleRequiredItem[];
+	public completed: boolean;
+	public color: number | undefined;
+	public reward: BundleReward | null;
+	public room: CCRoom;
+	public requiredItemCount: number;
+
+	// Internal reward cache to avoid recreating proxy unnecessarily
+	private _rewardCache: BundleReward | null = null;
+
 	constructor(
 		bundleData: StringContainer,
 		bundleKey: StringContainer,
@@ -169,14 +191,47 @@ export class Bundle {
 		this.bundleData = bundleData;
 		this.bundleKey = bundleKey;
 		this.submit = submitted;
+
+		// Initialize reactive fields
+		this.name = $state(parseValue(this.bundleData.string).name ?? "");
+		$effect(() => this.writeName(this.name));
+
+		this.id = $state(parseKey(this.bundleKey.string).spriteIndex);
+		$effect(() => this.writeId(this.id));
+
+		// Room (constant unless key room portion changes externally)
+		this.room = parseKey(this.bundleKey.string).room;
+
+		// Required items proxies
+		const { requirements, reward, color, count } = parseValue(
+			this.bundleData.string,
+		);
+		this.requiredItems = $state(
+			requirements.map(
+				(_, i) => new BundleRequiredItem(this.submit, this.bundleData, i),
+			),
+		);
+
+		// Derived values using $derived.by
+		this.color = $derived.by(() => this.parse().color);
+		this.requiredItemCount = $derived.by(
+			() => this.parse().count ?? this.requiredItems.length,
+		);
+		this.reward = $derived.by(() => this.rewardProxy());
+		this.completed = $derived.by(() => {
+			const { count } = this.parse();
+			const needed = count ?? this.requiredItems.length;
+			let submitted = 0;
+			for (const item of this.requiredItems) if (item.submitted) submitted++;
+			return submitted >= needed;
+		});
 	}
 
-	get name() {
-		const { name } = parseValue(this.bundleData.string);
-		return name;
+	// --- Private helpers mirroring pattern used in GameLocation ---
+	private parse() {
+		return parseValue(this.bundleData.string);
 	}
-
-	set name(value) {
+	private writeName(value: string) {
 		const { reward, requirements, color, count, displayName } = parseValue(
 			this.bundleData.string,
 		);
@@ -190,61 +245,29 @@ export class Bundle {
 		});
 	}
 
-	get id() {
-		return parseKey(this.bundleKey.string).spriteIndex;
-	}
-
-	set id(value) {
+	private writeId(value: number) {
 		const { roomName, room } = parseKey(this.bundleKey.string);
-		this.bundleKey.string = updateKey({
-			roomName,
-			room,
-			spriteIndex: value,
-		});
+		this.bundleKey.string = updateKey({ roomName, room, spriteIndex: value });
 	}
 
-	get completed() {
-		const { count: required, requirements } = parseValue(
-			this.bundleData.string,
-		);
-
-		// Only count submissions up to the number of actual requirements
-		const relevantSubmissions = this.submit.boolean.slice(
-			0,
-			requirements.length,
-		);
-		const submitted = relevantSubmissions.reduce((a, b) => (b ? a + 1 : a), 0);
-
-		return submitted >= (required ?? requirements.length);
+	private rewardProxy() {
+		const hasReward = this.parse().reward;
+		if (!hasReward) {
+			this._rewardCache = null;
+			return null;
+		}
+		if (!this._rewardCache)
+			this._rewardCache = new BundleReward(this.bundleData);
+		return this._rewardCache;
 	}
 
-	get requiredItems() {
-		const { requirements } = parseValue(this.bundleData.string);
-
-		return requirements.map((_, i) => {
-			return new BundleRequiredItem(this.submit, this.bundleData, i);
-		});
-	}
-
-	get color() {
-		return parseValue(this.bundleData.string).color;
-	}
-
-	get reward() {
-		const { reward } = parseValue(this.bundleData.string);
-		if (!reward) return null;
-
-		return new BundleReward(this.bundleData);
-	}
-
-	get room() {
-		return parseKey(this.bundleKey.string).room;
-	}
-
-	get requiredItemCount() {
-		return (
-			parseValue(this.bundleData.string).count ?? this.requiredItems.length
-		);
+	// Expose raw submission data for syncing back to GameLocation
+	public toRaw() {
+		const { spriteIndex } = parseKey(this.bundleKey.string);
+		return {
+			key: { int: spriteIndex },
+			value: { ArrayOfBoolean: this.submit },
+		};
 	}
 }
 
@@ -252,6 +275,12 @@ export class BundleRequiredItem {
 	private submit: BoolArrayContainer;
 	private bundleData: StringContainer;
 	private index: number;
+
+	// Reactive fields
+	public itemID: number;
+	public quantity: number;
+	public quality: number;
+	public submitted: boolean;
 
 	constructor(
 		submitted: BoolArrayContainer,
@@ -261,6 +290,18 @@ export class BundleRequiredItem {
 		this.submit = submitted;
 		this.bundleData = bundleData;
 		this.index = index;
+
+		// Initialize reactive fields from current requirement entry
+		const req = this.parseRequirements();
+		this.itemID = $state(Number.parseInt(req[0]));
+		this.quantity = $state(req[1]);
+		this.quality = $state(req[2]);
+		this.submitted = $state(this.submit.boolean[this.index] ?? false);
+
+		// Single effect to write back requirement updates
+
+		$effect(() => this.writeRequirement());
+		$effect(() => this.writeSubmitted());
 	}
 
 	private parseRequirements() {
@@ -291,47 +332,48 @@ export class BundleRequiredItem {
 		});
 	}
 
-	get itemID() {
-		return Number.parseInt(this.parseRequirements()[0]);
+	private writeRequirement() {
+		try {
+			this.updateRequirements(
+				this.itemID.toString(),
+				this.quantity,
+				this.quality,
+			);
+		} catch (e) {
+			console.error("Failed to write bundle requirement", {
+				index: this.index,
+				currentString: this.bundleData.string,
+				itemID: this.itemID,
+				quantity: this.quantity,
+				quality: this.quality,
+				error: e,
+			});
+			throw e;
+		}
 	}
 
-	set itemID(value) {
-		const [, quantity, quality] = this.parseRequirements();
-		this.updateRequirements(value.toString(), quantity, quality);
-	}
-
-	get quantity() {
-		return this.parseRequirements()[1];
-	}
-
-	set quantity(value) {
-		const [itemID, , quality] = this.parseRequirements();
-		this.updateRequirements(itemID, value, quality);
-	}
-
-	get quality() {
-		return this.parseRequirements()[2];
-	}
-
-	set quality(value) {
-		const [itemID, quantity] = this.parseRequirements();
-		this.updateRequirements(itemID, quantity, value);
-	}
-
-	get submitted() {
-		return this.submit.boolean[this.index] ?? false;
-	}
-
-	set submitted(value) {
-		this.submit.boolean[this.index] = value;
+	private writeSubmitted() {
+		this.submit.boolean[this.index] = this.submitted;
 	}
 }
 
 export class BundleReward {
 	private bundleData: StringContainer;
 
+	// Reactive reward components
+	public type: "O" | "BO";
+	public itemID: number;
+	public quantity: number;
+
 	constructor(bundleData: StringContainer) {
 		this.bundleData = bundleData;
+
+		const [type, itemID, quantity] = this.parseReward();
+		this.type = $state(type as "O" | "BO");
+		this.itemID = $state(Number.parseInt(itemID));
+		this.quantity = $state(quantity);
+
+		$effect(() => this.writeReward());
 	}
 
 	private parseReward() {
@@ -345,58 +387,42 @@ export class BundleReward {
 	}
 
 	private updateReward(type: string, itemID: string, quantity: number) {
-		const [name, , requirements, ...rest] = this.bundleData.string.split("/");
+		const [name, , requirements, color, count, displayName] =
+			this.bundleData.string.split("/");
 		if (!requirements) throw new Error("Invalid bundle data");
-
-		this.bundleData.string = `${name}/${type} ${itemID} ${quantity}/${requirements}/${rest.join(
-			"/",
-		)}`;
+		// Rebuild using same layout as updateValue
+		this.bundleData.string = `${name}/${type} ${itemID} ${quantity}/${requirements}/${color}/${count}/${displayName}`;
 	}
 
-	get type() {
-		return this.parseReward()[0] as "O" | "BO";
-	}
-
-	set type(value) {
-		const [, itemID, quantity] = this.parseReward();
-		this.updateReward(value, itemID, quantity);
-	}
-
-	get itemID() {
-		return Number.parseInt(this.parseReward()[1]);
-	}
-
-	set itemID(value) {
-		const [type, , quantity] = this.parseReward();
-		this.updateReward(type, value.toString(), quantity);
-	}
-
-	get quantity() {
-		return this.parseReward()[2];
-	}
-
-	set quantity(value) {
-		const [type, itemID] = this.parseReward();
-		this.updateReward(type, itemID, value);
+	private writeReward() {
+		this.updateReward(this.type, this.itemID.toString(), this.quantity);
 	}
 }
 
 const parseValue = (s: string) => {
 	const [name, reward, requirements, color, count, displayName] = s.split("/");
-	if (!requirements) throw new Error("Invalid bundle data");
+	if (requirements === undefined) throw new Error("Invalid bundle data");
 
-	// Weird formatting sometimes
-	const splitRequirements = requirements.replaceAll(/\s+/g, " ").split(" ");
+	// Normalize whitespace and split; allow zeros; filter out empty tokens
+	const tokens = requirements
+		.trim()
+		.replace(/\s+/g, " ")
+		.split(" ")
+		.filter((t) => t.length > 0);
+
+	if (tokens.length % 3 !== 0) throw new Error("Invalid requirement data");
+
 	const items: [string, number, number][] = [];
-	for (let i = 0; i < splitRequirements.length; i += 3) {
-		const [itemID, quantity, quality] = splitRequirements.slice(i, i + 3);
-		if (!itemID || !quantity || !quality)
+	for (let i = 0; i < tokens.length; i += 3) {
+		const itemID = tokens[i];
+		const quantity = tokens[i + 1];
+		const quality = tokens[i + 2];
+		if (itemID === undefined || quantity === undefined || quality === undefined)
 			throw new Error("Invalid requirement data");
-
 		items.push([itemID, Number.parseInt(quantity), Number.parseInt(quality)]);
 	}
 
-	if (!color) throw new Error("Invalid color for bundle data");
+	if (color === undefined) throw new Error("Invalid color for bundle data");
 
 	return {
 		name,
@@ -445,9 +471,26 @@ const parseKey = (s: string) => {
 
 const updateValue = (o: ReturnType<typeof parseValue>) => {
 	const { name, reward, requirements, color, count, displayName } = o;
-	return `${name}/${reward}/${requirements
-		.map(([itemID, quantity, quality]) => `${itemID}${quantity}${quality}`)
-		.join("")}/${color}/${count}/${displayName}`;
+	// Requirements must be serialized as space-delimited triplets: "<id> <qty> <quality> ..."
+	const req = requirements
+		.map(([itemID, quantity, quality]) => `${itemID} ${quantity} ${quality}`)
+		.join(" ");
+	// Preserve segment count; if count/displayName are undefined keep empty field positions so parsing stays stable
+	const countSeg = count !== undefined ? count : "";
+	const displaySeg = displayName !== undefined ? displayName : "";
+	const result = `${name}/${reward}/${req}/${color}/${countSeg}/${displaySeg}`;
+	if (import.meta.env?.DEV) {
+		try {
+			parseValue(result); // round-trip validation
+		} catch (e) {
+			console.warn("updateValue produced unparsable string", {
+				input: o,
+				result,
+				error: e,
+			});
+		}
+	}
+	return result;
 };
 
 const updateKey = (o: ReturnType<typeof parseKey>) => {

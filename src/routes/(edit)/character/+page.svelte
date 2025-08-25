@@ -55,10 +55,7 @@
 
 	<h3>Professions</h3>
 
-	<Professions
-		bind:professions={save.player.professions}
-		skills={save.player.skills}
-	/>
+	<Professions professions={save.player.professions} />
 
 	<h3>Stats</h3>
 

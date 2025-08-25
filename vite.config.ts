@@ -37,6 +37,6 @@ export default defineConfig(({ mode }) => ({
 	},
 	test: {
 		environment: "happy-dom",
-		setupFiles: ["@vitest/web-worker", "./test/vitest-setup.ts"],
+		setupFiles: ["@vitest/web-worker"],
 	},
 }));

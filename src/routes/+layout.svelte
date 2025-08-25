@@ -5,15 +5,11 @@
 	import { setSaveManager } from "$lib/SaveManager.svelte";
 	import { setToastManager } from "$lib/ToastManager.svelte";
 	import Toasts from "$lib/ui/Toasts.svelte";
-	interface Props {
-		children?: import("svelte").Snippet;
-	}
 
-	let { children }: Props = $props();
+	let { children } = $props();
 
-	/* const toastManager = */ setToastManager();
-	const saveManager = setSaveManager();
-	saveManager.init();
+	setToastManager();
+	setSaveManager();
 
 	// Should fix random import errors due to version mismatches
 	beforeNavigate(({ to, willUnload }) => {

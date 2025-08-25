@@ -10,6 +10,7 @@ export class Friendship implements DataProxy<FriendshipDataItem> {
 	public readonly maxPoints: number;
 	public readonly maxHearts: number;
 
+	public points: number;
 	public giftsThisWeek: number;
 	public giftsToday: number;
 	public talkedToToday: boolean;
@@ -29,6 +30,10 @@ export class Friendship implements DataProxy<FriendshipDataItem> {
 			this[Raw].key.string = this.name;
 		});
 		const f = this[Raw].value.Friendship;
+		this.points = $state(f.Points);
+		$effect(() => {
+			f.Points = this.points;
+		});
 		this.giftsThisWeek = $state(f.GiftsThisWeek ?? 0);
 		$effect(() => {
 			f.GiftsThisWeek = this.giftsThisWeek;
@@ -71,22 +76,6 @@ export class Friendship implements DataProxy<FriendshipDataItem> {
 		this.maxPoints = $derived(
 			this.maxHearts * Friendship.HEART_SIZE + Friendship.HEART_SIZE - 1,
 		); // 250 points per heart, plus 249 points after the last heart
-	}
-
-	get points() {
-		return this[Raw].value.Friendship.Points;
-	}
-
-	/*
-		Having a setter for this is slightly problematic, as when maxPoints is updated, points does not update. However, I'm willing to bet that nothing bad will happen in-game.
-		As well, if a user accidentally changes maxPoints in the editor, they might be happier if their original value is preserved.
-	*/
-	set points(v: number) {
-		if (Number.isNaN(v)) return;
-		// Lower-bound clamp at 0; upper bound based on other properties
-		const upper = this.maxPoints;
-		const clamped = Math.max(0, Math.min(v, upper));
-		this[Raw].value.Friendship.Points = Math.floor(clamped);
 	}
 
 	get hearts() {

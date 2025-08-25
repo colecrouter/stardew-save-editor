@@ -14,7 +14,7 @@
 	// TODO modding can cause more heart events (???)
 </script>
 
-<div class="row">
+<div class="row" data-testid="friendship-row">
 	<UiContainerSmall>
 		<div
 			class="portrait"
@@ -24,7 +24,10 @@
 	<div class="right">
 		<div class="hearts">
 			{#each Array(npc.maxHearts) as _, i}
-				<button onclick={() => (npc.hearts = i + 1)}>
+				<button
+					data-testid="friendship-heart"
+					onclick={() => (npc.hearts = i + 1)}
+				>
 					{#if i < npc.hearts}
 						❤️
 					{:else}
@@ -42,9 +45,10 @@
 			min="0"
 			max={npc.maxPoints}
 			bind:value={npc.points}
+			data-testid="friendship-points"
 		/>
 	</div>
-	<strong>
+	<strong data-testid="friendship-name">
 		{name}
 	</strong>
 </div>

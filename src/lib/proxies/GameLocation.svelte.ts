@@ -79,7 +79,8 @@ export class GameLocation implements DataProxy<Location> {
 
 			// Check for out-of-bounds items
 			if (x >= width || y >= height || items[y] === undefined) {
-				console.warn(`Item out of bounds, skipping: ${x}, ${y}`);
+				!import.meta.env.TEST &&
+					console.warn(`Item out of bounds, skipping: ${x}, ${y}`);
 				continue;
 			}
 

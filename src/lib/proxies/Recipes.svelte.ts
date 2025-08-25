@@ -33,14 +33,6 @@ export class Recipes<T extends RecipeType>
 		this[Raw] = recipes;
 	}
 
-	get(key: string): number | null {
-		// If the key is not in the map, return null
-		if (!super.has(key)) return null;
-
-		// Otherwise, return the value from the map
-		return super.get(key) ?? null;
-	}
-
 	set(key: string, value: number | null): this {
 		if (value === null) {
 			this[Raw].item = this[Raw].item.filter((e) => e.key.string !== key);

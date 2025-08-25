@@ -49,10 +49,11 @@
 	<h1>Community Bundles</h1>
 
 	<!-- Enable or disable Joja Membership -->
-	<label class="member-menu">
+	<label class="member-menu" data-testid="joja-toggle">
 		<UiCheckbox
 			type="checkbox"
 			checked={hasJojaMembership}
+			data-testid="joja-membership-checkbox"
 			onchange={() => {
 				if (hasJojaMembership) {
 					disableJojaMembership();
@@ -69,7 +70,7 @@
 			<JojaBundles {save} {bundles} />
 		{/if}
 	{:else}
-		<div class="wrapper">
+		<div class="wrapper" data-testid="bundle-wrapper">
 			{#each bundles.bundles.toSorted((a, b) => a.id - b.id) as bundle}
 				<Bundle {bundle} />
 			{/each}

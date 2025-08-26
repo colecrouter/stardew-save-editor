@@ -51,17 +51,17 @@ export class GameLocation implements DataProxy<Location> {
 	}
 
 	private setAnimals(value: ReturnType<typeof this.getAnimals>) {
-		if (!value.length) {
-			this[Raw].animals = null;
-			this[Raw].Animals.SerializableDictionaryOfInt64FarmAnimal = null;
-		} else {
-			this[Raw].animals = { item: value.map((a) => a[Raw]) };
-			this[Raw].Animals.SerializableDictionaryOfInt64FarmAnimal =
-				this[Raw].animals;
-			this[Raw].animalsThatLiveHere = {
-				long: value.map((a) => a[Raw].key.long),
-			};
-		}
+		// if (!value.length) {
+		// 	this[Raw].animals = null;
+		// 	this[Raw].Animals.SerializableDictionaryOfInt64FarmAnimal = null;
+		// } else {
+		// 	this[Raw].animals = { item: value.map((a) => a[Raw]) };
+		// 	this[Raw].Animals.SerializableDictionaryOfInt64FarmAnimal =
+		// 		this[Raw].animals;
+		// 	this[Raw].animalsThatLiveHere = {
+		// 		long: value.map((a) => a[Raw].key.long),
+		// 	};
+		// }
 	}
 
 	private getItems() {

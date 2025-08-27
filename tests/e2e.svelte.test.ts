@@ -15,6 +15,7 @@ import bundlesPage from "../src/routes/(edit)/bundles/+page.svelte";
 import characterPage from "../src/routes/(edit)/character/+page.svelte";
 import editorPage from "../src/routes/(edit)/inventory/+page.svelte";
 import relationshipsPage from "../src/routes/(edit)/relationships/+page.svelte";
+import { Raw } from "$lib/proxies";
 
 describe("Save Manager Integration Tests", () => {
 	// Wrap in a root effect so we can initialize the SaveManager
@@ -249,7 +250,9 @@ describe("Save Manager Integration Tests", () => {
 			for (const [name, value] of skills) {
 				const input = page.getByTestId(`skills-${name}`) as HTMLInputElement;
 				await fireEvent.input(input, { target: { value } });
-				expect(saveManager.save?.player.skills.raw[value]).toBe(value);
+				expect(
+					saveManager.save?.player.skills[Raw].experiencePoints.int?.[value],
+				).toBe(value);
 			}
 		});
 

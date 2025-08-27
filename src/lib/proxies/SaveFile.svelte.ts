@@ -51,11 +51,7 @@ export class SaveProxy implements DataProxy<SaveFile> {
 		this.farm = $derived.by(() =>
 			this.locations.find((l) => l[Raw].name === "Farm"),
 		);
-		this.communityBundles = $derived.by(() => {
-			const cc = this.locations.find((l) => l[Raw].name === "CommunityCenter");
-			if (!cc) return undefined;
-			return new CommunityBundles(cc, this[Raw].SaveGame.bundleData);
-		});
+		this.communityBundles = new CommunityBundles(this);
 
 		this.goldenWalnuts = $state(this[Raw].SaveGame.goldenWalnuts ?? 0);
 		$effect(() => {

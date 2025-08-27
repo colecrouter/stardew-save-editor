@@ -2,14 +2,12 @@ import { Color } from "$lib/proxies/Color.svelte";
 import { Flags } from "$lib/proxies/Flags.svelte";
 import { Inventory } from "$lib/proxies/Inventory.svelte";
 import type { Item } from "$lib/proxies/Item.svelte";
+import { MailBox, type MailFlag } from "$lib/proxies/Mail.svelte";
 import { Recipes } from "$lib/proxies/Recipes.svelte";
-import { Skills } from "$lib/proxies/Skills.svelte";
-import type { MailFlag } from "$lib/proxies/mail";
+import { Professions, Skills } from "$lib/proxies/Skills.svelte";
 import type { Gender, Player } from "$types/save";
-import { SvelteSet } from "svelte/reactivity";
 import { type DataProxy, Raw } from ".";
 import { Friendships } from "./Friendship.svelte";
-import { Professions } from "./Professions.svelte";
 
 export class Farmer implements DataProxy<Player> {
 	public [Raw]: Player;
@@ -175,18 +173,13 @@ export class Farmer implements DataProxy<Player> {
 
 		// Flags & skills proxies (no $state needed; they mutate raw directly)
 		this.flags = new Flags(this[Raw]);
-		this.skills = new Skills(this[Raw].experiencePoints.int ?? [], this[Raw]);
+		this.skills = new Skills(this[Raw]);
 
 		// Professions as reactive set
 		this.professions = new Professions(this[Raw].professions);
 
 		// Mail received reactive set
-		this.mailReceived = new SvelteSet(
-			this[Raw].mailReceived.string as MailFlag[],
-		);
-		$effect(() => {
-			this[Raw].mailReceived.string = Array.from(this.mailReceived);
-		});
+		this.mailReceived = new MailBox(this[Raw].mailReceived);
 
 		// Friendships reactive map (lookup by NPC name)
 		this.friendships = new Friendships(this[Raw].friendshipData);

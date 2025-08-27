@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { getSaveManager } from "$lib/SaveManager.svelte";
 	import { Raw } from "$lib/proxies";
-	import { MailFlag } from "$lib/proxies/mail";
+	import { MailFlag } from "$lib/proxies/Mail.svelte";
 	import UiCheckbox from "$lib/ui/UICheckbox.svelte";
 	import UiContainer from "$lib/ui/UIContainer.svelte";
 	import Bundle from "./Bundle.svelte";
@@ -11,12 +11,6 @@
 	const bundles = save?.communityBundles;
 	const cc = save?.locations.find((l) => l[Raw].name === "CommunityCenter");
 	if (!save || !bundles) throw new Error("No save data found");
-
-	// Woohoo, side effects!
-	// I can't think of a good way to implement this in the logic without making it more complex
-	$effect(() => {
-		bundles.applySideEffects(save);
-	});
 
 	let hasJojaMembership = $derived(
 		save.players.some((player) => player.mailReceived.has(MailFlag.JojaMember)),
@@ -70,7 +64,7 @@
 		{/if}
 	{:else}
 		<div class="wrapper" data-testid="bundle-wrapper">
-			{#each bundles.bundles.toSorted((a, b) => a.id - b.id) as bundle}
+			{#each Array.from(bundles.values()).toSorted((a, b) => a.id - b.id) as bundle}
 				<Bundle {bundle} />
 			{/each}
 		</div>

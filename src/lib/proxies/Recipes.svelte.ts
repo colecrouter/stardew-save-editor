@@ -5,8 +5,15 @@ import { SvelteMap } from "svelte/reactivity";
 import { type DataProxy, Raw } from ".";
 
 type RecipeType = "craftingRecipes" | "cookingRecipes";
+// Basic type assertion
 const _: Player[RecipeType]["item"] = [];
 
+/**
+ * Map of crafting or cooking recipes for a player.
+ *
+ * A value of `number` indicates how many times the player has crafted that item.
+ * `null` means the recipe is not unlocked.
+ */
 export class Recipes<T extends RecipeType>
 	extends SvelteMap<string, number | null>
 	implements DataProxy<Player[T]>
@@ -34,12 +41,13 @@ export class Recipes<T extends RecipeType>
 	}
 
 	set(key: string, value: number | null): this {
-		if (value === null) {
-			this[Raw].item = this[Raw].item.filter((e) => e.key.string !== key);
-			super.set(key, null);
-		} else {
-			super.set(key, value);
+		super.set(key, value);
 
+		if (value === null) {
+			// Delete entry from raw
+			this[Raw].item = this[Raw].item.filter((e) => e.key.string !== key);
+		} else {
+			// Find existing entry
 			const existing = this[Raw].item.find((e) => e.key.string === key);
 			if (existing) {
 				// Update existing value

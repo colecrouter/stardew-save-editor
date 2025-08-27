@@ -14,14 +14,44 @@ function getRandomInt() {
 	return Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
 }
 
+/**
+ * Represents the different types of farm animals.
+ *
+ * @todo slime hutch
+ */
+export enum FarmAnimalType {
+	WhiteChicken = "White Chicken",
+	BrownChicken = "Brown Chicken",
+	BlueChicken = "Blue Chicken",
+	VoidChicken = "Void Chicken",
+	GoldChicken = "Golden Chicken",
+	Duck = "Duck",
+	Rabbit = "Rabbit",
+	Dino = "Dinosaur",
+	WhiteCow = "White Cow",
+	BrownCow = "Brown Cow",
+	Goat = "Goat",
+	Sheep = "Sheep",
+	Pig = "Pig",
+	Ostrich = "Ostrich",
+}
+
+/**
+ * Represents a farm animal.
+ */
 export class FarmAnimal implements DataProxy<AnimalsKV> {
 	public [Raw]: AnimalsKV;
 
+	/** Personal name of the animal */
 	public name: string;
 	public gender: Gender;
 	public daysOwned: number;
+	/** Current happiness level of the animal (0-47?) */
 	public happiness: number;
+	/** `UniqueMultiplayerID` of the player who owns this animal */
 	public ownerID: number;
+
+	public readonly type: FarmAnimalType;
 
 	constructor(raw: AnimalsKV) {
 		this[Raw] = raw;
@@ -54,9 +84,11 @@ export class FarmAnimal implements DataProxy<AnimalsKV> {
 		$effect(() => {
 			animal.ownerID = this.ownerID;
 		});
+
+		this.type = $derived(animal.type as FarmAnimalType);
 	}
 
-	static fromName(type: string, name: string, farmhand: Farmer) {
+	static fromName(type: FarmAnimalType, name: string, farmhand: Farmer) {
 		const animal = animals.find((a) => a.name === type);
 		if (!animal) throw new Error(`No animal found with name ${type}`);
 

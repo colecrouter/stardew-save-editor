@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { getSaveManager } from "$lib/SaveManager.svelte";
 	import type { Farmer } from "$lib/proxies/Farmer.svelte";
+	import { Skill } from "$lib/proxies/Skills.svelte";
 	import UiContainer from "$lib/ui/UIContainer.svelte";
 	import UiContainerSmall from "$lib/ui/UIContainerSmall.svelte";
 	import UiInput from "$lib/ui/UIInput.svelte";
@@ -25,28 +26,28 @@
 		["🏘️", "HasTownKey", "Town Key"],
 	] satisfies [string, keyof Farmer["flags"], string][];
 
-	const skills = [
-		["Farming 🥕", "farming"],
-		["Mining ⛏️", "mining"],
-		["Foraging 🌳", "foraging"],
-		["Fishing 🎣", "fishing"],
-		["Combat ⚔️", "combat"],
-	] satisfies [string, keyof Farmer["skills"]][];
+	const skills = new Map<Skill, string>([
+		[Skill.Farming, "Farming 🥕"],
+		[Skill.Mining, "Mining ⛏️"],
+		[Skill.Foraging, "Foraging 🌳"],
+		[Skill.Fishing, "Fishing 🎣"],
+		[Skill.Combat, "Combat ⚔️"],
+	]);
 </script>
 
 <UiContainer>
 	<h3>Skills</h3>
 	<div class="wrapper">
-		{#each skills as [label, key]}
+		{#each skills as [key, label]}
 			<label for={`skills-${key}`}>
 				{label}
-				<SkillBar bind:skill={save.player.skills[key]} />
+				<SkillBar bind:skill={save.player.skills.experience[key]} />
 				<UiInput
 					id={`skills-${key}`}
 					type="number"
 					min="0"
 					max="99999"
-					bind:value={save.player.skills[key]}
+					bind:value={save.player.skills.experience[key]}
 					data-testid={`skills-${key}`}
 				/>
 			</label>

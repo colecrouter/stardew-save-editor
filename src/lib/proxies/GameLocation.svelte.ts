@@ -23,7 +23,7 @@ export class GameLocation implements DataProxy<Location> {
 		$effect(() => this.setAnimals(this.animals));
 
 		this.items = $state(this.getItems());
-		$effect(() => this.setItems(this.items));
+		// $effect(() => this.setItems(this.items));
 
 		this.piecesOfHay = $state(this[Raw].piecesOfHay);
 		$effect(() => {
@@ -77,7 +77,7 @@ export class GameLocation implements DataProxy<Location> {
 			const x = key.Vector2.X;
 			const y = key.Vector2.Y;
 
-			// Check for out-of-bounds items
+			// Check for out-of-bounds items (temporarily disabled to avoid dropping interior objects)
 			if (x >= width || y >= height || items[y] === undefined) {
 				!import.meta.env.TEST &&
 					console.warn(`Item out of bounds, skipping: ${x}, ${y}`);

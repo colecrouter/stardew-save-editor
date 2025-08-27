@@ -5,8 +5,16 @@ import { SvelteMap } from "svelte/reactivity";
 import { type DataProxy, Raw } from ".";
 
 const nil = { "@_xsi:nil": "true" };
-const isNil = (value: unknown): value is { "@_xsi:nil": "true" } =>
-	typeof value === "object" && value !== null && "@_xsi:nil" in value;
+function isNilSentinel(value: unknown): value is { "@_xsi:nil": "true" } {
+	return (
+		typeof value === "object" &&
+		value !== null &&
+		"@_xsi:nil" in (value as Record<string, unknown>) &&
+		// Only consider it a nil sentinel when explicitly "true"
+		// Some loaders might emit "@_xsi:nil": "false" which should not be treated as nil
+		(value as Record<string, unknown>)["@_xsi:nil"] === "true"
+	);
+}
 
 export class Inventory implements DataProxy<Player> {
 	public [Raw]: Player;
@@ -32,7 +40,11 @@ export class Inventory implements DataProxy<Player> {
 	private primeFromRaw() {
 		// Prime numeric inventory slots
 		this[Raw].items.Item.forEach((entry, i) => {
-			if (isNil(entry) || !entry || entry.name.startsWith("Secret Note")) {
+			if (
+				isNilSentinel(entry) ||
+				!entry ||
+				entry.name.startsWith("Secret Note")
+			) {
 				this.items.set(i, undefined);
 			} else {
 				this.items.set(i, new Item(entry));
@@ -53,10 +65,15 @@ export class Inventory implements DataProxy<Player> {
 			const rawEntry = this[Raw][slot];
 			if (
 				!rawEntry ||
-				isNil(rawEntry) ||
-				rawEntry.name?.startsWith?.("Secret Note")
+				isNilSentinel(rawEntry) ||
+				rawEntry?.name?.startsWith?.("Secret Note")
 			) {
+				// Treat undefined or nil sentinel as empty equipment
 				this.equipment.set(slot, undefined);
+				// Optional cleanup: eagerly remove nil sentinel from raw so it won't persist
+				if (isNilSentinel(rawEntry)) {
+					delete this[Raw][slot];
+				}
 			} else {
 				this.equipment.set(slot, new Item(rawEntry));
 			}
@@ -73,8 +90,13 @@ export class Inventory implements DataProxy<Player> {
 		}
 		// Sync equipment slots
 		for (const [slot, value] of this.equipment) {
-			// @ts-expect-error dynamic write
-			this[Raw][slot] = value ? value.raw : nil;
+			// For equipment, omit empty slots entirely rather than writing xsi:nil
+			if (value == null) {
+				// ensure legacy sentinel or old value doesn't linger
+				delete this[Raw][slot];
+			} else {
+				this[Raw][slot] = value.raw as never;
+			}
 		}
 	}
 

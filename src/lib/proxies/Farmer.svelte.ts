@@ -33,18 +33,19 @@ export class Farmer implements DataProxy<Player> {
 	public hairColor: Color;
 	public inventory: Inventory;
 
-	// Newly reactive formerly getter/setter backed fields
 	public hat: Item | undefined;
 	public shirt: Item | undefined;
 	public pants: Item | undefined;
 	public boots: Item | undefined;
+	public leftRing: Item | undefined;
+	public rightring: Item | undefined;
 	public eyeColor: Color;
 	public flags: Flags;
 	public skills: Skills;
 	public professions: Professions;
 	public uniqueID: number; // Readonly snapshot (underlying value shouldn't change)
 	public mailReceived: Set<MailFlag>;
-	public friendships: Friendships; // reactive map of friendships keyed by NPC name
+	public friendships: Friendships;
 
 	// Provide compatibility alias for underlying raw object
 	get raw() {
@@ -158,6 +159,16 @@ export class Farmer implements DataProxy<Player> {
 		this.boots = $state(this.inventory.boots);
 		$effect(() => {
 			this.inventory.boots = this.boots;
+		});
+
+		this.leftRing = $state(this.inventory.leftRing);
+		$effect(() => {
+			this.inventory.leftRing = this.leftRing;
+		});
+
+		this.rightring = $state(this.inventory.rightRing);
+		$effect(() => {
+			this.inventory.rightRing = this.rightring;
 		});
 
 		this.eyeColor = new Color(this[Raw].newEyeColor);

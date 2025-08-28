@@ -5,7 +5,7 @@ import type { Item } from "$lib/proxies/Item.svelte";
 import { MailBox, type MailFlag } from "$lib/proxies/Mail.svelte";
 import { Recipes } from "$lib/proxies/Recipes.svelte";
 import { Professions, Skills } from "$lib/proxies/Skills.svelte";
-import type { Gender, Player } from "$types/save";
+import type { Gender, Player, Color as SaveColor } from "$types/save";
 import { type DataProxy, Raw } from ".";
 import { Friendships } from "./Friendship.svelte";
 
@@ -128,9 +128,18 @@ export class Farmer implements DataProxy<Player> {
 			}
 		});
 
-		this.hairColor = new Color(this[Raw].hairstyleColor);
+		this.hairColor = $state(new Color(this[Raw].hairstyleColor));
 		$effect(() => {
-			this[Raw].hairstyleColor = this.hairColor;
+			// Track both identity replacement and channel changes so raw stays in sync
+			const c = this.hairColor;
+			const newColor: SaveColor = {
+				A: c.A,
+				R: c.R,
+				G: c.G,
+				B: c.B,
+				PackedValue: c.PackedValue,
+			};
+			this[Raw].hairstyleColor = newColor;
 		});
 
 		this.inventory = new Inventory(this[Raw]);

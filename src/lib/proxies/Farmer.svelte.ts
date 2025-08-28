@@ -134,40 +134,6 @@ export class Farmer implements DataProxy<Player> {
 		});
 
 		this.inventory = new Inventory(this[Raw]);
-		$effect(() => {
-			this[Raw] = { ...this[Raw], ...this.inventory.raw };
-		});
-
-		// Equipment items (hat/shirt/pants/boots)
-		this.hat = $state(this.inventory.hat);
-		$effect(() => {
-			this.inventory.hat = this.hat;
-		});
-
-		this.shirt = $state(this.inventory.shirt);
-		$effect(() => {
-			this.inventory.shirt = this.shirt;
-		});
-
-		this.pants = $state(this.inventory.pants);
-		$effect(() => {
-			this.inventory.pants = this.pants;
-		});
-
-		this.boots = $state(this.inventory.boots);
-		$effect(() => {
-			this.inventory.boots = this.boots;
-		});
-
-		this.leftRing = $state(this.inventory.leftRing);
-		$effect(() => {
-			this.inventory.leftRing = this.leftRing;
-		});
-
-		this.rightring = $state(this.inventory.rightRing);
-		$effect(() => {
-			this.inventory.rightRing = this.rightring;
-		});
 
 		this.eyeColor = new Color(this[Raw].newEyeColor);
 

@@ -1,3 +1,4 @@
+import { Raw } from "$lib/proxies";
 import { flushSync } from "svelte";
 import { describe, expect, it } from "vitest";
 import { Item } from "../src/lib/proxies/Item.svelte";
@@ -27,7 +28,7 @@ describe("Item", () => {
 	it("should create a Galaxy Sword", () => {
 		withRoot(() => {
 			const item = Item.fromName("Galaxy Sword");
-			expect(item.raw).toMatchObject({
+			expect(item[Raw]).toMatchObject({
 				category: -98,
 				name: "Galaxy Sword",
 				itemId: "4",
@@ -46,7 +47,7 @@ describe("Item", () => {
 	it("should create an Iridium Sprinkler", () => {
 		withRoot(() => {
 			const item = Item.fromName("Iridium Sprinkler");
-			expect(item.raw).toMatchObject({
+			expect(item[Raw]).toMatchObject({
 				category: -8,
 				name: "Iridium Sprinkler",
 				parentSheetIndex: 645,
@@ -62,7 +63,7 @@ describe("Item", () => {
 	it("should create an auto-grabber", () => {
 		withRoot(() => {
 			const item = Item.fromName("Auto-Grabber");
-			expect(item.raw).toMatchObject({
+			expect(item[Raw]).toMatchObject({
 				name: "Auto-Grabber",
 				itemId: "165",
 				stack: 1,
@@ -78,7 +79,7 @@ describe("Item", () => {
 	it("should create a parsnip", () => {
 		withRoot(() => {
 			const item = Item.fromName("Parsnip");
-			expect(item.raw).toMatchObject({
+			expect(item[Raw]).toMatchObject({
 				category: -75,
 				name: "Parsnip",
 				parentSheetIndex: 24,
@@ -96,7 +97,7 @@ describe("Item", () => {
 	it("should create an iridium pickaxe", () => {
 		withRoot(() => {
 			const item = Item.fromName("Iridium Pickaxe");
-			expect(item.raw).toMatchObject({
+			expect(item[Raw]).toMatchObject({
 				category: -99,
 				name: "Pickaxe",
 				itemId: "IridiumPickaxe",
@@ -111,7 +112,7 @@ describe("Item", () => {
 	it("should create a beach warp totem", () => {
 		withRoot(() => {
 			const item = Item.fromName("Warp Totem: Beach");
-			expect(item.raw).toMatchObject({
+			expect(item[Raw]).toMatchObject({
 				name: "Warp Totem: Beach",
 				itemId: "690",
 				stack: 1,
@@ -125,7 +126,7 @@ describe("Item", () => {
 	it("should create a white turban", () => {
 		withRoot(() => {
 			const item = Item.fromName("White Turban");
-			expect(item.raw).toMatchObject({
+			expect(item[Raw]).toMatchObject({
 				category: -95,
 				name: "White Turban",
 				itemId: "65",
@@ -141,7 +142,7 @@ describe("Item", () => {
 	it("should create a WizardCatalogue", () => {
 		withRoot(() => {
 			const item = Item.fromName("WizardCatalogue");
-			expect(item.raw).toMatchObject({
+			expect(item[Raw]).toMatchObject({
 				name: "WizardCatalogue",
 				itemId: "WizardCatalogue",
 				stack: 1,
@@ -165,7 +166,7 @@ describe("Item", () => {
 	it("should create a Leprechaun Hat", () => {
 		withRoot(() => {
 			const item = Item.fromName("Leprechaun Hat");
-			expect(item.raw).toMatchObject({
+			expect(item[Raw]).toMatchObject({
 				category: -95,
 				name: "Leprechaun Hat",
 				itemId: "LeprechuanHat",
@@ -180,7 +181,7 @@ describe("Item", () => {
 	it("should create a furnace", () => {
 		withRoot(() => {
 			const item = Item.fromName("Furnace");
-			expect(item.raw).toMatchObject({
+			expect(item[Raw]).toMatchObject({
 				name: "Furnace",
 				itemId: "13",
 				stack: 1,
@@ -205,7 +206,7 @@ describe("Item", () => {
 	it("should create a WitchBroom", () => {
 		withRoot(() => {
 			const item = Item.fromName("WitchBroom");
-			expect(item.raw).toMatchObject({
+			expect(item[Raw]).toMatchObject({
 				name: "WitchBroom",
 				itemId: "WitchBroom",
 				stack: 1,
@@ -228,7 +229,7 @@ describe("Item", () => {
 	it("should create a Tank Top (M)", () => {
 		withRoot(() => {
 			const item = Item.fromName("Tank Top (M)");
-			expect(item.raw).toMatchObject({
+			expect(item[Raw]).toMatchObject({
 				name: "Tank Top (M)",
 				itemId: "1129",
 				price: 50,
@@ -240,7 +241,7 @@ describe("Item", () => {
 	it("should create Polka Dot Shorts", () => {
 		withRoot(() => {
 			const item = Item.fromName("Polka Dot Shorts");
-			expect(item.raw).toMatchObject({
+			expect(item[Raw]).toMatchObject({
 				name: "Polka Dot Shorts",
 				itemId: "14",
 				price: 50,
@@ -252,7 +253,7 @@ describe("Item", () => {
 	it("should create Combat Boots", () => {
 		withRoot(() => {
 			const item = Item.fromName("Combat Boots");
-			expect(item.raw).toMatchObject({
+			expect(item[Raw]).toMatchObject({
 				name: "Combat Boots",
 				itemId: "508",
 				indexInColorSheet: 4,
@@ -264,7 +265,7 @@ describe("Item", () => {
 	it("should create an Advanced Iridium Rod", () => {
 		withRoot(() => {
 			const item = Item.fromName("Advanced Iridium Rod");
-			expect(item.raw).toMatchObject({
+			expect(item[Raw]).toMatchObject({
 				name: "Advanced Iridium Rod",
 				itemId: "AdvancedIridiumRod",
 				category: -99,
@@ -276,7 +277,7 @@ describe("Item", () => {
 	it("should create a Steel Watering Can", () => {
 		withRoot(() => {
 			const item = Item.fromName("Steel Watering Can");
-			expect(item.raw).toMatchObject({
+			expect(item[Raw]).toMatchObject({
 				name: "Watering Can",
 				itemId: "SteelWateringCan",
 				"@_xsi:type": "WateringCan",
@@ -287,7 +288,7 @@ describe("Item", () => {
 	it("should create Banana Wine", () => {
 		withRoot(() => {
 			const item = Item.fromName("Banana Wine");
-			expect(item.raw).toMatchObject({
+			expect(item[Raw]).toMatchObject({
 				name: "Banana Wine",
 				itemId: "348",
 				parentSheetIndex: 123,
@@ -310,7 +311,7 @@ describe("Item", () => {
 	it("should create a Ruby Ring", () => {
 		withRoot(() => {
 			const item = Item.fromName("Ruby Ring");
-			expect(item.raw).toMatchObject({
+			expect(item[Raw]).toMatchObject({
 				name: "Ruby Ring",
 				itemId: "534",
 				type: "Ring",

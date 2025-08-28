@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { ItemNameHelper } from "$lib/ItemData";
 	import type { ParentIndex } from "$lib/ItemParentIndex";
+	import { Raw } from "$lib/proxies";
 	import { Color } from "$lib/proxies/Color.svelte";
 	import type { Item } from "$lib/proxies/Item.svelte";
 	import UiCheckbox from "$lib/ui/UICheckbox.svelte";
@@ -64,7 +65,7 @@
 				<small>Item Name</small>
 				<UiInput
 					type="text"
-					value={ItemNameHelper(selectedItem.raw)}
+					value={ItemNameHelper(selectedItem[Raw])}
 					disabled
 				/>
 			</label>

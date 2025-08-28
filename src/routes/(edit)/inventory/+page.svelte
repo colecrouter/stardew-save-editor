@@ -15,6 +15,12 @@
 	if (!save) throw new Error("No save data found");
 	let selectedIndex: ParentIndex = $state(0);
 	let selectedItem = $derived(save.player.inventory.get(selectedIndex));
+	let gridSlots = $derived<{ index: number; item: Item | undefined }[]>(
+		Array.from({ length: save.player.inventory.slotCount }, (_, i) => ({
+			index: i,
+			item: save.player.inventory.get(i) as Item | undefined,
+		})),
+	);
 
 	function handleDrop(state: DragDropState) {
 		if (!save) return;
@@ -43,7 +49,7 @@
 	<!-- Inventory view -->
 	<UiContainer>
 		<div class="item-grid">
-			{#each save.player.inventory.items as [index, item]}
+			{#each gridSlots as { index, item }}
 				<div
 					use:droppable={{
 						container: index.toString(),
@@ -97,8 +103,11 @@
 					const newItem = Item.fromName(item);
 					save.player.inventory.set(selectedIndex, newItem);
 				} catch (e) {
-					toastManager.add(new Toast("Failed to create item", "failure"));
-					throw e;
+					try {
+						toastManager.add(new Toast("Failed to create item", "failure"));
+					} finally {
+						throw e;
+					}
 				}
 			}}
 			deleteItem={() => {

@@ -10,6 +10,7 @@
 		TertiarySkinColors,
 	} from "$lib/CharacterColors";
 	import { Sprite } from "$lib/Sprite.svelte";
+	import { Raw } from "$lib/proxies";
 	import { Color } from "$lib/proxies/Color.svelte";
 	import type { Farmer } from "$lib/proxies/Farmer.svelte";
 	import { Item } from "$lib/proxies/Item.svelte";
@@ -94,13 +95,13 @@
 	let bootTints = $derived<[ColorType, ColorType, ColorType, ColorType]>(
 		player.boots
 			? [
-					PrimaryBootColors[player.boots?.raw.indexInColorSheet ?? 0] ??
+					PrimaryBootColors[player.boots?.[Raw].indexInColorSheet ?? 0] ??
 						defaultTint,
-					SecondaryBootColors[player.boots?.raw.indexInColorSheet ?? 0] ??
+					SecondaryBootColors[player.boots?.[Raw].indexInColorSheet ?? 0] ??
 						defaultTint,
-					TertiaryBootColors[player.boots?.raw.indexInColorSheet ?? 0] ??
+					TertiaryBootColors[player.boots?.[Raw].indexInColorSheet ?? 0] ??
 						defaultTint,
-					QuaternaryBootColors[player.boots?.raw.indexInColorSheet ?? 0] ??
+					QuaternaryBootColors[player.boots?.[Raw].indexInColorSheet ?? 0] ??
 						defaultTint,
 				]
 			: [defaultTint, defaultTint, defaultTint, defaultTint],

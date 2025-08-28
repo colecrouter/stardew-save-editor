@@ -18,8 +18,6 @@ import relationshipsPage from "../src/routes/(edit)/relationships/+page.svelte";
 import { Raw } from "$lib/proxies";
 
 describe("Save Manager Integration Tests", () => {
-	// Wrap in a root effect so we can initialize the SaveManager
-	// $effect.root(() => {
 	mockIDB(); // Mock IndexedDB for testing
 	let saveManager: SaveManager;
 
@@ -42,7 +40,7 @@ describe("Save Manager Integration Tests", () => {
 		let promise: Promise<void> = Promise.resolve();
 		const file = await readFile("tests/TestSave");
 
-		$effect.root(() => {
+		const cleanup = $effect.root(() => {
 			saveManager = new SaveManager();
 			promise = saveManager.import(new File([file], "TestSave"));
 		});
@@ -51,6 +49,7 @@ describe("Save Manager Integration Tests", () => {
 		await promise;
 
 		flushSync();
+		cleanup();
 	});
 
 	describe("Community Bundles", () => {
@@ -127,9 +126,7 @@ describe("Save Manager Integration Tests", () => {
 			// Click the suggestion button containing the item name
 			await fireEvent.click(page.getByText("Leek"));
 
-			expect(saveManager.save?.player.inventory.items.get(9)?.name).toBe(
-				"Leek",
-			);
+			expect(saveManager.save?.player.inventory.get(9)?.name).toBe("Leek");
 		});
 
 		it("should modify item quality", async () => {
@@ -139,7 +136,7 @@ describe("Save Manager Integration Tests", () => {
 
 			for (const quality of [0, 1, 2, 4]) {
 				await fireEvent.click(page.getByTestId(`quality-${quality}`));
-				expect(saveManager.save?.player.inventory.items.get(4)?.quality).toBe(
+				expect(saveManager.save?.player.inventory.get(4)?.quality).toBe(
 					quality,
 				);
 			}
@@ -203,14 +200,14 @@ describe("Save Manager Integration Tests", () => {
 			) as HTMLInputElement | null;
 			if (amountInput) {
 				await fireEvent.input(amountInput, { target: { value: "5" } });
-				expect(saveManager.save?.player.inventory.items.get(9)?.amount).toBe(5);
+				expect(saveManager.save?.player.inventory.get(9)?.amount).toBe(5);
 			}
 
 			// Delete button (trash emoji)
 			const deleteBtn = page.getByRole("button", { name: "🗑️" });
 			await fireEvent.click(deleteBtn);
 			await tick();
-			expect(saveManager.save?.player.inventory.items.get(9)).toBeUndefined();
+			expect(saveManager.save?.player.inventory.get(9)).toBeUndefined();
 		});
 
 		it("should change gender and hair color", async () => {
@@ -365,5 +362,4 @@ describe("Save Manager Integration Tests", () => {
 			}
 		});
 	});
-	// });
 });

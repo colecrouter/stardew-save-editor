@@ -38,3 +38,34 @@ If you want to make a contribution, just make a pull request.
 ### Code Style
 
 This project uses BiomeJS for linting, and for formatting JS/TS files. Prettier is used for formatting markup files. You can run `npm run check` to check for linting errors, and `npm run format` to format the files.
+
+## General Conventions
+
+The code is broken up into a few sections.
+
+- `src/lib`: Contains the core code.
+  - `src/lib/proxies`: Contains reactive proxy classes for interacting with save data.
+  - `src/lib/ui`: Contains reusable Svelte components used throughout the app.
+  - `src/lib/worker`: Contains web worker scripts for offloading heavy computations.
+- `src/routes`: Contains routes & page components for the SvelteKit app.
+- `codegen`: Contains code/asset generation scripts and utilities.
+- `generated`: Output from code generation scripts.
+- `tests`: Contains unit and integration tests for the application.
+- `static`: Contains static assets such as images, fonts, and other files served directly by the app.
+
+### Proxies
+
+The current model uses Svelte's reactivity system to create "wrappers" around existing save data. They serve 2 purposes:
+
+1. Abstract away gross-or-weird requirements for interacting with the save data.
+1. Provide reactivity, so that the Svelte app automatically updates when the underlying save data changes.
+
+Proxies can contain getters and setters to sanitize/validate data before it is written to the save file. However, this should be limited to simple checks (e.g. limiting string lengths, ensuring numbers are within a certain range, etc.). **Precedence should be given to implementing these limitations in UI components rather than in the proxies themselves.**
+
+> Our goal isn't to create a 100%-safe, standalone API; it's to provide fallbacks in cases where we might forget/overlook validations in UI.
+
+### Game Assets
+
+As it stands, all game-derived content exists inside either `generated` or `static/assets` directories.
+
+While ConcernedApe isn't known to DMCA fan content, we should at least avoid committing any unchanged assets (as they exist within the game's files) to this repository. If things get dire in the future, we should be able to remove these assets without too much hassle. Of course, that will impede ease of development.

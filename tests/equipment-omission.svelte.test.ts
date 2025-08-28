@@ -72,11 +72,11 @@ describe("Equipment omission (no xsi:nil for equipment) on Inventory serializati
 			const inv = new Inventory(player);
 
 			// Set then clear
-			inv.leftRing = Item.fromName("Ruby Ring");
+			inv.set("leftRing", Item.fromName("Ruby Ring"));
 			flushSync();
 
 			// Clear it, it should be omitted
-			inv.leftRing = undefined;
+			inv.set("leftRing", undefined);
 			flushSync();
 			{
 				const xml = xmlFromSave(wrapSave(player));

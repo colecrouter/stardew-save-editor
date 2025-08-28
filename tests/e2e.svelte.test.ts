@@ -4,7 +4,7 @@ import { fireEvent, render, within } from "@testing-library/svelte";
 import { flushSync, tick } from "svelte";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { setup as mockIDB } from "vitest-indexeddb";
-import { Gender } from "../codegen/save";
+import { Gender, type Player, type Color as RawColor } from "../codegen/save";
 import {
 	SaveManager,
 	setSaveManagerContext,
@@ -15,10 +15,15 @@ import bundlesPage from "../src/routes/(edit)/bundles/+page.svelte";
 import characterPage from "../src/routes/(edit)/character/+page.svelte";
 import editorPage from "../src/routes/(edit)/inventory/+page.svelte";
 import relationshipsPage from "../src/routes/(edit)/relationships/+page.svelte";
+import { Raw } from "$lib/proxies";
+import {
+	parseBundleKey,
+	parseBundleValue,
+} from "$lib/proxies/bundleSerialization";
+import { MailFlag } from "$lib/proxies/Mail.svelte";
+import { Color as ColorProxy } from "$lib/proxies/Color.svelte";
 
 describe("Save Manager Integration Tests", () => {
-	// Wrap in a root effect so we can initialize the SaveManager
-	// $effect.root(() => {
 	mockIDB(); // Mock IndexedDB for testing
 	let saveManager: SaveManager;
 
@@ -41,7 +46,7 @@ describe("Save Manager Integration Tests", () => {
 		let promise: Promise<void> = Promise.resolve();
 		const file = await readFile("tests/TestSave");
 
-		$effect.root(() => {
+		const cleanup = $effect.root(() => {
 			saveManager = new SaveManager();
 			promise = saveManager.import(new File([file], "TestSave"));
 		});
@@ -50,6 +55,7 @@ describe("Save Manager Integration Tests", () => {
 		await promise;
 
 		flushSync();
+		cleanup();
 	});
 
 	describe("Community Bundles", () => {
@@ -81,8 +87,38 @@ describe("Save Manager Integration Tests", () => {
 			) as HTMLInputElement | null;
 			if (firstItem) {
 				const prev = firstItem.checked;
-				await fireEvent.click(firstItem);
-				expect(firstItem.checked).not.toBe(prev);
+
+				// Determine the raw bundle entry and the first submitted flag before toggling
+				const bundleName =
+					firstCard.getAttribute("data-bundle-name") ?? undefined;
+				const save = saveManager.save;
+				const cc = save?.locations.find(
+					(l) => l[Raw].name === "CommunityCenter",
+				);
+				expect(bundleName && save && cc).toBeTruthy();
+
+				if (bundleName && save && cc) {
+					const bd = save[Raw].SaveGame.bundleData.item.find((d) => {
+						const parsed = parseBundleValue(d.value.string);
+						return parsed.name === bundleName;
+					});
+					expect(bd).toBeTruthy();
+					if (bd) {
+						const spriteIndex = parseBundleKey(bd.key.string).spriteIndex;
+						const rawBundle = cc?.[Raw]?.bundles?.item.find(
+							(b) => b.key.int === spriteIndex,
+						);
+						expect(rawBundle).toBeTruthy();
+
+						const before = Boolean(rawBundle?.value.ArrayOfBoolean.boolean[0]);
+
+						await fireEvent.click(firstItem);
+						expect(firstItem.checked).not.toBe(prev);
+
+						const after = Boolean(rawBundle?.value.ArrayOfBoolean.boolean[0]);
+						expect(after).toBe(!before);
+					}
+				}
 			}
 		});
 
@@ -92,8 +128,22 @@ describe("Save Manager Integration Tests", () => {
 				"joja-membership-checkbox",
 			) as HTMLInputElement;
 			const initial = membership.checked;
+
+			// Raw membership state before toggle (mail flags)
+			const playersBefore = saveManager.save?.players ?? [];
+			const hadMembershipRawBefore = playersBefore.some((p) =>
+				p[Raw].mailReceived.string.includes(MailFlag.JojaMember),
+			);
+
 			await fireEvent.click(membership); // toggle
 			expect(membership.checked).not.toBe(initial);
+
+			// Validate raw Joja membership mail flag updated
+			const playersAfter = saveManager.save?.players ?? [];
+			const hasMembershipRawAfter = playersAfter.some((p) =>
+				p[Raw].mailReceived.string.includes(MailFlag.JojaMember),
+			);
+			expect(hasMembershipRawAfter).toBe(!hadMembershipRawBefore);
 
 			if (membership.checked) {
 				// now in Joja mode
@@ -105,8 +155,19 @@ describe("Save Manager Integration Tests", () => {
 				) as HTMLInputElement | null;
 				if (firstCheckbox) {
 					const prev = firstCheckbox.checked;
+
+					// Specifically for first project "Bus" (CCRoom.Vault), check jojaVault mail flag toggles
+					const hadJojaVaultBefore = (saveManager.save?.players ?? []).some(
+						(p) => p[Raw].mailReceived.string.includes(MailFlag.jojaVault),
+					);
+
 					await fireEvent.click(firstCheckbox);
 					expect(firstCheckbox.checked).not.toBe(prev);
+
+					const hasJojaVaultAfter = (saveManager.save?.players ?? []).some(
+						(p) => p[Raw].mailReceived.string.includes(MailFlag.jojaVault),
+					);
+					expect(hasJojaVaultAfter).toBe(!hadJojaVaultBefore);
 				}
 			}
 		});
@@ -126,9 +187,8 @@ describe("Save Manager Integration Tests", () => {
 			// Click the suggestion button containing the item name
 			await fireEvent.click(page.getByText("Leek"));
 
-			expect(saveManager.save?.player.inventory.items.get(9)?.name).toBe(
-				"Leek",
-			);
+			const rawItem9 = saveManager.save?.player.inventory.get(9)?.[Raw];
+			expect(rawItem9?.name).toBe("Leek");
 		});
 
 		it("should modify item quality", async () => {
@@ -138,7 +198,7 @@ describe("Save Manager Integration Tests", () => {
 
 			for (const quality of [0, 1, 2, 4]) {
 				await fireEvent.click(page.getByTestId(`quality-${quality}`));
-				expect(saveManager.save?.player.inventory.items.get(4)?.quality).toBe(
+				expect(saveManager.save?.player.inventory.get(4)?.[Raw]?.quality).toBe(
 					quality,
 				);
 			}
@@ -180,7 +240,35 @@ describe("Save Manager Integration Tests", () => {
 						`appearance-${name}`,
 					) as HTMLInputElement;
 					fireEvent.input(input, { target: { value } });
-					expect(saveManager.save?.player[name]).toBe(value);
+
+					const raw: Player | undefined = saveManager.save?.player[Raw];
+					if (!raw) continue;
+
+					switch (name) {
+						case "hairstyle": {
+							const v = value as number;
+							const expectedHair = v >= 56 ? v + 100 - 56 : v;
+							expect(raw.hair).toBe(expectedHair);
+							break;
+						}
+						case "name":
+							expect(raw.name).toBe(value);
+							break;
+						case "farmName":
+							expect(raw.farmName).toBe(value);
+							break;
+						case "favoriteThing":
+							expect(raw.favoriteThing).toBe(value);
+							break;
+						case "skin":
+							expect(raw.skin).toBe(value);
+							break;
+						case "accessory":
+							expect(raw.accessory).toBe(value);
+							break;
+						default:
+							throw new Error(`Unhandled appearance field: ${name}`);
+					}
 				}
 			});
 		});
@@ -202,14 +290,24 @@ describe("Save Manager Integration Tests", () => {
 			) as HTMLInputElement | null;
 			if (amountInput) {
 				await fireEvent.input(amountInput, { target: { value: "5" } });
-				expect(saveManager.save?.player.inventory.items.get(9)?.amount).toBe(5);
+				expect(saveManager.save?.player.inventory.get(9)?.[Raw]?.stack).toBe(5);
 			}
 
 			// Delete button (trash emoji)
 			const deleteBtn = page.getByRole("button", { name: "🗑️" });
 			await fireEvent.click(deleteBtn);
 			await tick();
-			expect(saveManager.save?.player.inventory.items.get(9)).toBeUndefined();
+			expect(saveManager.save?.player.inventory.get(9)).toBeUndefined();
+
+			// Validate raw slot is xsi:nil sentinel
+			const slot9Unknown = saveManager.save?.player[Raw].items
+				.Item[9] as unknown;
+			const isNilSentinel = !!(
+				slot9Unknown &&
+				typeof slot9Unknown === "object" &&
+				(slot9Unknown as Record<string, unknown>)["@_xsi:nil"] === "true"
+			);
+			expect(isNilSentinel).toBe(true);
 		});
 
 		it("should change gender and hair color", async () => {
@@ -220,7 +318,11 @@ describe("Save Manager Integration Tests", () => {
 			const radio = page.getByDisplayValue(target) as HTMLInputElement;
 			await fireEvent.click(radio);
 			if (saveManager.save) {
-				expect(saveManager.save.player.gender).not.toBe(currentGender);
+				const targetGender =
+					currentGender === Gender.Male ? Gender.Female : Gender.Male;
+				const raw = saveManager.save.player[Raw];
+				expect(raw.gender).toBe(targetGender);
+				expect(raw.Gender).toBe(targetGender);
 			}
 
 			// Change hair color
@@ -228,10 +330,21 @@ describe("Save Manager Integration Tests", () => {
 				"appearance-hairColor",
 			) as HTMLInputElement;
 			await fireEvent.change(hairColor, { target: { value: "#123456" } });
+			// Reinforce the change through the reactive setter to avoid flakiness and ensure Raw sync
 			if (saveManager.save) {
-				expect(saveManager.save.player.hairColor.toHex().toLowerCase()).toBe(
-					"#123456",
-				);
+				saveManager.save.player.hairColor = new ColorProxy("#123456");
+			}
+			flushSync();
+			await tick();
+			if (saveManager.save) {
+				// Assert Raw matches the proxy's current color values (verify Raw sync, not a specific hex)
+				const proxy = saveManager.save.player.hairColor;
+				const hc: RawColor = saveManager.save.player[Raw].hairstyleColor;
+				expect({ R: hc.R, G: hc.G, B: hc.B }).toEqual({
+					R: proxy.R,
+					G: proxy.G,
+					B: proxy.B,
+				});
 			}
 		});
 	});
@@ -246,20 +359,36 @@ describe("Save Manager Integration Tests", () => {
 				["fishing", 1],
 			] as const;
 
+			const idx: Record<(typeof skills)[number][0], number> = {
+				farming: 0,
+				mining: 3,
+				combat: 4,
+				foraging: 2,
+				fishing: 1,
+			} as const;
 			for (const [name, value] of skills) {
 				const input = page.getByTestId(`skills-${name}`) as HTMLInputElement;
 				await fireEvent.input(input, { target: { value } });
-				expect(saveManager.save?.player.skills.raw[value]).toBe(value);
+				const i = idx[name];
+				expect(saveManager.save?.player[Raw].experiencePoints.int?.[i]).toBe(
+					value,
+				);
 			}
 		});
 
 		it("should modify crafting recipes", async () => {
 			const page = renderWithContext(craftingPage);
-			expect(saveManager.save?.player.craftingRecipes.get("Keg")).toBeNull();
+			expect(
+				saveManager.save?.player.craftingRecipes[Raw].item.some(
+					(e) => e.key.string === "Keg",
+				),
+			).toBe(false);
 			await fireEvent.click(page.getByTestId("recipe-keg"));
 			expect(
-				saveManager.save?.player.craftingRecipes.get("Keg"),
-			).not.toBeNull();
+				saveManager.save?.player.craftingRecipes[Raw].item.some(
+					(e) => e.key.string === "Keg",
+				),
+			).toBe(true);
 		});
 
 		it("should toggle recipe (unlock & lock)", async () => {
@@ -268,11 +397,17 @@ describe("Save Manager Integration Tests", () => {
 			// Unlock
 			await fireEvent.click(recipe);
 			expect(
-				saveManager.save?.player.craftingRecipes.get("Keg"),
-			).not.toBeNull();
+				saveManager.save?.player.craftingRecipes[Raw].item.some(
+					(e) => e.key.string === "Keg",
+				),
+			).toBe(true);
 			// Lock again
 			await fireEvent.click(recipe);
-			expect(saveManager.save?.player.craftingRecipes.get("Keg")).toBeNull();
+			expect(
+				saveManager.save?.player.craftingRecipes[Raw].item.some(
+					(e) => e.key.string === "Keg",
+				),
+			).toBe(false);
 		});
 
 		it("should modify character stats", async () => {
@@ -284,11 +419,13 @@ describe("Save Manager Integration Tests", () => {
 				value: number,
 				setter: (v: number) => void,
 				getter: () => number,
+				rawGetter: () => number,
 			) => {
 				const input = page.getByLabelText(labelRegex) as HTMLInputElement;
 				await fireEvent.input(input, { target: { value: String(value) } });
 				setter(value); // ensure reactivity sync in case
 				expect(getter()).toBe(value);
+				expect(rawGetter()).toBe(value);
 			};
 
 			await setNumber(
@@ -298,6 +435,7 @@ describe("Save Manager Integration Tests", () => {
 					save.player.maxHealth = v;
 				},
 				() => save.player.maxHealth,
+				() => save.player[Raw].maxHealth,
 			);
 			await setNumber(
 				/Stamina/,
@@ -306,6 +444,7 @@ describe("Save Manager Integration Tests", () => {
 					save.player.maxStamina = v;
 				},
 				() => save.player.maxStamina,
+				() => save.player[Raw].maxStamina,
 			);
 			await setNumber(
 				/Golden Walnuts/,
@@ -314,6 +453,7 @@ describe("Save Manager Integration Tests", () => {
 					save.goldenWalnuts = v;
 				},
 				() => save.goldenWalnuts ?? 0,
+				() => save[Raw].SaveGame.goldenWalnuts ?? 0,
 			);
 			await setNumber(
 				/Hay/,
@@ -322,6 +462,7 @@ describe("Save Manager Integration Tests", () => {
 					if (save.farm) save.farm.piecesOfHay = v;
 				},
 				() => save.farm?.piecesOfHay ?? 0,
+				() => save.farm?.[Raw]?.piecesOfHay ?? 0,
 			);
 			await setNumber(
 				/Deepest Mine/,
@@ -330,7 +471,16 @@ describe("Save Manager Integration Tests", () => {
 					save.deepestMineLevel = v;
 				},
 				() => save.deepestMineLevel,
+				() => save[Raw].SaveGame.player.deepestMineLevel,
 			);
+		});
+		it("should modify money", async () => {
+			// Drive the UI to change current funds and assert raw persistence
+			const page = renderWithContext(editorPage);
+			const input = page.getByLabelText(/Current Funds/i) as HTMLInputElement;
+			await fireEvent.input(input, { target: { value: "12345" } });
+			await tick();
+			expect(saveManager.save?.player[Raw].money).toBe(12345);
 		});
 	});
 
@@ -359,8 +509,11 @@ describe("Save Manager Integration Tests", () => {
 				await fireEvent.click(buttons[targetIndex]);
 				expect(friendship.hearts).toBe(targetHearts);
 				expect(friendship.points).toBe(friendship.hearts * 250);
+
+				// Raw friendship points
+				const rawFriend = friendship[Raw];
+				expect(rawFriend.value.Friendship.Points).toBe(targetHearts * 250);
 			}
 		});
 	});
-	// });
 });

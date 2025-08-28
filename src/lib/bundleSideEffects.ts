@@ -1,6 +1,6 @@
 import type { GameLocation } from "$lib/proxies/GameLocation.svelte";
+import { MailFlag } from "$lib/proxies/Mail.svelte";
 import type { SaveProxy } from "$lib/proxies/SaveFile.svelte";
-import { MailFlag } from "$lib/proxies/mail";
 import type { BoolArray, BoolContainer, IntContainer, KV } from "$types/save";
 import { Raw } from "./proxies";
 

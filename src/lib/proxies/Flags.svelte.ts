@@ -2,6 +2,9 @@ import type { Player } from "$types/save";
 
 const nil = { "@_xsi:nil": "true" } as const;
 
+/**
+ * Flags represents the unique flags for the player that **aren't** part of the mail system.
+ */
 export class Flags {
 	raw: Player;
 

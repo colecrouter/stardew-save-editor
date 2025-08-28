@@ -41,7 +41,7 @@
 	// Complete the bundle for each room
 	// This probably is a fairly intuitive way to do it; enabling/disabling the membership won't affect the completed bundles
 	function setProject(room: CCRoom, checked: boolean) {
-		for (const bundle of bundles.bundles.filter((b) => b.room === room)) {
+		for (const bundle of bundles.values().filter((b) => b.room === room)) {
 			for (const item of bundle.requiredItems) {
 				item.submitted = checked;
 			}
@@ -50,7 +50,7 @@
 		// As an edge case, if all bundles are completed when changing from Joja to Community Center,
 		// Complete the "missing" bundle, as the user would have otherwise had access to the movie theater
 		// I basically just copied and pasted this from CommunityBundles.svelte (todo refactor)
-		const bundlesByRoom = Map.groupBy(bundles.bundles, (b) => b.room);
+		const bundlesByRoom = Map.groupBy(bundles.values(), (b) => b.room);
 		const completedRooms = [...bundlesByRoom.entries()].map(
 			([room, bundles]) => [room, bundles.every((b) => b.completed)] as const,
 		);
@@ -69,13 +69,10 @@
 				}
 			}
 		}
-
-		// Lastly, apply the side effects of the bundles
-		bundles.applySideEffects(save);
 	}
 
 	function getProject(room: CCRoom) {
-		return bundles.bundles.some((b) => b.room === room && b.completed);
+		return bundles.values().some((b) => b.room === room && b.completed);
 	}
 </script>
 

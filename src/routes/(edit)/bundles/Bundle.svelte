@@ -74,11 +74,11 @@
 		<h3>Reward</h3>
 
 		<div class="row" data-testid="bundle-reward">
-			{#if bundle.reward}
+			{#if bundle.reward?.item}
 				<BundleItem
-					itemId={bundle.reward.itemID}
-					type={bundle.reward.type}
-					quantity={bundle.reward.quantity}
+					itemId={bundle.reward.item.id}
+					type={bundle.reward.item.type}
+					quantity={bundle.reward.item.quantity}
 				/>
 			{/if}
 		</div>

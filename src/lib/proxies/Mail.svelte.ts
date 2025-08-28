@@ -1,3 +1,15 @@
+import type { BroadcastedMail } from "$types/save";
+import { SvelteSet } from "svelte/reactivity";
+import { type DataProxy, Raw } from ".";
+
+/**
+ * List of known 1.6 mail flags.
+ *
+ * {@link https://stardewmodding.wiki.gg/wiki/Comprehensive_Mail_Flag_List}
+ *
+ * There are some missing flags here, such as `GotSquidFestReward_<year>_<dayOfMonth>_<#>`.
+ * We may need to figure out a different abstraction for this.
+ */
 export enum MailFlag {
 	ccDoorUnlock = "ccDoorUnlock",
 	canReadJunimoText = "canReadJunimoText",
@@ -267,4 +279,27 @@ export enum MailFlag {
 	fortuneTeller = "fortuneTeller",
 	raccoonTreeFallen = "raccoonTreeFallen",
 	Capsule_Broken = "Capsule_Broken",
+}
+
+/**
+ * Mailbox for storing and managing mail flags.
+ *
+ * Mail is how SDV keeps track of player progress and events. Every single change in the game state is followed by a letter being sent to the player.
+ *
+ * @todo Implement behavior for "unopened" mail, etc.
+ */
+export class MailBox
+	extends SvelteSet<MailFlag>
+	implements DataProxy<BroadcastedMail>
+{
+	public [Raw]: BroadcastedMail;
+
+	constructor(mail: BroadcastedMail) {
+		super(mail.string as MailFlag[]);
+		this[Raw] = mail;
+
+		$effect(() => {
+			this[Raw].string = Array.from(this);
+		});
+	}
 }

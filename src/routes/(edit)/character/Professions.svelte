@@ -1,5 +1,5 @@
 <script lang="ts" module>
-	import { Profession, skillGroups } from "$lib/proxies/Professions.svelte";
+	import { Profession, skillGroups } from "$lib/proxies/Skills.svelte";
 	const getSprite = (p: Profession) => {
 		const x = (p % 6) * 16;
 		const y = Math.floor(p / 6) * 16 + 624;
@@ -8,7 +8,7 @@
 </script>
 
 <script lang="ts">
-	import { Professions } from "$lib/proxies/Professions.svelte";
+	import { Professions } from "$lib/proxies/Skills.svelte";
 	import UiButton from "$lib/ui/UIButton.svelte";
 
 	interface Props {
@@ -34,11 +34,11 @@
 <div class="professions-grid">
 	{#each skillGroups as sg}
 		<div class="skill-column">
-			<h3>{sg.name}</h3>
+			<h3>{sg.skill}</h3>
 			<div class="level5">
 				{#each sg.primary as p}
 					<UiButton
-						name="primary-{sg.name}"
+						name="primary-{sg.skill}"
 						alt={Profession[p]}
 						checked={professions.has(p)}
 						active={professions.has(p)}
@@ -52,7 +52,7 @@
 				{#each sg.primary as pr}
 					{#each sg.secondary[pr] ?? [] as s}
 						<UiButton
-							name="secondary-{sg.name}"
+							name="secondary-{sg.skill}"
 							alt={Profession[s]}
 							active={professions.has(s)}
 							disabled={!professions.has(pr)}

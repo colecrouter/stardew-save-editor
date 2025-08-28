@@ -2,14 +2,12 @@ import { Color } from "$lib/proxies/Color.svelte";
 import { Flags } from "$lib/proxies/Flags.svelte";
 import { Inventory } from "$lib/proxies/Inventory.svelte";
 import type { Item } from "$lib/proxies/Item.svelte";
+import { MailBox, type MailFlag } from "$lib/proxies/Mail.svelte";
 import { Recipes } from "$lib/proxies/Recipes.svelte";
-import { Skills } from "$lib/proxies/Skills.svelte";
-import type { MailFlag } from "$lib/proxies/mail";
-import type { Gender, Player } from "$types/save";
-import { SvelteSet } from "svelte/reactivity";
+import { Professions, Skills } from "$lib/proxies/Skills.svelte";
+import type { Gender, Player, Color as SaveColor } from "$types/save";
 import { type DataProxy, Raw } from ".";
 import { Friendships } from "./Friendship.svelte";
-import { Professions } from "./Professions.svelte";
 
 export class Farmer implements DataProxy<Player> {
 	public [Raw]: Player;
@@ -130,63 +128,33 @@ export class Farmer implements DataProxy<Player> {
 			}
 		});
 
-		this.hairColor = new Color(this[Raw].hairstyleColor);
+		this.hairColor = $state(new Color(this[Raw].hairstyleColor));
 		$effect(() => {
-			this[Raw].hairstyleColor = this.hairColor;
+			// Track both identity replacement and channel changes so raw stays in sync
+			const c = this.hairColor;
+			const newColor: SaveColor = {
+				A: c.A,
+				R: c.R,
+				G: c.G,
+				B: c.B,
+				PackedValue: c.PackedValue,
+			};
+			this[Raw].hairstyleColor = newColor;
 		});
 
 		this.inventory = new Inventory(this[Raw]);
-		$effect(() => {
-			this[Raw] = { ...this[Raw], ...this.inventory.raw };
-		});
-
-		// Equipment items (hat/shirt/pants/boots)
-		this.hat = $state(this.inventory.hat);
-		$effect(() => {
-			this.inventory.hat = this.hat;
-		});
-
-		this.shirt = $state(this.inventory.shirt);
-		$effect(() => {
-			this.inventory.shirt = this.shirt;
-		});
-
-		this.pants = $state(this.inventory.pants);
-		$effect(() => {
-			this.inventory.pants = this.pants;
-		});
-
-		this.boots = $state(this.inventory.boots);
-		$effect(() => {
-			this.inventory.boots = this.boots;
-		});
-
-		this.leftRing = $state(this.inventory.leftRing);
-		$effect(() => {
-			this.inventory.leftRing = this.leftRing;
-		});
-
-		this.rightring = $state(this.inventory.rightRing);
-		$effect(() => {
-			this.inventory.rightRing = this.rightring;
-		});
 
 		this.eyeColor = new Color(this[Raw].newEyeColor);
 
 		// Flags & skills proxies (no $state needed; they mutate raw directly)
 		this.flags = new Flags(this[Raw]);
-		this.skills = new Skills(this[Raw].experiencePoints.int ?? [], this[Raw]);
+		this.skills = new Skills(this[Raw]);
 
 		// Professions as reactive set
 		this.professions = new Professions(this[Raw].professions);
 
 		// Mail received reactive set
-		this.mailReceived = new SvelteSet(
-			this[Raw].mailReceived.string as MailFlag[],
-		);
-		$effect(() => {
-			this[Raw].mailReceived.string = Array.from(this.mailReceived);
-		});
+		this.mailReceived = new MailBox(this[Raw].mailReceived);
 
 		// Friendships reactive map (lookup by NPC name)
 		this.friendships = new Friendships(this[Raw].friendshipData);

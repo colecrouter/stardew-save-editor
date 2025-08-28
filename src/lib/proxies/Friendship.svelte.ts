@@ -3,25 +3,36 @@ import type { FriendshipData, FriendshipDataItem, Status } from "$types/save";
 import { SvelteMap } from "svelte/reactivity";
 import { type DataProxy, Raw } from ".";
 
+/**
+ * Friendship data for a single NPC. Reflects the current state of the friendship.
+ */
 export class Friendship implements DataProxy<FriendshipDataItem> {
 	public [Raw]: FriendshipDataItem;
-
-	public readonly name: string; // key.string
-	public readonly maxPoints: number;
-	public readonly maxHearts: number;
 
 	public points: number;
 	public giftsThisWeek: number;
 	public giftsToday: number;
 	public talkedToToday: boolean;
 	public proposalRejected: boolean;
+	/** The current status of the friendship */
 	public status: Status;
-	public proposer: number;
-	public roommateMarriage: boolean;
+	/** @todo Unused? I've only seen `0` so far. */
+	public readonly proposer: number;
+	/** @todo Unused? I've only seen `false` so far. */
+	public readonly roommateMarriage: boolean;
 
-	private static HEART_SIZE = 250; // points per "heart" as displayed in-game
+	// Derived helpers
+
+	/** The NPC's name */
+	public readonly name: string;
+	/** The current maximum points allowed in-game */
+	public readonly maxPoints: number;
+	/** The current maximum hearts allowed in-game */
+	public readonly maxHearts: number;
 
 	private dateable = $derived(dateableCharacters.some((c) => c === this.name));
+
+	private static HEART_SIZE = 250; // points per "heart" as displayed in-game
 
 	constructor(item: FriendshipDataItem) {
 		this[Raw] = item;
@@ -87,6 +98,11 @@ export class Friendship implements DataProxy<FriendshipDataItem> {
 	}
 }
 
+/**
+ * A collection of friendships.
+ *
+ * @see {@link Friendship}
+ */
 export class Friendships
 	extends SvelteMap<string, Friendship>
 	implements DataProxy<FriendshipData>

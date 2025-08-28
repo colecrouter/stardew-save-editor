@@ -71,31 +71,51 @@ const typeToCategoryMap = {
 	Tool: ObjectCategory.Tool,
 };
 
+/**
+ * Represents an item in-game. Either in the player's inventory or placed in the world.
+ */
 export class Item implements DataProxy<ItemModel> {
 	public [Raw]: ItemModel;
-	// Compatibility raw getter for legacy code
-	get raw() {
-		return this[Raw];
-	}
+
 	readonly info?: ItemInformation;
 	readonly sprite?: Sprite;
 
 	// Reactive mutable fields
+
+	/** The amount of this item the player has (1-999) */
 	public amount: number | undefined;
+	/** The quality level of this item (if applicable) (0, 1, 2, 4) */
 	public quality: number | undefined;
+	/** Edibility level of this item (if applicable) (-300, 0-999) */
 	public edibility: number | undefined;
+	/** Sale price of the item, before profession boosts(?) */
 	public price: number | undefined;
+	/** If the item is dyed or has variants, this will be the color */
 	public color: Color | undefined;
+	/** If the item is a weapon, this is the minimum random damage */
 	public minDamage: number | undefined;
+	/** If the item is a weapon, this is the maximum random damage */
 	public maxDamage: number | undefined;
+	/** If the item is a melee weapon, this is the swing speed. 0 is base, value can be positive or negative. */
 	public speed: number | undefined;
+	/** If the item is a melee weapon, this is the knockback. 1 is base. AKA "weight" */
 	public knockback: number | undefined;
+	/** If the item is a melee weapon, this is the critical hit chance. (e.g. 0.1 for 10%) */
 	public critChance: number | undefined;
+	/** If the item is a melee weapon, this is the damage multiplier for critical hits. (e.g. 2 for 200%) */
 	public critMultiplier: number | undefined;
-	public precision: number | undefined; // addedPrecision
-	public areaOfEffect: number | undefined; // addedAreaOfEffect
-	public defense: number | undefined; // addedDefense
+	/**
+	 * I don't think precision does anything. According to Reddit, it's not implemented in-game.
+	 * @deprecated doesn't do anything
+	 */
+	public precision: number | undefined;
+	/** If the item is a weapon, this is the range at which effects & knockback apply. 0 is base. More info needed. */
+	public areaOfEffect: number | undefined;
+	/** Added defense stat, as shown in-game. Each point reduces damage taken by 1. */
+	public defense: number | undefined;
+	/** Added immunity stat, as shown in-game. From the Wiki: each point of immunity reduces the chance of being debuffed by 9.1% */
 	public immunityBonus: number | undefined;
+	/** For bottomless buckets */
 	public isBottomless: boolean | undefined;
 
 	constructor(raw: ItemModel) {
@@ -435,12 +455,13 @@ export class Item implements DataProxy<ItemModel> {
 
 		// TODO: Handle the Copper Pan hat special case if needed
 
-		// TODO what the heck do I do here?? memory leaks for everyone
 		let newItem: Item | undefined;
-		$effect.root(() => {
-			newItem = new Item(item);
-		});
-		if (!newItem) throw new Error("Failed to create item");
+		if (import.meta.env.VITEST) {
+			$effect.root(() => {
+				newItem = new Item(item);
+			});
+		}
+		if (!newItem) newItem = new Item(item);
 
 		return newItem;
 	}
@@ -497,6 +518,7 @@ export class Item implements DataProxy<ItemModel> {
 	private syncQuality() {
 		if (this.quality === undefined) return;
 		if (this.quality < 0) this.quality = 0;
+		if (this.quality === 3) this.quality = 2;
 		if (this.quality > 4) this.quality = 4;
 		this[Raw].quality = this.quality;
 	}

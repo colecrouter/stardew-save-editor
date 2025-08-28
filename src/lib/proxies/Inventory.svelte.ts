@@ -16,42 +16,41 @@ function isNilSentinel(value: unknown): value is { "@_xsi:nil": "true" } {
 	);
 }
 
-export class Inventory implements DataProxy<Player> {
+/**
+ * The player's inventory
+ *
+ * Includes both regular inventory slots, as well as equipment slots (e.g. hat, pants).
+ */
+export class Inventory
+	extends SvelteMap<ParentIndex, Item | undefined>
+	implements DataProxy<Player>
+{
 	public [Raw]: Player;
 
-	// Authoritative reactive state for inventory slots (0-35)
-	public items = new SvelteMap<number, Item | undefined>();
-	// Authoritative reactive state for equipment slots
-	private equipment = new SvelteMap<
-		Exclude<ParentIndex, number>,
-		Item | undefined
-	>();
-
-	get raw() {
-		return this[Raw];
-	}
+	// Reactive slot count for UI derivations
+	public slotCount: number;
 
 	constructor(raw: Player) {
+		super();
 		this[Raw] = raw;
-		this.primeFromRaw(); // one-time prime; Maps become source-of-truth afterwards
-		$effect(() => this.syncToRaw()); // always write raw from Maps
-	}
 
-	private primeFromRaw() {
+		// Initialize reactive slot count
+		this.slotCount = $state(this[Raw].items.Item.length);
+
 		// Prime numeric inventory slots
 		this[Raw].items.Item.forEach((entry, i) => {
 			if (
 				isNilSentinel(entry) ||
 				!entry ||
-				entry.name.startsWith("Secret Note")
+				entry.name?.startsWith?.("Secret Note")
 			) {
-				this.items.set(i, undefined);
+				super.set(i, undefined);
 			} else {
-				this.items.set(i, new Item(entry));
+				super.set(i, new Item(entry));
 			}
 		});
 
-		// Prime equipment slots once. Thereafter, the Maps are authoritative; external
+		// Prime equipment slots once. Thereafter, this Map is authoritative; external
 		// code should mutate via Inventory APIs, not by poking raw.* directly.
 		const equipSlots: Exclude<ParentIndex, number>[] = [
 			"hat",
@@ -69,130 +68,63 @@ export class Inventory implements DataProxy<Player> {
 				rawEntry?.name?.startsWith?.("Secret Note")
 			) {
 				// Treat undefined or nil sentinel as empty equipment
-				this.equipment.set(slot, undefined);
+				super.set(slot, undefined);
 				// Optional cleanup: eagerly remove nil sentinel from raw so it won't persist
 				if (isNilSentinel(rawEntry)) {
 					delete this[Raw][slot];
 				}
 			} else {
-				this.equipment.set(slot, new Item(rawEntry));
+				super.set(slot, new Item(rawEntry));
 			}
 		}
 	}
 
-	private syncToRaw() {
-		// Sync numeric slots
-		const itemsArray = this[Raw].items.Item;
-		for (let i = 0; i < itemsArray.length; i++) {
-			const cached = this.items.get(i);
+	public set(index: ParentIndex, value: Item | undefined): this {
+		if (typeof index === "number") {
+			const itemsArray = this[Raw].items.Item;
 			// @ts-expect-error converting undefined to nil marker
-			itemsArray[i] = cached ? cached.raw : nil;
-		}
-		// Sync equipment slots
-		for (const [slot, value] of this.equipment) {
+			itemsArray[index] = value ? value[Raw] : nil;
+		} else {
 			// For equipment, omit empty slots entirely rather than writing xsi:nil
 			if (value == null) {
-				// ensure legacy sentinel or old value doesn't linger
-				delete this[Raw][slot];
+				delete this[Raw][index];
 			} else {
-				this[Raw][slot] = value.raw as never;
+				this[Raw][index] = value[Raw];
 			}
 		}
+		return super.set(index, value);
 	}
 
-	// --- Equipment helpers ---
-	private readEquipment(slot: Exclude<ParentIndex, number>) {
-		return this.equipment.get(slot);
+	public delete(index: ParentIndex): boolean {
+		const existed = this.has(index);
+		// Preserve reactive anchor by using set(undefined) instead of super.delete
+		this.set(index, undefined);
+		return existed;
 	}
 
-	private writeEquipment(
-		slot: Exclude<ParentIndex, number>,
-		value: Item | undefined,
-	) {
-		if (value === undefined) {
-			this.equipment.set(slot, undefined);
-		} else {
-			this.equipment.set(slot, value);
-		}
-	}
-
-	// (Removed raw->equipment $effects; Maps are now the single source of truth.)
-
-	// Public accessors replacing previous getters/setters
-	get pants() {
-		return this.readEquipment("pantsItem");
-	}
-	set pants(v) {
-		this.writeEquipment("pantsItem", v);
-	}
-
-	get shirt() {
-		return this.readEquipment("shirtItem");
-	}
-	set shirt(v) {
-		this.writeEquipment("shirtItem", v);
-	}
-
-	get hat() {
-		return this.readEquipment("hat");
-	}
-	set hat(v) {
-		this.writeEquipment("hat", v);
-	}
-
-	get boots() {
-		return this.readEquipment("boots");
-	}
-	set boots(v) {
-		this.writeEquipment("boots", v);
-	}
-
-	get leftRing() {
-		return this.readEquipment("leftRing");
-	}
-	set leftRing(v) {
-		this.writeEquipment("leftRing", v);
-	}
-
-	get rightRing() {
-		return this.readEquipment("rightRing");
-	}
-	set rightRing(v) {
-		this.writeEquipment("rightRing", v);
-	}
-
-	adjustSlots(size: number) {
+	public adjustSlots(size: number) {
 		if (size < 1 || size > 36 || size % 12 !== 0)
 			throw new Error("Invalid size");
 		const items = this[Raw].items.Item;
 		const oldSize = items.length;
 		if (size === oldSize) return;
+
+		// update reactive slot count
+		this.slotCount = size;
+
 		if (size > oldSize) {
 			for (let i = oldSize; i < size; i++) {
 				// @ts-expect-error push nil sentinel
 				items.push(nil);
-				this.items.set(i, undefined);
+				// Establish per-index reactive anchor without write-through duplication
+				super.set(i, undefined);
 			}
 		} else {
 			items.length = size;
-			for (let i = size; i < oldSize; i++) this.items.delete(i);
+			for (let i = size; i < oldSize; i++) {
+				// Keep stable anchor for removed indices
+				super.set(i, undefined);
+			}
 		}
-	}
-
-	// Unified access helpers ---------------------------------
-	get(index: ParentIndex): Item | undefined {
-		return typeof index === "number"
-			? this.items.get(index)
-			: this.readEquipment(index);
-	}
-
-	set(index: ParentIndex, value: Item | undefined) {
-		if (typeof index === "number") this.items.set(index, value);
-		else this.writeEquipment(index, value);
-	}
-
-	delete(index: ParentIndex) {
-		if (typeof index === "number") this.items.set(index, undefined);
-		else this.writeEquipment(index, undefined);
 	}
 }

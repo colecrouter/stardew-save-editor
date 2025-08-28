@@ -101,11 +101,11 @@ export class GameLocation implements DataProxy<Location> {
 				.map((i) => ({
 					key: {
 						Vector2: {
-							X: i.raw.tileLocation?.X ?? 0,
-							Y: i.raw.tileLocation?.Y ?? 0,
+							X: i[Raw].tileLocation?.X ?? 0,
+							Y: i[Raw].tileLocation?.Y ?? 0,
 						},
 					},
-					value: { Object: i.raw },
+					value: { Object: i[Raw] },
 				})),
 		};
 	}

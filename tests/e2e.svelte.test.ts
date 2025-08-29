@@ -224,53 +224,51 @@ describe("Save Manager Integration Tests", () => {
 
 	describe("Character Customization", () => {
 		it("should modify character appearance", () => {
-			$effect.root(() => {
-				const page = renderWithContext(appearancePage);
-				const changes = [
-					["name", "Test2"],
-					["farmName", "Test2"],
-					["favoriteThing", "Integration Tests"],
-					["skin", 1],
-					["hairstyle", 68],
-					["accessory", 26],
-				] as const;
+			const page = renderWithContext(appearancePage);
+			const changes = [
+				["name", "Test2"],
+				["farmName", "Test2"],
+				["favoriteThing", "Integration Tests"],
+				["skin", 1],
+				["hairstyle", 68],
+				["accessory", 26],
+			] as const;
 
-				for (const [name, value] of changes) {
-					const input = page.getByTestId(
-						`appearance-${name}`,
-					) as HTMLInputElement;
-					fireEvent.input(input, { target: { value } });
+			for (const [name, value] of changes) {
+				const input = page.getByTestId(
+					`appearance-${name}`,
+				) as HTMLInputElement;
+				fireEvent.input(input, { target: { value } });
 
-					const raw: Player | undefined = saveManager.save?.player[Raw];
-					if (!raw) continue;
+				const raw: Player | undefined = saveManager.save?.player[Raw];
+				if (!raw) continue;
 
-					switch (name) {
-						case "hairstyle": {
-							const v = value as number;
-							const expectedHair = v >= 56 ? v + 100 - 56 : v;
-							expect(raw.hair).toBe(expectedHair);
-							break;
-						}
-						case "name":
-							expect(raw.name).toBe(value);
-							break;
-						case "farmName":
-							expect(raw.farmName).toBe(value);
-							break;
-						case "favoriteThing":
-							expect(raw.favoriteThing).toBe(value);
-							break;
-						case "skin":
-							expect(raw.skin).toBe(value);
-							break;
-						case "accessory":
-							expect(raw.accessory).toBe(value);
-							break;
-						default:
-							throw new Error(`Unhandled appearance field: ${name}`);
+				switch (name) {
+					case "hairstyle": {
+						const v = value as number;
+						const expectedHair = v >= 56 ? v + 100 - 56 : v;
+						expect(raw.hair).toBe(expectedHair);
+						break;
 					}
+					case "name":
+						expect(raw.name).toBe(value);
+						break;
+					case "farmName":
+						expect(raw.farmName).toBe(value);
+						break;
+					case "favoriteThing":
+						expect(raw.favoriteThing).toBe(value);
+						break;
+					case "skin":
+						expect(raw.skin).toBe(value);
+						break;
+					case "accessory":
+						expect(raw.accessory).toBe(value);
+						break;
+					default:
+						throw new Error(`Unhandled appearance field: ${name}`);
 				}
-			});
+			}
 		});
 
 		it("should update amount and delete an item", async () => {

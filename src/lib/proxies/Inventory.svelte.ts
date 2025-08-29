@@ -74,12 +74,18 @@ export class Inventory
 					delete this[Raw][slot];
 				}
 			} else {
-				super.set(slot, new Item(rawEntry));
+				super.set(slot, Item.create(rawEntry));
 			}
 		}
 	}
 
 	public set(index: ParentIndex, value: Item | undefined): this {
+		// Dispose previous item's effect root if replacing/removing
+		const prev = this.get(index);
+		if (prev && prev !== value) {
+			prev.dispose();
+		}
+
 		if (typeof index === "number") {
 			const itemsArray = this[Raw].items.Item;
 			// @ts-expect-error converting undefined to nil marker
@@ -120,6 +126,11 @@ export class Inventory
 				super.set(i, undefined);
 			}
 		} else {
+			// Dispose any items that will be truncated out of the raw array
+			for (let i = size; i < oldSize; i++) {
+				const prev = this.get(i);
+				if (prev) prev.dispose();
+			}
 			items.length = size;
 			for (let i = size; i < oldSize; i++) {
 				// Keep stable anchor for removed indices

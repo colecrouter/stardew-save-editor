@@ -80,6 +80,9 @@ export class Item implements DataProxy<ItemModel> {
 	readonly info?: ItemInformation;
 	readonly sprite?: Sprite;
 
+	// Todo use Symbol.dispose
+	private _dispose?: () => void;
+
 	// Reactive mutable fields
 
 	/** The amount of this item the player has (1-999) */
@@ -224,6 +227,20 @@ export class Item implements DataProxy<ItemModel> {
 
 	get category() {
 		return this[Raw].category;
+	}
+
+	/**
+	 * Create a disposable instance of the item
+	 *
+	 * This is a convenience method for creating items that need to be constructed dynamically. It provides a
+	 */
+	static create(raw: ItemModel) {
+		let instance!: Item;
+		const dispose = $effect.root(() => {
+			instance = new Item(raw);
+		});
+		instance._dispose = dispose;
+		return instance;
 	}
 
 	static fromName(name: string) {
@@ -455,13 +472,7 @@ export class Item implements DataProxy<ItemModel> {
 
 		// TODO: Handle the Copper Pan hat special case if needed
 
-		let newItem: Item | undefined;
-		if (import.meta.env.VITEST) {
-			$effect.root(() => {
-				newItem = new Item(item);
-			});
-		}
-		if (!newItem) newItem = new Item(item);
+		const newItem = Item.create(item);
 
 		return newItem;
 	}
@@ -640,5 +651,13 @@ export class Item implements DataProxy<ItemModel> {
 		if (this.isBottomless === undefined) return;
 		this[Raw].isBottomless = this.isBottomless;
 		this[Raw].IsBottomless = this.isBottomless;
+	}
+
+	public dispose() {
+		try {
+			this._dispose?.();
+		} finally {
+			this._dispose = undefined;
+		}
 	}
 }

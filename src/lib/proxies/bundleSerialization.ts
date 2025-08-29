@@ -108,11 +108,6 @@ export function serializeBundleValue(v: ParsedBundleValue): string {
 			"[BundleDiag] serializeBundleValue produced unexpected segment count",
 			{ input: v, result, segs, stack: new Error().stack },
 		);
-	if (result.includes("//"))
-		console.warn("[BundleDiag] serializeBundleValue produced empty segment", {
-			input: v,
-			result,
-		});
 	try {
 		parseBundleValue(result);
 	} catch (e) {

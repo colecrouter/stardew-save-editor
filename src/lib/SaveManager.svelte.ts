@@ -76,6 +76,7 @@ export class SaveManager {
 	save = $state<SaveProxy>();
 	filename = "";
 	backups = new BackupManager();
+	private disposeSave?: () => void;
 
 	constructor() {
 		if (dev) $effect(() => this.loadDevState());
@@ -157,10 +158,22 @@ export class SaveManager {
 			}
 		}
 
-		// Woohoo, memory leaks!
-		$effect.root(() => {
+		// Replace current save with a fresh proxy inside an effect root
+		// and capture cleanup to avoid memory leaks when replacing or resetting.
+		if (this.disposeSave) {
+			try {
+				this.disposeSave();
+			} catch (e) {
+				console.warn("Previous save cleanup failed", e);
+			} finally {
+				this.disposeSave = undefined;
+			}
+		}
+
+		const cleanup = $effect.root(() => {
 			this.save = new SaveProxy(json);
 		});
+		this.disposeSave = cleanup;
 
 		this.filename = file.name;
 	}
@@ -198,6 +211,12 @@ export class SaveManager {
 	}
 
 	reset() {
+		// Dispose reactive effects created for the current save
+		try {
+			this.disposeSave?.();
+		} finally {
+			this.disposeSave = undefined;
+		}
 		this.save = undefined;
 		this.filename = "";
 		this.saveDevState();

@@ -31,18 +31,56 @@ export class Farmer implements DataProxy<Player> {
 	public hairColor: Color;
 	public inventory: Inventory;
 
-	public hat: Item | undefined;
-	public shirt: Item | undefined;
-	public pants: Item | undefined;
-	public boots: Item | undefined;
-	public leftRing: Item | undefined;
-	public rightring: Item | undefined;
 	public eyeColor: Color;
+
+	// Derived equipment accessors delegate to Inventory
+	get hat(): Item | undefined {
+		return this.inventory.get("hat");
+	}
+	set hat(value: Item | undefined) {
+		this.inventory.set("hat", value);
+	}
+
+	get shirt(): Item | undefined {
+		return this.inventory.get("shirtItem");
+	}
+	set shirt(value: Item | undefined) {
+		this.inventory.set("shirtItem", value);
+	}
+
+	get pants(): Item | undefined {
+		return this.inventory.get("pantsItem");
+	}
+	set pants(value: Item | undefined) {
+		this.inventory.set("pantsItem", value);
+	}
+
+	get boots(): Item | undefined {
+		return this.inventory.get("boots");
+	}
+	set boots(value: Item | undefined) {
+		this.inventory.set("boots", value);
+	}
+
+	get leftRing(): Item | undefined {
+		return this.inventory.get("leftRing");
+	}
+	set leftRing(value: Item | undefined) {
+		this.inventory.set("leftRing", value);
+	}
+
+	get rightRing(): Item | undefined {
+		return this.inventory.get("rightRing");
+	}
+	set rightRing(value: Item | undefined) {
+		this.inventory.set("rightRing", value);
+	}
+
 	public flags: Flags;
 	public skills: Skills;
 	public professions: Professions;
 	public uniqueID: number; // Readonly snapshot (underlying value shouldn't change)
-	public mailReceived: Set<MailFlag>;
+	public mailReceived: MailBox;
 	public friendships: Friendships;
 
 	// Provide compatibility alias for underlying raw object

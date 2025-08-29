@@ -1,15 +1,14 @@
 import type { GameLocation } from "$lib/proxies/GameLocation.svelte";
 import { MailFlag } from "$lib/proxies/Mail.svelte";
 import type { SaveProxy } from "$lib/proxies/SaveFile.svelte";
-import type { BoolArray, BoolContainer, IntContainer, KV } from "$types/save";
 import { Raw } from "./proxies";
 
 /*
-    This file is responsible for managing the side effects of completing a bundle in the Community Center.
+	This file is responsible for managing the side effects of completing a bundle in the Community Center.
 
-    When a bundle is completed/uncompleted, two things need to happen:
-    - The room needs to be marked as finished/unfinised (in-game cosmetic change)
-    - A side effect needs to occur (e.g. bus stop repair)
+	When a bundle is completed/uncompleted, two things need to happen:
+	- The room needs to be marked as finished/unfinised (in-game cosmetic change)
+	- A side effect needs to occur (e.g. bus stop repair)
 */
 
 // Helpers
@@ -45,12 +44,9 @@ const updateRoom = (cc: GameLocation, room: CCRoom, completed: boolean) => {
 	cc[Raw].areasComplete.boolean[room] = completed;
 };
 
-function applyMail(
-	s: SaveProxy,
-	transform: (mail: Set<MailFlag>) => Set<MailFlag>,
-) {
+function applyMail(s: SaveProxy, transform: (mail: Set<MailFlag>) => void) {
 	for (const player of s.players) {
-		player.mailReceived = transform(player.mailReceived);
+		transform(player.mailReceived);
 	}
 }
 
@@ -68,7 +64,6 @@ function makeEffect(
 					if (mail.has(MailFlag.JojaMember)) mail.add(jojaFlag);
 					else mail.delete(jojaFlag);
 				}
-				return mail;
 			});
 			if (room !== undefined) updateRoom(cc, room, true);
 		},
@@ -76,7 +71,6 @@ function makeEffect(
 			applyMail(s, (mail) => {
 				mail.delete(mainFlag);
 				if (jojaFlag) mail.delete(jojaFlag);
-				return mail;
 			});
 			if (room !== undefined) updateRoom(cc, room, false);
 		},

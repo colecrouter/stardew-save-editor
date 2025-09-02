@@ -1,5 +1,5 @@
 ---
-name: Save crashed game
+name: Game Crashed
 about: After editing your save, the game no longer loads
 title: ''
 labels: invalid save bug
@@ -11,12 +11,7 @@ assignees: ''
 - Gave my Galaxy Sword 0.5 crit chance
 - Added an Iridium Sprinkler
 - Set my mining skill to 10000
-
-**Screenshots**
-If applicable, you can paste screenshots directly in this box.
+- Completed a community center bundle
 
 **Save file**
-Please upload your save file here. This can significantly help solving the issue.
-
-**Additional context**
-Add any other context about the problem here.
+Please upload your save file here. Without it, we likely won't be able to help you.

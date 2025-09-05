@@ -1,11 +1,8 @@
 import { CCRoom, bundleSideEffects } from "$lib/bundleSideEffects";
 import type { GameLocation } from "$lib/proxies/GameLocation.svelte";
 import type { SaveProxy } from "$lib/proxies/SaveFile.svelte";
-import type {
-	BoolArrayContainer,
-	BundleData,
-	StringContainer,
-} from "$types/save";
+import type { GameLocation as GameLocationRaw } from "$types/save";
+import type { BoolArrayContainer, StringContainer } from "$types/save";
 import { SvelteMap } from "svelte/reactivity";
 import { type DataProxy, Raw } from ".";
 import { MailFlag } from "./Mail.svelte";
@@ -15,7 +12,6 @@ import {
 	parseBundleValue,
 	replaceRequirement,
 	serializeBundleKey,
-	serializeBundleValue,
 	withBundleName,
 	withBundleReward,
 } from "./bundleSerialization";
@@ -110,6 +106,9 @@ export class CommunityBundles extends SvelteMap<BundleName, Bundle> {
 		this.communityCenter = cc;
 		this.saveData = saveData;
 
+		// Sanitize bundleRewards immediately on load
+		this.sanitizeBundleRewards();
+
 		// Apply proper save side effects
 		$effect(() => this.applySideEffects());
 	}
@@ -168,6 +167,43 @@ export class CommunityBundles extends SvelteMap<BundleName, Bundle> {
 				console.debug("Removed side effect for completed CC");
 			}
 		}
+
+		// After applying any side effects, ensure bundleRewards remains valid/safe
+		this.sanitizeBundleRewards();
+	}
+
+	/**
+	 * Ensure Community Center bundleRewards only contains valid keys and that
+	 * problematic entries are corrected. Specifically prevents key 36 from
+	 * being set true, which can crash the game.
+	 */
+	private sanitizeBundleRewards() {
+		const ccRaw = this.communityCenter[Raw] as GameLocationRaw;
+		const bundles = ccRaw?.bundles?.item;
+		const rewards = ccRaw?.bundleRewards;
+
+		if (!rewards || !rewards.item || !bundles) return;
+
+		const validKeys = new Set<number>(bundles.map((b) => b.key.int));
+
+		// Drop any reward entries that don't correspond to an existing bundle key
+		const beforeLen = rewards.item.length;
+		rewards.item = rewards.item.filter((kv) => validKeys.has(kv.key.int));
+		if (rewards.item.length !== beforeLen) {
+			console.warn(
+				`Removed ${beforeLen - rewards.item.length} invalid bundleRewards entries`,
+			);
+		}
+
+		// Force key 36 to false as a safety measure
+		for (const kv of rewards.item) {
+			if (kv.key.int === 36 && kv.value.boolean === true) {
+				kv.value.boolean = false;
+				console.warn(
+					"Corrected bundleRewards[36] from true to false to prevent a crash",
+				);
+			}
+		}
 	}
 }
 
@@ -182,11 +218,11 @@ export class Bundle {
 	public name: string; // internal name
 	public id: number; // sprite index
 	public requiredItems: BundleRequiredItem[];
-	public completed: boolean;
 	public color: number | undefined;
 	public reward: BundleReward | null;
 	public room: CCRoom;
 	public requiredItemCount: number;
+	public readonly completed: boolean;
 
 	constructor(
 		bundleData: StringContainer,

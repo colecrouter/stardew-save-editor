@@ -266,16 +266,15 @@ export interface ItemArray {
 	item: KV<StringContainer, IntContainer>[];
 }
 
+export interface IntBoolKVArray {
+	item: KV<IntContainer, BoolContainer>[];
+}
+
 export interface LocationWeather {
 	item: LocationWeatherItem[];
 }
 
 export interface LocationWeatherItem {
-	key: StringContainer;
-	value: PurpleValue;
-}
-
-export interface PurpleValue {
 	LocationWeather: LocationWeatherClass;
 }
 
@@ -364,7 +363,7 @@ export interface GameLocation {
 	areasComplete?: BoolArray;
 	numberOfStarsOnPlaque?: number;
 	bundles?: Bundles;
-	bundleRewards?: KV<IntContainer, BoolContainer>;
+	bundleRewards?: IntBoolKVArray;
 	submerged?: boolean;
 	ascending?: boolean;
 	dayFirstEntered?: number;

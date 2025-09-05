@@ -19,6 +19,13 @@ export const nestedArrayTags = new Map<string, string[]>([
 			"achievements",
 		],
 	],
+	// Ensure single-element bundle submission arrays (ArrayOfBoolean.boolean) stay arrays
+	[
+		"boolean",
+		[
+			"ArrayOfBoolean", // covers bundles submission boolean arrays
+		],
+	],
 	[
 		"string",
 		[

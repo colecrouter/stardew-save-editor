@@ -43,13 +43,15 @@ export class XMLManager {
 	 * Build XML UTF-8 bytes (with BOM) and return a Uint8Array. This is safer to
 	 * transfer across threads on some mobile browsers than a Blob.
 	 */
-	public stringify<T>(obj: T) {
+	public stringify<T>(obj: T, pretty = false) {
 		const builder = new XMLBuilder({
 			attributeNamePrefix: "@_",
 			ignoreAttributes: false,
 			suppressUnpairedNode: false,
 			suppressEmptyNode: true,
 			suppressBooleanAttributes: false,
+			format: pretty,
+			indentBy: "    ",
 		});
 		const raw = builder.build(obj) as string;
 		const xml = raw.trim().replaceAll("&apos;", "'").replaceAll("/>", " />");

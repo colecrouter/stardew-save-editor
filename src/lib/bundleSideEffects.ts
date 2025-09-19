@@ -50,7 +50,6 @@ function applyMail(s: SaveProxy, transform: (mail: Set<MailFlag>) => void) {
 	}
 }
 
-// new factory: given a primary mail flag, optional joja‐flag & room, produce a SideEffectPair
 function makeEffect(
 	mainFlag: MailFlag,
 	jojaFlag?: MailFlag,
@@ -121,7 +120,30 @@ export const bundleSideEffects = Object.freeze(
 		],
 		[
 			null,
-			makeEffect(MailFlag.ccIsComplete, MailFlag.abandonedJojaMartAccessible),
+			{
+				// Community Center overall completion. When the CC is completed via the vanilla route
+				// (i.e., not a Joja Member), the Abandoned JojaMart becomes accessible after the storm.
+				// We should NOT treat `abandonedJojaMartAccessible` as a Joja variant flag; instead,
+				// ensure it is set only for non-Joja players and cleared otherwise.
+				add: (s) => {
+					applyMail(s, (mail) => {
+						mail.add(MailFlag.ccIsComplete);
+						if (mail.has(MailFlag.JojaMember)) {
+							// Joja route does not unlock the Abandoned JojaMart via storm access
+							mail.delete(MailFlag.abandonedJojaMartAccessible);
+						} else {
+							mail.add(MailFlag.abandonedJojaMartAccessible);
+						}
+					});
+				},
+				remove: (s) => {
+					applyMail(s, (mail) => {
+						mail.delete(MailFlag.ccIsComplete);
+						// If CC is not complete, access should be revoked regardless of route
+						mail.delete(MailFlag.abandonedJojaMartAccessible);
+					});
+				},
+			},
 		],
 	]),
 );

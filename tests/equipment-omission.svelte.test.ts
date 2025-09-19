@@ -1,9 +1,9 @@
-import { describe, it, expect } from "vitest";
 import { flushSync } from "svelte";
-import { XMLManager } from "../src/lib/workers/xml";
+import { describe, expect, it } from "vitest";
+import type { Player } from "../codegen/save";
 import { Inventory } from "../src/lib/proxies/Inventory.svelte";
 import { Item } from "../src/lib/proxies/Item.svelte";
-import type { Player } from "../codegen/save";
+import { XMLManager } from "../src/lib/workers/xml";
 
 function withRoot<T>(fn: () => T): T {
 	let result!: T;

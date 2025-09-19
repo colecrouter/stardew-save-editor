@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import { Raw } from "$lib/proxies";
 import { Color as ColorProxy } from "$lib/proxies/Color.svelte";
 import { MailFlag } from "$lib/proxies/Mail.svelte";
@@ -6,7 +7,6 @@ import {
 	parseBundleValue,
 } from "$lib/proxies/bundleSerialization";
 import { fireEvent, render, within } from "@testing-library/svelte";
-import { readFile } from "node:fs/promises";
 import { flushSync, tick } from "svelte";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { setup as mockIDB } from "vitest-indexeddb";

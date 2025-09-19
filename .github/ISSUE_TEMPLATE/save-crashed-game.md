@@ -8,10 +8,12 @@ assignees: ''
 ---
 
 **Describe the changes you made**
+
 - Gave my Galaxy Sword 0.5 crit chance
 - Added an Iridium Sprinkler
 - Set my mining skill to 10000
 - Completed a community center bundle
 
 **Save file**
-Please upload your save file here. Without it, we likely won't be able to help you.
+
+Please upload your save file (before & after) here. Without it, we likely won't be able to help you.

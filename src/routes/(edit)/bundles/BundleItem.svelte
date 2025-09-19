@@ -1,11 +1,11 @@
 <script lang="ts">
-	import { Sprite } from "$lib/Sprite.svelte";
 	import { Item } from "$lib/proxies/Item.svelte";
 	import UiCheckbox from "$lib/ui/UICheckbox.svelte";
 	import ItemSprite from "../inventory/ItemSprite.svelte";
 
 	interface Props {
-		itemId: number;
+		// Accept numeric IDs (legacy) or string keys (1.6 content keys like "DeluxeBait")
+		itemId: number | string;
 		type: "O" | "BO" | "F" | "H" | "C" | "R";
 		quantity?: number;
 		quality?: number;
@@ -39,9 +39,22 @@
 		}
 	});
 
-	const item = $derived(
-		itemId > 0 ? Item.fromKey(itemId.toString(), matchedType) : undefined,
-	);
+	const item = $derived.by(() => {
+		const key = typeof itemId === "number" ? itemId.toString() : itemId;
+		if (!key) return undefined;
+		// If key looks like a number <= 0, treat as gold (no item)
+		if (/^-?\d+$/.test(key) && Number.parseInt(key) <= 0) return undefined;
+		try {
+			return Item.fromKey(key, matchedType);
+		} catch (e) {
+			console.warn("BundleItem: failed to resolve item by key", {
+				key,
+				type: matchedType,
+				error: e,
+			});
+			return undefined;
+		}
+	});
 </script>
 
 <div class="row">

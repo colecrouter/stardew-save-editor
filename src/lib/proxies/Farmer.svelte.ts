@@ -166,11 +166,33 @@ export class Farmer implements DataProxy<Player> {
 			}
 		});
 
-		this.hairColor = new Color(this[Raw].hairstyleColor);
+		// Hair color: keep a reactive Color and sync channel changes into raw
+		this.hairColor = $state(new Color(this[Raw].hairstyleColor));
+		$effect(() => {
+			const c = this.hairColor;
+			this[Raw].hairstyleColor = {
+				B: c.B,
+				G: c.G,
+				R: c.R,
+				A: c.A,
+				PackedValue: c.PackedValue,
+			};
+		});
 
 		this.inventory = new Inventory(this[Raw]);
 
-		this.eyeColor = new Color(this[Raw].newEyeColor);
+		// Eye color: keep a reactive Color and sync channel changes into raw
+		this.eyeColor = $state(new Color(this[Raw].newEyeColor));
+		$effect(() => {
+			const c = this.eyeColor;
+			this[Raw].newEyeColor = {
+				B: c.B,
+				G: c.G,
+				R: c.R,
+				A: c.A,
+				PackedValue: c.PackedValue,
+			};
+		});
 
 		// Flags & skills proxies (no $state needed; they mutate raw directly)
 		this.flags = new Flags(this[Raw]);

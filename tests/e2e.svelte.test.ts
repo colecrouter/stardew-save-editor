@@ -1,6 +1,12 @@
-import { readFileSync } from "node:fs";
-import { readFile } from "node:fs/promises";
+import { Raw } from "$lib/proxies";
+import { Color as ColorProxy } from "$lib/proxies/Color.svelte";
+import { MailFlag } from "$lib/proxies/Mail.svelte";
+import {
+	parseBundleKey,
+	parseBundleValue,
+} from "$lib/proxies/bundleSerialization";
 import { fireEvent, render, within } from "@testing-library/svelte";
+import { readFile } from "node:fs/promises";
 import { flushSync, tick } from "svelte";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { setup as mockIDB } from "vitest-indexeddb";
@@ -15,13 +21,6 @@ import bundlesPage from "../src/routes/(edit)/bundles/+page.svelte";
 import characterPage from "../src/routes/(edit)/character/+page.svelte";
 import editorPage from "../src/routes/(edit)/inventory/+page.svelte";
 import relationshipsPage from "../src/routes/(edit)/relationships/+page.svelte";
-import { Raw } from "$lib/proxies";
-import {
-	parseBundleKey,
-	parseBundleValue,
-} from "$lib/proxies/bundleSerialization";
-import { MailFlag } from "$lib/proxies/Mail.svelte";
-import { Color as ColorProxy } from "$lib/proxies/Color.svelte";
 
 describe("Save Manager Integration Tests", () => {
 	mockIDB(); // Mock IndexedDB for testing
@@ -339,6 +338,26 @@ describe("Save Manager Integration Tests", () => {
 				const proxy = saveManager.save.player.hairColor;
 				const hc: RawColor = saveManager.save.player[Raw].hairstyleColor;
 				expect({ R: hc.R, G: hc.G, B: hc.B }).toEqual({
+					R: proxy.R,
+					G: proxy.G,
+					B: proxy.B,
+				});
+			}
+
+			// Change eye color
+			const eyeColor = page.getByTestId(
+				"appearance-eyeColor",
+			) as HTMLInputElement;
+			await fireEvent.change(eyeColor, { target: { value: "#abcdef" } });
+			if (saveManager.save) {
+				saveManager.save.player.eyeColor = new ColorProxy("#abcdef");
+			}
+			flushSync();
+			await tick();
+			if (saveManager.save) {
+				const proxy = saveManager.save.player.eyeColor;
+				const ec: RawColor = saveManager.save.player[Raw].newEyeColor;
+				expect({ R: ec.R, G: ec.G, B: ec.B }).toEqual({
 					R: proxy.R,
 					G: proxy.G,
 					B: proxy.B,

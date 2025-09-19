@@ -41,9 +41,10 @@ export class GameLocation implements DataProxy<Location> {
 	}
 
 	private setBuildings(value: ReturnType<typeof this.getBuildings>) {
+		// Preserve an empty <buildings /> tag to maintain element order in XML
 		this[Raw].buildings = value.length
 			? { Building: value?.map((b) => b[Raw]) }
-			: undefined;
+			: {};
 	}
 
 	private getAnimals() {

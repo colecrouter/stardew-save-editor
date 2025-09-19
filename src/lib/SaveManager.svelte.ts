@@ -1,11 +1,11 @@
-import { browser, dev } from "$app/environment";
+import { dev } from "$app/environment";
 import { BackupManager } from "$lib/BackupManager.svelte";
 import { SaveProxy } from "$lib/proxies/SaveFile.svelte";
 import type { XMLManager } from "$lib/workers/xml";
 import { error } from "@sveltejs/kit";
 import * as Comlink from "comlink";
 import pako from "pako";
-import { flushSync, getContext, setContext, tick } from "svelte";
+import { getContext, setContext } from "svelte";
 import { nestedArrayTags } from "./workers/jank";
 
 const SAVE_KEY = Symbol("saveManager");
@@ -194,7 +194,7 @@ export class SaveManager {
 		return downloadFile(blob, this.filename);
 	}
 
-	async export() {
+	async export(pretty = false) {
 		if (!this.save) throw new Error("No save file provided");
 		const xmlManager = await getXmlManager();
 		const bytes = await xmlManager.stringify(
@@ -205,6 +205,8 @@ export class SaveManager {
                 I couldn't get comlink working with vitest, so removing this will pass the tests, but it will break the app.
             */
 			JSON.parse(JSON.stringify(this.save.raw)),
+			// @ts-ignore genuinely I have no idea
+			pretty,
 		);
 		// macOS uses mime type to determine file type, so we have to use text/text to prevent it from suggesting .xml
 		return new Blob([bytes.buffer], { type: "text/text; charset=UTF-8" });

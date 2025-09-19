@@ -15,6 +15,9 @@ export interface ParsedBundleValue {
 	requirements: BundleRequirement[]; // list of requirement triplets
 	color?: number; // bundle color index
 	count?: number; // required number of submissions (optional, may be omitted)
+	// Any additional trailing segments after the standard five (e.g., localized display name),
+	// preserved verbatim to ensure exact XML roundtrip.
+	tailSegments?: string[];
 }
 
 // Mapping between room string identifiers and CCRoom enum
@@ -48,7 +51,13 @@ export function serializeBundleKey(key: ParsedBundleKey): string {
 
 /** Parse a bundle value string with defensive validation. */
 export function parseBundleValue(raw: string): ParsedBundleValue {
-	const [name, rewardSeg, requirementsSeg, colorSeg, countSeg] = raw.split("/");
+	const segments = raw.split("/");
+	const name = segments[0];
+	const rewardSeg = segments[1] ?? "";
+	const requirementsSeg = segments[2];
+	const colorSeg = segments[3];
+	const countSeg = segments[4];
+	const tailSegments = segments.length > 5 ? segments.slice(5) : undefined;
 	if (!name) throw new Error("Bundle value missing name segment");
 	if (!requirementsSeg)
 		throw new Error("Bundle value missing requirements segment");
@@ -90,6 +99,7 @@ export function parseBundleValue(raw: string): ParsedBundleValue {
 		requirements,
 		color: safeColor,
 		count: safeCount,
+		tailSegments,
 	};
 }
 
@@ -101,11 +111,15 @@ export function serializeBundleValue(v: ParsedBundleValue): string {
 	const rewardSeg = v.reward ?? "";
 	const colorSeg = v.color !== undefined ? v.color : "";
 	const countSeg = v.count !== undefined ? v.count : "";
-	const result = `${v.name}/${rewardSeg}/${req}/${colorSeg}/${countSeg}`;
+	let result = `${v.name}/${rewardSeg}/${req}/${colorSeg}/${countSeg}`;
+	if (v.tailSegments?.length) {
+		// Append any trailing segments exactly as they were parsed (including empties)
+		result += `/${v.tailSegments.join("/")}`;
+	}
 	const segs = result.split("/");
-	if (segs.length !== 5)
+	if (segs.length < 5)
 		console.error(
-			"[BundleDiag] serializeBundleValue produced unexpected segment count",
+			"[BundleDiag] serializeBundleValue produced too few segments",
 			{ input: v, result, segs, stack: new Error().stack },
 		);
 	try {

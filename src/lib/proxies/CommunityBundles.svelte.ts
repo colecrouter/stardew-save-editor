@@ -147,17 +147,36 @@ export class CommunityBundles extends SvelteMap<BundleName, Bundle> {
 			}
 		}
 
-		if (
-			// If the user has Joja member, abandoned Joja Mart and Bulletin Board are not required (aka they can't be completed)
-			this.saveData.player.mailReceived.has(MailFlag.JojaMember)
-				? completedRooms
-						.filter(
-							([r]) =>
-								![CCRoom.AbandonedJojaMart, CCRoom.BulletinBoard].includes(r),
-						)
-						.every(([, completed]) => completed)
-				: completedRooms.every(([, completed]) => completed)
-		) {
+		/*
+			Overall Community Center completion semantics (vanilla reference):
+
+			- The game considers the CC "complete" (mail flag ccIsComplete) once the SIX original rooms are restored: Pantry, Crafts Room, Fish Tank, Boiler Room, Vault, Bulletin Board.
+			- Movie Theater content (CCRoom.AbandonedJojaMart) is an extension that only appears AFTER ccIsComplete. Its bundle should *not* be required to retain ccIsComplete, nor should its incompleteness revoke abandonedJojaMartAccessible.
+			- Non‑Joja route: require the six original rooms (exclude AbandonedJojaMart).
+			- Joja route: we still model room completion flags for side effects, but Bulletin Board and AbandonedJojaMart are not required.
+			- Resulting mail flags we manage in the null sideEffect pair:
+				- ccIsComplete: set when predicate true
+				- abandonedJojaMartAccessible: set only for NON‑Joja players when predicate true (Door access after the post‑storm cutscene)
+
+			Regression root cause (#80): we previously required AbandonedJojaMart for the non‑Joja branch, so any edit while that room was incomplete caused ccIsComplete & door access to be removed, resealing the door mid‑progress.
+		*/
+		const isJoja = this.saveData.player.mailReceived.has(MailFlag.JojaMember);
+		const overallComplete = isJoja
+			? // Joja route: ignore Abandoned Joja Mart & Bulletin Board (not required / no Joja analog)
+				completedRooms
+					.filter(
+						([r]) =>
+							![CCRoom.AbandonedJojaMart, CCRoom.BulletinBoard].includes(r),
+					)
+					// All remaining rooms must be complete
+					.every(([, done]) => done)
+			: // Non-Joja route: ignore only Abandoned Joja Mart (post-completion content)
+				completedRooms
+					.filter(([r]) => r !== CCRoom.AbandonedJojaMart)
+					// All six core rooms must be complete
+					.every(([, done]) => done);
+
+		if (overallComplete) {
 			const pair = bundleSideEffects.get(null);
 			if (pair) {
 				pair.add(this.saveData, this.communityCenter);

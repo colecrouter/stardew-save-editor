@@ -1,13 +1,51 @@
 import { Color } from "$lib/proxies/Color.svelte";
-import { Flags } from "$lib/proxies/Flags.svelte";
 import { Inventory } from "$lib/proxies/Inventory.svelte";
 import type { Item } from "$lib/proxies/Item.svelte";
-import { MailBox } from "$lib/proxies/Mail.svelte";
+import { MailBox, MailFlag } from "$lib/proxies/Mail.svelte";
 import { Recipes } from "$lib/proxies/Recipes.svelte";
 import { Professions, Skills } from "$lib/proxies/Skills.svelte";
 import type { Gender, Player } from "$types/save";
 import { type DataProxy, Raw } from ".";
 import { Friendships } from "./Friendship.svelte";
+
+const NIL_ATTR = "@_xsi:nil";
+const walletFlagMap: ReadonlyArray<[legacyField: string, flag: MailFlag]> = [
+	["canUnderstandDwarves", MailFlag.HasDwarvishTranslationGuide],
+	["hasRustyKey", MailFlag.HasRustyKey],
+	["hasClubCard", MailFlag.HasClubCard],
+	["hasSpecialCharm", MailFlag.HasSpecialCharm],
+	["hasSkullKey", MailFlag.HasSkullKey],
+	["hasMagnifyingGlass", MailFlag.HasMagnifyingGlass],
+	["hasDarkTalisman", MailFlag.HasDarkTalisman],
+	["hasMagicInk", MailFlag.HasMagicInk],
+	["HasTownKey", MailFlag.HasTownKey],
+	["hasUnlockedSkullDoor", MailFlag.HasUnlockedSkullDoor],
+];
+
+const isNilMarker = (value: unknown): boolean =>
+	typeof value === "object" &&
+	value !== null &&
+	NIL_ATTR in (value as Record<string, unknown>) &&
+	(value as Record<string, unknown>)[NIL_ATTR] === "true";
+
+const migrateLegacyWalletFlags = (player: Player) => {
+	if (!player.mailReceived) {
+		player.mailReceived = { string: [] };
+	}
+	let mail = player.mailReceived.string;
+	if (!Array.isArray(mail)) {
+		mail = [];
+		player.mailReceived.string = mail;
+	}
+	const record = player as unknown as Record<string, unknown>;
+	for (const [field, flag] of walletFlagMap) {
+		const current = record[field];
+		if (current === "" || (current != null && !isNilMarker(current))) {
+			if (!mail.includes(flag)) mail.push(flag);
+		}
+		if (field in record) delete record[field];
+	}
+};
 
 export class Farmer implements DataProxy<Player> {
 	public [Raw]: Player;
@@ -76,7 +114,6 @@ export class Farmer implements DataProxy<Player> {
 		this.inventory.set("rightRing", value);
 	}
 
-	public flags: Flags;
 	public skills: Skills;
 	public professions: Professions;
 	public uniqueID: number; // Readonly snapshot (underlying value shouldn't change)
@@ -194,8 +231,8 @@ export class Farmer implements DataProxy<Player> {
 			};
 		});
 
-		// Flags & skills proxies (no $state needed; they mutate raw directly)
-		this.flags = new Flags(this[Raw]);
+		migrateLegacyWalletFlags(this[Raw]);
+		// Skills proxy (no $state needed; mutates raw directly)
 		this.skills = new Skills(this[Raw]);
 
 		// Professions as reactive set

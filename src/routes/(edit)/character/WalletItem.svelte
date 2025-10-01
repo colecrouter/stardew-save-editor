@@ -1,18 +1,31 @@
 <script lang="ts">
+	import type { MailBox, MailFlag } from "$lib/proxies/Mail.svelte";
 	import Tooltip from "$lib/ui/Tooltip.svelte";
+	import type { Snippet } from "svelte";
 
 	interface Props {
-		value?: boolean;
+		mail: MailBox;
+		flag: MailFlag;
 		alt: string;
-		children?: import("svelte").Snippet;
+		children?: Snippet;
 		[key: string]: unknown;
 	}
 
-	let { value = $bindable(false), alt, children, ...props }: Props = $props();
+	let { mail, flag, alt, children, ...props }: Props = $props();
+
+	function toggle() {
+		if (mail.has(flag)) {
+			mail.delete(flag);
+		} else {
+			mail.add(flag);
+		}
+	}
+
+	$effect(() => console.log(`mail has ${flag}: ${mail.has(flag)}`));
 </script>
 
 <Tooltip text={alt}>
-	<button class:disabled={!value} onclick={() => (value = !value)} {...props}>
+	<button class:disabled={!mail.has(flag)} onclick={toggle} {...props}>
 		{@render children?.()}
 	</button>
 </Tooltip>

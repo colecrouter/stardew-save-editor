@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { getSaveManager } from "$lib/SaveManager.svelte";
-	import type { Farmer } from "$lib/proxies/Farmer.svelte";
+	import { MailFlag } from "$lib/proxies/Mail.svelte";
 	import { Skill } from "$lib/proxies/Skills.svelte";
 	import UiContainer from "$lib/ui/UIContainer.svelte";
 	import UiContainerSmall from "$lib/ui/UIContainerSmall.svelte";
@@ -14,17 +14,19 @@
 	const farm = save?.farm;
 	if (!player || !farm || !save) throw new Error("No player data found");
 
+	const mail = save.player.mailReceived;
+
 	const unlocks = [
-		["📙", "canUnderstandDwarves", "Dwarvish Translation Guide"],
-		["🗝️", "hasRustyKey", "Rusty Key"],
-		["🃏", "hasClubCard", "Club Card"],
-		["🍀", "hasSpecialCharm", "Special Charm"],
-		["💀", "hasSkullKey", "Skull Key"],
-		["🔍", "hasMagnifyingGlass", "Magnifying Glass"],
-		["🌑", "hasDarkTalisman", "Dark Talisman"],
-		["🖋️", "hasMagicInk", "Magic Ink"],
-		["🏘️", "HasTownKey", "Town Key"],
-	] satisfies [string, keyof Farmer["flags"], string][];
+		["📙", MailFlag.HasDwarvishTranslationGuide, "Dwarvish Translation Guide"],
+		["🗝️", MailFlag.HasRustyKey, "Rusty Key"],
+		["🃏", MailFlag.HasClubCard, "Club Card"],
+		["🍀", MailFlag.HasSpecialCharm, "Special Charm"],
+		["💀", MailFlag.HasSkullKey, "Skull Key"],
+		["🔍", MailFlag.HasMagnifyingGlass, "Magnifying Glass"],
+		["🌑", MailFlag.HasDarkTalisman, "Dark Talisman"],
+		["🖋️", MailFlag.HasMagicInk, "Magic Ink"],
+		["🏘️", MailFlag.HasTownKey, "Town Key"],
+	] satisfies [string, MailFlag, string][];
 
 	const skills = new Map<Skill, string>([
 		[Skill.Farming, "Farming 🥕"],
@@ -135,8 +137,8 @@
 	<div class="wallet-wrapper">
 		<UiContainerSmall>
 			<div class="wallet">
-				{#each unlocks as [emoji, key, alt]}
-					<WalletItem {alt} bind:value={save.player.flags[key]}>
+				{#each unlocks as [emoji, flag, alt]}
+					<WalletItem {alt} {mail} {flag}>
 						{emoji}
 					</WalletItem>
 				{/each}

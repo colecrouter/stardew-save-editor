@@ -31,17 +31,34 @@ type SideEffectPair = {
 };
 
 const updateRoom = (cc: GameLocation, room: CCRoom, completed: boolean) => {
-	// Initialize the room if it doesn't exist (not sure if this is necessary)
-	if (!cc[Raw].areasComplete)
-		cc[Raw].areasComplete = { boolean: new Array(7).fill(false) };
+	// Initialize with the vanilla baseline of 6 rooms (Pantry..Bulletin).
+	// Only expand to 7 when explicitly touching AbandonedJojaMart.
+	if (!cc[Raw].areasComplete) {
+		cc[Raw].areasComplete = { boolean: new Array(6).fill(false) };
+	}
 
-	// If there aren't 7 entries, add them and fill with false
-	const roomCount = cc[Raw].areasComplete.boolean.length;
-	if (roomCount < 7)
-		cc[Raw].areasComplete.boolean.push(...new Array(7 - roomCount).fill(false));
+	const arr = cc[Raw].areasComplete.boolean;
 
-	// Update the room
-	cc[Raw].areasComplete.boolean[room] = completed;
+	// Decide target length based on the room being updated
+	const targetLength =
+		room === CCRoom.AbandonedJojaMart ? 7 : Math.max(6, arr.length);
+	if (arr.length < targetLength) {
+		arr.push(...new Array(targetLength - arr.length).fill(false));
+	}
+
+	// Defensive guard: ignore invalid indices (shouldn't happen)
+	if (room < 0) return;
+
+	// Update the room flag
+	arr[room] = completed;
+
+	// Sanitize: never keep more than 7 entries; if the 7th (index 6) is false, omit it.
+	if (arr.length > 7) {
+		arr.splice(7); // drop anything beyond index 6
+	}
+	if (arr.length === 7 && arr[CCRoom.AbandonedJojaMart] === false) {
+		arr.splice(6); // omit the 7th when it's false
+	}
 };
 
 function applyMail(s: SaveProxy, transform: (mail: Set<MailFlag>) => void) {

@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { CCRoom } from "$lib/bundleSideEffects";
+import { Raw } from "$lib/proxies";
 import { MailFlag } from "$lib/proxies/Mail.svelte";
 import { flushSync, tick } from "svelte";
 import { beforeEach, describe, expect, it } from "vitest";
@@ -178,5 +179,58 @@ describe("bundle side effects - Abandoned JojaMart access", () => {
 			save.player.mailReceived.has(MailFlag.abandonedJojaMartAccessible),
 		).toBe(false);
 		expect(save.player.mailReceived.has(MailFlag.seenJunimoNote)).toBe(true);
+	});
+
+	/**
+	 * Observed engine behavior (1.5/1.6):
+	 * - CommunityCenter.getNotePosition() is hardcoded by area index (0..5). Any other index returns Point.Zero (0,0).
+	 * - If areasComplete has a 7th entry (index 6) and it is FALSE, the game will still consider area 6 and the note renders at 0,0.
+	 * - If the 7th entry exists and is TRUE (Abandoned Joja Mart complete), the stray note does not show.
+	 *
+	 * To avoid causing the 0,0 bug, the editor omits the 7th slot entirely when it's false, keeping a canonical 6-length array.
+	 */
+	it("omits the 7th areasComplete slot when Abandoned Joja Mart is incomplete (prevents 0,0 note)", async () => {
+		const save = saveManager.save;
+		expect(save).toBeTruthy();
+		if (!save) return;
+
+		// Make sure original six rooms are complete; keep Abandoned incomplete
+		for (const bundle of save.communityBundles?.values() ?? []) {
+			if (bundle.room === CCRoom.AbandonedJojaMart) {
+				for (const req of bundle.requiredItems) req.submitted = false;
+			} else {
+				for (const req of bundle.requiredItems) req.submitted = true;
+			}
+		}
+
+		flushSync();
+		await tick();
+
+		const cc = save.locations.find((l) => l[Raw].name === "CommunityCenter");
+		expect(cc).toBeTruthy();
+		const arr = cc?.[Raw].areasComplete?.boolean;
+		expect(Array.isArray(arr)).toBe(true);
+		// Editor should omit index 6 entirely when it's logically false
+		expect(arr?.length).toBe(6);
+	});
+
+	it("keeps the 7th areasComplete slot when Abandoned Joja Mart is complete (no stray 0,0 note)", async () => {
+		const save = saveManager.save;
+		expect(save).toBeTruthy();
+		if (!save) return;
+
+		// Complete all rooms including Abandoned Joja Mart
+		for (const bundle of save.communityBundles?.values() ?? []) {
+			for (const req of bundle.requiredItems) req.submitted = true;
+		}
+
+		flushSync();
+		await tick();
+
+		const cc = save.locations.find((l) => l[Raw].name === "CommunityCenter");
+		expect(cc).toBeTruthy();
+		const arr = cc?.[Raw].areasComplete?.boolean ?? [];
+		expect(arr.length).toBeGreaterThanOrEqual(7);
+		expect(arr[6]).toBe(true);
 	});
 });

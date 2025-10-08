@@ -121,6 +121,8 @@ export const bundleSideEffects = Object.freeze(
 		[
 			null,
 			{
+				// https://github.com/veywrn/StardewValley/blob/master/StardewValley/Locations/CommunityCenter.cs
+
 				// Community Center overall completion. When the CC is completed via the vanilla route
 				// (i.e., not a Joja Member), the Abandoned JojaMart becomes accessible after the storm.
 				// We should NOT treat `abandonedJojaMartAccessible` as a Joja variant flag; instead,
@@ -128,6 +130,7 @@ export const bundleSideEffects = Object.freeze(
 				add: (s) => {
 					applyMail(s, (mail) => {
 						mail.add(MailFlag.ccIsComplete);
+						mail.add(MailFlag.ccBulletinThankYou);
 						// Make sure the player has seen the Junimo Note #83
 						// Otherwise the Junimo will be forever trapped out-of-bounds
 						mail.add(MailFlag.seenJunimoNote);
@@ -142,6 +145,7 @@ export const bundleSideEffects = Object.freeze(
 				remove: (s) => {
 					applyMail(s, (mail) => {
 						mail.delete(MailFlag.ccIsComplete);
+						mail.delete(MailFlag.ccBulletinThankYou);
 						// If CC is not complete, access should be revoked regardless of route
 						mail.delete(MailFlag.abandonedJojaMartAccessible);
 					});

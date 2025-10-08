@@ -128,6 +128,9 @@ export const bundleSideEffects = Object.freeze(
 				add: (s) => {
 					applyMail(s, (mail) => {
 						mail.add(MailFlag.ccIsComplete);
+						// Make sure the player has seen the Junimo Note #83
+						// Otherwise the Junimo will be forever trapped out-of-bounds
+						mail.add(MailFlag.seenJunimoNote);
 						if (mail.has(MailFlag.JojaMember)) {
 							// Joja route does not unlock the Abandoned JojaMart via storm access
 							mail.delete(MailFlag.abandonedJojaMartAccessible);

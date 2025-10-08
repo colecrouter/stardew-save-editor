@@ -31,6 +31,7 @@ describe("bundle side effects - Abandoned JojaMart access", () => {
 		expect(save).toBeTruthy();
 		if (!save) return;
 		// Ensure player is NOT a Joja member
+		save.player.mailReceived.delete(MailFlag.seenJunimoNote);
 		save.player.mailReceived.delete(MailFlag.JojaMember);
 
 		// Complete all bundle requirements
@@ -46,6 +47,7 @@ describe("bundle side effects - Abandoned JojaMart access", () => {
 		expect(
 			save.player.mailReceived.has(MailFlag.abandonedJojaMartAccessible),
 		).toBe(true);
+		expect(save.player.mailReceived.has(MailFlag.seenJunimoNote)).toBe(true);
 	});
 
 	/**
@@ -73,6 +75,7 @@ describe("bundle side effects - Abandoned JojaMart access", () => {
 		expect(
 			save.player.mailReceived.has(MailFlag.abandonedJojaMartAccessible),
 		).toBe(false);
+		expect(save.player.mailReceived.has(MailFlag.seenJunimoNote)).toBe(true);
 	});
 
 	/**
@@ -115,6 +118,7 @@ describe("bundle side effects - Abandoned JojaMart access", () => {
 		expect(
 			save.player.mailReceived.has(MailFlag.abandonedJojaMartAccessible),
 		).toBe(true);
+		expect(save.player.mailReceived.has(MailFlag.seenJunimoNote)).toBe(true);
 
 		const abandonedRoomCompleted = [...(save.communityBundles?.values() ?? [])]
 			.filter((b) => b.room === CCRoom.AbandonedJojaMart)
@@ -151,6 +155,7 @@ describe("bundle side effects - Abandoned JojaMart access", () => {
 		expect(
 			save.player.mailReceived.has(MailFlag.abandonedJojaMartAccessible),
 		).toBe(true);
+		expect(save.player.mailReceived.has(MailFlag.seenJunimoNote)).toBe(true);
 
 		// Un-complete Pantry first requirement
 		const pantry = [...(save.communityBundles?.values() ?? [])].find(
@@ -172,5 +177,6 @@ describe("bundle side effects - Abandoned JojaMart access", () => {
 		expect(
 			save.player.mailReceived.has(MailFlag.abandonedJojaMartAccessible),
 		).toBe(false);
+		expect(save.player.mailReceived.has(MailFlag.seenJunimoNote)).toBe(true);
 	});
 });

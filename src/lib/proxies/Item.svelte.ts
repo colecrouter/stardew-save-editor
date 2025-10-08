@@ -9,6 +9,7 @@ import {
 	RingsUniqueID,
 	Shirts,
 } from "$lib/ItemData";
+import type { ParentIndex } from "$lib/ItemParentIndex";
 import { Sprite } from "$lib/Sprite.svelte";
 import { Color } from "$lib/proxies/Color.svelte";
 import {
@@ -661,3 +662,23 @@ export class Item implements DataProxy<ItemModel> {
 		}
 	}
 }
+
+/**
+ * Check if an item is valid for a given equipment slot
+ *
+ * If we put boots in the hat slot, the game crashes. This check needs to be ran in UI rather than in the Item class itself, because the Item class doesn't know what slot it's being placed into.
+ */
+export const ValidSlotForItem = (item: Item, slot: ParentIndex) => {
+	if (typeof slot === "number") return true;
+
+	const allowedTypes = {
+		leftRing: "Ring",
+		rightRing: "Ring",
+		boots: "Boots",
+		hat: "Hat",
+		shirtItem: "Clothing",
+		pantsItem: "Clothing",
+	} satisfies Record<Exclude<ParentIndex, number>, string>;
+
+	return allowedTypes[slot] === item.info?._type;
+};

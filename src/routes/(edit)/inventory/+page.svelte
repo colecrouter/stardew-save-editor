@@ -2,7 +2,7 @@
 	import type { ParentIndex } from "$lib/ItemParentIndex";
 	import { getSaveManager } from "$lib/SaveManager.svelte";
 	import { Toast, getToastManager } from "$lib/ToastManager.svelte";
-	import { Item } from "$lib/proxies/Item.svelte";
+	import { Item, ValidSlotForItem } from "$lib/proxies/Item.svelte";
 	import UiContainer from "$lib/ui/UIContainer.svelte";
 	import { type DragDropState, draggable, droppable } from "@thisux/sveltednd";
 	import CharacterView from "./CharacterEquipment.svelte";
@@ -31,6 +31,9 @@
 		const currentItem = save.player.inventory.get(sourceIndex);
 		const swappingItem = save.player.inventory.get(targetIndex);
 
+		// Not gonna bother checking slot validity here
+		// Armor slots don't support drag and drop currently
+
 		if (targetContainer && sourceContainer) {
 			save.player.inventory.set(sourceIndex, swappingItem);
 			save.player.inventory.set(targetIndex, currentItem);
@@ -43,6 +46,60 @@
 		if (!save) return;
 		selectedIndex = index;
 	}
+
+	const slotNames = {
+		leftRing: "Ring",
+		rightRing: "Ring",
+		boots: "Boots",
+		hat: "Hat",
+		shirtItem: "Shirt",
+		pantsItem: "Pants",
+	} satisfies Record<Exclude<ParentIndex, number>, string>;
+
+	// Check if selected item matches the slot type
+	const testSlotValid = (item: Item | undefined, index: ParentIndex) => {
+		if (!item) return true; // Empty is always valid
+		const isValid = ValidSlotForItem(item, index);
+		if (isValid) return true;
+		if (typeof index === "number")
+			throw new Error("number slot cannot be invalid");
+
+		// Generate warning message
+		toastManager.add(
+			new Toast(
+				`${item.info?.name} cannot be equipped in the ${slotNames[index]} slot!`,
+				"failure",
+			),
+		);
+
+		return false;
+	};
+
+	const createItem = (item: string) => {
+		try {
+			if (item === "") {
+				return toastManager.add(
+					new Toast("You must enter an item name first", "failure"),
+				);
+			}
+			const newItem = Item.fromName(item);
+
+			// Check if the item can go in the selected slot
+			const isValid = testSlotValid(newItem, selectedIndex);
+			if (!isValid) return;
+
+			// Set the new item in the inventory
+			save.player.inventory.set(selectedIndex, newItem);
+		} catch (e) {
+			toastManager.add(new Toast("Failed to create item", "failure"));
+			throw e;
+		}
+	};
+
+	const deleteItem = () => {
+		if (!save) return;
+		save.player.inventory.delete(selectedIndex);
+	};
 </script>
 
 {#if save.player}
@@ -90,30 +147,7 @@
 
 	<!-- Item view -->
 	<UiContainer>
-		<ItemView
-			{selectedItem}
-			{selectedIndex}
-			createItem={(item) => {
-				try {
-					if (item === "") {
-						return toastManager.add(
-							new Toast("You must enter an item name first", "failure"),
-						);
-					}
-					const newItem = Item.fromName(item);
-					save.player.inventory.set(selectedIndex, newItem);
-				} catch (e) {
-					try {
-						toastManager.add(new Toast("Failed to create item", "failure"));
-					} finally {
-						throw e;
-					}
-				}
-			}}
-			deleteItem={() => {
-				save.player.inventory.delete(selectedIndex);
-			}}
-		/>
+		<ItemView {selectedItem} {selectedIndex} {createItem} {deleteItem} />
 	</UiContainer>
 {/if}
 

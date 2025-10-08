@@ -18,7 +18,7 @@ export class Toast {
 	}
 }
 
-class ToastManager {
+export class ToastManager {
 	#toasts = $state<Toast[]>([]);
 
 	add(toast: Toast, duration = 5000) {
@@ -39,3 +39,6 @@ const TOAST_KEY = Symbol("ToastManager");
 export const setToastManager = () => setContext(TOAST_KEY, new ToastManager());
 
 export const getToastManager = () => getContext<ToastManager>(TOAST_KEY);
+
+export const setToastManagerContext = (manager: ToastManager) =>
+	new Map([[TOAST_KEY, manager]]);

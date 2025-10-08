@@ -15,6 +15,10 @@ import {
 	SaveManager,
 	setSaveManagerContext,
 } from "../src/lib/SaveManager.svelte";
+import {
+	ToastManager,
+	setToastManagerContext,
+} from "../src/lib/ToastManager.svelte";
 import craftingPage from "../src/routes/(edit)/(list)/crafting/+page.svelte";
 import appearancePage from "../src/routes/(edit)/appearance/+page.svelte";
 import bundlesPage from "../src/routes/(edit)/bundles/+page.svelte";
@@ -201,6 +205,37 @@ describe("Save Manager Integration Tests", () => {
 					quality,
 				);
 			}
+		});
+
+		it("prevents equipping items that don't match the slot", async () => {
+			const toastManager = new ToastManager();
+			const addSpy = vi.spyOn(toastManager, "add");
+			saveManager.save?.player.inventory.set("hat", undefined);
+			flushSync();
+			const contextEntries: Array<[symbol, SaveManager | ToastManager]> = [
+				...Array.from(setSaveManagerContext(saveManager).entries()),
+				...Array.from(setToastManagerContext(toastManager).entries()),
+			];
+			const context = new Map(contextEntries);
+			const page = render(editorPage, { context });
+
+			await fireEvent.click(page.getByTestId("item-hat"));
+			await tick();
+
+			const input = page.getByTestId("item-name") as HTMLInputElement;
+			await fireEvent.input(input, {
+				target: { value: "Leather Boots" },
+			});
+			await tick();
+			await fireEvent.click(page.getByText("Leather Boots"));
+			await tick();
+
+			expect(addSpy).toHaveBeenCalledTimes(1);
+			const [toastArg] = addSpy.mock.calls[0] ?? [];
+			expect(toastArg?.message ?? "").toContain(
+				"Leather Boots cannot be equipped in the Hat slot",
+			);
+			expect(saveManager.save?.player.inventory.get("hat")).toBeUndefined();
 		});
 
 		// it("should support drag and drop operations", async () => {

@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
-import { MailFlag } from "$lib/proxies/Mail.svelte";
 import { CCRoom } from "$lib/bundleSideEffects";
+import { MailFlag } from "$lib/proxies/Mail.svelte";
 import { flushSync, tick } from "svelte";
 import { beforeEach, describe, expect, it } from "vitest";
 import { setup as mockIDB } from "vitest-indexeddb";

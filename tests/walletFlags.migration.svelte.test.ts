@@ -6,11 +6,13 @@ import { MailFlag } from "../src/lib/proxies/Mail.svelte";
 
 const injectLegacyWalletNodes = (xml: string) =>
 	xml.replace(
-		"<catPerson xsi:nil=\"true\" />",
-		["<catPerson xsi:nil=\"true\" />",
+		'<catPerson xsi:nil="true" />',
+		[
+			'<catPerson xsi:nil="true" />',
 			"        <hasRustyKey />",
 			"        <HasTownKey />",
-			"        <hasMagnifyingGlass xsi:nil=\"true\" />"].join("\n"),
+			'        <hasMagnifyingGlass xsi:nil="true" />',
+		].join("\n"),
 	);
 
 describe("wallet flag migration", () => {

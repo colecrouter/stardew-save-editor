@@ -1,3 +1,15 @@
+<script lang="ts" module>
+	// Emojis for each equipment slot
+	const slotPlaceholders = new Map<ParentIndex, string>([
+		["leftRing", "💍"],
+		["rightRing", "💍"],
+		["boots", "👢"],
+		["hat", "🧢"],
+		["shirtItem", "👕"],
+		["pantsItem", "👖"],
+	]);
+</script>
+
 <script lang="ts">
 	import type { ParentIndex } from "$lib/ItemParentIndex";
 	import type { Farmer } from "$lib/proxies/Farmer.svelte";
@@ -5,6 +17,7 @@
 	import Preview from "../appearance/CharacterPreview.svelte";
 	import ItemSlot from "./ItemSlot.svelte";
 	import ItemSprite from "./ItemSprite.svelte";
+
 	interface Props {
 		player: Farmer;
 		selectedIndex: ParentIndex;
@@ -23,7 +36,18 @@
 		onclick={() => handleClick(index)}
 		active={selectedIndex === index}
 	>
-		<ItemSprite item={player.inventory.get(index)} />
+		{@const item = player.inventory.get(index)}
+		{#if item}
+			<ItemSprite {item} />
+		{:else}
+			{@const placeholder = slotPlaceholders.get(index)}
+			{#if placeholder}
+				<!-- Empty slot placeholder with emoji -->
+				<div class="placeholder">
+					{placeholder}
+				</div>
+			{/if}
+		{/if}
 	</ItemSlot>
 {/snippet}
 
@@ -107,5 +131,15 @@
 
 	.character-info :global(input[type="number"]) {
 		width: 6em;
+	}
+
+	.placeholder {
+		width: 24px;
+		height: 24px;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		text-shadow: none;
+		opacity: 0.33;
 	}
 </style>

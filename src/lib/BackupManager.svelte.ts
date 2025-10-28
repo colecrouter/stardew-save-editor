@@ -71,10 +71,10 @@ export class BackupManager {
 			this.files = newFiles;
 		} catch (e) {
 			// TODO investigate
-			console.warn("IndexedDB limit was exceeded");
+			console.warn(e);
 
 			// Empty the database
-			await db.clear("files");
+			await db.clear("files").catch(() => {});
 
 			this.files = [];
 		}

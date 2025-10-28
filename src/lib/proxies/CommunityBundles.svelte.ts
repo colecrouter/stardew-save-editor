@@ -313,7 +313,7 @@ class BundleRequiredItem {
 	private index: number;
 
 	// Reactive fields
-	public itemID: number;
+	public itemID: string | number;
 	public quantity: number;
 	public quality: number;
 	public submitted: boolean;
@@ -329,7 +329,10 @@ class BundleRequiredItem {
 
 		// Initialize reactive fields from current requirement entry
 		const req = this.parseRequirements();
-		this.itemID = $state(Number.parseInt(req[0]));
+		const rawItemID = req[0];
+		const numericID = Number.parseInt(rawItemID, 10);
+		// Preserve non-numeric bundle item identifiers (1.6 content keys like "SummerSquash")
+		this.itemID = $state(Number.isNaN(numericID) ? rawItemID : numericID);
 		this.quantity = $state(req[1]);
 		this.quality = $state(req[2]);
 		this.submitted = $state(this.submit.boolean[this.index] ?? false);
@@ -360,11 +363,9 @@ class BundleRequiredItem {
 	}
 
 	private writeRequirement() {
-		this.persistRequirement(
-			this.itemID.toString(),
-			this.quantity,
-			this.quality,
-		);
+		const itemID =
+			typeof this.itemID === "number" ? this.itemID.toString() : this.itemID;
+		this.persistRequirement(itemID, this.quantity, this.quality);
 	}
 
 	private writeSubmitted() {

@@ -27,6 +27,7 @@
 		"@types/wicg-file-system-access": "^2020.9.6",
 		"@vitest/web-worker": "^3.2.4",
 		"comlink": "^4.4.2",
+		"core-js": "^3.46.0",
 		"fast-xml-parser": "^4.5.0",
 		"happy-dom": "^20.0.8",
 		"idb": "^7.1.1",

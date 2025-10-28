@@ -40,3 +40,14 @@ dev ||
 
 // If you have a custom error handler, pass it to `handleErrorWithSentry`
 export const handleError = dev ? undefined : handleErrorWithSentry();
+
+export const init = async () => {
+	// https://github.com/sveltejs/kit/issues/7805
+	// Polyfills for Safari <18
+	// If more polyfills are needed, they can be added here.
+
+	// @ts-expect-error no d.ts declaration
+	if (!("groupBy" in Map)) await import("core-js/es/map/group-by");
+	// @ts-expect-error no d.ts declaration
+	if (!("filter" in [].values())) await import("core-js/es/iterator");
+};

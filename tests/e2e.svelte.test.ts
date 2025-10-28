@@ -8,7 +8,7 @@ import {
 } from "$lib/proxies/bundleSerialization";
 import { fireEvent, render, within } from "@testing-library/svelte";
 import { flushSync, tick } from "svelte";
-import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setup as mockIDB } from "vitest-indexeddb";
 import { Gender, type Player, type Color as RawColor } from "../codegen/save";
 import {
@@ -26,44 +26,105 @@ import characterPage from "../src/routes/(edit)/character/+page.svelte";
 import editorPage from "../src/routes/(edit)/inventory/+page.svelte";
 import relationshipsPage from "../src/routes/(edit)/relationships/+page.svelte";
 
-describe("Save Manager Integration Tests", () => {
-	mockIDB(); // Mock IndexedDB for testing
-	let saveManager: SaveManager;
+interface PageHarness {
+	saveManager: SaveManager;
+	render: typeof render;
+	cleanup: () => void;
+}
 
-	const renderWithContext = ((component, options) =>
-		// @ts-ignore
-		render(component, {
-			context: setSaveManagerContext(saveManager),
-			...options,
-		})) as typeof render;
+const mergeContexts = (
+	base: Map<unknown, unknown>,
+	extra?: Map<unknown, unknown>,
+) => {
+	const merged = new Map(base);
+	if (!extra) return merged;
+	for (const [key, value] of extra) {
+		merged.set(key, value);
+	}
+	return merged;
+};
 
-	// Mock the alert function
-	beforeAll(async () => {
-		vi.spyOn(window, "alert").mockImplementation((m) =>
-			console.log(`[alert]: ${m}`),
-		);
+const once = (fn: () => void) => {
+	let called = false;
+	return () => {
+		if (called) return;
+		called = true;
+		fn();
+	};
+};
+
+const createPageHarness = async (): Promise<PageHarness> => {
+	const file = await readFile("tests/TestSave");
+
+	let saveManager!: SaveManager;
+	let importPromise!: Promise<void>;
+	const saveManagerCleanup = $effect.root(() => {
+		saveManager = new SaveManager();
+		importPromise = saveManager.import(new File([file], "TestSave"));
 	});
 
-	// Reset the save manager before each test
-	beforeEach(async () => {
-		let promise: Promise<void> = Promise.resolve();
-		const file = await readFile("tests/TestSave");
+	await importPromise;
+	flushSync();
 
-		const cleanup = $effect.root(() => {
-			saveManager = new SaveManager();
-			promise = saveManager.import(new File([file], "TestSave"));
+	const baseContext = setSaveManagerContext(saveManager);
+	const renderCleanups: Array<() => void> = [];
+
+	const renderWithContext = ((component, options, renderOptions) => {
+		const opts = {
+			...(options ?? {}),
+		} as Record<string, unknown> & {
+			context?: Map<unknown, unknown>;
+		};
+		const context = mergeContexts(baseContext, opts.context);
+		const finalOptions = { ...opts, context };
+
+		let rendered!: ReturnType<typeof render>;
+		const renderCleanup = $effect.root(() => {
+			// @ts-expect-error Testing helpers allow passing a context map even though the types omit it.
+			rendered = render(component, finalOptions, renderOptions);
 		});
 
-		// I don't even know what's going on at this point
-		await promise;
+		const dispose = once(renderCleanup);
+		renderCleanups.push(dispose);
 
-		flushSync();
-		cleanup();
+		const originalUnmount = rendered.unmount.bind(rendered);
+		rendered.unmount = () => {
+			originalUnmount();
+			dispose();
+		};
+
+		return rendered;
+	}) as typeof render;
+
+	const cleanup = once(() => {
+		while (renderCleanups.length > 0) {
+			const dispose = renderCleanups.pop();
+			dispose?.();
+		}
+		saveManagerCleanup();
+	});
+
+	return { saveManager, render: renderWithContext, cleanup };
+};
+
+describe("Save Manager Integration Tests", () => {
+	mockIDB(); // Mock IndexedDB for testing
+	let harness!: PageHarness;
+	let saveManager!: SaveManager;
+
+	beforeEach(async () => {
+		harness = await createPageHarness();
+		saveManager = harness.saveManager;
+	});
+
+	afterEach(() => {
+		harness.cleanup();
 	});
 
 	describe("Community Bundles", () => {
 		it("should list bundles and toggle a required item", async () => {
-			const page = renderWithContext(bundlesPage);
+			const page = harness.render(bundlesPage);
+			flushSync();
 			// Ensure we are in community bundles mode (not Joja)
 			const membership = page.getByTestId(
 				"joja-membership-checkbox",
@@ -126,7 +187,7 @@ describe("Save Manager Integration Tests", () => {
 		});
 
 		it("should toggle Joja membership and set a project", async () => {
-			const page = renderWithContext(bundlesPage);
+			const page = harness.render(bundlesPage);
 			const membership = page.getByTestId(
 				"joja-membership-checkbox",
 			) as HTMLInputElement;
@@ -178,7 +239,7 @@ describe("Save Manager Integration Tests", () => {
 
 	describe("Inventory Management", () => {
 		it("should create and edit items", async () => {
-			const page = renderWithContext(editorPage);
+			const page = harness.render(editorPage);
 			const slot = page.getByTestId("item-9");
 			await fireEvent.click(slot);
 			await tick();
@@ -195,7 +256,7 @@ describe("Save Manager Integration Tests", () => {
 		});
 
 		it("should modify item quality", async () => {
-			const page = renderWithContext(editorPage);
+			const page = harness.render(editorPage);
 			await fireEvent.click(page.getByTestId("item-4"));
 			await tick();
 
@@ -212,12 +273,8 @@ describe("Save Manager Integration Tests", () => {
 			const addSpy = vi.spyOn(toastManager, "add");
 			saveManager.save?.player.inventory.set("hat", undefined);
 			flushSync();
-			const contextEntries: Array<[symbol, SaveManager | ToastManager]> = [
-				...Array.from(setSaveManagerContext(saveManager).entries()),
-				...Array.from(setToastManagerContext(toastManager).entries()),
-			];
-			const context = new Map(contextEntries);
-			const page = render(editorPage, { context });
+			const context = setToastManagerContext(toastManager);
+			const page = harness.render(editorPage, { context });
 
 			await fireEvent.click(page.getByTestId("item-hat"));
 			await tick();
@@ -239,7 +296,7 @@ describe("Save Manager Integration Tests", () => {
 		});
 
 		// it("should support drag and drop operations", async () => {
-		// 	const page = renderWithContext(editorPage);
+		// 	const page = harness.render(editorPage);
 		// 	const draggable = page.getByTestId("draggable-4");
 		// 	const destination = page.getByTestId("slot-6");
 
@@ -258,7 +315,7 @@ describe("Save Manager Integration Tests", () => {
 
 	describe("Character Customization", () => {
 		it("should modify character appearance", () => {
-			const page = renderWithContext(appearancePage);
+			const page = harness.render(appearancePage);
 			const changes = [
 				["name", "Test2"],
 				["farmName", "Test2"],
@@ -306,7 +363,7 @@ describe("Save Manager Integration Tests", () => {
 		});
 
 		it("should update amount and delete an item", async () => {
-			const page = renderWithContext(editorPage);
+			const page = harness.render(editorPage);
 			// Select slot 9 (empty or existing) then create an item first
 			await fireEvent.click(page.getByTestId("item-9"));
 			await tick();
@@ -343,7 +400,7 @@ describe("Save Manager Integration Tests", () => {
 		});
 
 		it("should change gender and hair color", async () => {
-			const page = renderWithContext(appearancePage);
+			const page = harness.render(appearancePage);
 			// Toggle gender (click opposite of current)
 			const currentGender = saveManager.save?.player.gender;
 			const target = currentGender === Gender.Male ? "female" : "male";
@@ -402,7 +459,7 @@ describe("Save Manager Integration Tests", () => {
 	});
 	describe("Skills and Crafting", () => {
 		it("should modify experience values", async () => {
-			const page = renderWithContext(characterPage);
+			const page = harness.render(characterPage);
 			const skills = [
 				["farming", 0],
 				["mining", 3],
@@ -429,7 +486,7 @@ describe("Save Manager Integration Tests", () => {
 		});
 
 		it("should modify crafting recipes", async () => {
-			const page = renderWithContext(craftingPage);
+			const page = harness.render(craftingPage);
 			expect(
 				saveManager.save?.player.craftingRecipes[Raw].item.some(
 					(e) => e.key.string === "Keg",
@@ -444,7 +501,7 @@ describe("Save Manager Integration Tests", () => {
 		});
 
 		it("should toggle recipe (unlock & lock)", async () => {
-			const page = renderWithContext(craftingPage);
+			const page = harness.render(craftingPage);
 			const recipe = page.getByTestId("recipe-keg");
 			// Unlock
 			await fireEvent.click(recipe);
@@ -463,7 +520,7 @@ describe("Save Manager Integration Tests", () => {
 		});
 
 		it("should modify character stats", async () => {
-			const page = renderWithContext(characterPage);
+			const page = harness.render(characterPage);
 			if (!saveManager.save) return;
 			const save = saveManager.save;
 			const setNumber = async (
@@ -528,7 +585,7 @@ describe("Save Manager Integration Tests", () => {
 		});
 		it("should modify money", async () => {
 			// Drive the UI to change current funds and assert raw persistence
-			const page = renderWithContext(editorPage);
+			const page = harness.render(editorPage);
 			const input = page.getByLabelText(/Current Funds/i) as HTMLInputElement;
 			await fireEvent.input(input, { target: { value: "12345" } });
 			await tick();
@@ -538,7 +595,7 @@ describe("Save Manager Integration Tests", () => {
 
 	describe("Relationships", () => {
 		it("should update friendship hearts", async () => {
-			const page = renderWithContext(relationshipsPage);
+			const page = harness.render(relationshipsPage);
 			if (!saveManager.save) return;
 			const rows = page.getAllByTestId("friendship-row");
 			expect(rows.length).toBeGreaterThan(0);

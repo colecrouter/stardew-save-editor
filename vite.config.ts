@@ -38,5 +38,12 @@ export default defineConfig(({ mode }) => ({
 	test: {
 		environment: "happy-dom",
 		setupFiles: ["@vitest/web-worker"],
+		// Required for SvelteKit with Vite 7+
+		// Ensures that SvelteKit's virtual modules ($app, __sveltekit) are properly resolved
+		server: {
+			deps: {
+				inline: [/@sveltejs\/kit/, /@thisux\/sveltednd/],
+			},
+		},
 	},
 }));

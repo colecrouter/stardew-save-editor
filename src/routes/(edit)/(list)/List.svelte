@@ -14,7 +14,18 @@
 	let { recipes = $bindable() }: Props = $props();
 
 	let filter = $state("");
-	let regex = $derived(new RegExp(filter, "i"));
+	let regex = $derived.by(() => searchRegexp(filter));
+
+	// Gracefully handle invalid regex patterns
+	// I thought about trying to replace, but this is fine for now
+	function searchRegexp(term: string) {
+		try {
+			return new RegExp(term, "i");
+		} catch {
+			console.warn("Invalid regex:", term);
+			return /$^/; // Matches nothing
+		}
+	}
 </script>
 
 <UiContainer>

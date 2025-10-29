@@ -129,14 +129,13 @@ export class Item implements DataProxy<ItemModel> {
 			raw.name === "Shirt"
 				? Shirts.get(raw.itemId.toString())
 				: ItemData.get(ItemNameHelper(raw));
-		// if (!info) throw new Error(`Item "${raw.name}" not found in ItemData`);
+		// Missing metadata makes a handful of legacy or modded items fall back to raw values.
 		if (!info) {
 			console.warn(`Item "${raw.name}" not found in ItemData`);
-			return;
 		}
 
 		this.info = info;
-		this.sprite = new Sprite(info);
+		this.sprite = info ? new Sprite(info) : undefined;
 
 		// Initialize reactive fields based on previous getter logic
 		this.amount = $state(this.computeAmount());

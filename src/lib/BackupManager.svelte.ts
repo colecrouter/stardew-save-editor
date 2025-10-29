@@ -1,5 +1,10 @@
 import { browser } from "$app/environment";
 import { openDB } from "idb";
+import {
+	Toast,
+	type ToastManager,
+	getToastManager,
+} from "./ToastManager.svelte";
 
 const BACKUP_LIMIT = 5;
 
@@ -23,12 +28,25 @@ const isSerializedFile = (obj: unknown): obj is SerializedFile =>
 const isSerializedFileArray = (obj: unknown): obj is Array<SerializedFile> =>
 	Array.isArray(obj) && obj.every(isSerializedFile);
 
+/**
+ * Manages backup save files using IndexedDB for storage.
+ *
+ * Any errors during saving will trigger a toast notification if a ToastManager is in scope.
+ */
 export class BackupManager {
-	files = $state<Array<File>>();
+	public files: Array<File>;
 	readonly limit: number;
+	private toast?: ToastManager;
 
 	constructor(limit = BACKUP_LIMIT) {
+		this.files = $state([]);
 		this.limit = limit;
+
+		try {
+			this.toast = getToastManager();
+		} catch {
+			// No toast manager in scope
+		}
 
 		$effect(() => {
 			if (!this.files) return;
@@ -37,11 +55,7 @@ export class BackupManager {
 			this.files.length = Math.min(this.files.length, this.limit);
 
 			// Save the files when backups change
-			try {
-				this.save();
-			} catch (e) {
-				console.error("Failed to save backups", e);
-			}
+			this.save();
 		});
 
 		this.load().catch((e) => {
@@ -49,6 +63,11 @@ export class BackupManager {
 		});
 	}
 
+	/**
+	 * Populates the backup manager from IndexedDB.
+	 *
+	 * If any invalid data/errors are encountered, the database is cleared.
+	 */
 	private async load() {
 		// Get the backup files from local storage
 		const db = await openDB("backups", 1, {
@@ -80,10 +99,16 @@ export class BackupManager {
 		}
 	}
 
+	/**
+	 * Saves the current files to IndexedDB.
+	 *
+	 * This is triggered via `$effect` when `this.files` updates.
+	 * If any errors occur during saving, a toast notification is triggered.
+	 */
 	private async save() {
-		if (!this.files) throw new Error("Missing call to init()");
 		const serializedFiles = new Array<SerializedFile>();
 
+		// Iterate through our updated
 		for (const file of this.files) {
 			serializedFiles.unshift({
 				name: file.name,
@@ -94,10 +119,28 @@ export class BackupManager {
 			});
 		}
 
-		const db = await openDB("backups", 1);
-		await db.clear("files").catch(() => {});
-		for (const file of serializedFiles) {
-			await db.add("files", file);
+		try {
+			const db = await openDB("backups", 1);
+			await db.clear("files").catch(() => {});
+			for (const file of serializedFiles) {
+				await db.add("files", file);
+			}
+		} catch (e) {
+			// Generate a consistent error message based on error
+			// For now, the only error we've encountered is a generic IDB WebKit bug:
+			// > Failed to execute 'transaction' on 'IDBDatabase': One of the specified object stores was not found.
+			const msg = "Failed to backup save. Please try reloading the page.";
+
+			// Prevent spam
+			if (this.toast?.toasts?.some((t) => t.message === msg)) return;
+
+			try {
+				// Since saving happens inside of an effect, there's no way to
+				// Bubble an error up to the caller
+				this.toast?.add(new Toast(msg, "failure"));
+			} finally {
+				console.error(new Error("Failed to save backups", { cause: e }));
+			}
 		}
 	}
 }

@@ -1,11 +1,13 @@
 import { getContext, setContext } from "svelte";
 
 export class Toast {
-	message: string;
-	icon: string;
+	public message: string;
+	public icon: string;
+	readonly id: string;
 
 	constructor(message: string, type: "success" | "failure") {
 		this.message = message;
+		this.id = window.crypto.randomUUID();
 
 		switch (type) {
 			case "success":
@@ -25,7 +27,7 @@ export class ToastManager {
 		this.toasts.push(toast);
 
 		setTimeout(() => {
-			this.#toasts = this.#toasts.filter((t) => t !== toast);
+			this.#toasts = this.#toasts.filter((t) => t.id !== toast.id);
 		}, duration);
 	}
 

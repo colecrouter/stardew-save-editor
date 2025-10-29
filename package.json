@@ -11,7 +11,7 @@
 		"check": "biome lint . && svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"format": "prettier --log-level silent --write src && biome check . --fix",
 		"test": "vitest run",
-		"emulate:webkit": "node test/webkit.js"
+		"emulate:webkit": "node tests/webkit.js"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^1.9.4",

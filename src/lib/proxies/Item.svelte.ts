@@ -19,6 +19,7 @@ import {
 	type ToolClass,
 } from "$types/items";
 import { ClothesType, type Item as ItemModel, TypeEnum } from "$types/save";
+import * as Sentry from "@sentry/sveltekit";
 import { type DataProxy, Raw } from ".";
 
 const nil = { "@_xsi:nil": "true" };
@@ -132,6 +133,7 @@ export class Item implements DataProxy<ItemModel> {
 		// Missing metadata makes a handful of legacy or modded items fall back to raw values.
 		if (!info) {
 			console.warn(`Item "${raw.name}" not found in ItemData`);
+			reportMissingItemMetadata(raw);
 		}
 
 		this.info = info;
@@ -660,6 +662,24 @@ export class Item implements DataProxy<ItemModel> {
 			this._dispose = undefined;
 		}
 	}
+}
+
+const reportedMissingItemMetadata = new Set<string>();
+
+function reportMissingItemMetadata(raw: ItemModel) {
+	const key = `${raw.itemId ?? "unknown"}:${raw.name ?? ""}`;
+	// Avoid reporting the same item metadata gap repeatedly; inventory rehydration can instantiate
+	// the same raw item many times during a session.
+	if (reportedMissingItemMetadata.has(key)) return;
+	reportedMissingItemMetadata.add(key);
+
+	if (typeof window === "undefined") return;
+
+	Sentry.logger.error("Item metadata missing from ItemData lookup", {
+		itemId: raw.itemId ?? null,
+		name: raw.name ?? null,
+		type: raw.type ?? null,
+	});
 }
 
 /**

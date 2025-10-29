@@ -36,6 +36,8 @@ dev ||
 			"Unable to preload CSS for",
 			"Importing a module script failed.",
 		],
+
+		enableLogs: true,
 	});
 
 // If you have a custom error handler, pass it to `handleErrorWithSentry`

@@ -1,4 +1,3 @@
-import { browser } from "$app/environment";
 import { openDB } from "idb";
 import {
 	Toast,
@@ -37,10 +36,12 @@ export class BackupManager {
 	public files: Array<File>;
 	readonly limit: number;
 	private toast?: ToastManager;
+	private disabled: boolean;
 
 	constructor(limit = BACKUP_LIMIT) {
 		this.files = $state([]);
 		this.limit = limit;
+		this.disabled = false; // In case of load errors, disable further saves
 
 		try {
 			this.toast = getToastManager();
@@ -49,7 +50,7 @@ export class BackupManager {
 		}
 
 		$effect(() => {
-			if (!this.files) return;
+			if (!this.disabled) return;
 
 			// Limit the number of backups
 			this.files.length = Math.min(this.files.length, this.limit);
@@ -58,9 +59,7 @@ export class BackupManager {
 			this.save();
 		});
 
-		this.load().catch((e) => {
-			console.error("Failed to load backups", e);
-		});
+		this.load();
 	}
 
 	/**
@@ -89,13 +88,26 @@ export class BackupManager {
 			}
 			this.files = newFiles;
 		} catch (e) {
-			// TODO investigate
-			console.warn(e);
-
-			// Empty the database
+			// Empty the database, clear the files
 			await db.clear("files").catch(() => {});
-
 			this.files = [];
+
+			if (!(e instanceof Error)) return;
+
+			let msg = e.message; // Default to the error message
+
+			// Incognito mode on WebKit causes IndexedDB to error
+			if (e instanceof DOMException && e.name === "AbortError") {
+				msg = "Backups are disabled. Are you in Incognito/Private mode?";
+
+				// Disable further attempts to save
+				this.disabled = true;
+			}
+
+			// Notify the user of the error
+			this.toast?.add(new Toast(msg, "failure"));
+
+			console.warn(new Error("Failed to load backups", { cause: e }));
 		}
 	}
 

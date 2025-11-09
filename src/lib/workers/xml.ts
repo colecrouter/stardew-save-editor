@@ -10,10 +10,42 @@ import * as Comlink from "comlink";
 import { XMLBuilder, XMLParser } from "fast-xml-parser";
 import { arrayTags, nestedArrayTags } from "./jank";
 
+// Detects whitespace nodes that exist purely for indentation/pretty-printing.
+const isFormattingWhitespace = (value: unknown): value is string =>
+	typeof value === "string" &&
+	value.trim().length === 0 &&
+	(value.includes("\n") || value.includes("\r"));
+
+const pruneFormattingWhitespace = (node: unknown): unknown => {
+	if (isFormattingWhitespace(node)) return undefined;
+	if (Array.isArray(node)) {
+		// Filter out formatting-only entries while preserving real data.
+		const next = node
+			.map((item) => pruneFormattingWhitespace(item))
+			.filter((item) => item !== undefined);
+		return next;
+	}
+	if (node && typeof node === "object") {
+		const record = node as Record<string, unknown>;
+		for (const key of Object.keys(record)) {
+			// Recurse into nested structures so indentation nodes never leak through.
+			const cleaned = pruneFormattingWhitespace(record[key]);
+			if (cleaned === undefined) {
+				delete record[key];
+			} else {
+				record[key] = cleaned;
+			}
+		}
+	}
+	return node;
+};
+
 export class XMLManager {
 	private parser = new XMLParser({
 		ignoreAttributes: false,
 		allowBooleanAttributes: true,
+		// Defaults to `true`, but we want to preserve whitespace for user-generated strings
+		trimValues: false,
 		isArray: (tagName, jPath) => {
 			if (arrayTags.has(tagName)) return true;
 
@@ -36,7 +68,8 @@ export class XMLManager {
 	});
 
 	public parse<T>(xml: string) {
-		return this.parser.parse(xml) as T;
+		const parsed = this.parser.parse(xml) as T;
+		return pruneFormattingWhitespace(parsed) as T;
 	}
 
 	/**

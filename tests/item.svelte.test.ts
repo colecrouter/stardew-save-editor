@@ -320,4 +320,39 @@ describe("Item", () => {
 			});
 		});
 	});
+
+	it("should create a Return Scepter", () => {
+		withRoot(() => {
+			const item = Item.fromName("Return Scepter");
+			expect(item[Raw]).toMatchObject({
+				name: "Return Scepter",
+				itemId: "ReturnScepter",
+				"@_xsi:type": "Wand",
+			});
+		});
+	});
+
+	it("should create a Fairy Box", () => {
+		withRoot(() => {
+			const item = Item.fromName("FairyBox");
+			expect(item[Raw]).toMatchObject({
+				name: "FairyBox",
+				itemId: "FairyBox",
+				parentSheetIndex: 74,
+				"@_xsi:type": "Trinket",
+			});
+			expect(item.generationSeed).toBeTypeOf("number");
+		});
+	});
+
+	it("should create a Mannequin", () => {
+		withRoot(() => {
+			const item = Item.fromName("MannequinMale");
+			expect(item[Raw]).toMatchObject({
+				name: "MannequinMale",
+				itemId: "MannequinMale",
+				"@_xsi:type": "Mannequin",
+			});
+		});
+	});
 });

@@ -1397,6 +1397,7 @@ export interface Item {
 	locked?: boolean;
 	match?: boolean;
 	isIslandShrinePedestal?: boolean;
+	generationSeed?: number;
 }
 
 export interface AttachmentsAttachments {

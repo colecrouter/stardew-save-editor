@@ -5,10 +5,12 @@ import boots from "../content/Data/Boots.json";
 import buildings from "../content/Data/Buildings.json";
 import animals from "../content/Data/FarmAnimals.json";
 import furniture from "../content/Data/Furniture.json";
+import mannequins from "../content/Data/Mannequins.json";
 import objects from "../content/Data/Objects.json";
 import pants from "../content/Data/Pants.json";
 import shirts from "../content/Data/Shirts.json";
 import tools from "../content/Data/Tools.json";
+import trinkets from "../content/Data/Trinkets.json";
 import weapons from "../content/Data/Weapons.json";
 import hats from "../content/Data/hats.json";
 import { characters } from "../src/lib/NPCs";
@@ -233,6 +235,8 @@ const juices = createArtisanGoods(
 	},
 );
 
+const trinketsArray = transformJSONItems(trinkets, "Trinket");
+const mannequinsArray = transformJSONItems(mannequins, "Mannequin");
 const notUndefined = <T>(x: T | undefined): x is T => x !== undefined;
 const writeToFile = JSON.stringify(
 	[
@@ -255,6 +259,8 @@ const writeToFile = JSON.stringify(
 		...pickles,
 		...jelly,
 		...juices,
+		...trinketsArray,
+		...mannequinsArray,
 	]
 		.filter(notUndefined)
 		.map((item) => [item.name, item]),
@@ -299,6 +305,7 @@ const filesToCopy = [
 	"TileSheets/wizard_furniture.png",
 	"TileSheets/weapons.png",
 	"TileSheets/tools.png",
+	"TileSheets/Mannequins.png",
 	"Characters/Farmer/pants.png",
 	"Characters/Farmer/shirts.png",
 	"Characters/Farmer/accessories.png",

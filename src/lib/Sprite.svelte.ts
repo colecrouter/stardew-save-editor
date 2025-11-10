@@ -116,7 +116,9 @@ export class Sprite {
 
 	private getSprite() {
 		const index =
-			"menuSpriteIndex" in this.info && this.info.menuSpriteIndex !== undefined
+			"menuSpriteIndex" in this.info &&
+			this.info.menuSpriteIndex !== undefined &&
+			this.info.menuSpriteIndex >= 0
 				? this.info.menuSpriteIndex
 				: (this.info.spriteIndex ??
 					Number(this.info.spriteIndex ?? this.info._key));

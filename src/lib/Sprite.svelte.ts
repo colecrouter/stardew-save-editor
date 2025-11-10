@@ -110,6 +110,9 @@ export class Sprite {
 
 			return furnitureDefaultSizes.get(furnitureType) ?? defaultSize;
 		}
+		if (this.info._type === "Mannequin") {
+			return { width: 16, height: 32 };
+		}
 
 		return spriteDefaultSizes.get(this.info._type) ?? defaultSize;
 	}

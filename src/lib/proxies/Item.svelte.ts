@@ -728,6 +728,7 @@ export const ValidSlotForItem = (item: Item, slot: ParentIndex) => {
 		hat: "Hat",
 		shirtItem: "Clothing",
 		pantsItem: "Clothing",
+		trinketItem: "Trinket",
 	} satisfies Record<Exclude<ParentIndex, number>, string>;
 
 	return allowedTypes[slot] === item.info?._type;

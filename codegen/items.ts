@@ -28,6 +28,7 @@ export interface RegularObject extends ItemBase {
 	unpreservedItemId?: string;
 	preservedItemName?: string;
 }
+
 export interface BigCraftable extends ItemBase {
 	_type: "BigCraftable";
 	_key: string;
@@ -115,6 +116,20 @@ export interface Weapon extends ItemBase {
 	mineMinLevel: number;
 }
 
+export interface Trinket extends ItemBase {
+	_type: "Trinket";
+	trinketEffectClass: string;
+	dropsNaturally: boolean;
+	canBeReforged: boolean;
+}
+
+export interface Mannequin extends ItemBase {
+	_type: "Mannequin";
+	farmerTexture: string;
+	displaysClothingAsMale: boolean;
+	cursed: boolean;
+}
+
 export type ItemInformation =
 	| RegularObject
 	| BigCraftable
@@ -124,7 +139,9 @@ export type ItemInformation =
 	| Furniture
 	| Hat
 	| Tool
-	| Weapon;
+	| Weapon
+	| Trinket
+	| Mannequin;
 
 export enum Fragility {
 	PickUpWithAnyTool = 0,
@@ -196,6 +213,7 @@ export enum ObjectCategory {
 	Weapon = -98,
 	Tool = -99,
 	Clothing = -100,
+	Trinket = -101,
 }
 
 export enum MeleeWeaponType {

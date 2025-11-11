@@ -4,5 +4,11 @@ export type ParentIndex =
 	| number
 	| keyof Pick<
 			Player,
-			"shirtItem" | "pantsItem" | "hat" | "leftRing" | "rightRing" | "boots"
+			| "shirtItem"
+			| "pantsItem"
+			| "hat"
+			| "leftRing"
+			| "rightRing"
+			| "boots"
+			| "trinketItem"
 	  >;

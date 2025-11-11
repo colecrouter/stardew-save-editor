@@ -110,13 +110,18 @@ export class Sprite {
 
 			return furnitureDefaultSizes.get(furnitureType) ?? defaultSize;
 		}
+		if (this.info._type === "Mannequin") {
+			return { width: 16, height: 32 };
+		}
 
 		return spriteDefaultSizes.get(this.info._type) ?? defaultSize;
 	}
 
 	private getSprite() {
 		const index =
-			"menuSpriteIndex" in this.info && this.info.menuSpriteIndex !== undefined
+			"menuSpriteIndex" in this.info &&
+			this.info.menuSpriteIndex !== undefined &&
+			this.info.menuSpriteIndex >= 0
 				? this.info.menuSpriteIndex
 				: (this.info.spriteIndex ??
 					Number(this.info.spriteIndex ?? this.info._key));

@@ -34,6 +34,8 @@ const typeToItemTypeMap = new Map<ItemInformation["_type"], string>([
 	["Shirt", "Clothing"],
 	["Pants", "Clothing"],
 	["Boots", "Boots"],
+	["Trinket", "Trinket"],
+	["Mannequin", "Mannequin"],
 ]);
 
 // Mapping of tool names to tool types
@@ -45,6 +47,7 @@ const toolTypeMap = new Map<string, ToolClass>([
 	["Can", "WateringCan"],
 	["Rod", "FishingRod"],
 	["Pan", "Pan"],
+	["Wand", "Wand"],
 ]);
 
 const toolNameMap = new Map<string, string>([
@@ -71,6 +74,8 @@ const typeToCategoryMap = {
 	Hat: ObjectCategory.Hat,
 	Weapon: ObjectCategory.Weapon,
 	Tool: ObjectCategory.Tool,
+	Trinket: ObjectCategory.Trinket,
+	Mannequin: ObjectCategory.Furniture,
 };
 
 /**
@@ -122,6 +127,8 @@ export class Item implements DataProxy<ItemModel> {
 	public immunityBonus: number | undefined;
 	/** For bottomless buckets */
 	public isBottomless: boolean | undefined;
+	/** For trinkets, random number from 0-9999998 */
+	public generationSeed: number | undefined;
 
 	constructor(raw: ItemModel) {
 		this[Raw] = raw;
@@ -212,6 +219,11 @@ export class Item implements DataProxy<ItemModel> {
 			this[Raw].name === "Watering Can" ? this[Raw].isBottomless : undefined,
 		);
 		$effect(() => this.syncBottomless());
+
+		this.generationSeed = $state(
+			this.info?._type === "Trinket" ? this[Raw].generationSeed : undefined,
+		);
+		$effect(() => this.syncGenerationSeed());
 	}
 
 	// Read-only derived properties retained as getters
@@ -304,23 +316,28 @@ export class Item implements DataProxy<ItemModel> {
 
 		// Handle tools separately
 		if (data._type === "Tool") {
+			// Special handling for upgrade levels
 			// Remove "Steel" from "Steel Watering Can" etc.
 			const nameWithoutPrefix = name.split(" ").pop() ?? name;
 			itemType = toolTypeMap.get(nameWithoutPrefix);
-
-			// Special handling for upgrade levels
-			if (["Pickaxe", "Axe", "Hoe", "WateringCan"].includes(itemType ?? "")) {
+			if (
+				itemType &&
+				["Pickaxe", "Axe", "Hoe", "WateringCan"].includes(itemType)
+			) {
 				item.upgradeLevel = 0;
 				for (const [levelName, levelValue] of upgradeLevels) {
 					if (name.startsWith(levelName)) {
 						item.upgradeLevel = levelValue;
-						// Remove prefix from name
+
+						// Remove "Steel" from "Steel Watering Can" etc.
 						item.name = toolNameMap.get(nameWithoutPrefix) ?? nameWithoutPrefix;
 						break;
 					}
 				}
 				item.indexOfMenuItemView = data.menuSpriteIndex;
-			} else if (itemType === "FishingRod") {
+			}
+
+			if (itemType === "FishingRod") {
 				item.upgradeLevel = FishingRodUpgradeNumber.get(data.name) ?? 0;
 				item.parentSheetIndex = 685;
 				item.initialParentTileIndex = FishingRodSpriteIndex.get(data.name) ?? 0;
@@ -331,6 +348,10 @@ export class Item implements DataProxy<ItemModel> {
 				item.IsBottomless = false;
 				item.isBottomless = false;
 			}
+
+			// Other tools (Wand) don't match the above behavior
+			// For now, I'll just add this catch all
+			if (!itemType) itemType = toolTypeMap.get(data.class);
 		}
 
 		// Handle weapon properties
@@ -344,6 +365,11 @@ export class Item implements DataProxy<ItemModel> {
 			item.knockback = data.knockback;
 			item.critChance = data.critChance;
 			item.critMultiplier = data.critMultiplier;
+		}
+
+		// Handle trinket properties
+		if (data._type === "Trinket") {
+			item.generationSeed = Math.floor(Math.random() * 9999999); // Random seed between 0 and 9999998
 		}
 
 		// Set the xsi:type if itemType is determined
@@ -655,6 +681,11 @@ export class Item implements DataProxy<ItemModel> {
 		this[Raw].IsBottomless = this.isBottomless;
 	}
 
+	private syncGenerationSeed() {
+		if (this.generationSeed === undefined) return;
+		this[Raw].generationSeed = this.generationSeed;
+	}
+
 	public dispose() {
 		try {
 			this._dispose?.();
@@ -697,6 +728,7 @@ export const ValidSlotForItem = (item: Item, slot: ParentIndex) => {
 		hat: "Hat",
 		shirtItem: "Clothing",
 		pantsItem: "Clothing",
+		trinketItem: "Trinket",
 	} satisfies Record<Exclude<ParentIndex, number>, string>;
 
 	return allowedTypes[slot] === item.info?._type;

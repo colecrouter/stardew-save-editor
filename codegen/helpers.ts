@@ -1,8 +1,10 @@
 import type bigCraftables from "../content/Data/BigCraftables.json";
+import type mannequins from "../content/Data/Mannequins.json";
 import objects from "../content/Data/Objects.json";
 import type pants from "../content/Data/Pants.json";
 import type shirts from "../content/Data/Shirts.json";
 import type tools from "../content/Data/Tools.json";
+import type trinkets from "../content/Data/Trinkets.json";
 import type weapons from "../content/Data/Weapons.json";
 import { colorMap } from "./colors";
 import {
@@ -26,7 +28,9 @@ type JSONImports =
 	| Values<typeof shirts>
 	| Values<typeof pants>
 	| Values<typeof weapons>
-	| Values<typeof tools>;
+	| Values<typeof tools>
+	| Values<typeof trinkets>
+	| Values<typeof mannequins>;
 
 // Make Object.entries typesafe
 declare global {
@@ -59,25 +63,31 @@ declare global {
     @param data Directly imported JSON data (e.g. /content/Data/Objects.json)
     @param itemType The type of item to transform the data into
 */
-export const transformJSONItems = <T extends ItemInformation["_type"]>(
+export const transformJSONItems = <
+	T extends Omit<ItemInformation["_type"], "Furniture">,
+>(
 	data: Record<string, JSONImports>,
 	itemType: T,
 ) =>
 	Object.entries(data).map(
 		([key, obj]) =>
 			({
+				// @ts-expect-error Furniture type doesn't match and I'm getting tired of this
 				_type: itemType,
 				_key: key,
-				name: obj.Name,
+				name: "Name" in obj ? obj.Name : obj.ID, // TODO refactor name to be optional in ItemInformation
 				displayName: obj.DisplayName,
 				description: obj.Description,
 				price: "Price" in obj ? obj.Price : undefined,
-				// @ts-expect-error
 				type: "Type" in obj ? (obj.Type as TypeEnum) : undefined,
-				// @ts-expect-error
 				category: "Category" in obj ? (obj.Category as Category) : undefined,
 				texture: fixTexture(obj.Texture),
-				spriteIndex: obj.SpriteIndex,
+				spriteIndex:
+					"SpriteIndex" in obj
+						? obj.SpriteIndex
+						: "SheetIndex" in obj
+							? obj.SheetIndex
+							: undefined,
 				menuSpriteIndex:
 					"MenuSpriteIndex" in obj ? obj.MenuSpriteIndex : undefined,
 				upgradeLevel: "UpgradeLevel" in obj ? obj.UpgradeLevel : undefined,

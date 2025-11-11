@@ -54,6 +54,7 @@
 		hat: "Hat",
 		shirtItem: "Shirt",
 		pantsItem: "Pants",
+		trinketItem: "Trinket",
 	} satisfies Record<Exclude<ParentIndex, number>, string>;
 
 	// Check if selected item matches the slot type

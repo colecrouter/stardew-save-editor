@@ -1118,6 +1118,7 @@ export interface Player {
 	rightRing?: Item;
 	shirtItem?: Item;
 	pantsItem?: Item;
+	trinketItem?: Item;
 	divorceTonight: boolean;
 	changeWalletTypeTonight: boolean;
 	gameVersion: string;

@@ -1,4 +1,4 @@
-import type { FurnitureType } from "./items";
+import type { FurnitureType } from "./items.js";
 
 export interface Save {
 	player: Player;

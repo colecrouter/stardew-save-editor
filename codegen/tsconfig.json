@@ -1,0 +1,10 @@
+{
+	"extends": ["../tsconfig.base.json"],
+	"compilerOptions": {
+		"types": ["node"],
+		"lib": ["esnext"],
+		"module": "esnext",
+		"moduleResolution": "bundler",
+		"target": "esnext"
+	}
+}

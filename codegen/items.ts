@@ -1,4 +1,4 @@
-import type { TypeEnum } from "./save";
+import type { TypeEnum } from "./save.js";
 
 export interface ItemBase {
 	_type: unknown;

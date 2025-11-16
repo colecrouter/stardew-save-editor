@@ -1,25 +1,27 @@
 import { copyFile, mkdir, readFile, writeFile } from "node:fs/promises";
 import { imageDimensionsFromData } from "image-dimensions";
-import bigCraftables from "../content/Data/BigCraftables.json";
-import boots from "../content/Data/Boots.json";
-import buildings from "../content/Data/Buildings.json";
-import animals from "../content/Data/FarmAnimals.json";
-import furniture from "../content/Data/Furniture.json";
-import mannequins from "../content/Data/Mannequins.json";
-import objects from "../content/Data/Objects.json";
-import pants from "../content/Data/Pants.json";
-import shirts from "../content/Data/Shirts.json";
-import tools from "../content/Data/Tools.json";
-import trinkets from "../content/Data/Trinkets.json";
-import weapons from "../content/Data/Weapons.json";
-import hats from "../content/Data/hats.json";
-import { characters } from "../src/lib/NPCs";
+import bigCraftables from "../content/Data/BigCraftables.json" with {
+	type: "json",
+};
+import boots from "../content/Data/Boots.json" with { type: "json" };
+import buildings from "../content/Data/Buildings.json" with { type: "json" };
+import animals from "../content/Data/FarmAnimals.json" with { type: "json" };
+import furniture from "../content/Data/Furniture.json" with { type: "json" };
+import mannequins from "../content/Data/Mannequins.json" with { type: "json" };
+import objects from "../content/Data/Objects.json" with { type: "json" };
+import pants from "../content/Data/Pants.json" with { type: "json" };
+import shirts from "../content/Data/Shirts.json" with { type: "json" };
+import tools from "../content/Data/Tools.json" with { type: "json" };
+import trinkets from "../content/Data/Trinkets.json" with { type: "json" };
+import weapons from "../content/Data/Weapons.json" with { type: "json" };
+import hats from "../content/Data/hats.json" with { type: "json" };
+import { characters } from "../src/lib/NPCs.js";
 import {
 	createArtisanGoods,
 	fixTexture,
 	thrw,
 	transformJSONItems,
-} from "./helpers";
+} from "./helpers.js";
 import {
 	type Boots,
 	ObjectCategory as Category,
@@ -29,7 +31,7 @@ import {
 	type PlacementRestriction,
 	type RegularObject,
 	type Size,
-} from "./items";
+} from "./items.js";
 
 // **Items**
 

@@ -1,18 +1,19 @@
 import type bigCraftables from "../content/Data/BigCraftables.json";
 import type mannequins from "../content/Data/Mannequins.json";
-import objects from "../content/Data/Objects.json";
+import objects from "../content/Data/Objects.json" with { type: "json" };
 import type pants from "../content/Data/Pants.json";
 import type shirts from "../content/Data/Shirts.json";
 import type tools from "../content/Data/Tools.json";
 import type trinkets from "../content/Data/Trinkets.json";
 import type weapons from "../content/Data/Weapons.json";
-import { colorMap } from "./colors";
+import { colorMap } from "./colors.js";
 import {
 	ObjectCategory as Category,
 	type ItemInformation,
 	type RegularObject,
-} from "./items";
-import type { TypeEnum } from "./save";
+	type ToolClass,
+} from "./items.js";
+import type { TypeEnum } from "./save.js";
 
 /** Helper function to throw from outside closures
  * @throws Always throws an error with the given message
@@ -64,76 +65,70 @@ declare global {
     @param itemType The type of item to transform the data into
 */
 export const transformJSONItems = <
-	T extends Omit<ItemInformation["_type"], "Furniture">,
+	T extends Exclude<ItemInformation["_type"], "Furniture">,
 >(
 	data: Record<string, JSONImports>,
 	itemType: T,
 ) =>
-	Object.entries(data).map(
-		([key, obj]) =>
-			({
-				// @ts-expect-error Furniture type doesn't match and I'm getting tired of this
-				_type: itemType,
-				_key: key,
-				name: "Name" in obj ? obj.Name : obj.ID, // TODO refactor name to be optional in ItemInformation
-				displayName: obj.DisplayName,
-				description: obj.Description,
-				price: "Price" in obj ? obj.Price : undefined,
-				type: "Type" in obj ? (obj.Type as TypeEnum) : undefined,
-				category: "Category" in obj ? (obj.Category as Category) : undefined,
-				texture: fixTexture(obj.Texture),
-				spriteIndex:
-					"SpriteIndex" in obj
-						? obj.SpriteIndex
-						: "SheetIndex" in obj
-							? obj.SheetIndex
-							: undefined,
-				menuSpriteIndex:
-					"MenuSpriteIndex" in obj ? obj.MenuSpriteIndex : undefined,
-				upgradeLevel: "UpgradeLevel" in obj ? obj.UpgradeLevel : undefined,
-				attachmentSlots:
-					"AttachmentSlots" in obj && obj.AttachmentSlots !== -1
-						? obj.AttachmentSlots
-						: undefined,
-				class: "ClassName" in obj ? obj.ClassName : undefined,
-				defense: "Defense" in obj ? obj.Defense : undefined,
-				immunity: "Immunity" in obj ? obj.Immunity : undefined,
-				canBeDyed: "CanBeDyed" in obj ? obj.CanBeDyed : undefined,
-				isPrismatic: "IsPrismatic" in obj ? obj.IsPrismatic : undefined,
-				showRealHair: "ShowRealHair" in obj ? obj.ShowRealHair : undefined,
-				skipHairstyleOffset:
-					"SkipHairstyleOffset" in obj ? obj.SkipHairstyleOffset : undefined,
-				tilesheetSize: "TilesheetSize" in obj ? obj.TilesheetSize : undefined,
-				boundingBoxSize:
-					"BoundingBoxSize" in obj ? obj.BoundingBoxSize : undefined,
-				rotations: "Rotations" in obj ? obj.Rotations : undefined,
-				placementRestriction:
-					"PlacementRestriction" in obj ? obj.PlacementRestriction : undefined,
-				defaultColor: ("DefaultColor" in obj && obj.DefaultColor) || undefined,
-				offLimitsForRandomSale:
-					"OffLimitsForRandomSale" in obj
-						? obj.OffLimitsForRandomSale
-						: undefined,
-				salePrice: "SalePrice" in obj ? obj.SalePrice : undefined,
-				canBePlacedIndoors:
-					"CanBePlacedIndoors" in obj ? obj.CanBePlacedIndoors : undefined,
-				canBePlacedOutdoors:
-					"CanBePlacedOutdoors" in obj ? obj.CanBePlacedOutdoors : undefined,
-				isLamp: "IsLamp" in obj ? obj.IsLamp : undefined,
-				hasSleeves: "HasSleeves" in obj ? obj.HasSleeves : undefined,
-				edibility: "Edibility" in obj ? obj.Edibility : undefined,
-				tags: ("ContextTags" in obj && obj.ContextTags) || undefined,
-				minDamage: "MinDamage" in obj ? obj.MinDamage : undefined,
-				maxDamage: "MaxDamage" in obj ? obj.MaxDamage : undefined,
-				speed: "Speed" in obj ? obj.Speed : undefined,
-				knockback: "Knockback" in obj ? obj.Knockback : undefined,
-				critChance: "CritChance" in obj ? obj.CritChance : undefined,
-				critMultiplier:
-					"CritMultiplier" in obj ? obj.CritMultiplier : undefined,
-				areaOfEffect: "AreaOfEffect" in obj ? obj.AreaOfEffect : undefined,
-				precision: "Precision" in obj ? obj.Precision : undefined,
-			}) satisfies ItemInformation,
-	);
+	Object.entries(data).map(([key, obj]) => ({
+		_type: itemType,
+		_key: key,
+		name: "Name" in obj ? obj.Name : obj.ID, // TODO refactor name to be optional in ItemInformation
+		displayName: obj.DisplayName,
+		description: obj.Description,
+		price: "Price" in obj ? obj.Price : undefined,
+		type: "Type" in obj ? (obj.Type as TypeEnum) : undefined,
+		category: "Category" in obj ? (obj.Category as Category) : undefined,
+		texture: fixTexture(obj.Texture),
+		spriteIndex:
+			"SpriteIndex" in obj
+				? obj.SpriteIndex
+				: "SheetIndex" in obj
+					? obj.SheetIndex
+					: undefined,
+		menuSpriteIndex: "MenuSpriteIndex" in obj ? obj.MenuSpriteIndex : undefined,
+		upgradeLevel: "UpgradeLevel" in obj ? obj.UpgradeLevel : undefined,
+		attachmentSlots:
+			"AttachmentSlots" in obj && obj.AttachmentSlots !== -1
+				? obj.AttachmentSlots
+				: undefined,
+		class: "ClassName" in obj ? (obj.ClassName as ToolClass) : undefined,
+		defense: "Defense" in obj ? obj.Defense : undefined,
+		// immunity: "Immunity" in obj ? obj.Immunity : undefined, // Only for Boots
+		canBeDyed: "CanBeDyed" in obj ? obj.CanBeDyed : undefined,
+		isPrismatic: "IsPrismatic" in obj ? obj.IsPrismatic : undefined,
+		// showRealHair: "ShowRealHair" in obj ? obj.ShowRealHair : undefined, // Only for Hats
+		// skipHairstyleOffset:
+		// "SkipHairstyleOffset" in obj ? obj.SkipHairstyleOffset : undefined, // Only for Hats
+		// tilesheetSize: "TilesheetSize" in obj ? obj.TilesheetSize : undefined, // Only for furniture
+		// boundingBoxSize:
+		// "BoundingBoxSize" in obj ? obj.BoundingBoxSize : undefined, // Only for furniture
+		// rotations: "Rotations" in obj ? obj.Rotations : undefined, // Only for furniture
+		// placementRestriction:
+		// "PlacementRestriction" in obj ? obj.PlacementRestriction : undefined, // Only for furniture
+		defaultColor: ("DefaultColor" in obj && obj.DefaultColor) || undefined,
+		// offLimitsForRandomSale:
+		// "OffLimitsForRandomSale" in obj
+		// 	? obj.OffLimitsForRandomSale
+		// 	: undefined, // Only for ???
+		salePrice: "SalePrice" in obj ? obj.SalePrice : undefined,
+		canBePlacedIndoors:
+			"CanBePlacedIndoors" in obj ? obj.CanBePlacedIndoors : undefined,
+		canBePlacedOutdoors:
+			"CanBePlacedOutdoors" in obj ? obj.CanBePlacedOutdoors : undefined,
+		isLamp: "IsLamp" in obj ? obj.IsLamp : undefined,
+		hasSleeves: "HasSleeves" in obj ? obj.HasSleeves : undefined,
+		edibility: "Edibility" in obj ? obj.Edibility : undefined,
+		tags: ("ContextTags" in obj && obj.ContextTags) || undefined,
+		minDamage: "MinDamage" in obj ? obj.MinDamage : undefined,
+		maxDamage: "MaxDamage" in obj ? obj.MaxDamage : undefined,
+		speed: "Speed" in obj ? obj.Speed : undefined,
+		knockback: "Knockback" in obj ? obj.Knockback : undefined,
+		critChance: "CritChance" in obj ? obj.CritChance : undefined,
+		critMultiplier: "CritMultiplier" in obj ? obj.CritMultiplier : undefined,
+		areaOfEffect: "AreaOfEffect" in obj ? obj.AreaOfEffect : undefined,
+		precision: "Precision" in obj ? obj.Precision : undefined,
+	}));
 
 interface ArtisanConfig {
 	filter: (obj: RegularObject) => boolean;

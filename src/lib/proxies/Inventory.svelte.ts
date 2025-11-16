@@ -59,6 +59,7 @@ export class Inventory
 			"boots",
 			"leftRing",
 			"rightRing",
+			"trinketItem",
 		];
 		for (const slot of equipSlots) {
 			const rawEntry = this[Raw][slot];

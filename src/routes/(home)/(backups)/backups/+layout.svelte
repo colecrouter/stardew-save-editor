@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { browser } from "$app/environment";
 	import { goto } from "$app/navigation";
-	import { base } from "$app/paths";
+	import { resolve } from "$app/paths";
 	import { page } from "$app/stores";
 	import { getSaveManager } from "$lib/SaveManager.svelte";
 	import UiButton from "$lib/ui/UIButton.svelte";
@@ -19,7 +19,7 @@
 			browser &&
 			p.url.pathname === "/" &&
 			saveManager.save?.raw &&
-			goto(`${base}/inventory`),
+			goto(resolve("/inventory")),
 	);
 </script>
 
@@ -27,7 +27,7 @@
 	{@render children?.()}
 
 	<nav>
-		<UiButton href={`${base}/`} alt="Cancel">❌</UiButton>
+		<UiButton href={resolve(`/`)} alt="Cancel">❌</UiButton>
 	</nav>
 </div>
 

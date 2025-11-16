@@ -1,17 +1,17 @@
 <script lang="ts">
-	import { base } from "$app/paths";
+	import { resolve } from "$app/paths";
 	import UiButton from "$lib/ui/UIButton.svelte";
 </script>
 
 <nav>
-	<UiButton href={`${base}/inventory`} alt="Inventory">🎒</UiButton>
-	<UiButton href={`${base}/character`} alt="Character">🙋</UiButton>
-	<UiButton href={`${base}/appearance`} alt="Appearance">🪞</UiButton>
-	<UiButton href={`${base}/relationships`} alt="Relationships">💖</UiButton>
-	<UiButton href={`${base}/crafting`} alt="Crafting">🔨</UiButton>
-	<UiButton href={`${base}/cooking`} alt="Cooking">🍫</UiButton>
-	<UiButton href={`${base}/farmhands`} alt="Farmhands">👩‍🌾</UiButton>
-	<UiButton href={`${base}/bundles`} alt="Community Center">🎁</UiButton>
+	<UiButton href={resolve("/inventory")} alt="Inventory">🎒</UiButton>
+	<UiButton href={resolve("/character")} alt="Character">🙋</UiButton>
+	<UiButton href={resolve("/appearance")} alt="Appearance">🪞</UiButton>
+	<UiButton href={resolve("/relationships")} alt="Relationships">💖</UiButton>
+	<UiButton href={resolve("/crafting")} alt="Crafting">🔨</UiButton>
+	<UiButton href={resolve("/cooking")} alt="Cooking">🍫</UiButton>
+	<UiButton href={resolve("/farmhands")} alt="Farmhands">👩‍🌾</UiButton>
+	<UiButton href={resolve("/bundles")} alt="Community Center">🎁</UiButton>
 </nav>
 
 <style>

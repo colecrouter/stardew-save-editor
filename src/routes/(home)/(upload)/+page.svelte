@@ -2,7 +2,7 @@
 	import { preventDefault } from "svelte/legacy";
 
 	import { goto } from "$app/navigation";
-	import { base } from "$app/paths";
+	import { resolve } from "$app/paths";
 	import { getSaveManager } from "$lib/SaveManager.svelte";
 	import { Toast, getToastManager } from "$lib/ToastManager.svelte";
 	import UiContainer from "$lib/ui/UIContainer.svelte";
@@ -28,7 +28,7 @@
 			uploading = true;
 			await saveManager.import(file);
 
-			goto(`${base}/inventory`);
+			goto(resolve("/inventory"));
 
 			toastManager.add(new Toast("Save file uploaded!", "success"));
 		} catch (e) {

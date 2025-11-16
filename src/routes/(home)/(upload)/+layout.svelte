@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { base } from "$app/paths";
+	import { resolve } from "$app/paths";
 	import UiButton from "$lib/ui/UIButton.svelte";
 	interface Props {
 		children: import("svelte").Snippet;
@@ -12,7 +12,7 @@
 	{@render children()}
 
 	<nav>
-		<UiButton href={`${base}/backups`} alt="Backups">💿</UiButton>
+		<UiButton href={resolve(`/backups`)} alt="Backups">💿</UiButton>
 	</nav>
 </div>
 

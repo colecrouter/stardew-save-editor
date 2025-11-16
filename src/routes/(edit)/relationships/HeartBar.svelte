@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { base } from "$app/paths";
+	import { asset } from "$app/paths";
 	import type { Friendship } from "$lib/proxies/Friendship.svelte";
 	import UiContainerSmall from "$lib/ui/UIContainerSmall.svelte";
 	import UiInput from "$lib/ui/UIInput.svelte";
@@ -18,7 +18,7 @@
 	<UiContainerSmall>
 		<div
 			class="portrait"
-			style:background-image={`url('${base}/assets/portraits/${name}.png')`}
+			style:background-image={`url('${asset(`/assets/portraits/${name}.png`)}')`}
 		></div>
 	</UiContainerSmall>
 	<div class="right">

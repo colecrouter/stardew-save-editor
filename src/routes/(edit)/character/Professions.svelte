@@ -1,4 +1,5 @@
 <script lang="ts" module>
+	import { asset } from "$app/paths";
 	import { Profession, skillGroups } from "$lib/proxies/Skills.svelte";
 	const getSprite = (p: Profession) => {
 		const x = (p % 6) * 16;
@@ -24,7 +25,7 @@
 {#snippet icon(p: Profession)}
 	{@const [x, y] = getSprite(p)}
 	<img
-		src={`/assets/Cursors.png`}
+		src={asset("/assets/Cursors.png")}
 		alt={Profession[p]}
 		style:object-position="{-x}px {-y}px"
 		class="profession-icon"

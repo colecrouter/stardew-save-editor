@@ -8,12 +8,12 @@
 	}
 
 	function sheetUrl(sheet?: string) {
-		return sheet && `url(${base}/assets/${sheet})`;
+		return sheet && `url(${asset(`/assets/${sheet}`)})`;
 	}
 </script>
 
 <script lang="ts">
-	import { base } from "$app/paths";
+	import { asset } from "$app/paths";
 	import type { Color } from "$lib/proxies/Color.svelte";
 	import type { Item } from "$lib/proxies/Item.svelte";
 

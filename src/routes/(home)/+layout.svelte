@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { goto } from "$app/navigation";
-	import { base } from "$app/paths";
+	import { resolve } from "$app/paths";
 	import { getSaveManager } from "$lib/SaveManager.svelte";
 
 	interface Props {
@@ -12,7 +12,7 @@
 	$effect(() => {
 		const saveManager = getSaveManager();
 		if (saveManager.save) {
-			goto(`${base}/inventory`);
+			goto(resolve("/inventory"));
 		}
 	});
 </script>

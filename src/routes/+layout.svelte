@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { beforeNavigate } from "$app/navigation";
-	import { base } from "$app/paths";
+	import { asset, resolve } from "$app/paths";
 	import { updated } from "$app/state";
 	import { setSaveManager } from "$lib/SaveManager.svelte";
 	import { setToastManager } from "$lib/ToastManager.svelte";
@@ -20,15 +20,15 @@
 </script>
 
 <svelte:head>
-	<meta property="og:image" content={`${base}/img/summary.png`} />
-	<link rel="icon" type="image/png" href={`${base}/img/favicon.png`} />
-	<link rel="canonical" href={`${base}/backups`} />
-	<link rel="canonical" href={`${base}/inventory`} />
-	<link rel="canonical" href={`${base}/character`} />
-	<link rel="canonical" href={`${base}/appearance`} />
-	<link rel="canonical" href={`${base}/relationships`} />
-	<link rel="canonical" href={`${base}/crafting`} />
-	<link rel="canonical" href={`${base}/cooking`} />
+	<meta property="og:image" content={asset("/img/summary.png")} />
+	<link rel="icon" type="image/png" href={asset("/img/favicon.png")} />
+	<link rel="canonical" href={resolve("/backups")} />
+	<link rel="canonical" href={resolve("/inventory")} />
+	<link rel="canonical" href={resolve("/character")} />
+	<link rel="canonical" href={resolve("/appearance")} />
+	<link rel="canonical" href={resolve("/relationships")} />
+	<link rel="canonical" href={resolve("/crafting")} />
+	<link rel="canonical" href={resolve("/cooking")} />
 </svelte:head>
 
 <!-- GITHUB LOGO -->
@@ -74,15 +74,15 @@
 	</p>
 
 	<nav>
-		<h2><a href={`${base}/`}>Upload</a></h2>
-		<h2><a href={`${base}/backups`}>Backups</a></h2>
+		<h2><a href={resolve("/")}>Upload</a></h2>
+		<h2><a href={resolve("/backups")}>Backups</a></h2>
 
-		<h2><a href={`${base}/inventory`}>Inventory</a></h2>
-		<h2><a href={`${base}/character`}>Character</a></h2>
-		<h2><a href={`${base}/appearance`}>Appearance</a></h2>
-		<h2><a href={`${base}/relationships`}>Relationships</a></h2>
-		<h2><a href={`${base}/crafting`}>Crafting</a></h2>
-		<h2><a href={`${base}/cooking`}>Cooking</a></h2>
+		<h2><a href={resolve("/inventory")}>Inventory</a></h2>
+		<h2><a href={resolve("/character")}>Character</a></h2>
+		<h2><a href={resolve("/appearance")}>Appearance</a></h2>
+		<h2><a href={resolve("/relationships")}>Relationships</a></h2>
+		<h2><a href={resolve("/crafting")}>Crafting</a></h2>
+		<h2><a href={resolve("/cooking")}>Cooking</a></h2>
 	</nav>
 
 	<h3>

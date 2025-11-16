@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { goto } from "$app/navigation";
-	import { base } from "$app/paths";
+	import { resolve } from "$app/paths";
 	import { getSaveManager } from "$lib/SaveManager.svelte";
 	import { Toast, getToastManager } from "$lib/ToastManager.svelte";
 	import UiButton from "$lib/ui/UIButton.svelte";
@@ -35,7 +35,7 @@
 
 	$effect(() => {
 		if (!saveManager.save) {
-			goto(`${base}/`);
+			goto(resolve("/"));
 		}
 	});
 </script>

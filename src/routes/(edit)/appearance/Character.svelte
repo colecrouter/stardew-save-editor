@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { base } from "$app/paths";
+	import { asset } from "$app/paths";
 	import {
 		PrimaryBootColors,
 		PrimarySkinColors,
@@ -23,21 +23,21 @@
 
 	let { player }: Props = $props();
 
-	let gender = $derived(player.gender.toLowerCase());
+	let gender = $derived(player.gender.toLowerCase()) as "male" | "female";
 
 	// Spritesheets
-	let baseSheet = $derived(`${base}/img/${gender}_farmer.png`);
-	let otherSheet = $derived(`${base}/img/${gender}_farmer_other.png`);
-	let armsSheet = $derived(`${base}/img/${gender}_farmer_arms.png`);
-	let bootsSheet = $derived(`${base}/img/${gender}_farmer_boots.png`);
+	let baseSheet = $derived(asset(`/img/${gender}_farmer.png`));
+	let otherSheet = $derived(asset(`/img/${gender}_farmer_other.png`));
+	let armsSheet = $derived(asset(`/img/${gender}_farmer_arms.png`));
+	let bootsSheet = $derived(asset(`/img/${gender}_farmer_boots.png`));
 	// const hairSheet = `${base}/assets/hairstyles.png`;
 	let hairSheet = $derived(
-		`${base}/assets/hairstyles${player.hairstyle >= 56 ? "2" : ""}.png`,
+		asset(`/assets/hairstyles${player.hairstyle >= 56 ? "2" : ""}.png`),
 	);
-	const pantsSheet = `${base}/assets/pants.png`;
-	const shirtSheet = `${base}/assets/shirts.png`;
-	const accessoriesSheet = `${base}/assets/accessories.png`;
-	const hatSheet = `${base}/assets/hats.png`;
+	const pantsSheet = asset("/assets/pants.png");
+	const shirtSheet = asset("/assets/shirts.png");
+	const accessoriesSheet = asset("/assets/accessories.png");
+	const hatSheet = asset("/assets/hats.png");
 
 	const underwear = Item.fromName("Polka Dot Shorts");
 	const undershirt = $derived(

@@ -20,7 +20,7 @@ const config = {
 		csp: {
 			mode: "auto",
 			directives: {
-				"connect-src": ["self", "https://*.ingest.us.sentry.io"],
+				"connect-src": ["self", "*.sentry.io", "*.ingest.us.sentry.io"],
 				"script-src": ["self", "unsafe-inline"],
 				"worker-src": ["self", "blob:"],
 			},

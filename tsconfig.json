@@ -1,11 +1,14 @@
 {
-	"extends": ["./.svelte-kit/tsconfig.json"],
+	// Main TypeScript config for the SvelteKit app
+	// - tsconfig.base.json: Base compiler options (strict mode, skipLibCheck, etc.)
+	// - .svelte-kit/tsconfig.json: Auto-generated SvelteKit config (paths, includes/excludes)
+	"extends": ["./tsconfig.base.json", "./.svelte-kit/tsconfig.json"],
 	// Path aliases are handled by https://kit.svelte.dev/docs/configuration#alias
 	//
 	// If you want to overwrite includes/excludes, make sure to copy over the relevant includes/excludes
 	// from the referenced tsconfig.json - TypeScript does not merge them in
 	"compilerOptions": {
-		"types": [],
-		"typeRoots": []
+		// Only load browser-specific @types packages (excludes @types/node to avoid polluting browser globals)
+		"types": ["wicg-file-system-access"]
 	}
 }

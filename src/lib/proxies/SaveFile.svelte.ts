@@ -67,15 +67,27 @@ export class SaveProxy implements DataProxy<SaveFile> {
 	}
 
 	// Build initial Farmer proxy list
+	// Keep track of which original indices map to which player proxies
+	private playerIndexMap: Map<number, number> = new Map();
+
 	private buildPlayers(): Farmer[] {
 		const unfiltered =
 			this[Raw].SaveGame.farmhands === ""
 				? []
 				: this[Raw].SaveGame.farmhands.Farmer;
-		const farmhands = unfiltered.filter(
-			(f): f is typeof f => f !== undefined && f.name?.trim() !== "",
-		);
-		return [this[Raw].SaveGame.player, ...farmhands].map((p) => new Farmer(p));
+		
+		// Build players and track mapping from original index to player index
+		const players: Farmer[] = [new Farmer(this[Raw].SaveGame.player)];
+		this.playerIndexMap.clear();
+		
+		unfiltered.forEach((f, origIndex) => {
+			if (f !== undefined && f.name?.trim() !== "") {
+				this.playerIndexMap.set(origIndex, players.length);
+				players.push(new Farmer(f));
+			}
+		});
+		
+		return players;
 	}
 
 	private syncPlayers() {
@@ -85,13 +97,18 @@ export class SaveProxy implements DataProxy<SaveFile> {
 			this[Raw].SaveGame.farmhands === ""
 				? []
 				: this[Raw].SaveGame.farmhands.Farmer;
-		const newFarmhands = orig.map((origRaw, i) => {
+		const newFarmhands = orig.map((origRaw, origIndex) => {
 			if (!origRaw.name?.trim()) return origRaw; // preserve ghost
-			const repl = this.players[i + 1]?.[Raw];
-			return repl ?? origRaw;
+			// Use the index map to find the correct player proxy
+			const playerIndex = this.playerIndexMap.get(origIndex);
+			if (playerIndex !== undefined) {
+				return this.players[playerIndex]?.[Raw] ?? origRaw;
+			}
+			return origRaw;
 		});
 		// Append any newly added farmhands beyond original length
-		for (let i = orig.length + 1; i < this.players.length; i++) {
+		const maxMappedPlayerIndex = Math.max(...Array.from(this.playerIndexMap.values()), 0);
+		for (let i = maxMappedPlayerIndex + 1; i < this.players.length; i++) {
 			const raw = this.players[i]?.[Raw];
 			if (raw) newFarmhands.push(raw);
 		}

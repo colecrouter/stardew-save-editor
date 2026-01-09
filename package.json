@@ -14,7 +14,7 @@
 		"emulate:webkit": "node tests/webkit.js"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "^1.9.4",
+		"@biomejs/biome": "^2.3.11",
 		"@sentry/sveltekit": "^10.22.0",
 		"@sveltejs/adapter-static": "^3.0.10",
 		"@sveltejs/kit": "^2.48.2",

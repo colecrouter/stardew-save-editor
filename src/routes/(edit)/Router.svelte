@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { resolve } from "$app/paths";
-	import UiButton from "$lib/ui/UIButton.svelte";
+import { resolve } from "$app/paths";
+import UiButton from "$lib/ui/UIButton.svelte";
 </script>
 
 <nav>

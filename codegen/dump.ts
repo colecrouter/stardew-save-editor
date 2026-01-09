@@ -7,6 +7,7 @@ import boots from "../content/Data/Boots.json" with { type: "json" };
 import buildings from "../content/Data/Buildings.json" with { type: "json" };
 import animals from "../content/Data/FarmAnimals.json" with { type: "json" };
 import furniture from "../content/Data/Furniture.json" with { type: "json" };
+import hats from "../content/Data/hats.json" with { type: "json" };
 import mannequins from "../content/Data/Mannequins.json" with { type: "json" };
 import objects from "../content/Data/Objects.json" with { type: "json" };
 import pants from "../content/Data/Pants.json" with { type: "json" };
@@ -14,7 +15,6 @@ import shirts from "../content/Data/Shirts.json" with { type: "json" };
 import tools from "../content/Data/Tools.json" with { type: "json" };
 import trinkets from "../content/Data/Trinkets.json" with { type: "json" };
 import weapons from "../content/Data/Weapons.json" with { type: "json" };
-import hats from "../content/Data/hats.json" with { type: "json" };
 import { characters } from "../src/lib/NPCs.js";
 import {
 	createArtisanGoods,
@@ -348,7 +348,8 @@ await writeFile(
 // Create portraits folder if it doesn't exist
 try {
 	await mkdir("./static/assets/portraits");
-} catch (e) {}
+} finally {
+}
 
 for (const char of characters) {
 	await copyFile(
@@ -359,7 +360,7 @@ for (const char of characters) {
 
 // **Farm Animals**
 
-const farmAnimals = Object.entries(animals).map(([key, obj]) => ({
+const farmAnimals = Object.entries(animals).map(([_key, obj]) => ({
 	name: obj.DisplayName,
 	requiredBuilding: obj.RequiredBuilding,
 	house: obj.House,

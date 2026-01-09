@@ -1,8 +1,8 @@
 import { openDB } from "idb";
 import {
+	getToastManager,
 	Toast,
 	type ToastManager,
-	getToastManager,
 } from "./ToastManager.svelte";
 
 const BACKUP_LIMIT = 5;
@@ -77,7 +77,7 @@ export class BackupManager {
 			const backupFiles = await db.getAll("files");
 			if (!isSerializedFileArray(backupFiles)) throw new Error("Invalid data");
 
-			const newFiles = new Array<File>();
+			const newFiles: File[] = [];
 			for (const file of backupFiles) {
 				newFiles.unshift(
 					new File([file.data], file.name, {
@@ -118,7 +118,7 @@ export class BackupManager {
 	 * If any errors occur during saving, a toast notification is triggered.
 	 */
 	private async save() {
-		const serializedFiles = new Array<SerializedFile>();
+		const serializedFiles: SerializedFile[] = [];
 
 		// Iterate through our updated
 		for (const file of this.files) {

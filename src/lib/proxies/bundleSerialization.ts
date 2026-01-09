@@ -38,7 +38,7 @@ export function parseBundleKey(raw: string): ParsedBundleKey {
 		throw new Error(`Invalid bundle key: ${raw}`);
 	const room = ROOM_NAME_TO_ENUM[roomName];
 	if (room === undefined) throw new Error(`Invalid room name: ${roomName}`);
-	const spriteIndex = Number.parseInt(spriteIndexStr);
+	const spriteIndex = Number.parseInt(spriteIndexStr, 10);
 	if (Number.isNaN(spriteIndex))
 		throw new Error(`Invalid sprite index: ${spriteIndexStr}`);
 	return { room, roomName, spriteIndex };
@@ -79,16 +79,16 @@ export function parseBundleValue(raw: string): ParsedBundleValue {
 			throw new Error(
 				`Invalid requirement triplet at index ${i / 3}: ${tokens.slice(i, i + 3).join(" ")}`,
 			);
-		const qty = Number.parseInt(qtyToken);
-		const quality = Number.parseInt(qualityToken);
+		const qty = Number.parseInt(qtyToken, 10);
+		const quality = Number.parseInt(qualityToken, 10);
 		if (Number.isNaN(qty) || Number.isNaN(quality))
 			throw new Error(
 				`Invalid numeric values in requirement triplet at index ${i / 3}: ${tokens.slice(i, i + 3).join(" ")}`,
 			);
 		requirements.push([itemID, qty, quality]);
 	}
-	const color = colorSeg ? Number.parseInt(colorSeg) : undefined;
-	const count = countSeg ? Number.parseInt(countSeg) : undefined;
+	const color = colorSeg ? Number.parseInt(colorSeg, 10) : undefined;
+	const count = countSeg ? Number.parseInt(countSeg, 10) : undefined;
 	const safeColor =
 		color !== undefined && !Number.isNaN(color) ? color : undefined;
 	const safeCount =

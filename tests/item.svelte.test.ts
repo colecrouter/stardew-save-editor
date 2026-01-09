@@ -1,6 +1,6 @@
-import { Raw } from "$lib/proxies";
 import { flushSync } from "svelte";
 import { describe, expect, it } from "vitest";
+import { Raw } from "$lib/proxies";
 import { Item } from "../src/lib/proxies/Item.svelte";
 
 /*

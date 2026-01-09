@@ -1,10 +1,10 @@
 <script lang="ts">
-	import { getSaveManager } from "$lib/SaveManager.svelte";
-	import UiContainer from "$lib/ui/UIContainer.svelte";
-	import Backup from "./Backup.svelte";
+import { getSaveManager } from "$lib/SaveManager.svelte";
+import UiContainer from "$lib/ui/UIContainer.svelte";
+import Backup from "./Backup.svelte";
 
-	const saveManager = getSaveManager();
-	const backups = $derived(saveManager.backups.files);
+const saveManager = getSaveManager();
+const backups = $derived(saveManager.backups.files);
 </script>
 
 <section>

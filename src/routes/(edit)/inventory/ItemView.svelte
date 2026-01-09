@@ -1,53 +1,53 @@
 <script lang="ts">
-	import { ItemNameHelper } from "$lib/ItemData";
-	import type { ParentIndex } from "$lib/ItemParentIndex";
-	import { Raw } from "$lib/proxies";
-	import { Color } from "$lib/proxies/Color.svelte";
-	import type { Item } from "$lib/proxies/Item.svelte";
-	import UiCheckbox from "$lib/ui/UICheckbox.svelte";
-	import UiInput from "$lib/ui/UIInput.svelte";
-	import ItemSelect from "./ItemSelect.svelte";
-	import ItemSlot from "./ItemSlot.svelte";
-	import ItemSprite from "./ItemSprite.svelte";
-	import QualitySelector from "./QualitySelector.svelte";
+import { ItemNameHelper } from "$lib/ItemData";
+import type { ParentIndex } from "$lib/ItemParentIndex";
+import { Raw } from "$lib/proxies";
+import { Color } from "$lib/proxies/Color.svelte";
+import type { Item } from "$lib/proxies/Item.svelte";
+import UiCheckbox from "$lib/ui/UICheckbox.svelte";
+import UiInput from "$lib/ui/UIInput.svelte";
+import ItemSelect from "./ItemSelect.svelte";
+import ItemSlot from "./ItemSlot.svelte";
+import ItemSprite from "./ItemSprite.svelte";
+import QualitySelector from "./QualitySelector.svelte";
 
-	interface Props {
-		selectedItem: Item | undefined;
-		selectedIndex: ParentIndex | undefined;
-		deleteItem: () => void;
-		createItem: (name: string) => void;
-	}
+interface Props {
+	selectedItem: Item | undefined;
+	selectedIndex: ParentIndex | undefined;
+	deleteItem: () => void;
+	createItem: (name: string) => void;
+}
 
-	let {
-		selectedItem = $bindable(),
-		selectedIndex,
-		deleteItem,
-		createItem,
-	}: Props = $props();
+let {
+	selectedItem = $bindable(),
+	selectedIndex,
+	deleteItem,
+	createItem,
+}: Props = $props();
 
-	// List of generic properties, with min/max/step values
-	const properties = [
-		["Amount", "amount", 1, 9999],
-		["Min Dmg", "minDamage", 0, 999],
-		["Max Dmg", "maxDamage", 0, 999],
-		["Knockback", "knockback", 0, 999],
-		["Speed", "speed", -999, 999],
-		["Precision", "precision", 0, 999],
-		["Defense", "defense", 0, 999],
-		["Area of Effect", "areaOfEffect", 0, 999],
-		["Crit Chance", "critChance", 0, 1, 0.01],
-		["Crit Multiplier", "critMultiplier", 0, 999, 0.1],
-		["Immunity Bonus", "immunityBonus", 0, 999],
-		["Color Index", "raw.indexInColorSheet", 0, 71],
-		["Edibility", "edibility", -999, 999],
-		// ["Place Outdoors", "setOutdoors", 0, 1],
-		// ["Place Indoors", "setIndoors", 0, 1],
-		// ["Produces Light", "isLamp", 0, 1],
-		["Price", "price", 0, 2 ** 31 - 1], // 32 bit signed int
-		["Color", "color", null, null],
-		["Quality", "quality", null, null],
-		["Bottomless", "isBottomless"],
-	] as [string, keyof Item, number | null, number | null, number | undefined][];
+// List of generic properties, with min/max/step values
+const properties = [
+	["Amount", "amount", 1, 9999],
+	["Min Dmg", "minDamage", 0, 999],
+	["Max Dmg", "maxDamage", 0, 999],
+	["Knockback", "knockback", 0, 999],
+	["Speed", "speed", -999, 999],
+	["Precision", "precision", 0, 999],
+	["Defense", "defense", 0, 999],
+	["Area of Effect", "areaOfEffect", 0, 999],
+	["Crit Chance", "critChance", 0, 1, 0.01],
+	["Crit Multiplier", "critMultiplier", 0, 999, 0.1],
+	["Immunity Bonus", "immunityBonus", 0, 999],
+	["Color Index", "raw.indexInColorSheet", 0, 71],
+	["Edibility", "edibility", -999, 999],
+	// ["Place Outdoors", "setOutdoors", 0, 1],
+	// ["Place Indoors", "setIndoors", 0, 1],
+	// ["Produces Light", "isLamp", 0, 1],
+	["Price", "price", 0, 2 ** 31 - 1], // 32 bit signed int
+	["Color", "color", null, null],
+	["Quality", "quality", null, null],
+	["Bottomless", "isBottomless"],
+] as [string, keyof Item, number | null, number | null, number | undefined][];
 </script>
 
 <div class="editor">

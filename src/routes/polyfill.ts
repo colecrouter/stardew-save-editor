@@ -1,3 +1,5 @@
+/** biome-ignore-all lint/suspicious/noExplicitAny: just ignore it */
+
 export {};
 
 const iteratorPrototype = Object.getPrototypeOf(
@@ -14,8 +16,7 @@ const makeIterator = <T>(next: () => IteratorResult<T>) => ({
 	},
 });
 
-// biome-ignore lint/complexity/noBannedTypes: <explanation>
-const define = (name: "filter" | "some", value: Function) => {
+const define = (name: "filter" | "some", value: unknown) => {
 	if (!(name in iteratorPrototype)) {
 		Object.defineProperty(iteratorPrototype, name, {
 			value,
@@ -31,10 +32,8 @@ define("filter", function filter<
 	if (typeof predicate !== "function")
 		throw new TypeError("predicate must be callable");
 	const source =
-		// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 		typeof (this as any)[Symbol.iterator] === "function"
-			? // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-				(this as any)[Symbol.iterator]()
+			? (this as any)[Symbol.iterator]()
 			: this;
 	let index = 0;
 	return makeIterator<T>(() => {
@@ -63,10 +62,8 @@ define("some", function some<
 	if (typeof predicate !== "function")
 		throw new TypeError("predicate must be callable");
 	const source =
-		// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 		typeof (this as any)[Symbol.iterator] === "function"
-			? // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-				(this as any)[Symbol.iterator]()
+			? (this as any)[Symbol.iterator]()
 			: this;
 	let index = 0;
 	while (true) {

@@ -1,14 +1,14 @@
 <script lang="ts" module>
-	// Emojis for each equipment slot
-	const slotPlaceholders = new Map<ParentIndex, string>([
-		["leftRing", "💍"],
-		["rightRing", "💍"],
-		["boots", "👢"],
-		["hat", "🧢"],
-		["shirtItem", "👕"],
-		["pantsItem", "👖"],
-		["trinketItem", "🧸"],
-	]);
+// Emojis for each equipment slot
+const slotPlaceholders = new Map<ParentIndex, string>([
+	["leftRing", "💍"],
+	["rightRing", "💍"],
+	["boots", "👢"],
+	["hat", "🧢"],
+	["shirtItem", "👕"],
+	["pantsItem", "👖"],
+	["trinketItem", "🧸"],
+]);
 </script>
 
 <script lang="ts">

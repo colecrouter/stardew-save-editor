@@ -123,13 +123,9 @@ export class CommunityBundles extends SvelteMap<BundleName, Bundle> {
 	 * Gives the appropriate world changes, e.g. unlocking the bus stop.
 	 */
 	private applySideEffects() {
-		// Skip side effects on first run (initial load) to preserve existing player mail flags
-		if (!this.hasRunOnce) {
-			this.hasRunOnce = true;
-			return;
-		}
-
 		// Get all bundles, group by room
+		// NOTE: We must access reactive values BEFORE checking hasRunOnce to establish
+		// dependency tracking, otherwise the effect won't re-run when bundles change
 		const bundlesByRoom = Map.groupBy(this.values(), (b: Bundle) => b.room);
 
 		// Figure out which rooms are completed
@@ -137,6 +133,12 @@ export class CommunityBundles extends SvelteMap<BundleName, Bundle> {
 			([room, bundles]) =>
 				[room, bundles.every((b: Bundle) => b.completed)] as const,
 		);
+
+		// Skip side effects on first run (initial load) to preserve existing player mail flags
+		if (!this.hasRunOnce) {
+			this.hasRunOnce = true;
+			return;
+		}
 
 		// Apply side effects
 		for (const [room, completed] of completedRooms) {

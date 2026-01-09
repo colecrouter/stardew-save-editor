@@ -77,6 +77,7 @@ export enum BundleName {
 export class CommunityBundles extends SvelteMap<BundleName, Bundle> {
 	private communityCenter: GameLocation;
 	private saveData: SaveProxy;
+	private hasRunOnce = false;
 
 	constructor(saveData: SaveProxy) {
 		const cc = saveData.locations.find(
@@ -112,7 +113,7 @@ export class CommunityBundles extends SvelteMap<BundleName, Bundle> {
 		// Sanitize bundleRewards immediately on load
 		this.sanitizeBundleRewards();
 
-		// Apply proper save side effects
+		// Apply proper save side effects (only after initialization, when user makes changes)
 		$effect(() => this.applySideEffects());
 	}
 
@@ -122,6 +123,12 @@ export class CommunityBundles extends SvelteMap<BundleName, Bundle> {
 	 * Gives the appropriate world changes, e.g. unlocking the bus stop.
 	 */
 	private applySideEffects() {
+		// Skip side effects on first run (initial load) to preserve existing player mail flags
+		if (!this.hasRunOnce) {
+			this.hasRunOnce = true;
+			return;
+		}
+
 		// Get all bundles, group by room
 		const bundlesByRoom = Map.groupBy(this.values(), (b: Bundle) => b.room);
 

@@ -1,32 +1,33 @@
 <script lang="ts">
-	import Tooltip from "$lib/ui/Tooltip.svelte";
-	import UiContainerSmall from "$lib/ui/UIContainerSmall.svelte";
-	import type { Snippet } from "svelte";
+import type { Snippet } from "svelte";
+import Tooltip from "$lib/ui/Tooltip.svelte";
+import UiContainerSmall from "$lib/ui/UIContainerSmall.svelte";
 
-	type Props = HTMLButtonAttributes &
-		HTMLAnchorAttributes & {
-			children: Snippet;
-			alt?: string;
-			href?: string;
-			active?: boolean;
-			disabled?: boolean;
+type Props = HTMLButtonAttributes &
+	HTMLAnchorAttributes & {
+		children: Snippet;
+		alt?: string;
+		href?: string;
+		active?: boolean;
+		disabled?: boolean;
 
-			[key: string]: unknown;
-		};
-	import { page } from "$app/stores";
-	import type {
-		HTMLAnchorAttributes,
-		HTMLButtonAttributes,
-	} from "svelte/elements";
+		[key: string]: unknown;
+	};
 
-	let {
-		children,
-		alt,
-		href,
-		disabled,
-		active = false,
-		...props
-	}: Props = $props();
+import type {
+	HTMLAnchorAttributes,
+	HTMLButtonAttributes,
+} from "svelte/elements";
+import { page } from "$app/stores";
+
+let {
+	children,
+	alt,
+	href,
+	disabled,
+	active = false,
+	...props
+}: Props = $props();
 </script>
 
 {#snippet content()}

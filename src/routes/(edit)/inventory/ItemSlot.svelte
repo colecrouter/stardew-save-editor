@@ -1,13 +1,13 @@
 <script lang="ts">
-	import type { Snippet } from "svelte";
-	import type { HTMLButtonAttributes } from "svelte/elements";
+import type { Snippet } from "svelte";
+import type { HTMLButtonAttributes } from "svelte/elements";
 
-	type Props = HTMLButtonAttributes & {
-		children: Snippet;
-		active?: boolean;
-	};
+type Props = HTMLButtonAttributes & {
+	children: Snippet;
+	active?: boolean;
+};
 
-	let { children, active, ...rest }: Props = $props();
+let { children, active, ...rest }: Props = $props();
 </script>
 
 <button class="item-wrapper" class:active {...rest}>

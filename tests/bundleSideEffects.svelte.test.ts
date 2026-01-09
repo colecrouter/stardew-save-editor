@@ -1,10 +1,10 @@
 import { readFile } from "node:fs/promises";
-import { CCRoom } from "$lib/bundleSideEffects";
-import { Raw } from "$lib/proxies";
-import { MailFlag } from "$lib/proxies/Mail.svelte";
 import { flushSync, tick } from "svelte";
 import { beforeEach, describe, expect, it } from "vitest";
 import { setup as mockIDB } from "vitest-indexeddb";
+import { CCRoom } from "$lib/bundleSideEffects";
+import { Raw } from "$lib/proxies";
+import { MailFlag } from "$lib/proxies/Mail.svelte";
 import { SaveManager } from "../src/lib/SaveManager.svelte";
 
 describe("bundle side effects - Abandoned JojaMart access", () => {

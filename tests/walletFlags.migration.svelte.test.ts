@@ -1,8 +1,8 @@
 import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 import { setup as mockIDB } from "vitest-indexeddb";
-import { SaveManager } from "../src/lib/SaveManager.svelte";
 import { MailFlag } from "../src/lib/proxies/Mail.svelte";
+import { SaveManager } from "../src/lib/SaveManager.svelte";
 
 const injectLegacyWalletNodes = (xml: string) =>
 	xml.replace(

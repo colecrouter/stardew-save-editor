@@ -1,6 +1,6 @@
-import { Item } from "$lib/proxies/Item.svelte";
 import { render, screen } from "@testing-library/svelte";
 import { beforeEach, describe, expect, test } from "vitest";
+import { Item } from "$lib/proxies/Item.svelte";
 import QualitySelector from "./QualitySelector.svelte";
 
 describe("Quality selector", async () => {

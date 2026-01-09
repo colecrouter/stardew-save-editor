@@ -1,22 +1,22 @@
 <script lang="ts">
-	import { beforeNavigate } from "$app/navigation";
-	import { asset, resolve } from "$app/paths";
-	import { updated } from "$app/state";
-	import { setSaveManager } from "$lib/SaveManager.svelte";
-	import { setToastManager } from "$lib/ToastManager.svelte";
-	import Toasts from "$lib/ui/Toasts.svelte";
+import { beforeNavigate } from "$app/navigation";
+import { asset, resolve } from "$app/paths";
+import { updated } from "$app/state";
+import { setSaveManager } from "$lib/SaveManager.svelte";
+import { setToastManager } from "$lib/ToastManager.svelte";
+import Toasts from "$lib/ui/Toasts.svelte";
 
-	let { children } = $props();
+let { children } = $props();
 
-	setToastManager();
-	setSaveManager();
+setToastManager();
+setSaveManager();
 
-	// Should fix random import errors due to version mismatches
-	beforeNavigate(({ to, willUnload }) => {
-		if (updated && willUnload && to?.url) {
-			location.href = to.url.href;
-		}
-	});
+// Should fix random import errors due to version mismatches
+beforeNavigate(({ to, willUnload }) => {
+	if (updated && willUnload && to?.url) {
+		location.href = to.url.href;
+	}
+});
 </script>
 
 <svelte:head>

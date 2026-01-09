@@ -1,11 +1,11 @@
 <script lang="ts">
-	interface Props {
-		children: import("svelte").Snippet;
-		text: string;
-		disabled?: boolean;
-	}
+interface Props {
+	children: import("svelte").Snippet;
+	text: string;
+	disabled?: boolean;
+}
 
-	let { children, text, disabled }: Props = $props();
+let { children, text, disabled }: Props = $props();
 </script>
 
 {#if disabled}

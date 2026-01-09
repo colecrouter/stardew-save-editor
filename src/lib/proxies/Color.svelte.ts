@@ -1,4 +1,5 @@
 import type { Color as ColorType } from "$types/save";
+
 const RGB_REGEX = /^rgb\((\d{1,3}),\s*(\d{1,3}),\s*(\d{1,3})\)$/;
 
 // Type to make the specified keys optional, but keep the rest of the keys the same.
@@ -38,17 +39,17 @@ export class Color implements ColorType {
 			} else if (color.match(RGB_REGEX)) {
 				// rgb(RRR, GGG, BBB)
 				const [_, R, G, B] = color.match(RGB_REGEX) ?? [];
-				this.R = Number.parseInt(R ?? "0");
-				this.G = Number.parseInt(G ?? "0");
-				this.B = Number.parseInt(B ?? "0");
+				this.R = Number.parseInt(R ?? "0", 10);
+				this.G = Number.parseInt(G ?? "0", 10);
+				this.B = Number.parseInt(B ?? "0", 10);
 				this.A = 255;
 			} else {
 				// RRR GGG BBB (AAA)
 				const split = color.split(" ");
-				this.R = Number.parseInt(split[0] ?? "0");
-				this.G = Number.parseInt(split[1] ?? "0");
-				this.B = Number.parseInt(split[2] ?? "0");
-				this.A = Number.parseInt(split[3] ?? "255");
+				this.R = Number.parseInt(split[0] ?? "0", 10);
+				this.G = Number.parseInt(split[1] ?? "0", 10);
+				this.B = Number.parseInt(split[2] ?? "0", 10);
+				this.A = Number.parseInt(split[3] ?? "255", 10);
 			}
 		} else {
 			this.R = color.R;

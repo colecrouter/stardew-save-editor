@@ -1,11 +1,11 @@
 <script lang="ts">
-	import type { HTMLInputAttributes } from "svelte/elements";
+import type { HTMLInputAttributes } from "svelte/elements";
 
-	type Props = Omit<HTMLInputAttributes, "value" | "checked"> & {
-		checked: boolean;
-	};
+type Props = Omit<HTMLInputAttributes, "value" | "checked"> & {
+	checked: boolean;
+};
 
-	let { checked = $bindable(), ...props }: Props = $props();
+let { checked = $bindable(), ...props }: Props = $props();
 </script>
 
 <input type="checkbox" bind:checked {...props} />

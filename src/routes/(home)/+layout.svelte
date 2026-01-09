@@ -1,20 +1,20 @@
 <script lang="ts">
-	import { goto } from "$app/navigation";
-	import { resolve } from "$app/paths";
-	import { getSaveManager } from "$lib/SaveManager.svelte";
+import { goto } from "$app/navigation";
+import { resolve } from "$app/paths";
+import { getSaveManager } from "$lib/SaveManager.svelte";
 
-	interface Props {
-		children: import("svelte").Snippet;
+interface Props {
+	children: import("svelte").Snippet;
+}
+
+let { children }: Props = $props();
+
+$effect(() => {
+	const saveManager = getSaveManager();
+	if (saveManager.save) {
+		goto(resolve("/inventory"));
 	}
-
-	let { children }: Props = $props();
-
-	$effect(() => {
-		const saveManager = getSaveManager();
-		if (saveManager.save) {
-			goto(resolve("/inventory"));
-		}
-	});
+});
 </script>
 
 {@render children()}

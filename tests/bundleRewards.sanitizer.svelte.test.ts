@@ -1,8 +1,8 @@
 import { readFile } from "node:fs/promises";
-import { Raw } from "$lib/proxies";
 import { flushSync, tick } from "svelte";
 import { beforeEach, describe, expect, it } from "vitest";
 import { setup as mockIDB } from "vitest-indexeddb";
+import { Raw } from "$lib/proxies";
 import { SaveManager } from "../src/lib/SaveManager.svelte";
 
 // Verifies sanitizer keeps bundleRewards[36] false after completing all bundles.

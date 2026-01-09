@@ -1,11 +1,11 @@
-import { dev } from "$app/environment";
-import { BackupManager } from "$lib/BackupManager.svelte";
-import { SaveProxy } from "$lib/proxies/SaveFile.svelte";
-import type { XMLManager } from "$lib/workers/xml";
 import { error } from "@sveltejs/kit";
 import * as Comlink from "comlink";
 import pako from "pako";
 import { getContext, setContext } from "svelte";
+import { dev } from "$app/environment";
+import { BackupManager } from "$lib/BackupManager.svelte";
+import { SaveProxy } from "$lib/proxies/SaveFile.svelte";
+import type { XMLManager } from "$lib/workers/xml";
 import { nestedArrayTags } from "./workers/jank";
 
 const SAVE_KEY = Symbol("saveManager");
@@ -121,7 +121,6 @@ export class SaveManager {
 		}
 
 		const xmlManager = await getXmlManager();
-		// @ts-ignore Not sure why svelte-check doesn't like this line
 		const json = await xmlManager.parse(decompressedContent);
 
 		if (!isSaveFile(json)) {
@@ -139,9 +138,9 @@ export class SaveManager {
 			if (typeof obj !== "object" || obj === null) return;
 			for (const [child, parents] of nestedArrayTags.entries()) {
 				for (const parent of parents) {
-					// @ts-ignore
+					// @ts-expect-error
 					if (parent in obj && obj[parent] === "") {
-						// @ts-ignore
+						// @ts-expect-error
 						obj[parent] = { [child]: [] };
 						// console.debug(
 						// 	`Fixed empty "${parent}" tag by converting to object with empty "${child}" array`,
@@ -205,7 +204,6 @@ export class SaveManager {
                 I couldn't get comlink working with vitest, so removing this will pass the tests, but it will break the app.
             */
 			JSON.parse(JSON.stringify(this.save.raw)),
-			// @ts-ignore genuinely I have no idea
 			pretty,
 		);
 		// macOS uses mime type to determine file type, so we have to use text/text to prevent it from suggesting .xml

@@ -1,10 +1,10 @@
 <script lang="ts" module>
-	const seasons = new Map([
-		[0, "Spring"],
-		[1, "Summer"],
-		[2, "Fall"],
-		[3, "Winter"],
-	]);
+const seasons = new Map([
+	[0, "Spring"],
+	[1, "Summer"],
+	[2, "Fall"],
+	[3, "Winter"],
+]);
 </script>
 
 <script lang="ts">

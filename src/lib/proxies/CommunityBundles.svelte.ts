@@ -1,4 +1,5 @@
-import { CCRoom, bundleSideEffects } from "$lib/bundleSideEffects";
+import { SvelteMap } from "svelte/reactivity";
+import { bundleSideEffects, CCRoom } from "$lib/bundleSideEffects";
 import type { GameLocation } from "$lib/proxies/GameLocation.svelte";
 import type { SaveProxy } from "$lib/proxies/SaveFile.svelte";
 import type {
@@ -6,9 +7,7 @@ import type {
 	GameLocation as GameLocationRaw,
 	StringContainer,
 } from "$types/save";
-import { SvelteMap } from "svelte/reactivity";
 import { type DataProxy, Raw } from ".";
-import { MailFlag } from "./Mail.svelte";
 import {
 	type BundleRequirement,
 	parseBundleKey,
@@ -18,6 +17,7 @@ import {
 	withBundleName,
 	withBundleReward,
 } from "./bundleSerialization";
+import { MailFlag } from "./Mail.svelte";
 
 /*
     > Key: "Pantry/2"
@@ -404,7 +404,7 @@ class BundleReward implements DataProxy<StringContainer> {
 			if (parts.length >= 3) {
 				const [type, itemID, quantity] = parts as [string, string, string];
 				// Accept string item IDs (e.g. "DeluxeBait") or numeric ones; store as string.
-				const qty = Number.parseInt(quantity);
+				const qty = Number.parseInt(quantity, 10);
 				this.item = {
 					type: type as "O" | "BO",
 					id: itemID, // keep raw key to support string IDs

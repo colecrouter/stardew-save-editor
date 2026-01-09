@@ -9,7 +9,7 @@
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"dump": "tsx --no-warnings codegen/dump.ts",
 		"check": "biome lint . && svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-		"format": "prettier --log-level silent --write src && biome check . --fix",
+		"format": "prettier --log-level silent --write src && biome format --write && biome check --write --linter-enabled false",
 		"test": "vitest run",
 		"emulate:webkit": "node tests/webkit.js"
 	},

@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { getToastManager } from "$lib/ToastManager.svelte";
-	import UiContainer from "$lib/ui/UIContainer.svelte";
-	import { fly } from "svelte/transition";
+import { fly } from "svelte/transition";
+import { getToastManager } from "$lib/ToastManager.svelte";
+import UiContainer from "$lib/ui/UIContainer.svelte";
 
-	const manager = getToastManager();
+const manager = getToastManager();
 </script>
 
 <div class="toasts">

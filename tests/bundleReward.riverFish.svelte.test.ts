@@ -2,8 +2,8 @@ import { readFile } from "node:fs/promises";
 import { flushSync } from "svelte";
 import { beforeEach, describe, expect, it } from "vitest";
 import { setup as mockIDB } from "vitest-indexeddb";
-import { SaveManager } from "../src/lib/SaveManager.svelte";
 import type { Bundle } from "../src/lib/proxies/CommunityBundles.svelte";
+import { SaveManager } from "../src/lib/SaveManager.svelte";
 
 // Verify River Fish bundle reward is Deluxe Bait x30 (not gold)
 

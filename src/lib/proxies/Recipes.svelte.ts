@@ -1,7 +1,7 @@
+import { SvelteMap } from "svelte/reactivity";
 import cookingRecipes from "$generated/cookingrecipes.json";
 import craftingRecipes from "$generated/craftingrecipes.json";
 import type { Player } from "$types/save";
-import { SvelteMap } from "svelte/reactivity";
 import { type DataProxy, Raw } from ".";
 
 type RecipeType = "craftingRecipes" | "cookingRecipes";

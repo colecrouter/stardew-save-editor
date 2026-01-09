@@ -1,7 +1,7 @@
+import { SvelteMap } from "svelte/reactivity";
 import type { ParentIndex } from "$lib/ItemParentIndex";
 import { Item } from "$lib/proxies/Item.svelte";
 import type { Player } from "$types/save";
-import { SvelteMap } from "svelte/reactivity";
 import { type DataProxy, Raw } from ".";
 
 const nil = { "@_xsi:nil": "true" };

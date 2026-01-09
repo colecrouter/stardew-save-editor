@@ -1,19 +1,19 @@
 <script lang="ts">
-	interface Props {
-		backup: File;
-		deleteFunc: () => void;
-	}
+interface Props {
+	backup: File;
+	deleteFunc: () => void;
+}
 
-	let { backup, deleteFunc }: Props = $props();
+let { backup, deleteFunc }: Props = $props();
 
-	let date: Date = $derived(new Date(backup.lastModified));
+let date: Date = $derived(new Date(backup.lastModified));
 
-	const download = () => {
-		const a = document.createElement("a");
-		a.href = URL.createObjectURL(backup);
-		a.download = backup.name;
-		a.click();
-	};
+const download = () => {
+	const a = document.createElement("a");
+	a.href = URL.createObjectURL(backup);
+	a.download = backup.name;
+	a.click();
+};
 </script>
 
 <div class="wrapper">

@@ -1,31 +1,31 @@
 <script lang="ts">
-	import { Item } from "$lib/proxies/Item.svelte";
-	import type { Recipes } from "$lib/proxies/Recipes.svelte";
-	import UiCheckbox from "$lib/ui/UICheckbox.svelte";
-	import UiContainer from "$lib/ui/UIContainer.svelte";
-	import UiInput from "$lib/ui/UIInput.svelte";
-	import ItemSprite from "../inventory/ItemSprite.svelte";
-	import { recipeMapping } from "./mapping";
+import { Item } from "$lib/proxies/Item.svelte";
+import type { Recipes } from "$lib/proxies/Recipes.svelte";
+import UiCheckbox from "$lib/ui/UICheckbox.svelte";
+import UiContainer from "$lib/ui/UIContainer.svelte";
+import UiInput from "$lib/ui/UIInput.svelte";
+import ItemSprite from "../inventory/ItemSprite.svelte";
+import { recipeMapping } from "./mapping";
 
-	interface Props {
-		recipes: Recipes<"cookingRecipes" | "craftingRecipes">;
+interface Props {
+	recipes: Recipes<"cookingRecipes" | "craftingRecipes">;
+}
+
+let { recipes = $bindable() }: Props = $props();
+
+let filter = $state("");
+let regex = $derived.by(() => searchRegexp(filter));
+
+// Gracefully handle invalid regex patterns
+// I thought about trying to replace, but this is fine for now
+function searchRegexp(term: string) {
+	try {
+		return new RegExp(term, "i");
+	} catch {
+		console.warn("Invalid regex:", term);
+		return /$^/; // Matches nothing
 	}
-
-	let { recipes = $bindable() }: Props = $props();
-
-	let filter = $state("");
-	let regex = $derived.by(() => searchRegexp(filter));
-
-	// Gracefully handle invalid regex patterns
-	// I thought about trying to replace, but this is fine for now
-	function searchRegexp(term: string) {
-		try {
-			return new RegExp(term, "i");
-		} catch {
-			console.warn("Invalid regex:", term);
-			return /$^/; // Matches nothing
-		}
-	}
+}
 </script>
 
 <UiContainer>

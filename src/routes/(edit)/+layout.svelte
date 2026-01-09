@@ -1,43 +1,42 @@
 <script lang="ts">
-	import { goto } from "$app/navigation";
-	import { resolve } from "$app/paths";
-	import { getSaveManager } from "$lib/SaveManager.svelte";
-	import { Toast, getToastManager } from "$lib/ToastManager.svelte";
-	import UiButton from "$lib/ui/UIButton.svelte";
-	import Router from "./Router.svelte";
-	interface Props {
-		children: import("svelte").Snippet;
+import { goto } from "$app/navigation";
+import { resolve } from "$app/paths";
+import { getSaveManager } from "$lib/SaveManager.svelte";
+import { getToastManager, Toast } from "$lib/ToastManager.svelte";
+import UiButton from "$lib/ui/UIButton.svelte";
+import Router from "./Router.svelte";
+
+interface Props {
+	children: import("svelte").Snippet;
+}
+
+let { children }: Props = $props();
+
+const toastManager = getToastManager();
+const saveManager = getSaveManager();
+
+let isDownloading = $state(false);
+
+const cancel = () => saveManager.reset();
+const download = async () => {
+	isDownloading = true;
+	return saveManager
+		.download()
+		.then(() => toastManager.add(new Toast("Save file downloaded!", "success")))
+		.catch((e) => {
+			toastManager.add(new Toast("Failed to download save file", "failure"));
+			console.warn(e);
+		})
+		.finally(() => {
+			isDownloading = false;
+		});
+};
+
+$effect(() => {
+	if (!saveManager.save) {
+		goto(resolve("/"));
 	}
-
-	let { children }: Props = $props();
-
-	const toastManager = getToastManager();
-	const saveManager = getSaveManager();
-
-	let isDownloading = $state(false);
-
-	const cancel = () => saveManager.reset();
-	const download = async () => {
-		isDownloading = true;
-		return saveManager
-			.download()
-			.then(() =>
-				toastManager.add(new Toast("Save file downloaded!", "success")),
-			)
-			.catch((e) => {
-				toastManager.add(new Toast("Failed to download save file", "failure"));
-				console.warn(e);
-			})
-			.finally(() => {
-				isDownloading = false;
-			});
-	};
-
-	$effect(() => {
-		if (!saveManager.save) {
-			goto(resolve("/"));
-		}
-	});
+});
 </script>
 
 {#if saveManager.save}

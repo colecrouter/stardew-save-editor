@@ -1,15 +1,15 @@
 <script lang="ts" module>
-	function colorToString(color?: Color) {
-		if (!color) return undefined;
-		if (color.A !== 255) {
-			return `rgba(${color.R},${color.G},${color.B},${color.A / 255})`;
-		}
-		return `rgb(${color.R},${color.G},${color.B})`;
+function colorToString(color?: Color) {
+	if (!color) return undefined;
+	if (color.A !== 255) {
+		return `rgba(${color.R},${color.G},${color.B},${color.A / 255})`;
 	}
+	return `rgb(${color.R},${color.G},${color.B})`;
+}
 
-	function sheetUrl(sheet?: string) {
-		return sheet && `url(${asset(`/assets/${sheet}`)})`;
-	}
+function sheetUrl(sheet?: string) {
+	return sheet && `url(${asset(`/assets/${sheet}`)})`;
+}
 </script>
 
 <script lang="ts">

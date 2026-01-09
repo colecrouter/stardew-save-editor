@@ -75,18 +75,18 @@ export class SaveProxy implements DataProxy<SaveFile> {
 			this[Raw].SaveGame.farmhands === ""
 				? []
 				: this[Raw].SaveGame.farmhands.Farmer;
-		
+
 		// Build players and track mapping from original index to player index
 		const players: Farmer[] = [new Farmer(this[Raw].SaveGame.player)];
 		this.playerIndexMap.clear();
-		
+
 		unfiltered.forEach((f, origIndex) => {
 			if (f !== undefined && f.name?.trim() !== "") {
 				this.playerIndexMap.set(origIndex, players.length);
 				players.push(new Farmer(f));
 			}
 		});
-		
+
 		return players;
 	}
 
@@ -107,7 +107,10 @@ export class SaveProxy implements DataProxy<SaveFile> {
 			return origRaw;
 		});
 		// Append any newly added farmhands beyond original length
-		const maxMappedPlayerIndex = Math.max(...Array.from(this.playerIndexMap.values()), 0);
+		const maxMappedPlayerIndex = Math.max(
+			...Array.from(this.playerIndexMap.values()),
+			0,
+		);
 		for (let i = maxMappedPlayerIndex + 1; i < this.players.length; i++) {
 			const raw = this.players[i]?.[Raw];
 			if (raw) newFarmhands.push(raw);

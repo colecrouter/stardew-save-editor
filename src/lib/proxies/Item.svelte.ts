@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/sveltekit";
 import {
 	CategoriesWithQuality,
 	FishingRodSpriteIndex,
@@ -10,8 +11,8 @@ import {
 	Shirts,
 } from "$lib/ItemData";
 import type { ParentIndex } from "$lib/ItemParentIndex";
-import { Sprite } from "$lib/Sprite.svelte";
 import { Color } from "$lib/proxies/Color.svelte";
+import { Sprite } from "$lib/Sprite.svelte";
 import {
 	FurnitureType,
 	type ItemInformation,
@@ -19,7 +20,6 @@ import {
 	type ToolClass,
 } from "$types/items";
 import { ClothesType, type Item as ItemModel, TypeEnum } from "$types/save";
-import * as Sentry from "@sentry/sveltekit";
 import { type DataProxy, Raw } from ".";
 
 const nil = { "@_xsi:nil": "true" };
@@ -483,7 +483,10 @@ export class Item implements DataProxy<ItemModel> {
 			data.unpreservedItemId &&
 			data.preservedItemName
 		) {
-			item.preservedParentSheetIndex = Number.parseInt(data.unpreservedItemId);
+			item.preservedParentSheetIndex = Number.parseInt(
+				data.unpreservedItemId,
+				10,
+			);
 
 			item.preserve = data.preservedItemName;
 		}

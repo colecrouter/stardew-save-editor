@@ -1,5 +1,5 @@
-import type { BroadcastedMail } from "$types/save";
 import { SvelteSet } from "svelte/reactivity";
+import type { BroadcastedMail } from "$types/save";
 import { type DataProxy, Raw } from ".";
 
 /**

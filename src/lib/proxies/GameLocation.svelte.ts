@@ -51,7 +51,8 @@ export class GameLocation implements DataProxy<Location> {
 		return this[Raw].animals?.item?.map((a) => new FarmAnimal(a)) ?? [];
 	}
 
-	private setAnimals(value: ReturnType<typeof this.getAnimals>) {
+	private setAnimals(_value: ReturnType<typeof this.getAnimals>) {
+		/* This doesn't work properly yet, so I am leaving it disabled for now. */
 		// if (!value.length) {
 		// 	this[Raw].animals = null;
 		// 	this[Raw].Animals.SerializableDictionaryOfInt64FarmAnimal = null;

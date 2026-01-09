@@ -1,8 +1,8 @@
-import { Bundle } from "$lib/proxies/CommunityBundles.svelte";
-import { parseBundleValue } from "$lib/proxies/bundleSerialization";
-import type { BoolArrayContainer, StringContainer } from "$types/save";
 import { flushSync } from "svelte";
 import { describe, expect, it } from "vitest";
+import { parseBundleValue } from "$lib/proxies/bundleSerialization";
+import { Bundle } from "$lib/proxies/CommunityBundles.svelte";
+import type { BoolArrayContainer, StringContainer } from "$types/save";
 
 // Regression coverage for remixed bundle entries that use string item IDs (e.g. "SummerSquash").
 

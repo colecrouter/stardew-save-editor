@@ -1,5 +1,5 @@
-import type { Achievements, Player } from "$types/save";
 import { SvelteSet } from "svelte/reactivity";
+import type { Achievements, Player } from "$types/save";
 import { type DataProxy, Raw } from ".";
 
 const xpForLevel = [
@@ -49,7 +49,7 @@ export class Skills implements DataProxy<Player> {
 	constructor(player: Player) {
 		this[Raw] = player;
 
-		// @ts-ignore
+		// @ts-expect-error
 		this.experience = $state({});
 
 		// Initialize reactive states for each skill and sync back

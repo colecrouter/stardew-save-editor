@@ -1,33 +1,33 @@
 <script lang="ts">
-	import type { Bundle } from "$lib/proxies/CommunityBundles.svelte";
-	import { colorMap } from "$types/colors";
-	import BundleItem from "./BundleItem.svelte";
+import type { Bundle } from "$lib/proxies/CommunityBundles.svelte";
+import { colorMap } from "$types/colors";
+import BundleItem from "./BundleItem.svelte";
 
-	interface Props {
-		bundle: Bundle;
-	}
+interface Props {
+	bundle: Bundle;
+}
 
-	let { bundle }: Props = $props();
+let { bundle }: Props = $props();
 
-	let color = $derived(bundle.color ?? 0);
+let color = $derived(bundle.color ?? 0);
 
-	// Junimo Note
-	const sheet = "url(/assets/JunimoNote.png)";
+// Junimo Note
+const sheet = "url(/assets/JunimoNote.png)";
 
-	let posX = $derived(
-		`${(color % 2) * (-16 * 16) + (bundle.completed ? -224 : 0)}px`,
-	);
-	let posY = $derived(`${Math.floor(color / 2) * 16 - 48}px`);
+let posX = $derived(
+	`${(color % 2) * (-16 * 16) + (bundle.completed ? -224 : 0)}px`,
+);
+let posY = $derived(`${Math.floor(color / 2) * 16 - 48}px`);
 
-	const colors = new Map<number, string>([
-		[0, "color_green"],
-		[1, "color_purple"],
-		[2, "color_orange"],
-		[3, "color_yellow"],
-		[4, "color_red"],
-		[5, "color_blue"],
-		[6, "color_cyan"],
-	]);
+const colors = new Map<number, string>([
+	[0, "color_green"],
+	[1, "color_purple"],
+	[2, "color_orange"],
+	[3, "color_yellow"],
+	[4, "color_red"],
+	[5, "color_blue"],
+	[6, "color_cyan"],
+]);
 </script>
 
 <div

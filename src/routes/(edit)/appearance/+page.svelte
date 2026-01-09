@@ -1,32 +1,32 @@
 <script lang="ts">
-	import { getSaveManager } from "$lib/SaveManager.svelte";
-	import { Color } from "$lib/proxies/Color.svelte";
-	import type { Farmer } from "$lib/proxies/Farmer.svelte";
-	import UiContainer from "$lib/ui/UIContainer.svelte";
-	import UiInput from "$lib/ui/UIInput.svelte";
-	import { Gender } from "$types/save";
-	import Preview from "./CharacterPreview.svelte";
+import { Color } from "$lib/proxies/Color.svelte";
+import type { Farmer } from "$lib/proxies/Farmer.svelte";
+import { getSaveManager } from "$lib/SaveManager.svelte";
+import UiContainer from "$lib/ui/UIContainer.svelte";
+import UiInput from "$lib/ui/UIInput.svelte";
+import { Gender } from "$types/save";
+import Preview from "./CharacterPreview.svelte";
 
-	const textFields = [
-		["Name", "name"],
-		["Farm Name", "farmName"],
-		["Favorite Thing", "favoriteThing"],
-	] satisfies [string, keyof Farmer][];
+const textFields = [
+	["Name", "name"],
+	["Farm Name", "farmName"],
+	["Favorite Thing", "favoriteThing"],
+] satisfies [string, keyof Farmer][];
 
-	const colorFields = [
-		["Eye Color", "eyeColor"],
-		["Hair Color", "hairColor"],
-	] satisfies [string, keyof Farmer][];
+const colorFields = [
+	["Eye Color", "eyeColor"],
+	["Hair Color", "hairColor"],
+] satisfies [string, keyof Farmer][];
 
-	// Label, key, min, max
-	const numberFields = [
-		["Skin", "skin", 0, 23],
-		["Hair", "hairstyle", 0, 73],
-		["Acc", "accessory", -1, 29],
-	] satisfies [string, keyof Farmer, number, number][];
+// Label, key, min, max
+const numberFields = [
+	["Skin", "skin", 0, 23],
+	["Hair", "hairstyle", 0, 73],
+	["Acc", "accessory", -1, 29],
+] satisfies [string, keyof Farmer, number, number][];
 
-	const save = getSaveManager().save;
-	if (!save) throw new Error("No player data found");
+const save = getSaveManager().save;
+if (!save) throw new Error("No player data found");
 </script>
 
 <UiContainer>

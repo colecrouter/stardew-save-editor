@@ -1,26 +1,27 @@
 <script lang="ts">
-	import { browser } from "$app/environment";
-	import { goto } from "$app/navigation";
-	import { resolve } from "$app/paths";
-	import { page } from "$app/stores";
-	import { getSaveManager } from "$lib/SaveManager.svelte";
-	import UiButton from "$lib/ui/UIButton.svelte";
-	interface Props {
-		children?: import("svelte").Snippet;
-	}
+import { browser } from "$app/environment";
+import { goto } from "$app/navigation";
+import { resolve } from "$app/paths";
+import { page } from "$app/stores";
+import { getSaveManager } from "$lib/SaveManager.svelte";
+import UiButton from "$lib/ui/UIButton.svelte";
 
-	let { children }: Props = $props();
+interface Props {
+	children?: import("svelte").Snippet;
+}
 
-	const saveManager = getSaveManager();
+let { children }: Props = $props();
 
-	// https://github.com/sveltejs/kit/issues/5434
-	page.subscribe(
-		(p) =>
-			browser &&
-			p.url.pathname === "/" &&
-			saveManager.save?.raw &&
-			goto(resolve("/inventory")),
-	);
+const saveManager = getSaveManager();
+
+// https://github.com/sveltejs/kit/issues/5434
+page.subscribe(
+	(p) =>
+		browser &&
+		p.url.pathname === "/" &&
+		saveManager.save?.raw &&
+		goto(resolve("/inventory")),
+);
 </script>
 
 <div class="wrapper">

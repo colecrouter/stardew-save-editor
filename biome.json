@@ -21,6 +21,15 @@
 			"linter": {
 				"rules": { "style": { "useConst": "off", "useImportType": "off" } }
 			}
+		},
+		{
+			"include": ["tsconfig*.json"],
+			"json": {
+				"parser": {
+					"allowComments": true,
+					"allowTrailingCommas": true
+				}
+			}
 		}
 	]
 }

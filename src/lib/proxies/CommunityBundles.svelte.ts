@@ -77,6 +77,7 @@ export enum BundleName {
 export class CommunityBundles extends SvelteMap<BundleName, Bundle> {
 	private communityCenter: GameLocation;
 	private saveData: SaveProxy;
+	private hasRunOnce = false;
 
 	constructor(saveData: SaveProxy) {
 		const cc = saveData.locations.find(
@@ -112,7 +113,7 @@ export class CommunityBundles extends SvelteMap<BundleName, Bundle> {
 		// Sanitize bundleRewards immediately on load
 		this.sanitizeBundleRewards();
 
-		// Apply proper save side effects
+		// Apply proper save side effects (only after initialization, when user makes changes)
 		$effect(() => this.applySideEffects());
 	}
 
@@ -123,6 +124,8 @@ export class CommunityBundles extends SvelteMap<BundleName, Bundle> {
 	 */
 	private applySideEffects() {
 		// Get all bundles, group by room
+		// NOTE: We must access reactive values BEFORE checking hasRunOnce to establish
+		// dependency tracking, otherwise the effect won't re-run when bundles change
 		const bundlesByRoom = Map.groupBy(this.values(), (b: Bundle) => b.room);
 
 		// Figure out which rooms are completed
@@ -130,6 +133,12 @@ export class CommunityBundles extends SvelteMap<BundleName, Bundle> {
 			([room, bundles]) =>
 				[room, bundles.every((b: Bundle) => b.completed)] as const,
 		);
+
+		// Skip side effects on first run (initial load) to preserve existing player mail flags
+		if (!this.hasRunOnce) {
+			this.hasRunOnce = true;
+			return;
+		}
 
 		// Apply side effects
 		for (const [room, completed] of completedRooms) {

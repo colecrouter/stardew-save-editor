@@ -1361,7 +1361,7 @@ export interface Item {
 	synchronized?: boolean;
 	specialChestType?: SpecialChestType;
 	globalInventoryId?: StringContainer;
-	preserve?: string;
+	preserve?: Preserve;
 	preservedParentSheetIndex?: number;
 	color?: Color;
 	colorSameIndexAsParentSheetIndex?: boolean;
@@ -1546,4 +1546,18 @@ export interface SpecialOrderReward {
 	noLetter?: BoolContainer;
 	grantedMails?: StringContainer;
 	host?: BoolContainer;
+}
+
+export enum Preserve {
+	Wine = "Wine",
+	Jelly = "Jelly",
+	Pickle = "Pickle",
+	Juice = "Juice",
+	Roe = "Roe",
+	AgedRoe = "AgedRoe",
+	Honey = "Honey",
+	Bait = "Bait",
+	DriedFruit = "DriedFruit",
+	DriedMushroom = "DriedMushroom",
+	SmokedFish = "SmokedFish",
 }

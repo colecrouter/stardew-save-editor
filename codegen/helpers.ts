@@ -130,6 +130,18 @@ export const transformJSONItems = <
 		precision: "Precision" in obj ? obj.Precision : undefined,
 	}));
 
+export type PreserveLabel =
+	| "Wine"
+	| "Jelly"
+	| "Pickles"
+	| "Juice"
+	| "Roe"
+	| "Aged Roe"
+	| "Honey"
+	| "Bait"
+	| "Dried"
+	| "Smoked";
+
 interface ArtisanConfig {
 	filter: (obj: RegularObject) => boolean;
 	suffix?: string;
@@ -177,7 +189,7 @@ export const createArtisanGoods = (
 						.find((color) => color !== undefined)
 				: undefined,
 			unpreservedItemId: obj._key,
-			preservedItemName: artisanProduct.name,
+			preservedItemName: artisanProduct.name as PreserveLabel,
 		}));
 
 const textureFilter = ["TileSheets", "/", "\\"];

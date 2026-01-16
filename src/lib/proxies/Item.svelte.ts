@@ -13,16 +13,63 @@ import {
 import type { ParentIndex } from "$lib/ItemParentIndex";
 import { Color } from "$lib/proxies/Color.svelte";
 import { Sprite } from "$lib/Sprite.svelte";
+import type { PreserveLabel } from "$types/helpers";
 import {
 	FurnitureType,
 	type ItemInformation,
 	ObjectCategory,
 	type ToolClass,
 } from "$types/items";
-import { ClothesType, type Item as ItemModel, TypeEnum } from "$types/save";
+import {
+	ClothesType,
+	type Item as ItemModel,
+	Preserve,
+	TypeEnum,
+} from "$types/save";
 import { type DataProxy, Raw } from ".";
 
 const nil = { "@_xsi:nil": "true" };
+
+/**
+ * Stardew serializes `Object.preserve` as an enum name (see `Object.PreserveType`).
+ * Our generated item metadata historically stored *display labels* like "Smoked" or
+ * "Pickles", which don't round-trip back into valid save XML.
+ */
+function normalizePreserveType(
+	label: PreserveLabel,
+	outputItemId: string,
+): Preserve {
+	// Common legacy-ish labels from our `generated/iteminfo.json`.
+	// The game's enum values are:
+	// Wine, Jelly, Pickle, Juice, Roe, AgedRoe, Honey, Bait, DriedFruit, DriedMushroom, SmokedFish
+	switch (label) {
+		case "Pickles":
+			return Preserve.Pickle;
+		case "Aged Roe":
+			return Preserve.AgedRoe;
+		case "Smoked":
+			return Preserve.SmokedFish;
+		case "Dried":
+			// The game differentiates fruit vs mushroom in the enum.
+			return outputItemId === "DriedMushrooms"
+				? Preserve.DriedMushroom
+				: Preserve.DriedFruit;
+		case "Wine":
+			return Preserve.Wine;
+		case "Jelly":
+			return Preserve.Jelly;
+		case "Juice":
+			return Preserve.Juice;
+		case "Roe":
+			return Preserve.Roe;
+		case "Honey":
+			return Preserve.Honey;
+		case "Bait":
+			return Preserve.Bait;
+		default:
+			throw new Error(`Unknown preserve type: ${label}`);
+	}
+}
 
 // Mapping of data types to item types
 const typeToItemTypeMap = new Map<ItemInformation["_type"], string>([
@@ -488,7 +535,7 @@ export class Item implements DataProxy<ItemModel> {
 				10,
 			);
 
-			item.preserve = data.preservedItemName;
+			item.preserve = normalizePreserveType(data.preservedItemName, data._key);
 		}
 
 		// Handle colored items (e.g. Wines, Juices)

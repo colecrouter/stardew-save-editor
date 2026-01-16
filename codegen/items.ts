@@ -1,3 +1,4 @@
+import type { PreserveLabel } from "./helpers.js";
 import type { TypeEnum } from "./save.js";
 
 export interface ItemBase {
@@ -26,7 +27,7 @@ export interface RegularObject extends ItemBase {
 	tags?: string[];
 	color?: string;
 	unpreservedItemId?: string;
-	preservedItemName?: string;
+	preservedItemName?: PreserveLabel;
 }
 
 export interface BigCraftable extends ItemBase {

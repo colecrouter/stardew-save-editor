@@ -234,7 +234,7 @@ export const ItemNameHelper = (item: Item) => {
 	// No scythe, milking pail, or shears
 	const tools = ["Pickaxe", "Axe", "Hoe", "Watering Can"];
 	for (const tool of tools) {
-		if (item.name.endsWith(tool)) {
+		if ((item.name ?? "").endsWith(tool)) {
 			switch (item.upgradeLevel) {
 				case 4:
 					return `Iridium ${tool}`;

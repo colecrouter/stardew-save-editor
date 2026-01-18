@@ -5,7 +5,9 @@ import {
 	ObjectCategory,
 	type Shirt,
 } from "$types/items";
+
 import type { Item } from "$types/save";
+
 export const HatWhichNumber = new Map([
 	["Cowboy Hat", 0],
 	["Bowler Hat", 1],
@@ -217,17 +219,23 @@ export const KeyToName = (key: string, type: string) => {
 	throw new Error(`Key ${key} not found for type ${type}`);
 };
 
+function hasUpgradeLevel(item: Item): item is Item & { upgradeLevel: number } {
+	return "upgradeLevel" in item && typeof item.upgradeLevel === "number";
+}
+
 export const ItemNameHelper = (item: Item) => {
 	if (item.name === "Fishing Rod") {
-		switch (item.upgradeLevel) {
-			case 0:
-				return "Bamboo Pole";
-			case 1:
-				return "Training Rod";
-			case 2:
-				return "Fiberglass Rod";
-			case 3:
-				return "Iridium Rod";
+		if (hasUpgradeLevel(item)) {
+			switch (item.upgradeLevel) {
+				case 0:
+					return "Bamboo Pole";
+				case 1:
+					return "Training Rod";
+				case 2:
+					return "Fiberglass Rod";
+				case 3:
+					return "Iridium Rod";
+			}
 		}
 	}
 
@@ -235,17 +243,19 @@ export const ItemNameHelper = (item: Item) => {
 	const tools = ["Pickaxe", "Axe", "Hoe", "Watering Can"];
 	for (const tool of tools) {
 		if ((item.name ?? "").endsWith(tool)) {
-			switch (item.upgradeLevel) {
-				case 4:
-					return `Iridium ${tool}`;
-				case 3:
-					return `Gold ${tool}`;
-				case 2:
-					return `Steel ${tool}`;
-				case 1:
-					return `Copper ${tool}`;
-				default:
-					return tool;
+			if (hasUpgradeLevel(item)) {
+				switch (item.upgradeLevel) {
+					case 4:
+						return `Iridium ${tool}`;
+					case 3:
+						return `Gold ${tool}`;
+					case 2:
+						return `Steel ${tool}`;
+					case 1:
+						return `Copper ${tool}`;
+					default:
+						return tool;
+				}
 			}
 		}
 	}

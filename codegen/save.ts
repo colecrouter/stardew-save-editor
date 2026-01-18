@@ -1112,13 +1112,13 @@ export interface Player {
 	hairstyleColor: Color;
 	pantsColor: Color;
 	newEyeColor: Color;
-	hat?: Item;
-	boots?: Item;
-	leftRing?: Item;
-	rightRing?: Item;
-	shirtItem?: Item;
-	pantsItem?: Item;
-	trinketItem?: Item;
+	hat?: HatItem;
+	boots?: BootsItem;
+	leftRing?: RingItem;
+	rightRing?: RingItem;
+	shirtItem?: ClothingItem;
+	pantsItem?: ClothingItem;
+	trinketItem?: TrinketItem;
 	divorceTonight: boolean;
 	changeWalletTypeTonight: boolean;
 	gameVersion: string;
@@ -1272,33 +1272,70 @@ export interface Inventory {
 }
 
 export interface Item {
-	isLostItem: boolean;
+	"@_xsi:type"?: string;
 	category?: number;
 	hasBeenInInventory: boolean;
 	name: string;
-	itemId: string | number;
-	specialItem: boolean;
+	parentSheetIndex?: number;
+	itemId?: string | number;
 	isRecipe: boolean;
 	quality: number;
 	stack: number;
-	price: number;
-	SpecialVariable: number;
+	modDataForSerialization?: unknown;
+	_type?: string;
+	type?: TypeEnum | number | string;
+
+	// Base properties assigned in Item.fromName()
+	tileLocation?: TileLocation;
+	boundingBox?: BoundingBox;
+	canBeSetDown?: boolean;
+	canBeGrabbed?: boolean;
+	SpecialVariable?: number;
+	isLostItem?: boolean;
+	specialItem?: boolean;
+	indexInTileSheet?: number;
+	bigCraftable?: boolean;
+	price?: number;
+
+	// Tool properties
+	upgradeLevel?: number;
 	initialParentTileIndex?: number;
 	currentParentTileIndex?: number;
 	indexOfMenuItemView?: number;
+	numAttachmentSlots?: number;
 	instantUse?: boolean;
 	isEfficient?: boolean;
 	animationSpeedModifier?: number;
-	swingTicker?: number;
-	upgradeLevel?: number;
-	numAttachmentSlots?: number;
-	attachments?: AttachmentsAttachments | string;
-	InitialParentTileIndex?: number;
-	IndexOfMenuItemView?: number;
-	InstantUse?: boolean;
-	IsEfficient?: boolean;
-	AnimationSpeedModifier?: number;
-	type?: TypeEnum | number;
+	IsBottomless?: boolean;
+	isBottomless?: boolean;
+
+	// FishingRod properties
+	bobberX?: number;
+	bobberY?: number;
+	castDirection?: number;
+	isFishing?: boolean;
+	hit?: boolean;
+	isNibbling?: boolean;
+	isReeling?: boolean;
+	fishSize?: number;
+	fishQuality?: number;
+	whichFish?: string;
+
+	// WateringCan properties
+	waterLeft?: number;
+	waterCanMax?: number;
+
+	// Slingshot properties
+	aimPosX?: number;
+	aimPosY?: number;
+	mouseDragAmount?: number;
+	pullStartTime?: number;
+	canPlaySound?: boolean;
+
+	// Pickaxe/Axe properties
+	additionalPower?: number;
+
+	// Weapon properties
 	minDamage?: number;
 	maxDamage?: number;
 	speed?: number;
@@ -1308,21 +1345,55 @@ export interface Item {
 	knockback?: number;
 	critChance?: number;
 	critMultiplier?: number;
-	isOnSpecial?: boolean;
-	additionalPower?: IntContainer;
-	isBottomless?: boolean;
-	WaterLeft?: number;
-	IsBottomless?: boolean;
-	parentSheetIndex?: number;
+
+	// Trinket properties
+	generationSeed?: number;
+
+	// Hat properties
+	which?: { "@_xsi:nil": "true" };
+	skipHairDraw?: boolean;
+	ignoreHairstyleOffset?: boolean;
+
+	// Furniture properties
+	sourceRect?: BoundingBox;
+	defaultSourceRect?: BoundingBox;
+	defaultBoundingBox?: BoundingBox;
+	isLamp?: boolean;
+
+	// Clothing properties
+	clothesColor?: Color;
+	clothesType?: ClothesType;
+
+	// Boots properties
+	indexInColorSheet?: number;
+
+	// Preserved item properties
+	preservedParentSheetIndex?: number | string;
+	preserve?: Preserve | null;
+
+	// Colored object properties
+	color?: Color;
+
+	// Ring properties
+	uniqueID?: number;
+
+	// Edibility (for food items)
+	edibility?: number;
+}
+
+export interface ObjectItem extends Item {
+	"@_xsi:type": "Object" | "ColoredObject" | "Trinket" | "Furniture" | "Cask";
 	tileLocation?: TileLocation;
 	owner?: number;
+	type?: TypeEnum | string;
 	canBeSetDown?: boolean;
 	canBeGrabbed?: boolean;
 	isSpawnedObject?: boolean;
 	questItem?: boolean;
-	questId?: number;
+	questId?: string;
 	isOn?: boolean;
 	fragility?: number;
+	price?: number;
 	edibility?: number;
 	bigCraftable?: boolean;
 	setOutdoors?: boolean;
@@ -1331,75 +1402,177 @@ export interface Item {
 	showNextIndex?: boolean;
 	flipped?: boolean;
 	isLamp?: boolean;
+	heldObject?: ObjectItem;
+	lastOutputRuleId?: string;
+	lastInputItem?: Item;
 	minutesUntilReady?: number;
 	boundingBox?: BoundingBox;
-	scale?: TileLocation;
 	uses?: number;
-	destroyOvernight?: boolean;
-	CastDirection?: number;
+	signText?: string;
+	orderData?: string;
+	preserve?: Preserve | null;
+	preservedParentSheetIndex?: string;
+	honeyType?: string;
+	displayNameFormat?: string;
+}
+
+export interface ToolItem extends Item {
+	"@_xsi:type":
+		| "Tool"
+		| "MeleeWeapon"
+		| "FishingRod"
+		| "WateringCan"
+		| "Slingshot"
+		| "Pickaxe"
+		| "Axe"
+		| "Pan";
+	type?: number;
+	initialParentTileIndex?: number;
+	currentParentTileIndex?: number;
+	indexOfMenuItemView?: number;
+	instantUse?: boolean;
+	isEfficient?: boolean;
+	animationSpeedModifier?: number;
+	upgradeLevel?: number;
+	numAttachmentSlots?: number;
+	enchantments?: unknown;
+	previousEnchantments?: unknown;
+}
+
+export interface WeaponItem extends ToolItem {
+	"@_xsi:type": "MeleeWeapon";
+	type?: number;
+	minDamage?: number;
+	maxDamage?: number;
+	speed?: number;
+	addedPrecision?: number;
+	addedDefense?: number;
+	addedAreaOfEffect?: number;
+	knockback?: number;
+	critChance?: number;
+	critMultiplier?: number;
+	appearance?: string;
+}
+
+export interface HatItem extends Item {
+	"@_xsi:type": "Hat";
+	skipHairDraw?: boolean;
+	ignoreHairstyleOffset?: boolean;
+	hairDrawType?: number;
+	isPrismatic?: boolean;
+	enchantments?: unknown;
+	previousEnchantments?: unknown;
+}
+
+export interface BootsItem extends Item {
+	"@_xsi:type": "Boots";
+	defenseBonus?: number;
+	immunityBonus?: number;
 	indexInTileSheet?: number;
-	indexInTileSheetFemale?: number;
+	price?: number;
+	indexInColorSheet?: number;
+	appliedBootSheetIndex?: string;
+}
+
+export interface ClothingItem extends Item {
+	"@_xsi:type": "Clothing";
+	price?: number;
+	indexInTileSheet?: number;
 	clothesType?: ClothesType;
 	dyeable?: boolean;
 	clothesColor?: Color;
 	isPrismatic?: boolean;
+}
+
+export interface RingItem extends Item {
+	"@_xsi:type": "Ring";
+	price?: number;
 	uniqueID?: number;
-	currentLidFrame?: number;
-	lidFrameCount?: IntContainer;
-	frameCounter?: number;
-	items?: ItemContainer;
-	separateWalletItems?: SeparateWalletItems;
-	tint?: Color;
-	playerChoiceColor?: Color;
-	playerChest?: boolean;
-	fridge?: boolean;
-	giftbox?: boolean;
-	giftboxIndex?: number;
-	giftboxIsStarterGift?: BoolContainer;
-	spriteIndexOverride?: number;
-	dropContents?: boolean;
-	synchronized?: boolean;
-	specialChestType?: SpecialChestType;
-	globalInventoryId?: StringContainer;
-	preserve?: Preserve;
-	preservedParentSheetIndex?: number;
+	type?: TypeEnum;
+}
+
+export interface ColoredObjectItem extends ObjectItem {
+	"@_xsi:type": "ColoredObject";
 	color?: Color;
 	colorSameIndexAsParentSheetIndex?: boolean;
-	defenseBonus?: number;
-	immunityBonus?: number;
-	indexInColorSheet?: number;
-	which?: null;
+}
+
+export interface TrinketItem extends ObjectItem {
+	"@_xsi:type": "Trinket";
+	generationSeed: number;
+	displayNameOverrideTemplate: unknown;
+	descriptionSubstitutionTemplates: unknown;
+	trinketMetadata: unknown;
+}
+
+export interface FurnitureItem extends ObjectItem {
+	"@_xsi:type": "Furniture";
 	furniture_type?: FurnitureType;
 	rotations?: number;
 	currentRotation?: number;
+	sourceIndexOffset?: number;
+	drawPosition?: TileLocation;
 	sourceRect?: BoundingBox;
 	defaultSourceRect?: BoundingBox;
 	defaultBoundingBox?: BoundingBox;
 	drawHeldObjectLow?: boolean;
-	heldObject?: Item;
-	lastOutputRuleId?: string;
-	lastInputItem?: Item;
-	bedType?: string;
-	signText?: string;
-	skipHairDraw?: boolean;
-	ignoreHairstyleOffset?: boolean;
-	hairDrawType?: number;
-	health?: number;
-	maxHealth?: number;
-	whichType?: string;
-	gatePosition?: number;
-	gateMotion?: number;
-	isGate?: boolean;
+}
+
+export interface CaskItem extends ObjectItem {
+	"@_xsi:type": "Cask";
 	agingRate?: number;
 	daysToMature?: number;
-	requiredItem?: Item;
-	successColor?: Color;
-	lockOnSuccess?: boolean;
-	locked?: boolean;
-	match?: boolean;
-	isIslandShrinePedestal?: boolean;
-	generationSeed?: number;
+	heldItemQuality?: number;
 }
+
+export interface FishingRodItem extends ToolItem {
+	"@_xsi:type": "FishingRod";
+}
+
+export interface WateringCanItem extends ToolItem {
+	"@_xsi:type": "WateringCan";
+	waterLeft: number;
+	isBottomless?: boolean;
+	waterCanMax: number;
+}
+
+export interface SlingshotItem extends ToolItem {
+	"@_xsi:type": "Slingshot";
+}
+
+export interface PickaxeItem extends ToolItem {
+	"@_xsi:type": "Pickaxe";
+	additionalPower: number;
+}
+
+export interface AxeItem extends ToolItem {
+	"@_xsi:type": "Axe";
+	additionalPower: number;
+}
+
+export interface PanItem extends ToolItem {
+	"@_xsi:type": "Pan";
+}
+
+export type KnownItemTypes = (
+	| ObjectItem
+	| ToolItem
+	| WeaponItem
+	| HatItem
+	| BootsItem
+	| ClothingItem
+	| RingItem
+	| ColoredObjectItem
+	| TrinketItem
+	| FurnitureItem
+	| CaskItem
+	| FishingRodItem
+	| WateringCanItem
+	| SlingshotItem
+	| PickaxeItem
+	| AxeItem
+	| PanItem
+)["@_xsi:type"];
 
 export interface AttachmentsAttachments {
 	Object: Array<Item | string>;

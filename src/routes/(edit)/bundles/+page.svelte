@@ -1,36 +1,36 @@
 <script lang="ts">
-import { Raw } from "$lib/proxies";
-import { MailFlag } from "$lib/proxies/Mail.svelte";
-import { getSaveManager } from "$lib/SaveManager.svelte";
-import UiCheckbox from "$lib/ui/UICheckbox.svelte";
-import UiContainer from "$lib/ui/UIContainer.svelte";
-import Bundle from "./Bundle.svelte";
-import JojaBundles from "./JojaBundles.svelte";
+	import { Raw } from "$lib/proxies";
+	import { MailFlag } from "$lib/proxies/Mail.svelte";
+	import { getSaveManager } from "$lib/SaveManager.svelte";
+	import UiCheckbox from "$lib/ui/UICheckbox.svelte";
+	import UiContainer from "$lib/ui/UIContainer.svelte";
+	import Bundle from "./Bundle.svelte";
+	import JojaBundles from "./JojaBundles.svelte";
 
-const save = getSaveManager().save;
-const bundles = save?.communityBundles;
-const cc = save?.locations.find((l) => l[Raw].name === "CommunityCenter");
-if (!save || !bundles) throw new Error("No save data found");
+	const save = getSaveManager().save;
+	const bundles = save?.communityBundles;
+	const cc = save?.locations.find((l) => l[Raw].name === "CommunityCenter");
+	if (!save || !bundles) throw new Error("No save data found");
 
-let hasJojaMembership = $derived(
-	save.players.some((player) => player.mailReceived.has(MailFlag.JojaMember)),
-);
+	let hasJojaMembership = $derived(
+		save.players.some((player) => player.mailReceived.has(MailFlag.JojaMember)),
+	);
 
-function enableJojaMembership() {
-	// IMPORTANT: mailReceived is a SvelteSet; do NOT replace the Set instance
-	// or we lose reactivity. Mutate it directly so hasJojaMembership updates.
-	for (const player of save?.players ?? []) {
-		player.mailReceived.add(MailFlag.JojaMember);
-		console.log("Enabled Joja Membership for player:", player.name);
+	function enableJojaMembership() {
+		// IMPORTANT: mailReceived is a SvelteSet; do NOT replace the Set instance
+		// or we lose reactivity. Mutate it directly so hasJojaMembership updates.
+		for (const player of save?.players ?? []) {
+			player.mailReceived.add(MailFlag.JojaMember);
+			console.log("Enabled Joja Membership for player:", player.name);
+		}
 	}
-}
 
-function disableJojaMembership() {
-	for (const player of save?.players ?? []) {
-		player.mailReceived.delete(MailFlag.JojaMember);
-		console.log("Disabled Joja Membership for player:", player.name);
+	function disableJojaMembership() {
+		for (const player of save?.players ?? []) {
+			player.mailReceived.delete(MailFlag.JojaMember);
+			console.log("Disabled Joja Membership for player:", player.name);
+		}
 	}
-}
 </script>
 
 <UiContainer>

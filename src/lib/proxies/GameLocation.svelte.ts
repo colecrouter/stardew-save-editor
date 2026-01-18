@@ -1,8 +1,12 @@
 import buildings from "$generated/buildings.json";
 import { Building } from "$lib/proxies/Building.svelte";
 import { FarmAnimal } from "$lib/proxies/FarmAnimal.svelte";
-import { Item } from "$lib/proxies/Item.svelte";
-import type { GameLocation as Location } from "$types/save";
+import { type BaseItemProxy, createItemProxy } from "$lib/proxies/items";
+import type {
+	GameLocation as Location,
+	Item as SaveItem,
+	TileLocation,
+} from "$types/save";
 import { type DataProxy, Raw } from ".";
 
 export class GameLocation implements DataProxy<Location> {
@@ -10,7 +14,7 @@ export class GameLocation implements DataProxy<Location> {
 
 	public buildings: Building[];
 	public animals: FarmAnimal[];
-	public items: (Item | null)[][];
+	public items: (BaseItemProxy | null)[][];
 	public piecesOfHay: number;
 
 	constructor(location: Location) {
@@ -71,8 +75,8 @@ export class GameLocation implements DataProxy<Location> {
 		const building = buildings.find((b) => b.name === this[Raw].name);
 
 		const { X: width, Y: height } = building?.size ?? { X: 100, Y: 100 };
-		const items = Array.from<Item | null>({ length: height }).map(() =>
-			Array.from<Item | null>({ length: width }).fill(null),
+		const items = Array.from<BaseItemProxy | null>({ length: height }).map(() =>
+			Array.from<BaseItemProxy | null>({ length: width }).fill(null),
 		);
 
 		for (const { key, value } of this[Raw].objects?.item ?? []) {
@@ -89,7 +93,7 @@ export class GameLocation implements DataProxy<Location> {
 			if (value.Object === undefined)
 				throw new Error("Item value is undefined");
 
-			items[y][x] = new Item(value.Object);
+			items[y][x] = createItemProxy(value.Object);
 		}
 
 		return items;
@@ -100,15 +104,20 @@ export class GameLocation implements DataProxy<Location> {
 			item: value
 				.flat()
 				.filter((i) => i !== null)
-				.map((i) => ({
-					key: {
-						Vector2: {
-							X: i[Raw].tileLocation?.X ?? 0,
-							Y: i[Raw].tileLocation?.Y ?? 0,
+				.map((i) => {
+					const tileLocation = (
+						i[Raw] as SaveItem & { tileLocation?: TileLocation }
+					).tileLocation; // preserve optional property
+					return {
+						key: {
+							Vector2: {
+								X: tileLocation?.X ?? 0,
+								Y: tileLocation?.Y ?? 0,
+							},
 						},
-					},
-					value: { Object: i[Raw] },
-				})),
+						value: { Object: i[Raw] },
+					};
+				}),
 		};
 	}
 }

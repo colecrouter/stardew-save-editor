@@ -1,19 +1,18 @@
 <script lang="ts" module>
-const qualityLevels = new Map([
-	[0, "Normal"],
-	[1, "Silver"],
-	[2, "Gold"],
-	[4, "Iridium"],
-]);
+	const qualityLevels = new Map([
+		[0, "Normal"],
+		[1, "Silver"],
+		[2, "Gold"],
+		[4, "Iridium"],
+	]);
 </script>
 
 <script lang="ts">
 	import { calculatePrice, calculateEdibility } from "$lib/ItemQuality";
-
-	import type { Item } from "$lib/proxies/Item.svelte";
+	import type { ObjectProxy } from "$lib/proxies/items";
 
 	interface Props {
-		item: Item;
+		item: ObjectProxy;
 	}
 
 	let { item = $bindable() }: Props = $props();

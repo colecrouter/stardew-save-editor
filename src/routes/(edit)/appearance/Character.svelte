@@ -1,109 +1,112 @@
 <script lang="ts">
-import { asset } from "$app/paths";
-import {
-	PrimaryBootColors,
-	PrimarySkinColors,
-	QuaternaryBootColors,
-	SecondaryBootColors,
-	SecondarySkinColors,
-	TertiaryBootColors,
-	TertiarySkinColors,
-} from "$lib/CharacterColors";
-import { Raw } from "$lib/proxies";
-import { Color } from "$lib/proxies/Color.svelte";
-import type { Farmer } from "$lib/proxies/Farmer.svelte";
-import { Item } from "$lib/proxies/Item.svelte";
-import { Sprite } from "$lib/Sprite.svelte";
-import type { Coordinates } from "$types/items";
-import { type Color as ColorType, Gender } from "../../../../codegen/save";
+	import { asset } from "$app/paths";
+	import {
+		PrimaryBootColors,
+		PrimarySkinColors,
+		QuaternaryBootColors,
+		SecondaryBootColors,
+		SecondarySkinColors,
+		TertiaryBootColors,
+		TertiarySkinColors,
+	} from "$lib/CharacterColors";
+	import { Raw } from "$lib/proxies";
+	import { Color } from "$lib/proxies/Color.svelte";
+	import type { Farmer } from "$lib/proxies/Farmer.svelte";
+	import { Item } from "$lib/proxies/Item.svelte";
+	import type { ClothingProxy } from "$lib/proxies/items";
+	import { Sprite } from "$lib/Sprite.svelte";
+	import type { Coordinates } from "$types/items";
+	import { type Color as ColorType, Gender } from "../../../../codegen/save";
 
-interface Props {
-	player: Farmer;
-}
+	interface Props {
+		player: Farmer;
+	}
 
-let { player }: Props = $props();
+	let { player }: Props = $props();
 
-let gender = $derived(player.gender.toLowerCase()) as "male" | "female";
+	let gender = $derived(player.gender.toLowerCase()) as "male" | "female";
 
-// Spritesheets
-let baseSheet = $derived(asset(`/img/${gender}_farmer.png`));
-let otherSheet = $derived(asset(`/img/${gender}_farmer_other.png`));
-let armsSheet = $derived(asset(`/img/${gender}_farmer_arms.png`));
-let bootsSheet = $derived(asset(`/img/${gender}_farmer_boots.png`));
-// const hairSheet = `${base}/assets/hairstyles.png`;
-let hairSheet = $derived(
-	asset(`/assets/hairstyles${player.hairstyle >= 56 ? "2" : ""}.png`),
-);
-const pantsSheet = asset("/assets/pants.png");
-const shirtSheet = asset("/assets/shirts.png");
-const accessoriesSheet = asset("/assets/accessories.png");
-const hatSheet = asset("/assets/hats.png");
+	// Spritesheets
+	let baseSheet = $derived(asset(`/img/${gender}_farmer.png`));
+	let otherSheet = $derived(asset(`/img/${gender}_farmer_other.png`));
+	let armsSheet = $derived(asset(`/img/${gender}_farmer_arms.png`));
+	let bootsSheet = $derived(asset(`/img/${gender}_farmer_boots.png`));
+	// const hairSheet = `${base}/assets/hairstyles.png`;
+	let hairSheet = $derived(
+		asset(`/assets/hairstyles${player.hairstyle >= 56 ? "2" : ""}.png`),
+	);
+	const pantsSheet = asset("/assets/pants.png");
+	const shirtSheet = asset("/assets/shirts.png");
+	const accessoriesSheet = asset("/assets/accessories.png");
+	const hatSheet = asset("/assets/hats.png");
 
-const underwear = Item.fromName("Polka Dot Shorts");
-const undershirt = $derived(
-	Item.fromName(
-		player.gender === Gender.Male ? "Basic Pullover (M)" : "Basic Pullover (F)",
-	),
-);
+	const underwear = Item.fromName("Polka Dot Shorts") as ClothingProxy;
+	const undershirt = $derived(
+		Item.fromName(
+			player.gender === Gender.Male
+				? "Basic Pullover (M)"
+				: "Basic Pullover (F)",
+		) as ClothingProxy,
+	);
 
-let hat = $derived(player.hat);
-let shirt = $derived(player.shirt ?? undershirt);
-let pants = $derived(player.pants ?? underwear);
-let boots = $derived(player.boots);
+	let hat = $derived(player.hat);
+	let shirt = $derived(player.shirt ?? undershirt);
+	let pants = $derived(player.pants ?? underwear);
+	let boots = $derived(player.boots);
 
-// Calculate sprite X and Y positions
-let hatPosition = $derived(hat?.sprite?.dimensions);
-let hairPosition = $derived(
-	Sprite.fromIndex(
-		player.hairstyle >= 56 ? player.hairstyle - 56 : player.hairstyle,
-		16,
-		player.hairstyle >= 56 ? 128 : 96,
-		128,
-		672,
-	),
-);
-let accessoryPosition = $derived(
-	Sprite.fromIndex(player.accessory, 16, 32, 128, 128),
-);
-let shirtPosition = $derived(shirt.sprite?.dimensions);
-let pantsPosition = $derived(pants.sprite?.dimensions);
-let showHair = $derived(
-	hat === undefined || hat.info?._type !== "Hat" || !hat.info?.showRealHair,
-);
+	// Calculate sprite X and Y positions
+	let hatPosition = $derived(hat?.sprite?.dimensions);
+	let hairPosition = $derived(
+		Sprite.fromIndex(
+			player.hairstyle >= 56 ? player.hairstyle - 56 : player.hairstyle,
+			16,
+			player.hairstyle >= 56 ? 128 : 96,
+			128,
+			672,
+		),
+	);
+	let accessoryPosition = $derived(
+		Sprite.fromIndex(player.accessory, 16, 32, 128, 128),
+	);
+	let shirtPosition = $derived(shirt.sprite?.dimensions);
+	let pantsPosition = $derived(pants.sprite?.dimensions);
+	let showHair = $derived(
+		hat === undefined || hat.info?._type !== "Hat" || !hat.info?.showRealHair,
+	);
 
-// Tint colors
-let defaultTint = new Color("#00000000");
-let pantsTint = $derived(
-	pants.info?._type === "Pants" && pants.info.canBeDyed && pants?.color
-		? pants.color
-		: new Color("#00000000"),
-);
-let hairTint: ColorType = $derived(player.hairColor);
-let shirtTint: ColorType = $derived(
-	shirt?.info?._type === "Shirt" && shirt.info.canBeDyed && shirt?.color
-		? shirt.color
-		: new Color("#00000000"),
-);
-let skinTones = $derived<[ColorType, ColorType, ColorType]>([
-	PrimarySkinColors[player.skin] ?? defaultTint,
-	SecondarySkinColors[player.skin] ?? defaultTint,
-	TertiarySkinColors[player.skin] ?? defaultTint,
-]);
-let eyeTint = $derived(player.eyeColor);
-let bootTints = $derived<[ColorType, ColorType, ColorType, ColorType]>(
-	player.boots
-		? [
-				PrimaryBootColors[player.boots?.[Raw].indexInColorSheet ?? 0] ??
-					defaultTint,
-				SecondaryBootColors[player.boots?.[Raw].indexInColorSheet ?? 0] ??
-					defaultTint,
-				TertiaryBootColors[player.boots?.[Raw].indexInColorSheet ?? 0] ??
-					defaultTint,
-				QuaternaryBootColors[player.boots?.[Raw].indexInColorSheet ?? 0] ??
-					defaultTint,
-			]
-		: [defaultTint, defaultTint, defaultTint, defaultTint],
-);
+	// Tint colors
+	let defaultTint = new Color("#00000000");
+	let pantsTint = $derived(
+		pants.info?._type === "Pants" && pants.info.canBeDyed && pants?.color
+			? pants.color
+			: new Color("#00000000"),
+	);
+	let hairTint: ColorType = $derived(player.hairColor);
+	let shirtTint: ColorType = $derived(
+		shirt?.info?._type === "Shirt" && shirt.info.canBeDyed && shirt?.color
+			? shirt.color
+			: new Color("#00000000"),
+	);
+	let skinTones = $derived<[ColorType, ColorType, ColorType]>([
+		PrimarySkinColors[player.skin] ?? defaultTint,
+		SecondarySkinColors[player.skin] ?? defaultTint,
+		TertiarySkinColors[player.skin] ?? defaultTint,
+	]);
+	let eyeTint = $derived(player.eyeColor);
+	let bootTints = $derived<[ColorType, ColorType, ColorType, ColorType]>(
+		player.boots
+			? [
+					PrimaryBootColors[player.boots?.[Raw].indexInColorSheet ?? 0] ??
+						defaultTint,
+					SecondaryBootColors[player.boots?.[Raw].indexInColorSheet ?? 0] ??
+						defaultTint,
+					TertiaryBootColors[player.boots?.[Raw].indexInColorSheet ?? 0] ??
+						defaultTint,
+					QuaternaryBootColors[player.boots?.[Raw].indexInColorSheet ?? 0] ??
+						defaultTint,
+				]
+			: [defaultTint, defaultTint, defaultTint, defaultTint],
+	);
 </script>
 
 {#snippet layer(

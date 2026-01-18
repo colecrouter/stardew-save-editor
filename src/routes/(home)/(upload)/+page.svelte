@@ -1,42 +1,42 @@
 <script lang="ts">
-import { preventDefault } from "svelte/legacy";
+	import { preventDefault } from "svelte/legacy";
 
-import { goto } from "$app/navigation";
-import { resolve } from "$app/paths";
-import { getSaveManager } from "$lib/SaveManager.svelte";
-import { getToastManager, Toast } from "$lib/ToastManager.svelte";
-import UiContainer from "$lib/ui/UIContainer.svelte";
+	import { goto } from "$app/navigation";
+	import { resolve } from "$app/paths";
+	import { getSaveManager } from "$lib/SaveManager.svelte";
+	import { getToastManager, Toast } from "$lib/ToastManager.svelte";
+	import UiContainer from "$lib/ui/UIContainer.svelte";
 
-let submit = $state<HTMLInputElement>();
-let files = $state<FileList>();
-const saveManager = getSaveManager();
-const toastManager = getToastManager();
+	let submit = $state<HTMLInputElement>();
+	let files = $state<FileList>();
+	const saveManager = getSaveManager();
+	const toastManager = getToastManager();
 
-let uploading = $state(false);
+	let uploading = $state(false);
 
-const handle = async () => {
-	// We have to instantiate the filelist here because it's not available in node
-	if (!files) files = new FileList();
+	const handle = async () => {
+		// We have to instantiate the filelist here because it's not available in node
+		if (!files) files = new FileList();
 
-	const file = files[0];
-	if (!file) return;
+		const file = files[0];
+		if (!file) return;
 
-	const formData = new FormData();
-	formData.append("file", file);
+		const formData = new FormData();
+		formData.append("file", file);
 
-	try {
-		uploading = true;
-		await saveManager.import(file);
+		try {
+			uploading = true;
+			await saveManager.import(file);
 
-		goto(resolve("/inventory"));
+			goto(resolve("/inventory"));
 
-		toastManager.add(new Toast("Save file uploaded!", "success"));
-	} catch (e) {
-		if (!(e instanceof Error)) throw e;
-		toastManager.add(new Toast(e.message, "failure"));
-		uploading = false;
-	}
-};
+			toastManager.add(new Toast("Save file uploaded!", "success"));
+		} catch (e) {
+			if (!(e instanceof Error)) throw e;
+			toastManager.add(new Toast(e.message, "failure"));
+			uploading = false;
+		}
+	};
 </script>
 
 <section>

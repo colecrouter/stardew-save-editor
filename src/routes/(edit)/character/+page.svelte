@@ -1,40 +1,40 @@
 <script lang="ts">
-import { MailFlag } from "$lib/proxies/Mail.svelte";
-import { Skill } from "$lib/proxies/Skills.svelte";
-import { getSaveManager } from "$lib/SaveManager.svelte";
-import UiContainer from "$lib/ui/UIContainer.svelte";
-import UiContainerSmall from "$lib/ui/UIContainerSmall.svelte";
-import UiInput from "$lib/ui/UIInput.svelte";
-import Professions from "./Professions.svelte";
-import SkillBar from "./SkillBar.svelte";
-import WalletItem from "./WalletItem.svelte";
+	import { MailFlag } from "$lib/proxies/Mail.svelte";
+	import { Skill } from "$lib/proxies/Skills.svelte";
+	import { getSaveManager } from "$lib/SaveManager.svelte";
+	import UiContainer from "$lib/ui/UIContainer.svelte";
+	import UiContainerSmall from "$lib/ui/UIContainerSmall.svelte";
+	import UiInput from "$lib/ui/UIInput.svelte";
+	import Professions from "./Professions.svelte";
+	import SkillBar from "./SkillBar.svelte";
+	import WalletItem from "./WalletItem.svelte";
 
-const save = getSaveManager().save;
-const player = save?.player;
-const farm = save?.farm;
-if (!player || !farm || !save) throw new Error("No player data found");
+	const save = getSaveManager().save;
+	const player = save?.player;
+	const farm = save?.farm;
+	if (!player || !farm || !save) throw new Error("No player data found");
 
-const mail = save.player.mailReceived;
+	const mail = save.player.mailReceived;
 
-const unlocks = [
-	["📙", MailFlag.HasDwarvishTranslationGuide, "Dwarvish Translation Guide"],
-	["🗝️", MailFlag.HasRustyKey, "Rusty Key"],
-	["🃏", MailFlag.HasClubCard, "Club Card"],
-	["🍀", MailFlag.HasSpecialCharm, "Special Charm"],
-	["💀", MailFlag.HasSkullKey, "Skull Key"],
-	["🔍", MailFlag.HasMagnifyingGlass, "Magnifying Glass"],
-	["🌑", MailFlag.HasDarkTalisman, "Dark Talisman"],
-	["🖋️", MailFlag.HasMagicInk, "Magic Ink"],
-	["🏘️", MailFlag.HasTownKey, "Town Key"],
-] satisfies [string, MailFlag, string][];
+	const unlocks = [
+		["📙", MailFlag.HasDwarvishTranslationGuide, "Dwarvish Translation Guide"],
+		["🗝️", MailFlag.HasRustyKey, "Rusty Key"],
+		["🃏", MailFlag.HasClubCard, "Club Card"],
+		["🍀", MailFlag.HasSpecialCharm, "Special Charm"],
+		["💀", MailFlag.HasSkullKey, "Skull Key"],
+		["🔍", MailFlag.HasMagnifyingGlass, "Magnifying Glass"],
+		["🌑", MailFlag.HasDarkTalisman, "Dark Talisman"],
+		["🖋️", MailFlag.HasMagicInk, "Magic Ink"],
+		["🏘️", MailFlag.HasTownKey, "Town Key"],
+	] satisfies [string, MailFlag, string][];
 
-const skills = new Map<Skill, string>([
-	[Skill.Farming, "Farming 🥕"],
-	[Skill.Mining, "Mining ⛏️"],
-	[Skill.Foraging, "Foraging 🌳"],
-	[Skill.Fishing, "Fishing 🎣"],
-	[Skill.Combat, "Combat ⚔️"],
-]);
+	const skills = new Map<Skill, string>([
+		[Skill.Farming, "Farming 🥕"],
+		[Skill.Mining, "Mining ⛏️"],
+		[Skill.Foraging, "Foraging 🌳"],
+		[Skill.Fishing, "Fishing 🎣"],
+		[Skill.Combat, "Combat ⚔️"],
+	]);
 </script>
 
 <UiContainer>

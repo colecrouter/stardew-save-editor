@@ -1,12 +1,12 @@
 <script lang="ts">
-import type { Farmer } from "$lib/proxies/Farmer.svelte";
-import Character from "./Character.svelte";
+	import type { Farmer } from "$lib/proxies/Farmer.svelte";
+	import Character from "./Character.svelte";
 
-interface Props {
-	player: Farmer;
-}
+	interface Props {
+		player: Farmer;
+	}
 
-let { player }: Props = $props();
+	let { player }: Props = $props();
 </script>
 
 <div class="wrapper">

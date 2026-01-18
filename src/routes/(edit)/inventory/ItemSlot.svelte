@@ -1,16 +1,26 @@
 <script lang="ts">
-import type { Snippet } from "svelte";
-import type { HTMLButtonAttributes } from "svelte/elements";
+	import type { Snippet } from "svelte";
+	import type { HTMLButtonAttributes } from "svelte/elements";
+	import type { Item } from "$lib/proxies/Item.svelte";
 
-type Props = HTMLButtonAttributes & {
-	children: Snippet;
-	active?: boolean;
-};
+	type Props = HTMLButtonAttributes & {
+		children: Snippet;
+		active?: boolean;
+		item?: Item;
+	};
 
-let { children, active, ...rest }: Props = $props();
+	let { children, active, item, ...rest }: Props = $props();
 </script>
 
-<button class="item-wrapper" class:active {...rest}>
+<button
+	class="item-wrapper"
+	class:active
+	class:hat={item?.info?._type === "Hat"}
+	class:trinket={item?.info?._type === "Trinket"}
+	data-item-type={item?.info?._type}
+	data-item-name={item?.name}
+	{...rest}
+>
 	{@render children()}
 </button>
 

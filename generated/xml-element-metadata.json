@@ -1,0 +1,712 @@
+{
+  "Item": {
+    "file": "StardewValleyDecompiled/Stardew Valley/StardewValley/Item.cs",
+    "baseClass": "IComparable",
+    "fields": [
+      {
+        "xmlName": "category",
+        "fieldName": "category",
+        "fieldType": "NetInt",
+        "initializer": true,
+        "required": false,
+        "line": 35
+      },
+      {
+        "xmlName": "hasBeenInInventory",
+        "fieldName": "hasbeenInInventory",
+        "fieldType": "NetBool",
+        "initializer": true,
+        "required": false,
+        "line": 38
+      },
+      {
+        "xmlName": "name",
+        "fieldName": "netName",
+        "fieldType": "NetString",
+        "initializer": true,
+        "required": false,
+        "line": 54
+      },
+      {
+        "xmlName": "parentSheetIndex",
+        "fieldName": "parentSheetIndex",
+        "fieldType": "NetInt",
+        "initializer": true,
+        "required": false,
+        "line": 58
+      },
+      {
+        "xmlName": "itemId",
+        "fieldName": "itemId",
+        "fieldType": "NetString",
+        "initializer": true,
+        "required": false,
+        "line": 62
+      },
+      {
+        "xmlName": "isRecipe",
+        "fieldName": "isRecipe",
+        "fieldType": "NetBool",
+        "initializer": true,
+        "required": false,
+        "line": 71
+      },
+      {
+        "xmlName": "quality",
+        "fieldName": "quality",
+        "fieldType": "NetInt",
+        "initializer": true,
+        "required": false,
+        "line": 74
+      },
+      {
+        "xmlName": "stack",
+        "fieldName": "stack",
+        "fieldType": "NetInt",
+        "initializer": true,
+        "required": false,
+        "line": 77
+      },
+      {
+        "xmlName": "modData",
+        "fieldName": "modDataForSerialization",
+        "fieldType": "ModDataDictionary",
+        "initializer": false,
+        "required": true,
+        "line": 86
+      }
+    ]
+  },
+  "Object": {
+    "file": "StardewValleyDecompiled/Stardew Valley/StardewValley/Object.cs",
+    "baseClass": "Item",
+    "fields": [
+      {
+        "xmlName": "tileLocation",
+        "fieldName": "tileLocation",
+        "fieldType": "NetVector2",
+        "initializer": true,
+        "required": false,
+        "line": 342
+      },
+      {
+        "xmlName": "owner",
+        "fieldName": "owner",
+        "fieldType": "NetLong",
+        "initializer": true,
+        "required": false,
+        "line": 345
+      },
+      {
+        "xmlName": "type",
+        "fieldName": "type",
+        "fieldType": "NetString",
+        "initializer": true,
+        "required": false,
+        "line": 348
+      },
+      {
+        "xmlName": "canBeSetDown",
+        "fieldName": "canBeSetDown",
+        "fieldType": "NetBool",
+        "initializer": true,
+        "required": false,
+        "line": 351
+      },
+      {
+        "xmlName": "canBeGrabbed",
+        "fieldName": "canBeGrabbed",
+        "fieldType": "NetBool",
+        "initializer": true,
+        "required": false,
+        "line": 354
+      },
+      {
+        "xmlName": "isSpawnedObject",
+        "fieldName": "isSpawnedObject",
+        "fieldType": "NetBool",
+        "initializer": true,
+        "required": false,
+        "line": 357
+      },
+      {
+        "xmlName": "questItem",
+        "fieldName": "questItem",
+        "fieldType": "NetBool",
+        "initializer": true,
+        "required": false,
+        "line": 360
+      },
+      {
+        "xmlName": "questId",
+        "fieldName": "questId",
+        "fieldType": "NetString",
+        "initializer": true,
+        "required": false,
+        "line": 363
+      },
+      {
+        "xmlName": "isOn",
+        "fieldName": "isOn",
+        "fieldType": "NetBool",
+        "initializer": true,
+        "required": false,
+        "line": 366
+      },
+      {
+        "xmlName": "fragility",
+        "fieldName": "fragility",
+        "fieldType": "NetInt",
+        "initializer": true,
+        "required": false,
+        "line": 369
+      },
+      {
+        "xmlName": "price",
+        "fieldName": "price",
+        "fieldType": "NetInt",
+        "initializer": true,
+        "required": false,
+        "line": 372
+      },
+      {
+        "xmlName": "edibility",
+        "fieldName": "edibility",
+        "fieldType": "NetInt",
+        "initializer": true,
+        "required": false,
+        "line": 375
+      },
+      {
+        "xmlName": "bigCraftable",
+        "fieldName": "bigCraftable",
+        "fieldType": "NetBool",
+        "initializer": true,
+        "required": false,
+        "line": 378
+      },
+      {
+        "xmlName": "setOutdoors",
+        "fieldName": "setOutdoors",
+        "fieldType": "NetBool",
+        "initializer": true,
+        "required": false,
+        "line": 381
+      },
+      {
+        "xmlName": "setIndoors",
+        "fieldName": "setIndoors",
+        "fieldType": "NetBool",
+        "initializer": true,
+        "required": false,
+        "line": 384
+      },
+      {
+        "xmlName": "readyForHarvest",
+        "fieldName": "readyForHarvest",
+        "fieldType": "NetBool",
+        "initializer": true,
+        "required": false,
+        "line": 387
+      },
+      {
+        "xmlName": "showNextIndex",
+        "fieldName": "showNextIndex",
+        "fieldType": "NetBool",
+        "initializer": true,
+        "required": false,
+        "line": 390
+      },
+      {
+        "xmlName": "flipped",
+        "fieldName": "flipped",
+        "fieldType": "NetBool",
+        "initializer": true,
+        "required": false,
+        "line": 393
+      },
+      {
+        "xmlName": "isLamp",
+        "fieldName": "isLamp",
+        "fieldType": "NetBool",
+        "initializer": true,
+        "required": false,
+        "line": 396
+      },
+      {
+        "xmlName": "heldObject",
+        "fieldName": "heldObject",
+        "fieldType": "NetRef<Object>",
+        "initializer": true,
+        "required": false,
+        "line": 399
+      },
+      {
+        "xmlName": "lastOutputRuleId",
+        "fieldName": "lastOutputRuleId",
+        "fieldType": "NetString",
+        "initializer": true,
+        "required": false,
+        "line": 403
+      },
+      {
+        "xmlName": "lastInputItem",
+        "fieldName": "lastInputItem",
+        "fieldType": "NetRef<Item>",
+        "initializer": true,
+        "required": false,
+        "line": 407
+      },
+      {
+        "xmlName": "minutesUntilReady",
+        "fieldName": "minutesUntilReady",
+        "fieldType": "NetIntDelta",
+        "initializer": true,
+        "required": false,
+        "line": 410
+      },
+      {
+        "xmlName": "boundingBox",
+        "fieldName": "boundingBox",
+        "fieldType": "NetRectangle",
+        "initializer": true,
+        "required": false,
+        "line": 413
+      },
+      {
+        "xmlName": "uses",
+        "fieldName": "uses",
+        "fieldType": "NetInt",
+        "initializer": true,
+        "required": false,
+        "line": 418
+      },
+      {
+        "xmlName": "signText",
+        "fieldName": "signText",
+        "fieldType": "NetString",
+        "initializer": true,
+        "required": false,
+        "line": 437
+      },
+      {
+        "xmlName": "orderData",
+        "fieldName": "orderData",
+        "fieldType": "NetString",
+        "initializer": true,
+        "required": false,
+        "line": 450
+      },
+      {
+        "xmlName": "preserve",
+        "fieldName": "preserve",
+        "fieldType": "NetNullableEnum<PreserveType>",
+        "initializer": true,
+        "required": false,
+        "line": 467
+      },
+      {
+        "xmlName": "preservedParentSheetIndex",
+        "fieldName": "preservedParentSheetIndex",
+        "fieldType": "NetString",
+        "initializer": true,
+        "required": false,
+        "line": 470
+      },
+      {
+        "xmlName": "honeyType",
+        "fieldName": "obsolete_honeyType",
+        "fieldType": "string",
+        "initializer": false,
+        "required": true,
+        "line": 474
+      },
+      {
+        "xmlName": "displayNameFormat",
+        "fieldName": "displayNameFormat",
+        "fieldType": "string",
+        "initializer": false,
+        "required": true,
+        "line": 479
+      }
+    ]
+  },
+  "Trinket": {
+    "file": "StardewValleyDecompiled/Stardew Valley/StardewValley.Objects/Trinket.cs",
+    "baseClass": "Object",
+    "fields": [
+      {
+        "xmlName": "generationSeed",
+        "fieldName": "generationSeed",
+        "fieldType": "NetInt",
+        "initializer": true,
+        "required": false,
+        "line": 35
+      }
+    ]
+  },
+  "Weapon": {
+    "file": "StardewValleyDecompiled/Stardew Valley/StardewValley.Tools/MeleeWeapon.cs",
+    "baseClass": "Tool",
+    "fields": [
+      {
+        "xmlName": "type",
+        "fieldName": "type",
+        "fieldType": "NetInt",
+        "initializer": true,
+        "required": false,
+        "line": 51
+      },
+      {
+        "xmlName": "minDamage",
+        "fieldName": "minDamage",
+        "fieldType": "NetInt",
+        "initializer": true,
+        "required": false,
+        "line": 54
+      },
+      {
+        "xmlName": "maxDamage",
+        "fieldName": "maxDamage",
+        "fieldType": "NetInt",
+        "initializer": true,
+        "required": false,
+        "line": 57
+      },
+      {
+        "xmlName": "speed",
+        "fieldName": "speed",
+        "fieldType": "NetInt",
+        "initializer": true,
+        "required": false,
+        "line": 60
+      },
+      {
+        "xmlName": "addedPrecision",
+        "fieldName": "addedPrecision",
+        "fieldType": "NetInt",
+        "initializer": true,
+        "required": false,
+        "line": 63
+      },
+      {
+        "xmlName": "addedDefense",
+        "fieldName": "addedDefense",
+        "fieldType": "NetInt",
+        "initializer": true,
+        "required": false,
+        "line": 66
+      },
+      {
+        "xmlName": "addedAreaOfEffect",
+        "fieldName": "addedAreaOfEffect",
+        "fieldType": "NetInt",
+        "initializer": true,
+        "required": false,
+        "line": 69
+      },
+      {
+        "xmlName": "knockback",
+        "fieldName": "knockback",
+        "fieldType": "NetFloat",
+        "initializer": true,
+        "required": false,
+        "line": 72
+      },
+      {
+        "xmlName": "critChance",
+        "fieldName": "critChance",
+        "fieldType": "NetFloat",
+        "initializer": true,
+        "required": false,
+        "line": 75
+      },
+      {
+        "xmlName": "critMultiplier",
+        "fieldName": "critMultiplier",
+        "fieldType": "NetFloat",
+        "initializer": true,
+        "required": false,
+        "line": 78
+      },
+      {
+        "xmlName": "appearance",
+        "fieldName": "appearance",
+        "fieldType": "NetString",
+        "initializer": true,
+        "required": false,
+        "line": 82
+      }
+    ]
+  },
+  "Tool": {
+    "file": "StardewValleyDecompiled/Stardew Valley/StardewValley/Tool.cs",
+    "baseClass": "Item",
+    "fields": [
+      {
+        "xmlName": "initialParentTileIndex",
+        "fieldName": "initialParentTileIndex",
+        "fieldType": "NetInt",
+        "initializer": true,
+        "required": false,
+        "line": 58
+      },
+      {
+        "xmlName": "currentParentTileIndex",
+        "fieldName": "currentParentTileIndex",
+        "fieldType": "NetInt",
+        "initializer": true,
+        "required": false,
+        "line": 61
+      },
+      {
+        "xmlName": "indexOfMenuItemView",
+        "fieldName": "indexOfMenuItemView",
+        "fieldType": "NetInt",
+        "initializer": true,
+        "required": false,
+        "line": 64
+      },
+      {
+        "xmlName": "instantUse",
+        "fieldName": "instantUse",
+        "fieldType": "NetBool",
+        "initializer": true,
+        "required": false,
+        "line": 67
+      },
+      {
+        "xmlName": "isEfficient",
+        "fieldName": "isEfficient",
+        "fieldType": "NetBool",
+        "initializer": true,
+        "required": false,
+        "line": 70
+      },
+      {
+        "xmlName": "animationSpeedModifier",
+        "fieldName": "animationSpeedModifier",
+        "fieldType": "NetFloat",
+        "initializer": true,
+        "required": false,
+        "line": 73
+      },
+      {
+        "xmlName": "upgradeLevel",
+        "fieldName": "upgradeLevel",
+        "fieldType": "NetInt",
+        "initializer": true,
+        "required": false,
+        "line": 84
+      },
+      {
+        "xmlName": "numAttachmentSlots",
+        "fieldName": "numAttachmentSlots",
+        "fieldType": "NetInt",
+        "initializer": true,
+        "required": false,
+        "line": 87
+      },
+      {
+        "xmlName": "enchantments",
+        "fieldName": "NetList",
+        "fieldType": "readonly",
+        "initializer": false,
+        "required": true,
+        "line": 101
+      },
+      {
+        "xmlName": "previousEnchantments",
+        "fieldName": "previousEnchantments",
+        "fieldType": "NetStringList",
+        "initializer": true,
+        "required": false,
+        "line": 104
+      }
+    ]
+  },
+  "Hat": {
+    "file": "StardewValleyDecompiled/Stardew Valley/StardewValley.Objects/Hat.cs",
+    "baseClass": "Item",
+    "fields": [
+      {
+        "xmlName": "skipHairDraw",
+        "fieldName": "skipHairDraw",
+        "fieldType": "bool",
+        "initializer": false,
+        "required": true,
+        "line": 50
+      },
+      {
+        "xmlName": "ignoreHairstyleOffset",
+        "fieldName": "ignoreHairstyleOffset",
+        "fieldType": "NetBool",
+        "initializer": true,
+        "required": false,
+        "line": 53
+      },
+      {
+        "xmlName": "hairDrawType",
+        "fieldName": "hairDrawType",
+        "fieldType": "NetInt",
+        "initializer": true,
+        "required": false,
+        "line": 56
+      },
+      {
+        "xmlName": "isPrismatic",
+        "fieldName": "isPrismatic",
+        "fieldType": "NetBool",
+        "initializer": true,
+        "required": false,
+        "line": 59
+      },
+      {
+        "xmlName": "enchantments",
+        "fieldName": "enchantments",
+        "fieldType": "List<BaseEnchantment>",
+        "initializer": true,
+        "required": false,
+        "line": 65
+      },
+      {
+        "xmlName": "previousEnchantments",
+        "fieldName": "previousEnchantments",
+        "fieldType": "List<string>",
+        "initializer": true,
+        "required": false,
+        "line": 68
+      }
+    ]
+  },
+  "Boots": {
+    "file": "StardewValleyDecompiled/Stardew Valley/StardewValley.Objects/Boots.cs",
+    "baseClass": "Item",
+    "fields": [
+      {
+        "xmlName": "defenseBonus",
+        "fieldName": "defenseBonus",
+        "fieldType": "NetInt",
+        "initializer": true,
+        "required": false,
+        "line": 14
+      },
+      {
+        "xmlName": "immunityBonus",
+        "fieldName": "immunityBonus",
+        "fieldType": "NetInt",
+        "initializer": true,
+        "required": false,
+        "line": 17
+      },
+      {
+        "xmlName": "indexInTileSheet",
+        "fieldName": "indexInTileSheet",
+        "fieldType": "NetInt",
+        "initializer": true,
+        "required": false,
+        "line": 20
+      },
+      {
+        "xmlName": "price",
+        "fieldName": "price",
+        "fieldType": "NetInt",
+        "initializer": true,
+        "required": false,
+        "line": 23
+      },
+      {
+        "xmlName": "indexInColorSheet",
+        "fieldName": "indexInColorSheet",
+        "fieldType": "NetInt",
+        "initializer": true,
+        "required": false,
+        "line": 26
+      },
+      {
+        "xmlName": "appliedBootSheetIndex",
+        "fieldName": "appliedBootSheetIndex",
+        "fieldType": "NetString",
+        "initializer": true,
+        "required": false,
+        "line": 29
+      }
+    ]
+  },
+  "Clothing": {
+    "file": "StardewValleyDecompiled/Stardew Valley/StardewValley.Objects/Clothing.cs",
+    "baseClass": "Item",
+    "fields": [
+      {
+        "xmlName": "price",
+        "fieldName": "price",
+        "fieldType": "NetInt",
+        "initializer": true,
+        "required": false,
+        "line": 28
+      },
+      {
+        "xmlName": "indexInTileSheet",
+        "fieldName": "indexInTileSheet",
+        "fieldType": "NetInt",
+        "initializer": true,
+        "required": false,
+        "line": 31
+      },
+      {
+        "xmlName": "clothesType",
+        "fieldName": "clothesType",
+        "fieldType": "NetEnum<ClothesType>",
+        "initializer": true,
+        "required": false,
+        "line": 44
+      },
+      {
+        "xmlName": "dyeable",
+        "fieldName": "dyeable",
+        "fieldType": "NetBool",
+        "initializer": true,
+        "required": false,
+        "line": 47
+      },
+      {
+        "xmlName": "clothesColor",
+        "fieldName": "clothesColor",
+        "fieldType": "NetColor",
+        "initializer": true,
+        "required": false,
+        "line": 50
+      },
+      {
+        "xmlName": "isPrismatic",
+        "fieldName": "isPrismatic",
+        "fieldType": "NetBool",
+        "initializer": true,
+        "required": false,
+        "line": 53
+      }
+    ]
+  },
+  "Ring": {
+    "file": "StardewValleyDecompiled/Stardew Valley/StardewValley.Objects/Ring.cs",
+    "baseClass": "Item",
+    "fields": [
+      {
+        "xmlName": "price",
+        "fieldName": "price",
+        "fieldType": "NetInt",
+        "initializer": true,
+        "required": false,
+        "line": 79
+      },
+      {
+        "xmlName": "uniqueID",
+        "fieldName": "uniqueID",
+        "fieldType": "NetInt",
+        "initializer": true,
+        "required": false,
+        "line": 86
+      }
+    ]
+  }
+}

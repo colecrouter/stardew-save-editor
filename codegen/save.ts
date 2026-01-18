@@ -1112,13 +1112,13 @@ export interface Player {
 	hairstyleColor: Color;
 	pantsColor: Color;
 	newEyeColor: Color;
-	hat?: Item;
-	boots?: Item;
-	leftRing?: Item;
-	rightRing?: Item;
-	shirtItem?: Item;
-	pantsItem?: Item;
-	trinketItem?: Item;
+	hat?: HatItem;
+	boots?: BootsItem;
+	leftRing?: RingItem;
+	rightRing?: RingItem;
+	shirtItem?: ClothingItem;
+	pantsItem?: ClothingItem;
+	trinketItem?: TrinketItem;
 	divorceTonight: boolean;
 	changeWalletTypeTonight: boolean;
 	gameVersion: string;
@@ -1272,33 +1272,73 @@ export interface Inventory {
 }
 
 export interface Item {
-	isLostItem: boolean;
+	"@_xsi:type": string;
 	category?: number;
 	hasBeenInInventory: boolean;
 	name: string;
-	itemId: string | number;
-	specialItem: boolean;
+	parentSheetIndex?: number;
+	itemId?: string | number;
 	isRecipe: boolean;
 	quality: number;
 	stack: number;
-	price: number;
-	SpecialVariable: number;
+	modDataForSerialization?: unknown;
+	_type?: string;
+	type?: TypeEnum | number | string;
+}
+
+export interface ObjectItem extends Item {
+	"@_xsi:type": string;
+	tileLocation?: TileLocation;
+	owner?: number;
+	type?: TypeEnum | string;
+	canBeSetDown?: boolean;
+	canBeGrabbed?: boolean;
+	isSpawnedObject?: boolean;
+	questItem?: boolean;
+	questId?: string;
+	isOn?: boolean;
+	fragility?: number;
+	price?: number;
+	edibility?: number;
+	bigCraftable?: boolean;
+	setOutdoors?: boolean;
+	setIndoors?: boolean;
+	readyForHarvest?: boolean;
+	showNextIndex?: boolean;
+	flipped?: boolean;
+	isLamp?: boolean;
+	heldObject?: ObjectItem;
+	lastOutputRuleId?: string;
+	lastInputItem?: Item;
+	minutesUntilReady?: number;
+	boundingBox?: BoundingBox;
+	uses?: number;
+	signText?: string;
+	orderData?: string;
+	preserve?: Preserve | null;
+	preservedParentSheetIndex?: string;
+	honeyType?: string;
+	displayNameFormat?: string;
+}
+
+export interface ToolItem extends Item {
+	"@_xsi:type": "Tool" | "MeleeWeapon";
+	type?: number;
 	initialParentTileIndex?: number;
 	currentParentTileIndex?: number;
 	indexOfMenuItemView?: number;
 	instantUse?: boolean;
 	isEfficient?: boolean;
 	animationSpeedModifier?: number;
-	swingTicker?: number;
 	upgradeLevel?: number;
 	numAttachmentSlots?: number;
-	attachments?: AttachmentsAttachments | string;
-	InitialParentTileIndex?: number;
-	IndexOfMenuItemView?: number;
-	InstantUse?: boolean;
-	IsEfficient?: boolean;
-	AnimationSpeedModifier?: number;
-	type?: TypeEnum | number;
+	enchantments?: unknown;
+	previousEnchantments?: unknown;
+}
+
+export interface WeaponItem extends ToolItem {
+	"@_xsi:type": "MeleeWeapon";
+	type?: number;
 	minDamage?: number;
 	maxDamage?: number;
 	speed?: number;
@@ -1308,97 +1348,70 @@ export interface Item {
 	knockback?: number;
 	critChance?: number;
 	critMultiplier?: number;
-	isOnSpecial?: boolean;
-	additionalPower?: IntContainer;
-	isBottomless?: boolean;
-	WaterLeft?: number;
-	IsBottomless?: boolean;
-	parentSheetIndex?: number;
-	tileLocation?: TileLocation;
-	owner?: number;
-	canBeSetDown?: boolean;
-	canBeGrabbed?: boolean;
-	isSpawnedObject?: boolean;
-	questItem?: boolean;
-	questId?: number;
-	isOn?: boolean;
-	fragility?: number;
-	edibility?: number;
-	bigCraftable?: boolean;
-	setOutdoors?: boolean;
-	setIndoors?: boolean;
-	readyForHarvest?: boolean;
-	showNextIndex?: boolean;
-	flipped?: boolean;
-	isLamp?: boolean;
-	minutesUntilReady?: number;
-	boundingBox?: BoundingBox;
-	scale?: TileLocation;
-	uses?: number;
-	destroyOvernight?: boolean;
-	CastDirection?: number;
+	appearance?: string;
+}
+
+export interface HatItem extends Item {
+	"@_xsi:type": "Hat";
+	skipHairDraw?: boolean;
+	ignoreHairstyleOffset?: boolean;
+	hairDrawType?: number;
+	isPrismatic?: boolean;
+	enchantments?: unknown;
+	previousEnchantments?: unknown;
+}
+
+export interface BootsItem extends Item {
+	"@_xsi:type": "Boots";
+	defenseBonus?: number;
+	immunityBonus?: number;
 	indexInTileSheet?: number;
-	indexInTileSheetFemale?: number;
+	price?: number;
+	indexInColorSheet?: number;
+	appliedBootSheetIndex?: string;
+}
+
+export interface ClothingItem extends Item {
+	"@_xsi:type": "Clothing";
+	price?: number;
+	indexInTileSheet?: number;
 	clothesType?: ClothesType;
 	dyeable?: boolean;
 	clothesColor?: Color;
 	isPrismatic?: boolean;
+}
+
+export interface RingItem extends Item {
+	"@_xsi:type": "Ring";
+	price?: number;
 	uniqueID?: number;
-	currentLidFrame?: number;
-	lidFrameCount?: IntContainer;
-	frameCounter?: number;
-	items?: ItemContainer;
-	separateWalletItems?: SeparateWalletItems;
-	tint?: Color;
-	playerChoiceColor?: Color;
-	playerChest?: boolean;
-	fridge?: boolean;
-	giftbox?: boolean;
-	giftboxIndex?: number;
-	giftboxIsStarterGift?: BoolContainer;
-	spriteIndexOverride?: number;
-	dropContents?: boolean;
-	synchronized?: boolean;
-	specialChestType?: SpecialChestType;
-	globalInventoryId?: StringContainer;
-	preserve?: Preserve;
-	preservedParentSheetIndex?: number;
+	type?: TypeEnum;
+}
+
+export interface ColoredObjectItem extends ObjectItem {
+	"@_xsi:type": "ColoredObject";
 	color?: Color;
-	colorSameIndexAsParentSheetIndex?: boolean;
-	defenseBonus?: number;
-	immunityBonus?: number;
-	indexInColorSheet?: number;
-	which?: null;
+}
+
+export interface TrinketItem extends ObjectItem {
+	"@_xsi:type": "Trinket";
+	generationSeed: number;
+	displayNameOverrideTemplate: unknown;
+	descriptionSubstitutionTemplates: unknown;
+	trinketMetadata: unknown;
+}
+
+export interface FurnitureItem extends ObjectItem {
+	"@_xsi:type": "Furniture";
 	furniture_type?: FurnitureType;
 	rotations?: number;
 	currentRotation?: number;
+	sourceIndexOffset?: number;
+	drawPosition?: TileLocation;
 	sourceRect?: BoundingBox;
 	defaultSourceRect?: BoundingBox;
 	defaultBoundingBox?: BoundingBox;
 	drawHeldObjectLow?: boolean;
-	heldObject?: Item;
-	lastOutputRuleId?: string;
-	lastInputItem?: Item;
-	bedType?: string;
-	signText?: string;
-	skipHairDraw?: boolean;
-	ignoreHairstyleOffset?: boolean;
-	hairDrawType?: number;
-	health?: number;
-	maxHealth?: number;
-	whichType?: string;
-	gatePosition?: number;
-	gateMotion?: number;
-	isGate?: boolean;
-	agingRate?: number;
-	daysToMature?: number;
-	requiredItem?: Item;
-	successColor?: Color;
-	lockOnSuccess?: boolean;
-	locked?: boolean;
-	match?: boolean;
-	isIslandShrinePedestal?: boolean;
-	generationSeed?: number;
 }
 
 export interface AttachmentsAttachments {

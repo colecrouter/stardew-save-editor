@@ -5,7 +5,9 @@ import {
 	ObjectCategory,
 	type Shirt,
 } from "$types/items";
+
 import type { Item } from "$types/save";
+
 export const HatWhichNumber = new Map([
 	["Cowboy Hat", 0],
 	["Bowler Hat", 1],

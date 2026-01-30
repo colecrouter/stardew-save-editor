@@ -1,4 +1,5 @@
 import adapter from "@sveltejs/adapter-static";
+import legacy from "@vitejs/plugin-legacy";
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
@@ -27,6 +28,14 @@ const config = {
 		},
 	},
 	vitePlugin: { inspector: true },
+	vite: {
+		plugins: [
+			legacy({
+				targets: ["defaults", "safari >= 12"],
+				modernPolyfills: true,
+			}),
+		],
+	},
 };
 
 export default config;

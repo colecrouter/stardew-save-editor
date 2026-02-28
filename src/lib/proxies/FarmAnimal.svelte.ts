@@ -3,15 +3,12 @@ import type { Farmer } from "$lib/proxies/Farmer.svelte";
 import { type AnimalsKV, Gender } from "$types/save";
 import { type DataProxy, Raw } from ".";
 
-// function getRandomLong() {
-//     const array = new Uint32Array(2);
-//     window.crypto.getRandomValues(array);
-//     // return (BigInt(array?.[0] ?? 0) << 32n) | BigInt(array?.[1] ?? 0);
-//     return `${array[0]}${array[1]}`;
-// }
+const MAX_FRIENDSHIP = 1000;
+const FRIENDSHIP_PER_HEART = 200;
 
-function getRandomInt() {
-	return Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
+function generateUniqueId() {
+	// Generate a unique string ID to safely handle 64-bit values
+	return `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
 }
 
 /**
@@ -46,8 +43,11 @@ export class FarmAnimal implements DataProxy<AnimalsKV> {
 	public name: string;
 	public gender: Gender;
 	public daysOwned: number;
+	public friendshipTowardFarmer: number;
 	/** Current happiness level of the animal (0-47?) */
 	public happiness: number;
+	/** Fullness level of the animal (0-255) */
+	public fullness: number;
 	/** `UniqueMultiplayerID` of the player who owns this animal */
 	public ownerID: number;
 
@@ -75,9 +75,19 @@ export class FarmAnimal implements DataProxy<AnimalsKV> {
 			animal.age = this.daysOwned;
 		});
 
+		this.friendshipTowardFarmer = $state(animal.friendshipTowardFarmer);
+		$effect(() => {
+			animal.friendshipTowardFarmer = this.friendshipTowardFarmer;
+		});
+
 		this.happiness = $state(animal.happiness);
 		$effect(() => {
 			animal.happiness = this.happiness;
+		});
+
+		this.fullness = $state(animal.fullness);
+		$effect(() => {
+			animal.fullness = this.fullness;
 		});
 
 		this.ownerID = $state(animal.ownerID);
@@ -88,14 +98,31 @@ export class FarmAnimal implements DataProxy<AnimalsKV> {
 		this.type = $derived(animal.type as FarmAnimalType);
 	}
 
+	get maxFriendship() {
+		return MAX_FRIENDSHIP;
+	}
+
+	get hearts() {
+		return Math.floor(this.friendshipTowardFarmer / FRIENDSHIP_PER_HEART);
+	}
+
+	set hearts(value: number) {
+		this.friendshipTowardFarmer = Math.max(
+			0,
+			Math.min(MAX_FRIENDSHIP, value * FRIENDSHIP_PER_HEART),
+		);
+	}
+
 	static fromName(type: FarmAnimalType, name: string, farmhand: Farmer) {
-		const animal = animals.find((a) => a.name === type);
+		const animal = animals.find(
+			(a) => a.displayName === type || a.name === type,
+		);
 		if (!animal) throw new Error(`No animal found with name ${type}`);
 
-		// This should be a long, but I don't think I can make fast-xml-parser use a string or bigint
-		const newId = getRandomInt();
+		// Use string ID to safely handle 64-bit values
+		const newId = generateUniqueId();
 		const raw: AnimalsKV = {
-			key: { long: newId },
+			key: { long: newId as unknown as number },
 			value: {
 				FarmAnimal: {
 					name,
@@ -129,7 +156,7 @@ export class FarmAnimal implements DataProxy<AnimalsKV> {
 					hasEatenAnimalCracker: false,
 					isCharging: false,
 					IsEmoting: false,
-					myID: newId,
+					myID: newId as unknown as number,
 					ownerID: farmhand.uniqueID,
 					parentId: -1,
 					Position: {

@@ -1,4 +1,11 @@
-import { copyFile, mkdir, readFile, writeFile } from "node:fs/promises";
+import {
+	copyFile,
+	mkdir,
+	readdir,
+	readFile,
+	rm,
+	writeFile,
+} from "node:fs/promises";
 import { imageDimensionsFromData } from "image-dimensions";
 import bigCraftables from "../content/Data/BigCraftables.json" with {
 	type: "json",
@@ -267,6 +274,9 @@ const writeToFile = JSON.stringify(
 		.filter(notUndefined)
 		.map((item) => [item.name, item]),
 );
+
+await rm("./generated", { recursive: true, force: true });
+await mkdir("./generated");
 await writeFile("./generated/iteminfo.json", writeToFile);
 
 // **Recipes**
@@ -324,7 +334,9 @@ const filesToCopy = [
 ] as string[];
 
 // Ensure the assets directory exists
+await rm("./static/assets", { recursive: true, force: true });
 await mkdir("./static/assets", { recursive: true });
+await mkdir("./static/assets/buildings", { recursive: true });
 
 // Copy files concurrently
 const dimensions = new Map<string, Size>();
@@ -346,10 +358,7 @@ await writeFile(
 
 // Copy all portraits into assets folder
 // Create portraits folder if it doesn't exist
-try {
-	await mkdir("./static/assets/portraits");
-} finally {
-}
+await mkdir("./static/assets/portraits");
 
 for (const char of characters) {
 	await copyFile(
@@ -358,10 +367,19 @@ for (const char of characters) {
 	);
 }
 
+// Copy building textures into their own folder for BuildingSprite
+for (const file of await readdir("./content/Buildings")) {
+	await copyFile(
+		`./content/Buildings/${file}`,
+		`./static/assets/buildings/${file}`,
+	);
+}
+
 // **Farm Animals**
 
-const farmAnimals = Object.entries(animals).map(([_key, obj]) => ({
-	name: obj.DisplayName,
+const farmAnimals = Object.entries(animals).map(([key, obj]) => ({
+	name: key,
+	displayName: obj.DisplayName,
 	requiredBuilding: obj.RequiredBuilding,
 	house: obj.House,
 	canReproduce: obj.CanGetPregnant,
@@ -370,10 +388,44 @@ await writeFile("./generated/farmanimals.json", JSON.stringify(farmAnimals));
 
 // **Buildings**
 
-const buildingsArray = Object.entries(buildings).map(([key, obj]) => ({
-	name: key,
-	size: obj.Size,
-	maxOccupants: obj.MaxOccupants,
-	hayCapacity: obj.HayCapacity,
-}));
+function getBuildingTexture(texture: string | null | undefined) {
+	const filename = texture?.split(/[/\\]/).at(-1);
+	return filename ? `${filename}.png` : undefined;
+}
+
+async function getBuildingTextureSize(texture: string | undefined) {
+	if (!texture) return undefined;
+
+	try {
+		const dimensions = imageDimensionsFromData(
+			await readFile(`./static/assets/buildings/${texture}`),
+		);
+		if (!dimensions) return undefined;
+		return { X: dimensions.width, Y: dimensions.height };
+	} catch {
+		return undefined;
+	}
+}
+
+const buildingsArray = await Promise.all(
+	Object.entries(buildings).map(async ([key, obj]) => {
+		const texture = getBuildingTexture(obj.Texture);
+		const sourceRect =
+			obj.SourceRect && (obj.SourceRect.Width > 0 || obj.SourceRect.Height > 0)
+				? obj.SourceRect
+				: undefined;
+
+		return {
+			name: key,
+			footprint: obj.Size,
+			texture,
+			textureSize: sourceRect
+				? { X: sourceRect.Width, Y: sourceRect.Height }
+				: await getBuildingTextureSize(texture),
+			sourceRect,
+			maxOccupants: obj.MaxOccupants,
+			hayCapacity: obj.HayCapacity,
+		};
+	}),
+);
 await writeFile("./generated/buildings.json", JSON.stringify(buildingsArray));

@@ -73,7 +73,7 @@ export const transformJSONItems = <
 	Object.entries(data).map(([key, obj]) => ({
 		_type: itemType,
 		_key: key,
-		name: "Name" in obj ? obj.Name : obj.ID, // TODO refactor name to be optional in ItemInformation
+		name: "Name" in obj ? obj.Name : "ID" in obj ? obj.ID : key, // TODO refactor name to be optional in ItemInformation
 		displayName: obj.DisplayName,
 		description: obj.Description,
 		price: "Price" in obj ? obj.Price : undefined,

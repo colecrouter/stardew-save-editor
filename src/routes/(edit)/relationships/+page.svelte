@@ -5,12 +5,13 @@
 
 	const save = getSaveManager().save;
 	if (!save) throw new Error("No save data found");
+	const friendships = Array.from(save.player.friendships);
 </script>
 
 <UiContainer>
 	<h3>Relationships</h3>
 	<div class="wrapper">
-		{#each save.player.friendships as [name, npc]}
+		{#each friendships as [name, npc] (name)}
 			<HeartBar {name} {npc} />
 		{/each}
 	</div>

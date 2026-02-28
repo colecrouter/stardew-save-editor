@@ -2,6 +2,7 @@ import buildings from "$generated/buildings.json";
 import { Building } from "$lib/proxies/Building.svelte";
 import { FarmAnimal } from "$lib/proxies/FarmAnimal.svelte";
 import { type BaseItemProxy, createItemProxy } from "$lib/proxies/items";
+import type { SaveProxy } from "$lib/proxies/SaveFile.svelte";
 import type {
 	GameLocation as Location,
 	Item as SaveItem,
@@ -11,14 +12,16 @@ import { type DataProxy, Raw } from ".";
 
 export class GameLocation implements DataProxy<Location> {
 	[Raw]: Location;
+	#context: SaveProxy | undefined;
 
 	public buildings: Building[];
 	public animals: FarmAnimal[];
 	public items: (BaseItemProxy | null)[][];
 	public piecesOfHay: number;
 
-	constructor(location: Location) {
+	constructor(location: Location, context?: SaveProxy) {
 		this[Raw] = location;
+		this.#context = context;
 
 		this.buildings = $state(this.getBuildings());
 		$effect(() => this.setBuildings(this.buildings));
@@ -41,7 +44,11 @@ export class GameLocation implements DataProxy<Location> {
 	// I have arbitrarily decided this is the pattern I will use here.
 
 	private getBuildings() {
-		return this[Raw].buildings?.Building?.map((b) => new Building(b)) ?? [];
+		return (
+			this[Raw].buildings?.Building?.map(
+				(b) => new Building(b, this.#context as SaveProxy),
+			) ?? []
+		);
 	}
 
 	private setBuildings(value: ReturnType<typeof this.getBuildings>) {
@@ -55,26 +62,28 @@ export class GameLocation implements DataProxy<Location> {
 		return this[Raw].animals?.item?.map((a) => new FarmAnimal(a)) ?? [];
 	}
 
-	private setAnimals(_value: ReturnType<typeof this.getAnimals>) {
-		/* This doesn't work properly yet, so I am leaving it disabled for now. */
-		// if (!value.length) {
-		// 	this[Raw].animals = null;
-		// 	this[Raw].Animals.SerializableDictionaryOfInt64FarmAnimal = null;
-		// } else {
-		// 	this[Raw].animals = { item: value.map((a) => a[Raw]) };
-		// 	this[Raw].Animals.SerializableDictionaryOfInt64FarmAnimal =
-		// 		this[Raw].animals;
-		// 	this[Raw].animalsThatLiveHere = {
-		// 		long: value.map((a) => a[Raw].key.long),
-		// 	};
-		// }
+	private setAnimals(value: ReturnType<typeof this.getAnimals>) {
+		const animals = value.length ? { item: value.map((a) => a[Raw]) } : null;
+
+		this[Raw].animals = animals;
+		this[Raw].Animals = {
+			SerializableDictionaryOfInt64FarmAnimal: animals,
+		};
+
+		if (!value.length) {
+			this[Raw].animalsThatLiveHere = undefined;
+		} else {
+			this[Raw].animalsThatLiveHere = {
+				long: value.map((a) => a[Raw].key.long) as unknown as number[],
+			};
+		}
 	}
 
 	private getItems() {
 		// Construct a 2D array of items
 		const building = buildings.find((b) => b.name === this[Raw].name);
 
-		const { X: width, Y: height } = building?.size ?? { X: 100, Y: 100 };
+		const { X: width, Y: height } = building?.footprint ?? { X: 100, Y: 100 };
 		const items = Array.from<BaseItemProxy | null>({ length: height }).map(() =>
 			Array.from<BaseItemProxy | null>({ length: width }).fill(null),
 		);

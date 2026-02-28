@@ -1,151 +1,213 @@
 [
 	{
 		"name": "Junimo Hut",
-		"size": { "X": 3, "Y": 2 },
+		"footprint": { "X": 3, "Y": 2 },
+		"texture": "Junimo Hut.png",
+		"textureSize": { "X": 256, "Y": 64 },
 		"maxOccupants": 20,
 		"hayCapacity": 0
 	},
 	{
 		"name": "Earth Obelisk",
-		"size": { "X": 3, "Y": 2 },
+		"footprint": { "X": 3, "Y": 2 },
+		"texture": "Earth Obelisk.png",
+		"textureSize": { "X": 48, "Y": 128 },
 		"maxOccupants": 20,
 		"hayCapacity": 0
 	},
 	{
 		"name": "Water Obelisk",
-		"size": { "X": 3, "Y": 2 },
+		"footprint": { "X": 3, "Y": 2 },
+		"texture": "Water Obelisk.png",
+		"textureSize": { "X": 48, "Y": 128 },
 		"maxOccupants": 20,
 		"hayCapacity": 0
 	},
 	{
 		"name": "Desert Obelisk",
-		"size": { "X": 3, "Y": 2 },
+		"footprint": { "X": 3, "Y": 2 },
+		"texture": "Desert Obelisk.png",
+		"textureSize": { "X": 48, "Y": 128 },
 		"maxOccupants": 20,
 		"hayCapacity": 0
 	},
 	{
 		"name": "Island Obelisk",
-		"size": { "X": 3, "Y": 2 },
+		"footprint": { "X": 3, "Y": 2 },
+		"texture": "Island Obelisk.png",
+		"textureSize": { "X": 48, "Y": 128 },
 		"maxOccupants": 20,
 		"hayCapacity": 0
 	},
 	{
 		"name": "Gold Clock",
-		"size": { "X": 3, "Y": 2 },
+		"footprint": { "X": 3, "Y": 2 },
+		"texture": "Gold Clock.png",
+		"textureSize": { "X": 48, "Y": 80 },
 		"maxOccupants": 20,
 		"hayCapacity": 0
 	},
 	{
 		"name": "Coop",
-		"size": { "X": 6, "Y": 3 },
+		"footprint": { "X": 6, "Y": 3 },
+		"texture": "Coop.png",
+		"textureSize": { "X": 96, "Y": 112 },
+		"sourceRect": { "X": 0, "Y": 0, "Width": 96, "Height": 112 },
 		"maxOccupants": 4,
 		"hayCapacity": 0
 	},
 	{
 		"name": "Barn",
-		"size": { "X": 7, "Y": 4 },
+		"footprint": { "X": 7, "Y": 4 },
+		"texture": "Barn.png",
+		"textureSize": { "X": 112, "Y": 112 },
+		"sourceRect": { "X": 0, "Y": 0, "Width": 112, "Height": 112 },
 		"maxOccupants": 4,
 		"hayCapacity": 0
 	},
 	{
 		"name": "Well",
-		"size": { "X": 3, "Y": 3 },
+		"footprint": { "X": 3, "Y": 3 },
+		"texture": "Well.png",
+		"textureSize": { "X": 48, "Y": 80 },
 		"maxOccupants": 20,
 		"hayCapacity": 0
 	},
 	{
 		"name": "Silo",
-		"size": { "X": 3, "Y": 3 },
+		"footprint": { "X": 3, "Y": 3 },
+		"texture": "Silo.png",
+		"textureSize": { "X": 48, "Y": 128 },
 		"maxOccupants": 20,
 		"hayCapacity": 240
 	},
 	{
 		"name": "Mill",
-		"size": { "X": 4, "Y": 2 },
+		"footprint": { "X": 4, "Y": 2 },
+		"texture": "Mill.png",
+		"textureSize": { "X": 64, "Y": 128 },
+		"sourceRect": { "X": 0, "Y": 0, "Width": 64, "Height": 128 },
 		"maxOccupants": 20,
 		"hayCapacity": 0
 	},
 	{
 		"name": "Shed",
-		"size": { "X": 7, "Y": 3 },
+		"footprint": { "X": 7, "Y": 3 },
+		"texture": "Shed.png",
+		"textureSize": { "X": 112, "Y": 128 },
 		"maxOccupants": 20,
 		"hayCapacity": 0
 	},
 	{
 		"name": "Fish Pond",
-		"size": { "X": 5, "Y": 5 },
+		"footprint": { "X": 5, "Y": 5 },
+		"texture": "Fish Pond.png",
+		"textureSize": { "X": 160, "Y": 176 },
 		"maxOccupants": -1,
 		"hayCapacity": 0
 	},
 	{
 		"name": "Cabin",
-		"size": { "X": 5, "Y": 3 },
+		"footprint": { "X": 5, "Y": 3 },
+		"texture": "Stone Cabin.png",
+		"textureSize": { "X": 80, "Y": 112 },
+		"sourceRect": { "X": 0, "Y": 0, "Width": 80, "Height": 112 },
 		"maxOccupants": 20,
 		"hayCapacity": 0
 	},
 	{
 		"name": "Pet Bowl",
-		"size": { "X": 2, "Y": 2 },
+		"footprint": { "X": 2, "Y": 2 },
+		"texture": "Pet Bowl.png",
+		"textureSize": { "X": 32, "Y": 32 },
+		"sourceRect": { "X": 32, "Y": 0, "Width": 32, "Height": 32 },
 		"maxOccupants": 20,
 		"hayCapacity": 0
 	},
 	{
 		"name": "Stable",
-		"size": { "X": 4, "Y": 2 },
+		"footprint": { "X": 4, "Y": 2 },
+		"texture": "Stable.png",
+		"textureSize": { "X": 64, "Y": 96 },
 		"maxOccupants": 20,
 		"hayCapacity": 0
 	},
 	{
 		"name": "Slime Hutch",
-		"size": { "X": 7, "Y": 4 },
+		"footprint": { "X": 7, "Y": 4 },
+		"texture": "Slime Hutch.png",
+		"textureSize": { "X": 112, "Y": 112 },
+		"sourceRect": { "X": 0, "Y": 0, "Width": 112, "Height": 112 },
 		"maxOccupants": 20,
 		"hayCapacity": 0
 	},
 	{
 		"name": "Big Coop",
-		"size": { "X": 6, "Y": 3 },
+		"footprint": { "X": 6, "Y": 3 },
+		"texture": "Big Coop.png",
+		"textureSize": { "X": 96, "Y": 112 },
+		"sourceRect": { "X": 0, "Y": 0, "Width": 96, "Height": 112 },
 		"maxOccupants": 8,
 		"hayCapacity": 0
 	},
 	{
 		"name": "Deluxe Coop",
-		"size": { "X": 6, "Y": 3 },
+		"footprint": { "X": 6, "Y": 3 },
+		"texture": "Deluxe Coop.png",
+		"textureSize": { "X": 96, "Y": 112 },
+		"sourceRect": { "X": 0, "Y": 0, "Width": 96, "Height": 112 },
 		"maxOccupants": 12,
 		"hayCapacity": 0
 	},
 	{
 		"name": "Big Barn",
-		"size": { "X": 7, "Y": 4 },
+		"footprint": { "X": 7, "Y": 4 },
+		"texture": "Big Barn.png",
+		"textureSize": { "X": 112, "Y": 112 },
+		"sourceRect": { "X": 0, "Y": 0, "Width": 112, "Height": 112 },
 		"maxOccupants": 8,
 		"hayCapacity": 0
 	},
 	{
 		"name": "Deluxe Barn",
-		"size": { "X": 7, "Y": 4 },
+		"footprint": { "X": 7, "Y": 4 },
+		"texture": "Deluxe Barn.png",
+		"textureSize": { "X": 112, "Y": 112 },
+		"sourceRect": { "X": 0, "Y": 0, "Width": 112, "Height": 112 },
 		"maxOccupants": 12,
 		"hayCapacity": 0
 	},
 	{
 		"name": "Big Shed",
-		"size": { "X": 7, "Y": 3 },
+		"footprint": { "X": 7, "Y": 3 },
+		"texture": "Big Shed.png",
+		"textureSize": { "X": 112, "Y": 128 },
 		"maxOccupants": 20,
 		"hayCapacity": 0
 	},
 	{
 		"name": "Shipping Bin",
-		"size": { "X": 2, "Y": 1 },
+		"footprint": { "X": 2, "Y": 1 },
+		"texture": "Shipping Bin.png",
+		"textureSize": { "X": 32, "Y": 32 },
 		"maxOccupants": 20,
 		"hayCapacity": 0
 	},
 	{
 		"name": "Farmhouse",
-		"size": { "X": 9, "Y": 5 },
+		"footprint": { "X": 9, "Y": 5 },
+		"texture": "houses.png",
+		"textureSize": { "X": 160, "Y": 144 },
+		"sourceRect": { "X": 0, "Y": 0, "Width": 160, "Height": 144 },
 		"maxOccupants": 20,
 		"hayCapacity": 0
 	},
 	{
 		"name": "Greenhouse",
-		"size": { "X": 7, "Y": 6 },
+		"footprint": { "X": 7, "Y": 6 },
+		"texture": "Greenhouse.png",
+		"textureSize": { "X": 112, "Y": 160 },
+		"sourceRect": { "X": 0, "Y": 160, "Width": 112, "Height": 160 },
 		"maxOccupants": 20,
 		"hayCapacity": 0
 	}

@@ -604,7 +604,7 @@
 			"category": 0,
 			"spriteIndex": 103,
 			"edibility": -300,
-			"tags": ["color_blue", "dye_strong", "toy_item"]
+			"tags": ["color_blue", "doll_item", "dye_strong", "toy_item"]
 		}
 	],
 	[
@@ -1009,7 +1009,13 @@
 			"category": -4,
 			"spriteIndex": 128,
 			"edibility": -40,
-			"tags": ["color_yellow", "fish_ocean", "fish_upright", "season_summer"]
+			"tags": [
+				"color_yellow",
+				"fish_has_roe",
+				"fish_ocean",
+				"fish_upright",
+				"season_summer"
+			]
 		}
 	],
 	[
@@ -1027,6 +1033,7 @@
 			"edibility": 5,
 			"tags": [
 				"color_blue",
+				"fish_has_roe",
 				"fish_ocean",
 				"fish_talk_demanding",
 				"season_fall",
@@ -1047,7 +1054,13 @@
 			"category": -4,
 			"spriteIndex": 130,
 			"edibility": 15,
-			"tags": ["color_blue", "fish_ocean", "season_summer", "season_winter"]
+			"tags": [
+				"color_blue",
+				"fish_has_roe",
+				"fish_ocean",
+				"season_summer",
+				"season_winter"
+			]
 		}
 	],
 	[
@@ -1065,6 +1078,7 @@
 			"edibility": 5,
 			"tags": [
 				"color_blue",
+				"fish_has_roe",
 				"fish_ocean",
 				"fish_talk_demanding",
 				"season_fall",
@@ -1086,7 +1100,7 @@
 			"category": -4,
 			"spriteIndex": 132,
 			"edibility": 5,
-			"tags": ["color_blue", "fish_river", "season_all"]
+			"tags": ["color_blue", "fish_has_roe", "fish_river", "season_all"]
 		}
 	],
 	[
@@ -1102,7 +1116,7 @@
 			"category": -4,
 			"spriteIndex": 136,
 			"edibility": 15,
-			"tags": ["color_green", "fish_lake", "season_all"]
+			"tags": ["color_green", "fish_has_roe", "fish_lake", "season_all"]
 		}
 	],
 	[
@@ -1120,6 +1134,7 @@
 			"edibility": 10,
 			"tags": [
 				"color_brown",
+				"fish_has_roe",
 				"fish_pond",
 				"fish_river",
 				"season_fall",
@@ -1140,7 +1155,7 @@
 			"category": -4,
 			"spriteIndex": 138,
 			"edibility": 10,
-			"tags": ["color_orange", "fish_river", "season_summer"]
+			"tags": ["color_orange", "fish_has_roe", "fish_river", "season_summer"]
 		}
 	],
 	[
@@ -1156,7 +1171,7 @@
 			"category": -4,
 			"spriteIndex": 139,
 			"edibility": 15,
-			"tags": ["color_salmon", "fish_river", "season_fall"]
+			"tags": ["color_salmon", "fish_has_roe", "fish_river", "season_fall"]
 		}
 	],
 	[
@@ -1174,6 +1189,7 @@
 			"edibility": 12,
 			"tags": [
 				"color_yellow",
+				"fish_has_roe",
 				"fish_lake",
 				"fish_pond",
 				"fish_river",
@@ -1197,6 +1213,7 @@
 			"edibility": 10,
 			"tags": [
 				"color_yellow",
+				"fish_has_roe",
 				"fish_lake",
 				"fish_pond",
 				"fish_river",
@@ -1219,12 +1236,12 @@
 			"edibility": 5,
 			"tags": [
 				"color_yellow",
+				"fish_has_roe",
 				"fish_lake",
 				"fish_secret_pond",
 				"fish_sewers",
 				"season_fall",
 				"season_spring",
-				"season_winter",
 				"season_winter"
 			]
 		}
@@ -1244,6 +1261,7 @@
 			"edibility": 20,
 			"tags": [
 				"color_gray",
+				"fish_has_roe",
 				"fish_river",
 				"fish_secret_pond",
 				"fish_swamp",
@@ -1269,6 +1287,7 @@
 			"tags": [
 				"color_yellow",
 				"fish_carnivorous",
+				"fish_has_roe",
 				"fish_pond",
 				"fish_river",
 				"season_summer",
@@ -1289,7 +1308,13 @@
 			"category": -4,
 			"spriteIndex": 145,
 			"edibility": 5,
-			"tags": ["color_orange", "fish_river", "season_spring", "season_summer"]
+			"tags": [
+				"color_orange",
+				"fish_has_roe",
+				"fish_river",
+				"season_spring",
+				"season_summer"
+			]
 		}
 	],
 	[
@@ -1305,7 +1330,13 @@
 			"category": -4,
 			"spriteIndex": 146,
 			"edibility": 10,
-			"tags": ["color_red", "fish_ocean", "season_summer", "season_winter"]
+			"tags": [
+				"color_red",
+				"fish_has_roe",
+				"fish_ocean",
+				"season_summer",
+				"season_winter"
+			]
 		}
 	],
 	[
@@ -1323,6 +1354,7 @@
 			"edibility": 5,
 			"tags": [
 				"color_blue",
+				"fish_has_roe",
 				"fish_ocean",
 				"fish_talk_demanding",
 				"season_spring",
@@ -1345,6 +1377,7 @@
 			"edibility": 12,
 			"tags": [
 				"color_copper",
+				"fish_has_roe",
 				"fish_ocean",
 				"fish_talk_rude",
 				"fish_upright",
@@ -1366,7 +1399,13 @@
 			"category": -4,
 			"spriteIndex": 149,
 			"edibility": -300,
-			"tags": ["color_orange", "fish_ocean", "fish_upright", "season_summer"]
+			"tags": [
+				"color_orange",
+				"fish_has_roe",
+				"fish_ocean",
+				"fish_upright",
+				"season_summer"
+			]
 		}
 	],
 	[
@@ -1384,6 +1423,7 @@
 			"edibility": 10,
 			"tags": [
 				"color_red",
+				"fish_has_roe",
 				"fish_ocean",
 				"season_fall",
 				"season_summer",
@@ -1404,7 +1444,13 @@
 			"category": -4,
 			"spriteIndex": 151,
 			"edibility": 10,
-			"tags": ["color_white", "fish_ocean", "fish_upright", "season_winter"]
+			"tags": [
+				"color_white",
+				"fish_has_roe",
+				"fish_ocean",
+				"fish_upright",
+				"season_winter"
+			]
 		}
 	],
 	[
@@ -1459,6 +1505,7 @@
 			"edibility": -10,
 			"tags": [
 				"color_yellow",
+				"fish_has_roe",
 				"fish_ocean",
 				"fish_upright",
 				"season_fall",
@@ -1481,6 +1528,7 @@
 			"edibility": 50,
 			"tags": [
 				"color_purple",
+				"fish_has_roe",
 				"fish_ocean",
 				"fish_upright",
 				"season_fall",
@@ -1501,7 +1549,7 @@
 			"category": -4,
 			"spriteIndex": 156,
 			"edibility": 15,
-			"tags": ["color_white", "fish_mines", "season_all"]
+			"tags": ["color_white", "fish_has_roe", "fish_mines", "season_all"]
 		}
 	],
 	[
@@ -1540,6 +1588,7 @@
 			"edibility": -300,
 			"tags": [
 				"color_brown",
+				"fish_has_roe",
 				"fish_mines",
 				"fish_semi_rare",
 				"fish_upright",
@@ -1560,7 +1609,7 @@
 			"category": -4,
 			"spriteIndex": 159,
 			"edibility": 15,
-			"tags": ["color_red", "fish_legendary", "fish_pond_ignore"]
+			"tags": ["color_red", "fish_has_roe", "fish_legendary"]
 		}
 	],
 	[
@@ -1576,12 +1625,7 @@
 			"category": -4,
 			"spriteIndex": 160,
 			"edibility": 10,
-			"tags": [
-				"color_yellow",
-				"fish_legendary",
-				"fish_pond_ignore",
-				"fish_upright"
-			]
+			"tags": ["color_yellow", "fish_has_roe", "fish_legendary", "fish_upright"]
 		}
 	],
 	[
@@ -1599,6 +1643,7 @@
 			"edibility": 15,
 			"tags": [
 				"color_blue",
+				"fish_has_roe",
 				"fish_mines",
 				"fish_semi_rare",
 				"fish_talk_demanding",
@@ -1621,6 +1666,7 @@
 			"edibility": 20,
 			"tags": [
 				"color_red",
+				"fish_has_roe",
 				"fish_mines",
 				"fish_semi_rare",
 				"fish_upright",
@@ -1641,7 +1687,7 @@
 			"category": -4,
 			"spriteIndex": 163,
 			"edibility": 200,
-			"tags": ["color_green", "fish_legendary", "fish_pond_ignore"]
+			"tags": ["color_green", "fish_has_roe", "fish_legendary"]
 		}
 	],
 	[
@@ -1657,7 +1703,7 @@
 			"category": -4,
 			"spriteIndex": 164,
 			"edibility": 5,
-			"tags": ["color_yellow", "fish_desert", "season_all"]
+			"tags": ["color_yellow", "fish_desert", "fish_has_roe", "season_all"]
 		}
 	],
 	[
@@ -1673,7 +1719,13 @@
 			"category": -4,
 			"spriteIndex": 165,
 			"edibility": -50,
-			"tags": ["color_brown", "fish_desert", "fish_semi_rare", "season_all"]
+			"tags": [
+				"color_brown",
+				"fish_desert",
+				"fish_has_roe",
+				"fish_semi_rare",
+				"season_all"
+			]
 		}
 	],
 	[
@@ -3098,7 +3150,13 @@
 			"category": -4,
 			"spriteIndex": 267,
 			"edibility": 15,
-			"tags": ["color_brown", "fish_ocean", "season_spring", "season_summer"]
+			"tags": [
+				"color_brown",
+				"fish_has_roe",
+				"fish_ocean",
+				"season_spring",
+				"season_summer"
+			]
 		}
 	],
 	[
@@ -3130,7 +3188,13 @@
 			"category": -4,
 			"spriteIndex": 269,
 			"edibility": 20,
-			"tags": ["color_iridium", "fish_lake", "season_fall", "season_winter"]
+			"tags": [
+				"color_iridium",
+				"fish_has_roe",
+				"fish_lake",
+				"season_fall",
+				"season_winter"
+			]
 		}
 	],
 	[
@@ -4342,6 +4406,7 @@
 				"beach_item",
 				"color_light_cyan",
 				"fish_crab_pot",
+				"fish_has_roe",
 				"fish_ocean",
 				"fish_upright",
 				"forage_item",
@@ -4971,7 +5036,7 @@
 			"category": 0,
 			"spriteIndex": 419,
 			"edibility": 5,
-			"tags": ["color_white"]
+			"tags": ["color_white", "placeable"]
 		}
 	],
 	[
@@ -7944,7 +8009,7 @@
 			"category": -4,
 			"spriteIndex": 682,
 			"edibility": 10,
-			"tags": ["color_green", "fish_legendary", "fish_pond_ignore"]
+			"tags": ["color_green", "fish_has_roe", "fish_legendary"]
 		}
 	],
 	[
@@ -8145,7 +8210,13 @@
 			"category": -4,
 			"spriteIndex": 698,
 			"edibility": 10,
-			"tags": ["color_cyan", "fish_lake", "season_summer", "season_winter"]
+			"tags": [
+				"color_cyan",
+				"fish_has_roe",
+				"fish_lake",
+				"season_summer",
+				"season_winter"
+			]
 		}
 	],
 	[
@@ -8161,7 +8232,13 @@
 			"category": -4,
 			"spriteIndex": 699,
 			"edibility": 10,
-			"tags": ["color_brown", "fish_river", "season_fall", "season_winter"]
+			"tags": [
+				"color_brown",
+				"fish_has_roe",
+				"fish_river",
+				"season_fall",
+				"season_winter"
+			]
 		}
 	],
 	[
@@ -8177,7 +8254,7 @@
 			"category": -4,
 			"spriteIndex": 700,
 			"edibility": 10,
-			"tags": ["color_brown", "fish_lake", "season_all"]
+			"tags": ["color_brown", "fish_has_roe", "fish_lake", "season_all"]
 		}
 	],
 	[
@@ -8193,7 +8270,13 @@
 			"category": -4,
 			"spriteIndex": 701,
 			"edibility": 10,
-			"tags": ["color_gray", "fish_ocean", "season_fall", "season_summer"]
+			"tags": [
+				"color_gray",
+				"fish_has_roe",
+				"fish_ocean",
+				"season_fall",
+				"season_summer"
+			]
 		}
 	],
 	[
@@ -8209,7 +8292,13 @@
 			"category": -4,
 			"spriteIndex": 702,
 			"edibility": 10,
-			"tags": ["color_gray", "fish_lake", "fish_river", "season_all"]
+			"tags": [
+				"color_gray",
+				"fish_has_roe",
+				"fish_lake",
+				"fish_river",
+				"season_all"
+			]
 		}
 	],
 	[
@@ -8243,6 +8332,7 @@
 			"tags": [
 				"color_orange",
 				"fish_carnivorous",
+				"fish_has_roe",
 				"fish_river",
 				"season_summer"
 			]
@@ -8261,7 +8351,13 @@
 			"category": -4,
 			"spriteIndex": 705,
 			"edibility": 10,
-			"tags": ["color_blue", "fish_ocean", "season_fall", "season_winter"]
+			"tags": [
+				"color_blue",
+				"fish_has_roe",
+				"fish_ocean",
+				"season_fall",
+				"season_winter"
+			]
 		}
 	],
 	[
@@ -8279,6 +8375,7 @@
 			"edibility": 10,
 			"tags": [
 				"color_green",
+				"fish_has_roe",
 				"fish_river",
 				"season_fall",
 				"season_spring",
@@ -8302,6 +8399,7 @@
 			"tags": [
 				"color_brown",
 				"fish_carnivorous",
+				"fish_has_roe",
 				"fish_lake",
 				"fish_river",
 				"season_winter"
@@ -8323,6 +8421,7 @@
 			"edibility": 10,
 			"tags": [
 				"color_dark_gray",
+				"fish_has_roe",
 				"fish_ocean",
 				"season_spring",
 				"season_summer",
@@ -8375,7 +8474,7 @@
 			"category": -4,
 			"spriteIndex": 715,
 			"edibility": -300,
-			"tags": ["color_red", "fish_crab_pot", "fish_ocean"]
+			"tags": ["color_red", "fish_crab_pot", "fish_has_roe", "fish_ocean"]
 		}
 	],
 	[
@@ -8391,7 +8490,12 @@
 			"category": -4,
 			"spriteIndex": 716,
 			"edibility": -300,
-			"tags": ["color_dark_gray", "fish_crab_pot", "fish_freshwater"]
+			"tags": [
+				"color_dark_gray",
+				"fish_crab_pot",
+				"fish_freshwater",
+				"fish_has_roe"
+			]
 		}
 	],
 	[
@@ -8407,7 +8511,13 @@
 			"category": -4,
 			"spriteIndex": 717,
 			"edibility": -300,
-			"tags": ["color_red", "fish_crab_pot", "fish_ocean", "fish_upright"]
+			"tags": [
+				"color_red",
+				"fish_crab_pot",
+				"fish_has_roe",
+				"fish_ocean",
+				"fish_upright"
+			]
 		}
 	],
 	[
@@ -8426,6 +8536,7 @@
 			"tags": [
 				"color_dark_gray",
 				"fish_crab_pot",
+				"fish_has_roe",
 				"fish_ocean",
 				"forage_item",
 				"forage_item_beach"
@@ -8448,6 +8559,7 @@
 			"tags": [
 				"color_gray",
 				"fish_crab_pot",
+				"fish_has_roe",
 				"fish_ocean",
 				"forage_item",
 				"forage_item_beach"
@@ -8467,7 +8579,13 @@
 			"category": -4,
 			"spriteIndex": 720,
 			"edibility": -300,
-			"tags": ["color_pink", "fish_crab_pot", "fish_ocean", "fish_upright"]
+			"tags": [
+				"color_pink",
+				"fish_crab_pot",
+				"fish_has_roe",
+				"fish_ocean",
+				"fish_upright"
+			]
 		}
 	],
 	[
@@ -8487,6 +8605,7 @@
 				"color_yellow",
 				"fish_crab_pot",
 				"fish_freshwater",
+				"fish_has_roe",
 				"fish_upright"
 			]
 		}
@@ -8504,7 +8623,13 @@
 			"category": -4,
 			"spriteIndex": 722,
 			"edibility": -300,
-			"tags": ["color_cyan", "fish_crab_pot", "fish_freshwater", "fish_upright"]
+			"tags": [
+				"color_cyan",
+				"fish_crab_pot",
+				"fish_freshwater",
+				"fish_has_roe",
+				"fish_upright"
+			]
 		}
 	],
 	[
@@ -8523,6 +8648,7 @@
 			"tags": [
 				"color_gray",
 				"fish_crab_pot",
+				"fish_has_roe",
 				"fish_ocean",
 				"fish_upright",
 				"forage_item",
@@ -8703,7 +8829,13 @@
 			"category": -4,
 			"spriteIndex": 734,
 			"edibility": 10,
-			"tags": ["color_orange", "fish_pond", "fish_secret_pond", "season_all"]
+			"tags": [
+				"color_orange",
+				"fish_has_roe",
+				"fish_pond",
+				"fish_secret_pond",
+				"season_all"
+			]
 		}
 	],
 	[
@@ -8970,12 +9102,7 @@
 			"category": -4,
 			"spriteIndex": 775,
 			"edibility": 10,
-			"tags": [
-				"color_blue",
-				"fish_legendary",
-				"fish_pond_ignore",
-				"fish_upright"
-			]
+			"tags": ["color_blue", "fish_has_roe", "fish_legendary", "fish_upright"]
 		}
 	],
 	[
@@ -9160,6 +9287,7 @@
 			"edibility": 25,
 			"tags": [
 				"color_dark_purple",
+				"fish_has_roe",
 				"fish_semi_rare",
 				"fish_swamp",
 				"fish_talk_stiff",
@@ -9180,7 +9308,13 @@
 			"category": -4,
 			"spriteIndex": 796,
 			"edibility": 15,
-			"tags": ["color_green", "fish_bug_lair", "fish_semi_rare", "season_all"]
+			"tags": [
+				"color_green",
+				"fish_bug_lair",
+				"fish_has_roe",
+				"fish_semi_rare",
+				"season_all"
+			]
 		}
 	],
 	[
@@ -9214,6 +9348,7 @@
 			"edibility": 15,
 			"tags": [
 				"color_blue",
+				"fish_has_roe",
 				"fish_night_market",
 				"fish_semi_rare",
 				"fish_talk_stiff",
@@ -9234,7 +9369,12 @@
 			"category": -4,
 			"spriteIndex": 799,
 			"edibility": 15,
-			"tags": ["color_blue", "fish_night_market", "fish_semi_rare"]
+			"tags": [
+				"color_blue",
+				"fish_has_roe",
+				"fish_night_market",
+				"fish_semi_rare"
+			]
 		}
 	],
 	[
@@ -9250,7 +9390,12 @@
 			"category": -4,
 			"spriteIndex": 800,
 			"edibility": 15,
-			"tags": ["color_sand", "fish_night_market", "fish_upright"]
+			"tags": [
+				"color_sand",
+				"fish_has_roe",
+				"fish_night_market",
+				"fish_upright"
+			]
 		}
 	],
 	[
@@ -9266,7 +9411,7 @@
 			"category": 0,
 			"spriteIndex": 801,
 			"edibility": -300,
-			"tags": ["color_iridium", "not_giftable"]
+			"tags": ["color_iridium"]
 		}
 	],
 	[
@@ -9714,7 +9859,13 @@
 			"category": -4,
 			"spriteIndex": 836,
 			"edibility": 15,
-			"tags": ["color_brown", "fish_ocean", "fish_talk_stiff", "season_all"]
+			"tags": [
+				"color_brown",
+				"fish_has_roe",
+				"fish_ocean",
+				"fish_talk_stiff",
+				"season_all"
+			]
 		}
 	],
 	[
@@ -9732,6 +9883,7 @@
 			"edibility": 15,
 			"tags": [
 				"color_orange",
+				"fish_has_roe",
 				"fish_ocean",
 				"fish_talk_demanding",
 				"season_all"
@@ -9751,7 +9903,7 @@
 			"category": -4,
 			"spriteIndex": 838,
 			"edibility": 15,
-			"tags": ["color_cyan", "fish_ocean", "season_all"]
+			"tags": ["color_cyan", "fish_has_roe", "fish_ocean", "season_all"]
 		}
 	],
 	[
@@ -10505,9 +10657,9 @@
 			"edibility": 15,
 			"tags": [
 				"color_red",
+				"fish_has_roe",
 				"fish_legendary",
-				"fish_legendary_family",
-				"fish_pond_ignore"
+				"fish_legendary_family"
 			]
 		}
 	],
@@ -10526,9 +10678,9 @@
 			"edibility": 10,
 			"tags": [
 				"color_pink",
+				"fish_has_roe",
 				"fish_legendary",
 				"fish_legendary_family",
-				"fish_pond_ignore",
 				"fish_upright"
 			]
 		}
@@ -10548,9 +10700,9 @@
 			"edibility": 200,
 			"tags": [
 				"color_green",
+				"fish_has_roe",
 				"fish_legendary",
-				"fish_legendary_family",
-				"fish_pond_ignore"
+				"fish_legendary_family"
 			]
 		}
 	],
@@ -10569,9 +10721,9 @@
 			"edibility": 10,
 			"tags": [
 				"color_green",
+				"fish_has_roe",
 				"fish_legendary",
-				"fish_legendary_family",
-				"fish_pond_ignore"
+				"fish_legendary_family"
 			]
 		}
 	],
@@ -10590,9 +10742,9 @@
 			"edibility": 10,
 			"tags": [
 				"color_blue",
+				"fish_has_roe",
 				"fish_legendary",
-				"fish_legendary_family",
-				"fish_pond_ignore"
+				"fish_legendary_family"
 			]
 		}
 	],
@@ -10996,8 +11148,7 @@
 			"category": 0,
 			"texture": "Objects_2.png",
 			"spriteIndex": 0,
-			"edibility": -300,
-			"tags": ["not_giftable"]
+			"edibility": -300
 		}
 	],
 	[
@@ -11013,8 +11164,7 @@
 			"category": 0,
 			"texture": "Objects_2.png",
 			"spriteIndex": 7,
-			"edibility": -300,
-			"tags": ["not_giftable"]
+			"edibility": -300
 		}
 	],
 	[
@@ -11396,7 +11546,7 @@
 			"texture": "Objects_2.png",
 			"spriteIndex": 69,
 			"edibility": -300,
-			"tags": ["color_red", "not_giftable"]
+			"tags": ["color_red"]
 		}
 	],
 	[
@@ -11606,8 +11756,8 @@
 			"_type": "Object",
 			"_key": "PurpleBook",
 			"name": "Book Of Stars",
-			"displayName": "[LocalizedText Strings\\1_6_Strings:PurpleBook_Name]",
-			"description": "[LocalizedText Strings\\1_6_Strings:PurpleBook_Description]",
+			"displayName": "[LocalizedText Strings\\Objects:PurpleBook_Name]",
+			"description": "[LocalizedText Strings\\Objects:PurpleBook_Description]",
 			"price": 2500,
 			"type": "asdf",
 			"category": -103,
@@ -11623,8 +11773,8 @@
 			"_type": "Object",
 			"_key": "SkillBook_0",
 			"name": "Stardew Valley Almanac",
-			"displayName": "[LocalizedText Strings\\1_6_Strings:SkillBook0_Name]",
-			"description": "[LocalizedText Strings\\1_6_Strings:SkillBook0_Description]",
+			"displayName": "[LocalizedText Strings\\Objects:SkillBook0_Name]",
+			"description": "[LocalizedText Strings\\Objects:SkillBook0_Description]",
 			"price": 500,
 			"type": "asdf",
 			"category": -103,
@@ -11640,8 +11790,8 @@
 			"_type": "Object",
 			"_key": "SkillBook_2",
 			"name": "Woodcutter's Weekly",
-			"displayName": "[LocalizedText Strings\\1_6_Strings:SkillBook2_Name]",
-			"description": "[LocalizedText Strings\\1_6_Strings:SkillBook2_Description]",
+			"displayName": "[LocalizedText Strings\\Objects:SkillBook2_Name]",
+			"description": "[LocalizedText Strings\\Objects:SkillBook2_Description]",
 			"price": 500,
 			"type": "asdf",
 			"category": -103,
@@ -11657,8 +11807,8 @@
 			"_type": "Object",
 			"_key": "SkillBook_1",
 			"name": "Bait And Bobber",
-			"displayName": "[LocalizedText Strings\\1_6_Strings:SkillBook1_Name]",
-			"description": "[LocalizedText Strings\\1_6_Strings:SkillBook1_Description]",
+			"displayName": "[LocalizedText Strings\\Objects:SkillBook1_Name]",
+			"description": "[LocalizedText Strings\\Objects:SkillBook1_Description]",
 			"price": 500,
 			"type": "asdf",
 			"category": -103,
@@ -11674,8 +11824,8 @@
 			"_type": "Object",
 			"_key": "SkillBook_3",
 			"name": "Mining Monthly",
-			"displayName": "[LocalizedText Strings\\1_6_Strings:SkillBook3_Name]",
-			"description": "[LocalizedText Strings\\1_6_Strings:SkillBook3_Description]",
+			"displayName": "[LocalizedText Strings\\Objects:SkillBook3_Name]",
+			"description": "[LocalizedText Strings\\Objects:SkillBook3_Description]",
 			"price": 500,
 			"type": "asdf",
 			"category": -103,
@@ -11691,8 +11841,8 @@
 			"_type": "Object",
 			"_key": "SkillBook_4",
 			"name": "Combat Quarterly",
-			"displayName": "[LocalizedText Strings\\1_6_Strings:SkillBook4_Name]",
-			"description": "[LocalizedText Strings\\1_6_Strings:SkillBook4_Description]",
+			"displayName": "[LocalizedText Strings\\Objects:SkillBook4_Name]",
+			"description": "[LocalizedText Strings\\Objects:SkillBook4_Description]",
 			"price": 500,
 			"type": "asdf",
 			"category": -103,
@@ -11708,8 +11858,8 @@
 			"_type": "Object",
 			"_key": "Book_Trash",
 			"name": "The Alleyway Buffet",
-			"displayName": "[LocalizedText Strings\\1_6_Strings:Book_Trash_Name]",
-			"description": "[LocalizedText Strings\\1_6_Strings:Book_Trash_Description]",
+			"displayName": "[LocalizedText Strings\\Objects:Book_Trash_Name]",
+			"description": "[LocalizedText Strings\\Objects:Book_Trash_Description]",
 			"price": 3000,
 			"type": "asdf",
 			"category": -102,
@@ -11725,8 +11875,8 @@
 			"_type": "Object",
 			"_key": "Book_Crabbing",
 			"name": "The Art O' Crabbing",
-			"displayName": "[LocalizedText Strings\\1_6_Strings:Book_Crabbing_Name]",
-			"description": "[LocalizedText Strings\\1_6_Strings:Book_Crabbing_Description]",
+			"displayName": "[LocalizedText Strings\\Objects:Book_Crabbing_Name]",
+			"description": "[LocalizedText Strings\\Objects:Book_Crabbing_Description]",
 			"price": 1000,
 			"type": "asdf",
 			"category": -102,
@@ -11742,8 +11892,8 @@
 			"_type": "Object",
 			"_key": "Book_Bombs",
 			"name": "Dwarvish Safety Manual",
-			"displayName": "[LocalizedText Strings\\1_6_Strings:Book_Bombs_Name]",
-			"description": "[LocalizedText Strings\\1_6_Strings:Book_Bombs_Description]",
+			"displayName": "[LocalizedText Strings\\Objects:Book_Bombs_Name]",
+			"description": "[LocalizedText Strings\\Objects:Book_Bombs_Description]",
 			"price": 1000,
 			"type": "asdf",
 			"category": -102,
@@ -11759,15 +11909,15 @@
 			"_type": "Object",
 			"_key": "Book_Roe",
 			"name": "Jewels Of The Sea",
-			"displayName": "[LocalizedText Strings\\1_6_Strings:Book_Roe_Name]",
-			"description": "[LocalizedText Strings\\1_6_Strings:Book_Roe_Description]",
+			"displayName": "[LocalizedText Strings\\Objects:Book_Roe_Name]",
+			"description": "[LocalizedText Strings\\Objects:Book_Roe_Description]",
 			"price": 800,
 			"type": "asdf",
 			"category": -102,
 			"texture": "Objects_2.png",
 			"spriteIndex": 105,
 			"edibility": -300,
-			"tags": ["color_orange", "book_item", "book_xp_fishing"]
+			"tags": ["color_orange", "book_item", "book_xp_fishing", "fish_has_roe"]
 		}
 	],
 	[
@@ -11776,8 +11926,8 @@
 			"_type": "Object",
 			"_key": "Book_WildSeeds",
 			"name": "Ways Of The Wild",
-			"displayName": "[LocalizedText Strings\\1_6_Strings:Book_WildSeeds_Name]",
-			"description": "[LocalizedText Strings\\1_6_Strings:Book_WildSeeds_Description]",
+			"displayName": "[LocalizedText Strings\\Objects:Book_WildSeeds_Name]",
+			"description": "[LocalizedText Strings\\Objects:Book_WildSeeds_Description]",
 			"price": 1000,
 			"type": "asdf",
 			"category": -102,
@@ -11793,8 +11943,8 @@
 			"_type": "Object",
 			"_key": "Book_Woodcutting",
 			"name": "Woody's Secret",
-			"displayName": "[LocalizedText Strings\\1_6_Strings:Book_Woodcutting_Name]",
-			"description": "[LocalizedText Strings\\1_6_Strings:Book_Woodcutting_Description]",
+			"displayName": "[LocalizedText Strings\\Objects:Book_Woodcutting_Name]",
+			"description": "[LocalizedText Strings\\Objects:Book_Woodcutting_Description]",
 			"price": 500,
 			"type": "asdf",
 			"category": -102,
@@ -11810,8 +11960,8 @@
 			"_type": "Object",
 			"_key": "Book_Defense",
 			"name": "Jack Be Nimble, Jack Be Thick",
-			"displayName": "[LocalizedText Strings\\1_6_Strings:Book_Defense_Name]",
-			"description": "[LocalizedText Strings\\1_6_Strings:Book_Defense_Description]",
+			"displayName": "[LocalizedText Strings\\Objects:Book_Defense_Name]",
+			"description": "[LocalizedText Strings\\Objects:Book_Defense_Description]",
 			"price": 500,
 			"type": "asdf",
 			"category": -102,
@@ -11827,8 +11977,8 @@
 			"_type": "Object",
 			"_key": "Book_Friendship",
 			"name": "Friendship 101",
-			"displayName": "[LocalizedText Strings\\1_6_Strings:Book_Friendship_Name]",
-			"description": "[LocalizedText Strings\\1_6_Strings:Book_Friendship_Description]",
+			"displayName": "[LocalizedText Strings\\Objects:Book_Friendship_Name]",
+			"description": "[LocalizedText Strings\\Objects:Book_Friendship_Description]",
 			"price": 3000,
 			"type": "asdf",
 			"category": -102,
@@ -11844,8 +11994,8 @@
 			"_type": "Object",
 			"_key": "Book_Void",
 			"name": "Monster Compendium",
-			"displayName": "[LocalizedText Strings\\1_6_Strings:Book_Void_Name]",
-			"description": "[LocalizedText Strings\\1_6_Strings:Book_Void_Description]",
+			"displayName": "[LocalizedText Strings\\Objects:Book_Void_Name]",
+			"description": "[LocalizedText Strings\\Objects:Book_Void_Description]",
 			"price": 2000,
 			"type": "asdf",
 			"category": -102,
@@ -11861,8 +12011,8 @@
 			"_type": "Object",
 			"_key": "Book_Speed",
 			"name": "Way Of The Wind pt. 1",
-			"displayName": "[LocalizedText Strings\\1_6_Strings:Book_Speed_Name]",
-			"description": "[LocalizedText Strings\\1_6_Strings:Book_Speed_Description]",
+			"displayName": "[LocalizedText Strings\\Objects:Book_Speed_Name]",
+			"description": "[LocalizedText Strings\\Objects:Book_Speed_Description]",
 			"price": 5000,
 			"type": "asdf",
 			"category": -102,
@@ -11878,8 +12028,8 @@
 			"_type": "Object",
 			"_key": "Book_Marlon",
 			"name": "Mapping Cave Systems",
-			"displayName": "[LocalizedText Strings\\1_6_Strings:Book_Marlon_Name]",
-			"description": "[LocalizedText Strings\\1_6_Strings:Book_Marlon_Description]",
+			"displayName": "[LocalizedText Strings\\Objects:Book_Marlon_Name]",
+			"description": "[LocalizedText Strings\\Objects:Book_Marlon_Description]",
 			"price": 4000,
 			"type": "asdf",
 			"category": -102,
@@ -11895,8 +12045,8 @@
 			"_type": "Object",
 			"_key": "Book_PriceCatalogue",
 			"name": "Price Catalogue",
-			"displayName": "[LocalizedText Strings\\1_6_Strings:Book_PriceCatalogue_Name]",
-			"description": "[LocalizedText Strings\\1_6_Strings:Book_PriceCatalogue_Description]",
+			"displayName": "[LocalizedText Strings\\Objects:Book_PriceCatalogue_Name]",
+			"description": "[LocalizedText Strings\\Objects:Book_PriceCatalogue_Description]",
 			"price": 1000,
 			"type": "asdf",
 			"category": -102,
@@ -11912,8 +12062,8 @@
 			"_type": "Object",
 			"_key": "Book_QueenOfSauce",
 			"name": "Queen Of Sauce Cookbook",
-			"displayName": "[LocalizedText Strings\\1_6_Strings:Book_QueenOfSauce_Name]",
-			"description": "[LocalizedText Strings\\1_6_Strings:Book_QueenOfSauce_Description]",
+			"displayName": "[LocalizedText Strings\\Objects:Book_QueenOfSauce_Name]",
+			"description": "[LocalizedText Strings\\Objects:Book_QueenOfSauce_Description]",
 			"price": 10000,
 			"type": "asdf",
 			"category": -102,
@@ -11929,8 +12079,8 @@
 			"_type": "Object",
 			"_key": "Book_Diamonds",
 			"name": "The Diamond Hunter",
-			"displayName": "[LocalizedText Strings\\1_6_Strings:Book_Diamonds_Name]",
-			"description": "[LocalizedText Strings\\1_6_Strings:Book_Diamonds_Description]",
+			"displayName": "[LocalizedText Strings\\Objects:Book_Diamonds_Name]",
+			"description": "[LocalizedText Strings\\Objects:Book_Diamonds_Description]",
 			"price": 1000,
 			"type": "asdf",
 			"category": -102,
@@ -11946,8 +12096,8 @@
 			"_type": "Object",
 			"_key": "Book_Mystery",
 			"name": "Book of Mysteries",
-			"displayName": "[LocalizedText Strings\\1_6_Strings:Book_Mystery_Name]",
-			"description": "[LocalizedText Strings\\1_6_Strings:Book_Mystery_Description]",
+			"displayName": "[LocalizedText Strings\\Objects:Book_Mystery_Name]",
+			"description": "[LocalizedText Strings\\Objects:Book_Mystery_Description]",
 			"price": 3000,
 			"type": "asdf",
 			"category": -102,
@@ -11963,8 +12113,8 @@
 			"_type": "Object",
 			"_key": "Book_AnimalCatalogue",
 			"name": "Animal Catalogue",
-			"displayName": "[LocalizedText Strings\\1_6_Strings:Book_AnimalCatalogue_Name]",
-			"description": "[LocalizedText Strings\\1_6_Strings:Book_AnimalCatalogue_Description]",
+			"displayName": "[LocalizedText Strings\\Objects:Book_AnimalCatalogue_Name]",
+			"description": "[LocalizedText Strings\\Objects:Book_AnimalCatalogue_Description]",
 			"price": 2000,
 			"type": "asdf",
 			"category": -102,
@@ -11980,8 +12130,8 @@
 			"_type": "Object",
 			"_key": "Book_Speed2",
 			"name": "Way Of The Wind pt. 2",
-			"displayName": "[LocalizedText Strings\\1_6_Strings:Book_Speed2_Name]",
-			"description": "[LocalizedText Strings\\1_6_Strings:Book_Speed2_Description]",
+			"displayName": "[LocalizedText Strings\\Objects:Book_Speed2_Name]",
+			"description": "[LocalizedText Strings\\Objects:Book_Speed2_Description]",
 			"price": 10000,
 			"type": "asdf",
 			"category": -102,
@@ -11997,8 +12147,8 @@
 			"_type": "Object",
 			"_key": "GoldenAnimalCracker",
 			"name": "Golden Animal Cracker",
-			"displayName": "[LocalizedText Strings\\1_6_Strings:GoldenAnimalCracker_Name]",
-			"description": "[LocalizedText Strings\\1_6_Strings:GoldenAnimalCracker_Description]",
+			"displayName": "[LocalizedText Strings\\Objects:GoldenAnimalCracker_Name]",
+			"description": "[LocalizedText Strings\\Objects:GoldenAnimalCracker_Description]",
 			"price": 1000,
 			"type": "asdf",
 			"category": 0,
@@ -12014,7 +12164,7 @@
 			"_type": "Object",
 			"_key": "GoldenMysteryBox",
 			"name": "Golden Mystery Box",
-			"displayName": "[LocalizedText Strings\\1_6_Strings:GoldenMysteryBox_Name]",
+			"displayName": "[LocalizedText Strings\\Objects:GoldenMysteryBox_Name]",
 			"description": "[LocalizedText Strings\\Objects:MysteryBox_Description]",
 			"price": 0,
 			"type": "Basic",
@@ -12036,8 +12186,8 @@
 			"_type": "Object",
 			"_key": "SeaJelly",
 			"name": "Sea Jelly",
-			"displayName": "[LocalizedText Strings\\1_6_Strings:SeaJelly_Name]",
-			"description": "[LocalizedText Strings\\1_6_Strings:SeaJelly_Description]",
+			"displayName": "[LocalizedText Strings\\Objects:SeaJelly_Name]",
+			"description": "[LocalizedText Strings\\Objects:SeaJelly_Description]",
 			"price": 200,
 			"type": "Fish",
 			"category": 0,
@@ -12058,8 +12208,8 @@
 			"_type": "Object",
 			"_key": "CaveJelly",
 			"name": "Cave Jelly",
-			"displayName": "[LocalizedText Strings\\1_6_Strings:CaveJelly_Name]",
-			"description": "[LocalizedText Strings\\1_6_Strings:CaveJelly_Description]",
+			"displayName": "[LocalizedText Strings\\Objects:CaveJelly_Name]",
+			"description": "[LocalizedText Strings\\Objects:CaveJelly_Description]",
 			"price": 180,
 			"type": "Fish",
 			"category": 0,
@@ -12080,8 +12230,8 @@
 			"_type": "Object",
 			"_key": "RiverJelly",
 			"name": "River Jelly",
-			"displayName": "[LocalizedText Strings\\1_6_Strings:RiverJelly_Name]",
-			"description": "[LocalizedText Strings\\1_6_Strings:RiverJelly_Description]",
+			"displayName": "[LocalizedText Strings\\Objects:RiverJelly_Name]",
+			"description": "[LocalizedText Strings\\Objects:RiverJelly_Description]",
 			"price": 125,
 			"type": "Fish",
 			"category": 0,
@@ -12102,8 +12252,8 @@
 			"_type": "Object",
 			"_key": "Goby",
 			"name": "Goby",
-			"displayName": "[LocalizedText Strings\\1_6_Strings:Goby_Name]",
-			"description": "[LocalizedText Strings\\1_6_Strings:Goby_Description]",
+			"displayName": "[LocalizedText Strings\\Objects:Goby_Name]",
+			"description": "[LocalizedText Strings\\Objects:Goby_Description]",
 			"price": 150,
 			"type": "Fish",
 			"category": -4,
@@ -12112,6 +12262,7 @@
 			"edibility": -25,
 			"tags": [
 				"color_brown",
+				"fish_has_roe",
 				"fish_river",
 				"season_spring",
 				"season_summer",
@@ -12141,8 +12292,8 @@
 			"_type": "Object",
 			"_key": "Book_Artifact",
 			"name": "Book_Artifact",
-			"displayName": "[LocalizedText Strings\\1_6_Strings:Book_Artifact_Name]",
-			"description": "[LocalizedText Strings\\1_6_Strings:Book_Artifact_Description]",
+			"displayName": "[LocalizedText Strings\\Objects:Book_Artifact_Name]",
+			"description": "[LocalizedText Strings\\Objects:Book_Artifact_Description]",
 			"price": 500,
 			"type": "asdf",
 			"category": -102,
@@ -12158,8 +12309,8 @@
 			"_type": "Object",
 			"_key": "Book_Horse",
 			"name": "Book_Horse",
-			"displayName": "[LocalizedText Strings\\1_6_Strings:Book_Riding_Name]",
-			"description": "[LocalizedText Strings\\1_6_Strings:Book_Riding_Description]",
+			"displayName": "[LocalizedText Strings\\Objects:Book_Riding_Name]",
+			"description": "[LocalizedText Strings\\Objects:Book_Riding_Description]",
 			"price": 1000,
 			"type": "asdf",
 			"category": -102,
@@ -12175,8 +12326,8 @@
 			"_type": "Object",
 			"_key": "ButterflyPowder",
 			"name": "Butterfly Powder",
-			"displayName": "[LocalizedText Strings\\1_6_Strings:ButterflyPowder_Name]",
-			"description": "[LocalizedText Strings\\1_6_Strings:ButterflyPowder_Description]",
+			"displayName": "[LocalizedText Strings\\Objects:ButterflyPowder_Name]",
+			"description": "[LocalizedText Strings\\Objects:ButterflyPowder_Description]",
 			"price": 0,
 			"type": "Basic",
 			"category": 0,
@@ -12192,8 +12343,8 @@
 			"_type": "Object",
 			"_key": "PetLicense",
 			"name": "Pet License",
-			"displayName": "[LocalizedText Strings\\1_6_Strings:PetLicense_Name]",
-			"description": "[LocalizedText Strings\\1_6_Strings:PetLicense_Description]",
+			"displayName": "[LocalizedText Strings\\Objects:PetLicense_Name]",
+			"description": "[LocalizedText Strings\\Objects:PetLicense_Description]",
 			"price": 0,
 			"type": "Basic",
 			"category": 0,
@@ -12208,8 +12359,8 @@
 			"_type": "Object",
 			"_key": "BlueGrassStarter",
 			"name": "Blue Grass Starter",
-			"displayName": "[LocalizedText Strings\\1_6_Strings:BlueGrassStarter_Name]",
-			"description": "[LocalizedText Strings\\1_6_Strings:BlueGrassStarter_Description]",
+			"displayName": "[LocalizedText Strings\\Objects:BlueGrassStarter_Name]",
+			"description": "[LocalizedText Strings\\Objects:BlueGrassStarter_Description]",
 			"price": 50,
 			"type": "Crafting",
 			"category": 0,
@@ -12225,8 +12376,8 @@
 			"_type": "Object",
 			"_key": "MossSoup",
 			"name": "Moss Soup",
-			"displayName": "[LocalizedText Strings\\1_6_Strings:MossSoup_Name]",
-			"description": "[LocalizedText Strings\\1_6_Strings:MossSoup_Description]",
+			"displayName": "[LocalizedText Strings\\Objects:MossSoup_Name]",
+			"description": "[LocalizedText Strings\\Objects:MossSoup_Description]",
 			"price": 80,
 			"type": "Cooking",
 			"category": -7,
@@ -12242,8 +12393,8 @@
 			"_type": "Object",
 			"_key": "Book_Grass",
 			"name": "Book_Grass",
-			"displayName": "[LocalizedText Strings\\1_6_Strings:GrassBook_Name]",
-			"description": "[LocalizedText Strings\\1_6_Strings:GrassBook_Description]",
+			"displayName": "[LocalizedText Strings\\Objects:GrassBook_Name]",
+			"description": "[LocalizedText Strings\\Objects:GrassBook_Description]",
 			"price": 1000,
 			"type": "asdf",
 			"category": -102,
@@ -13578,21 +13729,6 @@
 		}
 	],
 	[
-		"Tub o' Flowers",
-		{
-			"_type": "BigCraftable",
-			"_key": "109",
-			"name": "Tub o' Flowers",
-			"displayName": "[LocalizedText Strings\\BigCraftables:TuboFlowers_Name]",
-			"description": "[LocalizedText Strings\\BigCraftables:TuboFlowers_Description]",
-			"price": 0,
-			"spriteIndex": 109,
-			"canBePlacedIndoors": true,
-			"canBePlacedOutdoors": true,
-			"isLamp": false
-		}
-	],
-	[
 		"Rarecrow",
 		{
 			"_type": "BigCraftable",
@@ -14826,8 +14962,8 @@
 			"_type": "BigCraftable",
 			"_key": "TextSign",
 			"name": "Text Sign",
-			"displayName": "[LocalizedText Strings\\1_6_Strings:TextSign_Name]",
-			"description": "[LocalizedText Strings\\1_6_Strings:TextSign_Description]",
+			"displayName": "[LocalizedText Strings\\BigCraftables:TextSign_Name]",
+			"description": "[LocalizedText Strings\\BigCraftables:TextSign_Description]",
 			"price": 50,
 			"spriteIndex": 281,
 			"canBePlacedIndoors": true,
@@ -14841,8 +14977,8 @@
 			"_type": "BigCraftable",
 			"_key": "MushroomLog",
 			"name": "Mushroom Log",
-			"displayName": "[LocalizedText Strings\\1_6_Strings:MushroomLog_Name]",
-			"description": "[LocalizedText Strings\\1_6_Strings:MushroomLog_Description]",
+			"displayName": "[LocalizedText Strings\\BigCraftables:MushroomLog_Name]",
+			"description": "[LocalizedText Strings\\BigCraftables:MushroomLog_Description]",
 			"price": 50,
 			"spriteIndex": 283,
 			"canBePlacedIndoors": true,
@@ -14856,8 +14992,8 @@
 			"_type": "BigCraftable",
 			"_key": "BaitMaker",
 			"name": "Bait Maker",
-			"displayName": "[LocalizedText Strings\\1_6_Strings:BaitMaker_Name]",
-			"description": "[LocalizedText Strings\\1_6_Strings:BaitMaker_Description]",
+			"displayName": "[LocalizedText Strings\\BigCraftables:BaitMaker_Name]",
+			"description": "[LocalizedText Strings\\BigCraftables:BaitMaker_Description]",
 			"price": 50,
 			"spriteIndex": 285,
 			"canBePlacedIndoors": true,
@@ -14871,8 +15007,8 @@
 			"_type": "BigCraftable",
 			"_key": "Dehydrator",
 			"name": "Dehydrator",
-			"displayName": "[LocalizedText Strings\\1_6_Strings:Dehydrator_Name]",
-			"description": "[LocalizedText Strings\\1_6_Strings:Dehydrator_Description]",
+			"displayName": "[LocalizedText Strings\\BigCraftables:Dehydrator_Name]",
+			"description": "[LocalizedText Strings\\BigCraftables:Dehydrator_Description]",
 			"price": 50,
 			"spriteIndex": 286,
 			"canBePlacedIndoors": true,
@@ -14886,8 +15022,8 @@
 			"_type": "BigCraftable",
 			"_key": "HeavyFurnace",
 			"name": "Heavy Furnace",
-			"displayName": "[LocalizedText Strings\\1_6_Strings:HeavyFurnace_Name]",
-			"description": "[LocalizedText Strings\\1_6_Strings:HeavyFurnace_Description]",
+			"displayName": "[LocalizedText Strings\\BigCraftables:HeavyFurnace_Name]",
+			"description": "[LocalizedText Strings\\BigCraftables:HeavyFurnace_Description]",
 			"price": 50,
 			"spriteIndex": 288,
 			"canBePlacedIndoors": true,
@@ -14901,8 +15037,8 @@
 			"_type": "BigCraftable",
 			"_key": "StatueOfBlessings",
 			"name": "Statue Of Blessings",
-			"displayName": "[LocalizedText Strings\\1_6_Strings:StatueOfBlessings_Name]",
-			"description": "[LocalizedText Strings\\1_6_Strings:StatueOfBlessings_Description]",
+			"displayName": "[LocalizedText Strings\\BigCraftables:StatueOfBlessings_Name]",
+			"description": "[LocalizedText Strings\\BigCraftables:StatueOfBlessings_Description]",
 			"price": 50,
 			"spriteIndex": 290,
 			"canBePlacedIndoors": true,
@@ -14916,8 +15052,8 @@
 			"_type": "BigCraftable",
 			"_key": "StatueOfTheDwarfKing",
 			"name": "Statue Of The Dwarf King",
-			"displayName": "[LocalizedText Strings\\1_6_Strings:StatueOfTheDwarfKing_Name]",
-			"description": "[LocalizedText Strings\\1_6_Strings:StatueOfTheDwarfKing_Description]",
+			"displayName": "[LocalizedText Strings\\BigCraftables:StatueOfTheDwarfKing_Name]",
+			"description": "[LocalizedText Strings\\BigCraftables:StatueOfTheDwarfKing_Description]",
 			"price": 50,
 			"spriteIndex": 292,
 			"canBePlacedIndoors": true,
@@ -14931,8 +15067,8 @@
 			"_type": "BigCraftable",
 			"_key": "Anvil",
 			"name": "Anvil",
-			"displayName": "[LocalizedText Strings\\1_6_Strings:Anvil_Name]",
-			"description": "[LocalizedText Strings\\1_6_Strings:Anvil_Description]",
+			"displayName": "[LocalizedText Strings\\BigCraftables:Anvil_Name]",
+			"description": "[LocalizedText Strings\\BigCraftables:Anvil_Description]",
 			"price": 50,
 			"spriteIndex": 293,
 			"canBePlacedIndoors": true,
@@ -14946,8 +15082,8 @@
 			"_type": "BigCraftable",
 			"_key": "MiniForge",
 			"name": "Mini-Forge",
-			"displayName": "[LocalizedText Strings\\1_6_Strings:MiniForge_Name]",
-			"description": "[LocalizedText Strings\\1_6_Strings:MiniForge_Description]",
+			"displayName": "[LocalizedText Strings\\BigCraftables:MiniForge_Name]",
+			"description": "[LocalizedText Strings\\BigCraftables:MiniForge_Description]",
 			"price": 50,
 			"spriteIndex": 294,
 			"canBePlacedIndoors": true,
@@ -14961,8 +15097,8 @@
 			"_type": "BigCraftable",
 			"_key": "FishSmoker",
 			"name": "Fish Smoker",
-			"displayName": "[LocalizedText Strings\\1_6_Strings:FishSmoker_Name]",
-			"description": "[LocalizedText Strings\\1_6_Strings:FishSmoker_Description]",
+			"displayName": "[LocalizedText Strings\\BigCraftables:FishSmoker_Name]",
+			"description": "[LocalizedText Strings\\BigCraftables:FishSmoker_Description]",
 			"price": 1000,
 			"spriteIndex": 296,
 			"canBePlacedIndoors": true,
@@ -14976,8 +15112,8 @@
 			"_type": "BigCraftable",
 			"_key": "DeluxeWormBin",
 			"name": "Deluxe Worm Bin",
-			"displayName": "[LocalizedText Strings\\1_6_Strings:DeluxeWormBin_Name]",
-			"description": "[LocalizedText Strings\\1_6_Strings:DeluxeWormBin_Description]",
+			"displayName": "[LocalizedText Strings\\BigCraftables:DeluxeWormBin_Name]",
+			"description": "[LocalizedText Strings\\BigCraftables:DeluxeWormBin_Description]",
 			"price": 0,
 			"spriteIndex": 298,
 			"canBePlacedIndoors": true,
@@ -14991,8 +15127,8 @@
 			"_type": "BigCraftable",
 			"_key": "BigChest",
 			"name": "Big Chest",
-			"displayName": "[LocalizedText Strings\\1_6_Strings:BigChest_Name]",
-			"description": "[LocalizedText Strings\\1_6_Strings:BigChest_Description]",
+			"displayName": "[LocalizedText Strings\\BigCraftables:BigChest_Name]",
+			"description": "[LocalizedText Strings\\BigCraftables:BigChest_Description]",
 			"price": 0,
 			"spriteIndex": 304,
 			"canBePlacedIndoors": true,
@@ -15007,8 +15143,8 @@
 			"_type": "BigCraftable",
 			"_key": "BigStoneChest",
 			"name": "Big Stone Chest",
-			"displayName": "[LocalizedText Strings\\1_6_Strings:BigStoneChest_Name]",
-			"description": "[LocalizedText Strings\\1_6_Strings:BigChest_Description]",
+			"displayName": "[LocalizedText Strings\\BigCraftables:BigStoneChest_Name]",
+			"description": "[LocalizedText Strings\\BigCraftables:BigChest_Description]",
 			"price": 0,
 			"spriteIndex": 328,
 			"canBePlacedIndoors": true,
@@ -25866,7 +26002,7 @@
 			"type": "table",
 			"tilesheetSize": { "width": 1, "height": 2 },
 			"boundingBoxSize": { "width": 1, "height": 1 },
-			"rotations": 1,
+			"rotations": 2,
 			"price": 500,
 			"placementRestriction": -1,
 			"displayName": "[LocalizedText Strings\\Furniture:DesertEndTable]",
@@ -28870,6 +29006,24 @@
 		}
 	],
 	[
+		"KrobusPortrait",
+		{
+			"_type": "Furniture",
+			"_key": "KrobusPortrait",
+			"name": "KrobusPortrait",
+			"type": "painting",
+			"tilesheetSize": { "width": 2, "height": 2 },
+			"boundingBoxSize": { "width": 2, "height": 2 },
+			"rotations": 1,
+			"price": 999,
+			"placementRestriction": -1,
+			"displayName": "[LocalizedText Strings\\Furniture:KrobusPortrait]",
+			"texture": "junimo_furniture.png",
+			"spriteIndex": 330,
+			"offLimitsForRandomSale": true
+		}
+	],
+	[
 		"JunimoStar",
 		{
 			"_type": "Furniture",
@@ -30038,7 +30192,7 @@
 			"type": "lamp",
 			"tilesheetSize": { "width": 1, "height": 2 },
 			"boundingBoxSize": { "width": 1, "height": 1 },
-			"rotations": 2,
+			"rotations": 1,
 			"price": 2000,
 			"placementRestriction": -1,
 			"displayName": "[LocalizedText Strings\\Furniture:OakLampEndTable]",
@@ -30056,7 +30210,7 @@
 			"type": "lamp",
 			"tilesheetSize": { "width": 1, "height": 2 },
 			"boundingBoxSize": { "width": 1, "height": 1 },
-			"rotations": 2,
+			"rotations": 1,
 			"price": 2000,
 			"placementRestriction": -1,
 			"displayName": "[LocalizedText Strings\\Furniture:WalnutLampEndTable]",
@@ -30074,7 +30228,7 @@
 			"type": "lamp",
 			"tilesheetSize": { "width": 1, "height": 2 },
 			"boundingBoxSize": { "width": 1, "height": 1 },
-			"rotations": 2,
+			"rotations": 1,
 			"price": 2000,
 			"placementRestriction": -1,
 			"displayName": "[LocalizedText Strings\\Furniture:BirchLampEndTable]",
@@ -30092,7 +30246,7 @@
 			"type": "lamp",
 			"tilesheetSize": { "width": 1, "height": 2 },
 			"boundingBoxSize": { "width": 1, "height": 1 },
-			"rotations": 2,
+			"rotations": 1,
 			"price": 3000,
 			"placementRestriction": -1,
 			"displayName": "[LocalizedText Strings\\Furniture:MahoganyLampEndTable]",
@@ -33727,8 +33881,8 @@
 			"_type": "Weapon",
 			"_key": "66",
 			"name": "Iridium Scythe",
-			"displayName": "[LocalizedText Strings\\1_6_Strings:IridiumScythe]",
-			"description": "[LocalizedText Strings\\1_6_Strings:IridiumScytheDescription]",
+			"displayName": "[LocalizedText Strings\\Weapons:IridiumScythe_Name]",
+			"description": "[LocalizedText Strings\\Weapons:IridiumScythe_Description]",
 			"type": 0,
 			"texture": "weapons.png",
 			"spriteIndex": 66,
@@ -33749,8 +33903,8 @@
 			"_type": "Tool",
 			"_key": "Axe",
 			"name": "Axe",
-			"displayName": "[LocalizedText Strings\\StringsFromCSFiles:Axe.cs.1]",
-			"description": "[LocalizedText Strings\\StringsFromCSFiles:Axe.cs.14019]",
+			"displayName": "[LocalizedText Strings\\Tools:Axe_Name]",
+			"description": "[LocalizedText Strings\\Tools:Axe_Description]",
 			"texture": "tools.png",
 			"spriteIndex": 189,
 			"menuSpriteIndex": 215,
@@ -33765,8 +33919,8 @@
 			"_type": "Tool",
 			"_key": "CopperAxe",
 			"name": "Copper Axe",
-			"displayName": "[LocalizedText Strings\\StringsFromCSFiles:Axe.cs.1]",
-			"description": "[LocalizedText Strings\\StringsFromCSFiles:Axe.cs.14019]",
+			"displayName": "[LocalizedText Strings\\Tools:Axe_Copper_Name]",
+			"description": "[LocalizedText Strings\\Tools:Axe_Description]",
 			"texture": "tools.png",
 			"spriteIndex": 196,
 			"menuSpriteIndex": 222,
@@ -33781,8 +33935,8 @@
 			"_type": "Tool",
 			"_key": "SteelAxe",
 			"name": "Steel Axe",
-			"displayName": "[LocalizedText Strings\\StringsFromCSFiles:Axe.cs.1]",
-			"description": "[LocalizedText Strings\\StringsFromCSFiles:Axe.cs.14019]",
+			"displayName": "[LocalizedText Strings\\Tools:Axe_Steel_Name]",
+			"description": "[LocalizedText Strings\\Tools:Axe_Description]",
 			"texture": "tools.png",
 			"spriteIndex": 203,
 			"menuSpriteIndex": 229,
@@ -33797,8 +33951,8 @@
 			"_type": "Tool",
 			"_key": "GoldAxe",
 			"name": "Gold Axe",
-			"displayName": "[LocalizedText Strings\\StringsFromCSFiles:Axe.cs.1]",
-			"description": "[LocalizedText Strings\\StringsFromCSFiles:Axe.cs.14019]",
+			"displayName": "[LocalizedText Strings\\Tools:Axe_Gold_Name]",
+			"description": "[LocalizedText Strings\\Tools:Axe_Description]",
 			"texture": "tools.png",
 			"spriteIndex": 231,
 			"menuSpriteIndex": 257,
@@ -33813,8 +33967,8 @@
 			"_type": "Tool",
 			"_key": "IridiumAxe",
 			"name": "Iridium Axe",
-			"displayName": "[LocalizedText Strings\\StringsFromCSFiles:Axe.cs.1]",
-			"description": "[LocalizedText Strings\\StringsFromCSFiles:Axe.cs.14019]",
+			"displayName": "[LocalizedText Strings\\Tools:Axe_Iridium_Name]",
+			"description": "[LocalizedText Strings\\Tools:Axe_Description]",
 			"texture": "tools.png",
 			"spriteIndex": 238,
 			"menuSpriteIndex": 264,
@@ -33829,8 +33983,8 @@
 			"_type": "Tool",
 			"_key": "BambooPole",
 			"name": "Bamboo Pole",
-			"displayName": "[LocalizedText Strings\\StringsFromCSFiles:FishingRod.cs.14045]",
-			"description": "[LocalizedText Strings\\StringsFromCSFiles:FishingRod.cs.14042]",
+			"displayName": "[LocalizedText Strings\\Tools:FishingRod_Bamboo_Name]",
+			"description": "[LocalizedText Strings\\Tools:FishingRod_Description]",
 			"texture": "tools.png",
 			"spriteIndex": 8,
 			"menuSpriteIndex": -1,
@@ -33846,8 +34000,8 @@
 			"_type": "Tool",
 			"_key": "TrainingRod",
 			"name": "Training Rod",
-			"displayName": "[LocalizedText Strings\\StringsFromCSFiles:FishingRod.cs.14046]",
-			"description": "[LocalizedText Strings\\StringsFromCSFiles:FishingRod.cs.trainingRodDescription]",
+			"displayName": "[LocalizedText Strings\\Tools:FishingRod_Training_Name]",
+			"description": "[LocalizedText Strings\\Tools:FishingRod_Training_Description]",
 			"texture": "tools.png",
 			"spriteIndex": 9,
 			"menuSpriteIndex": -1,
@@ -33863,8 +34017,8 @@
 			"_type": "Tool",
 			"_key": "FiberglassRod",
 			"name": "Fiberglass Rod",
-			"displayName": "[LocalizedText Strings\\StringsFromCSFiles:FishingRod.cs.14047]",
-			"description": "[LocalizedText Strings\\StringsFromCSFiles:FishingRod.cs.14042]",
+			"displayName": "[LocalizedText Strings\\Tools:FishingRod_Fiberglass_Name]",
+			"description": "[LocalizedText Strings\\Tools:FishingRod_Description]",
 			"texture": "tools.png",
 			"spriteIndex": 10,
 			"menuSpriteIndex": -1,
@@ -33880,8 +34034,8 @@
 			"_type": "Tool",
 			"_key": "IridiumRod",
 			"name": "Iridium Rod",
-			"displayName": "[LocalizedText Strings\\StringsFromCSFiles:FishingRod.cs.14048]",
-			"description": "[LocalizedText Strings\\StringsFromCSFiles:FishingRod.cs.14042]",
+			"displayName": "[LocalizedText Strings\\Tools:FishingRod_Iridium_Name]",
+			"description": "[LocalizedText Strings\\Tools:FishingRod_Description]",
 			"texture": "tools.png",
 			"spriteIndex": 11,
 			"menuSpriteIndex": -1,
@@ -33897,8 +34051,8 @@
 			"_type": "Tool",
 			"_key": "AdvancedIridiumRod",
 			"name": "Advanced Iridium Rod",
-			"displayName": "[LocalizedText Strings\\1_6_Strings:AdvancedIridiumRod]",
-			"description": "[LocalizedText Strings\\1_6_Strings:AdvancedIridiumRodDescription]",
+			"displayName": "[LocalizedText Strings\\Tools:FishingRod_AdvancedIridium_Name]",
+			"description": "[LocalizedText Strings\\Tools:FishingRod_AdvancedIridium_Description]",
 			"texture": "tools.png",
 			"spriteIndex": 17,
 			"menuSpriteIndex": -1,
@@ -33914,8 +34068,8 @@
 			"_type": "Tool",
 			"_key": "Hoe",
 			"name": "Hoe",
-			"displayName": "[LocalizedText Strings\\StringsFromCSFiles:Hoe.cs.14101]",
-			"description": "[LocalizedText Strings\\StringsFromCSFiles:Hoe.cs.14102]",
+			"displayName": "[LocalizedText Strings\\Tools:Hoe_Name]",
+			"description": "[LocalizedText Strings\\Tools:Hoe_Description]",
 			"texture": "tools.png",
 			"spriteIndex": 21,
 			"menuSpriteIndex": 47,
@@ -33930,8 +34084,8 @@
 			"_type": "Tool",
 			"_key": "CopperHoe",
 			"name": "Copper Hoe",
-			"displayName": "[LocalizedText Strings\\StringsFromCSFiles:Hoe.cs.14101]",
-			"description": "[LocalizedText Strings\\StringsFromCSFiles:Hoe.cs.14102]",
+			"displayName": "[LocalizedText Strings\\Tools:Hoe_Copper_Name]",
+			"description": "[LocalizedText Strings\\Tools:Hoe_Description]",
 			"texture": "tools.png",
 			"spriteIndex": 28,
 			"menuSpriteIndex": 54,
@@ -33946,8 +34100,8 @@
 			"_type": "Tool",
 			"_key": "SteelHoe",
 			"name": "Steel Hoe",
-			"displayName": "[LocalizedText Strings\\StringsFromCSFiles:Hoe.cs.14101]",
-			"description": "[LocalizedText Strings\\StringsFromCSFiles:Hoe.cs.14102]",
+			"displayName": "[LocalizedText Strings\\Tools:Hoe_Steel_Name]",
+			"description": "[LocalizedText Strings\\Tools:Hoe_Description]",
 			"texture": "tools.png",
 			"spriteIndex": 35,
 			"menuSpriteIndex": 61,
@@ -33962,8 +34116,8 @@
 			"_type": "Tool",
 			"_key": "GoldHoe",
 			"name": "Gold Hoe",
-			"displayName": "[LocalizedText Strings\\StringsFromCSFiles:Hoe.cs.14101]",
-			"description": "[LocalizedText Strings\\StringsFromCSFiles:Hoe.cs.14102]",
+			"displayName": "[LocalizedText Strings\\Tools:Hoe_Gold_Name]",
+			"description": "[LocalizedText Strings\\Tools:Hoe_Description]",
 			"texture": "tools.png",
 			"spriteIndex": 63,
 			"menuSpriteIndex": 89,
@@ -33978,8 +34132,8 @@
 			"_type": "Tool",
 			"_key": "IridiumHoe",
 			"name": "Iridium Hoe",
-			"displayName": "[LocalizedText Strings\\StringsFromCSFiles:Hoe.cs.14101]",
-			"description": "[LocalizedText Strings\\StringsFromCSFiles:Hoe.cs.14102]",
+			"displayName": "[LocalizedText Strings\\Tools:Hoe_Iridium_Name]",
+			"description": "[LocalizedText Strings\\Tools:Hoe_Description]",
 			"texture": "tools.png",
 			"spriteIndex": 70,
 			"menuSpriteIndex": 96,
@@ -33994,8 +34148,8 @@
 			"_type": "Tool",
 			"_key": "Lantern",
 			"name": "Lantern",
-			"displayName": "[LocalizedText Strings\\StringsFromCSFiles:Lantern.cs.14115]",
-			"description": "[LocalizedText Strings\\StringsFromCSFiles:Lantern.cs.14114]",
+			"displayName": "[LocalizedText Strings\\Tools:Lantern_Name]",
+			"description": "[LocalizedText Strings\\Tools:Lantern_Description]",
 			"texture": "tools.png",
 			"spriteIndex": 74,
 			"menuSpriteIndex": -1,
@@ -34010,8 +34164,8 @@
 			"_type": "Tool",
 			"_key": "MilkPail",
 			"name": "Milk Pail",
-			"displayName": "[LocalizedText Strings\\StringsFromCSFiles:MilkPail.cs.14167]",
-			"description": "[LocalizedText Strings\\StringsFromCSFiles:MilkPail.cs.14168]",
+			"displayName": "[LocalizedText Strings\\Tools:MilkPail_Name]",
+			"description": "[LocalizedText Strings\\Tools:MilkPail_Description]",
 			"texture": "tools.png",
 			"spriteIndex": 6,
 			"menuSpriteIndex": -1,
@@ -34026,8 +34180,8 @@
 			"_type": "Tool",
 			"_key": "Pan",
 			"name": "Pan",
-			"displayName": "[LocalizedText Strings\\StringsFromCSFiles:Pan.cs.14180]",
-			"description": "[LocalizedText Strings\\StringsFromCSFiles:Pan.cs.14181]",
+			"displayName": "[LocalizedText Strings\\Tools:Pan_Copper_Name]",
+			"description": "[LocalizedText Strings\\Tools:Pan_Description]",
 			"texture": "tools.png",
 			"spriteIndex": 12,
 			"menuSpriteIndex": -1,
@@ -34042,8 +34196,8 @@
 			"_type": "Tool",
 			"_key": "SteelPan",
 			"name": "Steel Pan",
-			"displayName": "[LocalizedText Strings\\1_6_Strings:PanToolBaseName]",
-			"description": "[LocalizedText Strings\\1_6_Strings:SteelPanDescription]",
+			"displayName": "[LocalizedText Strings\\Tools:Pan_Steel_Name]",
+			"description": "[LocalizedText Strings\\Tools:Pan_Steel_Description]",
 			"texture": "tools.png",
 			"spriteIndex": 18,
 			"menuSpriteIndex": -1,
@@ -34058,8 +34212,8 @@
 			"_type": "Tool",
 			"_key": "GoldPan",
 			"name": "Gold Pan",
-			"displayName": "[LocalizedText Strings\\1_6_Strings:PanToolBaseName]",
-			"description": "[LocalizedText Strings\\1_6_Strings:GoldPanDescription]",
+			"displayName": "[LocalizedText Strings\\Tools:Pan_Gold_Name]",
+			"description": "[LocalizedText Strings\\Tools:Pan_Gold_Description]",
 			"texture": "tools.png",
 			"spriteIndex": 19,
 			"menuSpriteIndex": -1,
@@ -34074,8 +34228,8 @@
 			"_type": "Tool",
 			"_key": "IridiumPan",
 			"name": "Iridium Pan",
-			"displayName": "[LocalizedText Strings\\1_6_Strings:PanToolBaseName]",
-			"description": "[LocalizedText Strings\\1_6_Strings:IridiumPanDescription]",
+			"displayName": "[LocalizedText Strings\\Tools:Pan_Iridium_Name]",
+			"description": "[LocalizedText Strings\\Tools:Pan_Iridium_Description]",
 			"texture": "tools.png",
 			"spriteIndex": 20,
 			"menuSpriteIndex": -1,
@@ -34090,8 +34244,8 @@
 			"_type": "Tool",
 			"_key": "Pickaxe",
 			"name": "Pickaxe",
-			"displayName": "[LocalizedText Strings\\StringsFromCSFiles:Pickaxe.cs.14184]",
-			"description": "[LocalizedText Strings\\StringsFromCSFiles:Pickaxe.cs.14185]",
+			"displayName": "[LocalizedText Strings\\Tools:Pickaxe_Name]",
+			"description": "[LocalizedText Strings\\Tools:Pickaxe_Description]",
 			"texture": "tools.png",
 			"spriteIndex": 105,
 			"menuSpriteIndex": 131,
@@ -34106,8 +34260,8 @@
 			"_type": "Tool",
 			"_key": "CopperPickaxe",
 			"name": "Copper Pickaxe",
-			"displayName": "[LocalizedText Strings\\StringsFromCSFiles:Pickaxe.cs.14184]",
-			"description": "[LocalizedText Strings\\StringsFromCSFiles:Pickaxe.cs.14185]",
+			"displayName": "[LocalizedText Strings\\Tools:Pickaxe_Copper_Name]",
+			"description": "[LocalizedText Strings\\Tools:Pickaxe_Description]",
 			"texture": "tools.png",
 			"spriteIndex": 112,
 			"menuSpriteIndex": 138,
@@ -34122,8 +34276,8 @@
 			"_type": "Tool",
 			"_key": "SteelPickaxe",
 			"name": "Steel Pickaxe",
-			"displayName": "[LocalizedText Strings\\StringsFromCSFiles:Pickaxe.cs.14184]",
-			"description": "[LocalizedText Strings\\StringsFromCSFiles:Pickaxe.cs.14185]",
+			"displayName": "[LocalizedText Strings\\Tools:Pickaxe_Steel_Name]",
+			"description": "[LocalizedText Strings\\Tools:Pickaxe_Description]",
 			"texture": "tools.png",
 			"spriteIndex": 119,
 			"menuSpriteIndex": 145,
@@ -34138,8 +34292,8 @@
 			"_type": "Tool",
 			"_key": "GoldPickaxe",
 			"name": "Gold Pickaxe",
-			"displayName": "[LocalizedText Strings\\StringsFromCSFiles:Pickaxe.cs.14184]",
-			"description": "[LocalizedText Strings\\StringsFromCSFiles:Pickaxe.cs.14185]",
+			"displayName": "[LocalizedText Strings\\Tools:Pickaxe_Gold_Name]",
+			"description": "[LocalizedText Strings\\Tools:Pickaxe_Description]",
 			"texture": "tools.png",
 			"spriteIndex": 147,
 			"menuSpriteIndex": 173,
@@ -34154,8 +34308,8 @@
 			"_type": "Tool",
 			"_key": "IridiumPickaxe",
 			"name": "Iridium Pickaxe",
-			"displayName": "[LocalizedText Strings\\StringsFromCSFiles:Pickaxe.cs.14184]",
-			"description": "[LocalizedText Strings\\StringsFromCSFiles:Pickaxe.cs.14185]",
+			"displayName": "[LocalizedText Strings\\Tools:Pickaxe_Iridium_Name]",
+			"description": "[LocalizedText Strings\\Tools:Pickaxe_Description]",
 			"texture": "tools.png",
 			"spriteIndex": 154,
 			"menuSpriteIndex": 180,
@@ -34170,8 +34324,8 @@
 			"_type": "Tool",
 			"_key": "ReturnScepter",
 			"name": "Return Scepter",
-			"displayName": "[LocalizedText Strings\\StringsFromCSFiles:Wand.cs.14318]",
-			"description": "[LocalizedText Strings\\StringsFromCSFiles:Wand.cs.14319]",
+			"displayName": "[LocalizedText Strings\\Tools:ReturnScepter_Name]",
+			"description": "[LocalizedText Strings\\Tools:ReturnScepter_Description]",
 			"texture": "tools.png",
 			"spriteIndex": 2,
 			"menuSpriteIndex": -1,
@@ -34186,8 +34340,8 @@
 			"_type": "Tool",
 			"_key": "Shears",
 			"name": "Shears",
-			"displayName": "[LocalizedText Strings\\StringsFromCSFiles:Shears.cs.14240]",
-			"description": "[LocalizedText Strings\\StringsFromCSFiles:Shears.cs.14241]",
+			"displayName": "[LocalizedText Strings\\Tools:Shears_Name]",
+			"description": "[LocalizedText Strings\\Tools:Shears_Description]",
 			"texture": "tools.png",
 			"spriteIndex": 7,
 			"menuSpriteIndex": -1,
@@ -34202,8 +34356,8 @@
 			"_type": "Tool",
 			"_key": "WateringCan",
 			"name": "Watering Can",
-			"displayName": "[LocalizedText Strings\\StringsFromCSFiles:WateringCan.cs.14324]",
-			"description": "[LocalizedText Strings\\StringsFromCSFiles:WateringCan.cs.14325]",
+			"displayName": "[LocalizedText Strings\\Tools:WateringCan_Name]",
+			"description": "[LocalizedText Strings\\Tools:WateringCan_Description]",
 			"texture": "tools.png",
 			"spriteIndex": 273,
 			"menuSpriteIndex": 296,
@@ -34218,8 +34372,8 @@
 			"_type": "Tool",
 			"_key": "CopperWateringCan",
 			"name": "Copper Watering Can",
-			"displayName": "[LocalizedText Strings\\StringsFromCSFiles:WateringCan.cs.14324]",
-			"description": "[LocalizedText Strings\\StringsFromCSFiles:WateringCan.cs.14325]",
+			"displayName": "[LocalizedText Strings\\Tools:WateringCan_Copper_Name]",
+			"description": "[LocalizedText Strings\\Tools:WateringCan_Description]",
 			"texture": "tools.png",
 			"spriteIndex": 280,
 			"menuSpriteIndex": 303,
@@ -34234,8 +34388,8 @@
 			"_type": "Tool",
 			"_key": "SteelWateringCan",
 			"name": "Steel Watering Can",
-			"displayName": "[LocalizedText Strings\\StringsFromCSFiles:WateringCan.cs.14324]",
-			"description": "[LocalizedText Strings\\StringsFromCSFiles:WateringCan.cs.14325]",
+			"displayName": "[LocalizedText Strings\\Tools:WateringCan_Steel_Name]",
+			"description": "[LocalizedText Strings\\Tools:WateringCan_Description]",
 			"texture": "tools.png",
 			"spriteIndex": 287,
 			"menuSpriteIndex": 310,
@@ -34250,8 +34404,8 @@
 			"_type": "Tool",
 			"_key": "GoldWateringCan",
 			"name": "Gold Watering Can",
-			"displayName": "[LocalizedText Strings\\StringsFromCSFiles:WateringCan.cs.14324]",
-			"description": "[LocalizedText Strings\\StringsFromCSFiles:WateringCan.cs.14325]",
+			"displayName": "[LocalizedText Strings\\Tools:WateringCan_Gold_Name]",
+			"description": "[LocalizedText Strings\\Tools:WateringCan_Description]",
 			"texture": "tools.png",
 			"spriteIndex": 315,
 			"menuSpriteIndex": 338,
@@ -34266,8 +34420,8 @@
 			"_type": "Tool",
 			"_key": "IridiumWateringCan",
 			"name": "Iridium Watering Can",
-			"displayName": "[LocalizedText Strings\\StringsFromCSFiles:WateringCan.cs.14324]",
-			"description": "[LocalizedText Strings\\StringsFromCSFiles:WateringCan.cs.14325]",
+			"displayName": "[LocalizedText Strings\\Tools:WateringCan_Iridium_Name]",
+			"description": "[LocalizedText Strings\\Tools:WateringCan_Description]",
 			"texture": "tools.png",
 			"spriteIndex": 322,
 			"menuSpriteIndex": 345,
@@ -34282,8 +34436,8 @@
 			"_type": "Tool",
 			"_key": "CopperTrashCan",
 			"name": "Copper Trash Can",
-			"displayName": "[LocalizedText Strings\\\\StringsFromCSFiles:TrashCan]",
-			"description": "[LocalizedText Strings\\StringsFromCSFiles:TrashCan_Description 15]",
+			"displayName": "[LocalizedText Strings\\Tools:TrashCan_Copper_Name]",
+			"description": "[LocalizedText Strings\\Tools:TrashCan_Description 15]",
 			"texture": "tools.png",
 			"spriteIndex": 13,
 			"menuSpriteIndex": -1,
@@ -34298,8 +34452,8 @@
 			"_type": "Tool",
 			"_key": "SteelTrashCan",
 			"name": "Steel Trash Can",
-			"displayName": "[LocalizedText Strings\\\\StringsFromCSFiles:TrashCan]",
-			"description": "[LocalizedText Strings\\StringsFromCSFiles:TrashCan_Description 30]",
+			"displayName": "[LocalizedText Strings\\Tools:TrashCan_Steel_Name]",
+			"description": "[LocalizedText Strings\\Tools:TrashCan_Description 30]",
 			"texture": "tools.png",
 			"spriteIndex": 14,
 			"menuSpriteIndex": -1,
@@ -34314,8 +34468,8 @@
 			"_type": "Tool",
 			"_key": "GoldTrashCan",
 			"name": "Gold Trash Can",
-			"displayName": "[LocalizedText Strings\\\\StringsFromCSFiles:TrashCan]",
-			"description": "[LocalizedText Strings\\StringsFromCSFiles:TrashCan_Description 45]",
+			"displayName": "[LocalizedText Strings\\Tools:TrashCan_Gold_Name]",
+			"description": "[LocalizedText Strings\\Tools:TrashCan_Description 45]",
 			"texture": "tools.png",
 			"spriteIndex": 15,
 			"menuSpriteIndex": -1,
@@ -34330,8 +34484,8 @@
 			"_type": "Tool",
 			"_key": "IridiumTrashCan",
 			"name": "Iridium Trash Can",
-			"displayName": "[LocalizedText Strings\\\\StringsFromCSFiles:TrashCan]",
-			"description": "[LocalizedText Strings\\StringsFromCSFiles:TrashCan_Description 60]",
+			"displayName": "[LocalizedText Strings\\Tools:TrashCan_Iridium_Name]",
+			"description": "[LocalizedText Strings\\Tools:TrashCan_Description 60]",
 			"texture": "tools.png",
 			"spriteIndex": 16,
 			"menuSpriteIndex": -1,
@@ -34353,7 +34507,13 @@
 			"category": -26,
 			"spriteIndex": 128,
 			"edibility": 0,
-			"tags": ["color_yellow", "fish_ocean", "fish_upright", "season_summer"],
+			"tags": [
+				"color_yellow",
+				"fish_has_roe",
+				"fish_ocean",
+				"fish_upright",
+				"season_summer"
+			],
 			"unpreservedItemId": "128",
 			"preservedItemName": "Smoked"
 		}
@@ -34373,6 +34533,7 @@
 			"edibility": 7,
 			"tags": [
 				"color_blue",
+				"fish_has_roe",
 				"fish_ocean",
 				"fish_talk_demanding",
 				"season_fall",
@@ -34395,7 +34556,13 @@
 			"category": -26,
 			"spriteIndex": 130,
 			"edibility": 22,
-			"tags": ["color_blue", "fish_ocean", "season_summer", "season_winter"],
+			"tags": [
+				"color_blue",
+				"fish_has_roe",
+				"fish_ocean",
+				"season_summer",
+				"season_winter"
+			],
 			"unpreservedItemId": "130",
 			"preservedItemName": "Smoked"
 		}
@@ -34415,6 +34582,7 @@
 			"edibility": 7,
 			"tags": [
 				"color_blue",
+				"fish_has_roe",
 				"fish_ocean",
 				"fish_talk_demanding",
 				"season_fall",
@@ -34438,7 +34606,7 @@
 			"category": -26,
 			"spriteIndex": 132,
 			"edibility": 7,
-			"tags": ["color_blue", "fish_river", "season_all"],
+			"tags": ["color_blue", "fish_has_roe", "fish_river", "season_all"],
 			"unpreservedItemId": "132",
 			"preservedItemName": "Smoked"
 		}
@@ -34456,7 +34624,7 @@
 			"category": -26,
 			"spriteIndex": 136,
 			"edibility": 22,
-			"tags": ["color_green", "fish_lake", "season_all"],
+			"tags": ["color_green", "fish_has_roe", "fish_lake", "season_all"],
 			"unpreservedItemId": "136",
 			"preservedItemName": "Smoked"
 		}
@@ -34476,6 +34644,7 @@
 			"edibility": 15,
 			"tags": [
 				"color_brown",
+				"fish_has_roe",
 				"fish_pond",
 				"fish_river",
 				"season_fall",
@@ -34498,7 +34667,7 @@
 			"category": -26,
 			"spriteIndex": 138,
 			"edibility": 15,
-			"tags": ["color_orange", "fish_river", "season_summer"],
+			"tags": ["color_orange", "fish_has_roe", "fish_river", "season_summer"],
 			"unpreservedItemId": "138",
 			"preservedItemName": "Smoked"
 		}
@@ -34516,7 +34685,7 @@
 			"category": -26,
 			"spriteIndex": 139,
 			"edibility": 22,
-			"tags": ["color_salmon", "fish_river", "season_fall"],
+			"tags": ["color_salmon", "fish_has_roe", "fish_river", "season_fall"],
 			"unpreservedItemId": "139",
 			"preservedItemName": "Smoked"
 		}
@@ -34536,6 +34705,7 @@
 			"edibility": 18,
 			"tags": [
 				"color_yellow",
+				"fish_has_roe",
 				"fish_lake",
 				"fish_pond",
 				"fish_river",
@@ -34561,6 +34731,7 @@
 			"edibility": 15,
 			"tags": [
 				"color_yellow",
+				"fish_has_roe",
 				"fish_lake",
 				"fish_pond",
 				"fish_river",
@@ -34585,12 +34756,12 @@
 			"edibility": 7,
 			"tags": [
 				"color_yellow",
+				"fish_has_roe",
 				"fish_lake",
 				"fish_secret_pond",
 				"fish_sewers",
 				"season_fall",
 				"season_spring",
-				"season_winter",
 				"season_winter"
 			],
 			"unpreservedItemId": "142",
@@ -34612,6 +34783,7 @@
 			"edibility": 30,
 			"tags": [
 				"color_gray",
+				"fish_has_roe",
 				"fish_river",
 				"fish_secret_pond",
 				"fish_swamp",
@@ -34639,6 +34811,7 @@
 			"tags": [
 				"color_yellow",
 				"fish_carnivorous",
+				"fish_has_roe",
 				"fish_pond",
 				"fish_river",
 				"season_summer",
@@ -34661,7 +34834,13 @@
 			"category": -26,
 			"spriteIndex": 145,
 			"edibility": 7,
-			"tags": ["color_orange", "fish_river", "season_spring", "season_summer"],
+			"tags": [
+				"color_orange",
+				"fish_has_roe",
+				"fish_river",
+				"season_spring",
+				"season_summer"
+			],
 			"unpreservedItemId": "145",
 			"preservedItemName": "Smoked"
 		}
@@ -34679,7 +34858,13 @@
 			"category": -26,
 			"spriteIndex": 146,
 			"edibility": 15,
-			"tags": ["color_red", "fish_ocean", "season_summer", "season_winter"],
+			"tags": [
+				"color_red",
+				"fish_has_roe",
+				"fish_ocean",
+				"season_summer",
+				"season_winter"
+			],
 			"unpreservedItemId": "146",
 			"preservedItemName": "Smoked"
 		}
@@ -34699,6 +34884,7 @@
 			"edibility": 7,
 			"tags": [
 				"color_blue",
+				"fish_has_roe",
 				"fish_ocean",
 				"fish_talk_demanding",
 				"season_spring",
@@ -34723,6 +34909,7 @@
 			"edibility": 18,
 			"tags": [
 				"color_copper",
+				"fish_has_roe",
 				"fish_ocean",
 				"fish_talk_rude",
 				"fish_upright",
@@ -34746,7 +34933,13 @@
 			"category": -26,
 			"spriteIndex": 149,
 			"edibility": 0,
-			"tags": ["color_orange", "fish_ocean", "fish_upright", "season_summer"],
+			"tags": [
+				"color_orange",
+				"fish_has_roe",
+				"fish_ocean",
+				"fish_upright",
+				"season_summer"
+			],
 			"unpreservedItemId": "149",
 			"preservedItemName": "Smoked"
 		}
@@ -34766,6 +34959,7 @@
 			"edibility": 15,
 			"tags": [
 				"color_red",
+				"fish_has_roe",
 				"fish_ocean",
 				"season_fall",
 				"season_summer",
@@ -34788,7 +34982,13 @@
 			"category": -26,
 			"spriteIndex": 151,
 			"edibility": 15,
-			"tags": ["color_white", "fish_ocean", "fish_upright", "season_winter"],
+			"tags": [
+				"color_white",
+				"fish_has_roe",
+				"fish_ocean",
+				"fish_upright",
+				"season_winter"
+			],
 			"unpreservedItemId": "151",
 			"preservedItemName": "Smoked"
 		}
@@ -34808,6 +35008,7 @@
 			"edibility": 0,
 			"tags": [
 				"color_yellow",
+				"fish_has_roe",
 				"fish_ocean",
 				"fish_upright",
 				"season_fall",
@@ -34832,6 +35033,7 @@
 			"edibility": 75,
 			"tags": [
 				"color_purple",
+				"fish_has_roe",
 				"fish_ocean",
 				"fish_upright",
 				"season_fall",
@@ -34854,7 +35056,7 @@
 			"category": -26,
 			"spriteIndex": 156,
 			"edibility": 22,
-			"tags": ["color_white", "fish_mines", "season_all"],
+			"tags": ["color_white", "fish_has_roe", "fish_mines", "season_all"],
 			"unpreservedItemId": "156",
 			"preservedItemName": "Smoked"
 		}
@@ -34874,6 +35076,7 @@
 			"edibility": 0,
 			"tags": [
 				"color_brown",
+				"fish_has_roe",
 				"fish_mines",
 				"fish_semi_rare",
 				"fish_upright",
@@ -34896,7 +35099,7 @@
 			"category": -26,
 			"spriteIndex": 159,
 			"edibility": 22,
-			"tags": ["color_red", "fish_legendary", "fish_pond_ignore"],
+			"tags": ["color_red", "fish_has_roe", "fish_legendary"],
 			"unpreservedItemId": "159",
 			"preservedItemName": "Smoked"
 		}
@@ -34916,8 +35119,8 @@
 			"edibility": 15,
 			"tags": [
 				"color_yellow",
+				"fish_has_roe",
 				"fish_legendary",
-				"fish_pond_ignore",
 				"fish_upright"
 			],
 			"unpreservedItemId": "160",
@@ -34939,6 +35142,7 @@
 			"edibility": 22,
 			"tags": [
 				"color_blue",
+				"fish_has_roe",
 				"fish_mines",
 				"fish_semi_rare",
 				"fish_talk_demanding",
@@ -34963,6 +35167,7 @@
 			"edibility": 30,
 			"tags": [
 				"color_red",
+				"fish_has_roe",
 				"fish_mines",
 				"fish_semi_rare",
 				"fish_upright",
@@ -34985,7 +35190,7 @@
 			"category": -26,
 			"spriteIndex": 163,
 			"edibility": 300,
-			"tags": ["color_green", "fish_legendary", "fish_pond_ignore"],
+			"tags": ["color_green", "fish_has_roe", "fish_legendary"],
 			"unpreservedItemId": "163",
 			"preservedItemName": "Smoked"
 		}
@@ -35003,7 +35208,7 @@
 			"category": -26,
 			"spriteIndex": 164,
 			"edibility": 7,
-			"tags": ["color_yellow", "fish_desert", "season_all"],
+			"tags": ["color_yellow", "fish_desert", "fish_has_roe", "season_all"],
 			"unpreservedItemId": "164",
 			"preservedItemName": "Smoked"
 		}
@@ -35021,7 +35226,13 @@
 			"category": -26,
 			"spriteIndex": 165,
 			"edibility": 0,
-			"tags": ["color_brown", "fish_desert", "fish_semi_rare", "season_all"],
+			"tags": [
+				"color_brown",
+				"fish_desert",
+				"fish_has_roe",
+				"fish_semi_rare",
+				"season_all"
+			],
 			"unpreservedItemId": "165",
 			"preservedItemName": "Smoked"
 		}
@@ -35039,7 +35250,13 @@
 			"category": -26,
 			"spriteIndex": 267,
 			"edibility": 22,
-			"tags": ["color_brown", "fish_ocean", "season_spring", "season_summer"],
+			"tags": [
+				"color_brown",
+				"fish_has_roe",
+				"fish_ocean",
+				"season_spring",
+				"season_summer"
+			],
 			"unpreservedItemId": "267",
 			"preservedItemName": "Smoked"
 		}
@@ -35057,7 +35274,13 @@
 			"category": -26,
 			"spriteIndex": 269,
 			"edibility": 30,
-			"tags": ["color_iridium", "fish_lake", "season_fall", "season_winter"],
+			"tags": [
+				"color_iridium",
+				"fish_has_roe",
+				"fish_lake",
+				"season_fall",
+				"season_winter"
+			],
 			"unpreservedItemId": "269",
 			"preservedItemName": "Smoked"
 		}
@@ -35079,6 +35302,7 @@
 				"beach_item",
 				"color_light_cyan",
 				"fish_crab_pot",
+				"fish_has_roe",
 				"fish_ocean",
 				"fish_upright",
 				"forage_item",
@@ -35101,7 +35325,7 @@
 			"category": -26,
 			"spriteIndex": 682,
 			"edibility": 15,
-			"tags": ["color_green", "fish_legendary", "fish_pond_ignore"],
+			"tags": ["color_green", "fish_has_roe", "fish_legendary"],
 			"unpreservedItemId": "682",
 			"preservedItemName": "Smoked"
 		}
@@ -35119,7 +35343,13 @@
 			"category": -26,
 			"spriteIndex": 698,
 			"edibility": 15,
-			"tags": ["color_cyan", "fish_lake", "season_summer", "season_winter"],
+			"tags": [
+				"color_cyan",
+				"fish_has_roe",
+				"fish_lake",
+				"season_summer",
+				"season_winter"
+			],
 			"unpreservedItemId": "698",
 			"preservedItemName": "Smoked"
 		}
@@ -35137,7 +35367,13 @@
 			"category": -26,
 			"spriteIndex": 699,
 			"edibility": 15,
-			"tags": ["color_brown", "fish_river", "season_fall", "season_winter"],
+			"tags": [
+				"color_brown",
+				"fish_has_roe",
+				"fish_river",
+				"season_fall",
+				"season_winter"
+			],
 			"unpreservedItemId": "699",
 			"preservedItemName": "Smoked"
 		}
@@ -35155,7 +35391,7 @@
 			"category": -26,
 			"spriteIndex": 700,
 			"edibility": 15,
-			"tags": ["color_brown", "fish_lake", "season_all"],
+			"tags": ["color_brown", "fish_has_roe", "fish_lake", "season_all"],
 			"unpreservedItemId": "700",
 			"preservedItemName": "Smoked"
 		}
@@ -35173,7 +35409,13 @@
 			"category": -26,
 			"spriteIndex": 701,
 			"edibility": 15,
-			"tags": ["color_gray", "fish_ocean", "season_fall", "season_summer"],
+			"tags": [
+				"color_gray",
+				"fish_has_roe",
+				"fish_ocean",
+				"season_fall",
+				"season_summer"
+			],
 			"unpreservedItemId": "701",
 			"preservedItemName": "Smoked"
 		}
@@ -35191,7 +35433,13 @@
 			"category": -26,
 			"spriteIndex": 702,
 			"edibility": 15,
-			"tags": ["color_gray", "fish_lake", "fish_river", "season_all"],
+			"tags": [
+				"color_gray",
+				"fish_has_roe",
+				"fish_lake",
+				"fish_river",
+				"season_all"
+			],
 			"unpreservedItemId": "702",
 			"preservedItemName": "Smoked"
 		}
@@ -35212,6 +35460,7 @@
 			"tags": [
 				"color_orange",
 				"fish_carnivorous",
+				"fish_has_roe",
 				"fish_river",
 				"season_summer"
 			],
@@ -35232,7 +35481,13 @@
 			"category": -26,
 			"spriteIndex": 705,
 			"edibility": 15,
-			"tags": ["color_blue", "fish_ocean", "season_fall", "season_winter"],
+			"tags": [
+				"color_blue",
+				"fish_has_roe",
+				"fish_ocean",
+				"season_fall",
+				"season_winter"
+			],
 			"unpreservedItemId": "705",
 			"preservedItemName": "Smoked"
 		}
@@ -35252,6 +35507,7 @@
 			"edibility": 15,
 			"tags": [
 				"color_green",
+				"fish_has_roe",
 				"fish_river",
 				"season_fall",
 				"season_spring",
@@ -35277,6 +35533,7 @@
 			"tags": [
 				"color_brown",
 				"fish_carnivorous",
+				"fish_has_roe",
 				"fish_lake",
 				"fish_river",
 				"season_winter"
@@ -35300,6 +35557,7 @@
 			"edibility": 15,
 			"tags": [
 				"color_dark_gray",
+				"fish_has_roe",
 				"fish_ocean",
 				"season_spring",
 				"season_summer",
@@ -35322,7 +35580,7 @@
 			"category": -26,
 			"spriteIndex": 715,
 			"edibility": 0,
-			"tags": ["color_red", "fish_crab_pot", "fish_ocean"],
+			"tags": ["color_red", "fish_crab_pot", "fish_has_roe", "fish_ocean"],
 			"unpreservedItemId": "715",
 			"preservedItemName": "Smoked"
 		}
@@ -35340,7 +35598,12 @@
 			"category": -26,
 			"spriteIndex": 716,
 			"edibility": 0,
-			"tags": ["color_dark_gray", "fish_crab_pot", "fish_freshwater"],
+			"tags": [
+				"color_dark_gray",
+				"fish_crab_pot",
+				"fish_freshwater",
+				"fish_has_roe"
+			],
 			"unpreservedItemId": "716",
 			"preservedItemName": "Smoked"
 		}
@@ -35358,7 +35621,13 @@
 			"category": -26,
 			"spriteIndex": 717,
 			"edibility": 0,
-			"tags": ["color_red", "fish_crab_pot", "fish_ocean", "fish_upright"],
+			"tags": [
+				"color_red",
+				"fish_crab_pot",
+				"fish_has_roe",
+				"fish_ocean",
+				"fish_upright"
+			],
 			"unpreservedItemId": "717",
 			"preservedItemName": "Smoked"
 		}
@@ -35379,6 +35648,7 @@
 			"tags": [
 				"color_dark_gray",
 				"fish_crab_pot",
+				"fish_has_roe",
 				"fish_ocean",
 				"forage_item",
 				"forage_item_beach"
@@ -35403,6 +35673,7 @@
 			"tags": [
 				"color_gray",
 				"fish_crab_pot",
+				"fish_has_roe",
 				"fish_ocean",
 				"forage_item",
 				"forage_item_beach"
@@ -35424,7 +35695,13 @@
 			"category": -26,
 			"spriteIndex": 720,
 			"edibility": 0,
-			"tags": ["color_pink", "fish_crab_pot", "fish_ocean", "fish_upright"],
+			"tags": [
+				"color_pink",
+				"fish_crab_pot",
+				"fish_has_roe",
+				"fish_ocean",
+				"fish_upright"
+			],
 			"unpreservedItemId": "720",
 			"preservedItemName": "Smoked"
 		}
@@ -35446,6 +35723,7 @@
 				"color_yellow",
 				"fish_crab_pot",
 				"fish_freshwater",
+				"fish_has_roe",
 				"fish_upright"
 			],
 			"unpreservedItemId": "721",
@@ -35469,6 +35747,7 @@
 				"color_cyan",
 				"fish_crab_pot",
 				"fish_freshwater",
+				"fish_has_roe",
 				"fish_upright"
 			],
 			"unpreservedItemId": "722",
@@ -35491,6 +35770,7 @@
 			"tags": [
 				"color_gray",
 				"fish_crab_pot",
+				"fish_has_roe",
 				"fish_ocean",
 				"fish_upright",
 				"forage_item",
@@ -35513,7 +35793,13 @@
 			"category": -26,
 			"spriteIndex": 734,
 			"edibility": 15,
-			"tags": ["color_orange", "fish_pond", "fish_secret_pond", "season_all"],
+			"tags": [
+				"color_orange",
+				"fish_has_roe",
+				"fish_pond",
+				"fish_secret_pond",
+				"season_all"
+			],
 			"unpreservedItemId": "734",
 			"preservedItemName": "Smoked"
 		}
@@ -35531,12 +35817,7 @@
 			"category": -26,
 			"spriteIndex": 775,
 			"edibility": 15,
-			"tags": [
-				"color_blue",
-				"fish_legendary",
-				"fish_pond_ignore",
-				"fish_upright"
-			],
+			"tags": ["color_blue", "fish_has_roe", "fish_legendary", "fish_upright"],
 			"unpreservedItemId": "775",
 			"preservedItemName": "Smoked"
 		}
@@ -35556,6 +35837,7 @@
 			"edibility": 37,
 			"tags": [
 				"color_dark_purple",
+				"fish_has_roe",
 				"fish_semi_rare",
 				"fish_swamp",
 				"fish_talk_stiff",
@@ -35578,7 +35860,13 @@
 			"category": -26,
 			"spriteIndex": 796,
 			"edibility": 22,
-			"tags": ["color_green", "fish_bug_lair", "fish_semi_rare", "season_all"],
+			"tags": [
+				"color_green",
+				"fish_bug_lair",
+				"fish_has_roe",
+				"fish_semi_rare",
+				"season_all"
+			],
 			"unpreservedItemId": "796",
 			"preservedItemName": "Smoked"
 		}
@@ -35598,6 +35886,7 @@
 			"edibility": 22,
 			"tags": [
 				"color_blue",
+				"fish_has_roe",
 				"fish_night_market",
 				"fish_semi_rare",
 				"fish_talk_stiff",
@@ -35620,7 +35909,12 @@
 			"category": -26,
 			"spriteIndex": 799,
 			"edibility": 22,
-			"tags": ["color_blue", "fish_night_market", "fish_semi_rare"],
+			"tags": [
+				"color_blue",
+				"fish_has_roe",
+				"fish_night_market",
+				"fish_semi_rare"
+			],
 			"unpreservedItemId": "799",
 			"preservedItemName": "Smoked"
 		}
@@ -35638,7 +35932,12 @@
 			"category": -26,
 			"spriteIndex": 800,
 			"edibility": 22,
-			"tags": ["color_sand", "fish_night_market", "fish_upright"],
+			"tags": [
+				"color_sand",
+				"fish_has_roe",
+				"fish_night_market",
+				"fish_upright"
+			],
 			"unpreservedItemId": "800",
 			"preservedItemName": "Smoked"
 		}
@@ -35656,7 +35955,13 @@
 			"category": -26,
 			"spriteIndex": 836,
 			"edibility": 22,
-			"tags": ["color_brown", "fish_ocean", "fish_talk_stiff", "season_all"],
+			"tags": [
+				"color_brown",
+				"fish_has_roe",
+				"fish_ocean",
+				"fish_talk_stiff",
+				"season_all"
+			],
 			"unpreservedItemId": "836",
 			"preservedItemName": "Smoked"
 		}
@@ -35676,6 +35981,7 @@
 			"edibility": 22,
 			"tags": [
 				"color_orange",
+				"fish_has_roe",
 				"fish_ocean",
 				"fish_talk_demanding",
 				"season_all"
@@ -35697,7 +36003,7 @@
 			"category": -26,
 			"spriteIndex": 838,
 			"edibility": 22,
-			"tags": ["color_cyan", "fish_ocean", "season_all"],
+			"tags": ["color_cyan", "fish_has_roe", "fish_ocean", "season_all"],
 			"unpreservedItemId": "838",
 			"preservedItemName": "Smoked"
 		}
@@ -35717,9 +36023,9 @@
 			"edibility": 22,
 			"tags": [
 				"color_red",
+				"fish_has_roe",
 				"fish_legendary",
-				"fish_legendary_family",
-				"fish_pond_ignore"
+				"fish_legendary_family"
 			],
 			"unpreservedItemId": "898",
 			"preservedItemName": "Smoked"
@@ -35740,9 +36046,9 @@
 			"edibility": 15,
 			"tags": [
 				"color_pink",
+				"fish_has_roe",
 				"fish_legendary",
 				"fish_legendary_family",
-				"fish_pond_ignore",
 				"fish_upright"
 			],
 			"unpreservedItemId": "899",
@@ -35764,9 +36070,9 @@
 			"edibility": 300,
 			"tags": [
 				"color_green",
+				"fish_has_roe",
 				"fish_legendary",
-				"fish_legendary_family",
-				"fish_pond_ignore"
+				"fish_legendary_family"
 			],
 			"unpreservedItemId": "900",
 			"preservedItemName": "Smoked"
@@ -35787,9 +36093,9 @@
 			"edibility": 15,
 			"tags": [
 				"color_green",
+				"fish_has_roe",
 				"fish_legendary",
-				"fish_legendary_family",
-				"fish_pond_ignore"
+				"fish_legendary_family"
 			],
 			"unpreservedItemId": "901",
 			"preservedItemName": "Smoked"
@@ -35810,9 +36116,9 @@
 			"edibility": 15,
 			"tags": [
 				"color_blue",
+				"fish_has_roe",
 				"fish_legendary",
-				"fish_legendary_family",
-				"fish_pond_ignore"
+				"fish_legendary_family"
 			],
 			"unpreservedItemId": "902",
 			"preservedItemName": "Smoked"
@@ -35824,8 +36130,8 @@
 			"_type": "Object",
 			"_key": "SmokedFish",
 			"name": "Smoked Goby",
-			"displayName": "[LocalizedText Strings\\1_6_Strings:Goby_Name]",
-			"description": "[LocalizedText Strings\\1_6_Strings:Goby_Description]",
+			"displayName": "[LocalizedText Strings\\Objects:Goby_Name]",
+			"description": "[LocalizedText Strings\\Objects:Goby_Description]",
 			"price": 300,
 			"type": "Fish",
 			"category": -26,
@@ -35834,6 +36140,7 @@
 			"edibility": 0,
 			"tags": [
 				"color_brown",
+				"fish_has_roe",
 				"fish_river",
 				"season_spring",
 				"season_summer",

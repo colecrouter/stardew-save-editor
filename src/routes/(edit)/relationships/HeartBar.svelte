@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { asset } from "$app/paths";
 	import type { Friendship } from "$lib/proxies/Friendship.svelte";
+	import EmojiRange from "$lib/ui/EmojiRange.svelte";
 	import UiContainerSmall from "$lib/ui/UIContainerSmall.svelte";
-	import UiInput from "$lib/ui/UIInput.svelte";
 
 	interface Props {
 		name: string;
@@ -10,8 +10,6 @@
 	}
 
 	let { npc, name }: Props = $props();
-
-	// TODO modding can cause more heart events (???)
 </script>
 
 <div class="row" data-testid="friendship-row">
@@ -21,47 +19,37 @@
 			style:background-image={`url('${asset(`/assets/portraits/${name}.png`)}')`}
 		></div>
 	</UiContainerSmall>
-	<div class="right">
-		<div class="hearts">
-			{#each Array(npc.maxHearts) as _, i}
-				<button
-					data-testid="friendship-heart"
-					onclick={() => (npc.hearts = i + 1)}
-				>
-					{#if i < npc.hearts}
-						❤️
-					{:else}
-						🖤
-					{/if}
-				</button>
-			{/each}
-			{#each Array(14 - npc.maxHearts) as _}
-				<span>🏳️</span>
-			{/each}
+
+	<div class="main">
+		<div class="header">
+			<strong data-testid="friendship-name">{name}</strong>
 		</div>
-		<UiInput
-			type="number"
-			class="amount"
-			min="0"
-			max={npc.maxPoints}
-			bind:value={npc.points}
-			data-testid="friendship-points"
+
+		<EmojiRange
+			bind:value={npc.hearts}
+			max={npc.maxHearts}
+			total={14}
+			inputValue={npc.points}
+			inputMax={npc.maxPoints}
+			inputTestId="friendship-points"
+			filled="❤️"
+			empty="🩶"
+			locked="·"
+			testId="friendship-heart"
+			ariaLabel={`${name} hearts`}
+			onInputChange={(value) => (npc.points = value)}
 		/>
 	</div>
-	<strong data-testid="friendship-name">
-		{name}
-	</strong>
 </div>
 
 <style>
 	.row {
 		display: grid;
-		grid-template-columns: min-content auto;
-		grid-template-rows: min-content 1em;
-		flex-direction: row;
-		gap: 8px;
-		padding: 8px 2px;
+		grid-template-columns: min-content minmax(0, 1fr);
+		gap: 10px;
+		padding: 10px 2px;
 		border-bottom: 2px solid #da9457;
+		align-items: center;
 	}
 
 	.portrait {
@@ -72,28 +60,16 @@
 		border-radius: 2px;
 	}
 
-	.right {
-		display: flex;
-		flex-direction: column;
-		justify-content: space-between;
-		align-items: start;
+	.main {
+		display: grid;
 		gap: 8px;
+		min-width: 0;
 	}
 
-	.hearts {
+	.header {
 		display: flex;
-		flex-direction: row;
-		justify-content: space-evenly;
-		width: 100%;
-		text-shadow: -1px 1px 0 #000;
-	}
-
-	button {
-		all: unset;
-		cursor: pointer;
-	}
-
-	strong {
-		text-align: center;
+		justify-content: space-between;
+		align-items: baseline;
+		gap: 8px;
 	}
 </style>

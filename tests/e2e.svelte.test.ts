@@ -9,6 +9,7 @@ import {
 	parseBundleValue,
 } from "$lib/proxies/bundleSerialization";
 import { Color as ColorProxy } from "$lib/proxies/Color.svelte";
+import { FarmAnimal, FarmAnimalType } from "$lib/proxies/FarmAnimal.svelte";
 import { MailFlag } from "$lib/proxies/Mail.svelte";
 import { Gender, type Player, type Color as RawColor } from "../codegen/save";
 import {
@@ -19,11 +20,13 @@ import {
 	setToastManagerContext,
 	ToastManager,
 } from "../src/lib/ToastManager.svelte";
+import buildingsPage from "../src/routes/(edit)/(list)/buildings/+page.svelte";
 import craftingPage from "../src/routes/(edit)/(list)/crafting/+page.svelte";
 import appearancePage from "../src/routes/(edit)/appearance/+page.svelte";
 import bundlesPage from "../src/routes/(edit)/bundles/+page.svelte";
 import characterPage from "../src/routes/(edit)/character/+page.svelte";
 import editorPage from "../src/routes/(edit)/inventory/+page.svelte";
+import BuildingSprite from "../src/routes/(edit)/inventory/BuildingSprite.svelte";
 import relationshipsPage from "../src/routes/(edit)/relationships/+page.svelte";
 
 interface PageHarness {
@@ -623,6 +626,244 @@ describe("Save Manager Integration Tests", () => {
 				const rawFriend = friendship[Raw];
 				expect(rawFriend.value.Friendship.Points).toBe(targetHearts * 250);
 			}
+		});
+	});
+
+	describe("Buildings", () => {
+		it("should preserve animal save containers when animals are assigned", () => {
+			const save = saveManager.save;
+			if (!save?.farm) return;
+			const building = save.farm.buildings.find(
+				(candidate) => candidate.indoorLocation !== undefined,
+			);
+			expect(building?.indoorLocation).toBeTruthy();
+			if (!building?.indoorLocation) return;
+
+			let animal!: FarmAnimal;
+			const disposeAnimal = $effect.root(() => {
+				animal = FarmAnimal.fromName(
+					FarmAnimalType.WhiteChicken,
+					"Peep",
+					save.player,
+				);
+			});
+
+			building.indoorLocation.animals = [animal];
+			flushSync();
+
+			expect(building.indoorLocation[Raw].animals?.item).toHaveLength(1);
+			expect(
+				building.indoorLocation[Raw].Animals
+					.SerializableDictionaryOfInt64FarmAnimal,
+			).toEqual(building.indoorLocation[Raw].animals);
+			expect(building.indoorLocation[Raw].animalsThatLiveHere).toEqual({
+				long: [animal[Raw].key.long],
+			});
+			disposeAnimal();
+		});
+
+		it("should update farm animal friendship hearts", async () => {
+			const save = saveManager.save;
+			if (!save?.farm) return;
+			const building = save.farm.buildings.find(
+				(candidate) => candidate.indoorLocation !== undefined,
+			);
+			expect(building?.indoorLocation).toBeTruthy();
+			if (!building?.indoorLocation) return;
+
+			let animal!: FarmAnimal;
+			const disposeAnimal = $effect.root(() => {
+				animal = FarmAnimal.fromName(
+					FarmAnimalType.WhiteChicken,
+					"Peep",
+					save.player,
+				);
+			});
+			building.indoorLocation.animals = [animal];
+			flushSync();
+
+			const page = harness.render(buildingsPage);
+			const summary = page.getByText("Peep");
+			const card = summary.closest("section") as HTMLElement | null;
+			expect(card).toBeTruthy();
+			if (!card) return;
+
+			const buttons = within(card).getAllByTestId("animal-friendship");
+			expect(buttons).toHaveLength(5);
+
+			await fireEvent.click(buttons[1] as HTMLElement);
+			expect(animal.friendshipTowardFarmer).toBe(400);
+			expect(
+				building.indoorLocation[Raw].animals?.item?.[0]?.value.FarmAnimal
+					.friendshipTowardFarmer,
+			).toBe(400);
+			disposeAnimal();
+		});
+
+		it("should show an initial active state for animals with undefined gender", () => {
+			const save = saveManager.save;
+			if (!save?.farm) return;
+			const building = save.farm.buildings.find(
+				(candidate) => candidate.indoorLocation !== undefined,
+			);
+			expect(building?.indoorLocation).toBeTruthy();
+			if (!building?.indoorLocation) return;
+
+			let animal!: FarmAnimal;
+			const disposeAnimal = $effect.root(() => {
+				animal = FarmAnimal.fromName(
+					FarmAnimalType.WhiteChicken,
+					"Peep",
+					save.player,
+				);
+			});
+			animal.gender = Gender.Undefined;
+			building.indoorLocation.animals = [animal];
+			flushSync();
+
+			const page = harness.render(buildingsPage);
+			const button = page.getByRole("button", {
+				name: "Peep undefined gender",
+			});
+			expect(button.getAttribute("aria-pressed")).toBe("true");
+			disposeAnimal();
+		});
+
+		it("should update farm animal numeric stat inputs", async () => {
+			const save = saveManager.save;
+			if (!save?.farm) return;
+			const building = save.farm.buildings.find(
+				(candidate) => candidate.indoorLocation !== undefined,
+			);
+			expect(building?.indoorLocation).toBeTruthy();
+			if (!building?.indoorLocation) return;
+
+			let animal!: FarmAnimal;
+			const disposeAnimal = $effect.root(() => {
+				animal = FarmAnimal.fromName(
+					FarmAnimalType.WhiteChicken,
+					"Peep",
+					save.player,
+				);
+			});
+			building.indoorLocation.animals = [animal];
+			flushSync();
+
+			const page = harness.render(buildingsPage);
+			const summary = page.getByText("Peep");
+			const card = summary.closest("section") as HTMLElement | null;
+			expect(card).toBeTruthy();
+			if (!card) return;
+
+			const friendshipInput = within(card).getByTestId(
+				"animal-friendship-input",
+			) as HTMLInputElement;
+			const happinessInput = within(card).getByTestId(
+				"animal-happiness-input",
+			) as HTMLInputElement;
+			const fullnessInput = within(card).getByTestId(
+				"animal-fullness-input",
+			) as HTMLInputElement;
+
+			await fireEvent.input(friendshipInput, { target: { value: "875" } });
+			await fireEvent.input(happinessInput, { target: { value: "200" } });
+			await fireEvent.input(fullnessInput, { target: { value: "123" } });
+
+			expect(animal.friendshipTowardFarmer).toBe(875);
+			expect(animal.happiness).toBe(200);
+			expect(animal.fullness).toBe(123);
+			expect(
+				building.indoorLocation[Raw].animals?.item?.[0]?.value.FarmAnimal
+					.friendshipTowardFarmer,
+			).toBe(875);
+			expect(
+				building.indoorLocation[Raw].animals?.item?.[0]?.value.FarmAnimal
+					.happiness,
+			).toBe(200);
+			expect(
+				building.indoorLocation[Raw].animals?.item?.[0]?.value.FarmAnimal
+					.fullness,
+			).toBe(123);
+			disposeAnimal();
+		});
+
+		it("should update farm animal name days owned and gender", async () => {
+			const save = saveManager.save;
+			if (!save?.farm) return;
+			const building = save.farm.buildings.find(
+				(candidate) => candidate.indoorLocation !== undefined,
+			);
+			expect(building?.indoorLocation).toBeTruthy();
+			if (!building?.indoorLocation) return;
+
+			let animal!: FarmAnimal;
+			const disposeAnimal = $effect.root(() => {
+				animal = FarmAnimal.fromName(
+					FarmAnimalType.WhiteChicken,
+					"Peep",
+					save.player,
+				);
+			});
+			building.indoorLocation.animals = [animal];
+			flushSync();
+
+			const page = harness.render(buildingsPage);
+			const summary = page.getByText("Peep");
+			const card = summary.closest("section") as HTMLElement | null;
+			expect(card).toBeTruthy();
+			if (!card) return;
+
+			const nameInput = within(card).getByTestId(
+				"animal-name-input",
+			) as HTMLInputElement;
+			const daysOwnedInput = within(card).getByTestId(
+				"animal-days-owned-input",
+			) as HTMLInputElement;
+			const maleButton = within(card).getByTestId("animal-gender-male");
+
+			await fireEvent.input(nameInput, { target: { value: "Nugget" } });
+			await fireEvent.input(daysOwnedInput, { target: { value: "42" } });
+			await fireEvent.click(maleButton);
+
+			expect(animal.name).toBe("Nugget");
+			expect(animal.daysOwned).toBe(42);
+			expect(animal.gender).toBe(Gender.Male);
+			expect(
+				building.indoorLocation[Raw].animals?.item?.[0]?.value.FarmAnimal.name,
+			).toBe("Nugget");
+			expect(
+				building.indoorLocation[Raw].animals?.item?.[0]?.value.FarmAnimal
+					.displayName,
+			).toBe("Nugget");
+			expect(
+				building.indoorLocation[Raw].animals?.item?.[0]?.value.FarmAnimal
+					.daysOwned,
+			).toBe(42);
+			expect(
+				building.indoorLocation[Raw].animals?.item?.[0]?.value.FarmAnimal.age,
+			).toBe(42);
+			expect(
+				building.indoorLocation[Raw].animals?.item?.[0]?.value.FarmAnimal
+					.Gender,
+			).toBe(Gender.Male);
+			disposeAnimal();
+		});
+
+		it("should render a building sprite for known buildings", () => {
+			const save = saveManager.save;
+			if (!save?.farm) return;
+			const building = save.farm.buildings.find(
+				(candidate) => candidate.data?.texture !== undefined,
+			);
+			expect(building).toBeTruthy();
+			if (!building) return;
+
+			const view = harness.render(BuildingSprite, {
+				props: { building },
+			});
+
+			expect(view.container.textContent).not.toContain("??");
+			expect(view.container.querySelector(".item")).toBeTruthy();
 		});
 	});
 });

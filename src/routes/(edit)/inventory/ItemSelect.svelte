@@ -15,6 +15,7 @@
 
 	let values = $derived(
 		[...ItemData.keys()]
+			.filter((name): name is string => typeof name === "string")
 			.filter((name) => name.toLowerCase().includes(filter.toLowerCase()))
 			.sort((a, b) => {
 				const aScore = stringSimilarity(filter, a);

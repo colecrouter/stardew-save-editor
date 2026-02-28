@@ -1,84 +1,98 @@
 [
 	{
-		"name": "[LocalizedText Strings\\FarmAnimals:DisplayType_Chicken_White]",
+		"name": "White Chicken",
+		"displayName": "[LocalizedText Strings\\FarmAnimals:DisplayType_Chicken_White]",
 		"requiredBuilding": "Coop",
 		"house": "Coop",
 		"canReproduce": false
 	},
 	{
-		"name": "[LocalizedText Strings\\FarmAnimals:DisplayType_Chicken_Brown]",
+		"name": "Brown Chicken",
+		"displayName": "[LocalizedText Strings\\FarmAnimals:DisplayType_Chicken_Brown]",
 		"requiredBuilding": null,
 		"house": "Coop",
 		"canReproduce": false
 	},
 	{
-		"name": "[LocalizedText Strings\\FarmAnimals:DisplayType_Chicken_Blue]",
+		"name": "Blue Chicken",
+		"displayName": "[LocalizedText Strings\\FarmAnimals:DisplayType_Chicken_Blue]",
 		"requiredBuilding": null,
 		"house": "Coop",
 		"canReproduce": false
 	},
 	{
-		"name": "[LocalizedText Strings\\FarmAnimals:DisplayType_Chicken_Void]",
+		"name": "Void Chicken",
+		"displayName": "[LocalizedText Strings\\FarmAnimals:DisplayType_Chicken_Void]",
 		"requiredBuilding": null,
 		"house": "Coop",
 		"canReproduce": false
 	},
 	{
-		"name": "[LocalizedText Strings\\FarmAnimals:DisplayType_Chicken_Golden]",
+		"name": "Golden Chicken",
+		"displayName": "[LocalizedText Strings\\FarmAnimals:DisplayType_Chicken_Golden]",
 		"requiredBuilding": null,
 		"house": "Coop",
 		"canReproduce": false
 	},
 	{
-		"name": "[LocalizedText Strings\\FarmAnimals:DisplayType_Duck]",
+		"name": "Duck",
+		"displayName": "[LocalizedText Strings\\FarmAnimals:DisplayType_Duck]",
 		"requiredBuilding": "Big Coop",
 		"house": "Coop",
 		"canReproduce": false
 	},
 	{
-		"name": "[LocalizedText Strings\\FarmAnimals:DisplayType_Rabbit]",
+		"name": "Rabbit",
+		"displayName": "[LocalizedText Strings\\FarmAnimals:DisplayType_Rabbit]",
 		"requiredBuilding": "Deluxe Coop",
 		"house": "Coop",
 		"canReproduce": false
 	},
 	{
-		"name": "[LocalizedText Strings\\FarmAnimals:DisplayType_Dinosaur]",
+		"name": "Dinosaur",
+		"displayName": "[LocalizedText Strings\\FarmAnimals:DisplayType_Dinosaur]",
 		"requiredBuilding": null,
 		"house": "Coop",
 		"canReproduce": false
 	},
 	{
-		"name": "[LocalizedText Strings\\FarmAnimals:DisplayType_Cow_White]",
+		"name": "White Cow",
+		"displayName": "[LocalizedText Strings\\FarmAnimals:DisplayType_Cow_White]",
 		"requiredBuilding": "Barn",
 		"house": "Barn",
 		"canReproduce": true
 	},
 	{
-		"name": "[LocalizedText Strings\\FarmAnimals:DisplayType_Cow_Brown]",
+		"name": "Brown Cow",
+		"displayName": "[LocalizedText Strings\\FarmAnimals:DisplayType_Cow_Brown]",
 		"requiredBuilding": null,
 		"house": "Barn",
 		"canReproduce": true
 	},
 	{
-		"name": "[LocalizedText Strings\\FarmAnimals:DisplayType_Goat]",
+		"name": "Goat",
+		"displayName": "[LocalizedText Strings\\FarmAnimals:DisplayType_Goat]",
 		"requiredBuilding": "Big Barn",
 		"house": "Barn",
 		"canReproduce": true
 	},
 	{
-		"name": "[LocalizedText Strings\\FarmAnimals:DisplayType_Sheep]",
+		"name": "Sheep",
+		"displayName": "[LocalizedText Strings\\FarmAnimals:DisplayType_Sheep]",
 		"requiredBuilding": "Deluxe Barn",
 		"house": "Barn",
 		"canReproduce": true
 	},
 	{
-		"name": "[LocalizedText Strings\\FarmAnimals:DisplayType_Pig]",
+		"name": "Pig",
+		"displayName": "[LocalizedText Strings\\FarmAnimals:DisplayType_Pig]",
 		"requiredBuilding": "Deluxe Barn",
 		"house": "Barn",
 		"canReproduce": true
 	},
 	{
-		"name": "[LocalizedText Strings\\FarmAnimals:DisplayType_Ostrich]",
+		"name": "Ostrich",
+		"displayName": "[LocalizedText Strings\\FarmAnimals:DisplayType_Ostrich]",
 		"requiredBuilding": "Barn",
 		"house": "Barn",
 		"canReproduce": false

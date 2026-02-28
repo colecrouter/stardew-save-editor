@@ -1,10 +1,10 @@
 <script lang="ts">
-import { getSaveManager } from "$lib/SaveManager.svelte";
-import UiContainer from "$lib/ui/UIContainer.svelte";
-import HeartBar from "./HeartBar.svelte";
+	import { getSaveManager } from "$lib/SaveManager.svelte";
+	import UiContainer from "$lib/ui/UIContainer.svelte";
+	import HeartBar from "./HeartBar.svelte";
 
-const save = getSaveManager().save;
-if (!save) throw new Error("No save data found");
+	const save = getSaveManager().save;
+	if (!save) throw new Error("No save data found");
 </script>
 
 <UiContainer>

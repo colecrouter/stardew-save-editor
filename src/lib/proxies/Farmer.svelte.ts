@@ -1,12 +1,12 @@
 import { Color } from "$lib/proxies/Color.svelte";
 import { Inventory } from "$lib/proxies/Inventory.svelte";
-import type { Item } from "$lib/proxies/Item.svelte";
 import { MailBox, MailFlag } from "$lib/proxies/Mail.svelte";
 import { Recipes } from "$lib/proxies/Recipes.svelte";
 import { Professions, Skills } from "$lib/proxies/Skills.svelte";
 import type { Gender, Player } from "$types/save";
 import { type DataProxy, Raw } from ".";
 import { Friendships } from "./Friendship.svelte";
+import { BootsProxy, ClothingProxy, HatProxy, RingProxy } from "./items";
 
 const NIL_ATTR = "@_xsi:nil";
 const walletFlagMap: ReadonlyArray<[legacyField: string, flag: MailFlag]> = [
@@ -72,45 +72,82 @@ export class Farmer implements DataProxy<Player> {
 	public eyeColor: Color;
 
 	// Derived equipment accessors delegate to Inventory
-	get hat(): Item | undefined {
-		return this.inventory.get("hat");
+	get hat(): HatProxy | undefined {
+		const hat = this.inventory.get("hat");
+		if (!hat) return undefined;
+		if (!(hat instanceof HatProxy))
+			throw new TypeError(
+				`Expected hat slot to contain a HatProxy, got ${hat?.constructor.name}`,
+			);
+		return hat;
 	}
-	set hat(value: Item | undefined) {
+	set hat(value: HatProxy | undefined) {
 		this.inventory.set("hat", value);
 	}
 
-	get shirt(): Item | undefined {
-		return this.inventory.get("shirtItem");
+	get shirt(): ClothingProxy | undefined {
+		const shirt = this.inventory.get("shirtItem");
+		if (!shirt) return undefined;
+		if (!(shirt instanceof ClothingProxy))
+			throw new TypeError(
+				`Expected shirt slot to contain a ClothingProxy, got ${shirt?.constructor.name}`,
+			);
+		return shirt as ClothingProxy;
 	}
-	set shirt(value: Item | undefined) {
+	set shirt(value: ClothingProxy | undefined) {
 		this.inventory.set("shirtItem", value);
 	}
 
-	get pants(): Item | undefined {
-		return this.inventory.get("pantsItem");
+	get pants(): ClothingProxy | undefined {
+		const pants = this.inventory.get("pantsItem");
+		if (!pants) return undefined;
+		if (!(pants instanceof ClothingProxy))
+			throw new TypeError(
+				`Expected pants slot to contain a ClothingProxy, got ${pants?.constructor.name}`,
+			);
+		return pants as ClothingProxy;
 	}
-	set pants(value: Item | undefined) {
+	set pants(value: ClothingProxy | undefined) {
 		this.inventory.set("pantsItem", value);
 	}
 
-	get boots(): Item | undefined {
-		return this.inventory.get("boots");
+	get boots(): BootsProxy | undefined {
+		const boots = this.inventory.get("boots");
+		if (!boots) return undefined;
+		if (!(boots instanceof BootsProxy))
+			throw new TypeError(
+				`Expected boots slot to contain a BootsProxy, got ${boots?.constructor.name}`,
+			);
+		return boots as BootsProxy;
 	}
-	set boots(value: Item | undefined) {
+	set boots(value: BootsProxy | undefined) {
 		this.inventory.set("boots", value);
 	}
 
-	get leftRing(): Item | undefined {
-		return this.inventory.get("leftRing");
+	get leftRing(): RingProxy | undefined {
+		const leftRing = this.inventory.get("leftRing");
+		if (!leftRing) return undefined;
+		if (!(leftRing instanceof RingProxy))
+			throw new TypeError(
+				`Expected left ring slot to contain a RingProxy, got ${leftRing?.constructor.name}`,
+			);
+		return leftRing as RingProxy;
 	}
-	set leftRing(value: Item | undefined) {
+	set leftRing(value: RingProxy | undefined) {
 		this.inventory.set("leftRing", value);
 	}
 
-	get rightRing(): Item | undefined {
-		return this.inventory.get("rightRing");
+	get rightRing(): RingProxy | undefined {
+		const rightRing = this.inventory.get("rightRing");
+		if (!rightRing) return undefined;
+		if (!(rightRing instanceof RingProxy))
+			throw new TypeError(
+				`Expected right ring slot to contain a RingProxy, got ${rightRing?.constructor.name}`,
+			);
+		return rightRing as RingProxy;
 	}
-	set rightRing(value: Item | undefined) {
+
+	set rightRing(value: RingProxy | undefined) {
 		this.inventory.set("rightRing", value);
 	}
 
@@ -260,11 +297,10 @@ export class Farmer implements DataProxy<Player> {
 		// To be honest this is all kind of a hack. Realistically, we need something to parse through each node and convert
 		// undefined to the appropriate xsi:nil attribute, but I couldn't find such a feature in fast-xml-parser
 
-		// @ts-expect-error
+		// @ts-expect-error - Need to widen type to assign nil sentinels
 		this.raw.items.Item = this.raw.items.Item.map((item) =>
 			item === undefined ? { "@_xsi:nil": "true" } : item,
 		);
-		// @ts-expect-error
 		this.raw.items.Item = this.raw.items.Item.map((item) =>
 			item && "which" in item
 				? { ...item, which: { "@_xsi:nil": "true" } }

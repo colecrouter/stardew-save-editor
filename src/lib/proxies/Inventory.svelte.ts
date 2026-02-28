@@ -1,8 +1,8 @@
 import { SvelteMap } from "svelte/reactivity";
 import type { ParentIndex } from "$lib/ItemParentIndex";
-import { Item } from "$lib/proxies/Item.svelte";
+import { createItemProxy, type ItemProxy } from "$lib/proxies/items";
 import type { Player } from "$types/save";
-import { type DataProxy, Raw } from ".";
+import { type DataProxy, Dispose, Raw } from ".";
 
 const nil = { "@_xsi:nil": "true" };
 function isNilSentinel(value: unknown): value is { "@_xsi:nil": "true" } {
@@ -22,7 +22,7 @@ function isNilSentinel(value: unknown): value is { "@_xsi:nil": "true" } {
  * Includes both regular inventory slots, as well as equipment slots (e.g. hat, pants).
  */
 export class Inventory
-	extends SvelteMap<ParentIndex, Item | undefined>
+	extends SvelteMap<ParentIndex, ItemProxy | undefined>
 	implements DataProxy<Player>
 {
 	public [Raw]: Player;
@@ -46,7 +46,7 @@ export class Inventory
 			) {
 				super.set(i, undefined);
 			} else {
-				super.set(i, new Item(entry));
+				super.set(i, createItemProxy(entry));
 			}
 		});
 
@@ -75,16 +75,16 @@ export class Inventory
 					delete this[Raw][slot];
 				}
 			} else {
-				super.set(slot, Item.create(rawEntry));
+				super.set(slot, createItemProxy(rawEntry));
 			}
 		}
 	}
 
-	public set(index: ParentIndex, value: Item | undefined): this {
+	public set(index: ParentIndex, value: ItemProxy | undefined): this {
 		// Dispose previous item's effect root if replacing/removing
 		const prev = this.get(index);
 		if (prev && prev !== value) {
-			prev.dispose();
+			prev[Dispose]?.();
 		}
 
 		if (typeof index === "number") {
@@ -96,7 +96,9 @@ export class Inventory
 			if (value == null) {
 				delete this[Raw][index];
 			} else {
-				this[Raw][index] = value[Raw];
+				// Equipment slots are properly typed in Player interface
+				const equipmentSlots = this[Raw] as unknown as Record<string, unknown>;
+				equipmentSlots[index] = value[Raw];
 			}
 		}
 		return super.set(index, value);
@@ -130,7 +132,7 @@ export class Inventory
 			// Dispose any items that will be truncated out of the raw array
 			for (let i = size; i < oldSize; i++) {
 				const prev = this.get(i);
-				if (prev) prev.dispose();
+				if (prev) prev[Dispose]?.();
 			}
 			items.length = size;
 			for (let i = size; i < oldSize; i++) {

@@ -1,12 +1,12 @@
 <script lang="ts">
-import { resolve } from "$app/paths";
-import UiButton from "$lib/ui/UIButton.svelte";
+	import { resolve } from "$app/paths";
+	import UiButton from "$lib/ui/UIButton.svelte";
 
-interface Props {
-	children: import("svelte").Snippet;
-}
+	interface Props {
+		children: import("svelte").Snippet;
+	}
 
-let { children }: Props = $props();
+	let { children }: Props = $props();
 </script>
 
 <div class="wrapper">

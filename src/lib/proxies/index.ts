@@ -5,6 +5,12 @@
  */
 export const Raw = Symbol("RAW");
 
+/**
+ * Unique symbol to represent the dispose function for proxies.
+ */
+export const Dispose = Symbol("DISPOSE");
+
 export interface DataProxy<T> {
 	[Raw]: T;
+	[Dispose]?: () => void;
 }

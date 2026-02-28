@@ -341,7 +341,7 @@ describe("Item", () => {
 				parentSheetIndex: 74,
 				"@_xsi:type": "Trinket",
 			});
-			expect(item.generationSeed).toBeTypeOf("number");
+			expect(item[Raw].generationSeed).toBeTypeOf("number");
 		});
 	});
 

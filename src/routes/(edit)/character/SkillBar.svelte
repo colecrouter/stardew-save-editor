@@ -1,5 +1,5 @@
 <script lang="ts" module>
-const levels = [100, 380, 770, 1300, 2150, 3300, 4800, 6900, 10000, 15000];
+	const levels = [100, 380, 770, 1300, 2150, 3300, 4800, 6900, 10000, 15000];
 </script>
 
 <script lang="ts">

@@ -1,78 +1,79 @@
 <script lang="ts">
-import { bundleSideEffects, CCRoom } from "$lib/bundleSideEffects";
-import type { CommunityBundles } from "$lib/proxies/CommunityBundles.svelte";
-import type { SaveProxy } from "$lib/proxies/SaveFile.svelte";
+	import { bundleSideEffects, CCRoom } from "$lib/bundleSideEffects";
+	import type { CommunityBundles } from "$lib/proxies/CommunityBundles.svelte";
+	import type { SaveProxy } from "$lib/proxies/SaveFile.svelte";
 
-let projects = [
-	{ room: CCRoom.Vault, name: "Bus", price: 40000 },
-	{
-		room: CCRoom.BoilerRoom,
-		name: "Minecarts",
-		price: 15000,
-	},
-	{
-		room: CCRoom.CraftsRoom,
-		name: "Bridge",
-		price: 25000,
-	},
-	{
-		room: CCRoom.Pantry,
-		name: "Greenhouse",
-		price: 35000,
-	},
-	{
-		room: CCRoom.FishTank,
-		name: "Panning",
-		price: 20000,
-	},
-] satisfies {
-	room: CCRoom;
-	name: string;
-	price: number;
-}[];
+	let projects = [
+		{ room: CCRoom.Vault, name: "Bus", price: 40000 },
+		{
+			room: CCRoom.BoilerRoom,
+			name: "Minecarts",
+			price: 15000,
+		},
+		{
+			room: CCRoom.CraftsRoom,
+			name: "Bridge",
+			price: 25000,
+		},
+		{
+			room: CCRoom.Pantry,
+			name: "Greenhouse",
+			price: 35000,
+		},
+		{
+			room: CCRoom.FishTank,
+			name: "Panning",
+			price: 20000,
+		},
+	] satisfies {
+		room: CCRoom;
+		name: string;
+		price: number;
+	}[];
 
-interface Props {
-	bundles: CommunityBundles;
-	save: SaveProxy;
-}
-
-let { bundles, save }: Props = $props();
-
-// Complete the bundle for each room
-// This probably is a fairly intuitive way to do it; enabling/disabling the membership won't affect the completed bundles
-function setProject(room: CCRoom, checked: boolean) {
-	for (const bundle of bundles.values().filter((b) => b.room === room)) {
-		for (const item of bundle.requiredItems) {
-			item.submitted = checked;
-		}
+	interface Props {
+		bundles: CommunityBundles;
+		save: SaveProxy;
 	}
 
-	// As an edge case, if all bundles are completed when changing from Joja to Community Center,
-	// Complete the "missing" bundle, as the user would have otherwise had access to the movie theater
-	// I basically just copied and pasted this from CommunityBundles.svelte (todo refactor)
-	const bundlesByRoom = Map.groupBy(bundles.values(), (b) => b.room);
-	const completedRooms = [...bundlesByRoom.entries()].map(
-		([room, bundles]) => [room, bundles.every((b) => b.completed)] as const,
-	);
-	if (
-		completedRooms
-			.filter(
-				([r]) => ![CCRoom.AbandonedJojaMart, CCRoom.BulletinBoard].includes(r),
-			)
-			.every(([, completed]) => completed)
-	) {
-		const abandonedBundle = bundlesByRoom.get(CCRoom.AbandonedJojaMart);
-		for (const bundle of abandonedBundle ?? []) {
+	let { bundles, save }: Props = $props();
+
+	// Complete the bundle for each room
+	// This probably is a fairly intuitive way to do it; enabling/disabling the membership won't affect the completed bundles
+	function setProject(room: CCRoom, checked: boolean) {
+		for (const bundle of bundles.values().filter((b) => b.room === room)) {
 			for (const item of bundle.requiredItems) {
 				item.submitted = checked;
 			}
 		}
-	}
-}
 
-function getProject(room: CCRoom) {
-	return bundles.values().some((b) => b.room === room && b.completed);
-}
+		// As an edge case, if all bundles are completed when changing from Joja to Community Center,
+		// Complete the "missing" bundle, as the user would have otherwise had access to the movie theater
+		// I basically just copied and pasted this from CommunityBundles.svelte (todo refactor)
+		const bundlesByRoom = Map.groupBy(bundles.values(), (b) => b.room);
+		const completedRooms = [...bundlesByRoom.entries()].map(
+			([room, bundles]) => [room, bundles.every((b) => b.completed)] as const,
+		);
+		if (
+			completedRooms
+				.filter(
+					([r]) =>
+						![CCRoom.AbandonedJojaMart, CCRoom.BulletinBoard].includes(r),
+				)
+				.every(([, completed]) => completed)
+		) {
+			const abandonedBundle = bundlesByRoom.get(CCRoom.AbandonedJojaMart);
+			for (const bundle of abandonedBundle ?? []) {
+				for (const item of bundle.requiredItems) {
+					item.submitted = checked;
+				}
+			}
+		}
+	}
+
+	function getProject(room: CCRoom) {
+		return bundles.values().some((b) => b.room === room && b.completed);
+	}
 </script>
 
 <div class="joja-page">

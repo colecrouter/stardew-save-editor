@@ -1,12 +1,12 @@
 <script lang="ts" module>
-import { asset } from "$app/paths";
-import { Profession, skillGroups } from "$lib/proxies/Skills.svelte";
+	import { asset } from "$app/paths";
+	import { Profession, skillGroups } from "$lib/proxies/Skills.svelte";
 
-const getSprite = (p: Profession) => {
-	const x = (p % 6) * 16;
-	const y = Math.floor(p / 6) * 16 + 624;
-	return [x, y] as const;
-};
+	const getSprite = (p: Profession) => {
+		const x = (p % 6) * 16;
+		const y = Math.floor(p / 6) * 16 + 624;
+		return [x, y] as const;
+	};
 </script>
 
 <script lang="ts">

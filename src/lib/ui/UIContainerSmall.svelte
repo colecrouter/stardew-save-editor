@@ -1,13 +1,13 @@
 <script lang="ts">
-import type { Snippet } from "svelte";
-import Tooltip from "$lib/ui/Tooltip.svelte";
+	import type { Snippet } from "svelte";
+	import Tooltip from "$lib/ui/Tooltip.svelte";
 
-interface Props {
-	children: Snippet;
-	[key: string]: unknown;
-}
+	interface Props {
+		children: Snippet;
+		[key: string]: unknown;
+	}
 
-let { children, ...props }: Props = $props();
+	let { children, ...props }: Props = $props();
 </script>
 
 <div class="outer">

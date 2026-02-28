@@ -1,24 +1,24 @@
 <script lang="ts" module>
-function colorToString(color?: Color) {
-	if (!color) return undefined;
-	if (color.A !== 255) {
-		return `rgba(${color.R},${color.G},${color.B},${color.A / 255})`;
+	function colorToString(color?: Color) {
+		if (!color) return undefined;
+		if (color.A !== 255) {
+			return `rgba(${color.R},${color.G},${color.B},${color.A / 255})`;
+		}
+		return `rgb(${color.R},${color.G},${color.B})`;
 	}
-	return `rgb(${color.R},${color.G},${color.B})`;
-}
 
-function sheetUrl(sheet?: string) {
-	return sheet && `url(${asset(`/assets/${sheet}`)})`;
-}
+	function sheetUrl(sheet?: string) {
+		return sheet && `url(${asset(`/assets/${sheet}`)})`;
+	}
 </script>
 
 <script lang="ts">
 	import { asset } from "$app/paths";
 	import type { Color } from "$lib/proxies/Color.svelte";
-	import type { Item } from "$lib/proxies/Item.svelte";
+	import { ColoredObjectProxy, type ItemProxy } from "$lib/proxies/items";
 
 	interface Props {
-		item: Item | undefined;
+		item: ItemProxy | undefined;
 	}
 
 	let { item }: Props = $props();
@@ -31,12 +31,12 @@ function sheetUrl(sheet?: string) {
 	let w = $derived(item?.sprite?.dimensions.width);
 	let h = $derived(item?.sprite?.dimensions.height);
 	let zoom = $derived(32 / Math.max(w ?? 0, h ?? 0, 16));
-	let blendingMode = $derived(
-		item?.color?.A !== undefined ? "multiply" : "normal",
-	);
+	let blendingMode = $derived("normal");
 
 	// Overlay properties
-	let tint = $derived(colorToString(item?.color) ?? item?.info?.color);
+	let tint = $derived(
+		item && "color" in item ? colorToString(item.color) : item?.info?.color,
+	);
 	let smoked = $derived(item?.name.startsWith("Smoked"));
 	let hasArtisanOverlay = $derived(item?.info?.color);
 	let overlayPosition = $derived(

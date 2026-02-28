@@ -1,17 +1,17 @@
 <script lang="ts">
-import { asset } from "$app/paths";
-import type { Friendship } from "$lib/proxies/Friendship.svelte";
-import UiContainerSmall from "$lib/ui/UIContainerSmall.svelte";
-import UiInput from "$lib/ui/UIInput.svelte";
+	import { asset } from "$app/paths";
+	import type { Friendship } from "$lib/proxies/Friendship.svelte";
+	import UiContainerSmall from "$lib/ui/UIContainerSmall.svelte";
+	import UiInput from "$lib/ui/UIInput.svelte";
 
-interface Props {
-	name: string;
-	npc: Friendship;
-}
+	interface Props {
+		name: string;
+		npc: Friendship;
+	}
 
-let { npc, name }: Props = $props();
+	let { npc, name }: Props = $props();
 
-// TODO modding can cause more heart events (???)
+	// TODO modding can cause more heart events (???)
 </script>
 
 <div class="row" data-testid="friendship-row">

@@ -40,7 +40,9 @@ export class SaveProxy implements DataProxy<SaveFile> {
 		});
 
 		this.locations = $state(
-			this[Raw].SaveGame.locations.GameLocation.map((l) => new GameLocation(l)),
+			this[Raw].SaveGame.locations.GameLocation.map(
+				(l) => new GameLocation(l, this),
+			),
 		);
 		$effect(() => {
 			this[Raw].SaveGame.locations.GameLocation = this.locations.map(

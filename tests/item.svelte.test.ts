@@ -308,6 +308,100 @@ describe("Item", () => {
 		});
 	});
 
+	it("should resolve preserved roe variants from save data", () => {
+		withRoot(() => {
+			const item = Item.create({
+				"@_xsi:type": "ColoredObject",
+				name: "Anchovy Roe",
+				itemId: "812",
+				parentSheetIndex: 812,
+				preservedParentSheetIndex: "129",
+				preserve: "Roe",
+				category: -26,
+				type: "Basic",
+				stack: 1,
+				quality: 0,
+				isRecipe: false,
+				price: 30,
+				color: {
+					R: 244,
+					G: 164,
+					B: 37,
+					A: 255,
+					PackedValue: 4280655092,
+				},
+			} as never);
+
+			expect(item.name).toBe("Anchovy Roe");
+			expect(item.info).toMatchObject({
+				name: "Roe",
+				_type: "Object",
+				_key: "812",
+			});
+			expect(item[Raw]["@_xsi:type"]).toBe("ColoredObject");
+		});
+	});
+
+	it("should resolve preserved honey variants from save data", () => {
+		withRoot(() => {
+			const item = Item.create({
+				"@_xsi:type": "Object",
+				name: "Poppy Honey",
+				itemId: "340",
+				parentSheetIndex: 340,
+				preservedParentSheetIndex: "376",
+				preserve: "Honey",
+				category: -26,
+				type: "Basic",
+				stack: 1,
+				quality: 0,
+				isRecipe: false,
+				price: 380,
+			} as never);
+
+			expect(item.name).toBe("Poppy Honey");
+			expect(item.info).toMatchObject({
+				name: "Honey",
+				_type: "Object",
+				_key: "340",
+			});
+		});
+	});
+
+	it("should resolve preserved bait variants from save data", () => {
+		withRoot(() => {
+			const item = Item.create({
+				"@_xsi:type": "ColoredObject",
+				name: "Salmon Bait",
+				itemId: "SpecificBait",
+				parentSheetIndex: 774,
+				preservedParentSheetIndex: "139",
+				preserve: "Bait",
+				category: -21,
+				type: "Basic",
+				stack: 1,
+				quality: 0,
+				isRecipe: false,
+				price: 7,
+				color: {
+					R: 250,
+					G: 128,
+					B: 114,
+					A: 255,
+					PackedValue: 4285694202,
+				},
+			} as never);
+
+			expect(item.name).toBe("Salmon Bait");
+			expect(item.info).toMatchObject({
+				name: "Bait",
+				_type: "Object",
+				_key: "SpecificBait",
+			});
+			expect(item[Raw]["@_xsi:type"]).toBe("ColoredObject");
+		});
+	});
+
 	it("should create a Ruby Ring", () => {
 		withRoot(() => {
 			const item = Item.fromName("Ruby Ring");

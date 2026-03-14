@@ -1,10 +1,9 @@
 import * as Sentry from "@sentry/sveltekit";
 import {
 	CategoriesWithQuality,
-	ItemData,
 	ItemNameHelper,
 	KeyToName,
-	Shirts,
+	ResolveItemData,
 } from "$lib/ItemData";
 import { Sprite } from "$lib/Sprite.svelte";
 import type { ItemInformation } from "$types/items";
@@ -187,7 +186,5 @@ function stripParenthesizedNumber(value: string) {
 }
 
 export function resolveItemInformation(raw: Item) {
-	return raw.name === "Shirt"
-		? Shirts.get((raw.itemId ?? "").toString())
-		: ItemData.get(ItemNameHelper(raw));
+	return ResolveItemData(raw);
 }

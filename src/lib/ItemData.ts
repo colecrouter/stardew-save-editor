@@ -263,8 +263,45 @@ export const ItemNameHelper = (item: Item) => {
 	return item.name;
 };
 
+function getPreservedMetadata(item: Item) {
+	const lookupKey = normalizeItemKey(item.itemId);
+	if (!lookupKey || item.preserve === undefined || item.preserve === null) {
+		return undefined;
+	}
+
+	// Stardew's flavored preserve items keep a runtime-generated Name like
+	// "Anchovy Roe" or "Poppy Honey", but their stable identity is still the
+	// base object ID plus preserve flags. Resolve those items from the object ID
+	// first so imported save data doesn't depend on matching every dynamic name
+	// we might see in the wild.
+	for (const [, metadata] of jsondata) {
+		if (metadata._type === "Object" && metadata._key === lookupKey) {
+			return metadata;
+		}
+	}
+
+	return undefined;
+}
+
 export const Shirts = new Map<string, Shirt>(
 	jsondata
 		.filter(([, item]) => item._type === "Shirt")
 		.map(([, item]) => [item._key, item]),
 );
+
+export const ResolveItemData = (item: Item) => {
+	if (item.name === "Shirt") {
+		return Shirts.get((item.itemId ?? "").toString());
+	}
+
+	const directMatch = ItemData.get(ItemNameHelper(item));
+	if (directMatch) return directMatch;
+
+	return getPreservedMetadata(item);
+};
+
+function normalizeItemKey(itemId: Item["itemId"]): string | undefined {
+	if (itemId == null) return undefined;
+	if (typeof itemId === "number") return itemId.toString();
+	return itemId;
+}

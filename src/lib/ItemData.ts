@@ -263,6 +263,66 @@ export const ItemNameHelper = (item: Item) => {
 	return item.name;
 };
 
+function normalizeItemKey(itemId: Item["itemId"]): string | undefined {
+	if (itemId == null) return undefined;
+	if (typeof itemId === "number") return itemId.toString();
+	return itemId;
+}
+
+function getExpectedMetadataTypes(item: Item): ItemInformation["_type"][] {
+	switch (item["@_xsi:type"]) {
+		case "Hat":
+			return ["Hat"];
+		case "Boots":
+			return ["Boots"];
+		case "Clothing":
+			return ["Shirt", "Pants"];
+		case "Ring":
+			return ["Object"];
+		case "ColoredObject":
+		case "Object":
+		case "Cask":
+			return ["Object"];
+		case "Furniture":
+			return ["Furniture"];
+		case "Mannequin":
+			return ["Mannequin"];
+		case "Trinket":
+			return ["Trinket"];
+		case "MeleeWeapon":
+			return ["Weapon"];
+		case "Tool":
+		case "FishingRod":
+		case "WateringCan":
+		case "Slingshot":
+		case "Pickaxe":
+		case "Axe":
+		case "Pan":
+		case "Hoe":
+		case "MilkPail":
+		case "Shears":
+		case "Wand":
+			return ["Tool"];
+		default:
+			return [];
+	}
+}
+
+function getDirectMetadataMatch(item: Item) {
+	const lookupKey = normalizeItemKey(item.itemId);
+	if (!lookupKey) return undefined;
+
+	for (const expectedType of getExpectedMetadataTypes(item)) {
+		for (const [, metadata] of jsondata) {
+			if (metadata._key === lookupKey && metadata._type === expectedType) {
+				return metadata;
+			}
+		}
+	}
+
+	return undefined;
+}
+
 function getPreservedMetadata(item: Item) {
 	const lookupKey = normalizeItemKey(item.itemId);
 	if (!lookupKey || item.preserve === undefined || item.preserve === null) {
@@ -294,14 +354,11 @@ export const ResolveItemData = (item: Item) => {
 		return Shirts.get((item.itemId ?? "").toString());
 	}
 
+	const directMetadataMatch = getDirectMetadataMatch(item);
+	if (directMetadataMatch) return directMetadataMatch;
+
 	const directMatch = ItemData.get(ItemNameHelper(item));
 	if (directMatch) return directMatch;
 
 	return getPreservedMetadata(item);
 };
-
-function normalizeItemKey(itemId: Item["itemId"]): string | undefined {
-	if (itemId == null) return undefined;
-	if (typeof itemId === "number") return itemId.toString();
-	return itemId;
-}

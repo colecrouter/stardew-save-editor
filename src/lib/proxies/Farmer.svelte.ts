@@ -71,80 +71,57 @@ export class Farmer implements DataProxy<Player> {
 
 	public eyeColor: Color;
 
+	private getEquipmentProxy<T>(
+		slot: "hat" | "shirtItem" | "pantsItem" | "boots" | "leftRing" | "rightRing",
+		ProxyType: abstract new (...args: never[]) => T,
+	): T | undefined {
+		const item = this.inventory.get(slot);
+		if (!item) return undefined;
+
+		// Some saves can contain malformed or glitched equipment, like an Iridium Pan
+		// written into the hat slot. The editor should still load those files and
+		// simply treat the item as not renderable in the derived appearance accessors.
+		return item instanceof ProxyType ? item : undefined;
+	}
+
 	// Derived equipment accessors delegate to Inventory
 	get hat(): HatProxy | undefined {
-		const hat = this.inventory.get("hat");
-		if (!hat) return undefined;
-		if (!(hat instanceof HatProxy))
-			throw new TypeError(
-				`Expected hat slot to contain a HatProxy, got ${hat?.constructor.name}`,
-			);
-		return hat;
+		return this.getEquipmentProxy("hat", HatProxy);
 	}
 	set hat(value: HatProxy | undefined) {
 		this.inventory.set("hat", value);
 	}
 
 	get shirt(): ClothingProxy | undefined {
-		const shirt = this.inventory.get("shirtItem");
-		if (!shirt) return undefined;
-		if (!(shirt instanceof ClothingProxy))
-			throw new TypeError(
-				`Expected shirt slot to contain a ClothingProxy, got ${shirt?.constructor.name}`,
-			);
-		return shirt as ClothingProxy;
+		return this.getEquipmentProxy("shirtItem", ClothingProxy);
 	}
 	set shirt(value: ClothingProxy | undefined) {
 		this.inventory.set("shirtItem", value);
 	}
 
 	get pants(): ClothingProxy | undefined {
-		const pants = this.inventory.get("pantsItem");
-		if (!pants) return undefined;
-		if (!(pants instanceof ClothingProxy))
-			throw new TypeError(
-				`Expected pants slot to contain a ClothingProxy, got ${pants?.constructor.name}`,
-			);
-		return pants as ClothingProxy;
+		return this.getEquipmentProxy("pantsItem", ClothingProxy);
 	}
 	set pants(value: ClothingProxy | undefined) {
 		this.inventory.set("pantsItem", value);
 	}
 
 	get boots(): BootsProxy | undefined {
-		const boots = this.inventory.get("boots");
-		if (!boots) return undefined;
-		if (!(boots instanceof BootsProxy))
-			throw new TypeError(
-				`Expected boots slot to contain a BootsProxy, got ${boots?.constructor.name}`,
-			);
-		return boots as BootsProxy;
+		return this.getEquipmentProxy("boots", BootsProxy);
 	}
 	set boots(value: BootsProxy | undefined) {
 		this.inventory.set("boots", value);
 	}
 
 	get leftRing(): RingProxy | undefined {
-		const leftRing = this.inventory.get("leftRing");
-		if (!leftRing) return undefined;
-		if (!(leftRing instanceof RingProxy))
-			throw new TypeError(
-				`Expected left ring slot to contain a RingProxy, got ${leftRing?.constructor.name}`,
-			);
-		return leftRing as RingProxy;
+		return this.getEquipmentProxy("leftRing", RingProxy);
 	}
 	set leftRing(value: RingProxy | undefined) {
 		this.inventory.set("leftRing", value);
 	}
 
 	get rightRing(): RingProxy | undefined {
-		const rightRing = this.inventory.get("rightRing");
-		if (!rightRing) return undefined;
-		if (!(rightRing instanceof RingProxy))
-			throw new TypeError(
-				`Expected right ring slot to contain a RingProxy, got ${rightRing?.constructor.name}`,
-			);
-		return rightRing as RingProxy;
+		return this.getEquipmentProxy("rightRing", RingProxy);
 	}
 
 	set rightRing(value: RingProxy | undefined) {

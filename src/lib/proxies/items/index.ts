@@ -22,6 +22,7 @@ import { ColoredObjectProxy } from "./ColoredObjectProxy.svelte";
 import { FishingRodProxy } from "./FishingRodProxy.svelte";
 import { FurnitureProxy } from "./FurnitureProxy.svelte";
 import { HatProxy } from "./HatProxy.svelte";
+import { MannequinProxy } from "./MannequinProxy.svelte";
 import { BaseItemProxy } from "./ItemProxy.svelte";
 import { ObjectProxy } from "./ObjectProxy.svelte";
 import { PanProxy } from "./PanProxy.svelte";
@@ -44,6 +45,7 @@ export type ItemProxy =
 	| PanProxy
 	| TrinketProxy
 	| HatProxy
+	| MannequinProxy
 	| BootsProxy
 	| ClothingProxy
 	| RingProxy
@@ -58,10 +60,14 @@ export type ItemProxy =
  * If the type is unknown, it falls back to a generic ItemProxy and logs a warning.
  */
 export function createItemProxy(base: Item): ItemProxy {
-	switch (base["@_xsi:type"] as KnownItemTypes) {
+	switch (base["@_xsi:type"] as KnownItemTypes | "Wand" | "Mannequin") {
 		case "MeleeWeapon":
 			return new WeaponProxy(base as WeaponItem);
 		case "Tool":
+			return new ToolProxy(base as ToolItem);
+		case "FishingRod":
+			return new FishingRodProxy(base as ToolItem);
+		case "Wand":
 			return new ToolProxy(base as ToolItem);
 		case "Trinket":
 			return new TrinketProxy(base as TrinketItem);
@@ -77,12 +83,20 @@ export function createItemProxy(base: Item): ItemProxy {
 			return new ColoredObjectProxy(base as ColoredObjectItem);
 		case "Furniture":
 			return new FurnitureProxy(base as FurnitureItem);
+		case "Mannequin":
+			return new MannequinProxy(base);
 		case "Object":
 			return new ObjectProxy(base as ObjectItem);
 		case "Axe":
 			return new AxeProxy(base as ToolItem);
+		case "Hoe":
+			return new ToolProxy(base as ToolItem);
+		case "MilkPail":
+			return new ToolProxy(base as ToolItem);
 		case "Pickaxe":
 			return new PickaxeProxy(base as ToolItem);
+		case "Shears":
+			return new ToolProxy(base as ToolItem);
 		case "Slingshot":
 			return new SlingshotProxy(base as ToolItem);
 		case "WateringCan":
@@ -111,6 +125,7 @@ export {
 	FishingRodProxy,
 	FurnitureProxy,
 	HatProxy,
+	MannequinProxy,
 	ObjectProxy,
 	PanProxy,
 	PickaxeProxy,

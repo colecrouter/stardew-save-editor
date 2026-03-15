@@ -1425,7 +1425,10 @@ export interface ToolItem extends Item {
 		| "Slingshot"
 		| "Pickaxe"
 		| "Axe"
-		| "Pan";
+		| "Pan"
+		| "Hoe"
+		| "MilkPail"
+		| "Shears";
 	type?: number;
 	initialParentTileIndex?: number;
 	currentParentTileIndex?: number;
@@ -1554,6 +1557,18 @@ export interface PanItem extends ToolItem {
 	"@_xsi:type": "Pan";
 }
 
+export interface HoeItem extends ToolItem {
+	"@_xsi:type": "Hoe";
+}
+
+export interface MilkPailItem extends ToolItem {
+	"@_xsi:type": "MilkPail";
+}
+
+export interface ShearsItem extends ToolItem {
+	"@_xsi:type": "Shears";
+}
+
 export type KnownItemTypes = (
 	| ObjectItem
 	| ToolItem
@@ -1572,6 +1587,9 @@ export type KnownItemTypes = (
 	| PickaxeItem
 	| AxeItem
 	| PanItem
+	| HoeItem
+	| MilkPailItem
+	| ShearsItem
 )["@_xsi:type"];
 
 export interface AttachmentsAttachments {

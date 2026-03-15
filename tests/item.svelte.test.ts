@@ -2,6 +2,11 @@ import { flushSync } from "svelte";
 import { describe, expect, it } from "vitest";
 import { Raw } from "$lib/proxies";
 import { Item } from "../src/lib/proxies/Item.svelte";
+import {
+	FishingRodProxy,
+	MannequinProxy,
+	ToolProxy,
+} from "../src/lib/proxies/items";
 
 /*
     In this file are *known-to-be-correct* tests for the item save data.
@@ -271,6 +276,7 @@ describe("Item", () => {
 				category: -99,
 				"@_xsi:type": "FishingRod",
 			});
+			expect(item).toBeInstanceOf(FishingRodProxy);
 		});
 	});
 
@@ -282,6 +288,42 @@ describe("Item", () => {
 				itemId: "SteelWateringCan",
 				"@_xsi:type": "WateringCan",
 			});
+		});
+	});
+
+	it("should create a Hoe", () => {
+		withRoot(() => {
+			const item = Item.fromName("Hoe");
+			expect(item[Raw]).toMatchObject({
+				name: "Hoe",
+				itemId: "Hoe",
+				"@_xsi:type": "Hoe",
+			});
+			expect(item).toBeInstanceOf(ToolProxy);
+		});
+	});
+
+	it("should create a Milk Pail", () => {
+		withRoot(() => {
+			const item = Item.fromName("Milk Pail");
+			expect(item[Raw]).toMatchObject({
+				name: "Milk Pail",
+				itemId: "MilkPail",
+				"@_xsi:type": "MilkPail",
+			});
+			expect(item).toBeInstanceOf(ToolProxy);
+		});
+	});
+
+	it("should create Shears", () => {
+		withRoot(() => {
+			const item = Item.fromName("Shears");
+			expect(item[Raw]).toMatchObject({
+				name: "Shears",
+				itemId: "Shears",
+				"@_xsi:type": "Shears",
+			});
+			expect(item).toBeInstanceOf(ToolProxy);
 		});
 	});
 
@@ -423,6 +465,7 @@ describe("Item", () => {
 				itemId: "ReturnScepter",
 				"@_xsi:type": "Wand",
 			});
+			expect(item).toBeInstanceOf(ToolProxy);
 		});
 	});
 
@@ -447,6 +490,7 @@ describe("Item", () => {
 				itemId: "MannequinMale",
 				"@_xsi:type": "Mannequin",
 			});
+			expect(item).toBeInstanceOf(MannequinProxy);
 		});
 	});
 });

@@ -91,6 +91,7 @@ const toolTypeMap = new Map<string, ToolClass>([
 	["Rod", "FishingRod"],
 	["Pan", "Pan"],
 	["Wand", "Wand"],
+	["Shears", "Shears"],
 ]);
 
 const toolNameMap = new Map<string, string>([

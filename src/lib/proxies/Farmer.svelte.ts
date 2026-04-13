@@ -72,7 +72,13 @@ export class Farmer implements DataProxy<Player> {
 	public eyeColor: Color;
 
 	private getEquipmentProxy<T>(
-		slot: "hat" | "shirtItem" | "pantsItem" | "boots" | "leftRing" | "rightRing",
+		slot:
+			| "hat"
+			| "shirtItem"
+			| "pantsItem"
+			| "boots"
+			| "leftRing"
+			| "rightRing",
 		ProxyType: abstract new (...args: never[]) => T,
 	): T | undefined {
 		const item = this.inventory.get(slot);

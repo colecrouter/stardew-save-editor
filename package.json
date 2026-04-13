@@ -30,7 +30,7 @@
 		"comlink": "^4.4.2",
 		"core-js": "^3.46.0",
 		"fast-xml-parser": "^4.5.5",
-		"happy-dom": "^20.0.8",
+		"happy-dom": "^20.8.9",
 		"idb": "^7.1.1",
 		"image-dimensions": "^2.3.0",
 		"pako": "^2.1.0",

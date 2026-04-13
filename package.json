@@ -17,7 +17,7 @@
 		"@biomejs/biome": "^2.4.4",
 		"@sentry/sveltekit": "^10.22.0",
 		"@sveltejs/adapter-static": "^3.0.10",
-		"@sveltejs/kit": "^2.48.2",
+		"@sveltejs/kit": "^2.57.1",
 		"@sveltejs/vite-plugin-svelte": "^6.2.1",
 		"@testing-library/svelte": "^5.2.8",
 		"@thisux/sveltednd": "0.0.20",

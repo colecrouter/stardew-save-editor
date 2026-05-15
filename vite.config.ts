@@ -1,6 +1,7 @@
 import { sentrySvelteKit } from "@sentry/sveltekit";
 import { sveltekit } from "@sveltejs/kit/vite";
 import { svelteTesting } from "@testing-library/svelte/vite";
+import legacy from "@vitejs/plugin-legacy";
 import { defineConfig } from "vite";
 
 export default defineConfig(({ mode }) => ({
@@ -19,6 +20,17 @@ export default defineConfig(({ mode }) => ({
 				})
 			: undefined,
 		sveltekit(),
+		legacy({
+			modernTargets: [
+				"chrome >= 100",
+				"edge >= 100",
+				"firefox >= 100",
+				"safari >= 15",
+				"ios >= 15",
+			],
+			modernPolyfills: true,
+			renderLegacyChunks: false,
+		}),
 		svelteTesting(),
 	],
 	server: {

@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import type { Player } from "../codegen/save";
 import { Inventory } from "../src/lib/proxies/Inventory.svelte";
 import { Item } from "../src/lib/proxies/Item.svelte";
+import { Raw } from "../src/lib/proxies/index";
+import { RingProxy } from "../src/lib/proxies/items";
 import { XMLManager } from "../src/lib/workers/xml";
 
 function withRoot<T>(fn: () => T): T {
@@ -117,5 +119,69 @@ describe("Equipment omission (no xsi:nil for equipment) on Inventory serializati
 		// At least one Item entry should be rendered with xsi:nil="true"
 		// fast-xml-parser outputs ' />' due to our post-processing in XMLManager
 		expect(xml.includes('<Item xsi:nil="true" />')).toBe(true);
+	});
+
+	it("preserves explicit CombinedRing xsi:type and nested rings in equipment slots", () => {
+		const sourceXml = `<?xml version="1.0" encoding="utf-8"?>
+<SaveGame>
+	<player>
+		<items>
+			<Item xsi:nil="true" />
+		</items>
+		<leftRing xsi:type="CombinedRing">
+			<isLostItem>false</isLostItem>
+			<category>-96</category>
+			<hasBeenInInventory>true</hasBeenInInventory>
+			<name>Combined Ring</name>
+			<parentSheetIndex>880</parentSheetIndex>
+			<itemId>880</itemId>
+			<price>100</price>
+			<indexInTileSheet>880</indexInTileSheet>
+			<uniqueID>12345</uniqueID>
+			<combinedRings>
+				<Ring>
+					<isLostItem>false</isLostItem>
+					<category>-96</category>
+					<hasBeenInInventory>true</hasBeenInInventory>
+					<name>Lucky Ring</name>
+					<parentSheetIndex>859</parentSheetIndex>
+					<itemId>859</itemId>
+					<price>200</price>
+					<indexInTileSheet>859</indexInTileSheet>
+					<uniqueID>12346</uniqueID>
+				</Ring>
+				<Ring>
+					<isLostItem>false</isLostItem>
+					<category>-96</category>
+					<hasBeenInInventory>true</hasBeenInInventory>
+					<name>Burglar's Ring</name>
+					<parentSheetIndex>526</parentSheetIndex>
+					<itemId>526</itemId>
+					<price>1500</price>
+					<indexInTileSheet>526</indexInTileSheet>
+					<uniqueID>12347</uniqueID>
+				</Ring>
+			</combinedRings>
+		</leftRing>
+	</player>
+</SaveGame>`;
+		const mgr = new XMLManager();
+		const save = mgr.parse<SaveFile>(sourceXml);
+		const player = save.SaveGame.player;
+		if (!Array.isArray(player.items.Item)) {
+			player.items.Item = [player.items.Item];
+		}
+
+		const inv = withRoot(() => new Inventory(player));
+		const leftRing = inv.get("leftRing");
+
+		expect(leftRing).toBeInstanceOf(RingProxy);
+		expect(leftRing?.[Raw]["@_xsi:type"]).toBe("CombinedRing");
+
+		const xml = xmlFromSave(save);
+		expect(xml).toContain('<leftRing xsi:type="CombinedRing">');
+		expect(xml).toContain("<combinedRings>");
+		expect(xml).toContain("<name>Lucky Ring</name>");
+		expect(xml).toContain("<name>Burglar's Ring</name>");
 	});
 });

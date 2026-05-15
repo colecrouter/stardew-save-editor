@@ -55,11 +55,13 @@ function injectEquipmentXsiTypes(node: unknown): void {
 function stripEquipmentXsiTypes(node: unknown): void {
 	if (typeof node !== "object" || node === null) return;
 	const record = node as Record<string, unknown>;
-	for (const slot of Object.keys(EQUIPMENT_SLOT_TYPES)) {
+	for (const [slot, defaultXsiType] of Object.entries(EQUIPMENT_SLOT_TYPES)) {
 		const item = record[slot];
 		if (item && typeof item === "object") {
 			const itemRecord = item as Record<string, unknown>;
-			delete itemRecord["@_xsi:type"];
+			if (itemRecord["@_xsi:type"] === defaultXsiType) {
+				delete itemRecord["@_xsi:type"];
+			}
 		}
 	}
 	// Recurse into child objects (e.g. farmhands)

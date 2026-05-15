@@ -3,6 +3,7 @@ import type {
 	CaskItem,
 	ClothingItem,
 	ColoredObjectItem,
+	CombinedRingItem,
 	FurnitureItem,
 	HatItem,
 	Item,
@@ -78,7 +79,8 @@ export function createItemProxy(base: Item): ItemProxy {
 		case "Clothing":
 			return new ClothingProxy(base as ClothingItem);
 		case "Ring":
-			return new RingProxy(base as RingItem);
+		case "CombinedRing":
+			return new RingProxy(base as RingItem | CombinedRingItem);
 		case "ColoredObject":
 			return new ColoredObjectProxy(base as ColoredObjectItem);
 		case "Furniture":

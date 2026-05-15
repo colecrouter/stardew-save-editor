@@ -1494,6 +1494,13 @@ export interface RingItem extends Item {
 	type?: TypeEnum;
 }
 
+export interface CombinedRingItem extends Omit<RingItem, "@_xsi:type"> {
+	"@_xsi:type": "CombinedRing";
+	combinedRings?: {
+		Ring: RingItem[];
+	};
+}
+
 export interface ColoredObjectItem extends ObjectItem {
 	"@_xsi:type": "ColoredObject";
 	color?: Color;
@@ -1577,6 +1584,7 @@ export type KnownItemTypes = (
 	| BootsItem
 	| ClothingItem
 	| RingItem
+	| CombinedRingItem
 	| ColoredObjectItem
 	| TrinketItem
 	| FurnitureItem

@@ -278,6 +278,7 @@ function getExpectedMetadataTypes(item: Item): ItemInformation["_type"][] {
 		case "Clothing":
 			return ["Shirt", "Pants"];
 		case "Ring":
+		case "CombinedRing":
 			return ["Object"];
 		case "ColoredObject":
 		case "Object":

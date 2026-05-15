@@ -1,4 +1,5 @@
 <script lang="ts">
+	import * as Sentry from "@sentry/sveltekit";
 	import type { HTMLInputAttributes } from "svelte/elements";
 
 	type Props = Omit<HTMLInputAttributes, "value"> & {
@@ -13,12 +14,30 @@
 	let input: HTMLInputElement | undefined;
 	let isEmpty = $state(value === null);
 
+	function reportUnexpectedSymbol(context: string) {
+		Sentry.logger.error("Unexpected Symbol in UIInput value", {
+			context,
+			type: props.type ?? null,
+			name: props.name ?? null,
+			testid: props["data-testid"] ?? null,
+		});
+	}
+
 	function getter() {
 		if (isEmpty) return "";
+		if (typeof value === "symbol") {
+			reportUnexpectedSymbol("getter");
+			return "";
+		}
 		return value;
 	}
 
 	function setter(v: typeof value) {
+		if (typeof v === "symbol") {
+			reportUnexpectedSymbol("setter");
+			return;
+		}
+
 		// Reset custom validity
 		input?.setCustomValidity("");
 

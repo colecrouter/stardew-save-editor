@@ -37,7 +37,7 @@
 	let tint = $derived(
 		item && "color" in item ? colorToString(item.color) : item?.info?.color,
 	);
-	let smoked = $derived(item?.name.startsWith("Smoked"));
+	let smoked = $derived(item?.name?.startsWith("Smoked"));
 	let hasArtisanOverlay = $derived(item?.info?.color);
 	let overlayPosition = $derived(
 		hasArtisanOverlay

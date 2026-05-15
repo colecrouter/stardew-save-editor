@@ -358,7 +358,8 @@ export const ResolveItemData = (item: Item) => {
 	const directMetadataMatch = getDirectMetadataMatch(item);
 	if (directMetadataMatch) return directMetadataMatch;
 
-	const directMatch = ItemData.get(ItemNameHelper(item));
+	const helperName = ItemNameHelper(item);
+	const directMatch = helperName ? ItemData.get(helperName) : undefined;
 	if (directMatch) return directMatch;
 
 	return getPreservedMetadata(item);

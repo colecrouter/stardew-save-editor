@@ -96,7 +96,7 @@ export class BaseItemProxy<RawModel extends Item = Item>
 		$effect(() => this.syncAmount());
 	}
 
-	get name(): string {
+	get name(): string | undefined {
 		return ItemNameHelper(this[Raw]);
 	}
 

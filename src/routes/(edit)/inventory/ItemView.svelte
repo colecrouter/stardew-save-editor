@@ -148,7 +148,7 @@
 				<small>Item Name</small>
 				<UiInput
 					type="text"
-					value={ItemNameHelper(selectedItem[Raw])}
+					value={ItemNameHelper(selectedItem[Raw]) ?? ""}
 					disabled
 				/>
 			</label>

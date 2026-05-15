@@ -1275,7 +1275,7 @@ export interface Item {
 	"@_xsi:type"?: string;
 	category?: number;
 	hasBeenInInventory: boolean;
-	name: string;
+	name?: string;
 	parentSheetIndex?: number;
 	itemId?: string | number;
 	isRecipe: boolean;

@@ -41,17 +41,6 @@ export function reportMissingItemMetadata(raw: Item) {
 	});
 }
 
-function reportUnexpectedSymbol(context: string, raw: Item) {
-	if (typeof window === "undefined") return;
-
-	Sentry.logger.error("Unexpected Symbol in item editor state", {
-		context,
-		itemId: raw.itemId ?? null,
-		name: raw.name ?? null,
-		type: raw._type ?? raw.type ?? null,
-	});
-}
-
 export class BaseItemProxy<RawModel extends Item = Item>
 	implements DataProxy<RawModel>
 {
@@ -156,11 +145,6 @@ export class BaseItemProxy<RawModel extends Item = Item>
 			return;
 		}
 		if (this.amount === undefined) return;
-		if (typeof this.amount === "symbol") {
-			reportUnexpectedSymbol("BaseItemProxy.syncAmount", this[Raw]);
-			this.amount = this.computeAmount();
-			return;
-		}
 		if (this.amount < 1) this.amount = 1;
 		this[Raw].stack = this.amount;
 	}

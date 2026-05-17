@@ -1641,7 +1641,7 @@ export interface Quest {
 
 export interface Stats {
 	specificMonstersKilled: ItemArray;
-	Values: Values;
+	Values?: Values;
 	averageBedtime: string;
 	beveragesMade: string;
 	caveCarrotsFound: string;
@@ -1692,7 +1692,7 @@ export interface Stats {
 }
 
 export interface Values {
-	item: ValuesItem[];
+	item?: ValuesItem[];
 }
 
 export interface ValuesItem {

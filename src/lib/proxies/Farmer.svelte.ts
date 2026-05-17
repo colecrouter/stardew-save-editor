@@ -22,6 +22,10 @@ const walletFlagMap: ReadonlyArray<[legacyField: string, flag: MailFlag]> = [
 	["hasUnlockedSkullDoor", MailFlag.HasUnlockedSkullDoor],
 ];
 
+const getStatValue = (player: Player, key: string): number =>
+	player.stats.Values?.item?.find((stat) => stat.key.string === key)?.value
+		.unsignedInt ?? 0;
+
 const isNilMarker = (value: unknown): boolean =>
 	typeof value === "object" &&
 	value !== null &&
@@ -143,6 +147,14 @@ export class Farmer implements DataProxy<Player> {
 	// Provide compatibility alias for underlying raw object
 	get raw() {
 		return this[Raw];
+	}
+
+	get trinketSlots() {
+		return getStatValue(this[Raw], "trinketSlots");
+	}
+
+	get trinketsUnlocked() {
+		return this.trinketSlots > 0;
 	}
 
 	constructor(player: Player | undefined) {

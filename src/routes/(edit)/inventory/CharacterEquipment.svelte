@@ -13,7 +13,6 @@
 
 <script lang="ts">
 	import type { ParentIndex } from "$lib/ItemParentIndex";
-	import { Raw } from "$lib/proxies";
 	import type { Farmer } from "$lib/proxies/Farmer.svelte";
 	import UiInput from "$lib/ui/UIInput.svelte";
 	import Preview from "../appearance/CharacterPreview.svelte";
@@ -31,11 +30,7 @@
 		selectedIndex = index;
 	}
 
-	let trinketSlotStat = $derived(
-		player[Raw].stats.Values.item.find((s) => s.key.string === "trinketSlots")
-			?.value.unsignedInt ?? 0,
-	);
-	let trinketsUnlocked = $derived(trinketSlotStat > 0);
+	let trinketsUnlocked = $derived(player.trinketsUnlocked);
 </script>
 
 {#snippet slot(index: ParentIndex)}

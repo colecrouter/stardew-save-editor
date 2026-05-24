@@ -1,8 +1,8 @@
 import { sentrySvelteKit } from "@sentry/sveltekit";
 import { sveltekit } from "@sveltejs/kit/vite";
 import { svelteTesting } from "@testing-library/svelte/vite";
-import legacy from "@vitejs/plugin-legacy";
 import { defineConfig } from "vite";
+import legacy from "vite-plugin-sveltekit-legacy";
 
 export default defineConfig(({ mode }) => ({
 	plugins: [
@@ -28,8 +28,6 @@ export default defineConfig(({ mode }) => ({
 				"safari >= 15",
 				"ios >= 15",
 			],
-			modernPolyfills: true,
-			renderLegacyChunks: false,
 		}),
 		svelteTesting(),
 	],

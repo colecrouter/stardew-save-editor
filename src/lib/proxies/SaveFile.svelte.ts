@@ -95,6 +95,7 @@ export class SaveProxy implements DataProxy<SaveFile> {
 	private syncPlayers() {
 		const main = this.players[0];
 		if (!main) return;
+		const homeLocations = this.homeLocationsBySlot;
 		const orig =
 			this[Raw].SaveGame.farmhands === ""
 				? []
@@ -117,9 +118,65 @@ export class SaveProxy implements DataProxy<SaveFile> {
 			const raw = this.players[i]?.[Raw];
 			if (raw) newFarmhands.push(raw);
 		}
+		this.syncHomeLocations(homeLocations);
 		this[Raw].SaveGame.player = main[Raw];
 		this[Raw].SaveGame.farmhands = { Farmer: newFarmhands };
 		this.syncCellarAssignments();
+	}
+
+	private get rawPlayers() {
+		const farmhands =
+			this[Raw].SaveGame.farmhands === ""
+				? []
+				: this[Raw].SaveGame.farmhands.Farmer.filter((f) => f.name?.trim());
+		return [this[Raw].SaveGame.player, ...farmhands];
+	}
+
+	private get homeLocationsBySlot() {
+		const players = this.rawPlayers;
+		const homes = players.map((player) => player.homeLocation);
+		const cellarAssignments = this[Raw].SaveGame.cellarAssignments;
+		if (!cellarAssignments) return homes;
+
+		for (const player of players) {
+			const assignment = cellarAssignments.item.find(
+				(item) =>
+					item.value.long.toString() === player.UniqueMultiplayerID.toString(),
+			);
+			if (assignment) homes[assignment.key.int - 1] = player.homeLocation;
+		}
+
+		return homes;
+	}
+
+	private syncHomeLocations(homeLocations: string[]) {
+		for (const [index, player] of this.players.entries()) {
+			const homeLocation = homeLocations[index];
+			if (homeLocation) player[Raw].homeLocation = homeLocation;
+		}
+
+		for (const [index, player] of this.players.entries()) {
+			if (index === 0) continue;
+			const homeLocation = player[Raw].homeLocation;
+			const cabin = this.findCabinByHomeLocation(homeLocation);
+			if (cabin?.indoors) {
+				cabin.indoors.farmhandReference = player[Raw].UniqueMultiplayerID;
+			}
+		}
+	}
+
+	private findCabinByHomeLocation(homeLocation: string) {
+		for (const location of this[Raw].SaveGame.locations.GameLocation) {
+			for (const building of location.buildings?.Building ?? []) {
+				const indoors = building.indoors;
+				if (
+					indoors?.["@_xsi:type"] === "Cabin" &&
+					(indoors.uniqueName === homeLocation || indoors.name === homeLocation)
+				) {
+					return building;
+				}
+			}
+		}
 	}
 
 	private syncCellarAssignments() {

@@ -309,6 +309,7 @@ export interface Locations {
 }
 
 export interface GameLocation {
+	"@_xsi:type"?: string;
 	buildings: BuildingsClass | undefined;
 	animals: AnimalsArray | null;
 	piecesOfHay: number;
@@ -405,6 +406,7 @@ export interface GameLocation {
 	gourmandRequestsFulfilled?: number;
 	raceTrack?: RaceTrack;
 	uniqueName?: string;
+	farmhandReference?: number | string;
 	animalsThatLiveHere?: LongArrContainer;
 }
 

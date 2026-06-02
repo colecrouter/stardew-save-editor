@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import { flushSync } from "svelte";
 import { describe, expect, it } from "vitest";
 import { setup as mockIDB } from "vitest-indexeddb";
-import type { Player, Save } from "../codegen/save";
+import type { Building, Player, Save } from "../codegen/save";
 import { SaveProxy } from "../src/lib/proxies/SaveFile.svelte";
 import { SaveManager } from "../src/lib/SaveManager.svelte";
 import { XMLManager } from "../src/lib/workers/xml";
@@ -52,7 +52,7 @@ describe("SaveProxy", () => {
 
 		farmhand.name = "Farmhand";
 		farmhand.UniqueMultiplayerID = farmhandId;
-		farmhand.homeLocation = "FarmHouse2";
+		farmhand.homeLocation = "CabinFarmhand";
 		raw.SaveGame.farmhands = { Farmer: [farmhand as Player] };
 		raw.SaveGame.cellarAssignments = {
 			item: [
@@ -60,6 +60,23 @@ describe("SaveProxy", () => {
 				{ key: { int: 2 }, value: { long: farmhandId } },
 			],
 		} as Save["cellarAssignments"];
+		const farm = raw.SaveGame.locations.GameLocation.find(
+			(location) => location.name === "Farm",
+		);
+		if (!farm?.buildings) throw new Error("Expected farm buildings");
+		farm.buildings.Building = [
+			...(farm.buildings.Building ?? []),
+			{
+				buildingType: "Cabin",
+				owner: hostId,
+				indoors: {
+					"@_xsi:type": "Cabin",
+					name: "Cabin",
+					uniqueName: "CabinFarmhand",
+					farmhandReference: farmhandId,
+				},
+			} as Building,
+		];
 
 		let save!: SaveProxy;
 		const cleanup = $effect.root(() => {
@@ -78,7 +95,11 @@ describe("SaveProxy", () => {
 		managerCleanup();
 
 		expect(raw.SaveGame.player.UniqueMultiplayerID).toBe(farmhandId);
+		expect(raw.SaveGame.player.homeLocation).toBe("FarmHouse");
 		expect(raw.SaveGame.farmhands.Farmer[0]?.UniqueMultiplayerID).toBe(hostId);
+		expect(raw.SaveGame.farmhands.Farmer[0]?.homeLocation).toBe(
+			"CabinFarmhand",
+		);
 
 		const assignments = new Map(
 			raw.SaveGame.cellarAssignments.item.map((item) => [
@@ -88,5 +109,10 @@ describe("SaveProxy", () => {
 		);
 		expect(assignments.get(1)).toBe(farmhandId);
 		expect(assignments.get(2)).toBe(hostId);
+
+		const reassignedCabin = farm.buildings.Building?.find(
+			(building) => building.indoors?.uniqueName === "CabinFarmhand",
+		);
+		expect(reassignedCabin?.indoors?.farmhandReference).toBe(hostId);
 	});
 });

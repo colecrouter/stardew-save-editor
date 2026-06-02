@@ -185,7 +185,7 @@ export interface BundleDataItem {
 }
 
 export interface CellarAssignments {
-	item: CellarAssignmentsItem;
+	item: CellarAssignmentsItem[];
 }
 
 export interface CellarAssignmentsItem {

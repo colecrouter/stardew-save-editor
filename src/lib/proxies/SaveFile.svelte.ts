@@ -119,6 +119,32 @@ export class SaveProxy implements DataProxy<SaveFile> {
 		}
 		this[Raw].SaveGame.player = main[Raw];
 		this[Raw].SaveGame.farmhands = { Farmer: newFarmhands };
+		this.syncCellarAssignments();
+	}
+
+	private syncCellarAssignments() {
+		const cellarAssignments = this[Raw].SaveGame.cellarAssignments;
+		if (!cellarAssignments) return;
+
+		const assignmentByCellar = new Map(
+			cellarAssignments.item.map((item) => [item.key.int, item]),
+		);
+		const slotOneAssignment = assignmentByCellar.get(1) ?? {
+			key: { int: 1 },
+			value: { long: this.players[0]?.uniqueID ?? 0 },
+		};
+		assignmentByCellar.set(1, slotOneAssignment);
+
+		for (const [cellarNumber, assignment] of assignmentByCellar) {
+			const player = this.players[cellarNumber - 1];
+			if (player) assignment.value.long = player.uniqueID;
+		}
+
+		const sortedAssignments = assignmentByCellar
+			.values()
+			.toArray()
+			.sort((a, b) => a.key.int - b.key.int);
+		cellarAssignments.item = sortedAssignments;
 	}
 
 	public nextFarmer() {

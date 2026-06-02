@@ -53,6 +53,7 @@ export const nestedArrayTags = new Map<string, string[]>([
 			"giftedItems",
 			"tailoredItems",
 			"chestConsumedLevels",
+			"cellarAssignments",
 		],
 	],
 ]);

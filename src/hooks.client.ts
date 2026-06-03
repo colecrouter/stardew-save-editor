@@ -28,6 +28,9 @@ dev ||
 				blockAllMedia: false,
 			}),
 			captureConsoleIntegration({ levels: ["error"] }),
+			Sentry.browserSessionIntegration({
+				lifecycle: "page",
+			}),
 		],
 
 		ignoreErrors: [

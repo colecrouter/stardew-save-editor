@@ -206,8 +206,9 @@ export class SaveManager {
 			JSON.parse(JSON.stringify(this.save.raw)),
 			pretty,
 		);
-		// macOS uses mime type to determine file type, so we have to use text/text to prevent it from suggesting .xml
-		return new Blob([bytes.buffer], { type: "text/text; charset=UTF-8" });
+		// Save files intentionally have no extension. Treat them as generic binary
+		// data so browsers do not infer an XML- or platform-specific extension.
+		return new Blob([bytes.buffer], { type: "application/octet-stream" });
 	}
 
 	reset() {

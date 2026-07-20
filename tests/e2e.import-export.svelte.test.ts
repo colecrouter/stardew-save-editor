@@ -25,6 +25,8 @@ describe("Import/Export roundtrip", () => {
 
 	it("exports identical XML after immediate re-export", async () => {
 		const blob = await saveManager.export(true);
+		expect(blob.size).toBeGreaterThan(0);
+		expect(blob.type).toBe("application/octet-stream");
 		const exportedXml = await blob.text();
 		assertXmlEqual(originalXml, exportedXml);
 		expect(true).toBe(true);

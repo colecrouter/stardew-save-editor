@@ -59,8 +59,25 @@ export type ItemProxy =
 /**
  * Factory function to create the appropriate ItemProxy subclass based on the raw item's type.
  * If the type is unknown, it falls back to a generic ItemProxy and logs a warning.
+ *
+ * Modded items (e.g. from content packs like Stardew Valley Expanded) can share a
+ * vanilla xsi:type while having no metadata in our generated item database. In that
+ * case the typed proxy's constructor throws a TypeError rather than letting the
+ * whole save fail to load, so we fall back to a generic ItemProxy instead.
  */
 export function createItemProxy(base: Item): ItemProxy {
+	try {
+		return createTypedItemProxy(base);
+	} catch (error) {
+		if (!(error instanceof TypeError)) throw error;
+		console.warn(
+			`Failed to create typed proxy for item "${base.name}": ${error.message}. Falling back to generic ItemProxy.`,
+		);
+		return new BaseItemProxy(base);
+	}
+}
+
+function createTypedItemProxy(base: Item): ItemProxy {
 	switch (base["@_xsi:type"] as KnownItemTypes | "Wand" | "Mannequin") {
 		case "MeleeWeapon":
 			return new WeaponProxy(base as WeaponItem);

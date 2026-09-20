@@ -1,6 +1,7 @@
 import { CommunityBundles } from "$lib/proxies/CommunityBundles.svelte";
 import { Farmer } from "$lib/proxies/Farmer.svelte";
 import { GameLocation } from "$lib/proxies/GameLocation.svelte";
+import { QiQuests } from "$lib/proxies/QiQuests.svelte";
 import { type DataProxy, Raw } from ".";
 
 export class SaveProxy implements DataProxy<SaveFile> {
@@ -20,6 +21,7 @@ export class SaveProxy implements DataProxy<SaveFile> {
 	public deepestMineLevel: number;
 
 	public communityBundles: CommunityBundles | undefined; // derived
+	public qiQuests: QiQuests;
 
 	get raw() {
 		return this[Raw];
@@ -54,6 +56,7 @@ export class SaveProxy implements DataProxy<SaveFile> {
 			this.locations.find((l) => l[Raw].name === "Farm"),
 		);
 		this.communityBundles = new CommunityBundles(this);
+		this.qiQuests = new QiQuests(this);
 
 		this.goldenWalnuts = $state(this[Raw].SaveGame.goldenWalnuts ?? 0);
 		$effect(() => {

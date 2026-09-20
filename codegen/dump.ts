@@ -7,6 +7,11 @@ import {
 	writeFile,
 } from "node:fs/promises";
 import { imageDimensionsFromData } from "image-dimensions";
+import {
+	createSpecialOrderResolver,
+	parseRequiredCount,
+	type RandomizedElement,
+} from "./specialOrderTokens";
 import bigCraftables from "../content/Data/BigCraftables.json" with {
 	type: "json",
 };
@@ -251,7 +256,9 @@ const writeToFile = JSON.stringify(
 	[
 		...objectsArray.filter(
 			(obj) =>
-				!["Dried", "Pickled", "Juice", "Jelly", "Smoked"].includes(obj.name),
+				!["Dried", "Pickled", "Juice", "Jelly", "Smoked"].includes(
+					String(obj.name),
+				),
 		),
 		...bigCraftablesArray,
 		...bootsArray,
@@ -300,6 +307,108 @@ await writeFile(
 	"./generated/craftingrecipes.json",
 	JSON.stringify(craftingRecipesArray),
 );
+
+// **Qi Quests**
+
+interface SpecialOrderData {
+	RandomizedElements?: RandomizedElement[] | null;
+	Name: string;
+	Requester: string;
+	Duration: string;
+	OrderType: string;
+	SpecialRule: string | null;
+	Text: string;
+	Objectives: {
+		Type: string;
+		Text: string;
+		RequiredCount: string;
+		Data?: Record<string, string>;
+	}[];
+	Rewards: { Type: string; Data: Record<string, string> }[];
+}
+
+// SpecialOrders.json stores duration as a named bucket rather than a day count.
+const durationDays: Record<string, number> = {
+	OneDay: 1,
+	ThreeDays: 3,
+	Week: 7,
+	TwoWeeks: 14,
+	Month: 28,
+};
+
+const specialOrders = JSON.parse(
+	await readFile("./content/Data/SpecialOrders.json", "utf-8"),
+) as Record<string, SpecialOrderData>;
+const specialOrderStrings = JSON.parse(
+	await readFile("./content/Strings/SpecialOrderStrings.json", "utf-8"),
+) as Record<string, string>;
+
+// SpecialOrders.json stores text as `[TokenKey]` tokens resolved via SpecialOrderStrings.json
+const resolveToken = (token: string) => {
+	const match = /^\[(.+)\]$/.exec(token);
+	if (!match?.[1]) return token;
+	return specialOrderStrings[match[1]] ?? token;
+};
+
+const qiQuestsArray = Object.entries(specialOrders)
+	.filter(([, order]) => order.OrderType === "Qi")
+	.map(([questKey, order]) => {
+		const resolveObjective = createSpecialOrderResolver(
+			questKey,
+			order.RandomizedElements,
+			specialOrderStrings,
+		);
+		return {
+			questKey,
+			// Resolved text for display in the editor's own UI.
+			name: resolveToken(order.Name),
+			description: resolveToken(order.Text),
+			// The save format keeps questName/questDescription as the raw,
+			// unresolved `[Token]` (confirmed against tests/TestSave) so the game
+			// can re-resolve it for the player's current language.
+			nameToken: order.Name,
+			descriptionToken: order.Text,
+			// Raw bucket name (e.g. "Week") - the save format stores this verbatim
+			// rather than a computed day count (confirmed against tests/TestSave).
+			duration: order.Duration,
+			durationDays: durationDays[order.Duration] ?? 7,
+			specialRule: order.SpecialRule ?? "",
+			objectives: order.Objectives.map((objective) => ({
+				// The save format tags each objective with an `xsi:type` of
+				// `<Type>Objective` (confirmed against tests/TestSave, e.g. content
+				// Type "Donate" -> save xsi:type "DonateObjective").
+				type: objective.Type,
+				description: resolveObjective(objective.Text),
+				maxCount: parseRequiredCount(resolveObjective(objective.RequiredCount)),
+				// Item objectives use context tags; mine-floor objectives also need
+				// the location flag below to distinguish Skull Cavern from the mines.
+				acceptableContextTagSets: resolveObjective(
+					objective.Data?.AcceptedContextTags ?? "",
+				),
+				dropBox: objective.Data?.DropBox,
+				dropBoxGameLocation: objective.Data?.DropBoxGameLocation,
+				dropBoxTileLocation: objective.Data?.DropBoxIndicatorLocation,
+				minimumCapacity: objective.Data?.MinimumCapacity
+					? Number.parseInt(objective.Data.MinimumCapacity, 10)
+					: undefined,
+				// Only meaningful for "Ship" objectives (confirmed against tests/TestSave).
+				useShipmentValue:
+					objective.Type === "Ship"
+						? objective.Data?.UseShipmentValue === "True"
+						: undefined,
+				skullCave:
+					objective.Type === "ReachMineFloor"
+						? objective.Data?.SkullCave?.toLowerCase() === "true"
+						: undefined,
+			})),
+			rewardGems: Number.parseInt(
+				order.Rewards.find((reward) => reward.Type === "Gems")?.Data.Amount ??
+					"0",
+				10,
+			),
+		};
+	});
+await writeFile("./generated/qiquests.json", JSON.stringify(qiQuestsArray));
 
 // **Assets**
 

@@ -1,3 +1,7 @@
+openspec
+.claude/skills/openspec-*
+.claude/commands/opsx
+
 .idea
 .DS_Store
 node_modules

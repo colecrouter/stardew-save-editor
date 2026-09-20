@@ -1,9 +1,9 @@
 import { SvelteMap } from "svelte/reactivity";
 import { characters, dateableCharacters } from "$lib/NPCs";
 import {
-	Status,
 	type FriendshipData,
 	type FriendshipDataItem,
+	Status,
 } from "$types/save";
 import { type DataProxy, Dispose, Raw } from ".";
 

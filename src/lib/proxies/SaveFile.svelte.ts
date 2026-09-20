@@ -1,5 +1,5 @@
-import { CommunityBundles } from "$lib/proxies/CommunityBundles.svelte";
 import { type ChestProxy, discoverChests } from "$lib/proxies/Chest.svelte";
+import { CommunityBundles } from "$lib/proxies/CommunityBundles.svelte";
 import { Farmer } from "$lib/proxies/Farmer.svelte";
 import { GameLocation } from "$lib/proxies/GameLocation.svelte";
 import { type DataProxy, Raw } from ".";

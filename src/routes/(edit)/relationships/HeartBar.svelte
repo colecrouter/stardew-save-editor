@@ -10,14 +10,22 @@
 	}
 
 	let { npc, name }: Props = $props();
+	const hasPortrait = $derived(name !== "Leo");
 </script>
 
 <div class="row" data-testid="friendship-row">
 	<UiContainerSmall>
 		<div
 			class="portrait"
-			style:background-image={`url('${asset(`/assets/portraits/${name}.png`)}')`}
-		></div>
+			class:placeholder={!hasPortrait}
+			style:background-image={hasPortrait
+				? `url('${asset(`/assets/portraits/${name}.png`)}')`
+				: undefined}
+		>
+			{#if !hasPortrait}
+				<strong aria-hidden="true">{name.slice(0, 1)}</strong>
+			{/if}
+		</div>
 	</UiContainerSmall>
 
 	<div class="main">
@@ -58,6 +66,14 @@
 		background-size: 200% auto;
 		border: 2px solid #f0d2a8;
 		border-radius: 2px;
+	}
+
+	.portrait.placeholder {
+		display: grid;
+		place-items: center;
+		background: linear-gradient(#5a3978, #2e214d);
+		color: #f7d779;
+		font-size: 2rem;
 	}
 
 	.main {

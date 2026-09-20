@@ -1,13 +1,18 @@
 import { SvelteMap } from "svelte/reactivity";
-import { dateableCharacters } from "$lib/NPCs";
-import type { FriendshipData, FriendshipDataItem, Status } from "$types/save";
-import { type DataProxy, Raw } from ".";
+import { characters, dateableCharacters } from "$lib/NPCs";
+import {
+	Status,
+	type FriendshipData,
+	type FriendshipDataItem,
+} from "$types/save";
+import { type DataProxy, Dispose, Raw } from ".";
 
 /**
  * Friendship data for a single NPC. Reflects the current state of the friendship.
  */
 export class Friendship implements DataProxy<FriendshipDataItem> {
 	public [Raw]: FriendshipDataItem;
+	public [Dispose]?: () => void;
 
 	public points: number;
 	public giftsThisWeek: number;
@@ -33,6 +38,32 @@ export class Friendship implements DataProxy<FriendshipDataItem> {
 	private dateable = $derived(dateableCharacters.some((c) => c === this.name));
 
 	private static HEART_SIZE = 250; // points per "heart" as displayed in-game
+
+	/** Create a new zero-heart relationship from outside an existing effect root. */
+	static fromName(name: string): Friendship {
+		const raw: FriendshipDataItem = {
+			key: { string: name },
+			value: {
+				Friendship: {
+					Points: 0,
+					GiftsThisWeek: 0,
+					GiftsToday: 0,
+					TalkedToToday: false,
+					ProposalRejected: false,
+					Status: Status.Friendly,
+					Proposer: 0,
+					RoommateMarriage: false,
+				},
+			},
+		};
+
+		let friendship!: Friendship;
+		const dispose = $effect.root(() => {
+			friendship = new Friendship(raw);
+		});
+		friendship[Dispose] = dispose;
+		return friendship;
+	}
 
 	constructor(item: FriendshipDataItem) {
 		this[Raw] = item;
@@ -141,13 +172,26 @@ export class Friendships
 		return this;
 	}
 
+	/** Add every supported social NPC that does not yet exist in this save. */
+	addMissingCharacters(): number {
+		let added = 0;
+		for (const name of characters) {
+			if (this.has(name)) continue;
+			this.set(name, Friendship.fromName(name));
+			added++;
+		}
+		return added;
+	}
+
 	delete(name: string): boolean {
 		const idx = this[Raw].item.findIndex((i) => i.key.string === name);
-		if (idx !== -1) {
-			this[Raw].item.splice(idx, 1);
-			return true;
-		}
-		return false;
+		if (idx === -1) return false;
+
+		const friendship = this.get(name);
+		this[Raw].item.splice(idx, 1);
+		const deleted = super.delete(name);
+		friendship?.[Dispose]?.();
+		return deleted;
 	}
 }
 

@@ -166,7 +166,7 @@
 					{/each}
 				{/if}
 			{/each}
-		{:else if selectedIndex}
+		{:else if selectedIndex !== undefined}
 			<label>
 				<small>Item Name</small>
 				<!-- <UiInput
@@ -186,7 +186,7 @@
 			<button
 				class="btn btn-danger"
 				onclick={() => {
-					if (selectedIndex) {
+					if (selectedIndex !== undefined) {
 						deleteItem();
 					}
 				}}

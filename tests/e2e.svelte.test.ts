@@ -4,6 +4,7 @@ import { flushSync, tick } from "svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setup as mockIDB } from "vitest-indexeddb";
 import { Raw } from "$lib/proxies";
+import { characters } from "$lib/NPCs";
 import {
 	parseBundleKey,
 	parseBundleValue,
@@ -597,6 +598,28 @@ describe("Save Manager Integration Tests", () => {
 	});
 
 	describe("Relationships", () => {
+		it("should add every NPC missing from the save", async () => {
+			const page = harness.render(relationshipsPage);
+			const save = saveManager.save;
+			if (!save) return;
+
+			const before = save.player.friendships.size;
+			const button = page.getByTestId("add-missing-friendships");
+			await fireEvent.click(button);
+			await tick();
+
+			expect(save.player.friendships.size).toBe(characters.length);
+			expect(save.player.friendships.size).toBeGreaterThanOrEqual(before);
+			expect(save.player.friendships.has("Leo")).toBe(true);
+			expect(save.player[Raw].friendshipData.item).toHaveLength(
+				characters.length,
+			);
+			expect(
+				(page.getByTestId("add-missing-friendships") as HTMLButtonElement)
+					.disabled,
+			).toBe(true);
+		});
+
 		it("should update friendship hearts", async () => {
 			const page = harness.render(relationshipsPage);
 			if (!saveManager.save) return;

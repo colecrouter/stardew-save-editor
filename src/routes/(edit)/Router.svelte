@@ -5,6 +5,7 @@
 
 <nav>
 	<UiButton href={resolve("/inventory")} alt="Inventory">🎒</UiButton>
+	<UiButton href={resolve("/chests")} alt="Chests">🧰</UiButton>
 	<UiButton href={resolve("/character")} alt="Character">🙋</UiButton>
 	<UiButton href={resolve("/appearance")} alt="Appearance">🪞</UiButton>
 	<UiButton href={resolve("/relationships")} alt="Relationships">💖</UiButton>

@@ -66,6 +66,67 @@ describe("QiQuests", () => {
 		saveManager = await importSave(fixture);
 	});
 
+	it("imports an empty board and persists newly offered quests", async () => {
+		const xml = fixture.replace(
+			/<availableSpecialOrders>[\s\S]*?<\/availableSpecialOrders>/,
+			"<availableSpecialOrders />",
+		);
+		expect(xml).not.toBe(fixture);
+		saveManager = await importSave(xml);
+		const save = saveManager.save;
+		if (!save) throw new Error("Save import failed");
+		expect([...save.qiQuests]).toEqual([]);
+		save.qiQuests.add("QiChallenge8");
+		flushSync();
+		const exported = await (await saveManager.export()).text();
+		const reimported = await importSave(exported);
+		if (!reimported.save) throw new Error("Save reimport failed");
+		expect([...reimported.save.qiQuests]).toEqual(["QiChallenge8"]);
+	});
+
+	it.each([
+		[1, "spring", 6, 8],
+		[3, "summer", 28, 282],
+		[3, "winter", 28, 338],
+	] as const)("uses the world date for deadlines in year %i, %s %i", async (year, season, day, expectedDeadline) => {
+		const save = saveManager.save;
+		if (!save) throw new Error("Save import failed");
+		const game = save[Raw].SaveGame;
+		game.year = year;
+		game.currentSeason = season as typeof game.currentSeason;
+		game.dayOfMonth = day;
+		// Player statistics may be empty, stale, or edited independently.
+		game.player.stats.daysPlayed = "9999";
+		save.qiQuests.accept("QiChallenge8");
+		flushSync();
+		const exported = await (await saveManager.export()).text();
+		const parsed = new XMLManager().parse<SaveFile>(exported);
+		expect(
+			parsed.SaveGame.specialOrders.SpecialOrder.find(
+				(order) => order.questKey === "QiChallenge8",
+			)?.dueDate,
+		).toBe(expectedDeadline);
+	});
+
+	it("exports Four Precious Stones with a resolved collection objective", async () => {
+		const save = saveManager.save;
+		if (!save) throw new Error("Save import failed");
+		save.qiQuests.accept("QiChallenge4");
+		flushSync();
+		const exported = await (await saveManager.export()).text();
+		const parsed = new XMLManager().parse<SaveFile>(exported);
+		const order = parsed.SaveGame.specialOrders.SpecialOrder.find(
+			(entry) => entry.questKey === "QiChallenge4",
+		);
+		if (!order || !Array.isArray(order.objectives))
+			throw new Error("Missing objectives");
+		expect(order.objectives[0]).toMatchObject({
+			maxCount: 4,
+			acceptableContextTagSets: "item_prismatic_shard",
+			description: "Collect 4 Prismatic Shards.",
+		});
+	});
+
 	it("reflects the save's existing available Qi Challenges, leaving non-Qi orders alone", () => {
 		const save = saveManager.save;
 		expect(save).toBeTruthy();

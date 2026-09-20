@@ -96,7 +96,15 @@ export class QiQuests
 	private acceptedQuestKeys: SvelteSet<string>;
 
 	constructor(saveData: SaveProxy) {
-		const available = saveData[Raw].SaveGame.availableSpecialOrders;
+		// An empty XML container parses as "", even with SpecialOrder marked
+		// as an array. Keep the normalized container attached for export.
+		const rawAvailable = saveData[Raw].SaveGame.availableSpecialOrders;
+		const available =
+			rawAvailable && typeof rawAvailable === "object"
+				? rawAvailable
+				: { SpecialOrder: [] };
+		available.SpecialOrder ??= [];
+		saveData[Raw].SaveGame.availableSpecialOrders = available;
 		const existing = available.SpecialOrder.filter((order) =>
 			templatesByKey.has(order.questKey),
 		).map((order) => order.questKey);
@@ -155,8 +163,13 @@ export class QiQuests
 	private buildEntry(
 		template: QiQuestTemplate,
 	): AvailableSpecialOrdersSpecialOrder {
-		const daysPlayed =
-			Number.parseInt(this.saveData.player[Raw].stats.daysPlayed, 10) || 0;
+		const { year, currentSeason, dayOfMonth } = this.saveData[Raw].SaveGame;
+		const seasonIndex = ["spring", "summer", "fall", "winter"].indexOf(
+			currentSeason,
+		);
+		// Special-order deadlines use WorldDate.TotalDays (Spring 1, year 1 = 0),
+		// not the selected farmer's legacy daysPlayed statistic.
+		const totalDays = (year - 1) * 112 + seasonIndex * 28 + dayOfMonth - 1;
 
 		const objectives: QiObjective[] = template.objectives.map((objective) => ({
 			"@_xsi:type": `${objective.type}Objective`,
@@ -208,7 +221,7 @@ export class QiQuests
 			specialRule: template.specialRule,
 			readyForRemoval: false,
 			itemToRemoveOnEnd: -1,
-			dueDate: daysPlayed + template.durationDays,
+			dueDate: totalDays + template.durationDays,
 			duration: template.duration,
 			questState: "InProgress",
 		};

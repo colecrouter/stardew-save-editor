@@ -7,6 +7,11 @@ import {
 	writeFile,
 } from "node:fs/promises";
 import { imageDimensionsFromData } from "image-dimensions";
+import {
+	createSpecialOrderResolver,
+	parseRequiredCount,
+	type RandomizedElement,
+} from "./specialOrderTokens";
 import bigCraftables from "../content/Data/BigCraftables.json" with {
 	type: "json",
 };
@@ -306,6 +311,7 @@ await writeFile(
 // **Qi Quests**
 
 interface SpecialOrderData {
+	RandomizedElements?: RandomizedElement[] | null;
 	Name: string;
 	Requester: string;
 	Duration: string;
@@ -346,50 +352,59 @@ const resolveToken = (token: string) => {
 
 const qiQuestsArray = Object.entries(specialOrders)
 	.filter(([, order]) => order.OrderType === "Qi")
-	.map(([questKey, order]) => ({
-		questKey,
-		// Resolved text for display in the editor's own UI.
-		name: resolveToken(order.Name),
-		description: resolveToken(order.Text),
-		// The save format keeps questName/questDescription as the raw,
-		// unresolved `[Token]` (confirmed against tests/TestSave) so the game
-		// can re-resolve it for the player's current language.
-		nameToken: order.Name,
-		descriptionToken: order.Text,
-		// Raw bucket name (e.g. "Week") - the save format stores this verbatim
-		// rather than a computed day count (confirmed against tests/TestSave).
-		duration: order.Duration,
-		durationDays: durationDays[order.Duration] ?? 7,
-		specialRule: order.SpecialRule ?? "",
-		objectives: order.Objectives.map((objective) => ({
-			// The save format tags each objective with an `xsi:type` of
-			// `<Type>Objective` (confirmed against tests/TestSave, e.g. content
-			// Type "Donate" -> save xsi:type "DonateObjective").
-			type: objective.Type,
-			description: resolveToken(objective.Text),
-			maxCount: Number.parseInt(objective.RequiredCount, 10) || 1,
-			// Only "Donate"/"Ship"/"Fish"/etc. objectives key off tags & drop boxes;
-			// score/mine-floor/gift/custom objectives track live game events instead
-			// and have no extra save-side data to carry.
-			acceptableContextTagSets: objective.Data?.AcceptedContextTags ?? "",
-			dropBox: objective.Data?.DropBox,
-			dropBoxGameLocation: objective.Data?.DropBoxGameLocation,
-			dropBoxTileLocation: objective.Data?.DropBoxIndicatorLocation,
-			minimumCapacity: objective.Data?.MinimumCapacity
-				? Number.parseInt(objective.Data.MinimumCapacity, 10)
-				: undefined,
-			// Only meaningful for "Ship" objectives (confirmed against tests/TestSave).
-			useShipmentValue:
-				objective.Type === "Ship"
-					? objective.Data?.UseShipmentValue === "True"
+	.map(([questKey, order]) => {
+		const resolveObjective = createSpecialOrderResolver(
+			questKey,
+			order.RandomizedElements,
+			specialOrderStrings,
+		);
+		return {
+			questKey,
+			// Resolved text for display in the editor's own UI.
+			name: resolveToken(order.Name),
+			description: resolveToken(order.Text),
+			// The save format keeps questName/questDescription as the raw,
+			// unresolved `[Token]` (confirmed against tests/TestSave) so the game
+			// can re-resolve it for the player's current language.
+			nameToken: order.Name,
+			descriptionToken: order.Text,
+			// Raw bucket name (e.g. "Week") - the save format stores this verbatim
+			// rather than a computed day count (confirmed against tests/TestSave).
+			duration: order.Duration,
+			durationDays: durationDays[order.Duration] ?? 7,
+			specialRule: order.SpecialRule ?? "",
+			objectives: order.Objectives.map((objective) => ({
+				// The save format tags each objective with an `xsi:type` of
+				// `<Type>Objective` (confirmed against tests/TestSave, e.g. content
+				// Type "Donate" -> save xsi:type "DonateObjective").
+				type: objective.Type,
+				description: resolveObjective(objective.Text),
+				maxCount: parseRequiredCount(resolveObjective(objective.RequiredCount)),
+				// Only "Donate"/"Ship"/"Fish"/etc. objectives key off tags & drop boxes;
+				// score/mine-floor/gift/custom objectives track live game events instead
+				// and have no extra save-side data to carry.
+				acceptableContextTagSets: resolveObjective(
+					objective.Data?.AcceptedContextTags ?? "",
+				),
+				dropBox: objective.Data?.DropBox,
+				dropBoxGameLocation: objective.Data?.DropBoxGameLocation,
+				dropBoxTileLocation: objective.Data?.DropBoxIndicatorLocation,
+				minimumCapacity: objective.Data?.MinimumCapacity
+					? Number.parseInt(objective.Data.MinimumCapacity, 10)
 					: undefined,
-		})),
-		rewardGems: Number.parseInt(
-			order.Rewards.find((reward) => reward.Type === "Gems")?.Data.Amount ??
-				"0",
-			10,
-		),
-	}));
+				// Only meaningful for "Ship" objectives (confirmed against tests/TestSave).
+				useShipmentValue:
+					objective.Type === "Ship"
+						? objective.Data?.UseShipmentValue === "True"
+						: undefined,
+			})),
+			rewardGems: Number.parseInt(
+				order.Rewards.find((reward) => reward.Type === "Gems")?.Data.Amount ??
+					"0",
+				10,
+			),
+		};
+	});
 await writeFile("./generated/qiquests.json", JSON.stringify(qiQuestsArray));
 
 // **Assets**

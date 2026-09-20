@@ -70,9 +70,9 @@
 		"objectives": [
 			{
 				"type": "Collect",
-				"description": "Collect {Treasure:Count} {Treasure:LocalizedName}.",
-				"maxCount": 1,
-				"acceptableContextTagSets": "{Treasure:Target}"
+				"description": "Collect 4 Prismatic Shards.",
+				"maxCount": 4,
+				"acceptableContextTagSets": "item_prismatic_shard"
 			},
 			{
 				"type": "Donate",

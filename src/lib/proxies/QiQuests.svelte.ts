@@ -20,6 +20,7 @@ interface QiQuestObjectiveTemplate {
 	dropBoxTileLocation?: string;
 	minimumCapacity?: number;
 	useShipmentValue?: boolean;
+	skullCave?: boolean;
 }
 
 interface QiQuestTemplate {
@@ -43,6 +44,7 @@ interface QiQuestTemplate {
 type QiObjective = PurpleObjective & {
 	"@_xsi:type": string;
 	useShipmentValue?: boolean;
+	skullCave?: boolean;
 };
 type QiReward = { "@_xsi:type": string; amount: { int: number } };
 
@@ -144,11 +146,40 @@ export class QiQuests
 	 * next time the player visits Mr. Qi. Non-Qi orders are left alone.
 	 */
 	removeInProgress(questKey: string): void {
-		const active = this.saveData[Raw].SaveGame.specialOrders;
-		if (active && typeof active === "object") {
-			active.SpecialOrder = active.SpecialOrder.filter(
-				(order) => order.questKey !== questKey,
-			);
+		const game = this.saveData[Raw].SaveGame;
+		const active = game.specialOrders;
+		if (!templatesByKey.has(questKey) || !active || typeof active !== "object")
+			return;
+		const cancelled = active.SpecialOrder.filter(
+			(order) =>
+				order.questKey === questKey && order.questState === "InProgress",
+		);
+		if (!cancelled.length) return;
+		active.SpecialOrder = active.SpecialOrder.filter(
+			(order) => !cancelled.includes(order),
+		);
+
+		const rulesOf = (order: SpecialOrdersSpecialOrder) =>
+			(order.specialRule ?? "").split(",").map((rule) => rule.trim());
+		const removedRules = new Set(
+			cancelled.filter((order) => order.appliedSpecialRules).flatMap(rulesOf),
+		);
+		const retainedRules = new Set(
+			active.SpecialOrder.filter(
+				(order) =>
+					order.questState === "InProgress" && order.appliedSpecialRules,
+			).flatMap(rulesOf),
+		);
+
+		// Match the persistent effects of RemoveSpecialRuleAtEndOfDay. Its
+		// pending-cleanup queue isn't serialized, so apply cleanup here. Remove
+		// only the quest's increment, preserving shrine/other difficulty sources.
+		if (removedRules.has("MINE_HARD") && !retainedRules.has("MINE_HARD")) {
+			game.minesDifficulty = Math.max(0, game.minesDifficulty - 1);
+			game.mine_lowestLevelReachedForOrder = -1;
+		}
+		if (removedRules.has("SC_HARD") && !retainedRules.has("SC_HARD")) {
+			game.skullCavesDifficulty = Math.max(0, game.skullCavesDifficulty - 1);
 		}
 
 		this.acceptedQuestKeys.delete(questKey);
@@ -193,6 +224,9 @@ export class QiQuests
 				: {}),
 			...(objective.useShipmentValue !== undefined
 				? { useShipmentValue: objective.useShipmentValue }
+				: {}),
+			...(objective.skullCave !== undefined
+				? { skullCave: objective.skullCave }
 				: {}),
 		}));
 

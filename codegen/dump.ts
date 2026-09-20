@@ -380,9 +380,8 @@ const qiQuestsArray = Object.entries(specialOrders)
 				type: objective.Type,
 				description: resolveObjective(objective.Text),
 				maxCount: parseRequiredCount(resolveObjective(objective.RequiredCount)),
-				// Only "Donate"/"Ship"/"Fish"/etc. objectives key off tags & drop boxes;
-				// score/mine-floor/gift/custom objectives track live game events instead
-				// and have no extra save-side data to carry.
+				// Item objectives use context tags; mine-floor objectives also need
+				// the location flag below to distinguish Skull Cavern from the mines.
 				acceptableContextTagSets: resolveObjective(
 					objective.Data?.AcceptedContextTags ?? "",
 				),
@@ -396,6 +395,10 @@ const qiQuestsArray = Object.entries(specialOrders)
 				useShipmentValue:
 					objective.Type === "Ship"
 						? objective.Data?.UseShipmentValue === "True"
+						: undefined,
+				skullCave:
+					objective.Type === "ReachMineFloor"
+						? objective.Data?.SkullCave?.toLowerCase() === "true"
 						: undefined,
 			})),
 			rewardGems: Number.parseInt(

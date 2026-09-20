@@ -100,7 +100,8 @@
 				"type": "ReachMineFloor",
 				"description": "Make it to level 100 in the Skull Cavern.",
 				"maxCount": 100,
-				"acceptableContextTagSets": ""
+				"acceptableContextTagSets": "",
+				"skullCave": true
 			}
 		],
 		"rewardGems": 25
@@ -201,7 +202,8 @@
 				"type": "ReachMineFloor",
 				"description": "Reach the bottom of the mines, again.",
 				"maxCount": 120,
-				"acceptableContextTagSets": ""
+				"acceptableContextTagSets": "",
+				"skullCave": false
 			}
 		],
 		"rewardGems": 50
@@ -220,7 +222,8 @@
 				"type": "ReachMineFloor",
 				"description": "Make it to level 100 of the Skull Cavern.",
 				"maxCount": 100,
-				"acceptableContextTagSets": ""
+				"acceptableContextTagSets": "",
+				"skullCave": true
 			}
 		],
 		"rewardGems": 40

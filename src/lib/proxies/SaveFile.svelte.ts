@@ -1,3 +1,4 @@
+import { type ChestProxy, discoverChests } from "$lib/proxies/Chest.svelte";
 import { CommunityBundles } from "$lib/proxies/CommunityBundles.svelte";
 import { Farmer } from "$lib/proxies/Farmer.svelte";
 import { GameLocation } from "$lib/proxies/GameLocation.svelte";
@@ -13,6 +14,7 @@ export class SaveProxy implements DataProxy<SaveFile> {
 	// Cached reactive arrays
 	public players: Farmer[];
 	public locations: GameLocation[];
+	public chests: ChestProxy[];
 	public farm: GameLocation | undefined; // derived
 	public player: Farmer; // current player derived
 
@@ -51,6 +53,7 @@ export class SaveProxy implements DataProxy<SaveFile> {
 				(l) => l[Raw],
 			);
 		});
+		this.chests = $state(discoverChests(this[Raw].SaveGame));
 
 		this.farm = $derived.by(() =>
 			this.locations.find((l) => l[Raw].name === "Farm"),

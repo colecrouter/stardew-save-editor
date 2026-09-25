@@ -5,7 +5,9 @@
 
 	const save = getSaveManager().save;
 	if (!save) throw new Error("No save data found");
-	const friendships = Array.from(save.player.friendships);
+	const player = save.player;
+	player.friendships.addMissingCharacters();
+	const friendships = $derived(Array.from(player.friendships));
 </script>
 
 <UiContainer>

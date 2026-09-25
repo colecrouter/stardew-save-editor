@@ -17,6 +17,7 @@ export const characters = [
 	"Kent",
 	"Krobus",
 	"Leah",
+	"Leo",
 	"Lewis",
 	"Linus",
 	"Marnie",

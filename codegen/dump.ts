@@ -360,9 +360,13 @@ await writeFile(
 // Create portraits folder if it doesn't exist
 await mkdir("./static/assets/portraits");
 
+const characterRemap = new Map([["Leo", "ParrotBoy"]]);
+
 for (const char of characters) {
+	const remappedChar = characterRemap.get(char) ?? char;
+
 	await copyFile(
-		`./content/Portraits/${char}.png`,
+		`./content/Portraits/${remappedChar}.png`,
 		`./static/assets/portraits/${char}.png`,
 	);
 }

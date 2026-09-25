@@ -3,8 +3,8 @@ import { fireEvent, render, within } from "@testing-library/svelte";
 import { flushSync, tick } from "svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setup as mockIDB } from "vitest-indexeddb";
-import { Raw } from "$lib/proxies";
 import { characters } from "$lib/NPCs";
+import { Raw } from "$lib/proxies";
 import {
 	parseBundleKey,
 	parseBundleValue,

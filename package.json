@@ -10,6 +10,7 @@
 		"dump": "tsx --no-warnings codegen/dump.ts",
 		"check": "biome lint . && svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"format": "prettier --log-level silent --write src && biome format --write && biome check --write --linter-enabled false",
+		"format:check": "prettier --check src && biome ci .",
 		"test": "vitest run",
 		"emulate:webkit": "node tests/webkit.js"
 	},

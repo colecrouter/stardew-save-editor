@@ -2,8 +2,8 @@ import { flushSync } from "svelte";
 import { describe, expect, it } from "vitest";
 import type { FriendshipData } from "../codegen/save";
 import { characters } from "../src/lib/NPCs";
-import { Friendship, Friendships } from "../src/lib/proxies/Friendship.svelte";
 import { Raw } from "../src/lib/proxies";
+import { Friendship, Friendships } from "../src/lib/proxies/Friendship.svelte";
 
 const abigail = () => Friendship.fromName("Abigail")[Raw];
 

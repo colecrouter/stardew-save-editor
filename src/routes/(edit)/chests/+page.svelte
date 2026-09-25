@@ -3,6 +3,7 @@
 	import { getSaveManager } from "$lib/SaveManager.svelte";
 	import { getToastManager, Toast } from "$lib/ToastManager.svelte";
 	import UiContainer from "$lib/ui/UIContainer.svelte";
+	import UiSelect from "$lib/ui/UISelect.svelte";
 	import ItemSlot from "../inventory/ItemSlot.svelte";
 	import ItemSprite from "../inventory/ItemSprite.svelte";
 	import ItemView from "../inventory/ItemView.svelte";
@@ -46,24 +47,23 @@
 	const deleteItem = () => selectedChest?.inventory.delete(selectedIndex);
 </script>
 
-<h1>Chests</h1>
-
 {#if save.chests.length === 0}
 	<UiContainer>
 		<p>No editable chests were found in this save.</p>
 	</UiContainer>
 {:else if selectedChest}
 	<UiContainer>
+		<h3>Chests</h3>
 		<label class="picker">
-			<span>Container</span>
-			<select
+			<span hidden>Container</span>
+			<UiSelect
 				bind:value={selectedChestIndex}
 				onchange={() => (selectedIndex = 0)}
 			>
 				{#each save.chests as chest, index}
 					<option value={index}>{chest.metadata.label}</option>
 				{/each}
-			</select>
+			</UiSelect>
 		</label>
 		<small>
 			{selectedChest.inventory.usedSlots} / {selectedChest.inventory.slotCount}
@@ -97,11 +97,6 @@
 		display: flex;
 		flex-direction: column;
 		gap: 4px;
-	}
-
-	.picker select {
-		width: 100%;
-		padding: 6px;
 	}
 
 	.item-grid {

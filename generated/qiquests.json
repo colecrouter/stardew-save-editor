@@ -1,0 +1,318 @@
+[
+	{
+		"questKey": "QiChallenge",
+		"name": "FivePlagues",
+		"description": "I will provide you with 600 Qi Beans. Plant these, grow them, and ship at least 500 of them in a week or less. But beware, Five plagues will descend upon you, threatening your crop...",
+		"nameToken": "[QiChallenge_Name]",
+		"descriptionToken": "[QiChallenge_Text]",
+		"duration": "Week",
+		"durationDays": 7,
+		"specialRule": "FIVE_PLAGUES, QI_BEANS",
+		"objectives": [
+			{
+				"type": "Ship",
+				"description": "Ship 500 Qi Fruit.",
+				"maxCount": 500,
+				"acceptableContextTagSets": "item_qi_fruit",
+				"useShipmentValue": false
+			}
+		],
+		"rewardGems": 50
+	},
+	{
+		"questKey": "QiChallenge2",
+		"name": "Qi's Crop",
+		"description": "I've hidden Qi Beans throughout the world. Find them, grow them, propagate them, and ship 500 Qi Fruit within the time limit.",
+		"nameToken": "[QiChallenge2_Name]",
+		"descriptionToken": "[QiChallenge2_Text]",
+		"duration": "Month",
+		"durationDays": 28,
+		"specialRule": "QI_BEANS, DROP_QI_BEANS",
+		"objectives": [
+			{
+				"type": "Ship",
+				"description": "Ship 500 Qi Fruit",
+				"maxCount": 500,
+				"acceptableContextTagSets": "item_qi_fruit",
+				"useShipmentValue": false
+			}
+		],
+		"rewardGems": 100
+	},
+	{
+		"questKey": "QiChallenge3",
+		"name": "Let's Play A Game",
+		"description": "Think you can score 50,000 points in Junimo Kart endless mode? Prove it.",
+		"nameToken": "[QiChallenge3_Name]",
+		"descriptionToken": "[QiChallenge3_Text]",
+		"duration": "Week",
+		"durationDays": 7,
+		"specialRule": "",
+		"objectives": [
+			{
+				"type": "JKScore",
+				"description": "Score 50,000 points in Junimo Kart endless mode.",
+				"maxCount": 50000,
+				"acceptableContextTagSets": "placeholder"
+			}
+		],
+		"rewardGems": 20
+	},
+	{
+		"questKey": "QiChallenge4",
+		"name": "Four Precious Stones",
+		"description": "Find 4 prismatic shards. Place them in my collection box.",
+		"nameToken": "[QiChallenge4_Name]",
+		"descriptionToken": "[QiChallenge4_Text]",
+		"duration": "Month",
+		"durationDays": 28,
+		"specialRule": "",
+		"objectives": [
+			{
+				"type": "Collect",
+				"description": "Collect 4 Prismatic Shards.",
+				"maxCount": 4,
+				"acceptableContextTagSets": "item_prismatic_shard"
+			},
+			{
+				"type": "Donate",
+				"description": "Place 4 Prismatic Shards into Qi's collection box.",
+				"maxCount": 4,
+				"acceptableContextTagSets": "item_prismatic_shard",
+				"dropBox": "QiChallengeBox",
+				"dropBoxGameLocation": "QiNutRoom",
+				"dropBoxTileLocation": "1 3"
+			}
+		],
+		"rewardGems": 40
+	},
+	{
+		"questKey": "QiChallenge5",
+		"name": "Qi's Hungry Challenge",
+		"description": "Your task is to make it to level 100 in the Skull Cavern. However, you can't eat or drink anything while there.",
+		"nameToken": "[QiChallenge5_Name]",
+		"descriptionToken": "[QiChallenge5_Text]",
+		"duration": "Week",
+		"durationDays": 7,
+		"specialRule": "SC_NO_FOOD",
+		"objectives": [
+			{
+				"type": "ReachMineFloor",
+				"description": "Make it to level 100 in the Skull Cavern.",
+				"maxCount": 100,
+				"acceptableContextTagSets": "",
+				"skullCave": true
+			}
+		],
+		"rewardGems": 25
+	},
+	{
+		"questKey": "QiChallenge6",
+		"name": "Qi's Cuisine",
+		"description": "Ship 100,000g worth of freshly cooked items.",
+		"nameToken": "[QiChallenge6_Name]",
+		"descriptionToken": "[QiChallenge6_Text]",
+		"duration": "TwoWeeks",
+		"durationDays": 14,
+		"specialRule": "QI_COOKING",
+		"objectives": [
+			{
+				"type": "Ship",
+				"description": "Ship 100,000g worth of freshly cooked items.",
+				"maxCount": 100000,
+				"acceptableContextTagSets": "quality_qi",
+				"useShipmentValue": true
+			}
+		],
+		"rewardGems": 25
+	},
+	{
+		"questKey": "QiChallenge7",
+		"name": "Qi's Kindness",
+		"description": "Give 50 loved gifts in one week.",
+		"nameToken": "[QiChallenge7_Name]",
+		"descriptionToken": "[QiChallenge7_Text]",
+		"duration": "Week",
+		"durationDays": 7,
+		"specialRule": "",
+		"objectives": [
+			{
+				"type": "Gift",
+				"description": "Give 50 loved gifts in one week.",
+				"maxCount": 50,
+				"acceptableContextTagSets": ""
+			}
+		],
+		"rewardGems": 40
+	},
+	{
+		"questKey": "QiChallenge8",
+		"name": "Extended Family",
+		"description": "Family members of the legendary fish have returned to the valley. You have three days to catch Ms. Angler, Glacierfish Jr., Son of Crimsonfish, Radioactive Carp, and The Legend II.",
+		"nameToken": "[QiChallenge8_Name]",
+		"descriptionToken": "[QiChallenge8_Text]",
+		"duration": "ThreeDays",
+		"durationDays": 3,
+		"specialRule": "LEGENDARY_FAMILY",
+		"objectives": [
+			{
+				"type": "Fish",
+				"description": "Catch Ms. Angler.",
+				"maxCount": 1,
+				"acceptableContextTagSets": "item_ms._angler"
+			},
+			{
+				"type": "Fish",
+				"description": "Catch Glacierfish Jr.",
+				"maxCount": 1,
+				"acceptableContextTagSets": "item_glacierfish_jr."
+			},
+			{
+				"type": "Fish",
+				"description": "Catch Son of Crimsonfish.",
+				"maxCount": 1,
+				"acceptableContextTagSets": "item_son_of_crimsonfish"
+			},
+			{
+				"type": "Fish",
+				"description": "Catch Radioactive Carp.",
+				"maxCount": 1,
+				"acceptableContextTagSets": "item_radioactive_carp"
+			},
+			{
+				"type": "Fish",
+				"description": "Catch The Legend II.",
+				"maxCount": 1,
+				"acceptableContextTagSets": "item_legend_ii"
+			}
+		],
+		"rewardGems": 20
+	},
+	{
+		"questKey": "QiChallenge9",
+		"name": "Danger In The Deep",
+		"description": "The mine elevator system has been reset, and new dangers have emerged from deep underground. Make it to the bottom of the mines in one week.",
+		"nameToken": "[QiChallenge9_Name]",
+		"descriptionToken": "[QiChallenge9_Text]",
+		"duration": "Week",
+		"durationDays": 7,
+		"specialRule": "MINE_HARD",
+		"objectives": [
+			{
+				"type": "ReachMineFloor",
+				"description": "Reach the bottom of the mines, again.",
+				"maxCount": 120,
+				"acceptableContextTagSets": "",
+				"skullCave": false
+			}
+		],
+		"rewardGems": 50
+	},
+	{
+		"questKey": "QiChallenge10",
+		"name": "Skull Cavern Invasion",
+		"description": "The Skull Cavern has been invaded by powerful monsters. Make it to level 100 in one piece.",
+		"nameToken": "[QiChallenge10_Name]",
+		"descriptionToken": "[QiChallenge10_Text]",
+		"duration": "Week",
+		"durationDays": 7,
+		"specialRule": "SC_HARD",
+		"objectives": [
+			{
+				"type": "ReachMineFloor",
+				"description": "Make it to level 100 of the Skull Cavern.",
+				"maxCount": 100,
+				"acceptableContextTagSets": "",
+				"skullCave": true
+			}
+		],
+		"rewardGems": 40
+	},
+	{
+		"questKey": "QiChallenge11",
+		"name": "Find Qi's Double",
+		"description": "There's a second version of me, hiding somewhere in town. Can you catch him?",
+		"nameToken": "[QiChallenge11_Name]",
+		"descriptionToken": "[QiChallenge11_Text]",
+		"duration": "OneDay",
+		"durationDays": 1,
+		"specialRule": "QI_DOUBLE",
+		"objectives": [
+			{
+				"type": "Custom",
+				"description": "Catch Qi's double.",
+				"maxCount": 120,
+				"acceptableContextTagSets": "placeholder"
+			}
+		],
+		"rewardGems": 10
+	},
+	{
+		"questKey": "QiChallenge12",
+		"name": "Qi's Prismatic Grange",
+		"description": "Find 100 each of red, orange, yellow, green, blue, and purple items. Place them in my collection box.",
+		"nameToken": "[QiChallenge12_Name]",
+		"descriptionToken": "[QiChallenge12_Text]",
+		"duration": "TwoWeeks",
+		"durationDays": 14,
+		"specialRule": "",
+		"objectives": [
+			{
+				"type": "Donate",
+				"description": "Place 100 red items into Qi's collection box.",
+				"maxCount": 100,
+				"acceptableContextTagSets": "color_red/color_dark_red",
+				"dropBox": "QiChallengeBox",
+				"dropBoxGameLocation": "QiNutRoom",
+				"dropBoxTileLocation": "1 3",
+				"minimumCapacity": 36
+			},
+			{
+				"type": "Donate",
+				"description": "Place 100 orange items into Qi's collection box.",
+				"maxCount": 100,
+				"acceptableContextTagSets": "color_orange/color_copper/color_dark_orange",
+				"dropBox": "QiChallengeBox",
+				"dropBoxGameLocation": "QiNutRoom",
+				"dropBoxTileLocation": "1 3"
+			},
+			{
+				"type": "Donate",
+				"description": "Place 100 yellow items into Qi's collection box.",
+				"maxCount": 100,
+				"acceptableContextTagSets": "color_yellow/color_dark_yellow/color_gold",
+				"dropBox": "QiChallengeBox",
+				"dropBoxGameLocation": "QiNutRoom",
+				"dropBoxTileLocation": "1 3"
+			},
+			{
+				"type": "Donate",
+				"description": "Place 100 green items into Qi's collection box.",
+				"maxCount": 100,
+				"acceptableContextTagSets": "color_green/color_dark_green/color_lime/color_yellow_green/color_jade",
+				"dropBox": "QiChallengeBox",
+				"dropBoxGameLocation": "QiNutRoom",
+				"dropBoxTileLocation": "1 3"
+			},
+			{
+				"type": "Donate",
+				"description": "Place 100 blue items into Qi's collection box.",
+				"maxCount": 100,
+				"acceptableContextTagSets": "color_blue/color_dark_blue/color_dark_cyan/color_light_cyan/color_cyan/color_aquamarine",
+				"dropBox": "QiChallengeBox",
+				"dropBoxGameLocation": "QiNutRoom",
+				"dropBoxTileLocation": "1 3"
+			},
+			{
+				"type": "Donate",
+				"description": "Place 100 purple items into Qi's collection box.",
+				"maxCount": 100,
+				"acceptableContextTagSets": "color_purple/color_dark_purple/color_dark_pink/color_pale_violet_red/color_poppyseed/color_iridium",
+				"dropBox": "QiChallengeBox",
+				"dropBoxGameLocation": "QiNutRoom",
+				"dropBoxTileLocation": "1 3"
+			}
+		],
+		"rewardGems": 35
+	}
+]

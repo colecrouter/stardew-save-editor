@@ -189,7 +189,7 @@
 			<button
 				class="btn btn-danger"
 				onclick={() => {
-					if (selectedIndex) {
+					if (selectedIndex !== undefined) {
 						deleteItem();
 					}
 				}}

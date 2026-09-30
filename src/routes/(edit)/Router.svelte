@@ -5,6 +5,7 @@
 
 <nav>
 	<UiButton href={resolve("/inventory")} alt="Inventory">🎒</UiButton>
+	<UiButton href={resolve("/chests")} alt="Chests">🧰</UiButton>
 	<UiButton href={resolve("/character")} alt="Character">🙋</UiButton>
 	<UiButton href={resolve("/appearance")} alt="Appearance">🪞</UiButton>
 	<UiButton href={resolve("/relationships")} alt="Relationships">💖</UiButton>
@@ -13,6 +14,7 @@
 	<UiButton href={resolve("/farmhands")} alt="Farmhands">👩‍🌾</UiButton>
 	<UiButton href={resolve("/buildings")} alt="Buildings">🏠</UiButton>
 	<UiButton href={resolve("/bundles")} alt="Community Center">🎁</UiButton>
+	<UiButton href={resolve("/qi-quests")} alt="Qi's Quests">🀄</UiButton>
 </nav>
 
 <style>

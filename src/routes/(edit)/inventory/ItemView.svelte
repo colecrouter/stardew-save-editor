@@ -166,7 +166,7 @@
 					{/each}
 				{/if}
 			{/each}
-		{:else if selectedIndex}
+		{:else if selectedIndex !== undefined}
 			<label>
 				<small>Item Name</small>
 				<!-- <UiInput
@@ -175,7 +175,10 @@
                     data-testid="item-name"
                     bind:value={newItemName}
                 /> -->
-				<ItemSelect onsubmit={createItem} />
+				<!-- Remount per slot so the hint's CSS animations replay -->
+				{#key selectedIndex}
+					<ItemSelect onsubmit={createItem} />
+				{/key}
 			</label>
 		{/if}
 	</div>

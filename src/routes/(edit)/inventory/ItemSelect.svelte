@@ -2,6 +2,7 @@
 	import { stringSimilarity } from "string-similarity-js";
 	import { ItemData } from "$lib/ItemData";
 	import { Item } from "$lib/proxies/Item.svelte";
+	import Tooltip from "$lib/ui/Tooltip.svelte";
 	import UiContainerSmall from "$lib/ui/UIContainerSmall.svelte";
 	import UiInput from "$lib/ui/UIInput.svelte";
 	import ItemSprite from "./ItemSprite.svelte";
@@ -27,12 +28,15 @@
 </script>
 
 <div class="wrapper">
-	<UiInput
-		type="text"
-		list="new-items"
-		data-testid="item-name"
-		bind:value={filter}
-	/>
+	<Tooltip text="Type an item name here to add it" flash id="item-name-hint">
+		<UiInput
+			type="text"
+			list="new-items"
+			data-testid="item-name"
+			aria-describedby="item-name-hint"
+			bind:value={filter}
+		/>
+	</Tooltip>
 
 	<div class="menu">
 		<UiContainerSmall>

@@ -50,7 +50,7 @@
 
 	.tooltip-wrapper.flash > .tooltip {
 		display: block;
-		animation: tooltip-flash 3s ease-in forwards;
+		animation: tooltip-flash 1s ease-in forwards;
 	}
 
 	@keyframes tooltip-flash {

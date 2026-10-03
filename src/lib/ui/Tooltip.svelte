@@ -3,18 +3,21 @@
 		children: import("svelte").Snippet;
 		text: string;
 		disabled?: boolean;
+		/** Show once when mounted, then fade out, instead of on hover/focus */
+		flash?: boolean;
+		id?: string;
 	}
 
-	let { children, text, disabled }: Props = $props();
+	let { children, text, disabled, flash, id }: Props = $props();
 </script>
 
 {#if disabled}
 	{@render children()}
 {:else}
-	<div class="tooltip-wrapper">
+	<div class="tooltip-wrapper" class:flash>
 		{@render children()}
 		<div class="tooltip">
-			<div class="tooltip-content">
+			<div class="tooltip-content" role="tooltip" {id}>
 				{text}
 			</div>
 		</div>
@@ -40,9 +43,32 @@
 		touch-action: none;
 	}
 
-	.tooltip-wrapper:hover > .tooltip,
-	.tooltip-wrapper:focus-within > .tooltip {
+	.tooltip-wrapper:not(.flash):hover > .tooltip,
+	.tooltip-wrapper:not(.flash):focus-within > .tooltip {
 		display: block; /* Show on hover */
+	}
+
+	.tooltip-wrapper.flash > .tooltip {
+		display: block;
+		animation: tooltip-flash 1s ease-in forwards;
+	}
+
+	@keyframes tooltip-flash {
+		0%,
+		85% {
+			opacity: 1;
+			visibility: visible;
+		}
+		100% {
+			opacity: 0;
+			visibility: hidden;
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.tooltip-wrapper.flash > .tooltip {
+			animation-timing-function: step-end;
+		}
 	}
 
 	.tooltip-content {

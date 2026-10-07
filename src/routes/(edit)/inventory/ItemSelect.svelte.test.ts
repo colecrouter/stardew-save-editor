@@ -69,10 +69,12 @@ describe("Item select", () => {
 
 		const list = container.querySelector<HTMLElement>(".list");
 		const rows = container.querySelectorAll<HTMLElement>("button.item");
+		const firstRow = rows[0];
 		if (!list) throw new Error("list not rendered");
+		if (!firstRow) throw new Error("no rows rendered");
 
 		const listStyle = getComputedStyle(list);
-		const rowStyle = getComputedStyle(rows[0]);
+		const rowStyle = getComputedStyle(firstRow);
 		expect(listStyle.overflowY).toBe("auto");
 		// Rows must not shrink to fit, otherwise they squish instead of scrolling
 		expect(rowStyle.flexShrink).toBe("0");

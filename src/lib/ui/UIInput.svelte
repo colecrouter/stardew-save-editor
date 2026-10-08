@@ -13,6 +13,9 @@
 
 	let input: HTMLInputElement | undefined;
 	let isEmpty = $state(value === null);
+	// Text that is still invalid while typing (e.g. "2" on the way to "25" when min is 23).
+	// Returned by the getter so the input isn't reset to the old value mid-edit.
+	let pendingText = $state<string | number | null>(null);
 
 	function reportUnexpectedSymbol(context: string) {
 		Sentry.logger.error("Unexpected Symbol in UIInput value", {
@@ -25,6 +28,7 @@
 
 	function getter() {
 		if (isEmpty) return "";
+		if (pendingText !== null) return pendingText;
 		if (typeof value === "symbol") {
 			reportUnexpectedSymbol("getter");
 			return "";
@@ -44,8 +48,10 @@
 		// Preemptive check for native validation
 		input?.reportValidity();
 		if (!input?.checkValidity()) {
+			pendingText = v;
 			return;
 		}
+		pendingText = null;
 
 		// Update the isEmpty state
 		// This causes the getter to not to return the previous value when the input is empty
@@ -73,6 +79,11 @@
 		const v = input?.value;
 		if (!v) {
 			setter(defaultValue);
+		}
+		// Drop unfinished invalid text so the input shows the stored value again
+		if (pendingText !== null) {
+			pendingText = null;
+			input?.setCustomValidity("");
 		}
 	}
 </script>

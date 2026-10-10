@@ -23,7 +23,7 @@
 				const bScore = stringSimilarity(filter, b);
 				return bScore - aScore;
 			})
-			.slice(0, 4),
+			.slice(0, 50),
 	);
 </script>
 
@@ -82,11 +82,16 @@
 		display: flex;
 		flex-direction: column;
 		gap: 4px;
+		max-height: 240px;
+		overflow-y: auto;
+		overscroll-behavior: contain;
 	}
 
 	.item {
 		all: unset;
 		width: 100%;
+		min-height: 32px;
+		flex-shrink: 0;
 		display: flex;
 		gap: 0.5rem;
 		cursor: pointer;

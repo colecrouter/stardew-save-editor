@@ -26,6 +26,8 @@ const config = {
 			},
 		},
 	},
+	// Inject component styles into the DOM under vitest so tests can read computed styles
+	compilerOptions: process.env.VITEST ? { css: "injected" } : {},
 	vitePlugin: { inspector: true },
 };
 

@@ -38,10 +38,7 @@
 	target="_blank"
 	rel="noreferrer"
 >
-	<img
-		src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/91/Octicons-mark-github.svg/600px-Octicons-mark-github.svg.png?20180806170715"
-		alt="Github Logo"
-	/>
+	<img src={asset("/img/github.svg")} alt="GitHub Logo" />
 </a>
 
 <main>

@@ -598,12 +598,54 @@ describe("Save Manager Integration Tests", () => {
 	});
 
 	describe("Relationships", () => {
-		it("should show every NPC without requiring an action", async () => {
+		it("should preserve relationships when opening the page and editing money", async () => {
 			const save = saveManager.save;
-			if (!save) return;
+			if (!save) throw new Error("No save loaded");
+			save.player.friendships.delete("Leo");
+			const before = JSON.parse(
+				JSON.stringify(save.player[Raw].friendshipData),
+			) as typeof save.player.raw.friendshipData;
+			const page = harness.render(relationshipsPage);
+			await tick();
+
+			expect(save.player[Raw].friendshipData).toEqual(before);
+			expect(save.player.friendships.has("Leo")).toBe(false);
+			expect(page.getAllByTestId("friendship-row")).toHaveLength(
+				before.item.length,
+			);
+			page.unmount();
+
+			const character = harness.render(editorPage);
+			await fireEvent.input(character.getByLabelText(/Current Funds/i), {
+				target: { value: "12345" },
+			});
+			await tick();
+			expect(save.player[Raw].money).toBe(12345);
+			expect(save.player[Raw].friendshipData).toEqual(before);
+			character.unmount();
+
+			harness.render(relationshipsPage);
+			await tick();
+			expect(save.player[Raw].friendshipData).toEqual(before);
+		});
+
+		it("should add missing NPCs only when the button is clicked", async () => {
+			const save = saveManager.save;
+			if (!save) throw new Error("No save loaded");
+			save.player.friendships.delete("Leo");
 
 			const before = save.player.friendships.size;
+			const existing = JSON.parse(
+				JSON.stringify(save.player[Raw].friendshipData.item),
+			) as typeof save.player.raw.friendshipData.item;
 			const page = harness.render(relationshipsPage);
+			await tick();
+			expect(save.player.friendships.size).toBe(before);
+			const button = page.getByTestId(
+				"add-missing-friendships",
+			) as HTMLButtonElement;
+			expect(button.disabled).toBe(false);
+			await fireEvent.click(button);
 			await tick();
 
 			expect(save.player.friendships.size).toBe(characters.length);
@@ -615,7 +657,20 @@ describe("Save Manager Integration Tests", () => {
 			expect(page.getAllByTestId("friendship-row")).toHaveLength(
 				characters.length,
 			);
-			expect(page.queryByTestId("add-missing-friendships")).toBeNull();
+			for (const item of existing) {
+				expect(save.player.friendships.get(item.key.string)?.[Raw]).toEqual(
+					item,
+				);
+			}
+			const disabledButton = page.getByTestId(
+				"add-missing-friendships",
+			) as HTMLButtonElement;
+			expect(disabledButton.disabled).toBe(true);
+			await fireEvent.click(disabledButton);
+			await tick();
+			expect(save.player[Raw].friendshipData.item).toHaveLength(
+				characters.length,
+			);
 		});
 
 		it("should update friendship hearts", async () => {

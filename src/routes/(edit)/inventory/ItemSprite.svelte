@@ -1,85 +1,82 @@
-<script lang="ts" module>
-	function colorToString(color?: Color) {
-		if (!color) return undefined;
-		if (color.A !== 255) {
-			return `rgba(${color.R},${color.G},${color.B},${color.A / 255})`;
-		}
-		return `rgb(${color.R},${color.G},${color.B})`;
-	}
-
-	function sheetUrl(sheet?: string) {
-		return sheet && `url(${asset(`/assets/${sheet}`)})`;
-	}
-</script>
-
 <script lang="ts">
 	import { asset } from "$app/paths";
-	import type { Color } from "$lib/proxies/Color.svelte";
-	import { ColoredObjectProxy, type ItemProxy } from "$lib/proxies/items";
+	import { getItemSprite, prismaticColors, tintMatrix } from "$lib/ItemSprite";
+	import type { ItemProxy } from "$lib/proxies/items";
 
 	interface Props {
 		item: ItemProxy | undefined;
 	}
-
 	let { item }: Props = $props();
-
-	// Main properties
-	let spritesheet = $derived(sheetUrl(item?.sprite?.sheet));
-	let spritePosition = $derived(item?.sprite?.dimensions);
-	let x = $derived(spritePosition?.x);
-	let y = $derived(spritePosition?.y);
-	let w = $derived(item?.sprite?.dimensions.width);
-	let h = $derived(item?.sprite?.dimensions.height);
-	let zoom = $derived(32 / Math.max(w ?? 0, h ?? 0, 16));
-	let blendingMode = $derived("normal");
-
-	// Overlay properties
-	let tint = $derived(
-		item && "color" in item ? colorToString(item.color) : item?.info?.color,
+	const id = $props.id();
+	const prismaticMatrices = [...prismaticColors, prismaticColors[0]]
+		.map(tintMatrix)
+		.join(";");
+	let drawing = $derived(getItemSprite(item));
+	let zoom = $derived(
+		32 /
+			Math.max(
+				drawing?.sprite.sourceRect.width ?? 0,
+				drawing?.sprite.sourceRect.height ?? 0,
+				16,
+			),
 	);
-	let smoked = $derived(item?.name?.startsWith("Smoked"));
-	let hasArtisanOverlay = $derived(item?.info?.color);
-	let overlayPosition = $derived(
-		hasArtisanOverlay
-			? { x: (x ?? 0) - 16, y } // Artisan overlay is always 16px to the left
-			: (item?.sprite?.dimensions ?? { x: 0, y: 0 }), // For pants, its the same as the sprite
-	);
-	let overlayX = $derived(overlayPosition.x);
-	let overlayY = $derived(overlayPosition.y);
 </script>
 
 {#if item}
-	{#if item.info}
+	{#if drawing}
 		<div
 			class="item"
-			style:--w={`${w}px`}
-			style:--h={`${h}px`}
-			style:--z={zoom}
-			style:--x={`${x}px`}
-			style:--y={`${y}px`}
-			style:--sprite={spritesheet}
-			style:mix-blend-mode={blendingMode}
-			class:hat={item && item.type === "Hat"}
-			class:smoked
+			aria-hidden="true"
+			style:width={`${drawing.sprite.sourceRect.width * zoom}px`}
+			style:height={`${drawing.sprite.sourceRect.height * zoom}px`}
 		>
-			{#if smoked}
-				<!-- Smoke bubbles -->
-				<div class="smoke"></div>
-				<div class="smoke"></div>
-				<div class="smoke"></div>
-			{/if}
-
-			{#if tint}
-				<div
-					class="overlay"
-					style:--w={`${w}px`}
-					style:--h={`${h}px`}
-					style:--z={zoom}
-					style:--x={`${overlayX}px`}
-					style:--y={`${overlayY}px`}
-					style:--sprite={spritesheet}
-					style:--tint={tint}
-				></div>
+			{#each drawing.layers as layer, i (i)}
+				<svg
+					class="layer"
+					width="100%"
+					height="100%"
+					viewBox={`${layer.sourceRect.x} ${layer.sourceRect.y} ${layer.sourceRect.width} ${layer.sourceRect.height}`}
+				>
+					{#if layer.tint || layer.prismatic}
+						<defs>
+							<filter id={`${id}-tint-${i}`} color-interpolation-filters="sRGB">
+								<feColorMatrix
+									type="matrix"
+									values={tintMatrix(
+										layer.prismatic ? prismaticColors[0] : layer.tint,
+									)}
+								>
+									{#if layer.prismatic}
+										<!-- Utility.GetPrismaticColor: six colors, 1500ms per transition. -->
+										<animate
+											attributeName="values"
+											values={prismaticMatrices}
+											dur="9s"
+											repeatCount="indefinite"
+										/>
+									{/if}
+								</feColorMatrix>
+							</filter>
+						</defs>
+					{/if}
+					<image
+						href={asset(`/assets/${drawing.sprite.sheet}`)}
+						width={drawing.sprite.sheetSize.width}
+						height={drawing.sprite.sheetSize.height}
+						filter={layer.tint || layer.prismatic
+							? `url(#${id}-tint-${i})`
+							: undefined}
+					/>
+				</svg>
+			{/each}
+			{#if drawing.smoked}
+				{#each [0, 1, 2] as particle (particle)}
+					<div
+						class="smoke"
+						style:--particle={particle}
+						style:background-image={`url(${asset("/assets/Cursors.png")})`}
+					></div>
+				{/each}
 			{/if}
 		</div>
 	{:else}
@@ -91,96 +88,39 @@
 	.item {
 		position: relative;
 	}
-
-	.item::before,
-	.overlay::before {
-		content: "";
-		display: block;
-		background-image: var(--sprite);
-		background-position: left var(--x) top var(--y);
-		image-rendering: pixelated;
-		width: var(--w);
-		height: var(--h);
-		zoom: var(--z);
-	}
-
-	.overlay::before {
+	.layer {
 		position: absolute;
-		top: 0;
-		width: var(--w);
-		height: var(--h);
-		background-color: var(--tint);
-		-webkit-mask-image: var(--sprite);
-		mask-image: var(--sprite);
-		-webkit-mask-position: left var(--x) top var(--y);
-		mask-position: left var(--x) top var(--y);
-		zoom: var(--z);
+		inset: 0;
+		overflow: hidden;
+		image-rendering: pixelated;
 	}
-
-	.item.hat::before {
-		margin-top: 6px;
-	}
-
-	.item.smoked::before {
-		filter: brightness(0.5);
-	}
-
-	@keyframes smoke {
-		0% {
-			transform: scale(0.5) translateY(0);
-			opacity: 0;
-		}
-		15% {
-			opacity: 1;
-		}
-		100% {
-			transform: scale(1.5) translateY(-75%);
-			opacity: 0;
-		}
-	}
-
-	.smoke:nth-child(1) {
-		top: 0;
-		left: 33%;
-		animation-delay: 1s;
-	}
-
-	.smoke:nth-child(2) {
-		top: 33%;
-		left: 66%;
-		animation-delay: 2s;
-	}
-
-	.smoke:nth-child(3) {
-		top: 33%;
-		left: 0;
-		animation-delay: 3s;
-	}
-
 	.smoke {
 		position: absolute;
-		background-color: rgba(0, 0, 0, 0.5);
-		border-radius: 100%;
-		width: 33%;
-		height: 33%;
-		animation: smoke 3s infinite;
-		opacity: 0;
+		left: calc(8px + var(--particle) * 4px);
+		top: calc(8px + var(--particle) * 2px);
+		width: 10px;
+		height: 10px;
+		background-position: -372px -1956px;
+		image-rendering: pixelated;
+		filter: brightness(0.31);
+		animation: smoke 2s linear infinite;
+		animation-delay: calc(var(--particle) * -0.8s);
+		pointer-events: none;
 	}
-
-	.overlay::after {
-		content: "";
-		position: absolute;
-		top: 0;
-		width: 100%;
-		height: 100%;
-		background-color: var(--tint);
-		mask-image: var(--sprite);
-		-webkit-mask-image: var(--sprite);
-		mask-position: left var(--x) top var(--y);
-		-webkit-mask-position: left var(--x) top var(--y);
-		width: var(--w);
-		height: var(--h);
-		zoom: var(--z);
-		mix-blend-mode: multiply;
+	@keyframes smoke {
+		from {
+			transform: translateY(0) rotate(0deg);
+			opacity: 0.53;
+		}
+		to {
+			transform: translateY(-30px) rotate(-115deg);
+			opacity: 0;
+		}
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.smoke {
+			animation: none;
+			opacity: 0;
+		}
 	}
 </style>

@@ -255,16 +255,16 @@ export class Item {
 
 			const sprite = new Sprite(data);
 			if ("tilesheetSize" in data && data.tilesheetSize !== undefined) {
-				const invertedX = sprite.sheetSize.width - sprite.dimensions.x;
-				const invertedY = sprite.sheetSize.height - sprite.dimensions.y;
+				const sourceX = sprite.sourceRect.x;
+				const sourceY = sprite.sourceRect.y;
 				item.sourceRect = {
-					X: invertedX,
-					Y: invertedY,
+					X: sourceX,
+					Y: sourceY,
 					Width: data.tilesheetSize.width * 16,
 					Height: data.tilesheetSize.height * 16,
 					Location: {
-						X: invertedX,
-						Y: invertedY,
+						X: sourceX,
+						Y: sourceY,
 					},
 					Size: {
 						X: data.tilesheetSize.width * 16,

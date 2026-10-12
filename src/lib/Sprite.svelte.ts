@@ -1,12 +1,10 @@
 import dimensions from "$generated/dimensions.json";
-import type { Farmer } from "$lib/proxies/Farmer.svelte";
 import {
 	type Coordinates,
 	FurnitureType,
 	type ItemInformation,
 	type Size,
 } from "$types/items";
-import { Gender } from "$types/save";
 
 const defaultSize = { width: 16, height: 16 } satisfies Size;
 
@@ -39,35 +37,43 @@ const furnitureDefaultSizes = new Map<FurnitureType, Size>([
 	[FurnitureType.Dresser, { width: 32, height: 32 }],
 	[FurnitureType.LongTable, { width: 80, height: 48 }],
 	[FurnitureType.Painting, { width: 32, height: 32 }],
-	[FurnitureType.Lamp, { width: 16, height: 32 }],
+	[FurnitureType.Lamp, { width: 16, height: 48 }],
 	[FurnitureType.Decor, { width: 16, height: 32 }],
-	[FurnitureType.Other, defaultSize],
+	[FurnitureType.Other, { width: 16, height: 32 }],
 	[FurnitureType.Bookcase, { width: 32, height: 48 }],
 	[FurnitureType.Table, { width: 32, height: 48 }],
 	[FurnitureType.Rug, { width: 48, height: 32 }],
 	[FurnitureType.Window, { width: 16, height: 32 }],
 	[FurnitureType.Fireplace, { width: 32, height: 80 }],
-	[FurnitureType.Bed, { width: 48, height: 64 }],
+	[FurnitureType.Bed, { width: 16, height: 32 }],
 	[FurnitureType.Torch, { width: 16, height: 32 }],
-	[FurnitureType.Sconce, defaultSize],
+	[FurnitureType.Sconce, { width: 16, height: 32 }],
 ]);
 
 export class Sprite {
 	private info: ItemInformation;
-	private player: Farmer | undefined;
 
 	readonly sheet: string;
 	readonly sheetSize: Size;
-	readonly dimensions: Size & Coordinates;
+	/** Menu sprite rectangle in the game's positive texture coordinates. */
+	readonly sourceRect: Size & Coordinates;
+	readonly index: number;
 
-	constructor(info: ItemInformation, player?: Farmer) {
+	constructor(info: ItemInformation) {
 		this.info = info;
-		this.player = player;
 
 		try {
 			this.sheet = this.getSpritesheet();
 			this.sheetSize = this.getSpritesheetSize();
-			this.dimensions = { ...this.getSize(), ...this.getSprite() };
+			this.index =
+				"menuSpriteIndex" in info &&
+				info.menuSpriteIndex != null &&
+				info.menuSpriteIndex >= 0
+					? info.menuSpriteIndex
+					: (info.spriteIndex ?? Number(info._key));
+			if (!Number.isInteger(this.index) || this.index < 0)
+				throw new Error("Invalid sprite index");
+			this.sourceRect = this.getSourceRect();
 		} catch (e) {
 			if (!(e instanceof Error)) throw e;
 			console.error(
@@ -78,8 +84,18 @@ export class Sprite {
 
 			this.sheet = "springobjects.png";
 			this.sheetSize = { width: 0, height: 0 };
-			this.dimensions = { ...this.sheetSize, x: 0, y: 0 };
+			this.index = 0;
+			this.sourceRect = { ...this.sheetSize, x: 0, y: 0 };
 		}
+	}
+
+	/** Compatibility adapter for the character preview's repeating CSS backgrounds. */
+	get dimensions(): Size & Coordinates {
+		return {
+			...this.sourceRect,
+			x: this.sheetSize.width - this.sourceRect.x,
+			y: this.sheetSize.height - this.sourceRect.y,
+		};
 	}
 
 	private getSpritesheet() {
@@ -91,10 +107,6 @@ export class Sprite {
 	}
 
 	private getSpritesheetSize() {
-		if ("texture" in this.info && this.info.texture) {
-			return spritesheetSizes.get(this.info.texture) ?? defaultSize;
-		}
-
 		return spritesheetSizes.get(this.sheet) ?? defaultSize;
 	}
 
@@ -108,7 +120,9 @@ export class Sprite {
 				return { width: newWidth, height: newHeight };
 			}
 
-			return furnitureDefaultSizes.get(furnitureType) ?? defaultSize;
+			return (
+				furnitureDefaultSizes.get(furnitureType) ?? { width: 16, height: 32 }
+			);
 		}
 		if (this.info._type === "Mannequin") {
 			return { width: 16, height: 32 };
@@ -117,69 +131,55 @@ export class Sprite {
 		return spriteDefaultSizes.get(this.info._type) ?? defaultSize;
 	}
 
-	private getSprite() {
-		const index =
-			"menuSpriteIndex" in this.info &&
-			this.info.menuSpriteIndex !== undefined &&
-			this.info.menuSpriteIndex >= 0
-				? this.info.menuSpriteIndex
-				: (this.info.spriteIndex ??
-					Number(this.info.spriteIndex ?? this.info._key));
-		if (Number.isNaN(index)) throw new Error("Invalid sprite index");
-
-		const dyeable = "canBeDyed" in this.info && this.info.canBeDyed;
+	/** Apply offsets to the index before resolving coordinates, so adjacent layers wrap rows. */
+	getSourceRect(offset = 0): Size & Coordinates {
+		const index = this.index + offset;
+		const { width: sheetWidth } = this.sheetSize;
+		const size = this.getSize();
+		let position: Coordinates;
 		switch (this.info._type) {
 			case "Hat":
-				// Hats are 20x20, but the sprite sheet is 20x80 for 4 directions
-				return Sprite.fromIndex(index, 20, 80, 240, 880);
-			case "Pants": {
-				// Special case, pants have 192x672 of animation frames, then the pants themselves are underneath on the left
-				const pantSprite = Sprite.fromIndex(
-					index,
-					192,
-					688, // I don't know if this math checks out, but it seems to work ok?
-					1920,
-					1376,
-				);
-				const isFemale = this.player?.gender === Gender.Female;
-				return {
-					// Female pants variants are in the second half of the sheet
-					x: pantSprite.x - (isFemale ? 96 : 0),
-					y: pantSprite.y - 672,
+				// Each row contains four 20px directions per hat.
+				position = Sprite.sourcePosition(index, 20, 80, sheetWidth);
+				break;
+			case "Pants":
+				// PantsDataDefinition: 192px blocks, 688px stride, icon below 672px of animation.
+				position = {
+					x: 192 * (index % Math.floor(sheetWidth / 192)),
+					y: 688 * Math.floor(index / Math.floor(sheetWidth / 192)) + 672,
 				};
-			}
-			case "Shirt": {
-				/*
-                Shirts are a bit weird, because the sprite sheet is 256x608, but the shirts are 8x8,
-                but it is split into two columns; one for regular shirts and one for dyeable shirts.
-                When the shirt is dyeable, the sprite index is the same as the regular shirt, but the
-                corresponding sprite is 128 pixels to the right.
-
-            */
-				const shirtSprite = Sprite.fromIndex(index, 8, 32, 128, 608, 128);
-				return dyeable
-					? { x: shirtSprite.x - 128, y: shirtSprite.y }
-					: shirtSprite;
-			}
-			default: {
-				const sheet = this.sheet;
-				const sheetSize = spritesheetSizes.get(sheet);
-				if (!sheetSize) throw new Error(`Invalid spritesheet ${sheet}`);
-				const { width, height } = this.getSize();
-
-				// Not sure what this is about
-				const newWidth = sheet.search("furniture") !== -1 ? 16 : width;
-				const newHeight = sheet.search("furniture") !== -1 ? 16 : height;
-
-				return Sprite.fromIndex(
+				break;
+			case "Shirt":
+				// The left half contains bases; the right half contains dye masks.
+				position = Sprite.sourcePosition(index, 8, 32, sheetWidth / 2);
+				break;
+			case "Furniture":
+				// Furniture indexes 16px cells, independently of the sprite's draw size.
+				position = Sprite.sourcePosition(index, 16, 16, sheetWidth);
+				break;
+			default:
+				if (!spritesheetSizes.has(this.sheet))
+					throw new Error(`Invalid spritesheet ${this.sheet}`);
+				position = Sprite.sourcePosition(
 					index,
-					newWidth,
-					newHeight,
-					sheetSize.width,
-					sheetSize.height,
+					size.width,
+					size.height,
+					sheetWidth,
 				);
-			}
 		}
+		return { ...size, ...position };
+	}
+
+	private static sourcePosition(
+		index: number,
+		itemW: number,
+		itemH: number,
+		sheetW: number,
+	) {
+		return {
+			x: (index * itemW) % sheetW,
+			y: Math.floor((index * itemW) / sheetW) * itemH,
+		};
 	}
 
 	static fromIndex(
@@ -190,8 +190,7 @@ export class Sprite {
 		sheetH: number,
 		padRight = 0,
 	) {
-		const x = sheetW + padRight - ((index * itemW) % sheetW);
-		const y = sheetH - Math.floor((index * itemW) / sheetW) * itemH;
-		return { x, y };
+		const position = Sprite.sourcePosition(index, itemW, itemH, sheetW);
+		return { x: sheetW + padRight - position.x, y: sheetH - position.y };
 	}
 }

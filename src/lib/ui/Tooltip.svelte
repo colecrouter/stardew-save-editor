@@ -11,7 +11,7 @@
 	let { children, text, disabled, flash, id }: Props = $props();
 </script>
 
-{#if disabled}
+{#if disabled || !text.trim()}
 	{@render children()}
 {:else}
 	<div class="tooltip-wrapper" class:flash>

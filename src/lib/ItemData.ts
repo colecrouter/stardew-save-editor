@@ -209,6 +209,13 @@ export const RingsUniqueID = new Map<string, number>([
 
 export const ItemData = new Map<string, ItemInformation>(jsondata);
 
+/** Stable object IDs, excluding generated flavored variants which share those IDs. */
+export const ObjectData = new Map(
+	jsondata
+		.filter(([, item]) => item._type === "Object" && !item.unpreservedItemId)
+		.map(([, item]) => [item._key, item] as const),
+);
+
 export const KeyToName = (key: string, type: string) => {
 	for (const [, item] of jsondata) {
 		if (item._key === key && item._type === type) {
@@ -266,7 +273,7 @@ export const ItemNameHelper = (item: Item) => {
 function normalizeItemKey(itemId: Item["itemId"]): string | undefined {
 	if (itemId == null) return undefined;
 	if (typeof itemId === "number") return itemId.toString();
-	return itemId;
+	return itemId.replace(/^\([^)]*\)/, "");
 }
 
 function getExpectedMetadataTypes(item: Item): ItemInformation["_type"][] {
@@ -314,11 +321,21 @@ function getDirectMetadataMatch(item: Item) {
 	if (!lookupKey) return undefined;
 
 	for (const expectedType of getExpectedMetadataTypes(item)) {
+		let preservedMatch: ItemInformation | undefined;
 		for (const [, metadata] of jsondata) {
 			if (metadata._key === lookupKey && metadata._type === expectedType) {
-				return metadata;
+				// Generated flavored items share a product ID. Prefer the stable base;
+				// if it was omitted from codegen (e.g. smoked fish), match the ingredient.
+				if (!("unpreservedItemId" in metadata) || !metadata.unpreservedItemId)
+					return metadata;
+				if (
+					metadata.unpreservedItemId ===
+					normalizeItemKey(item.preservedParentSheetIndex)
+				)
+					preservedMatch = metadata;
 			}
 		}
+		if (preservedMatch) return preservedMatch;
 	}
 
 	return undefined;
@@ -335,13 +352,7 @@ function getPreservedMetadata(item: Item) {
 	// base object ID plus preserve flags. Resolve those items from the object ID
 	// first so imported save data doesn't depend on matching every dynamic name
 	// we might see in the wild.
-	for (const [, metadata] of jsondata) {
-		if (metadata._type === "Object" && metadata._key === lookupKey) {
-			return metadata;
-		}
-	}
-
-	return undefined;
+	return getDirectMetadataMatch({ ...item, "@_xsi:type": "Object" });
 }
 
 export const Shirts = new Map<string, Shirt>(

@@ -68,7 +68,19 @@
 	let accessoryPosition = $derived(
 		Sprite.fromIndex(player.accessory, 16, 32, 128, 128),
 	);
-	let shirtPosition = $derived(shirt.sprite?.dimensions);
+	// The appearance preview uses the dye region for dyeable shirts.
+	let shirtPosition = $derived(
+		shirt.sprite
+			? {
+					...shirt.sprite.dimensions,
+					x:
+						shirt.sprite.dimensions.x -
+						(shirt.info?._type === "Shirt" && shirt.info.canBeDyed
+							? shirt.sprite.sheetSize.width / 2
+							: 0),
+				}
+			: undefined,
+	);
 	let pantsPosition = $derived(pants.sprite?.dimensions);
 	let showHair = $derived(
 		hat === undefined || hat.info?._type !== "Hat" || !hat.info?.showRealHair,

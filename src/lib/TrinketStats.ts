@@ -88,7 +88,7 @@ export class DotNetRandom {
 			ii += 21;
 			if (ii >= 55) ii -= 55;
 			this.seedArray[ii] = mk;
-			mk = mj - mk;
+			mk = (mj - mk) | 0; // C# int arithmetic wraps on overflow
 			if (mk < 0) mk += INT_MAX;
 			mj = this.at(ii);
 		}
@@ -96,7 +96,7 @@ export class DotNetRandom {
 			for (let i = 1; i < 56; i++) {
 				let n = i + 30;
 				if (n >= 55) n -= 55;
-				let v = this.at(i) - this.at(1 + n);
+				let v = (this.at(i) - this.at(1 + n)) | 0; // wraps, see above
 				if (v < 0) v += INT_MAX;
 				this.seedArray[i] = v;
 			}
@@ -112,7 +112,7 @@ export class DotNetRandom {
 		if (locINext >= 56) locINext = 1;
 		let locINextp = this.inextp + 1;
 		if (locINextp >= 56) locINextp = 1;
-		let ret = this.at(locINext) - this.at(locINextp);
+		let ret = (this.at(locINext) - this.at(locINextp)) | 0;
 		if (ret === INT_MAX) ret--;
 		if (ret < 0) ret += INT_MAX;
 		this.seedArray[locINext] = ret;

@@ -353,11 +353,14 @@
 									step={field.step}
 									disabled={field.min === field.max}
 									bind:value={() => field.value,
-									(v) =>
+									(v) => {
+										// Cleared while typing: wait for a number instead of rolling to 0
+										if (v === null) return;
 										trinket.setStats(
 											{ ...stats, [field.key]: Number(v) },
 											trinketCtx,
-										)}
+										);
+									}}
 									data-testid={`property-${field.key}`}
 								/>
 								<span class="hint">{field.hint}</span>

@@ -27,6 +27,27 @@ describe("UI input", () => {
 		expect(input.value).toBe("25");
 	});
 
+	test("can type a new number after backspacing to empty", async () => {
+		render(UiInput, {
+			type: "number",
+			min: 13,
+			max: 28,
+			value: 21,
+			"data-testid": "input",
+		});
+		const input = screen.getByTestId("input") as HTMLInputElement;
+
+		// Backspace "21" -> "2" -> ""
+		await type(input, "2");
+		await type(input, "");
+		expect(input.value).toBe("");
+
+		await type(input, "2");
+		expect(input.value).toBe("2");
+		await type(input, "25");
+		expect(input.value).toBe("25");
+	});
+
 	test("restores the stored value when leaving invalid text", async () => {
 		render(UiInput, {
 			type: "number",

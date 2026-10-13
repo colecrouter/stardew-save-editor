@@ -27,8 +27,9 @@
 	}
 
 	function getter() {
-		if (isEmpty) return "";
+		// Checked first: after clearing the input, the next keystroke may still be invalid
 		if (pendingText !== null) return pendingText;
+		if (isEmpty) return "";
 		if (typeof value === "symbol") {
 			reportUnexpectedSymbol("getter");
 			return "";

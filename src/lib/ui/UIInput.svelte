@@ -76,15 +76,19 @@
 	}
 
 	function onblur() {
-		// If the input is empty, reset the value to the default value
-		const v = input?.value;
-		if (!v) {
-			setter(defaultValue);
-		}
-		// Drop unfinished invalid text so the input shows the stored value again
+		if (!input) return;
+
+		// Drop unfinished invalid text and show the stored value again
 		if (pendingText !== null) {
 			pendingText = null;
-			input?.setCustomValidity("");
+			input.setCustomValidity("");
+			input.value = value === null || value === undefined ? "" : String(value);
+			if (input.value) isEmpty = false;
+		}
+
+		// If the input is empty, reset the value to the default value
+		if (!input.value || isEmpty) {
+			setter(defaultValue);
 		}
 	}
 </script>

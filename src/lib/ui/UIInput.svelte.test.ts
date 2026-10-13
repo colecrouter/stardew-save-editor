@@ -48,6 +48,27 @@ describe("UI input", () => {
 		expect(input.value).toBe("25");
 	});
 
+	test("never ends up empty after invalid text, erasing it, and invalid text again", async () => {
+		render(UiInput, {
+			type: "number",
+			min: 13,
+			max: 28,
+			value: 21,
+			"data-testid": "input",
+		});
+		const input = screen.getByTestId("input") as HTMLInputElement;
+
+		await type(input, "5");
+		await type(input, "");
+		await type(input, "5");
+		await fireEvent.blur(input);
+		await tick();
+
+		// Nothing valid was stored after the input was cleared, so it falls back to the minimum
+		expect(input.value).toBe("13");
+		expect(input.checkValidity()).toBe(true);
+	});
+
 	test("restores the stored value when leaving invalid text", async () => {
 		render(UiInput, {
 			type: "number",

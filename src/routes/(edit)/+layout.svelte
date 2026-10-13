@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { tick } from "svelte";
 	import { goto } from "$app/navigation";
 	import { resolve } from "$app/paths";
 	import { getSaveManager } from "$lib/SaveManager.svelte";
@@ -20,6 +21,11 @@
 	const cancel = () => saveManager.reset();
 	const download = async () => {
 		isDownloading = true;
+		// Let a field that's mid-edit commit or fall back to a valid value before exporting
+		if (document.activeElement instanceof HTMLElement) {
+			document.activeElement.blur();
+		}
+		await tick();
 		return saveManager
 			.download()
 			.then(() =>

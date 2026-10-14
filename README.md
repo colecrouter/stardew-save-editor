@@ -27,9 +27,21 @@ A web-based save editor for Stardew Valley. Safely edit your save files directly
 ### Planned Features
 
 - 🔄 Animal editing
+  - Add new animals to existing barns and coops
+- 🔄 Building management
+  - Add new buildings to the farm
 - 🔄 Weather/calendar controls
 - 🔄 Community Center bundle management
+  - Finish the bundles page (currently marked "under construction")
 - 🔄 Quest management
+- 🔄 Game settings menu
+  - Audit the save data for world/game options not yet exposed (e.g. profit margin)
+  - Add a dedicated "Game Settings" menu icon for them
+- 🔄 Fill gaps in existing menus
+  - Audit each menu against the save data for editable fields not yet exposed
+    (e.g. is a tool's weight stored in the save, and can it be edited?)
+- 🔄 Item descriptions
+  - Fill in missing item descriptions using [stardewvalleyids.com](https://stardewvalleyids.com/)
 
 ## Usage
 

@@ -42,6 +42,7 @@ A web-based save editor for Stardew Valley. Safely edit your save files directly
     (e.g. is a tool's weight stored in the save, and can it be edited?)
 - 🔄 Item descriptions
   - Fill in missing item descriptions using [stardewvalleyids.com](https://stardewvalleyids.com/)
+- 🔄 Full code and security review of this fork
 
 ## Usage
 

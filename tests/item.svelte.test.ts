@@ -1,11 +1,13 @@
 import { flushSync } from "svelte";
 import { describe, expect, it } from "vitest";
 import { Raw } from "$lib/proxies";
+import { createRandom, rollFairyBox } from "$lib/TrinketStats";
 import { Item } from "../src/lib/proxies/Item.svelte";
 import {
 	FishingRodProxy,
 	MannequinProxy,
 	ToolProxy,
+	TrinketProxy,
 } from "../src/lib/proxies/items";
 
 /*
@@ -479,6 +481,140 @@ describe("Item", () => {
 				"@_xsi:type": "Trinket",
 			});
 			expect(item[Raw].generationSeed).toBeTypeOf("number");
+		});
+	});
+
+	const ctx = { useLegacyRandom: false, totalMoneyEarned: 10_000_000 };
+	const name = (key: string) =>
+		String.raw`[LocalizedText Strings\1_6_Strings:` + `${key}]`;
+
+	it("should set a Fairy Box's level by picking a matching seed", () => {
+		withRoot(() => {
+			const item = Item.fromName("FairyBox");
+			expect(item).toBeInstanceOf(TrinketProxy);
+			const trinket = item as TrinketProxy;
+			expect(trinket.statKind).toBe("FairyBox");
+
+			for (const level of [5, 1, 3]) {
+				expect(trinket.setStats({ kind: "FairyBox", level }, ctx)).toBe(true);
+				flushSync();
+				expect(trinket.getStats(ctx)).toEqual({ kind: "FairyBox", level });
+				expect(
+					rollFairyBox(createRandom(trinket[Raw].generationSeed, false)).level,
+				).toBe(level);
+				expect(trinket[Raw].descriptionSubstitutionTemplates).toEqual({
+					string: level,
+				});
+			}
+
+			trinket.setStats({ kind: "FairyBox", level: 9 }, ctx);
+			expect(trinket.getStats(ctx)).toEqual({ kind: "FairyBox", level: 5 });
+		});
+	});
+
+	it("should cap a Parrot Egg's level by money earned", () => {
+		withRoot(() => {
+			const trinket = Item.fromName("ParrotEgg") as TrinketProxy;
+			expect(trinket.setStats({ kind: "ParrotEgg", level: 4 }, ctx)).toBe(true);
+			expect(trinket.getStats(ctx)).toEqual({ kind: "ParrotEgg", level: 4 });
+			expect(trinket.descriptionSubstitutionTemplates).toEqual({
+				string: [4, name("ParrotEgg_Chance_3")],
+			});
+
+			const poor = { ...ctx, totalMoneyEarned: 800_000 };
+			trinket.setStats({ kind: "ParrotEgg", level: 4 }, poor);
+			expect(trinket.getStats(poor)).toEqual({ kind: "ParrotEgg", level: 2 });
+		});
+	});
+
+	it("should set an Ice Rod's stats and clear a stale Perfect name", () => {
+		withRoot(() => {
+			const trinket = Item.fromName("IceRod") as TrinketProxy;
+			trinket.displayNameOverrideTemplate = { string: name("PerfectIceRod") };
+			const target = {
+				kind: "IceRod",
+				interval: 4.2,
+				freeze: 2.5,
+				perfect: false,
+			} as const;
+			expect(trinket.setStats(target, ctx)).toBe(true);
+			expect(trinket.getStats(ctx)).toEqual(target);
+			expect(trinket.descriptionSubstitutionTemplates).toEqual({
+				string: [4.2, 2.5],
+			});
+			expect(trinket.displayNameOverrideTemplate).toEqual({
+				string: { "@_xsi:nil": "true" },
+			});
+
+			// Out of range values are clamped
+			trinket.setStats({ ...target, interval: 1, freeze: 9 }, ctx);
+			expect(trinket.getStats(ctx)).toMatchObject({ interval: 3, freeze: 4 });
+		});
+	});
+
+	it("should set a Golden Spur's speed boost duration", () => {
+		withRoot(() => {
+			const trinket = Item.fromName("IridiumSpur") as TrinketProxy;
+			expect(trinket.setStats({ kind: "IridiumSpur", duration: 10 }, ctx)).toBe(
+				true,
+			);
+			expect(trinket.getStats(ctx)).toEqual({
+				kind: "IridiumSpur",
+				duration: 10,
+			});
+			expect(trinket.descriptionSubstitutionTemplates).toEqual({ string: 10 });
+		});
+	});
+
+	it("should set every Magic Quiver type and its stats", () => {
+		withRoot(() => {
+			const trinket = Item.fromName("MagicQuiver") as TrinketProxy;
+			const targets = [
+				{ type: "rapid", minDamage: 12, delay: 0.6, title: "RapidMagicQuiver" },
+				{ type: "heavy", minDamage: 38, delay: 1.5, title: "HeavyMagicQuiver" },
+				{
+					type: "perfect",
+					minDamage: 30,
+					delay: 0.9,
+					title: "PerfectMagicQuiver",
+				},
+				{ type: "normal", minDamage: 28, delay: 1.1, title: undefined },
+			] as const;
+			for (const { title, ...target } of targets) {
+				const stats = {
+					kind: "MagicQuiver",
+					...target,
+					maxDamage: target.minDamage + 5,
+				} as const;
+				expect(trinket.setStats(stats, ctx)).toBe(true);
+				expect(trinket.getStats(ctx)).toEqual(stats);
+				expect(trinket.descriptionSubstitutionTemplates).toEqual({
+					string: [stats.delay, stats.minDamage, stats.maxDamage],
+				});
+				expect(trinket.displayNameOverrideTemplate).toEqual(
+					title ? { string: name(title) } : { string: { "@_xsi:nil": "true" } },
+				);
+			}
+		});
+	});
+
+	it("should set a Frog Egg's color", () => {
+		withRoot(() => {
+			const trinket = Item.fromName("FrogEgg") as TrinketProxy;
+			expect(trinket.setStats({ kind: "FrogEgg", variant: 7 }, ctx)).toBe(true);
+			expect(trinket.getStats(ctx)).toEqual({ kind: "FrogEgg", variant: 7 });
+			expect(trinket.displayNameOverrideTemplate).toEqual({
+				string: name("frog_variant_7"),
+			});
+		});
+	});
+
+	it("should not give other trinkets editable stats", () => {
+		withRoot(() => {
+			const trinket = Item.fromName("BasiliskPaw") as TrinketProxy;
+			expect(trinket.statKind).toBeUndefined();
+			expect(trinket.getStats(ctx)).toBeUndefined();
+			expect(trinket.setStats({ kind: "FairyBox", level: 3 }, ctx)).toBe(false);
 		});
 	});
 

@@ -173,6 +173,8 @@ export const createArtisanGoods = (
 			...obj,
 			_key: artisanProduct._key,
 			name: `${config.prefix ? `${config.prefix} ` : ""}${obj.name}${config.suffix ? ` ${config.suffix}` : ""}`,
+			// Flavored goods use the product's description (e.g. Wine), not the ingredient's
+			description: artisanProduct.description,
 			edibility: Math.max(
 				0,
 				Math.floor((obj.edibility ?? 0) * config.edibilityMultiplier),

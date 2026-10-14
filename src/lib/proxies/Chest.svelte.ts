@@ -132,6 +132,37 @@ export class ChestProxy implements DataProxy<RawChest> {
 	}
 }
 
+export interface ChestSearchResult {
+	chestIndex: number;
+	slotIndex: number;
+	chest: ChestProxy;
+	item: ItemProxy;
+}
+
+/** Find every item across all chests whose name contains `term` (case-insensitive). */
+export function searchChests(
+	chests: ChestProxy[],
+	term: string,
+): ChestSearchResult[] {
+	const needle = term.trim().toLowerCase();
+	if (!needle) return [];
+
+	const results: ChestSearchResult[] = [];
+	chests.forEach((chest, chestIndex) => {
+		for (
+			let slotIndex = 0;
+			slotIndex < chest.inventory.slotCount;
+			slotIndex++
+		) {
+			const item = chest.inventory.get(slotIndex);
+			if (item?.name?.toLowerCase().includes(needle)) {
+				results.push({ chestIndex, slotIndex, chest, item });
+			}
+		}
+	});
+	return results;
+}
+
 const isChest = (value: unknown): value is RawChest => {
 	if (!isRecord(value)) return false;
 	if (value["@_xsi:type"] === "Chest") return true;

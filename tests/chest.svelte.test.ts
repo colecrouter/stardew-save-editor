@@ -1,7 +1,11 @@
 import { flushSync } from "svelte";
 import { describe, expect, it } from "vitest";
 import type { Item, Save } from "../codegen/save";
-import { discoverChests, type RawChest } from "../src/lib/proxies/Chest.svelte";
+import {
+	discoverChests,
+	type RawChest,
+	searchChests,
+} from "../src/lib/proxies/Chest.svelte";
 import { Item as ItemFactory } from "../src/lib/proxies/Item.svelte";
 
 const wood = (): Item =>
@@ -136,6 +140,55 @@ describe("chest discovery and editing", () => {
 		expect(target.inventory.usedSlots).toBe(1);
 		expect(items()).toHaveLength(1);
 		expect(items()[0]).toMatchObject({ name: "Stone" });
+		cleanup();
+	});
+
+	it("searches item names across every chest", () => {
+		const first = chest();
+		const second = chest("Big Chest");
+		const save = {
+			locations: {
+				GameLocation: [
+					{
+						name: "Farm",
+						objects: {
+							item: [
+								{
+									key: { Vector2: { X: 1, Y: 2 } },
+									value: { Object: first },
+								},
+								{
+									key: { Vector2: { X: 3, Y: 4 } },
+									value: { Object: second },
+								},
+							],
+						},
+						buildings: "",
+					},
+				],
+			},
+		} as unknown as Save;
+
+		let discovered = [] as ReturnType<typeof discoverChests>;
+		const cleanup = $effect.root(() => {
+			discovered = discoverChests(save);
+		});
+		discovered[1]?.inventory.set(1, ItemFactory.fromName("Stone"));
+		flushSync();
+
+		const wood = searchChests(discovered, "  wOo ");
+		expect(wood.map((r) => [r.chestIndex, r.slotIndex])).toEqual([
+			[0, 0],
+			[1, 0],
+		]);
+		expect(wood[0]?.item.name).toBe("Wood");
+
+		const stone = searchChests(discovered, "stone");
+		expect(stone.map((r) => [r.chestIndex, r.slotIndex])).toEqual([[1, 1]]);
+
+		expect(searchChests(discovered, "")).toEqual([]);
+		expect(searchChests(discovered, "   ")).toEqual([]);
+		expect(searchChests(discovered, "iridium")).toEqual([]);
 		cleanup();
 	});
 });

@@ -17,8 +17,8 @@
 	"devDependencies": {
 		"@biomejs/biome": "^2.4.4",
 		"@sentry/sveltekit": "^10.53.1",
-		"@sveltejs/adapter-static": "^3.0.10",
-		"@sveltejs/kit": "^2.60.1",
+		"@sveltejs/adapter-static": "^4.0.0",
+		"@sveltejs/kit": "^3.1.0",
 		"@sveltejs/vite-plugin-svelte": "^6.2.1",
 		"@testing-library/svelte": "^5.2.8",
 		"@thisux/sveltednd": "0.0.20",
@@ -27,7 +27,7 @@
 		"@types/pako": "^2.0.3",
 		"@types/wicg-file-system-access": "^2020.9.6",
 		"@vitejs/plugin-legacy": "^7.2.1",
-		"@vitest/web-worker": "^3.2.4",
+		"@vitest/web-worker": "^5.0.5",
 		"comlink": "^4.4.2",
 		"core-js": "^3.46.0",
 		"fast-xml-parser": "^5.8.0",
@@ -45,7 +45,7 @@
 		"typescript": "^5.9.3",
 		"vite": "^7.3.2",
 		"vite-plugin-sveltekit-legacy": "^0.1.0",
-		"vitest": "^3.2.4",
+		"vitest": "^5.0.5",
 		"vitest-indexeddb": "^0.0.0"
 	},
 	"optionalDependencies": {

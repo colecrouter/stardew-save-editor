@@ -88,25 +88,28 @@ describe("QiQuests", () => {
 		[1, "spring", 6, 8],
 		[3, "summer", 28, 282],
 		[3, "winter", 28, 338],
-	] as const)("uses the world date for deadlines in year %i, %s %i", async (year, season, day, expectedDeadline) => {
-		const save = saveManager.save;
-		if (!save) throw new Error("Save import failed");
-		const game = save[Raw].SaveGame;
-		game.year = year;
-		game.currentSeason = season as typeof game.currentSeason;
-		game.dayOfMonth = day;
-		// Player statistics may be empty, stale, or edited independently.
-		game.player.stats.daysPlayed = "9999";
-		save.qiQuests.accept("QiChallenge8");
-		flushSync();
-		const exported = await (await saveManager.export()).text();
-		const parsed = new XMLManager().parse<SaveFile>(exported);
-		expect(
-			parsed.SaveGame.specialOrders.SpecialOrder.find(
-				(order) => order.questKey === "QiChallenge8",
-			)?.dueDate,
-		).toBe(expectedDeadline);
-	});
+	] as const)(
+		"uses the world date for deadlines in year %i, %s %i",
+		async (year, season, day, expectedDeadline) => {
+			const save = saveManager.save;
+			if (!save) throw new Error("Save import failed");
+			const game = save[Raw].SaveGame;
+			game.year = year;
+			game.currentSeason = season as typeof game.currentSeason;
+			game.dayOfMonth = day;
+			// Player statistics may be empty, stale, or edited independently.
+			game.player.stats.daysPlayed = "9999";
+			save.qiQuests.accept("QiChallenge8");
+			flushSync();
+			const exported = await (await saveManager.export()).text();
+			const parsed = new XMLManager().parse<SaveFile>(exported);
+			expect(
+				parsed.SaveGame.specialOrders.SpecialOrder.find(
+					(order) => order.questKey === "QiChallenge8",
+				)?.dueDate,
+			).toBe(expectedDeadline);
+		},
+	);
 
 	it("exports Four Precious Stones with a resolved collection objective", async () => {
 		const save = saveManager.save;
@@ -301,39 +304,42 @@ describe("QiQuests", () => {
 		["QiChallenge5", true],
 		["QiChallenge10", true],
 		["QiChallenge9", false],
-	] as const)("preserves the mine location for offered and accepted %s", async (questKey, skullCave) => {
-		const save = saveManager.save;
-		if (!save) throw new Error("Save import failed");
-		save.qiQuests.add(questKey);
-		flushSync();
-		const offered = new XMLManager().parse<SaveFile>(
-			await (await saveManager.export()).text(),
-		);
-		const offeredOrder =
-			offered.SaveGame.availableSpecialOrders.SpecialOrder.find(
+	] as const)(
+		"preserves the mine location for offered and accepted %s",
+		async (questKey, skullCave) => {
+			const save = saveManager.save;
+			if (!save) throw new Error("Save import failed");
+			save.qiQuests.add(questKey);
+			flushSync();
+			const offered = new XMLManager().parse<SaveFile>(
+				await (await saveManager.export()).text(),
+			);
+			const offeredOrder =
+				offered.SaveGame.availableSpecialOrders.SpecialOrder.find(
+					(order) => order.questKey === questKey,
+				);
+			if (!offeredOrder || !Array.isArray(offeredOrder.objectives))
+				throw new Error("Missing objectives");
+			expect(offeredOrder.objectives[0]).toMatchObject({
+				"@_xsi:type": "ReachMineFloorObjective",
+				skullCave,
+			});
+			save.qiQuests.accept(questKey);
+			flushSync();
+			const accepted = new XMLManager().parse<SaveFile>(
+				await (await saveManager.export()).text(),
+			);
+			const acceptedOrder = accepted.SaveGame.specialOrders.SpecialOrder.find(
 				(order) => order.questKey === questKey,
 			);
-		if (!offeredOrder || !Array.isArray(offeredOrder.objectives))
-			throw new Error("Missing objectives");
-		expect(offeredOrder.objectives[0]).toMatchObject({
-			"@_xsi:type": "ReachMineFloorObjective",
-			skullCave,
-		});
-		save.qiQuests.accept(questKey);
-		flushSync();
-		const accepted = new XMLManager().parse<SaveFile>(
-			await (await saveManager.export()).text(),
-		);
-		const acceptedOrder = accepted.SaveGame.specialOrders.SpecialOrder.find(
-			(order) => order.questKey === questKey,
-		);
-		if (!acceptedOrder || !Array.isArray(acceptedOrder.objectives))
-			throw new Error("Missing objectives");
-		expect(acceptedOrder.objectives[0]).toMatchObject({
-			"@_xsi:type": "ReachMineFloorObjective",
-			skullCave,
-		});
-	});
+			if (!acceptedOrder || !Array.isArray(acceptedOrder.objectives))
+				throw new Error("Missing objectives");
+			expect(acceptedOrder.objectives[0]).toMatchObject({
+				"@_xsi:type": "ReachMineFloorObjective",
+				skullCave,
+			});
+		},
+	);
 
 	it.each([
 		["MINE_HARD", true, 2, 1, 2, -1],
@@ -342,79 +348,85 @@ describe("QiQuests", () => {
 		["MINE_HARD", false, 2, 2, 2, 65],
 		["SC_HARD", false, 2, 2, 2, 65],
 		["MINE_HARD, SC_HARD", true, 0, 0, 0, -1],
-	] as const)("cleans up %s only when applied=%s (difficulty %i)", async (rules, applied, difficulty, mines, skull, depth) => {
-		const order = specialOrderXml("QiChallenge9", "Qi")
-			.replace("<specialRule />", `<specialRule>${rules}</specialRule>`)
-			.replace("<appliedSpecialRules>false", `<appliedSpecialRules>${applied}`);
-		saveManager = await importSave(
-			fixture.replace(
-				"<specialOrders />",
-				`<specialOrders>${order}</specialOrders>`,
-			),
-		);
-		const save = saveManager.save;
-		if (!save) throw new Error("Save import failed");
-		const game = save[Raw].SaveGame;
-		game.minesDifficulty = difficulty;
-		game.skullCavesDifficulty = difficulty;
-		game.mine_lowestLevelReachedForOrder = 65;
-		game.mineShrineActivated = true;
-		game.skullShrineActivated = true;
-		save.qiQuests.removeInProgress("QiChallenge9");
-		// A second cancellation must not undo shrine/other difficulty sources.
-		save.qiQuests.removeInProgress("QiChallenge9");
-		flushSync();
-		const exported = new XMLManager().parse<SaveFile>(
-			await (await saveManager.export()).text(),
-		);
-		expect(exported.SaveGame).toMatchObject({
-			minesDifficulty: mines,
-			skullCavesDifficulty: skull,
-			mine_lowestLevelReachedForOrder: depth,
-			mineShrineActivated: true,
-			skullShrineActivated: true,
-		});
-		expect(save.qiQuests.inProgress).toEqual([]);
-	});
-
-	it.each([
-		true,
-		false,
-	])("accounts for a remaining quest with applied=%s", async (remainingApplied) => {
-		const mineOrder = (key: string, applied: boolean) =>
-			specialOrderXml(key, "Qi")
-				.replace(
-					"<specialRule />",
-					"<specialRule>MINE_HARD, SC_HARD</specialRule>",
-				)
+	] as const)(
+		"cleans up %s only when applied=%s (difficulty %i)",
+		async (rules, applied, difficulty, mines, skull, depth) => {
+			const order = specialOrderXml("QiChallenge9", "Qi")
+				.replace("<specialRule />", `<specialRule>${rules}</specialRule>`)
 				.replace(
 					"<appliedSpecialRules>false",
 					`<appliedSpecialRules>${applied}`,
 				);
-		const orders =
-			mineOrder("QiChallenge9", true) +
-			mineOrder("ModdedMineQuest", remainingApplied);
-		saveManager = await importSave(
-			fixture.replace(
-				"<specialOrders />",
-				`<specialOrders>${orders}</specialOrders>`,
-			),
-		);
-		const save = saveManager.save;
-		if (!save) throw new Error("Save import failed");
-		const game = save[Raw].SaveGame;
-		game.minesDifficulty = 2;
-		game.skullCavesDifficulty = 2;
-		game.mine_lowestLevelReachedForOrder = 65;
-		const retainedOrder = structuredClone(game.specialOrders.SpecialOrder[1]);
-		save.qiQuests.removeInProgress("QiChallenge9");
-		expect(game.minesDifficulty).toBe(remainingApplied ? 2 : 1);
-		expect(game.skullCavesDifficulty).toBe(remainingApplied ? 2 : 1);
-		expect(game.mine_lowestLevelReachedForOrder).toBe(
-			remainingApplied ? 65 : -1,
-		);
-		expect(game.specialOrders.SpecialOrder).toEqual([retainedOrder]);
-	});
+			saveManager = await importSave(
+				fixture.replace(
+					"<specialOrders />",
+					`<specialOrders>${order}</specialOrders>`,
+				),
+			);
+			const save = saveManager.save;
+			if (!save) throw new Error("Save import failed");
+			const game = save[Raw].SaveGame;
+			game.minesDifficulty = difficulty;
+			game.skullCavesDifficulty = difficulty;
+			game.mine_lowestLevelReachedForOrder = 65;
+			game.mineShrineActivated = true;
+			game.skullShrineActivated = true;
+			save.qiQuests.removeInProgress("QiChallenge9");
+			// A second cancellation must not undo shrine/other difficulty sources.
+			save.qiQuests.removeInProgress("QiChallenge9");
+			flushSync();
+			const exported = new XMLManager().parse<SaveFile>(
+				await (await saveManager.export()).text(),
+			);
+			expect(exported.SaveGame).toMatchObject({
+				minesDifficulty: mines,
+				skullCavesDifficulty: skull,
+				mine_lowestLevelReachedForOrder: depth,
+				mineShrineActivated: true,
+				skullShrineActivated: true,
+			});
+			expect(save.qiQuests.inProgress).toEqual([]);
+		},
+	);
+
+	it.each([true, false])(
+		"accounts for a remaining quest with applied=%s",
+		async (remainingApplied) => {
+			const mineOrder = (key: string, applied: boolean) =>
+				specialOrderXml(key, "Qi")
+					.replace(
+						"<specialRule />",
+						"<specialRule>MINE_HARD, SC_HARD</specialRule>",
+					)
+					.replace(
+						"<appliedSpecialRules>false",
+						`<appliedSpecialRules>${applied}`,
+					);
+			const orders =
+				mineOrder("QiChallenge9", true) +
+				mineOrder("ModdedMineQuest", remainingApplied);
+			saveManager = await importSave(
+				fixture.replace(
+					"<specialOrders />",
+					`<specialOrders>${orders}</specialOrders>`,
+				),
+			);
+			const save = saveManager.save;
+			if (!save) throw new Error("Save import failed");
+			const game = save[Raw].SaveGame;
+			game.minesDifficulty = 2;
+			game.skullCavesDifficulty = 2;
+			game.mine_lowestLevelReachedForOrder = 65;
+			const retainedOrder = structuredClone(game.specialOrders.SpecialOrder[1]);
+			save.qiQuests.removeInProgress("QiChallenge9");
+			expect(game.minesDifficulty).toBe(remainingApplied ? 2 : 1);
+			expect(game.skullCavesDifficulty).toBe(remainingApplied ? 2 : 1);
+			expect(game.mine_lowestLevelReachedForOrder).toBe(
+				remainingApplied ? 65 : -1,
+			);
+			expect(game.specialOrders.SpecialOrder).toEqual([retainedOrder]);
+		},
+	);
 
 	it("does not repeat cleanup for a completed order", async () => {
 		const order = specialOrderXml("QiChallenge9", "Qi")

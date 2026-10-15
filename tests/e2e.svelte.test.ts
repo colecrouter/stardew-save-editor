@@ -26,6 +26,7 @@ import craftingPage from "../src/routes/(edit)/(list)/crafting/+page.svelte";
 import appearancePage from "../src/routes/(edit)/appearance/+page.svelte";
 import bundlesPage from "../src/routes/(edit)/bundles/+page.svelte";
 import characterPage from "../src/routes/(edit)/character/+page.svelte";
+import farmPage from "../src/routes/(edit)/farm/+page.svelte";
 import editorPage from "../src/routes/(edit)/inventory/+page.svelte";
 import BuildingSprite from "../src/routes/(edit)/inventory/BuildingSprite.svelte";
 import relationshipsPage from "../src/routes/(edit)/relationships/+page.svelte";
@@ -109,6 +110,16 @@ const createPageHarness = async (): Promise<PageHarness> => {
 	});
 
 	return { saveManager, render: renderWithContext, cleanup };
+};
+
+// Select a <select> option the way a user would, then notify Svelte's binding
+const choose = async (element: HTMLElement, value: string) => {
+	const select = element as HTMLSelectElement;
+	for (const option of select.options) {
+		const selected = option.value === value;
+		option.selected = selected;
+	}
+	await fireEvent.change(select);
 };
 
 describe("Save Manager Integration Tests", () => {
@@ -520,6 +531,16 @@ describe("Save Manager Integration Tests", () => {
 			).toBe(true);
 		});
 
+		it("shows each recipe's item description", () => {
+			const page = harness.render(craftingPage);
+			const keg = page
+				.getByTestId("recipe-keg")
+				.closest("label") as HTMLElement;
+			expect(within(keg).getByTestId("recipe-description").textContent).toBe(
+				"Place a fruit or vegetable in here. Eventually it will turn into a beverage.",
+			);
+		});
+
 		it("should toggle recipe (unlock & lock)", async () => {
 			const page = harness.render(craftingPage);
 			const recipe = page.getByTestId("recipe-keg");
@@ -690,6 +711,25 @@ describe("Save Manager Integration Tests", () => {
 			);
 		});
 
+		it("shows each villager's description and loved gifts", () => {
+			const page = harness.render(relationshipsPage);
+			const row = page
+				.getAllByTestId("friendship-row")
+				.find(
+					(r) =>
+						within(r).getByTestId("friendship-name").textContent === "Lewis",
+				);
+			expect(row).toBeTruthy();
+			if (!row) return;
+			expect(
+				within(row).getByTestId("friendship-description").textContent,
+			).toMatch(/^Lewis is/);
+			const gifts = within(row).getAllByTestId("friendship-loved-gift");
+			expect(gifts.map((g) => g.getAttribute("title"))).toContain(
+				"Loves: Autumn's Bounty",
+			);
+		});
+
 		it("should update friendship hearts", async () => {
 			const page = harness.render(relationshipsPage);
 			if (!saveManager.save) return;
@@ -719,6 +759,66 @@ describe("Save Manager Integration Tests", () => {
 				const rawFriend = friendship[Raw];
 				expect(rawFriend.value.Friendship.Points).toBe(targetHearts * 250);
 			}
+		});
+	});
+
+	describe("Farm", () => {
+		it("applies the farm name and profit margin to every farmer", async () => {
+			const page = harness.render(farmPage);
+			const save = saveManager.save;
+			if (!save) return;
+
+			await fireEvent.input(page.getByTestId("farm-name"), {
+				target: { value: "Moonlight" },
+			});
+			await fireEvent.input(page.getByTestId("profit-margin"), {
+				target: { value: "50" },
+			});
+			flushSync();
+
+			for (const player of save.players) {
+				expect(player.raw.farmName).toBe("Moonlight");
+				expect(player.raw.difficultyModifier).toBe(0.5);
+			}
+		});
+
+		it("accepts a custom profit margin", async () => {
+			const page = harness.render(farmPage);
+			const save = saveManager.save;
+			if (!save) return;
+			const input = page.getByTestId("profit-margin") as HTMLInputElement;
+			expect(input.value).toBe("100");
+
+			await fireEvent.input(input, { target: { value: "130" } });
+			flushSync();
+
+			for (const player of save.players) {
+				expect(player.raw.difficultyModifier).toBe(1.3);
+			}
+		});
+
+		it("edits monster spawning and mine rewards", async () => {
+			const page = harness.render(farmPage);
+			const game = saveManager.save?.raw.SaveGame;
+			if (!game) return;
+			expect(game.shouldSpawnMonsters).toBe(false);
+
+			await fireEvent.click(page.getByTestId("spawn-monsters"));
+			await choose(page.getByTestId("mine-rewards"), "Remixed");
+			flushSync();
+
+			expect(game.shouldSpawnMonsters).toBe(true);
+			expect(game.shuffleMineChests).toBe("Remixed");
+		});
+
+		it("shows creation-only settings as read-only", () => {
+			const page = harness.render(farmPage);
+			const values = page
+				.getAllByTestId("locked-setting")
+				.map((el) => el.textContent);
+			// TestSave is a Hill-top farm (whichFarm 3)
+			expect(values).toContain("Hill-top");
+			expect(values).toContain("390176213");
 		});
 	});
 
@@ -820,6 +920,44 @@ describe("Save Manager Integration Tests", () => {
 			});
 			expect(button.getAttribute("aria-pressed")).toBe("true");
 			disposeAnimal();
+		});
+
+		it("shows each building's description and build cost", () => {
+			const save = saveManager.save;
+			if (!save?.farm) return;
+			const building = save.farm.buildings.find((b) => b.data);
+			expect(building?.data).toBeTruthy();
+			if (!building?.data) return;
+
+			// Fill in the fields `npm run dump` generates from Data/Buildings.json
+			const data = building.data;
+			Object.assign(data, {
+				description: "Houses animals.",
+				buildCost: 4000,
+				buildMaterials: [
+					{ item: "Wood", amount: 300 },
+					{ item: "Stone", amount: 100 },
+				],
+			});
+
+			try {
+				const page = harness.render(buildingsPage);
+				expect(
+					page
+						.getAllByTestId("building-description")
+						.map((el) => el.textContent),
+				).toContain("Houses animals.");
+				const cost = page
+					.getAllByTestId("building-cost")
+					.find((el) => el.textContent?.includes("4,000g"));
+				expect(cost).toBeTruthy();
+				if (!cost) return;
+				expect(within(cost).getByTitle("Wood").textContent).toContain("300");
+				expect(within(cost).getByTitle("Stone").textContent).toContain("100");
+			} finally {
+				for (const key of ["description", "buildCost", "buildMaterials"])
+					delete (data as Record<string, unknown>)[key];
+			}
 		});
 
 		it("should update farm animal numeric stat inputs", async () => {

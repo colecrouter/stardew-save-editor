@@ -12,13 +12,20 @@ A web-based save editor for Stardew Valley. Safely edit your save files directly
 - ✅ Character Customization
   - Edit appearance, name, and farm name
   - Modify skills and money
-  - Change relationships with NPCs
+  - Change relationships with NPCs, with each villager's description and loved gifts
 - ✅ Inventory Management  
   - Add/remove items
   - Modify existing items
 - ✅ Recipe Management
   - Unlock cooking recipes
   - Unlock crafting recipes
+  - See each recipe's item description
+- ✅ Farm Settings
+  - Edit farm name, profit margin (any percentage), monster spawning and mine rewards
+  - View settings fixed at farm creation (farm type, random seed, and more)
+- ✅ Buildings
+  - Edit farm animals in barns and coops
+  - See each building's description and build cost (gold and materials)
 - ✅ Save Management
   - Switch between farmhands
   - Automatic save backups
@@ -34,14 +41,9 @@ A web-based save editor for Stardew Valley. Safely edit your save files directly
 - 🔄 Community Center bundle management
   - Finish the bundles page (currently marked "under construction")
 - 🔄 Quest management
-- 🔄 Game settings menu
-  - Audit the save data for world/game options not yet exposed (e.g. profit margin)
-  - Add a dedicated "Game Settings" menu icon for them
 - 🔄 Fill gaps in existing menus
   - Audit each menu against the save data for editable fields not yet exposed
     (e.g. is a tool's weight stored in the save, and can it be edited?)
-- 🔄 Item descriptions
-  - Fill in missing item descriptions using [stardewvalleyids.com](https://stardewvalleyids.com/)
 - 🔄 Event management
   - View and edit which events the player has seen (the save's `eventsSeen` list), e.g. to replay heart events or skip cutscenes
   - Name each event using the [List of Vanilla Event IDs](https://stardewmodding.wiki.gg/wiki/List_of_Vanilla_Event_IDs)

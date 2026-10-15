@@ -1,6 +1,8 @@
 <script lang="ts">
+	import { ItemData } from "$lib/ItemData";
 	import { Raw } from "$lib/proxies";
 	import type { FarmAnimal } from "$lib/proxies/FarmAnimal.svelte";
+	import { Item } from "$lib/proxies/Item.svelte";
 	import { getSaveManager } from "$lib/SaveManager.svelte";
 	import EmojiRange from "$lib/ui/EmojiRange.svelte";
 	import UiCheckbox from "$lib/ui/UICheckbox.svelte";
@@ -9,6 +11,7 @@
 	import UiInput from "$lib/ui/UIInput.svelte";
 	import { Gender } from "$types/save";
 	import BuildingSprite from "../../inventory/BuildingSprite.svelte";
+	import ItemSprite from "../../inventory/ItemSprite.svelte";
 
 	let saveManager: ReturnType<typeof getSaveManager> | undefined;
 	try {
@@ -98,6 +101,40 @@
 											{@const max = building.data?.maxOccupants ?? "??"}
 											{@const animals = building.indoorLocation.animals.length}
 											<small class="meta">{animals}/{max} animals inside</small>
+										{/if}
+										{#if building.data?.description}
+											<small
+												class="description"
+												data-testid="building-description"
+												>{building.data.description}</small
+											>
+										{/if}
+										{#if building.data?.buildCost || building.data?.buildMaterials?.length}
+											<ul
+												class="cost"
+												aria-label={`${building.name} build cost`}
+												data-testid="building-cost"
+											>
+												{#if building.data.buildCost}
+													<li title="Gold">
+														{building.data.buildCost.toLocaleString()}g
+													</li>
+												{/if}
+												{#each building.data.buildMaterials ?? [] as material (material.item)}
+													<li title={material.item}>
+														{#if ItemData.has(material.item)}
+															<span class="material-icon">
+																<ItemSprite
+																	item={Item.fromName(material.item)}
+																/>
+															</span>
+														{/if}
+														{material.amount}{ItemData.has(material.item)
+															? ""
+															: ` ${material.item}`}
+													</li>
+												{/each}
+											</ul>
 										{/if}
 									</div>
 
@@ -316,6 +353,36 @@
 
 	.meta {
 		color: #6f3b31;
+	}
+
+	.description {
+		display: block;
+		margin-top: 2px;
+		font-size: 0.75em;
+		opacity: 0.8;
+	}
+
+	.cost {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 4px 10px;
+		margin: 4px 0 0;
+		padding: 0;
+		list-style: none;
+		font-size: 0.85em;
+	}
+
+	.cost li {
+		display: flex;
+		align-items: center;
+		gap: 2px;
+	}
+
+	/* Shrink the 32px item sprites to small icons */
+	.material-icon {
+		display: inline-flex;
+		zoom: 0.75;
 	}
 
 	.toggle {

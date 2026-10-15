@@ -24,6 +24,7 @@ import tools from "../content/Data/Tools.json" with { type: "json" };
 import trinkets from "../content/Data/Trinkets.json" with { type: "json" };
 import weapons from "../content/Data/Weapons.json" with { type: "json" };
 import { characters } from "../src/lib/NPCs.js";
+import { getBuildMaterials } from "./buildingCost.js";
 import {
 	createArtisanGoods,
 	fixTexture,
@@ -299,8 +300,8 @@ const writeToFile = JSON.stringify(
 		]),
 );
 
-await rm("./generated", { recursive: true, force: true });
-await mkdir("./generated");
+// Overwrite rather than clear the folder: villagers.json comes from `npm run dump:villagers`
+await mkdir("./generated", { recursive: true });
 await writeFile("./generated/iteminfo.json", writeToFile);
 
 // **Recipes**
@@ -537,8 +538,20 @@ async function getBuildingTextureSize(texture: string | undefined) {
 	}
 }
 
+type BuildingCostData = {
+	Description?: string;
+	BuildCost?: number;
+	BuildMaterials?: { ItemId?: string; Amount?: number }[] | null;
+};
+
+// The editor looks items up by name, so build materials are stored by name
+const objectNames = new Map(
+	objectsArray.map((obj) => [String(obj._key), String(obj.name)]),
+);
+
 const buildingsArray = await Promise.all(
 	Object.entries(buildings).map(async ([key, obj]) => {
+		const cost = obj as BuildingCostData;
 		const texture = getBuildingTexture(obj.Texture);
 		const sourceRect =
 			obj.SourceRect && (obj.SourceRect.Width > 0 || obj.SourceRect.Height > 0)
@@ -555,6 +568,9 @@ const buildingsArray = await Promise.all(
 			sourceRect,
 			maxOccupants: obj.MaxOccupants,
 			hayCapacity: obj.HayCapacity,
+			description: resolveDescription(cost.Description) || undefined,
+			buildCost: cost.BuildCost || undefined,
+			buildMaterials: getBuildMaterials(cost.BuildMaterials, objectNames),
 		};
 	}),
 );

@@ -6,11 +6,12 @@ import legacy from "vite-plugin-sveltekit-legacy";
 
 export default defineConfig(({ mode }) => ({
 	plugins: [
-		mode === "production"
+		// Only set up Sentry when there's a DSN to report to; source maps upload when SENTRY_AUTH_TOKEN is set too
+		mode === "production" && process.env.VITE_SENTRY_DSN
 			? sentrySvelteKit({
 					sourceMapsUploadOptions: {
-						org: "cole-crouter",
-						project: "stardew-save-editor",
+						org: process.env.SENTRY_ORG,
+						project: process.env.SENTRY_PROJECT,
 					},
 					bundleSizeOptimizations: {
 						excludeReplayIframe: true,

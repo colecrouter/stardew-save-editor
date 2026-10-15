@@ -9,6 +9,7 @@ import { Sprite } from "$lib/Sprite.svelte";
 import type { ItemInformation } from "$types/items";
 import type { Item } from "$types/save";
 import { type DataProxy, Dispose, Raw } from "..";
+
 export { Raw };
 
 export type ReportedMissingItemMetadata = {

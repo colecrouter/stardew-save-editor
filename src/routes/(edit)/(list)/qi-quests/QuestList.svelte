@@ -34,8 +34,8 @@
 <UiContainer>
 	<h3>Qi's Quests</h3>
 	<p class="hint">
-		The Walnut Room board only ever offers {MAX_AVAILABLE} at a time - select up
-		to {MAX_AVAILABLE} ({quests.size}/{MAX_AVAILABLE} selected).
+		The Walnut Room board only ever offers {MAX_AVAILABLE} at a time - select up to
+		{MAX_AVAILABLE} ({quests.size}/{MAX_AVAILABLE} selected).
 	</p>
 
 	<div class="search">

@@ -38,12 +38,26 @@
 			<HeartBar {name} {npc} />
 		{/each}
 	</div>
+	<small class="credit">
+		Descriptions and loved gifts from the
+		<a href="https://stardewvalleywiki.com" target="_blank" rel="noreferrer"
+			>Stardew Valley Wiki</a
+		>
+		(CC BY-NC-SA 3.0).
+	</small>
 </UiContainer>
 
 <style>
 	.wrapper {
 		overflow-y: scroll;
 		height: 20rem;
+	}
+
+	.credit {
+		display: block;
+		margin-top: 6px;
+		font-size: x-small;
+		opacity: 0.8;
 	}
 
 	.toolbar {

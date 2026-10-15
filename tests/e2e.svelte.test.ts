@@ -26,6 +26,7 @@ import craftingPage from "../src/routes/(edit)/(list)/crafting/+page.svelte";
 import appearancePage from "../src/routes/(edit)/appearance/+page.svelte";
 import bundlesPage from "../src/routes/(edit)/bundles/+page.svelte";
 import characterPage from "../src/routes/(edit)/character/+page.svelte";
+import farmPage from "../src/routes/(edit)/farm/+page.svelte";
 import editorPage from "../src/routes/(edit)/inventory/+page.svelte";
 import BuildingSprite from "../src/routes/(edit)/inventory/BuildingSprite.svelte";
 import relationshipsPage from "../src/routes/(edit)/relationships/+page.svelte";
@@ -109,6 +110,16 @@ const createPageHarness = async (): Promise<PageHarness> => {
 	});
 
 	return { saveManager, render: renderWithContext, cleanup };
+};
+
+// Select a <select> option the way a user would, then notify Svelte's binding
+const choose = async (element: HTMLElement, value: string) => {
+	const select = element as HTMLSelectElement;
+	for (const option of select.options) {
+		const selected = option.value === value;
+		option.selected = selected;
+	}
+	await fireEvent.change(select);
 };
 
 describe("Save Manager Integration Tests", () => {
@@ -520,6 +531,16 @@ describe("Save Manager Integration Tests", () => {
 			).toBe(true);
 		});
 
+		it("shows each recipe's item description", () => {
+			const page = harness.render(craftingPage);
+			const keg = page
+				.getByTestId("recipe-keg")
+				.closest("label") as HTMLElement;
+			expect(within(keg).getByTestId("recipe-description").textContent).toBe(
+				"Place a fruit or vegetable in here. Eventually it will turn into a beverage.",
+			);
+		});
+
 		it("should toggle recipe (unlock & lock)", async () => {
 			const page = harness.render(craftingPage);
 			const recipe = page.getByTestId("recipe-keg");
@@ -690,6 +711,25 @@ describe("Save Manager Integration Tests", () => {
 			);
 		});
 
+		it("shows each villager's description and loved gifts", () => {
+			const page = harness.render(relationshipsPage);
+			const row = page
+				.getAllByTestId("friendship-row")
+				.find(
+					(r) =>
+						within(r).getByTestId("friendship-name").textContent === "Lewis",
+				);
+			expect(row).toBeTruthy();
+			if (!row) return;
+			expect(
+				within(row).getByTestId("friendship-description").textContent,
+			).toMatch(/^Lewis is/);
+			const gifts = within(row).getAllByTestId("friendship-loved-gift");
+			expect(gifts.map((g) => g.getAttribute("title"))).toContain(
+				"Loves: Autumn's Bounty",
+			);
+		});
+
 		it("should update friendship hearts", async () => {
 			const page = harness.render(relationshipsPage);
 			if (!saveManager.save) return;
@@ -719,6 +759,49 @@ describe("Save Manager Integration Tests", () => {
 				const rawFriend = friendship[Raw];
 				expect(rawFriend.value.Friendship.Points).toBe(targetHearts * 250);
 			}
+		});
+	});
+
+	describe("Farm", () => {
+		it("applies the farm name and profit margin to every farmer", async () => {
+			const page = harness.render(farmPage);
+			const save = saveManager.save;
+			if (!save) return;
+
+			await fireEvent.input(page.getByTestId("farm-name"), {
+				target: { value: "Moonlight" },
+			});
+			await choose(page.getByTestId("profit-margin"), "0.5");
+			flushSync();
+
+			for (const player of save.players) {
+				expect(player.raw.farmName).toBe("Moonlight");
+				expect(player.raw.difficultyModifier).toBe(0.5);
+			}
+		});
+
+		it("edits monster spawning and mine rewards", async () => {
+			const page = harness.render(farmPage);
+			const game = saveManager.save?.raw.SaveGame;
+			if (!game) return;
+			expect(game.shouldSpawnMonsters).toBe(false);
+
+			await fireEvent.click(page.getByTestId("spawn-monsters"));
+			await choose(page.getByTestId("mine-rewards"), "Remixed");
+			flushSync();
+
+			expect(game.shouldSpawnMonsters).toBe(true);
+			expect(game.shuffleMineChests).toBe("Remixed");
+		});
+
+		it("shows creation-only settings as read-only", () => {
+			const page = harness.render(farmPage);
+			const values = page
+				.getAllByTestId("locked-setting")
+				.map((el) => el.textContent);
+			// TestSave is a Hill-top farm (whichFarm 3)
+			expect(values).toContain("Hill-top");
+			expect(values).toContain("390176213");
 		});
 	});
 

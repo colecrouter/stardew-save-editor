@@ -3,9 +3,13 @@ import { handleErrorWithSentry, sentryHandle } from "@sentry/sveltekit";
 import { sequence } from "@sveltejs/kit/hooks";
 import { dev } from "$app/environment";
 
-dev ||
+// Error reporting is off unless a Sentry DSN is provided at build time
+const dsn: string | undefined = import.meta.env.VITE_SENTRY_DSN || undefined;
+const enabled = !dev && dsn !== undefined;
+
+enabled &&
 	Sentry.init({
-		dsn: "https://3567a44e61e1ade55642d2d49277e73a@o4508581503172608.ingest.us.sentry.io/4508581737136128",
+		dsn,
 
 		tracesSampleRate: 1.0,
 
@@ -14,7 +18,7 @@ dev ||
 	});
 
 // If you have custom handlers, make sure to place them after `sentryHandle()` in the `sequence` function.
-export const handle = dev ? undefined : sequence(sentryHandle());
+export const handle = !enabled ? undefined : sequence(sentryHandle());
 
 // If you have a custom error handler, pass it to `handleErrorWithSentry`
-export const handleError = dev ? undefined : handleErrorWithSentry();
+export const handleError = !enabled ? undefined : handleErrorWithSentry();

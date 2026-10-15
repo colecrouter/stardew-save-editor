@@ -106,7 +106,7 @@
 				</p>
 				<p>
 					If you find a problem, please report it <a
-						href="https://github.com/colecrouter/stardew-save-editor/issues"
+						href="https://github.com/adam110th/stardew-save-editor/issues"
 						>on GitHub</a
 					>.
 				</p>

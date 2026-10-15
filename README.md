@@ -1,7 +1,7 @@
 # Stardew Valley Save Editor
 
 > [!IMPORTANT]
-> [Link to editor here](https://colecrouter.github.io/stardew-save-editor/)
+> [Link to editor here](https://adam110th.github.io/stardew-save-editor/)
 
 A web-based save editor for Stardew Valley. Safely edit your save files directly in your browser.
 
@@ -42,11 +42,14 @@ A web-based save editor for Stardew Valley. Safely edit your save files directly
     (e.g. is a tool's weight stored in the save, and can it be edited?)
 - 🔄 Item descriptions
   - Fill in missing item descriptions using [stardewvalleyids.com](https://stardewvalleyids.com/)
+- 🔄 Event management
+  - View and edit which events the player has seen (the save's `eventsSeen` list), e.g. to replay heart events or skip cutscenes
+  - Name each event using the [List of Vanilla Event IDs](https://stardewmodding.wiki.gg/wiki/List_of_Vanilla_Event_IDs)
 - 🔄 Full code and security review of this fork
 
 ## Usage
 
-1. Visit the [live editor](https://colecrouter.github.io/stardew-save-editor/)
+1. Visit the [live editor](https://adam110th.github.io/stardew-save-editor/)
 2. Backup your original save file
 3. Upload your save file
 4. Make your desired changes

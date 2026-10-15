@@ -1,7 +1,7 @@
 # Support
 
-- 🐞 Found a bug? [Open an issue](https://github.com/colecrouter/stardew-save-editor/issues/new/choose)
-- 💡 Have a suggestion? [Create a feature request](https://github.com/colecrouter/stardew-save-editor/issues/new/choose)
+- 🐞 Found a bug? [Open an issue](https://github.com/adam110th/stardew-save-editor/issues/new/choose)
+- 💡 Have a suggestion? [Create a feature request](https://github.com/adam110th/stardew-save-editor/issues/new/choose)
 - 🤝 Want to contribute? See [CONTRIBUTING.md](./CONTRIBUTING.md)
 
 ## Attaching Your Save in GitHub
@@ -15,7 +15,7 @@ If you need to upload your save file to an issue in GitHub, do the following:
    - macOS: Ctrl-click -> `Compress`
    - Android: Select file -> Press `...` -> `Compress`
    - *(Alternative)* If you can't compress it, rename it to add ".txt" (e.g. `Player_123456` -> `Player_123456.txt`)
-3. Upload the file into the textbox in [GitHub issues](https://github.com/colecrouter/stardew-save-editor/issues).
+3. Upload the file into the textbox in [GitHub issues](https://github.com/adam110th/stardew-save-editor/issues).
 
 > Thanks for your cooperation. Without your save file, it can be difficult/impossible to debug certain issues.
 

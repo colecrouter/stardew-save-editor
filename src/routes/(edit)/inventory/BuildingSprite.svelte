@@ -33,7 +33,8 @@
 
 	let buildingData = $derived(
 		buildings.find((b) => b.name === building?.[Raw].buildingType) as
-			BuildingSpriteData | undefined,
+			| BuildingSpriteData
+			| undefined,
 	);
 
 	let sourceRect = $derived(

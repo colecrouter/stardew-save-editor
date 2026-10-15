@@ -59,12 +59,16 @@ describe("special order generation", () => {
 		).toThrow("requires runtime selection");
 	});
 
-	it.each(["{Treasure:Count}", "4items", "", "0", "-1", "1.5"])(
-		"rejects invalid counts: %s",
-		(value) => {
-			expect(() => parseRequiredCount(value)).toThrow(
-				"Invalid special-order objective count",
-			);
-		},
-	);
+	it.each([
+		"{Treasure:Count}",
+		"4items",
+		"",
+		"0",
+		"-1",
+		"1.5",
+	])("rejects invalid counts: %s", (value) => {
+		expect(() => parseRequiredCount(value)).toThrow(
+			"Invalid special-order objective count",
+		);
+	});
 });

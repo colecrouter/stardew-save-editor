@@ -10,8 +10,8 @@ const search = async (value: string) => {
 };
 
 const resultNames = (container: HTMLElement) =>
-	[...container.querySelectorAll<HTMLButtonElement>("button.item")].map(
-		(button) => button.textContent?.trim() ?? "",
+	[...container.querySelectorAll<HTMLButtonElement>("button.item .name")].map(
+		(name) => name.textContent?.trim() ?? "",
 	);
 
 describe("Item select", () => {
@@ -41,6 +41,30 @@ describe("Item select", () => {
 		await search("a");
 
 		expect(resultNames(container)).toHaveLength(50);
+	});
+
+	test("shows each item's qualified ID", async () => {
+		const { container } = render(ItemSelect, { onsubmit: () => {} });
+
+		await search("Leek");
+
+		const row = container.querySelector("button.item");
+		expect(row?.querySelector("[data-testid=item-id]")?.textContent).toBe(
+			"(O)20",
+		);
+	});
+
+	test("finds items by ID, with or without the type prefix", async () => {
+		const { container } = render(ItemSelect, { onsubmit: () => {} });
+
+		await search("(O)388");
+		expect(resultNames(container)).toEqual(["Wood"]);
+
+		await search("(BC)12");
+		expect(resultNames(container)).toEqual(["Keg"]);
+
+		await search("388");
+		expect(resultNames(container)).toContain("Wood");
 	});
 
 	test("shows a message when nothing matches", async () => {

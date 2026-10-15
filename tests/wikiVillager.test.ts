@@ -63,6 +63,11 @@ describe("villager wiki parsing", () => {
 		expect(matchItemName("Nothing Here", items)).toBeUndefined();
 	});
 
+	it("leaves no HTML tags behind, even nested ones", () => {
+		expect(wikiToText("a <scr<b>ipt>alert(1)</script> b")).toBe("a alert(1) b");
+		expect(wikiToText("x < y")).toBe("x y");
+	});
+
 	it("strips nested templates and formatting", () => {
 		expect(wikiToText("A {{a|{{b}}}} ''b'' [[c]] [[d|e]]")).toBe("A b c e");
 	});

@@ -21,10 +21,16 @@ export function wikiToText(text: string) {
 		prev = out;
 		out = out.replace(/\{\{[^{}]*\}\}/g, "");
 	}
-	return out
+	// Drop footnotes, then any other HTML tags until none are left
+	out = out
 		.replace(/<ref[^>]*\/>/g, "")
-		.replace(/<ref[^>]*>[\s\S]*?<\/ref>/g, "")
-		.replace(/<[^>]+>/g, "")
+		.replace(/<ref[^>]*>[\s\S]*?<\/ref>/g, "");
+	for (let prev = ""; prev !== out; ) {
+		prev = out;
+		out = out.replace(/<[^<>]*>/g, "");
+	}
+	return out
+		.replace(/[<>]/g, "")
 		.replace(/\[\[(?:[^|\]]*\|)?([^\]]*)\]\]/g, "$1")
 		.replace(/'{2,}/g, "")
 		.replace(/&nbsp;/g, " ")

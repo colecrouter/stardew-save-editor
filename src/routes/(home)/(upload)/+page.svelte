@@ -42,17 +42,25 @@
 <section>
 	<UiContainer>
 		<form onsubmit={preventDefault(handle)} method="POST">
-			<input
-				type="file"
-				accept=""
-				name="file"
-				required
-				bind:files
-				disabled={uploading}
-				onchange={() => {
-					return submit?.click();
-				}}
-			/>
+			<div class="dropzone">
+				<input
+					type="file"
+					accept=""
+					name="file"
+					required
+					aria-label="Save file"
+					bind:files
+					disabled={uploading}
+					onchange={() => {
+						return submit?.click();
+					}}
+				/>
+				<span class="hint" aria-hidden="true" data-testid="upload-hint">
+					{uploading
+						? "Uploading..."
+						: "Click to select a file, or drag and drop here"}
+				</span>
+			</div>
 			<input type="submit" value="Upload" bind:this={submit} hidden />
 			<small>
 				Default save locations:
@@ -127,20 +135,36 @@
 	}
 
 	/* Big striped Drag and Drop File Upload */
-	input[type="file"] {
+	.dropzone {
 		position: relative;
+		width: 400px;
+		max-width: 100%;
+		margin: 20px auto;
+	}
+
+	input[type="file"] {
+		display: block;
+		box-sizing: border-box;
 		border: 2px dashed #8e3d04;
 		border-radius: 5px;
-		width: 400px;
-		height: 100%;
+		width: 100%;
 		padding: 54px 0;
-		font-size: 20px;
-		color: #8e3d04;
-		margin: 20px auto;
+		color: transparent;
+		font-size: 0;
+	}
+
+	/* Sits over the input; clicks and drops pass through to it */
+	.hint {
+		position: absolute;
+		inset: 0;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		font-size: 0;
+		padding: 0 1rem;
+		text-align: center;
+		color: #b98a63;
+		font-size: 1rem;
+		pointer-events: none;
 	}
 
 	input[type="file"]:focus {
@@ -155,23 +179,10 @@
 		display: none;
 	}
 
-	input[type="file"]::after {
-		content: "Drag and Drop or Click";
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		font-size: 20px;
-		color: #8e3d04;
-	}
-
 	input[type="file"]:disabled {
 		pointer-events: none;
 		touch-action: none;
 		backdrop-filter: brightness(0.75);
-	}
-
-	input[type="file"]:disabled::after {
-		content: "Uploading...";
 	}
 
 	ul {

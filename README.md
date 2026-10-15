@@ -42,6 +42,9 @@ A web-based save editor for Stardew Valley. Safely edit your save files directly
     (e.g. is a tool's weight stored in the save, and can it be edited?)
 - 🔄 Item descriptions
   - Fill in missing item descriptions using [stardewvalleyids.com](https://stardewvalleyids.com/)
+- 🔄 Event management
+  - View and edit which events the player has seen (the save's `eventsSeen` list), e.g. to replay heart events or skip cutscenes
+  - Name each event using the [List of Vanilla Event IDs](https://stardewmodding.wiki.gg/wiki/List_of_Vanilla_Event_IDs)
 - 🔄 Full code and security review of this fork
 
 ## Usage

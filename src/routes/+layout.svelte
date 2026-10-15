@@ -33,7 +33,7 @@
 
 <!-- GITHUB LOGO -->
 <a
-	href="https://github.com/colecrouter/stardew-save-editor"
+	href="https://github.com/adam110th/stardew-save-editor"
 	aria-label="GitHub repository link"
 	target="_blank"
 	rel="noreferrer"
@@ -65,7 +65,7 @@
 		can change your appearance, inventory, skills, crafting recipes, and more.
 		More features will be added in the future. If you find a problem, please
 		report it
-		<a href="https://github.com/colecrouter/stardew-save-editor/issues"
+		<a href="https://github.com/adam110th/stardew-save-editor/issues"
 			>on GitHub</a
 		>. PRs are welcome!
 	</p>
@@ -83,7 +83,7 @@
 	</nav>
 
 	<h3>
-		<a href="https://github.com/colecrouter/stardew-save-editor"
+		<a href="https://github.com/adam110th/stardew-save-editor"
 			>Link to the GitHub project</a
 		>
 	</h3>

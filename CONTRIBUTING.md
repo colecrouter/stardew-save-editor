@@ -10,7 +10,7 @@ Make sure to have [NodeJS 20, 22, or later](https://nodejs.org/en/download/) ins
 
 ```bash
 # Clone repository
-git clone https://github.com/colecrouter/stardew-save-editor.git
+git clone https://github.com/adam110th/stardew-save-editor.git
 
 # Install dependencies
 npm install

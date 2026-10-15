@@ -1,7 +1,7 @@
 # Stardew Valley Save Editor
 
 > [!IMPORTANT]
-> [Link to editor here](https://colecrouter.github.io/stardew-save-editor/)
+> [Link to editor here](https://adam110th.github.io/stardew-save-editor/)
 
 A web-based save editor for Stardew Valley. Safely edit your save files directly in your browser.
 
@@ -46,7 +46,7 @@ A web-based save editor for Stardew Valley. Safely edit your save files directly
 
 ## Usage
 
-1. Visit the [live editor](https://colecrouter.github.io/stardew-save-editor/)
+1. Visit the [live editor](https://adam110th.github.io/stardew-save-editor/)
 2. Backup your original save file
 3. Upload your save file
 4. Make your desired changes

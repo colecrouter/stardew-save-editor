@@ -12,12 +12,8 @@
 	// Every farmer stores their own copy of the farm-wide settings below, so edits go to all of them
 	const host = $derived(save.players[0]);
 
-	const profitMargins = [
-		[1, "Normal"],
-		[0.75, "75%"],
-		[0.5, "50%"],
-		[0.25, "25%"],
-	] as const;
+	// The new-game presets; any percentage works since the game just multiplies prices by it
+	const profitMarginPresets = [100, 75, 50, 25];
 
 	// whichFarm values; 7 is a custom farm type such as Meadowlands
 	const farmTypes = [
@@ -84,25 +80,34 @@
 		</label>
 		<label>
 			Profit Margin
-			<UiSelect
-				value={host?.difficultyModifier ?? 1}
-				onchange={(e) => {
-					const margin = Number(e.currentTarget.value);
-					for (const player of save.players) player.difficultyModifier = margin;
-				}}
-				data-testid="profit-margin"
-			>
-				{#each profitMargins as [value, label]}
-					<option {value}>{label}</option>
+			<span class="percent">
+				<UiInput
+					type="number"
+					min="1"
+					max="1000"
+					step="1"
+					list="profit-margin-presets"
+					bind:value={() => Math.round((host?.difficultyModifier ?? 1) * 100),
+					(v) => {
+						// Cleared while typing: wait for a number
+						if (v === null) return;
+						for (const player of save.players)
+							player.difficultyModifier = Number(v) / 100;
+					}}
+					data-testid="profit-margin"
+				/>
+				%
+			</span>
+			<datalist id="profit-margin-presets">
+				{#each profitMarginPresets as preset}
+					<option value={preset}></option>
 				{/each}
-				{#if host && !profitMargins.some(([v]) => v === host.difficultyModifier)}
-					<option value={host.difficultyModifier}
-						>Custom ({Math.round(host.difficultyModifier * 100)}%)</option
-					>
-				{/if}
-			</UiSelect>
+			</datalist>
 		</label>
-		<small>Multiplies the price of items you sell and seeds you buy.</small>
+		<small
+			>Multiplies the price of items you sell and seeds you buy. 100% is normal;
+			the game offers 75%, 50% and 25%, but any value works.</small
+		>
 		<label>
 			Spawn Monsters on the Farm
 			<UiCheckbox
@@ -152,6 +157,12 @@
 		align-items: center;
 		gap: 8px;
 		margin-top: 8px;
+	}
+
+	.percent {
+		display: flex;
+		align-items: center;
+		gap: 4px;
 	}
 
 	.settings label:has(:global(input[type="checkbox"])) {

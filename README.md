@@ -21,8 +21,11 @@ A web-based save editor for Stardew Valley. Safely edit your save files directly
   - Unlock crafting recipes
   - See each recipe's item description
 - ✅ Farm Settings
-  - Edit farm name, profit margin, monster spawning and mine rewards
+  - Edit farm name, profit margin (any percentage), monster spawning and mine rewards
   - View settings fixed at farm creation (farm type, random seed, and more)
+- ✅ Buildings
+  - Edit farm animals in barns and coops
+  - See each building's description and build cost (gold and materials)
 - ✅ Save Management
   - Switch between farmhands
   - Automatic save backups

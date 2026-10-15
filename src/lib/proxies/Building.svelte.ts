@@ -4,6 +4,13 @@ import type { SaveProxy } from "$lib/proxies/SaveFile.svelte";
 import type { Building as BuildingType } from "$types/save";
 import { type DataProxy, Raw } from ".";
 
+/** Generated building info; cost fields are only present once `npm run dump` has added them */
+export type BuildingInfo = (typeof buildings)[number] & {
+	description?: string;
+	buildCost?: number;
+	buildMaterials?: { item: string; amount: number }[];
+};
+
 export class Building implements DataProxy<BuildingType> {
 	[Raw]: BuildingType;
 	#context: SaveProxy;
@@ -15,7 +22,7 @@ export class Building implements DataProxy<BuildingType> {
 		this.#name = this[Raw].buildingType;
 	}
 
-	get data() {
+	get data(): BuildingInfo | undefined {
 		return buildings.find((b) => b.name === this[Raw].buildingType);
 	}
 

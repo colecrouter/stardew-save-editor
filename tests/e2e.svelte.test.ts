@@ -771,12 +771,29 @@ describe("Save Manager Integration Tests", () => {
 			await fireEvent.input(page.getByTestId("farm-name"), {
 				target: { value: "Moonlight" },
 			});
-			await choose(page.getByTestId("profit-margin"), "0.5");
+			await fireEvent.input(page.getByTestId("profit-margin"), {
+				target: { value: "50" },
+			});
 			flushSync();
 
 			for (const player of save.players) {
 				expect(player.raw.farmName).toBe("Moonlight");
 				expect(player.raw.difficultyModifier).toBe(0.5);
+			}
+		});
+
+		it("accepts a custom profit margin", async () => {
+			const page = harness.render(farmPage);
+			const save = saveManager.save;
+			if (!save) return;
+			const input = page.getByTestId("profit-margin") as HTMLInputElement;
+			expect(input.value).toBe("100");
+
+			await fireEvent.input(input, { target: { value: "130" } });
+			flushSync();
+
+			for (const player of save.players) {
+				expect(player.raw.difficultyModifier).toBe(1.3);
 			}
 		});
 
@@ -903,6 +920,44 @@ describe("Save Manager Integration Tests", () => {
 			});
 			expect(button.getAttribute("aria-pressed")).toBe("true");
 			disposeAnimal();
+		});
+
+		it("shows each building's description and build cost", () => {
+			const save = saveManager.save;
+			if (!save?.farm) return;
+			const building = save.farm.buildings.find((b) => b.data);
+			expect(building?.data).toBeTruthy();
+			if (!building?.data) return;
+
+			// Fill in the fields `npm run dump` generates from Data/Buildings.json
+			const data = building.data;
+			Object.assign(data, {
+				description: "Houses animals.",
+				buildCost: 4000,
+				buildMaterials: [
+					{ item: "Wood", amount: 300 },
+					{ item: "Stone", amount: 100 },
+				],
+			});
+
+			try {
+				const page = harness.render(buildingsPage);
+				expect(
+					page
+						.getAllByTestId("building-description")
+						.map((el) => el.textContent),
+				).toContain("Houses animals.");
+				const cost = page
+					.getAllByTestId("building-cost")
+					.find((el) => el.textContent?.includes("4,000g"));
+				expect(cost).toBeTruthy();
+				if (!cost) return;
+				expect(within(cost).getByTitle("Wood").textContent).toContain("300");
+				expect(within(cost).getByTitle("Stone").textContent).toContain("100");
+			} finally {
+				for (const key of ["description", "buildCost", "buildMaterials"])
+					delete (data as Record<string, unknown>)[key];
+			}
 		});
 
 		it("should update farm animal numeric stat inputs", async () => {

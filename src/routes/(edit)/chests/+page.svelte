@@ -126,7 +126,9 @@
 							<div class="result-sprite">
 								<ItemSprite {item} />
 							</div>
-							<span class="result-name">{item.name} &times;{item.stack}</span>
+							<span class="result-name"
+								>{item.name} &times;{item.amount ?? item.stack}</span
+							>
 							<span class="result-chest">{chest.metadata.label}</span>
 						</button>
 					{/each}

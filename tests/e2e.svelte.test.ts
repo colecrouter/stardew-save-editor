@@ -259,6 +259,22 @@ describe("Save Manager Integration Tests", () => {
 			expect(rawItem9?.name).toBe("Leek");
 		});
 
+		it("shows the description of the selected item", async () => {
+			const page = harness.render(editorPage);
+			await fireEvent.click(page.getByTestId("item-9"));
+			await tick();
+
+			const input = page.getByTestId("item-name") as HTMLInputElement;
+			await fireEvent.input(input, { target: { value: "Cowboy Hat" } });
+			await tick();
+			await fireEvent.click(page.getByText("Cowboy Hat"));
+			await tick();
+
+			expect(page.getByTestId("item-description").textContent).toBe(
+				"The leather is old and cracked, but surprisingly supple. It smells musty.",
+			);
+		});
+
 		it("should modify item quality", async () => {
 			const page = harness.render(editorPage);
 			await fireEvent.click(page.getByTestId("item-4"));

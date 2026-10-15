@@ -1,0 +1,379 @@
+{
+	"Abigail": {
+		"description": "Abigail is a villager who lives at Pierre's General Store in Pelican Town. She's one of the twelve characters available to marry.",
+		"loves": [
+			{ "name": "Amethyst", "item": "Amethyst" },
+			{ "name": "Banana Pudding", "item": "Banana Pudding" },
+			{ "name": "Blackberry Cobbler", "item": "Blackberry Cobbler" },
+			{ "name": "Chocolate Cake", "item": "Chocolate Cake" },
+			{ "name": "Monster Compendium", "item": "Monster Compendium" },
+			{ "name": "Pufferfish", "item": "Pufferfish" },
+			{ "name": "Pumpkin", "item": "Pumpkin" },
+			{ "name": "Spicy Eel", "item": "Spicy Eel" }
+		]
+	},
+	"Alex": {
+		"description": "Alex is a villager who lives in the house southeast of Pierre's General Store. He's one of the twelve characters available to marry.",
+		"loves": [
+			{ "name": "Complete Breakfast", "item": "Complete Breakfast" },
+			{
+				"name": "Jack Be Nimble, Jack Be Thick",
+				"item": "Jack Be Nimble, Jack Be Thick"
+			},
+			{ "name": "Salmon Dinner", "item": "Salmon Dinner" }
+		]
+	},
+	"Caroline": {
+		"description": "Caroline is a villager who lives in Pelican Town.",
+		"loves": [
+			{ "name": "Fish Taco", "item": "Fish Taco" },
+			{ "name": "Green Tea", "item": "Green Tea" },
+			{ "name": "Summer Spangle", "item": "Summer Spangle" },
+			{ "name": "Tropical Curry", "item": "Tropical Curry" }
+		]
+	},
+	"Clint": {
+		"description": "Clint is a villager who lives in Pelican Town. He owns and runs the local Blacksmith.",
+		"loves": [
+			{ "name": "Amethyst", "item": "Amethyst" },
+			{ "name": "Aquamarine", "item": "Aquamarine" },
+			{ "name": "Artichoke Dip", "item": "Artichoke Dip" },
+			{ "name": "Emerald", "item": "Emerald" },
+			{ "name": "Fiddlehead Risotto", "item": "Fiddlehead Risotto" },
+			{ "name": "Gold Bar", "item": "Gold Bar" },
+			{ "name": "Iridium Bar", "item": "Iridium Bar" },
+			{ "name": "Jade", "item": "Jade" },
+			{ "name": "Omni Geode", "item": "Omni Geode" },
+			{ "name": "Ruby", "item": "Ruby" },
+			{ "name": "Topaz", "item": "Topaz" }
+		]
+	},
+	"Demetrius": {
+		"description": "Demetrius is a villager who resides at 24 Mountain Road, on The Mountain, with his wife Robin, daughter Maru, and step-son Sebastian.",
+		"loves": [
+			{ "name": "Bean Hotpot", "item": "Bean Hotpot" },
+			{ "name": "Ice Cream", "item": "Ice Cream" },
+			{ "name": "Rice Pudding", "item": "Rice Pudding" },
+			{ "name": "Strawberry", "item": "Strawberry" }
+		]
+	},
+	"Dwarf": {
+		"description": "The Dwarf is a valley resident who lives in the Mines. Initially the way is blocked off by an unbreakable rock, just inside the entrance. After upgrading to at least a steel pickaxe, the stone can be broken. A cherry bomb (or stronger bomb) will also break the rock.",
+		"loves": [
+			{ "name": "Amethyst", "item": "Amethyst" },
+			{ "name": "Aquamarine", "item": "Aquamarine" },
+			{ "name": "Emerald", "item": "Emerald" },
+			{ "name": "Jade", "item": "Jade" },
+			{ "name": "Lava Eel", "item": "Lava Eel" },
+			{ "name": "Lemon Stone", "item": "Lemon Stone" },
+			{ "name": "Omni Geode", "item": "Omni Geode" },
+			{ "name": "Ruby", "item": "Ruby" },
+			{ "name": "Topaz", "item": "Topaz" }
+		]
+	},
+	"Elliott": {
+		"description": "Elliott is a villager who lives on the beach south of Pelican Town. He's one of the twelve characters available to marry.",
+		"loves": [
+			{ "name": "Crab Cakes", "item": "Crab Cakes" },
+			{ "name": "Duck Feather", "item": "Duck Feather" },
+			{ "name": "Lobster", "item": "Lobster" },
+			{ "name": "Pomegranate", "item": "Pomegranate" },
+			{ "name": "Squid Ink", "item": "Squid Ink" },
+			{ "name": "Tom Kha Soup", "item": "Tom Kha Soup" }
+		]
+	},
+	"Emily": {
+		"description": "Emily is a villager who lives in Pelican Town. She's one of the twelve characters available to marry. Her home is south of the town square, right next to Jodi's house, at the address 2 Willow Lane. She works most evenings at The Stardrop Saloon starting at about 4:00 PM.",
+		"loves": [
+			{ "name": "Amethyst", "item": "Amethyst" },
+			{ "name": "Aquamarine", "item": "Aquamarine" },
+			{ "name": "Cloth", "item": "Cloth" },
+			{ "name": "Emerald", "item": "Emerald" },
+			{ "name": "Jade", "item": "Jade" },
+			{ "name": "Parrot Egg", "item": "ParrotEgg" },
+			{ "name": "Ruby", "item": "Ruby" },
+			{ "name": "Survival Burger", "item": "Survival Burger" },
+			{ "name": "Topaz", "item": "Topaz" },
+			{ "name": "Wool", "item": "Wool" }
+		]
+	},
+	"Evelyn": {
+		"description": "Evelyn Mullner is a villager who lives in Pelican Town, and is in charge of the town's flowers.",
+		"loves": [
+			{ "name": "Beet", "item": "Beet" },
+			{ "name": "Chocolate Cake", "item": "Chocolate Cake" },
+			{ "name": "Diamond", "item": "Diamond" },
+			{ "name": "Fairy Rose", "item": "Fairy Rose" },
+			{ "name": "Raisins", "item": "Raisins" },
+			{ "name": "Stuffing", "item": "Stuffing" },
+			{ "name": "Tulip", "item": "Tulip" }
+		]
+	},
+	"George": {
+		"description": "George Mullner is a villager who lives in Pelican Town.",
+		"loves": [
+			{ "name": "Fried Mushroom", "item": "Fried Mushroom" },
+			{ "name": "Leek", "item": "Leek" }
+		]
+	},
+	"Gus": {
+		"description": "Gus is a villager who lives and works at the Stardrop Saloon in Pelican Town. He owns the establishment.",
+		"loves": [
+			{ "name": "Diamond", "item": "Diamond" },
+			{ "name": "Escargot", "item": "Escargot" },
+			{ "name": "Fish Taco", "item": "Fish Taco" },
+			{ "name": "Orange", "item": "Orange" },
+			{ "name": "Tropical Curry", "item": "Tropical Curry" }
+		]
+	},
+	"Haley": {
+		"description": "Haley is a villager who lives in Pelican Town. She's one of the twelve characters available to marry.",
+		"loves": [
+			{ "name": "Coconut", "item": "Coconut" },
+			{ "name": "Fruit Salad", "item": "Fruit Salad" },
+			{ "name": "Pink Cake", "item": "Pink Cake" },
+			{ "name": "Sunflower", "item": "Sunflower" }
+		]
+	},
+	"Harvey": {
+		"description": "Harvey is a villager who lives in Pelican Town. He runs the town's medical clinic and is passionate about the health of the townsfolk. He's one of the twelve characters available to marry.",
+		"loves": [
+			{ "name": "Coffee", "item": "Coffee" },
+			{ "name": "Pickles", "item": "Pickles" },
+			{ "name": "Super Meal", "item": "Super Meal" },
+			{ "name": "Truffle Oil", "item": "Truffle Oil" },
+			{ "name": "Wine", "item": "Wine" }
+		]
+	},
+	"Jas": {
+		"description": "Jas is a villager who lives just outside Pelican Town. She's a young girl, and can often be found with her best friend Vincent.",
+		"loves": [
+			{ "name": "Ancient Doll", "item": "Ancient Doll" },
+			{ "name": "Fairy Box", "item": "FairyBox" },
+			{ "name": "Fairy Rose", "item": "Fairy Rose" },
+			{ "name": "Pink Cake", "item": "Pink Cake" },
+			{ "name": "Plum Pudding", "item": "Plum Pudding" },
+			{ "name": "Strange Doll (green)", "item": "Strange Doll" }
+		]
+	},
+	"Jodi": {
+		"description": "Jodi is a villager who lives in Pelican Town. She lives at 1 Willow Lane with her husband Kent (who is away serving in the military until the first of Spring Year 2) and two sons, Sam and Vincent.",
+		"loves": [
+			{ "name": "Chocolate Cake", "item": "Chocolate Cake" },
+			{ "name": "Crispy Bass", "item": "Crispy Bass" },
+			{ "name": "Diamond", "item": "Diamond" },
+			{ "name": "Eggplant Parmesan", "item": "Eggplant Parmesan" },
+			{ "name": "Fried Eel", "item": "Fried Eel" },
+			{ "name": "Pancakes", "item": "Pancakes" },
+			{ "name": "Rhubarb Pie", "item": "Rhubarb Pie" },
+			{ "name": "Vegetable Medley", "item": "Vegetable Medley" }
+		]
+	},
+	"Kent": {
+		"description": "Kent is a villager who lives in Pelican Town. He is away serving in the army throughout the first year and returns to live in the town during spring of year two. Year one references to him include the contents of the drawer in Jodi's bedroom and dialogue from Sam and Vincent.",
+		"loves": [
+			{ "name": "Fiddlehead Risotto", "item": "Fiddlehead Risotto" },
+			{ "name": "Roasted Hazelnuts", "item": "Roasted Hazelnuts" }
+		]
+	},
+	"Krobus": {
+		"description": "Krobus is the only friendly monster players will encounter, however he still refers to other hostile monsters as his friends. He is a shadow person who lives in the Sewers. He sells a variety of rare goods. He is also available as a roommate.",
+		"loves": [
+			{ "name": "Diamond", "item": "Diamond" },
+			{ "name": "Iridium Bar", "item": "Iridium Bar" },
+			{ "name": "Monster Compendium", "item": "Monster Compendium" },
+			{ "name": "Monster Musk", "item": "Monster Musk" },
+			{ "name": "Pumpkin", "item": "Pumpkin" },
+			{ "name": "Void Egg", "item": "Void Egg" },
+			{ "name": "Void Mayonnaise", "item": "Void Mayonnaise" },
+			{ "name": "Wild Horseradish", "item": "Wild Horseradish" }
+		]
+	},
+	"Leah": {
+		"description": "Leah is a villager who lives in a small cottage outside Pelican Town. She's one of the twelve characters available to marry.",
+		"loves": [
+			{ "name": "Goat Cheese", "item": "Goat Cheese" },
+			{ "name": "Poppyseed Muffin", "item": "Poppyseed Muffin" },
+			{ "name": "Salad", "item": "Salad" },
+			{ "name": "Stir Fry", "item": "Stir Fry" },
+			{ "name": "Truffle", "item": "Truffle" },
+			{ "name": "Vegetable Medley", "item": "Vegetable Medley" },
+			{ "name": "Wine", "item": "Wine" }
+		]
+	},
+	"Leo": {
+		"description": "Leo is a boy who initially lives on Ginger Island. His parents were lost at sea, and he considers the parrots who inhabit the island to be his family. Initially, he is too shy to speak to the player, until the player \"makes friends\" with the parrots of the island by collecting 10 Golden Walnuts.",
+		"loves": [
+			{ "name": "Duck Feather", "item": "Duck Feather" },
+			{ "name": "Mango", "item": "Mango" },
+			{ "name": "Ostrich Egg", "item": "Ostrich Egg" },
+			{ "name": "Parrot Egg", "item": "ParrotEgg" },
+			{ "name": "Poi", "item": "Poi" }
+		]
+	},
+	"Lewis": {
+		"description": "Lewis is the mayor of Pelican Town. Along with Robin, he greets the player when they move to the Valley and explains a little bit about life on the farm. Lewis is known to have some sort of relations with Marnie, as the shorts he lost and brown suspenders are found in her bedroom. Furthermore, a note can be found in his bedroom in the lower left on a shelf under a coffee mug, believed to be from her. The note is signed \"-M\".",
+		"loves": [
+			{ "name": "Autumn's Bounty", "item": "Autumn's Bounty" },
+			{ "name": "Glazed Yams", "item": "Glazed Yams" },
+			{ "name": "Green Tea", "item": "Green Tea" },
+			{ "name": "Hot Pepper", "item": "Hot Pepper" },
+			{ "name": "Vegetable Medley", "item": "Vegetable Medley" }
+		]
+	},
+	"Linus": {
+		"description": "Linus is a villager who lives in a small tent west of the Mines, on the Mountains north of Pelican Town.",
+		"loves": [
+			{ "name": "Blueberry Tart", "item": "Blueberry Tart" },
+			{ "name": "Cactus Fruit", "item": "Cactus Fruit" },
+			{ "name": "Coconut", "item": "Coconut" },
+			{ "name": "Dish O' The Sea", "item": "Dish O' The Sea" },
+			{ "name": "The Alleyway Buffet", "item": "The Alleyway Buffet" },
+			{ "name": "Yam", "item": "Yam" }
+		]
+	},
+	"Marnie": {
+		"description": "Marnie is a villager who lives at Marnie's Ranch in the northeast area of Cindersap Forest, near the southwest entrance to Pelican Town.",
+		"loves": [
+			{ "name": "Diamond", "item": "Diamond" },
+			{ "name": "Farmer's Lunch", "item": "Farmer's Lunch" },
+			{ "name": "Pink Cake", "item": "Pink Cake" },
+			{ "name": "Pumpkin Pie", "item": "Pumpkin Pie" }
+		]
+	},
+	"Maru": {
+		"description": "Maru is a villager who lives in The Mountains north of Pelican Town. She's one of the twelve characters available to marry.",
+		"loves": [
+			{ "name": "Battery Pack", "item": "Battery Pack" },
+			{ "name": "Cauliflower", "item": "Cauliflower" },
+			{ "name": "Cheese Cauliflower", "item": "Cheese Cauliflower" },
+			{ "name": "Diamond", "item": "Diamond" },
+			{ "name": "Dwarf Gadget", "item": "Dwarf Gadget" },
+			{ "name": "Gold Bar", "item": "Gold Bar" },
+			{ "name": "Iridium Bar", "item": "Iridium Bar" },
+			{ "name": "Miner's Treat", "item": "Miner's Treat" },
+			{ "name": "Pepper Poppers", "item": "Pepper Poppers" },
+			{ "name": "Radioactive Bar", "item": "Radioactive Bar" },
+			{ "name": "Rhubarb Pie", "item": "Rhubarb Pie" },
+			{ "name": "Strawberry", "item": "Strawberry" }
+		]
+	},
+	"Pam": {
+		"description": "Pam is a villager who lives in the trailer just west of the river in Pelican Town. She was the driver of the Pelican Town bus before it broke down. Once the bus service has been restored, Pam will manage the bus stop just east of the Farm, opening the way to the Desert.",
+		"loves": [
+			{ "name": "Beer", "item": "Beer" },
+			{ "name": "Cactus Fruit", "item": "Cactus Fruit" },
+			{ "name": "Glazed Yams", "item": "Glazed Yams" },
+			{ "name": "Mead", "item": "Mead" },
+			{ "name": "Pale Ale", "item": "Pale Ale" },
+			{ "name": "Parsnip", "item": "Parsnip" },
+			{ "name": "Parsnip Soup", "item": "Parsnip Soup" },
+			{ "name": "Piña Colada", "item": "Piña Colada" }
+		]
+	},
+	"Penny": {
+		"description": "Penny is a villager who lives in Pelican Town. She's one of the twelve characters available to marry. Her trailer is just east of the center of town, west of the river. She tutors Vincent and Jas at the library.",
+		"loves": [
+			{ "name": "Diamond", "item": "Diamond" },
+			{ "name": "Emerald", "item": "Emerald" },
+			{ "name": "Melon", "item": "Melon" },
+			{ "name": "Poppy", "item": "Poppy" },
+			{ "name": "Poppyseed Muffin", "item": "Poppyseed Muffin" },
+			{ "name": "Red Plate", "item": "Red Plate" },
+			{ "name": "Roots Platter", "item": "Roots Platter" },
+			{ "name": "Sandfish", "item": "Sandfish" },
+			{ "name": "Tom Kha Soup", "item": "Tom Kha Soup" }
+		]
+	},
+	"Pierre": {
+		"description": "Pierre is a villager who lives in Pelican Town. He owns and runs Pierre's General Store.",
+		"loves": [
+			{ "name": "Fried Calamari", "item": "Fried Calamari" },
+			{ "name": "Price Catalogue", "item": "Price Catalogue" }
+		]
+	},
+	"Robin": {
+		"description": "Robin is a villager who resides at 24 Mountain Road, on The Mountain, with her husband Demetrius, daughter Maru, and son Sebastian.",
+		"loves": [
+			{ "name": "Goat Cheese", "item": "Goat Cheese" },
+			{ "name": "Peach", "item": "Peach" },
+			{ "name": "Spaghetti", "item": "Spaghetti" },
+			{ "name": "Woody's Secret", "item": "Woody's Secret" }
+		]
+	},
+	"Sam": {
+		"description": "Sam is a villager who lives in Pelican Town. He's one of the twelve characters available to marry. He lives in the southern part of town, just north of the river at 1 Willow Lane.",
+		"loves": [
+			{ "name": "Cactus Fruit", "item": "Cactus Fruit" },
+			{ "name": "Maple Bar", "item": "Maple Bar" },
+			{ "name": "Pizza", "item": "Pizza" },
+			{ "name": "Tigerseye", "item": "Tigerseye" }
+		]
+	},
+	"Sandy": {
+		"description": "Sandy is a villager who lives in the Calico Desert where she runs the store, the Oasis. Players won't meet her until they've repaired the bus by completing the vault bundle or purchasing \"Bus\" for through the Joja Community Development Form.",
+		"loves": [
+			{ "name": "Crocus", "item": "Crocus" },
+			{ "name": "Daffodil", "item": "Daffodil" },
+			{ "name": "Mango Sticky Rice", "item": "Mango Sticky Rice" },
+			{ "name": "Sweet Pea", "item": "Sweet Pea" }
+		]
+	},
+	"Sebastian": {
+		"description": "Sebastian is a villager who lives in The Mountains north of Pelican Town. He's one of the twelve characters available to marry.",
+		"loves": [
+			{ "name": "Green Frog Egg", "item": "FrogEgg" },
+			{ "name": "Frozen Tear", "item": "Frozen Tear" },
+			{ "name": "Obsidian", "item": "Obsidian" },
+			{ "name": "Pumpkin Soup", "item": "Pumpkin Soup" },
+			{ "name": "Sashimi", "item": "Sashimi" },
+			{ "name": "Void Egg", "item": "Void Egg" }
+		]
+	},
+	"Shane": {
+		"description": "Shane is a villager who lives at Marnie's Ranch in Pelican Town. He's one of the twelve characters available to marry.",
+		"loves": [
+			{ "name": "Beer", "item": "Beer" },
+			{ "name": "Hot Pepper", "item": "Hot Pepper" },
+			{ "name": "Pepper Poppers", "item": "Pepper Poppers" },
+			{ "name": "Pizza", "item": "Pizza" }
+		]
+	},
+	"Vincent": {
+		"description": "Vincent is a villager who lives in the southern part of Pelican Town. He's a young boy, and can often be found with his best friend Jas. He looks up to his brother Sam and wants to be just like him when he grows up.",
+		"loves": [
+			{ "name": "Cranberry Candy", "item": "Cranberry Candy" },
+			{ "name": "Green Frog Egg", "item": "FrogEgg" },
+			{ "name": "Ginger Ale", "item": "Ginger Ale" },
+			{ "name": "Grape", "item": "Grape" },
+			{ "name": "Pink Cake", "item": "Pink Cake" },
+			{ "name": "Snail", "item": "Snail" }
+		]
+	},
+	"Willy": {
+		"description": "Willy is a villager who grew up traveling among the Fern Islands and now lives south of Pelican Town on The Beach. He sells bait and fishing supplies in his shop. His shop is open every day but will be closed on Saturday if the weather is nice enough for him to go fishing.",
+		"loves": [
+			{ "name": "Catfish", "item": "Catfish" },
+			{ "name": "Diamond", "item": "Diamond" },
+			{ "name": "Gold Bar", "item": "Gold Bar" },
+			{ "name": "Iridium Bar", "item": "Iridium Bar" },
+			{ "name": "Jewels Of The Sea", "item": "Jewels Of The Sea" },
+			{ "name": "Mead", "item": "Mead" },
+			{ "name": "Octopus", "item": "Octopus" },
+			{ "name": "Pumpkin", "item": "Pumpkin" },
+			{ "name": "Sea Cucumber", "item": "Sea Cucumber" },
+			{ "name": "Sturgeon", "item": "Sturgeon" },
+			{ "name": "The Art O' Crabbing", "item": "The Art O' Crabbing" }
+		]
+	},
+	"Wizard": {
+		"description": "The Wizard, also known as M. Rasmodius, is a villager who lives in the Wizard's Tower to the far west of Cindersap Forest.",
+		"loves": [
+			{ "name": "Book of Mysteries", "item": "Book of Mysteries" },
+			{ "name": "Purple Mushroom", "item": "Purple Mushroom" },
+			{ "name": "Solar Essence", "item": "Solar Essence" },
+			{ "name": "Super Cucumber", "item": "Super Cucumber" },
+			{ "name": "Void Essence", "item": "Void Essence" }
+		]
+	}
+}

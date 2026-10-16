@@ -22,6 +22,7 @@ import {
 	ToastManager,
 } from "../src/lib/ToastManager.svelte";
 import buildingsPage from "../src/routes/(edit)/(list)/buildings/+page.svelte";
+import cookingPage from "../src/routes/(edit)/(list)/cooking/+page.svelte";
 import craftingPage from "../src/routes/(edit)/(list)/crafting/+page.svelte";
 import appearancePage from "../src/routes/(edit)/appearance/+page.svelte";
 import bundlesPage from "../src/routes/(edit)/bundles/+page.svelte";
@@ -502,6 +503,18 @@ describe("Save Manager Integration Tests", () => {
 					(e) => e.key.string === "Keg",
 				),
 			).toBe(true);
+		});
+
+		it("titles the crafting and cooking lists", async () => {
+			const crafting = harness.render(craftingPage);
+			expect(crafting.getByRole("heading", { level: 3 }).textContent).toBe(
+				"Crafting Recipes",
+			);
+			crafting.unmount();
+			const cooking = harness.render(cookingPage);
+			expect(cooking.getByRole("heading", { level: 3 }).textContent).toBe(
+				"Cooking Recipes",
+			);
 		});
 
 		it("should toggle recipe (unlock & lock)", async () => {

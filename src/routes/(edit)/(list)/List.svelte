@@ -9,9 +9,10 @@
 
 	interface Props {
 		recipes: Recipes<"cookingRecipes" | "craftingRecipes">;
+		title?: string;
 	}
 
-	let { recipes = $bindable() }: Props = $props();
+	let { recipes = $bindable(), title = "Crafting Recipes" }: Props = $props();
 
 	let filter = $state("");
 	let regex = $derived.by(() => searchRegexp(filter));
@@ -29,7 +30,7 @@
 </script>
 
 <UiContainer>
-	<h3>Crafting Recipes</h3>
+	<h3>{title}</h3>
 
 	<div class="search">
 		<UiInput type="text" placeholder="Search..." bind:value={filter} />

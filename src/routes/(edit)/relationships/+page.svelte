@@ -89,7 +89,8 @@
 <style>
 	.wrapper {
 		overflow-y: scroll;
-		height: 20rem;
+		/* Fill the window below the page header, never below 20rem */
+		height: max(20rem, calc(100dvh - 304px));
 	}
 
 	.toolbar {

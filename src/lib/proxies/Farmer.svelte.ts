@@ -5,6 +5,7 @@ import { Recipes } from "$lib/proxies/Recipes.svelte";
 import { Professions, Skills } from "$lib/proxies/Skills.svelte";
 import type { Gender, Player } from "$types/save";
 import { type DataProxy, Raw } from ".";
+import { EventsSeen } from "./EventsSeen.svelte";
 import { Friendships } from "./Friendship.svelte";
 import { BootsProxy, ClothingProxy, HatProxy, RingProxy } from "./items";
 
@@ -143,6 +144,8 @@ export class Farmer implements DataProxy<Player> {
 	public uniqueID: number; // Readonly snapshot (underlying value shouldn't change)
 	public mailReceived: MailBox;
 	public friendships: Friendships;
+	/** Events (cutscenes) the player has seen */
+	public eventsSeen: EventsSeen;
 
 	// Provide compatibility alias for underlying raw object
 	get raw() {
@@ -275,6 +278,11 @@ export class Farmer implements DataProxy<Player> {
 
 		// Friendships reactive map (lookup by NPC name)
 		this.friendships = new Friendships(this[Raw].friendshipData);
+
+		// An empty <eventsSeen /> parses as "" rather than a list
+		if (typeof this[Raw].eventsSeen !== "object" || !this[Raw].eventsSeen)
+			this[Raw].eventsSeen = {};
+		this.eventsSeen = new EventsSeen(this[Raw].eventsSeen);
 
 		// Unique ID snapshot
 		this.uniqueID = this[Raw].UniqueMultiplayerID;

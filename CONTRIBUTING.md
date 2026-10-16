@@ -27,6 +27,8 @@ Then run `npm run dump`.
 
 If you need assets that aren't copied from that command, you can modify it in `src/dump.ts`.
 
+Event names aren't in the game files. `npm run dump:events` fetches them from the Stardew Modding Wiki's [List of Vanilla Event IDs](https://stardewmodding.wiki.gg/wiki/List_of_Vanilla_Event_IDs) (CC BY-SA 4.0) into `generated/events.json`. It needs `curl` and an internet connection, but not the `content` folder; run `npm run format` afterwards.
+
 ### Reading the Save File
 
 The save format is somewhat inconsistent (in structure and consistency). My recommendation is to use a website/tool to format the save file into something more readable, then use a text editor to search for the data you need. [Here is a tool for that](https://jsonformatter.org/xml-parser).

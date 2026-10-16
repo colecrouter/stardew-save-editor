@@ -26,6 +26,7 @@ import craftingPage from "../src/routes/(edit)/(list)/crafting/+page.svelte";
 import appearancePage from "../src/routes/(edit)/appearance/+page.svelte";
 import bundlesPage from "../src/routes/(edit)/bundles/+page.svelte";
 import characterPage from "../src/routes/(edit)/character/+page.svelte";
+import eventsPage from "../src/routes/(edit)/events/+page.svelte";
 import editorPage from "../src/routes/(edit)/inventory/+page.svelte";
 import BuildingSprite from "../src/routes/(edit)/inventory/BuildingSprite.svelte";
 import relationshipsPage from "../src/routes/(edit)/relationships/+page.svelte";
@@ -57,8 +58,12 @@ const once = (fn: () => void) => {
 	};
 };
 
-const createPageHarness = async (): Promise<PageHarness> => {
-	const file = await readFile("tests/TestSave");
+// `edit` rewrites the fixture's XML before import, for saves TestSave doesn't cover
+const createPageHarness = async (
+	edit?: (xml: string) => string,
+): Promise<PageHarness> => {
+	const fixture = await readFile("tests/TestSave");
+	const file = edit ? edit(fixture.toString("utf8")) : fixture;
 
 	let saveManager!: SaveManager;
 	let importPromise!: Promise<void>;
@@ -109,6 +114,15 @@ const createPageHarness = async (): Promise<PageHarness> => {
 	});
 
 	return { saveManager, render: renderWithContext, cleanup };
+};
+
+// Select a <select> option the way a user would, then notify Svelte's binding
+const choose = async (element: HTMLElement, value: string) => {
+	const select = element as HTMLSelectElement;
+	for (const option of select.options) {
+		option.selected = option.value === value;
+	}
+	await fireEvent.change(select);
 };
 
 describe("Save Manager Integration Tests", () => {
@@ -941,6 +955,195 @@ describe("Save Manager Integration Tests", () => {
 
 			expect(view.container.textContent).not.toContain("??");
 			expect(view.container.querySelector(".item")).toBeTruthy();
+		});
+	});
+
+	describe("Events", () => {
+		const rawEvents = () => {
+			const events = saveManager.save?.player[Raw].eventsSeen;
+			return typeof events === "object" ? (events.int ?? []) : [];
+		};
+		// An event's checkbox in each group it's listed in
+		const checkbox = (
+			page: { queryAllByTestId: (id: string) => HTMLElement[] },
+			id: string,
+		) => page.queryAllByTestId(`event-${id}`) as HTMLInputElement[];
+		const names = (page: { queryAllByTestId: (id: string) => HTMLElement[] }) =>
+			page.queryAllByTestId("event-name").map((n) => n.textContent);
+
+		it("names seen events and toggles them", async () => {
+			const page = harness.render(eventsPage);
+			expect(page.getByTestId("events-seen-count").textContent).toBe(
+				"Events seen: 3",
+			);
+			const [willy] = checkbox(page, "739330");
+			expect(willy?.checked).toBe(true);
+			expect(
+				page.getByText(
+					"Willy's introduction event where he gives the farmer a fishing rod",
+				),
+			).toBeTruthy();
+
+			if (!willy) throw new Error("No checkbox for event 739330");
+			await fireEvent.click(willy);
+			flushSync();
+			expect(saveManager.save?.player.eventsSeen.has("739330")).toBe(false);
+			expect(rawEvents()).not.toContain("739330");
+			expect(willy.checked).toBe(false);
+
+			const [abigail] = checkbox(page, "1");
+			if (!abigail) throw new Error("No checkbox for event 1");
+			expect(abigail.checked).toBe(false);
+			await fireEvent.click(abigail);
+			flushSync();
+			expect(rawEvents()).toEqual(["60367", "100162", "1"]);
+		});
+
+		it("shows an event under each of its characters, ticked together", async () => {
+			const page = harness.render(eventsPage);
+			// The introduction event is Lewis and Robin's
+			const intro = checkbox(page, "60367");
+			expect(intro).toHaveLength(2);
+			expect(intro.every((box) => box.checked)).toBe(true);
+			if (!intro[0]) throw new Error("No checkbox for event 60367");
+			await fireEvent.click(intro[0]);
+			flushSync();
+			expect(intro.every((box) => !box.checked)).toBe(true);
+			expect(rawEvents()).not.toContain("60367");
+		});
+
+		it("searches, groups by location and filters by seen", async () => {
+			const page = harness.render(eventsPage);
+			const search = page.getByTestId("events-search");
+			await fireEvent.input(search, { target: { value: "prairie" } });
+			expect(names(page)).toEqual(["Abigail's 2 heart event"]);
+
+			await fireEvent.input(search, { target: { value: "zzzz" } });
+			expect(names(page)).toEqual([]);
+			expect(page.getByText('No events match "zzzz".')).toBeTruthy();
+			await fireEvent.input(search, { target: { value: "" } });
+
+			const groups = () =>
+				page.queryAllByTestId("event-group-name").map((n) => n.textContent);
+			expect(groups()).toContain("Abigail");
+			expect(groups().at(-1)).toBe("Other");
+			await choose(page.getByTestId("events-group"), "location");
+			expect(groups()).toContain("Pierre's General Store");
+			expect(groups()).not.toContain("Abigail");
+
+			await choose(page.getByTestId("events-show"), "seen");
+			const shown = page
+				.getAllByTestId("event-row")
+				.map((row) => row.querySelector("input") as HTMLInputElement);
+			expect(shown).toHaveLength(3);
+			expect(shown.every((box) => box.checked)).toBe(true);
+
+			await choose(page.getByTestId("events-show"), "unseen");
+			expect(page.queryAllByTestId("event-60367")).toHaveLength(0);
+			expect(page.getAllByTestId("event-1")).toHaveLength(1);
+		});
+
+		it("adds and removes an unlisted event ID", async () => {
+			const page = harness.render(eventsPage);
+			const input = page.getByTestId("event-id-input");
+			const add = page.getByTestId("add-event") as HTMLButtonElement;
+			expect(add.disabled).toBe(true);
+			await fireEvent.input(input, { target: { value: "Bad Id" } });
+			expect(add.disabled).toBe(true);
+			await fireEvent.input(input, { target: { value: "a/b" } });
+			expect(add.disabled).toBe(true);
+			expect(page.getByTestId("event-id-hint").textContent).toBe(
+				`Event IDs can't contain spaces or "/".`,
+			);
+			// The save would read it back as 1000
+			await fireEvent.input(input, { target: { value: "1e3" } });
+			expect(add.disabled).toBe(true);
+			expect(page.getByTestId("event-id-hint").textContent).toContain(
+				'the save reads "1e3" back as a different ID',
+			);
+
+			await fireEvent.input(input, {
+				target: { value: " Example.ModId_Event " },
+			});
+			expect(add.disabled).toBe(false);
+			await fireEvent.click(add);
+			flushSync();
+			expect(page.getAllByTestId("unknown-event")).toHaveLength(1);
+			expect(page.getByText("Example.ModId_Event")).toBeTruthy();
+			expect(rawEvents()).toContain("Example.ModId_Event");
+			expect(page.getByTestId("event-added").textContent).toBe(
+				"Marked #Example.ModId_Event as seen.",
+			);
+			expect((input as HTMLInputElement).value).toBe("");
+
+			await fireEvent.click(
+				page.getByTestId("remove-event-Example.ModId_Event"),
+			);
+			flushSync();
+			expect(page.queryAllByTestId("unknown-event")).toHaveLength(0);
+			expect(rawEvents()).not.toContain("Example.ModId_Event");
+			expect(page.queryByTestId("event-added")).toBeNull();
+		});
+
+		it("ticks a vanilla event added by ID", async () => {
+			const page = harness.render(eventsPage);
+			// Saved as 1, which is how the save reads it back
+			await fireEvent.input(page.getByTestId("event-id-input"), {
+				target: { value: "01" },
+			});
+			expect(page.getByTestId("event-id-hint").textContent).toBe(
+				"Saved as 1, without the leading zeros.",
+			);
+			await fireEvent.click(page.getByTestId("add-event"));
+			flushSync();
+			const [abigail] = checkbox(page, "1");
+			expect(abigail?.checked).toBe(true);
+			expect(rawEvents()).toContain("1");
+			expect(page.queryAllByTestId("unknown-event")).toHaveLength(0);
+			expect(page.getByTestId("event-added").textContent).toBe(
+				"Marked Abigail's 2 heart event (#1) as seen.",
+			);
+
+			// Unticking it makes the message out of date
+			if (!abigail) throw new Error("No checkbox for event 1");
+			await fireEvent.click(abigail);
+			flushSync();
+			expect(page.queryByTestId("event-added")).toBeNull();
+		});
+
+		it("clears the add message when switching farmers", async () => {
+			harness.cleanup();
+			harness = await createPageHarness((xml) => {
+				const start = xml.indexOf("<player>") + "<player>".length;
+				const farmhand = xml
+					.slice(start, xml.indexOf("</player>"))
+					.replace("<name>Test</name>", "<name>Hand</name>")
+					.replace(
+						/<UniqueMultiplayerID>\d+<\/UniqueMultiplayerID>/,
+						"<UniqueMultiplayerID>123456789</UniqueMultiplayerID>",
+					)
+					.replace(/<eventsSeen>[\s\S]*?<\/eventsSeen>/, "<eventsSeen />");
+				return xml.replace(
+					"<farmhands />",
+					`<farmhands><Farmer>${farmhand}</Farmer></farmhands>`,
+				);
+			});
+			saveManager = harness.saveManager;
+			const page = harness.render(eventsPage);
+			await fireEvent.input(page.getByTestId("event-id-input"), {
+				target: { value: "1" },
+			});
+			await fireEvent.click(page.getByTestId("add-event"));
+			flushSync();
+			expect(page.getByTestId("event-added")).toBeTruthy();
+
+			saveManager.save?.nextFarmer();
+			flushSync();
+			expect(saveManager.save?.player.name).toBe("Hand");
+			expect(page.getByTestId("events-seen-count").textContent).toBe(
+				"Events seen: 0",
+			);
+			expect(page.queryByTestId("event-added")).toBeNull();
 		});
 	});
 });

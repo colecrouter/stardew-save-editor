@@ -54,7 +54,18 @@
 		"textureSize": { "X": 96, "Y": 112 },
 		"sourceRect": { "X": 0, "Y": 0, "Width": 96, "Height": 112 },
 		"maxOccupants": 4,
-		"hayCapacity": 0
+		"hayCapacity": 0,
+		"validOccupantTypes": ["Coop"],
+		"humanDoor": { "X": 1, "Y": 2 },
+		"animalDoor": { "X": 2, "Y": 2 },
+		"indoorItems": [
+			{
+				"id": "Default_FeedHopper",
+				"itemId": "(BC)99",
+				"tile": { "X": 3, "Y": 3 },
+				"indestructible": true
+			}
+		]
 	},
 	{
 		"name": "Barn",
@@ -63,7 +74,18 @@
 		"textureSize": { "X": 112, "Y": 112 },
 		"sourceRect": { "X": 0, "Y": 0, "Width": 112, "Height": 112 },
 		"maxOccupants": 4,
-		"hayCapacity": 0
+		"hayCapacity": 0,
+		"validOccupantTypes": ["Barn"],
+		"humanDoor": { "X": 1, "Y": 3 },
+		"animalDoor": { "X": 3, "Y": 3 },
+		"indoorItems": [
+			{
+				"id": "Default_FeedHopper",
+				"itemId": "(BC)99",
+				"tile": { "X": 6, "Y": 3 },
+				"indestructible": true
+			}
+		]
 	},
 	{
 		"name": "Well",
@@ -96,7 +118,8 @@
 		"texture": "Shed.png",
 		"textureSize": { "X": 112, "Y": 128 },
 		"maxOccupants": 20,
-		"hayCapacity": 0
+		"hayCapacity": 0,
+		"humanDoor": { "X": 3, "Y": 2 }
 	},
 	{
 		"name": "Fish Pond",
@@ -113,7 +136,8 @@
 		"textureSize": { "X": 80, "Y": 112 },
 		"sourceRect": { "X": 0, "Y": 0, "Width": 80, "Height": 112 },
 		"maxOccupants": 20,
-		"hayCapacity": 0
+		"hayCapacity": 0,
+		"humanDoor": { "X": 2, "Y": 1 }
 	},
 	{
 		"name": "Pet Bowl",
@@ -139,7 +163,16 @@
 		"textureSize": { "X": 112, "Y": 112 },
 		"sourceRect": { "X": 0, "Y": 0, "Width": 112, "Height": 112 },
 		"maxOccupants": 20,
-		"hayCapacity": 0
+		"hayCapacity": 0,
+		"validOccupantTypes": ["Slime"],
+		"humanDoor": { "X": 3, "Y": 3 },
+		"indoorItems": [
+			{
+				"id": "Default_SlimeIncubator",
+				"itemId": "(BC)156",
+				"tile": { "X": 1, "Y": 4 }
+			}
+		]
 	},
 	{
 		"name": "Big Coop",
@@ -148,7 +181,35 @@
 		"textureSize": { "X": 96, "Y": 112 },
 		"sourceRect": { "X": 0, "Y": 0, "Width": 96, "Height": 112 },
 		"maxOccupants": 8,
-		"hayCapacity": 0
+		"hayCapacity": 0,
+		"buildingToUpgrade": "Coop",
+		"validOccupantTypes": ["Coop"],
+		"humanDoor": { "X": 1, "Y": 2 },
+		"animalDoor": { "X": 2, "Y": 2 },
+		"indoorItems": [
+			{
+				"id": "Default_FeedHopper",
+				"itemId": "(BC)99",
+				"tile": { "X": 3, "Y": 3 },
+				"indestructible": true
+			},
+			{
+				"id": "Default_Incubator",
+				"itemId": "(BC)101",
+				"tile": { "X": 2, "Y": 3 },
+				"indestructible": true
+			}
+		],
+		"indoorItemMoves": [
+			{
+				"source": { "X": 2, "Y": 3 },
+				"destination": { "X": 14, "Y": 8 },
+				"unlessItemId": "(BC)101"
+			},
+			{ "source": { "X": 1, "Y": 3 }, "destination": { "X": 14, "Y": 7 } },
+			{ "source": { "X": 10, "Y": 4 }, "destination": { "X": 14, "Y": 4 } }
+		],
+		"addMailOnBuild": ["incubator"]
 	},
 	{
 		"name": "Deluxe Coop",
@@ -157,7 +218,31 @@
 		"textureSize": { "X": 96, "Y": 112 },
 		"sourceRect": { "X": 0, "Y": 0, "Width": 96, "Height": 112 },
 		"maxOccupants": 12,
-		"hayCapacity": 0
+		"hayCapacity": 0,
+		"buildingToUpgrade": "Big Coop",
+		"validOccupantTypes": ["Coop"],
+		"humanDoor": { "X": 1, "Y": 2 },
+		"animalDoor": { "X": 2, "Y": 2 },
+		"indoorItems": [
+			{
+				"id": "Default_FeedHopper",
+				"itemId": "(BC)99",
+				"tile": { "X": 3, "Y": 3 },
+				"indestructible": true
+			},
+			{
+				"id": "Default_Incubator",
+				"itemId": "(BC)101",
+				"tile": { "X": 2, "Y": 3 },
+				"indestructible": true
+			}
+		],
+		"indoorItemMoves": [
+			{ "source": { "X": 14, "Y": 4 }, "destination": { "X": 20, "Y": 4 } },
+			{ "source": { "X": 14, "Y": 7 }, "destination": { "X": 21, "Y": 7 } },
+			{ "source": { "X": 14, "Y": 8 }, "destination": { "X": 21, "Y": 8 } }
+		],
+		"addMailOnBuild": ["incubator"]
 	},
 	{
 		"name": "Big Barn",
@@ -166,7 +251,29 @@
 		"textureSize": { "X": 112, "Y": 112 },
 		"sourceRect": { "X": 0, "Y": 0, "Width": 112, "Height": 112 },
 		"maxOccupants": 8,
-		"hayCapacity": 0
+		"hayCapacity": 0,
+		"buildingToUpgrade": "Barn",
+		"validOccupantTypes": ["Barn"],
+		"humanDoor": { "X": 1, "Y": 3 },
+		"animalDoor": { "X": 4, "Y": 3 },
+		"indoorItems": [
+			{
+				"id": "Default_FeedHopper",
+				"itemId": "(BC)99",
+				"tile": { "X": 6, "Y": 3 },
+				"indestructible": true
+			}
+		],
+		"indoorItemMoves": [
+			{ "source": { "X": 15, "Y": 3 }, "destination": { "X": 18, "Y": 13 } },
+			{ "source": { "X": 16, "Y": 3 }, "destination": { "X": 19, "Y": 13 } },
+			{ "source": { "X": 1, "Y": 4 }, "destination": { "X": 20, "Y": 3 } },
+			{
+				"source": { "X": 16, "Y": 4 },
+				"destination": { "X": 20, "Y": 4 },
+				"size": { "X": 1, "Y": 9 }
+			}
+		]
 	},
 	{
 		"name": "Deluxe Barn",
@@ -175,7 +282,30 @@
 		"textureSize": { "X": 112, "Y": 112 },
 		"sourceRect": { "X": 0, "Y": 0, "Width": 112, "Height": 112 },
 		"maxOccupants": 12,
-		"hayCapacity": 0
+		"hayCapacity": 0,
+		"buildingToUpgrade": "Big Barn",
+		"validOccupantTypes": ["Barn"],
+		"humanDoor": { "X": 1, "Y": 3 },
+		"animalDoor": { "X": 4, "Y": 3 },
+		"indoorItems": [
+			{
+				"id": "Default_FeedHopper",
+				"itemId": "(BC)99",
+				"tile": { "X": 6, "Y": 3 },
+				"indestructible": true
+			}
+		],
+		"indoorItemMoves": [
+			{ "source": { "X": 20, "Y": 3 }, "destination": { "X": 1, "Y": 4 } },
+			{ "source": { "X": 20, "Y": 5 }, "destination": { "X": 21, "Y": 13 } },
+			{
+				"source": { "X": 20, "Y": 6 },
+				"destination": { "X": 23, "Y": 6 },
+				"size": { "X": 1, "Y": 6 }
+			},
+			{ "source": { "X": 20, "Y": 4 }, "destination": { "X": 20, "Y": 13 } },
+			{ "source": { "X": 20, "Y": 12 }, "destination": { "X": 22, "Y": 13 } }
+		]
 	},
 	{
 		"name": "Big Shed",
@@ -183,7 +313,9 @@
 		"texture": "Big Shed.png",
 		"textureSize": { "X": 112, "Y": 128 },
 		"maxOccupants": 20,
-		"hayCapacity": 0
+		"hayCapacity": 0,
+		"buildingToUpgrade": "Shed",
+		"humanDoor": { "X": 3, "Y": 2 }
 	},
 	{
 		"name": "Shipping Bin",
@@ -200,7 +332,8 @@
 		"textureSize": { "X": 160, "Y": 144 },
 		"sourceRect": { "X": 0, "Y": 0, "Width": 160, "Height": 144 },
 		"maxOccupants": 20,
-		"hayCapacity": 0
+		"hayCapacity": 0,
+		"humanDoor": { "X": 5, "Y": 2 }
 	},
 	{
 		"name": "Greenhouse",
@@ -209,6 +342,7 @@
 		"textureSize": { "X": 112, "Y": 160 },
 		"sourceRect": { "X": 0, "Y": 160, "Width": 112, "Height": 160 },
 		"maxOccupants": 20,
-		"hayCapacity": 0
+		"hayCapacity": 0,
+		"humanDoor": { "X": 3, "Y": 5 }
 	}
 ]

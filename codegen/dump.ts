@@ -24,6 +24,10 @@ import trinkets from "../content/Data/Trinkets.json" with { type: "json" };
 import weapons from "../content/Data/Weapons.json" with { type: "json" };
 import { characters } from "../src/lib/NPCs.js";
 import {
+	type BuildingUpgradeSource,
+	getBuildingUpgradeData,
+} from "./buildingUpgrade.js";
+import {
 	createArtisanGoods,
 	fixTexture,
 	thrw,
@@ -538,6 +542,7 @@ const buildingsArray = await Promise.all(
 			sourceRect,
 			maxOccupants: obj.MaxOccupants,
 			hayCapacity: obj.HayCapacity,
+			...getBuildingUpgradeData(obj as BuildingUpgradeSource),
 		};
 	}),
 );

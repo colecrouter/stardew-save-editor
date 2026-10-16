@@ -1,7 +1,9 @@
 import { type ChestProxy, discoverChests } from "$lib/proxies/Chest.svelte";
 import { CommunityBundles } from "$lib/proxies/CommunityBundles.svelte";
+import type { FarmAnimal } from "$lib/proxies/FarmAnimal.svelte";
 import { Farmer } from "$lib/proxies/Farmer.svelte";
 import { GameLocation } from "$lib/proxies/GameLocation.svelte";
+import type { MailFlag } from "$lib/proxies/Mail.svelte";
 import { QiQuests } from "$lib/proxies/QiQuests.svelte";
 import { type DataProxy, Raw } from ".";
 
@@ -215,6 +217,78 @@ export class SaveProxy implements DataProxy<SaveFile> {
 	}
 	public prevFarmer() {
 		this.index = (this.index - 1 + this.players.length) % this.players.length;
+	}
+
+	/** Every farm animal, wherever it is: outside, or inside a building */
+	get farmAnimals(): FarmAnimal[] {
+		return this.locations.flatMap((location) => [
+			...location.animals,
+			// The farmhouse's interior is one of the locations already
+			...location.buildings.flatMap((b) =>
+				b[Raw].indoors ? (b.indoorLocation?.animals ?? []) : [],
+			),
+		]);
+	}
+
+	/** IDs of every farm animal, including residents of a building that aren't anywhere */
+	get farmAnimalIds(): Set<string> {
+		const ids = new Set(
+			this.farmAnimals.flatMap((a) => [
+				String(a[Raw].key.long),
+				String(a[Raw].value.FarmAnimal.myID),
+			]),
+		);
+		for (const location of this.locations)
+			for (const building of location.buildings)
+				for (const id of building.residentIds) ids.add(id);
+		return ids;
+	}
+
+	/** Remember that a building type has been built (the team's constructedBuildings) */
+	addConstructedBuilding(type: string) {
+		const save = this[Raw].SaveGame;
+		if (typeof save.constructedBuildings !== "object")
+			save.constructedBuildings = { string: [] };
+		const built = save.constructedBuildings;
+		if (!Array.isArray(built.string)) built.string = [];
+		if (!built.string.includes(type)) built.string.push(type);
+	}
+
+	/**
+	    Send a letter to everyone, as Game1.addMail(key, sendToEveryone: true)
+	    does: into each player's mailbox unless they've had it (or will), and
+	    into broadcastedMail, for farmhands who join later.
+	*/
+	sendMailToEveryone(key: string) {
+		const save = this[Raw].SaveGame;
+		if (typeof save.broadcastedMail !== "object")
+			save.broadcastedMail = { string: [] };
+		const broadcast = save.broadcastedMail;
+		if (!Array.isArray(broadcast.string)) broadcast.string = [];
+		const seen = `%&SM&%${key}`;
+		if (!broadcast.string.includes(seen)) broadcast.string.push(seen);
+
+		for (const player of this.players) {
+			const tomorrow = player[Raw].mailForTomorrow as unknown;
+			const forTomorrow =
+				typeof tomorrow === "object" &&
+				tomorrow !== null &&
+				"string" in tomorrow
+					? [tomorrow.string].flat().map(String)
+					: [];
+			// Farmer.hasOrWillReceiveMail
+			const has =
+				player.mailReceived.has(key as MailFlag) ||
+				player.mailbox.has(key as MailFlag) ||
+				forTomorrow.some((m) => m === key || m === `${key}%&NL&%`);
+			if (!has) player.mailbox.add(key as MailFlag);
+		}
+	}
+
+	/** Start a conversation topic for every player, as the game does for each farmer */
+	addDialogueEventForEveryone(id: string) {
+		for (const player of this.players)
+			player.autoGenerateActiveDialogueEvent(id);
 	}
 
 	// To mutate farm location externally, provide a helper

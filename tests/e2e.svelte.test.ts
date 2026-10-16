@@ -3,6 +3,7 @@ import { fireEvent, render, within } from "@testing-library/svelte";
 import { flushSync, tick } from "svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setup as mockIDB } from "vitest-indexeddb";
+import { CCRoom } from "$lib/bundleSideEffects";
 import { characters } from "$lib/NPCs";
 import { Raw } from "$lib/proxies";
 import {
@@ -188,6 +189,58 @@ describe("Save Manager Integration Tests", () => {
 					}
 				}
 			}
+		});
+
+		it("should group bundles by room, in game order, with each room's reward", async () => {
+			const page = harness.render(bundlesPage);
+			flushSync();
+			const membership = page.getByTestId(
+				"joja-membership-checkbox",
+			) as HTMLInputElement;
+			if (membership.checked) {
+				await fireEvent.click(membership); // disable
+			}
+
+			const rooms = page.getAllByTestId("bundle-room");
+			expect(rooms.map((r) => r.getAttribute("data-room"))).toEqual([
+				"Crafts Room",
+				"Pantry",
+				"Fish Tank",
+				"Boiler Room",
+				"Bulletin Board",
+				"Vault",
+				"Abandoned JojaMart",
+			]);
+
+			// Every bundle is shown, inside its room
+			const bundles = saveManager.save?.communityBundles;
+			expect(page.getAllByTestId("bundle-card").length).toBe(bundles?.size);
+
+			// Each room shows what restoring it unlocks
+			const rewards = rooms.map(
+				(r) => within(r).getByTestId("bundle-room-reward").textContent ?? "",
+			);
+			expect(rewards[0]).toContain("Quarry");
+			expect(rewards[1]).toContain("Greenhouse");
+			expect(rewards[2]).toContain("Glittering Boulder");
+			expect(rewards[3]).toContain("Minecarts");
+			expect(rewards[4]).toContain("friendship");
+			expect(rewards[5]).toContain("Bus");
+			expect(rewards[6]).toContain("Movie Theater");
+
+			// Finishing every bundle in a room marks it as restored
+			const pantry = rooms[1] as HTMLElement;
+			const progress = within(pantry).getByTestId("bundle-room-progress");
+			expect(pantry.classList.contains("done")).toBe(false);
+			expect(progress.textContent).not.toContain("Restored");
+			for (const bundle of bundles?.values() ?? []) {
+				if (bundle.room !== CCRoom.Pantry) continue;
+				for (const item of bundle.requiredItems) item.submitted = true;
+			}
+			flushSync();
+			expect(pantry.classList.contains("done")).toBe(true);
+			expect(progress.textContent).toContain("6/6 bundles");
+			expect(progress.textContent).toContain("Restored");
 		});
 
 		it("should toggle Joja membership and set a project", async () => {

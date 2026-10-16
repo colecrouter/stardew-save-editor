@@ -38,6 +38,17 @@
 			<HeartBar {name} {npc} />
 		{/each}
 	</div>
+	<small class="credit">
+		Villager descriptions from the
+		<a href="https://stardewvalleywiki.com" target="_blank" rel="noreferrer"
+			>Stardew Valley Wiki</a
+		>, licensed under
+		<a
+			href="https://creativecommons.org/licenses/by-nc-sa/3.0/"
+			target="_blank"
+			rel="noreferrer">CC BY-NC-SA 3.0</a
+		>.
+	</small>
 </UiContainer>
 
 <style>
@@ -50,5 +61,12 @@
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
+	}
+
+	.credit {
+		display: block;
+		margin-top: 6px;
+		font-size: x-small;
+		opacity: 0.8;
 	}
 </style>

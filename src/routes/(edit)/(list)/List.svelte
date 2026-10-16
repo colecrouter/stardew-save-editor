@@ -97,7 +97,8 @@
 	.wrapper {
 		display: flex;
 		flex-direction: column;
-		height: 20rem;
+		/* Fill the window below the page header, never below 20rem */
+		height: max(20rem, calc(100dvh - 306px));
 		overflow-y: scroll;
 	}
 

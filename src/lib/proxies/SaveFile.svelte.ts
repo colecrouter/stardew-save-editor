@@ -21,6 +21,10 @@ export class SaveProxy implements DataProxy<SaveFile> {
 	// Simple scalar reactive fields
 	public goldenWalnuts: number;
 	public deepestMineLevel: number;
+	/** "Spawn monsters on the farm" new-game option */
+	public shouldSpawnMonsters: boolean;
+	/** "Mine rewards" new-game option: `Default` or `Remixed` */
+	public shuffleMineChests: string;
 
 	public communityBundles: CommunityBundles | undefined; // derived
 	public qiQuests: QiQuests;
@@ -64,6 +68,20 @@ export class SaveProxy implements DataProxy<SaveFile> {
 		this.goldenWalnuts = $state(this[Raw].SaveGame.goldenWalnuts ?? 0);
 		$effect(() => {
 			this[Raw].SaveGame.goldenWalnuts = this.goldenWalnuts;
+		});
+
+		this.shouldSpawnMonsters = $state(
+			this[Raw].SaveGame.shouldSpawnMonsters === true,
+		);
+		$effect(() => {
+			this[Raw].SaveGame.shouldSpawnMonsters = this.shouldSpawnMonsters;
+		});
+
+		this.shuffleMineChests = $state(
+			this[Raw].SaveGame.shuffleMineChests || "Default",
+		);
+		$effect(() => {
+			this[Raw].SaveGame.shuffleMineChests = this.shuffleMineChests;
 		});
 
 		this.deepestMineLevel = $state(

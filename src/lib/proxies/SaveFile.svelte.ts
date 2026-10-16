@@ -217,6 +217,14 @@ export class SaveProxy implements DataProxy<SaveFile> {
 		this.index = (this.index - 1 + this.players.length) % this.players.length;
 	}
 
+	/** Building types that have ever been built (the team's constructedBuildings) */
+	get constructedBuildings(): string[] {
+		const built = this[Raw].SaveGame.constructedBuildings;
+		return typeof built === "object" && Array.isArray(built.string)
+			? built.string.map(String)
+			: [];
+	}
+
 	// To mutate farm location externally, provide a helper
 	public setFarm(f: GameLocation) {
 		if (!f) throw new Error("Farm is required");

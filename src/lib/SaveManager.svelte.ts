@@ -5,11 +5,16 @@ import { getContext, setContext } from "svelte";
 import { dev } from "$app/environment";
 import { BackupManager } from "$lib/BackupManager.svelte";
 import { SaveProxy } from "$lib/proxies/SaveFile.svelte";
+import {
+	describeProblems,
+	type SaveValidation,
+	SUPPORTED_VERSIONS,
+	validateSave,
+} from "$lib/saveValidation";
 import type { XMLManager } from "$lib/workers/xml";
 import { nestedArrayTags } from "./workers/jank";
 
 const SAVE_KEY = Symbol("saveManager");
-const SUPPORTED_VERSIONS = ["1.6"];
 
 // XML Manager singleton
 let xmlManager: Comlink.Remote<XMLManager> | XMLManager | undefined;
@@ -72,9 +77,18 @@ const downloadFile = async (blob: Blob, filename: string) => {
 	}, 1000);
 };
 
+/** Thrown by download() when the exported save fails validation */
+export class SaveValidationError extends Error {
+	constructor(readonly validation: SaveValidation) {
+		super(`Save file is not valid: ${describeProblems(validation)}`);
+	}
+}
+
 export class SaveManager {
 	save = $state<SaveProxy>();
 	filename = "";
+	/** Validation of the save as it was uploaded */
+	loadValidation = $state<SaveValidation>();
 	backups = new BackupManager();
 	private disposeSave?: () => void;
 
@@ -131,6 +145,9 @@ export class SaveManager {
 			throw new Error(`Unsupported game version: ${json.SaveGame.gameVersion}`);
 		}
 
+		// Checked before the editor touches anything, so it reflects the uploaded file
+		const validation = validateSave(json);
+
 		await this.handleBackup(file);
 
 		// I hate that I have to do this
@@ -175,6 +192,7 @@ export class SaveManager {
 		this.disposeSave = cleanup;
 
 		this.filename = file.name;
+		this.loadValidation = validation;
 	}
 
 	private async handleBackup(file: File) {
@@ -188,9 +206,32 @@ export class SaveManager {
 		this.backups.files.unshift(file);
 	}
 
-	async download() {
+	/**
+	 * Export the save, then read the exported file back and validate it, so
+	 * what's checked is exactly what would be written.
+	 */
+	async validatedExport() {
 		const blob = await this.export();
-		return downloadFile(blob, this.filename);
+		const xmlManager = await getXmlManager();
+		let validation: SaveValidation;
+		try {
+			validation = validateSave(await xmlManager.parse(await blob.text()));
+		} catch (e) {
+			validation = {
+				valid: false,
+				errors: [`The exported file couldn't be read back (${e})`],
+				warnings: [],
+			};
+		}
+		return { blob, validation };
+	}
+
+	/** Download the save if it passes validation; throws SaveValidationError if not */
+	async download() {
+		const { blob, validation } = await this.validatedExport();
+		if (!validation.valid) throw new SaveValidationError(validation);
+		await downloadFile(blob, this.filename);
+		return validation;
 	}
 
 	async export(pretty = false) {
@@ -220,6 +261,7 @@ export class SaveManager {
 		}
 		this.save = undefined;
 		this.filename = "";
+		this.loadValidation = undefined;
 		this.saveDevState();
 	}
 }

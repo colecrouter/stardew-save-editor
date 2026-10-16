@@ -722,6 +722,7 @@ describe("Save Manager Integration Tests", () => {
 				"Pearl",
 				"Prismatic Shard",
 				"Rabbit's Foot",
+				"Stardrop Tea",
 			]);
 			for (const gift of [...gifts, ...universal]) {
 				expect(gift.getAttribute("role")).toBe("img");
@@ -755,6 +756,7 @@ describe("Save Manager Integration Tests", () => {
 				"Magic Rock Candy",
 				"Pearl",
 				"Rabbit's Foot",
+				"Stardrop Tea",
 			]);
 		});
 

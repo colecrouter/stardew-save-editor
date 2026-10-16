@@ -229,6 +229,7 @@ describe("villagerGifts", () => {
 		info("348", "Wine", { category: -26 }),
 		info("348", "Blueberry Wine", { category: -26, unpreservedItemId: "258" }),
 		info("458", "Bouquet"),
+		info("StardropTea", "Stardrop Tea"),
 		info("529", "Amethyst Ring", { type: "Ring", category: -96 }),
 		info("Book_Void", "Monster Compendium", {
 			category: -102,
@@ -273,17 +274,20 @@ describe("villagerGifts", () => {
 			"Magic Rock Candy",
 			"Prismatic Shard",
 			"Rabbit's Foot",
+			"Stardrop Tea",
 		]);
 		// Haley hates Prismatic Shard and Penny hates Rabbit's Foot
 		expect(names(villagers.Haley?.universalLoves)).toEqual([
 			"Golden Pumpkin",
 			"Magic Rock Candy",
 			"Rabbit's Foot",
+			"Stardrop Tea",
 		]);
 		expect(names(villagers.Penny?.universalLoves)).toEqual([
 			"Golden Pumpkin",
 			"Magic Rock Candy",
 			"Prismatic Shard",
+			"Stardrop Tea",
 		]);
 		expect(names(villagers.Leo?.universalLoves)).toContain("Magic Rock Candy");
 	});

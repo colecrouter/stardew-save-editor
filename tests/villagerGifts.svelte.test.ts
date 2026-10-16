@@ -31,6 +31,7 @@ describe("villager loved gifts", () => {
 			"Pearl",
 			"Prismatic Shard",
 			"Rabbit's Foot",
+			"Stardrop Tea",
 		];
 		expect(names(LovedGifts.get("Lewis")?.universalLoves)).toEqual(universal);
 		// Haley hates Prismatic Shard and Penny hates Rabbit's Foot

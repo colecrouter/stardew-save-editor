@@ -306,9 +306,14 @@ export function villagerGifts(
 		// Personal loves, by the love-list entry that matched
 		const byEntry = new Map<string, { name: string; item: string }[]>();
 		for (const { name, gift } of gifts) {
-			if (getGiftTaste(tastes, villager, gift, qualify) !== GiftTaste.Love) {
+			const taste = getGiftTaste(tastes, villager, gift, qualify);
+			// Stardrop Tea's reaction beats a loved gift's, and no one's own tastes
+			// can change it, so it's listed with the universal loves
+			if (taste === GiftTaste.StardropTea) {
+				universalLoves.set(name, { name: words(name), item: name });
 				continue;
 			}
+			if (taste !== GiftTaste.Love) continue;
 			// Loved even without the villager's own tastes
 			if (
 				getGiftTaste(universalOnly, villager, gift, qualify) === GiftTaste.Love

@@ -1,10 +1,12 @@
 <script lang="ts">
 	import { type DragDropState, draggable, droppable } from "@thisux/sveltednd";
+	import { sortSlots } from "$lib/chestMoves";
 	import type { ParentIndex } from "$lib/ItemParentIndex";
 	import { Item, ValidSlotForItem } from "$lib/proxies/Item.svelte";
 	import type { ItemProxy } from "$lib/proxies/items";
 	import { getSaveManager } from "$lib/SaveManager.svelte";
 	import { getToastManager, Toast } from "$lib/ToastManager.svelte";
+	import SortButton from "$lib/ui/SortButton.svelte";
 	import UiContainer from "$lib/ui/UIContainer.svelte";
 	import CharacterView from "./CharacterEquipment.svelte";
 	import ItemSlot from "./ItemSlot.svelte";
@@ -102,11 +104,24 @@
 		if (!save) return;
 		save.player.inventory.delete(selectedIndex);
 	};
+
+	// Same as the game's Organize button on the inventory page
+	const sortInventory = () => {
+		sortSlots(save.player.inventory);
+		toastManager.add(new Toast("Inventory sorted", "success"));
+	};
 </script>
 
 {#if save.player}
 	<!-- Inventory view -->
 	<UiContainer>
+		<div class="toolbar">
+			<SortButton
+				label="Sort inventory"
+				onclick={sortInventory}
+				data-testid="sort-inventory"
+			/>
+		</div>
 		<div class="item-grid">
 			{#each gridSlots as { index, item }}
 				<div
@@ -155,6 +170,12 @@
 {/if}
 
 <style>
+	.toolbar {
+		display: flex;
+		justify-content: flex-end;
+		margin-bottom: 4px;
+	}
+
 	.item-grid {
 		display: grid;
 		grid-template-columns: repeat(12, min-content);

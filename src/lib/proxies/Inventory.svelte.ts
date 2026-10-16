@@ -104,6 +104,33 @@ export class Inventory
 		return super.set(index, value);
 	}
 
+	/**
+	 * Lay out the backpack slots in order (used by sorting); items keep their
+	 * proxies. Slots holding an item the editor doesn't show (Secret Notes) are
+	 * left exactly as they are, and the other items are laid out around them.
+	 */
+	public arrange(items: ItemProxy[]) {
+		const raw = this[Raw].items.Item;
+		const slots: number[] = [];
+		for (let index = 0; index < this.slotCount; index++) {
+			const entry = raw[index];
+			const hidden =
+				this.get(index) === undefined && !!entry && !isNilSentinel(entry);
+			if (!hidden) slots.push(index);
+		}
+		if (items.length > slots.length) {
+			throw new Error(
+				`${items.length} items won't fit in ${slots.length} slots`,
+			);
+		}
+		slots.forEach((index, i) => {
+			const item = items[i];
+			// @ts-expect-error converting undefined to nil marker
+			raw[index] = item ? item[Raw] : nil;
+			super.set(index, item);
+		});
+	}
+
 	public delete(index: ParentIndex): boolean {
 		const existed = this.has(index);
 		// Preserve reactive anchor by using set(undefined) instead of super.delete

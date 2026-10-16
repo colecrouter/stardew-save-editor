@@ -26,6 +26,7 @@ import craftingPage from "../src/routes/(edit)/(list)/crafting/+page.svelte";
 import appearancePage from "../src/routes/(edit)/appearance/+page.svelte";
 import bundlesPage from "../src/routes/(edit)/bundles/+page.svelte";
 import characterPage from "../src/routes/(edit)/character/+page.svelte";
+import farmPage from "../src/routes/(edit)/farm/+page.svelte";
 import editorPage from "../src/routes/(edit)/inventory/+page.svelte";
 import BuildingSprite from "../src/routes/(edit)/inventory/BuildingSprite.svelte";
 import relationshipsPage from "../src/routes/(edit)/relationships/+page.svelte";
@@ -57,8 +58,12 @@ const once = (fn: () => void) => {
 	};
 };
 
-const createPageHarness = async (): Promise<PageHarness> => {
-	const file = await readFile("tests/TestSave");
+// `edit` rewrites the fixture's XML before import, for saves TestSave doesn't cover
+const createPageHarness = async (
+	edit?: (xml: string) => string,
+): Promise<PageHarness> => {
+	const fixture = await readFile("tests/TestSave");
+	const file = edit ? edit(fixture.toString("utf8")) : fixture;
 
 	let saveManager!: SaveManager;
 	let importPromise!: Promise<void>;
@@ -109,6 +114,15 @@ const createPageHarness = async (): Promise<PageHarness> => {
 	});
 
 	return { saveManager, render: renderWithContext, cleanup };
+};
+
+// Select a <select> option the way a user would, then notify Svelte's binding
+const choose = async (element: HTMLElement, value: string) => {
+	const select = element as HTMLSelectElement;
+	for (const option of select.options) {
+		option.selected = option.value === value;
+	}
+	await fireEvent.change(select);
 };
 
 describe("Save Manager Integration Tests", () => {
@@ -703,6 +717,102 @@ describe("Save Manager Integration Tests", () => {
 				const rawFriend = friendship[Raw];
 				expect(rawFriend.value.Friendship.Points).toBe(targetHearts * 250);
 			}
+		});
+	});
+
+	describe("Farm", () => {
+		it("applies the farm name and profit margin to every farmer", async () => {
+			const page = harness.render(farmPage);
+			const save = saveManager.save;
+			if (!save) return;
+
+			await fireEvent.input(page.getByTestId("farm-name"), {
+				target: { value: "Moonlight" },
+			});
+			await fireEvent.input(page.getByTestId("profit-margin"), {
+				target: { value: "50" },
+			});
+			flushSync();
+
+			for (const player of save.players) {
+				expect(player.raw.farmName).toBe("Moonlight");
+				expect(player.raw.difficultyModifier).toBe(0.5);
+			}
+		});
+
+		it("accepts a custom profit margin", async () => {
+			const page = harness.render(farmPage);
+			const save = saveManager.save;
+			if (!save) return;
+			const input = page.getByTestId("profit-margin") as HTMLInputElement;
+			expect(input.value).toBe("100");
+
+			await fireEvent.input(input, { target: { value: "130" } });
+			flushSync();
+
+			for (const player of save.players) {
+				expect(player.raw.difficultyModifier).toBe(1.3);
+			}
+		});
+
+		it("resets a cleared profit margin to normal", async () => {
+			const page = harness.render(farmPage);
+			const save = saveManager.save;
+			if (!save) return;
+			const input = page.getByTestId("profit-margin") as HTMLInputElement;
+
+			await fireEvent.input(input, { target: { value: "50" } });
+			await fireEvent.input(input, { target: { value: "" } });
+			flushSync();
+			// Nothing is written while the field is empty
+			expect(save.players[0]?.raw.difficultyModifier).toBe(0.5);
+
+			await fireEvent.blur(input);
+			flushSync();
+			expect(save.players[0]?.raw.difficultyModifier).toBe(1);
+		});
+
+		it("edits monster spawning and mine rewards", async () => {
+			const page = harness.render(farmPage);
+			const game = saveManager.save?.raw.SaveGame;
+			if (!game) return;
+			expect(game.shouldSpawnMonsters).toBe(false);
+
+			await fireEvent.click(page.getByTestId("spawn-monsters"));
+			await choose(page.getByTestId("mine-rewards"), "Remixed");
+			flushSync();
+
+			expect(game.shouldSpawnMonsters).toBe(true);
+			expect(game.shuffleMineChests).toBe("Remixed");
+		});
+
+		it("shows creation-only settings as read-only", () => {
+			const page = harness.render(farmPage);
+			const values = page
+				.getAllByTestId("locked-setting")
+				.map((el) => el.textContent);
+			// TestSave is a Hill-top farm (whichFarm 3)
+			expect(values).toContain("Hill-top");
+			expect(values).toContain("390176213");
+		});
+
+		it("names Meadowlands by its farm type ID", async () => {
+			// 1.6 saves Meadowlands and modded farms by ID instead of an index
+			harness.cleanup();
+			harness = await createPageHarness((xml) =>
+				xml.replace(
+					"<whichFarm>3</whichFarm>",
+					"<whichFarm>MeadowlandsFarm</whichFarm>",
+				),
+			);
+			saveManager = harness.saveManager;
+			expect(saveManager.save?.raw.SaveGame.whichFarm).toBe("MeadowlandsFarm");
+
+			const page = harness.render(farmPage);
+			const values = page
+				.getAllByTestId("locked-setting")
+				.map((el) => el.textContent);
+			expect(values).toContain("Meadowlands");
 		});
 	});
 

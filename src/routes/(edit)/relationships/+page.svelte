@@ -4,6 +4,7 @@
 	import UiButton from "$lib/ui/UIButton.svelte";
 	import UiContainer from "$lib/ui/UIContainer.svelte";
 	import UiInput from "$lib/ui/UIInput.svelte";
+	import { Villagers } from "$lib/Villagers";
 	import HeartBar from "./HeartBar.svelte";
 
 	const save = getSaveManager().save;
@@ -17,10 +18,13 @@
 	let search = $state("");
 	let searchBox: HTMLDivElement | undefined = $state();
 	const term = $derived(search.trim().toLowerCase());
+	// Match the villager's name or any of their loved gifts
+	const matches = (name: string) =>
+		[name, ...(Villagers.get(name)?.loves ?? []).map((gift) => gift.name)].some(
+			(text) => text.toLowerCase().includes(term),
+		);
 	const shown = $derived(
-		term
-			? friendships.filter(([name]) => name.toLowerCase().includes(term))
-			: friendships,
+		term ? friendships.filter(([name]) => matches(name)) : friendships,
 	);
 
 	const clearSearch = () => {
@@ -51,8 +55,8 @@
 	<div class="search" bind:this={searchBox}>
 		<UiInput
 			type="text"
-			placeholder="Search villagers..."
-			aria-label="Search villagers"
+			placeholder="Search villagers or loved gifts..."
+			aria-label="Search villagers or loved gifts"
 			data-testid="relationships-search"
 			bind:value={search}
 			onkeydown={(event) => {
@@ -85,7 +89,7 @@
 		{/each}
 	</div>
 	<small class="credit">
-		Villager descriptions from the
+		Villager descriptions and loved gifts from the
 		<a href="https://stardewvalleywiki.com" target="_blank" rel="noreferrer"
 			>Stardew Valley Wiki</a
 		>, licensed under

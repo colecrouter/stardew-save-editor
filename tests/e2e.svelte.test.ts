@@ -689,6 +689,37 @@ describe("Save Manager Integration Tests", () => {
 			).toMatch(/^Lewis is/);
 		});
 
+		it("shows each villager's loved gifts as item icons", () => {
+			const page = harness.render(relationshipsPage);
+			const row = page
+				.getAllByTestId("friendship-row")
+				.find(
+					(r) =>
+						within(r).getByTestId("friendship-name").textContent === "Lewis",
+				);
+			expect(row).toBeTruthy();
+			if (!row) return;
+			const gifts = within(row).getAllByTestId("friendship-loved-gift");
+			expect(gifts.map((gift) => gift.getAttribute("aria-label"))).toEqual([
+				"Autumn's Bounty",
+				"Glazed Yams",
+				"Green Tea",
+				"Hot Pepper",
+				"Vegetable Medley",
+			]);
+			for (const gift of gifts) {
+				expect(gift.getAttribute("role")).toBe("img");
+				expect(gift.getAttribute("title")).toBe(
+					gift.getAttribute("aria-label"),
+				);
+				// A drawn sprite, not the "??" placeholder
+				expect(gift.querySelector("svg image")).toBeTruthy();
+			}
+			expect(
+				within(row).getByRole("list", { name: "Lewis's loved gifts" }),
+			).toBeTruthy();
+		});
+
 		it("should update friendship hearts", async () => {
 			const page = harness.render(relationshipsPage);
 			if (!saveManager.save) return;
@@ -751,6 +782,41 @@ describe("Save Manager Integration Tests", () => {
 			await fireEvent.input(search, { target: { value: "lew" } });
 			expect(names()).toEqual(["Lewis"]);
 			await fireEvent.keyDown(search, { key: "Escape" });
+			expect(names()).toEqual(all);
+		});
+
+		it("should filter villagers by loved gift", async () => {
+			const page = harness.render(relationshipsPage);
+			const names = () =>
+				page
+					.queryAllByTestId("friendship-name")
+					.map((name) => name.textContent?.trim());
+			const all = names();
+
+			const search = page.getByTestId("relationships-search");
+			expect(search.getAttribute("placeholder")).toBe(
+				"Search villagers or loved gifts...",
+			);
+
+			// Case-insensitive, ignoring surrounding whitespace
+			await fireEvent.input(search, { target: { value: " DIAMOND  " } });
+			expect(names().sort()).toEqual([
+				"Evelyn",
+				"Jodi",
+				"Marnie",
+				"Maru",
+				"Willy",
+			]);
+			for (const row of page.getAllByTestId("friendship-row")) {
+				expect(within(row).getByRole("img", { name: "Diamond" })).toBeTruthy();
+			}
+
+			// Part of a gift name works too
+			await fireEvent.input(search, { target: { value: "pink ca" } });
+			expect(names().sort()).toEqual(["Haley", "Jas", "Marnie"]);
+
+			await fireEvent.click(page.getByTestId("relationships-search-clear"));
+			expect((search as HTMLInputElement).value).toBe("");
 			expect(names()).toEqual(all);
 		});
 	});

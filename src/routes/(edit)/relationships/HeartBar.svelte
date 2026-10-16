@@ -1,9 +1,11 @@
 <script lang="ts">
 	import { asset } from "$app/paths";
 	import type { Friendship } from "$lib/proxies/Friendship.svelte";
+	import { Item } from "$lib/proxies/Item.svelte";
 	import EmojiRange from "$lib/ui/EmojiRange.svelte";
 	import UiContainerSmall from "$lib/ui/UIContainerSmall.svelte";
 	import { Villagers } from "$lib/Villagers";
+	import ItemSprite from "../inventory/ItemSprite.svelte";
 
 	interface Props {
 		name: string;
@@ -13,6 +15,7 @@
 	let { npc, name }: Props = $props();
 
 	const description = $derived(Villagers.get(name)?.description);
+	const loves = $derived(Villagers.get(name)?.loves ?? []);
 </script>
 
 <div class="row" data-testid="friendship-row">
@@ -52,6 +55,23 @@
 			ariaLabel={`${name} hearts`}
 			onInputChange={(value) => (npc.points = value)}
 		/>
+
+		{#if loves.length > 0}
+			<ul class="loves" aria-label={`${name}'s loved gifts`}>
+				{#each loves as gift (gift.item)}
+					<li>
+						<div
+							role="img"
+							aria-label={gift.name}
+							title={gift.name}
+							data-testid="friendship-loved-gift"
+						>
+							<ItemSprite item={Item.fromName(gift.item)} />
+						</div>
+					</li>
+				{/each}
+			</ul>
+		{/if}
 	</div>
 </div>
 
@@ -107,5 +127,16 @@
 	.description {
 		font-size: 0.75em;
 		opacity: 0.8;
+	}
+
+	.loves {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 2px;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+		/* Shrink the 32px item sprites to small icons */
+		zoom: 0.75;
 	}
 </style>

@@ -704,6 +704,40 @@ describe("Save Manager Integration Tests", () => {
 				expect(rawFriend.value.Friendship.Points).toBe(targetHearts * 250);
 			}
 		});
+
+		it("should filter villagers by name", async () => {
+			const page = harness.render(relationshipsPage);
+			const names = () =>
+				page
+					.queryAllByTestId("friendship-name")
+					.map((name) => name.textContent?.trim());
+			const all = names();
+			expect(all.length).toBeGreaterThan(1);
+			expect(all).toContain("Lewis");
+
+			// Case-insensitive, ignoring surrounding whitespace
+			const search = page.getByTestId("relationships-search");
+			await fireEvent.input(search, { target: { value: "  lEW " } });
+			expect(names()).toEqual(["Lewis"]);
+			// The encountered count still reflects every villager
+			expect(page.getByText(`NPCs encountered: ${all.length}`)).toBeTruthy();
+
+			await fireEvent.input(search, { target: { value: "zzzz" } });
+			expect(names()).toEqual([]);
+			expect(page.getByText('No villagers match "zzzz".')).toBeTruthy();
+
+			await fireEvent.click(page.getByTestId("relationships-search-clear"));
+			expect((search as HTMLInputElement).value).toBe("");
+			expect(names()).toEqual(all);
+			expect(page.queryByText(/No villagers match/)).toBeNull();
+			expect(page.queryByTestId("relationships-search-clear")).toBeNull();
+
+			// Escape also clears the search
+			await fireEvent.input(search, { target: { value: "lew" } });
+			expect(names()).toEqual(["Lewis"]);
+			await fireEvent.keyDown(search, { key: "Escape" });
+			expect(names()).toEqual(all);
+		});
 	});
 
 	describe("Buildings", () => {

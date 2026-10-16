@@ -16,7 +16,6 @@
 
 	let search = $state("");
 	let searchResults = $derived(searchChests(save.chests, search));
-	let showResults = $state(true);
 	let searchBox: HTMLDivElement | undefined = $state();
 	let selectedChestIndex = $state(0);
 	let selectedIndex = $state(0);
@@ -53,7 +52,6 @@
 	const selectResult = (chestIndex: number, slotIndex: number) => {
 		selectedChestIndex = chestIndex;
 		selectedIndex = slotIndex;
-		showResults = false;
 	};
 
 	const clearSearch = () => {
@@ -84,8 +82,6 @@
 				placeholder="Search all chests..."
 				data-testid="chest-search"
 				bind:value={search}
-				onfocus={() => (showResults = true)}
-				oninput={() => (showResults = true)}
 				onkeydown={(event) => {
 					if (event.key === "Escape" && search) {
 						event.preventDefault();
@@ -106,7 +102,7 @@
 				</button>
 			{/if}
 		</div>
-		{#if search.trim() && showResults}
+		{#if search.trim()}
 			{#if searchResults.length === 0}
 				<small>No items found.</small>
 			{:else}
@@ -162,10 +158,7 @@
 				>
 					<div
 						class="item"
-						class:dimmed={showResults &&
-							search.trim() &&
-							item &&
-							!isMatch(index)}
+						class:dimmed={search.trim() && item && !isMatch(index)}
 					>
 						<ItemSprite {item} />
 					</div>
@@ -255,7 +248,7 @@
 		opacity: 0.8;
 	}
 
-	/* Fade out quickly while searching; fade back in slowly once results close */
+	/* Fade out quickly while searching; fade back in slowly once the search is cleared */
 	.item.dimmed {
 		opacity: 0.3;
 		transition:

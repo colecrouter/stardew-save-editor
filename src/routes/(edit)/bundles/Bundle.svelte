@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { asset } from "$app/paths";
 	import type { Bundle } from "$lib/proxies/CommunityBundles.svelte";
 	import { colorMap } from "$types/colors";
 	import BundleItem from "./BundleItem.svelte";
@@ -12,7 +13,7 @@
 	let color = $derived(bundle.color ?? 0);
 
 	// Junimo Note
-	const sheet = "url(/assets/JunimoNote.png)";
+	const sheet = `url(${asset("/assets/JunimoNote.png")})`;
 
 	let posX = $derived(
 		`${(color % 2) * (-16 * 16) + (bundle.completed ? -224 : 0)}px`,

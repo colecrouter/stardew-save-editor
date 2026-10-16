@@ -2,15 +2,6 @@
 export interface VillagerInfo {
 	/** First paragraph of the page, as plain text */
 	description: string;
-	/** The villager's own loved gifts, from the infobox's `favorites` field */
-	loves: LovedGift[];
-}
-
-export interface LovedGift {
-	/** Name to show, as written on the wiki */
-	name: string;
-	/** Matching key in generated/iteminfo.json, for `Item.fromName` */
-	item: string;
 }
 
 /** Strip wiki markup from a line of article text */
@@ -38,60 +29,8 @@ export function wikiToText(text: string) {
 		.trim();
 }
 
-/**
- * Names of the items in the infobox's `favorites` field, e.g. `{{Name|Diamond}}`.
- * Entries that aren't a single item, such as Penny's "All Books", are left out.
- */
-export function lovedGiftNames(wikitext: string) {
-	const favorites = /^\|\s*favorites\s*=(.*)$/m.exec(wikitext)?.[1] ?? "";
-	return [...favorites.matchAll(/\{\{\s*Name\s*\|([^|}]+)/g)].map(
-		(match) => match[1]?.trim() ?? "",
-	);
-}
-
-/** Drop a variant suffix such as " (green)" */
-const withoutVariant = (name: string) => name.replace(/\s*\([^)]*\)$/, "");
-
-/**
- * Find the item key for a wiki item name. The wiki uses display names, which
- * sometimes differ from the keys in generated/iteminfo.json: "Parrot Egg" is
- * `ParrotEgg`, "Green Frog Egg" is `FrogEgg` and "Strange Doll (green)" is
- * `Strange Doll`.
- */
-export function matchItemName(name: string, items: ReadonlySet<string>) {
-	const base = withoutVariant(name);
-	// Every colour of Frog Egg is the same item
-	const uncoloured = base.replace(
-		/^(?:Black|Blue|Brown|Gray|Green|Grey|Orange|Pink|Purple|Red|White|Yellow) /,
-		"",
-	);
-	return [base, uncoloured]
-		.flatMap((candidate) => [candidate, candidate.replaceAll(" ", "")])
-		.find((candidate) => items.has(candidate));
-}
-
-/**
- * Parse the wikitext of a villager page's lead section. Loved gifts are matched
- * against `items` (the keys of generated/iteminfo.json); ones with no match are left out.
- */
-export function parseVillagerWikitext(
-	wikitext: string,
-	items: ReadonlySet<string>,
-): VillagerInfo {
-	const loves: LovedGift[] = [];
-	for (const name of lovedGiftNames(wikitext)) {
-		const item = matchItemName(name, items);
-		if (!item) continue;
-		const same = loves.find((gift) => gift.item === item);
-		if (same) {
-			// Variants of one item (both Strange Dolls) would show the same icon
-			// twice, so list it once, without the variant
-			same.name = withoutVariant(same.name);
-		} else {
-			loves.push({ name, item });
-		}
-	}
-
+/** Parse the wikitext of a villager page's lead section */
+export function parseVillagerWikitext(wikitext: string): VillagerInfo {
 	// The article starts at the first plain line after the infobox and quote templates
 	let depth = 0;
 	let lead: string | undefined;
@@ -106,5 +45,5 @@ export function parseVillagerWikitext(
 		}
 	}
 
-	return { description: lead ? wikiToText(lead) : "", loves };
+	return { description: lead ? wikiToText(lead) : "" };
 }

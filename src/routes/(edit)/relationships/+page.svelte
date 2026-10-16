@@ -1,10 +1,10 @@
 <script lang="ts">
+	import { lovedGiftNames } from "$lib/LovedGifts";
 	import { characters } from "$lib/NPCs";
 	import { getSaveManager } from "$lib/SaveManager.svelte";
 	import UiButton from "$lib/ui/UIButton.svelte";
 	import UiContainer from "$lib/ui/UIContainer.svelte";
 	import UiInput from "$lib/ui/UIInput.svelte";
-	import { Villagers } from "$lib/Villagers";
 	import HeartBar from "./HeartBar.svelte";
 
 	const save = getSaveManager().save;
@@ -18,10 +18,10 @@
 	let search = $state("");
 	let searchBox: HTMLDivElement | undefined = $state();
 	const term = $derived(search.trim().toLowerCase());
-	// Match the villager's name or any of their loved gifts
+	// Match the villager's name or anything they love, universal loves included
 	const matches = (name: string) =>
-		[name, ...(Villagers.get(name)?.loves ?? []).map((gift) => gift.name)].some(
-			(text) => text.toLowerCase().includes(term),
+		[name, ...lovedGiftNames(name)].some((text) =>
+			text.toLowerCase().includes(term),
 		);
 	const shown = $derived(
 		term ? friendships.filter(([name]) => matches(name)) : friendships,
@@ -89,7 +89,7 @@
 		{/each}
 	</div>
 	<small class="credit">
-		Villager descriptions and loved gifts from the
+		Villager descriptions from the
 		<a href="https://stardewvalleywiki.com" target="_blank" rel="noreferrer"
 			>Stardew Valley Wiki</a
 		>, licensed under

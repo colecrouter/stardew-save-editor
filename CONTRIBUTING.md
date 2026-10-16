@@ -27,7 +27,10 @@ Then run `npm run dump`.
 
 If you need assets that aren't copied from that command, you can modify it in `src/dump.ts`.
 
-Villager descriptions aren't in the game files. `npm run dump:villagers` fetches them, along with each villager's loved gifts, from the [Stardew Valley Wiki](https://stardewvalleywiki.com) (CC BY-NC-SA 3.0) into `generated/villagers.json`. It needs `curl` and an internet connection, but not the `content` folder. Gift names are matched to items in `generated/iteminfo.json`, so run it after `npm run dump`; it prints any gift it can't match.
+The generated data comes from two scripts:
+
+- `npm run dump` reads the `content` folder. It copies textures and portraits into `static/assets` and writes everything in `generated/` except `villagers.json`. That includes `gifttastes.json`, each villager's loved gifts, worked out from `content/Data/NPCGiftTastes.json` with the game's own rules (see `codegen/giftTastes.ts`); it prints any loved gift it can't match to an item.
+- `npm run dump:villagers` writes `generated/villagers.json`. Villager descriptions aren't in the game files, so it fetches them from the [Stardew Valley Wiki](https://stardewvalleywiki.com) (CC BY-NC-SA 3.0). It needs `curl` and an internet connection, but not the `content` folder.
 
 ### Reading the Save File
 

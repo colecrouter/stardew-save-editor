@@ -259,6 +259,22 @@ describe("Save Manager Integration Tests", () => {
 			expect(rawItem9?.name).toBe("Leek");
 		});
 
+		it("shows the description of the selected item", async () => {
+			const page = harness.render(editorPage);
+			await fireEvent.click(page.getByTestId("item-9"));
+			await tick();
+
+			const input = page.getByTestId("item-name") as HTMLInputElement;
+			await fireEvent.input(input, { target: { value: "Cowboy Hat" } });
+			await tick();
+			await fireEvent.click(page.getByText("Cowboy Hat"));
+			await tick();
+
+			expect(page.getByTestId("item-description").textContent).toBe(
+				"The leather is old and cracked, but surprisingly supple. It smells musty.",
+			);
+		});
+
 		it("should modify item quality", async () => {
 			const page = harness.render(editorPage);
 			await fireEvent.click(page.getByTestId("item-4"));
@@ -504,6 +520,16 @@ describe("Save Manager Integration Tests", () => {
 			).toBe(true);
 		});
 
+		it("shows each recipe's item description", () => {
+			const page = harness.render(craftingPage);
+			const keg = page
+				.getByTestId("recipe-keg")
+				.closest("label") as HTMLElement;
+			expect(within(keg).getByTestId("recipe-description").textContent).toBe(
+				"Place a fruit or vegetable in here. Eventually it will turn into a beverage.",
+			);
+		});
+
 		it("should toggle recipe (unlock & lock)", async () => {
 			const page = harness.render(craftingPage);
 			const recipe = page.getByTestId("recipe-keg");
@@ -707,6 +733,13 @@ describe("Save Manager Integration Tests", () => {
 	});
 
 	describe("Buildings", () => {
+		it("shows each building's description", () => {
+			const page = harness.render(buildingsPage);
+			expect(
+				page.getAllByTestId("building-description").map((el) => el.textContent),
+			).toContain("A place to grow crops from any season, year round!");
+		});
+
 		it("should preserve animal save containers when animals are assigned", () => {
 			const save = saveManager.save;
 			if (!save?.farm) return;

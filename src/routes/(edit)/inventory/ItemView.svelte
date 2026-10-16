@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { ItemNameHelper } from "$lib/ItemData";
+	import { ItemDescription, ItemNameHelper } from "$lib/ItemData";
 	import type { ParentIndex } from "$lib/ItemParentIndex";
 	import { Raw } from "$lib/proxies";
 	import { Color } from "$lib/proxies/Color.svelte";
@@ -46,6 +46,8 @@
 	}: Props = $props();
 
 	const save = getSaveManager().save;
+
+	let description = $derived(ItemDescription(selectedItem?.info));
 
 	// Trinket stats are rolled from their seed by the game, so editing them picks a new seed
 	let trinketCtx: TrinketRollContext = $derived({
@@ -401,6 +403,11 @@
 			</button>
 		{/if}
 	</div>
+
+	<!-- Item description -->
+	{#if description}
+		<p class="description" data-testid="item-description">{description}</p>
+	{/if}
 </div>
 
 <style>
@@ -439,6 +446,14 @@
 		margin-top: 16px;
 		font-size: 1.5em;
 		cursor: pointer;
+	}
+
+	.description {
+		grid-column: 1 / -1;
+		margin: 0;
+		padding-top: 8px;
+		border-top: 2px solid rgba(0, 0, 0, 0.15);
+		white-space: pre-line;
 	}
 
 	.editor label {

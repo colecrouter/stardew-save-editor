@@ -210,6 +210,17 @@ export class SaveProxy implements DataProxy<SaveFile> {
 		cellarAssignments.item = sortedAssignments;
 	}
 
+	/** The farmer prevFarmer() would switch to */
+	get previousPlayer() {
+		const n = this.players.length;
+		return this.players[(this.index - 1 + n) % n];
+	}
+
+	/** The farmer nextFarmer() would switch to */
+	get nextPlayer() {
+		return this.players[(this.index + 1) % this.players.length];
+	}
+
 	public nextFarmer() {
 		this.index = (this.index + 1) % this.players.length;
 	}

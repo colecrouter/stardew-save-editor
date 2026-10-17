@@ -925,6 +925,11 @@ export interface Achievements {
 	int?: number[];
 }
 
+/** 1.6 event IDs are strings, but the save still writes each as an `<int>`, so numeric ones parse as numbers */
+export interface EventIdList {
+	int?: (number | string)[];
+}
+
 export interface MinePermanentMineChanges {
 	item: MinePermanentMineChangesItem[];
 }
@@ -1068,7 +1073,8 @@ export interface Player {
 	activeDialogueEvents: KVContainer;
 	previousActiveDialogueEvents: string;
 	triggerActionsRun: BroadcastedMail;
-	eventsSeen: Achievements;
+	/** Events (cutscenes) the player has seen; an empty list parses as "" */
+	eventsSeen: EventIdList | "";
 	secretNotesSeen: Achievements;
 	songsHeard: BroadcastedMail;
 	achievements: Achievements;

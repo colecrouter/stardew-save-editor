@@ -103,6 +103,37 @@ export class ChestInventory extends SvelteMap<number, ItemProxy | undefined> {
 		return this;
 	}
 
+	/** Remove an item to move it elsewhere; unlike delete(), it stays usable */
+	public take(index: number): ItemProxy | undefined {
+		const item = this.get(index);
+		super.set(index, undefined);
+		this.syncRawItems();
+		return item;
+	}
+
+	/** Put an item taken from somewhere else into an empty slot */
+	public place(index: number, item: ItemProxy) {
+		if (!Number.isInteger(index) || index < 0 || index >= this.slotCount) {
+			throw new Error(`Invalid chest slot: ${index}`);
+		}
+		if (this.get(index)) throw new Error(`Chest slot ${index} isn't empty`);
+		super.set(index, item);
+		this.syncRawItems();
+	}
+
+	/** Replace every slot at once, in order (used by sorting) */
+	public arrange(items: ItemProxy[]) {
+		if (items.length > this.slotCount) {
+			throw new Error(
+				`${items.length} items won't fit in ${this.slotCount} slots`,
+			);
+		}
+		for (let index = 0; index < this.slotCount; index++) {
+			super.set(index, items[index]);
+		}
+		this.syncRawItems();
+	}
+
 	public delete(index: number): boolean {
 		const existed = this.get(index) !== undefined;
 		this.set(index, undefined);

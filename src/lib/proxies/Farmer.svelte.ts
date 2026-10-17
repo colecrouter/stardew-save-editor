@@ -142,6 +142,8 @@ export class Farmer implements DataProxy<Player> {
 	public professions: Professions;
 	public uniqueID: number; // Readonly snapshot (underlying value shouldn't change)
 	public mailReceived: MailBox;
+	/** Letters waiting to be read in the in-game mailbox */
+	public mailbox: MailBox;
 	public friendships: Friendships;
 
 	// Provide compatibility alias for underlying raw object
@@ -272,6 +274,10 @@ export class Farmer implements DataProxy<Player> {
 
 		// Mail received reactive set
 		this.mailReceived = new MailBox(this[Raw].mailReceived);
+		if (typeof this[Raw].mailbox !== "object" || !this[Raw].mailbox)
+			this[Raw].mailbox = { string: [] };
+		this[Raw].mailbox.string ??= [];
+		this.mailbox = new MailBox(this[Raw].mailbox);
 
 		// Friendships reactive map (lookup by NPC name)
 		this.friendships = new Friendships(this[Raw].friendshipData);
@@ -284,6 +290,33 @@ export class Farmer implements DataProxy<Player> {
 			"craftingRecipes",
 		);
 		this.cookingRecipes = new Recipes(player.cookingRecipes, "cookingRecipes");
+	}
+
+	/**
+	    Start a conversation topic, so villagers can comment on it, unless the
+	    player has already had it (Farmer.autoGenerateActiveDialogueEvent).
+
+	    @param duration How many days it lasts
+	    @returns Whether it was started
+	*/
+	autoGenerateActiveDialogueEvent(id: string, duration = 4) {
+		const raw = this[Raw];
+		// Farmer.hasSeenActiveDialogueEvent
+		const seen = [raw.activeDialogueEvents, raw.previousActiveDialogueEvents]
+			.flatMap((events) => (events ? (events.item ?? []) : []))
+			.some((event) => String(event.key.string) === id);
+		if (seen) return false;
+		if (
+			typeof raw.activeDialogueEvents !== "object" ||
+			!raw.activeDialogueEvents
+		)
+			raw.activeDialogueEvents = { item: [] };
+		raw.activeDialogueEvents.item ??= [];
+		raw.activeDialogueEvents.item.push({
+			key: { string: id },
+			value: { int: duration },
+		});
+		return true;
 	}
 
 	toJSON() {

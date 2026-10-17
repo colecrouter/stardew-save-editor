@@ -124,4 +124,6 @@ export const nestedArrayTags = new Map<string, string[]>([
 		],
 	],
 	["Point", ["newLevels"]],
+	// Animal houses with a single resident
+	["long", ["animalsThatLiveHere"]],
 ]);

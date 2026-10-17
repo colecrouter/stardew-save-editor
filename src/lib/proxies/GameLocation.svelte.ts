@@ -10,12 +10,26 @@ import type {
 } from "$types/save";
 import { type DataProxy, Raw } from ".";
 
+/** A list of longs from the save, as strings (big ones are parsed as strings anyway) */
+const readLongs = (container: { long: unknown } | "" | undefined) => {
+	if (!container) return [];
+	const values = Array.isArray(container.long)
+		? container.long
+		: [container.long];
+	return values.filter((v) => v !== undefined && v !== "").map(String);
+};
+
 export class GameLocation implements DataProxy<Location> {
 	[Raw]: Location;
 	#context: SaveProxy | undefined;
 
 	public buildings: Building[];
+	/** Animals that are in this location right now */
 	public animals: FarmAnimal[];
+	/** AnimalHouse: IDs of the animals that live here, including any that are outside */
+	public animalsThatLiveHere: string[];
+	/** AnimalHouse: how many animals can live here */
+	public animalLimit: number | undefined;
 	public items: (BaseItemProxy | null)[][];
 	public piecesOfHay: number;
 
@@ -28,6 +42,15 @@ export class GameLocation implements DataProxy<Location> {
 
 		this.animals = $state(this.getAnimals());
 		$effect(() => this.setAnimals(this.animals));
+
+		this.animalsThatLiveHere = $state(readLongs(this[Raw].animalsThatLiveHere));
+		$effect(() => this.setAnimalsThatLiveHere(this.animalsThatLiveHere));
+
+		this.animalLimit = $state(this[Raw].animalLimit);
+		$effect(() => {
+			if (this.animalLimit !== undefined)
+				this[Raw].animalLimit = this.animalLimit;
+		});
 
 		this.items = $state(this.getItems());
 		// $effect(() => this.setItems(this.items));
@@ -62,6 +85,9 @@ export class GameLocation implements DataProxy<Location> {
 		return this[Raw].animals?.item?.map((a) => new FarmAnimal(a)) ?? [];
 	}
 
+	// `animals` and `Animals` are the same dictionary, saved twice. Who lives
+	// here is kept separately (animalsThatLiveHere), since residents can be
+	// outside; see AnimalHouse.adoptAnimal.
 	private setAnimals(value: ReturnType<typeof this.getAnimals>) {
 		const animals = value.length ? { item: value.map((a) => a[Raw]) } : null;
 
@@ -69,19 +95,33 @@ export class GameLocation implements DataProxy<Location> {
 		this[Raw].Animals = {
 			SerializableDictionaryOfInt64FarmAnimal: animals,
 		};
+	}
 
-		if (!value.length) {
-			this[Raw].animalsThatLiveHere = undefined;
-		} else {
-			this[Raw].animalsThatLiveHere = {
-				long: value.map((a) => a[Raw].key.long) as unknown as number[],
-			};
-		}
+	private setAnimalsThatLiveHere(value: string[]) {
+		const current = readLongs(this[Raw].animalsThatLiveHere);
+		// Leave it as loaded unless it changed (the parser may have kept small IDs as numbers)
+		if (
+			current.length === value.length &&
+			current.every((id, i) => id === value[i])
+		)
+			return;
+		this[Raw].animalsThatLiveHere = value.length
+			? { long: [...value] as unknown as number[] }
+			: "";
+	}
+
+	/** Make an animal live here, and put it inside (AnimalHouse.adoptAnimal) */
+	adoptAnimal(animal: FarmAnimal) {
+		this.animals.push(animal);
+		this.animalsThatLiveHere.push(String(animal[Raw].value.FarmAnimal.myID));
 	}
 
 	private getItems() {
 		// Construct a 2D array of items
-		const building = buildings.find((b) => b.name === this[Raw].name);
+		// A building's interior is named after the building, but isn't its size
+		const building = this[Raw].isStructure
+			? undefined
+			: buildings.find((b) => b.name === this[Raw].name);
 
 		const { X: width, Y: height } = building?.footprint ?? { X: 100, Y: 100 };
 		const items = Array.from<BaseItemProxy | null>({ length: height }).map(() =>

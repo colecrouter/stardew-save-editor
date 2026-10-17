@@ -8,6 +8,8 @@ export interface Save {
 	samBandName?: string;
 	elliottBookName?: string;
 	broadcastedMail: BroadcastedMail;
+	/** Every building type that has ever been built or upgraded to */
+	constructedBuildings?: { string: string[] } | "";
 	worldStateIDs: BroadcastedMail;
 	lostBooksFound: number;
 	goldenWalnuts?: number;
@@ -46,7 +48,8 @@ export interface Save {
 	bannedUsers: string;
 	bundleData: BundleData;
 	limitedNutDrops: ItemArray;
-	latestID: number;
+	/** The last ID handed out by `Multiplayer.getNewID`; a long, so usually parsed as a string */
+	latestID: number | string;
 	options: Options;
 	splitscreenOptions: string;
 	CustomData: string;
@@ -407,7 +410,10 @@ export interface GameLocation {
 	raceTrack?: RaceTrack;
 	uniqueName?: string;
 	farmhandReference?: number | string;
-	animalsThatLiveHere?: LongArrContainer;
+	/** AnimalHouse: how many animals can live here */
+	animalLimit?: number;
+	/** AnimalHouse: IDs of the animals that live here, whether they're inside or out */
+	animalsThatLiveHere?: LongArrContainer | "";
 }
 
 export interface GameLocationAnimals {
@@ -587,8 +593,11 @@ export interface FarmAnimal {
 	CurrentEmote: number;
 	Scale: number;
 	isSwimming: BoolContainer;
-	currentProduce?: number;
+	/** Item ID of the produce waiting to be collected; left out when there is none */
+	currentProduce?: number | string;
 	friendshipTowardFarmer: number;
+	/** Left out unless the animal type has skins */
+	skinID?: string;
 	age: number;
 	daysOwned: number;
 	health: number;
@@ -1065,8 +1074,10 @@ export interface Player {
 	dialogueQuestionsAnswered: Achievements;
 	cookingRecipes: ItemArray;
 	craftingRecipes: ItemArray;
-	activeDialogueEvents: KVContainer;
-	previousActiveDialogueEvents: string;
+	/** Conversation topics going on now, and how many more days each lasts */
+	activeDialogueEvents: KVContainer | "";
+	/** Every conversation topic the player has had, and how many days since each one started */
+	previousActiveDialogueEvents: KVContainer | "";
 	triggerActionsRun: BroadcastedMail;
 	eventsSeen: Achievements;
 	secretNotesSeen: Achievements;

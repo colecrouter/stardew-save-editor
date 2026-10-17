@@ -27,6 +27,8 @@ Then run `npm run dump`.
 
 If you need assets that aren't copied from that command, you can modify it in `src/dump.ts`.
 
+Villager descriptions aren't in the game files. `npm run dump:villagers` fetches them from the [Stardew Valley Wiki](https://stardewvalleywiki.com) (CC BY-NC-SA 3.0) into `generated/villagers.json`. It needs `curl` and an internet connection, but not the `content` folder.
+
 ### Reading the Save File
 
 The save format is somewhat inconsistent (in structure and consistency). My recommendation is to use a website/tool to format the save file into something more readable, then use a text editor to search for the data you need. [Here is a tool for that](https://jsonformatter.org/xml-parser).

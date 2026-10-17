@@ -99,6 +99,13 @@
 											{@const animals = building.indoorLocation.animals.length}
 											<small class="meta">{animals}/{max} animals inside</small>
 										{/if}
+										{#if building.data?.description}
+											<small
+												class="description"
+												data-testid="building-description"
+												>{building.data.description}</small
+											>
+										{/if}
 									</div>
 
 									{#if building.repaired !== undefined}
@@ -316,6 +323,13 @@
 
 	.meta {
 		color: #6f3b31;
+	}
+
+	.description {
+		display: block;
+		margin-top: 2px;
+		font-size: 0.75em;
+		opacity: 0.8;
 	}
 
 	.toggle {

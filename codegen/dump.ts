@@ -1,3 +1,4 @@
+import { existsSync, readFileSync } from "node:fs";
 import {
 	copyFile,
 	mkdir,
@@ -39,6 +40,7 @@ import {
 	type RegularObject,
 	type Size,
 } from "./items.js";
+import { createLocalizedTextResolver } from "./localizedText.js";
 import {
 	createSpecialOrderResolver,
 	parseRequiredCount,
@@ -252,6 +254,18 @@ const juices = createArtisanGoods(
 const trinketsArray = transformJSONItems(trinkets, "Trinket");
 const mannequinsArray = transformJSONItems(mannequins, "Mannequin");
 const notUndefined = <T>(x: T | undefined): x is T => x !== undefined;
+
+// Descriptions in Data/*.json are `[LocalizedText Strings\X:Key]` tokens; resolve them to English text
+const resolveLocalizedText = createLocalizedTextResolver((asset) => {
+	const path = `./content/${asset.replaceAll("\\", "/")}.json`;
+	return existsSync(path)
+		? (JSON.parse(readFileSync(path, "utf-8")) as Record<string, string>)
+		: undefined;
+});
+const resolveDescription = (description: string | null | undefined) =>
+	description?.startsWith("[LocalizedText ")
+		? resolveLocalizedText(description)
+		: description;
 const writeToFile = JSON.stringify(
 	[
 		...objectsArray.filter(
@@ -279,7 +293,10 @@ const writeToFile = JSON.stringify(
 		...mannequinsArray,
 	]
 		.filter(notUndefined)
-		.map((item) => [item.name, item]),
+		.map((item) => [
+			item.name,
+			{ ...item, description: resolveDescription(item.description) },
+		]),
 );
 
 await rm("./generated", { recursive: true, force: true });
@@ -538,6 +555,7 @@ const buildingsArray = await Promise.all(
 			sourceRect,
 			maxOccupants: obj.MaxOccupants,
 			hayCapacity: obj.HayCapacity,
+			description: resolveDescription(obj.Description) || undefined,
 		};
 	}),
 );

@@ -396,7 +396,7 @@
 										event.currentTarget.value = chest.type?.itemId ?? "";
 									}}
 									aria-label="Chest type"
-									title="Chest type. A smaller one can only be picked when all the items fit."
+									title="Chest type. Big Chests hold 70 items; a smaller type can only be picked when all the items fit."
 									data-testid={`chest-${chestIndex}-type`}
 								>
 									{#each SwappableChests as type (type.itemId)}
@@ -404,7 +404,7 @@
 											value={type.itemId}
 											disabled={chest.inventory.usedSlots > type.capacity}
 										>
-											{type.name} ({type.capacity})
+											{type.name}
 										</option>
 									{/each}
 								</select>
@@ -415,11 +415,11 @@
 									disabled={chest.hasSeparateWalletItems}
 									title={chest.hasSeparateWalletItems
 										? "It holds items for separate wallets, which a Chest wouldn't show"
-										: "Make it a regular Chest. It keeps its items, but they're no longer shipped overnight."}
+										: "Expand it to a 36-slot Chest. It keeps its items, but they're no longer shipped overnight."}
 									onclick={() => expand(chest)}
 									data-testid={`chest-${chestIndex}-expand`}
 								>
-									Expand to 36 slots
+									Expand
 								</button>
 							{/if}
 							<SortButton

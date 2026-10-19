@@ -64,11 +64,12 @@
 	input[type="radio"] {
 		appearance: none;
 		width: 0;
-		position: relative;
-		display: inline;
+		margin: 0;
 	}
 
 	label {
+		/* Flex drops the space before the hidden input, so the shading fits the star */
+		display: flex;
 		cursor: pointer;
 		user-select: none;
 		padding: 2px 4px;

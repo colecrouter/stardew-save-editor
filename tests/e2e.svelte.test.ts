@@ -32,6 +32,7 @@ import farmPage from "../src/routes/(edit)/farm/+page.svelte";
 import editorPage from "../src/routes/(edit)/inventory/+page.svelte";
 import BuildingSprite from "../src/routes/(edit)/inventory/BuildingSprite.svelte";
 import relationshipsPage from "../src/routes/(edit)/relationships/+page.svelte";
+import { trackItems } from "./helpers/trackItems";
 
 interface PageHarness {
 	saveManager: SaveManager;
@@ -783,6 +784,10 @@ describe("Save Manager Integration Tests", () => {
 			};
 			const labels = (icons: HTMLElement[]) =>
 				icons.map((icon) => icon.getAttribute("aria-label"));
+			const tooltip = (icon: HTMLElement) =>
+				icon.parentElement
+					?.querySelector('[role="tooltip"]')
+					?.textContent?.trim();
 
 			const lewis = rowFor("Lewis");
 			const gifts = within(lewis).getAllByTestId("friendship-loved-gift");
@@ -806,9 +811,9 @@ describe("Save Manager Integration Tests", () => {
 			]);
 			for (const gift of [...gifts, ...universal]) {
 				expect(gift.getAttribute("role")).toBe("img");
-				expect(gift.getAttribute("title")).toBe(
-					gift.getAttribute("aria-label"),
-				);
+				// Hovering shows the item's name, with no native title on top
+				expect(tooltip(gift)).toBe(gift.getAttribute("aria-label"));
+				expect(gift.closest("[title]")).toBeNull();
 				// A drawn sprite, not the "??" placeholder
 				expect(gift.querySelector("svg image")).toBeTruthy();
 			}
@@ -824,7 +829,11 @@ describe("Save Manager Integration Tests", () => {
 			expect(
 				own.compareDocumentPosition(shared) & Node.DOCUMENT_POSITION_FOLLOWING,
 			).toBeTruthy();
-			expect(within(lewis).getByText("Universal loves")).toBeTruthy();
+			// Each list follows its label
+			expect(within(lewis).getByText("Loves:").nextElementSibling).toBe(own);
+			expect(
+				within(lewis).getByText("Universal loves:").nextElementSibling,
+			).toBe(shared);
 
 			// Haley hates Prismatic Shard, so it isn't one of her universal loves
 			expect(
@@ -982,12 +991,52 @@ describe("Save Manager Integration Tests", () => {
 				);
 			if (!penny) throw new Error("No row for Penny");
 			const books = within(penny).getByRole("img", { name: "Any book" });
-			expect(books.getAttribute("title")).toMatch(
-				/^Any book: .*Monster Compendium/,
-			);
+			expect(
+				books.parentElement
+					?.querySelector('[role="tooltip"]')
+					?.textContent?.trim(),
+			).toBe("Any book");
+			expect(
+				within(penny)
+					.getByText("Any book", { selector: "small" })
+					.getAttribute("title"),
+			).toMatch(/Monster Compendium/);
 
 			await fireEvent.click(page.getByTestId("relationships-search-clear"));
 			expect(names()).toHaveLength(characters.length);
+		});
+
+		it("disposes the gift items of villagers the search hides", async () => {
+			const created = trackItems();
+			try {
+				const page = harness.render(relationshipsPage);
+				const icons = () =>
+					page.queryAllByTestId(/^friendship-(loved-gift|universal-love)$/);
+				// One item per icon on screen, none disposed twice
+				const live = () => created.filter((item) => item.disposed === 0);
+				const expectOneItemPerIcon = () => {
+					expect(live()).toHaveLength(icons().length);
+					expect(created.every((item) => item.disposed <= 1)).toBe(true);
+				};
+				expectOneItemPerIcon();
+				const all = icons().length;
+				expect(all).toBeGreaterThan(20);
+
+				const search = page.getByTestId("relationships-search");
+				await fireEvent.input(search, { target: { value: "lewis" } });
+				expectOneItemPerIcon();
+				expect(icons()).toHaveLength(11);
+
+				await fireEvent.click(page.getByTestId("relationships-search-clear"));
+				expectOneItemPerIcon();
+				expect(icons()).toHaveLength(all);
+
+				page.unmount();
+				expect(created.length).toBeGreaterThan(all);
+				expect(created.every((item) => item.disposed === 1)).toBe(true);
+			} finally {
+				vi.restoreAllMocks();
+			}
 		});
 	});
 

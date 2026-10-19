@@ -87,6 +87,25 @@ describe("Farmer upgrades", () => {
 			expect(farmer.maxItems).toBe(24);
 		});
 
+		it("won't shrink over a Secret Note, which the inventory doesn't load", () => {
+			const farmer = player();
+			farmer.setBackpackSize(24);
+			const note = {
+				"@_xsi:type": "Object",
+				name: "Secret Note #7",
+				itemId: "79",
+				stack: 1,
+			};
+			(farmer[Raw].items.Item as Parsed[])[20] = note;
+
+			expect(farmer.inventory.get(20)).toBeUndefined();
+			expect(farmer.canResizeBackpack(12)).toBe(false);
+			expect(() => farmer.setBackpackSize(12)).toThrow(
+				"Empty slots 13 to 24 of the backpack first",
+			);
+			expect(farmer[Raw].items.Item[20]).toBe(note);
+		});
+
 		it("keeps the new size through an export", async () => {
 			player().setBackpackSize(24);
 			const parsed = await exported();

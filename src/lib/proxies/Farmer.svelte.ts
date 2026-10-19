@@ -219,7 +219,7 @@ export class Farmer implements DataProxy<Player> {
 			return "Backpacks have 12, 24 or 36 slots";
 		// Shrinking drops the last slots, so they have to be empty
 		for (let i = size; i < slots; i++)
-			if (this.inventory.get(i))
+			if (!this.inventory.isEmpty(i))
 				return `Empty slots ${size + 1} to ${slots} of the backpack first`;
 	}
 

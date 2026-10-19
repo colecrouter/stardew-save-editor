@@ -112,6 +112,9 @@ export class XMLManager {
 		allowBooleanAttributes: true,
 		// Defaults to `true`, but we want to preserve whitespace for user-generated strings
 		trimValues: false,
+		// Keep text like "007", "0x1F" or "1e3" (a farm or animal name) as written:
+		// parsing it as a number would change it on export
+		numberParseOptions: { hex: false, leadingZeros: false, eNotation: false },
 		isArray: (tagName, jPath) => {
 			if (arrayTags.has(tagName)) return true;
 

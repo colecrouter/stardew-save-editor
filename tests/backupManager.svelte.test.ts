@@ -1,10 +1,19 @@
 import { openDB } from "idb";
 import { flushSync } from "svelte";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setup as mockIDB } from "vitest-indexeddb";
 import { BackupManager } from "../src/lib/BackupManager.svelte";
+import { getToastManager } from "../src/lib/ToastManager.svelte";
 
 mockIDB();
+
+// Outside a page there's no context to get the ToastManager from, so share one
+vi.mock("../src/lib/ToastManager.svelte", async (importOriginal) => {
+	const original =
+		await importOriginal<typeof import("../src/lib/ToastManager.svelte")>();
+	const manager = new original.ToastManager();
+	return { ...original, getToastManager: () => manager };
+});
 
 const openBackups = () =>
 	openDB("backups", 1, {
@@ -50,6 +59,10 @@ describe("Backups", () => {
 		const db = await openBackups();
 		await db.clear("files");
 		db.close();
+	});
+
+	afterEach(() => {
+		vi.restoreAllMocks();
 	});
 
 	it("stores an uploaded save, and still has it after a reload", async () => {
@@ -116,6 +129,22 @@ describe("Backups", () => {
 			expect(await storedNames()).toEqual(["Farm_2", "Farm_3"]),
 		);
 		expect(manager.files.map((f) => f.name)).toEqual(["Farm_3", "Farm_2"]);
+		dispose();
+	});
+
+	it("says backups are disabled when the database can't be opened", async () => {
+		// As WebKit does in a private window
+		vi.spyOn(indexedDB, "open").mockImplementation(() => {
+			throw new DOMException("The operation was aborted.", "AbortError");
+		});
+		vi.spyOn(console, "warn").mockImplementation(() => {});
+
+		const { dispose } = createManager();
+		await vi.waitFor(() =>
+			expect(getToastManager().toasts.map((t) => t.message)).toContain(
+				"Backups are disabled. Are you in Incognito/Private mode?",
+			),
+		);
 		dispose();
 	});
 });

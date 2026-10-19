@@ -1,4 +1,4 @@
-import { openDB } from "idb";
+import { type IDBPDatabase, openDB } from "idb";
 import {
 	getToastManager,
 	Toast,
@@ -72,12 +72,13 @@ export class BackupManager {
 	 * If any invalid data/errors are encountered, the database is cleared.
 	 */
 	private async load() {
-		// Get the backup files from local storage
-		const db = await openDB("backups", 1, {
-			upgrade: (db) => db.createObjectStore("files", { autoIncrement: true }),
-		});
-
+		let db: IDBPDatabase | undefined;
 		try {
+			// Get the backup files from local storage (opening it can fail too,
+			// e.g. in a private window)
+			db = await openDB("backups", 1, {
+				upgrade: (db) => db.createObjectStore("files", { autoIncrement: true }),
+			});
 			const backupFiles = await db.getAll("files");
 			if (!isSerializedFileArray(backupFiles)) throw new Error("Invalid data");
 
@@ -94,7 +95,7 @@ export class BackupManager {
 			this.files = [...this.files, ...newFiles];
 		} catch (e) {
 			// Empty the database
-			await db.clear("files").catch(() => {});
+			await db?.clear("files").catch(() => {});
 
 			if (!(e instanceof Error)) return;
 

@@ -33,7 +33,9 @@ export default defineConfig(({ mode }) => ({
 	],
 	server: {
 		fs: {
-			allow: [".."],
+			// The project root, for generated/ and codegen/ (outside src/). Not "..":
+			// that would let the dev server hand out any file next to the clone
+			allow: ["."],
 		},
 	},
 	optimizeDeps: {

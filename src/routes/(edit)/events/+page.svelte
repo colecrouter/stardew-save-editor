@@ -1,6 +1,10 @@
 <script lang="ts">
 	import { asset } from "$app/paths";
-	import { VanillaEvents, VanillaEventsById } from "$lib/Events";
+	import {
+		type EventInfo,
+		VanillaEvents,
+		VanillaEventsById,
+	} from "$lib/Events";
 	import { characters } from "$lib/NPCs";
 	import { type EventsSeen, toEventId } from "$lib/proxies/EventsSeen.svelte";
 	import { getSaveManager } from "$lib/SaveManager.svelte";
@@ -8,7 +12,6 @@
 	import UiContainer from "$lib/ui/UIContainer.svelte";
 	import UiInput from "$lib/ui/UIInput.svelte";
 	import UiSelect from "$lib/ui/UISelect.svelte";
-	import type { EventInfo } from "$types/wikiEvents";
 
 	const save = getSaveManager().save;
 	if (!save) throw new Error("No save data found");

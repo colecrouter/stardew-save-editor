@@ -522,6 +522,14 @@
 		cursor: pointer;
 	}
 
+	/*
+	 * A little wider than the other pages, so a chest's 12 slots fit across
+	 * with room to spare beside a scrollbar
+	 */
+	:global(.content):has(.workspace) {
+		width: 540px;
+	}
+
 	.workspace {
 		position: relative;
 		display: flex;
@@ -540,12 +548,14 @@
 	 * regular (36-slot) chests, and taller when the screen has room.
 	 */
 	.chest-list {
-		--three-chests: calc(3 * 176px + 2 * 10px);
+		--three-chests: calc(3 * 166px + 2 * 10px);
 		display: flex;
 		flex-direction: column;
 		gap: 10px;
 		max-height: max(var(--three-chests), calc(100dvh - 590px));
 		overflow-y: auto;
+		/* The same width whether or not a scrollbar is showing */
+		scrollbar-gutter: stable;
 		padding-right: 4px;
 	}
 
@@ -567,23 +577,28 @@
 	}
 
 	.chest {
-		padding: 6px 8px 8px;
+		--chest-border: #b14e0544;
 		border-radius: 6px;
-		border: 2px solid #b14e0544;
-		background: #fff3dc66;
-	}
-
-	/* Tinted with the colour picked for the chest in-game */
-	.chest.colored {
-		border-color: var(--chest-color);
-		background: color-mix(in srgb, var(--chest-color) 45%, #ffe7c2);
+		border: 2px solid var(--chest-border);
 	}
 
 	.chest header {
 		display: flex;
 		align-items: center;
 		gap: 4px 8px;
-		margin-bottom: 4px;
+		padding: 4px 8px;
+		border-radius: 4px 4px 0 0;
+		border-bottom: 2px solid var(--chest-border);
+		background: #fff3dc66;
+	}
+
+	/* The colour picked for the chest in-game frames it and tints its heading */
+	.chest.colored {
+		--chest-border: var(--chest-color);
+	}
+
+	.chest.colored header {
+		background: color-mix(in srgb, var(--chest-color) 45%, #ffe7c2);
 	}
 
 	.chest h4 {
@@ -605,11 +620,13 @@
 		opacity: 0.8;
 	}
 
+	/* Slots side by side on the plain background, like the backpack */
 	.item-grid {
 		display: grid;
 		grid-template-columns: repeat(12, min-content);
-		/* 36px slots, with a little space between rows */
-		grid-auto-rows: 40px;
+		grid-auto-rows: 36px;
+		justify-content: center;
+		padding: 6px;
 	}
 
 	.item {

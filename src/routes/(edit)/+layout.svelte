@@ -4,7 +4,9 @@
 	import { resolve } from "$app/paths";
 	import { getSaveManager } from "$lib/SaveManager.svelte";
 	import { getToastManager, Toast } from "$lib/ToastManager.svelte";
+	import Tooltip from "$lib/ui/Tooltip.svelte";
 	import UiButton from "$lib/ui/UIButton.svelte";
+	import CharacterPreview from "./appearance/CharacterPreview.svelte";
 	import Router from "./Router.svelte";
 
 	interface Props {
@@ -68,15 +70,26 @@
 					>💾
 				</UiButton>
 				<UiButton
-					alt="Previous Character"
+					alt={`Previous Character: ${saveManager.save.previousPlayer?.name ?? ""}`}
 					onclick={() => saveManager.save?.prevFarmer()}
 					disabled={saveManager.save.players.length <= 1}
+					data-testid="previous-character"
 					>⬅️
 				</UiButton>
+				<Tooltip text={saveManager.save.player.name ?? ""}>
+					<div
+						class="current-character"
+						aria-label={`Current character: ${saveManager.save.player.name}`}
+						data-testid="current-character"
+					>
+						<CharacterPreview player={saveManager.save.player} />
+					</div>
+				</Tooltip>
 				<UiButton
-					alt="Next Character"
+					alt={`Next Character: ${saveManager.save.nextPlayer?.name ?? ""}`}
 					onclick={() => saveManager.save?.nextFarmer()}
 					disabled={saveManager.save.players.length <= 1}
+					data-testid="next-character"
 					>➡️
 				</UiButton>
 			</div>
@@ -89,6 +102,12 @@
 		display: flex;
 		flex-direction: column;
 		gap: 8px;
+	}
+
+	/* The current character, shrunk to fit between the arrows */
+	.current-character {
+		zoom: 0.5;
+		align-self: center;
 	}
 
 	.outer-wrapper {

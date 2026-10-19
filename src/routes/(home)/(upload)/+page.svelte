@@ -32,8 +32,9 @@
 
 			toastManager.add(new Toast("Save file uploaded!", "success"));
 		} catch (e) {
-			if (!(e instanceof Error)) throw e;
-			toastManager.add(new Toast(e.message, "failure"));
+			// Not always an Error: pako throws a string for a corrupt compressed save
+			const message = e instanceof Error ? e.message : String(e);
+			toastManager.add(new Toast(message, "failure"));
 			uploading = false;
 		}
 	};

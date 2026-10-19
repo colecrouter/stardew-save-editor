@@ -1,4 +1,15 @@
 import { SvelteMap } from "svelte/reactivity";
+import {
+	BUNDLE_QUALITIES,
+	canHaveQuality,
+	GOLD,
+	ingredientKind,
+	ingredientName,
+	isValidIngredientId,
+	MAX_BUNDLE_ITEMS,
+	MAX_GOLD,
+	MAX_INGREDIENT_STACK,
+} from "$lib/bundleIngredients";
 import { bundleSideEffects, CCRoom } from "$lib/bundleSideEffects";
 import type { GameLocation } from "$lib/proxies/GameLocation.svelte";
 import type { SaveProxy } from "$lib/proxies/SaveFile.svelte";
@@ -12,8 +23,8 @@ import {
 	type BundleRequirement,
 	parseBundleKey,
 	parseBundleValue,
-	replaceRequirement,
 	serializeBundleKey,
+	serializeBundleValue,
 	withBundleName,
 	withBundleReward,
 } from "./bundleSerialization";
@@ -22,14 +33,14 @@ import { MailFlag } from "./Mail.svelte";
 /*
     > Key: "Pantry/2"
 
-    - [0] Room ID - "Pantry", "Crafts Room", "Fish Tank", "Boiler Room", "Vault", "Bulletin Board"
-    - [1] Sprite index in LooseSprites/JunimoNote spritesheet
+    - [0] Room ID - "Pantry", "Crafts Room", "Fish Tank", "Boiler Room", "Vault", "Bulletin Board", "Abandoned Joja Mart"
+    - [1] Bundle index, also its sprite in LooseSprites/JunimoNote
 
-    > Value: "Fall Crops/BO 10 1/270 1 0 272 1 0 276 1 0 280 1 0/2/4/2/Fall Crops"
+    > Value: "Fall Crops/BO 10 1/270 1 0 272 1 0 276 1 0 280 1 0/2///Fall Crops"
 
-    - [0] Bundle name - Internal name, do not change
-    - [1] Reward item - <item type> <item ID> <quantity>
-    - [2] Requirements - [<item ID> <quantity> <min quality>]...
+    - [0] Bundle name - Internal name
+    - [1] Reward item - <item type> <item ID> <quantity> (blank for the Missing Bundle)
+    - [2] Requirements - [<item ID> <quantity> <min quality>]... (see $lib/bundleIngredients)
     - [3] Color - [incomplete, complete] (same as key[1]??)
         -> 0 = green, green
         -> 1 = purple, purple
@@ -38,7 +49,12 @@ import { MailFlag } from "./Mail.svelte";
         -> 4 = red, flower(?)
         -> 5 = blue, blue
         -> 6 = teal, teal
-    - [4] Required item count - How many items are required to complete the bundle (up to 12)
+    - [4] Number of slots - How many items finish the bundle (up to 12); blank for every item
+    - [5] Sprite override (usually blank)
+    - [6] Display name
+
+    > The CommunityCenter's `bundles`: three slots per requirement (NetWorldState.SetBundleData).
+      A donated requirement ticks the first slot for it; finishing the bundle ticks every slot.
 */
 
 export enum BundleName {
@@ -314,6 +330,41 @@ export class CommunityBundles extends SvelteMap<BundleName, Bundle> {
 	}
 }
 
+/** A Vault bundle's name, which is its price ("2,500g") */
+const goldLabel = (gold: number) => `${gold.toLocaleString("en-US")}g`;
+
+/** Why `id` can't be one of a bundle's items, if it can't */
+function ingredientProblem(id: string, isVault: boolean) {
+	if (!isValidIngredientId(id)) return `"${id}" can't be a bundle item`;
+	if (isVault && id !== GOLD)
+		return "Vault bundles are bought with gold, so only the price can change";
+	if (!isVault && id === GOLD) return "Only Vault bundles are bought with gold";
+}
+
+/** Why a slot can't ask for `value` of `id`, if it can't */
+function quantityProblem(id: string, value: number) {
+	const gold = id === GOLD;
+	const max = gold ? MAX_GOLD : MAX_INGREDIENT_STACK;
+	if (!Number.isInteger(value) || value < 1 || value > max)
+		return `${gold ? "The price" : "The amount"} must be 1 to ${max.toLocaleString("en-US")}`;
+}
+
+/**
+ * Why a slot for `id` can't ask for `quality`, if it can't. `loaded` is the
+ * quality it had in the save, which is kept even if it isn't a usual one.
+ */
+function qualityProblem(id: string, quality: number, loaded?: number) {
+	if (id === GOLD) return "A Vault bundle's gold has no quality";
+	if (!BUNDLE_QUALITIES.has(quality) && quality !== loaded)
+		return `${quality} isn't a quality`;
+	if (quality > 0 && !canHaveQuality(id))
+		return `${ingredientName(id)} never has a quality, so no item could fill the slot`;
+}
+
+/** Bundle: finished once enough items are in, or every one is */
+const isFinished = (donated: number, needed: number, items: number) =>
+	donated >= needed || donated === items;
+
 /**
  * Represents a single bundle from the Community Center
  */
@@ -328,8 +379,18 @@ export class Bundle {
 	public color: number | undefined;
 	public reward: BundleReward | null;
 	public room: CCRoom;
-	public requiredItemCount: number;
+	/** How many of the items finish the bundle */
+	public readonly requiredItemCount: number;
 	public readonly completed: boolean;
+
+	/** The bundle's "number of slots": how many items finish it, or every item when it's blank */
+	#count = $state<number | undefined>();
+	/** How the bundle's items tell it they changed */
+	#itemOwner: ItemOwner = {
+		isVault: () => this.isVault,
+		writeItems: () => this.writeItems(),
+		writeSlots: () => this.writeSlots(),
+	};
 
 	constructor(
 		bundleData: StringContainer,
@@ -342,22 +403,31 @@ export class Bundle {
 
 		// Initialize reactive fields
 		this.name = $state(parseBundleValue(this.bundleData.string).name ?? "");
-		// Persist name when it changes
+		// Persist name when it changes; loading a save doesn't rewrite it
+		let nameLoaded = false;
 		$effect(() => {
-			this.bundleData.string = withBundleName(
-				this.bundleData.string,
-				this.name,
-			);
+			const name = this.name;
+			if (!nameLoaded) {
+				nameLoaded = true;
+				return;
+			}
+			this.bundleData.string = withBundleName(this.bundleData.string, name);
 		});
 
 		this.id = $state(parseBundleKey(this.bundleKey.string).spriteIndex);
 		// Persist id (spriteIndex) when it changes
+		let idLoaded = false;
 		$effect(() => {
+			const spriteIndex = this.id;
+			if (!idLoaded) {
+				idLoaded = true;
+				return;
+			}
 			const { roomName, room } = parseBundleKey(this.bundleKey.string);
 			this.bundleKey.string = serializeBundleKey({
 				roomName,
 				room,
-				spriteIndex: this.id,
+				spriteIndex,
 			});
 		});
 
@@ -365,25 +435,33 @@ export class Bundle {
 		this.room = parseBundleKey(this.bundleKey.string).room;
 
 		// Required items proxies
-		const { requirements } = parseBundleValue(this.bundleData.string);
+		const { requirements, count } = parseBundleValue(this.bundleData.string);
+		this.#count = count;
+		const slots = this.submitted.boolean;
 		this.requiredItems = $state(
 			requirements.map(
-				(_, i) => new BundleRequiredItem(this.submitted, this.bundleData, i),
+				([id, quantity, quality], i) =>
+					new BundleRequiredItem(
+						this.#itemOwner,
+						id,
+						quantity,
+						quality,
+						slots[i] === true,
+					),
 			),
 		);
 		this.reward = new BundleReward(this.bundleData);
 
 		// Derived values using $derived.by
 		this.color = $derived(this.parse().color);
-		this.requiredItemCount = $derived(
-			this.parse().count ?? this.requiredItems.length,
-		);
+		this.requiredItemCount = $derived(this.#count ?? this.requiredItems.length);
 		this.completed = $derived.by(() => {
-			const { count } = this.parse();
-			const needed = count ?? this.requiredItems.length;
-			let submitted = 0;
-			for (const item of this.requiredItems) if (item.submitted) submitted++;
-			return submitted >= needed;
+			const donated = this.requiredItems.filter((i) => i.submitted).length;
+			return isFinished(
+				donated,
+				this.requiredItemCount,
+				this.requiredItems.length,
+			);
 		});
 	}
 
@@ -392,91 +470,263 @@ export class Bundle {
 	}
 
 	/**
+	 * Vault bundles are bought with gold: the bundle menu has a purchase button
+	 * that charges the last item's stack, whatever the items are (JunimoNoteMenu)
+	 */
+	get isVault() {
+		return this.room === CCRoom.Vault;
+	}
+
+	/** What a Vault bundle costs, in gold */
+	get price() {
+		return this.requiredItems.at(-1)?.quantity ?? 0;
+	}
+
+	set price(gold: number) {
+		const item = this.requiredItems.at(-1);
+		if (!this.isVault || !item)
+			throw new Error("Only Vault bundles have a price");
+		item.quantity = gold;
+	}
+
+	/**
 	 * Donate every item, as finishing a bundle in-game does: the game then marks
 	 * every one of its slots as done (JunimoNoteMenu.checkIfBundleIsComplete)
 	 */
 	complete() {
-		this.setAllSlots(true);
+		for (const item of this.requiredItems) item.submitted = true;
 	}
 
 	/** Take back every donated item */
 	clear() {
-		this.setAllSlots(false);
+		for (const item of this.requiredItems) item.submitted = false;
 	}
 
-	private setAllSlots(donated: boolean) {
-		for (const item of this.requiredItems) item.submitted = donated;
-		// The game keeps three slots per item, and only the first one for each item is
-		// ticked by a donation; finishing the bundle ticks the rest too
-		const slots = this.submitted.boolean;
-		for (let i = this.requiredItems.length; i < slots.length; i++)
-			slots[i] = donated;
-	}
-}
-
-class BundleRequiredItem {
-	private submit: BoolArrayContainer;
-	private bundleData: StringContainer;
-	private index: number;
-
-	// Reactive fields
-	public itemID: string | number;
-	public quantity: number;
-	public quality: number;
-	public submitted: boolean;
-
-	constructor(
-		submitted: BoolArrayContainer,
-		bundleData: StringContainer,
-		index: number,
-	) {
-		this.submit = submitted;
-		this.bundleData = bundleData;
-		this.index = index;
-
-		// Initialize reactive fields from current requirement entry
-		const req = this.parseRequirements();
-		const rawItemID = req[0];
-		const numericID = Number.parseInt(rawItemID, 10);
-		// Preserve non-numeric bundle item identifiers (1.6 content keys like "SummerSquash")
-		this.itemID = $state(Number.isNaN(numericID) ? rawItemID : numericID);
-		this.quantity = $state(req[1]);
-		this.quality = $state(req[2]);
-		this.submitted = $state(this.submit.boolean[this.index] ?? false);
-
-		// Single effect to write back requirement updates
-
-		$effect(() => this.writeRequirement());
-		$effect(() => this.writeSubmitted());
+	/** Why `id` can't be added to the bundle, if it can't */
+	addItemProblem(id: string) {
+		if (this.isVault)
+			return "Vault bundles are bought with gold, so only the price can change";
+		if (this.requiredItems.length >= MAX_BUNDLE_ITEMS)
+			return `A bundle can't have more than ${MAX_BUNDLE_ITEMS} items`;
+		return ingredientProblem(id, this.isVault);
 	}
 
-	private parseRequirements(): BundleRequirement {
-		const { requirements } = parseBundleValue(this.bundleData.string);
-		const item = requirements[this.index];
-		if (!item) throw new Error("Invalid bundle data");
+	/** Add an item for the bundle to ask for */
+	addItem(id: string, quantity = 1, quality = 0) {
+		const problem =
+			this.addItemProblem(id) ??
+			quantityProblem(id, quantity) ??
+			qualityProblem(id, quality);
+		if (problem) throw new Error(problem);
+		// A bundle the game counts as finished has every slot ticked, so the new one is too
+		const donated =
+			this.requiredItems.length > 0 &&
+			this.requiredItems.every((i) => i.submitted);
+		const item = new BundleRequiredItem(
+			this.#itemOwner,
+			id,
+			quantity,
+			quality,
+			donated,
+		);
+		this.requiredItems.push(item);
+		this.writeItems();
+		this.writeSlots(true);
 		return item;
 	}
 
-	private persistRequirement(
-		itemID: string,
+	/**
+	 * Why the item at `index` can't be removed, if it can't. Removing an item
+	 * mustn't finish or un-finish the bundle: that would change the room's
+	 * rewards behind the player's back.
+	 */
+	removeItemProblem(index: number) {
+		if (this.isVault)
+			return "Vault bundles are bought with gold, so only the price can change";
+		if (!this.requiredItems[index]) return "There's no such item";
+		const items = this.requiredItems.length - 1;
+		if (items < 1) return "A bundle needs at least one item";
+		const needed = Math.min(this.#count ?? items, items);
+		const donated = this.requiredItems.filter(
+			(item, i) => i !== index && item.submitted,
+		).length;
+		if (isFinished(donated, needed, items) !== this.completed)
+			return this.completed
+				? "Removing it would leave the bundle unfinished"
+				: "Removing it would finish the bundle, as the rest are donated";
+	}
+
+	/** Stop the bundle asking for the item at `index` */
+	removeItem(index: number) {
+		const problem = this.removeItemProblem(index);
+		if (problem) throw new Error(problem);
+		this.requiredItems.splice(index, 1);
+		if (this.#count !== undefined)
+			this.#count = Math.min(this.#count, this.requiredItems.length);
+		this.writeItems();
+		this.writeSlots(true);
+	}
+
+	/** Why the bundle can't need `count` items, if it can't */
+	requiredItemCountProblem(count: number) {
+		const items = this.requiredItems.length;
+		if (this.isVault)
+			return "Vault bundles are bought with gold, so only the price can change";
+		if (!Number.isInteger(count) || count < 1 || count > items)
+			return `A bundle needs 1 to ${items} of its items`;
+		const donated = this.requiredItems.filter((i) => i.submitted).length;
+		if (isFinished(donated, count, items) !== this.completed)
+			return this.completed
+				? `Only ${donated} items are donated, so needing ${count} would leave the bundle unfinished`
+				: `${donated} items are donated, so needing ${count} would finish the bundle`;
+	}
+
+	/** Change how many of the items finish the bundle */
+	setRequiredItemCount(count: number) {
+		const problem = this.requiredItemCountProblem(count);
+		if (problem) throw new Error(problem);
+		// A blank count asks for every item; keep it blank while that's what's asked
+		this.#count =
+			this.#count === undefined && count === this.requiredItems.length
+				? undefined
+				: count;
+		this.writeItems();
+	}
+
+	/** Write the items and how many are needed back to the bundle's data */
+	private writeItems() {
+		const parsed = this.parse();
+		const before = parsed.requirements.at(-1)?.[1];
+		parsed.requirements = this.requiredItems.map((item) => item.requirement);
+		parsed.count = this.#count;
+
+		// A Vault bundle is named after its price, so rename it with the price
+		if (this.isVault && before !== undefined && before !== this.price) {
+			const was = goldLabel(before);
+			const now = goldLabel(this.price);
+			if (parsed.name === was) {
+				parsed.name = now;
+				this.name = now;
+			}
+			// The display name, after the sprite field
+			if (parsed.tailSegments?.[1] === was) parsed.tailSegments[1] = now;
+		}
+
+		this.bundleData.string = serializeBundleValue(parsed);
+	}
+
+	/**
+	 * Write which items are donated to the bundle's slots. The game keeps three
+	 * slots per item (NetWorldState.SetBundleData) and reads the first one for
+	 * each item; the rest are only ticked once the bundle is finished
+	 * (JunimoNoteMenu.checkIfBundleIsComplete). `resize` fits them to the items
+	 * after items are added or removed.
+	 */
+	private writeSlots(resize = false) {
+		const slots = this.submitted.boolean;
+		const items = this.requiredItems;
+		const finished = this.completed;
+		if (resize) slots.length = items.length * 3;
+		const length = Math.max(slots.length, items.length);
+		for (let i = 0; i < length; i++) slots[i] = items[i]?.submitted ?? finished;
+	}
+}
+
+/** How an item tells its bundle it changed */
+interface ItemOwner {
+	isVault(): boolean;
+	writeItems(): void;
+	writeSlots(): void;
+}
+
+class BundleRequiredItem {
+	#owner: ItemOwner;
+	#id = $state("");
+	#quantity = $state(1);
+	#quality = $state(0);
+	#submitted = $state(false);
+	/** The quality as loaded, kept even when it isn't one of the usual ones */
+	#loadedQuality: number;
+
+	constructor(
+		owner: ItemOwner,
+		id: string,
 		quantity: number,
 		quality: number,
+		submitted: boolean,
 	) {
-		this.bundleData.string = replaceRequirement(
-			this.bundleData.string,
-			this.index,
-			[itemID, quantity, quality],
-		);
+		this.#owner = owner;
+		this.#id = id;
+		this.#quantity = quantity;
+		this.#quality = quality;
+		this.#loadedQuality = quality;
+		this.#submitted = submitted;
 	}
 
-	private writeRequirement() {
-		const itemID =
-			typeof this.itemID === "number" ? this.itemID.toString() : this.itemID;
-		this.persistRequirement(itemID, this.quantity, this.quality);
+	/**
+	 * The item's ID: a number when it's numeric (negative for a category, -1
+	 * for gold), else text (1.6 content keys like "SummerSquash")
+	 */
+	get itemID(): string | number {
+		return /^-?\d+$/.test(this.#id) ? Number(this.#id) : this.#id;
 	}
 
-	private writeSubmitted() {
-		this.submit.boolean[this.index] = this.submitted;
+	set itemID(value: string | number) {
+		const id = String(value);
+		const problem = ingredientProblem(id, this.#owner.isVault());
+		if (problem) throw new Error(problem);
+		this.#id = id;
+		// A slot can't ask for a quality its new item never has
+		if (!canHaveQuality(id)) this.#quality = 0;
+		this.#owner.writeItems();
+	}
+
+	/** Gold, a category, an object, or something unknown (from a mod) */
+	get kind() {
+		return ingredientKind(this.#id);
+	}
+
+	/** How many the slot needs: a stack of items, or a Vault bundle's price */
+	get quantity() {
+		return this.#quantity;
+	}
+
+	set quantity(value: number) {
+		const problem = quantityProblem(this.#id, value);
+		if (problem) throw new Error(problem);
+		// The Vault's gold has its price as its quality too ("-1 2500 2500")
+		if (this.#id === GOLD && this.#quality === this.#quantity)
+			this.#quality = value;
+		this.#quantity = value;
+		this.#owner.writeItems();
+	}
+
+	/** The minimum quality the slot takes */
+	get quality() {
+		return this.#quality;
+	}
+
+	set quality(value: number) {
+		if (value === this.#quality) return;
+		const problem = qualityProblem(this.#id, value, this.#loadedQuality);
+		if (problem) throw new Error(problem);
+		this.#quality = value;
+		this.#owner.writeItems();
+	}
+
+	/** Whether the item has been donated */
+	get submitted() {
+		return this.#submitted;
+	}
+
+	set submitted(value: boolean) {
+		this.#submitted = value;
+		this.#owner.writeSlots();
+	}
+
+	/** The item as the bundle's data has it */
+	get requirement(): BundleRequirement {
+		return [this.#id, this.#quantity, this.#quality];
 	}
 }
 
@@ -511,10 +761,15 @@ class BundleReward implements DataProxy<StringContainer> {
 			}
 		}
 
-		// Persist whenever reward object changes
+		// Persist whenever reward object changes; loading a save doesn't rewrite it
+		let loaded = false;
 		$effect(() => {
 			const r = this.item;
 			const rawReward = r ? `${r.type} ${r.id} ${r.quantity}` : undefined;
+			if (!loaded) {
+				loaded = true;
+				return;
+			}
 			this[Raw].string = withBundleReward(this[Raw].string, rawReward);
 		});
 	}

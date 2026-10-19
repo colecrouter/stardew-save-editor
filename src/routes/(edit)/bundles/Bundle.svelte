@@ -2,6 +2,7 @@
 	import { asset } from "$app/paths";
 	import type { Bundle } from "$lib/proxies/CommunityBundles.svelte";
 	import { colorMap } from "$types/colors";
+	import BundleEditor from "./BundleEditor.svelte";
 	import BundleItem from "./BundleItem.svelte";
 
 	interface Props {
@@ -14,6 +15,9 @@
 
 	// Junimo Note
 	const sheet = `url(${asset("/assets/JunimoNote.png")})`;
+
+	// Changing what the bundle asks for
+	let editing = $state(false);
 
 	let submitted = $derived(
 		bundle.requiredItems.filter((i) => i.submitted).length,
@@ -74,29 +78,44 @@
 			</div>
 		</summary>
 
-		<h3>
-			Required Items
-			{#if bundle.requiredItemCount < bundle.requiredItems.length}
-				<small data-testid="bundle-pick"
-					>(any {bundle.requiredItemCount} of {bundle.requiredItems
-						.length})</small
-				>
-			{/if}
+		<h3 class="items-heading">
+			<span>
+				Required Items
+				{#if bundle.requiredItemCount < bundle.requiredItems.length}
+					<small data-testid="bundle-pick"
+						>(any {bundle.requiredItemCount} of {bundle.requiredItems
+							.length})</small
+					>
+				{/if}
+			</span>
+			<button
+				type="button"
+				class="toggle"
+				data-testid="bundle-edit-toggle"
+				aria-pressed={editing}
+				onclick={() => (editing = !editing)}
+			>
+				{editing ? "Done" : "Edit items"}
+			</button>
 		</h3>
 
-		<div class="container" data-testid="bundle-required-items">
-			{#each bundle.requiredItems as itemdata}
-				<span data-testid="bundle-required-item">
-					<BundleItem
-						itemId={itemdata.itemID}
-						type="O"
-						quantity={itemdata.quantity}
-						quality={itemdata.quality}
-						bind:checked={itemdata.submitted}
-					/>
-				</span>
-			{/each}
-		</div>
+		{#if editing}
+			<BundleEditor {bundle} />
+		{:else}
+			<div class="container" data-testid="bundle-required-items">
+				{#each bundle.requiredItems as itemdata}
+					<span data-testid="bundle-required-item">
+						<BundleItem
+							itemId={itemdata.requirement[0]}
+							type="O"
+							quantity={itemdata.quantity}
+							quality={itemdata.quality}
+							bind:checked={itemdata.submitted}
+						/>
+					</span>
+				{/each}
+			</div>
+		{/if}
 
 		<h3>Reward</h3>
 
@@ -191,6 +210,13 @@
 	h3 {
 		margin-top: 8px;
 		border-bottom: 2px solid #0004;
+	}
+
+	.items-heading {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 8px;
 	}
 
 	.container {

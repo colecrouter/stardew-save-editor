@@ -842,6 +842,32 @@ describe("Save Manager Integration Tests", () => {
 		});
 	});
 
+	describe("Friendship points", () => {
+		it("keeps a row in place, and focused, while its points are typed", async () => {
+			const save = saveManager.save;
+			if (!save) throw new Error("No save loaded");
+			const page = harness.render(relationshipsPage);
+			const nameAt = (index: number) => {
+				const row = page.getAllByTestId("friendship-row")[index];
+				if (!row) throw new Error(`No row ${index}`);
+				return within(row).getByTestId("friendship-name").textContent ?? "";
+			};
+			const top = nameAt(0);
+			const first = page.getAllByTestId("friendship-row")[0] as HTMLElement;
+			const input = within(first).getByTestId(
+				"friendship-points",
+			) as HTMLInputElement;
+			input.focus();
+
+			// The first digit of "2000" leaves the top villager with the fewest points
+			await fireEvent.input(input, { target: { value: "2" } });
+			flushSync();
+			expect(save.player.friendships.get(top)?.points).toBe(2);
+			expect(nameAt(0)).toBe(top);
+			expect(document.activeElement).toBe(input);
+		});
+	});
+
 	describe("Farm", () => {
 		it("applies the farm name and profit margin to every farmer", async () => {
 			const page = harness.render(farmPage);

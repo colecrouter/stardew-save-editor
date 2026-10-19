@@ -79,6 +79,12 @@ export class CommunityBundles extends SvelteMap<BundleName, Bundle> {
 	private communityCenter: GameLocation;
 	private saveData: SaveProxy;
 	private hasRunOnce = false;
+	/** Each room's completion when side effects last ran */
+	private lastRooms = new Map<CCRoom, boolean>();
+	/** Whether the whole Community Center was complete when side effects last ran */
+	private lastOverall = false;
+	/** Joja membership when side effects last ran */
+	private lastJoja = false;
 
 	constructor(saveData: SaveProxy) {
 		const cc = saveData.locations.find(
@@ -134,15 +140,30 @@ export class CommunityBundles extends SvelteMap<BundleName, Bundle> {
 			([room, bundles]) =>
 				[room, bundles.every((b: Bundle) => b.completed)] as const,
 		);
+		// Re-run when Joja membership changes, so the joja* room flags follow it.
+		// Read it from the host, as the game does (Game1.MasterPlayer): reading the
+		// selected farmer would re-run this every time another farmer is picked.
+		const isJoja =
+			this.saveData.players[0]?.mailReceived.has(MailFlag.JojaMember) ?? false;
+		const overallComplete = this.isOverallComplete(completedRooms, isJoja);
 
 		// Skip side effects on first run (initial load) to preserve existing player mail flags
 		if (!this.hasRunOnce) {
 			this.hasRunOnce = true;
+			this.lastRooms = new Map(completedRooms);
+			this.lastOverall = overallComplete;
+			this.lastJoja = isJoja;
 			return;
 		}
 
-		// Apply side effects
+		const jojaChanged = isJoja !== this.lastJoja;
+
+		// Apply side effects only to rooms whose completion changed, plus finished rooms
+		// when membership changes so their joja* flags follow it. Leaving the other rooms
+		// alone keeps flags the game sets without bundles, such as bought Joja projects.
 		for (const [room, completed] of completedRooms) {
+			const changed = this.lastRooms.get(room) !== completed;
+			if (!changed && !(jojaChanged && completed)) continue;
 			const pair = bundleSideEffects.get(room);
 			if (!pair) continue;
 
@@ -169,9 +190,40 @@ export class CommunityBundles extends SvelteMap<BundleName, Bundle> {
 				- abandonedJojaMartAccessible: set only for NON‑Joja players when predicate true (Door access after the post‑storm cutscene)
 
 			Regression root cause (#80): we previously required AbandonedJojaMart for the non‑Joja branch, so any edit while that room was incomplete caused ccIsComplete & door access to be removed, resealing the door mid‑progress.
+
+			Like the rooms, the flags only change when overall completion (or membership) does,
+			so a Community Center the game finished without bundles (e.g. by buying every Joja
+			project) keeps ccIsComplete while other bundles are edited.
 		*/
-		const isJoja = this.saveData.player.mailReceived.has(MailFlag.JojaMember);
-		const overallComplete = isJoja
+		const overallChanged = overallComplete !== this.lastOverall;
+		if (overallComplete && (overallChanged || jojaChanged)) {
+			const pair = bundleSideEffects.get(null);
+			if (pair) {
+				pair.add(this.saveData, this.communityCenter);
+				console.debug("Applied side effect for completed CC");
+			}
+		} else if (!overallComplete && overallChanged) {
+			const pair = bundleSideEffects.get(null);
+			if (pair) {
+				pair.remove(this.saveData, this.communityCenter);
+				console.debug("Removed side effect for completed CC");
+			}
+		}
+
+		this.lastRooms = new Map(completedRooms);
+		this.lastOverall = overallComplete;
+		this.lastJoja = isJoja;
+
+		// After applying any side effects, ensure bundleRewards remains valid/safe
+		this.sanitizeBundleRewards();
+	}
+
+	/** Whether the Community Center counts as complete (see the notes in applySideEffects) */
+	private isOverallComplete(
+		completedRooms: ReadonlyArray<readonly [CCRoom, boolean]>,
+		isJoja: boolean,
+	) {
+		return isJoja
 			? // Joja route: ignore Abandoned Joja Mart & Bulletin Board (not required / no Joja analog)
 				completedRooms
 					.filter(
@@ -185,23 +237,6 @@ export class CommunityBundles extends SvelteMap<BundleName, Bundle> {
 					.filter(([r]) => r !== CCRoom.AbandonedJojaMart)
 					// All six core rooms must be complete
 					.every(([, done]) => done);
-
-		if (overallComplete) {
-			const pair = bundleSideEffects.get(null);
-			if (pair) {
-				pair.add(this.saveData, this.communityCenter);
-				console.debug("Applied side effect for completed CC");
-			}
-		} else {
-			const pair = bundleSideEffects.get(null);
-			if (pair) {
-				pair.remove(this.saveData, this.communityCenter);
-				console.debug("Removed side effect for completed CC");
-			}
-		}
-
-		// After applying any side effects, ensure bundleRewards remains valid/safe
-		this.sanitizeBundleRewards();
 	}
 
 	/**

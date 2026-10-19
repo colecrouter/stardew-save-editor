@@ -177,6 +177,16 @@ const text = (value: unknown) =>
 		? String(value)
 		: undefined;
 
+/**
+ * Junimo Chests, and any chest with a global inventory ID, show the team's shared
+ * inventory in game and never read their own item list, so items moved into them
+ * would be lost. They're left out of the editable chests.
+ */
+const usesGlobalInventory = (chest: RawChest) =>
+	chest.specialChestType === "JunimoChest" ||
+	(isRecord(chest.globalInventoryId) &&
+		text(chest.globalInventoryId.string) !== undefined);
+
 const locationName = (location: RawGameLocation, fallback: string) =>
 	text(location.uniqueName) ?? text(location.name) ?? fallback;
 
@@ -195,7 +205,8 @@ export function discoverChests(save: Save): ChestProxy[] {
 	const seen = new Set<object>();
 
 	const add = (chest: unknown, metadata: ChestMetadata) => {
-		if (!isChest(chest) || seen.has(chest)) return;
+		if (!isChest(chest) || usesGlobalInventory(chest) || seen.has(chest))
+			return;
 		seen.add(chest);
 		result.push(new ChestProxy(chest, metadata));
 	};

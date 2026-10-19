@@ -115,7 +115,8 @@
 {#if save.player}
 	<!-- Inventory view -->
 	<UiContainer>
-		<div class="toolbar">
+		<div class="title">
+			<h3>Inventory</h3>
 			<SortButton
 				label="Sort inventory"
 				onclick={sortInventory}
@@ -170,10 +171,10 @@
 {/if}
 
 <style>
-	.toolbar {
+	.title {
 		display: flex;
-		justify-content: flex-end;
-		margin-bottom: 4px;
+		justify-content: space-between;
+		align-items: center;
 	}
 
 	.item-grid {

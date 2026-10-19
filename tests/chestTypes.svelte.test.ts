@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { Item, Save } from "../codegen/save";
 import {
 	type ChestKind,
+	ChestProxy,
 	discoverChests,
 	type RawChest,
 	SwappableChests,
@@ -224,26 +225,16 @@ describe("changing a chest's type", () => {
 		cleanup();
 	});
 
-	it("leaves fridges, Junimo Chests and machines' storage alone", () => {
+	it("leaves fridges and machines' storage alone", () => {
 		// The kitchen fridge is saved as a Chest (130), like the auto-grabber's storage
-		const fridge = rawChest();
-		const junimo = rawChest({
-			name: "Junimo Chest",
-			itemId: 256,
-			specialChestType: "JunimoChest",
-		});
 		const save = {
 			locations: {
 				GameLocation: [
 					{
 						name: "FarmHouse",
-						fridge,
+						fridge: rawChest(),
 						objects: {
 							item: [
-								{
-									key: { Vector2: { X: 1, Y: 1 } },
-									value: { Object: junimo },
-								},
 								{
 									key: { Vector2: { X: 2, Y: 1 } },
 									value: {
@@ -271,7 +262,26 @@ describe("changing a chest's type", () => {
 				expect(() => chest.setType(type("Big Chest"))).toThrow();
 			}
 		});
-		expect(kinds).toEqual(["fridge", "chest", "machine"]);
+		expect(kinds).toEqual(["fridge", "machine"]);
+		cleanup();
+	});
+
+	it("gives a Junimo Chest no type to change", () => {
+		const junimo = rawChest({
+			name: "Junimo Chest",
+			itemId: 256,
+			specialChestType: "JunimoChest",
+		});
+		const cleanup = $effect.root(() => {
+			const chest = new ChestProxy(junimo, {
+				id: "junimo",
+				label: "Farm - Junimo Chest (1, 1)",
+				kind: "chest",
+				location: "Farm",
+			});
+			expect(chest.type).toBeUndefined();
+			expect(chest.isMiniShippingBin).toBe(false);
+		});
 		cleanup();
 	});
 

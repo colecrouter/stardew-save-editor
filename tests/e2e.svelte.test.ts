@@ -299,6 +299,25 @@ describe("Save Manager Integration Tests", () => {
 			expect(saveManager.save?.player.inventory.get("hat")).toBeUndefined();
 		});
 
+		it("shows a big craftable from the save as itself", () => {
+			// TestSave has a Cheese Press in slot 5, saved by the game as an Object
+			// with <bigCraftable>. Its ID (16) is also Wild Horseradish's
+			const item = saveManager.save?.player.inventory.get(5);
+			expect(item?.[Raw].bigCraftable).toBe(true);
+			expect(item?.info?._type).toBe("BigCraftable");
+			expect(item?.info?.name).toBe("Cheese Press");
+
+			const page = harness.render(editorPage);
+			const slot = page.getByTestId("item-5");
+			expect(slot.getAttribute("data-item-type")).toBe("BigCraftable");
+			// Drawn from the Cheese Press cell of the big craftables sheet
+			const sprite = slot.querySelector("svg");
+			expect(sprite?.querySelector("image")?.getAttribute("href")).toMatch(
+				/\/Craftables\.png$/,
+			);
+			expect(sprite?.getAttribute("viewBox")).toBe("0 64 16 32");
+		});
+
 		// it("should support drag and drop operations", async () => {
 		// 	const page = harness.render(editorPage);
 		// 	const draggable = page.getByTestId("draggable-4");

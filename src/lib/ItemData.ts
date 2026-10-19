@@ -277,6 +277,10 @@ function normalizeItemKey(itemId: Item["itemId"]): string | undefined {
 }
 
 function getExpectedMetadataTypes(item: Item): ItemInformation["_type"][] {
+	// Big craftables are saved as Objects (or Chests, Casks...) with a flag, and
+	// their IDs overlap with objects' (Chest 130 is also Tuna), so check it first
+	if (item.bigCraftable) return ["BigCraftable"];
+
 	switch (item["@_xsi:type"]) {
 		case "Hat":
 			return ["Hat"];
@@ -320,14 +324,7 @@ function getDirectMetadataMatch(item: Item) {
 	const lookupKey = normalizeItemKey(item.itemId);
 	if (!lookupKey) return undefined;
 
-	// Big craftables are saved as plain Objects with a flag, and their IDs
-	// overlap with objects' (Chest 130 is also Tuna), so check the flag first
-	const bigCraftable = String(item.bigCraftable) === "true";
-	const expectedTypes: ItemInformation["_type"][] = bigCraftable
-		? ["BigCraftable"]
-		: getExpectedMetadataTypes(item);
-
-	for (const expectedType of expectedTypes) {
+	for (const expectedType of getExpectedMetadataTypes(item)) {
 		let preservedMatch: ItemInformation | undefined;
 		for (const [, metadata] of jsondata) {
 			if (metadata._key === lookupKey && metadata._type === expectedType) {

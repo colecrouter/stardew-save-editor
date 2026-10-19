@@ -1367,6 +1367,8 @@ export interface Item {
 	clothesType?: ClothesType;
 
 	// Boots properties
+	defenseBonus?: number;
+	immunityBonus?: number;
 	indexInColorSheet?: number;
 
 	// Preserved item properties

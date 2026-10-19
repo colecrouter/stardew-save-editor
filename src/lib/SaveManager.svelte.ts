@@ -80,7 +80,7 @@ const downloadFile = async (blob: Blob, filename: string) => {
 /** Thrown by download() when the exported save fails validation */
 export class SaveValidationError extends Error {
 	constructor(readonly validation: SaveValidation) {
-		super(`Save file not downloaded: ${describeProblems(validation)}`);
+		super(`Save file not downloaded: ${describeProblems(validation.errors)}`);
 	}
 }
 

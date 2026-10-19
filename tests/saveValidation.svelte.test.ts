@@ -1,14 +1,29 @@
 import { readFile } from "node:fs/promises";
-import { flushSync } from "svelte";
-import { beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { fireEvent, render } from "@testing-library/svelte";
+import { createRawSnippet, flushSync } from "svelte";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { setup as mockIDB } from "vitest-indexeddb";
 import { Raw } from "$lib/proxies";
-import { describeProblems, validateSave } from "$lib/saveValidation";
+import {
+	describeProblems,
+	describeResult,
+	validateSave,
+} from "$lib/saveValidation";
 import { XMLManager } from "$lib/workers/xml";
 import {
 	SaveManager,
 	SaveValidationError,
+	setSaveManagerContext,
 } from "../src/lib/SaveManager.svelte";
+import {
+	setToastManagerContext,
+	ToastManager,
+} from "../src/lib/ToastManager.svelte";
+import editLayout from "../src/routes/(edit)/+layout.svelte";
+import uploadPage from "../src/routes/(home)/(upload)/+page.svelte";
+
+// The pages navigate after uploading, which isn't possible here
+vi.mock("$app/navigation", () => ({ goto: vi.fn() }));
 
 const locationNamed = (parsed: SaveFile, name: string) => {
 	const location = parsed.SaveGame.locations.GameLocation.find(
@@ -199,10 +214,55 @@ describe("validateSave", () => {
 		});
 	});
 
-	it("summarises the first problems", () => {
+	it("summarises problems as the first one and a count of the rest", () => {
+		expect(describeProblems(["a"])).toBe("a");
+		expect(describeProblems(["a", "b", "c"])).toBe("a (and 2 more)");
+	});
+});
+
+describe("describeResult", () => {
+	const clean = { valid: true, errors: [], warnings: [] };
+
+	it("just says what happened when nothing was found", () => {
+		expect(describeResult("uploaded", clean)).toEqual({
+			message: "Save file uploaded!",
+			type: "success",
+			duration: 5000,
+		});
+		expect(describeResult("downloaded", clean).message).toBe(
+			"Save file downloaded!",
+		);
+	});
+
+	it("shows a warning", () => {
 		expect(
-			describeProblems({ valid: false, errors: ["a", "b", "c"], warnings: [] }),
-		).toBe("a; b (and 1 more)");
+			describeResult("downloaded", { ...clean, warnings: ["Low money"] }),
+		).toEqual({
+			message: "Save file downloaded, with a warning: Low money",
+			type: "warning",
+			duration: 10000,
+		});
+	});
+
+	it("summarises several warnings", () => {
+		expect(
+			describeResult("uploaded", { ...clean, warnings: ["a", "b", "c"] })
+				.message,
+		).toBe("Save file uploaded, with warnings: a (and 2 more)");
+	});
+
+	it("puts errors first, and counts the warnings after them", () => {
+		expect(
+			describeResult("uploaded", {
+				valid: false,
+				errors: ["Broken"],
+				warnings: ["Odd"],
+			}),
+		).toEqual({
+			message: "Save file uploaded, but it has problems: Broken (and 1 more)",
+			type: "failure",
+			duration: 10000,
+		});
 	});
 });
 
@@ -251,6 +311,90 @@ describe("SaveManager validation", () => {
 		expect(error.message).toBe(
 			"Save file not downloaded: Test's money (2147483648) is out of range",
 		);
+	});
+
+	it("still downloads a save with warnings, and returns them", async () => {
+		const click = vi
+			.spyOn(HTMLAnchorElement.prototype, "click")
+			.mockImplementation(() => {});
+		const save = saveManager.save;
+		if (!save) throw new Error("No save");
+		save[Raw].SaveGame.player.money = -5;
+
+		const validation = await saveManager.download();
+		expect(click).toHaveBeenCalledOnce();
+		expect(validation.warnings).toEqual(["Test's money (-5) is negative"]);
+		click.mockRestore();
+	});
+});
+
+describe("Validation toasts", () => {
+	mockIDB();
+	const negativeMoneySave = async () =>
+		(await readFile("tests/TestSave", "utf-8")).replace(
+			"<money>1285</money>",
+			"<money>-5</money>",
+		);
+
+	// Contexts for the pages, with a spy on the toasts they add
+	const contexts = (saveManager: SaveManager) => {
+		const toastManager = new ToastManager();
+		const add = vi.spyOn(toastManager, "add");
+		const context = new Map<unknown, unknown>([
+			...setSaveManagerContext(saveManager),
+			...setToastManagerContext(toastManager),
+		]);
+		return { context, add };
+	};
+
+	it("shows warnings when a save is uploaded", async () => {
+		let saveManager!: SaveManager;
+		const cleanup = $effect.root(() => {
+			saveManager = new SaveManager();
+		});
+		const { context, add } = contexts(saveManager);
+		const page = render(uploadPage, { context });
+
+		const input =
+			page.container.querySelector<HTMLInputElement>('input[type="file"]');
+		if (!input) throw new Error("No file input");
+		// happy-dom's FileList is an array
+		const files = new FileList();
+		(files as unknown as File[]).push(
+			new File([await negativeMoneySave()], "TestSave"),
+		);
+		input.files = files;
+		await fireEvent.change(input);
+
+		await vi.waitFor(() => expect(add).toHaveBeenCalled(), { timeout: 30000 });
+		const [toast, duration] = add.mock.calls[0] ?? [];
+		expect(toast?.message).toBe(
+			"Save file uploaded, with a warning: Test's money (-5) is negative",
+		);
+		expect(toast?.icon).toBe("⚠️");
+		expect(duration).toBe(10000);
+		cleanup();
+	});
+
+	it("shows warnings when a save is downloaded, and still downloads it", async () => {
+		const click = vi
+			.spyOn(HTMLAnchorElement.prototype, "click")
+			.mockImplementation(() => {});
+		const saveManager = await importSave(await negativeMoneySave());
+		const { context, add } = contexts(saveManager);
+		const children = createRawSnippet(() => ({ render: () => "<div></div>" }));
+		const page = render(editLayout, { props: { children }, context });
+
+		await fireEvent.click(page.getByTestId("save-button"));
+
+		await vi.waitFor(() => expect(add).toHaveBeenCalled(), { timeout: 30000 });
+		expect(click).toHaveBeenCalledOnce();
+		const [toast] = add.mock.calls[0] ?? [];
+		expect(toast?.message).toBe(
+			"Save file downloaded, with a warning: Test's money (-5) is negative",
+		);
+		expect(toast?.icon).toBe("⚠️");
+		click.mockRestore();
 	});
 });
 

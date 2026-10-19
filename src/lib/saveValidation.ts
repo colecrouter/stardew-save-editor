@@ -7,6 +7,8 @@
  * `errors` are definite problems; `warnings` are unusual but loadable.
  */
 
+import type { ToastType } from "$lib/ToastManager.svelte";
+
 export interface SaveValidation {
 	/** No errors were found (there may still be warnings) */
 	valid: boolean;
@@ -187,9 +189,29 @@ export const validateSave = (parsed: unknown): SaveValidation => {
 	return result();
 };
 
-/** A short, human-readable summary of a failed validation */
-export const describeProblems = (validation: SaveValidation, max = 2) => {
-	const shown = validation.errors.slice(0, max).join("; ");
-	const more = validation.errors.length - max;
-	return more > 0 ? `${shown} (and ${more} more)` : shown;
+/** A short summary of a list of problems: the first one, and how many more */
+export const describeProblems = ([first = "", ...rest]: string[]) =>
+	rest.length ? `${first} (and ${rest.length} more)` : first;
+
+/**
+ * The toast to show once a save has been uploaded or downloaded. Problems
+ * stay up longer, so there's time to read them.
+ */
+export const describeResult = (
+	action: "uploaded" | "downloaded",
+	validation?: SaveValidation,
+): { message: string; type: ToastType; duration: number } => {
+	if (validation && !validation.valid)
+		return {
+			message: `Save file ${action}, but it has problems: ${describeProblems([...validation.errors, ...validation.warnings])}`,
+			type: "failure",
+			duration: 10000,
+		};
+	if (validation?.warnings.length)
+		return {
+			message: `Save file ${action}, with ${validation.warnings.length === 1 ? "a warning" : "warnings"}: ${describeProblems(validation.warnings)}`,
+			type: "warning",
+			duration: 10000,
+		};
+	return { message: `Save file ${action}!`, type: "success", duration: 5000 };
 };

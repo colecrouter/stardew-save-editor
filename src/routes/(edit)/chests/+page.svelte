@@ -13,7 +13,11 @@
 		sameSlot,
 		sortChest,
 	} from "$lib/chestMoves";
-	import { type ChestProxy, searchChests } from "$lib/proxies/Chest.svelte";
+	import {
+		type ChestProxy,
+		SwappableChests,
+		searchChests,
+	} from "$lib/proxies/Chest.svelte";
 	import { Item } from "$lib/proxies/Item.svelte";
 	import { getSaveManager } from "$lib/SaveManager.svelte";
 	import { getToastManager, Toast } from "$lib/ToastManager.svelte";
@@ -235,6 +239,39 @@
 	};
 
 	const deleteItem = () => selectedChest?.inventory.delete(selectedIndex);
+
+	const failed = (error: unknown) =>
+		toastManager.add(
+			new Toast(
+				error instanceof Error ? error.message : String(error),
+				"failure",
+			),
+		);
+
+	/** Swap a chest for another kind, e.g. a Stone Chest, or a 70-slot Big Chest */
+	const changeType = (chest: ChestProxy, itemId: string) => {
+		const type = SwappableChests.find((type) => type.itemId === itemId);
+		if (!type || type === chest.type) return;
+		try {
+			chest.setType(type);
+		} catch (error) {
+			return failed(error);
+		}
+		// Items may have moved up to fit
+		picked = [];
+		if (chest === selectedChest && selectedIndex >= type.capacity)
+			selectedIndex = 0;
+		toastManager.add(new Toast(`Changed to a ${type.name}`, "success"));
+	};
+
+	const expand = (chest: ChestProxy) => {
+		try {
+			chest.expandMiniShippingBin();
+		} catch (error) {
+			return failed(error);
+		}
+		toastManager.add(new Toast("Expanded to a 36-slot Chest", "success"));
+	};
 </script>
 
 {#if save.chests.length === 0}
@@ -349,6 +386,42 @@
 							>
 								{chest.inventory.usedSlots}/{chest.inventory.slotCount}
 							</small>
+							{#if chest.type}
+								<select
+									class="chest-type"
+									value={chest.type.itemId}
+									onchange={(event) => {
+										changeType(chest, event.currentTarget.value);
+										// Show the real type if the change was refused
+										event.currentTarget.value = chest.type?.itemId ?? "";
+									}}
+									aria-label="Chest type"
+									title="Chest type. A smaller one can only be picked when all the items fit."
+									data-testid={`chest-${chestIndex}-type`}
+								>
+									{#each SwappableChests as type (type.itemId)}
+										<option
+											value={type.itemId}
+											disabled={chest.inventory.usedSlots > type.capacity}
+										>
+											{type.name} ({type.capacity})
+										</option>
+									{/each}
+								</select>
+							{:else if chest.isMiniShippingBin}
+								<button
+									type="button"
+									class="chest-type"
+									disabled={chest.hasSeparateWalletItems}
+									title={chest.hasSeparateWalletItems
+										? "It holds items for separate wallets, which a Chest wouldn't show"
+										: "Make it a regular Chest. It keeps its items, but they're no longer shipped overnight."}
+									onclick={() => expand(chest)}
+									data-testid={`chest-${chestIndex}-expand`}
+								>
+									Expand to 36 slots
+								</button>
+							{/if}
 							<SortButton
 								label="Sort this chest"
 								nativeTooltip
@@ -608,6 +681,22 @@
 
 	.used {
 		opacity: 0.8;
+	}
+
+	.chest-type {
+		font: inherit;
+		font-size: 0.85em;
+		padding: 1px 4px;
+		border: solid 2px #9c613b;
+		border-radius: 4px;
+		background-color: #f9bb65;
+		color: inherit;
+		cursor: pointer;
+	}
+
+	.chest-type:disabled {
+		cursor: not-allowed;
+		opacity: 0.6;
 	}
 
 	.empty {

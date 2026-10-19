@@ -46,6 +46,9 @@
 		{#each qiQuests as quest}
 			{#if regex.test(quest.name)}
 				{@const active = inProgress.has(quest.questKey)}
+				{@const state = active
+					? (quests.stateOf(quest.questKey) ?? "InProgress")
+					: undefined}
 				{@const selected = active || quests.has(quest.questKey)}
 				<!-- Not a <label>: its first control is the Make Active/Cancel button, so
 				     clicking the text would accept or cancel the quest -->
@@ -54,8 +57,16 @@
 						<div class="text">
 							<span class="name">
 								{quest.name}
-								{#if active}
+								{#if state === "InProgress"}
 									<span class="tag">In Progress</span>
+								{:else if state}
+									<!-- Finished orders stay in the save until claimed in-game -->
+									<span
+										class="tag"
+										title="Claim or dismiss it in the quest journal in-game"
+										data-testid="qi-quest-state-{quest.questKey.toLowerCase()}"
+										>{state}</span
+									>
 								{/if}
 							</span>
 							<span class="description">{quest.description}</span>
@@ -63,7 +74,7 @@
 					</div>
 
 					<div class="actions">
-						{#if active}
+						{#if state === "InProgress"}
 							<button
 								type="button"
 								class="cancel"
@@ -72,7 +83,7 @@
 							>
 								Cancel
 							</button>
-						{:else}
+						{:else if !active}
 							<button
 								type="button"
 								class="accept"

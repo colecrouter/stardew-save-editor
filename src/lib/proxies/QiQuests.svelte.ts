@@ -140,6 +140,22 @@ export class QiQuests
 	}
 
 	/**
+	 * The game's state for an accepted Qi Challenge: "InProgress", or
+	 * "Complete"/"Failed" until the player claims or dismisses it in the
+	 * journal. Only an order in progress can be cancelled.
+	 */
+	stateOf(questKey: string): string | undefined {
+		const active = this.saveData[Raw].SaveGame.specialOrders;
+		if (!active || typeof active !== "object") return undefined;
+		const orders = active.SpecialOrder.filter(
+			(order) => order.questKey === questKey,
+		);
+		return (
+			orders.find((order) => order.questState === "InProgress") ?? orders[0]
+		)?.questState;
+	}
+
+	/**
 	 * Cancels an already-accepted Qi Challenge by removing it from the
 	 * player's active `specialOrders`, discarding its in-progress state.
 	 * This frees it up to be offered again on the board (via `add`) the

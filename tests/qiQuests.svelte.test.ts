@@ -437,6 +437,33 @@ describe("QiQuests", () => {
 		expect(game.specialOrders.SpecialOrder).toEqual([retainedOrder]);
 	});
 
+	it("shows a finished order's state, without a Cancel that can't work", async () => {
+		const order = specialOrderXml("QiChallenge9", "Qi").replace(
+			"<questState>InProgress",
+			"<questState>Complete",
+		);
+		saveManager = await importSave(
+			fixture.replace(
+				"<specialOrders />",
+				`<specialOrders>${order}</specialOrders>`,
+			),
+		);
+		const quests = saveManager.save?.qiQuests;
+		if (!quests) throw new Error("Save not loaded");
+		expect(quests.stateOf("QiChallenge9")).toBe("Complete");
+		const { container } = render(QuestList, { quests });
+		const view = within(container);
+
+		expect(view.getByTestId("qi-quest-state-qichallenge9").textContent).toBe(
+			"Complete",
+		);
+		expect(view.queryByTestId("qi-quest-cancel-qichallenge9")).toBeNull();
+		// Still taken: it can't be made active or offered again
+		expect(view.queryByTestId("qi-quest-accept-qichallenge9")).toBeNull();
+		const checkbox = view.getByTestId("qi-quest-qichallenge9");
+		expect((checkbox as HTMLInputElement).disabled).toBe(true);
+	});
+
 	it("does not repeat cleanup for a completed order", async () => {
 		const order = specialOrderXml("QiChallenge9", "Qi")
 			.replace("<specialRule />", "<specialRule>MINE_HARD</specialRule>")

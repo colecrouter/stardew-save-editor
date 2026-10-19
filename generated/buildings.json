@@ -6,7 +6,13 @@
 		"textureSize": { "X": 256, "Y": 64 },
 		"maxOccupants": 20,
 		"hayCapacity": 0,
-		"description": "Junimos will harvest crops around the hut for you."
+		"description": "Junimos will harvest crops around the hut for you.",
+		"buildCost": 20000,
+		"buildMaterials": [
+			{ "item": "Stone", "amount": 200 },
+			{ "item": "Starfruit", "amount": 9 },
+			{ "item": "Fiber", "amount": 100 }
+		]
 	},
 	{
 		"name": "Earth Obelisk",
@@ -15,7 +21,12 @@
 		"textureSize": { "X": 48, "Y": 128 },
 		"maxOccupants": 20,
 		"hayCapacity": 0,
-		"description": "Warps you to the mountains."
+		"description": "Warps you to the mountains.",
+		"buildCost": 500000,
+		"buildMaterials": [
+			{ "item": "Iridium Bar", "amount": 10 },
+			{ "item": "Earth Crystal", "amount": 10 }
+		]
 	},
 	{
 		"name": "Water Obelisk",
@@ -24,7 +35,13 @@
 		"textureSize": { "X": 48, "Y": 128 },
 		"maxOccupants": 20,
 		"hayCapacity": 0,
-		"description": "Warps you to the beach."
+		"description": "Warps you to the beach.",
+		"buildCost": 500000,
+		"buildMaterials": [
+			{ "item": "Iridium Bar", "amount": 5 },
+			{ "item": "Clam", "amount": 10 },
+			{ "item": "Coral", "amount": 10 }
+		]
 	},
 	{
 		"name": "Desert Obelisk",
@@ -33,7 +50,13 @@
 		"textureSize": { "X": 48, "Y": 128 },
 		"maxOccupants": 20,
 		"hayCapacity": 0,
-		"description": "Warps you to the desert."
+		"description": "Warps you to the desert.",
+		"buildCost": 1000000,
+		"buildMaterials": [
+			{ "item": "Iridium Bar", "amount": 20 },
+			{ "item": "Coconut", "amount": 10 },
+			{ "item": "Cactus Fruit", "amount": 10 }
+		]
 	},
 	{
 		"name": "Island Obelisk",
@@ -42,7 +65,13 @@
 		"textureSize": { "X": 48, "Y": 128 },
 		"maxOccupants": 20,
 		"hayCapacity": 0,
-		"description": "Warps you to Ginger Island."
+		"description": "Warps you to Ginger Island.",
+		"buildCost": 1000000,
+		"buildMaterials": [
+			{ "item": "Iridium Bar", "amount": 10 },
+			{ "item": "Dragon Tooth", "amount": 10 },
+			{ "item": "Banana", "amount": 10 }
+		]
 	},
 	{
 		"name": "Gold Clock",
@@ -51,7 +80,9 @@
 		"textureSize": { "X": 48, "Y": 80 },
 		"maxOccupants": 20,
 		"hayCapacity": 0,
-		"description": "Prevents debris from appearing on your farm. Keeps fences from decaying."
+		"description": "Prevents debris from appearing on your farm. Keeps fences from decaying.",
+		"buildCost": 10000000,
+		"buildMaterials": []
 	},
 	{
 		"name": "Coop",
@@ -61,7 +92,12 @@
 		"sourceRect": { "X": 0, "Y": 0, "Width": 96, "Height": 112 },
 		"maxOccupants": 4,
 		"hayCapacity": 0,
-		"description": "Houses 4 coop-dwelling animals."
+		"description": "Houses 4 coop-dwelling animals.",
+		"buildCost": 4000,
+		"buildMaterials": [
+			{ "item": "Wood", "amount": 300 },
+			{ "item": "Stone", "amount": 100 }
+		]
 	},
 	{
 		"name": "Barn",
@@ -71,7 +107,12 @@
 		"sourceRect": { "X": 0, "Y": 0, "Width": 112, "Height": 112 },
 		"maxOccupants": 4,
 		"hayCapacity": 0,
-		"description": "Houses 4 barn-dwelling animals."
+		"description": "Houses 4 barn-dwelling animals.",
+		"buildCost": 6000,
+		"buildMaterials": [
+			{ "item": "Wood", "amount": 350 },
+			{ "item": "Stone", "amount": 150 }
+		]
 	},
 	{
 		"name": "Well",
@@ -80,7 +121,9 @@
 		"textureSize": { "X": 48, "Y": 80 },
 		"maxOccupants": 20,
 		"hayCapacity": 0,
-		"description": "Provides a place for you to refill your watering can."
+		"description": "Provides a place for you to refill your watering can.",
+		"buildCost": 1000,
+		"buildMaterials": [{ "item": "Stone", "amount": 75 }]
 	},
 	{
 		"name": "Silo",
@@ -89,7 +132,13 @@
 		"textureSize": { "X": 48, "Y": 128 },
 		"maxOccupants": 20,
 		"hayCapacity": 240,
-		"description": "Allows you to cut and store grass for feed."
+		"description": "Allows you to cut and store grass for feed.",
+		"buildCost": 100,
+		"buildMaterials": [
+			{ "item": "Stone", "amount": 100 },
+			{ "item": "Clay", "amount": 10 },
+			{ "item": "Copper Bar", "amount": 5 }
+		]
 	},
 	{
 		"name": "Mill",
@@ -99,7 +148,13 @@
 		"sourceRect": { "X": 0, "Y": 0, "Width": 64, "Height": 128 },
 		"maxOccupants": 20,
 		"hayCapacity": 0,
-		"description": "Allows you to mill wheat, beets and rice."
+		"description": "Allows you to mill wheat, beets and rice.",
+		"buildCost": 2500,
+		"buildMaterials": [
+			{ "item": "Wood", "amount": 150 },
+			{ "item": "Stone", "amount": 50 },
+			{ "item": "Cloth", "amount": 4 }
+		]
 	},
 	{
 		"name": "Shed",
@@ -108,7 +163,9 @@
 		"textureSize": { "X": 112, "Y": 128 },
 		"maxOccupants": 20,
 		"hayCapacity": 0,
-		"description": "An empty building. Fill it with whatever you like! The interior can be decorated."
+		"description": "An empty building. Fill it with whatever you like! The interior can be decorated.",
+		"buildCost": 15000,
+		"buildMaterials": [{ "item": "Wood", "amount": 300 }]
 	},
 	{
 		"name": "Fish Pond",
@@ -117,7 +174,13 @@
 		"textureSize": { "X": 160, "Y": 176 },
 		"maxOccupants": -1,
 		"hayCapacity": 0,
-		"description": "Raise fish and harvest their produce. Fish multiply over time."
+		"description": "Raise fish and harvest their produce. Fish multiply over time.",
+		"buildCost": 5000,
+		"buildMaterials": [
+			{ "item": "Stone", "amount": 200 },
+			{ "item": "Seaweed", "amount": 5 },
+			{ "item": "Green Algae", "amount": 5 }
+		]
 	},
 	{
 		"name": "Cabin",
@@ -127,7 +190,9 @@
 		"sourceRect": { "X": 0, "Y": 0, "Width": 80, "Height": 112 },
 		"maxOccupants": 20,
 		"hayCapacity": 0,
-		"description": "A home for a friend! Subsidized by the town agricultural fund."
+		"description": "A home for a friend! Subsidized by the town agricultural fund.",
+		"buildCost": 100,
+		"buildMaterials": []
 	},
 	{
 		"name": "Pet Bowl",
@@ -137,7 +202,9 @@
 		"sourceRect": { "X": 32, "Y": 0, "Width": 32, "Height": 32 },
 		"maxOccupants": 20,
 		"hayCapacity": 0,
-		"description": "Provides a dedicated home for one pet."
+		"description": "Provides a dedicated home for one pet.",
+		"buildCost": 5000,
+		"buildMaterials": [{ "item": "Hardwood", "amount": 25 }]
 	},
 	{
 		"name": "Stable",
@@ -146,7 +213,12 @@
 		"textureSize": { "X": 64, "Y": 96 },
 		"maxOccupants": 20,
 		"hayCapacity": 0,
-		"description": "Allows you to keep and ride a horse. Horse included."
+		"description": "Allows you to keep and ride a horse. Horse included.",
+		"buildCost": 10000,
+		"buildMaterials": [
+			{ "item": "Hardwood", "amount": 100 },
+			{ "item": "Iron Bar", "amount": 5 }
+		]
 	},
 	{
 		"name": "Slime Hutch",
@@ -156,7 +228,13 @@
 		"sourceRect": { "X": 0, "Y": 0, "Width": 112, "Height": 112 },
 		"maxOccupants": 20,
 		"hayCapacity": 0,
-		"description": "Raise up to 20 slimes. Fill water troughs and slimes will create slime balls."
+		"description": "Raise up to 20 slimes. Fill water troughs and slimes will create slime balls.",
+		"buildCost": 10000,
+		"buildMaterials": [
+			{ "item": "Stone", "amount": 500 },
+			{ "item": "Refined Quartz", "amount": 10 },
+			{ "item": "Iridium Bar", "amount": 1 }
+		]
 	},
 	{
 		"name": "Big Coop",
@@ -166,7 +244,12 @@
 		"sourceRect": { "X": 0, "Y": 0, "Width": 96, "Height": 112 },
 		"maxOccupants": 8,
 		"hayCapacity": 0,
-		"description": "Houses 8 coop-dwelling animals. Comes with an incubator. Unlocks ducks."
+		"description": "Houses 8 coop-dwelling animals. Comes with an incubator. Unlocks ducks.",
+		"buildCost": 10000,
+		"buildMaterials": [
+			{ "item": "Wood", "amount": 400 },
+			{ "item": "Stone", "amount": 150 }
+		]
 	},
 	{
 		"name": "Deluxe Coop",
@@ -176,7 +259,12 @@
 		"sourceRect": { "X": 0, "Y": 0, "Width": 96, "Height": 112 },
 		"maxOccupants": 12,
 		"hayCapacity": 0,
-		"description": "Houses 12 coop-dwelling animals. Comes with an auto-feed system. Unlocks rabbits."
+		"description": "Houses 12 coop-dwelling animals. Comes with an auto-feed system. Unlocks rabbits.",
+		"buildCost": 20000,
+		"buildMaterials": [
+			{ "item": "Wood", "amount": 500 },
+			{ "item": "Stone", "amount": 200 }
+		]
 	},
 	{
 		"name": "Big Barn",
@@ -186,7 +274,12 @@
 		"sourceRect": { "X": 0, "Y": 0, "Width": 112, "Height": 112 },
 		"maxOccupants": 8,
 		"hayCapacity": 0,
-		"description": "Houses 8 barn-dwelling animals. Allows animals to give birth. Unlocks goats."
+		"description": "Houses 8 barn-dwelling animals. Allows animals to give birth. Unlocks goats.",
+		"buildCost": 12000,
+		"buildMaterials": [
+			{ "item": "Wood", "amount": 450 },
+			{ "item": "Stone", "amount": 200 }
+		]
 	},
 	{
 		"name": "Deluxe Barn",
@@ -196,7 +289,12 @@
 		"sourceRect": { "X": 0, "Y": 0, "Width": 112, "Height": 112 },
 		"maxOccupants": 12,
 		"hayCapacity": 0,
-		"description": "Houses 12 barn-dwelling animals. Comes with an auto-feed system. Unlocks sheep and pigs."
+		"description": "Houses 12 barn-dwelling animals. Comes with an auto-feed system. Unlocks sheep and pigs.",
+		"buildCost": 25000,
+		"buildMaterials": [
+			{ "item": "Wood", "amount": 550 },
+			{ "item": "Stone", "amount": 300 }
+		]
 	},
 	{
 		"name": "Big Shed",
@@ -205,7 +303,12 @@
 		"textureSize": { "X": 112, "Y": 128 },
 		"maxOccupants": 20,
 		"hayCapacity": 0,
-		"description": "Doubles the size of the shed. The interior can be decorated."
+		"description": "Doubles the size of the shed. The interior can be decorated.",
+		"buildCost": 20000,
+		"buildMaterials": [
+			{ "item": "Wood", "amount": 550 },
+			{ "item": "Stone", "amount": 300 }
+		]
 	},
 	{
 		"name": "Shipping Bin",
@@ -214,7 +317,9 @@
 		"textureSize": { "X": 32, "Y": 32 },
 		"maxOccupants": 20,
 		"hayCapacity": 0,
-		"description": "Throw items inside to sell them overnight."
+		"description": "Throw items inside to sell them overnight.",
+		"buildCost": 250,
+		"buildMaterials": [{ "item": "Wood", "amount": 150 }]
 	},
 	{
 		"name": "Farmhouse",
@@ -224,7 +329,8 @@
 		"sourceRect": { "X": 0, "Y": 0, "Width": 160, "Height": 144 },
 		"maxOccupants": 20,
 		"hayCapacity": 0,
-		"description": "Farmhouse"
+		"description": "Farmhouse",
+		"buildMaterials": []
 	},
 	{
 		"name": "Greenhouse",
@@ -234,6 +340,7 @@
 		"sourceRect": { "X": 0, "Y": 160, "Width": 112, "Height": 160 },
 		"maxOccupants": 20,
 		"hayCapacity": 0,
-		"description": "A place to grow crops from any season, year round!"
+		"description": "A place to grow crops from any season, year round!",
+		"buildMaterials": []
 	}
 ]

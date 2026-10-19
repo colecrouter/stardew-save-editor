@@ -1,6 +1,8 @@
 <script lang="ts">
+	import { ItemData } from "$lib/ItemData";
 	import { Raw } from "$lib/proxies";
 	import type { FarmAnimal } from "$lib/proxies/FarmAnimal.svelte";
+	import { Item } from "$lib/proxies/Item.svelte";
 	import { getSaveManager } from "$lib/SaveManager.svelte";
 	import EmojiRange from "$lib/ui/EmojiRange.svelte";
 	import UiCheckbox from "$lib/ui/UICheckbox.svelte";
@@ -9,6 +11,7 @@
 	import UiInput from "$lib/ui/UIInput.svelte";
 	import { Gender } from "$types/save";
 	import BuildingSprite from "../../inventory/BuildingSprite.svelte";
+	import ItemSprite from "../../inventory/ItemSprite.svelte";
 
 	let saveManager: ReturnType<typeof getSaveManager> | undefined;
 	try {
@@ -105,6 +108,30 @@
 												data-testid="building-description"
 												>{building.data.description}</small
 											>
+										{/if}
+										{#if building.data?.buildCost || building.data?.buildMaterials.length}
+											<ul
+												class="cost"
+												aria-label={`${building.name} build cost`}
+												data-testid="building-cost"
+											>
+												{#if building.data.buildCost}
+													<li title="Gold">
+														{building.data.buildCost.toLocaleString()}g
+													</li>
+												{/if}
+												{#each building.data.buildMaterials as { item, amount } (item)}
+													{@const known = ItemData.has(item)}
+													<li title={item} aria-label={`${amount} ${item}`}>
+														{#if known}
+															<span class="material-icon">
+																<ItemSprite item={Item.fromName(item)} />
+															</span>
+														{/if}
+														{amount}{known ? "" : ` ${item}`}
+													</li>
+												{/each}
+											</ul>
 										{/if}
 									</div>
 
@@ -330,6 +357,30 @@
 		margin-top: 2px;
 		font-size: 0.75em;
 		opacity: 0.8;
+	}
+
+	/* What the building costs from Robin (or the Wizard): gold, then materials */
+	.cost {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 4px 10px;
+		margin: 4px 0 0;
+		padding: 0;
+		list-style: none;
+		font-size: 0.85em;
+	}
+
+	.cost li {
+		display: flex;
+		align-items: center;
+		gap: 2px;
+	}
+
+	/* The 32px item sprites, as small icons */
+	.material-icon {
+		display: inline-flex;
+		zoom: 0.75;
 	}
 
 	.toggle {

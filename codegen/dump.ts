@@ -24,6 +24,7 @@ import tools from "../content/Data/Tools.json" with { type: "json" };
 import trinkets from "../content/Data/Trinkets.json" with { type: "json" };
 import weapons from "../content/Data/Weapons.json" with { type: "json" };
 import { characters } from "../src/lib/NPCs.js";
+import { getBuildMaterials } from "./buildingCost.js";
 import {
 	createArtisanGoods,
 	fixTexture,
@@ -537,6 +538,11 @@ async function getBuildingTextureSize(texture: string | undefined) {
 	}
 }
 
+// The editor looks items up by name, so build materials are saved by name
+const objectNames = new Map(
+	objectsArray.map((obj) => [String(obj._key), String(obj.name)]),
+);
+
 const buildingsArray = await Promise.all(
 	Object.entries(buildings).map(async ([key, obj]) => {
 		const texture = getBuildingTexture(obj.Texture);
@@ -556,6 +562,8 @@ const buildingsArray = await Promise.all(
 			maxOccupants: obj.MaxOccupants,
 			hayCapacity: obj.HayCapacity,
 			description: resolveDescription(obj.Description) || undefined,
+			buildCost: obj.BuildCost || undefined,
+			buildMaterials: getBuildMaterials(obj.BuildMaterials, objectNames),
 		};
 	}),
 );

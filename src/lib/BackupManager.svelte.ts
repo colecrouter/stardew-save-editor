@@ -37,6 +37,10 @@ export class BackupManager {
 	readonly limit: number;
 	private toast?: ToastManager;
 	private disabled: boolean;
+	/** Saving waits for load() so it can't clear backups before they're read */
+	#loaded = $state(false);
+	/** The latest save; each one waits for the one before */
+	#saving: Promise<void> = Promise.resolve();
 
 	constructor(limit = BACKUP_LIMIT) {
 		this.files = $state([]);
@@ -50,7 +54,7 @@ export class BackupManager {
 		}
 
 		$effect(() => {
-			if (!this.disabled) return;
+			if (this.disabled || !this.#loaded) return;
 
 			// Limit the number of backups
 			this.files.length = Math.min(this.files.length, this.limit);
@@ -86,11 +90,11 @@ export class BackupManager {
 					}),
 				);
 			}
-			this.files = newFiles;
+			// Keep any save uploaded while loading, as the newest backup
+			this.files = [...this.files, ...newFiles];
 		} catch (e) {
-			// Empty the database, clear the files
+			// Empty the database
 			await db.clear("files").catch(() => {});
-			this.files = [];
 
 			if (!(e instanceof Error)) return;
 
@@ -108,6 +112,8 @@ export class BackupManager {
 			this.toast?.add(new Toast(msg, "failure"));
 
 			console.warn(new Error("Failed to load backups", { cause: e }));
+		} finally {
+			this.#loaded = true;
 		}
 	}
 
@@ -117,26 +123,34 @@ export class BackupManager {
 	 * This is triggered via `$effect` when `this.files` updates.
 	 * If any errors occur during saving, a toast notification is triggered.
 	 */
-	private async save() {
-		const serializedFiles: SerializedFile[] = [];
+	private save() {
+		// Copy the list now, so the effect tracks every file. Saves run one at a
+		// time, in order, so the last one written is always the latest list.
+		const files = [...this.files];
+		this.#saving = this.#saving.then(() => this.write(files)).catch(() => {});
+	}
 
-		// Iterate through our updated
-		for (const file of this.files) {
-			serializedFiles.unshift({
-				name: file.name,
-				data: await file.text(),
-				lastModified: file.lastModified,
-				size: file.size,
-				type: "text/text",
-			});
-		}
-
+	private async write(files: File[]) {
 		try {
-			const db = await openDB("backups", 1);
-			await db.clear("files").catch(() => {});
-			for (const file of serializedFiles) {
-				await db.add("files", file);
+			const serializedFiles: SerializedFile[] = [];
+			for (const file of files) {
+				serializedFiles.unshift({
+					name: file.name,
+					data: await file.text(),
+					lastModified: file.lastModified,
+					size: file.size,
+					type: "text/text",
+				});
 			}
+
+			const db = await openDB("backups", 1);
+			// Clear and add in one transaction, so the store never holds half a list
+			const tx = db.transaction("files", "readwrite");
+			await Promise.all([
+				tx.store.clear(),
+				...serializedFiles.map((file) => tx.store.add(file)),
+				tx.done,
+			]);
 		} catch (e) {
 			// Generate a consistent error message based on error
 			// For now, the only error we've encountered is a generic IDB WebKit bug:

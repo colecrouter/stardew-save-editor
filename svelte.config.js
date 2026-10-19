@@ -23,6 +23,9 @@ const config = {
 				"connect-src": ["self", "*.sentry.io", "*.ingest.us.sentry.io"],
 				"script-src": ["self", "unsafe-inline"],
 				"worker-src": ["self", "blob:"],
+				// Images (CSS ones included) only come from the site itself, so text from an
+				// uploaded save can never make the page fetch an image from another host
+				"img-src": ["self", "data:", "blob:"],
 			},
 		},
 	},

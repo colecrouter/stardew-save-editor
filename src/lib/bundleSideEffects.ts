@@ -1,3 +1,4 @@
+import type { Farmer } from "$lib/proxies/Farmer.svelte";
 import type { GameLocation } from "$lib/proxies/GameLocation.svelte";
 import { MailFlag } from "$lib/proxies/Mail.svelte";
 import type { SaveProxy } from "$lib/proxies/SaveFile.svelte";
@@ -67,6 +68,70 @@ function applyMail(s: SaveProxy, transform: (mail: Set<MailFlag>) => void) {
 	}
 }
 
+/** Letters in a farmer's mailbox or tomorrow's mail (an empty list parses as "") */
+const lettersIn = (list: unknown): string[] => {
+	if (typeof list !== "object" || !list || !("string" in list)) return [];
+	return Array.isArray(list.string) ? list.string.map(String) : [];
+};
+
+/** Whether a letter is this one; tomorrow's mail marks letters that aren't shown */
+const isLetter = (letter: string, id: MailFlag) =>
+	letter === id || letter === `${id}%&NL&%`;
+
+/** Farmer.hasOrWillReceiveMail */
+const hasOrWillReceiveMail = (player: Farmer, id: MailFlag) =>
+	player.mailReceived.has(id) ||
+	[player[Raw].mailbox, player[Raw].mailForTomorrow].some((list) =>
+		lettersIn(list).some((letter) => isLetter(letter, id)),
+	);
+
+/**
+	Restoring the Bulletin Board sends the villagers' thank-you letter
+	(CommunityCenter.doAreaCompleteReward); reading it gives +2 hearts with
+	every villager who isn't a marriage candidate, once
+	(LetterViewerMenu, which then sets ccBulletinThankYouReceived).
+*/
+const thankYouLetter: SideEffectPair = {
+	add: (s) => {
+		for (const player of s.players) {
+			if (
+				hasOrWillReceiveMail(player, MailFlag.ccBulletinThankYou) ||
+				player.mailReceived.has(MailFlag.ccBulletinThankYouReceived)
+			)
+				continue;
+			// Into the mailbox rather than tomorrow's mail, so it can be read straight away
+			const raw = player[Raw];
+			if (typeof raw.mailbox !== "object" || !raw.mailbox)
+				raw.mailbox = { string: [] };
+			raw.mailbox.string ??= [];
+			raw.mailbox.string.push(MailFlag.ccBulletinThankYou);
+		}
+	},
+	remove: (s) => {
+		// Take back the letter if it hasn't been read yet
+		for (const player of s.players) {
+			for (const list of [player[Raw].mailbox, player[Raw].mailForTomorrow]) {
+				const letters = lettersIn(list);
+				if (!letters.some((l) => isLetter(l, MailFlag.ccBulletinThankYou)))
+					continue;
+				(list as { string: string[] }).string = letters.filter(
+					(l) => !isLetter(l, MailFlag.ccBulletinThankYou),
+				);
+			}
+		}
+	},
+};
+
+/** Run side effects one after the other */
+const both = (...pairs: SideEffectPair[]): SideEffectPair => ({
+	add: (s, cc) => {
+		for (const pair of pairs) pair.add(s, cc);
+	},
+	remove: (s, cc) => {
+		for (const pair of pairs) pair.remove(s, cc);
+	},
+});
+
 function makeEffect(
 	mainFlag: MailFlag,
 	jojaFlag?: MailFlag,
@@ -125,7 +190,10 @@ export const bundleSideEffects = Object.freeze(
 		],
 		[
 			CCRoom.BulletinBoard,
-			makeEffect(MailFlag.ccBulletin, undefined, CCRoom.BulletinBoard),
+			both(
+				makeEffect(MailFlag.ccBulletin, undefined, CCRoom.BulletinBoard),
+				thankYouLetter,
+			),
 		],
 		[
 			CCRoom.AbandonedJojaMart,
@@ -147,7 +215,6 @@ export const bundleSideEffects = Object.freeze(
 				add: (s) => {
 					applyMail(s, (mail) => {
 						mail.add(MailFlag.ccIsComplete);
-						mail.add(MailFlag.ccBulletinThankYou);
 						// Make sure the player has seen the Junimo Note #83
 						// Otherwise the Junimo will be forever trapped out-of-bounds
 						mail.add(MailFlag.seenJunimoNote);
@@ -162,7 +229,6 @@ export const bundleSideEffects = Object.freeze(
 				remove: (s) => {
 					applyMail(s, (mail) => {
 						mail.delete(MailFlag.ccIsComplete);
-						mail.delete(MailFlag.ccBulletinThankYou);
 						// If CC is not complete, access should be revoked regardless of route
 						mail.delete(MailFlag.abandonedJojaMartAccessible);
 					});

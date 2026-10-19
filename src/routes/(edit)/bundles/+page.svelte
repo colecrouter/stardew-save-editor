@@ -48,8 +48,7 @@
 			icon: "📌",
 			reward:
 				"+2 friendship hearts (500 points) with every villager you've met who isn't a marriage candidate",
-			// The editor only sets the room's flags; it doesn't deliver the letter
-			note: "In-game the hearts are given when Lewis's thank-you letter is read. The editor doesn't send that letter, so raise friendships on the Relationships page instead.",
+			note: "Restoring the room puts the thank-you letter in each farmer's mailbox; the hearts are given when it's read in-game.",
 		},
 		{
 			room: CCRoom.Vault,

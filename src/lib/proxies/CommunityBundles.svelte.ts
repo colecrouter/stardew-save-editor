@@ -68,7 +68,8 @@ export enum BundleName {
 	Enchanter = 33,
 	Dye = 34,
 	Fodder = 35,
-	Vault = 36,
+	/** The Abandoned JojaMart's Missing Bundle (not the Vault room) */
+	Missing = 36,
 }
 
 /**
@@ -226,9 +227,9 @@ export class CommunityBundles extends SvelteMap<BundleName, Bundle> {
 			);
 		}
 
-		// Force key 36 to false as a safety measure
+		// The Missing Bundle's reward crashes the game, so keep it false
 		for (const kv of rewards.item) {
-			if (kv.key.int === 36 && kv.value.boolean === true) {
+			if (kv.key.int === BundleName.Missing && kv.value.boolean === true) {
 				kv.value.boolean = false;
 				console.warn(
 					"Corrected bundleRewards[36] from true to false to prevent a crash",

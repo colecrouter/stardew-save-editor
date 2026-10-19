@@ -10,9 +10,10 @@
 
 	interface Props {
 		recipes: Recipes<"cookingRecipes" | "craftingRecipes">;
+		title?: string;
 	}
 
-	let { recipes = $bindable() }: Props = $props();
+	let { recipes = $bindable(), title = "Crafting Recipes" }: Props = $props();
 
 	let filter = $state("");
 	let regex = $derived.by(() => searchRegexp(filter));
@@ -35,7 +36,7 @@
 </script>
 
 <UiContainer>
-	<h3>Crafting Recipes</h3>
+	<h3>{title}</h3>
 
 	<div class="search">
 		<UiInput type="text" placeholder="Search..." bind:value={filter} />
@@ -111,7 +112,8 @@
 	.wrapper {
 		display: flex;
 		flex-direction: column;
-		height: 20rem;
+		/* Fill the window below the page header, never below 20rem */
+		height: max(20rem, calc(100dvh - 306px));
 		overflow-y: scroll;
 	}
 

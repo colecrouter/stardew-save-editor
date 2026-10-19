@@ -53,7 +53,7 @@ export interface Save {
 	mine_permanentMineChanges: MinePermanentMineChanges;
 	mine_lowestLevelReached: number;
 	weatherForTomorrow: WeatherForTomorrow;
-	whichFarm: number;
+	whichFarm: number | string;
 	mine_lowestLevelReachedForOrder: number;
 	skullCavesDifficulty: number;
 	minesDifficulty: number;

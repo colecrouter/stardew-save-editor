@@ -3,6 +3,7 @@ import { fireEvent, render, within } from "@testing-library/svelte";
 import { flushSync, tick } from "svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setup as mockIDB } from "vitest-indexeddb";
+import { CCRoom } from "$lib/bundleSideEffects";
 import { characters } from "$lib/NPCs";
 import { Raw } from "$lib/proxies";
 import {
@@ -22,11 +23,13 @@ import {
 	ToastManager,
 } from "../src/lib/ToastManager.svelte";
 import buildingsPage from "../src/routes/(edit)/(list)/buildings/+page.svelte";
+import cookingPage from "../src/routes/(edit)/(list)/cooking/+page.svelte";
 import craftingPage from "../src/routes/(edit)/(list)/crafting/+page.svelte";
 import appearancePage from "../src/routes/(edit)/appearance/+page.svelte";
 import bundlesPage from "../src/routes/(edit)/bundles/+page.svelte";
 import characterPage from "../src/routes/(edit)/character/+page.svelte";
 import eventsPage from "../src/routes/(edit)/events/+page.svelte";
+import farmPage from "../src/routes/(edit)/farm/+page.svelte";
 import editorPage from "../src/routes/(edit)/inventory/+page.svelte";
 import BuildingSprite from "../src/routes/(edit)/inventory/BuildingSprite.svelte";
 import relationshipsPage from "../src/routes/(edit)/relationships/+page.svelte";
@@ -202,6 +205,58 @@ describe("Save Manager Integration Tests", () => {
 					}
 				}
 			}
+		});
+
+		it("should group bundles by room, in game order, with each room's reward", async () => {
+			const page = harness.render(bundlesPage);
+			flushSync();
+			const membership = page.getByTestId(
+				"joja-membership-checkbox",
+			) as HTMLInputElement;
+			if (membership.checked) {
+				await fireEvent.click(membership); // disable
+			}
+
+			const rooms = page.getAllByTestId("bundle-room");
+			expect(rooms.map((r) => r.getAttribute("data-room"))).toEqual([
+				"Crafts Room",
+				"Pantry",
+				"Fish Tank",
+				"Boiler Room",
+				"Bulletin Board",
+				"Vault",
+				"Abandoned JojaMart",
+			]);
+
+			// Every bundle is shown, inside its room
+			const bundles = saveManager.save?.communityBundles;
+			expect(page.getAllByTestId("bundle-card").length).toBe(bundles?.size);
+
+			// Each room shows what restoring it unlocks
+			const rewards = rooms.map(
+				(r) => within(r).getByTestId("bundle-room-reward").textContent ?? "",
+			);
+			expect(rewards[0]).toContain("Quarry");
+			expect(rewards[1]).toContain("Greenhouse");
+			expect(rewards[2]).toContain("Glittering Boulder");
+			expect(rewards[3]).toContain("Minecarts");
+			expect(rewards[4]).toContain("friendship");
+			expect(rewards[5]).toContain("Bus");
+			expect(rewards[6]).toContain("Movie Theater");
+
+			// Finishing every bundle in a room marks it as restored
+			const pantry = rooms[1] as HTMLElement;
+			const progress = within(pantry).getByTestId("bundle-room-progress");
+			expect(pantry.classList.contains("done")).toBe(false);
+			expect(progress.textContent).not.toContain("Restored");
+			for (const bundle of bundles?.values() ?? []) {
+				if (bundle.room !== CCRoom.Pantry) continue;
+				for (const item of bundle.requiredItems) item.submitted = true;
+			}
+			flushSync();
+			expect(pantry.classList.contains("done")).toBe(true);
+			expect(progress.textContent).toContain("6/6 bundles");
+			expect(progress.textContent).toContain("Restored");
 		});
 
 		it("should toggle Joja membership and set a project", async () => {
@@ -518,6 +573,18 @@ describe("Save Manager Integration Tests", () => {
 			).toBe(true);
 		});
 
+		it("titles the crafting and cooking lists", async () => {
+			const crafting = harness.render(craftingPage);
+			expect(crafting.getByRole("heading", { level: 3 }).textContent).toBe(
+				"Crafting Recipes",
+			);
+			crafting.unmount();
+			const cooking = harness.render(cookingPage);
+			expect(cooking.getByRole("heading", { level: 3 }).textContent).toBe(
+				"Cooking Recipes",
+			);
+		});
+
 		it("should toggle recipe (unlock & lock)", async () => {
 			const page = harness.render(craftingPage);
 			const recipe = page.getByTestId("recipe-keg");
@@ -717,6 +784,136 @@ describe("Save Manager Integration Tests", () => {
 				const rawFriend = friendship[Raw];
 				expect(rawFriend.value.Friendship.Points).toBe(targetHearts * 250);
 			}
+		});
+
+		it("should filter villagers by name", async () => {
+			const page = harness.render(relationshipsPage);
+			const names = () =>
+				page
+					.queryAllByTestId("friendship-name")
+					.map((name) => name.textContent?.trim());
+			const all = names();
+			expect(all.length).toBeGreaterThan(1);
+			expect(all).toContain("Lewis");
+
+			// Case-insensitive, ignoring surrounding whitespace
+			const search = page.getByTestId("relationships-search");
+			await fireEvent.input(search, { target: { value: "  lEW " } });
+			expect(names()).toEqual(["Lewis"]);
+			// The encountered count still reflects every villager
+			expect(page.getByText(`NPCs encountered: ${all.length}`)).toBeTruthy();
+
+			await fireEvent.input(search, { target: { value: "zzzz" } });
+			expect(names()).toEqual([]);
+			expect(page.getByText('No villagers match "zzzz".')).toBeTruthy();
+
+			await fireEvent.click(page.getByTestId("relationships-search-clear"));
+			expect((search as HTMLInputElement).value).toBe("");
+			expect(names()).toEqual(all);
+			expect(page.queryByText(/No villagers match/)).toBeNull();
+			expect(page.queryByTestId("relationships-search-clear")).toBeNull();
+
+			// Escape also clears the search
+			await fireEvent.input(search, { target: { value: "lew" } });
+			expect(names()).toEqual(["Lewis"]);
+			await fireEvent.keyDown(search, { key: "Escape" });
+			expect(names()).toEqual(all);
+		});
+	});
+
+	describe("Farm", () => {
+		it("applies the farm name and profit margin to every farmer", async () => {
+			const page = harness.render(farmPage);
+			const save = saveManager.save;
+			if (!save) return;
+
+			await fireEvent.input(page.getByTestId("farm-name"), {
+				target: { value: "Moonlight" },
+			});
+			await fireEvent.input(page.getByTestId("profit-margin"), {
+				target: { value: "50" },
+			});
+			flushSync();
+
+			for (const player of save.players) {
+				expect(player.raw.farmName).toBe("Moonlight");
+				expect(player.raw.difficultyModifier).toBe(0.5);
+			}
+		});
+
+		it("accepts a custom profit margin", async () => {
+			const page = harness.render(farmPage);
+			const save = saveManager.save;
+			if (!save) return;
+			const input = page.getByTestId("profit-margin") as HTMLInputElement;
+			expect(input.value).toBe("100");
+
+			await fireEvent.input(input, { target: { value: "130" } });
+			flushSync();
+
+			for (const player of save.players) {
+				expect(player.raw.difficultyModifier).toBe(1.3);
+			}
+		});
+
+		it("resets a cleared profit margin to normal", async () => {
+			const page = harness.render(farmPage);
+			const save = saveManager.save;
+			if (!save) return;
+			const input = page.getByTestId("profit-margin") as HTMLInputElement;
+
+			await fireEvent.input(input, { target: { value: "50" } });
+			await fireEvent.input(input, { target: { value: "" } });
+			flushSync();
+			// Nothing is written while the field is empty
+			expect(save.players[0]?.raw.difficultyModifier).toBe(0.5);
+
+			await fireEvent.blur(input);
+			flushSync();
+			expect(save.players[0]?.raw.difficultyModifier).toBe(1);
+		});
+
+		it("edits monster spawning and mine rewards", async () => {
+			const page = harness.render(farmPage);
+			const game = saveManager.save?.raw.SaveGame;
+			if (!game) return;
+			expect(game.shouldSpawnMonsters).toBe(false);
+
+			await fireEvent.click(page.getByTestId("spawn-monsters"));
+			await choose(page.getByTestId("mine-rewards"), "Remixed");
+			flushSync();
+
+			expect(game.shouldSpawnMonsters).toBe(true);
+			expect(game.shuffleMineChests).toBe("Remixed");
+		});
+
+		it("shows creation-only settings as read-only", () => {
+			const page = harness.render(farmPage);
+			const values = page
+				.getAllByTestId("locked-setting")
+				.map((el) => el.textContent);
+			// TestSave is a Hill-top farm (whichFarm 3)
+			expect(values).toContain("Hill-top");
+			expect(values).toContain("390176213");
+		});
+
+		it("names Meadowlands by its farm type ID", async () => {
+			// 1.6 saves Meadowlands and modded farms by ID instead of an index
+			harness.cleanup();
+			harness = await createPageHarness((xml) =>
+				xml.replace(
+					"<whichFarm>3</whichFarm>",
+					"<whichFarm>MeadowlandsFarm</whichFarm>",
+				),
+			);
+			saveManager = harness.saveManager;
+			expect(saveManager.save?.raw.SaveGame.whichFarm).toBe("MeadowlandsFarm");
+
+			const page = harness.render(farmPage);
+			const values = page
+				.getAllByTestId("locked-setting")
+				.map((el) => el.textContent);
+			expect(values).toContain("Meadowlands");
 		});
 	});
 

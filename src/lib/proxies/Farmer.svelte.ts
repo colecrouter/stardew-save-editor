@@ -65,6 +65,8 @@ export class Farmer implements DataProxy<Player> {
 	public totalMoneyEarned: number;
 	public name: string;
 	public farmName: string;
+	/** The "Profit Margin" new-game option, as a price multiplier (1 = normal). The game reads the host's. */
+	public difficultyModifier: number;
 	public favoriteThing: string;
 	public clubCoins: number;
 	public skin: number;
@@ -204,6 +206,11 @@ export class Farmer implements DataProxy<Player> {
 		this.favoriteThing = $state(this[Raw].favoriteThing);
 		$effect(() => {
 			this[Raw].favoriteThing = this.favoriteThing;
+		});
+
+		this.difficultyModifier = $state(this[Raw].difficultyModifier ?? 1);
+		$effect(() => {
+			this[Raw].difficultyModifier = this.difficultyModifier;
 		});
 
 		this.clubCoins = $state(this[Raw].clubCoins);

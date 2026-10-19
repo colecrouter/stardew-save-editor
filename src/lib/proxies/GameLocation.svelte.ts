@@ -8,7 +8,7 @@ import type {
 	Item as SaveItem,
 	TileLocation,
 } from "$types/save";
-import { type DataProxy, Raw } from ".";
+import { type DataProxy, Dispose, Raw } from ".";
 
 /** A list of longs from the save, as strings (big ones are parsed as strings anyway) */
 const readLongs = (container: { long: unknown } | "" | undefined) => {
@@ -42,6 +42,10 @@ export class GameLocation implements DataProxy<Location> {
 
 		this.animals = $state(this.getAnimals());
 		$effect(() => this.setAnimals(this.animals));
+		// Adopted animals have effect roots of their own (FarmAnimal.fromName), so end them with the save
+		$effect(() => () => {
+			for (const animal of this.animals) animal[Dispose]?.();
+		});
 
 		this.animalsThatLiveHere = $state(readLongs(this[Raw].animalsThatLiveHere));
 		$effect(() => this.setAnimalsThatLiveHere(this.animalsThatLiveHere));

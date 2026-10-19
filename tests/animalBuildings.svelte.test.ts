@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { flushSync } from "svelte";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { setup as mockIDB } from "vitest-indexeddb";
 import {
 	animalOptions,
@@ -9,9 +9,9 @@ import {
 	purchasedAnimalTopic,
 	upgradeTiers,
 } from "$lib/animalBuildings";
-import { Raw } from "$lib/proxies";
+import { Dispose, Raw } from "$lib/proxies";
 import type { Building } from "$lib/proxies/Building.svelte";
-import { newAnimalId } from "$lib/proxies/FarmAnimal.svelte";
+import { type FarmAnimal, newAnimalId } from "$lib/proxies/FarmAnimal.svelte";
 import type { Farmer } from "$lib/proxies/Farmer.svelte";
 import { XMLManager } from "$lib/workers/xml";
 import type { GameLocation as Location } from "../codegen/save";
@@ -714,5 +714,78 @@ describe("coops and barns", () => {
 		expect(() => coop.changeType(tier(coop, "Big Coop"))).toThrow(
 			"still being built",
 		);
+	});
+
+	describe("adopted animals' effects", () => {
+		/** Adopt an animal, the way the add form does (outside any effect), watching its Dispose */
+		const adopt = (b: Building, type: string, name: string) => {
+			const animal = b.adoptAnimal(type, name, save().player);
+			const dispose = vi.fn(animal[Dispose]);
+			animal[Dispose] = dispose;
+			return { animal, dispose };
+		};
+		/** Whether an animal's edits still reach the save */
+		const isLive = (animal: FarmAnimal) => {
+			animal.friendshipTowardFarmer += 1;
+			flushSync();
+			return (
+				animal[Raw].value.FarmAnimal.friendshipTowardFarmer ===
+				animal.friendshipTowardFarmer
+			);
+		};
+
+		it("end when the save is closed", () => {
+			const { animal, dispose } = adopt(building(BARN_ID), "White Cow", "Moo");
+			const clucky = save().farmAnimals.find((a) => a.name === "Clucky");
+			if (!clucky) throw new Error("No Clucky");
+			expect(isLive(animal)).toBe(true);
+			expect(dispose).not.toHaveBeenCalled();
+
+			saveManager.reset();
+			expect(dispose).toHaveBeenCalledOnce();
+			expect(isLive(animal)).toBe(false);
+			// Animals loaded with the save end with it too
+			expect(isLive(clucky)).toBe(false);
+		});
+
+		it("end when another save is opened", async () => {
+			const { animal, dispose } = adopt(building(BARN_ID), "White Cow", "Moo");
+			await saveManager.import(new File([xml], "TestSave"));
+			expect(dispose).toHaveBeenCalledOnce();
+			expect(isLive(animal)).toBe(false);
+
+			// The new save's animals are fine, and closing it doesn't end the old ones again
+			const next = adopt(building(BARN_ID), "White Cow", "Moo");
+			expect(isLive(next.animal)).toBe(true);
+			saveManager.reset();
+			expect(next.dispose).toHaveBeenCalledOnce();
+			expect(dispose).toHaveBeenCalledOnce();
+		});
+
+		it("carry on through upgrades and downgrades", () => {
+			const barn = building(BARN_ID);
+			const cow = adopt(barn, "White Cow", "Moo");
+			barn.changeType(tier(barn, "Big Barn"));
+			barn.changeType(tier(barn, "Barn"));
+			// A downgrade the animals don't fit into is refused, so none are left behind
+			const coop = building(COOP_ID);
+			coop.changeType(tier(coop, "Big Coop"));
+			const duck = adopt(coop, "Duck", "Daffy");
+			expect(() => coop.changeType(tier(coop, "Coop"))).toThrow(
+				"5 animals live here",
+			);
+
+			for (const [b, { animal, dispose }] of [
+				[barn, cow],
+				[coop, duck],
+			] as const) {
+				expect(b.indoorLocation?.animals).toContain(animal);
+				expect(isLive(animal)).toBe(true);
+				expect(dispose).not.toHaveBeenCalled();
+			}
+			saveManager.reset();
+			expect(cow.dispose).toHaveBeenCalledOnce();
+			expect(duck.dispose).toHaveBeenCalledOnce();
+		});
 	});
 });

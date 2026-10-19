@@ -3,6 +3,7 @@
 	import type { Friendship } from "$lib/proxies/Friendship.svelte";
 	import EmojiRange from "$lib/ui/EmojiRange.svelte";
 	import UiContainerSmall from "$lib/ui/UIContainerSmall.svelte";
+	import UiInput from "$lib/ui/UIInput.svelte";
 
 	interface Props {
 		name: string;
@@ -28,6 +29,26 @@
 	<div class="main">
 		<div class="header">
 			<strong data-testid="friendship-name">{name}</strong>
+			<label
+				class="gifts"
+				title="Gifts given this week, which starts on Sunday. Villagers take 2 a week, plus one on their birthday, and a spouse one a day; a week with 2 gives +10 friendship when it ends. The count only lasts the week if they were given a gift this week: otherwise it goes back to 0 overnight, still giving the +10 if it's 2 or more."
+			>
+				🎁
+				<UiInput
+					type="number"
+					min="0"
+					max="7"
+					bind:value={() => npc.giftsThisWeek,
+					(v) => {
+						// Cleared while typing: wait for a number
+						if (v === null) return;
+						npc.giftsThisWeek = Number(v);
+					}}
+					aria-label={`Gifts given to ${name} this week`}
+					data-testid="friendship-gifts-week"
+				/>
+				<small>this week</small>
+			</label>
 		</div>
 
 		<EmojiRange
@@ -94,5 +115,21 @@
 		justify-content: space-between;
 		align-items: baseline;
 		gap: 8px;
+	}
+
+	.gifts {
+		display: flex;
+		align-items: center;
+		gap: 4px;
+		white-space: nowrap;
+	}
+
+	.gifts small {
+		font-size: 0.75em;
+		opacity: 0.8;
+	}
+
+	.gifts :global(input[type="number"]) {
+		width: 2.5em;
 	}
 </style>

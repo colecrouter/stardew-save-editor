@@ -1136,6 +1136,88 @@ describe("Save Manager Integration Tests", () => {
 			disposeAnimal();
 		});
 
+		describe("Animal settings", () => {
+			// A chicken, a cow and a pig, in the first building with an inside
+			const withAnimals = () => {
+				const save = saveManager.save;
+				const indoors = save?.farm?.buildings.find(
+					(candidate) => candidate.indoorLocation !== undefined,
+				)?.indoorLocation;
+				if (!save || !indoors) throw new Error("No building with an inside");
+
+				let animals!: FarmAnimal[];
+				const dispose = $effect.root(() => {
+					animals = [
+						FarmAnimal.fromName(
+							FarmAnimalType.WhiteChicken,
+							"Peep",
+							save.player,
+						),
+						FarmAnimal.fromName(FarmAnimalType.WhiteCow, "Daisy", save.player),
+						FarmAnimal.fromName(FarmAnimalType.Pig, "Truffles", save.player),
+					];
+				});
+				indoors.animals = animals;
+				flushSync();
+
+				const page = harness.render(buildingsPage);
+				const card = (name: string) => {
+					const card = page
+						.getByText(name, { selector: "h4" })
+						.closest("section");
+					if (!card) throw new Error(`No card for ${name}`);
+					return within(card as HTMLElement);
+				};
+				const raw = (name: string) => {
+					const animal = animals.find((animal) => animal.name === name);
+					if (!animal) throw new Error(`No animal called ${name}`);
+					return animal[Raw].value.FarmAnimal;
+				};
+				return { card, raw, dispose };
+			};
+
+			it("toggles whether an animal can get pregnant", async () => {
+				const { card, raw, dispose } = withAnimals();
+				// Only cows, goats, sheep and pigs can
+				expect(card("Peep").queryByTestId("animal-allow-pregnancy")).toBeNull();
+				expect(
+					card("Truffles").getByTestId("animal-allow-pregnancy"),
+				).toBeTruthy();
+
+				const pregnancy = card("Daisy").getByTestId(
+					"animal-allow-pregnancy",
+				) as HTMLInputElement;
+				expect(pregnancy.checked).toBe(true);
+				await fireEvent.click(pregnancy);
+				flushSync();
+				expect(raw("Daisy").allowReproduction).toBe(false);
+				expect(raw("Truffles").allowReproduction).toBe(true);
+				dispose();
+			});
+
+			it("feeds an animal a Golden Animal Cracker, except a pig", async () => {
+				const { card, raw, dispose } = withAnimals();
+				expect(
+					card("Truffles").queryByTestId("animal-golden-cracker"),
+				).toBeNull();
+				expect(card("Daisy").getByTestId("animal-golden-cracker")).toBeTruthy();
+
+				const cracker = card("Peep").getByTestId(
+					"animal-golden-cracker",
+				) as HTMLInputElement;
+				expect(cracker.checked).toBe(false);
+				await fireEvent.click(cracker);
+				flushSync();
+				expect(raw("Peep").hasEatenAnimalCracker).toBe(true);
+				expect(raw("Daisy").hasEatenAnimalCracker).toBe(false);
+
+				await fireEvent.click(cracker);
+				flushSync();
+				expect(raw("Peep").hasEatenAnimalCracker).toBe(false);
+				dispose();
+			});
+		});
+
 		it("should render a building sprite for known buildings", () => {
 			const save = saveManager.save;
 			if (!save?.farm) return;
@@ -1151,84 +1233,6 @@ describe("Save Manager Integration Tests", () => {
 
 			expect(view.container.textContent).not.toContain("??");
 			expect(view.container.querySelector(".item")).toBeTruthy();
-		});
-	});
-
-	describe("Animal settings", () => {
-		// A chicken, a cow and a pig, in the first building with an inside
-		const withAnimals = () => {
-			const save = saveManager.save;
-			const indoors = save?.farm?.buildings.find(
-				(candidate) => candidate.indoorLocation !== undefined,
-			)?.indoorLocation;
-			if (!save || !indoors) throw new Error("No building with an inside");
-
-			let animals!: FarmAnimal[];
-			const dispose = $effect.root(() => {
-				animals = [
-					FarmAnimal.fromName(FarmAnimalType.WhiteChicken, "Peep", save.player),
-					FarmAnimal.fromName(FarmAnimalType.WhiteCow, "Daisy", save.player),
-					FarmAnimal.fromName(FarmAnimalType.Pig, "Truffles", save.player),
-				];
-			});
-			indoors.animals = animals;
-			flushSync();
-
-			const page = harness.render(buildingsPage);
-			const card = (name: string) => {
-				const card = page
-					.getByText(name, { selector: "h4" })
-					.closest("section");
-				if (!card) throw new Error(`No card for ${name}`);
-				return within(card as HTMLElement);
-			};
-			const raw = (name: string) => {
-				const animal = animals.find((animal) => animal.name === name);
-				if (!animal) throw new Error(`No animal called ${name}`);
-				return animal[Raw].value.FarmAnimal;
-			};
-			return { card, raw, dispose };
-		};
-
-		it("toggles whether an animal can get pregnant", async () => {
-			const { card, raw, dispose } = withAnimals();
-			// Only cows, goats, sheep and pigs can
-			expect(card("Peep").queryByTestId("animal-allow-pregnancy")).toBeNull();
-			expect(
-				card("Truffles").getByTestId("animal-allow-pregnancy"),
-			).toBeTruthy();
-
-			const pregnancy = card("Daisy").getByTestId(
-				"animal-allow-pregnancy",
-			) as HTMLInputElement;
-			expect(pregnancy.checked).toBe(true);
-			await fireEvent.click(pregnancy);
-			flushSync();
-			expect(raw("Daisy").allowReproduction).toBe(false);
-			expect(raw("Truffles").allowReproduction).toBe(true);
-			dispose();
-		});
-
-		it("feeds an animal a Golden Animal Cracker, except a pig", async () => {
-			const { card, raw, dispose } = withAnimals();
-			expect(
-				card("Truffles").queryByTestId("animal-golden-cracker"),
-			).toBeNull();
-			expect(card("Daisy").getByTestId("animal-golden-cracker")).toBeTruthy();
-
-			const cracker = card("Peep").getByTestId(
-				"animal-golden-cracker",
-			) as HTMLInputElement;
-			expect(cracker.checked).toBe(false);
-			await fireEvent.click(cracker);
-			flushSync();
-			expect(raw("Peep").hasEatenAnimalCracker).toBe(true);
-			expect(raw("Daisy").hasEatenAnimalCracker).toBe(false);
-
-			await fireEvent.click(cracker);
-			flushSync();
-			expect(raw("Peep").hasEatenAnimalCracker).toBe(false);
-			dispose();
 		});
 	});
 });

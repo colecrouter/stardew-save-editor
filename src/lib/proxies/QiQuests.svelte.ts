@@ -1,5 +1,6 @@
 import { SvelteSet } from "svelte/reactivity";
 import qiQuestTemplates from "$generated/qiquests.json";
+import { totalDays } from "$lib/calendar";
 import type { SaveProxy } from "$lib/proxies/SaveFile.svelte";
 import type {
 	AvailableSpecialOrders,
@@ -195,12 +196,9 @@ export class QiQuests
 		template: QiQuestTemplate,
 	): AvailableSpecialOrdersSpecialOrder {
 		const { year, currentSeason, dayOfMonth } = this.saveData[Raw].SaveGame;
-		const seasonIndex = ["spring", "summer", "fall", "winter"].indexOf(
-			currentSeason,
-		);
 		// Special-order deadlines use WorldDate.TotalDays (Spring 1, year 1 = 0),
 		// not the selected farmer's legacy daysPlayed statistic.
-		const totalDays = (year - 1) * 112 + seasonIndex * 28 + dayOfMonth - 1;
+		const today = totalDays({ year, season: currentSeason, day: dayOfMonth });
 
 		const objectives: QiObjective[] = template.objectives.map((objective) => ({
 			"@_xsi:type": `${objective.type}Objective`,
@@ -255,7 +253,7 @@ export class QiQuests
 			specialRule: template.specialRule,
 			readyForRemoval: false,
 			itemToRemoveOnEnd: -1,
-			dueDate: totalDays + template.durationDays,
+			dueDate: today + template.durationDays,
 			duration: template.duration,
 			questState: "InProgress",
 		};

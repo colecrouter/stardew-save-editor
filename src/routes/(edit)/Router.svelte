@@ -12,7 +12,7 @@
 	<UiButton href={resolve("/crafting")} alt="Crafting">🔨</UiButton>
 	<UiButton href={resolve("/cooking")} alt="Cooking">🍫</UiButton>
 	<UiButton href={resolve("/farmhands")} alt="Farmhands">👩‍🌾</UiButton>
-	<UiButton href={resolve("/farm")} alt="Farm">🚜</UiButton>
+	<UiButton href={resolve("/farm")} alt="Farm, date and weather">🚜</UiButton>
 	<UiButton href={resolve("/buildings")} alt="Buildings">🏠</UiButton>
 	<UiButton href={resolve("/bundles")} alt="Community Center">🎁</UiButton>
 	<UiButton href={resolve("/qi-quests")} alt="Qi's Quests">🀄</UiButton>

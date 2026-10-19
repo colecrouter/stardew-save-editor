@@ -52,7 +52,8 @@ export interface Save {
 	CustomData: string;
 	mine_permanentMineChanges: MinePermanentMineChanges;
 	mine_lowestLevelReached: number;
-	weatherForTomorrow: WeatherForTomorrow;
+	/** A weather ID like `Sun` or `Rain` (see `$lib/calendar`) */
+	weatherForTomorrow: string;
 	whichFarm: number | string;
 	mine_lowestLevelReachedForOrder: number;
 	skullCavesDifficulty: number;
@@ -270,14 +271,17 @@ export interface IntBoolKVArray {
 	item: KV<IntContainer, BoolContainer>[];
 }
 
+/** Each location context's weather, by context ID (`Default`, `Island`, `Desert`) */
 export interface LocationWeather {
 	item: LocationWeatherItem[];
 }
 
-export interface LocationWeatherItem {
-	LocationWeather: LocationWeatherClass;
-}
+export type LocationWeatherItem = KV<
+	StringContainer,
+	{ LocationWeather: LocationWeatherClass }
+>;
 
+/** The game's LocationWeather; its net fields are saved, then the same values again as properties */
 export interface LocationWeatherClass {
 	weatherForTomorrow: StringContainer;
 	weather: StringContainer;
@@ -287,21 +291,13 @@ export interface LocationWeatherClass {
 	isDebrisWeather: BoolContainer;
 	isGreenRain: BoolContainer;
 	monthlyNonRainyDayCount: IntContainer;
-	WeatherForTomorrow: WeatherForTomorrow;
+	WeatherForTomorrow: string;
 	IsRaining: boolean;
 	IsSnowing: boolean;
 	IsLightning: boolean;
 	IsDebrisWeather: boolean;
 	IsGreenRain: boolean;
 	Weather?: string;
-}
-
-export enum WeatherForTomorrow {
-	Bus = "bus",
-	Spring = "spring",
-	Sun = "Sun",
-	Winter = "winter",
-	WinterSun = "winter_Sun",
 }
 
 export interface Locations {
@@ -502,6 +498,7 @@ export interface BuildingsClass {
 }
 
 export interface Building {
+	"@_xsi:type"?: string;
 	id: string;
 	skinId: StringContainer;
 	nonInstancedIndoorsName: StringContainer;
@@ -725,7 +722,7 @@ export interface NPC {
 	birthday_Season?: Season;
 	defaultMap?: string;
 	loveInterest?: string;
-	dayScheduleName?: WeatherForTomorrow;
+	dayScheduleName?: string;
 }
 
 export interface LongIntArray {
@@ -880,6 +877,7 @@ export interface IndigoValue {
 }
 
 export interface TerrainFeature {
+	"@_xsi:type"?: string;
 	growthStage?: number;
 	treeType?: number;
 	health?: number;

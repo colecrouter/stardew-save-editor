@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import { fireEvent, render, within } from "@testing-library/svelte";
 import { flushSync } from "svelte";
 import { beforeEach, describe, expect, it } from "vitest";
 import { setup as mockIDB } from "vitest-indexeddb";
@@ -6,6 +7,7 @@ import { Raw } from "$lib/proxies";
 import qiQuestTemplates from "../generated/qiquests.json";
 import { SaveManager } from "../src/lib/SaveManager.svelte";
 import { XMLManager } from "../src/lib/workers/xml";
+import QuestList from "../src/routes/(edit)/(list)/qi-quests/QuestList.svelte";
 
 // A structurally realistic `<SpecialOrder>` block (shape borrowed from the
 // fixture's own QiChallenge2 entry) for building an accepted order under
@@ -64,6 +66,25 @@ describe("QiQuests", () => {
 	beforeEach(async () => {
 		fixture = (await readFile("tests/TestSave")).toString("utf-8");
 		saveManager = await importSave(fixture);
+	});
+
+	it("doesn't accept or cancel a quest when its text is clicked", async () => {
+		const quests = saveManager.save?.qiQuests;
+		if (!quests) throw new Error("Save not loaded");
+		expect(quests.inProgress).toEqual([]);
+		const { container } = render(QuestList, { quests });
+
+		const descriptions = container.querySelectorAll(".entry .description");
+		const last = descriptions[descriptions.length - 1] as HTMLElement;
+		await fireEvent.click(last);
+		expect(quests.inProgress).toEqual([]);
+
+		// The checkbox is still named after its quest
+		const first = qiQuestTemplates[0];
+		if (!first) throw new Error("No Qi quests");
+		expect(
+			within(container).getByRole("checkbox", { name: first.name }),
+		).toBeTruthy();
 	});
 
 	it("imports an empty board and persists newly offered quests", async () => {

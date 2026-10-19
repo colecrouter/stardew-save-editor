@@ -5,7 +5,7 @@ import { setup as mockIDB } from "vitest-indexeddb";
 import { Raw } from "$lib/proxies";
 import { SaveManager } from "../src/lib/SaveManager.svelte";
 
-// Verifies sanitizer keeps bundleRewards[36] false after completing all bundles.
+// Verifies finished bundles leave their rewards to collect, but bundleRewards[36] stays false.
 
 describe("CommunityBundles sanitizer", () => {
 	mockIDB();
@@ -23,7 +23,7 @@ describe("CommunityBundles sanitizer", () => {
 		cleanup();
 	});
 
-	it("forces bundleRewards[36] to stay false after all bundles are completed", async () => {
+	it("leaves rewards to collect but keeps bundleRewards[36] false after all bundles are completed", async () => {
 		const save = saveManager.save;
 		expect(save).toBeTruthy();
 		if (!save) return;
@@ -65,12 +65,8 @@ describe("CommunityBundles sanitizer", () => {
 		}
 
 		for (const kv of postRewards) {
-			if (kv.key.int === 36) {
-				expect(kv.value.boolean).toBe(false);
-			} else {
-				// unchanged
-				expect(kv.value.boolean).toBe(initialMap.get(kv.key.int));
-			}
+			// Every finished bundle leaves its reward to collect, except the Missing Bundle
+			expect(kv.value.boolean).toBe(kv.key.int !== 36);
 		}
 	});
 });

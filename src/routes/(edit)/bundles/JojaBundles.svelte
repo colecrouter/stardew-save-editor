@@ -42,9 +42,8 @@
 	// This probably is a fairly intuitive way to do it; enabling/disabling the membership won't affect the completed bundles
 	function setProject(room: CCRoom, checked: boolean) {
 		for (const bundle of bundles.values().filter((b) => b.room === room)) {
-			for (const item of bundle.requiredItems) {
-				item.submitted = checked;
-			}
+			if (checked) bundle.complete();
+			else bundle.clear();
 		}
 
 		// As an edge case, if all bundles are completed when changing from Joja to Community Center,
@@ -64,15 +63,16 @@
 		) {
 			const abandonedBundle = bundlesByRoom.get(CCRoom.AbandonedJojaMart);
 			for (const bundle of abandonedBundle ?? []) {
-				for (const item of bundle.requiredItems) {
-					item.submitted = checked;
-				}
+				if (checked) bundle.complete();
+				else bundle.clear();
 			}
 		}
 	}
 
+	// A project is bought once every bundle in its room is done
 	function getProject(room: CCRoom) {
-		return bundles.values().some((b) => b.room === room && b.completed);
+		const inRoom = [...bundles.values()].filter((b) => b.room === room);
+		return inRoom.length > 0 && inRoom.every((b) => b.completed);
 	}
 </script>
 
@@ -103,7 +103,7 @@
 				/>
 				<span class="project-name">{p.name}</span>
 				<span class="dots"></span>
-				<span class="price">{p.price} g</span>
+				<span class="price">{p.price.toLocaleString()}g</span>
 			</label>
 		{/each}
 		<div class="project-row last">

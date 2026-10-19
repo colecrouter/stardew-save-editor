@@ -39,6 +39,12 @@
 		}
 	});
 
+	const qualityNames = new Map([
+		[1, "Silver"],
+		[2, "Gold"],
+		[4, "Iridium"],
+	]);
+
 	const item = $derived.by(() => {
 		const key = typeof itemId === "number" ? itemId.toString() : itemId;
 		if (!key) return undefined;
@@ -61,18 +67,33 @@
 	<div class="item">
 		{#if item}
 			<ItemSprite {item} />
-			<span>{item.name}</span>
+			<span>
+				{#if quantity > 1}<span data-testid="bundle-item-quantity"
+						>{quantity}×</span
+					>{/if}
+				{item.name}
+				{#if qualityNames.has(quality)}
+					<span
+						class={`star quality-${quality}`}
+						title={`${qualityNames.get(quality)} quality or better`}
+						data-testid="bundle-item-quality">★</span
+					>
+				{/if}
+			</span>
 		{:else}
 			<div class="gold"></div>
 			<span
-				>{quantity}
+				>{quantity.toLocaleString()}g
 				<div hidden>gold</div></span
 			>
 		{/if}
 	</div>
 
 	{#if checked !== undefined}
-		<UiCheckbox bind:checked />
+		<UiCheckbox
+			bind:checked
+			aria-label={`${item?.name ?? `${quantity.toLocaleString()}g`} donated`}
+		/>
 	{/if}
 </div>
 
@@ -91,6 +112,23 @@
 		flex-direction: column;
 		align-items: center;
 		gap: 4px;
+	}
+
+	.star {
+		font-size: 1.1em;
+		-webkit-text-stroke: 0.5px #0006;
+	}
+
+	.quality-1 {
+		color: #c8d0d8;
+	}
+
+	.quality-2 {
+		color: #ffd23f;
+	}
+
+	.quality-4 {
+		color: #b56cff;
 	}
 
 	.gold {

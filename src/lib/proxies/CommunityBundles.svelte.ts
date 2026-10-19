@@ -79,6 +79,8 @@ export class CommunityBundles extends SvelteMap<BundleName, Bundle> {
 	private communityCenter: GameLocation;
 	private saveData: SaveProxy;
 	private hasRunOnce = false;
+	/** Each bundle's completion when side effects last ran, to spot bundles that change */
+	private lastCompletion = new Map<BundleName, boolean>();
 	/** Each room's completion when side effects last ran */
 	private lastRooms = new Map<CCRoom, boolean>();
 	/** Whether the whole Community Center was complete when side effects last ran */
@@ -146,10 +148,14 @@ export class CommunityBundles extends SvelteMap<BundleName, Bundle> {
 		const isJoja =
 			this.saveData.players[0]?.mailReceived.has(MailFlag.JojaMember) ?? false;
 		const overallComplete = this.isOverallComplete(completedRooms, isJoja);
+		const completion = new Map(
+			[...this.entries()].map(([id, b]) => [id, b.completed] as const),
+		);
 
 		// Skip side effects on first run (initial load) to preserve existing player mail flags
 		if (!this.hasRunOnce) {
 			this.hasRunOnce = true;
+			this.lastCompletion = completion;
 			this.lastRooms = new Map(completedRooms);
 			this.lastOverall = overallComplete;
 			this.lastJoja = isJoja;
@@ -157,6 +163,8 @@ export class CommunityBundles extends SvelteMap<BundleName, Bundle> {
 		}
 
 		const jojaChanged = isJoja !== this.lastJoja;
+		this.updateRewards(completion);
+		this.lastCompletion = completion;
 
 		// Apply side effects only to rooms whose completion changed, plus finished rooms
 		// when membership changes so their joja* flags follow it. Leaving the other rooms
@@ -237,6 +245,38 @@ export class CommunityBundles extends SvelteMap<BundleName, Bundle> {
 					.filter(([r]) => r !== CCRoom.AbandonedJojaMart)
 					// All six core rooms must be complete
 					.every(([, done]) => done);
+	}
+
+	/**
+	 * Mirror the game: finishing a bundle leaves its reward waiting in
+	 * bundleRewards, collected from the present in that room's bundle menu
+	 * (JunimoNoteMenu.checkIfBundleIsComplete). Un-finishing a bundle takes
+	 * back a reward that hasn't been collected.
+	 */
+	private updateRewards(completion: Map<BundleName, boolean>) {
+		const ccRaw = this.communityCenter[Raw] as GameLocationRaw;
+		for (const [id, completed] of completion) {
+			if (this.lastCompletion.get(id) === completed) continue;
+			// A waiting reward for a bundle without one (the Missing Bundle) crashes
+			// the game, which builds it from the empty reward text (see sanitizeBundleRewards)
+			if (
+				completed &&
+				(id === BundleName.Missing || !this.get(id)?.reward?.item)
+			)
+				continue;
+
+			// An empty <bundleRewards /> parses as ""
+			if (typeof ccRaw.bundleRewards !== "object" || !ccRaw.bundleRewards)
+				ccRaw.bundleRewards = { item: [] };
+			ccRaw.bundleRewards.item ??= [];
+			const entry = ccRaw.bundleRewards.item.find((kv) => kv.key.int === id);
+			if (entry) entry.value.boolean = completed;
+			else
+				ccRaw.bundleRewards.item.push({
+					key: { int: id },
+					value: { boolean: completed },
+				});
+		}
 	}
 
 	/**
@@ -349,6 +389,28 @@ export class Bundle {
 
 	private parse() {
 		return parseBundleValue(this.bundleData.string);
+	}
+
+	/**
+	 * Donate every item, as finishing a bundle in-game does: the game then marks
+	 * every one of its slots as done (JunimoNoteMenu.checkIfBundleIsComplete)
+	 */
+	complete() {
+		this.setAllSlots(true);
+	}
+
+	/** Take back every donated item */
+	clear() {
+		this.setAllSlots(false);
+	}
+
+	private setAllSlots(donated: boolean) {
+		for (const item of this.requiredItems) item.submitted = donated;
+		// The game keeps three slots per item, and only the first one for each item is
+		// ticked by a donation; finishing the bundle ticks the rest too
+		const slots = this.submitted.boolean;
+		for (let i = this.requiredItems.length; i < slots.length; i++)
+			slots[i] = donated;
 	}
 }
 

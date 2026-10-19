@@ -15,6 +15,10 @@
 	// Junimo Note
 	const sheet = `url(${asset("/assets/JunimoNote.png")})`;
 
+	let submitted = $derived(
+		bundle.requiredItems.filter((i) => i.submitted).length,
+	);
+
 	let posX = $derived(
 		`${(color % 2) * (-16 * 16) + (bundle.completed ? -224 : 0)}px`,
 	);
@@ -47,15 +51,37 @@
 					style:--y={posY}
 				></div>
 				<h2>{bundle.name} Bundle</h2>
+				<span class="progress" data-testid="bundle-progress">
+					{Math.min(
+						submitted,
+						bundle.requiredItemCount,
+					)}/{bundle.requiredItemCount}
+					{#if bundle.completed}✅{/if}
+				</span>
+				<button
+					type="button"
+					class="toggle"
+					data-testid="bundle-toggle"
+					onclick={(e) => {
+						// Don't open or close the card
+						e.preventDefault();
+						if (bundle.completed) bundle.clear();
+						else bundle.complete();
+					}}
+				>
+					{bundle.completed ? "Clear" : "Complete"}
+				</button>
 			</div>
 		</summary>
 
 		<h3>
 			Required Items
-			<span>
-				({bundle.requiredItems.filter((i) => i.submitted)
-					.length}/{bundle.requiredItemCount})
-			</span>
+			{#if bundle.requiredItemCount < bundle.requiredItems.length}
+				<small data-testid="bundle-pick"
+					>(any {bundle.requiredItemCount} of {bundle.requiredItems
+						.length})</small
+				>
+			{/if}
 		</h3>
 
 		<div class="container" data-testid="bundle-required-items">
@@ -98,11 +124,41 @@
 
 	.header {
 		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		width: calc(100% - 1.5em);
 
 		h2 {
 			margin-bottom: 4px;
 			margin-left: 32px;
 		}
+	}
+
+	.progress {
+		flex: 1;
+		font-weight: bold;
+		white-space: nowrap;
+	}
+
+	.toggle {
+		font: inherit;
+		font-size: 0.85em;
+		padding: 2px 8px;
+		cursor: pointer;
+		border: solid 2px #9c613b;
+		border-bottom-color: #6f3b31;
+		border-right-color: #6f3b31;
+		border-radius: 4px;
+		background-color: #f9bb65;
+		color: inherit;
+	}
+
+	.toggle:hover {
+		filter: brightness(0.9);
+	}
+
+	summary {
+		cursor: pointer;
 	}
 
 	.card {

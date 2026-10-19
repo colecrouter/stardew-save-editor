@@ -309,6 +309,56 @@ describe("Save Manager Integration Tests", () => {
 		});
 	});
 
+	describe("Community Center completion", () => {
+		it("completes and clears a whole room from its button", async () => {
+			const page = harness.render(bundlesPage);
+			flushSync();
+			const membership = page.getByTestId(
+				"joja-membership-checkbox",
+			) as HTMLInputElement;
+			if (membership.checked) await fireEvent.click(membership);
+			expect(page.queryByText(/Under Construction/)).toBeNull();
+
+			const pantry = page
+				.getAllByTestId("bundle-room")
+				.find((r) => r.getAttribute("data-room") === "Pantry") as HTMLElement;
+			const toggle = within(pantry).getByTestId("bundle-room-toggle");
+			const progress = within(pantry).getByTestId("bundle-room-progress");
+			const host = saveManager.save?.players[0];
+
+			expect(toggle.textContent).toContain("Complete room");
+			await fireEvent.click(toggle);
+			expect(progress.textContent).toContain("6/6 bundles");
+			expect(toggle.textContent).toContain("Clear room");
+			expect(host?.mailReceived.has(MailFlag.ccPantry)).toBe(true);
+
+			await fireEvent.click(toggle);
+			expect(progress.textContent).toContain("0/6 bundles");
+			expect(host?.mailReceived.has(MailFlag.ccPantry)).toBe(false);
+		});
+
+		it("completes one bundle from its card", async () => {
+			const page = harness.render(bundlesPage);
+			flushSync();
+			const membership = page.getByTestId(
+				"joja-membership-checkbox",
+			) as HTMLInputElement;
+			if (membership.checked) await fireEvent.click(membership);
+
+			const card = page
+				.getAllByTestId("bundle-card")
+				.find(
+					(c) => c.getAttribute("data-bundle-name") === "Spring Crops",
+				) as HTMLElement;
+			const toggle = within(card).getByTestId("bundle-toggle");
+			await fireEvent.click(toggle);
+			expect(within(card).getByTestId("bundle-progress").textContent).toContain(
+				"4/4",
+			);
+			expect(toggle.textContent).toContain("Clear");
+		});
+	});
+
 	describe("Inventory Management", () => {
 		it("should create and edit items", async () => {
 			const page = harness.render(editorPage);

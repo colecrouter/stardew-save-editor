@@ -1,6 +1,6 @@
 import { flushSync } from "svelte";
 import { describe, expect, it } from "vitest";
-import { Raw } from "$lib/proxies";
+import { Dispose, Raw } from "$lib/proxies";
 import { createRandom, rollFairyBox } from "$lib/TrinketStats";
 import { Item } from "../src/lib/proxies/Item.svelte";
 import {
@@ -8,6 +8,7 @@ import {
 	MannequinProxy,
 	ToolProxy,
 	TrinketProxy,
+	WateringCanProxy,
 } from "../src/lib/proxies/items";
 
 /*
@@ -291,6 +292,17 @@ describe("Item", () => {
 				"@_xsi:type": "WateringCan",
 			});
 		});
+	});
+
+	it("writes Bottomless to both of the watering can's saved fields", () => {
+		const item = Item.fromName("Steel Watering Can");
+		if (!(item instanceof WateringCanProxy)) throw new Error("Not a can");
+		item.isBottomless = true;
+		flushSync();
+		// Saves hold the field and the property; the game reads the property last
+		expect(item[Raw].isBottomless).toBe(true);
+		expect(item[Raw].IsBottomless).toBe(true);
+		item[Dispose]?.();
 	});
 
 	it("should create a Hoe", () => {

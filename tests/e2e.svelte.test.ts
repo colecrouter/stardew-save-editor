@@ -1435,4 +1435,73 @@ describe("Save Manager Integration Tests", () => {
 			expect(page.queryByLabelText("Chest type")).toBeNull();
 		});
 	});
+
+	describe("Chest item quality", () => {
+		const renderChests = () => {
+			const toastManager = new ToastManager();
+			const context = setToastManagerContext(toastManager);
+			return { page: harness.render(chestsPage, { context }), toastManager };
+		};
+
+		const itemsIn = (chestIndex: number) => [
+			...(saveManager.save?.chests[chestIndex]?.inventory.values() ?? []),
+		];
+
+		it("sets every listed item that can have a quality to the clicked star", async () => {
+			const { page, toastManager } = renderChests();
+			const items = itemsIn(0).filter((item) => item !== undefined);
+			// Fish and forage have a quality; tools and resources don't
+			const withQuality = items.filter((item) => item.quality !== undefined);
+			const without = items.filter((item) => item.quality === undefined);
+			expect(withQuality.map((item) => item.name)).toEqual([
+				"Sap",
+				"Sunfish",
+				"Daffodil",
+				"Chub",
+				"Cave Carrot",
+			]);
+			const saved = (item: (typeof items)[number]) => {
+				const raw = item[Raw] as {
+					quality?: number;
+					price?: number;
+					edibility?: number;
+				};
+				return [raw.quality, raw.price, raw.edibility];
+			};
+			const before = new Map(items.map((item) => [item, saved(item)]));
+			// A fridge is in another group, so it's left alone
+			const fridge = saveManager.save?.chests.find(
+				(chest) => chest.metadata.kind === "fridge",
+			);
+			const parsnip = ItemFactory.fromName("Parsnip");
+			fridge?.inventory.set(0, parsnip);
+			flushSync();
+
+			await fireEvent.click(page.getByTestId("chest-quality-2"));
+			flushSync();
+			for (const item of withQuality) {
+				const [, price, edibility] = before.get(item) ?? [];
+				expect(item.quality).toBe(2);
+				// The game applies quality to the saved base price and edibility itself
+				expect(saved(item)).toEqual([2, price, edibility]);
+			}
+			for (const item of without) expect(saved(item)).toEqual(before.get(item));
+			expect(parsnip.quality).toBe(0);
+			expect(toastManager.toasts.at(-1)?.message).toBe(
+				"Set 5 items in chests to Gold quality",
+			);
+
+			await fireEvent.click(page.getByTestId("chest-quality-0"));
+			for (const item of withQuality) expect(item.quality).toBe(0);
+		});
+
+		it("says so when nothing listed can have a quality", async () => {
+			const { page, toastManager } = renderChests();
+			await choose(page.getByTestId("chest-group"), "farm-fridges");
+			await fireEvent.click(page.getByTestId("chest-quality-4"));
+			expect(toastManager.toasts.at(-1)?.message).toBe(
+				"No items in farm / cabin fridges can have a quality",
+			);
+		});
+	});
 });

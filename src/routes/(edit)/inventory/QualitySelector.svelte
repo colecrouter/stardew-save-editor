@@ -1,5 +1,6 @@
 <script lang="ts" module>
-	const qualityLevels = new Map([
+	/** The qualities an item can have, and their names */
+	export const qualityLevels = new Map([
 		[0, "Normal"],
 		[1, "Silver"],
 		[2, "Gold"],

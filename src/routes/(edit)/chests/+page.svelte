@@ -28,6 +28,7 @@
 	import ItemSlot from "../inventory/ItemSlot.svelte";
 	import ItemSprite from "../inventory/ItemSprite.svelte";
 	import ItemView from "../inventory/ItemView.svelte";
+	import { qualityLevels } from "../inventory/QualitySelector.svelte";
 
 	const toastManager = getToastManager();
 	const save = getSaveManager().save;
@@ -272,6 +273,28 @@
 		}
 		toastManager.add(new Toast("Expanded to a 36-slot Chest", "success"));
 	};
+
+	/** Set the quality of every item in the listed chests that can have one */
+	const setQuality = (quality: number, name: string) => {
+		let changed = 0;
+		for (const chest of selectedGroup?.chests ?? []) {
+			for (const item of chest.inventory.values()) {
+				// Only items in categories with qualities (crops, fish, artisan goods...) have one
+				if (item?.quality === undefined) continue;
+				item.quality = quality;
+				changed++;
+			}
+		}
+		const where = selectedGroup?.name.toLowerCase() ?? "these chests";
+		toastManager.add(
+			changed
+				? new Toast(
+						`Set ${changed} item${changed === 1 ? "" : "s"} in ${where} to ${name} quality`,
+						"success",
+					)
+				: new Toast(`No items in ${where} can have a quality`, "failure"),
+		);
+	};
 </script>
 
 {#if save.chests.length === 0}
@@ -360,6 +383,21 @@
 				{/each}
 			</UiSelect>
 		</label>
+		<div class="bulk-quality">
+			<small>Set the quality of every item listed:</small>
+			{#each qualityLevels as [quality, name]}
+				<button
+					type="button"
+					class={`star quality-${quality}`}
+					title={`${name} quality`}
+					aria-label={`Set every item listed to ${name} quality`}
+					data-testid={`chest-quality-${quality}`}
+					onclick={() => setQuality(quality, name)}
+				>
+					{quality === 0 ? "☆" : "⭐"}
+				</button>
+			{/each}
+		</div>
 	</UiContainer>
 
 	<div class="workspace">
@@ -575,6 +613,57 @@
 		display: flex;
 		flex-direction: column;
 		gap: 4px;
+	}
+
+	.bulk-quality {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 4px;
+		margin-top: 6px;
+	}
+
+	.bulk-quality small {
+		margin-right: 4px;
+	}
+
+	/* The item editor's quality stars */
+	.star {
+		all: unset;
+		padding: 0 2px;
+		cursor: pointer;
+		user-select: none;
+		transition: transform 0.1s;
+	}
+
+	.star:hover,
+	.star:focus-visible {
+		transform: scale(1.25);
+	}
+
+	.quality-0 {
+		font-size: 1.25em;
+	}
+
+	.quality-1 {
+		text-shadow:
+			0 0 0 #dadfe5,
+			0 0 2px #aaadb2;
+		color: transparent;
+	}
+
+	.quality-2 {
+		text-shadow:
+			0 0 0 #ffff18,
+			0 0 2px #cccc13;
+		color: transparent;
+	}
+
+	.quality-4 {
+		text-shadow:
+			0 0 0 #db67c4,
+			0 0 2px #a74f96;
+		color: transparent;
 	}
 
 	.picked {

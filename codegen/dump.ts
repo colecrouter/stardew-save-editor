@@ -1,3 +1,4 @@
+import { existsSync, readFileSync } from "node:fs";
 import {
 	copyFile,
 	mkdir,
@@ -23,6 +24,7 @@ import tools from "../content/Data/Tools.json" with { type: "json" };
 import trinkets from "../content/Data/Trinkets.json" with { type: "json" };
 import weapons from "../content/Data/Weapons.json" with { type: "json" };
 import { characters } from "../src/lib/NPCs.js";
+import { getBuildMaterials } from "./buildingCost.js";
 import {
 	createArtisanGoods,
 	fixTexture,
@@ -39,6 +41,7 @@ import {
 	type RegularObject,
 	type Size,
 } from "./items.js";
+import { createLocalizedTextResolver } from "./localizedText.js";
 import {
 	createSpecialOrderResolver,
 	parseRequiredCount,
@@ -252,6 +255,18 @@ const juices = createArtisanGoods(
 const trinketsArray = transformJSONItems(trinkets, "Trinket");
 const mannequinsArray = transformJSONItems(mannequins, "Mannequin");
 const notUndefined = <T>(x: T | undefined): x is T => x !== undefined;
+
+// Descriptions in Data/*.json are `[LocalizedText Strings\X:Key]` tokens; resolve them to English text
+const resolveLocalizedText = createLocalizedTextResolver((asset) => {
+	const path = `./content/${asset.replaceAll("\\", "/")}.json`;
+	return existsSync(path)
+		? (JSON.parse(readFileSync(path, "utf-8")) as Record<string, string>)
+		: undefined;
+});
+const resolveDescription = (description: string | null | undefined) =>
+	description?.startsWith("[LocalizedText ")
+		? resolveLocalizedText(description)
+		: description;
 const writeToFile = JSON.stringify(
 	[
 		...objectsArray.filter(
@@ -279,7 +294,10 @@ const writeToFile = JSON.stringify(
 		...mannequinsArray,
 	]
 		.filter(notUndefined)
-		.map((item) => [item.name, item]),
+		.map((item) => [
+			item.name,
+			{ ...item, description: resolveDescription(item.description) },
+		]),
 );
 
 await rm("./generated", { recursive: true, force: true });
@@ -520,6 +538,11 @@ async function getBuildingTextureSize(texture: string | undefined) {
 	}
 }
 
+// The editor looks items up by name, so build materials are saved by name
+const objectNames = new Map(
+	objectsArray.map((obj) => [String(obj._key), String(obj.name)]),
+);
+
 const buildingsArray = await Promise.all(
 	Object.entries(buildings).map(async ([key, obj]) => {
 		const texture = getBuildingTexture(obj.Texture);
@@ -538,6 +561,9 @@ const buildingsArray = await Promise.all(
 			sourceRect,
 			maxOccupants: obj.MaxOccupants,
 			hayCapacity: obj.HayCapacity,
+			description: resolveDescription(obj.Description) || undefined,
+			buildCost: obj.BuildCost || undefined,
+			buildMaterials: getBuildMaterials(obj.BuildMaterials, objectNames),
 		};
 	}),
 );

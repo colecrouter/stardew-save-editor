@@ -327,6 +327,22 @@ describe("Save Manager Integration Tests", () => {
 			expect(rawItem9?.name).toBe("Leek");
 		});
 
+		it("shows the description of the selected item", async () => {
+			const page = harness.render(editorPage);
+			await fireEvent.click(page.getByTestId("item-9"));
+			await tick();
+
+			const input = page.getByTestId("item-name") as HTMLInputElement;
+			await fireEvent.input(input, { target: { value: "Cowboy Hat" } });
+			await tick();
+			await fireEvent.click(page.getByText("Cowboy Hat"));
+			await tick();
+
+			expect(page.getByTestId("item-description").textContent).toBe(
+				"The leather is old and cracked, but surprisingly supple. It smells musty.",
+			);
+		});
+
 		it("should modify item quality", async () => {
 			const page = harness.render(editorPage);
 			await fireEvent.click(page.getByTestId("item-4"));
@@ -570,6 +586,16 @@ describe("Save Manager Integration Tests", () => {
 					(e) => e.key.string === "Keg",
 				),
 			).toBe(true);
+		});
+
+		it("shows each recipe's item description", () => {
+			const page = harness.render(craftingPage);
+			const keg = page
+				.getByTestId("recipe-keg")
+				.closest("label") as HTMLElement;
+			expect(within(keg).getByTestId("recipe-description").textContent).toBe(
+				"Place a fruit or vegetable in here. Eventually it will turn into a beverage.",
+			);
 		});
 
 		it("titles the crafting and cooking lists", async () => {
@@ -917,6 +943,13 @@ describe("Save Manager Integration Tests", () => {
 	});
 
 	describe("Buildings", () => {
+		it("shows each building's description", () => {
+			const page = harness.render(buildingsPage);
+			expect(
+				page.getAllByTestId("building-description").map((el) => el.textContent),
+			).toContain("A place to grow crops from any season, year round!");
+		});
+
 		it("should preserve animal save containers when animals are assigned", () => {
 			const save = saveManager.save;
 			if (!save?.farm) return;
@@ -1014,6 +1047,28 @@ describe("Save Manager Integration Tests", () => {
 			});
 			expect(button.getAttribute("aria-pressed")).toBe("true");
 			disposeAnimal();
+		});
+
+		describe("Building costs", () => {
+			it("shows what each building costs to build", () => {
+				const page = harness.render(buildingsPage);
+				// The farmhouse and greenhouse can't be built, so only these two have a cost
+				expect(page.getAllByTestId("building-cost")).toHaveLength(2);
+
+				const bin = page.getByLabelText("Shipping Bin build cost");
+				expect(within(bin).getByTitle("Gold").textContent?.trim()).toBe("250g");
+				expect(within(bin).getByTitle("Wood").textContent?.trim()).toBe("150");
+
+				const bowl = page.getByLabelText("Pet Bowl build cost");
+				expect(within(bowl).getByTitle("Gold").textContent?.trim()).toBe(
+					`${(5000).toLocaleString()}g`,
+				);
+				const hardwood = within(bowl).getByTitle("Hardwood");
+				expect(hardwood.textContent?.trim()).toBe("25");
+				expect(hardwood.getAttribute("aria-label")).toBe("25 Hardwood");
+				// Each material is shown with its sprite
+				expect(hardwood.querySelector(".item")).toBeTruthy();
+			});
 		});
 
 		it("should update farm animal numeric stat inputs", async () => {

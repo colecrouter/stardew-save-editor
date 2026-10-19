@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { ItemData, ItemDescription } from "$lib/ItemData";
 	import { Item } from "$lib/proxies/Item.svelte";
 	import type { Recipes } from "$lib/proxies/Recipes.svelte";
 	import UiCheckbox from "$lib/ui/UICheckbox.svelte";
@@ -27,6 +28,11 @@
 			return /$^/; // Matches nothing
 		}
 	}
+
+	// Describe a recipe by the item it makes
+	function describe(recipe: string) {
+		return ItemDescription(ItemData.get(recipeMapping.get(recipe) ?? recipe));
+	}
 </script>
 
 <UiContainer>
@@ -39,12 +45,20 @@
 	<div class="wrapper">
 		{#each recipes as [key, value]}
 			{#if regex.test(key)}
+				{@const description = describe(key)}
 				<label class="entry">
 					<div class="key">
 						<div class="img">
 							<ItemSprite item={Item.fromName(recipeMapping.get(key) ?? key)} />
 						</div>
-						{key}
+						<div class="name">
+							{key}
+							{#if description}
+								<small class="description" data-testid="recipe-description"
+									>{description}</small
+								>
+							{/if}
+						</div>
 					</div>
 
 					<div class="input-wrapper">
@@ -115,8 +129,20 @@
 	.key {
 		display: flex;
 		align-items: center;
+		flex: 1;
+		min-width: 0;
 		gap: 4px;
 		padding-bottom: 2px;
+	}
+
+	.name {
+		display: flex;
+		flex-direction: column;
+	}
+
+	.description {
+		font-size: 0.75em;
+		opacity: 0.8;
 	}
 
 	.img {

@@ -14,10 +14,42 @@
 	let { onsubmit }: Props = $props();
 	let filter = $state("");
 
+	// The game's qualified item ID prefixes, e.g. Wood is (O)388
+	const typePrefixes: Record<string, string> = {
+		Object: "O",
+		BigCraftable: "BC",
+		Boots: "B",
+		Furniture: "F",
+		Hat: "H",
+		Mannequin: "M",
+		Pants: "P",
+		Shirt: "S",
+		Tool: "T",
+		Trinket: "TR",
+		Weapon: "W",
+	};
+
+	function itemId(name: string) {
+		const data = ItemData.get(name);
+		if (!data) return "";
+		const prefix = typePrefixes[data._type];
+		return prefix ? `(${prefix})${data._key}` : String(data._key);
+	}
+
+	// Match the name, or the ID with or without its type prefix
+	function matches(name: string, search: string) {
+		const id = itemId(name).toLowerCase();
+		return (
+			name.toLowerCase().includes(search) ||
+			id === search ||
+			id.replace(/^\([a-z]+\)/, "") === search
+		);
+	}
+
 	let values = $derived(
 		[...ItemData.keys()]
 			.filter((name): name is string => typeof name === "string")
-			.filter((name) => name.toLowerCase().includes(filter.toLowerCase()))
+			.filter((name) => matches(name, filter.trim().toLowerCase()))
 			.sort((a, b) => {
 				const aScore = stringSimilarity(filter, a);
 				const bScore = stringSimilarity(filter, b);
@@ -28,7 +60,11 @@
 </script>
 
 <div class="wrapper">
-	<Tooltip text="Type an item name here to add it" flash id="item-name-hint">
+	<Tooltip
+		text="Type an item name or ID here to add it"
+		flash
+		id="item-name-hint"
+	>
 		<UiInput
 			type="text"
 			list="new-items"
@@ -53,6 +89,7 @@
 						<div class="name">
 							{name}
 						</div>
+						<small class="id" data-testid="item-id">{itemId(name)}</small>
 					</button>
 				{/each}
 				{#if values.length === 0}
@@ -102,6 +139,14 @@
 	.item:focus,
 	.item:hover {
 		backdrop-filter: brightness(0.8);
+	}
+
+	.id {
+		margin-left: auto;
+		padding-right: 4px;
+		opacity: 0.7;
+		font-size: 0.75em;
+		white-space: nowrap;
 	}
 
 	.icon {

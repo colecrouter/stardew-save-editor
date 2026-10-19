@@ -10,6 +10,7 @@ import {
 import { Raw } from "../src/lib/proxies";
 import { discoverChests, type RawChest } from "../src/lib/proxies/Chest.svelte";
 import { Inventory } from "../src/lib/proxies/Inventory.svelte";
+import { Item as ItemFactory } from "../src/lib/proxies/Item.svelte";
 
 const obj = (
 	name: string,
@@ -25,6 +26,46 @@ const obj = (
 		stack: 1,
 		quality: 0,
 		...fields,
+	}) as unknown as Item;
+
+/** Clay as the game saves it (from tests/TestSave), parsed like a real save */
+const savedClay = (stack: number): Item =>
+	({
+		"@_xsi:type": "Object",
+		isLostItem: false,
+		category: -16,
+		hasBeenInInventory: true,
+		name: "Clay",
+		parentSheetIndex: 330,
+		itemId: 330,
+		specialItem: false,
+		isRecipe: false,
+		quality: 0,
+		stack,
+		SpecialVariable: 0,
+		tileLocation: { X: 0, Y: 0 },
+		owner: 0,
+		type: "Basic",
+		canBeSetDown: true,
+		canBeGrabbed: true,
+		isSpawnedObject: false,
+		questItem: false,
+		isOn: true,
+		fragility: 0,
+		price: 20,
+		edibility: -300,
+		bigCraftable: false,
+		flipped: true,
+		minutesUntilReady: 0,
+		boundingBox: {
+			X: 0,
+			Y: 0,
+			Width: 0,
+			Height: 0,
+			Location: { X: 0, Y: 0 },
+			Size: { X: 0, Y: 0 },
+		},
+		uses: 0,
 	}) as unknown as Item;
 
 const rawChest = (items: Item[]): RawChest =>
@@ -182,6 +223,131 @@ describe("sorting a chest like the game's Organize button", () => {
 			[2, 5],
 			[0, 101],
 			[0, 999],
+		]);
+		cleanup();
+	});
+
+	const stacks = (chest: ReturnType<typeof twoChests>["first"]) =>
+		Array.from({ length: chest.inventory.slotCount }, (_, i) =>
+			chest.inventory.get(i),
+		)
+			.filter((item) => item !== undefined)
+			.map((item) => [item.name, item[Raw].stack]);
+
+	it("stacks an item made in the editor with the same item from a save", () => {
+		const { first, cleanup } = twoChests([savedClay(2)], []);
+		const made = ItemFactory.fromName("Clay");
+		made.amount = 3;
+		first.inventory.place(1, made);
+		flushSync();
+		// Their other fields differ, down to the type of the id
+		expect(first.inventory.get(0)?.[Raw].itemId).toBe(330);
+		expect(made[Raw].itemId).toBe("330");
+
+		sortChest(first);
+		flushSync();
+		expect(stacks(first)).toEqual([["Clay", 5]]);
+		cleanup();
+	});
+
+	it("matches item ids with or without the (O) prefix", () => {
+		const { first, cleanup } = twoChests(
+			[savedClay(2), { ...savedClay(4), itemId: "(O)330" } as Item],
+			[],
+		);
+		sortChest(first);
+		flushSync();
+		expect(stacks(first)).toEqual([["Clay", 6]]);
+		cleanup();
+	});
+
+	it("keeps items of a different quality apart", () => {
+		const { first, cleanup } = twoChests(
+			[obj("Parsnip", { itemId: 24, parentSheetIndex: 24, quality: 1 })],
+			[],
+		);
+		first.inventory.place(1, ItemFactory.fromName("Parsnip"));
+		first.inventory.place(2, ItemFactory.fromName("Parsnip"));
+		flushSync();
+
+		sortChest(first);
+		flushSync();
+		const parsnips = Array.from({ length: 3 }, (_, i) => first.inventory.get(i))
+			.filter((item) => item !== undefined)
+			.map((item) => [item[Raw].quality, item[Raw].stack]);
+		// Silver first, then the two normal ones stacked together
+		expect(parsnips).toEqual([
+			[1, 1],
+			[0, 2],
+		]);
+		cleanup();
+	});
+
+	it("keeps coloured objects of a different colour apart", () => {
+		const tulip = (R: number, G: number, B: number) =>
+			obj("Tulip", {
+				"@_xsi:type": "ColoredObject",
+				itemId: 591,
+				parentSheetIndex: 591,
+				category: -80,
+				color: { B, G, R, A: 255 },
+			});
+		const { first, cleanup } = twoChests(
+			[tulip(255, 0, 0), tulip(255, 255, 0), tulip(255, 0, 0)],
+			[],
+		);
+		sortChest(first);
+		flushSync();
+		const tulips = Array.from({ length: 3 }, (_, i) => first.inventory.get(i))
+			.filter((item) => item !== undefined)
+			.map((item) => [item[Raw].color?.G, item[Raw].stack]);
+		// One yellow, then the two red ones stacked together
+		expect(tulips).toEqual([
+			[255, 1],
+			[0, 2],
+		]);
+		cleanup();
+	});
+
+	it("keeps different flavours apart, as they have different names", () => {
+		const made = ItemFactory.fromName("Blueberry Wine");
+		const { R = 0, G = 0, B = 0 } = made[Raw].color ?? {};
+		// The same colour, so only the name tells them apart
+		const wine = (name: string, fruit: string) =>
+			obj(name, {
+				"@_xsi:type": "ColoredObject",
+				itemId: 348,
+				parentSheetIndex: 123,
+				category: -26,
+				preserve: "Wine",
+				preservedParentSheetIndex: fruit,
+				color: { B, G, R, A: 255 },
+			});
+		const { first, cleanup } = twoChests(
+			[wine("Blueberry Wine", "258"), wine("Apple Wine", "613")],
+			[],
+		);
+		first.inventory.place(2, made);
+		flushSync();
+
+		sortChest(first);
+		flushSync();
+		expect(stacks(first)).toEqual([
+			["Apple Wine", 1],
+			["Blueberry Wine", 2],
+		]);
+		cleanup();
+	});
+
+	it("never stacks objects the game keeps one to a slot", () => {
+		const spinner = () =>
+			obj("Spinner", { itemId: "686", parentSheetIndex: 686, category: -22 });
+		const { first, cleanup } = twoChests([spinner(), spinner()], []);
+		sortChest(first);
+		flushSync();
+		expect(stacks(first)).toEqual([
+			["Spinner", 1],
+			["Spinner", 1],
 		]);
 		cleanup();
 	});

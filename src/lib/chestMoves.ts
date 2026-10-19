@@ -72,11 +72,23 @@ const TOOL_TYPES = new Set([
 ]);
 const STACKABLE_TYPES = new Set(["Object", "ColoredObject"]);
 const MAX_STACK = 999;
+// Object.maximumStackSize: Secret Notes, Journal Scraps, the Horse Flute and
+// fishing tackle never stack
+const SINGLE_OBJECTS = new Set(["(O)79", "(O)842", "(O)911"]);
+const TACKLE_CATEGORY = -22;
 
+type RawColor = { R?: number; G?: number; B?: number; A?: number };
+
+// Values read back from a save can be strings, numbers or booleans
 type RawFields = {
 	"@_xsi:type"?: string;
+	bigCraftable?: boolean | string;
 	category?: number;
+	color?: RawColor;
+	isRecipe?: boolean | string;
+	itemId?: string | number;
 	name?: string;
+	orderData?: string;
 	parentSheetIndex?: number;
 	quality?: number;
 	stack?: number;
@@ -124,12 +136,47 @@ const setCount = (item: ItemProxy, n: number) => {
 	if (item.amount !== undefined) item.amount = n;
 };
 
-/** Identical apart from the stack size, so the game would stack them */
+const isTrue = (value: unknown) => value === true || value === "true";
+
+/** Item.QualifiedItemId, e.g. "(O)388", whether or not the save has the prefix */
+const qualifiedId = (item: ItemProxy) => {
+	const { itemId, bigCraftable } = raw(item);
+	const id = String(itemId ?? "");
+	if (id.startsWith("(")) return id;
+	return `${isTrue(bigCraftable) ? "(BC)" : "(O)"}${id}`;
+};
+
+/** Object.Name: flavoured goods have their own name, e.g. "Blueberry Wine" */
+const gameName = (item: ItemProxy) =>
+	`${raw(item).name ?? ""}${isTrue(raw(item).isRecipe) ? " Recipe" : ""}`;
+
+const maximumStackSize = (item: ItemProxy) =>
+	SINGLE_OBJECTS.has(qualifiedId(item)) ||
+	Number(raw(item).category) === TACKLE_CATEGORY
+		? 1
+		: MAX_STACK;
+
+const sameColor = (a: RawColor = {}, b: RawColor = {}) =>
+	(["R", "G", "B", "A"] as const).every(
+		(channel) => Number(a[channel] ?? 0) === Number(b[channel] ?? 0),
+	);
+
+/**
+ * Item.canStackWith from the game. Only the fields it checks are compared, so
+ * an item made in the editor still stacks with one the game saved, even
+ * though their other fields differ.
+ */
 function canStack(a: ItemProxy, b: ItemProxy) {
-	if (!STACKABLE_TYPES.has(raw(a)["@_xsi:type"] ?? "")) return false;
-	const { stack: _a, ...restA } = raw(a);
-	const { stack: _b, ...restB } = raw(b);
-	return JSON.stringify(restA) === JSON.stringify(restB);
+	const ra = raw(a);
+	const rb = raw(b);
+	const type = ra["@_xsi:type"] ?? "";
+	if (type !== rb["@_xsi:type"] || !STACKABLE_TYPES.has(type)) return false;
+	if (type === "ColoredObject" && !sameColor(ra.color, rb.color)) return false;
+	if (maximumStackSize(a) <= 1 || maximumStackSize(b) <= 1) return false;
+	if ((ra.orderData ?? "") !== (rb.orderData ?? "")) return false;
+	if (Number(ra.quality ?? 0) !== Number(rb.quality ?? 0)) return false;
+	if (qualifiedId(a) !== qualifiedId(b)) return false;
+	return gameName(a) === gameName(b);
 }
 
 /** Anything with numbered slots that can be sorted: a chest or the backpack */
@@ -142,7 +189,7 @@ export interface SortableSlots {
 /**
  * Sort slots the way the game's Organize button does
  * (ItemGrabMenu.organizeItemsInList): tools first in their current order,
- * then stacks of identical items combined (up to 999), then everything
+ * then stacks the game would combine merged (up to 999), then everything
  * sorted by category, type and name, best quality first.
  */
 export function sortSlots(slots: SortableSlots) {

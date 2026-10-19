@@ -116,6 +116,8 @@ export class Inventory
 	 * editor doesn't load (Secret Notes), which still take up the slot.
 	 */
 	public isEmpty(index: number) {
+		// Read through the map too, so effects update when the slot changes
+		if (this.get(index)) return false;
 		const entry = this[Raw].items.Item[index];
 		return !entry || isNilSentinel(entry);
 	}

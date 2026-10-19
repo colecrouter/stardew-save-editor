@@ -6,4 +6,4 @@
 	if (!save) throw new Error("No save data found");
 </script>
 
-<Recipes recipes={save.player.cookingRecipes} />
+<Recipes recipes={save.player.cookingRecipes} title="Cooking Recipes" />

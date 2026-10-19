@@ -50,6 +50,10 @@ export class FarmAnimal implements DataProxy<AnimalsKV> {
 	public fullness: number;
 	/** `UniqueMultiplayerID` of the player who owns this animal */
 	public ownerID: number;
+	/** Whether it may get pregnant: the toggle on its info menu, for animals that {@link canReproduce} */
+	public allowReproduction: boolean;
+	/** Whether it has eaten a Golden Animal Cracker, which doubles its produce */
+	public hasEatenAnimalCracker: boolean;
 
 	public readonly type: FarmAnimalType;
 
@@ -95,7 +99,33 @@ export class FarmAnimal implements DataProxy<AnimalsKV> {
 			animal.ownerID = this.ownerID;
 		});
 
+		// The game's defaults, if a save leaves them out
+		this.allowReproduction = $state(animal.allowReproduction ?? true);
+		$effect(() => {
+			animal.allowReproduction = this.allowReproduction;
+		});
+
+		this.hasEatenAnimalCracker = $state(animal.hasEatenAnimalCracker ?? false);
+		$effect(() => {
+			animal.hasEatenAnimalCracker = this.hasEatenAnimalCracker;
+		});
+
 		this.type = $derived(animal.type as FarmAnimalType);
+	}
+
+	/** The game's data for this kind of animal, unless it's one the editor doesn't know */
+	get data() {
+		return animals.find((a) => a.name === this.type);
+	}
+
+	/** Whether this kind of animal can get pregnant (cows, goats, sheep and pigs) */
+	get canReproduce() {
+		return this.data?.canReproduce ?? false;
+	}
+
+	/** Whether this kind of animal will eat a Golden Animal Cracker (all but pigs) */
+	get canEatGoldenCrackers() {
+		return this.data?.canEatGoldenCrackers ?? false;
 	}
 
 	get maxFriendship() {

@@ -496,6 +496,8 @@ const farmAnimals = Object.entries(animals).map(([key, obj]) => ({
 	requiredBuilding: obj.RequiredBuilding,
 	house: obj.House,
 	canReproduce: obj.CanGetPregnant,
+	// Optional in the data, and true unless it's turned off (as for pigs)
+	canEatGoldenCrackers: obj.CanEatGoldenCrackers ?? true,
 }));
 await writeFile("./generated/farmanimals.json", JSON.stringify(farmAnimals));
 

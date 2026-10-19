@@ -18,10 +18,15 @@ export interface SaveValidation {
 
 export const SUPPORTED_VERSIONS = ["1.6"];
 
-// The game stores money and item quality as `int`s, so it can't read anything
-// outside this range
+// The game stores money, item quality and the date as `int`s, so it can't read
+// anything outside this range
 const INT32_MIN = -2_147_483_648;
 const INT32_MAX = 2_147_483_647;
+// Stats are `uint`s (Stats.Values)
+const UINT32_MAX = 4_294_967_295;
+// The game's Season enum, in order
+const SEASONS = ["spring", "summer", "fall", "winter"];
+const DAYS_PER_SEASON = 28;
 // Normal, silver, gold and iridium (there is no quality 3). The game still
 // loads other values, it just shows them oddly
 const STAR_QUALITIES = new Set([0, 1, 2, 4]);
@@ -61,6 +66,18 @@ const toInt32 = (value: unknown) => {
 
 const isTrue = (value: unknown) => value === true || value === "true";
 
+// The season the game reads, if it can: a name in any case, or the season's
+// number (Game1.currentSeason, through Utility.TryParseEnum)
+const toSeason = (value: unknown) => {
+	const text = String(value ?? "")
+		.trim()
+		.toLowerCase();
+	const index = toInteger(text);
+	return index === undefined
+		? SEASONS.find((season) => season === text)
+		: SEASONS[index];
+};
+
 const itemsHave = (count: number) =>
 	`${count} item${count === 1 ? " has" : "s have"}`;
 
@@ -98,6 +115,31 @@ export const validateSave = (parsed: unknown): SaveValidation => {
 	if (id === undefined || id < 0)
 		errors.push("Missing or invalid unique ID (uniqueIDForThisGame)");
 
+	// Date. The game can't load a season it can't read, or a day or year that
+	// isn't an int. Other days and years, and snow outside winter, load, but
+	// the game never makes them itself
+	const season = toSeason(game.currentSeason);
+	if (season === undefined)
+		errors.push(
+			`The season (${game.currentSeason ?? "missing"}) isn't spring, summer, fall or winter`,
+		);
+	// A missing day or year loads as 0
+	const day = toInt32(game.dayOfMonth ?? 0);
+	if (day === undefined)
+		errors.push(
+			`The day of the month (${game.dayOfMonth}) isn't a number the game can read`,
+		);
+	else if (day < 1 || day > DAYS_PER_SEASON)
+		warnings.push(
+			`The day of the month (${day}) isn't 1 to ${DAYS_PER_SEASON}`,
+		);
+	const year = toInt32(game.year ?? 0);
+	if (year === undefined)
+		errors.push(`The year (${game.year}) isn't a number the game can read`);
+	else if (year < 1) warnings.push(`The year (${year}) is less than 1`);
+	if (isTrue(game.isSnowing) && season !== undefined && season !== "winter")
+		warnings.push(`It's snowing in ${season}, and only snows in winter`);
+
 	// Players
 	const player = game.player;
 	if (!isObject(player)) {
@@ -113,15 +155,32 @@ export const validateSave = (parsed: unknown): SaveValidation => {
 			? asArray(game.farmhands.Farmer).filter(isObject)
 			: [];
 		for (const [i, farmer] of [player, ...farmhands].entries()) {
-			if (!("money" in farmer)) continue;
 			const label =
 				String(farmer.name ?? "").trim() ||
 				(i === 0 ? "The main player" : `Farmhand ${i}`);
-			const money = toInt32(farmer.money);
-			if (money === undefined)
-				errors.push(`${label}'s money (${farmer.money}) is out of range`);
-			else if (money < 0)
-				warnings.push(`${label}'s money (${money}) is negative`);
+			if ("money" in farmer) {
+				const money = toInt32(farmer.money);
+				if (money === undefined)
+					errors.push(`${label}'s money (${farmer.money}) is out of range`);
+				else if (money < 0)
+					warnings.push(`${label}'s money (${money}) is negative`);
+			}
+
+			// A stat that doesn't fit in a `uint` can't be read back
+			const stats =
+				isObject(farmer.stats) && isObject(farmer.stats.Values)
+					? asArray(farmer.stats.Values.item).filter(isObject)
+					: [];
+			for (const stat of stats) {
+				const value = isObject(stat.value) ? stat.value.unsignedInt : undefined;
+				if (value === undefined) continue;
+				const name = isObject(stat.key) ? stat.key.string : undefined;
+				const number = toInteger(value);
+				if (number === undefined || number < 0 || number > UINT32_MAX)
+					errors.push(
+						`${label}'s ${name ?? "unnamed"} stat (${value}) is out of range`,
+					);
+			}
 		}
 	}
 

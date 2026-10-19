@@ -157,6 +157,7 @@
 			{#each gridSlots as { index, item }}
 				<ItemSlot
 					active={index === selectedIndex}
+					{item}
 					data-testid={`chest-item-${index}`}
 					onclick={() => (selectedIndex = index)}
 				>

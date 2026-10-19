@@ -28,6 +28,7 @@ import craftingPage from "../src/routes/(edit)/(list)/crafting/+page.svelte";
 import appearancePage from "../src/routes/(edit)/appearance/+page.svelte";
 import bundlesPage from "../src/routes/(edit)/bundles/+page.svelte";
 import characterPage from "../src/routes/(edit)/character/+page.svelte";
+import chestsPage from "../src/routes/(edit)/chests/+page.svelte";
 import farmPage from "../src/routes/(edit)/farm/+page.svelte";
 import editorPage from "../src/routes/(edit)/inventory/+page.svelte";
 import BuildingSprite from "../src/routes/(edit)/inventory/BuildingSprite.svelte";
@@ -865,6 +866,52 @@ describe("Save Manager Integration Tests", () => {
 			expect(save.player.friendships.get(top)?.points).toBe(2);
 			expect(nameAt(0)).toBe(top);
 			expect(document.activeElement).toBe(input);
+		});
+	});
+
+	describe("Screen reader names", () => {
+		// Each slot button is named after its item, so screen readers can tell them apart
+		const expectNamedSlots = (slots: HTMLElement[]) => {
+			expect(slots.length).toBeGreaterThan(0);
+			for (const slot of slots)
+				expect(slot.getAttribute("aria-label")).toBe(
+					slot.getAttribute("data-item-name") ?? "Empty slot",
+				);
+			expect(slots.some((slot) => slot.hasAttribute("data-item-name"))).toBe(
+				true,
+			);
+		};
+
+		it("names each backpack and chest slot after its item", () => {
+			const context = setToastManagerContext(new ToastManager());
+			const inventory = harness.render(editorPage, { context });
+			expectNamedSlots(inventory.getAllByTestId(/^item-\d+$/));
+			inventory.unmount();
+
+			const chests = harness.render(chestsPage, { context });
+			expectNamedSlots(chests.getAllByTestId(/^chest-item-\d+$/));
+		});
+
+		it("names empty equipment slots after what goes in them", () => {
+			const page = harness.render(editorPage);
+			const label = (slot: string) =>
+				page.getByTestId(`item-${slot}`).getAttribute("aria-label");
+			expect(label("shirtItem")).toBe("Shirt");
+			expect(label("leftRing")).toBe("Empty left ring slot");
+			expect(label("rightRing")).toBe("Empty right ring slot");
+		});
+
+		it("names each bundle item's checkbox after the item", () => {
+			const page = harness.render(bundlesPage);
+			const rows = page.getAllByTestId("bundle-required-item");
+			expect(rows.length).toBeGreaterThan(0);
+			for (const row of rows) {
+				const box = row.querySelector('input[type="checkbox"]');
+				const name = row.querySelector(".item > span")?.textContent ?? "";
+				expect(box?.getAttribute("aria-label")).toBe(
+					`${name.trim().replace(/\s+/g, " ")} donated`,
+				);
+			}
 		});
 	});
 

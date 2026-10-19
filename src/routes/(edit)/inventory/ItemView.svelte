@@ -267,7 +267,7 @@
 <div class="editor">
 	<!-- Item icon -->
 	<div class="big-icon">
-		<ItemSlot>
+		<ItemSlot item={selectedItem}>
 			<ItemSprite item={selectedItem} />
 		</ItemSlot>
 	</div>

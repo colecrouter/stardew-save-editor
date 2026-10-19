@@ -104,8 +104,9 @@
 <style>
 	.wrapper {
 		overflow-y: scroll;
-		/* Fill the window below the page header, never below 20rem */
-		height: max(20rem, calc(100dvh - 304px));
+		/* Fill the window below the page header and the wiki credit
+		   (17px), never below 20rem */
+		height: max(20rem, calc(100dvh - 321px));
 	}
 
 	.toolbar {

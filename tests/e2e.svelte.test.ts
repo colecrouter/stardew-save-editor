@@ -1049,6 +1049,28 @@ describe("Save Manager Integration Tests", () => {
 			disposeAnimal();
 		});
 
+		describe("Building costs", () => {
+			it("shows what each building costs to build", () => {
+				const page = harness.render(buildingsPage);
+				// The farmhouse and greenhouse can't be built, so only these two have a cost
+				expect(page.getAllByTestId("building-cost")).toHaveLength(2);
+
+				const bin = page.getByLabelText("Shipping Bin build cost");
+				expect(within(bin).getByTitle("Gold").textContent?.trim()).toBe("250g");
+				expect(within(bin).getByTitle("Wood").textContent?.trim()).toBe("150");
+
+				const bowl = page.getByLabelText("Pet Bowl build cost");
+				expect(within(bowl).getByTitle("Gold").textContent?.trim()).toBe(
+					`${(5000).toLocaleString()}g`,
+				);
+				const hardwood = within(bowl).getByTitle("Hardwood");
+				expect(hardwood.textContent?.trim()).toBe("25");
+				expect(hardwood.getAttribute("aria-label")).toBe("25 Hardwood");
+				// Each material is shown with its sprite
+				expect(hardwood.querySelector(".item")).toBeTruthy();
+			});
+		});
+
 		it("should update farm animal numeric stat inputs", async () => {
 			const save = saveManager.save;
 			if (!save?.farm) return;
@@ -1184,28 +1206,6 @@ describe("Save Manager Integration Tests", () => {
 
 			expect(view.container.textContent).not.toContain("??");
 			expect(view.container.querySelector(".item")).toBeTruthy();
-		});
-	});
-
-	describe("Building costs", () => {
-		it("shows what each building costs to build", () => {
-			const page = harness.render(buildingsPage);
-			// The farmhouse and greenhouse can't be built, so only these two have a cost
-			expect(page.getAllByTestId("building-cost")).toHaveLength(2);
-
-			const bin = page.getByLabelText("Shipping Bin build cost");
-			expect(within(bin).getByTitle("Gold").textContent?.trim()).toBe("250g");
-			expect(within(bin).getByTitle("Wood").textContent?.trim()).toBe("150");
-
-			const bowl = page.getByLabelText("Pet Bowl build cost");
-			expect(within(bowl).getByTitle("Gold").textContent?.trim()).toBe(
-				`${(5000).toLocaleString()}g`,
-			);
-			const hardwood = within(bowl).getByTitle("Hardwood");
-			expect(hardwood.textContent?.trim()).toBe("25");
-			expect(hardwood.getAttribute("aria-label")).toBe("25 Hardwood");
-			// Each material is shown with its sprite
-			expect(hardwood.querySelector(".item")).toBeTruthy();
 		});
 	});
 });

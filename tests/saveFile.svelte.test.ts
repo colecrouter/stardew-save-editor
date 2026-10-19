@@ -226,6 +226,67 @@ describe("SaveProxy", () => {
 		expect(hasArrayProp(prop(order, "donatedItems"), "Item")).toBe(true);
 	});
 
+	// The raw save, as SaveManager.import parses it
+	const importedRaw = async () => {
+		const xml = await readFile("tests/TestSave", "utf-8");
+		let importTask: Promise<void> = Promise.resolve();
+		let saveManager!: SaveManager;
+		const cleanup = $effect.root(() => {
+			saveManager = new SaveManager();
+			importTask = saveManager.import(
+				new File([xml], "TestSave", { type: "text/xml" }),
+			);
+		});
+		await importTask;
+		flushSync();
+		cleanup();
+		const raw = saveManager.save?.raw;
+		if (!raw) throw new Error("Expected imported save");
+		return raw;
+	};
+
+	it("names the farmers the previous and next buttons switch to", async () => {
+		const raw = await importedRaw();
+		const host = raw.SaveGame.player;
+		const farmhands = ["Ann", "Bob"].map((name, i) => ({
+			...clone(host),
+			name,
+			UniqueMultiplayerID: 1000 + i,
+		}));
+		raw.SaveGame.farmhands = { Farmer: farmhands as Player[] };
+
+		let save!: SaveProxy;
+		const cleanup = $effect.root(() => {
+			save = new SaveProxy(raw);
+		});
+		flushSync();
+
+		const names = () => [
+			save.previousPlayer?.name,
+			save.player.name,
+			save.nextPlayer?.name,
+		];
+		expect(names()).toEqual(["Bob", host.name, "Ann"]);
+		save.nextFarmer();
+		expect(names()).toEqual([host.name, "Ann", "Bob"]);
+		save.prevFarmer();
+		save.prevFarmer();
+		expect(names()).toEqual(["Ann", "Bob", host.name]);
+		cleanup();
+	});
+
+	it("points both ways at the only farmer in a single-player save", async () => {
+		const raw = await importedRaw();
+		let save!: SaveProxy;
+		const cleanup = $effect.root(() => {
+			save = new SaveProxy(raw);
+		});
+		flushSync();
+		expect(save.previousPlayer).toBe(save.player);
+		expect(save.nextPlayer).toBe(save.player);
+		cleanup();
+	});
+
 	it("keeps cellar assignments aligned when promoting a farmhand to host", async () => {
 		const xml = await readFile("tests/TestSave", "utf-8");
 		let importTask: Promise<void> = Promise.resolve();

@@ -68,7 +68,7 @@
 	// Compute sprite URL for background
 	let spriteUrl = $derived.by(() => {
 		const sheet = spritesheet;
-		return sheet ? `url("${asset(`assets/${sheet}`)}")` : "none";
+		return sheet ? `url("${asset(`/assets/${sheet}`)}")` : "none";
 	});
 </script>
 

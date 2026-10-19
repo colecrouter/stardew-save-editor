@@ -43,9 +43,16 @@
 		touch-action: none;
 	}
 
-	.tooltip-wrapper:not(.flash):hover > .tooltip,
-	.tooltip-wrapper:not(.flash):focus-within > .tooltip {
+	.tooltip-wrapper:not(.flash):hover > .tooltip {
 		display: block; /* Show on hover */
+	}
+
+	/*
+	 * Keyboard focus shows it too, but a mouse click doesn't leave it stuck open.
+	 * A rule of its own, so browsers without :has() still show it on hover.
+	 */
+	.tooltip-wrapper:not(.flash):has(:focus-visible) > .tooltip {
+		display: block;
 	}
 
 	.tooltip-wrapper.flash > .tooltip {

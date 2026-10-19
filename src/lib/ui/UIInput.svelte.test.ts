@@ -87,13 +87,8 @@ describe("UI input", () => {
 		expect(input.value).toBe("30");
 	});
 
-	test.each([
-		"search",
-		"email",
-		"url",
-		"tel",
-		"password",
-	])("styles %s inputs like text inputs", (inputType) => {
+	const textLike = ["search", "email", "url", "tel", "password"];
+	test.each(textLike)("styles %s inputs like text inputs", (inputType) => {
 		render(UiInput, { type: "text", value: "", "data-testid": "text" });
 		render(UiInput, { type: inputType, value: "", "data-testid": "input" });
 		const look = (id: string) => {

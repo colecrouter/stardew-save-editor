@@ -820,6 +820,28 @@ describe("Save Manager Integration Tests", () => {
 		});
 	});
 
+	describe("Item quality", () => {
+		it("keeps the saved base price and edibility when the quality changes", async () => {
+			const page = harness.render(editorPage);
+			await fireEvent.click(page.getByTestId("item-4"));
+			await tick();
+			const raw = () => {
+				const item = saveManager.save?.player.inventory.get(4)?.[Raw];
+				if (!item) throw new Error("Expected an item in slot 4");
+				return item as { quality?: number; price?: number; edibility?: number };
+			};
+			const { price, edibility } = raw();
+			expect(price).toBeGreaterThan(0);
+			expect(edibility).toBeGreaterThan(0);
+
+			for (const quality of [4, 2, 0]) {
+				await fireEvent.click(page.getByTestId(`quality-${quality}`));
+				// The game applies quality to the base values when the item is sold or eaten
+				expect(raw()).toMatchObject({ quality, price, edibility });
+			}
+		});
+	});
+
 	describe("Farm", () => {
 		it("applies the farm name and profit margin to every farmer", async () => {
 			const page = harness.render(farmPage);

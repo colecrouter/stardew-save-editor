@@ -530,7 +530,7 @@ export class QuestLog implements DataProxy<QuestLogModel> {
 				return index;
 		}
 		for (let index = 0; index < inventory.slotCount; index++)
-			if (!inventory.get(index)) return index;
+			if (inventory.isEmpty(index)) return index;
 	}
 
 	#givePrizeTicket() {

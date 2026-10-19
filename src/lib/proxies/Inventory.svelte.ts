@@ -111,6 +111,15 @@ export class Inventory
 		return existed;
 	}
 
+	/**
+	 * Whether a backpack slot holds nothing. Unlike `get`, this counts items the
+	 * editor doesn't load (Secret Notes), which still take up the slot.
+	 */
+	public isEmpty(index: number) {
+		const entry = this[Raw].items.Item[index];
+		return !entry || isNilSentinel(entry);
+	}
+
 	public adjustSlots(size: number) {
 		if (size < 1 || size > 36 || size % 12 !== 0)
 			throw new Error("Invalid size");

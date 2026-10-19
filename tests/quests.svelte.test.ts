@@ -534,6 +534,29 @@ describe("Quest log", () => {
 		expect(getStatValue(player(), "BillboardQuestsDone")).toBe(3);
 	});
 
+	it("doesn't put the Prize Ticket over a Secret Note", async () => {
+		await load(insertQuests(setBillboardQuestsDone(fixture, 2), DELIVERY));
+		const inventory = farmer().inventory;
+		const delivery = quest("Abigail's Request");
+		const [noteSlot, ...rest] = [...Array(inventory.slotCount).keys()].filter(
+			(i) => !inventory.get(i),
+		);
+		for (const i of rest) inventory.set(i, Item.fromName("Stone"));
+		// The inventory doesn't load Secret Notes, so the slot looks empty
+		const note = {
+			"@_xsi:type": "Object",
+			name: "Secret Note #7",
+			itemId: "79",
+			stack: 1,
+		};
+		(player().items.Item as Parsed[])[noteSlot as number] = note;
+		flushSync();
+
+		expect(log().prizeTicketDue(delivery)).toBe("noRoom");
+		expect(complete(delivery).prizeTicket).toBe("noRoom");
+		expect(player().items.Item[noteSlot as number]).toBe(note);
+	});
+
 	it("pays a slay quest's advertised reward when it's completed", async () => {
 		await load(insertQuests(fixture, SLAY, STORY_SLAY));
 		const slay = quest("Wanted: Slimes");

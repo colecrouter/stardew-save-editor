@@ -249,7 +249,7 @@ describe("SaveManager validation", () => {
 		const error = await saveManager.download().catch((e) => e);
 		expect(error).toBeInstanceOf(SaveValidationError);
 		expect(error.message).toBe(
-			"Save file is not valid: Test's money (2147483648) is out of range",
+			"Save file not downloaded: Test's money (2147483648) is out of range",
 		);
 	});
 });

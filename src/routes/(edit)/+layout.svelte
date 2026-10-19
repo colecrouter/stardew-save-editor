@@ -29,9 +29,7 @@
 		return saveManager
 			.download()
 			.then(() =>
-				toastManager.add(
-					new Toast("Save file validated and downloaded!", "success"),
-				),
+				toastManager.add(new Toast("Save file downloaded!", "success")),
 			)
 			.catch((e) => {
 				if (e instanceof SaveValidationError) {

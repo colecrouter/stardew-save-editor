@@ -33,14 +33,12 @@
 			goto(resolve("/inventory"));
 
 			if (!validation || validation.valid) {
-				toastManager.add(
-					new Toast("Save file uploaded and validated!", "success"),
-				);
+				toastManager.add(new Toast("Save file uploaded!", "success"));
 			} else {
 				// Still open it, so the problems can be fixed in the editor
 				toastManager.add(
 					new Toast(
-						`Save file uploaded, but it is not valid: ${describeProblems(validation)}`,
+						`Save file uploaded, but it has problems: ${describeProblems(validation)}`,
 						"failure",
 					),
 					10000,

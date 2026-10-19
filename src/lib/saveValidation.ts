@@ -1,11 +1,14 @@
 /**
  * Checks a parsed save (the `{ SaveGame }` object from XMLManager.parse) for
- * problems that would stop the game from loading it, or crash it once loaded.
+ * some known problems that would stop the game from loading it, or crash it
+ * once loaded. Passing only means none of these checks found anything; it
+ * doesn't prove the game will load the save.
  *
  * `errors` are definite problems; `warnings` are unusual but loadable.
  */
 
 export interface SaveValidation {
+	/** No errors were found (there may still be warnings) */
 	valid: boolean;
 	errors: string[];
 	warnings: string[];

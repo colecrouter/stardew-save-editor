@@ -1,8 +1,10 @@
+import { readFile } from "node:fs/promises";
 import { openDB } from "idb";
 import { flushSync } from "svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setup as mockIDB } from "vitest-indexeddb";
 import { BackupManager } from "../src/lib/BackupManager.svelte";
+import { SaveManager } from "../src/lib/SaveManager.svelte";
 import { getToastManager } from "../src/lib/ToastManager.svelte";
 
 mockIDB();
@@ -145,6 +147,28 @@ describe("Backups", () => {
 				"Backups are disabled. Are you in Incognito/Private mode?",
 			),
 		);
+		dispose();
+	});
+
+	it("backs up each new version of a farm's save, but not the same file twice", async () => {
+		const save = (await readFile("tests/TestSave")).toString("utf-8");
+		const later = save.replace(/<money>\d+<\/money>/, "<money>123456</money>");
+		expect(later).not.toBe(save);
+
+		let saveManager!: SaveManager;
+		const dispose = $effect.root(() => {
+			saveManager = new SaveManager();
+		});
+		await loadedNames(saveManager.backups, []);
+		// A farm's save keeps its name (Farm_<id>) for the life of the farm
+		await saveManager.import(new File([save], "Farm_1"));
+		await saveManager.import(new File([later], "Farm_1"));
+		await saveManager.import(new File([later], "Farm_1"));
+
+		const backups = saveManager.backups.files;
+		expect(backups).toHaveLength(2);
+		expect(await backups[0]?.text()).toBe(later);
+		expect(await backups[1]?.text()).toBe(save);
 		dispose();
 	});
 });

@@ -71,18 +71,18 @@
 	label {
 		cursor: pointer;
 		user-select: none;
+		padding: 2px 4px;
+		border-radius: 4px;
 	}
 
-	label:has(input:focus-within) {
+	/* The current quality, not just a star that has focus */
+	label:has(input:checked) {
+		background-color: #0002;
+		box-shadow: inset 0 0 0 1px #0003;
+	}
+
+	label:has(input:focus-visible) {
 		filter: drop-shadow(0 0 2px #000);
-	}
-
-	label input:checked::after {
-		position: absolute;
-		top: -0.75em;
-		left: -1.25em;
-		content: "✅";
-		font-size: 0.8em;
 	}
 
 	label:nth-child(1) {

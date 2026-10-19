@@ -8,27 +8,16 @@
 </script>
 
 <script lang="ts">
-	import { calculatePrice, calculateEdibility } from "$lib/ItemQuality";
 	import type { ObjectProxy } from "$lib/proxies/items";
 
 	interface Props {
 		item: ObjectProxy;
 	}
 
+	// Picking a star only sets the quality. The game saves an item's base price
+	// and edibility, and applies the quality itself when it's sold or eaten
+	// (Object.sellToStorePrice, Object.staminaRecoveredOnConsumption).
 	let { item = $bindable() }: Props = $props();
-
-	/** Update an item's quality, and recalculate its price & edibility */
-	const updateQuality = (newQuality: number) => {
-		item.quality = newQuality;
-
-		if (item.info?.price !== undefined) {
-			item.price = calculatePrice(item.info.price, newQuality);
-		}
-
-		if (item.info?.edibility !== undefined) {
-			item.edibility = calculateEdibility(item.info.edibility, newQuality);
-		}
-	};
 </script>
 
 <div class="container">
@@ -46,7 +35,6 @@
 					checked={item.quality === i}
 					value={i}
 					bind:group={item.quality}
-					onclick={() => updateQuality(i)}
 					data-testid={`quality-${i}`}
 				/>
 			</label>

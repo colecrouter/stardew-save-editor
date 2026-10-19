@@ -282,8 +282,8 @@ const writeToFile = JSON.stringify(
 		.map((item) => [item.name, item]),
 );
 
-// Overwrite rather than clear the folder: villagers.json comes from `npm run dump:villagers`
-await mkdir("./generated", { recursive: true });
+await rm("./generated", { recursive: true, force: true });
+await mkdir("./generated");
 await writeFile("./generated/iteminfo.json", writeToFile);
 
 // **Recipes**

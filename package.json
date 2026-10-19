@@ -8,7 +8,6 @@
 		"preview": "vite preview",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"dump": "tsx --no-warnings codegen/dump.ts",
-		"dump:villagers": "tsx --no-warnings codegen/villagers.ts",
 		"check": "biome lint . && svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"format": "prettier --log-level silent --write src && biome format --write && biome check --write --linter-enabled false",
 		"format:check": "prettier --check src && biome ci .",

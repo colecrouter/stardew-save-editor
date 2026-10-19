@@ -6,6 +6,8 @@ Copyright ©️ 2024 [Contributors](https://github.com/colecrouter/Stardew-Save-
 
 > NOTE: This license applies to all parts of this project created by the author, excluding any copyrighted assets and materials from *Stardew Valley* used under fair use provisions. The copyrighted assets and materials remain the property of their respective owners and are subject to their own licenses and terms of usage.
 
+> THIRD-PARTY DATA: `src/lib/wiki/villagers.json` holds text adapted from a wiki. It is not covered by this license: villager descriptions © [Stardew Valley Wiki](https://stardewvalleywiki.com) contributors, licensed under [CC BY-NC-SA 3.0](https://creativecommons.org/licenses/by-nc-sa/3.0/).
+
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights

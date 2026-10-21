@@ -20,8 +20,12 @@
 	let searchBox: HTMLDivElement | undefined = $state();
 	let selectedChestIndex = $state(0);
 	let selectedIndex = $state(0);
-	let selectedChest = $derived(save.chests[selectedChestIndex]);
-	let selectedItem = $derived(selectedChest?.inventory.get(selectedIndex));
+	// Hovering a search result previews its chest without committing the selection
+	let preview = $state<{ chestIndex: number; slotIndex: number } | null>(null);
+	let viewChestIndex = $derived(preview?.chestIndex ?? selectedChestIndex);
+	let viewIndex = $derived(preview?.slotIndex ?? selectedIndex);
+	let selectedChest = $derived(save.chests[viewChestIndex]);
+	let selectedItem = $derived(selectedChest?.inventory.get(viewIndex));
 	let gridSlots = $derived(
 		selectedChest
 			? Array.from(
@@ -53,19 +57,20 @@
 	const selectResult = (chestIndex: number, slotIndex: number) => {
 		selectedChestIndex = chestIndex;
 		selectedIndex = slotIndex;
+		preview = null;
 		showResults = false;
 	};
 
 	const clearSearch = () => {
 		search = "";
+		preview = null;
 		searchBox?.querySelector("input")?.focus();
 	};
 
 	const isMatch = (slotIndex: number) =>
 		searchResults.some(
 			(result) =>
-				result.chestIndex === selectedChestIndex &&
-				result.slotIndex === slotIndex,
+				result.chestIndex === viewChestIndex && result.slotIndex === slotIndex,
 		);
 
 	const deleteItem = () => selectedChest?.inventory.delete(selectedIndex);
@@ -114,13 +119,20 @@
 					{searchResults.length}
 					{searchResults.length === 1 ? "match" : "matches"}
 				</small>
-				<div class="results">
+				<div
+					class="results"
+					role="presentation"
+					onmouseleave={() => (preview = null)}
+				>
 					{#each searchResults as { chestIndex, slotIndex, chest, item }}
 						<button
 							class="result"
-							class:active={chestIndex === selectedChestIndex &&
-								slotIndex === selectedIndex}
+							class:active={chestIndex === viewChestIndex &&
+								slotIndex === viewIndex}
 							data-testid={`chest-search-result-${chestIndex}-${slotIndex}`}
+							onmouseenter={() => (preview = { chestIndex, slotIndex })}
+							onfocus={() => (preview = { chestIndex, slotIndex })}
+							onblur={() => (preview = null)}
 							onclick={() => selectResult(chestIndex, slotIndex)}
 						>
 							<div class="result-sprite">
@@ -156,7 +168,7 @@
 		<div class="item-grid">
 			{#each gridSlots as { index, item }}
 				<ItemSlot
-					active={index === selectedIndex}
+					active={index === viewIndex}
 					data-testid={`chest-item-${index}`}
 					onclick={() => (selectedIndex = index)}
 				>

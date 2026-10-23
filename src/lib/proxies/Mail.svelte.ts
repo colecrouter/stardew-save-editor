@@ -204,6 +204,8 @@ export enum MailFlag {
 	pierreBackpack = "pierreBackpack",
 	foundLostTools = "foundLostTools",
 	ccBulletinThankYou = "ccBulletinThankYou",
+	/** Set once the thank-you letter's friendship boost has been given */
+	ccBulletinThankYouReceived = "ccBulletinThankYouReceived",
 	transferredObjectsPamHouse = "transferredObjectsPamHouse",
 	transferredObjectsJojaMart = "transferredObjectsJojaMart",
 	Hatters = "Hatters",

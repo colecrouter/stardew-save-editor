@@ -2,6 +2,7 @@
 	import { asset } from "$app/paths";
 	import type { Bundle } from "$lib/proxies/CommunityBundles.svelte";
 	import { colorMap } from "$types/colors";
+	import BundleEditor from "./BundleEditor.svelte";
 	import BundleItem from "./BundleItem.svelte";
 
 	interface Props {
@@ -14,6 +15,13 @@
 
 	// Junimo Note
 	const sheet = `url(${asset("/assets/JunimoNote.png")})`;
+
+	// Changing what the bundle asks for
+	let editing = $state(false);
+
+	let submitted = $derived(
+		bundle.requiredItems.filter((i) => i.submitted).length,
+	);
 
 	let posX = $derived(
 		`${(color % 2) * (-16 * 16) + (bundle.completed ? -224 : 0)}px`,
@@ -47,30 +55,67 @@
 					style:--y={posY}
 				></div>
 				<h2>{bundle.name} Bundle</h2>
+				<span class="progress" data-testid="bundle-progress">
+					{Math.min(
+						submitted,
+						bundle.requiredItemCount,
+					)}/{bundle.requiredItemCount}
+					{#if bundle.completed}✅{/if}
+				</span>
+				<button
+					type="button"
+					class="toggle"
+					data-testid="bundle-toggle"
+					onclick={(e) => {
+						// Don't open or close the card
+						e.preventDefault();
+						if (bundle.completed) bundle.clear();
+						else bundle.complete();
+					}}
+				>
+					{bundle.completed ? "Clear" : "Complete"}
+				</button>
 			</div>
 		</summary>
 
-		<h3>
-			Required Items
+		<h3 class="items-heading">
 			<span>
-				({bundle.requiredItems.filter((i) => i.submitted)
-					.length}/{bundle.requiredItemCount})
+				Required Items
+				{#if bundle.requiredItemCount < bundle.requiredItems.length}
+					<small data-testid="bundle-pick"
+						>(any {bundle.requiredItemCount} of {bundle.requiredItems
+							.length})</small
+					>
+				{/if}
 			</span>
+			<button
+				type="button"
+				class="toggle"
+				data-testid="bundle-edit-toggle"
+				aria-pressed={editing}
+				onclick={() => (editing = !editing)}
+			>
+				{editing ? "Done" : "Edit items"}
+			</button>
 		</h3>
 
-		<div class="container" data-testid="bundle-required-items">
-			{#each bundle.requiredItems as itemdata}
-				<span data-testid="bundle-required-item">
-					<BundleItem
-						itemId={itemdata.itemID}
-						type="O"
-						quantity={itemdata.quantity}
-						quality={itemdata.quality}
-						bind:checked={itemdata.submitted}
-					/>
-				</span>
-			{/each}
-		</div>
+		{#if editing}
+			<BundleEditor {bundle} />
+		{:else}
+			<div class="container" data-testid="bundle-required-items">
+				{#each bundle.requiredItems as itemdata}
+					<span data-testid="bundle-required-item">
+						<BundleItem
+							itemId={itemdata.requirement[0]}
+							type="O"
+							quantity={itemdata.quantity}
+							quality={itemdata.quality}
+							bind:checked={itemdata.submitted}
+						/>
+					</span>
+				{/each}
+			</div>
+		{/if}
 
 		<h3>Reward</h3>
 
@@ -98,11 +143,41 @@
 
 	.header {
 		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		width: calc(100% - 1.5em);
 
 		h2 {
 			margin-bottom: 4px;
 			margin-left: 32px;
 		}
+	}
+
+	.progress {
+		flex: 1;
+		font-weight: bold;
+		white-space: nowrap;
+	}
+
+	.toggle {
+		font: inherit;
+		font-size: 0.85em;
+		padding: 2px 8px;
+		cursor: pointer;
+		border: solid 2px #9c613b;
+		border-bottom-color: #6f3b31;
+		border-right-color: #6f3b31;
+		border-radius: 4px;
+		background-color: #f9bb65;
+		color: inherit;
+	}
+
+	.toggle:hover {
+		filter: brightness(0.9);
+	}
+
+	summary {
+		cursor: pointer;
 	}
 
 	.card {
@@ -135,6 +210,13 @@
 	h3 {
 		margin-top: 8px;
 		border-bottom: 2px solid #0004;
+	}
+
+	.items-heading {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 8px;
 	}
 
 	.container {

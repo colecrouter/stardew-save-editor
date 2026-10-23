@@ -326,6 +326,166 @@ describe("Save Manager Integration Tests", () => {
 		});
 	});
 
+	describe("Community Center completion", () => {
+		it("completes and clears a whole room from its button", async () => {
+			const page = harness.render(bundlesPage);
+			flushSync();
+			const membership = page.getByTestId(
+				"joja-membership-checkbox",
+			) as HTMLInputElement;
+			if (membership.checked) await fireEvent.click(membership);
+			expect(page.queryByText(/Under Construction/)).toBeNull();
+
+			const pantry = page
+				.getAllByTestId("bundle-room")
+				.find((r) => r.getAttribute("data-room") === "Pantry") as HTMLElement;
+			const toggle = within(pantry).getByTestId("bundle-room-toggle");
+			const progress = within(pantry).getByTestId("bundle-room-progress");
+			const host = saveManager.save?.players[0];
+
+			expect(toggle.textContent).toContain("Complete room");
+			await fireEvent.click(toggle);
+			expect(progress.textContent).toContain("6/6 bundles");
+			expect(toggle.textContent).toContain("Clear room");
+			expect(host?.mailReceived.has(MailFlag.ccPantry)).toBe(true);
+
+			await fireEvent.click(toggle);
+			expect(progress.textContent).toContain("0/6 bundles");
+			expect(host?.mailReceived.has(MailFlag.ccPantry)).toBe(false);
+		});
+
+		it("completes one bundle from its card", async () => {
+			const page = harness.render(bundlesPage);
+			flushSync();
+			const membership = page.getByTestId(
+				"joja-membership-checkbox",
+			) as HTMLInputElement;
+			if (membership.checked) await fireEvent.click(membership);
+
+			const card = page
+				.getAllByTestId("bundle-card")
+				.find(
+					(c) => c.getAttribute("data-bundle-name") === "Spring Crops",
+				) as HTMLElement;
+			const toggle = within(card).getByTestId("bundle-toggle");
+			await fireEvent.click(toggle);
+			expect(within(card).getByTestId("bundle-progress").textContent).toContain(
+				"4/4",
+			);
+			expect(toggle.textContent).toContain("Clear");
+		});
+	});
+
+	describe("Bundle editing", () => {
+		const openBundle = async (name: string) => {
+			const page = harness.render(bundlesPage);
+			flushSync();
+			const membership = page.getByTestId(
+				"joja-membership-checkbox",
+			) as HTMLInputElement;
+			if (membership.checked) await fireEvent.click(membership);
+			const card = page
+				.getAllByTestId("bundle-card")
+				.find(
+					(c) => c.getAttribute("data-bundle-name") === name,
+				) as HTMLElement;
+			const details = card.querySelector("details") as HTMLDetailsElement;
+			details.open = true;
+			await fireEvent.click(within(card).getByTestId("bundle-edit-toggle"));
+			return within(card);
+		};
+
+		const type = async (input: HTMLElement, value: string) => {
+			await fireEvent.input(input, { target: { value } });
+			await tick();
+		};
+
+		const exportedBundle = async (key: string) => {
+			const xml = await (await saveManager.export(true)).text();
+			const start = xml.indexOf(`<string>${key}</string>`);
+			return xml.slice(start).match(/<value>\s*<string>(.*?)<\/string>/s)?.[1];
+		};
+
+		it("changes a bundle's items and exports them in the game's format", async () => {
+			const card = await openBundle("Summer Crops");
+
+			// Ask for 5 gold-quality Hot Peppers (260) instead of one
+			const quantity = card.getAllByTestId("bundle-edit-quantity")[1];
+			await type(quantity as HTMLElement, "5");
+			await choose(
+				card.getAllByTestId("bundle-edit-quality")[1] as HTMLElement,
+				"2",
+			);
+
+			// Swap the Tomato (256) for a Leek (20), and add any egg
+			await fireEvent.click(
+				card.getAllByTestId("bundle-edit-swap")[0] as HTMLElement,
+			);
+			await type(card.getByTestId("bundle-item-search"), "Leek");
+			await fireEvent.click(
+				card
+					.getAllByTestId("bundle-item-choice")
+					.find((c) => c.getAttribute("data-item-id") === "20") as HTMLElement,
+			);
+			await fireEvent.click(card.getByTestId("bundle-edit-add"));
+			await type(card.getByTestId("bundle-item-search"), "Any Egg");
+			await fireEvent.click(
+				card
+					.getAllByTestId("bundle-item-choice")
+					.find((c) => c.getAttribute("data-item-id") === "-5") as HTMLElement,
+			);
+			await type(card.getByTestId("bundle-edit-needed"), "4");
+
+			expect(card.getAllByTestId("bundle-edit-row")).toHaveLength(5);
+			expect(await exportedBundle("Pantry/1")).toBe(
+				"Summer Crops/O 621 1/20 1 0 260 5 2 258 1 0 254 1 0 -5 1 0/3/4//Summer Crops",
+			);
+			// Untouched bundles export as they were
+			expect(await exportedBundle("Pantry/0")).toBe(
+				"Spring Crops/O 465 20/24 1 0 188 1 0 190 1 0 192 1 0/0///Spring Crops",
+			);
+
+			// Back to ticking items: the new one is there, not donated
+			await fireEvent.click(card.getByTestId("bundle-edit-toggle"));
+			const boxes = card.getAllByRole("checkbox", {
+				name: / donated$/,
+				hidden: true,
+			}) as HTMLInputElement[];
+			expect(boxes.map((box) => box.getAttribute("aria-label"))).toContain(
+				"Any Egg donated",
+			);
+			expect(boxes.some((box) => box.checked)).toBe(false);
+		});
+
+		it("refuses a change that would finish the bundle, and says why", async () => {
+			const card = await openBundle("Spring Crops");
+			const spring = [
+				...(saveManager.save?.communityBundles?.values() ?? []),
+			].find((b) => b.name === "Spring Crops");
+			for (const item of spring?.requiredItems.slice(0, 3) ?? [])
+				item.submitted = true;
+			await tick();
+
+			await fireEvent.click(
+				card.getAllByTestId("bundle-edit-remove")[3] as HTMLElement,
+			);
+			expect(card.getByRole("alert").textContent).toContain(
+				"would finish the bundle",
+			);
+			expect(card.getAllByTestId("bundle-edit-row")).toHaveLength(4);
+			expect(spring?.completed).toBe(false);
+		});
+
+		it("changes a Vault bundle's price", async () => {
+			const card = await openBundle("5,000g");
+			expect(card.queryByTestId("bundle-edit-add")).toBeNull();
+			await type(card.getByTestId("bundle-edit-price"), "7500");
+			expect(await exportedBundle("Vault/24")).toBe(
+				"7,500g/O 369 30/-1 7500 7500/2///7,500g",
+			);
+		});
+	});
+
 	describe("Inventory Management", () => {
 		it("should create and edit items", async () => {
 			const page = harness.render(editorPage);

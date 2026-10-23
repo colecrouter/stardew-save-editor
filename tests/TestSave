@@ -348,7 +348,61 @@
                 <uses>0</uses>
                 <destroyOvernight>false</destroyOvernight>
             </Item>
-            <Item xsi:nil="true" />
+            <Item xsi:type="Object">
+                <isLostItem>false</isLostItem>
+                <category>-9</category>
+                <hasBeenInInventory>true</hasBeenInInventory>
+                <name>Cheese Press</name>
+                <parentSheetIndex>16</parentSheetIndex>
+                <itemId>16</itemId>
+                <specialItem>false</specialItem>
+                <isRecipe>false</isRecipe>
+                <quality>0</quality>
+                <stack>1</stack>
+                <SpecialVariable>0</SpecialVariable>
+                <tileLocation>
+                    <X>0</X>
+                    <Y>0</Y>
+                </tileLocation>
+                <owner>0</owner>
+                <type>Crafting</type>
+                <canBeSetDown>true</canBeSetDown>
+                <canBeGrabbed>true</canBeGrabbed>
+                <isSpawnedObject>false</isSpawnedObject>
+                <questItem>false</questItem>
+                <isOn>true</isOn>
+                <fragility>0</fragility>
+                <price>50</price>
+                <edibility>-300</edibility>
+                <bigCraftable>true</bigCraftable>
+                <setOutdoors>true</setOutdoors>
+                <setIndoors>true</setIndoors>
+                <readyForHarvest>false</readyForHarvest>
+                <showNextIndex>false</showNextIndex>
+                <flipped>false</flipped>
+                <isLamp>false</isLamp>
+                <minutesUntilReady>0</minutesUntilReady>
+                <boundingBox>
+                    <X>0</X>
+                    <Y>0</Y>
+                    <Width>64</Width>
+                    <Height>64</Height>
+                    <Location>
+                        <X>0</X>
+                        <Y>0</Y>
+                    </Location>
+                    <Size>
+                        <X>64</X>
+                        <Y>64</Y>
+                    </Size>
+                </boundingBox>
+                <scale>
+                    <X>0</X>
+                    <Y>0</Y>
+                </scale>
+                <uses>0</uses>
+                <destroyOvernight>false</destroyOvernight>
+            </Item>
             <Item xsi:nil="true" />
             <Item xsi:nil="true" />
             <Item xsi:nil="true" />

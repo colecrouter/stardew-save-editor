@@ -289,6 +289,10 @@ function normalizeItemKey(itemId: Item["itemId"]): string | undefined {
 }
 
 function getExpectedMetadataTypes(item: Item): ItemInformation["_type"][] {
+	// Big craftables are saved as Objects (or Chests, Casks...) with a flag, and
+	// their IDs overlap with objects' (Chest 130 is also Tuna), so check it first
+	if (item.bigCraftable) return ["BigCraftable"];
+
 	switch (item["@_xsi:type"]) {
 		case "Hat":
 			return ["Hat"];

@@ -359,6 +359,15 @@ export class Farmer implements DataProxy<Player> {
 		this.#masteryExp = xp;
 	}
 
+	/** Days since the farm was started, counting today (Stats.DaysPlayed) */
+	get daysPlayed() {
+		return getStatValue(this[Raw], "daysPlayed");
+	}
+
+	set daysPlayed(value: number) {
+		setStatValue(this[Raw], "daysPlayed", value);
+	}
+
 	constructor(player: Player | undefined) {
 		if (!player) throw new Error("No player provided");
 

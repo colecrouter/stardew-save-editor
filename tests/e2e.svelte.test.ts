@@ -13,9 +13,8 @@ import {
 import { Color as ColorProxy } from "$lib/proxies/Color.svelte";
 import { FarmAnimal, FarmAnimalType } from "$lib/proxies/FarmAnimal.svelte";
 import { getStatValue } from "$lib/proxies/Farmer.svelte";
-
-import { Item as ItemFactory } from "$lib/proxies/Item.svelte";
 import { Friendship } from "$lib/proxies/Friendship.svelte";
+import { Item as ItemFactory } from "$lib/proxies/Item.svelte";
 import { MailFlag } from "$lib/proxies/Mail.svelte";
 import { Gender, type Player, type Color as RawColor } from "../codegen/save";
 import {
@@ -1277,7 +1276,7 @@ describe("Save Manager Integration Tests", () => {
 			inventory.unmount();
 
 			const chests = harness.render(chestsPage, { context });
-			expectNamedSlots(chests.getAllByTestId(/^chest-item-\d+$/));
+			expectNamedSlots(chests.getAllByTestId(/^chest-\d+-item-\d+$/));
 		});
 
 		it("names empty equipment slots after what goes in them", () => {
@@ -1418,6 +1417,142 @@ describe("Save Manager Integration Tests", () => {
 			expect(styles.join("\n")).not.toContain("attacker.example");
 			// Like the game, anything but Male draws the female farmer
 			expect(styles.join("\n")).toContain("/img/female_farmer.png");
+		});
+	});
+
+	describe("Farm date and weather", () => {
+		it("changes the date from the calendar", async () => {
+			const page = harness.render(farmPage);
+			const game = saveManager.save?.raw.SaveGame;
+			if (!game) return;
+			const date = page.getByTestId("calendar-date");
+			expect(date.textContent?.trim()).toBe("Saturday, Spring 6, Year 1");
+			expect(
+				page.getByTestId("calendar-day-6").getAttribute("aria-pressed"),
+			).toBe("true");
+			expect(
+				page.getByTestId("calendar-day-16").getAttribute("aria-label"),
+			).toBe("Spring 16, Desert Festival");
+
+			await fireEvent.click(page.getByTestId("calendar-day-10"));
+			await choose(page.getByTestId("calendar-season"), "summer");
+			// The year applies on change, not while it's being typed
+			const year = page.getByTestId("calendar-year");
+			await fireEvent.input(year, { target: { value: "2" } });
+			flushSync();
+			expect(game.year).toBe(1);
+			await fireEvent.change(year);
+			flushSync();
+
+			expect(game.dayOfMonth).toBe(10);
+			expect(game.currentSeason).toBe("summer");
+			expect(game.year).toBe(2);
+			expect(game.player.yearForSaveGame).toBe(2);
+			expect(date.textContent?.trim()).toBe("Wednesday, Summer 10, Year 2");
+			expect(
+				page.getByTestId("calendar-day-10").getAttribute("aria-pressed"),
+			).toBe("true");
+			expect(
+				page.getByTestId("calendar-day-6").getAttribute("aria-pressed"),
+			).toBe("false");
+			expect(
+				page.getByTestId("calendar-day-11").getAttribute("aria-label"),
+			).toBe("Summer 11, Luau");
+		});
+
+		it("keeps the year when its field is left empty", async () => {
+			const page = harness.render(farmPage);
+			const game = saveManager.save?.raw.SaveGame;
+			if (!game) return;
+			const year = page.getByTestId("calendar-year") as HTMLInputElement;
+			await fireEvent.input(year, { target: { value: "3" } });
+			await fireEvent.change(year);
+			flushSync();
+			expect(game.year).toBe(3);
+
+			await fireEvent.input(year, { target: { value: "" } });
+			await fireEvent.change(year);
+			await fireEvent.blur(year);
+			flushSync();
+			expect(game.year).toBe(3);
+			expect(year.value).toBe("3");
+		});
+
+		it("explains a date the game never makes", async () => {
+			harness.cleanup();
+			harness = await createPageHarness((xml) =>
+				xml.replace("<year>1</year>", "<year>0</year>"),
+			);
+			saveManager = harness.saveManager;
+			const page = harness.render(farmPage);
+			expect(page.getByTestId("calendar-date-problem").textContent).toContain(
+				"There's no Year 0",
+			);
+
+			await fireEvent.click(page.getByTestId("calendar-day-10"));
+			flushSync();
+			expect(saveManager.save?.raw.SaveGame.year).toBe(1);
+			expect(page.queryByTestId("calendar-date-problem")).toBeNull();
+		});
+
+		it("offers only the weather the season can have", async () => {
+			const page = harness.render(farmPage);
+			const options = (testId: string) =>
+				[...(page.getByTestId(testId) as HTMLSelectElement).options]
+					.filter((o) => !o.disabled)
+					.map((o) => o.value);
+			expect(options("weather-today")).toEqual([
+				"Sun",
+				"Rain",
+				"Storm",
+				"Wind",
+			]);
+			expect(options("weather-tomorrow")).not.toContain("Snow");
+			expect(options("weather-tomorrow")).not.toContain("GreenRain");
+
+			await choose(page.getByTestId("calendar-season"), "winter");
+			flushSync();
+			expect(options("weather-tomorrow")).toContain("Snow");
+			expect(options("weather-tomorrow")).not.toContain("Wind");
+		});
+
+		it("sets today's and tomorrow's weather", async () => {
+			const page = harness.render(farmPage);
+			const game = saveManager.save?.raw.SaveGame;
+			if (!game) return;
+			expect(
+				(page.getByTestId("weather-today") as HTMLSelectElement).value,
+			).toBe("Rain");
+
+			await choose(page.getByTestId("weather-today"), "Sun");
+			await choose(page.getByTestId("weather-tomorrow"), "Rain");
+			flushSync();
+
+			expect(game.isRaining).toBe(false);
+			expect(game.weatherForTomorrow).toBe("Rain");
+			const valley = game.locationWeather.item.find(
+				(entry) => entry.key.string === "Default",
+			)?.value.LocationWeather;
+			expect(valley?.WeatherForTomorrow).toBe("Rain");
+			expect(valley?.Weather).toBe("Sun");
+		});
+
+		it("locks the forecast the night before a festival", async () => {
+			const page = harness.render(farmPage);
+			await fireEvent.click(page.getByTestId("calendar-day-12"));
+			flushSync();
+
+			const tomorrow = page.getByTestId(
+				"weather-tomorrow",
+			) as HTMLSelectElement;
+			expect(tomorrow.disabled).toBe(true);
+			expect(tomorrow.value).toBe("Festival");
+			expect(page.getByTestId("weather-tomorrow-forced").textContent).toContain(
+				"Egg Festival",
+			);
+			expect(saveManager.save?.raw.SaveGame.weatherForTomorrow).toBe(
+				"Festival",
+			);
 		});
 	});
 
@@ -1663,9 +1798,20 @@ describe("Save Manager Integration Tests", () => {
 							FarmAnimalType.WhiteChicken,
 							"Peep",
 							save.player,
+							"1001",
 						),
-						FarmAnimal.fromName(FarmAnimalType.WhiteCow, "Daisy", save.player),
-						FarmAnimal.fromName(FarmAnimalType.Pig, "Truffles", save.player),
+						FarmAnimal.fromName(
+							FarmAnimalType.WhiteCow,
+							"Daisy",
+							save.player,
+							"1002",
+						),
+						FarmAnimal.fromName(
+							FarmAnimalType.Pig,
+							"Truffles",
+							save.player,
+							"1003",
+						),
 					];
 				});
 				indoors.animals = animals;

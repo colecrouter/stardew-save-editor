@@ -1,3 +1,4 @@
+import { Calendar } from "$lib/proxies/Calendar.svelte";
 import { type ChestProxy, discoverChests } from "$lib/proxies/Chest.svelte";
 import { CommunityBundles } from "$lib/proxies/CommunityBundles.svelte";
 import type { FarmAnimal } from "$lib/proxies/FarmAnimal.svelte";
@@ -30,6 +31,8 @@ export class SaveProxy implements DataProxy<SaveFile> {
 
 	public communityBundles: CommunityBundles | undefined; // derived
 	public qiQuests: QiQuests;
+	/** The date, and today's and tomorrow's weather */
+	public calendar: Calendar;
 
 	get raw() {
 		return this[Raw];
@@ -66,6 +69,7 @@ export class SaveProxy implements DataProxy<SaveFile> {
 		);
 		this.communityBundles = new CommunityBundles(this);
 		this.qiQuests = new QiQuests(this);
+		this.calendar = new Calendar(this);
 
 		this.goldenWalnuts = $state(this[Raw].SaveGame.goldenWalnuts ?? 0);
 		$effect(() => {

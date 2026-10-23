@@ -3,8 +3,8 @@
 	import type { Friendship } from "$lib/proxies/Friendship.svelte";
 	import EmojiRange from "$lib/ui/EmojiRange.svelte";
 	import UiContainerSmall from "$lib/ui/UIContainerSmall.svelte";
-	import { Villagers } from "$lib/Villagers";
 	import UiInput from "$lib/ui/UIInput.svelte";
+	import { Villagers } from "$lib/Villagers";
 
 	interface Props {
 		name: string;

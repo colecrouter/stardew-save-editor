@@ -9,6 +9,17 @@
 		["pantsItem", "👖"],
 		["trinketItem", "🧸"],
 	]);
+
+	// What goes in each equipment slot, to name it for screen readers while it's empty
+	const slotNames = new Map<ParentIndex, string>([
+		["leftRing", "left ring"],
+		["rightRing", "right ring"],
+		["boots", "boots"],
+		["hat", "hat"],
+		["shirtItem", "shirt"],
+		["pantsItem", "pants"],
+		["trinketItem", "trinket"],
+	]);
 </script>
 
 <script lang="ts">
@@ -40,6 +51,7 @@
 		onclick={() => handleClick(index)}
 		active={selectedIndex === index}
 		{item}
+		aria-label={item?.name ?? `Empty ${slotNames.get(index)} slot`}
 	>
 		{#if item}
 			<ItemSprite {item} />

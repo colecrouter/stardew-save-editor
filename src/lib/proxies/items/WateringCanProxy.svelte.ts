@@ -21,6 +21,10 @@ export class WateringCanProxy extends ToolProxy {
 		$effect(() => {
 			if (this.isBottomless !== undefined) {
 				this[Raw].isBottomless = this.isBottomless;
+				// Saves also hold the property, after the field: the game reads it last,
+				// so a stale value there would undo the change
+				if ("IsBottomless" in this[Raw])
+					this[Raw].IsBottomless = this.isBottomless;
 			}
 		});
 

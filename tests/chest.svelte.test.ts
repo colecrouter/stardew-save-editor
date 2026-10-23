@@ -192,3 +192,54 @@ describe("chest discovery and editing", () => {
 		cleanup();
 	});
 });
+
+describe("chests with a shared inventory", () => {
+	it("leaves out Junimo Chests and other chests with a global inventory", () => {
+		const nilString = { string: { "@_xsi:nil": "true" } };
+		const placed = chest();
+		const junimo = {
+			...chest("Junimo Chest"),
+			itemId: "256",
+			specialChestType: "JunimoChest",
+			globalInventoryId: nilString,
+		} as unknown as RawChest;
+		const shared = {
+			...chest(),
+			globalInventoryId: { string: "SomeModInventory" },
+		} as RawChest;
+		const ordinary = {
+			...chest(),
+			globalInventoryId: nilString,
+		} as unknown as RawChest;
+		const entry = (x: number, object: RawChest) => ({
+			key: { Vector2: { X: x, Y: 0 } },
+			value: { Object: object },
+		});
+		const save = {
+			locations: {
+				GameLocation: [
+					{
+						name: "Farm",
+						objects: {
+							item: [
+								entry(1, placed),
+								entry(2, junimo),
+								entry(3, shared),
+								entry(4, ordinary),
+							],
+						},
+						buildings: "",
+					},
+				],
+			},
+		} as unknown as Save;
+
+		let discovered = [] as ReturnType<typeof discoverChests>;
+		const cleanup = $effect.root(() => {
+			discovered = discoverChests(save);
+		});
+		// The game shows the shared inventory, so items moved into these would be lost
+		expect(discovered.map(({ metadata }) => metadata.x)).toEqual([1, 4]);
+		cleanup();
+	});
+});

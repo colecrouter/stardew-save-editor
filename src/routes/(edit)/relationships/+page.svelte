@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from "svelte";
 	import { characters } from "$lib/NPCs";
 	import { getSaveManager } from "$lib/SaveManager.svelte";
 	import UiButton from "$lib/ui/UIButton.svelte";
@@ -9,7 +10,16 @@
 	const save = getSaveManager().save;
 	if (!save) throw new Error("No save data found");
 	const player = $derived(save.player);
-	const friendships = $derived(Array.from(player.friendships));
+	// Sorted by points, but only when villagers are added, replaced or removed, or
+	// the farmer changes: re-sorting as points are typed would move the row being
+	// edited, losing focus
+	const friendships = $derived.by(() => {
+		const all = player.friendships;
+		// Reads every entry, so replacing a villager counts too (keys() alone can
+		// miss that); their points are only read untracked, when sorting
+		all.entries();
+		return untrack(() => Array.from(all));
+	});
 	const missingCharacters = $derived(
 		characters.filter((name) => !player.friendships.has(name)),
 	);

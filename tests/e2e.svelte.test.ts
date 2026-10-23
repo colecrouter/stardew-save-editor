@@ -15,6 +15,7 @@ import { FarmAnimal, FarmAnimalType } from "$lib/proxies/FarmAnimal.svelte";
 import { getStatValue } from "$lib/proxies/Farmer.svelte";
 
 import { Item as ItemFactory } from "$lib/proxies/Item.svelte";
+import { Friendship } from "$lib/proxies/Friendship.svelte";
 import { MailFlag } from "$lib/proxies/Mail.svelte";
 import { Gender, type Player, type Color as RawColor } from "../codegen/save";
 import {
@@ -1153,6 +1154,128 @@ describe("Save Manager Integration Tests", () => {
 			expect(names()).toEqual(["Lewis"]);
 			await fireEvent.keyDown(search, { key: "Escape" });
 			expect(names()).toEqual(all);
+		});
+	});
+
+	describe("Item quality", () => {
+		it("keeps the saved base price and edibility when the quality changes", async () => {
+			const page = harness.render(editorPage);
+			await fireEvent.click(page.getByTestId("item-4"));
+			await tick();
+			const raw = () => {
+				const item = saveManager.save?.player.inventory.get(4)?.[Raw];
+				if (!item) throw new Error("Expected an item in slot 4");
+				return item as { quality?: number; price?: number; edibility?: number };
+			};
+			const { price, edibility } = raw();
+			expect(price).toBeGreaterThan(0);
+			expect(edibility).toBeGreaterThan(0);
+
+			for (const quality of [4, 2, 0]) {
+				await fireEvent.click(page.getByTestId(`quality-${quality}`));
+				// The game applies quality to the base values when the item is sold or eaten
+				expect(raw()).toMatchObject({ quality, price, edibility });
+			}
+		});
+	});
+
+	describe("Friendship points", () => {
+		it("keeps a row in place, and focused, while its points are typed", async () => {
+			const save = saveManager.save;
+			if (!save) throw new Error("No save loaded");
+			const page = harness.render(relationshipsPage);
+			const nameAt = (index: number) => {
+				const row = page.getAllByTestId("friendship-row")[index];
+				if (!row) throw new Error(`No row ${index}`);
+				return within(row).getByTestId("friendship-name").textContent ?? "";
+			};
+			const top = nameAt(0);
+			const first = page.getAllByTestId("friendship-row")[0] as HTMLElement;
+			const input = within(first).getByTestId(
+				"friendship-points",
+			) as HTMLInputElement;
+			input.focus();
+
+			// The first digit of "2000" leaves the top villager with the fewest points
+			await fireEvent.input(input, { target: { value: "2" } });
+			flushSync();
+			expect(save.player.friendships.get(top)?.points).toBe(2);
+			expect(nameAt(0)).toBe(top);
+			expect(document.activeElement).toBe(input);
+		});
+
+		it("re-sorts when a villager is replaced, not only when the count changes", async () => {
+			const save = saveManager.save;
+			if (!save) throw new Error("No save loaded");
+			const page = harness.render(relationshipsPage);
+			const rows = () => page.getAllByTestId("friendship-row");
+			const names = () =>
+				rows().map(
+					(row) => within(row).getByTestId("friendship-name").textContent,
+				);
+			const before = names();
+			const top = save.player.friendships.get(before[0] ?? "");
+			const last = before.at(-1);
+			if (!top || !last) throw new Error("Expected villagers");
+
+			// Same villagers, but the last one now has the most points
+			const replacement = Friendship.fromName(last);
+			replacement.points = top.points + 1;
+			save.player.friendships.set(last, replacement);
+			flushSync();
+
+			expect(names()).toHaveLength(before.length);
+			expect(names()[0]).toBe(last);
+			const points = within(rows()[0] as HTMLElement).getByTestId(
+				"friendship-points",
+			) as HTMLInputElement;
+			expect(points.value).toBe(String(top.points + 1));
+		});
+	});
+
+	describe("Screen reader names", () => {
+		// Each slot button is named after its item, so screen readers can tell them apart
+		const expectNamedSlots = (slots: HTMLElement[]) => {
+			expect(slots.length).toBeGreaterThan(0);
+			for (const slot of slots)
+				expect(slot.getAttribute("aria-label")).toBe(
+					slot.getAttribute("data-item-name") ?? "Empty slot",
+				);
+			expect(slots.some((slot) => slot.hasAttribute("data-item-name"))).toBe(
+				true,
+			);
+		};
+
+		it("names each backpack and chest slot after its item", () => {
+			const context = setToastManagerContext(new ToastManager());
+			const inventory = harness.render(editorPage, { context });
+			expectNamedSlots(inventory.getAllByTestId(/^item-\d+$/));
+			inventory.unmount();
+
+			const chests = harness.render(chestsPage, { context });
+			expectNamedSlots(chests.getAllByTestId(/^chest-item-\d+$/));
+		});
+
+		it("names empty equipment slots after what goes in them", () => {
+			const page = harness.render(editorPage);
+			const label = (slot: string) =>
+				page.getByTestId(`item-${slot}`).getAttribute("aria-label");
+			expect(label("shirtItem")).toBe("Shirt");
+			expect(label("leftRing")).toBe("Empty left ring slot");
+			expect(label("rightRing")).toBe("Empty right ring slot");
+		});
+
+		it("names each bundle item's checkbox after the item", () => {
+			const page = harness.render(bundlesPage);
+			const rows = page.getAllByTestId("bundle-required-item");
+			expect(rows.length).toBeGreaterThan(0);
+			for (const row of rows) {
+				const box = row.querySelector('input[type="checkbox"]');
+				const name = row.querySelector(".item > span")?.textContent ?? "";
+				expect(box?.getAttribute("aria-label")).toBe(
+					`${name.trim().replace(/\s+/g, " ")} donated`,
+				);
+			}
 		});
 	});
 

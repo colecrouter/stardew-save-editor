@@ -359,6 +359,7 @@
 						<div class="item-grid">
 							{#each slots(chest) as { index, item }}
 								<ItemSlot
+									{item}
 									active={multiSelected
 										? isPicked(chest, index)
 										: chest === selectedChest && index === selectedIndex}

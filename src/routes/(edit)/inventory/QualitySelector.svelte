@@ -8,7 +8,6 @@
 </script>
 
 <script lang="ts">
-	import { calculatePrice, calculateEdibility } from "$lib/ItemQuality";
 	import type { ObjectProxy } from "$lib/proxies/items";
 
 	interface Props {
@@ -17,17 +16,13 @@
 
 	let { item = $bindable() }: Props = $props();
 
-	/** Update an item's quality, and recalculate its price & edibility */
+	/**
+	 * Update an item's quality. Its saved price and edibility stay as they are: the
+	 * game stores the base values and applies quality itself when the item is sold
+	 * or eaten, so scaling them here would apply it twice.
+	 */
 	const updateQuality = (newQuality: number) => {
 		item.quality = newQuality;
-
-		if (item.info?.price !== undefined) {
-			item.price = calculatePrice(item.info.price, newQuality);
-		}
-
-		if (item.info?.edibility !== undefined) {
-			item.edibility = calculateEdibility(item.info.edibility, newQuality);
-		}
 	};
 </script>
 

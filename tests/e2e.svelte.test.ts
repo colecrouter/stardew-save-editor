@@ -12,6 +12,7 @@ import {
 } from "$lib/proxies/bundleSerialization";
 import { Color as ColorProxy } from "$lib/proxies/Color.svelte";
 import { FarmAnimal, FarmAnimalType } from "$lib/proxies/FarmAnimal.svelte";
+import { Item as ItemFactory } from "$lib/proxies/Item.svelte";
 import { MailFlag } from "$lib/proxies/Mail.svelte";
 import { Gender, type Player, type Color as RawColor } from "../codegen/save";
 import {
@@ -28,6 +29,7 @@ import craftingPage from "../src/routes/(edit)/(list)/crafting/+page.svelte";
 import appearancePage from "../src/routes/(edit)/appearance/+page.svelte";
 import bundlesPage from "../src/routes/(edit)/bundles/+page.svelte";
 import characterPage from "../src/routes/(edit)/character/+page.svelte";
+import chestsPage from "../src/routes/(edit)/chests/+page.svelte";
 import farmPage from "../src/routes/(edit)/farm/+page.svelte";
 import editorPage from "../src/routes/(edit)/inventory/+page.svelte";
 import BuildingSprite from "../src/routes/(edit)/inventory/BuildingSprite.svelte";
@@ -381,6 +383,28 @@ describe("Save Manager Integration Tests", () => {
 				"Leather Boots cannot be equipped in the Hat slot",
 			);
 			expect(saveManager.save?.player.inventory.get("hat")).toBeUndefined();
+		});
+
+		it("sorts the backpack with the sort button", async () => {
+			const inventory = saveManager.save?.player.inventory;
+			if (!inventory) throw new Error("No inventory");
+			const parsnip = ItemFactory.fromName("Parsnip");
+			inventory.set(30, parsnip);
+			flushSync();
+			const context = setToastManagerContext(new ToastManager());
+			const page = harness.render(editorPage, { context });
+			// Headed like the chests page, with the sort button beside the title
+			expect(page.getByRole("heading", { level: 3 }).textContent).toBe(
+				"Inventory",
+			);
+
+			await fireEvent.click(page.getByTestId("sort-inventory"));
+			const used = [...Array(inventory.slotCount).keys()].filter(
+				(i) => inventory.get(i) !== undefined,
+			);
+			// Everything packed to the front, the Parsnip included
+			expect(used).toEqual([...Array(used.length).keys()]);
+			expect([...inventory.values()]).toContain(parsnip);
 		});
 
 		// it("should support drag and drop operations", async () => {
@@ -1199,6 +1223,154 @@ describe("Save Manager Integration Tests", () => {
 
 			expect(view.container.textContent).not.toContain("??");
 			expect(view.container.querySelector(".item")).toBeTruthy();
+		});
+	});
+
+	describe("Chests", () => {
+		const renderChests = () => {
+			const context = setToastManagerContext(new ToastManager());
+			return harness.render(chestsPage, { context });
+		};
+
+		const chestIn = (location: string) => {
+			const chests = saveManager.save?.chests ?? [];
+			const index = chests.findIndex(
+				(chest) => chest.metadata.location === location,
+			);
+			const chest = chests[index];
+			if (!chest) throw new Error(`No chest in ${location}`);
+			return { chest, index };
+		};
+
+		it("lists every chest in a group at once, each in its own section", async () => {
+			const page = renderChests();
+			const options = [
+				...(page.getByTestId("chest-group") as HTMLSelectElement).options,
+			].map((o) => o.textContent?.trim());
+			expect(options).toEqual([
+				"Chests (1)",
+				"Farm / Cabin Fridges (0)",
+				"Farm House Fridges (1)",
+				"Island Chests (0)",
+				"Island Fridges (1)",
+			]);
+			expect(page.getAllByTestId("chest-section")).toHaveLength(1);
+			expect(page.getByText("Farm - Chest (60, 15)")).toBeTruthy();
+
+			await fireEvent.change(page.getByTestId("chest-group"), {
+				target: { value: "island-fridges" },
+			});
+			const sections = page.getAllByTestId("chest-section");
+			expect(sections).toHaveLength(1);
+			expect(sections[0]?.textContent).toContain("IslandFarmHouse - Fridge");
+		});
+
+		it("Ctrl+click picks several items and hides the item editor", async () => {
+			const page = renderChests();
+			expect(page.queryByTestId("chest-multi-selection")).toBeNull();
+
+			await fireEvent.click(page.getByTestId("chest-0-item-0"));
+			await fireEvent.click(page.getByTestId("chest-0-item-1"), {
+				ctrlKey: true,
+			});
+			await fireEvent.click(page.getByTestId("chest-0-item-2"), {
+				ctrlKey: true,
+			});
+			expect(page.getByTestId("chest-multi-selection").textContent).toContain(
+				"3 items selected",
+			);
+			expect(page.queryByTestId("item-name")).toBeNull();
+
+			// Ctrl+click again removes one; a plain click goes back to one item
+			await fireEvent.click(page.getByTestId("chest-0-item-2"), {
+				ctrlKey: true,
+			});
+			expect(page.getByTestId("chest-multi-selection").textContent).toContain(
+				"2 items selected",
+			);
+			await fireEvent.click(page.getByTestId("chest-0-item-5"));
+			expect(page.queryByTestId("chest-multi-selection")).toBeNull();
+		});
+
+		it("drags an item onto another slot", async () => {
+			const page = renderChests();
+			const chest = saveManager.save?.chests[0];
+			const first = chest?.inventory.get(0);
+			const emptySlot = 30;
+			expect(chest?.inventory.get(emptySlot)).toBeUndefined();
+
+			await fireEvent.dragStart(page.getByTestId("chest-0-drag-0"));
+			await fireEvent.drop(page.getByTestId(`chest-0-item-${emptySlot}`));
+			expect(chest?.inventory.get(emptySlot)).toBe(first);
+			expect(chest?.inventory.get(0)).toBeUndefined();
+		});
+
+		it("sorts a chest, and all chests, with the sort buttons", async () => {
+			const page = renderChests();
+			const chest = saveManager.save?.chests[0];
+			if (!chest) throw new Error("No chest");
+			// Spread the items out so sorting has something to do
+			const first = chest.inventory.take(0);
+			if (first) chest.inventory.place(35, first);
+			flushSync();
+
+			await fireEvent.click(page.getByTestId("sort-chest-0"));
+			const used = chest.inventory.usedSlots;
+			for (let i = 0; i < chest.inventory.slotCount; i++)
+				expect(chest.inventory.get(i) !== undefined).toBe(i < used);
+
+			const fridge = saveManager.save?.chests[1];
+			const parsnip = ItemFactory.fromName("Parsnip");
+			fridge?.inventory.set(10, parsnip);
+			flushSync();
+			await fireEvent.click(page.getByTestId("sort-all-chests"));
+			expect(fridge?.inventory.get(0)).toBe(parsnip);
+		});
+
+		it("dims the items that don't match a search", async () => {
+			const page = renderChests();
+			const chest = saveManager.save?.chests[0];
+			if (!chest) throw new Error("No chest");
+			chest.inventory.set(0, ItemFactory.fromName("Parsnip"));
+			chest.inventory.set(1, ItemFactory.fromName("Stone"));
+			flushSync();
+
+			const search = page.getByTestId("chest-search");
+			await fireEvent.input(search, { target: { value: "parsnip" } });
+			const dimmed = (slot: number) =>
+				page.getByTestId(`chest-0-drag-${slot}`).classList.contains("dimmed");
+			expect(dimmed(0)).toBe(false);
+			expect(dimmed(1)).toBe(true);
+
+			await fireEvent.click(page.getByTestId("chest-search-clear"));
+			expect(dimmed(1)).toBe(false);
+		});
+
+		it("jumps to a search result in another group", async () => {
+			const page = renderChests();
+			const { chest, index } = chestIn("IslandFarmHouse");
+			chest.inventory.set(3, ItemFactory.fromName("Ancient Fruit"));
+			flushSync();
+
+			await fireEvent.input(page.getByTestId("chest-search"), {
+				target: { value: "ancient fruit" },
+			});
+			const result = page.getByTestId(`chest-search-result-${index}-3`);
+			expect(result.textContent).toContain("IslandFarmHouse - Fridge");
+			await fireEvent.click(result);
+			await tick();
+
+			// The island fridges are listed, with the item selected
+			expect((page.getByTestId("chest-group") as HTMLSelectElement).value).toBe(
+				"island-fridges",
+			);
+			expect(page.getAllByTestId("chest-section")).toHaveLength(1);
+			expect(
+				page.getByTestId(`chest-${index}-item-3`).classList.contains("active"),
+			).toBe(true);
+			expect(page.getByText("Editing: IslandFarmHouse - Fridge")).toBeTruthy();
+			// The results close once one is picked
+			expect(page.queryByTestId(`chest-search-result-${index}-3`)).toBeNull();
 		});
 	});
 });

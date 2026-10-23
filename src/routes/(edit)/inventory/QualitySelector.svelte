@@ -1,5 +1,6 @@
 <script lang="ts" module>
-	const qualityLevels = new Map([
+	/** The qualities an item can have, and their names */
+	export const qualityLevels = new Map([
 		[0, "Normal"],
 		[1, "Silver"],
 		[2, "Gold"],
@@ -14,16 +15,10 @@
 		item: ObjectProxy;
 	}
 
+	// Picking a star only sets the quality. The game saves an item's base price
+	// and edibility, and applies the quality itself when it's sold or eaten
+	// (Object.sellToStorePrice, Object.staminaRecoveredOnConsumption).
 	let { item = $bindable() }: Props = $props();
-
-	/**
-	 * Update an item's quality. Its saved price and edibility stay as they are: the
-	 * game stores the base values and applies quality itself when the item is sold
-	 * or eaten, so scaling them here would apply it twice.
-	 */
-	const updateQuality = (newQuality: number) => {
-		item.quality = newQuality;
-	};
 </script>
 
 <div class="container">
@@ -41,7 +36,6 @@
 					checked={item.quality === i}
 					value={i}
 					bind:group={item.quality}
-					onclick={() => updateQuality(i)}
 					data-testid={`quality-${i}`}
 				/>
 			</label>

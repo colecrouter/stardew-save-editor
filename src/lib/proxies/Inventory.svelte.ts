@@ -179,4 +179,17 @@ export class Inventory
 			}
 		}
 	}
+
+	/**
+	 * Swap two backpack slots. Unlike two `set` calls, this doesn't dispose
+	 * either item (which would stop its edits being saved), and it moves the
+	 * save's own entries, so items the editor doesn't load (Secret Notes) move too.
+	 */
+	public swap(a: number, b: number) {
+		const items = this[Raw].items.Item;
+		[items[a], items[b]] = [items[b], items[a]];
+		const first = this.get(a);
+		super.set(a, this.get(b));
+		super.set(b, first);
+	}
 }

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onDestroy } from "svelte";
 	import { asset } from "$app/paths";
 	import {
 		PrimaryBootColors,
@@ -9,7 +10,7 @@
 		TertiaryBootColors,
 		TertiarySkinColors,
 	} from "$lib/CharacterColors";
-	import { Raw } from "$lib/proxies";
+	import { Dispose, Raw } from "$lib/proxies";
 	import { Color } from "$lib/proxies/Color.svelte";
 	import type { Farmer } from "$lib/proxies/Farmer.svelte";
 	import { Item } from "$lib/proxies/Item.svelte";
@@ -50,6 +51,13 @@
 				: "Basic Pullover (F)",
 		) as ClothingProxy,
 	);
+	// Item proxies hold an effect root, so dispose of these stand-ins when
+	// they're replaced or the preview goes away
+	onDestroy(() => underwear[Dispose]?.());
+	$effect(() => {
+		const shirt = undershirt;
+		return () => shirt[Dispose]?.();
+	});
 
 	let hat = $derived(player.hat);
 	let shirt = $derived(player.shirt ?? undershirt);

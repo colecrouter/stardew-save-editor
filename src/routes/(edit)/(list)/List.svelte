@@ -1,11 +1,10 @@
 <script lang="ts">
 	import { ItemData, ItemDescription } from "$lib/ItemData";
-	import { Item } from "$lib/proxies/Item.svelte";
 	import type { Recipes } from "$lib/proxies/Recipes.svelte";
 	import UiCheckbox from "$lib/ui/UICheckbox.svelte";
 	import UiContainer from "$lib/ui/UIContainer.svelte";
 	import UiInput from "$lib/ui/UIInput.svelte";
-	import ItemSprite from "../inventory/ItemSprite.svelte";
+	import NamedItemSprite from "../inventory/NamedItemSprite.svelte";
 	import { recipeMapping } from "./mapping";
 
 	interface Props {
@@ -49,7 +48,7 @@
 				<label class="entry">
 					<div class="key">
 						<div class="img">
-							<ItemSprite item={Item.fromName(recipeMapping.get(key) ?? key)} />
+							<NamedItemSprite name={recipeMapping.get(key) ?? key} />
 						</div>
 						<div class="name">
 							{key}

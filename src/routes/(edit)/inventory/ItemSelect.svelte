@@ -1,11 +1,10 @@
 <script lang="ts">
 	import { stringSimilarity } from "string-similarity-js";
 	import { ItemData } from "$lib/ItemData";
-	import { Item } from "$lib/proxies/Item.svelte";
 	import Tooltip from "$lib/ui/Tooltip.svelte";
 	import UiContainerSmall from "$lib/ui/UIContainerSmall.svelte";
 	import UiInput from "$lib/ui/UIInput.svelte";
-	import ItemSprite from "./ItemSprite.svelte";
+	import NamedItemSprite from "./NamedItemSprite.svelte";
 
 	interface Props {
 		onsubmit: (name: string) => void;
@@ -84,7 +83,7 @@
 					}}
 					<button class="item" onclick={submit}>
 						<div class="icon">
-							<ItemSprite item={Item.fromName(name)} />
+							<NamedItemSprite {name} />
 						</div>
 						<div class="name">
 							{name}

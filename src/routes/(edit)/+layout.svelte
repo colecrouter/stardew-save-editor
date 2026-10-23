@@ -8,6 +8,9 @@
 	import Tooltip from "$lib/ui/Tooltip.svelte";
 	import UiButton from "$lib/ui/UIButton.svelte";
 	import CharacterPreview from "./appearance/CharacterPreview.svelte";
+	import BackupReminder, {
+		backupReminderSkipped,
+	} from "./BackupReminder.svelte";
 	import Router from "./Router.svelte";
 
 	interface Props {
@@ -20,6 +23,13 @@
 	const saveManager = getSaveManager();
 
 	let isDownloading = $state(false);
+	let showBackupReminder = $state(false);
+
+	// Remind about backing up first, unless the player turned that off
+	const save = () => {
+		if (backupReminderSkipped()) download();
+		else showBackupReminder = true;
+	};
 
 	const cancel = () => saveManager.reset();
 	const download = async () => {
@@ -62,6 +72,17 @@
 	});
 </script>
 
+{#if saveManager.save && showBackupReminder}
+	<BackupReminder
+		filename={saveManager.filename}
+		onconfirm={() => {
+			showBackupReminder = false;
+			download();
+		}}
+		oncancel={() => (showBackupReminder = false)}
+	/>
+{/if}
+
 {#if saveManager.save}
 	<div class="outer-wrapper">
 		<Router />
@@ -76,10 +97,7 @@
 					data-testid="cancel-button"
 					>❌
 				</UiButton>
-				<UiButton
-					onclick={() => download()}
-					alt="Save"
-					data-testid="save-button"
+				<UiButton onclick={() => save()} alt="Save" data-testid="save-button"
 					>💾
 				</UiButton>
 				<UiButton

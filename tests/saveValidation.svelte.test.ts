@@ -10,6 +10,7 @@ import {
 	validateSave,
 } from "$lib/saveValidation";
 import { XMLManager } from "$lib/workers/xml";
+import type { Season } from "$types/save";
 import {
 	SaveManager,
 	SaveValidationError,
@@ -39,6 +40,14 @@ const firstItemWithQuality = (parsed: SaveFile) => {
 	);
 	if (!item) throw new Error("No item with a quality");
 	return item;
+};
+
+const daysPlayedStat = (player: SaveFile["SaveGame"]["player"]) => {
+	const stat = player.stats.Values?.item?.find(
+		(s) => s.key.string === "daysPlayed",
+	);
+	if (!stat) throw new Error("No daysPlayed stat");
+	return stat;
 };
 
 const UNUSUAL_QUALITY =
@@ -127,6 +136,44 @@ describe("validateSave", () => {
 			},
 			"1 item has a quality the game can't read",
 		],
+		[
+			"a season the game can't read",
+			(p: SaveFile) => {
+				p.SaveGame.currentSeason = "autumn" as Season;
+			},
+			"The season (autumn) isn't spring, summer, fall or winter",
+		],
+		[
+			"a missing season",
+			(p: SaveFile) => {
+				Reflect.deleteProperty(p.SaveGame, "currentSeason");
+			},
+			"The season (missing) isn't spring, summer, fall or winter",
+		],
+		[
+			"a day of the month the game can't read",
+			(p: SaveFile) => {
+				p.SaveGame.dayOfMonth = "first" as unknown as number;
+			},
+			"The day of the month (first) isn't a number the game can read",
+		],
+		[
+			"a year too big for the game's int",
+			(p: SaveFile) => {
+				p.SaveGame.year = 2 ** 31;
+			},
+			"The year (2147483648) isn't a number the game can read",
+		],
+		[
+			"a farmhand's stat the game can't read",
+			(p: SaveFile) => {
+				// An unclaimed cabin's farmhand, whose stats are still read
+				const farmhand = { ...structuredClone(p.SaveGame.player), name: "" };
+				daysPlayedStat(farmhand).value.unsignedInt = -1;
+				p.SaveGame.farmhands = { Farmer: [farmhand] };
+			},
+			"Farmhand 1's daysPlayed stat (-1) is out of range",
+		],
 	])("rejects %s", (_, breakIt, message) => {
 		const parsed = loadParsed();
 		breakIt(parsed);
@@ -171,6 +218,41 @@ describe("validateSave", () => {
 			},
 			UNUSUAL_QUALITY,
 		],
+		[
+			"day 29, a date the game never makes",
+			(p: SaveFile) => {
+				p.SaveGame.dayOfMonth = 29;
+			},
+			"The day of the month (29) isn't 1 to 28",
+		],
+		[
+			"day 0, a date the game never makes",
+			(p: SaveFile) => {
+				p.SaveGame.dayOfMonth = 0;
+			},
+			"The day of the month (0) isn't 1 to 28",
+		],
+		[
+			"a missing day of the month, which loads as day 0",
+			(p: SaveFile) => {
+				Reflect.deleteProperty(p.SaveGame, "dayOfMonth");
+			},
+			"The day of the month (0) isn't 1 to 28",
+		],
+		[
+			"year 0, a date the game never makes",
+			(p: SaveFile) => {
+				p.SaveGame.year = 0;
+			},
+			"The year (0) is less than 1",
+		],
+		[
+			"snow outside winter",
+			(p: SaveFile) => {
+				p.SaveGame.isSnowing = true;
+			},
+			"It's snowing in spring, and only snows in winter",
+		],
 	])("only warns about %s", (_, breakIt, message) => {
 		const parsed = loadParsed();
 		breakIt(parsed);
@@ -189,6 +271,59 @@ describe("validateSave", () => {
 			itemId: 126,
 			bigCraftable: true,
 			quality: 5,
+		});
+		expect(validateSave(parsed)).toEqual({
+			valid: true,
+			errors: [],
+			warnings: [],
+		});
+	});
+
+	it.each([
+		-102,
+		1.5,
+		2 ** 32,
+		"",
+	])("rejects a stat of %j, which the game can't read back", (value) => {
+		const parsed = loadParsed();
+		daysPlayedStat(parsed.SaveGame.player).value.unsignedInt = value as number;
+		const result = validateSave(parsed);
+		expect(result.valid).toBe(false);
+		expect(result.errors).toEqual([
+			`Test's daysPlayed stat (${value}) is out of range`,
+		]);
+	});
+
+	it("accepts the biggest stat the game can hold", () => {
+		const parsed = loadParsed();
+		daysPlayedStat(parsed.SaveGame.player).value.unsignedInt = 2 ** 32 - 1;
+		expect(validateSave(parsed)).toEqual({
+			valid: true,
+			errors: [],
+			warnings: [],
+		});
+	});
+
+	it.each([
+		"Summer",
+		" FALL ",
+		2,
+		"3",
+	])("reads the season %j by name in any case, or by number", (season) => {
+		const parsed = loadParsed();
+		Object.assign(parsed.SaveGame, { currentSeason: season });
+		expect(validateSave(parsed)).toEqual({
+			valid: true,
+			errors: [],
+			warnings: [],
+		});
+	});
+
+	it("accepts snow in winter", () => {
+		const parsed = loadParsed();
+		Object.assign(parsed.SaveGame, {
+			currentSeason: "winter",
+			isSnowing: true,
 		});
 		expect(validateSave(parsed)).toEqual({
 			valid: true,

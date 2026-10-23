@@ -13,6 +13,7 @@ import {
 import { Color as ColorProxy } from "$lib/proxies/Color.svelte";
 import { FarmAnimal, FarmAnimalType } from "$lib/proxies/FarmAnimal.svelte";
 import { getStatValue } from "$lib/proxies/Farmer.svelte";
+
 import { Item as ItemFactory } from "$lib/proxies/Item.svelte";
 import { MailFlag } from "$lib/proxies/Mail.svelte";
 import { Gender, type Player, type Color as RawColor } from "../codegen/save";
@@ -36,6 +37,7 @@ import eventsPage from "../src/routes/(edit)/events/+page.svelte";
 import farmPage from "../src/routes/(edit)/farm/+page.svelte";
 import editorPage from "../src/routes/(edit)/inventory/+page.svelte";
 import BuildingSprite from "../src/routes/(edit)/inventory/BuildingSprite.svelte";
+import questsPage from "../src/routes/(edit)/quests/+page.svelte";
 import relationshipsPage from "../src/routes/(edit)/relationships/+page.svelte";
 import { withHouse, withToolAtClint } from "./helpers/upgrades";
 
@@ -1772,6 +1774,296 @@ describe("Save Manager Integration Tests", () => {
 				"Events seen: 0",
 			);
 			expect(page.queryByTestId("event-added")).toBeNull();
+		});
+	});
+
+	describe("Quests", () => {
+		const renderQuests = () => {
+			const toastManager = new ToastManager();
+			const context = setToastManagerContext(toastManager);
+			return { page: harness.render(questsPage, { context }), toastManager };
+		};
+		const entry = (
+			page: { getAllByTestId: (id: string) => HTMLElement[] },
+			title: string,
+		) => {
+			const found = page
+				.getAllByTestId("quest")
+				.find(
+					(el) => within(el).getByTestId("quest-title").textContent === title,
+				);
+			if (!found) throw new Error(`No quest called ${title}`);
+			return within(found);
+		};
+		const rawQuests = () => {
+			const log = saveManager.save?.raw.SaveGame.player.questLog;
+			return typeof log === "object" ? log.Quest : [];
+		};
+		const rawQuest = (title: string) =>
+			rawQuests().find((q) => q._questTitle === title);
+		// Text wrapped over several lines in the markup
+		const text = (el: HTMLElement) =>
+			el.textContent?.replace(/\s+/g, " ").trim();
+		const helpWanted = (xml: string, title = "Abigail's Request") =>
+			xml.replace(
+				"</questLog>",
+				`<Quest xsi:type="ItemDeliveryQuest">
+					<_currentObjective>Bring Abigail an Amethyst.</_currentObjective>
+					<_questDescription>Abigail wants an Amethyst.</_questDescription>
+					<_questTitle>${title}</_questTitle>
+					<accepted>true</accepted>
+					<completed>false</completed>
+					<dailyQuest>true</dailyQuest>
+					<showNew>false</showNew>
+					<canBeCancelled>true</canBeCancelled>
+					<destroy>false</destroy>
+					<moneyReward>200</moneyReward>
+					<questType>3</questType>
+					<daysLeft>2</daysLeft>
+					<dayQuestAccepted>5</dayQuestAccepted>
+					<nextQuests />
+					<questTitle>${title}</questTitle>
+					<target>Abigail</target>
+					<item>(O)66</item>
+					<number>1</number>
+					<parts />
+					<dialogueparts />
+				</Quest></questLog>`,
+			);
+		const billboardQuestsDone = (xml: string, n: number) =>
+			xml.replace(
+				/(<string>BillboardQuestsDone<\/string>\s*<\/key>\s*<value>\s*<unsignedInt>)\d+/,
+				(_, before) => `${before}${n}`,
+			);
+		const reload = async (transformXml: (xml: string) => string) => {
+			harness.cleanup();
+			harness = await createPageHarness(transformXml);
+			saveManager = harness.saveManager;
+		};
+
+		it("lists the journal newest first, linking to Qi's quests", () => {
+			const { page } = renderQuests();
+			expect(
+				page.getAllByTestId("quest-title").map((el) => el.textContent),
+			).toEqual([
+				"Advancement",
+				"Raising Animals",
+				"Deeper In The Mine",
+				"Getting Started",
+				"Introductions",
+			]);
+			expect(
+				page.getByTestId("quests-qi-link").querySelector("a")?.textContent,
+			).toBe("Qi's Quests");
+			expect(
+				entry(page, "Getting Started").queryByTestId("quest-reward-pending"),
+			).toBeTruthy();
+			expect(page.queryAllByTestId("quest-reward-pending")).toHaveLength(1);
+			// Story quests have no time limit
+			expect(page.queryAllByTestId("quest-days-left")).toEqual([]);
+			// A finished quest can't be completed again
+			expect(
+				entry(page, "Getting Started").queryByTestId("quest-complete"),
+			).toBeNull();
+		});
+
+		it("completes a quest", async () => {
+			const { page, toastManager } = renderQuests();
+			await fireEvent.click(
+				entry(page, "Advancement").getByTestId("quest-complete"),
+			);
+			flushSync();
+			expect(rawQuest("Advancement")?.completed).toBe(true);
+			expect(
+				entry(page, "Advancement").queryByTestId("quest-reward-pending"),
+			).toBeTruthy();
+			expect(toastManager.toasts.map((t) => t.message)).toEqual([
+				"Completed Advancement: collect the reward from the journal in-game.",
+			]);
+
+			const introductions = entry(page, "Introductions");
+			expect(text(introductions.getByTestId("quest-follow-ups"))).toBe(
+				"Completing it starts How To Win Friends next.",
+			);
+			await fireEvent.click(introductions.getByTestId("quest-complete"));
+			flushSync();
+			expect(rawQuest("Introductions")).toBeUndefined();
+			// Its follow-up takes its place, at the top
+			expect(
+				page.getAllByTestId("quest-title").map((el) => el.textContent),
+			).toEqual([
+				"How To Win Friends",
+				"Advancement",
+				"Raising Animals",
+				"Deeper In The Mine",
+				"Getting Started",
+			]);
+			expect(rawQuest("How To Win Friends")?.showNew).toBe(true);
+			expect(toastManager.toasts.at(-1)?.message).toBe(
+				"Completed Introductions. Started How To Win Friends.",
+			);
+		});
+
+		it("warns about a follow-up it can't start", async () => {
+			await reload((xml) =>
+				xml.replace(
+					/(<_questTitle>Deeper In The Mine<\/_questTitle>[\s\S]*?<int>)18</,
+					(_, before) => `${before}9999<`,
+				),
+			);
+			const { page, toastManager } = renderQuests();
+			const mine = entry(page, "Deeper In The Mine");
+			expect(text(mine.getByTestId("quest-follow-ups-skipped"))).toBe(
+				"Finishing it in-game starts Quest #9999 next. The editor can't, so if it's completed here, that quest never starts.",
+			);
+			await fireEvent.click(mine.getByTestId("quest-complete"));
+			flushSync();
+			expect(toastManager.toasts.at(-1)?.message).toBe(
+				"Completed Deeper In The Mine. Quest #9999 won't be started: the game only starts follow-up quests when this one is finished in-game.",
+			);
+		});
+
+		it("removes a quest", async () => {
+			const { page } = renderQuests();
+			await fireEvent.click(
+				entry(page, "Deeper In The Mine").getByTestId("quest-remove"),
+			);
+			flushSync();
+			expect(rawQuests()).toHaveLength(4);
+			expect(rawQuest("Deeper In The Mine")).toBeUndefined();
+			expect(page.getAllByTestId("quest-title")).toHaveLength(4);
+		});
+
+		it("edits a quest's gold reward", async () => {
+			const { page } = renderQuests();
+			const input = entry(page, "Raising Animals").getByTestId(
+				"quest-reward",
+			) as HTMLInputElement;
+			expect(input.value).toBe("100");
+			await fireEvent.input(input, { target: { value: "750" } });
+			flushSync();
+			expect(rawQuest("Raising Animals")?.moneyReward).toBe(750);
+		});
+
+		it("edits how long a Help Wanted quest has left", async () => {
+			await reload(helpWanted);
+			const { page } = renderQuests();
+			expect(page.getByTestId("quest-help-wanted")).toBeTruthy();
+			const input = page.getByTestId("quest-days-left") as HTMLInputElement;
+			expect(input.value).toBe("2");
+			await fireEvent.input(input, { target: { value: "5" } });
+			flushSync();
+			expect(rawQuest("Abigail's Request")?.daysLeft).toBe(5);
+		});
+
+		it("refuses days left and rewards out of range", async () => {
+			await reload(helpWanted);
+			const { page } = renderQuests();
+			const days = page.getByTestId("quest-days-left") as HTMLInputElement;
+			for (const value of ["0", "100", "2.5"]) {
+				await fireEvent.input(days, { target: { value } });
+				flushSync();
+				expect(days.checkValidity()).toBe(false);
+				expect(rawQuest("Abigail's Request")?.daysLeft).toBe(2);
+			}
+			const reward = entry(page, "Abigail's Request").getByTestId(
+				"quest-reward",
+			) as HTMLInputElement;
+			for (const value of ["-5", "100000", "12.5"]) {
+				await fireEvent.input(reward, { target: { value } });
+				flushSync();
+				expect(reward.checkValidity()).toBe(false);
+				expect(rawQuest("Abigail's Request")?.moneyReward).toBe(200);
+			}
+		});
+
+		it("warns when a Prize Ticket is due but the backpack is full", async () => {
+			// Two Help Wanted quests done, so this is the third
+			await reload((xml) => billboardQuestsDone(helpWanted(xml), 2));
+			const { page, toastManager } = renderQuests();
+			const request = entry(page, "Abigail's Request");
+			expect(text(request.getByTestId("quest-prize-ticket"))).toBe(
+				"Completing it earns a Prize Ticket (every third Help Wanted quest does).",
+			);
+
+			const inventory = saveManager.save?.player.inventory;
+			if (!inventory) throw new Error("No inventory");
+			for (let i = 0; i < inventory.slotCount; i++)
+				if (!inventory.get(i)) inventory.set(i, ItemFactory.fromName("Stone"));
+			flushSync();
+			expect(text(request.getByTestId("quest-prize-ticket"))).toBe(
+				"Completing it earns a Prize Ticket, but the backpack is full: free a slot first, or the ticket is lost.",
+			);
+
+			await fireEvent.click(request.getByTestId("quest-complete"));
+			flushSync();
+			expect(toastManager.toasts.map((t) => [t.icon, t.message])).toEqual([
+				[
+					"✅",
+					"Completed Abigail's Request: collect the reward from the journal in-game.",
+				],
+				[
+					"❌",
+					"The backpack is full, so the Prize Ticket couldn't be added: free a slot and add one on the Inventory page",
+				],
+			]);
+		});
+
+		it("says when the next Help Wanted quest earns a Prize Ticket", async () => {
+			await reload((xml) =>
+				billboardQuestsDone(helpWanted(helpWanted(xml), "Emily's Request"), 1),
+			);
+			const { page } = renderQuests();
+			expect(page.queryAllByTestId("quest-prize-ticket")).toEqual([]);
+			await fireEvent.click(
+				entry(page, "Emily's Request").getByTestId("quest-complete"),
+			);
+			flushSync();
+			// Completing one makes the other the third
+			expect(
+				entry(page, "Abigail's Request").queryByTestId("quest-prize-ticket"),
+			).toBeTruthy();
+			expect(page.queryAllByTestId("quest-prize-ticket")).toHaveLength(1);
+		});
+
+		it("shows a secret quest's tag and friendship reward", async () => {
+			await reload((xml) =>
+				xml.replace(
+					"</questLog>",
+					`<Quest xsi:type="SecretLostItemQuest">
+						<_currentObjective>Return the necklace.</_currentObjective>
+						<_questDescription>Someone lost a necklace.</_questDescription>
+						<_questTitle>Lost Necklace</_questTitle>
+						<accepted>false</accepted>
+						<completed>false</completed>
+						<dailyQuest>false</dailyQuest>
+						<showNew>true</showNew>
+						<canBeCancelled>false</canBeCancelled>
+						<destroy>false</destroy>
+						<id>128</id>
+						<moneyReward>0</moneyReward>
+						<questType>9</questType>
+						<daysLeft>0</daysLeft>
+						<dayQuestAccepted>-1</dayQuestAccepted>
+						<nextQuests />
+						<questTitle>...</questTitle>
+						<npcName>Abigail</npcName>
+						<friendshipReward>100</friendshipReward>
+						<exclusiveQuestId>129</exclusiveQuestId>
+						<itemIndex>(O)191</itemIndex>
+						<itemFound>false</itemFound>
+					</Quest></questLog>`,
+				),
+			);
+			const { page } = renderQuests();
+			const necklace = entry(page, "Lost Necklace");
+			expect(necklace.getByTestId("quest-secret")).toBeTruthy();
+			expect(text(necklace.getByTestId("quest-friendship-reward"))).toBe(
+				"Reward: 100 friendship points",
+			);
+			// The reward is friendship, not gold
+			expect(necklace.queryByTestId("quest-reward")).toBeNull();
+			expect(page.queryAllByTestId("quest-secret")).toHaveLength(1);
 		});
 	});
 });

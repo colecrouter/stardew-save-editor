@@ -31,6 +31,9 @@ Villager descriptions aren't in the game files: `src/lib/wiki/villagers.json` is
 
 Event names aren't in the game files: they're kept by hand in `src/lib/wiki/events.json`, copied from the Stardew Modding Wiki's [List of Vanilla Event IDs](https://stardewmodding.wiki.gg/wiki/List_of_Vanilla_Event_IDs) (CC BY-SA 4.0).
 
+`generated/quests.json` is `Data/Quests`, parsed by `codegen/quests.ts` the way the game reads it
+(`Quest.getQuestFromId`), so completing a story quest in the editor can start the next one.
+
 ### Reading the Save File
 
 The save format is somewhat inconsistent (in structure and consistency). My recommendation is to use a website/tool to format the save file into something more readable, then use a text editor to search for the data you need. [Here is a tool for that](https://jsonformatter.org/xml-parser).

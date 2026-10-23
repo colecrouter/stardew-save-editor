@@ -12,6 +12,7 @@ import { type DataProxy, Raw } from ".";
 import { EventsSeen } from "./EventsSeen.svelte";
 import { Friendships } from "./Friendship.svelte";
 import { BootsProxy, ClothingProxy, HatProxy, RingProxy } from "./items";
+import { QuestLog } from "./Quest.svelte";
 
 const NIL_ATTR = "@_xsi:nil";
 const walletFlagMap: ReadonlyArray<[legacyField: string, flag: MailFlag]> = [
@@ -198,6 +199,9 @@ export class Farmer implements DataProxy<Player> {
 	public friendships: Friendships;
 	/** Events (cutscenes) the player has seen */
 	public eventsSeen: EventsSeen;
+
+	/** The journal */
+	public questLog: QuestLog;
 
 	// Provide compatibility alias for underlying raw object
 	get raw() {
@@ -488,6 +492,9 @@ export class Farmer implements DataProxy<Player> {
 			this[Raw].eventsSeen = {};
 		this.eventsSeen = new EventsSeen(this[Raw].eventsSeen);
 
+		// Needs the inventory and mail, for completing quests
+		this.questLog = new QuestLog(this);
+
 		// Unique ID snapshot
 		this.uniqueID = this[Raw].UniqueMultiplayerID;
 
@@ -496,6 +503,33 @@ export class Farmer implements DataProxy<Player> {
 			"craftingRecipes",
 		);
 		this.cookingRecipes = new Recipes(player.cookingRecipes, "cookingRecipes");
+	}
+
+	/**
+	    Start a conversation topic, so villagers can comment on it, unless the
+	    player has already had it (Farmer.autoGenerateActiveDialogueEvent).
+
+	    @param duration How many days it lasts
+	    @returns Whether it was started
+	*/
+	autoGenerateActiveDialogueEvent(id: string, duration = 4) {
+		const raw = this[Raw];
+		// Farmer.hasSeenActiveDialogueEvent
+		const seen = [raw.activeDialogueEvents, raw.previousActiveDialogueEvents]
+			.flatMap((events) => (events ? (events.item ?? []) : []))
+			.some((event) => String(event.key.string) === id);
+		if (seen) return false;
+		if (
+			typeof raw.activeDialogueEvents !== "object" ||
+			!raw.activeDialogueEvents
+		)
+			raw.activeDialogueEvents = { item: [] };
+		raw.activeDialogueEvents.item ??= [];
+		raw.activeDialogueEvents.item.push({
+			key: { string: id },
+			value: { int: duration },
+		});
+		return true;
 	}
 
 	toJSON() {

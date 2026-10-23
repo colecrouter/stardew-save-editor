@@ -8,6 +8,8 @@ export interface Save {
 	samBandName?: string;
 	elliottBookName?: string;
 	broadcastedMail: BroadcastedMail;
+	/** Every building type that has ever been built or upgraded to */
+	constructedBuildings?: { string: string[] } | "";
 	worldStateIDs: BroadcastedMail;
 	lostBooksFound: number;
 	goldenWalnuts?: number;
@@ -1062,7 +1064,8 @@ export interface Player {
 	IsEmoting: boolean;
 	CurrentEmote: number;
 	Scale: number;
-	questLog: QuestLog;
+	/** An empty journal parses as "" */
+	questLog: QuestLog | "";
 	professions: Achievements;
 	newLevels: string;
 	experiencePoints: Achievements;
@@ -1070,8 +1073,10 @@ export interface Player {
 	dialogueQuestionsAnswered: Achievements;
 	cookingRecipes: ItemArray;
 	craftingRecipes: ItemArray;
-	activeDialogueEvents: KVContainer;
-	previousActiveDialogueEvents: string;
+	/** Conversation topics going on now, and how many more days each lasts */
+	activeDialogueEvents: KVContainer | "";
+	/** Every conversation topic the player has had, and how many days since each one started */
+	previousActiveDialogueEvents: KVContainer | "";
 	triggerActionsRun: BroadcastedMail;
 	/** Events (cutscenes) the player has seen; an empty list parses as "" */
 	eventsSeen: EventIdList | "";
@@ -1623,30 +1628,95 @@ export interface QuestLog {
 	Quest: Quest[];
 }
 
+/** The `Quest` subclasses a save can hold; a plain `Quest` has no `xsi:type` */
+export type QuestType =
+	| "CraftingQuest"
+	| "FishingQuest"
+	| "GoSomewhereQuest"
+	| "ItemDeliveryQuest"
+	| "ItemHarvestQuest"
+	| "LostItemQuest"
+	| "ResourceCollectionQuest"
+	| "SecretLostItemQuest"
+	| "SlayMonsterQuest"
+	| "SocializeQuest";
+
+/** A Data/Quests key: numbers parse as numbers */
+export type QuestId = number | string;
+
+/** A value substituted into a quest text: a number, a name, or more text */
+export type DescriptionParam =
+	| string
+	| number
+	| { "#text"?: string | number; "@_xsi:type"?: string; xmlKey?: string };
+
+/** One translatable piece of a quest's text (DescriptionElement) */
+export interface DescriptionElement {
+	xmlKey?: string;
+	/** A single value parses as an object, several as an array */
+	param?: DescriptionParam | DescriptionParam[];
+}
+
+/** A list of DescriptionElements; empty parses as "" */
+export type DescriptionElements =
+	| { DescriptionElement?: DescriptionElement | DescriptionElement[] }
+	| "";
+
+/**
+    A quest in the player's journal (StardewValley.Quests.Quest), with the
+    fields its subclasses add. The title, description and objective are
+    cached text: the game reloads them from Data/Quests (or `parts`).
+*/
 export interface Quest {
+	"@_xsi:type"?: QuestType;
 	_currentObjective: string;
 	_questDescription: string;
 	_questTitle: string;
-	rewardDescription: number;
+	/** A reward that isn't gold; "-1" (a number once parsed) when there's none */
+	rewardDescription?: string | number;
+	/** What finishes a building quest, e.g. "Coop" */
+	completionString?: string;
 	accepted: boolean;
 	completed: boolean;
+	/** A Help Wanted quest from the billboard */
 	dailyQuest: boolean;
 	showNew: boolean;
 	canBeCancelled: boolean;
+	/** Removed the next time the journal opens */
 	destroy: boolean;
-	id: number;
+	/** The Data/Quests key; Help Wanted quests have none */
+	id?: QuestId;
+	/** The gold the journal pays out once it's completed */
 	moneyReward: number;
 	questType: number;
+	/** Counts down each night; a timed quest is removed when it runs out */
 	daysLeft: number;
 	dayQuestAccepted: number;
-	nextQuests: IntContainer;
+	/** Quests to start once this one is complete; one parses as a number */
+	nextQuests: { int: QuestId | QuestId[] } | "";
 	questTitle: string;
-	targetMessage: string;
-	target: string;
-	item: string;
-	number: number;
-	parts: string;
-	dialogueparts: string;
+	/** The NPC to hand it in to ("null" when there's none) */
+	target?: string;
+	targetMessage?: string;
+	item?: string | string[];
+	number?: number;
+	/** The gold a slay, fishing or resource quest advertises, paid on hand-in */
+	reward?: number;
+	parts?: DescriptionElements;
+	dialogueparts?: DescriptionElements;
+	objective?: DescriptionElement;
+	/** SecretLostItemQuest: the quest it replaces */
+	exclusiveQuestId?: QuestId;
+	/** SecretLostItemQuest: friendship points given on hand-in */
+	friendshipReward?: number;
+	/** CraftingQuest: the qualified item ID to craft */
+	indexToCraft?: string;
+	/** CraftingQuest: obsolete, saved as nil */
+	isBigCraftable?: { "@_xsi:nil": "true" } | boolean;
+	/** ItemHarvestQuest and lost item quests: the qualified item ID */
+	itemIndex?: string;
+	/** GoSomewhereQuest: the location to visit */
+	whereToGo?: string;
 }
 
 export interface Stats {

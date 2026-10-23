@@ -197,11 +197,10 @@ export class SaveManager {
 
 	private async handleBackup(file: File) {
 		if (!this.backups.files) return;
+		// A farm's save keeps the same file name, so only skip an identical copy
+		const newData = await file.text();
 		for (const backup of this.backups.files) {
-			if (backup.name === file.name) return;
-			const oldData = await backup.text();
-			const newData = await file.text();
-			if (oldData === newData) return;
+			if ((await backup.text()) === newData) return;
 		}
 		this.backups.files.unshift(file);
 	}

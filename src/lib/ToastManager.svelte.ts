@@ -1,17 +1,22 @@
 import { getContext, setContext } from "svelte";
 
+export type ToastType = "success" | "warning" | "failure";
+
 export class Toast {
 	public message: string;
 	public icon: string;
 	readonly id: string;
 
-	constructor(message: string, type: "success" | "failure") {
+	constructor(message: string, type: ToastType) {
 		this.message = message;
 		this.id = window.crypto.randomUUID();
 
 		switch (type) {
 			case "success":
 				this.icon = "✅";
+				break;
+			case "warning":
+				this.icon = "⚠️";
 				break;
 			case "failure":
 				this.icon = "❌";

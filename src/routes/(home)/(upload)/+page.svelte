@@ -4,6 +4,7 @@
 	import { goto } from "$app/navigation";
 	import { resolve } from "$app/paths";
 	import { getSaveManager } from "$lib/SaveManager.svelte";
+	import { describeResult } from "$lib/saveValidation";
 	import { getToastManager, Toast } from "$lib/ToastManager.svelte";
 	import UiContainer from "$lib/ui/UIContainer.svelte";
 
@@ -27,10 +28,17 @@
 		try {
 			uploading = true;
 			await saveManager.import(file);
+			const validation = $state.snapshot(saveManager.loadValidation);
 
 			goto(resolve("/inventory"));
 
-			toastManager.add(new Toast("Save file uploaded!", "success"));
+			// Opened even if there are problems, so they can be fixed in the editor
+			const { message, type, duration } = describeResult(
+				"uploaded",
+				validation,
+			);
+			toastManager.add(new Toast(message, type), duration);
+			if (type !== "success") console.warn("Save file problems", validation);
 		} catch (e) {
 			if (!(e instanceof Error)) throw e;
 			toastManager.add(new Toast(e.message, "failure"));

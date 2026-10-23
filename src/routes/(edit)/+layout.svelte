@@ -2,7 +2,8 @@
 	import { tick } from "svelte";
 	import { goto } from "$app/navigation";
 	import { resolve } from "$app/paths";
-	import { getSaveManager } from "$lib/SaveManager.svelte";
+	import { getSaveManager, SaveValidationError } from "$lib/SaveManager.svelte";
+	import { describeResult } from "$lib/saveValidation";
 	import { getToastManager, Toast } from "$lib/ToastManager.svelte";
 	import Tooltip from "$lib/ui/Tooltip.svelte";
 	import UiButton from "$lib/ui/UIButton.svelte";
@@ -30,10 +31,22 @@
 		await tick();
 		return saveManager
 			.download()
-			.then(() =>
-				toastManager.add(new Toast("Save file downloaded!", "success")),
-			)
+			.then((validation) => {
+				// Downloaded, but there may still be warnings to show
+				const { message, type, duration } = describeResult(
+					"downloaded",
+					validation,
+				);
+				toastManager.add(new Toast(message, type), duration);
+				if (type !== "success") console.warn("Save file problems", validation);
+			})
 			.catch((e) => {
+				if (e instanceof SaveValidationError) {
+					// Not downloaded: the file would break the game
+					toastManager.add(new Toast(e.message, "failure"), 10000);
+					console.warn("Save validation failed", e.validation);
+					return;
+				}
 				toastManager.add(new Toast("Failed to download save file", "failure"));
 				console.warn(e);
 			})

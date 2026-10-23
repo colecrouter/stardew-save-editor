@@ -24,7 +24,9 @@
 
 	let { player }: Props = $props();
 
-	let gender = $derived(player.gender.toLowerCase()) as "male" | "female";
+	// Map to a known value: the raw string comes from the save and ends up in a CSS
+	// url(). Like the game, anything but Male uses the female sprites
+	let gender = $derived(player.gender === Gender.Male ? "male" : "female");
 
 	// Spritesheets
 	let baseSheet = $derived(asset(`/img/${gender}_farmer.png`));
@@ -138,7 +140,7 @@
 	></div>
 {/snippet}
 
-<div class="appearance" class:female={player.gender === Gender.Female}>
+<div class="appearance" class:female={gender === "female"}>
 	<!-- START LAYERED TINT -->
 	{@render layer("base", baseSheet, { x: 16, y: 0 }, skinTones[2])}
 	{@render layer("base", baseSheet, { x: 32, y: 0 }, skinTones[1])}

@@ -1204,6 +1204,28 @@ describe("Save Manager Integration Tests", () => {
 		});
 	});
 
+	describe("Appearance sprite sheets", () => {
+		it("only uses the farmer sprite sheets, whatever the save's gender says", async () => {
+			harness.cleanup();
+			// The player's gender comes first in the test save
+			harness = await createPageHarness((xml) =>
+				xml.replace(
+					"<gender>Male</gender>",
+					"<gender>x),url(https://attacker.example/a</gender>",
+				),
+			);
+			saveManager = harness.saveManager;
+			const page = harness.render(appearancePage);
+			const styles = [
+				...page.container.querySelectorAll(".appearance > div"),
+			].map((layer) => layer.getAttribute("style") ?? "");
+			expect(styles.length).toBeGreaterThan(0);
+			expect(styles.join("\n")).not.toContain("attacker.example");
+			// Like the game, anything but Male draws the female farmer
+			expect(styles.join("\n")).toContain("/img/female_farmer.png");
+		});
+	});
+
 	describe("Buildings", () => {
 		it("shows each building's description", () => {
 			const page = harness.render(buildingsPage);

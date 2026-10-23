@@ -3,6 +3,7 @@
 	import type { Friendship } from "$lib/proxies/Friendship.svelte";
 	import EmojiRange from "$lib/ui/EmojiRange.svelte";
 	import UiContainerSmall from "$lib/ui/UIContainerSmall.svelte";
+	import { Villagers } from "$lib/Villagers";
 
 	interface Props {
 		name: string;
@@ -10,6 +11,8 @@
 	}
 
 	let { npc, name }: Props = $props();
+
+	const description = $derived(Villagers.get(name)?.description);
 </script>
 
 <div class="row" data-testid="friendship-row">
@@ -29,6 +32,11 @@
 		<div class="header">
 			<strong data-testid="friendship-name">{name}</strong>
 		</div>
+		{#if description}
+			<small class="description" data-testid="friendship-description"
+				>{description}</small
+			>
+		{/if}
 
 		<EmojiRange
 			bind:value={npc.hearts}
@@ -94,5 +102,10 @@
 		justify-content: space-between;
 		align-items: baseline;
 		gap: 8px;
+	}
+
+	.description {
+		font-size: 0.75em;
+		opacity: 0.8;
 	}
 </style>

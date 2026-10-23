@@ -780,6 +780,21 @@ describe("Save Manager Integration Tests", () => {
 			);
 		});
 
+		it("shows each villager's description", () => {
+			const page = harness.render(relationshipsPage);
+			const row = page
+				.getAllByTestId("friendship-row")
+				.find(
+					(r) =>
+						within(r).getByTestId("friendship-name").textContent === "Lewis",
+				);
+			expect(row).toBeTruthy();
+			if (!row) return;
+			expect(
+				within(row).getByTestId("friendship-description").textContent,
+			).toMatch(/^Lewis is/);
+		});
+
 		it("should update friendship hearts", async () => {
 			const page = harness.render(relationshipsPage);
 			if (!saveManager.save) return;

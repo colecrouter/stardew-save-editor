@@ -1,0 +1,648 @@
+{
+	"Abigail": {
+		"loves": [
+			{ "name": "Amethyst", "item": "Amethyst" },
+			{ "name": "Banana Pudding", "item": "Banana Pudding" },
+			{ "name": "Blackberry Cobbler", "item": "Blackberry Cobbler" },
+			{ "name": "Chocolate Cake", "item": "Chocolate Cake" },
+			{ "name": "Monster Compendium", "item": "Monster Compendium" },
+			{ "name": "Pufferfish", "item": "Pufferfish" },
+			{ "name": "Pumpkin", "item": "Pumpkin" },
+			{ "name": "Spicy Eel", "item": "Spicy Eel" }
+		],
+		"universalLoves": [
+			{ "name": "Golden Pumpkin", "item": "Golden Pumpkin" },
+			{ "name": "Magic Rock Candy", "item": "Magic Rock Candy" },
+			{ "name": "Pearl", "item": "Pearl" },
+			{ "name": "Prismatic Shard", "item": "Prismatic Shard" },
+			{ "name": "Rabbit's Foot", "item": "Rabbit's Foot" },
+			{ "name": "Stardrop Tea", "item": "Stardrop Tea" }
+		]
+	},
+	"Alex": {
+		"loves": [
+			{ "name": "Complete Breakfast", "item": "Complete Breakfast" },
+			{
+				"name": "Jack Be Nimble, Jack Be Thick",
+				"item": "Jack Be Nimble, Jack Be Thick"
+			},
+			{ "name": "Salmon Dinner", "item": "Salmon Dinner" }
+		],
+		"universalLoves": [
+			{ "name": "Golden Pumpkin", "item": "Golden Pumpkin" },
+			{ "name": "Magic Rock Candy", "item": "Magic Rock Candy" },
+			{ "name": "Pearl", "item": "Pearl" },
+			{ "name": "Prismatic Shard", "item": "Prismatic Shard" },
+			{ "name": "Rabbit's Foot", "item": "Rabbit's Foot" },
+			{ "name": "Stardrop Tea", "item": "Stardrop Tea" }
+		]
+	},
+	"Caroline": {
+		"loves": [
+			{ "name": "Fish Taco", "item": "Fish Taco" },
+			{ "name": "Green Tea", "item": "Green Tea" },
+			{ "name": "Summer Spangle", "item": "Summer Spangle" },
+			{ "name": "Tropical Curry", "item": "Tropical Curry" }
+		],
+		"universalLoves": [
+			{ "name": "Golden Pumpkin", "item": "Golden Pumpkin" },
+			{ "name": "Magic Rock Candy", "item": "Magic Rock Candy" },
+			{ "name": "Pearl", "item": "Pearl" },
+			{ "name": "Prismatic Shard", "item": "Prismatic Shard" },
+			{ "name": "Rabbit's Foot", "item": "Rabbit's Foot" },
+			{ "name": "Stardrop Tea", "item": "Stardrop Tea" }
+		]
+	},
+	"Clint": {
+		"loves": [
+			{ "name": "Amethyst", "item": "Amethyst" },
+			{ "name": "Aquamarine", "item": "Aquamarine" },
+			{ "name": "Artichoke Dip", "item": "Artichoke Dip" },
+			{ "name": "Emerald", "item": "Emerald" },
+			{ "name": "Fiddlehead Risotto", "item": "Fiddlehead Risotto" },
+			{ "name": "Gold Bar", "item": "Gold Bar" },
+			{ "name": "Iridium Bar", "item": "Iridium Bar" },
+			{ "name": "Jade", "item": "Jade" },
+			{ "name": "Omni Geode", "item": "Omni Geode" },
+			{ "name": "Ruby", "item": "Ruby" },
+			{ "name": "Topaz", "item": "Topaz" }
+		],
+		"universalLoves": [
+			{ "name": "Golden Pumpkin", "item": "Golden Pumpkin" },
+			{ "name": "Magic Rock Candy", "item": "Magic Rock Candy" },
+			{ "name": "Pearl", "item": "Pearl" },
+			{ "name": "Prismatic Shard", "item": "Prismatic Shard" },
+			{ "name": "Rabbit's Foot", "item": "Rabbit's Foot" },
+			{ "name": "Stardrop Tea", "item": "Stardrop Tea" }
+		]
+	},
+	"Demetrius": {
+		"loves": [
+			{ "name": "Bean Hotpot", "item": "Bean Hotpot" },
+			{ "name": "Ice Cream", "item": "Ice Cream" },
+			{ "name": "Rice Pudding", "item": "Rice Pudding" },
+			{ "name": "Strawberry", "item": "Strawberry" }
+		],
+		"universalLoves": [
+			{ "name": "Golden Pumpkin", "item": "Golden Pumpkin" },
+			{ "name": "Magic Rock Candy", "item": "Magic Rock Candy" },
+			{ "name": "Pearl", "item": "Pearl" },
+			{ "name": "Prismatic Shard", "item": "Prismatic Shard" },
+			{ "name": "Rabbit's Foot", "item": "Rabbit's Foot" },
+			{ "name": "Stardrop Tea", "item": "Stardrop Tea" }
+		]
+	},
+	"Dwarf": {
+		"loves": [
+			{ "name": "Amethyst", "item": "Amethyst" },
+			{ "name": "Aquamarine", "item": "Aquamarine" },
+			{ "name": "Emerald", "item": "Emerald" },
+			{ "name": "Jade", "item": "Jade" },
+			{ "name": "Lava Eel", "item": "Lava Eel" },
+			{ "name": "Lemon Stone", "item": "Lemon Stone" },
+			{ "name": "Omni Geode", "item": "Omni Geode" },
+			{ "name": "Ruby", "item": "Ruby" },
+			{ "name": "Topaz", "item": "Topaz" }
+		],
+		"universalLoves": [
+			{ "name": "Golden Pumpkin", "item": "Golden Pumpkin" },
+			{ "name": "Magic Rock Candy", "item": "Magic Rock Candy" },
+			{ "name": "Pearl", "item": "Pearl" },
+			{ "name": "Prismatic Shard", "item": "Prismatic Shard" },
+			{ "name": "Rabbit's Foot", "item": "Rabbit's Foot" },
+			{ "name": "Stardrop Tea", "item": "Stardrop Tea" }
+		]
+	},
+	"Elliott": {
+		"loves": [
+			{ "name": "Crab Cakes", "item": "Crab Cakes" },
+			{ "name": "Duck Feather", "item": "Duck Feather" },
+			{ "name": "Lobster", "item": "Lobster" },
+			{ "name": "Pomegranate", "item": "Pomegranate" },
+			{ "name": "Squid Ink", "item": "Squid Ink" },
+			{ "name": "Tom Kha Soup", "item": "Tom Kha Soup" }
+		],
+		"universalLoves": [
+			{ "name": "Golden Pumpkin", "item": "Golden Pumpkin" },
+			{ "name": "Magic Rock Candy", "item": "Magic Rock Candy" },
+			{ "name": "Pearl", "item": "Pearl" },
+			{ "name": "Prismatic Shard", "item": "Prismatic Shard" },
+			{ "name": "Rabbit's Foot", "item": "Rabbit's Foot" },
+			{ "name": "Stardrop Tea", "item": "Stardrop Tea" }
+		]
+	},
+	"Emily": {
+		"loves": [
+			{ "name": "Amethyst", "item": "Amethyst" },
+			{ "name": "Aquamarine", "item": "Aquamarine" },
+			{ "name": "Cloth", "item": "Cloth" },
+			{ "name": "Emerald", "item": "Emerald" },
+			{ "name": "Jade", "item": "Jade" },
+			{ "name": "Parrot Egg", "item": "ParrotEgg" },
+			{ "name": "Ruby", "item": "Ruby" },
+			{ "name": "Survival Burger", "item": "Survival Burger" },
+			{ "name": "Topaz", "item": "Topaz" },
+			{ "name": "Wool", "item": "Wool" }
+		],
+		"universalLoves": [
+			{ "name": "Golden Pumpkin", "item": "Golden Pumpkin" },
+			{ "name": "Magic Rock Candy", "item": "Magic Rock Candy" },
+			{ "name": "Pearl", "item": "Pearl" },
+			{ "name": "Prismatic Shard", "item": "Prismatic Shard" },
+			{ "name": "Rabbit's Foot", "item": "Rabbit's Foot" },
+			{ "name": "Stardrop Tea", "item": "Stardrop Tea" }
+		]
+	},
+	"Evelyn": {
+		"loves": [
+			{ "name": "Beet", "item": "Beet" },
+			{ "name": "Chocolate Cake", "item": "Chocolate Cake" },
+			{ "name": "Diamond", "item": "Diamond" },
+			{ "name": "Fairy Rose", "item": "Fairy Rose" },
+			{ "name": "Raisins", "item": "Raisins" },
+			{ "name": "Stuffing", "item": "Stuffing" },
+			{ "name": "Tulip", "item": "Tulip" }
+		],
+		"universalLoves": [
+			{ "name": "Golden Pumpkin", "item": "Golden Pumpkin" },
+			{ "name": "Magic Rock Candy", "item": "Magic Rock Candy" },
+			{ "name": "Pearl", "item": "Pearl" },
+			{ "name": "Prismatic Shard", "item": "Prismatic Shard" },
+			{ "name": "Rabbit's Foot", "item": "Rabbit's Foot" },
+			{ "name": "Stardrop Tea", "item": "Stardrop Tea" }
+		]
+	},
+	"George": {
+		"loves": [
+			{ "name": "Fried Mushroom", "item": "Fried Mushroom" },
+			{ "name": "Leek", "item": "Leek" }
+		],
+		"universalLoves": [
+			{ "name": "Golden Pumpkin", "item": "Golden Pumpkin" },
+			{ "name": "Magic Rock Candy", "item": "Magic Rock Candy" },
+			{ "name": "Pearl", "item": "Pearl" },
+			{ "name": "Prismatic Shard", "item": "Prismatic Shard" },
+			{ "name": "Rabbit's Foot", "item": "Rabbit's Foot" },
+			{ "name": "Stardrop Tea", "item": "Stardrop Tea" }
+		]
+	},
+	"Gus": {
+		"loves": [
+			{ "name": "Diamond", "item": "Diamond" },
+			{ "name": "Escargot", "item": "Escargot" },
+			{ "name": "Fish Taco", "item": "Fish Taco" },
+			{ "name": "Orange", "item": "Orange" },
+			{ "name": "Tropical Curry", "item": "Tropical Curry" }
+		],
+		"universalLoves": [
+			{ "name": "Golden Pumpkin", "item": "Golden Pumpkin" },
+			{ "name": "Magic Rock Candy", "item": "Magic Rock Candy" },
+			{ "name": "Pearl", "item": "Pearl" },
+			{ "name": "Prismatic Shard", "item": "Prismatic Shard" },
+			{ "name": "Rabbit's Foot", "item": "Rabbit's Foot" },
+			{ "name": "Stardrop Tea", "item": "Stardrop Tea" }
+		]
+	},
+	"Haley": {
+		"loves": [
+			{ "name": "Coconut", "item": "Coconut" },
+			{ "name": "Fruit Salad", "item": "Fruit Salad" },
+			{ "name": "Pink Cake", "item": "Pink Cake" },
+			{ "name": "Sunflower", "item": "Sunflower" }
+		],
+		"universalLoves": [
+			{ "name": "Golden Pumpkin", "item": "Golden Pumpkin" },
+			{ "name": "Magic Rock Candy", "item": "Magic Rock Candy" },
+			{ "name": "Pearl", "item": "Pearl" },
+			{ "name": "Rabbit's Foot", "item": "Rabbit's Foot" },
+			{ "name": "Stardrop Tea", "item": "Stardrop Tea" }
+		]
+	},
+	"Harvey": {
+		"loves": [
+			{ "name": "Coffee", "item": "Coffee" },
+			{ "name": "Pickles", "item": "Pickles" },
+			{ "name": "Super Meal", "item": "Super Meal" },
+			{ "name": "Truffle Oil", "item": "Truffle Oil" },
+			{ "name": "Wine", "item": "Wine" }
+		],
+		"universalLoves": [
+			{ "name": "Golden Pumpkin", "item": "Golden Pumpkin" },
+			{ "name": "Magic Rock Candy", "item": "Magic Rock Candy" },
+			{ "name": "Pearl", "item": "Pearl" },
+			{ "name": "Prismatic Shard", "item": "Prismatic Shard" },
+			{ "name": "Rabbit's Foot", "item": "Rabbit's Foot" },
+			{ "name": "Stardrop Tea", "item": "Stardrop Tea" }
+		]
+	},
+	"Jas": {
+		"loves": [
+			{ "name": "Ancient Doll", "item": "Ancient Doll" },
+			{ "name": "Fairy Box", "item": "FairyBox" },
+			{ "name": "Fairy Rose", "item": "Fairy Rose" },
+			{ "name": "Pink Cake", "item": "Pink Cake" },
+			{ "name": "Plum Pudding", "item": "Plum Pudding" },
+			{ "name": "Strange Doll", "item": "Strange Doll" }
+		],
+		"universalLoves": [
+			{ "name": "Golden Pumpkin", "item": "Golden Pumpkin" },
+			{ "name": "Magic Rock Candy", "item": "Magic Rock Candy" },
+			{ "name": "Pearl", "item": "Pearl" },
+			{ "name": "Prismatic Shard", "item": "Prismatic Shard" },
+			{ "name": "Rabbit's Foot", "item": "Rabbit's Foot" },
+			{ "name": "Stardrop Tea", "item": "Stardrop Tea" }
+		]
+	},
+	"Jodi": {
+		"loves": [
+			{ "name": "Chocolate Cake", "item": "Chocolate Cake" },
+			{ "name": "Crispy Bass", "item": "Crispy Bass" },
+			{ "name": "Diamond", "item": "Diamond" },
+			{ "name": "Eggplant Parmesan", "item": "Eggplant Parmesan" },
+			{ "name": "Fried Eel", "item": "Fried Eel" },
+			{ "name": "Pancakes", "item": "Pancakes" },
+			{ "name": "Rhubarb Pie", "item": "Rhubarb Pie" },
+			{ "name": "Vegetable Medley", "item": "Vegetable Medley" }
+		],
+		"universalLoves": [
+			{ "name": "Golden Pumpkin", "item": "Golden Pumpkin" },
+			{ "name": "Magic Rock Candy", "item": "Magic Rock Candy" },
+			{ "name": "Pearl", "item": "Pearl" },
+			{ "name": "Prismatic Shard", "item": "Prismatic Shard" },
+			{ "name": "Rabbit's Foot", "item": "Rabbit's Foot" },
+			{ "name": "Stardrop Tea", "item": "Stardrop Tea" }
+		]
+	},
+	"Kent": {
+		"loves": [
+			{ "name": "Fiddlehead Risotto", "item": "Fiddlehead Risotto" },
+			{ "name": "Roasted Hazelnuts", "item": "Roasted Hazelnuts" }
+		],
+		"universalLoves": [
+			{ "name": "Golden Pumpkin", "item": "Golden Pumpkin" },
+			{ "name": "Magic Rock Candy", "item": "Magic Rock Candy" },
+			{ "name": "Pearl", "item": "Pearl" },
+			{ "name": "Prismatic Shard", "item": "Prismatic Shard" },
+			{ "name": "Rabbit's Foot", "item": "Rabbit's Foot" },
+			{ "name": "Stardrop Tea", "item": "Stardrop Tea" }
+		]
+	},
+	"Krobus": {
+		"loves": [
+			{ "name": "Diamond", "item": "Diamond" },
+			{ "name": "Iridium Bar", "item": "Iridium Bar" },
+			{ "name": "Monster Compendium", "item": "Monster Compendium" },
+			{ "name": "Monster Musk", "item": "Monster Musk" },
+			{ "name": "Pumpkin", "item": "Pumpkin" },
+			{ "name": "Void Egg", "item": "Void Egg" },
+			{ "name": "Void Mayonnaise", "item": "Void Mayonnaise" },
+			{ "name": "Wild Horseradish", "item": "Wild Horseradish" }
+		],
+		"universalLoves": [
+			{ "name": "Golden Pumpkin", "item": "Golden Pumpkin" },
+			{ "name": "Magic Rock Candy", "item": "Magic Rock Candy" },
+			{ "name": "Pearl", "item": "Pearl" },
+			{ "name": "Prismatic Shard", "item": "Prismatic Shard" },
+			{ "name": "Rabbit's Foot", "item": "Rabbit's Foot" },
+			{ "name": "Stardrop Tea", "item": "Stardrop Tea" }
+		]
+	},
+	"Leah": {
+		"loves": [
+			{ "name": "Goat Cheese", "item": "Goat Cheese" },
+			{ "name": "Poppyseed Muffin", "item": "Poppyseed Muffin" },
+			{ "name": "Salad", "item": "Salad" },
+			{ "name": "Stir Fry", "item": "Stir Fry" },
+			{ "name": "Truffle", "item": "Truffle" },
+			{ "name": "Vegetable Medley", "item": "Vegetable Medley" },
+			{ "name": "Wine", "item": "Wine" }
+		],
+		"universalLoves": [
+			{ "name": "Golden Pumpkin", "item": "Golden Pumpkin" },
+			{ "name": "Magic Rock Candy", "item": "Magic Rock Candy" },
+			{ "name": "Pearl", "item": "Pearl" },
+			{ "name": "Prismatic Shard", "item": "Prismatic Shard" },
+			{ "name": "Rabbit's Foot", "item": "Rabbit's Foot" },
+			{ "name": "Stardrop Tea", "item": "Stardrop Tea" }
+		]
+	},
+	"Leo": {
+		"loves": [
+			{ "name": "Duck Feather", "item": "Duck Feather" },
+			{ "name": "Mango", "item": "Mango" },
+			{ "name": "Ostrich Egg", "item": "Ostrich Egg" },
+			{ "name": "Parrot Egg", "item": "ParrotEgg" },
+			{ "name": "Poi", "item": "Poi" }
+		],
+		"universalLoves": [
+			{ "name": "Golden Pumpkin", "item": "Golden Pumpkin" },
+			{ "name": "Magic Rock Candy", "item": "Magic Rock Candy" },
+			{ "name": "Pearl", "item": "Pearl" },
+			{ "name": "Prismatic Shard", "item": "Prismatic Shard" },
+			{ "name": "Rabbit's Foot", "item": "Rabbit's Foot" },
+			{ "name": "Stardrop Tea", "item": "Stardrop Tea" }
+		]
+	},
+	"Lewis": {
+		"loves": [
+			{ "name": "Autumn's Bounty", "item": "Autumn's Bounty" },
+			{ "name": "Glazed Yams", "item": "Glazed Yams" },
+			{ "name": "Green Tea", "item": "Green Tea" },
+			{ "name": "Hot Pepper", "item": "Hot Pepper" },
+			{ "name": "Vegetable Medley", "item": "Vegetable Medley" }
+		],
+		"universalLoves": [
+			{ "name": "Golden Pumpkin", "item": "Golden Pumpkin" },
+			{ "name": "Magic Rock Candy", "item": "Magic Rock Candy" },
+			{ "name": "Pearl", "item": "Pearl" },
+			{ "name": "Prismatic Shard", "item": "Prismatic Shard" },
+			{ "name": "Rabbit's Foot", "item": "Rabbit's Foot" },
+			{ "name": "Stardrop Tea", "item": "Stardrop Tea" }
+		]
+	},
+	"Linus": {
+		"loves": [
+			{ "name": "Blueberry Tart", "item": "Blueberry Tart" },
+			{ "name": "Cactus Fruit", "item": "Cactus Fruit" },
+			{ "name": "Coconut", "item": "Coconut" },
+			{ "name": "Dish O' The Sea", "item": "Dish O' The Sea" },
+			{ "name": "The Alleyway Buffet", "item": "The Alleyway Buffet" },
+			{ "name": "Yam", "item": "Yam" }
+		],
+		"universalLoves": [
+			{ "name": "Golden Pumpkin", "item": "Golden Pumpkin" },
+			{ "name": "Magic Rock Candy", "item": "Magic Rock Candy" },
+			{ "name": "Pearl", "item": "Pearl" },
+			{ "name": "Prismatic Shard", "item": "Prismatic Shard" },
+			{ "name": "Rabbit's Foot", "item": "Rabbit's Foot" },
+			{ "name": "Stardrop Tea", "item": "Stardrop Tea" }
+		]
+	},
+	"Marnie": {
+		"loves": [
+			{ "name": "Diamond", "item": "Diamond" },
+			{ "name": "Farmer's Lunch", "item": "Farmer's Lunch" },
+			{ "name": "Pink Cake", "item": "Pink Cake" },
+			{ "name": "Pumpkin Pie", "item": "Pumpkin Pie" }
+		],
+		"universalLoves": [
+			{ "name": "Golden Pumpkin", "item": "Golden Pumpkin" },
+			{ "name": "Magic Rock Candy", "item": "Magic Rock Candy" },
+			{ "name": "Pearl", "item": "Pearl" },
+			{ "name": "Prismatic Shard", "item": "Prismatic Shard" },
+			{ "name": "Rabbit's Foot", "item": "Rabbit's Foot" },
+			{ "name": "Stardrop Tea", "item": "Stardrop Tea" }
+		]
+	},
+	"Maru": {
+		"loves": [
+			{ "name": "Battery Pack", "item": "Battery Pack" },
+			{ "name": "Cauliflower", "item": "Cauliflower" },
+			{ "name": "Cheese Cauliflower", "item": "Cheese Cauliflower" },
+			{ "name": "Diamond", "item": "Diamond" },
+			{ "name": "Dwarf Gadget", "item": "Dwarf Gadget" },
+			{ "name": "Gold Bar", "item": "Gold Bar" },
+			{ "name": "Iridium Bar", "item": "Iridium Bar" },
+			{ "name": "Miner's Treat", "item": "Miner's Treat" },
+			{ "name": "Pepper Poppers", "item": "Pepper Poppers" },
+			{ "name": "Radioactive Bar", "item": "Radioactive Bar" },
+			{ "name": "Rhubarb Pie", "item": "Rhubarb Pie" },
+			{ "name": "Strawberry", "item": "Strawberry" }
+		],
+		"universalLoves": [
+			{ "name": "Golden Pumpkin", "item": "Golden Pumpkin" },
+			{ "name": "Magic Rock Candy", "item": "Magic Rock Candy" },
+			{ "name": "Pearl", "item": "Pearl" },
+			{ "name": "Prismatic Shard", "item": "Prismatic Shard" },
+			{ "name": "Rabbit's Foot", "item": "Rabbit's Foot" },
+			{ "name": "Stardrop Tea", "item": "Stardrop Tea" }
+		]
+	},
+	"Pam": {
+		"loves": [
+			{ "name": "Beer", "item": "Beer" },
+			{ "name": "Cactus Fruit", "item": "Cactus Fruit" },
+			{ "name": "Glazed Yams", "item": "Glazed Yams" },
+			{ "name": "Mead", "item": "Mead" },
+			{ "name": "Pale Ale", "item": "Pale Ale" },
+			{ "name": "Parsnip", "item": "Parsnip" },
+			{ "name": "Parsnip Soup", "item": "Parsnip Soup" },
+			{ "name": "Piña Colada", "item": "Piña Colada" }
+		],
+		"universalLoves": [
+			{ "name": "Golden Pumpkin", "item": "Golden Pumpkin" },
+			{ "name": "Magic Rock Candy", "item": "Magic Rock Candy" },
+			{ "name": "Pearl", "item": "Pearl" },
+			{ "name": "Prismatic Shard", "item": "Prismatic Shard" },
+			{ "name": "Rabbit's Foot", "item": "Rabbit's Foot" },
+			{ "name": "Stardrop Tea", "item": "Stardrop Tea" }
+		]
+	},
+	"Penny": {
+		"loves": [
+			{ "name": "Diamond", "item": "Diamond" },
+			{ "name": "Emerald", "item": "Emerald" },
+			{ "name": "Melon", "item": "Melon" },
+			{ "name": "Poppy", "item": "Poppy" },
+			{ "name": "Poppyseed Muffin", "item": "Poppyseed Muffin" },
+			{ "name": "Red Plate", "item": "Red Plate" },
+			{ "name": "Roots Platter", "item": "Roots Platter" },
+			{ "name": "Sandfish", "item": "Sandfish" },
+			{ "name": "Tom Kha Soup", "item": "Tom Kha Soup" },
+			{
+				"name": "Any book",
+				"item": "Animal Catalogue",
+				"items": [
+					"Animal Catalogue",
+					"Bait And Bobber",
+					"Book Artifact",
+					"Book Grass",
+					"Book Horse",
+					"Book of Mysteries",
+					"Book Of Stars",
+					"Combat Quarterly",
+					"Dwarvish Safety Manual",
+					"Friendship 101",
+					"Jack Be Nimble, Jack Be Thick",
+					"Jewels Of The Sea",
+					"Lost Book",
+					"Mapping Cave Systems",
+					"Mining Monthly",
+					"Monster Compendium",
+					"Price Catalogue",
+					"Queen Of Sauce Cookbook",
+					"Stardew Valley Almanac",
+					"The Alleyway Buffet",
+					"The Art O' Crabbing",
+					"The Diamond Hunter",
+					"Way Of The Wind pt. 1",
+					"Way Of The Wind pt. 2",
+					"Ways Of The Wild",
+					"Woodcutter's Weekly",
+					"Woody's Secret"
+				]
+			}
+		],
+		"universalLoves": [
+			{ "name": "Golden Pumpkin", "item": "Golden Pumpkin" },
+			{ "name": "Magic Rock Candy", "item": "Magic Rock Candy" },
+			{ "name": "Pearl", "item": "Pearl" },
+			{ "name": "Prismatic Shard", "item": "Prismatic Shard" },
+			{ "name": "Stardrop Tea", "item": "Stardrop Tea" }
+		]
+	},
+	"Pierre": {
+		"loves": [
+			{ "name": "Fried Calamari", "item": "Fried Calamari" },
+			{ "name": "Price Catalogue", "item": "Price Catalogue" }
+		],
+		"universalLoves": [
+			{ "name": "Golden Pumpkin", "item": "Golden Pumpkin" },
+			{ "name": "Magic Rock Candy", "item": "Magic Rock Candy" },
+			{ "name": "Pearl", "item": "Pearl" },
+			{ "name": "Prismatic Shard", "item": "Prismatic Shard" },
+			{ "name": "Rabbit's Foot", "item": "Rabbit's Foot" },
+			{ "name": "Stardrop Tea", "item": "Stardrop Tea" }
+		]
+	},
+	"Robin": {
+		"loves": [
+			{ "name": "Goat Cheese", "item": "Goat Cheese" },
+			{ "name": "Peach", "item": "Peach" },
+			{ "name": "Spaghetti", "item": "Spaghetti" },
+			{ "name": "Woody's Secret", "item": "Woody's Secret" }
+		],
+		"universalLoves": [
+			{ "name": "Golden Pumpkin", "item": "Golden Pumpkin" },
+			{ "name": "Magic Rock Candy", "item": "Magic Rock Candy" },
+			{ "name": "Pearl", "item": "Pearl" },
+			{ "name": "Prismatic Shard", "item": "Prismatic Shard" },
+			{ "name": "Rabbit's Foot", "item": "Rabbit's Foot" },
+			{ "name": "Stardrop Tea", "item": "Stardrop Tea" }
+		]
+	},
+	"Sam": {
+		"loves": [
+			{ "name": "Cactus Fruit", "item": "Cactus Fruit" },
+			{ "name": "Maple Bar", "item": "Maple Bar" },
+			{ "name": "Pizza", "item": "Pizza" },
+			{ "name": "Tigerseye", "item": "Tigerseye" }
+		],
+		"universalLoves": [
+			{ "name": "Golden Pumpkin", "item": "Golden Pumpkin" },
+			{ "name": "Magic Rock Candy", "item": "Magic Rock Candy" },
+			{ "name": "Pearl", "item": "Pearl" },
+			{ "name": "Prismatic Shard", "item": "Prismatic Shard" },
+			{ "name": "Rabbit's Foot", "item": "Rabbit's Foot" },
+			{ "name": "Stardrop Tea", "item": "Stardrop Tea" }
+		]
+	},
+	"Sandy": {
+		"loves": [
+			{ "name": "Crocus", "item": "Crocus" },
+			{ "name": "Daffodil", "item": "Daffodil" },
+			{ "name": "Mango Sticky Rice", "item": "Mango Sticky Rice" },
+			{ "name": "Sweet Pea", "item": "Sweet Pea" }
+		],
+		"universalLoves": [
+			{ "name": "Golden Pumpkin", "item": "Golden Pumpkin" },
+			{ "name": "Magic Rock Candy", "item": "Magic Rock Candy" },
+			{ "name": "Pearl", "item": "Pearl" },
+			{ "name": "Prismatic Shard", "item": "Prismatic Shard" },
+			{ "name": "Rabbit's Foot", "item": "Rabbit's Foot" },
+			{ "name": "Stardrop Tea", "item": "Stardrop Tea" }
+		]
+	},
+	"Sebastian": {
+		"loves": [
+			{ "name": "Frog Egg", "item": "FrogEgg" },
+			{ "name": "Frozen Tear", "item": "Frozen Tear" },
+			{ "name": "Obsidian", "item": "Obsidian" },
+			{ "name": "Pumpkin Soup", "item": "Pumpkin Soup" },
+			{ "name": "Sashimi", "item": "Sashimi" },
+			{ "name": "Void Egg", "item": "Void Egg" }
+		],
+		"universalLoves": [
+			{ "name": "Golden Pumpkin", "item": "Golden Pumpkin" },
+			{ "name": "Magic Rock Candy", "item": "Magic Rock Candy" },
+			{ "name": "Pearl", "item": "Pearl" },
+			{ "name": "Prismatic Shard", "item": "Prismatic Shard" },
+			{ "name": "Rabbit's Foot", "item": "Rabbit's Foot" },
+			{ "name": "Stardrop Tea", "item": "Stardrop Tea" }
+		]
+	},
+	"Shane": {
+		"loves": [
+			{ "name": "Beer", "item": "Beer" },
+			{ "name": "Hot Pepper", "item": "Hot Pepper" },
+			{ "name": "Pepper Poppers", "item": "Pepper Poppers" },
+			{ "name": "Pizza", "item": "Pizza" }
+		],
+		"universalLoves": [
+			{ "name": "Golden Pumpkin", "item": "Golden Pumpkin" },
+			{ "name": "Magic Rock Candy", "item": "Magic Rock Candy" },
+			{ "name": "Pearl", "item": "Pearl" },
+			{ "name": "Prismatic Shard", "item": "Prismatic Shard" },
+			{ "name": "Rabbit's Foot", "item": "Rabbit's Foot" },
+			{ "name": "Stardrop Tea", "item": "Stardrop Tea" }
+		]
+	},
+	"Vincent": {
+		"loves": [
+			{ "name": "Cranberry Candy", "item": "Cranberry Candy" },
+			{ "name": "Frog Egg", "item": "FrogEgg" },
+			{ "name": "Ginger Ale", "item": "Ginger Ale" },
+			{ "name": "Grape", "item": "Grape" },
+			{ "name": "Pink Cake", "item": "Pink Cake" },
+			{ "name": "Snail", "item": "Snail" }
+		],
+		"universalLoves": [
+			{ "name": "Golden Pumpkin", "item": "Golden Pumpkin" },
+			{ "name": "Magic Rock Candy", "item": "Magic Rock Candy" },
+			{ "name": "Pearl", "item": "Pearl" },
+			{ "name": "Prismatic Shard", "item": "Prismatic Shard" },
+			{ "name": "Rabbit's Foot", "item": "Rabbit's Foot" },
+			{ "name": "Stardrop Tea", "item": "Stardrop Tea" }
+		]
+	},
+	"Willy": {
+		"loves": [
+			{ "name": "Catfish", "item": "Catfish" },
+			{ "name": "Diamond", "item": "Diamond" },
+			{ "name": "Gold Bar", "item": "Gold Bar" },
+			{ "name": "Iridium Bar", "item": "Iridium Bar" },
+			{ "name": "Jewels Of The Sea", "item": "Jewels Of The Sea" },
+			{ "name": "Mead", "item": "Mead" },
+			{ "name": "Octopus", "item": "Octopus" },
+			{ "name": "Pumpkin", "item": "Pumpkin" },
+			{ "name": "Sea Cucumber", "item": "Sea Cucumber" },
+			{ "name": "Sturgeon", "item": "Sturgeon" },
+			{ "name": "The Art O' Crabbing", "item": "The Art O' Crabbing" }
+		],
+		"universalLoves": [
+			{ "name": "Golden Pumpkin", "item": "Golden Pumpkin" },
+			{ "name": "Magic Rock Candy", "item": "Magic Rock Candy" },
+			{ "name": "Pearl", "item": "Pearl" },
+			{ "name": "Prismatic Shard", "item": "Prismatic Shard" },
+			{ "name": "Rabbit's Foot", "item": "Rabbit's Foot" },
+			{ "name": "Stardrop Tea", "item": "Stardrop Tea" }
+		]
+	},
+	"Wizard": {
+		"loves": [
+			{ "name": "Book of Mysteries", "item": "Book of Mysteries" },
+			{ "name": "Purple Mushroom", "item": "Purple Mushroom" },
+			{ "name": "Solar Essence", "item": "Solar Essence" },
+			{ "name": "Super Cucumber", "item": "Super Cucumber" },
+			{ "name": "Void Essence", "item": "Void Essence" }
+		],
+		"universalLoves": [
+			{ "name": "Golden Pumpkin", "item": "Golden Pumpkin" },
+			{ "name": "Magic Rock Candy", "item": "Magic Rock Candy" },
+			{ "name": "Pearl", "item": "Pearl" },
+			{ "name": "Prismatic Shard", "item": "Prismatic Shard" },
+			{ "name": "Rabbit's Foot", "item": "Rabbit's Foot" },
+			{ "name": "Stardrop Tea", "item": "Stardrop Tea" }
+		]
+	}
+}

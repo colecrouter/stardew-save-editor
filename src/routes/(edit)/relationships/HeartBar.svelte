@@ -1,9 +1,12 @@
 <script lang="ts">
 	import { asset } from "$app/paths";
+	import { LovedGifts } from "$lib/LovedGifts";
 	import type { Friendship } from "$lib/proxies/Friendship.svelte";
 	import EmojiRange from "$lib/ui/EmojiRange.svelte";
 	import UiContainerSmall from "$lib/ui/UIContainerSmall.svelte";
 	import { Villagers } from "$lib/Villagers";
+	import type { LovedGift } from "$types/giftTastes";
+	import GiftIcon from "./GiftIcon.svelte";
 
 	interface Props {
 		name: string;
@@ -13,7 +16,17 @@
 	let { npc, name }: Props = $props();
 
 	const description = $derived(Villagers.get(name)?.description);
+	const loves = $derived(LovedGifts.get(name)?.loves ?? []);
+	const universalLoves = $derived(LovedGifts.get(name)?.universalLoves ?? []);
 </script>
+
+{#snippet giftList(gifts: LovedGift[], listLabel: string, testId: string)}
+	<ul aria-label={listLabel}>
+		{#each gifts as gift (gift.name)}
+			<li><GiftIcon {gift} {testId} /></li>
+		{/each}
+	</ul>
+{/snippet}
 
 <div class="row" data-testid="friendship-row">
 	<UiContainerSmall>
@@ -52,6 +65,36 @@
 			ariaLabel={`${name} hearts`}
 			onInputChange={(value) => (npc.points = value)}
 		/>
+
+		{#if loves.length > 0 || universalLoves.length > 0}
+			<div class="loves">
+				{#if loves.length > 0}
+					<div class="group">
+						<small class="label" aria-hidden="true">Loves:</small>
+						{@render giftList(
+							loves,
+							`${name}'s loved gifts`,
+							"friendship-loved-gift",
+						)}
+					</div>
+				{/if}
+				{#if universalLoves.length > 0}
+					<!-- Universal loves that this villager doesn't override -->
+					<div class="group universal">
+						<small
+							class="label"
+							aria-hidden="true"
+							title="Gifts almost every villager loves">Universal loves:</small
+						>
+						{@render giftList(
+							universalLoves,
+							`${name}'s universal loves`,
+							"friendship-universal-love",
+						)}
+					</div>
+				{/if}
+			</div>
+		{/if}
 	</div>
 </div>
 
@@ -107,5 +150,40 @@
 	.description {
 		font-size: 0.75em;
 		opacity: 0.8;
+	}
+
+	.loves,
+	.loves ul,
+	.loves li,
+	.group {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 2px;
+	}
+
+	.loves {
+		column-gap: 8px;
+	}
+
+	.loves ul {
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.group {
+		gap: 4px;
+	}
+
+	.label {
+		font-size: 0.75em;
+		opacity: 0.8;
+	}
+
+	/* Set the universal loves apart from the villager's own */
+	.universal {
+		padding-left: 8px;
+		border-left: 2px solid #da9457;
 	}
 </style>

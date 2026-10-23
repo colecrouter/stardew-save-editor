@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { lovedGiftNames } from "$lib/LovedGifts";
 	import { characters } from "$lib/NPCs";
 	import { getSaveManager } from "$lib/SaveManager.svelte";
 	import UiButton from "$lib/ui/UIButton.svelte";
@@ -17,10 +18,13 @@
 	let search = $state("");
 	let searchBox: HTMLDivElement | undefined = $state();
 	const term = $derived(search.trim().toLowerCase());
+	// Match the villager's name or anything they love, universal loves included
+	const matches = (name: string) =>
+		[name, ...lovedGiftNames(name)].some((text) =>
+			text.toLowerCase().includes(term),
+		);
 	const shown = $derived(
-		term
-			? friendships.filter(([name]) => name.toLowerCase().includes(term))
-			: friendships,
+		term ? friendships.filter(([name]) => matches(name)) : friendships,
 	);
 
 	const clearSearch = () => {
@@ -51,8 +55,8 @@
 	<div class="search" bind:this={searchBox}>
 		<UiInput
 			type="text"
-			placeholder="Search villagers..."
-			aria-label="Search villagers"
+			placeholder="Search villagers or loved gifts..."
+			aria-label="Search villagers or loved gifts"
 			data-testid="relationships-search"
 			bind:value={search}
 			onkeydown={(event) => {

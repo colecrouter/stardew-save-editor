@@ -27,6 +27,8 @@ Then run `npm run dump`.
 
 If you need assets that aren't copied from that command, you can modify it in `src/dump.ts`.
 
+`npm run dump` also writes each villager's loved gifts to `generated/gifttastes.json`, worked out from `content/Data/NPCGiftTastes.json` with the game's own rules (see `codegen/giftTastes.ts`). It prints any loved gift it can't match to an item.
+
 Villager descriptions aren't in the game files: `src/lib/wiki/villagers.json` is copied by hand from the [Stardew Valley Wiki](https://stardewvalleywiki.com) (CC BY-NC-SA 3.0), so edit it directly.
 
 ### Reading the Save File

@@ -5,6 +5,7 @@
 	import { Color } from "$lib/proxies/Color.svelte";
 	import {
 		BaseItemProxy,
+		BootsProxy,
 		ClothingProxy,
 		ColoredObjectProxy,
 		FurnitureProxy,
@@ -212,6 +213,10 @@
 			// ["Produces Light", "isLamp", 0, 1],
 		]),
 		pg(ClothingProxy, [["Color", "color", null, null, undefined]]),
+		pg(BootsProxy, [
+			["Defense", "defenseBonus", 0, 99, undefined],
+			["Immunity", "immunityBonus", 0, 99, undefined],
+		]),
 		pg(WateringCanProxy, [
 			["Bottomless", "isBottomless", null, null, undefined],
 		]),

@@ -440,6 +440,35 @@ describe("Save Manager Integration Tests", () => {
 		// });
 	});
 
+	describe("Item editor", () => {
+		it("edits boots' defense and immunity", async () => {
+			const page = harness.render(editorPage);
+			await fireEvent.click(page.getByTestId("item-9"));
+			await tick();
+			const input = page.getByTestId("item-name") as HTMLInputElement;
+			await fireEvent.input(input, { target: { value: "Sneakers" } });
+			await tick();
+			await fireEvent.click(page.getByText("Sneakers"));
+			await tick();
+
+			// New boots start with the game's stats for them
+			const defense = page.getByTestId(
+				"property-defenseBonus",
+			) as HTMLInputElement;
+			const immunity = page.getByTestId(
+				"property-immunityBonus",
+			) as HTMLInputElement;
+			expect(defense.value).toBe("1");
+			expect(immunity.value).toBe("0");
+
+			await fireEvent.input(defense, { target: { value: "5" } });
+			await fireEvent.input(immunity, { target: { value: "3" } });
+			flushSync();
+			const raw = saveManager.save?.player.inventory.get(9)?.[Raw];
+			expect(raw).toMatchObject({ defenseBonus: 5, immunityBonus: 3 });
+		});
+	});
+
 	describe("Character Customization", () => {
 		it("should modify character appearance", () => {
 			const page = harness.render(appearancePage);

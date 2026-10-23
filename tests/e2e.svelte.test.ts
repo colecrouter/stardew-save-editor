@@ -633,6 +633,30 @@ describe("Save Manager Integration Tests", () => {
 			}
 		});
 	});
+	describe("Gifts this week", () => {
+		it("edits the gifts given to a villager this week", async () => {
+			const page = harness.render(relationshipsPage);
+			const firstRow = page.getAllByTestId("friendship-row")[0] as HTMLElement;
+			const name = within(firstRow).getByTestId("friendship-name").textContent;
+			const friendship = saveManager.save?.player.friendships.get(name ?? "");
+			if (!friendship) throw new Error(`No friendship with ${name}`);
+
+			const gifts = within(firstRow).getByTestId(
+				"friendship-gifts-week",
+			) as HTMLInputElement;
+			expect(gifts.value).toBe(String(friendship.giftsThisWeek));
+
+			await fireEvent.input(gifts, { target: { value: "2" } });
+			flushSync();
+			expect(friendship[Raw].value.Friendship.GiftsThisWeek).toBe(2);
+
+			// Reset, so they can be given gifts again this week
+			await fireEvent.input(gifts, { target: { value: "0" } });
+			flushSync();
+			expect(friendship[Raw].value.Friendship.GiftsThisWeek).toBe(0);
+		});
+	});
+
 	describe("Skills and Crafting", () => {
 		it("should modify experience values", async () => {
 			const page = harness.render(characterPage);

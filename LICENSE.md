@@ -8,6 +8,8 @@ Copyright ©️ 2024 [Contributors](https://github.com/colecrouter/Stardew-Save-
 
 > THIRD-PARTY DATA: `src/lib/wiki/villagers.json` holds text adapted from a wiki. It is not covered by this license: villager descriptions © [Stardew Valley Wiki](https://stardewvalleywiki.com) contributors, licensed under [CC BY-NC-SA 3.0](https://creativecommons.org/licenses/by-nc-sa/3.0/).
 
+> THIRD-PARTY DATA: `src/lib/wiki/events.json` holds text adapted from a wiki (reduced to plain text and split into fields). It is not covered by this license: event names and descriptions © [Stardew Modding Wiki](https://stardewmodding.wiki.gg/wiki/List_of_Vanilla_Event_IDs) contributors, licensed under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
+
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights

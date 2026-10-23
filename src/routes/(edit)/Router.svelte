@@ -9,6 +9,7 @@
 	<UiButton href={resolve("/character")} alt="Character">🙋</UiButton>
 	<UiButton href={resolve("/appearance")} alt="Appearance">🪞</UiButton>
 	<UiButton href={resolve("/relationships")} alt="Relationships">💖</UiButton>
+	<UiButton href={resolve("/events")} alt="Events">🎭</UiButton>
 	<UiButton href={resolve("/crafting")} alt="Crafting">🔨</UiButton>
 	<UiButton href={resolve("/cooking")} alt="Cooking">🍫</UiButton>
 	<UiButton href={resolve("/farmhands")} alt="Farmhands">👩‍🌾</UiButton>

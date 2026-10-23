@@ -86,4 +86,18 @@ describe("UI input", () => {
 		await tick();
 		expect(input.value).toBe("30");
 	});
+
+	const textLike = ["search", "email", "url", "tel", "password"];
+	test.each(textLike)("styles %s inputs like text inputs", (inputType) => {
+		render(UiInput, { type: "text", value: "", "data-testid": "text" });
+		render(UiInput, { type: inputType, value: "", "data-testid": "input" });
+		const look = (id: string) => {
+			const style = getComputedStyle(screen.getByTestId(id));
+			return [style.backgroundColor, style.borderRadius, style.boxShadow];
+		};
+
+		// The component's styles reach the test DOM
+		expect(look("text")[0]).toBe("#f9bb65");
+		expect(look("input")).toEqual(look("text"));
+	});
 });

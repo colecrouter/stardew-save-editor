@@ -264,6 +264,34 @@
 																</button>
 															</div>
 														</div>
+
+														{#if animal.canReproduce}
+															<label
+																class="animal-field"
+																title="Whether it can get pregnant, like the toggle on its info menu"
+															>
+																<small>Allow Pregnancy</small>
+																<UiCheckbox
+																	bind:checked={animal.allowReproduction}
+																	aria-label={`${animal.name || animal.type} can get pregnant`}
+																	data-testid="animal-allow-pregnancy"
+																/>
+															</label>
+														{/if}
+
+														{#if animal.canEatGoldenCrackers}
+															<label
+																class="animal-field"
+																title="Whether it has eaten a Golden Animal Cracker, which doubles its produce"
+															>
+																<small>Golden Cracker</small>
+																<UiCheckbox
+																	bind:checked={animal.hasEatenAnimalCracker}
+																	aria-label={`${animal.name || animal.type} has eaten a Golden Animal Cracker`}
+																	data-testid="animal-golden-cracker"
+																/>
+															</label>
+														{/if}
 													</div>
 												</section>
 											</UiContainerSmall>

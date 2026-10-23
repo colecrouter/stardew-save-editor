@@ -196,6 +196,8 @@ export class Farmer implements DataProxy<Player> {
 	public professions: Professions;
 	public uniqueID: number; // Readonly snapshot (underlying value shouldn't change)
 	public mailReceived: MailBox;
+	/** Letters waiting to be read in the in-game mailbox */
+	public mailbox: MailBox;
 	public friendships: Friendships;
 	/** Events (cutscenes) the player has seen */
 	public eventsSeen: EventsSeen;
@@ -483,6 +485,10 @@ export class Farmer implements DataProxy<Player> {
 
 		// Mail received reactive set
 		this.mailReceived = new MailBox(this[Raw].mailReceived);
+		if (typeof this[Raw].mailbox !== "object" || !this[Raw].mailbox)
+			this[Raw].mailbox = { string: [] };
+		this[Raw].mailbox.string ??= [];
+		this.mailbox = new MailBox(this[Raw].mailbox);
 
 		// Friendships reactive map (lookup by NPC name)
 		this.friendships = new Friendships(this[Raw].friendshipData);

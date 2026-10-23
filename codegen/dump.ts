@@ -8,9 +8,7 @@ import {
 	writeFile,
 } from "node:fs/promises";
 import { imageDimensionsFromData } from "image-dimensions";
-import bigCraftables from "../content/Data/BigCraftables.json" with {
-	type: "json",
-};
+import bigCraftables from "../content/Data/BigCraftables.json" with { type: "json" };
 import boots from "../content/Data/Boots.json" with { type: "json" };
 import buildings from "../content/Data/Buildings.json" with { type: "json" };
 import animals from "../content/Data/FarmAnimals.json" with { type: "json" };
@@ -24,6 +22,10 @@ import tools from "../content/Data/Tools.json" with { type: "json" };
 import trinkets from "../content/Data/Trinkets.json" with { type: "json" };
 import weapons from "../content/Data/Weapons.json" with { type: "json" };
 import { characters } from "../src/lib/NPCs.js";
+import {
+	type BuildingUpgradeSource,
+	getBuildingUpgradeData,
+} from "./buildingUpgrade.js";
 import {
 	createArtisanGoods,
 	fixTexture,
@@ -569,6 +571,8 @@ const buildingsArray = await Promise.all(
 			maxOccupants: obj.MaxOccupants,
 			hayCapacity: obj.HayCapacity,
 			description: resolveDescription(obj.Description) || undefined,
+
+			...getBuildingUpgradeData(obj as BuildingUpgradeSource),
 		};
 	}),
 );

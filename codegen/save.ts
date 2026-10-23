@@ -48,7 +48,8 @@ export interface Save {
 	bannedUsers: string;
 	bundleData: BundleData;
 	limitedNutDrops: ItemArray;
-	latestID: number;
+	/** The last ID handed out by `Multiplayer.getNewID`; a long, so usually parsed as a string */
+	latestID: number | string;
 	options: Options;
 	splitscreenOptions: string;
 	CustomData: string;
@@ -409,7 +410,10 @@ export interface GameLocation {
 	raceTrack?: RaceTrack;
 	uniqueName?: string;
 	farmhandReference?: number | string;
-	animalsThatLiveHere?: LongArrContainer;
+	/** AnimalHouse: how many animals can live here */
+	animalLimit?: number;
+	/** AnimalHouse: IDs of the animals that live here, whether they're inside or out */
+	animalsThatLiveHere?: LongArrContainer | "";
 }
 
 export interface GameLocationAnimals {
@@ -589,8 +593,11 @@ export interface FarmAnimal {
 	CurrentEmote: number;
 	Scale: number;
 	isSwimming: BoolContainer;
-	currentProduce?: number;
+	/** Item ID of the produce waiting to be collected; left out when there is none */
+	currentProduce?: number | string;
 	friendshipTowardFarmer: number;
+	/** Left out unless the animal type has skins */
+	skinID?: string;
 	age: number;
 	daysOwned: number;
 	health: number;

@@ -25,7 +25,11 @@ Follow [these instructions from the SDV Wiki](https://stardewvalleywiki.com/Modd
 
 Then run `npm run dump`.
 
-If you need assets that aren't copied from that command, you can modify it in `src/dump.ts`.
+If you need assets that aren't copied from that command, you can modify it in `codegen/dump.ts`.
+
+`generated/buildings.json` includes what the editor needs to upgrade buildings (each building's
+`buildingToUpgrade`, `validOccupantTypes`, doors, and the items the game adds or moves inside), taken
+from `Data/Buildings` by `codegen/buildingUpgrade.ts`.
 
 Villager descriptions aren't in the game files: `src/lib/wiki/villagers.json` is copied by hand from the [Stardew Valley Wiki](https://stardewvalleywiki.com) (CC BY-NC-SA 3.0), so edit it directly.
 

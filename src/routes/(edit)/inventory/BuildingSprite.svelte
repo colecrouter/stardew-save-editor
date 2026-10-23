@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { asset } from "$app/paths";
 	import buildings from "$generated/buildings.json";
-	import { Raw } from "$lib/proxies";
 	import type { Building } from "$lib/proxies/Building.svelte";
 
 	interface Props {
@@ -31,22 +30,22 @@
 
 	let { building }: Props = $props();
 
+	// The building's name is its type, and changes when it's upgraded
 	let buildingData = $derived(
-		buildings.find((b) => b.name === building?.[Raw].buildingType) as
+		buildings.find((b) => b.name === building?.name) as
 			| BuildingSpriteData
 			| undefined,
 	);
 
 	let sourceRect = $derived(
-		sourceRectOverrides[building?.[Raw].buildingType ?? ""] ??
-			buildingData?.sourceRect,
+		sourceRectOverrides[building?.name ?? ""] ?? buildingData?.sourceRect,
 	);
 
 	let spritesheet = $derived.by(() => {
 		const texture = buildingData?.texture;
 		if (texture) return `buildings/${texture}`;
 
-		const type = building?.[Raw].buildingType;
+		const type = building?.name;
 		return type ? `buildings/${type}.png` : null;
 	});
 

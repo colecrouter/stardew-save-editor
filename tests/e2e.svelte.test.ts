@@ -41,6 +41,16 @@ import questsPage from "../src/routes/(edit)/quests/+page.svelte";
 import relationshipsPage from "../src/routes/(edit)/relationships/+page.svelte";
 import { withHouse, withToolAtClint } from "./helpers/upgrades";
 
+import {
+	BARN_ID,
+	barnXml,
+	COOP_ID,
+	coopXml,
+	SHED_ID,
+	shedXml,
+	withAnimalBuildings,
+} from "./helpers/animalBuildings";
+
 interface PageHarness {
 	saveManager: SaveManager;
 	render: typeof render;
@@ -1229,9 +1239,8 @@ describe("Save Manager Integration Tests", () => {
 				building.indoorLocation[Raw].Animals
 					.SerializableDictionaryOfInt64FarmAnimal,
 			).toEqual(building.indoorLocation[Raw].animals);
-			expect(building.indoorLocation[Raw].animalsThatLiveHere).toEqual({
-				long: [animal[Raw].key.long],
-			});
+			// Who lives where is kept separately (residents can be outside); see "Animal buildings"
+			expect(building.indoorLocation[Raw].animalsThatLiveHere).toBeUndefined();
 			disposeAnimal();
 		});
 
@@ -2065,5 +2074,290 @@ describe("Save Manager Integration Tests", () => {
 			expect(necklace.queryByTestId("quest-reward")).toBeNull();
 			expect(page.queryAllByTestId("quest-secret")).toHaveLength(1);
 		});
+	});
+});
+
+describe("Animal buildings", () => {
+	mockIDB();
+	let harness!: PageHarness;
+
+	beforeEach(async () => {
+		harness = await createPageHarness(withAnimalBuildings);
+	});
+
+	afterEach(() => {
+		harness.cleanup();
+	});
+
+	const building = (id: string) => {
+		const found = harness.saveManager.save?.farm?.buildings.find(
+			(b) => b[Raw].id === id,
+		);
+		if (!found) throw new Error(`No building ${id}`);
+		return found;
+	};
+
+	/** The section for a building, found by its heading */
+	const section = (page: { container: HTMLElement }, name: string) => {
+		const heading = within(page.container).getByRole("heading", {
+			level: 3,
+			name,
+		});
+		const row = heading.closest(".building-row");
+		if (!(row instanceof HTMLElement)) throw new Error(`No ${name} section`);
+		return { row, header: heading.closest(".building-header") as HTMLElement };
+	};
+
+	it("shows the controls under each coop and barn's heading", () => {
+		const page = harness.render(buildingsPage);
+		for (const name of ["Coop", "Barn"]) {
+			const { header } = section(page, name);
+			expect(within(header).getByTestId("building-upgrade")).toBeTruthy();
+			expect(within(header).getByTestId("add-animal-type")).toBeTruthy();
+		}
+		expect(
+			within(section(page, "Coop").header).getByTestId("building-residents")
+				.textContent,
+		).toMatch(/4\/4 animals\s+live here \(1 outside\)/);
+		// Other buildings don't get them
+		expect(page.getAllByTestId("building-upgrade")).toHaveLength(2);
+
+		const types = within(section(page, "Barn").header).getByTestId(
+			"add-animal-type",
+		) as HTMLSelectElement;
+		const options = [...types.options].map((o) => [o.value, o.disabled]);
+		expect(options).toEqual([
+			["White Cow", false],
+			["Brown Cow", false],
+			["Goat", true],
+			["Sheep", true],
+			["Pig", true],
+			["Ostrich", false],
+		]);
+		expect(types.options[2]?.textContent).toBe("Goat (needs a Big Barn)");
+	});
+
+	it("adds an animal from the form", async () => {
+		const page = harness.render(buildingsPage);
+		const { row, header } = section(page, "Barn");
+		const name = within(header).getByTestId(
+			"add-animal-name",
+		) as HTMLInputElement;
+		expect(name.value).toBe("White Cow");
+
+		await choose(within(header).getByTestId("add-animal-type"), "Ostrich");
+		expect(name.value).toBe("Ostrich");
+		await fireEvent.input(name, { target: { value: "Big Bird" } });
+		const submit = within(header).getByTestId(
+			"add-animal-submit",
+		) as HTMLButtonElement;
+		expect(submit.disabled).toBe(false);
+		await fireEvent.submit(submit.closest("form") as HTMLFormElement);
+		flushSync();
+
+		expect(within(row).getByText("Big Bird")).toBeTruthy();
+		expect(building(BARN_ID).residentIds).toHaveLength(3);
+		expect(
+			within(header).getByTestId("building-residents").textContent,
+		).toMatch(/3\/4 animals\s+live here/);
+		// Ready for another of the same kind
+		expect(name.value).toBe("Ostrich");
+	});
+
+	it("won't take a name another animal has", async () => {
+		const page = harness.render(buildingsPage);
+		const { header } = section(page, "Barn");
+		const name = within(header).getByTestId("add-animal-name");
+		await fireEvent.input(name, { target: { value: "Clucky" } });
+		expect(
+			(within(header).getByTestId("add-animal-submit") as HTMLButtonElement)
+				.disabled,
+		).toBe(true);
+		expect(
+			within(header).getByTestId("add-animal-name-error").textContent,
+		).toBe("Another animal is already called Clucky");
+	});
+
+	it("says when a building is full", () => {
+		const page = harness.render(buildingsPage);
+		const { header } = section(page, "Coop");
+		expect(
+			(within(header).getByTestId("add-animal-submit") as HTMLButtonElement)
+				.disabled,
+		).toBe(true);
+		expect(within(header).getByTestId("add-animal-full").textContent).toBe(
+			"Full: 4/4 animals live here. Upgrade it for more room.",
+		);
+	});
+
+	it("upgrades a coop from the dropdown", async () => {
+		const page = harness.render(buildingsPage);
+		const select = within(section(page, "Coop").header).getByTestId(
+			"building-upgrade",
+		) as HTMLSelectElement;
+		expect([...select.options].map((o) => o.textContent)).toEqual([
+			"Coop (4 animals)",
+			"Big Coop (8 animals)",
+			"Deluxe Coop (12 animals)",
+		]);
+
+		await choose(select, "Big Coop");
+		flushSync();
+
+		expect(building(COOP_ID)[Raw].buildingType).toBe("Big Coop");
+		const { header } = section(page, "Big Coop");
+		expect(
+			within(header).getByTestId("building-residents").textContent,
+		).toMatch(/4\/8 animals\s+live here/);
+		expect(within(header).queryByTestId("add-animal-full")).toBeNull();
+		const types = within(header).getByTestId(
+			"add-animal-type",
+		) as HTMLSelectElement;
+		expect([...types.options].find((o) => o.value === "Duck")?.disabled).toBe(
+			false,
+		);
+	});
+
+	it("only offers a downgrade the animals fit into", async () => {
+		const coop = building(COOP_ID);
+		const big = coop.tiers.find((t) => t.name === "Big Coop");
+		if (!big) throw new Error("No Big Coop");
+		coop.changeType(big);
+		const player = harness.saveManager.save?.player;
+		if (!player) throw new Error("No player");
+		coop.adoptAnimal("Duck", "Daffy", player);
+		coop.adoptAnimal("White Chicken", "Pip", player);
+		flushSync();
+
+		const page = harness.render(buildingsPage);
+		const { header } = section(page, "Big Coop");
+		const select = within(header).getByTestId(
+			"building-upgrade",
+		) as HTMLSelectElement;
+		expect(select.value).toBe("Big Coop");
+		expect(select.options[0]?.disabled).toBe(true);
+		expect(select.options[2]?.disabled).toBe(false);
+		expect(
+			within(header).getByTestId("building-upgrade-reason").textContent,
+		).toBe("6 animals live here; a Coop holds 4");
+
+		// Even if it's picked anyway, nothing changes
+		await choose(select, "Coop");
+		expect(coop[Raw].buildingType).toBe("Big Coop");
+		expect(select.value).toBe("Big Coop");
+	});
+
+	it("warns about a downgrade, and says what it left behind", async () => {
+		const coop = building(COOP_ID);
+		const big = coop.tiers.find((t) => t.name === "Big Coop");
+		if (!big) throw new Error("No Big Coop");
+		coop.changeType(big);
+		// An egg in the incubator keeps it there, so the junimo can't go back
+		const incubator = coop.indoorLocation?.[Raw].objects?.item.find(
+			(o) => o.value.Object.name === "Incubator",
+		)?.value.Object as { heldObject?: unknown } | undefined;
+		if (!incubator) throw new Error("No incubator");
+		incubator.heldObject = { name: "Egg", itemId: "176" };
+		flushSync();
+
+		const toastManager = new ToastManager();
+		const addSpy = vi.spyOn(toastManager, "add");
+		const page = harness.render(buildingsPage, {
+			context: setToastManagerContext(toastManager),
+		});
+		const { header } = section(page, "Big Coop");
+		expect(
+			within(header).getByTestId("building-downgrade-note").textContent,
+		).toMatch(/^A downgrade moves back what the upgrade moved\./);
+
+		await choose(within(header).getByTestId("building-upgrade"), "Coop");
+		expect(coop[Raw].buildingType).toBe("Coop");
+		expect(
+			addSpy.mock.calls.map(([toast]) => [toast.icon, toast.message]),
+		).toEqual([
+			["✅", "Downgraded to a Coop"],
+			["❌", "Left the Incubator at 2, 3: it has something in it"],
+			["❌", "Left the Stone Junimo at 14, 8: its old spot is taken"],
+		]);
+		// Nothing smaller to go to
+		expect(
+			within(section(page, "Coop").header).queryByTestId(
+				"building-downgrade-note",
+			),
+		).toBeNull();
+	});
+
+	it("says when a building is still being built", async () => {
+		harness.cleanup();
+		harness = await createPageHarness((xml) =>
+			withAnimalBuildings(xml, [
+				coopXml(),
+				barnXml({ daysOfConstructionLeft: 2 }),
+			]),
+		);
+		const page = harness.render(buildingsPage);
+		const { header } = section(page, "Barn");
+		expect(
+			within(header).getByTestId("add-animal-under-construction").textContent,
+		).toBe("Animals can move in once it's built.");
+		expect(
+			(within(header).getByTestId("add-animal-submit") as HTMLButtonElement)
+				.disabled,
+		).toBe(true);
+		const select = within(header).getByTestId(
+			"building-upgrade",
+		) as HTMLSelectElement;
+		expect([...select.options].map((o) => [o.value, o.disabled])).toEqual([
+			["Barn", false],
+			["Big Barn", true],
+			["Deluxe Barn", true],
+		]);
+		expect(
+			within(header).getByTestId("building-upgrade-reason").textContent,
+		).toBe("The Barn is still being built");
+	});
+
+	it("offers a shed's upgrade, but no animals", async () => {
+		harness.cleanup();
+		harness = await createPageHarness((xml) =>
+			withAnimalBuildings(xml, [coopXml(), barnXml(), shedXml()]),
+		);
+		const page = harness.render(buildingsPage);
+		const { header } = section(page, "Shed");
+		const select = within(header).getByTestId(
+			"building-upgrade",
+		) as HTMLSelectElement;
+		expect([...select.options].map((o) => o.textContent)).toEqual([
+			"Shed",
+			"Big Shed",
+		]);
+		expect(within(header).queryByTestId("add-animal-type")).toBeNull();
+		expect(within(header).queryByTestId("building-residents")).toBeNull();
+
+		await choose(select, "Big Shed");
+		flushSync();
+		expect(building(SHED_ID)[Raw].buildingType).toBe("Big Shed");
+		expect(
+			within(section(page, "Big Shed").header).getByTestId(
+				"building-downgrade-note",
+			),
+		).toBeTruthy();
+	});
+
+	it("says when it doesn't know what lives in a building", async () => {
+		harness.cleanup();
+		harness = await createPageHarness((xml) =>
+			withAnimalBuildings(xml, [coopXml({ type: "Fancy Coop" }), barnXml()]),
+		);
+		const page = harness.render(buildingsPage);
+		const { header } = section(page, "Fancy Coop");
+		expect(within(header).getByTestId("add-animal-unknown").textContent).toBe(
+			"The editor doesn't know which animals can live in a Fancy Coop.",
+		);
+		expect(within(header).queryByTestId("add-animal-type")).toBeNull();
+		expect(within(header).queryByTestId("building-upgrade")).toBeNull();
+		expect(
+			within(header).getByTestId("building-residents").textContent,
+		).toMatch(/4\/4 animals\s+live here/);
 	});
 });

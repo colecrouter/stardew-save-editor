@@ -39,8 +39,6 @@ import editorPage from "../src/routes/(edit)/inventory/+page.svelte";
 import BuildingSprite from "../src/routes/(edit)/inventory/BuildingSprite.svelte";
 import questsPage from "../src/routes/(edit)/quests/+page.svelte";
 import relationshipsPage from "../src/routes/(edit)/relationships/+page.svelte";
-import { withHouse, withToolAtClint } from "./helpers/upgrades";
-
 import {
 	BARN_ID,
 	barnXml,
@@ -50,6 +48,7 @@ import {
 	shedXml,
 	withAnimalBuildings,
 } from "./helpers/animalBuildings";
+import { withHouse, withToolAtClint } from "./helpers/upgrades";
 
 interface PageHarness {
 	saveManager: SaveManager;

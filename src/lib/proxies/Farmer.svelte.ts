@@ -2,8 +2,12 @@ import { Color } from "$lib/proxies/Color.svelte";
 import { Inventory } from "$lib/proxies/Inventory.svelte";
 import { MailBox, MailFlag } from "$lib/proxies/Mail.svelte";
 import { Recipes } from "$lib/proxies/Recipes.svelte";
-import { Professions, Skills } from "$lib/proxies/Skills.svelte";
-import type { Gender, Player } from "$types/save";
+import {
+	masteryXpForLevel,
+	Professions,
+	Skills,
+} from "$lib/proxies/Skills.svelte";
+import type { Gender, Player, ToolItem } from "$types/save";
 import { type DataProxy, Raw } from ".";
 import { EventsSeen } from "./EventsSeen.svelte";
 import { Friendships } from "./Friendship.svelte";
@@ -23,9 +27,48 @@ const walletFlagMap: ReadonlyArray<[legacyField: string, flag: MailFlag]> = [
 	["hasUnlockedSkullDoor", MailFlag.HasUnlockedSkullDoor],
 ];
 
-const getStatValue = (player: Player, key: string): number =>
-	player.stats.Values?.item?.find((stat) => stat.key.string === key)?.value
-		.unsignedInt ?? 0;
+// The game matches stat keys case-insensitively, so "MasteryExp" and "masteryExp" are one stat
+const isStat = (key: string) => (stat: { key: { string: unknown } }) =>
+	String(stat.key.string).toLowerCase() === key.toLowerCase();
+
+export const getStatValue = (player: Player, key: string): number =>
+	player.stats.Values?.item?.find(isStat(key))?.value.unsignedInt ?? 0;
+
+const UINT_MAX = 4_294_967_295;
+
+/** Set a stat, which the game leaves out when it's 0 (Stats.Set) */
+export const setStatValue = (player: Player, key: string, value: number) => {
+	// Stats are unsigned ints (Stats.Values); the game can't load anything else
+	if (!Number.isInteger(value) || value < 0 || value > UINT_MAX)
+		throw new Error(
+			`The ${key} stat must be a whole number from 0 to ${UINT_MAX}`,
+		);
+	// An empty <Values /> parses as ""
+	if (typeof player.stats.Values !== "object" || !player.stats.Values)
+		player.stats.Values = { item: [] };
+	player.stats.Values.item ??= [];
+	const stats = player.stats.Values.item;
+	const index = stats.findIndex(isStat(key));
+	const stat = stats[index];
+	if (value === 0) {
+		if (stat) stats.splice(index, 1);
+	} else if (stat) {
+		stat.value.unsignedInt = value;
+	} else {
+		stats.push({ key: { string: key }, value: { unsignedInt: value } });
+	}
+};
+
+/** Backpack sizes the game sells: the starting backpack, the Large Pack and the Deluxe Pack */
+export const BACKPACK_SIZES: readonly number[] = [12, 24, 36];
+/** The cellar; the game has no house map past it (FarmHouse.setMapForUpgradeLevel) */
+export const MAX_HOUSE_UPGRADE_LEVEL = 3;
+/** Robin takes 3 days to upgrade the house */
+export const HOUSE_UPGRADE_DAYS = 3;
+/** Clint takes 2 days to upgrade a tool */
+export const TOOL_UPGRADE_DAYS = 2;
+/** The iridium trash can */
+export const MAX_TRASH_CAN_LEVEL = 4;
 
 const isNilMarker = (value: unknown): boolean =>
 	typeof value === "object" &&
@@ -77,6 +120,13 @@ export class Farmer implements DataProxy<Player> {
 	public inventory: Inventory;
 
 	public eyeColor: Color;
+
+	// Only written to the save when edited, so loading a save never changes them
+	#maxItems = $state(12);
+	#trashCanLevel = $state(0);
+	#daysUntilHouseUpgrade = $state(-1);
+	#daysLeftForToolUpgrade = $state(0);
+	#masteryExp = $state(0);
 
 	private getEquipmentProxy<T>(
 		slot:
@@ -160,6 +210,147 @@ export class Farmer implements DataProxy<Player> {
 
 	get trinketsUnlocked() {
 		return this.trinketSlots > 0;
+	}
+
+	/** Backpack slots: 12, 24 or 36. Change it with {@link setBackpackSize} */
+	get maxItems() {
+		return this.#maxItems;
+	}
+
+	/** Why the backpack can't be made `size` slots, if it can't */
+	#backpackProblem(size: number) {
+		const slots = this.inventory.slotCount;
+		if (!BACKPACK_SIZES.includes(size) || !BACKPACK_SIZES.includes(slots))
+			return "Backpacks have 12, 24 or 36 slots";
+		// Shrinking drops the last slots, so they have to be empty
+		for (let i = size; i < slots; i++)
+			if (!this.inventory.isEmpty(i))
+				return `Empty slots ${size + 1} to ${slots} of the backpack first`;
+	}
+
+	/** Whether the backpack can be made `size` slots without losing anything */
+	canResizeBackpack(size: number) {
+		return this.#backpackProblem(size) === undefined;
+	}
+
+	/**
+	    Make the backpack bigger, as buying one from Pierre does
+	    (GameLocation "Backpack_Purchase": `maxItems` grows by 12, and the
+	    inventory gets an empty slot for each new space), or smaller again.
+	*/
+	setBackpackSize(size: number) {
+		const problem = this.#backpackProblem(size);
+		if (problem) throw new Error(problem);
+		this.inventory.adjustSlots(size);
+		this.#maxItems = size;
+		this[Raw].maxItems = size;
+	}
+
+	/**
+	    The trash can's upgrade level, from 0 (basic) to 4 (iridium). Each level
+	    gets back 15% more of a trashed item's price
+	    (Utility.getTrashReclamationPrice).
+	*/
+	get trashCanLevel() {
+		return this.#trashCanLevel;
+	}
+
+	set trashCanLevel(level: number) {
+		if (!Number.isInteger(level) || level < 0 || level > MAX_TRASH_CAN_LEVEL)
+			throw new Error(`The trash can's level is 0 to ${MAX_TRASH_CAN_LEVEL}`);
+		// Collecting it from Clint upgrades it again
+		if (this.trashCanAtClint)
+			throw new Error("Clint is upgrading the trash can; collect it first");
+		this.#trashCanLevel = level;
+		this[Raw].trashCanLevel = level;
+	}
+
+	/** The tool (or trash can) Clint is upgrading, if there is one */
+	get toolBeingUpgraded(): ToolItem | undefined {
+		const tool = this[Raw].toolBeingUpgraded;
+		return tool && !isNilMarker(tool) ? tool : undefined;
+	}
+
+	/** Whether the tool at Clint's is a trash can (CopperTrashCan to IridiumTrashCan) */
+	get trashCanAtClint() {
+		return /TrashCan$/.test(String(this.toolBeingUpgraded?.itemId ?? ""));
+	}
+
+	/**
+	    Days until Clint finishes the {@link toolBeingUpgraded}. It goes down
+	    overnight, and at 0 the tool is ready to collect.
+	*/
+	get daysLeftForToolUpgrade() {
+		return this.#daysLeftForToolUpgrade;
+	}
+
+	set daysLeftForToolUpgrade(days: number) {
+		if (!Number.isInteger(days) || days < 0 || days > TOOL_UPGRADE_DAYS)
+			throw new Error(`Clint takes 0 to ${TOOL_UPGRADE_DAYS} days`);
+		this.#daysLeftForToolUpgrade = days;
+		this[Raw].daysLeftForToolUpgrade = days;
+	}
+
+	/**
+	    The house's upgrade level, from 0 (the starting house) to 3 (with a
+	    cellar). It goes up overnight; see {@link daysUntilHouseUpgrade}.
+	*/
+	get houseUpgradeLevel() {
+		return this[Raw].houseUpgradeLevel ?? 0;
+	}
+
+	/**
+	    Days until Robin finishes upgrading the house, or -1 when she isn't.
+	    The night it reaches 0, the game upgrades the house itself, moving the
+	    furniture out of the way (Farmer.dayupdate), so 1 upgrades it after the
+	    next sleep. 0 or less stops the upgrade.
+	*/
+	get daysUntilHouseUpgrade() {
+		return this.#daysUntilHouseUpgrade;
+	}
+
+	set daysUntilHouseUpgrade(days: number) {
+		if (!Number.isInteger(days) || days > HOUSE_UPGRADE_DAYS)
+			throw new Error(`Robin takes up to ${HOUSE_UPGRADE_DAYS} days`);
+		if (days > 0 && this.houseUpgradeLevel >= MAX_HOUSE_UPGRADE_LEVEL)
+			throw new Error("The house is fully upgraded");
+		const value = days > 0 ? days : -1;
+		this.#daysUntilHouseUpgrade = value;
+		this[Raw].daysUntilHouseUpgrade = value;
+	}
+
+	/**
+	    How many masteries the player has claimed in the Mastery Cave: the
+	    `mastery_0` to `mastery_4` stats (0 Farming, 1 Fishing, 2 Foraging,
+	    3 Mining, 4 Combat), or `MasteryLevelsSpent` if that's more
+	*/
+	get masteryLevelsSpent() {
+		const claimed = [0, 1, 2, 3, 4].filter(
+			(skill) => getStatValue(this[Raw], `mastery_${skill}`) > 0,
+		).length;
+		const spent = getStatValue(this[Raw], "MasteryLevelsSpent");
+		return Math.min(masteryXpForLevel.length - 1, Math.max(claimed, spent));
+	}
+
+	/**
+	    Mastery XP (the `MasteryExp` stat), earned once every skill is level 10.
+	    It can't go below what the masteries already claimed cost, or the game
+	    would have spent levels the player doesn't have.
+	*/
+	get masteryExp() {
+		return this.#masteryExp;
+	}
+
+	set masteryExp(xp: number) {
+		const spent = this.masteryLevelsSpent;
+		const min = masteryXpForLevel[spent] ?? 0;
+		if (Number.isInteger(xp) && xp < min)
+			throw new Error(
+				`${spent} ${spent === 1 ? "mastery is" : "masteries are"} claimed, which takes at least ${min} Mastery XP`,
+			);
+		// Refuses anything else a stat can't hold
+		setStatValue(this[Raw], "MasteryExp", xp);
+		this.#masteryExp = xp;
 	}
 
 	constructor(player: Player | undefined) {
@@ -259,6 +450,12 @@ export class Farmer implements DataProxy<Player> {
 		});
 
 		this.inventory = new Inventory(this[Raw]);
+		this.#maxItems = this[Raw].maxItems ?? this.inventory.slotCount;
+
+		this.#trashCanLevel = this[Raw].trashCanLevel ?? 0;
+		this.#daysUntilHouseUpgrade = this[Raw].daysUntilHouseUpgrade ?? -1;
+		this.#daysLeftForToolUpgrade = this[Raw].daysLeftForToolUpgrade ?? 0;
+		this.#masteryExp = getStatValue(this[Raw], "MasteryExp");
 
 		// Eye color: keep a reactive Color and sync channel changes into raw
 		this.eyeColor = $state(new Color(this[Raw].newEyeColor));

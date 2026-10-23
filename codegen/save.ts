@@ -1144,6 +1144,8 @@ export interface Player {
 	lastSeenMovieWeek: number;
 	clubCoins: number;
 	trashCanLevel: number;
+	/** The tool (or trash can) Clint is upgrading; left out when there isn't one */
+	toolBeingUpgraded?: ToolItem;
 	daysLeftForToolUpgrade: number;
 	houseUpgradeLevel: number;
 	daysUntilHouseUpgrade: number;

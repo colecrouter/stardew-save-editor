@@ -6,6 +6,20 @@ const xpForLevel = [
 	0, 100, 380, 770, 1300, 2150, 3300, 4800, 6900, 10000, 15000,
 ] as const;
 
+/**
+ * Total Mastery XP needed for each mastery level, 0 to 5. Each level lets the
+ * player claim one skill's mastery in the Mastery Cave.
+ *
+ * {@link https://stardewvalleywiki.com/Mastery_Cave#Masteries}
+ */
+export const masteryXpForLevel = [
+	0, 10000, 25000, 45000, 70000, 100000,
+] as const;
+
+/** The mastery level (0 to 5) that this much Mastery XP reaches */
+export const masteryLevel = (xp: number) =>
+	masteryXpForLevel.filter((needed) => xp >= needed).length - 1;
+
 const xpToLevel = (xp: number) => {
 	let level = 0;
 	for (let i = 0; i < xpForLevel.length; i++) {

@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { tick } from "svelte";
 	import {
 		type ChestGroupId,
 		ChestGroups,
@@ -58,24 +57,22 @@
 	let selectedIndex = $state(0);
 	let selectedItem = $derived(selectedChest?.inventory.get(selectedIndex));
 
-	// Hovering a search result previews its chest without committing the selection
-	let preview = $state<SlotRef | null>(null);
-	let shownGroup = $derived.by(() => {
-		if (!preview) return selectedGroup;
-		const id = chestGroup(preview.chest);
-		return groups.find((group) => group.id === id) ?? selectedGroup;
-	});
-	let shownChest = $derived(preview?.chest ?? selectedChest);
-	let shownIndex = $derived(preview?.index ?? selectedIndex);
-
 	let chestList = $state<HTMLElement>();
 
 	let search = $state("");
 	let searchResults = $derived(searchChests(save.chests, search));
-	let showResults = $state(true);
 	let searchBox: HTMLDivElement | undefined = $state();
-	let searching = $derived(showResults && search.trim() !== "");
+	let searching = $derived(search.trim() !== "");
 	let matches = $derived(new Set(searchResults.map((result) => result.item)));
+
+	// While searching, list the chests with a match from every group
+	let shownChests = $derived(
+		searching
+			? save.chests.filter((chest) =>
+					searchResults.some((result) => result.chest === chest),
+				)
+			: (selectedGroup?.chests ?? []),
+	);
 
 	/** Items picked with Ctrl/Cmd+click, to drag several at once */
 	let picked = $state<SlotRef[]>([]);
@@ -134,58 +131,14 @@
 		selectedIndex = index;
 	};
 
-	/** Show a search result: switch to its group, select it and scroll to its chest */
-	const selectResult = async (chestIndex: number, slotIndex: number) => {
-		const chest = save.chests[chestIndex];
-		if (!chest) return;
-		selectedGroupId = chestGroup(chest);
-		selectedChest = chest;
-		selectedIndex = slotIndex;
-		picked = [];
-		preview = null;
-		showResults = false;
-		await scrollToChest(chest);
-	};
-
-	/** Scroll the chest list, and only the list (not the page), to show a chest */
-	const scrollToChest = async (chest: ChestProxy | undefined) => {
-		await tick();
-		if (!chest || !chestList) return;
-		const section = chestList.querySelector(
-			`[data-chest-index="${save.chests.indexOf(chest)}"]`,
-		);
-		if (!section) return;
-		const list = chestList.getBoundingClientRect();
-		const box = section.getBoundingClientRect();
-		if (box.top < list.top) chestList.scrollTop += box.top - list.top;
-		else if (box.bottom > list.bottom)
-			chestList.scrollTop += Math.min(
-				box.bottom - list.bottom,
-				box.top - list.top,
-			);
-	};
-
-	/**
-	 * Called on mousemove rather than mouseenter, so results sliding under a
-	 * resting cursor while typing don't preview anything
-	 */
-	const previewResult = (chestIndex: number, slotIndex: number) => {
-		const chest = save.chests[chestIndex];
-		if (!chest) return;
-		if (preview?.chest === chest && preview.index === slotIndex) return;
-		preview = { chest, index: slotIndex };
-		scrollToChest(chest);
-	};
-
-	const endPreview = () => {
-		if (!preview) return;
-		preview = null;
-		scrollToChest(selectedChest);
-	};
+	// Start the list from the top whenever the search changes what it shows
+	$effect(() => {
+		search;
+		if (chestList) chestList.scrollTop = 0;
+	});
 
 	const clearSearch = () => {
 		search = "";
-		preview = null;
 		searchBox?.querySelector("input")?.focus();
 	};
 
@@ -319,18 +272,24 @@
 		toastManager.add(new Toast("Expanded to a 36-slot Chest", "success"));
 	};
 
-	/** Set the quality of every item in the listed chests that can have one */
+	/**
+	 * Set the quality of every item in the listed chests that can have one;
+	 * while searching, only of the items that match
+	 */
 	const setQuality = (quality: number, name: string) => {
 		let changed = 0;
-		for (const chest of selectedGroup?.chests ?? []) {
+		for (const chest of shownChests) {
 			for (const item of chest.inventory.values()) {
 				// Only items in categories with qualities (crops, fish, artisan goods...) have one
 				if (item?.quality === undefined) continue;
+				if (searching && !matches.has(item)) continue;
 				item.quality = quality;
 				changed++;
 			}
 		}
-		const where = selectedGroup?.name.toLowerCase() ?? "these chests";
+		const where = searching
+			? "the search results"
+			: (selectedGroup?.name.toLowerCase() ?? "these chests");
 		toastManager.add(
 			changed
 				? new Toast(
@@ -362,8 +321,6 @@
 				placeholder="Search all chests..."
 				data-testid="chest-search"
 				bind:value={search}
-				onfocus={() => (showResults = true)}
-				oninput={() => (showResults = true)}
 				onkeydown={(event) => {
 					if (event.key === "Escape" && search) {
 						event.preventDefault();
@@ -384,43 +341,14 @@
 				</button>
 			{/if}
 		</div>
-		{#if searching}
-			<div class="search-results">
-				{#if searchResults.length === 0}
-					<small>No items found.</small>
-				{:else}
-					<small>
-						{searchResults.length}
-						{searchResults.length === 1 ? "match" : "matches"}
-					</small>
-					<div class="results" role="presentation" onmouseleave={endPreview}>
-						{#each searchResults as { chestIndex, slotIndex, chest, item }}
-							<button
-								class="result"
-								class:active={chest === shownChest && slotIndex === shownIndex}
-								data-testid={`chest-search-result-${chestIndex}-${slotIndex}`}
-								onmousemove={() => previewResult(chestIndex, slotIndex)}
-								onfocus={() => previewResult(chestIndex, slotIndex)}
-								onblur={endPreview}
-								onclick={() => selectResult(chestIndex, slotIndex)}
-							>
-								<div class="result-sprite">
-									<ItemSprite {item} />
-								</div>
-								<span class="result-name"
-									>{item.name} &times;{item.amount ?? item.stack}</span
-								>
-								<span class="result-chest">{chestName(chest)}</span>
-							</button>
-						{/each}
-					</div>
-				{/if}
-			</div>
-		{/if}
 		<label class="picker">
 			<span hidden>Container group</span>
 			<UiSelect
 				value={selectedGroupId}
+				disabled={searching}
+				title={searching
+					? "Searching every group; clear the search to pick one"
+					: undefined}
 				onchange={(event) =>
 					selectGroup(
 						(event.currentTarget as HTMLSelectElement).value as ChestGroupId,
@@ -433,13 +361,15 @@
 			</UiSelect>
 		</label>
 		<div class="bulk-quality">
-			<small>Set the quality of every item listed:</small>
+			<small
+				>Set the quality of every {searching ? "match" : "item listed"}:</small
+			>
 			{#each qualityLevels as [quality, name]}
 				<button
 					type="button"
 					class={`star quality-${quality}`}
 					title={`${name} quality`}
-					aria-label={`Set every item listed to ${name} quality`}
+					aria-label={`Set every ${searching ? "match" : "item listed"} to ${name} quality`}
 					data-testid={`chest-quality-${quality}`}
 					onclick={() => setQuality(quality, name)}
 				>
@@ -452,7 +382,7 @@
 	<div class="workspace">
 		<UiContainer>
 			<div class="chest-list" data-testid="chest-list" bind:this={chestList}>
-				{#each shownGroup?.chests ?? [] as chest (chest.metadata.id)}
+				{#each shownChests as chest (chest.metadata.id)}
 					{@const color = chestColor(chest)}
 					{@const chestIndex = save.chests.indexOf(chest)}
 					<section
@@ -522,7 +452,7 @@
 									{item}
 									active={multiSelected
 										? isPicked(chest, index)
-										: chest === shownChest && index === shownIndex}
+										: chest === selectedChest && index === selectedIndex}
 									data-testid={`chest-${chestIndex}-item-${index}`}
 									onclick={(event) => select(chest, index, event)}
 									ondragover={allowDrop}
@@ -545,7 +475,9 @@
 					</section>
 				{:else}
 					<p class="empty">
-						No {shownGroup?.name.toLowerCase()} in this save.
+						{searching
+							? "No items found."
+							: `No ${selectedGroup?.name.toLowerCase()} in this save.`}
 					</p>
 				{/each}
 			</div>
@@ -616,55 +548,6 @@
 	.clear:hover,
 	.clear:focus-visible {
 		background-color: rgba(0, 0, 0, 0.12);
-	}
-
-	/* The same height whatever was found, so the chests below don't jump while typing */
-	.search-results {
-		display: flex;
-		flex-direction: column;
-		height: 14rem;
-		margin-bottom: 8px;
-	}
-
-	.results {
-		display: flex;
-		flex-direction: column;
-		flex: 1;
-		min-height: 0;
-		overflow-y: auto;
-		margin-top: 4px;
-	}
-
-	.result {
-		all: unset;
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		padding: 2px 4px;
-		border-bottom: #5b2b2a 1px solid;
-		cursor: pointer;
-	}
-
-	.result:hover,
-	.result:focus-visible,
-	.result.active {
-		background-color: rgba(255, 255, 255, 0.4);
-	}
-
-	.result-sprite {
-		position: relative;
-		width: 32px;
-		height: 32px;
-		flex-shrink: 0;
-	}
-
-	.result-name {
-		flex: 1;
-	}
-
-	.result-chest {
-		font-size: small;
-		opacity: 0.8;
 	}
 
 	.picker {
@@ -881,7 +764,7 @@
 		transform-origin: center;
 	}
 
-	/* Fade out quickly while searching; fade back in slowly once results close */
+	/* Fade out quickly while searching; fade back in slowly once the search is cleared */
 	.item.dimmed {
 		opacity: 0.3;
 		transition:

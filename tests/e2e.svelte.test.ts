@@ -10,6 +10,7 @@ import {
 	parseBundleKey,
 	parseBundleValue,
 } from "$lib/proxies/bundleSerialization";
+import { searchChests } from "$lib/proxies/Chest.svelte";
 import { Color as ColorProxy } from "$lib/proxies/Color.svelte";
 import { FarmAnimal, FarmAnimalType } from "$lib/proxies/FarmAnimal.svelte";
 import { getStatValue } from "$lib/proxies/Farmer.svelte";
@@ -2013,31 +2014,41 @@ describe("Save Manager Integration Tests", () => {
 			expect(dimmed(1)).toBe(false);
 		});
 
-		it("jumps to a search result in another group", async () => {
+		it("lists only the chests with a match, from every group", async () => {
 			const page = renderChests();
 			const { chest, index } = chestIn("IslandFarmHouse");
 			chest.inventory.set(3, ItemFactory.fromName("Ancient Fruit"));
 			flushSync();
+			const listed = () =>
+				page
+					.getAllByTestId("chest-section")
+					.map((section) => Number(section.dataset.chestIndex));
+			const group = page.getByTestId("chest-group") as HTMLSelectElement;
+			const unfiltered = listed();
+			expect(unfiltered).not.toContain(index);
 
 			await fireEvent.input(page.getByTestId("chest-search"), {
 				target: { value: "ancient fruit" },
 			});
-			const result = page.getByTestId(`chest-search-result-${index}-3`);
-			expect(result.textContent).toContain("IslandFarmHouse - Fridge");
-			await fireEvent.click(result);
-			await tick();
-
-			// The island fridges are listed, with the item selected
-			expect((page.getByTestId("chest-group") as HTMLSelectElement).value).toBe(
-				"island-fridges",
+			const withMatch = new Set(
+				searchChests(saveManager.save?.chests ?? [], "ancient fruit").map(
+					(result) => result.chestIndex,
+				),
 			);
-			expect(page.getAllByTestId("chest-section")).toHaveLength(1);
-			expect(
-				page.getByTestId(`chest-${index}-item-3`).classList.contains("active"),
-			).toBe(true);
-			expect(page.getByText("Editing: IslandFarmHouse - Fridge")).toBeTruthy();
-			// The results close once one is picked
-			expect(page.queryByTestId(`chest-search-result-${index}-3`)).toBeNull();
+			// The island fridge is listed, though it's in another group
+			expect(listed()).toContain(index);
+			expect(new Set(listed())).toEqual(withMatch);
+			expect(group.disabled).toBe(true);
+
+			await fireEvent.input(page.getByTestId("chest-search"), {
+				target: { value: "no such item" },
+			});
+			expect(page.queryAllByTestId("chest-section")).toHaveLength(0);
+			expect(page.getByText("No items found.")).toBeTruthy();
+
+			await fireEvent.click(page.getByTestId("chest-search-clear"));
+			expect(listed()).toEqual(unfiltered);
+			expect(group.disabled).toBe(false);
 		});
 	});
 
@@ -2208,6 +2219,33 @@ describe("Save Manager Integration Tests", () => {
 
 			await fireEvent.click(page.getByTestId("chest-quality-0"));
 			for (const item of withQuality) expect(item.quality).toBe(0);
+		});
+
+		it("only sets the quality of the matches while searching", async () => {
+			const { page, toastManager } = renderChests();
+			const chest = saveManager.save?.chests[0];
+			if (!chest) throw new Error("No chest");
+			const parsnip = ItemFactory.fromName("Parsnip");
+			const daffodil = ItemFactory.fromName("Daffodil");
+			chest.inventory.set(0, parsnip);
+			chest.inventory.set(1, daffodil);
+			flushSync();
+
+			await fireEvent.input(page.getByTestId("chest-search"), {
+				target: { value: "parsnip" },
+			});
+			const parsnips = searchChests(
+				saveManager.save?.chests ?? [],
+				"parsnip",
+			).filter(({ item }) => item.quality !== undefined);
+			await fireEvent.click(page.getByTestId("chest-quality-2"));
+			flushSync();
+
+			for (const { item } of parsnips) expect(item.quality).toBe(2);
+			expect(daffodil.quality).toBe(0);
+			expect(toastManager.toasts.at(-1)?.message).toBe(
+				`Set ${parsnips.length} item${parsnips.length === 1 ? "" : "s"} in the search results to Gold quality`,
+			);
 		});
 
 		it("says so when nothing listed can have a quality", async () => {

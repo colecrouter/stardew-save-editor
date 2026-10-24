@@ -58,6 +58,16 @@
 	let selectedIndex = $state(0);
 	let selectedItem = $derived(selectedChest?.inventory.get(selectedIndex));
 
+	// Hovering a search result previews its chest without committing the selection
+	let preview = $state<SlotRef | null>(null);
+	let shownGroup = $derived.by(() => {
+		if (!preview) return selectedGroup;
+		const id = chestGroup(preview.chest);
+		return groups.find((group) => group.id === id) ?? selectedGroup;
+	});
+	let shownChest = $derived(preview?.chest ?? selectedChest);
+	let shownIndex = $derived(preview?.index ?? selectedIndex);
+
 	let chestList = $state<HTMLElement>();
 
 	let search = $state("");
@@ -132,15 +142,35 @@
 		selectedChest = chest;
 		selectedIndex = slotIndex;
 		picked = [];
+		preview = null;
 		showResults = false;
+		await scrollToChest(chest);
+	};
+
+	const scrollToChest = async (chest: ChestProxy | undefined) => {
 		await tick();
+		if (!chest) return;
 		chestList
-			?.querySelector(`[data-chest-index="${chestIndex}"]`)
+			?.querySelector(`[data-chest-index="${save.chests.indexOf(chest)}"]`)
 			?.scrollIntoView({ block: "nearest" });
+	};
+
+	const previewResult = (chestIndex: number, slotIndex: number) => {
+		const chest = save.chests[chestIndex];
+		if (!chest) return;
+		preview = { chest, index: slotIndex };
+		scrollToChest(chest);
+	};
+
+	const endPreview = () => {
+		if (!preview) return;
+		preview = null;
+		scrollToChest(selectedChest);
 	};
 
 	const clearSearch = () => {
 		search = "";
+		preview = null;
 		searchBox?.querySelector("input")?.focus();
 	};
 
@@ -347,13 +377,15 @@
 					{searchResults.length}
 					{searchResults.length === 1 ? "match" : "matches"}
 				</small>
-				<div class="results">
+				<div class="results" role="presentation" onmouseleave={endPreview}>
 					{#each searchResults as { chestIndex, slotIndex, chest, item }}
 						<button
 							class="result"
-							class:active={chest === selectedChest &&
-								slotIndex === selectedIndex}
+							class:active={chest === shownChest && slotIndex === shownIndex}
 							data-testid={`chest-search-result-${chestIndex}-${slotIndex}`}
+							onmouseenter={() => previewResult(chestIndex, slotIndex)}
+							onfocus={() => previewResult(chestIndex, slotIndex)}
+							onblur={endPreview}
 							onclick={() => selectResult(chestIndex, slotIndex)}
 						>
 							<div class="result-sprite">
@@ -403,7 +435,7 @@
 	<div class="workspace">
 		<UiContainer>
 			<div class="chest-list" data-testid="chest-list" bind:this={chestList}>
-				{#each selectedGroup?.chests ?? [] as chest (chest.metadata.id)}
+				{#each shownGroup?.chests ?? [] as chest (chest.metadata.id)}
 					{@const color = chestColor(chest)}
 					{@const chestIndex = save.chests.indexOf(chest)}
 					<section
@@ -473,7 +505,7 @@
 									{item}
 									active={multiSelected
 										? isPicked(chest, index)
-										: chest === selectedChest && index === selectedIndex}
+										: chest === shownChest && index === shownIndex}
 									data-testid={`chest-${chestIndex}-item-${index}`}
 									onclick={(event) => select(chest, index, event)}
 									ondragover={allowDrop}
@@ -496,7 +528,7 @@
 					</section>
 				{:else}
 					<p class="empty">
-						No {selectedGroup?.name.toLowerCase()} in this save.
+						No {shownGroup?.name.toLowerCase()} in this save.
 					</p>
 				{/each}
 			</div>

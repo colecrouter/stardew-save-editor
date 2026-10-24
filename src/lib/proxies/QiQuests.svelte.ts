@@ -1,5 +1,6 @@
 import { SvelteSet } from "svelte/reactivity";
 import qiQuestTemplates from "$generated/qiquests.json";
+import { totalDays } from "$lib/calendar";
 import type { SaveProxy } from "$lib/proxies/SaveFile.svelte";
 import type {
 	AvailableSpecialOrders,
@@ -140,6 +141,22 @@ export class QiQuests
 	}
 
 	/**
+	 * The game's state for an accepted Qi Challenge: "InProgress", or
+	 * "Complete"/"Failed" until the player claims or dismisses it in the
+	 * journal. Only an order in progress can be cancelled.
+	 */
+	stateOf(questKey: string): string | undefined {
+		const active = this.saveData[Raw].SaveGame.specialOrders;
+		if (!active || typeof active !== "object") return undefined;
+		const orders = active.SpecialOrder.filter(
+			(order) => order.questKey === questKey,
+		);
+		return (
+			orders.find((order) => order.questState === "InProgress") ?? orders[0]
+		)?.questState;
+	}
+
+	/**
 	 * Cancels an already-accepted Qi Challenge by removing it from the
 	 * player's active `specialOrders`, discarding its in-progress state.
 	 * This frees it up to be offered again on the board (via `add`) the
@@ -195,12 +212,9 @@ export class QiQuests
 		template: QiQuestTemplate,
 	): AvailableSpecialOrdersSpecialOrder {
 		const { year, currentSeason, dayOfMonth } = this.saveData[Raw].SaveGame;
-		const seasonIndex = ["spring", "summer", "fall", "winter"].indexOf(
-			currentSeason,
-		);
 		// Special-order deadlines use WorldDate.TotalDays (Spring 1, year 1 = 0),
 		// not the selected farmer's legacy daysPlayed statistic.
-		const totalDays = (year - 1) * 112 + seasonIndex * 28 + dayOfMonth - 1;
+		const today = totalDays({ year, season: currentSeason, day: dayOfMonth });
 
 		const objectives: QiObjective[] = template.objectives.map((objective) => ({
 			"@_xsi:type": `${objective.type}Objective`,
@@ -255,7 +269,7 @@ export class QiQuests
 			specialRule: template.specialRule,
 			readyForRemoval: false,
 			itemToRemoveOnEnd: -1,
-			dueDate: totalDays + template.durationDays,
+			dueDate: today + template.durationDays,
 			duration: template.duration,
 			questState: "InProgress",
 		};

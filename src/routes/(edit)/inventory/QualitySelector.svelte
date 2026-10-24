@@ -1,5 +1,6 @@
 <script lang="ts" module>
-	const qualityLevels = new Map([
+	/** The qualities an item can have, and their names */
+	export const qualityLevels = new Map([
 		[0, "Normal"],
 		[1, "Silver"],
 		[2, "Gold"],
@@ -8,27 +9,16 @@
 </script>
 
 <script lang="ts">
-	import { calculatePrice, calculateEdibility } from "$lib/ItemQuality";
 	import type { ObjectProxy } from "$lib/proxies/items";
 
 	interface Props {
 		item: ObjectProxy;
 	}
 
+	// Picking a star only sets the quality. The game saves an item's base price
+	// and edibility, and applies the quality itself when it's sold or eaten
+	// (Object.sellToStorePrice, Object.staminaRecoveredOnConsumption).
 	let { item = $bindable() }: Props = $props();
-
-	/** Update an item's quality, and recalculate its price & edibility */
-	const updateQuality = (newQuality: number) => {
-		item.quality = newQuality;
-
-		if (item.info?.price !== undefined) {
-			item.price = calculatePrice(item.info.price, newQuality);
-		}
-
-		if (item.info?.edibility !== undefined) {
-			item.edibility = calculateEdibility(item.info.edibility, newQuality);
-		}
-	};
 </script>
 
 <div class="container">
@@ -46,7 +36,6 @@
 					checked={item.quality === i}
 					value={i}
 					bind:group={item.quality}
-					onclick={() => updateQuality(i)}
 					data-testid={`quality-${i}`}
 				/>
 			</label>
@@ -64,25 +53,26 @@
 	input[type="radio"] {
 		appearance: none;
 		width: 0;
-		position: relative;
-		display: inline;
+		margin: 0;
 	}
 
 	label {
+		/* Flex drops the space before the hidden input, so the shading fits the star */
+		display: flex;
 		cursor: pointer;
 		user-select: none;
+		padding: 2px 4px;
+		border-radius: 4px;
 	}
 
-	label:has(input:focus-within) {
+	/* The current quality, not just a star that has focus */
+	label:has(input:checked) {
+		background-color: #0002;
+		box-shadow: inset 0 0 0 1px #0003;
+	}
+
+	label:has(input:focus-visible) {
 		filter: drop-shadow(0 0 2px #000);
-	}
-
-	label input:checked::after {
-		position: absolute;
-		top: -0.75em;
-		left: -1.25em;
-		content: "✅";
-		font-size: 0.8em;
 	}
 
 	label:nth-child(1) {

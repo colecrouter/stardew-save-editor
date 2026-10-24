@@ -17,6 +17,8 @@ export type RawChest = RawItem & {
 	fridge?: boolean;
 	specialChestType?: string;
 	globalInventoryId?: { string?: string } | "";
+	currentLidFrame?: number;
+	separateWalletItems?: unknown;
 };
 
 export type ChestKind = "chest" | "fridge" | "machine" | "building";
@@ -103,6 +105,60 @@ export class ChestInventory extends SvelteMap<number, ItemProxy | undefined> {
 		return this;
 	}
 
+	/** Remove an item to move it elsewhere; unlike delete(), it stays usable */
+	public take(index: number): ItemProxy | undefined {
+		const item = this.get(index);
+		super.set(index, undefined);
+		this.syncRawItems();
+		return item;
+	}
+
+	/** Put an item taken from somewhere else into an empty slot */
+	public place(index: number, item: ItemProxy) {
+		if (!Number.isInteger(index) || index < 0 || index >= this.slotCount) {
+			throw new Error(`Invalid chest slot: ${index}`);
+		}
+		if (this.get(index)) throw new Error(`Chest slot ${index} isn't empty`);
+		super.set(index, item);
+		this.syncRawItems();
+	}
+
+	/** Replace every slot at once, in order (used by sorting) */
+	public arrange(items: ItemProxy[]) {
+		if (items.length > this.slotCount) {
+			throw new Error(
+				`${items.length} items won't fit in ${this.slotCount} slots`,
+			);
+		}
+		for (let index = 0; index < this.slotCount; index++) {
+			super.set(index, items[index]);
+		}
+		this.syncRawItems();
+	}
+
+	/**
+	 * Change how many slots the chest has. Items keep their slots when they
+	 * still fit, otherwise they move up to close the gaps; if there are more
+	 * items than slots, nothing changes.
+	 */
+	public resize(slotCount: number) {
+		const slots = Array.from({ length: this.slotCount }, (_, index) =>
+			this.get(index),
+		);
+		const items = slots.filter((item) => item !== undefined);
+		if (items.length > slotCount) {
+			throw new Error(`${items.length} items won't fit in ${slotCount} slots`);
+		}
+
+		const keepSlots = !slots.slice(slotCount).some(Boolean);
+		super.clear();
+		this.slotCount = slotCount;
+		for (let index = 0; index < slotCount; index++) {
+			super.set(index, keepSlots ? slots[index] : items[index]);
+		}
+		this.syncRawItems();
+	}
+
 	public delete(index: number): boolean {
 		const existed = this.get(index) !== undefined;
 		this.set(index, undefined);
@@ -119,16 +175,131 @@ export class ChestInventory extends SvelteMap<number, ItemProxy | undefined> {
 	}
 }
 
+/**
+ * The chests the game lets you swap for one another in place, keeping their
+ * items (big craftables tagged `swappable_chest`). The big ones have 70 slots
+ * (Chest.GetActualCapacity).
+ */
+export const SwappableChests = [
+	{
+		itemId: "130",
+		name: "Chest",
+		spriteIndex: 130,
+		capacity: 36,
+		special: "None",
+	},
+	{
+		itemId: "232",
+		name: "Stone Chest",
+		spriteIndex: 232,
+		capacity: 36,
+		special: "None",
+	},
+	{
+		itemId: "BigChest",
+		name: "Big Chest",
+		spriteIndex: 304,
+		capacity: 70,
+		special: "BigChest",
+	},
+	{
+		itemId: "BigStoneChest",
+		name: "Big Stone Chest",
+		spriteIndex: 328,
+		capacity: 70,
+		special: "BigChest",
+	},
+] as const;
+
+export type SwappableChest = (typeof SwappableChests)[number];
+
+const MINI_SHIPPING_BIN = "248";
+
+/** Whether there's a saved item anywhere inside `value` */
+const holdsItems = (value: unknown): boolean =>
+	isRecord(value) &&
+	("itemId" in value || Object.values(value).some(holdsItems));
+
 export class ChestProxy implements DataProxy<RawChest> {
 	public [Raw]: RawChest;
 	public readonly inventory: ChestInventory;
+	public readonly metadata: ChestMetadata;
+	/** The chest's kind, when it's one that can be swapped for another */
+	public type: SwappableChest | undefined = $state.raw();
 
-	constructor(
-		chest: RawChest,
-		public readonly metadata: ChestMetadata,
-	) {
+	constructor(chest: RawChest, metadata: ChestMetadata) {
 		this[Raw] = chest;
 		this.inventory = new ChestInventory(chest);
+		// Reactive, so the label follows the chest when its type changes
+		this.metadata = $state(metadata);
+		if (this.#placedByPlayer) {
+			this.type = SwappableChests.find(
+				(type) => type.itemId === String(chest.itemId),
+			);
+		}
+	}
+
+	/** Placed by a player, rather than a fridge, or a machine's or building's storage */
+	get #placedByPlayer() {
+		return this.metadata.kind === "chest" && this[Raw].playerChest === true;
+	}
+
+	get isMiniShippingBin() {
+		return (
+			this.#placedByPlayer && String(this[Raw].itemId) === MINI_SHIPPING_BIN
+		);
+	}
+
+	/**
+	 * With separate wallets, a Mini-Shipping Bin keeps each farmer's items
+	 * apart from its own list. A Chest would never show them.
+	 */
+	get hasSeparateWalletItems() {
+		return holdsItems(this[Raw].separateWalletItems);
+	}
+
+	/**
+	 * Swap the chest for another kind, as placing one swappable chest on
+	 * another does in-game. Its items stay, so a smaller kind is refused unless
+	 * they all fit. Unlike in-game, its colour stays too.
+	 */
+	setType(type: SwappableChest) {
+		if (!this.type) throw new Error("This container's type can't be changed");
+		this.inventory.resize(type.capacity);
+		this.#become(type);
+	}
+
+	/**
+	 * Turn a Mini-Shipping Bin into a regular 36-slot Chest. It keeps its
+	 * items, but they're no longer shipped overnight.
+	 */
+	expandMiniShippingBin() {
+		if (!this.isMiniShippingBin) throw new Error("Not a Mini-Shipping Bin");
+		if (this.hasSeparateWalletItems) {
+			throw new Error(
+				"This bin holds items for separate wallets, which a Chest wouldn't show",
+			);
+		}
+		const [chest] = SwappableChests;
+		this.inventory.resize(chest.capacity);
+		this.#become(chest);
+	}
+
+	#become(type: SwappableChest) {
+		const chest = this[Raw];
+		const previous = text(chest.name) ?? "Chest";
+		// The game goes by the item ID; the name is what the chest is listed as
+		chest.name = type.name;
+		chest.itemId = type.itemId;
+		chest.parentSheetIndex = type.spriteIndex;
+		chest.specialChestType = type.special;
+		// Saved as currentLidFrame; the lid's frames follow the chest's sprite
+		chest.currentLidFrame = type.spriteIndex + 1;
+		this.metadata.label = this.metadata.label.replace(
+			` - ${previous}`,
+			` - ${type.name}`,
+		);
+		this.type = type;
 	}
 }
 
@@ -177,6 +348,16 @@ const text = (value: unknown) =>
 		? String(value)
 		: undefined;
 
+/**
+ * Junimo Chests, and any chest with a global inventory ID, show the team's shared
+ * inventory in game and never read their own item list, so items moved into them
+ * would be lost. They're left out of the editable chests.
+ */
+const usesGlobalInventory = (chest: RawChest) =>
+	chest.specialChestType === "JunimoChest" ||
+	(isRecord(chest.globalInventoryId) &&
+		text(chest.globalInventoryId.string) !== undefined);
+
 const locationName = (location: RawGameLocation, fallback: string) =>
 	text(location.uniqueName) ?? text(location.name) ?? fallback;
 
@@ -195,7 +376,8 @@ export function discoverChests(save: Save): ChestProxy[] {
 	const seen = new Set<object>();
 
 	const add = (chest: unknown, metadata: ChestMetadata) => {
-		if (!isChest(chest) || seen.has(chest)) return;
+		if (!isChest(chest) || usesGlobalInventory(chest) || seen.has(chest))
+			return;
 		seen.add(chest);
 		result.push(new ChestProxy(chest, metadata));
 	};

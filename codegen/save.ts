@@ -8,6 +8,8 @@ export interface Save {
 	samBandName?: string;
 	elliottBookName?: string;
 	broadcastedMail: BroadcastedMail;
+	/** Every building type that has ever been built or upgraded to */
+	constructedBuildings?: { string: string[] } | "";
 	worldStateIDs: BroadcastedMail;
 	lostBooksFound: number;
 	goldenWalnuts?: number;
@@ -46,13 +48,15 @@ export interface Save {
 	bannedUsers: string;
 	bundleData: BundleData;
 	limitedNutDrops: ItemArray;
-	latestID: number;
+	/** The last ID handed out by `Multiplayer.getNewID`; a long, so usually parsed as a string */
+	latestID: number | string;
 	options: Options;
 	splitscreenOptions: string;
 	CustomData: string;
 	mine_permanentMineChanges: MinePermanentMineChanges;
 	mine_lowestLevelReached: number;
-	weatherForTomorrow: WeatherForTomorrow;
+	/** A weather ID like `Sun` or `Rain` (see `$lib/calendar`) */
+	weatherForTomorrow: string;
 	whichFarm: number | string;
 	mine_lowestLevelReachedForOrder: number;
 	skullCavesDifficulty: number;
@@ -270,14 +274,17 @@ export interface IntBoolKVArray {
 	item: KV<IntContainer, BoolContainer>[];
 }
 
+/** Each location context's weather, by context ID (`Default`, `Island`, `Desert`) */
 export interface LocationWeather {
 	item: LocationWeatherItem[];
 }
 
-export interface LocationWeatherItem {
-	LocationWeather: LocationWeatherClass;
-}
+export type LocationWeatherItem = KV<
+	StringContainer,
+	{ LocationWeather: LocationWeatherClass }
+>;
 
+/** The game's LocationWeather; its net fields are saved, then the same values again as properties */
 export interface LocationWeatherClass {
 	weatherForTomorrow: StringContainer;
 	weather: StringContainer;
@@ -287,21 +294,13 @@ export interface LocationWeatherClass {
 	isDebrisWeather: BoolContainer;
 	isGreenRain: BoolContainer;
 	monthlyNonRainyDayCount: IntContainer;
-	WeatherForTomorrow: WeatherForTomorrow;
+	WeatherForTomorrow: string;
 	IsRaining: boolean;
 	IsSnowing: boolean;
 	IsLightning: boolean;
 	IsDebrisWeather: boolean;
 	IsGreenRain: boolean;
 	Weather?: string;
-}
-
-export enum WeatherForTomorrow {
-	Bus = "bus",
-	Spring = "spring",
-	Sun = "Sun",
-	Winter = "winter",
-	WinterSun = "winter_Sun",
 }
 
 export interface Locations {
@@ -407,7 +406,10 @@ export interface GameLocation {
 	raceTrack?: RaceTrack;
 	uniqueName?: string;
 	farmhandReference?: number | string;
-	animalsThatLiveHere?: LongArrContainer;
+	/** AnimalHouse: how many animals can live here */
+	animalLimit?: number;
+	/** AnimalHouse: IDs of the animals that live here, whether they're inside or out */
+	animalsThatLiveHere?: LongArrContainer | "";
 }
 
 export interface GameLocationAnimals {
@@ -502,6 +504,7 @@ export interface BuildingsClass {
 }
 
 export interface Building {
+	"@_xsi:type"?: string;
 	id: string;
 	skinId: StringContainer;
 	nonInstancedIndoorsName: StringContainer;
@@ -587,8 +590,11 @@ export interface FarmAnimal {
 	CurrentEmote: number;
 	Scale: number;
 	isSwimming: BoolContainer;
-	currentProduce?: number;
+	/** Item ID of the produce waiting to be collected; left out when there is none */
+	currentProduce?: number | string;
 	friendshipTowardFarmer: number;
+	/** Left out unless the animal type has skins */
+	skinID?: string;
 	age: number;
 	daysOwned: number;
 	health: number;
@@ -725,7 +731,7 @@ export interface NPC {
 	birthday_Season?: Season;
 	defaultMap?: string;
 	loveInterest?: string;
-	dayScheduleName?: WeatherForTomorrow;
+	dayScheduleName?: string;
 }
 
 export interface LongIntArray {
@@ -880,6 +886,7 @@ export interface IndigoValue {
 }
 
 export interface TerrainFeature {
+	"@_xsi:type"?: string;
 	growthStage?: number;
 	treeType?: number;
 	health?: number;
@@ -923,6 +930,11 @@ export interface Crop {
 
 export interface Achievements {
 	int?: number[];
+}
+
+/** 1.6 event IDs are strings, but the save still writes each as an `<int>`, so numeric ones parse as numbers */
+export interface EventIdList {
+	int?: (number | string)[];
 }
 
 export interface MinePermanentMineChanges {
@@ -1057,7 +1069,8 @@ export interface Player {
 	IsEmoting: boolean;
 	CurrentEmote: number;
 	Scale: number;
-	questLog: QuestLog;
+	/** An empty journal parses as "" */
+	questLog: QuestLog | "";
 	professions: Achievements;
 	newLevels: string;
 	experiencePoints: Achievements;
@@ -1065,10 +1078,13 @@ export interface Player {
 	dialogueQuestionsAnswered: Achievements;
 	cookingRecipes: ItemArray;
 	craftingRecipes: ItemArray;
-	activeDialogueEvents: KVContainer;
-	previousActiveDialogueEvents: string;
+	/** Conversation topics going on now, and how many more days each lasts */
+	activeDialogueEvents: KVContainer | "";
+	/** Every conversation topic the player has had, and how many days since each one started */
+	previousActiveDialogueEvents: KVContainer | "";
 	triggerActionsRun: BroadcastedMail;
-	eventsSeen: Achievements;
+	/** Events (cutscenes) the player has seen; an empty list parses as "" */
+	eventsSeen: EventIdList | "";
 	secretNotesSeen: Achievements;
 	songsHeard: BroadcastedMail;
 	achievements: Achievements;
@@ -1138,6 +1154,8 @@ export interface Player {
 	lastSeenMovieWeek: number;
 	clubCoins: number;
 	trashCanLevel: number;
+	/** The tool (or trash can) Clint is upgrading; left out when there isn't one */
+	toolBeingUpgraded?: ToolItem;
 	daysLeftForToolUpgrade: number;
 	houseUpgradeLevel: number;
 	daysUntilHouseUpgrade: number;
@@ -1367,6 +1385,8 @@ export interface Item {
 	clothesType?: ClothesType;
 
 	// Boots properties
+	defenseBonus?: number;
+	immunityBonus?: number;
 	indexInColorSheet?: number;
 
 	// Preserved item properties
@@ -1615,30 +1635,95 @@ export interface QuestLog {
 	Quest: Quest[];
 }
 
+/** The `Quest` subclasses a save can hold; a plain `Quest` has no `xsi:type` */
+export type QuestType =
+	| "CraftingQuest"
+	| "FishingQuest"
+	| "GoSomewhereQuest"
+	| "ItemDeliveryQuest"
+	| "ItemHarvestQuest"
+	| "LostItemQuest"
+	| "ResourceCollectionQuest"
+	| "SecretLostItemQuest"
+	| "SlayMonsterQuest"
+	| "SocializeQuest";
+
+/** A Data/Quests key: numbers parse as numbers */
+export type QuestId = number | string;
+
+/** A value substituted into a quest text: a number, a name, or more text */
+export type DescriptionParam =
+	| string
+	| number
+	| { "#text"?: string | number; "@_xsi:type"?: string; xmlKey?: string };
+
+/** One translatable piece of a quest's text (DescriptionElement) */
+export interface DescriptionElement {
+	xmlKey?: string;
+	/** A single value parses as an object, several as an array */
+	param?: DescriptionParam | DescriptionParam[];
+}
+
+/** A list of DescriptionElements; empty parses as "" */
+export type DescriptionElements =
+	| { DescriptionElement?: DescriptionElement | DescriptionElement[] }
+	| "";
+
+/**
+    A quest in the player's journal (StardewValley.Quests.Quest), with the
+    fields its subclasses add. The title, description and objective are
+    cached text: the game reloads them from Data/Quests (or `parts`).
+*/
 export interface Quest {
+	"@_xsi:type"?: QuestType;
 	_currentObjective: string;
 	_questDescription: string;
 	_questTitle: string;
-	rewardDescription: number;
+	/** A reward that isn't gold; "-1" (a number once parsed) when there's none */
+	rewardDescription?: string | number;
+	/** What finishes a building quest, e.g. "Coop" */
+	completionString?: string;
 	accepted: boolean;
 	completed: boolean;
+	/** A Help Wanted quest from the billboard */
 	dailyQuest: boolean;
 	showNew: boolean;
 	canBeCancelled: boolean;
+	/** Removed the next time the journal opens */
 	destroy: boolean;
-	id: number;
+	/** The Data/Quests key; Help Wanted quests have none */
+	id?: QuestId;
+	/** The gold the journal pays out once it's completed */
 	moneyReward: number;
 	questType: number;
+	/** Counts down each night; a timed quest is removed when it runs out */
 	daysLeft: number;
 	dayQuestAccepted: number;
-	nextQuests: IntContainer;
+	/** Quests to start once this one is complete; one parses as a number */
+	nextQuests: { int: QuestId | QuestId[] } | "";
 	questTitle: string;
-	targetMessage: string;
-	target: string;
-	item: string;
-	number: number;
-	parts: string;
-	dialogueparts: string;
+	/** The NPC to hand it in to ("null" when there's none) */
+	target?: string;
+	targetMessage?: string;
+	item?: string | string[];
+	number?: number;
+	/** The gold a slay, fishing or resource quest advertises, paid on hand-in */
+	reward?: number;
+	parts?: DescriptionElements;
+	dialogueparts?: DescriptionElements;
+	objective?: DescriptionElement;
+	/** SecretLostItemQuest: the quest it replaces */
+	exclusiveQuestId?: QuestId;
+	/** SecretLostItemQuest: friendship points given on hand-in */
+	friendshipReward?: number;
+	/** CraftingQuest: the qualified item ID to craft */
+	indexToCraft?: string;
+	/** CraftingQuest: obsolete, saved as nil */
+	isBigCraftable?: { "@_xsi:nil": "true" } | boolean;
+	/** ItemHarvestQuest and lost item quests: the qualified item ID */
+	itemIndex?: string;
+	/** GoSomewhereQuest: the location to visit */
+	whereToGo?: string;
 }
 
 export interface Stats {

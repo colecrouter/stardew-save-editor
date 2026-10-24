@@ -226,6 +226,18 @@ export const KeyToName = (key: string, type: string) => {
 	throw new Error(`Key ${key} not found for type ${type}`);
 };
 
+/**
+ * An item's description, or undefined if it can't be shown as-is: an unresolved
+ * `[LocalizedText ...]` token, or text with `{0}` placeholders the game fills in
+ * per item (e.g. smoked fish, trinket stats).
+ */
+export const ItemDescription = (info: ItemInformation | undefined) => {
+	const description = info?.description;
+	if (!description || description.startsWith("[LocalizedText ")) return;
+	if (/\{\d+\}/.test(description)) return;
+	return description;
+};
+
 function hasUpgradeLevel(item: Item): item is Item & { upgradeLevel: number } {
 	return "upgradeLevel" in item && typeof item.upgradeLevel === "number";
 }
@@ -277,6 +289,10 @@ function normalizeItemKey(itemId: Item["itemId"]): string | undefined {
 }
 
 function getExpectedMetadataTypes(item: Item): ItemInformation["_type"][] {
+	// Big craftables are saved as Objects (or Chests, Casks...) with a flag, and
+	// their IDs overlap with objects' (Chest 130 is also Tuna), so check it first
+	if (item.bigCraftable) return ["BigCraftable"];
+
 	switch (item["@_xsi:type"]) {
 		case "Hat":
 			return ["Hat"];

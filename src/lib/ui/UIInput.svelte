@@ -96,7 +96,13 @@
 <input bind:this={input} bind:value={getter, setter} {onblur} {...props} />
 
 <style>
+	/* Text-like inputs share the text box look */
 	input[type="text"],
+	input[type="search"],
+	input[type="email"],
+	input[type="url"],
+	input[type="tel"],
+	input[type="password"],
 	input[type="number"] {
 		border-radius: 4px;
 		border: solid 2px;
@@ -111,14 +117,29 @@
 	}
 
 	input[type="text"]:disabled,
+	input[type="search"]:disabled,
+	input[type="email"]:disabled,
+	input[type="url"]:disabled,
+	input[type="tel"]:disabled,
+	input[type="password"]:disabled,
 	input[type="number"]:disabled {
 		background-color: #de9a3c;
 		color: #000;
 	}
 
 	input[type="text"]:focus,
+	input[type="search"]:focus,
+	input[type="email"]:focus,
+	input[type="url"]:focus,
+	input[type="tel"]:focus,
+	input[type="password"]:focus,
 	input[type="number"]:focus {
 		outline: none;
+	}
+
+	/* Safari otherwise draws search boxes with its own rounded style */
+	input[type="search"] {
+		appearance: textfield;
 	}
 
 	input:invalid {

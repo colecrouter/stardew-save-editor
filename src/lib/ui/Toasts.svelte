@@ -6,7 +6,8 @@
 	const manager = getToastManager();
 </script>
 
-<div class="toasts">
+<!-- A live region, so screen readers announce each toast as it appears -->
+<div class="toasts" role="status" aria-live="polite">
 	{#each manager.toasts as toast}
 		<div class="toast" transition:fly={{ y: -100 }}>
 			<UiContainer>

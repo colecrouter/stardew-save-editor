@@ -3,6 +3,8 @@
 	import type { Friendship } from "$lib/proxies/Friendship.svelte";
 	import EmojiRange from "$lib/ui/EmojiRange.svelte";
 	import UiContainerSmall from "$lib/ui/UIContainerSmall.svelte";
+	import UiInput from "$lib/ui/UIInput.svelte";
+	import { Villagers } from "$lib/Villagers";
 
 	interface Props {
 		name: string;
@@ -10,25 +12,76 @@
 	}
 
 	let { npc, name }: Props = $props();
+
+	const description = $derived(Villagers.get(name)?.description);
+	// The name comes from the save and ends up in a CSS url(), so encode it
+	const portrait = $derived(
+		asset(`/assets/portraits/${encodeURIComponent(name)}.png`),
+	);
+
+	// The portrait grows to match the height of the details beside it
+	let detailsHeight = $state(64);
+	const portraitSize = $derived(Math.min(120, Math.max(64, detailsHeight)));
+	// Portrait sheets are a grid of 64px frames; scale the sheet so one frame fills the box
+	let framesPerRow = $state(2);
+	let loaded = $state(false);
+	$effect(() => {
+		loaded = false;
+		const image = new Image();
+		image.onload = () => {
+			framesPerRow = Math.max(1, Math.round(image.naturalWidth / 64));
+			loaded = true;
+		};
+		image.src = portrait;
+	});
 </script>
 
 <div class="row" data-testid="friendship-row">
 	<UiContainerSmall>
-		<div class="portrait">
-			<object
-				data={asset(`/assets/portraits/${name}.png`)}
-				type="image/png"
-				aria-label={`${name} portrait`}
-			>
+		<div
+			class="portrait"
+			role="img"
+			aria-label={`${name} portrait`}
+			style:background-image={loaded ? `url("${portrait}")` : undefined}
+			style:background-size={`${framesPerRow * 100}% auto`}
+			style:width={`${portraitSize}px`}
+			style:height={`${portraitSize}px`}
+		>
+			{#if !loaded}
 				<strong aria-hidden="true">{name.slice(0, 1)}</strong>
-			</object>
+			{/if}
 		</div>
 	</UiContainerSmall>
 
-	<div class="main">
+	<div class="main" bind:clientHeight={detailsHeight}>
 		<div class="header">
 			<strong data-testid="friendship-name">{name}</strong>
+			<label
+				class="gifts"
+				title="Gifts given this week, which starts on Sunday. Villagers take 2 a week, plus one on their birthday, and a spouse one a day; a week with 2 gives +10 friendship when it ends. The count only lasts the week if they were given a gift this week: otherwise it goes back to 0 overnight, still giving the +10 if it's 2 or more."
+			>
+				🎁
+				<UiInput
+					type="number"
+					min="0"
+					max="7"
+					bind:value={() => npc.giftsThisWeek,
+					(v) => {
+						// Cleared while typing: wait for a number
+						if (v === null) return;
+						npc.giftsThisWeek = Number(v);
+					}}
+					aria-label={`Gifts given to ${name} this week`}
+					data-testid="friendship-gifts-week"
+				/>
+				<small>this week</small>
+			</label>
 		</div>
+		{#if description}
+			<small class="description" data-testid="friendship-description"
+				>{description}</small
+			>
+		{/if}
 
 		<EmojiRange
 			bind:value={npc.hearts}
@@ -59,18 +112,11 @@
 
 	.portrait {
 		position: relative;
-		width: 64px;
-		height: 64px;
 		border: 2px solid #f0d2a8;
 		border-radius: 2px;
-	}
-
-	.portrait object {
-		display: block;
-		width: 100%;
-		height: 100%;
-		object-fit: none;
-		object-position: left top;
+		background-repeat: no-repeat;
+		background-position: left top;
+		image-rendering: pixelated;
 	}
 
 	.portrait strong {
@@ -94,5 +140,34 @@
 		justify-content: space-between;
 		align-items: baseline;
 		gap: 8px;
+	}
+
+	.description {
+		font-size: 0.75em;
+		opacity: 0.8;
+	}
+
+	.gifts {
+		display: flex;
+		align-items: center;
+		gap: 4px;
+		white-space: nowrap;
+	}
+
+	.gifts small {
+		font-size: 0.75em;
+		opacity: 0.8;
+	}
+
+	/* Slightly smaller hearts so all 14 fit on one line beside the larger portrait */
+	.main :global(.range button),
+	.main :global(.range .locked) {
+		width: 1.2rem;
+		height: 1.2rem;
+		font-size: 0.95rem;
+	}
+
+	.gifts :global(input[type="number"]) {
+		width: 2.5em;
 	}
 </style>

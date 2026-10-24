@@ -72,7 +72,10 @@
 	</div>
 
 	{#if checked !== undefined}
-		<UiCheckbox bind:checked />
+		<UiCheckbox
+			bind:checked
+			aria-label={`${item?.name ?? `${quantity} gold`} donated`}
+		/>
 	{/if}
 </div>
 

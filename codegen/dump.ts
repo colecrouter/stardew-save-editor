@@ -1,3 +1,4 @@
+import { existsSync, readFileSync } from "node:fs";
 import {
 	copyFile,
 	mkdir,
@@ -24,6 +25,10 @@ import trinkets from "../content/Data/Trinkets.json" with { type: "json" };
 import weapons from "../content/Data/Weapons.json" with { type: "json" };
 import { characters } from "../src/lib/NPCs.js";
 import {
+	type BuildingUpgradeSource,
+	getBuildingUpgradeData,
+} from "./buildingUpgrade.js";
+import {
 	createArtisanGoods,
 	fixTexture,
 	thrw,
@@ -39,6 +44,9 @@ import {
 	type RegularObject,
 	type Size,
 } from "./items.js";
+import { createLocalizedTextResolver } from "./localizedText.js";
+
+import { getQuests } from "./quests.js";
 import {
 	createSpecialOrderResolver,
 	parseRequiredCount,
@@ -252,6 +260,18 @@ const juices = createArtisanGoods(
 const trinketsArray = transformJSONItems(trinkets, "Trinket");
 const mannequinsArray = transformJSONItems(mannequins, "Mannequin");
 const notUndefined = <T>(x: T | undefined): x is T => x !== undefined;
+
+// Descriptions in Data/*.json are `[LocalizedText Strings\X:Key]` tokens; resolve them to English text
+const resolveLocalizedText = createLocalizedTextResolver((asset) => {
+	const path = `./content/${asset.replaceAll("\\", "/")}.json`;
+	return existsSync(path)
+		? (JSON.parse(readFileSync(path, "utf-8")) as Record<string, string>)
+		: undefined;
+});
+const resolveDescription = (description: string | null | undefined) =>
+	description?.startsWith("[LocalizedText ")
+		? resolveLocalizedText(description)
+		: description;
 const writeToFile = JSON.stringify(
 	[
 		...objectsArray.filter(
@@ -279,7 +299,10 @@ const writeToFile = JSON.stringify(
 		...mannequinsArray,
 	]
 		.filter(notUndefined)
-		.map((item) => [item.name, item]),
+		.map((item) => [
+			item.name,
+			{ ...item, description: resolveDescription(item.description) },
+		]),
 );
 
 await rm("./generated", { recursive: true, force: true });
@@ -410,6 +433,17 @@ const qiQuestsArray = Object.entries(specialOrders)
 	});
 await writeFile("./generated/qiquests.json", JSON.stringify(qiQuestsArray));
 
+// **Quests**
+
+// Story quests, so completing one in the editor can start the next as the game does
+const questData = JSON.parse(
+	await readFile("./content/Data/Quests.json", "utf-8"),
+) as Record<string, string>;
+await writeFile(
+	"./generated/quests.json",
+	JSON.stringify(getQuests(questData)),
+);
+
 // **Assets**
 
 // Copy all textures into assets folder
@@ -496,6 +530,8 @@ const farmAnimals = Object.entries(animals).map(([key, obj]) => ({
 	requiredBuilding: obj.RequiredBuilding,
 	house: obj.House,
 	canReproduce: obj.CanGetPregnant,
+	// Optional in the data, and true unless it's turned off (as for pigs)
+	canEatGoldenCrackers: obj.CanEatGoldenCrackers ?? true,
 }));
 await writeFile("./generated/farmanimals.json", JSON.stringify(farmAnimals));
 
@@ -538,6 +574,9 @@ const buildingsArray = await Promise.all(
 			sourceRect,
 			maxOccupants: obj.MaxOccupants,
 			hayCapacity: obj.HayCapacity,
+			description: resolveDescription(obj.Description) || undefined,
+
+			...getBuildingUpgradeData(obj as BuildingUpgradeSource),
 		};
 	}),
 );

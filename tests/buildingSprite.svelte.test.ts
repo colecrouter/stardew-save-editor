@@ -12,7 +12,10 @@ vi.mock("$app/paths", () => ({
 describe("BuildingSprite", () => {
 	it("separates the deployment base path from the sprite asset path", () => {
 		const { container } = render(BuildingSprite, {
-			building: { [Raw]: { buildingType: "Shipping Bin" } } as Building,
+			building: {
+				[Raw]: { buildingType: "Shipping Bin" },
+				name: "Shipping Bin",
+			} as Building,
 		});
 		const sprite = container.querySelector<HTMLElement>(".item");
 

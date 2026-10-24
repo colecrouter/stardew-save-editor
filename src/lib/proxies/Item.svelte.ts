@@ -311,6 +311,9 @@ export class Item {
 			item.clothesType = ClothesType[data._type as keyof typeof ClothesType];
 		}
 		if (data._type === "Boots") {
+			// The game saves boots' stats, which is how tailored boots keep theirs
+			item.defenseBonus = data.defense;
+			item.immunityBonus = data.immunity;
 			item.indexInColorSheet = data.colorIndex;
 		}
 

@@ -4,6 +4,7 @@
 	import UiContainer from "$lib/ui/UIContainer.svelte";
 	import UiInput from "$lib/ui/UIInput.svelte";
 	import UiSelect from "$lib/ui/UISelect.svelte";
+	import CalendarSettings from "./CalendarSettings.svelte";
 
 	const save = getSaveManager().save;
 	if (!save) throw new Error("No save data found");
@@ -139,6 +140,8 @@
 		</label>
 		<small>Only changes chests you haven't opened yet.</small>
 	</div>
+
+	<CalendarSettings calendar={save.calendar} />
 
 	<h3>Set when the farm was created</h3>
 	<dl class="locked">

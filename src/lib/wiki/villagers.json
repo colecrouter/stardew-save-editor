@@ -1,0 +1,104 @@
+{
+	"Abigail": {
+		"description": "Abigail is a villager who lives at Pierre's General Store in Pelican Town. She's one of the twelve characters available to marry."
+	},
+	"Alex": {
+		"description": "Alex is a villager who lives in the house southeast of Pierre's General Store. He's one of the twelve characters available to marry."
+	},
+	"Caroline": {
+		"description": "Caroline is a villager who lives in Pelican Town."
+	},
+	"Clint": {
+		"description": "Clint is a villager who lives in Pelican Town. He owns and runs the local Blacksmith."
+	},
+	"Demetrius": {
+		"description": "Demetrius is a villager who resides at 24 Mountain Road, on The Mountain, with his wife Robin, daughter Maru, and step-son Sebastian."
+	},
+	"Dwarf": {
+		"description": "The Dwarf is a valley resident who lives in the Mines. Initially the way is blocked off by an unbreakable rock, just inside the entrance. After upgrading to at least a steel pickaxe, the stone can be broken. A cherry bomb (or stronger bomb) will also break the rock."
+	},
+	"Elliott": {
+		"description": "Elliott is a villager who lives on the beach south of Pelican Town. He's one of the twelve characters available to marry."
+	},
+	"Emily": {
+		"description": "Emily is a villager who lives in Pelican Town. She's one of the twelve characters available to marry. Her home is south of the town square, right next to Jodi's house, at the address 2 Willow Lane. She works most evenings at The Stardrop Saloon starting at about 4:00 PM."
+	},
+	"Evelyn": {
+		"description": "Evelyn Mullner is a villager who lives in Pelican Town, and is in charge of the town's flowers."
+	},
+	"George": {
+		"description": "George Mullner is a villager who lives in Pelican Town."
+	},
+	"Gus": {
+		"description": "Gus is a villager who lives and works at the Stardrop Saloon in Pelican Town. He owns the establishment."
+	},
+	"Haley": {
+		"description": "Haley is a villager who lives in Pelican Town. She's one of the twelve characters available to marry."
+	},
+	"Harvey": {
+		"description": "Harvey is a villager who lives in Pelican Town. He runs the town's medical clinic and is passionate about the health of the townsfolk. He's one of the twelve characters available to marry."
+	},
+	"Jas": {
+		"description": "Jas is a villager who lives just outside Pelican Town. She's a young girl, and can often be found with her best friend Vincent."
+	},
+	"Jodi": {
+		"description": "Jodi is a villager who lives in Pelican Town. She lives at 1 Willow Lane with her husband Kent (who is away serving in the military until the first of Spring Year 2) and two sons, Sam and Vincent."
+	},
+	"Kent": {
+		"description": "Kent is a villager who lives in Pelican Town. He is away serving in the army throughout the first year and returns to live in the town during spring of year two. Year one references to him include the contents of the drawer in Jodi's bedroom and dialogue from Sam and Vincent."
+	},
+	"Krobus": {
+		"description": "Krobus is the only friendly monster players will encounter, however he still refers to other hostile monsters as his friends. He is a shadow person who lives in the Sewers. He sells a variety of rare goods. He is also available as a roommate."
+	},
+	"Leah": {
+		"description": "Leah is a villager who lives in a small cottage outside Pelican Town. She's one of the twelve characters available to marry."
+	},
+	"Leo": {
+		"description": "Leo is a boy who initially lives on Ginger Island. His parents were lost at sea, and he considers the parrots who inhabit the island to be his family. Initially, he is too shy to speak to the player, until the player \"makes friends\" with the parrots of the island by collecting 10 Golden Walnuts."
+	},
+	"Lewis": {
+		"description": "Lewis is the mayor of Pelican Town. Along with Robin, he greets the player when they move to the Valley and explains a little bit about life on the farm. Lewis is known to have some sort of relations with Marnie, as the shorts he lost and brown suspenders are found in her bedroom. Furthermore, a note can be found in his bedroom in the lower left on a shelf under a coffee mug, believed to be from her. The note is signed \"-M\"."
+	},
+	"Linus": {
+		"description": "Linus is a villager who lives in a small tent west of the Mines, on the Mountains north of Pelican Town."
+	},
+	"Marnie": {
+		"description": "Marnie is a villager who lives at Marnie's Ranch in the northeast area of Cindersap Forest, near the southwest entrance to Pelican Town."
+	},
+	"Maru": {
+		"description": "Maru is a villager who lives in The Mountains north of Pelican Town. She's one of the twelve characters available to marry."
+	},
+	"Pam": {
+		"description": "Pam is a villager who lives in the trailer just west of the river in Pelican Town. She was the driver of the Pelican Town bus before it broke down. Once the bus service has been restored, Pam will manage the bus stop just east of the Farm, opening the way to the Desert."
+	},
+	"Penny": {
+		"description": "Penny is a villager who lives in Pelican Town. She's one of the twelve characters available to marry. Her trailer is just east of the center of town, west of the river. She tutors Vincent and Jas at the library."
+	},
+	"Pierre": {
+		"description": "Pierre is a villager who lives in Pelican Town. He owns and runs Pierre's General Store."
+	},
+	"Robin": {
+		"description": "Robin is a villager who resides at 24 Mountain Road, on The Mountain, with her husband Demetrius, daughter Maru, and son Sebastian."
+	},
+	"Sam": {
+		"description": "Sam is a villager who lives in Pelican Town. He's one of the twelve characters available to marry. He lives in the southern part of town, just north of the river at 1 Willow Lane."
+	},
+	"Sandy": {
+		"description": "Sandy is a villager who lives in the Calico Desert where she runs the store, the Oasis. Players won't meet her until they've repaired the bus by completing the vault bundle or purchasing \"Bus\" for through the Joja Community Development Form."
+	},
+	"Sebastian": {
+		"description": "Sebastian is a villager who lives in The Mountains north of Pelican Town. He's one of the twelve characters available to marry."
+	},
+	"Shane": {
+		"description": "Shane is a villager who lives at Marnie's Ranch in Pelican Town. He's one of the twelve characters available to marry."
+	},
+	"Vincent": {
+		"description": "Vincent is a villager who lives in the southern part of Pelican Town. He's a young boy, and can often be found with his best friend Jas. He looks up to his brother Sam and wants to be just like him when he grows up."
+	},
+	"Willy": {
+		"description": "Willy is a villager who grew up traveling among the Fern Islands and now lives south of Pelican Town on The Beach. He sells bait and fishing supplies in his shop. His shop is open every day but will be closed on Saturday if the weather is nice enough for him to go fishing."
+	},
+	"Wizard": {
+		"description": "The Wizard, also known as M. Rasmodius, is a villager who lives in the Wizard's Tower to the far west of Cindersap Forest."
+	}
+}

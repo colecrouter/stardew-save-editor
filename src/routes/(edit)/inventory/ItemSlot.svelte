@@ -19,6 +19,7 @@
 	class:trinket={item?.info?._type === "Trinket"}
 	data-item-type={item?.info?._type}
 	data-item-name={item?.name}
+	aria-label={item?.name ?? "Empty slot"}
 	{...rest}
 >
 	{@render children()}

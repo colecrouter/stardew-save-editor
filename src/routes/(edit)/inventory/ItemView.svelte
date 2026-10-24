@@ -1,10 +1,11 @@
 <script lang="ts">
-	import { ItemNameHelper } from "$lib/ItemData";
+	import { ItemDescription, ItemNameHelper } from "$lib/ItemData";
 	import type { ParentIndex } from "$lib/ItemParentIndex";
 	import { Raw } from "$lib/proxies";
 	import { Color } from "$lib/proxies/Color.svelte";
 	import {
 		BaseItemProxy,
+		BootsProxy,
 		ClothingProxy,
 		ColoredObjectProxy,
 		FurnitureProxy,
@@ -46,6 +47,8 @@
 	}: Props = $props();
 
 	const save = getSaveManager().save;
+
+	let description = $derived(ItemDescription(selectedItem?.info));
 
 	// Trinket stats are rolled from their seed by the game, so editing them picks a new seed
 	let trinketCtx: TrinketRollContext = $derived({
@@ -210,6 +213,10 @@
 			// ["Produces Light", "isLamp", 0, 1],
 		]),
 		pg(ClothingProxy, [["Color", "color", null, null, undefined]]),
+		pg(BootsProxy, [
+			["Defense", "defenseBonus", 0, 99, undefined],
+			["Immunity", "immunityBonus", 0, 99, undefined],
+		]),
 		pg(WateringCanProxy, [
 			["Bottomless", "isBottomless", null, null, undefined],
 		]),
@@ -267,7 +274,7 @@
 <div class="editor">
 	<!-- Item icon -->
 	<div class="big-icon">
-		<ItemSlot>
+		<ItemSlot item={selectedItem}>
 			<ItemSprite item={selectedItem} />
 		</ItemSlot>
 	</div>
@@ -401,6 +408,11 @@
 			</button>
 		{/if}
 	</div>
+
+	<!-- Item description -->
+	{#if description}
+		<p class="description" data-testid="item-description">{description}</p>
+	{/if}
 </div>
 
 <style>
@@ -439,6 +451,14 @@
 		margin-top: 16px;
 		font-size: 1.5em;
 		cursor: pointer;
+	}
+
+	.description {
+		grid-column: 1 / -1;
+		margin: 0;
+		padding-top: 8px;
+		border-top: 2px solid rgba(0, 0, 0, 0.15);
+		white-space: pre-line;
 	}
 
 	.editor label {

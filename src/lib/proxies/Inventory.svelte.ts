@@ -104,11 +104,49 @@ export class Inventory
 		return super.set(index, value);
 	}
 
+	/**
+	 * Lay out the backpack slots in order (used by sorting); items keep their
+	 * proxies. Slots holding an item the editor doesn't show (Secret Notes) are
+	 * left exactly as they are, and the other items are laid out around them.
+	 */
+	public arrange(items: ItemProxy[]) {
+		const raw = this[Raw].items.Item;
+		const slots: number[] = [];
+		for (let index = 0; index < this.slotCount; index++) {
+			const entry = raw[index];
+			const hidden =
+				this.get(index) === undefined && !!entry && !isNilSentinel(entry);
+			if (!hidden) slots.push(index);
+		}
+		if (items.length > slots.length) {
+			throw new Error(
+				`${items.length} items won't fit in ${slots.length} slots`,
+			);
+		}
+		slots.forEach((index, i) => {
+			const item = items[i];
+			// @ts-expect-error converting undefined to nil marker
+			raw[index] = item ? item[Raw] : nil;
+			super.set(index, item);
+		});
+	}
+
 	public delete(index: ParentIndex): boolean {
 		const existed = this.has(index);
 		// Preserve reactive anchor by using set(undefined) instead of super.delete
 		this.set(index, undefined);
 		return existed;
+	}
+
+	/**
+	 * Whether a backpack slot holds nothing. Unlike `get`, this counts items the
+	 * editor doesn't load (Secret Notes), which still take up the slot.
+	 */
+	public isEmpty(index: number) {
+		// Read through the map too, so effects update when the slot changes
+		if (this.get(index)) return false;
+		const entry = this[Raw].items.Item[index];
+		return !entry || isNilSentinel(entry);
 	}
 
 	public adjustSlots(size: number) {
@@ -140,5 +178,18 @@ export class Inventory
 				super.set(i, undefined);
 			}
 		}
+	}
+
+	/**
+	 * Swap two backpack slots. Unlike two `set` calls, this doesn't dispose
+	 * either item (which would stop its edits being saved), and it moves the
+	 * save's own entries, so items the editor doesn't load (Secret Notes) move too.
+	 */
+	public swap(a: number, b: number) {
+		const items = this[Raw].items.Item;
+		[items[a], items[b]] = [items[b], items[a]];
+		const first = this.get(a);
+		super.set(a, this.get(b));
+		super.set(b, first);
 	}
 }

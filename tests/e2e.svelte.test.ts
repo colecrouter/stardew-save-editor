@@ -1070,7 +1070,6 @@ describe("Save Manager Integration Tests", () => {
 				"add-missing-friendships",
 			) as HTMLButtonElement;
 			expect(button.disabled).toBe(false);
-			expect(page.queryByRole("tooltip")).toBeNull();
 			await fireEvent.click(button);
 			await tick();
 

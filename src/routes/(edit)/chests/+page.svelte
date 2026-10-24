@@ -147,17 +147,32 @@
 		await scrollToChest(chest);
 	};
 
+	/** Scroll the chest list, and only the list (not the page), to show a chest */
 	const scrollToChest = async (chest: ChestProxy | undefined) => {
 		await tick();
-		if (!chest) return;
-		chestList
-			?.querySelector(`[data-chest-index="${save.chests.indexOf(chest)}"]`)
-			?.scrollIntoView({ block: "nearest" });
+		if (!chest || !chestList) return;
+		const section = chestList.querySelector(
+			`[data-chest-index="${save.chests.indexOf(chest)}"]`,
+		);
+		if (!section) return;
+		const list = chestList.getBoundingClientRect();
+		const box = section.getBoundingClientRect();
+		if (box.top < list.top) chestList.scrollTop += box.top - list.top;
+		else if (box.bottom > list.bottom)
+			chestList.scrollTop += Math.min(
+				box.bottom - list.bottom,
+				box.top - list.top,
+			);
 	};
 
+	/**
+	 * Called on mousemove rather than mouseenter, so results sliding under a
+	 * resting cursor while typing don't preview anything
+	 */
 	const previewResult = (chestIndex: number, slotIndex: number) => {
 		const chest = save.chests[chestIndex];
 		if (!chest) return;
+		if (preview?.chest === chest && preview.index === slotIndex) return;
 		preview = { chest, index: slotIndex };
 		scrollToChest(chest);
 	};
@@ -370,35 +385,37 @@
 			{/if}
 		</div>
 		{#if searching}
-			{#if searchResults.length === 0}
-				<small>No items found.</small>
-			{:else}
-				<small>
-					{searchResults.length}
-					{searchResults.length === 1 ? "match" : "matches"}
-				</small>
-				<div class="results" role="presentation" onmouseleave={endPreview}>
-					{#each searchResults as { chestIndex, slotIndex, chest, item }}
-						<button
-							class="result"
-							class:active={chest === shownChest && slotIndex === shownIndex}
-							data-testid={`chest-search-result-${chestIndex}-${slotIndex}`}
-							onmouseenter={() => previewResult(chestIndex, slotIndex)}
-							onfocus={() => previewResult(chestIndex, slotIndex)}
-							onblur={endPreview}
-							onclick={() => selectResult(chestIndex, slotIndex)}
-						>
-							<div class="result-sprite">
-								<ItemSprite {item} />
-							</div>
-							<span class="result-name"
-								>{item.name} &times;{item.amount ?? item.stack}</span
+			<div class="search-results">
+				{#if searchResults.length === 0}
+					<small>No items found.</small>
+				{:else}
+					<small>
+						{searchResults.length}
+						{searchResults.length === 1 ? "match" : "matches"}
+					</small>
+					<div class="results" role="presentation" onmouseleave={endPreview}>
+						{#each searchResults as { chestIndex, slotIndex, chest, item }}
+							<button
+								class="result"
+								class:active={chest === shownChest && slotIndex === shownIndex}
+								data-testid={`chest-search-result-${chestIndex}-${slotIndex}`}
+								onmousemove={() => previewResult(chestIndex, slotIndex)}
+								onfocus={() => previewResult(chestIndex, slotIndex)}
+								onblur={endPreview}
+								onclick={() => selectResult(chestIndex, slotIndex)}
 							>
-							<span class="result-chest">{chestName(chest)}</span>
-						</button>
-					{/each}
-				</div>
-			{/if}
+								<div class="result-sprite">
+									<ItemSprite {item} />
+								</div>
+								<span class="result-name"
+									>{item.name} &times;{item.amount ?? item.stack}</span
+								>
+								<span class="result-chest">{chestName(chest)}</span>
+							</button>
+						{/each}
+					</div>
+				{/if}
+			</div>
 		{/if}
 		<label class="picker">
 			<span hidden>Container group</span>
@@ -601,13 +618,21 @@
 		background-color: rgba(0, 0, 0, 0.12);
 	}
 
+	/* The same height whatever was found, so the chests below don't jump while typing */
+	.search-results {
+		display: flex;
+		flex-direction: column;
+		height: 14rem;
+		margin-bottom: 8px;
+	}
+
 	.results {
 		display: flex;
 		flex-direction: column;
-		max-height: 12rem;
+		flex: 1;
+		min-height: 0;
 		overflow-y: auto;
 		margin-top: 4px;
-		margin-bottom: 8px;
 	}
 
 	.result {
@@ -798,6 +823,9 @@
 
 	.chest h4 {
 		flex: 1;
+		/* Wrap long names, e.g. modded locations, rather than widen the list */
+		min-width: 0;
+		overflow-wrap: anywhere;
 		margin: 0;
 	}
 

@@ -1,0 +1,18 @@
+{
+	"name": "stardew-v2-mutation-experiment",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"test": "tsx --test mutation.node.ts",
+		"demo": "tsx run.ts",
+		"check": "tsc --noEmit -p tsconfig.json"
+	},
+	"dependencies": {
+		"effect": "4.0.6"
+	},
+	"devDependencies": {
+		"@types/node": "24.0.0",
+		"tsx": "4.23.15",
+		"typescript": "5.9.3"
+	}
+}

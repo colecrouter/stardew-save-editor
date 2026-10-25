@@ -23,6 +23,33 @@ its native TypeScript alias, Svelte compiler SDK, and separate Effect diagnostic
 Its application infrastructure and organizational workflows are not requirements
 for this repository.
 
+## Shared components: visual and functional requirements
+
+V2 includes consolidation of the existing reusable and bespoke controls, beyond
+the current field/session experiment. Audit buttons, text/number inputs, selects,
+dropdowns, comboboxes, dialogs and their variants across representative screens.
+
+- Establish a coherent shared component set for ordinary controls. Native HTML
+  is a useful implementation inside those components; it does not require each
+  feature to repeat markup, styling and accessibility wiring.
+- Define consistent typography, spacing, sizing, colors and interaction states,
+  including hover, focus, disabled, invalid and pending states. Check long labels,
+  narrow screens and touch targets in the rendered UI.
+- Verify accessible names, descriptions/errors, keyboard navigation, form submit
+  and cancellation, focus visibility/restoration, and the behavior of searchable
+  and empty selectors. Use library primitives where they reduce interaction work.
+- Keep presentation components usable for search/filter forms and dialogs without
+  requiring a save session. Editor field adapters connect them to drafts,
+  validation, mutations and history.
+- Migrate a representative production screen onto the shared components and
+  remove its superseded variants. Record remaining usages and intentional
+  domain-specific exceptions so consolidation can proceed incrementally.
+
+Acceptance requires both visual review and interaction checks. A library choice,
+token stylesheet, or component wrapper alone does not satisfy this work. The
+native/Bits confirmation experiment informs one interaction; it does not settle
+the choice of a broader component system.
+
 ## First working UI slice
 
 1. Give stack editing an explicit draft: typing creates no mutation or history.
@@ -45,8 +72,9 @@ bundle costs are evidence for the decision, rather than automatic disqualifiers.
 
 Production inventory migration requires stable item identity across moves and
 undo/redo, plus explicit handling of dirty drafts during external changes. The
-prototype's slot and item-ID guard does not distinguish duplicate items. Resolve
-that in the session before claiming the production contract is ready.
+session now distinguishes duplicate backpack items for stack/reorder operations.
+Creation, deletion, merging and transfers still need identity semantics and proof
+before claiming the production contract is ready.
 
 ## Current evidence
 

@@ -1,9 +1,11 @@
-# Mutation execution experiment (#167)
+# Editor foundation experiments (#166, #167)
 
-This is an isolated, runnable experiment. It does not change the editor, introduce
-Effect into its production bundle, or decide the V2 architecture. Install the root
-dependencies first; the fixture harness reuses the root XML parser dependency and
-production array-recognition tables.
+Runnable comparisons of plain TypeScript mutations and an Effect 4.0.6 application
+layer. Effect remains outside the production app's dependency graph. The production
+XML codec is extracted from worker transport so these experiments use the actual
+save-format implementation. Browser Comlink behavior and codec rules are unchanged.
+
+## Run on Node 24
 
 ```sh
 npm ci
@@ -11,98 +13,92 @@ npm ci --prefix experiments/v2
 npm run check --prefix experiments/v2
 npm test --prefix experiments/v2
 npm run demo --prefix experiments/v2
+npm run demo:platform --prefix experiments/v2
+npm run measure:bundle --prefix experiments/v2
 ```
 
-On PowerShell installations that block `npm.ps1`, use `npm.cmd`.
+Use `npm.cmd` if PowerShell blocks `npm.ps1`. The root install supplies dependencies
+for the shared production codec and esbuild for bundle measurement. A separate Node
+24 CI job runs the experimental checks, tests and platform demo. Native execution
+requires explicit `.ts` imports, type-only imports and erasable syntax. No tsx is
+installed here; root codegen and the Svelte compiler retain their existing tooling.
 
 ## What runs
 
-Both executors use the same domain implementation and draft/commit protocol:
-change one farmer's money, rename the farm across farmers, and reorder every
-backpack slot. The two executors must produce identical documents and receipts.
-Full-save export/reparse uses the existing 6.65 MB `tests/TestSave`; a small
-multiplayer fixture covers shared naming and individual targeting. Unknown item
-data, nil markers, and Secret Notes move intact.
+Both mutation executors share domain logic and draft/commit semantics: edit farmer
+money, rename a farm across farmers, and reorder backpack slots. Both produce
+identical documents and intent/change receipts. Failed preparation publishes neither
+partial state nor successful history; no-ops produce no receipt. Compact reorder
+receipts still retain actual changes. Money is a field-edit experiment, not a complete
+shared-wallet API. Farmer targets must resolve uniquely. Slot permutations preserve
+opaque items, nil markers and Secret Notes. Arrays are recorded as complete values.
 
-The money operation is a field-edit experiment, not a complete money API:
-shared-wallet reconciliation is intentionally unimplemented. Farmer IDs are
-resolved at execution time and must be unique. Backpack references are whole-slot
-permutations, not persistent item identities across asynchronous commands.
+The Effect session adds serialized SubscriptionRef updates, typed failures, scopes
+and consumer fibers. A tested Svelte store contract exposes snapshots without a
+second writable state graph. A rendered Svelte component and subscriber error
+handling remain future work; notifications are not a durable event log.
 
-`prepare` clones the current document, validates and applies one mutation, computes
-changes, and returns the next document/history together. Publication happens only
-after preparation succeeds. A fault injected after compound writes verifies that
-failure publishes neither partial state nor history. No-op edits produce no receipt.
-Reordering carries `review: compact`; its changes are still recorded.
+SaveCodec is a Context service with direct and real-worker layers. It composes strict
+UTF-8/zlib decoding, XML validation, production codec behavior, minimum-envelope
+Schema checks, and version checks. Schema's decoded projection is not substituted
+for the complete document, so unknown fields survive. This is not full game validation.
+Truncated zlib can return undefined rather than throw, which is explicitly handled.
 
-Effect 4.0.6 supplies a private `SubscriptionRef`, serialized effectful updates,
-typed failure, scoped finalization, and consumer fibers. The plain implementation
-uses synchronous preparation and an explicit session close. Their application
-semantics are deliberately identical; the plain implementation does not claim
-equivalent asynchronous scheduling or subscription management.
+The platform program requests abstract filesystem/codec services; its CLI assembles
+NodeServices and NodeRuntime. It reads the real fixture, edits, encodes, reparses,
+and writes/reads a scoped temporary output that is removed automatically. Tests can
+substitute services without module mocking. A browser would supply File/worker ports.
 
-The Effect session exposes a minimal Svelte store contract: an immediate snapshot,
-subsequent snapshots, and unsubscribe. The consumer fiber also belongs to the
-session scope. Tests cover this contract without introducing an atom adapter or a
-second writable state graph. A view receives copies; it cannot mutate the session.
-This is a Node experiment (the diff uses `node:util`), not a browser-ready adapter
-or a rendered component integration test. Notifications are snapshots, not a
-durable event log; a slow consumer must read history from the latest state.
+The worker layer starts a real Node worker per request and awaits termination on
+success, error or cancellation. This intentionally costly arrangement proves ownership,
+not an optimized pool. Production Comlink remains; replacing it is not a prerequisite.
 
-## Results and recommendation
+Eight native Node tests cover mutation semantics. Twelve @effect/vitest tests cover
+the production codec, compression, opaque fields, typed errors, service substitution,
+scoped files, cancellation, actual workers, transactions, JSON Patch and net review.
+Ten canceled worker requests leave zero tracked live workers. These counts are not
+a comprehensive heap-leak measurement or proof about existing item proxies.
 
-A local run on Node v24.11.0, Windows, using ten alternating-order rounds:
+Effect.tx commits document/history refs together, but cannot undo an ordinary object
+mutated in place after reading from a ref. The experiment demonstrates that unsafe
+case explicitly. Existing proxy writes need isolation/adaptation. JSON Patch supports
+forward/reverse patches for linear history; intent tags and selective revert still
+need domain policy.
 
-- Parsing the full fixture: 413 ms.
-- Construct session and execute all three mutations: plain median 101.7 ms
-  (99.6–108.4 ms); Effect median 105.0 ms (102.0–115.7 ms).
-- Export: 2,753,206 bytes; parsed exported data equals the edited document.
-- Eight experiment tests pass, including concurrency, failure atomicity, targeting,
-  opaque-data preservation, store contract, and session closure.
+## Measurements
 
-These timings include full-document copies, diffing, and returned snapshots, but
-exclude parsing, export, UI rendering, startup/module loading, and mobile hardware.
-They are descriptive measurements, not a statistically supported performance
-comparison. The full fixture has no farmhands; the compound multiplayer behavior
-is separately demonstrated on the small fixture. Original XML formatting/BOM is
-not preserved by this harness; parsed-data preservation is the assertion.
+Native Node v24.11.0 on Windows, ten alternating-order rounds on tests/TestSave
+(6,652,242 bytes), with production codec and portable comparison:
 
-Explicit mutations are viable without replacing Svelte. Effect's marginal runtime
-cost in this sample is small relative to copying and diffing; this does not establish
-browser bundle or mobile cost. Effect makes serialization, failure composition,
-and scope ownership available together. It does not supply intent labels, review
-policies, save validation, undo, or rollback of ordinary JavaScript writes. Those
-are custom domain responsibilities in both versions.
+- Parse: 486 ms.
+- Construct session plus three operations: plain median 108.4 ms (103.0–116.1 ms),
+  Effect median 109.2 ms (106.4–110.8 ms).
+- Serialized XML text: 2,736,660 UTF-8 bytes; platform output adds a three-byte BOM.
+  Reparsed output equals the edited document.
 
-Proceed with the review and lifetime experiments using this boundary. Defer an
-Effect-wide migration until they demonstrate enough value to justify the additional
-runtime concepts. A synchronous operation core with an optional Effect execution
-layer remains a viable outcome. Full-save cloning is simple evidence of atomicity,
-not yet a suitable choice for every keystroke: evaluate structural sharing, patches,
-field-commit boundaries, and history limits before production adoption.
+Mutation timings include copying, diffing and returned snapshots, but exclude parse,
+export, browser rendering, module startup and mobile hardware. These are descriptive
+samples, not statistical claims. The large fixture has no farmhands; a small fixture
+checks multiplayer operations.
 
-## Remaining questions
+Standalone minified ES2022 browser bundles from measure:bundle:
 
-- Undo/redo, selective revert, net-change review, and tag policy belong to #168.
-- Resource stress/heap evidence and actual item-proxy acquisition belong to #169.
-  Closing the prototype's scope does not prove the existing editor is leak-free.
-- Rendered Svelte integration, subscriber error handling, browser/mobile bundle
-  size, worker transfer, and cancellation during asynchronous preparation remain
-  unproven. The current preparation is synchronous; fibers cannot interrupt its
-  clone/diff work midway.
-- Unknown fields survive the exercised operations, but this is not a complete mod
-  compatibility claim. Arrays are recorded as whole values; a production review
-  needs semantic grouping and stable identity. JSON pointer paths alone are not
-  persistent domain identities.
-- The observer hook is fault injection/final validation, not a plugin API. Reentrant
-  edits from validators are unsupported. Session history is unbounded in this spike.
+- Plain session: 2,041 bytes / 990 gzip bytes.
+- Effect session: 174,919 bytes / 57,366 gzip bytes.
+- Effect codec service: 443,423 bytes / 140,433 gzip bytes, including XML/compression.
 
-## Sources
+These are independent synthetic bundles, not incremental app downloads; do not add
+them together. Compilation proves these entries can bundle for browsers, not that
+browser workers or rendered mobile interactions are verified.
 
-- [Effect SubscriptionRef API](https://effect.website/docs/v4/api/effect/SubscriptionRef)
-- [Effect resource scopes](https://effect.website/docs/v4/resource-management/scope)
-- [Svelte store contract](https://svelte.dev/docs/svelte/stores)
-- [Svelte effect lifecycle](https://svelte.dev/docs/svelte/$effect)
+## Conclusion
 
-Versions are pinned in the experiment lockfile. No Svelte adapter library has been
-selected. See [the audit](../../docs/v2-discovery.md) for outcomes and baselines.
+Recommend incremental Effect adoption for session/application services, operations,
+resource scopes and domain tests. Retain Svelte presentation and existing format
+knowledge. See [the decision](../../docs/v2-effect-decision.md).
+
+Outstanding: bounded history, UI review policy, selective revert, real item/view heap
+stress testing, browser-worker integration, mobile profiling, shared-wallet semantics,
+unknown-array conventions and input commit granularity. Full-save cloning on every
+keystroke is not a production recommendation. The fault-injection hook is not a
+plugin API. #168 and #169 remain open.

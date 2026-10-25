@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { performance } from "node:perf_hooks";
 import { Effect } from "effect";
-import { makeEffectSession } from "./effect";
-import { exportDocument, loadFixture, parser, scenarios } from "./fixture";
-import { PlainSession } from "./plain";
+import { makeEffectSession } from "./effect.ts";
+import { exportDocument, loadFixture, parser, scenarios } from "./fixture.ts";
+import { PlainSession } from "./plain.ts";
 
 const start = performance.now();
 const document = await loadFixture();

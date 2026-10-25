@@ -179,3 +179,12 @@ regular backlog tasks and do not all depend on a V2 rewrite.
 The audit's code references above describe this checkout; observed risks are
 distinguished from measured defects so later implementation tasks can investigate
 without treating architectural preferences as requirements.
+
+## Follow-up experiment
+
+The expanded experiment extracts the codec into `src/lib/xmlCodec.ts`; the worker
+retains Comlink exposure and byte transfer. The simplified fixture parser is removed.
+Effect services now exercise the exact codec, Node platform integration, real worker
+cancellation, transactions and JSON Patch. See [the adoption recommendation](v2-effect-decision.md)
+for the updated conclusion and evidence limits. The audit above records the original
+baseline rather than silently rewriting historical measurements.

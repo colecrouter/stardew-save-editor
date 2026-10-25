@@ -1,41 +1,14 @@
 import { readFile } from "node:fs/promises";
-import { XMLBuilder, XMLParser } from "fast-xml-parser";
-import { arrayTags, nestedArrayTags } from "../../src/lib/workers/jank";
-import type { Mutation, SaveDocument } from "./domain";
+import { XMLCodec } from "../../src/lib/xmlCodec.ts";
+import type { Mutation, SaveDocument } from "./domain.ts";
 
-// Reuse production array recognition. Export roundtrips below test parsed-data
-// preservation, not byte identity or the production worker/download path.
-const xmlParser = new XMLParser({
-	ignoreAttributes: false,
-	trimValues: false,
-	numberParseOptions: { hex: false, leadingZeros: false, eNotation: false },
-	isArray: (tag, path) =>
-		arrayTags.has(tag) ||
-		[...(nestedArrayTags.get(tag) ?? [])].some((parent) =>
-			path.toString().endsWith(`.${parent}.${tag}`),
-		),
-});
-function prune(node: unknown): unknown {
-	if (Array.isArray(node)) return node.map(prune);
-	if (node && typeof node === "object") {
-		for (const [key, value] of Object.entries(node)) {
-			if (key === "#text" && typeof value === "string" && !value.trim())
-				delete (node as Record<string, unknown>)[key];
-			else (node as Record<string, unknown>)[key] = prune(value);
-		}
-	}
-	return node;
-}
+// Use the production codec, including equipment types and XML normalization.
+const codec = new XMLCodec();
 export const parser = {
-	parse: (xml: string) =>
-		prune(xmlParser.parse(xml.replace(/^\uFEFF/, ""))) as SaveDocument,
+	parse: (xml: string) => codec.parse<SaveDocument>(xml.replace(/^\uFEFF/, "")),
 };
-export const builder = new XMLBuilder({
-	ignoreAttributes: false,
-	suppressBooleanAttributes: false,
-});
 export const exportDocument = (document: SaveDocument) =>
-	builder.build(document) as string;
+	new TextDecoder().decode(codec.stringify(structuredClone(document)));
 
 export async function loadFixture(): Promise<SaveDocument> {
 	const xml = await readFile(

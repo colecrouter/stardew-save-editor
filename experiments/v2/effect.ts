@@ -5,7 +5,7 @@ import {
 	prepare,
 	type SaveDocument,
 	type SessionState,
-} from "./domain";
+} from "./domain.ts";
 
 export const makeEffectSession = (document: SaveDocument) =>
 	Effect.gen(function* () {

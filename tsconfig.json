@@ -8,6 +8,7 @@
 	// If you want to overwrite includes/excludes, make sure to copy over the relevant includes/excludes
 	// from the referenced tsconfig.json - TypeScript does not merge them in
 	"compilerOptions": {
+		"allowImportingTsExtensions": true,
 		// Only load browser-specific @types packages (excludes @types/node to avoid polluting browser globals)
 		"types": ["wicg-file-system-access"]
 	},

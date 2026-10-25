@@ -1,16 +1,16 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { Deferred, Effect, Exit } from "effect";
-import { diff, farmers, MutationError } from "./domain";
-import { makeEffectSession } from "./effect";
+import { diff, farmers, MutationError } from "./domain.ts";
+import { makeEffectSession } from "./effect.ts";
 import {
 	exportDocument,
 	loadFixture,
 	parser,
 	scenarios,
 	tinyFixture,
-} from "./fixture";
-import { PlainSession } from "./plain";
+} from "./fixture.ts";
+import { PlainSession } from "./plain.ts";
 
 test("both executors produce identical state and receipts on a full real save", async () => {
 	const original = await loadFixture();

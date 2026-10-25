@@ -19,3 +19,20 @@ jobs:
           cache: 'npm'
       - run: npm ci
       - run: npm run test
+
+  v2-experiments:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'npm'
+          cache-dependency-path: |
+            package-lock.json
+            experiments/v2/package-lock.json
+      - run: npm ci
+      - run: npm ci --prefix experiments/v2
+      - run: npm run check --prefix experiments/v2
+      - run: npm test --prefix experiments/v2
+      - run: npm run demo:platform --prefix experiments/v2

@@ -3,16 +3,24 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"test": "tsx --test mutation.node.ts",
-		"demo": "tsx run.ts",
+		"test": "node --test mutation.node.ts && vitest run --config vitest.config.ts",
+		"test:node": "node --test mutation.node.ts",
+		"demo": "node run.ts",
+		"demo:platform": "node platform-run.ts",
+		"measure:bundle": "node measure-bundle.ts",
 		"check": "tsc --noEmit -p tsconfig.json"
 	},
+	"engines": {
+		"node": ">=24"
+	},
 	"dependencies": {
+		"@effect/platform-node": "4.0.6",
 		"effect": "4.0.6"
 	},
 	"devDependencies": {
+		"@effect/vitest": "4.0.6",
 		"@types/node": "24.0.0",
-		"tsx": "4.23.15",
-		"typescript": "5.9.3"
+		"typescript": "5.9.3",
+		"vitest": "5.0.5"
 	}
 }

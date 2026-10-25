@@ -4,7 +4,7 @@ import {
 	prepare,
 	type SaveDocument,
 	type SessionState,
-} from "./domain";
+} from "./domain.ts";
 
 export class PlainSession {
 	#state: SessionState;

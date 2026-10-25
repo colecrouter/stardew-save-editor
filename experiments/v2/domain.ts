@@ -1,4 +1,23 @@
-import { isDeepStrictEqual } from "node:util";
+// Parsed XML consists of plain records, arrays, and primitive values. This
+// comparator intentionally does not support class instances, cycles, Maps or Sets.
+function equal(left: unknown, right: unknown): boolean {
+	if (Object.is(left, right)) return true;
+	if (
+		!left ||
+		!right ||
+		typeof left !== "object" ||
+		typeof right !== "object" ||
+		Array.isArray(left) !== Array.isArray(right)
+	)
+		return false;
+	const a = left as Record<string, unknown>;
+	const b = right as Record<string, unknown>;
+	const keys = Object.keys(a);
+	return (
+		keys.length === Object.keys(b).length &&
+		keys.every((key) => Object.hasOwn(b, key) && equal(a[key], b[key]))
+	);
+}
 
 // Deliberately narrow lens over a full parsed save. Unknown fields stay attached.
 export interface Farmer {
@@ -85,10 +104,10 @@ export function apply(
 	return { label: `Reorder ${farmer.name}'s backpack`, review: "compact" };
 }
 
-// Discovery implementation, not a browser diff engine. Arrays are deliberately
+// Discovery implementation, not a complete semantic diff engine. Arrays are deliberately
 // recorded as complete values so a reorder never loses unknown or hidden entries.
 export function diff(before: unknown, after: unknown, path = ""): Change[] {
-	if (isDeepStrictEqual(before, after)) return [];
+	if (equal(before, after)) return [];
 	if (
 		before &&
 		after &&

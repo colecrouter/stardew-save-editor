@@ -135,7 +135,7 @@ models, each using the transactional history service. Start it with `npm run lab
 --prefix experiments/v2`; mode switching starts a fresh session. Stack fields execute
 mutations rather than writing raw data. Twelve paired tests include real-save export,
 target capture, unrelated-update suppression, invalid edits, and consumer cleanup.
-The suite now totals 54 tests (8 native / 46 Effect). See
+The suite now totals 65 tests (8 native / 57 Effect). See
 [the comparison](../../docs/v2-atom-comparison.md) for findings and limitations.
 
 ## Shared fields and identity
@@ -171,3 +171,30 @@ remain enabled. The complete current stream has no errors, warnings or messages.
 See [the control and operation follow-up](../../docs/v2-controls-and-operations.md)
 for production lifetime repairs, the calendar migration prerequisite, and the
 byte-budget and domain-service experiments.
+
+## Operation-owned state in history
+
+`makeHistorySession(document, limits, initialDomainState)` keeps a plain JSON
+record alongside the document. Operation preparers can return `domainState`;
+omitting it preserves the current value, and an explicit `{}` clears it. Core
+preparation forwards it. Document, identity and domain-state changes share one
+transaction and undo boundary, including domain-only entries with empty XML
+patches. Revisions still advance, so an ordinary-choice update invalidates a
+stale draft even if the exported save has not changed.
+
+History captures before/after domain-state snapshots and includes them in its
+serialized byte budget. This duplicates metadata rather than optimizing it into
+patches. The current state and transient clones are not a heap budget. Export and
+net review use `document` alone; semantic receipts describe the operation.
+
+The engine clones before preparation and detaches results before publication, so
+failed in-place writes and adapter-retained draft references cannot change live
+state. External effects still cannot be rolled back by cloning. Non-record roots,
+resources, cycles, undefined fields and non-finite values are rejected, rather
+than normalized through JSON.stringify. Tests also cover hostile-looking keys,
+oversized metadata, redo preservation and enclosing transaction rollback.
+
+Production watering provenance passes this boundary directly, including marks
+for originally absent fields. A complete calendar adapter still needs target
+identities carried through cloned documents; the production proxy's weak object
+associations do not provide that.

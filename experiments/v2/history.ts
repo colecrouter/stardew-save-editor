@@ -13,10 +13,14 @@ import {
 	farmers,
 	type Receipt,
 	type SaveDocument,
+	type DomainState,
+	type SessionState,
 } from "./domain.ts";
 
 interface Entry {
 	bytes: number;
+	domainBefore: DomainState;
+	domainAfter: DomainState;
 	identitiesBefore: Record<string, string[]>;
 	identitiesAfter: Record<string, string[]>;
 	id: number;
@@ -26,6 +30,7 @@ interface Entry {
 	backward: JsonPatch.JsonPatch;
 }
 interface History {
+	domainState: DomainState;
 	retainedBytes: number;
 	nextIdentity: number;
 	identities: Record<string, string[]>;
@@ -41,7 +46,13 @@ interface History {
 // Only parsed XML/JSON documents are supported, not live Svelte proxies, class
 // instances, undefined fields, BigInts or cyclic graphs. Do not normalize such
 // values with JSON.stringify: that would silently discard data.
-const json = (document: SaveDocument) => document as unknown as Schema.Json;
+const json = (value: SaveDocument | DomainState) =>
+	value as unknown as Schema.Json;
+const isDomainState = (value: unknown): value is DomainState =>
+	value !== null &&
+	typeof value === "object" &&
+	!Array.isArray(value) &&
+	Schema.is(Schema.Json)(value);
 
 export interface HistoryLimits {
 	entries?: number;
@@ -62,6 +73,7 @@ function entryBytes(payload: Omit<Entry, "bytes">): number {
 export const makeHistorySession = (
 	document: SaveDocument,
 	limits: number | HistoryLimits = {},
+	initialDomainState: DomainState = {},
 ) =>
 	Effect.gen(function* () {
 		const operations = Option.getOrElse(
@@ -88,6 +100,10 @@ export const makeHistorySession = (
 				new MutationError("History requires plain JSON save data"),
 			);
 		const baseline = structuredClone(document);
+		if (!isDomainState(initialDomainState))
+			return yield* Effect.fail(
+				new MutationError("Domain state requires plain JSON data"),
+			);
 		// Item IDs describe types, not instances. Allocate session-only handles,
 		// including opaque/empty slots, without adding fields to the exported save.
 		let nextIdentity = 0;
@@ -101,6 +117,7 @@ export const makeHistorySession = (
 			identities[id] = farmer.items.Item.map(() => `item:${++nextIdentity}`);
 		}
 		const ref = yield* TxSubscriptionRef.make<History>({
+			domainState: structuredClone(initialDomainState),
 			retainedBytes: 0,
 			nextIdentity,
 			identities,
@@ -173,14 +190,17 @@ export const makeHistorySession = (
 					(state) =>
 						Effect.gen(function* () {
 							if (actions.length === 0) return state;
-							let prepared = {
-								document: state.document,
+							// A replaceable adapter may stage in-place writes. Never give it
+							// references to published state, including before a later failure.
+							let prepared: SessionState = {
+								document: structuredClone(state.document),
+								domainState: structuredClone(state.domainState),
 								history: [] as Receipt[],
 							};
 							let identities = state.identities;
 							let nextIdentity = state.nextIdentity;
 							const resolved: Mutation[] = [];
-							for (const requested of actions) {
+							for (const requested of structuredClone(actions)) {
 								let action = requested;
 								if (
 									(requested.type === "item-stack" ||
@@ -198,7 +218,22 @@ export const makeHistorySession = (
 										);
 									action = { ...requested, slot };
 								}
-								prepared = yield* operations.prepare(prepared, action);
+								const previousDomain = prepared.domainState ?? {};
+								const result = yield* operations.prepare(prepared, action);
+								prepared = {
+									...result,
+									domainState:
+										result.domainState === undefined
+											? previousDomain
+											: result.domainState,
+								};
+								if (
+									!Schema.is(Schema.Json)(prepared.document) ||
+									!isDomainState(prepared.domainState)
+								)
+									throw new MutationError(
+										"Prepared document and domain state require plain JSON data",
+									);
 								if (
 									action.type === "item-place" &&
 									!Schema.is(Schema.Json)(action.item)
@@ -233,6 +268,8 @@ export const makeHistorySession = (
 									};
 								}
 							}
+							// Detach published state from drafts retained by an adapter.
+							prepared = structuredClone(prepared);
 							const forward = JsonPatch.get(
 								json(state.document),
 								json(prepared.document),
@@ -241,6 +278,10 @@ export const makeHistorySession = (
 							// Keep that undoable even when the XML has no net difference.
 							if (
 								forward.length === 0 &&
+								JsonPatch.get(
+									json(state.domainState),
+									json(prepared.domainState ?? {}),
+								).length === 0 &&
 								JSON.stringify(identities) === JSON.stringify(state.identities)
 							)
 								return state;
@@ -249,10 +290,14 @@ export const makeHistorySession = (
 								intent:
 									resolved.find((action) => action.type === "reorder") ??
 									resolved[0],
-								label: "Reorder backpack",
+								label: resolved.some((action) => action.type === "reorder")
+									? "Reorder backpack"
+									: "Edit save",
 								review: "compact" as const,
 							};
 							const payload: Omit<Entry, "bytes"> = {
+								domainBefore: state.domainState,
+								domainAfter: prepared.domainState ?? {},
 								identitiesBefore: state.identities,
 								identitiesAfter: identities,
 								id: state.nextId,
@@ -295,6 +340,7 @@ export const makeHistorySession = (
 							return {
 								...state,
 								retainedBytes,
+								domainState: prepared.domainState ?? {},
 								identities,
 								nextIdentity,
 								document: prepared.document,
@@ -320,6 +366,7 @@ export const makeHistorySession = (
 				return {
 					...state,
 					identities: entry.identitiesBefore,
+					domainState: entry.domainBefore,
 					document: JsonPatch.apply(
 						entry.backward,
 						json(state.document),
@@ -333,6 +380,7 @@ export const makeHistorySession = (
 				return {
 					...state,
 					identities: entry.identitiesAfter,
+					domainState: entry.domainAfter,
 					document: JsonPatch.apply(
 						entry.forward,
 						json(state.document),

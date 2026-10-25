@@ -147,6 +147,28 @@ This bounds serialized history payload, not JavaScript object overhead, baseline
 storage, transient cloning, or total application heap. Budget and oversized-action
 policy remain experiment choices to assess before production migration.
 
+### Operation-owned domain state
+
+History now owns a separate plain JSON `domainState` record. Preparers can update
+it alongside the document; undo/redo restores its before/after snapshots in the
+same transaction as XML patches and identities. Domain-only changes are undoable
+and advance the revision, with their semantic receipt retained even when the XML
+patch is empty. Export/net review still use only the document.
+
+Initial and prepared metadata must be plain JSON records. Invalid values are
+rejected, not cleaned up by stringifying. The production watering planner's marks
+pass this boundary directly. Metadata snapshots count toward the history byte
+limit; they currently store full before/after values rather than metadata patches.
+This may cost more for large provenance sets and remains part of retention testing.
+
+Preparation receives cloned state, and the engine detaches results before
+publication. Tests prove in-place adapter writes cannot escape failed groups,
+retained drafts cannot mutate published state, and outer Effect transactions roll
+back document/domain/history together. Oversized metadata preserves redo and
+identities. Legacy adapters omitting the new field preserve its current value.
+Eleven new Effect tests cover these contracts; the complete experiment suite is
+65 tests (8 native and 57 Effect), with zero Effect diagnostics.
+
 ## Production lifetime repair
 
 Factory-created items have independent Svelte roots. Save cleanup now releases
@@ -182,9 +204,10 @@ The production adapter weakly associates IDs with live target objects. Reorderin
 and moving the same object between known valley locations retains identity;
 removing or replacing it does not redirect restoration to its replacement or write
 to an abandoned object. These weak associations do not survive document cloning.
-The Effect adapter must carry identities alongside cloned document snapshots and
-commit provenance plus document changes atomically. Undo/redo must restore both;
-the current extraction is not yet a complete Effect calendar operation.
+History now supports atomic domain-state restoration, but the calendar adapter
+must still carry target identities alongside cloned documents and prepare all
+dependent XML writes. The current extraction is not yet a complete Effect
+calendar operation.
 
 The local decompiled `Game1._newDayAfterFade` adds an important acceptance case:
 rain watering visits every outdoor location whose own weather context is rainy,
@@ -203,8 +226,7 @@ provenance, multiple contexts, removed/replaced/moved targets, intervening edits
 duplicate identities and map-property extraction. All 24 calendar integration
 tests pass, including export/reimport and two new cases for identity retention and
 Forest/Island/Desert/indoor/unresolved scope. Native app and codegen checks pass.
-The 561-test base passed remote CI before this follow-up; its full-suite validation
-will run again after publication (572 tests with these additions).
+The complete 572-test app suite and all three remote checks passed on `c6fcecd`.
 
 ## Clean-checkout tooling
 

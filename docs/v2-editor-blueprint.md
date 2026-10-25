@@ -71,9 +71,11 @@ for a production inventory migration, not an already solved detail.
 ### Session and history
 
 The Effect session owns the authoritative document, entity resolution, transaction
-history, validation services, worker/file resources and export. Preparing an operation
-must not mutate the live document. Successful document/identity/history changes commit
-together; failed preparation leaves all three unchanged.
+history, validation services, worker/file resources and export. Operation preparation
+receives isolated drafts. Successful document, identity, domain-state and history
+changes commit together; failed preparation leaves all of them unchanged. Domain
+state holds operation-owned information such as remembered weather and watering
+provenance; it is separate from the exported save representation.
 
 History stores intent and reversible changes. Review policy can emphasize, group or
 compact an entry while keeping its changes inspectable. Net review compares the

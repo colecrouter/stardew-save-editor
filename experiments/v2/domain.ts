@@ -70,7 +70,17 @@ export interface Receipt {
 export interface SessionState {
 	document: SaveDocument;
 	history: Receipt[];
+	/** Operation-owned state, carried alongside XML and never exported into it. */
+	domainState?: DomainState;
 }
+export type DomainValue =
+	| null
+	| boolean
+	| number
+	| string
+	| DomainValue[]
+	| { [key: string]: DomainValue };
+export type DomainState = Record<string, DomainValue>;
 export class MutationError extends Error {
 	readonly _tag = "MutationError";
 }
@@ -255,6 +265,7 @@ export function prepare(
 	const changes = diff(state.document, draft);
 	if (changes.length === 0) return state;
 	return {
+		...state,
 		document: draft,
 		history: [...state.history, { intent: mutation, ...presentation, changes }],
 	};

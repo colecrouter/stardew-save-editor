@@ -2014,6 +2014,47 @@ describe("Save Manager Integration Tests", () => {
 			expect(dimmed(1)).toBe(false);
 		});
 
+		it("moves a selection the search hides or dims onto a match", async () => {
+			const page = renderChests();
+			const chest = saveManager.save?.chests[0];
+			if (!chest) throw new Error("No chest");
+			chest.inventory.set(0, ItemFactory.fromName("Stone"));
+			chest.inventory.set(1, ItemFactory.fromName("Clay"));
+			const fridge = chestIn("IslandFarmHouse");
+			fridge.chest.inventory.set(3, ItemFactory.fromName("Ancient Fruit"));
+			flushSync();
+			const active = (index: number, slot: number) =>
+				page
+					.getByTestId(`chest-${index}-item-${slot}`)
+					.classList.contains("active");
+
+			// Pick two items, then search for something neither of them is
+			await fireEvent.click(page.getByTestId("chest-0-item-0"));
+			await fireEvent.click(page.getByTestId("chest-0-item-1"), {
+				ctrlKey: true,
+			});
+			expect(page.getByTestId("chest-multi-selection")).toBeTruthy();
+			await fireEvent.input(page.getByTestId("chest-search"), {
+				target: { value: "ancient fruit" },
+			});
+			const [first] = searchChests(
+				saveManager.save?.chests ?? [],
+				"ancient fruit",
+			);
+			if (!first) throw new Error("No match");
+			expect(page.queryByTestId("chest-multi-selection")).toBeNull();
+			expect(active(first.chestIndex, first.slotIndex)).toBe(true);
+
+			// Back in the Chests group, a chest from another group isn't left selected
+			await fireEvent.input(page.getByTestId("chest-search"), {
+				target: { value: "" },
+			});
+			const [listed] = page.getAllByTestId("chest-section");
+			expect(
+				page.getByText(`Editing: ${listed?.getAttribute("aria-label")}`),
+			).toBeTruthy();
+		});
+
 		it("lists only the chests with a match, from every group", async () => {
 			const page = renderChests();
 			const { chest, index } = chestIn("IslandFarmHouse");

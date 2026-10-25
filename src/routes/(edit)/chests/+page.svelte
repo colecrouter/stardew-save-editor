@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from "svelte";
 	import {
 		type ChestGroupId,
 		ChestGroups,
@@ -135,6 +136,27 @@
 	$effect(() => {
 		search;
 		if (chestList) chestList.scrollTop = 0;
+	});
+
+	/*
+	 * Don't keep a selection the search (or clearing it) has hidden or dimmed:
+	 * while searching only matches stay selected, otherwise anything listed
+	 */
+	$effect(() => {
+		const shown = new Set(shownChests);
+		const [first] = searchResults;
+		untrack(() => {
+			const keeps = (chest: ChestProxy | undefined, index: number) => {
+				if (!chest || !shown.has(chest)) return false;
+				const item = chest.inventory.get(index);
+				return !searching || (item !== undefined && matches.has(item));
+			};
+			if (picked.some((ref) => !keeps(ref.chest, ref.index)))
+				picked = picked.filter((ref) => keeps(ref.chest, ref.index));
+			if (keeps(selectedChest, selectedIndex)) return;
+			selectedChest = searching ? first?.chest : shownChests[0];
+			selectedIndex = searching ? (first?.slotIndex ?? 0) : 0;
+		});
 	});
 
 	const clearSearch = () => {

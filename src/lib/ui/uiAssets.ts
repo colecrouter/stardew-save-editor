@@ -14,10 +14,18 @@ export interface SpriteRect {
 export interface UiAssets {
 	menu: Atlas;
 	cursors: Atlas;
+	objects: Atlas;
+	craftables: Atlas;
+	barn: Atlas;
+	shirts: Atlas;
 }
 export const uiAtlases = {
 	menu: { path: "/assets/MenuTiles.png", width: 256, height: 1152 },
 	cursors: { path: "/assets/Cursors.png", width: 704, height: 2256 },
+	objects: { path: "/assets/springobjects.png", width: 384, height: 624 },
+	craftables: { path: "/assets/Craftables.png", width: 128, height: 1472 },
+	barn: { path: "/assets/buildings/Barn.png", width: 112, height: 128 },
+	shirts: { path: "/assets/shirts.png", width: 256, height: 608 },
 } as const;
 export type UiAtlasName = keyof typeof uiAtlases;
 export function resolveUiAssets(
@@ -27,7 +35,14 @@ export function resolveUiAssets(
 		const { path, width, height } = uiAtlases[name];
 		return { url: resolve(name, path), width, height };
 	};
-	return { menu: atlas("menu"), cursors: atlas("cursors") };
+	return {
+		menu: atlas("menu"),
+		cursors: atlas("cursors"),
+		objects: atlas("objects"),
+		craftables: atlas("craftables"),
+		barn: atlas("barn"),
+		shirts: atlas("shirts"),
+	};
 }
 const key = Symbol("uiAssets");
 
@@ -41,17 +56,41 @@ export function getUiAssets(): UiAssets {
 }
 
 // GameMenu.draw uses these 16px tabs from Cursors at y=368. Names describe
-// the editor purpose; the map tab is the current farm-navigation candidate.
+// the editor purpose. Other definitions use the existing building/item atlases.
 export const uiIcons = {
 	inventory: { x: 0, y: 368, width: 16, height: 16 },
 	relationships: { x: 32, y: 368, width: 16, height: 16 },
-	farm: { x: 48, y: 368, width: 16, height: 16 },
+	farm: { x: 0, y: 0, width: 112, height: 128 },
+	chests: { x: 32, y: 512, width: 16, height: 32 },
+	appearance: { x: 8, y: 0, width: 8, height: 8 },
+	cooking: { x: 32, y: 128, width: 16, height: 16 },
+	events: { x: 112, y: 48, width: 16, height: 16 },
+	quests: { x: 32, y: 560, width: 16, height: 16 },
+	community: { x: 32, y: 288, width: 16, height: 16 },
+	qi: { x: 288, y: 560, width: 16, height: 16 },
 	crafting: { x: 64, y: 368, width: 16, height: 16 },
 	collections: { x: 80, y: 368, width: 16, height: 16 },
 	settings: { x: 96, y: 368, width: 16, height: 16 },
 	exit: { x: 112, y: 368, width: 16, height: 16 },
 } satisfies Record<string, SpriteRect>;
 export type UiIconName = keyof typeof uiIcons;
+
+export const uiIconAtlases: Record<UiIconName, UiAtlasName> = {
+	inventory: "cursors",
+	relationships: "cursors",
+	farm: "barn",
+	chests: "craftables",
+	appearance: "shirts",
+	cooking: "objects",
+	events: "objects",
+	quests: "objects",
+	community: "objects",
+	qi: "objects",
+	crafting: "cursors",
+	collections: "cursors",
+	settings: "cursors",
+	exit: "cursors",
+};
 
 // Game1.drawDialogueBox assembles 64px tiles rather than slicing one rectangle.
 // Its center is painted behind the corners/edges to fill their transparent areas.

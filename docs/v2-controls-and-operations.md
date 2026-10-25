@@ -2,9 +2,11 @@
 
 ## Preferred visual direction
 
-The game-faithful study is the preferred direction for the redesign. It establishes
-visual character, not an inventory of production assets or a fixed desktop layout.
-Responsive reflow and native control behavior remain requirements.
+The approved study is the visual target: its colors, layout, typography, frames
+and controls take precedence over literal reuse of the game's menu frame. The
+atlas frame proved nine-slice rendering but was not visually preferred. Keep
+game-derived iconography where it reads well, with coherent custom assets for
+gaps. Responsive reflow and native control behavior remain requirements.
 
 Use reusable pixel-edged frames, parchment surfaces, consistent spacing and
 typography over semantic HTML. Frame artwork can be sliced into reusable corners
@@ -21,21 +23,63 @@ for fixed navigation/actions. Item rendering still needs its game-specific layer
 and state. Convenient factories remain available with correct ownership; static
 chrome does not need to acquire item editing behavior just to draw an icon.
 
+### Study implementation
+
+The production editor now has a wide, parchment workspace, a dark wood navigation
+rail, labeled section links, and a header with export and exit actions. Farm uses
+the study's settings/date/weather columns, selected-day blue, information strip
+and collapsible creation settings. Narrow screens use a scrollable navigation
+rail, stacked settings and side-by-side weather choices. Inventory, equipment,
+item editing and character controls also reflow on narrow screens.
+
+`StudyFrame` uses an original, code-native nine-slice SVG with wood grain and
+corner details. Theme tokens and locally bundled Pixelify Sans/VT323 fonts supply
+consistent text, controls and surfaces. Font licenses are included alongside the
+files; the fonts and frame do not require third-party requests. Checkbox controls
+use native appearance, checked state and keyboard behavior.
+
+#### Fidelity ledger
+
+| Area        | Study evidence                                                    | Implementation and deliberate differences                                                                                                                    |
+| ----------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Composition | Header, dark left rail, broad parchment work area                 | Same container hierarchy; mobile rail scrolls within its own region.                                                                                         |
+| Frame       | Detailed wood edges and brass-colored corners                     | Original SVG nine-slice; the game's flatter dialogue frame stays in the lab.                                                                                 |
+| Palette     | Pale cream controls, warm paper, green export, blue selected date | Shared theme tokens and component styles reproduce this hierarchy.                                                                                           |
+| Typography  | Pixel headings and narrower body/control lettering                | Pixelify Sans headings and VT323 body text; generated lettering has no exact font asset.                                                                     |
+| Controls    | Labeled inputs, calendar grid, checkbox, weather selects          | Real native controls with existing validation and bindings; detailed explanations remain available in disclosures. Profit/monster help is shortened.         |
+| Icons       | Illustrated navigation and farm heading                           | Existing game atlases replace generated icons; some related sections share a glyph. Custom gaps remain a design task.                                        |
+| Content     | Compact farm settings and collapsed creation options              | Existing date/forced-weather diagnostics retained; date help and forecast notes can expand. Existing farmer selection remains available below the workspace. |
+
+This is the first implemented study slice, not completion of the entire V2 visual
+milestone. Exact generated artwork is not shipped as interface chrome. Further
+screens still need their own content/layout work, complex selection evaluation,
+and icon refinement. The shared shell must remain usable during that migration.
+
+Validation: the full app run passed 560 tests and timed out in one existing Qi
+quest test at five seconds while the production build was running. Its entire
+34-test file passed on isolated retry. All 561 app tests therefore have a passing
+result across the full run and retry. Type/Svelte and formatting checks pass; app
+and lab builds complete. Sentry sourcemap upload still returns HTTP 403. Browser
+checks cover date entry, day selection, Space on the native checkbox, creation
+details, and five routes at 390px without page overflow. Calendar day targets are
+approximately 42 by 48px at that width. The real fixture still produces existing
+unknown-item/out-of-bounds warnings; no client runtime errors were observed.
+
 ### Game asset implementation proof
 
-The inventory lab offers a **Game frame and icons** shell (`?skin=game`).
+The inventory lab retains a **Game frame and icons** shell (`?skin=game`).
 `PixelFrame` assembles the game's dialogue frame from nine atlas regions;
-`UIIcon` exposes seven named menu tabs. The local decompiled `Game1.drawDialogueBox`
+`UIIcon` exposes named game sprites. The local decompiled `Game1.drawDialogueBox`
 and `GameMenu.draw` establish the coordinates. The skills tab also draws a farmer
 portrait, so its otherwise blank base cell is deliberately absent from this set.
-The map tab is a candidate for farm navigation, not a finalized navigation choice.
+The production farm icon now uses the existing barn texture instead of the map tab.
 
 `MenuTiles.png` comes from `content/Maps/MenuTiles.png`; the asset producer now
 copies it alongside the existing Cursors atlas. A context provider supplies URLs,
 letting the app resolve its deployment base and the isolated lab bundle assets.
 Only the selected 20 kB menu atlas is added; no per-icon images are generated.
-The plain lab fetches neither PNG until the game shell is displayed. Once shown,
-the frame and icons share two PNG requests.
+The plain lab does not fetch the PNGs until the game shell is displayed. Icons
+share the existing Cursors, object, craftable, shirt and barn atlases.
 
 The frame uses 64px corner pieces on desktop and 32px pieces on narrow screens,
 with pixelated sampling and responsive HTML content. Decoration does not remount
@@ -122,9 +166,13 @@ temporarily force festival weather, then need to restore the previous ordinary
 choice. Taking rain away must dry only what the editor watered. Constructor-only
 or XML-only history cannot reconstruct those decisions reliably.
 
-The next calendar step is to extract explicit domain state and a preparation
-function from the existing implementation, reuse it behind the current UI, then
-commit its state and document changes together in the Effect session. Undo/redo
+Ordinary choices are now a serializable `CalendarWeatherChoices` value, and
+`planCalendarWeather` prepares today's and tomorrow's weather without mutating
+the document or those choices. The production proxy uses it. Pure tests cover
+festival round trips, incompatible seasons, mod weather, and green rain.
+
+The next calendar step is to extract watering provenance and document preparation,
+then commit domain state and document changes together in the Effect session. Undo/redo
 must restore both. Watering provenance needs stable targets through future farm
 edits. No temporary proxy-per-command calendar bridge is included.
 

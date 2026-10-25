@@ -1,0 +1,99 @@
+@font-face {
+	font-family: "VT323";
+	src: url("./fonts/VT323-Regular.ttf") format("truetype");
+	font-display: swap;
+}
+@font-face {
+	font-family: "Pixelify Sans";
+	src: url("./fonts/PixelifySans.ttf") format("truetype");
+	font-weight: 400 700;
+	font-display: swap;
+}
+
+.study-theme {
+	--ui-control-bg: #fff3dc;
+	--ui-control-selected: #8dccf5;
+	--ui-control-text: #351b0e;
+	--ui-border-light: #c3a276;
+	--ui-border-dark: #987746;
+	--ui-focus: #176fb4;
+	--ui-error: #9c2922;
+	--study-paper: #fbe3b1;
+	--study-rule: #be8d4d;
+	--ui-panel-bg: transparent;
+	--ui-panel-padding: 8px;
+	--ui-panel-shadow: none;
+	--ui-panel-width: 100%;
+	--ui-panel-inset: 0px;
+	font-family: "VT323", "Trebuchet MS", sans-serif;
+	font-size: 24px;
+	line-height: 1.25;
+	color: #351b0e;
+	text-shadow: none;
+}
+
+.study-theme h1,
+.study-theme h2,
+.study-theme h3 {
+	padding: 0;
+	border: 0;
+	font-family: "Pixelify Sans", sans-serif;
+	line-height: 1.1;
+}
+.study-theme h1 {
+	font-size: 44px;
+}
+.study-theme h2 {
+	font-size: 27px;
+}
+.study-theme h3 {
+	font-size: 24px;
+}
+.study-theme small {
+	font-size: 21px;
+	line-height: 1.35;
+}
+.study-theme .ui-control {
+	padding: 7px 10px;
+	border-radius: 2px;
+	border-width: 2px;
+	box-shadow:
+		inset 1px 2px #d8c3a1,
+		0 1px #fff4d9;
+	font-size: 24px;
+	min-height: 44px;
+}
+.study-theme .ui-control[type="number"] {
+	width: 8rem;
+}
+.study-theme .ui-button {
+	font: inherit;
+	text-shadow: none;
+}
+.study-theme :is(button, a, summary, input, select):focus-visible {
+	outline: 3px solid var(--ui-focus);
+	outline-offset: 3px;
+}
+.study-theme details > summary {
+	cursor: pointer;
+	min-height: 44px;
+}
+
+body:has(.study-theme) {
+	background: radial-gradient(ellipse at 50% 35%, #4c8490, #285f6d);
+}
+main:has(> .study-theme) {
+	padding-top: 36px;
+}
+
+@media (max-width: 600px) {
+	.study-theme {
+		font-size: 22px;
+	}
+	.study-theme h1 {
+		font-size: 34px;
+	}
+	main:has(> .study-theme) {
+		padding-top: 48px;
+	}
+}

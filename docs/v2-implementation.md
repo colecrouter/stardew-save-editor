@@ -96,7 +96,7 @@ budgets, lifetime repair, and the calendar domain-state extraction prerequisite.
 The stack draft, monotonic revision guard, duplicate-item identities, and native/Bits
 confirmation comparison are implemented in the lab. All 54 experiment tests pass.
 The complete Effect diagnostic stream is clean. Oxfmt, TS7 checks, Svelte checks,
-and clean dependency installation pass; all 556 app tests pass. Production build
+and clean dependency installation pass; all 561 app tests have passed (one Qi quest timeout in the full run passed with its complete 34-test file on isolated retry). Production build
 compilation succeeds, while the configured Sentry upload remains blocked by HTTP
 403 permissions. No deployment was attempted.
 

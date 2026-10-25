@@ -12,40 +12,20 @@
 
 <style>
 	input {
-		border-radius: 4px;
-		border: solid 2px;
-		border-bottom-color: #9c613b;
-		border-left-color: #9c613b;
-		border-right-color: #6f3b31;
-		border-top-color: #6f3b31;
-		background-color: #f9bb65;
-		box-shadow:
-			inset -2px 2px 0 #e38813,
-			-2px 2px 1px rgba(0, 0, 0, 0.2);
-	}
-
-	input {
-		position: relative;
-		appearance: none;
-		width: 1.2rem;
-		height: 1.2rem;
-		border: solid 2px #5b2b2a;
-		box-shadow: inset -2px 2px 0px #976d42;
+		appearance: auto;
+		accent-color: var(--ui-focus, #2379ba);
+		width: 24px;
+		height: 24px;
+		margin: 0;
 		cursor: pointer;
+		flex: none;
 	}
-
-	input:hover {
-		filter: brightness(1.15);
+	input:focus-visible {
+		outline: 3px solid var(--ui-focus, #2379ba);
+		outline-offset: 3px;
 	}
-
-	input:checked::after {
-		position: absolute;
-		top: -0.25rem;
-		left: -0.175rem;
-		color: transparent;
-		text-shadow: 0 0 0 #32c523;
-		content: "❌";
-		font-weight: bold;
-		font-size: 1.2em;
+	input:disabled {
+		opacity: 0.65;
+		cursor: default;
 	}
 </style>

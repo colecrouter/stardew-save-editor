@@ -2,7 +2,12 @@ import { readFileSync } from "node:fs";
 import { fireEvent, render, screen } from "@testing-library/svelte";
 import { imageDimensionsFromData } from "image-dimensions";
 import { expect, it } from "vitest";
-import { dialogueFrame, uiAtlases, uiIcons } from "$lib/ui/uiAssets";
+import {
+	dialogueFrame,
+	uiAtlases,
+	uiIcons,
+	uiIconAtlases,
+} from "$lib/ui/uiAssets";
 import Harness from "./helpers/PixelFrameHarness.svelte";
 
 it("sprite definitions match the shipped atlas dimensions and stay in bounds", () => {
@@ -13,7 +18,13 @@ it("sprite definitions match the shipped atlas dimensions and stay in bounds", (
 	}
 	for (const [rectangles, atlas] of [
 		[dialogueFrame, uiAtlases.menu],
-		[Object.values(uiIcons), uiAtlases.cursors],
+		...Object.entries(uiIcons).map(
+			([name, rect]) =>
+				[
+					[rect],
+					uiAtlases[uiIconAtlases[name as keyof typeof uiIcons]],
+				] as const,
+		),
 	] as const) {
 		for (const rect of rectangles) {
 			expect(rect.x).toBeGreaterThanOrEqual(0);

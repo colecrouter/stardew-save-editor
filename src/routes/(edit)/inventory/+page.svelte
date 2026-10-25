@@ -193,4 +193,11 @@
 		transform: scale(1.2);
 		transform-origin: center;
 	}
+	@media (max-width: 600px) {
+		.item-grid {
+			grid-template-columns: repeat(6, min-content);
+			grid-template-rows: none;
+			gap: 4px;
+		}
+	}
 </style>

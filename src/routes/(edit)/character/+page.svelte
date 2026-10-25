@@ -430,4 +430,27 @@
 		display: flex;
 		justify-content: center;
 	}
+	@media (max-width: 600px) {
+		.wrapper > label {
+			flex-wrap: wrap;
+			justify-content: start;
+			white-space: normal;
+			gap: 8px;
+		}
+		.stats {
+			grid-template-columns: minmax(0, 1fr);
+			padding-inline: 0;
+		}
+		.stats label {
+			flex-wrap: wrap;
+			gap: 8px;
+		}
+		.upgrades label {
+			white-space: normal;
+		}
+		.wallet {
+			flex-wrap: wrap;
+			gap: 8px;
+		}
+	}
 </style>

@@ -1,14 +1,20 @@
 <script lang="ts">
 	import { untrack } from "svelte";
 	import AtlasRegion from "./AtlasRegion.svelte";
-	import { getUiAssets, uiIcons, type UiIconName } from "./uiAssets";
+	import {
+		getUiAssets,
+		uiIcons,
+		uiIconAtlases,
+		type UiIconName,
+	} from "./uiAssets";
 	let {
 		name,
 		label,
-		scale = 2,
-	}: { name: UiIconName; label?: string; scale?: 1 | 2 | 3 } = $props();
+		size = 32,
+	}: { name: UiIconName; label?: string; size?: number } = $props();
 	const assets = untrack(getUiAssets);
 	const rect = $derived(uiIcons[name]);
+	const scale = $derived(size / Math.max(rect.width, rect.height));
 </script>
 
 <span
@@ -19,7 +25,7 @@
 	style:width={`${rect.width * scale}px`}
 	style:height={`${rect.height * scale}px`}
 >
-	<AtlasRegion atlas={assets.cursors} {rect} />
+	<AtlasRegion atlas={assets[uiIconAtlases[name]]} {rect} />
 </span>
 
 <style>

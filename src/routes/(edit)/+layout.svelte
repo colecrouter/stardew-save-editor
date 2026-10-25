@@ -1,7 +1,10 @@
 <script lang="ts">
 	import { tick } from "svelte";
 	import { goto } from "$app/navigation";
-	import { resolve } from "$app/paths";
+	import { asset, resolve } from "$app/paths";
+	import "$lib/ui/study-theme.css";
+	import StudyFrame from "$lib/ui/StudyFrame.svelte";
+	import { setUiAssets, resolveUiAssets } from "$lib/ui/uiAssets";
 	import { getSaveManager, SaveValidationError } from "$lib/SaveManager.svelte";
 	import { describeResult } from "$lib/saveValidation";
 	import { getToastManager, Toast } from "$lib/ToastManager.svelte";
@@ -18,6 +21,7 @@
 
 	const toastManager = getToastManager();
 	const saveManager = getSaveManager();
+	setUiAssets(resolveUiAssets((_name, path) => asset(path)));
 
 	let isDownloading = $state(false);
 
@@ -64,26 +68,36 @@
 </script>
 
 {#if saveManager.save}
-	<div class="outer-wrapper">
-		<Router />
-		<div class="inner-wrapper">
-			<div class="content">
-				{@render children()}
-			</div>
-			<div class="sidebar">
+	<div class="outer-wrapper study-theme">
+		<a class="skip-link" href="#editor-content">Skip to editor</a>
+		<StudyFrame>
+			<header class="editor-header">
+				<strong class="brand">Stardew Save Editor</strong>
+				<div class="loaded-save">
+					Loaded save: <span data-sentry-mask>{saveManager.filename}</span>
+				</div>
 				<UiButton
-					onclick={() => cancel()}
-					alt="Exit"
-					data-testid="cancel-button"
-					>❌
-				</UiButton>
-				<UiButton
+					variant="plain"
+					class="export"
 					onclick={() => download()}
-					alt="Save"
 					pending={isDownloading}
-					data-testid="save-button"
-					>💾
-				</UiButton>
+					alt="Export save"
+					data-testid="save-button">Export save</UiButton
+				>
+				<UiButton
+					variant="plain"
+					onclick={cancel}
+					alt="Exit"
+					data-testid="cancel-button">Exit</UiButton
+				>
+			</header>
+			<div class="inner-wrapper">
+				<Router />
+				<div class="content" id="editor-content" tabindex="-1">
+					{@render children()}
+				</div>
+			</div>
+			<div class="sidebar" aria-label="Current farmer">
 				<UiButton
 					alt={`Previous Character: ${saveManager.save.previousPlayer?.name ?? ""}`}
 					onclick={() => saveManager.save?.prevFarmer()}
@@ -108,14 +122,28 @@
 					>➡️
 				</UiButton>
 			</div>
-		</div>
+		</StudyFrame>
 	</div>
 {/if}
 
 <style>
+	.skip-link {
+		position: fixed;
+		left: 16px;
+		top: 8px;
+		padding: 8px 16px;
+		z-index: 20;
+		background: #fff3dc;
+		color: #351b0e;
+		transform: translateY(-160%);
+	}
+	.skip-link:focus {
+		transform: none;
+	}
 	.sidebar {
 		display: flex;
-		flex-direction: column;
+		justify-content: end;
+		align-items: center;
 		gap: 8px;
 	}
 
@@ -126,35 +154,91 @@
 	}
 
 	.outer-wrapper {
+		width: min(1472px, calc(100vw - 64px));
+	}
+	.editor-header {
 		display: flex;
-		flex-direction: column;
-		gap: 8px;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: 16px;
+		padding: 16px 20px;
+		border-bottom: 8px ridge #a26726;
+		background: linear-gradient(100deg, #ffe6ad, #f8d18b);
+	}
+	.brand {
+		font-family: "Pixelify Sans", sans-serif;
+		font-size: 29px;
+		margin-right: auto;
+	}
+	.loaded-save {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		font-size: 24px;
+	}
+	.loaded-save span {
+		max-width: 220px;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		border: 2px solid #b68e56;
+		padding: 7px 12px;
+		background: #ffedc5;
+	}
+	.editor-header :global(.export) {
+		background: linear-gradient(#249a4c, #10733d);
+		color: #fff5d6;
+		border: 3px solid #164e28;
+		box-shadow:
+			inset 0 0 0 2px #5db45b,
+			0 2px #663c1a;
+		min-width: 180px;
 	}
 
 	.inner-wrapper {
-		display: flex;
-		flex-direction: row;
-		gap: 8px;
+		display: grid;
+		grid-template-columns: 250px minmax(0, 1fr);
+		min-height: 740px;
 	}
 
 	.content {
 		display: flex;
 		flex-direction: column;
 		gap: 8px;
-		width: 500px;
+		min-width: 0;
+		padding: 24px;
+		background: radial-gradient(ellipse at 40% 30%, #fff0cc, #f9d697);
+	}
+	@media (max-width: 1150px) {
+		.inner-wrapper {
+			grid-template-columns: 200px minmax(0, 1fr);
+		}
+		.loaded-save {
+			display: none;
+		}
 	}
 
 	@media (max-width: 600px) {
 		.outer-wrapper {
-			width: calc(100vw - 32px);
+			width: calc(100vw - 20px);
 			max-width: 100%;
 		}
 		.inner-wrapper {
-			flex-direction: column;
+			grid-template-columns: minmax(0, 1fr);
+			min-height: 0;
 		}
 		.content {
 			width: 100%;
 			min-width: 0;
+			padding: 16px 8px;
+		}
+		.editor-header {
+			padding: 10px;
+			gap: 8px;
+		}
+		.brand {
+			width: 100%;
+			font-size: 25px;
 		}
 		.sidebar {
 			flex-direction: row;

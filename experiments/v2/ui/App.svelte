@@ -14,8 +14,19 @@
 	} from "../../../src/lib/ui/uiAssets";
 	import menuUrl from "../../../static/assets/MenuTiles.png?url";
 	import cursorsUrl from "../../../static/assets/Cursors.png?url";
+	import objectsUrl from "../../../static/assets/springobjects.png?url";
+	import craftablesUrl from "../../../static/assets/Craftables.png?url";
+	import barnUrl from "../../../static/assets/buildings/Barn.png?url";
+	import shirtsUrl from "../../../static/assets/shirts.png?url";
 
-	const atlasUrls = { menu: menuUrl, cursors: cursorsUrl };
+	const atlasUrls = {
+		menu: menuUrl,
+		cursors: cursorsUrl,
+		objects: objectsUrl,
+		craftables: craftablesUrl,
+		barn: barnUrl,
+		shirts: shirtsUrl,
+	};
 	setUiAssets(resolveUiAssets((name) => atlasUrls[name]));
 	let gameSkin = $state(
 		new URL(location.href).searchParams.get("skin") === "game",

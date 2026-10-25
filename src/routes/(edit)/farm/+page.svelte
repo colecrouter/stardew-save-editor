@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { asset } from "$app/paths";
 	import { getSaveManager } from "$lib/SaveManager.svelte";
 	import UiCheckbox from "$lib/ui/UICheckbox.svelte";
 	import UiContainer from "$lib/ui/UIContainer.svelte";
@@ -70,107 +71,163 @@
 </script>
 
 <UiContainer>
-	<h3>Farm</h3>
-	<div class="settings">
-		<label>
-			Farm Name
-			<UiInput
-				type="text"
-				bind:value={
-					() => host?.farmName ?? "",
-					(name) => {
-						for (const player of save.players) player.farmName = String(name);
-					}
-				}
-				data-testid="farm-name"
-				data-sentry-mask
-			/>
-		</label>
-		<label>
-			Profit Margin
-			<span class="percent">
-				<UiInput
-					type="number"
-					min="1"
-					max="1000"
-					step="1"
-					defaultValue={100}
-					list="profit-margin-presets"
-					bind:value={
-						() => Math.round((host?.difficultyModifier ?? 1) * 100),
-						(percent) => {
-							// Cleared while typing: wait for a number
-							if (percent === null) return;
-							for (const player of save.players)
-								player.difficultyModifier = Number(percent) / 100;
+	<header class="farm-heading">
+		<img src={asset("/assets/buildings/Barn.png")} alt="" />
+		<div>
+			<h1>Farm</h1>
+			<p>Edit your farm settings, date, weather and related options.</p>
+		</div>
+	</header>
+	<div class="farm-layout">
+		<section class="farm-settings" aria-labelledby="farm-settings-title">
+			<h2 id="farm-settings-title">Farm Settings</h2>
+			<div class="settings">
+				<label>
+					Farm Name
+					<UiInput
+						type="text"
+						bind:value={
+							() => host?.farmName ?? "",
+							(name) => {
+								for (const player of save.players)
+									player.farmName = String(name);
+							}
 						}
-					}
-					data-testid="profit-margin"
-				/>
-				%
-			</span>
-			<datalist id="profit-margin-presets">
-				{#each profitMarginPresets as preset}
-					<option value={preset}></option>
-				{/each}
-			</datalist>
-		</label>
-		<small
-			>Multiplies the price of items you sell, and of seeds and saplings in
-			shops. 100% is normal and the game offers 75%, 50% and 25%, but other
-			values work too.</small
-		>
-		<label>
-			Spawn Monsters on the Farm
-			<UiCheckbox
-				bind:checked={save.shouldSpawnMonsters}
-				data-testid="spawn-monsters"
-			/>
-		</label>
-		<small
-			>Monsters can appear on the farm from 7pm. In the game, the Dark Shrine of
-			Night Terrors in the Witch's Hut toggles this too.</small
-		>
-		<label>
-			Mine Rewards
-			<UiSelect
-				value={save.shuffleMineChests}
-				onchange={(e) => (save.shuffleMineChests = e.currentTarget.value)}
-				data-testid="mine-rewards"
-			>
-				<option value="Default">Normal</option>
-				<option value="Remixed">Remixed</option>
-			</UiSelect>
-		</label>
-		<small>Only changes chests you haven't opened yet.</small>
+						data-testid="farm-name"
+						data-sentry-mask
+					/>
+				</label>
+				<label>
+					Profit Margin
+					<span class="percent">
+						<UiInput
+							type="number"
+							min="1"
+							max="1000"
+							step="1"
+							defaultValue={100}
+							list="profit-margin-presets"
+							bind:value={
+								() => Math.round((host?.difficultyModifier ?? 1) * 100),
+								(percent) => {
+									// Cleared while typing: wait for a number
+									if (percent === null) return;
+									for (const player of save.players)
+										player.difficultyModifier = Number(percent) / 100;
+								}
+							}
+							data-testid="profit-margin"
+						/>
+						%
+					</span>
+					<datalist id="profit-margin-presets">
+						{#each profitMarginPresets as preset (preset)}
+							<option value={preset}></option>
+						{/each}
+					</datalist>
+				</label>
+				<small
+					>Multiplies sale and seed shop prices. 100% is normal (game default).</small
+				>
+				<label>
+					<UiCheckbox
+						bind:checked={save.shouldSpawnMonsters}
+						data-testid="spawn-monsters"
+					/>
+					Spawn Monsters on the Farm
+				</label>
+				<small>Allows monsters to spawn on your farm at night, from 7pm.</small>
+				<label>
+					Mine Rewards
+					<UiSelect
+						value={save.shuffleMineChests}
+						onchange={(e) => (save.shuffleMineChests = e.currentTarget.value)}
+						data-testid="mine-rewards"
+					>
+						<option value="Default">Normal</option>
+						<option value="Remixed">Remixed</option>
+					</UiSelect>
+				</label>
+				<small>Only changes chests you haven't opened yet.</small>
+			</div>
+		</section>
+
+		<section class="date-settings" aria-label="Date and Weather">
+			<h2>Date and Weather</h2>
+			<CalendarSettings calendar={save.calendar} />
+		</section>
 	</div>
 
-	<CalendarSettings calendar={save.calendar} />
-
-	<h3>Set when the farm was created</h3>
-	<dl class="locked">
-		{#each locked as [label, value, reason]}
-			<div>
-				<dt>{label}</dt>
-				<dd data-testid="locked-setting">{value}</dd>
-				<dd class="reason">{reason}</dd>
-			</div>
-		{/each}
-	</dl>
+	<details class="creation-settings">
+		<summary
+			><strong>Farm creation settings</strong><span
+				>View settings recorded when this farm was created.</span
+			></summary
+		>
+		<dl class="locked">
+			{#each locked as [label, value, reason] (label)}
+				<div>
+					<dt>{label}</dt>
+					<dd data-testid="locked-setting">{value}</dd>
+					<dd class="reason">{reason}</dd>
+				</div>
+			{/each}
+		</dl>
+	</details>
 </UiContainer>
 
 <style>
+	.farm-heading {
+		display: flex;
+		align-items: center;
+		gap: 20px;
+		padding-bottom: 16px;
+		border-bottom: 3px double #a97536;
+		margin-bottom: 20px;
+	}
+	.farm-heading img {
+		width: 80px;
+		height: 80px;
+		object-fit: contain;
+	}
+	.farm-heading p {
+		margin: 0;
+	}
+	.farm-layout {
+		display: grid;
+		grid-template-columns: minmax(240px, 0.85fr) minmax(0, 1.45fr);
+		gap: 28px;
+	}
+	.farm-settings {
+		padding-right: 24px;
+		border-right: 2px solid #c39452;
+	}
+	.creation-settings {
+		border-top: 3px double #a97536;
+		margin-top: 24px;
+		padding-top: 14px;
+	}
+	summary {
+		padding: 12px;
+		border: 2px solid #bd9051;
+	}
+	summary span {
+		display: block;
+		margin: 4px 0 0 24px;
+		font-size: 18px;
+		color: #77542f;
+	}
 	.settings {
 		display: flex;
 		flex-direction: column;
-		gap: 4px;
-		padding: 8px 16px;
+		gap: 8px;
+		padding: 0;
 		font-weight: bold;
 	}
 
 	.settings label {
 		display: grid;
-		grid-template-columns: 1fr 14rem;
+		grid-template-columns: minmax(0, 1fr);
 		align-items: center;
 		gap: 8px;
 		margin-top: 8px;
@@ -183,12 +240,13 @@
 	}
 
 	.settings label:has(:global(input[type="checkbox"])) {
-		grid-template-columns: 1fr auto;
+		grid-template-columns: auto minmax(0, 1fr);
+		justify-content: start;
 	}
 
 	.settings small,
 	.reason {
-		font-size: x-small;
+		font-size: 21px;
 		font-weight: normal;
 		opacity: 0.8;
 	}
@@ -217,6 +275,15 @@
 
 	.locked .reason {
 		grid-column: 1 / -1;
+	}
+	@media (max-width: 1250px) {
+		.farm-layout {
+			grid-template-columns: minmax(0, 1fr);
+		}
+		.farm-settings {
+			border-right: 0;
+			padding-right: 0;
+		}
 	}
 	@media (max-width: 480px) {
 		.settings,

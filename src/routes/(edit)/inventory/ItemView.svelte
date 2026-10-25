@@ -491,4 +491,20 @@
 	.editor small {
 		margin-right: 2em;
 	}
+	@media (max-width: 600px) {
+		.editor {
+			grid-template-columns: minmax(0, 1fr);
+		}
+		.editor label {
+			flex-wrap: wrap;
+			gap: 8px;
+		}
+		.edit {
+			flex-direction: row;
+			gap: 16px;
+		}
+		.big-icon {
+			justify-self: center;
+		}
+	}
 </style>

@@ -3,7 +3,7 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"test": "node --test mutation.node.ts calendar.node.ts && vitest run --config vitest.config.ts",
+		"test": "npm run sync --prefix ../.. && node --test mutation.node.ts calendar.node.ts && vitest run --config vitest.config.ts",
 		"test:node": "node --test mutation.node.ts calendar.node.ts",
 		"demo": "node run.ts",
 		"demo:platform": "node platform-run.ts",

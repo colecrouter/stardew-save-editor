@@ -25,5 +25,5 @@
 		"types": ["node"],
 		"lib": ["ES2023", "DOM"]
 	},
-	"include": ["*.ts"]
+	"include": ["*.ts", "../../codegen/content-json.d.ts"]
 }

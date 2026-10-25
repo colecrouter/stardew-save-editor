@@ -247,3 +247,9 @@ so its native check is now the explicit `check:codegen` command after asset setu
 The default app check does not require those untracked files. Lab commands run
 root SvelteKit sync before building, because shared code can cause Vite to resolve
 the generated root TypeScript configuration. Remote CI passed after publication.
+
+The calendar adapter also brings shared save types into the experiment check.
+Both experiment configurations include the existing content JSON declarations,
+so unpacked game assets are not required. The test command runs root SvelteKit
+sync before Vitest transforms shared source, matching the lab commands. Clean
+archive validation covers these prerequisites without local game content.

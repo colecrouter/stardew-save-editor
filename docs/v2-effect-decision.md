@@ -95,6 +95,13 @@ uses Node 24. Local tests use 24.11.0; current Node docs mark stripping stable f
 
 ## Next sequence
 
+The subsequent history experiment implements bounded linear undo/redo in a
+TxSubscriptionRef with JSON patches. It verifies that document/cursor/history updates
+participate in outer Effect transactions, while compact review tags remain independent
+of actual patches. This strengthens the mechanism recommendation; byte budgets,
+selective revert, persistence and UI policy still need design. See history.ts and its
+tests in experiments/v2.
+
 1. Finish #168's review policy and bounded linear undo prototype, including a baseline
    versus export completeness check.
 2. Finish #169 against real item/view/session lifetimes with heap evidence and failed

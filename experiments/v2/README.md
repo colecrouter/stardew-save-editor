@@ -53,7 +53,7 @@ The worker layer starts a real Node worker per request and awaits termination on
 success, error or cancellation. This intentionally costly arrangement proves ownership,
 not an optimized pool. Production Comlink remains; replacing it is not a prerequisite.
 
-Eight native Node tests cover mutation semantics. Twelve @effect/vitest tests cover
+Eight native Node tests cover mutation semantics. Twenty-one @effect/vitest tests cover
 the production codec, compression, opaque fields, typed errors, service substitution,
 scoped files, cancellation, actual workers, transactions, JSON Patch and net review.
 Ten canceled worker requests leave zero tracked live workers. These counts are not
@@ -97,8 +97,30 @@ Recommend incremental Effect adoption for session/application services, operatio
 resource scopes and domain tests. Retain Svelte presentation and existing format
 knowledge. See [the decision](../../docs/v2-effect-decision.md).
 
-Outstanding: bounded history, UI review policy, selective revert, real item/view heap
+Outstanding: history byte budgets, UI review policy, selective revert, real item/view heap
 stress testing, browser-worker integration, mobile profiling, shared-wallet semantics,
 unknown-array conventions and input commit granularity. Full-save cloning on every
 keystroke is not a production recommendation. The fault-injection hook is not a
 plugin API. #168 and #169 remain open.
+
+## Transactional history prototype
+
+`history.ts` implements an alternative session using TxSubscriptionRef and Effect.tx.
+Its state holds the original import, current document, bounded forward/reverse patch
+entries and an undo cursor. It does not retain a full save snapshot per action.
+Entries retain constituent intents, a group label and review emphasis. Undo/redo
+apply patches; editing after undo truncates the redo branch. No-ops and failed groups
+preserve redo. An outer Effect transaction can roll back several history updates.
+
+Eviction caps entry count, not bytes. The import baseline remains, so net review still
+accounts for changes whose undo entries were evicted. A dropped count explicitly
+signals truncated action history; historical intent is not retained after eviction.
+Quiet changes remain recorded. Large patches still require byte budgets/checkpoints.
+Parsed JSON data is validated without normalizing away unsupported values. Read
+models and exposed patch payloads are detached copies.
+
+Nine additional tests cover grouped reversal, failure, outer-transaction rollback,
+branching/no-ops, quiet operations, eviction, concurrency/net review, full-save
+undo/redo and lifecycle/read isolation. This is linear history, not selective revert,
+persistent history or a finished reviewer. See
+[TxSubscriptionRef](https://effect.website/docs/v4/api/effect/TxSubscriptionRef).

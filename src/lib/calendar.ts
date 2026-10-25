@@ -308,6 +308,52 @@ export function forcedWeather(
 	return undefined;
 }
 
+/** Session state: ordinary choices survive dates with fixed or incompatible weather. */
+export interface CalendarWeatherChoices {
+	readonly today?: string;
+	readonly tomorrow?: string;
+}
+
+/** Prepare weather for a date without mutating the save or its remembered choices. */
+export function planCalendarWeather({
+	date,
+	daysPlayed,
+	gameId,
+	legacyRandom,
+	choices,
+}: {
+	date: GameDate;
+	daysPlayed: number;
+	gameId: number;
+	legacyRandom: boolean;
+	choices: CalendarWeatherChoices;
+}): { today: string; tomorrow: string } {
+	const select = (
+		day: GameDate,
+		played: number,
+		chosen: string | undefined,
+		forecast: boolean,
+	) => {
+		const fixed = forcedWeather(
+			day,
+			played,
+			greenRainDay(day.year, gameId, legacyRandom),
+		);
+		if (fixed) return fixed.weather;
+		const allowed = seasonWeathers(day.season).filter(
+			(weather) => forecast || weather !== "GreenRain",
+		);
+		return chosen !== undefined &&
+			(!isWeatherId(chosen) || allowed.includes(chosen))
+			? chosen
+			: "Sun";
+	};
+	return {
+		today: select(date, daysPlayed, choices.today, false),
+		tomorrow: select(nextDay(date), daysPlayed + 1, choices.tomorrow, true),
+	};
+}
+
 // The game's random numbers, for the green rain day
 
 /** xxHash32 with seed 0, the hash behind the game's HashUtility */

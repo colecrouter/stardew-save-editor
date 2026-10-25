@@ -1,5 +1,6 @@
 import {
 	calendarFestivalOn,
+	type CalendarWeatherChoices,
 	DAYS_PER_SEASON,
 	dateInRange,
 	type ForcedWeather,
@@ -9,6 +10,7 @@ import {
 	isWeatherId,
 	MAX_YEAR,
 	nextDay,
+	planCalendarWeather,
 	SEASONS,
 	seasonIndex,
 	seasonName,
@@ -69,8 +71,7 @@ export class Calendar implements DataProxy<Save> {
 	    day...) only has it while the date is on that day; moving on goes
 	    back to this.
 	*/
-	#chosenToday: string | undefined;
-	#chosenTomorrow: string | undefined;
+	#chosenWeather: CalendarWeatherChoices = {};
 	/** Today's flags as loaded, for weather from a mod, whose flags the editor doesn't know */
 	#loadedFlags: WeatherFlags;
 	/** Puts back the soil and pet bowls the editor watered, if the rain is taken away again */
@@ -116,9 +117,12 @@ export class Calendar implements DataProxy<Save> {
 
 		// The weather the save's date fixes wasn't picked, so it isn't kept
 		if (this.#today !== this.forcedToday?.weather)
-			this.#chosenToday = this.#today;
+			this.#chosenWeather = { ...this.#chosenWeather, today: this.#today };
 		if (this.#tomorrow !== this.forcedTomorrow?.weather)
-			this.#chosenTomorrow = this.#tomorrow;
+			this.#chosenWeather = {
+				...this.#chosenWeather,
+				tomorrow: this.#tomorrow,
+			};
 	}
 
 	/** The valley's entry in locationWeather */
@@ -236,7 +240,8 @@ export class Calendar implements DataProxy<Save> {
 				this.forcedToday?.reason ??
 					`${weatherLabel(value)} isn't possible in ${seasonName(this.#date.season)}`,
 			);
-		if (!this.forcedToday) this.#chosenToday = value;
+		if (!this.forcedToday)
+			this.#chosenWeather = { ...this.#chosenWeather, today: value };
 		this.#writeToday(value);
 	}
 
@@ -251,7 +256,8 @@ export class Calendar implements DataProxy<Save> {
 				this.forcedTomorrow?.reason ??
 					`${weatherLabel(value)} isn't possible in ${seasonName(this.tomorrowDate.season)}`,
 			);
-		if (!this.forcedTomorrow) this.#chosenTomorrow = value;
+		if (!this.forcedTomorrow)
+			this.#chosenWeather = { ...this.#chosenWeather, tomorrow: value };
 		this.#writeTomorrow(value);
 	}
 
@@ -333,19 +339,14 @@ export class Calendar implements DataProxy<Save> {
 	    doesn't know (from a mod) is kept.
 	*/
 	#applyWeather() {
-		const ordinary = (chosen: string | undefined, allowed: WeatherId[]) =>
-			chosen !== undefined && (!isWeatherId(chosen) || allowed.includes(chosen))
-				? chosen
-				: "Sun";
-
-		const today =
-			this.forcedToday?.weather ??
-			ordinary(this.#chosenToday, this.#todayWeathers());
+		const { today, tomorrow } = planCalendarWeather({
+			date: this.#date,
+			daysPlayed: this.#daysPlayed,
+			gameId: Number(this[Raw].uniqueIDForThisGame),
+			legacyRandom: this[Raw].useLegacyRandom === true,
+			choices: this.#chosenWeather,
+		});
 		if (today !== this.#today) this.#writeToday(today);
-
-		const tomorrow =
-			this.forcedTomorrow?.weather ??
-			ordinary(this.#chosenTomorrow, this.#tomorrowWeathers());
 		if (tomorrow !== this.#tomorrow) this.#writeTomorrow(tomorrow);
 	}
 

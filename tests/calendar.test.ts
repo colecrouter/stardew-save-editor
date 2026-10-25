@@ -9,6 +9,7 @@ import {
 	type GameDate,
 	greenRainDay,
 	nextDay,
+	planCalendarWeather,
 	seasonWeathers,
 	totalDays,
 	WEATHER_FLAGS,
@@ -21,6 +22,56 @@ const date = (season: Season, day: number, year = 1): GameDate => ({
 	year,
 	season,
 	day,
+});
+
+describe("calendar weather preparation", () => {
+	const prepare = (
+		day: GameDate,
+		choices: { today?: string; tomorrow?: string },
+	) =>
+		planCalendarWeather({
+			date: day,
+			daysPlayed: totalDays(day) + 1,
+			gameId: 12345,
+			legacyRandom: false,
+			choices,
+		});
+	it("retains serializable ordinary choices across a festival round trip", () => {
+		const choices = Object.freeze({ today: "Rain", tomorrow: "Wind" });
+		expect(prepare(date(Season.Spring, 13), choices).today).toBe("Festival");
+		const restored = JSON.parse(JSON.stringify(choices)) as typeof choices;
+		expect(prepare(date(Season.Spring, 14), restored)).toEqual({
+			today: "Rain",
+			tomorrow: "Wind",
+		});
+		expect(choices).toEqual({ today: "Rain", tomorrow: "Wind" });
+	});
+	it("falls back for incompatible seasons without erasing ordinary choices or mod weather", () => {
+		const choices = Object.freeze({
+			today: "Storm",
+			tomorrow: "Mod.CustomRain",
+		});
+		expect(prepare(date(Season.Winter, 6), choices)).toEqual({
+			today: "Sun",
+			tomorrow: "Mod.CustomRain",
+		});
+		expect(prepare(date(Season.Spring, 6, 2), choices).today).toBe("Storm");
+	});
+	it("only permits ordinary green rain as a forecast, while honoring the fixed green rain day", () => {
+		const rainyDay = greenRainDay(2, 12345, false);
+		const ordinary = [8, 9, 10].find(
+			(day) => day !== rainyDay && day + 1 !== rainyDay,
+		);
+		if (ordinary === undefined) throw new Error("No ordinary summer test day");
+		const choices = { today: "GreenRain", tomorrow: "GreenRain" };
+		expect(prepare(date(Season.Summer, ordinary, 2), choices)).toEqual({
+			today: "Sun",
+			tomorrow: "GreenRain",
+		});
+		expect(prepare(date(Season.Summer, rainyDay, 2), choices).today).toBe(
+			"GreenRain",
+		);
+	});
 });
 
 describe("calendar", () => {

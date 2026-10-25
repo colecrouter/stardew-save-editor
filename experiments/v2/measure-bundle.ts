@@ -7,6 +7,14 @@ for (const [name, entry] of [
 	["plain-session", 'export { PlainSession } from "./plain.ts"'],
 	["effect-session", 'export { makeEffectSession } from "./effect.ts"'],
 	["effect-codec", 'export { SaveCodecLive } from "./save-service.ts"'],
+	[
+		"inventory-atoms",
+		'export { makeAtomInventory } from "./inventory-atoms.ts"',
+	],
+	[
+		"inventory-stores",
+		'export { makeStoreInventory } from "./inventory-stores.ts"',
+	],
 ] as const) {
 	const result = await build({
 		stdin: {

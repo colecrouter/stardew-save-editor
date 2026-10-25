@@ -15,6 +15,8 @@ npm test --prefix experiments/v2
 npm run demo --prefix experiments/v2
 npm run demo:platform --prefix experiments/v2
 npm run measure:bundle --prefix experiments/v2
+npm run check:ui --prefix experiments/v2
+npm run lab --prefix experiments/v2
 ```
 
 Use `npm.cmd` if PowerShell blocks `npm.ps1`. The root install supplies dependencies
@@ -124,3 +126,13 @@ branching/no-ops, quiet operations, eviction, concurrency/net review, full-save
 undo/redo and lifecycle/read isolation. This is linear history, not selective revert,
 persistent history or a finished reviewer. See
 [TxSubscriptionRef](https://effect.website/docs/v4/api/effect/TxSubscriptionRef).
+
+## Inventory presentation comparison
+
+The isolated lab at http://127.0.0.1:5190 runs the same Svelte panel over Atom and store
+models, each using the transactional history service. Start it with `npm run lab
+--prefix experiments/v2`; mode switching starts a fresh session. Stack fields execute
+mutations rather than writing raw data. Twelve paired tests include real-save export,
+target capture, unrelated-update suppression, invalid edits, and consumer cleanup.
+The suite now totals 41 tests (8 native / 33 Effect). See
+[the comparison](../../docs/v2-atom-comparison.md) for findings and limitations.

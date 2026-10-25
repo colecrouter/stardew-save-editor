@@ -35,6 +35,13 @@ export interface SaveDocument {
 }
 export type Mutation =
 	| { type: "money"; farmerId: string; value: number }
+	| {
+			type: "item-stack";
+			farmerId: string;
+			slot: number;
+			itemId: string;
+			value: number;
+	  }
 	| { type: "farm-name"; value: string }
 	| { type: "reorder"; farmerId: string; order: readonly number[] };
 export interface Change {
@@ -80,6 +87,36 @@ export function apply(
 	if (matches.length !== 1)
 		throw new MutationError("Farmer ID must resolve exactly once");
 	const farmer = matches[0];
+	if (mutation.type === "item-stack") {
+		const item = farmer.items.Item[mutation.slot];
+		if (
+			!Number.isInteger(mutation.slot) ||
+			mutation.slot < 0 ||
+			!item ||
+			typeof item !== "object" ||
+			!("itemId" in item) ||
+			String(item.itemId) !== mutation.itemId ||
+			!("stack" in item) ||
+			typeof item.stack !== "number" ||
+			!("@_xsi:type" in item) ||
+			item["@_xsi:type"] !== "Object" ||
+			("bigCraftable" in item && item.bigCraftable === true)
+		)
+			throw new MutationError(
+				"Selected slot no longer holds a supported stackable object",
+			);
+		if (
+			!Number.isInteger(mutation.value) ||
+			mutation.value < 1 ||
+			mutation.value > 999
+		)
+			throw new MutationError("Stack must be a whole number from 1 to 999");
+		item.stack = mutation.value;
+		return {
+			label: `Set ${farmer.name}'s slot ${mutation.slot + 1} stack`,
+			review: "standalone",
+		};
+	}
 	if (mutation.type === "money") {
 		// Separate-wallet fixture only: shared-wallet semantics require a domain decision.
 		if (

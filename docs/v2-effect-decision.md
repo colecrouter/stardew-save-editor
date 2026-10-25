@@ -95,6 +95,12 @@ uses Node 24. Local tests use 24.11.0; current Node docs mark stripping stable f
 
 ## Next sequence
 
+The inventory comparison now exercises Atom and the store bridge through the same
+rendered Svelte panel, mutation-backed fields and transactional history. Both pass
+real-save preservation and resource-count tests. Atom is viable for derived views
+and command results, but this small slice does not justify a blanket proxy rewrite.
+See [the comparison](v2-atom-comparison.md) for measurements, ergonomics and limits.
+
 The subsequent history experiment implements bounded linear undo/redo in a
 TxSubscriptionRef with JSON patches. It verifies that document/cursor/history updates
 participate in outer Effect transactions, while compact review tags remain independent

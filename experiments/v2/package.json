@@ -8,6 +8,9 @@
 		"demo": "node run.ts",
 		"demo:platform": "node platform-run.ts",
 		"measure:bundle": "node measure-bundle.ts",
+		"lab": "vite --config vite.lab.config.ts",
+		"lab:build": "vite build --config vite.lab.config.ts",
+		"check:ui": "svelte-check --workspace . --tsconfig tsconfig.lab.json",
 		"check": "tsc --noEmit -p tsconfig.json"
 	},
 	"engines": {
@@ -19,8 +22,11 @@
 	},
 	"devDependencies": {
 		"@effect/vitest": "4.0.6",
+		"@sveltejs/vite-plugin-svelte": "7.3.1",
 		"@types/node": "24.0.0",
+		"svelte": "5.55.7",
 		"typescript": "5.9.3",
+		"vite": "8.3.5",
 		"vitest": "5.0.5"
 	}
 }

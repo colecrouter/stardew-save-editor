@@ -228,9 +228,10 @@
 		{:else}
 			<details>
 				<summary>Rain and watering</summary><small
-					>What you wake up to. Choosing rain waters the farm's tilled soil and
-					pet bowl, as a rainy morning does; taking the rain away again only
-					dries what that watered.</small
+					>What you wake up to. Choosing rain waters tilled soil and pet bowls
+					in known outdoor valley locations. Taking the rain away restores only
+					that watering. Island, Desert and unresolved locations keep their own
+					state.</small
 				>
 			</details>
 		{/if}

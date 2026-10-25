@@ -25,6 +25,12 @@ Follow [these instructions from the SDV Wiki](https://stardewvalleywiki.com/Modd
 
 Then run `npm run dump`.
 
+`generated/location-weather.json` joins `Data/Locations`, `Data/LocationContexts`
+and map-level `LocationContext` properties. Unpack maps as TMX files under
+`content/Maps`. To regenerate only this lookup, run `npm run dump:location-weather`;
+that script runs directly on Node 24. The normal dump includes it as well. App
+checks and tests use the committed lookup and do not require unpacked maps.
+
 If you need assets that aren't copied from that command, you can modify it in `codegen/dump.ts`.
 
 `generated/buildings.json` includes what the editor needs to upgrade buildings (each building's

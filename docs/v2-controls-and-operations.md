@@ -171,22 +171,40 @@ Ordinary choices are now a serializable `CalendarWeatherChoices` value, and
 the document or those choices. The production proxy uses it. Pure tests cover
 festival round trips, incompatible seasons, mod weather, and green rain.
 
-The next calendar step is to extract watering provenance and document preparation,
-then commit domain state and document changes together in the Effect session. Undo/redo
-must restore both. Watering provenance needs stable targets through future farm
-edits. No temporary proxy-per-command calendar bridge is included.
+`planRainWatering` now prepares writes and explicit provenance. Marks contain
+identities, contexts, kinds and original values, with no document references or
+stored callbacks. They survive JSON serialization, including originally missing
+values. Pre-watered targets and hidden soil are preserved. Removing rain restores
+only unchanged, still-present targets in the edited outdoor context. Replacement
+objects, intervening edits and moves into independent contexts are left alone.
+
+The production adapter weakly associates IDs with live target objects. Reordering
+and moving the same object between known valley locations retains identity;
+removing or replacing it does not redirect restoration to its replacement or write
+to an abandoned object. These weak associations do not survive document cloning.
+The Effect adapter must carry identities alongside cloned document snapshots and
+commit provenance plus document changes atomically. Undo/redo must restore both;
+the current extraction is not yet a complete Effect calendar operation.
 
 The local decompiled `Game1._newDayAfterFade` adds an important acceptance case:
 rain watering visits every outdoor location whose own weather context is rainy,
 not just the main farm. `GameLocation.IsRainingHere` reads that context's weather.
-The current editor's watering helper only visits the farm. During extraction,
-enumerate outdoor locations affected by the edited Default context, preserve
-Island/other context weather, and exclude indoor locations and hidden soil.
-Capture reversible targets with session identity rather than closures or array
-positions. Test a farm plus another outdoor location, an indoor location, an
-independent-weather location, pre-watered soil/bowls, and a target removed or moved
-between rain and dry operations. A calendar port must not silently perpetuate the
-farm-only approximation or apply valley rain to every location indiscriminately.
+The editor now visits known outdoor locations in the edited Default context.
+`generated/location-weather.json` is produced from `Data/Locations` creation
+records and unpacked TMX map properties, validated against `Data/LocationContexts`.
+The source game's top-level fallback is Default; Farm is created separately and
+has an explicit generated entry. A changed location class or unknown name has no
+inferred context and is left untouched. Runtime map patches from mods, unresolved
+dynamic locations and nested locations remain outside this vanilla lookup; this
+does not claim complete discovery of arbitrary modded weather contexts.
+
+Six pure watering tests and three metadata tests cover preparation, serialized
+provenance, multiple contexts, removed/replaced/moved targets, intervening edits,
+duplicate identities and map-property extraction. All 24 calendar integration
+tests pass, including export/reimport and two new cases for identity retention and
+Forest/Island/Desert/indoor/unresolved scope. Native app and codegen checks pass.
+The 561-test base passed remote CI before this follow-up; its full-suite validation
+will run again after publication (572 tests with these additions).
 
 ## Clean-checkout tooling
 

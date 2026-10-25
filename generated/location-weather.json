@@ -1,0 +1,322 @@
+{
+	"AbandonedJojaMart": {
+		"context": "Default",
+		"type": "AbandonedJojaMart"
+	},
+	"AdventureGuild": {
+		"context": "Default",
+		"type": "AdventureGuild"
+	},
+	"AnimalShop": {
+		"context": "Default",
+		"type": "GameLocation"
+	},
+	"ArchaeologyHouse": {
+		"context": "Default",
+		"type": "LibraryMuseum"
+	},
+	"Backwoods": {
+		"context": "Default",
+		"type": "GameLocation"
+	},
+	"BathHouse_Entry": {
+		"context": "Default",
+		"type": "GameLocation"
+	},
+	"BathHouse_MensLocker": {
+		"context": "Default",
+		"type": "GameLocation"
+	},
+	"BathHouse_Pool": {
+		"context": "Default",
+		"type": "BathHousePool"
+	},
+	"BathHouse_WomensLocker": {
+		"context": "Default",
+		"type": "GameLocation"
+	},
+	"Beach": {
+		"context": "Default",
+		"type": "Beach"
+	},
+	"BeachNightMarket": {
+		"context": "Default",
+		"type": "BeachNightMarket"
+	},
+	"Blacksmith": {
+		"context": "Default",
+		"type": "GameLocation"
+	},
+	"BoatTunnel": {
+		"context": "Default",
+		"type": "BoatTunnel"
+	},
+	"BugLand": {
+		"context": "Default",
+		"type": "BugLand"
+	},
+	"BusStop": {
+		"context": "Default",
+		"type": "BusStop"
+	},
+	"Caldera": {
+		"context": "Island",
+		"type": "Caldera"
+	},
+	"CaptainRoom": {
+		"context": "Island",
+		"type": "IslandLocation"
+	},
+	"Cellar": {
+		"context": "Default",
+		"type": "Cellar"
+	},
+	"Club": {
+		"context": "Desert",
+		"type": "Club"
+	},
+	"CommunityCenter": {
+		"context": "Default",
+		"type": "CommunityCenter"
+	},
+	"Desert": {
+		"context": "Desert",
+		"type": "Desert"
+	},
+	"DesertFestival": {
+		"context": "Desert",
+		"type": "DesertFestival"
+	},
+	"ElliottHouse": {
+		"context": "Default",
+		"type": "GameLocation"
+	},
+	"FarmCave": {
+		"context": "Default",
+		"type": "FarmCave"
+	},
+	"FarmHouse": {
+		"context": "Default",
+		"type": "FarmHouse"
+	},
+	"FishShop": {
+		"context": "Default",
+		"type": "FishShop"
+	},
+	"Forest": {
+		"context": "Default",
+		"type": "Forest"
+	},
+	"Greenhouse": {
+		"context": "Default",
+		"type": "GameLocation"
+	},
+	"HaleyHouse": {
+		"context": "Default",
+		"type": "GameLocation"
+	},
+	"HarveyRoom": {
+		"context": "Default",
+		"type": "GameLocation"
+	},
+	"Hospital": {
+		"context": "Default",
+		"type": "GameLocation"
+	},
+	"IslandEast": {
+		"context": "Island",
+		"type": "IslandEast"
+	},
+	"IslandFarmCave": {
+		"context": "Island",
+		"type": "IslandFarmCave"
+	},
+	"IslandFarmHouse": {
+		"context": "Island",
+		"type": "IslandFarmHouse"
+	},
+	"IslandFieldOffice": {
+		"context": "Island",
+		"type": "IslandFieldOffice"
+	},
+	"IslandHut": {
+		"context": "Island",
+		"type": "IslandHut"
+	},
+	"IslandNorth": {
+		"context": "Island",
+		"type": "IslandNorth"
+	},
+	"IslandNorthCave1": {
+		"context": "Island",
+		"type": "IslandLocation"
+	},
+	"IslandShrine": {
+		"context": "Island",
+		"type": "IslandShrine"
+	},
+	"IslandSouth": {
+		"context": "Island",
+		"type": "IslandSouth"
+	},
+	"IslandSouthEast": {
+		"context": "Island",
+		"type": "IslandSouthEast"
+	},
+	"IslandSouthEastCave": {
+		"context": "Island",
+		"type": "IslandSouthEastCave"
+	},
+	"IslandWest": {
+		"context": "Island",
+		"type": "IslandWest"
+	},
+	"IslandWestCave1": {
+		"context": "Island",
+		"type": "IslandWestCave1"
+	},
+	"JojaMart": {
+		"context": "Default",
+		"type": "JojaMart"
+	},
+	"JoshHouse": {
+		"context": "Default",
+		"type": "GameLocation"
+	},
+	"LeahHouse": {
+		"context": "Default",
+		"type": "GameLocation"
+	},
+	"LeoTreeHouse": {
+		"context": "Default",
+		"type": "GameLocation"
+	},
+	"LewisBasement": {
+		"context": "Default",
+		"type": "GameLocation"
+	},
+	"ManorHouse": {
+		"context": "Default",
+		"type": "ManorHouse"
+	},
+	"MasteryCave": {
+		"context": "Default",
+		"type": "GameLocation"
+	},
+	"MermaidHouse": {
+		"context": "Default",
+		"type": "MermaidHouse"
+	},
+	"Mine": {
+		"context": "Default",
+		"type": "Mine"
+	},
+	"Mountain": {
+		"context": "Default",
+		"type": "Mountain"
+	},
+	"MovieTheater": {
+		"context": "Default",
+		"type": "MovieTheater"
+	},
+	"QiNutRoom": {
+		"context": "Island",
+		"type": "IslandLocation"
+	},
+	"Railroad": {
+		"context": "Default",
+		"type": "Railroad"
+	},
+	"Saloon": {
+		"context": "Default",
+		"type": "GameLocation"
+	},
+	"SamHouse": {
+		"context": "Default",
+		"type": "GameLocation"
+	},
+	"SandyHouse": {
+		"context": "Desert",
+		"type": "GameLocation"
+	},
+	"ScienceHouse": {
+		"context": "Default",
+		"type": "GameLocation"
+	},
+	"SebastianRoom": {
+		"context": "Default",
+		"type": "GameLocation"
+	},
+	"SeedShop": {
+		"context": "Default",
+		"type": "SeedShop"
+	},
+	"Sewer": {
+		"context": "Default",
+		"type": "Sewer"
+	},
+	"SkullCave": {
+		"context": "Desert",
+		"type": "GameLocation"
+	},
+	"Submarine": {
+		"context": "Default",
+		"type": "Submarine"
+	},
+	"Summit": {
+		"context": "Default",
+		"type": "Summit"
+	},
+	"Sunroom": {
+		"context": "Default",
+		"type": "GameLocation"
+	},
+	"Tent": {
+		"context": "Default",
+		"type": "GameLocation"
+	},
+	"Town": {
+		"context": "Default",
+		"type": "Town"
+	},
+	"Trailer": {
+		"context": "Default",
+		"type": "GameLocation"
+	},
+	"Trailer_Big": {
+		"context": "Default",
+		"type": "GameLocation"
+	},
+	"Tunnel": {
+		"context": "Default",
+		"type": "GameLocation"
+	},
+	"WitchHut": {
+		"context": "Default",
+		"type": "GameLocation"
+	},
+	"WitchSwamp": {
+		"context": "Default",
+		"type": "GameLocation"
+	},
+	"WitchWarpCave": {
+		"context": "Default",
+		"type": "GameLocation"
+	},
+	"WizardHouse": {
+		"context": "Default",
+		"type": "WizardHouse"
+	},
+	"WizardHouseBasement": {
+		"context": "Default",
+		"type": "GameLocation"
+	},
+	"Woods": {
+		"context": "Default",
+		"type": "Woods"
+	},
+	"Farm": {
+		"context": "Default",
+		"type": "Farm"
+	}
+}

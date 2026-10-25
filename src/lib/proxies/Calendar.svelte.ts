@@ -24,6 +24,13 @@ import {
 	weekday,
 } from "$lib/calendar";
 import type { SaveProxy } from "$lib/proxies/SaveFile.svelte";
+import { locationWeatherContext } from "$lib/locationWeather";
+import {
+	planRainWatering,
+	type WateringMark,
+	type WateringTarget,
+	type WateringWrite,
+} from "$lib/calendarWatering";
 import { type LocationWeatherClass, type Save, Season } from "$types/save";
 import { type DataProxy, Raw } from ".";
 
@@ -74,8 +81,10 @@ export class Calendar implements DataProxy<Save> {
 	#chosenWeather: CalendarWeatherChoices = {};
 	/** Today's flags as loaded, for weather from a mod, whose flags the editor doesn't know */
 	#loadedFlags: WeatherFlags;
-	/** Puts back the soil and pet bowls the editor watered, if the rain is taken away again */
-	#undoWatering: (() => void)[] = [];
+	/** Explicit provenance; identities are weakly associated with current proxy objects. */
+	#watering: WateringMark[] = [];
+	#wateringIds = new WeakMap<object, string>();
+	#nextWateringId = 0;
 
 	constructor(save: SaveProxy) {
 		this.#save = save;
@@ -374,52 +383,74 @@ export class Calendar implements DataProxy<Save> {
 			}
 		}
 
-		if (flags.isRaining && !wasRaining) this.#waterFarm();
-		if (!flags.isRaining && wasRaining) this.#dryFarm();
+		if (flags.isRaining !== wasRaining)
+			this.#applyWatering(wasRaining, flags.isRaining);
 		this.#today = id;
 	}
 
 	/**
 	    Rain at the start of a day waters the pet bowl and all tilled soil
 	    (Game1.newDayAfterFade), apart from soil the game hides (state 2).
-	    What this waters is remembered, so #dryFarm can put it back.
+	    Provenance records only the editor's watering, so removing rain can restore it.
 	*/
-	#waterFarm() {
-		const farm = this.#save.farm?.[Raw];
-		if (!farm) return;
-		for (const building of farm.buildings?.Building ?? []) {
-			if (building["@_xsi:type"] !== "PetBowl" || building.watered === true)
-				continue;
-			const before = building.watered;
-			building.watered = true;
-			this.#undoWatering.push(() => {
-				if (building.watered === true) building.watered = before;
-			});
+	#applyWatering(wasRaining: boolean, raining: boolean) {
+		const targets: WateringTarget[] = [];
+		const bindings = new Map<string, (write: WateringWrite) => void>();
+		const identity = (target: object) => {
+			let id = this.#wateringIds.get(target);
+			if (id === undefined) {
+				id = `watering:${++this.#nextWateringId}`;
+				this.#wateringIds.set(target, id);
+			}
+			return id;
+		};
+		for (const location of this.#save.locations) {
+			const raw = location[Raw];
+			const context = locationWeatherContext(raw);
+			if (!raw.isOutdoors || context !== "Default") continue;
+			for (const building of raw.buildings?.Building ?? []) {
+				if (building["@_xsi:type"] !== "PetBowl") continue;
+				const id = identity(building);
+				targets.push({
+					id,
+					context,
+					outdoors: true,
+					kind: "bowl",
+					value: building.watered,
+				});
+				bindings.set(id, (write) => {
+					if (write.kind === "bowl") building.watered = write.value;
+				});
+			}
+			const features =
+				typeof raw.terrainFeatures === "object" && raw.terrainFeatures
+					? (raw.terrainFeatures.item ?? [])
+					: [];
+			for (const { value } of features) {
+				const feature = value?.TerrainFeature;
+				if (feature?.["@_xsi:type"] !== "HoeDirt") continue;
+				const id = identity(feature);
+				targets.push({
+					id,
+					context,
+					outdoors: true,
+					kind: "soil",
+					value: feature.state,
+				});
+				bindings.set(id, (write) => {
+					if (write.kind === "soil") feature.state = write.value;
+				});
+			}
 		}
-		const features =
-			typeof farm.terrainFeatures === "object" && farm.terrainFeatures
-				? (farm.terrainFeatures.item ?? [])
-				: [];
-		for (const { value } of features) {
-			const feature = value?.TerrainFeature;
-			if (
-				feature?.["@_xsi:type"] !== "HoeDirt" ||
-				feature.state === 1 ||
-				feature.state === 2
-			)
-				continue;
-			const before = feature.state;
-			feature.state = 1;
-			this.#undoWatering.push(() => {
-				if (feature.state === 1) feature.state = before;
-			});
-		}
-	}
-
-	/** Dry what #waterFarm watered; what the save had watered stays watered */
-	#dryFarm() {
-		for (const undo of this.#undoWatering) undo();
-		this.#undoWatering = [];
+		const prepared = planRainWatering({
+			targets,
+			provenance: this.#watering,
+			context: "Default",
+			wasRaining,
+			raining,
+		});
+		for (const write of prepared.writes) bindings.get(write.id)?.(write);
+		this.#watering = prepared.provenance;
 	}
 
 	#writeTomorrow(id: string) {

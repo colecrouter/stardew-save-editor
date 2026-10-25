@@ -586,3 +586,5 @@ const buildingsArray = await Promise.all(
 	}),
 );
 await writeFile("./generated/buildings.json", JSON.stringify(buildingsArray));
+
+await import("./dumpLocationWeather.ts");

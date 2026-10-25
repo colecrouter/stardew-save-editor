@@ -477,6 +477,7 @@ const filesToCopy = [
 	"LooseSprites/JunimoNote.png",
 	"LooseSprites/font_colored.png",
 	"LooseSprites/Cursors.png",
+	"Maps/MenuTiles.png",
 	// Add any additional files you need to copy here
 ] as string[];
 

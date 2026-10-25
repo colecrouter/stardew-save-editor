@@ -5,6 +5,7 @@ import { defineConfig } from "vite";
 export default defineConfig({
 	root: fileURLToPath(new URL("./ui", import.meta.url)),
 	plugins: [svelte({ configFile: false })],
+	resolve: { dedupe: ["svelte"] },
 	server: {
 		host: "127.0.0.1",
 		port: 5190,

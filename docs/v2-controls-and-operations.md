@@ -21,6 +21,35 @@ for fixed navigation/actions. Item rendering still needs its game-specific layer
 and state. Convenient factories remain available with correct ownership; static
 chrome does not need to acquire item editing behavior just to draw an icon.
 
+### Game asset implementation proof
+
+The inventory lab offers a **Game frame and icons** shell (`?skin=game`).
+`PixelFrame` assembles the game's dialogue frame from nine atlas regions;
+`UIIcon` exposes seven named menu tabs. The local decompiled `Game1.drawDialogueBox`
+and `GameMenu.draw` establish the coordinates. The skills tab also draws a farmer
+portrait, so its otherwise blank base cell is deliberately absent from this set.
+The map tab is a candidate for farm navigation, not a finalized navigation choice.
+
+`MenuTiles.png` comes from `content/Maps/MenuTiles.png`; the asset producer now
+copies it alongside the existing Cursors atlas. A context provider supplies URLs,
+letting the app resolve its deployment base and the isolated lab bundle assets.
+Only the selected 20 kB menu atlas is added; no per-icon images are generated.
+The plain lab fetches neither PNG until the game shell is displayed. Once shown,
+the frame and icons share two PNG requests.
+
+The frame uses 64px corner pieces on desktop and 32px pieces on narrow screens,
+with pixelated sampling and responsive HTML content. Decoration does not remount
+the editable subtree. Tests verify atlas dimensions/bounds, accessible icon names,
+and retention of a partially typed input while toggling the frame. Browser checks
+covered both state adapters, draft conflicts, apply/undo/redo, a 390px layout with
+no horizontal overflow, and native/Bits dialogs. Portalled dialogs target the
+theme boundary so they retain the same colors and focus behavior.
+
+This proves reusable artwork and interaction coexist; it is not the completed
+redesign. Typography, navigation, control artwork/states and editor-action icons
+still need design work. Native-size Playwright screenshots were used after two
+shared-preview captures returned 640x400 images despite the desktop viewport.
+
 ## Production control consolidation
 
 The calendar screen now uses the existing input/select components, a shared field
@@ -99,11 +128,22 @@ commit its state and document changes together in the Effect session. Undo/redo
 must restore both. Watering provenance needs stable targets through future farm
 edits. No temporary proxy-per-command calendar bridge is included.
 
+The local decompiled `Game1._newDayAfterFade` adds an important acceptance case:
+rain watering visits every outdoor location whose own weather context is rainy,
+not just the main farm. `GameLocation.IsRainingHere` reads that context's weather.
+The current editor's watering helper only visits the farm. During extraction,
+enumerate outdoor locations affected by the edited Default context, preserve
+Island/other context weather, and exclude indoor locations and hidden soil.
+Capture reversible targets with session identity rather than closures or array
+positions. Test a farm plus another outdoor location, an indoor location, an
+independent-weather location, pre-watered soil/bowls, and a target removed or moved
+between rain and dry operations. A calendar port must not silently perpetuate the
+farm-only approximation or apply valley rain to every location indiscriminately.
+
 ## Clean-checkout tooling
 
 The first CI run found two local assumptions. Codegen imports unpacked game assets,
 so its native check is now the explicit `check:codegen` command after asset setup.
 The default app check does not require those untracked files. Lab commands run
 root SvelteKit sync before building, because shared code can cause Vite to resolve
-the generated root TypeScript configuration. These fixes still need remote CI
-confirmation after publication.
+the generated root TypeScript configuration. Remote CI passed after publication.

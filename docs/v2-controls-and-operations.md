@@ -1,5 +1,26 @@
 # Shared controls and transactional operations
 
+## Preferred visual direction
+
+The game-faithful study is the preferred direction for the redesign. It establishes
+visual character, not an inventory of production assets or a fixed desktop layout.
+Responsive reflow and native control behavior remain requirements.
+
+Use reusable pixel-edged frames, parchment surfaces, consistent spacing and
+typography over semantic HTML. Frame artwork can be sliced into reusable corners
+and edges; the layout and contents remain responsive. Prototype one frame and its
+control states before applying that visual language throughout the editor.
+
+Audit existing game sprites first for navigation, weather and domain imagery.
+Create a coherent small pixel-art set for missing editor actions, using consistent
+palette, source-pixel scale and optical size. Generated study icons are references,
+not production-ready art. Choose sprites that read at their actual control size.
+
+Keep the existing Sprite drawing knowledge and expose semantic icon definitions
+for fixed navigation/actions. Item rendering still needs its game-specific layers
+and state. Convenient factories remain available with correct ownership; static
+chrome does not need to acquire item editing behavior just to draw an icon.
+
 ## Production control consolidation
 
 The calendar screen now uses the existing input/select components, a shared field

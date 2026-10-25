@@ -34,7 +34,7 @@ it.effect(
 			).toBe(true);
 			// Encoding strips synthetic equipment attributes on a copy, not on the session.
 			expect(yield* session.snapshot).toEqual(state);
-		}).pipe(Effect.provide(SaveCodecLive), Effect.provide(NodeServices.layer)),
+		}).pipe(Effect.provide(Layer.merge(SaveCodecLive, NodeServices.layer))),
 );
 
 it.effect(
@@ -53,7 +53,7 @@ it.effect(
 			expect(yield* codec.decode(yield* codec.encode(original))).toEqual(
 				original,
 			);
-		}).pipe(Effect.provide(SaveCodecLive), Effect.provide(NodeServices.layer)),
+		}).pipe(Effect.provide(Layer.merge(SaveCodecLive, NodeServices.layer))),
 );
 
 it.effect(
@@ -82,7 +82,7 @@ it.effect(
 				.decode(yield* codec.encode(wrongVersion))
 				.pipe(Effect.flip);
 			expect(unsupported.stage).toBe("version");
-		}).pipe(Effect.provide(SaveCodecLive), Effect.provide(NodeServices.layer)),
+		}).pipe(Effect.provide(Layer.merge(SaveCodecLive, NodeServices.layer))),
 );
 
 it.effect(
@@ -107,8 +107,7 @@ it.effect(
 				readFile: () => Effect.succeed(new Uint8Array()),
 			});
 			const error = yield* editFile("virtual-save", []).pipe(
-				Effect.provide(fakeCodec),
-				Effect.provide(fs),
+				Effect.provide(Layer.merge(fakeCodec, fs)),
 				Effect.flip,
 			);
 			expect(error._tag).toBe("SaveReadError");
@@ -161,8 +160,7 @@ it.effect("interrupting an import releases acquired parser resources", () =>
 		});
 		const fiber = yield* Effect.forkScoped(
 			editFile("virtual-save", []).pipe(
-				Effect.provide(fakeCodec),
-				Effect.provide(fs),
+				Effect.provide(Layer.merge(fakeCodec, fs)),
 			),
 		);
 		yield* Deferred.await(acquired);
@@ -211,7 +209,7 @@ it.effect("ten canceled real worker requests release every worker", () =>
 				live += delta;
 				if (delta > 0) {
 					acquired++;
-					Effect.runSync(Deferred.succeed(ready, undefined));
+					Deferred.doneUnsafe(ready, Effect.void);
 				}
 			});
 			const work = Effect.gen(function* () {

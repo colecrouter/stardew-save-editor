@@ -55,14 +55,6 @@
 </main>
 
 <style>
-	:global(body) {
-		margin: 0;
-		background: #f5f5f0;
-		color: #24302b;
-		font:
-			16px/1.5 system-ui,
-			sans-serif;
-	}
 	main {
 		max-width: 760px;
 		margin: 32px auto;
@@ -79,14 +71,5 @@
 		padding: 8px;
 		font: inherit;
 		max-width: 100%;
-	}
-	:global(button),
-	:global(input),
-	:global(select) {
-		font: inherit;
-	}
-	:global(:focus-visible) {
-		outline: 3px solid #286d9d;
-		outline-offset: 3px;
 	}
 </style>

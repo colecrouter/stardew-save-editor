@@ -19,7 +19,7 @@ const envelope = Schema.Struct({
 		gameVersion: Schema.String,
 		player: Schema.Struct({
 			name: Schema.String,
-			UniqueMultiplayerID: Schema.Union([Schema.String, Schema.Number]),
+			UniqueMultiplayerID: Schema.Union([Schema.String, Schema.Finite]),
 			items: Schema.Struct({ Item: Schema.Array(Schema.Unknown) }),
 		}),
 		farmhands: Schema.Union([
@@ -70,9 +70,7 @@ export const SaveCodecLive = Layer.sync(SaveCodec, () => {
 					document.SaveGame as unknown as { gameVersion: string }
 				).gameVersion;
 				if (!/^1\.6(?:\.|$)/.test(version))
-					return yield* Effect.fail(
-						new SaveReadError({ stage: "version", cause: version }),
-					);
+					return yield* new SaveReadError({ stage: "version", cause: version });
 				return document;
 			}),
 		encode: (document) =>

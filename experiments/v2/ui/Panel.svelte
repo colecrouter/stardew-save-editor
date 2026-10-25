@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { untrack } from "svelte";
+	import NumberField from "./NumberField.svelte";
+	import ReorderDialog from "./ReorderDialog.svelte";
 	import type { InventoryModel } from "../inventory-model.ts";
 
 	let { model }: { model: InventoryModel } = $props();
@@ -7,11 +9,6 @@
 	const { items, selected, money, count, canUndo, canRedo, error } = untrack(
 		() => model,
 	);
-	function commit(event: SubmitEvent) {
-		event.preventDefault();
-		const form = event.currentTarget as HTMLFormElement;
-		model.stack.set(Number(new FormData(form).get("stack")));
-	}
 </script>
 
 <section aria-label="Inventory editor">
@@ -38,21 +35,7 @@
 		{/each}
 	</div>
 	<h2>Selected: {$selected?.name ?? "None"}</h2>
-	<form onsubmit={commit}>
-		<label for="stack">Stack size</label>
-		<input
-			id="stack"
-			name="stack"
-			type="number"
-			min="1"
-			max="999"
-			step="1"
-			required
-			value={$selected?.stack || 1}
-			disabled={!$selected?.editable}
-		/>
-		<button type="submit" disabled={!$selected?.editable}>Apply stack</button>
-	</form>
+	<NumberField field={model.stackField} />
 	{#if !$selected?.editable}<p>
 			This slot does not contain a supported stackable object.
 		</p>{/if}
@@ -61,8 +44,8 @@
 		>
 		<button type="button" onclick={model.redo} disabled={!$canRedo}>Redo</button
 		>
-		<button type="button" onclick={model.reverse}>Reverse backpack</button>
 	</div>
+	<ReorderDialog commit={model.reverse} />
 	{#if $error}<p role="alert">{$error}</p>{/if}
 	<p role="status">
 		{$canUndo
@@ -74,7 +57,7 @@
 <style>
 	section {
 		padding: 20px;
-		background: white;
+		background: var(--editor-surface);
 		border: 1px solid #ccd4ca;
 		border-radius: 8px;
 		margin-top: 24px;
@@ -82,54 +65,22 @@
 	label {
 		display: block;
 	}
-	select,
-	input {
+	select {
 		padding: 8px;
 		max-width: 100%;
 		box-sizing: border-box;
 	}
-	button {
-		padding: 8px 12px;
-		cursor: pointer;
-		border: 1px solid #738575;
-		background: #f5f8f3;
-		border-radius: 4px;
-	}
-	button:disabled {
-		opacity: 0.55;
-		cursor: default;
-	}
 	button[aria-pressed="true"] {
-		background: #dcebd8;
+		background: var(--editor-selected);
 		border-color: #335b35;
 	}
 	.slots,
-	.actions,
-	form {
+	.actions {
 		display: flex;
 		gap: 10px;
 		flex-wrap: wrap;
 	}
 	.slots button {
 		flex: 1 1 150px;
-	}
-	form {
-		align-items: end;
-	}
-	form label {
-		flex-basis: 100%;
-	}
-	input {
-		width: 130px;
-	}
-	.actions {
-		margin-top: 20px;
-	}
-	h2 {
-		font-size: 1.15rem;
-		margin-top: 24px;
-	}
-	[role="alert"] {
-		color: #912b22;
 	}
 </style>

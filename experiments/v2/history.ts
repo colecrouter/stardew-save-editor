@@ -3,11 +3,14 @@ import {
 	type Mutation,
 	MutationError,
 	prepare,
+	farmers,
 	type Receipt,
 	type SaveDocument,
 } from "./domain.ts";
 
 interface Entry {
+	identitiesBefore: Record<string, string[]>;
+	identitiesAfter: Record<string, string[]>;
 	id: number;
 	intent: Omit<Receipt, "changes">;
 	actions: readonly Mutation[];
@@ -15,6 +18,8 @@ interface Entry {
 	backward: JsonPatch.JsonPatch;
 }
 interface History {
+	identities: Record<string, string[]>;
+	revision: number;
 	document: SaveDocument;
 	baseline: SaveDocument;
 	entries: Entry[];
@@ -39,7 +44,21 @@ export const makeHistorySession = (document: SaveDocument, limit = 100) =>
 				new MutationError("History requires plain JSON save data"),
 			);
 		const baseline = structuredClone(document);
+		// Item IDs describe types, not instances. Allocate session-only handles,
+		// including opaque/empty slots, without adding fields to the exported save.
+		let nextIdentity = 0;
+		const identities: Record<string, string[]> = {};
+		for (const farmer of farmers(baseline)) {
+			const id = String(farmer.UniqueMultiplayerID);
+			if (Object.hasOwn(identities, id))
+				return yield* Effect.fail(
+					new MutationError("Farmer ID must resolve exactly once"),
+				);
+			identities[id] = farmer.items.Item.map(() => `item:${++nextIdentity}`);
+		}
 		const ref = yield* TxSubscriptionRef.make<History>({
+			identities,
+			revision: 0,
 			document: baseline,
 			baseline,
 			entries: [],
@@ -54,13 +73,25 @@ export const makeHistorySession = (document: SaveDocument, limit = 100) =>
 			}),
 		);
 
-		const update = (change: (state: History) => History) =>
+		const update = (
+			change: (state: History) => History,
+			expectedRevision?: number,
+		) =>
 			Effect.tx(
 				Effect.gen(function* () {
 					const state = yield* TxSubscriptionRef.get(ref);
 					const next = yield* Effect.try({
 						try: () => {
 							if (closed) throw new MutationError("Session closed");
+							// A draft cannot commit against a document changed since it opened,
+							// including an undo/redo cycle returning to the same visible value.
+							if (
+								expectedRevision !== undefined &&
+								state.revision !== expectedRevision
+							)
+								throw new MutationError(
+									"The save changed while editing. Reload the current value.",
+								);
 							return change(state);
 						},
 						catch: (error) =>
@@ -68,8 +99,10 @@ export const makeHistorySession = (document: SaveDocument, limit = 100) =>
 								? error
 								: new MutationError(String(error)),
 					});
-					if (next !== state) yield* TxSubscriptionRef.set(ref, next);
-					return structuredClone(next);
+					const published =
+						next === state ? state : { ...next, revision: state.revision + 1 };
+					if (published !== state) yield* TxSubscriptionRef.set(ref, published);
+					return structuredClone(published);
 				}),
 			);
 
@@ -82,21 +115,65 @@ export const makeHistorySession = (document: SaveDocument, limit = 100) =>
 			),
 			// A group has one undo boundary and one review emphasis. Each constituent
 			// intent remains inspectable; a quiet operation never disappears from patches.
-			execute: (actions: readonly Mutation[], label?: string) =>
+			execute: (
+				actions: readonly Mutation[],
+				label?: string,
+				expectedRevision?: number,
+			) =>
 				update((state) => {
 					if (actions.length === 0) return state;
 					let prepared = { document: state.document, history: [] as Receipt[] };
-					for (const action of actions) prepared = prepare(prepared, action);
+					let identities = state.identities;
+					const resolved: Mutation[] = [];
+					for (const requested of actions) {
+						let action = requested;
+						if (
+							requested.type === "item-stack" &&
+							requested.entityId !== undefined
+						) {
+							const slot =
+								identities[requested.farmerId]?.indexOf(requested.entityId) ??
+								-1;
+							if (slot < 0)
+								throw new MutationError(
+									"Item no longer belongs to this farmer",
+								);
+							action = { ...requested, slot };
+						}
+						prepared = prepare(prepared, action);
+						resolved.push(action);
+						if (action.type === "reorder") {
+							const before = identities[action.farmerId];
+							identities = {
+								...identities,
+								[action.farmerId]: action.order.map((slot) => before[slot]),
+							};
+						}
+					}
 					const forward = JsonPatch.get(
 						json(state.document),
 						json(prepared.document),
 					);
-					if (forward.length === 0) return state;
+					// Swapping byte-identical items still moves distinct session entities.
+					// Keep that undoable even when the XML has no net difference.
+					if (
+						forward.length === 0 &&
+						JSON.stringify(identities) === JSON.stringify(state.identities)
+					)
+						return state;
 					const receipts = prepared.history;
-					const first = receipts[0];
+					const first = receipts[0] ?? {
+						intent:
+							resolved.find((action) => action.type === "reorder") ??
+							resolved[0],
+						label: "Reorder backpack",
+						review: "compact" as const,
+					};
 					const entry: Entry = {
+						identitiesBefore: state.identities,
+						identitiesAfter: identities,
 						id: state.nextId,
-						actions: structuredClone(actions),
+						actions: structuredClone(resolved),
 						intent: {
 							intent: structuredClone(first.intent),
 							label: label ?? first.label,
@@ -116,18 +193,20 @@ export const makeHistorySession = (document: SaveDocument, limit = 100) =>
 					const evict = Math.max(0, entries.length - limit);
 					return {
 						...state,
+						identities,
 						document: prepared.document,
 						entries: entries.slice(evict),
 						cursor: entries.length - evict,
 						nextId: state.nextId + 1,
 						dropped: state.dropped + evict,
 					};
-				}),
+				}, expectedRevision),
 			undo: update((state) => {
 				if (state.cursor === 0) return state;
 				const entry = state.entries[state.cursor - 1];
 				return {
 					...state,
+					identities: entry.identitiesBefore,
 					document: JsonPatch.apply(
 						entry.backward,
 						json(state.document),
@@ -140,6 +219,7 @@ export const makeHistorySession = (document: SaveDocument, limit = 100) =>
 				const entry = state.entries[state.cursor];
 				return {
 					...state,
+					identities: entry.identitiesAfter,
 					document: JsonPatch.apply(
 						entry.forward,
 						json(state.document),

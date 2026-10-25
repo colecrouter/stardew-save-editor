@@ -10,10 +10,13 @@ import {
 	inventory,
 	sameView,
 	stackAction,
+	makeStackField,
 } from "./inventory-model.ts";
 
 export const makeAtomInventory = (session: HistorySession) =>
 	Effect.gen(function* () {
+		// UI callbacks run later; retain the session services at this boundary.
+		const services = yield* Effect.context<never>();
 		const registry = yield* Effect.acquireRelease(
 			// Supplying a zero TTL without a positive bucket resolution produces a
 			// NaN timer in Effect 4.0.6. Keep eviction immediate with a valid bucket.
@@ -43,7 +46,7 @@ export const makeAtomInventory = (session: HistorySession) =>
 			// An evicted view may remount after edits elsewhere. Read the current
 			// session while its stream reconnects, never the model's original snapshot.
 			AsyncResult.getOrElse(get(source), () =>
-				Effect.runSync(session.snapshot),
+				Effect.runSyncWith(services)(session.snapshot),
 			),
 		);
 		const farmer = Atom.make(
@@ -107,6 +110,13 @@ export const makeAtomInventory = (session: HistorySession) =>
 		});
 		return {
 			kind: "atom",
+			stackField: makeStackField(
+				session,
+				read(state),
+				read(farmer),
+				read(slot),
+				services,
+			),
 			items: read(items),
 			selected: read(selected),
 			money: read(money),

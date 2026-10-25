@@ -1,5 +1,6 @@
-import { Effect, Exit, Scope } from "effect";
-import type { Readable } from "svelte/store";
+import { Effect, Exit, Scope, type Context } from "effect";
+import { derived, type Readable } from "svelte/store";
+import { parseStack, type NumericField } from "./field.ts";
 import { farmers, type Mutation, type SaveDocument } from "./domain.ts";
 import { makeHistorySession } from "./history.ts";
 
@@ -8,6 +9,7 @@ export type HistorySession = Effect.Success<
 >;
 export type HistoryState = Effect.Success<HistorySession["snapshot"]>;
 export interface ItemView {
+	entityId: string;
 	id: string;
 	name: string;
 	stack: number;
@@ -15,6 +17,7 @@ export interface ItemView {
 	slot: number;
 }
 export interface InventoryModel {
+	stackField: NumericField;
 	kind: "atom" | "store";
 	items: Readable<ItemView[]>;
 	selected: Readable<ItemView | undefined>;
@@ -32,6 +35,43 @@ export interface InventoryModel {
 	debug: () => { nodes: number; liveStreams: number };
 }
 
+// Both presentation adapters expose the same domain-backed field contract.
+// Capturing the target here prevents a later selection change from retargeting it.
+export function makeStackField(
+	session: HistorySession,
+	state: Readable<HistoryState>,
+	farmer: Readable<string>,
+	slot: Readable<number>,
+	services: Context.Context<never>,
+): NumericField {
+	return {
+		constraints: { min: 1, max: 999, step: 1 },
+		actionLabel: "Apply stack",
+		label: "Stack size",
+		description: "Apply a whole number from 1 to 999 as one undoable action.",
+		parse: parseStack,
+		format: String,
+		value: derived([state, farmer, slot], ([state, farmerId, slot]) => {
+			const item = inventory(state, farmerId)[slot];
+			return {
+				key: JSON.stringify([farmerId, item?.entityId]),
+				value: item?.stack ?? 0,
+				revision: state.revision,
+				available: item?.editable ?? false,
+				commit: async (value: number) => {
+					await Effect.runPromiseWith(services)(
+						session.execute(
+							[stackAction(farmerId, item, value)],
+							undefined,
+							state.revision,
+						),
+					);
+				},
+			};
+		}),
+	};
+}
+
 export function inventory(state: HistoryState, farmerId: string): ItemView[] {
 	const farmer = farmers(state.document).find(
 		(farmer) => String(farmer.UniqueMultiplayerID) === farmerId,
@@ -40,6 +80,7 @@ export function inventory(state: HistoryState, farmerId: string): ItemView[] {
 		const item =
 			raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
 		return {
+			entityId: state.identities[farmerId]?.[slot] ?? "",
 			slot,
 			id: String(item.itemId ?? ""),
 			name: String(item.name ?? "Empty"),
@@ -62,6 +103,7 @@ export const stackAction = (
 	farmerId,
 	slot: item?.slot ?? -1,
 	itemId: item?.id ?? "",
+	entityId: item?.entityId,
 	value,
 });
 
@@ -112,7 +154,7 @@ export async function openInventory(
 	) => Effect.Effect<InventoryModel, never, Scope.Scope>,
 	document = inventoryFixture(),
 ) {
-	const scope = Effect.runSync(Scope.make());
+	const scope = Scope.makeUnsafe();
 	try {
 		const session = await Effect.runPromise(
 			makeHistorySession(document).pipe(

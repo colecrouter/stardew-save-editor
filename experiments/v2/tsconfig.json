@@ -1,5 +1,15 @@
 {
 	"compilerOptions": {
+		"plugins": [
+			{
+				"name": "@effect/language-service",
+				"includeSuggestionsInTsc": false,
+				"ignoreEffectWarningsInTscExitCode": true,
+				"diagnosticSeverity": {
+					"unstableApiUsage": "off"
+				}
+			}
+		],
 		"target": "ES2022",
 		"module": "ESNext",
 		"moduleResolution": "Bundler",

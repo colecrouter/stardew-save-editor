@@ -133,8 +133,9 @@ it.effect(
 	() =>
 		Effect.gen(function* () {
 			const session = yield* makeHistorySession(tinyFixture());
-			yield* Effect.all(
-				[20, 30, 40].map((value) => session.execute([money(value)])),
+			yield* Effect.forEach(
+				[20, 30, 40],
+				(value) => session.execute([money(value)]),
 				{ concurrency: "unbounded" },
 			);
 			expect((yield* session.snapshot).entries.length).toBe(3);

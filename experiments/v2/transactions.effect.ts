@@ -19,7 +19,7 @@ it.effect("Effect transactions commit document and receipt refs together", () =>
 					const next = prepare(state, rename);
 					yield* TxRef.set(document, next.document);
 					yield* TxRef.set(receipts, next.history);
-					if (fail) yield* Effect.fail("injected after both writes");
+					if (fail) return yield* Effect.fail("injected after both writes");
 				}),
 			);
 		expect(Exit.isFailure(yield* Effect.exit(mutate(true)))).toBe(true);
@@ -43,7 +43,7 @@ it.effect(
 				Effect.gen(function* () {
 					const unsafe = yield* TxRef.get(ref);
 					unsafe.SaveGame.player.money = 900; // resembles an in-place proxy write
-					yield* Effect.fail("cannot undo ordinary JavaScript mutation");
+					return yield* Effect.fail("cannot undo ordinary JavaScript mutation");
 				}),
 			).pipe(Effect.exit);
 			expect((yield* TxRef.get(ref)).SaveGame.player.money).toBe(900);

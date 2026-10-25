@@ -1,6 +1,6 @@
 import { fileURLToPath } from "node:url";
 import { NodeRuntime, NodeServices } from "@effect/platform-node";
-import { Effect, FileSystem } from "effect";
+import { Effect, Layer, FileSystem } from "effect";
 import { scenarios } from "./fixture.ts";
 import { editFile } from "./platform.ts";
 import { SaveCodec, SaveCodecLive } from "./save-service.ts";
@@ -27,6 +27,6 @@ const main = Effect.scoped(
 			})),
 		});
 	}),
-).pipe(Effect.provide(SaveCodecLive), Effect.provide(NodeServices.layer));
+).pipe(Effect.provide(Layer.merge(SaveCodecLive, NodeServices.layer)));
 
 NodeRuntime.runMain(main);

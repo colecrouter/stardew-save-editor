@@ -224,7 +224,7 @@ test("store contract emits synchronously, observes commits, and cleans up with s
 				const unsubscribe = session.subscribe((value) => {
 					notifications++;
 					if (value.document.SaveGame.player.money === 25)
-						Effect.runSync(Deferred.succeed(changed, undefined));
+						Deferred.doneUnsafe(changed, Effect.void);
 					// A view cannot mutate the authoritative state.
 					value.document.SaveGame.player.name = "View only";
 				});

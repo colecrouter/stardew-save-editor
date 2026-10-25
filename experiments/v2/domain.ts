@@ -40,6 +40,8 @@ export type Mutation =
 			farmerId: string;
 			slot: number;
 			itemId: string;
+			/** Session-owned identity; resolved by the history session before applying. */
+			entityId?: string;
 			value: number;
 	  }
 	| { type: "farm-name"; value: string }

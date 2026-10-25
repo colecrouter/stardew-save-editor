@@ -1,0 +1,46 @@
+/* Experiment-wide control defaults also reach portaled headless components. */
+:root {
+	--editor-surface: #ffffff;
+	--editor-canvas: #f5f5f0;
+	--editor-text: #24302b;
+	--editor-border: #738575;
+	--editor-control: #f5f8f3;
+	--editor-selected: #dcebd8;
+	--editor-focus: #286d9d;
+}
+
+body {
+	margin: 0;
+	background: var(--editor-canvas);
+	color: var(--editor-text);
+	font:
+		16px/1.5 system-ui,
+		sans-serif;
+}
+
+button,
+input,
+select {
+	box-sizing: border-box;
+	max-width: 100%;
+	border: 1px solid var(--editor-border);
+	border-radius: 4px;
+	padding: 8px 12px;
+	font: inherit;
+	color: inherit;
+}
+
+button {
+	background: var(--editor-control);
+	cursor: pointer;
+}
+
+button:disabled {
+	opacity: 0.55;
+	cursor: default;
+}
+
+:focus-visible {
+	outline: 3px solid var(--editor-focus);
+	outline-offset: 3px;
+}

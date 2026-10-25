@@ -11,13 +11,15 @@
 		"lab": "vite --config vite.lab.config.ts",
 		"lab:build": "vite build --config vite.lab.config.ts",
 		"check:ui": "svelte-check --workspace . --tsconfig tsconfig.lab.json",
-		"check": "tsc --noEmit -p tsconfig.json"
+		"check": "node ../../node_modules/@typescript/native/bin/tsc --noEmit -p tsconfig.json",
+		"effect:diagnostics": "effect-tsgo diagnostics --project tsconfig.json"
 	},
 	"engines": {
 		"node": ">=24"
 	},
 	"dependencies": {
 		"@effect/platform-node": "4.0.6",
+		"bits-ui": "2.20.2",
 		"effect": "4.0.6"
 	},
 	"devDependencies": {
@@ -25,7 +27,7 @@
 		"@sveltejs/vite-plugin-svelte": "7.3.1",
 		"@types/node": "24.0.0",
 		"svelte": "5.55.7",
-		"typescript": "5.9.3",
+		"typescript": "6.0.3",
 		"vite": "8.3.5",
 		"vitest": "5.0.5"
 	}

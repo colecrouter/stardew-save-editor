@@ -47,3 +47,17 @@ Production inventory migration requires stable item identity across moves and
 undo/redo, plus explicit handling of dirty drafts during external changes. The
 prototype's slot and item-ID guard does not distinguish duplicate items. Resolve
 that in the session before claiming the production contract is ready.
+
+## Current evidence
+
+The stack draft, monotonic revision guard, duplicate-item identities, and native/Bits
+confirmation comparison are implemented in the lab. All 48 experiment tests pass.
+The complete Effect diagnostic stream is clean. Oxfmt, TS7 checks, Svelte checks,
+and clean dependency installation pass; all 552 app tests pass. Production build
+compilation succeeds, while the configured Sentry upload remains blocked by HTTP
+403 permissions. No deployment was attempted.
+
+The first dialog comparison favors native HTML for this simple confirmation. Bits
+remains useful to evaluate for item selection/popovers; it is loaded on demand in
+the lab. Calendar and bundle adapter extraction, broader item identity operations,
+and existing production proxy lifetimes are still required before migration.

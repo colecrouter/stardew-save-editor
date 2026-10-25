@@ -9,6 +9,8 @@ import {
 
 export const makeEffectSession = (document: SaveDocument) =>
 	Effect.gen(function* () {
+		// UI callbacks run later; retain the session services at this boundary.
+		const services = yield* Effect.context<never>();
 		const state = yield* SubscriptionRef.make<SessionState>({
 			document: structuredClone(document),
 			history: [],
@@ -31,8 +33,12 @@ export const makeEffectSession = (document: SaveDocument) =>
 			// the session scope, so forgetting unsubscribe cannot outlive the session.
 			subscribe: (notify: (value: SessionState) => void) => {
 				if (closed) throw new MutationError("Session closed");
-				notify(structuredClone(Effect.runSync(SubscriptionRef.get(state))));
-				const fiber = Effect.runSync(
+				notify(
+					structuredClone(
+						Effect.runSyncWith(services)(SubscriptionRef.get(state)),
+					),
+				);
+				const fiber = Effect.runSyncWith(services)(
 					Effect.forkIn(
 						Stream.runForEach(SubscriptionRef.changes(state), (value) =>
 							Effect.sync(() => notify(structuredClone(value))),
@@ -41,7 +47,7 @@ export const makeEffectSession = (document: SaveDocument) =>
 					),
 				);
 				return () => {
-					Effect.runFork(Fiber.interrupt(fiber));
+					Effect.runForkWith(services)(Fiber.interrupt(fiber));
 				};
 			},
 			snapshot: Effect.map(SubscriptionRef.get(state), (value) =>

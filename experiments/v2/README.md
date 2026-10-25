@@ -11,6 +11,7 @@ save-format implementation. Browser Comlink behavior and codec rules are unchang
 npm ci
 npm ci --prefix experiments/v2
 npm run check --prefix experiments/v2
+npm run effect:diagnostics --prefix experiments/v2
 npm test --prefix experiments/v2
 npm run demo --prefix experiments/v2
 npm run demo:platform --prefix experiments/v2
@@ -37,8 +38,8 @@ opaque items, nil markers and Secret Notes. Arrays are recorded as complete valu
 
 The Effect session adds serialized SubscriptionRef updates, typed failures, scopes
 and consumer fibers. A tested Svelte store contract exposes snapshots without a
-second writable state graph. A rendered Svelte component and subscriber error
-handling remain future work; notifications are not a durable event log.
+second writable state graph. The inventory lab below exercises rendered fields
+and error handling; notifications are not a durable event log.
 
 SaveCodec is a Context service with direct and real-worker layers. It composes strict
 UTF-8/zlib decoding, XML validation, production codec behavior, minimum-envelope
@@ -134,5 +135,36 @@ models, each using the transactional history service. Start it with `npm run lab
 --prefix experiments/v2`; mode switching starts a fresh session. Stack fields execute
 mutations rather than writing raw data. Twelve paired tests include real-save export,
 target capture, unrelated-update suppression, invalid edits, and consumer cleanup.
-The suite now totals 41 tests (8 native / 33 Effect). See
+The suite now totals 48 tests (8 native / 40 Effect). See
 [the comparison](../../docs/v2-atom-comparison.md) for findings and limitations.
+
+## Shared fields and identity
+
+`field.ts` owns an editing interaction's draft, validation, pending/error state,
+and source-conflict handling. A field snapshot carries a commit operation bound
+to its original item and document revision. Typing does not mutate the save.
+Changing selection preserves dirty input; reloading explicitly starts a new draft.
+Revisions increase across undo/redo, preventing stale commits even after the
+document returns to the same value. Unrelated document edits currently also
+require a reload: conflict detection is conservative, not field-granular yet.
+
+The history session allocates item identities separately from save data and moves
+them atomically with reorders. Duplicate items remain distinct through undo/redo.
+A reorder of byte-identical items can have an identity-only history entry with an
+empty XML patch. Handles resolve stack actions against current slots; identities
+are never written to exported XML. This covers existing backpack stack/reorder
+operations, not creation, deletion, stacking/merging or cross-container transfers.
+
+Native and Bits UI reorder confirmations can be compared in the lab. Both pass
+keyboard cancellation/focus return and commit/cancel checks. Bits UI loads only
+when selected, in a separate 14.48 KB gzip chunk in this build. This simple dialog
+does not justify requiring Bits for every modal; complex selection/popover flows
+still need comparison. Both models, both dialogs, draft conflicts, Enter submit,
+undo/redo and a 390px viewport were exercised in Chromium through Playwright after
+T3 preview snapshots timed out twice. The final console had no errors or warnings.
+
+TypeScript 7 and Effect diagnostics run from the root tool installation. Svelte
+keeps a compatible TypeScript 6 compiler SDK. Routine checks omit suggestions;
+the diagnostic command includes them. The experiment disables `unstableApiUsage`
+because Atom and platform APIs are intentionally being evaluated; other rules
+remain enabled. The complete current stream has no errors, warnings or messages.

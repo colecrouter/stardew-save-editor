@@ -7,15 +7,18 @@ import {
 	inventory,
 	sameView,
 	stackAction,
+	makeStackField,
 } from "./inventory-model.ts";
 
 export const makeStoreInventory = (session: HistorySession) =>
 	Effect.gen(function* () {
+		// UI callbacks run later; retain the session services at this boundary.
+		const services = yield* Effect.context<never>();
 		const scope = yield* Effect.scope;
 		const initial = yield* session.snapshot;
 		let liveStreams = 0;
 		const state = readable(initial, (set) => {
-			set(Effect.runSync(session.snapshot));
+			set(Effect.runSyncWith(services)(session.snapshot));
 			const stream = Stream.unwrap(
 				Effect.gen(function* () {
 					yield* Effect.acquireRelease(
@@ -30,14 +33,14 @@ export const makeStoreInventory = (session: HistorySession) =>
 					return session.changes;
 				}),
 			);
-			const fiber = Effect.runSync(
+			const fiber = Effect.runSyncWith(services)(
 				Effect.forkIn(
 					Stream.runForEach(stream, (value) => Effect.sync(() => set(value))),
 					scope,
 				),
 			);
 			return () => {
-				Effect.runFork(Fiber.interrupt(fiber));
+				Effect.runForkWith(services)(Fiber.interrupt(fiber));
 			};
 		});
 		const farmer = writable(
@@ -58,7 +61,7 @@ export const makeStoreInventory = (session: HistorySession) =>
 		const error = writable("");
 		const run = <A>(action: Effect.Effect<A, unknown>) => {
 			error.set("");
-			Effect.runFork(
+			Effect.runForkWith(services)(
 				Effect.forkIn(
 					action.pipe(
 						Effect.catchCause((cause) =>
@@ -86,6 +89,7 @@ export const makeStoreInventory = (session: HistorySession) =>
 		});
 		return {
 			kind: "store",
+			stackField: makeStackField(session, state, farmer, slot, services),
 			items: distinct(items),
 			selected: distinct(selected),
 			money,

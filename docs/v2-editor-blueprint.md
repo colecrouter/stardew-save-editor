@@ -99,20 +99,20 @@ Illustrative contracts, not production API signatures:
 
 ```ts
 interface Field<T> {
-  value: ReadModel<T>;
-  label: Message;
-  description?: Message;
-  availability: ReadModel<Capability>;
-  constraints: ReadModel<Constraints<T>>;
-  parse(text: string): ParseResult<T>;
-  format(value: T, locale: Locale): string;
-  commit(value: T): Operation<void>;
+	value: ReadModel<T>;
+	label: Message;
+	description?: Message;
+	availability: ReadModel<Capability>;
+	constraints: ReadModel<Constraints<T>>;
+	parse(text: string): ParseResult<T>;
+	format(value: T, locale: Locale): string;
+	commit(value: T): Operation<void>;
 }
 
 interface Feature {
-  id: FeatureId;
-  title: Message;
-  load(): Promise<FeatureModule>;
+	id: FeatureId;
+	title: Message;
+	load(): Promise<FeatureModule>;
 }
 ```
 
@@ -240,7 +240,19 @@ mobile data. A count of wrappers or a particular library is not an acceptance cr
 
 ## Open design choices
 
-Resolve entity identity through undo, adapter versioning, field draft conflict semantics,
+The [implementation requirements](v2-implementation.md) now have a working stack
+draft and native/Bits confirmation comparison in the inventory lab. Session-only
+item identities are atomic with reorders and undo/redo, including swaps of
+byte-identical items. Draft commits check a monotonic document revision. This
+establishes those contracts for stack/reorder operations; identity semantics for
+creation, deletion, merging and transfers still need proof before migration.
+
+The simple confirmation works well with native `<dialog>`. Bits UI remains a
+candidate for compound selection/popover behavior, rather than a prerequisite
+for ordinary controls. Its experiment component is dynamically imported when
+selected. Calendar and bundle adapters remain the next contract tests.
+
+Resolve broader entity identity operations, adapter versioning, field-granular draft conflicts,
 history byte budgets/persistence, selective revert, translation keys for existing game
 text, worker lifetime/pooling and scope ownership for existing convenient factories.
 These choices should be explicit before a general feature registration API is fixed.

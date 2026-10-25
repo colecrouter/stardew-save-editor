@@ -48,6 +48,7 @@ export default defineConfig(({ mode }) => ({
 		],
 	},
 	test: {
+		css: true,
 		environment: "happy-dom",
 		setupFiles: ["@vitest/web-worker", "./tests/helpers/setup.ts"],
 		// Required for SvelteKit with Vite 7+

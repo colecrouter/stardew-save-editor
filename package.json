@@ -14,8 +14,10 @@
 		"test": "vitest run",
 		"emulate:webkit": "node tests/webkit.js",
 		"prepare": "effect-language-service patch && effect-tsgo patch --typescript",
-		"check:types": "svelte-kit sync && node node_modules/@typescript/native/bin/tsc --noEmit -p tsconfig.json && node node_modules/@typescript/native/bin/tsc --noEmit -p codegen/tsconfig.json",
-		"effect:diagnostics": "effect-tsgo diagnostics"
+		"check:types": "npm run sync && node node_modules/@typescript/native/bin/tsc --noEmit -p tsconfig.json",
+		"effect:diagnostics": "effect-tsgo diagnostics",
+		"sync": "svelte-kit sync",
+		"check:codegen": "node node_modules/@typescript/native/bin/tsc --noEmit -p codegen/tsconfig.json"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.4.4",

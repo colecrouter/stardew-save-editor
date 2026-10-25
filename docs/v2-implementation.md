@@ -25,6 +25,17 @@ for this repository.
 
 ## Shared components: visual and functional requirements
 
+A one-to-one port of the current UI is not a V2 goal. Existing layouts and colors
+may be retained temporarily for regression validation; they do not constrain the
+redesign. Explore a more faithful in-game visual language and a distinct,
+restrained editor identity with pixel-art accents. Select a coherent direction
+and validate it on real editing workflows.
+
+Responsiveness includes pixel art: preserve crisp integer-scale sprites while
+layouts reflow, navigation adapts, and text and controls remain usable on narrow
+screens. Scaling down a desktop screenshot or clipping a fixed-width game panel
+does not satisfy this requirement.
+
 V2 includes consolidation of the existing reusable and bespoke controls, beyond
 the current field/session experiment. Audit buttons, text/number inputs, selects,
 dropdowns, comboboxes, dialogs and their variants across representative screens.
@@ -78,10 +89,14 @@ before claiming the production contract is ready.
 
 ## Current evidence
 
+The [control and operation implementation notes](v2-controls-and-operations.md)
+cover the production calendar control migration, inventory operations, byte
+budgets, lifetime repair, and the calendar domain-state extraction prerequisite.
+
 The stack draft, monotonic revision guard, duplicate-item identities, and native/Bits
-confirmation comparison are implemented in the lab. All 48 experiment tests pass.
+confirmation comparison are implemented in the lab. All 54 experiment tests pass.
 The complete Effect diagnostic stream is clean. Oxfmt, TS7 checks, Svelte checks,
-and clean dependency installation pass; all 552 app tests pass. Production build
+and clean dependency installation pass; all 556 app tests pass. Production build
 compilation succeeds, while the configured Sentry upload remains blocked by HTTP
 403 permissions. No deployment was attempted.
 

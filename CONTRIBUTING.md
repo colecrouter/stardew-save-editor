@@ -53,8 +53,10 @@ to write formatting and `npm run format:check` to verify it. Generated game data
 and assets are excluded. Biome remains the linter while we assess replacement
 lint coverage; it no longer formats files.
 
-`npm run check` runs linting, native TypeScript 7 checks for the app and codegen,
-and `svelte-check`. Svelte still uses the JavaScript TypeScript 6 SDK because it
+`npm run check` runs linting, native TypeScript 7 checks for the app,
+and `svelte-check`. Run `npm run check:codegen` after unpacking the game assets;
+codegen imports those untracked files, so this check cannot run on a clean CI
+checkout. Svelte still uses the JavaScript TypeScript 6 SDK because it
 needs the compiler API; the native compiler is installed as `@typescript/native`.
 Scripts use an explicit compiler path to avoid ambiguous `tsc` executable names.
 

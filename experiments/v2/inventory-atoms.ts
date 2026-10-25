@@ -109,6 +109,12 @@ export const makeAtomInventory = (session: HistorySession) =>
 				registry.subscribe(atom, notify, { immediate: true }),
 		});
 		return {
+			historyUsage: read(
+				Atom.make((get) => ({
+					bytes: get(state).retainedBytes,
+					dropped: get(state).dropped,
+				})).pipe(Atom.withEquality(sameView)),
+			),
 			kind: "atom",
 			stackField: makeStackField(
 				session,

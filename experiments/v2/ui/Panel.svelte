@@ -6,9 +6,16 @@
 
 	let { model }: { model: InventoryModel } = $props();
 	// App keys the panel by session: these stores belong to this panel's lifetime.
-	const { items, selected, money, count, canUndo, canRedo, error } = untrack(
-		() => model,
-	);
+	const {
+		items,
+		selected,
+		money,
+		count,
+		canUndo,
+		canRedo,
+		error,
+		historyUsage,
+	} = untrack(() => model);
 </script>
 
 <section aria-label="Inventory editor">
@@ -46,6 +53,11 @@
 		>
 	</div>
 	<ReorderDialog commit={model.reverse} />
+	<p>Undo payload: {($historyUsage.bytes / 1024).toFixed(1)} KiB.</p>
+	{#if $historyUsage.dropped}<p role="status">
+			{$historyUsage.dropped} earlier actions are no longer undoable. Export review
+			still includes their net changes.
+		</p>{/if}
 	{#if $error}<p role="alert">{$error}</p>{/if}
 	<p role="status">
 		{$canUndo

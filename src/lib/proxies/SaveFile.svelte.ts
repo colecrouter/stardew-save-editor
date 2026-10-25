@@ -6,9 +6,17 @@ import { Farmer } from "$lib/proxies/Farmer.svelte";
 import { GameLocation } from "$lib/proxies/GameLocation.svelte";
 import type { MailFlag } from "$lib/proxies/Mail.svelte";
 import { QiQuests } from "$lib/proxies/QiQuests.svelte";
-import { type DataProxy, Raw } from ".";
+import { type DataProxy, Dispose, Raw } from ".";
 
 export class SaveProxy implements DataProxy<SaveFile> {
+	/** Release independent roots of items added after the save's root was made. */
+	[Dispose]() {
+		const items = new Set([
+			...this.players.flatMap((player) => [...player.inventory.values()]),
+			...this.chests.flatMap((chest) => [...chest.inventory.values()]),
+		]);
+		for (const item of items) item?.[Dispose]?.();
+	}
 	public [Raw]: SaveFile;
 
 	// Reactive index of current player

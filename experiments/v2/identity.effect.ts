@@ -4,6 +4,112 @@ import { makeHistorySession } from "./history.ts";
 import { inventoryFixture } from "./inventory-model.ts";
 
 it.effect(
+	"placing, moving and removing opaque items preserve identity and raw fields through reversal",
+	() =>
+		Effect.gen(function* () {
+			const fixture = inventoryFixture();
+			if (fixture.SaveGame.farmhands === "")
+				throw new Error("Missing fixture guest");
+			fixture.SaveGame.farmhands.Farmer[0].items.Item.push({
+				"@_xsi:nil": "true",
+				modEmpty: "keep",
+			});
+			const session = yield* makeHistorySession(fixture);
+			const opaque = {
+				"@_xsi:type": "CustomModItem",
+				modData: { version: "007" },
+				unknown: [1, { keep: true }],
+			};
+			yield* session.execute([
+				{ type: "item-place", farmerId: "host", slot: 2, item: opaque },
+			]);
+			const placed = yield* session.snapshot;
+			const entityId = placed.identities.host[2];
+			yield* session.execute([
+				{
+					type: "item-move",
+					farmerId: "host",
+					slot: 0,
+					entityId,
+					toFarmerId: "guest",
+					toSlot: 1,
+				},
+			]);
+			const moved = yield* session.snapshot;
+			expect(moved.identities.guest[1]).toBe(entityId);
+			expect(moved.document.SaveGame.player.items.Item[2]).toEqual({
+				"@_xsi:nil": "true",
+				modEmpty: "keep",
+			});
+			if (moved.document.SaveGame.farmhands === "")
+				throw new Error("Missing guest");
+			expect(moved.document.SaveGame.farmhands.Farmer[0].items.Item[1]).toEqual(
+				opaque,
+			);
+			yield* session.execute([
+				{ type: "item-remove", farmerId: "guest", slot: 0, entityId },
+			]);
+			expect((yield* session.snapshot).identities.guest[1]).not.toBe(entityId);
+			yield* session.undo;
+			expect((yield* session.snapshot).identities.guest[1]).toBe(entityId);
+			yield* session.undo;
+			expect((yield* session.snapshot).identities.host[2]).toBe(entityId);
+			yield* session.undo;
+			expect((yield* session.snapshot).document).toEqual(fixture);
+			yield* session.redo;
+			yield* session.redo;
+			yield* session.redo;
+			expect((yield* session.snapshot).cursor).toBe(3);
+		}),
+);
+
+it.effect(
+	"failed placements/transfers publish no partial state and abandoned identities are never reused",
+	() =>
+		Effect.gen(function* () {
+			const session = yield* makeHistorySession(inventoryFixture());
+			const before = yield* session.snapshot;
+			for (const action of [
+				{
+					type: "item-place",
+					farmerId: "host",
+					slot: 0,
+					item: { custom: true },
+				},
+				{
+					type: "item-place",
+					farmerId: "host",
+					slot: 2,
+					item: { bad: Infinity },
+				},
+				{
+					type: "item-move",
+					farmerId: "host",
+					slot: 0,
+					toFarmerId: "guest",
+					toSlot: 0,
+				},
+				{ type: "item-remove", farmerId: "host", slot: 99 },
+			] as const) {
+				expect(
+					Exit.isFailure(yield* Effect.exit(session.execute([action]))),
+				).toBe(true);
+				expect(yield* session.snapshot).toEqual(before);
+			}
+			yield* session.execute([
+				{ type: "item-place", farmerId: "host", slot: 2, item: { custom: 1 } },
+			]);
+			const abandoned = (yield* session.snapshot).identities.host[2];
+			yield* session.undo;
+			yield* session.execute([
+				{ type: "item-place", farmerId: "host", slot: 2, item: { custom: 2 } },
+			]);
+			expect((yield* session.snapshot).identities.host[2]).not.toBe(abandoned);
+			expect((yield* session.snapshot).entries).toHaveLength(1);
+		}),
+);
+
+it.effect(
 	"identical items retain distinct identity through reorder, edits and undo/redo",
 	() =>
 		Effect.gen(function* () {

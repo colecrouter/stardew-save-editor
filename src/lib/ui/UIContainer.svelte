@@ -17,6 +17,7 @@
 
 <style>
 	.container {
+		box-sizing: border-box;
 		width: 100%;
 		/* min-width: 445px;
         min-height: 200px; */
@@ -32,6 +33,8 @@
 	}
 
 	.outer {
+		box-sizing: border-box;
+		max-width: 100%;
 		display: inline-block;
 		padding: 10px;
 	}

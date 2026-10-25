@@ -8,8 +8,8 @@
 		"demo": "node run.ts",
 		"demo:platform": "node platform-run.ts",
 		"measure:bundle": "node measure-bundle.ts",
-		"lab": "vite --config vite.lab.config.ts",
-		"lab:build": "vite build --config vite.lab.config.ts",
+		"lab": "npm run sync --prefix ../.. && vite --config vite.lab.config.ts",
+		"lab:build": "npm run sync --prefix ../.. && vite build --config vite.lab.config.ts",
 		"check:ui": "svelte-check --workspace . --tsconfig tsconfig.lab.json",
 		"check": "node ../../node_modules/@typescript/native/bin/tsc --noEmit -p tsconfig.json",
 		"effect:diagnostics": "effect-tsgo diagnostics --project tsconfig.json"

@@ -34,6 +34,16 @@ export interface SaveDocument {
 	};
 }
 export type Mutation =
+	| { type: "item-place"; farmerId: string; slot: number; item: unknown }
+	| { type: "item-remove"; farmerId: string; slot: number; entityId?: string }
+	| {
+			type: "item-move";
+			farmerId: string;
+			slot: number;
+			entityId?: string;
+			toFarmerId: string;
+			toSlot: number;
+	  }
 	| { type: "money"; farmerId: string; value: number }
 	| {
 			type: "item-stack";
@@ -71,6 +81,19 @@ export const farmers = (document: SaveDocument) => [
 		: document.SaveGame.farmhands.Farmer),
 ];
 
+export const emptySlot = (item: unknown) =>
+	item === null ||
+	item === undefined ||
+	(typeof item === "object" &&
+		"@_xsi:nil" in item &&
+		String(item["@_xsi:nil"]) === "true");
+
+function slotIn(farmer: Farmer, slot: number) {
+	if (!Number.isInteger(slot) || slot < 0 || slot >= farmer.items.Item.length)
+		throw new MutationError("Slot is outside the backpack");
+	return farmer.items.Item[slot];
+}
+
 export function apply(
 	document: SaveDocument,
 	mutation: Mutation,
@@ -89,6 +112,53 @@ export function apply(
 	if (matches.length !== 1)
 		throw new MutationError("Farmer ID must resolve exactly once");
 	const farmer = matches[0];
+	if (mutation.type === "item-place") {
+		if (!emptySlot(slotIn(farmer, mutation.slot)))
+			throw new MutationError("Destination slot is occupied");
+		if (
+			!mutation.item ||
+			typeof mutation.item !== "object" ||
+			Array.isArray(mutation.item) ||
+			emptySlot(mutation.item)
+		)
+			throw new MutationError("An item must be a nonempty save record");
+		farmer.items.Item[mutation.slot] = structuredClone(mutation.item);
+		return {
+			label: `Place item in ${farmer.name}'s backpack`,
+			review: "standalone",
+		};
+	}
+	if (mutation.type === "item-remove" || mutation.type === "item-move") {
+		const item = slotIn(farmer, mutation.slot);
+		if (emptySlot(item)) throw new MutationError("Source slot is empty");
+		if (mutation.type === "item-remove") {
+			farmer.items.Item[mutation.slot] = { "@_xsi:nil": "true" };
+			return {
+				label: `Remove item from ${farmer.name}'s backpack`,
+				review: "standalone",
+			};
+		}
+		const targets = farmers(document).filter(
+			(entry) => String(entry.UniqueMultiplayerID) === mutation.toFarmerId,
+		);
+		if (targets.length !== 1)
+			throw new MutationError(
+				"Destination farmer ID must resolve exactly once",
+			);
+		const target = targets[0];
+		if (target === farmer && mutation.toSlot === mutation.slot)
+			return { label: "Move item", review: "compact" };
+		const destination = slotIn(target, mutation.toSlot);
+		if (!emptySlot(destination))
+			throw new MutationError("Destination slot is occupied");
+		// Swap with the destination's existing nil marker, preserving its fields.
+		farmer.items.Item[mutation.slot] = destination;
+		target.items.Item[mutation.toSlot] = item;
+		return {
+			label: `Move item to ${target.name}'s backpack`,
+			review: target === farmer ? "compact" : "standalone",
+		};
+	}
 	if (mutation.type === "item-stack") {
 		const item = farmer.items.Item[mutation.slot];
 		if (

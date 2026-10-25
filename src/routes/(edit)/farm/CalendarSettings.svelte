@@ -10,6 +10,8 @@
 		WEEKDAYS,
 	} from "$lib/calendar";
 	import type { Calendar } from "$lib/proxies/Calendar.svelte";
+	import UiButton from "$lib/ui/UIButton.svelte";
+	import UiField from "$lib/ui/UIField.svelte";
 	import UiInput from "$lib/ui/UIInput.svelte";
 	import UiSelect from "$lib/ui/UISelect.svelte";
 	import { Season } from "$types/save";
@@ -114,54 +116,60 @@
 
 <h3>Date</h3>
 <div class="settings">
-	<label>
-		Year
-		<!-- UiInput only passes on years that fit min, max and step, and puts
+	<UiField label="Year">
+		{#snippet children(field)}
+			<!-- UiInput only passes on years that fit min, max and step, and puts
 		the current year back (defaultValue) if the field is left empty -->
-		<UiInput
-			type="number"
-			min="1"
-			max={MAX_YEAR}
-			step="1"
-			defaultValue={calendar.year}
-			bind:value={
-				() => yearDraft ?? calendar.year,
-				(v) => {
-					const year = v === null ? undefined : Number(v);
-					yearDraft = year === calendar.year ? undefined : year;
+			<UiInput
+				id={field.id}
+				aria-describedby={field.describedby}
+				type="number"
+				min="1"
+				max={MAX_YEAR}
+				step="1"
+				defaultValue={calendar.year}
+				bind:value={
+					() => yearDraft ?? calendar.year,
+					(v) => {
+						const year = v === null ? undefined : Number(v);
+						yearDraft = year === calendar.year ? undefined : year;
+					}
 				}
-			}
-			onchange={applyYear}
-			data-testid="calendar-year"
-		/>
-	</label>
-	<label>
-		Season
-		<UiSelect
-			value={calendar.season}
-			onchange={(e) => (calendar.season = e.currentTarget.value as Season)}
-			data-testid="calendar-season"
-		>
-			{#each SEASONS as season (season)}
-				<option value={season}>{seasonName(season)}</option>
-			{/each}
-		</UiSelect>
-	</label>
+				onchange={applyYear}
+				data-testid="calendar-year"
+			/>
+		{/snippet}
+	</UiField>
+	<UiField label="Season">
+		{#snippet children(field)}
+			<UiSelect
+				id={field.id}
+				aria-describedby={field.describedby}
+				value={calendar.season}
+				onchange={(e) => (calendar.season = e.currentTarget.value as Season)}
+				data-testid="calendar-season"
+			>
+				{#each SEASONS as season (season)}
+					<option value={season}>{seasonName(season)}</option>
+				{/each}
+			</UiSelect>
+		{/snippet}
+	</UiField>
 	<div class="month" role="group" aria-label="Day of the month">
 		{#each weekdays as name (name)}
 			<span class="weekday" aria-hidden="true">{name.slice(0, 3)}</span>
 		{/each}
 		{#each days as day (day)}
 			{@const note = dayNote(day)}
-			<button
+			<UiButton
+				variant="plain"
 				type="button"
-				class="day"
-				class:noted={note !== undefined}
+				class={note !== undefined ? "day noted" : "day"}
 				aria-pressed={calendar.day === day}
 				aria-label={`${seasonName(calendar.season)} ${day}${note ? `, ${note}` : ""}`}
 				title={note}
 				onclick={() => (calendar.day = day)}
-				data-testid={`calendar-day-${day}`}>{day}</button
+				data-testid={`calendar-day-${day}`}>{day}</UiButton
 			>
 		{/each}
 	</div>
@@ -302,32 +310,18 @@
 		text-align: center;
 	}
 
-	.day {
+	.month :global(.day) {
 		position: relative;
 		padding: 4px 0;
-		border: solid 2px;
-		border-radius: 4px;
-		border-bottom-color: #9c613b;
-		border-left-color: #9c613b;
-		border-right-color: #6f3b31;
-		border-top-color: #6f3b31;
-		background-color: #f9bb65;
-		color: #3f2117;
-		font: inherit;
-		cursor: pointer;
 	}
 
-	.day:hover {
-		filter: brightness(1.05);
-	}
-
-	.day[aria-pressed="true"] {
+	.month :global(.day[aria-pressed="true"]) {
 		background-color: #de9a3c;
 		box-shadow: inset 0 0 0 2px #5b2b29;
 	}
 
 	/* A dot in the corner on festival, storm and green rain days */
-	.day.noted::after {
+	.month :global(.day.noted)::after {
 		position: absolute;
 		top: 2px;
 		right: 3px;
@@ -338,7 +332,7 @@
 		content: "";
 	}
 
-	.day:focus-visible {
+	.month :global(.day:focus-visible) {
 		outline: 2px solid #5b2b29;
 		outline-offset: 1px;
 	}
@@ -365,5 +359,13 @@
 
 	.weather-icon.green {
 		filter: hue-rotate(-110deg);
+	}
+	@media (max-width: 480px) {
+		.settings {
+			padding-inline: 0;
+		}
+		.settings label {
+			grid-template-columns: minmax(0, 1fr);
+		}
 	}
 </style>

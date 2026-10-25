@@ -88,6 +88,10 @@ export const makeStoreInventory = (session: HistorySession) =>
 			},
 		});
 		return {
+			historyUsage: derived(state, (state) => ({
+				bytes: state.retainedBytes,
+				dropped: state.dropped,
+			})),
 			kind: "store",
 			stackField: makeStackField(session, state, farmer, slot, services),
 			items: distinct(items),

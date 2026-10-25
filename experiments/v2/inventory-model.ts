@@ -17,6 +17,7 @@ export interface ItemView {
 	slot: number;
 }
 export interface InventoryModel {
+	historyUsage: Readable<{ bytes: number; dropped: number }>;
 	stackField: NumericField;
 	kind: "atom" | "store";
 	items: Readable<ItemView[]>;

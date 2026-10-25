@@ -23,6 +23,7 @@
 <style>
 	nav {
 		display: flex;
+		flex-wrap: wrap;
 		flex-direction: row;
 		gap: 8px;
 		justify-content: start;

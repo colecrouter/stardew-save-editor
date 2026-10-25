@@ -23,6 +23,7 @@
 
 	const cancel = () => saveManager.reset();
 	const download = async () => {
+		if (isDownloading) return;
 		isDownloading = true;
 		// Let a field that's mid-edit commit or fall back to a valid value before exporting
 		if (document.activeElement instanceof HTMLElement) {
@@ -79,6 +80,7 @@
 				<UiButton
 					onclick={() => download()}
 					alt="Save"
+					pending={isDownloading}
 					data-testid="save-button"
 					>💾
 				</UiButton>
@@ -140,5 +142,24 @@
 		flex-direction: column;
 		gap: 8px;
 		width: 500px;
+	}
+
+	@media (max-width: 600px) {
+		.outer-wrapper {
+			width: calc(100vw - 32px);
+			max-width: 100%;
+		}
+		.inner-wrapper {
+			flex-direction: column;
+		}
+		.content {
+			width: 100%;
+			min-width: 0;
+		}
+		.sidebar {
+			flex-direction: row;
+			flex-wrap: wrap;
+			align-items: center;
+		}
 	}
 </style>

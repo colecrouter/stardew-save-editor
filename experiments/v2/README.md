@@ -100,7 +100,7 @@ Recommend incremental Effect adoption for session/application services, operatio
 resource scopes and domain tests. Retain Svelte presentation and existing format
 knowledge. See [the decision](../../docs/v2-effect-decision.md).
 
-Outstanding: history byte budgets, UI review policy, selective revert, real item/view heap
+Outstanding: history checkpoint/persistence policy, UI review policy, selective revert, real item/view heap
 stress testing, browser-worker integration, mobile profiling, shared-wallet semantics,
 unknown-array conventions and input commit granularity. Full-save cloning on every
 keystroke is not a production recommendation. The fault-injection hook is not a
@@ -115,10 +115,10 @@ Entries retain constituent intents, a group label and review emphasis. Undo/redo
 apply patches; editing after undo truncates the redo branch. No-ops and failed groups
 preserve redo. An outer Effect transaction can roll back several history updates.
 
-Eviction caps entry count, not bytes. The import baseline remains, so net review still
+Eviction caps entry count and serialized bytes (default 100 entries / 8 MiB). The import baseline remains, so net review still
 accounts for changes whose undo entries were evicted. A dropped count explicitly
 signals truncated action history; historical intent is not retained after eviction.
-Quiet changes remain recorded. Large patches still require byte budgets/checkpoints.
+Quiet changes remain recorded. A single oversized entry is rejected before publication; heap overhead and checkpoint strategies still need assessment.
 Parsed JSON data is validated without normalizing away unsupported values. Read
 models and exposed patch payloads are detached copies.
 
@@ -135,7 +135,7 @@ models, each using the transactional history service. Start it with `npm run lab
 --prefix experiments/v2`; mode switching starts a fresh session. Stack fields execute
 mutations rather than writing raw data. Twelve paired tests include real-save export,
 target capture, unrelated-update suppression, invalid edits, and consumer cleanup.
-The suite now totals 48 tests (8 native / 40 Effect). See
+The suite now totals 54 tests (8 native / 46 Effect). See
 [the comparison](../../docs/v2-atom-comparison.md) for findings and limitations.
 
 ## Shared fields and identity
@@ -152,8 +152,7 @@ The history session allocates item identities separately from save data and move
 them atomically with reorders. Duplicate items remain distinct through undo/redo.
 A reorder of byte-identical items can have an identity-only history entry with an
 empty XML patch. Handles resolve stack actions against current slots; identities
-are never written to exported XML. This covers existing backpack stack/reorder
-operations, not creation, deletion, stacking/merging or cross-container transfers.
+are never written to exported XML. Placement, removal and moves into empty slots within/across farmer backpacks are also covered. Catalog-driven construction, stacking/merging and other container types still need adapters.
 
 Native and Bits UI reorder confirmations can be compared in the lab. Both pass
 keyboard cancellation/focus return and commit/cancel checks. Bits UI loads only
@@ -168,3 +167,7 @@ keeps a compatible TypeScript 6 compiler SDK. Routine checks omit suggestions;
 the diagnostic command includes them. The experiment disables `unstableApiUsage`
 because Atom and platform APIs are intentionally being evaluated; other rules
 remain enabled. The complete current stream has no errors, warnings or messages.
+
+See [the control and operation follow-up](../../docs/v2-controls-and-operations.md)
+for production lifetime repairs, the calendar migration prerequisite, and the
+byte-budget and domain-service experiments.

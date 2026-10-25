@@ -1,14 +1,22 @@
-import { Effect, JsonPatch, Schema, Stream, TxSubscriptionRef } from "effect";
+import {
+	Effect,
+	JsonPatch,
+	Schema,
+	Stream,
+	TxSubscriptionRef,
+	Option,
+} from "effect";
+import { coreOperations, EditorOperations } from "./operations.ts";
 import {
 	type Mutation,
 	MutationError,
-	prepare,
 	farmers,
 	type Receipt,
 	type SaveDocument,
 } from "./domain.ts";
 
 interface Entry {
+	bytes: number;
 	identitiesBefore: Record<string, string[]>;
 	identitiesAfter: Record<string, string[]>;
 	id: number;
@@ -18,6 +26,8 @@ interface Entry {
 	backward: JsonPatch.JsonPatch;
 }
 interface History {
+	retainedBytes: number;
+	nextIdentity: number;
 	identities: Record<string, string[]>;
 	revision: number;
 	document: SaveDocument;
@@ -33,11 +43,45 @@ interface History {
 // values with JSON.stringify: that would silently discard data.
 const json = (document: SaveDocument) => document as unknown as Schema.Json;
 
-export const makeHistorySession = (document: SaveDocument, limit = 100) =>
+export interface HistoryLimits {
+	entries?: number;
+	bytes?: number;
+}
+
+// Bound serialized entry payloads (including identities and intent), not JS heap
+// overhead or the baseline/current document. Count the size field itself too.
+function entryBytes(payload: Omit<Entry, "bytes">): number {
+	const base = new TextEncoder().encode(JSON.stringify(payload)).byteLength;
+	const prefix = ',"bytes":'.length;
+	let size = base + prefix + 1;
+	while (size !== base + prefix + String(size).length)
+		size = base + prefix + String(size).length;
+	return size;
+}
+
+export const makeHistorySession = (
+	document: SaveDocument,
+	limits: number | HistoryLimits = {},
+) =>
 	Effect.gen(function* () {
+		const operations = Option.getOrElse(
+			yield* Effect.serviceOption(EditorOperations),
+			() => coreOperations,
+		);
+		const limit = typeof limits === "number" ? limits : (limits.entries ?? 100);
+		const byteLimit =
+			typeof limits === "number"
+				? 8 * 1024 * 1024
+				: (limits.bytes ?? 8 * 1024 * 1024);
 		if (!Number.isInteger(limit) || limit < 1)
 			return yield* Effect.fail(
 				new MutationError("History limit must be a positive integer"),
+			);
+		if (!Number.isSafeInteger(byteLimit) || byteLimit < 1)
+			return yield* Effect.fail(
+				new MutationError(
+					"History byte budget must be a positive safe integer",
+				),
 			);
 		if (!Schema.is(Schema.Json)(document))
 			return yield* Effect.fail(
@@ -47,7 +91,7 @@ export const makeHistorySession = (document: SaveDocument, limit = 100) =>
 		// Item IDs describe types, not instances. Allocate session-only handles,
 		// including opaque/empty slots, without adding fields to the exported save.
 		let nextIdentity = 0;
-		const identities: Record<string, string[]> = {};
+		const identities: Record<string, string[]> = Object.create(null);
 		for (const farmer of farmers(baseline)) {
 			const id = String(farmer.UniqueMultiplayerID);
 			if (Object.hasOwn(identities, id))
@@ -57,6 +101,8 @@ export const makeHistorySession = (document: SaveDocument, limit = 100) =>
 			identities[id] = farmer.items.Item.map(() => `item:${++nextIdentity}`);
 		}
 		const ref = yield* TxSubscriptionRef.make<History>({
+			retainedBytes: 0,
+			nextIdentity,
 			identities,
 			revision: 0,
 			document: baseline,
@@ -74,13 +120,15 @@ export const makeHistorySession = (document: SaveDocument, limit = 100) =>
 		);
 
 		const update = (
-			change: (state: History) => History,
+			change: (
+				state: History,
+			) => History | Effect.Effect<History, MutationError>,
 			expectedRevision?: number,
 		) =>
 			Effect.tx(
 				Effect.gen(function* () {
 					const state = yield* TxSubscriptionRef.get(ref);
-					const next = yield* Effect.try({
+					const proposed = yield* Effect.try({
 						try: () => {
 							if (closed) throw new MutationError("Session closed");
 							// A draft cannot commit against a document changed since it opened,
@@ -99,6 +147,7 @@ export const makeHistorySession = (document: SaveDocument, limit = 100) =>
 								? error
 								: new MutationError(String(error)),
 					});
+					const next = Effect.isEffect(proposed) ? yield* proposed : proposed;
 					const published =
 						next === state ? state : { ...next, revision: state.revision + 1 };
 					if (published !== state) yield* TxSubscriptionRef.set(ref, published);
@@ -120,87 +169,151 @@ export const makeHistorySession = (document: SaveDocument, limit = 100) =>
 				label?: string,
 				expectedRevision?: number,
 			) =>
-				update((state) => {
-					if (actions.length === 0) return state;
-					let prepared = { document: state.document, history: [] as Receipt[] };
-					let identities = state.identities;
-					const resolved: Mutation[] = [];
-					for (const requested of actions) {
-						let action = requested;
-						if (
-							requested.type === "item-stack" &&
-							requested.entityId !== undefined
-						) {
-							const slot =
-								identities[requested.farmerId]?.indexOf(requested.entityId) ??
-								-1;
-							if (slot < 0)
-								throw new MutationError(
-									"Item no longer belongs to this farmer",
-								);
-							action = { ...requested, slot };
-						}
-						prepared = prepare(prepared, action);
-						resolved.push(action);
-						if (action.type === "reorder") {
-							const before = identities[action.farmerId];
-							identities = {
-								...identities,
-								[action.farmerId]: action.order.map((slot) => before[slot]),
+				update(
+					(state) =>
+						Effect.gen(function* () {
+							if (actions.length === 0) return state;
+							let prepared = {
+								document: state.document,
+								history: [] as Receipt[],
 							};
-						}
-					}
-					const forward = JsonPatch.get(
-						json(state.document),
-						json(prepared.document),
-					);
-					// Swapping byte-identical items still moves distinct session entities.
-					// Keep that undoable even when the XML has no net difference.
-					if (
-						forward.length === 0 &&
-						JSON.stringify(identities) === JSON.stringify(state.identities)
-					)
-						return state;
-					const receipts = prepared.history;
-					const first = receipts[0] ?? {
-						intent:
-							resolved.find((action) => action.type === "reorder") ??
-							resolved[0],
-						label: "Reorder backpack",
-						review: "compact" as const,
-					};
-					const entry: Entry = {
-						identitiesBefore: state.identities,
-						identitiesAfter: identities,
-						id: state.nextId,
-						actions: structuredClone(resolved),
-						intent: {
-							intent: structuredClone(first.intent),
-							label: label ?? first.label,
-							review: receipts.some(
-								(receipt) => receipt.review === "standalone",
+							let identities = state.identities;
+							let nextIdentity = state.nextIdentity;
+							const resolved: Mutation[] = [];
+							for (const requested of actions) {
+								let action = requested;
+								if (
+									(requested.type === "item-stack" ||
+										requested.type === "item-remove" ||
+										requested.type === "item-move") &&
+									requested.entityId !== undefined
+								) {
+									const slot =
+										identities[requested.farmerId]?.indexOf(
+											requested.entityId,
+										) ?? -1;
+									if (slot < 0)
+										throw new MutationError(
+											"Item no longer belongs to this farmer",
+										);
+									action = { ...requested, slot };
+								}
+								prepared = yield* operations.prepare(prepared, action);
+								if (
+									action.type === "item-place" &&
+									!Schema.is(Schema.Json)(action.item)
+								)
+									throw new MutationError(
+										"Placed items require plain JSON save data",
+									);
+								resolved.push(action);
+								if (
+									action.type === "item-place" ||
+									action.type === "item-remove"
+								) {
+									const slots = [...identities[action.farmerId]];
+									slots[action.slot] = `item:${++nextIdentity}`;
+									identities = { ...identities, [action.farmerId]: slots };
+								}
+								if (action.type === "item-move") {
+									// Handles travel with the records, even across farmer inventories.
+									identities = structuredClone(identities);
+									const source = identities[action.farmerId];
+									const target = identities[action.toFarmerId];
+									[source[action.slot], target[action.toSlot]] = [
+										target[action.toSlot],
+										source[action.slot],
+									];
+								}
+								if (action.type === "reorder") {
+									const before = identities[action.farmerId];
+									identities = {
+										...identities,
+										[action.farmerId]: action.order.map((slot) => before[slot]),
+									};
+								}
+							}
+							const forward = JsonPatch.get(
+								json(state.document),
+								json(prepared.document),
+							);
+							// Swapping byte-identical items still moves distinct session entities.
+							// Keep that undoable even when the XML has no net difference.
+							if (
+								forward.length === 0 &&
+								JSON.stringify(identities) === JSON.stringify(state.identities)
 							)
-								? "standalone"
-								: "compact",
-						},
-						forward,
-						backward: JsonPatch.get(
-							json(prepared.document),
-							json(state.document),
+								return state;
+							const receipts = prepared.history;
+							const first = receipts[0] ?? {
+								intent:
+									resolved.find((action) => action.type === "reorder") ??
+									resolved[0],
+								label: "Reorder backpack",
+								review: "compact" as const,
+							};
+							const payload: Omit<Entry, "bytes"> = {
+								identitiesBefore: state.identities,
+								identitiesAfter: identities,
+								id: state.nextId,
+								actions: structuredClone(resolved),
+								intent: {
+									intent: structuredClone(first.intent),
+									label: label ?? first.label,
+									review: receipts.some(
+										(receipt) => receipt.review === "standalone",
+									)
+										? "standalone"
+										: "compact",
+								},
+								forward,
+								backward: JsonPatch.get(
+									json(prepared.document),
+									json(state.document),
+								),
+							};
+							const entry: Entry = { ...payload, bytes: entryBytes(payload) };
+							// Reject one oversized operation before publishing anything. Silently
+							// applying an action that cannot be undone would be misleading.
+							if (entry.bytes > byteLimit)
+								throw new MutationError(
+									"This action exceeds the undo history byte budget",
+								);
+							const entries = [...state.entries.slice(0, state.cursor), entry];
+							let retainedBytes = entries.reduce(
+								(total, entry) => total + entry.bytes,
+								0,
+							);
+							let evict = 0;
+							while (
+								entries.length - evict > limit ||
+								retainedBytes > byteLimit
+							) {
+								retainedBytes -= entries[evict].bytes;
+								evict++;
+							}
+							return {
+								...state,
+								retainedBytes,
+								identities,
+								nextIdentity,
+								document: prepared.document,
+								entries: entries.slice(evict),
+								cursor: entries.length - evict,
+								nextId: state.nextId + 1,
+								dropped: state.dropped + evict,
+							};
+						}).pipe(
+							Effect.catchDefect((error) =>
+								Effect.fail(
+									error instanceof MutationError
+										? error
+										: new MutationError(String(error)),
+								),
+							),
 						),
-					};
-					const entries = [...state.entries.slice(0, state.cursor), entry];
-					const evict = Math.max(0, entries.length - limit);
-					return {
-						...state,
-						identities,
-						document: prepared.document,
-						entries: entries.slice(evict),
-						cursor: entries.length - evict,
-						nextId: state.nextId + 1,
-						dropped: state.dropped + evict,
-					};
-				}, expectedRevision),
+					expectedRevision,
+				),
 			undo: update((state) => {
 				if (state.cursor === 0) return state;
 				const entry = state.entries[state.cursor - 1];

@@ -134,3 +134,11 @@ criteria or later discovery issues complete.
 - [Alternative Svelte integration](https://github.com/thomasfosterau/effect-svelte)
 
 Installed declarations and registry peer metadata were also checked locally.
+
+## Control and operation follow-up
+
+See [the implementation notes](v2-controls-and-operations.md) for serialized history
+byte budgets, item placement/removal/transfers, Effect domain-service replacement,
+production item-root cleanup, and the calendar provenance prerequisite. The UI
+consolidation is a functional validation baseline; V2 explicitly includes a
+responsive redesign and does not target a one-to-one port of the current UI.

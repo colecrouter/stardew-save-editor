@@ -218,4 +218,19 @@
 	.locked .reason {
 		grid-column: 1 / -1;
 	}
+	@media (max-width: 480px) {
+		.settings,
+		.locked {
+			padding-inline: 0;
+		}
+		.settings label {
+			grid-template-columns: minmax(0, 1fr);
+		}
+		.locked div {
+			grid-template-columns: minmax(0, 1fr);
+		}
+		.locked dd {
+			overflow-wrap: anywhere;
+		}
+	}
 </style>

@@ -1,3 +1,8 @@
 {
-	"recommendations": ["svelte.svelte-vscode", "biomejs.biome"]
+	"recommendations": [
+		"svelte.svelte-vscode",
+		"oxc.oxc-vscode",
+		"biomejs.biome",
+		"typescriptteam.native-preview"
+	]
 }

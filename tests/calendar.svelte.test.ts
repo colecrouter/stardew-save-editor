@@ -69,20 +69,23 @@ describe("Calendar", () => {
 		[1, Season.Summer],
 		[2, Season.Fall],
 		[3, Season.Winter],
-	] as const)("preserves numeric season %i when editing the date", async (index, season) => {
-		const xml = (await readFile("tests/TestSave", "utf-8")).replace(
-			"<currentSeason>spring</currentSeason>",
-			`<currentSeason>${index}</currentSeason>`,
-		);
-		saveManager = await importSave(xml);
-		const { calendar } = save();
-		expect(calendar.season).toBe(season);
-		expect(calendar.dateProblems).toEqual([]);
-		expect(Number(game().currentSeason)).toBe(index);
-		calendar.day = 10;
-		expect(game().currentSeason).toBe(season);
-		expect(game().player.seasonForSaveGame).toBe(index);
-	});
+	] as const)(
+		"preserves numeric season %i when editing the date",
+		async (index, season) => {
+			const xml = (await readFile("tests/TestSave", "utf-8")).replace(
+				"<currentSeason>spring</currentSeason>",
+				`<currentSeason>${index}</currentSeason>`,
+			);
+			saveManager = await importSave(xml);
+			const { calendar } = save();
+			expect(calendar.season).toBe(season);
+			expect(calendar.dateProblems).toEqual([]);
+			expect(Number(game().currentSeason)).toBe(index);
+			calendar.day = 10;
+			expect(game().currentSeason).toBe(season);
+			expect(game().player.seasonForSaveGame).toBe(index);
+		},
+	);
 
 	it("changes every copy of the date, and days played with it", () => {
 		const { calendar } = save();

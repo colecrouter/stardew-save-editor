@@ -8,9 +8,7 @@ import {
 	writeFile,
 } from "node:fs/promises";
 import { imageDimensionsFromData } from "image-dimensions";
-import bigCraftables from "../content/Data/BigCraftables.json" with {
-	type: "json",
-};
+import bigCraftables from "../content/Data/BigCraftables.json" with { type: "json" };
 import boots from "../content/Data/Boots.json" with { type: "json" };
 import buildings from "../content/Data/Buildings.json" with { type: "json" };
 import animals from "../content/Data/FarmAnimals.json" with { type: "json" };
@@ -301,7 +299,13 @@ const writeToFile = JSON.stringify(
 		.filter(notUndefined)
 		.map((item) => [
 			item.name,
-			{ ...item, description: resolveDescription(item.description) },
+			{
+				...item,
+				// Some item families have no description in the source data.
+				description: resolveDescription(
+					"description" in item ? item.description : undefined,
+				),
+			},
 		]),
 );
 

@@ -124,11 +124,13 @@
 			max={MAX_YEAR}
 			step="1"
 			defaultValue={calendar.year}
-			bind:value={() => yearDraft ?? calendar.year,
-			(v) => {
-				const year = v === null ? undefined : Number(v);
-				yearDraft = year === calendar.year ? undefined : year;
-			}}
+			bind:value={
+				() => yearDraft ?? calendar.year,
+				(v) => {
+					const year = v === null ? undefined : Number(v);
+					yearDraft = year === calendar.year ? undefined : year;
+				}
+			}
 			onchange={applyYear}
 			data-testid="calendar-year"
 		/>

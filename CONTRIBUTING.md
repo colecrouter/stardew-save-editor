@@ -6,7 +6,7 @@ This project is built in NodeJS, with [Svelte 5](https://svelte.dev/) and [Svelt
 
 ### Quick Start
 
-Make sure to have [NodeJS 20, 22, or later](https://nodejs.org/en/download/) installed.
+Use [NodeJS 24](https://nodejs.org/en/download/). CI uses the same major version.
 
 ```bash
 # Clone repository
@@ -48,7 +48,34 @@ If you want to make a contribution, just make a pull request.
 
 ### Code Style
 
-This project uses BiomeJS for linting, and for formatting JS/TS files. Prettier is used for formatting markup files. You can run `npm run check` to check for linting errors, and `npm run format` to format the files.
+Oxfmt formats TypeScript, Svelte, styles, and documentation. Run `npm run format`
+to write formatting and `npm run format:check` to verify it. Generated game data
+and assets are excluded. Biome remains the linter while we assess replacement
+lint coverage; it no longer formats files.
+
+`npm run check` runs linting, native TypeScript 7 checks for the app and codegen,
+and `svelte-check`. Svelte still uses the JavaScript TypeScript 6 SDK because it
+needs the compiler API; the native compiler is installed as `@typescript/native`.
+Scripts use an explicit compiler path to avoid ambiguous `tsc` executable names.
+
+Dependency installation patches both compiler integrations with Effect language
+service support. Use the workspace TypeScript SDK in your editor. When changing
+Effect code, also inspect the complete diagnostic stream:
+
+```bash
+npm run effect:diagnostics -- --project experiments/v2/tsconfig.json
+npm run check --prefix experiments/v2
+npm test --prefix experiments/v2
+```
+
+Warnings and suggestions need contextual review: application boundaries may
+legitimately run Effects, and the experiment deliberately evaluates unstable Atom
+APIs. Errors fail checks; suggestions are shown by the diagnostic command without
+turning every stylistic preference into a compiler failure.
+
+The [V2 implementation requirements](docs/v2-implementation.md) and
+[editor blueprint](docs/v2-editor-blueprint.md) describe the active migration.
+The prototype remains isolated in `experiments/v2` until its migration gates pass.
 
 ## General Conventions
 

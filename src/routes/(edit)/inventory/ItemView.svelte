@@ -311,21 +311,23 @@
 					<label>
 						<small>Type</small>
 						<UiSelect
-							bind:value={() => stats.type,
-							(v) => {
-								const type = v as QuiverType;
-								const range = QUIVER_TYPES[type];
-								// Keep the stats as close as the new type allows
-								trinket.setStats(
-									{
-										...stats,
-										type,
-										minDamage: stats.minDamage,
-										delay: range.delay[0],
-									},
-									trinketCtx,
-								);
-							}}
+							bind:value={
+								() => stats.type,
+								(v) => {
+									const type = v as QuiverType;
+									const range = QUIVER_TYPES[type];
+									// Keep the stats as close as the new type allows
+									trinket.setStats(
+										{
+											...stats,
+											type,
+											minDamage: stats.minDamage,
+											delay: range.delay[0],
+										},
+										trinketCtx,
+									);
+								}
+							}
 							data-testid="property-quiverType"
 						>
 							{#each Object.entries(QUIVER_TYPES) as [type, range]}
@@ -337,9 +339,11 @@
 					<label>
 						<small>Color</small>
 						<UiSelect
-							bind:value={() => stats.variant,
-							(v) =>
-								trinket.setStats({ ...stats, variant: Number(v) }, trinketCtx)}
+							bind:value={
+								() => stats.variant,
+								(v) =>
+									trinket.setStats({ ...stats, variant: Number(v) }, trinketCtx)
+							}
 							data-testid="property-frogVariant"
 						>
 							{#each FROG_VARIANTS as name, variant}
@@ -359,15 +363,17 @@
 									max={field.max}
 									step={field.step}
 									disabled={field.min === field.max}
-									bind:value={() => field.value,
-									(v) => {
-										// Cleared while typing: wait for a number instead of rolling to 0
-										if (v === null) return;
-										trinket.setStats(
-											{ ...stats, [field.key]: Number(v) },
-											trinketCtx,
-										);
-									}}
+									bind:value={
+										() => field.value,
+										(v) => {
+											// Cleared while typing: wait for a number instead of rolling to 0
+											if (v === null) return;
+											trinket.setStats(
+												{ ...stats, [field.key]: Number(v) },
+												trinketCtx,
+											);
+										}
+									}
 									data-testid={`property-${field.key}`}
 								/>
 								<span class="hint">{field.hint}</span>

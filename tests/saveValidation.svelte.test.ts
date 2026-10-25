@@ -279,20 +279,19 @@ describe("validateSave", () => {
 		});
 	});
 
-	it.each([
-		-102,
-		1.5,
-		2 ** 32,
-		"",
-	])("rejects a stat of %j, which the game can't read back", (value) => {
-		const parsed = loadParsed();
-		daysPlayedStat(parsed.SaveGame.player).value.unsignedInt = value as number;
-		const result = validateSave(parsed);
-		expect(result.valid).toBe(false);
-		expect(result.errors).toEqual([
-			`Test's daysPlayed stat (${value}) is out of range`,
-		]);
-	});
+	it.each([-102, 1.5, 2 ** 32, ""])(
+		"rejects a stat of %j, which the game can't read back",
+		(value) => {
+			const parsed = loadParsed();
+			daysPlayedStat(parsed.SaveGame.player).value.unsignedInt =
+				value as number;
+			const result = validateSave(parsed);
+			expect(result.valid).toBe(false);
+			expect(result.errors).toEqual([
+				`Test's daysPlayed stat (${value}) is out of range`,
+			]);
+		},
+	);
 
 	it("accepts the biggest stat the game can hold", () => {
 		const parsed = loadParsed();
@@ -304,20 +303,18 @@ describe("validateSave", () => {
 		});
 	});
 
-	it.each([
-		"Summer",
-		" FALL ",
-		2,
-		"3",
-	])("reads the season %j by name in any case, or by number", (season) => {
-		const parsed = loadParsed();
-		Object.assign(parsed.SaveGame, { currentSeason: season });
-		expect(validateSave(parsed)).toEqual({
-			valid: true,
-			errors: [],
-			warnings: [],
-		});
-	});
+	it.each(["Summer", " FALL ", 2, "3"])(
+		"reads the season %j by name in any case, or by number",
+		(season) => {
+			const parsed = loadParsed();
+			Object.assign(parsed.SaveGame, { currentSeason: season });
+			expect(validateSave(parsed)).toEqual({
+				valid: true,
+				errors: [],
+				warnings: [],
+			});
+		},
+	);
 
 	it("accepts snow in winter", () => {
 		const parsed = loadParsed();

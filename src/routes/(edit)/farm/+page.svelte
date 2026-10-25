@@ -76,10 +76,12 @@
 			Farm Name
 			<UiInput
 				type="text"
-				bind:value={() => host?.farmName ?? "",
-				(name) => {
-					for (const player of save.players) player.farmName = String(name);
-				}}
+				bind:value={
+					() => host?.farmName ?? "",
+					(name) => {
+						for (const player of save.players) player.farmName = String(name);
+					}
+				}
 				data-testid="farm-name"
 				data-sentry-mask
 			/>
@@ -94,13 +96,15 @@
 					step="1"
 					defaultValue={100}
 					list="profit-margin-presets"
-					bind:value={() => Math.round((host?.difficultyModifier ?? 1) * 100),
-					(percent) => {
-						// Cleared while typing: wait for a number
-						if (percent === null) return;
-						for (const player of save.players)
-							player.difficultyModifier = Number(percent) / 100;
-					}}
+					bind:value={
+						() => Math.round((host?.difficultyModifier ?? 1) * 100),
+						(percent) => {
+							// Cleared while typing: wait for a number
+							if (percent === null) return;
+							for (const player of save.players)
+								player.difficultyModifier = Number(percent) / 100;
+						}
+					}
 					data-testid="profit-margin"
 				/>
 				%

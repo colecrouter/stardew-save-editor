@@ -13,7 +13,7 @@ A web-based save editor for Stardew Valley. Safely edit your save files directly
   - Edit appearance, name, and farm name
   - Modify skills and money
   - Change relationships with NPCs
-- ✅ Inventory Management  
+- ✅ Inventory Management
   - Add/remove items
   - Modify existing items
 - ✅ Recipe Management

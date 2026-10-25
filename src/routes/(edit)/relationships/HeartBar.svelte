@@ -65,12 +65,14 @@
 					type="number"
 					min="0"
 					max="7"
-					bind:value={() => npc.giftsThisWeek,
-					(v) => {
-						// Cleared while typing: wait for a number
-						if (v === null) return;
-						npc.giftsThisWeek = Number(v);
-					}}
+					bind:value={
+						() => npc.giftsThisWeek,
+						(v) => {
+							// Cleared while typing: wait for a number
+							if (v === null) return;
+							npc.giftsThisWeek = Number(v);
+						}
+					}
 					aria-label={`Gifts given to ${name} this week`}
 					data-testid="friendship-gifts-week"
 				/>

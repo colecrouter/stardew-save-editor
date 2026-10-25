@@ -98,12 +98,14 @@
 				id="skills-mastery"
 				type="number"
 				min={masteryXpForLevel[save.player.masteryLevelsSpent]}
-				bind:value={() => save.player.masteryExp,
-				(v) => {
-					// Cleared while typing: wait for a number
-					if (v === null) return;
-					save.player.masteryExp = Number(v);
-				}}
+				bind:value={
+					() => save.player.masteryExp,
+					(v) => {
+						// Cleared while typing: wait for a number
+						if (v === null) return;
+						save.player.masteryExp = Number(v);
+					}
+				}
 				data-testid="skills-mastery"
 			/>
 		</label>
@@ -231,12 +233,14 @@
 					min={houseUpgrading ? 1 : 0}
 					max={HOUSE_UPGRADE_DAYS}
 					disabled={save.player.houseUpgradeLevel >= MAX_HOUSE_UPGRADE_LEVEL}
-					bind:value={() => Math.max(0, save.player.daysUntilHouseUpgrade),
-					(v) => {
-						// Cleared while typing: wait for a number
-						if (v === null) return;
-						save.player.daysUntilHouseUpgrade = Number(v);
-					}}
+					bind:value={
+						() => Math.max(0, save.player.daysUntilHouseUpgrade),
+						(v) => {
+							// Cleared while typing: wait for a number
+							if (v === null) return;
+							save.player.daysUntilHouseUpgrade = Number(v);
+						}
+					}
 					data-testid="house-upgrade-days"
 				/>
 			</label>
@@ -295,12 +299,14 @@
 						type="number"
 						min="0"
 						max={TOOL_UPGRADE_DAYS}
-						bind:value={() => save.player.daysLeftForToolUpgrade,
-						(v) => {
-							// Cleared while typing: wait for a number
-							if (v === null) return;
-							save.player.daysLeftForToolUpgrade = Number(v);
-						}}
+						bind:value={
+							() => save.player.daysLeftForToolUpgrade,
+							(v) => {
+								// Cleared while typing: wait for a number
+								if (v === null) return;
+								save.player.daysLeftForToolUpgrade = Number(v);
+							}
+						}
 						data-testid="tool-upgrade-days"
 					/>
 				</label>

@@ -8,14 +8,19 @@
 		"preview": "vite preview",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"dump": "tsx --no-warnings codegen/dump.ts",
-		"check": "biome lint . && svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-		"format": "prettier --log-level silent --write src && biome format --write && biome check --write --linter-enabled false",
-		"format:check": "prettier --check src && biome ci .",
+		"check": "biome lint . && npm run check:types && svelte-check --tsconfig ./tsconfig.json",
+		"format": "oxfmt --write .",
+		"format:check": "oxfmt --check .",
 		"test": "vitest run",
-		"emulate:webkit": "node tests/webkit.js"
+		"emulate:webkit": "node tests/webkit.js",
+		"prepare": "effect-language-service patch && effect-tsgo patch --typescript",
+		"check:types": "svelte-kit sync && node node_modules/@typescript/native/bin/tsc --noEmit -p tsconfig.json && node node_modules/@typescript/native/bin/tsc --noEmit -p codegen/tsconfig.json",
+		"effect:diagnostics": "effect-tsgo diagnostics"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.4.4",
+		"@effect/language-service": "0.87.5",
+		"@effect/tsgo": "0.56.1",
 		"@sentry/sveltekit": "^10.53.1",
 		"@sveltejs/adapter-static": "^3.0.10",
 		"@sveltejs/kit": "^2.60.1",
@@ -26,30 +31,33 @@
 		"@types/node": "^24.0.0",
 		"@types/pako": "^2.0.3",
 		"@types/wicg-file-system-access": "^2020.9.6",
+		"@typescript/native": "npm:typescript@7.0.2",
 		"@vitejs/plugin-legacy": "^7.2.1",
-		"@vitest/web-worker": "^3.2.4",
+		"@vitest/web-worker": "3.2.7",
 		"comlink": "^4.4.2",
 		"core-js": "^3.46.0",
 		"fast-xml-parser": "^5.8.0",
 		"happy-dom": "^20.8.9",
 		"idb": "^7.1.1",
 		"image-dimensions": "^2.3.0",
+		"oxfmt": "0.74.0",
 		"pako": "^2.1.0",
-		"prettier": "^3.4.2",
-		"prettier-plugin-svelte": "^3.3.2",
 		"string-similarity-js": "^2.1.4",
 		"svelte": "^5.42.3",
 		"svelte-check": "^4.3.3",
 		"tslib": "^2.4.1",
 		"tsx": "^4.19.1",
-		"typescript": "^5.9.3",
+		"typescript": "6.0.3",
 		"vite": "^7.3.2",
 		"vite-plugin-sveltekit-legacy": "^0.1.0",
-		"vitest": "^3.2.4",
+		"vitest": "3.2.7",
 		"vitest-indexeddb": "^0.0.0"
 	},
 	"optionalDependencies": {
 		"playwright": "^1.49.1"
 	},
-	"type": "module"
+	"type": "module",
+	"engines": {
+		"node": ">=24 <25"
+	}
 }

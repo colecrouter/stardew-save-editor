@@ -9,13 +9,14 @@
     Data/PassiveFestivals), so check it when a game update changes festivals
     or weather.
 */
-import { Season } from "$types/save";
+import type { Season } from "$types/save";
+import { CalendarSeason } from "./calendarSeason.ts";
 
 export const SEASONS = [
-	Season.Spring,
-	Season.Summer,
-	Season.Fall,
-	Season.Winter,
+	CalendarSeason.Spring,
+	CalendarSeason.Summer,
+	CalendarSeason.Fall,
+	CalendarSeason.Winter,
 ] as const;
 
 export const DAYS_PER_SEASON = 28;
@@ -63,7 +64,7 @@ export function dateInRange({ year, season, day }: GameDate): GameDate {
 	const whole = (n: number) => (Number.isFinite(n) ? Math.trunc(n) : 1);
 	return {
 		year: Math.max(whole(year), 1),
-		season: SEASONS.includes(season) ? season : Season.Spring,
+		season: SEASONS.includes(season) ? season : CalendarSeason.Spring,
 		day: Math.min(Math.max(whole(day), 1), DAYS_PER_SEASON),
 	};
 }
@@ -74,7 +75,7 @@ export function nextDay({ year, season, day }: GameDate): GameDate {
 	const next = (seasonIndex(season) + 1) % SEASONS.length;
 	return {
 		year: next === 0 ? year + 1 : year,
-		season: SEASONS[next] ?? Season.Spring,
+		season: SEASONS[next] ?? CalendarSeason.Spring,
 		day: 1,
 	};
 }
@@ -101,42 +102,47 @@ export interface Festival {
     weather.
 */
 export const FESTIVALS: readonly Festival[] = [
-	{ name: "Egg Festival", season: Season.Spring, start: 13, end: 13 },
-	{ name: "Flower Dance", season: Season.Spring, start: 24, end: 24 },
-	{ name: "Luau", season: Season.Summer, start: 11, end: 11 },
+	{ name: "Egg Festival", season: CalendarSeason.Spring, start: 13, end: 13 },
+	{ name: "Flower Dance", season: CalendarSeason.Spring, start: 24, end: 24 },
+	{ name: "Luau", season: CalendarSeason.Summer, start: 11, end: 11 },
 	{
 		name: "Trout Derby",
-		season: Season.Summer,
+		season: CalendarSeason.Summer,
 		start: 20,
 		end: 21,
 		passive: true,
 	},
 	{
 		name: "Dance of the Moonlight Jellies",
-		season: Season.Summer,
+		season: CalendarSeason.Summer,
 		start: 28,
 		end: 28,
 	},
-	{ name: "Stardew Valley Fair", season: Season.Fall, start: 16, end: 16 },
-	{ name: "Spirit's Eve", season: Season.Fall, start: 27, end: 27 },
-	{ name: "Festival of Ice", season: Season.Winter, start: 8, end: 8 },
+	{
+		name: "Stardew Valley Fair",
+		season: CalendarSeason.Fall,
+		start: 16,
+		end: 16,
+	},
+	{ name: "Spirit's Eve", season: CalendarSeason.Fall, start: 27, end: 27 },
+	{ name: "Festival of Ice", season: CalendarSeason.Winter, start: 8, end: 8 },
 	{
 		name: "SquidFest",
-		season: Season.Winter,
+		season: CalendarSeason.Winter,
 		start: 12,
 		end: 13,
 		passive: true,
 	},
 	{
 		name: "Night Market",
-		season: Season.Winter,
+		season: CalendarSeason.Winter,
 		start: 15,
 		end: 17,
 		passive: true,
 	},
 	{
 		name: "Feast of the Winter Star",
-		season: Season.Winter,
+		season: CalendarSeason.Winter,
 		start: 25,
 		end: 25,
 	},
@@ -146,7 +152,7 @@ export const FESTIVALS: readonly Festival[] = [
 export const OTHER_FESTIVALS: readonly Festival[] = [
 	{
 		name: "Desert Festival",
-		season: Season.Spring,
+		season: CalendarSeason.Spring,
 		start: 15,
 		end: 17,
 		passive: true,
@@ -246,9 +252,9 @@ export function weatherFromFlags(f: Partial<WeatherFlags>): WeatherId {
 */
 export function seasonWeathers(season: Season): WeatherId[] {
 	switch (season) {
-		case Season.Summer:
+		case CalendarSeason.Summer:
 			return ["Sun", "Rain", "Storm", "GreenRain"];
-		case Season.Winter:
+		case CalendarSeason.Winter:
 			return ["Sun", "Rain", "Snow"];
 		default:
 			return ["Sun", "Rain", "Storm", "Wind"];
@@ -283,12 +289,12 @@ export function forcedWeather(
 			weather: "Festival",
 			reason: `The ${festival.name} always has festival weather`,
 		};
-	if (date.season === Season.Summer && date.day % 13 === 0)
+	if (date.season === CalendarSeason.Summer && date.day % 13 === 0)
 		return {
 			weather: "Storm",
 			reason: "There's always a storm on Summer 13 and 26",
 		};
-	if (date.season === Season.Summer && date.day === greenRainDay)
+	if (date.season === CalendarSeason.Summer && date.day === greenRainDay)
 		return {
 			weather: "GreenRain",
 			reason: `Green rain falls on Summer ${date.day} in Year ${date.year}`,

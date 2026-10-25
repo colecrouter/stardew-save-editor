@@ -167,7 +167,7 @@ retained drafts cannot mutate published state, and outer Effect transactions rol
 back document/domain/history together. Oversized metadata preserves redo and
 identities. Legacy adapters omitting the new field preserve its current value.
 Eleven new Effect tests cover these contracts; the complete experiment suite is
-65 tests (8 native and 57 Effect), with zero Effect diagnostics.
+78 tests (11 native and 67 Effect), with zero Effect diagnostics.
 
 ## Production lifetime repair
 
@@ -204,10 +204,19 @@ The production adapter weakly associates IDs with live target objects. Reorderin
 and moving the same object between known valley locations retains identity;
 removing or replacing it does not redirect restoration to its replacement or write
 to an abandoned object. These weak associations do not survive document cloning.
-History now supports atomic domain-state restoration, but the calendar adapter
-must still carry target identities alongside cloned documents and prepare all
-dependent XML writes. The current extraction is not yet a complete Effect
-calendar operation.
+The Effect calendar prototype now carries target bindings, ordinary choices and
+watering provenance in cloned domain-state snapshots. Date/weather mutations
+prepare all dependent XML writes and commit with history atomically. Shared
+raw-document helpers also serve the production proxy; a differential test checks
+complete document parity across date, season and weather changes.
+
+Bindings use location/coordinate/building keys and exact non-watering fingerprints.
+Array reordering is supported. Ambiguous targets or unannotated content/topology
+changes are rejected before publication; undoing the conflicting edit restores
+usable bindings. Byte-identical replacements cannot be inferred from XML. Future
+farm operations need an explicit binding/provenance maintenance protocol. These
+snapshots count toward history's byte budget but do not optimize heap usage.
+The production UI has not migrated to the Effect session.
 
 The local decompiled `Game1._newDayAfterFade` adds an important acceptance case:
 rain watering visits every outdoor location whose own weather context is rainy,
@@ -226,7 +235,10 @@ provenance, multiple contexts, removed/replaced/moved targets, intervening edits
 duplicate identities and map-property extraction. All 24 calendar integration
 tests pass, including export/reimport and two new cases for identity retention and
 Forest/Island/Desert/indoor/unresolved scope. Native app and codegen checks pass.
-The complete 572-test app suite and all three remote checks passed on `c6fcecd`.
+All three remote checks passed on `358f853`. The calendar adapter increment passes
+573 app tests and 78 experiment tests locally, including native Node execution,
+multiplayer date mirrors, XML round trips, rollback, weather choices and cross-feature
+transactions.
 
 ## Clean-checkout tooling
 

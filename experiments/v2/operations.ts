@@ -1,4 +1,5 @@
 import { Context, Effect } from "effect";
+import { prepareCalendarOperation } from "./calendar-operations.ts";
 import {
 	MutationError,
 	prepare,
@@ -22,11 +23,13 @@ export class EditorOperations extends Context.Service<
 
 export const coreOperations: Operations = {
 	prepare: (state, action) =>
-		Effect.try({
-			try: () => prepare(state, action),
-			catch: (error) =>
-				error instanceof MutationError
-					? error
-					: new MutationError(String(error)),
-		}),
+		action.type === "calendar-date" || action.type === "calendar-weather"
+			? prepareCalendarOperation(state, action)
+			: Effect.try({
+					try: () => prepare(state, action),
+					catch: (error) =>
+						error instanceof MutationError
+							? error
+							: new MutationError(String(error)),
+				}),
 };

@@ -7,19 +7,15 @@ import {
 	forcedWeather,
 	type GameDate,
 	greenRainDay,
-	isWeatherId,
 	MAX_YEAR,
 	nextDay,
 	planCalendarWeather,
 	SEASONS,
-	seasonIndex,
 	seasonName,
 	seasonWeathers,
 	totalDays,
-	WEATHER_FLAGS,
 	type WeatherFlags,
 	type WeatherId,
-	weatherFromFlags,
 	weatherLabel,
 	weekday,
 } from "$lib/calendar";
@@ -31,7 +27,13 @@ import {
 	type WateringTarget,
 	type WateringWrite,
 } from "$lib/calendarWatering";
-import { type LocationWeatherClass, type Save, Season } from "$types/save";
+import { type Save, Season } from "$types/save";
+import {
+	readCalendarView,
+	writeCalendarDate,
+	writeCalendarToday,
+	writeCalendarTomorrow,
+} from "$lib/calendarDocument";
 import { type DataProxy, Raw } from ".";
 
 export interface WeatherOption {
@@ -40,15 +42,6 @@ export interface WeatherOption {
 	/** False for the current weather when the day can't have it */
 	allowed: boolean;
 }
-
-/** LocationWeather's flags: the net field (`<isRaining><boolean>`), then the property (`<IsRaining>`) */
-const FLAG_FIELDS = [
-	["isRaining", "IsRaining"],
-	["isSnowing", "IsSnowing"],
-	["isLightning", "IsLightning"],
-	["isDebrisWeather", "IsDebrisWeather"],
-	["isGreenRain", "IsGreenRain"],
-] as const;
 
 /**
     Today's date and weather, and tomorrow's forecast.
@@ -89,59 +82,14 @@ export class Calendar implements DataProxy<Save> {
 	constructor(save: SaveProxy) {
 		this.#save = save;
 		this[Raw] = save[Raw].SaveGame;
-		const game = this[Raw];
-		const seasonText = String(game.currentSeason).trim().toLowerCase();
-		const seasonNumber = /^-?\d+$/.test(seasonText)
-			? Number(seasonText)
-			: Number.NaN;
-
-		this.#date = {
-			year: game.year,
-			// Match validation: the game accepts names or enum numbers 0–3.
-			// Normalize only the editor's view; leave the uploaded save untouched.
-			season: SEASONS[seasonNumber] ?? (seasonText as Season),
-			day: game.dayOfMonth,
-		};
-		this.#daysPlayed = save.players[0]?.daysPlayed ?? 0;
-		this.#tomorrow = String(game.weatherForTomorrow ?? "Sun");
-
-		// Prefer the weather's name, unless today's flags say otherwise
-		const weather = this.#weather;
-		this.#loadedFlags = {
-			isRaining: game.isRaining === true,
-			isSnowing: game.isSnowing === true,
-			isLightning: game.isLightning === true,
-			isDebrisWeather: game.isDebrisWeather === true,
-			isGreenRain: weather?.IsGreenRain === true,
-		};
-		const fromFlags = weatherFromFlags(this.#loadedFlags);
-		const named = weather?.Weather ?? weather?.weather?.string;
-		this.#today =
-			typeof named === "string" &&
-			named &&
-			(!isWeatherId(named) ||
-				weatherFromFlags(WEATHER_FLAGS[named]) === fromFlags)
-				? named
-				: fromFlags;
-
-		// The weather the save's date fixes wasn't picked, so it isn't kept
-		if (this.#today !== this.forcedToday?.weather)
-			this.#chosenWeather = { ...this.#chosenWeather, today: this.#today };
-		if (this.#tomorrow !== this.forcedTomorrow?.weather)
-			this.#chosenWeather = {
-				...this.#chosenWeather,
-				tomorrow: this.#tomorrow,
-			};
+		const state = readCalendarView(this[Raw]);
+		this.#date = state.date;
+		this.#daysPlayed = state.daysPlayed;
+		this.#today = state.today;
+		this.#tomorrow = state.tomorrow;
+		this.#chosenWeather = state.choices;
+		this.#loadedFlags = state.loadedFlags;
 	}
-
-	/** The valley's entry in locationWeather */
-	get #weather(): LocationWeatherClass | undefined {
-		const all = this[Raw].locationWeather;
-		if (typeof all !== "object" || !all) return undefined;
-		return all.item?.find((entry) => entry.key?.string === "Default")?.value
-			?.LocationWeather;
-	}
-
 	get date(): GameDate {
 		return this.#date;
 	}
@@ -322,18 +270,11 @@ export class Calendar implements DataProxy<Save> {
 		// Days played starts at 1 and goes up with the date (Game1.newDayAfterFade).
 		// Written first: it refuses a count the game can't load, before anything changes.
 		const daysPlayed = totalDays(next) + 1;
-		const host = this.#save.players[0];
-		if (host) host.daysPlayed = daysPlayed;
-
-		const game = this[Raw];
-		game.year = next.year;
-		game.currentSeason = next.season;
-		game.dayOfMonth = next.day;
-		for (const player of this.#save.players) {
-			player[Raw].dayOfMonthForSaveGame = next.day;
-			player[Raw].seasonForSaveGame = seasonIndex(next.season);
-			player[Raw].yearForSaveGame = next.year;
-		}
+		writeCalendarDate(
+			this[Raw],
+			next,
+			this.#save.players.map((player) => player[Raw]),
+		);
 		this.#date = next;
 		this.#daysPlayed = daysPlayed;
 		this.#applyWeather();
@@ -360,34 +301,12 @@ export class Calendar implements DataProxy<Save> {
 	}
 
 	#writeToday(id: string) {
-		const game = this[Raw];
-		const flags = isWeatherId(id) ? WEATHER_FLAGS[id] : this.#loadedFlags;
-		const wasRaining = game.isRaining === true;
-
-		game.isRaining = flags.isRaining;
-		game.isSnowing = flags.isSnowing;
-		game.isLightning = flags.isLightning;
-		game.isDebrisWeather = flags.isDebrisWeather;
-
-		const weather = this.#weather;
-		if (weather) {
-			if (typeof weather.weather === "object" && weather.weather)
-				weather.weather.string = id;
-			else weather.weather = { string: id };
-			weather.Weather = id;
-			for (const [field, property] of FLAG_FIELDS) {
-				if (typeof weather[field] === "object" && weather[field])
-					weather[field].boolean = flags[field];
-				else weather[field] = { boolean: flags[field] };
-				weather[property] = flags[field];
-			}
-		}
-
-		if (flags.isRaining !== wasRaining)
-			this.#applyWatering(wasRaining, flags.isRaining);
+		const wasRaining = this[Raw].isRaining === true;
+		writeCalendarToday(this[Raw], id, this.#loadedFlags);
+		const raining = this[Raw].isRaining === true;
+		if (raining !== wasRaining) this.#applyWatering(wasRaining, raining);
 		this.#today = id;
 	}
-
 	/**
 	    Rain at the start of a day waters the pet bowl and all tilled soil
 	    (Game1.newDayAfterFade), apart from soil the game hides (state 2).
@@ -407,7 +326,7 @@ export class Calendar implements DataProxy<Save> {
 		for (const location of this.#save.locations) {
 			const raw = location[Raw];
 			const context = locationWeatherContext(raw);
-			if (!raw.isOutdoors || context !== "Default") continue;
+			if (raw.isOutdoors !== true || context !== "Default") continue;
 			for (const building of raw.buildings?.Building ?? []) {
 				if (building["@_xsi:type"] !== "PetBowl") continue;
 				const id = identity(building);
@@ -454,17 +373,7 @@ export class Calendar implements DataProxy<Save> {
 	}
 
 	#writeTomorrow(id: string) {
-		this[Raw].weatherForTomorrow = id;
-		const weather = this.#weather;
-		if (weather) {
-			if (
-				typeof weather.weatherForTomorrow === "object" &&
-				weather.weatherForTomorrow
-			)
-				weather.weatherForTomorrow.string = id;
-			else weather.weatherForTomorrow = { string: id };
-			weather.WeatherForTomorrow = id;
-		}
+		writeCalendarTomorrow(this[Raw], id);
 		this.#tomorrow = id;
 	}
 }

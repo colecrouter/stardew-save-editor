@@ -1,4 +1,4 @@
-import generated from "$generated/location-weather.json";
+import generated from "../../generated/location-weather.json" with { type: "json" };
 
 const metadata: Readonly<Record<string, { context: string; type: string }>> =
 	generated;

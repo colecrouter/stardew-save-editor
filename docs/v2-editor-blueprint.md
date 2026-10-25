@@ -252,7 +252,9 @@ creation, deletion, merging and transfers still need proof before migration.
 The simple confirmation works well with native `<dialog>`. Bits UI remains a
 candidate for compound selection/popover behavior, rather than a prerequisite
 for ordinary controls. Its experiment component is dynamically imported when
-selected. Calendar and bundle adapters remain the next contract tests.
+selected. The calendar prototype now proves atomic date/weather preparation and cloned
+watering provenance with shared production rules. Calendar lab controls and bundle
+operations remain contract tests; general farm identity maintenance is still open.
 
 Resolve broader entity identity operations, adapter versioning, field-granular draft conflicts,
 history byte budgets/persistence, selective revert, translation keys for existing game

@@ -135,7 +135,7 @@ models, each using the transactional history service. Start it with `npm run lab
 --prefix experiments/v2`; mode switching starts a fresh session. Stack fields execute
 mutations rather than writing raw data. Twelve paired tests include real-save export,
 target capture, unrelated-update suppression, invalid edits, and consumer cleanup.
-The suite now totals 65 tests (8 native / 57 Effect). See
+The suite now totals 78 tests (11 native / 67 Effect). See
 [the comparison](../../docs/v2-atom-comparison.md) for findings and limitations.
 
 ## Shared fields and identity
@@ -194,7 +194,25 @@ resources, cycles, undefined fields and non-finite values are rejected, rather
 than normalized through JSON.stringify. Tests also cover hostile-looking keys,
 oversized metadata, redo preservation and enclosing transaction rollback.
 
-Production watering provenance passes this boundary directly, including marks
-for originally absent fields. A complete calendar adapter still needs target
-identities carried through cloned documents; the production proxy's weak object
-associations do not provide that.
+## Transactional calendar prototype
+
+The default `EditorOperations` service now prepares calendar date and weather
+mutations against the complete save document. Shared raw-document helpers keep
+production and experiment rules aligned. Date copies, host statistics, weather
+flags, ordinary choices and watering provenance commit and undo together.
+A differential test compares the production proxy and pure adapter over the same
+sequence; failed groups preserve both domain state and redo.
+
+Target bindings use location names, soil coordinates or building IDs plus exact
+non-watering fingerprints. They survive cloning and array reordering. This is a
+fixed-topology prototype: ambiguous targets and unannotated content/topology
+changes fail before publication. Byte-identical replacement at the same key is
+not detectable from XML alone. Future farm operations must explicitly maintain
+identities and invalidate provenance. Fingerprint snapshots count toward the
+history byte budget; they are not a heap optimization.
+
+The complete calendar/history runtime graph runs directly on Node 24. Its
+TypeScript configuration permits legacy enums reached through type-only save
+interfaces; the runtime graph remains enum-free and is exercised by native tests.
+The older plain/Effect comparator sessions do not implement calendar actions.
+Production remains proxy-backed; calendar lab controls and a read model are next.

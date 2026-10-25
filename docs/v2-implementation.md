@@ -94,15 +94,18 @@ cover the production calendar control migration, inventory operations, byte
 budgets, lifetime repair, and the calendar domain-state extraction prerequisite.
 
 The stack draft, monotonic revision guard, duplicate-item identities, and native/Bits
-confirmation comparison are implemented in the lab. All 65 experiment tests pass,
+confirmation comparison are implemented in the lab. All 78 experiment tests pass locally,
 including atomic domain-state restoration and adapter-isolation coverage.
 The complete Effect diagnostic stream is clean. Oxfmt, TS7 checks, Svelte checks,
-and clean dependency installation pass; all 572 app tests passed remote CI on
-`c6fcecd`. Production build
+and clean dependency installation pass; all three remote checks passed on
+`358f853`. The calendar adapter increment passes all 573 app tests locally. Production build
 compilation succeeds, while the configured Sentry upload remains blocked by HTTP
 403 permissions. No deployment was attempted.
 
 The first dialog comparison favors native HTML for this simple confirmation. Bits
 remains useful to evaluate for item selection/popovers; it is loaded on demand in
-the lab. Calendar and bundle adapter extraction, broader item identity operations,
+the lab. The calendar adapter now prepares complete date/weather transactions with
+cloned target bindings, choices and watering provenance. It rejects unannotated
+target changes and does not yet provide general farm entity lifecycle semantics.
+Calendar lab controls/read models, bundle extraction, broader item identity operations,
 and existing production proxy lifetimes are still required before migration.

@@ -3,8 +3,8 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"test": "node --test mutation.node.ts && vitest run --config vitest.config.ts",
-		"test:node": "node --test mutation.node.ts",
+		"test": "node --test mutation.node.ts calendar.node.ts && vitest run --config vitest.config.ts",
+		"test:node": "node --test mutation.node.ts calendar.node.ts",
 		"demo": "node run.ts",
 		"demo:platform": "node platform-run.ts",
 		"measure:bundle": "node measure-bundle.ts",

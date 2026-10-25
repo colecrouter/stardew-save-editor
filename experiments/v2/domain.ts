@@ -1,3 +1,5 @@
+import type { CalendarEdit } from "../../src/lib/calendarDocument.ts";
+
 // Parsed XML consists of plain records, arrays, and primitive values. This
 // comparator intentionally does not support class instances, cycles, Maps or Sets.
 function equal(left: unknown, right: unknown): boolean {
@@ -34,6 +36,7 @@ export interface SaveDocument {
 	};
 }
 export type Mutation =
+	| CalendarEdit
 	| { type: "item-place"; farmerId: string; slot: number; item: unknown }
 	| { type: "item-remove"; farmerId: string; slot: number; entityId?: string }
 	| {
@@ -111,6 +114,10 @@ export function apply(
 	label: string;
 	review: Receipt["review"];
 } {
+	if (mutation.type === "calendar-date" || mutation.type === "calendar-weather")
+		throw new MutationError(
+			"Calendar operations require the calendar domain adapter",
+		);
 	if (mutation.type === "farm-name") {
 		if (!mutation.value.trim()) throw new MutationError("Farm name is empty");
 		for (const farmer of farmers(document)) farmer.farmName = mutation.value;

@@ -51,7 +51,7 @@
 		width: 44px;
 		height: 48px;
 		z-index: 7;
-		background: url("./art/close.png") no-repeat;
+		background: url("./art/chrome/close.png") left top / 42px 48px no-repeat;
 		border: 0;
 		padding: 0;
 		cursor: pointer;

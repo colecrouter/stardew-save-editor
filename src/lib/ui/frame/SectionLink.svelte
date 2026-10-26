@@ -52,11 +52,11 @@
 	a[aria-current="page"] {
 		position: relative;
 		isolation: isolate;
-		min-height: 56px;
-		background: #ffd477 url("./art/tab-fill.png") left top repeat-x;
+		min-height: 57px;
+		background: transparent;
 		color: #311304;
 		font-weight: 700;
-		border-bottom-color: transparent;
+		border-bottom: 0;
 	}
 	a[aria-current="page"]::after {
 		content: "";
@@ -64,10 +64,12 @@
 		inset: 0;
 		z-index: -1;
 		pointer-events: none;
-		border: 20px solid transparent;
-		border-left-width: 14px;
-		border-image: url("./art/section-border.png") 20 20 20 14 / 20px 20px 20px
-			14px / 0 repeat;
+		image-rendering: pixelated;
+		border-style: solid;
+		border-color: transparent;
+		border-width: 21px 21px 21px 15px;
+		border-image: url("./art/chrome/selected-tab.png") 7 7 7 5 fill / 21px 21px
+			21px 15px / 0 repeat;
 	}
 	@media (max-width: 900px) {
 		a {

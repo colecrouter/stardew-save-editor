@@ -294,4 +294,20 @@ images. Edit the canonical PNGs directly; earlier recipes remain in Git history.
 See `design/v2/user-frame/README.md` and `design/v2/parchment/README.md` for image
 sizes and slice boundaries. `image-rendering: pixelated` keeps rendering crisp;
 opaque native-size wood/post samples introduce no colours beyond their source
-palettes. Smaller field and selected-tab borders retain their existing assets.
+palettes. Smaller field borders, selected tabs and close now use the reduced
+3x images in `art/chrome`; see that directory's README for sizes and slicing.
+
+### Composable container candidate
+
+The prototype shell still places rails/posts explicitly. A future generic
+container could declare a row or column axis and own divider spacing. A direct
+sibling selector (`> * + *`) can add an inner support before each subsequent pane,
+while individual panes retain their parchment and scrolling behavior. Nested row
+and column containers could express more complex compositions. This is a recorded
+direction, not an implemented abstraction in this prototype.
+
+Responsive axis changes would need to switch both the reserved space and divider
+orientation. Wrapped flex/grid adjacency cannot be inferred reliably from DOM
+sibling order alone. Divider artwork also needs its own layer or wrapper rather
+than competing with a pane's existing pseudo-element. Those cases should be
+proved before replacing the explicit shell.

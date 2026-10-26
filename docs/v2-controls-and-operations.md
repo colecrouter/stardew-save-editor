@@ -43,15 +43,15 @@ Pixelify Sans/VT323 fonts and native checkbox behavior remain unchanged.
 
 #### Fidelity ledger
 
-| Area        | Study evidence                                                    | Implementation and deliberate differences                                                                                                                |
-| ----------- | ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Composition | Header, dark left rail, broad parchment work area                 | Container frame with header beam and inset workspace; mobile sections use a native disclosure.                                                           |
-| Frame       | Detailed wood edges and brass-colored corners                     | User-authored frame/post PNGs at 3x, with fixed corners and repeating middles; parchment refinement is deferred.                                         |
-| Palette     | Pale cream controls, warm paper, green export, blue selected date | Shared theme tokens and component styles reproduce this hierarchy.                                                                                       |
-| Typography  | Pixel headings and narrower body/control lettering                | Pixelify Sans headings and VT323 body text; generated lettering has no exact font asset.                                                                 |
-| Controls    | Labeled inputs, calendar grid, checkbox, weather selects          | Real native controls with existing validation and bindings; detailed explanations remain available in disclosures. Profit/monster help is shortened.     |
-| Icons       | Illustrated navigation and farm heading                           | The softer illustrated raster atlas supplies navigation/domain icons; remaining actions/weather use temporary glyphs.                                    |
-| Content     | Compact farm settings and collapsed creation options              | Existing date/forced-weather diagnostics retained; date help and forecast notes can expand. Existing farmer selection stays inside the workspace footer. |
+| Area        | Study evidence                                                    | Implementation and deliberate differences                                                                                                                   |
+| ----------- | ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Composition | Header, dark left rail, broad parchment work area                 | Container frame with header beam and inset workspace; mobile sections use a native disclosure.                                                              |
+| Frame       | Detailed wood edges and brass-colored corners                     | User-authored frame/post PNGs at 3x, with fixed corners and repeating middles; parchment refinement is deferred.                                            |
+| Palette     | Pale cream controls, warm paper, green export, blue selected date | Shared theme tokens and component styles reproduce this hierarchy.                                                                                          |
+| Typography  | Pixel headings and narrower body/control lettering                | Pixelify Sans headings and VT323 body text; generated lettering has no exact font asset.                                                                    |
+| Controls    | Labeled inputs, calendar grid, checkbox, weather selects          | Real native controls with existing validation and bindings; detailed explanations remain available in disclosures. Profit/monster help is shortened.        |
+| Icons       | Illustrated navigation and farm heading                           | The softer illustrated raster atlas supplies navigation/domain icons; remaining actions/seasons use code-native glyphs; weather uses game forecast sprites. |
+| Content     | Compact farm settings and collapsed creation options              | Existing date/forced-weather diagnostics retained; date help and forecast notes can expand. Existing farmer selection stays inside the workspace footer.    |
 
 This is the first implemented study slice, not completion of the entire V2 visual
 milestone. Frame pieces are extracted directly from the study; icons remain reconstructed
@@ -80,7 +80,9 @@ briefs and original comparisons under `design/v2/study-assets-v1`. `StudyIcon`
 uses one shared atlas URL and preserves its inspected source aspect ratio. A
 separate width override must not clip the display box. The icon atlas remains
 reconstructed art; it is not a substitute for domain-specific sprite rendering.
-Fallback code glyphs supply actions/weather outside the sixteen-icon atlas.
+Fallback code glyphs supply action/season imagery outside the sixteen-icon atlas.
+Weather now uses the game's static 13px forecast sprites at 3x, including green rain
+and seasonal wind. Unknown weather retains its text with a neutral pictogram.
 
 Frame raster extraction and shared join geometry are described under
 [Native frame extraction](#native-frame-extraction) and in the frame kit README.
@@ -311,3 +313,16 @@ orientation. Wrapped flex/grid adjacency cannot be inferred reliably from DOM
 sibling order alone. Divider artwork also needs its own layer or wrapper rather
 than competing with a pane's existing pseudo-element. Those cases should be
 proved before replacing the explicit shell.
+
+### Foundation handoff
+
+The game-derived weather icon set finishes this visual prototype pass. Its source
+rectangles and native rendering are documented in `src/lib/ui/art/weather/README.md`.
+Unused raster experiments and their manifest live under
+`design/v2/frame-kit/raster-reference`; the unused runtime registry was removed.
+The exporter only writes that design archive. Active frame/chrome assets remain
+single-file PNGs that can be edited directly.
+
+The [V2 integration plan](v2-integration-plan.md) records working decisions and the
+remaining calendar/review/lifetime/second-domain proofs. #180 is a draft foundation
+PR for `v2`; this cleanup does not merge it or complete the V2 release milestone.

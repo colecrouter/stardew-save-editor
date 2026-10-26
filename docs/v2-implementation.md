@@ -84,8 +84,9 @@ bundle costs are evidence for the decision, rather than automatic disqualifiers.
 Production inventory migration requires stable item identity across moves and
 undo/redo, plus explicit handling of dirty drafts during external changes. The
 session now distinguishes duplicate backpack items for stack/reorder operations.
-Creation, deletion, merging and transfers still need identity semantics and proof
-before claiming the production contract is ready.
+Placement, removal and moves into empty slots within/across farmer backpacks
+now have identity/undo evidence. Catalog-driven construction, stacking/merging and
+other containers still need proof before a broad inventory migration.
 
 ## Current evidence
 
@@ -109,3 +110,12 @@ cloned target bindings, choices and watering provenance. It rejects unannotated
 target changes and does not yet provide general farm entity lifecycle semantics.
 Calendar lab controls/read models, bundle extraction, broader item identity operations,
 and existing production proxy lifetimes are still required before migration.
+
+## Integration destination
+
+The [V2 integration plan](v2-integration-plan.md) separates the foundation PR from
+remaining production proofs. PR #180 targets the long-running `v2` integration
+branch and remains a draft for review. Calendar UI/session integration is next,
+followed by a minimal review view, browser lifetime/performance evidence and one
+second-domain compound operation. The visible editor remains proxy-backed today;
+no Effect production migration is claimed by the visual prototype.

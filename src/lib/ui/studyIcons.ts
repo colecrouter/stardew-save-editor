@@ -1,27 +1,7 @@
 import type atlas from "./art/icon-regions.json";
 
-const cloud = [
-	["#3d4c70", "M7 3h9v2h3v3h3v8H2V8h3V5h2z"],
-	["#7ca6c5", "M8 5h7v2h3v3h2v4H4v-4h3V7h1z"],
-	["#b7d1d4", "M8 6h6v2H8zM5 10h3v2H5z"],
-] as const;
-
-// Temporary code-native action/weather glyphs for subjects outside the raster kit.
+// Code-native action and season glyphs outside the illustrated raster kit.
 export const studyIcons = {
-	rain: [
-		...cloud,
-		["#3b80b9", "M5 17h2v4H5zM11 18h2v5h-2zM17 17h2v4h-2z"],
-		["#9bd8eb", "M5 17h1v2H5zM11 18h1v3h-1zM17 17h1v2h-1z"],
-	],
-	storm: [...cloud, ["#eeb94a", "M11 14h5l-3 4h3l-7 6 2-6H8z"]],
-	snow: [...cloud, ["#e9f4f0", "M5 17h2v2H5zM11 20h2v2h-2zM17 17h2v2h-2z"]],
-	wind: [
-		[
-			"#7d9159",
-			"M2 6h15V4h3v2h2v3h-2v2H8V9h11V8H2zM3 14h12v2h4v4h-3v-2H5v-2H3z",
-		],
-		["#c19046", "M2 10h4v2h2v2H4v-2H2zM15 1h4v2h-4z"],
-	],
 	save: [
 		["#302e55", "M3 2h16v2h2v18H3z"],
 		["#6789cd", "M5 4h13v2h1v14H5z"],

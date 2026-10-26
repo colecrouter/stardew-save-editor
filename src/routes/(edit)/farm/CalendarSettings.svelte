@@ -1,5 +1,4 @@
 <script lang="ts">
-	import type { StudyIconName } from "$lib/ui/studyIcons";
 	import {
 		calendarFestivalOn,
 		DAYS_PER_SEASON,
@@ -11,6 +10,7 @@
 	} from "$lib/calendar";
 	import type { Calendar } from "$lib/proxies/Calendar.svelte";
 	import StudyIcon from "$lib/ui/StudyIcon.svelte";
+	import WeatherIcon from "$lib/ui/WeatherIcon.svelte";
 	import UiButton from "$lib/ui/UIButton.svelte";
 	import UiField from "$lib/ui/UIField.svelte";
 	import UiInput from "$lib/ui/UIInput.svelte";
@@ -70,34 +70,10 @@
 		}
 		select.value = current();
 	};
-
-	const weatherPictogram = (weather: string, season: Season): StudyIconName => {
-		switch (weather) {
-			case "Rain":
-			case "GreenRain":
-				return "rain";
-			case "Storm":
-				return "storm";
-			case "Snow":
-				return "snow";
-			case "Wind":
-				return season === Season.Winter ? "snow" : "wind";
-			case "Wedding":
-				return "relationships";
-			case "Festival":
-				return "community";
-			case "Sun":
-				return "summer";
-			default:
-				return "info";
-		}
-	};
 </script>
 
 {#snippet weatherIcon(weather: string, season: Season)}
-	<span class={["weather-emblem", { green: weather === "GreenRain" }]}
-		><StudyIcon name={weatherPictogram(weather, season)} size={44} /></span
-	>
+	<span class="weather-emblem"><WeatherIcon {weather} {season} /></span>
 {/snippet}
 
 <div class="calendar-layout">
@@ -447,9 +423,6 @@
 		border: 1px solid #c39b60;
 		box-shadow: inset 0 0 0 2px #fff1ca;
 		background: #fce8bf;
-	}
-	.weather-emblem.green {
-		filter: hue-rotate(-60deg);
 	}
 	.calendar-help {
 		font-size: 17px;

@@ -1,8 +1,8 @@
 # Reference-traced frame kit
 
-This is the earlier tracing/extraction proof. Active outer wood and divider assets
-now come from the user-authored kit in `../user-frame/`. Its paper/field/tab
-extractions remain in use pending a separate parchment pass.
+This is the earlier tracing/extraction proof. Its raster outputs are archived in
+`raster-reference/` for comparison. Active wood, parchment and chrome now use the
+single-file assets documented under `../user-frame/` and `../parchment/`.
 
 `proof.html` assembles the outer corners, header rail intersections, central post,
 lower joins, recessed parchment and selected navigation tab. Width/height controls
@@ -37,42 +37,30 @@ The gallery displays source details at exactly 2×, with pixelated sampling. The
 main composition is 1×. The reference artwork includes its own sampled softness;
 it is not sharpened or redrawn into uniform vector bevels.
 
-## Production extraction and use
+## Archived raster extraction
 
-This experiment exported native PNG crops of this same reference, rather than
-rasterizing the colour-clustered SVG proof. Run:
+The original PNG crops can be reproduced or verified with:
 
 ```powershell
 python design/v2/frame-kit/export_rasters.py
 python design/v2/frame-kit/export_rasters.py --check
 ```
 
-Pillow is required only to reproduce/check the design assets. The app build uses
-checked-in PNGs and requires neither Python nor Pillow. No resize, sharpening,
-colour quantization or fractional sampling occurs during extraction. The current
-29 PNGs total 63,331 bytes. `src/lib/ui/frame/art/manifest.json` records the source
-hash, crop rectangles (or named assembly), native dimensions and each PNG hash.
-The exporter checks image bytes and manifest contents; Oxfmt owns TS/JSON formatting.
+Pillow is needed only for this optional design command. The exporter writes only
+`raster-reference/`; it no longer writes assets or a TypeScript registry into the
+application source. The archive contains 29 native PNGs (63,331 bytes) and a
+manifest of source/output hashes, crop rectangles and dimensions. It performs no
+resize, sharpening or colour quantization. Oxfmt owns manifest formatting, so
+check mode compares manifest contents rather than whitespace.
 
-The field border and selected-tab border are assembled from native corner crops
-and clean repeated edge strips. Their transparent centres contain no labels or
-controls. Do not repeat the calendar panel's entire original side: its inner grid
-lines would contaminate the rim. Explicit masks remove flat context around shared
-wood joints; the outer top-right corner excludes the separately anchored close
-button. `parts.json` and the exporter retain the source coordinates and masks.
+The field and selected-tab reference borders were assembled from clean corner
+crops and repeated edge strips. Their centres are transparent. Explicit masks
+remove flat context around wood joints; close is separated from its corner.
+`parts.json` and the exporter retain those source coordinates and masks.
 
-The production components are `StudyFrame` (outer art), `EditorShell` (joined
-header/navigation/workspace), `ParchmentPane` (rim independent of scrolling), and
-`SectionLink` (native link with selected artwork behind its label). Corners render
-at native size; horizontal/vertical strips repeat without `background-size`,
-transforms, or stretching. The navigation post is 22px wide. Its upper/lower caps
-begin 20px before the post; parchment overlaps the post by 4px. These offsets are
-source join geometry, not padding adjustments on individual pages.
-
-Below 900px the vertical post becomes a horizontal rail, navigation becomes a
-native disclosure, and content uses document flow. Desktop keeps the frame within
-the viewport and scrolls content/navigation separately. Footer farmer selection
-belongs inside the workspace, so multiplayer does not extend the frame.
-
-The source SVG proof remains a useful isolated comparison and resize diagnostic;
-it is not the responsive app. Regenerate it with `python design/v2/frame-kit/trace.py`.
+The source SVG proof remains an isolated comparison and resize diagnostic, not
+the responsive application. Its 22px post and 4px paper overlap are historical
+geometry. Regenerate the SVG proof with `python design/v2/frame-kit/trace.py`.
+The active UI instead uses the user's single-file wood kit, consolidated
+parchment and reduced chrome with CSS border-image at 3x. See the current asset
+READMEs and `docs/v2-integration-plan.md` for the foundation handoff.

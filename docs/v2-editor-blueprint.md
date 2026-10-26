@@ -64,9 +64,9 @@ UI field bindings can remain convenient setters that dispatch these operations.
 Resolve targets using domain references. Persistent game IDs can be used where they
 exist. Items without unique IDs need session-local identity, held outside exported
 XML. Reordering, replacement, undo and redo must update identity/location metadata
-atomically with the document. The prototype's slot plus expected item ID is insufficient
-for distinguishing duplicate items after movement; this identity work is a prerequisite
-for a production inventory migration, not an already solved detail.
+atomically with the document. Session-local identities now distinguish duplicate items through reorder,
+placement/removal and moves into empty backpack slots. Catalog construction, merging
+and other container adapters remain prerequisites for broader inventory migration.
 
 ### Session and history
 
@@ -246,8 +246,8 @@ The [implementation requirements](v2-implementation.md) now have a working stack
 draft and native/Bits confirmation comparison in the inventory lab. Session-only
 item identities are atomic with reorders and undo/redo, including swaps of
 byte-identical items. Draft commits check a monotonic document revision. This
-establishes those contracts for stack/reorder operations; identity semantics for
-creation, deletion, merging and transfers still need proof before migration.
+establishes those contracts for stack/reorder operations; placement/removal and empty-slot transfers are also covered. Catalog construction,
+merging and other containers still need proof before broad migration.
 
 The simple confirmation works well with native `<dialog>`. Bits UI remains a
 candidate for compound selection/popover behavior, rather than a prerequisite
@@ -278,3 +278,10 @@ not assume Atom, a UI framework, or Schema automatically removes that cost.
 
 Candidate value is a source-backed architectural assessment, not a completed benchmark
 or accessibility audit of those libraries in this editor.
+
+## Integration follow-up
+
+See [the V2 integration plan](v2-integration-plan.md) for the branch workflow,
+working architecture defaults and four bounded remaining foundation proofs. The
+visual prototype does not make the production UI Effect-backed; the first complete
+calendar workflow is the next integration task.

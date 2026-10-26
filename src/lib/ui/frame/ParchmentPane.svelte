@@ -17,27 +17,29 @@
 		position: relative;
 		min-width: 0;
 		min-height: 0;
-		margin-left: -4px;
+		margin-left: -3px;
 		background: linear-gradient(110deg, #ffe3af, #fcdda6);
 	}
-	/* Profiles and corner caps share the study's source grid. The 4px overlap is
-    part of the paper/post join, independent of the scrollable content. */
+	/* Reduced logical-pixel artwork shares the wood kit's integer 3x grid.
+    The broad surface stays a CSS gradient; only narrow rim profiles repeat. */
 	.parchment-pane::before {
 		content: "";
 		position: absolute;
-		inset: -8px -8px -8px -4px;
+		inset: -6px -6px -6px -3px;
 		pointer-events: none;
 		z-index: 3;
+		image-rendering: pixelated;
 		background:
-			url("./art/workspace-tl.png") left top no-repeat,
-			url("./art/workspace-tr.png") right top no-repeat,
-			url("./art/workspace-bl.png") left bottom no-repeat,
-			url("./art/workspace-br.png") right bottom no-repeat,
-			url("./art/paper-top.png") left top repeat-x,
-			url("./art/paper-bottom.png") left bottom repeat-x,
-			url("./art/paper-left.png") 4px top repeat-y,
-			url("./art/paper-right.png") right top repeat-y;
+			url("./art/parchment/tl.png") left top / 27px 27px no-repeat,
+			url("./art/parchment/tr.png") right top / 30px 30px no-repeat,
+			url("./art/parchment/bl.png") left bottom / 27px 27px no-repeat,
+			url("./art/parchment/br.png") right bottom / 30px 27px no-repeat,
+			url("./art/parchment/top.png") left top / 3px 24px repeat-x,
+			url("./art/parchment/bottom.png") left bottom / 3px 18px repeat-x,
+			url("./art/parchment/left.png") 3px top / 18px 3px repeat-y,
+			url("./art/parchment/right.png") right top / 18px 3px repeat-y;
 	}
+
 	.content {
 		min-width: 0;
 		min-height: 0;

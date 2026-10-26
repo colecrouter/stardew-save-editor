@@ -35,8 +35,8 @@ item editing and character controls also reflow on narrow screens.
 `EditorShell` composes the header, wood lattice and workspace. The current wood
 uses the user's three original frame/post PNGs at integer 3x scale. `StudyFrame`
 keeps corner seams separate from repeating edge strips; `WoodDivider` separates
-end caps from repeated middles. `ParchmentPane` retains the existing paper treatment
-and stationary rim around scrolling contents; parchment refinement is deferred.
+end caps from repeated middles. `ParchmentPane` uses a CSS fill and reduced logical-pixel rim around scrolling
+contents. Its first 3x trial is described below; smaller panels remain unchanged.
 `SectionLink` keeps selected-tab decoration behind native anchor contents.
 Mobile replaces the vertical post with a horizontal rail. Locally bundled
 Pixelify Sans/VT323 fonts and native checkbox behavior remain unchanged.
@@ -298,3 +298,17 @@ Browser checks cover 1366, 1280, 768, 390 and 320px widths with no horizontal pa
 overflow and invariant 30px corner patches. Desktop stays within the viewport;
 mobile flows vertically. This is a rough structural frame pass, not a parchment
 redesign or an Effect UI migration.
+
+### Logical-pixel parchment trial
+
+The workspace now uses eight reduced rim assets in `src/lib/ui/frame/art/parchment`.
+Corners are 9-10 logical pixels and display at integer 3x, matching the wood kit.
+Whole-block area reduction and one shared twelve-colour palette remove fine
+upsampled detail. The background remains a CSS gradient, while only edge strips
+repeat. Original crops are preserved. The optional reducer and its manifest/check
+workflow are documented in `design/v2/parchment/README.md`.
+
+This trial changes only the main workspace, not the field rims or selected tab.
+Browser checks at 320-1366px confirm invariant image sizes, stationary rim art,
+no horizontal overflow, no missing UI assets and no runtime errors. Native/Svelte,
+formatting and build checks pass; Sentry upload retains the existing HTTP 403.

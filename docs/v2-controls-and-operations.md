@@ -84,8 +84,8 @@ Fallback code glyphs supply action/season imagery outside the sixteen-icon atlas
 Weather now uses the game's static 13px forecast sprites at 3x, including green rain
 and seasonal wind. Unknown weather retains its text with a neutral pictogram.
 
-Frame raster extraction and shared join geometry are described under
-[Native frame extraction](#native-frame-extraction) and in the frame kit README.
+Current single-file rendering and shared join geometry are described under
+[Single-file frame assets](#single-file-frame-assets) and in the current wood, parchment and chrome asset READMEs.
 Effect calendar state remains in the lab; these components do not own save state.
 
 ### Game asset implementation proof
@@ -318,11 +318,12 @@ proved before replacing the explicit shell.
 
 The game-derived weather icon set finishes this visual prototype pass. Its source
 rectangles and native rendering are documented in `src/lib/ui/art/weather/README.md`.
-Unused raster experiments and their manifest live under
-`design/v2/frame-kit/raster-reference`; the unused runtime registry was removed.
-The exporter only writes that design archive. Active frame/chrome assets remain
-single-file PNGs that can be edited directly.
+Obsolete split PNG/SVG sets, manifests, extraction scripts and their diagnostic
+pages have been removed. Git history preserves those experiments. The original
+study and junction crop remain in `design/v2/references/`. Active frame/chrome
+assets are single-file PNGs that can be edited directly.
 
 The [V2 integration plan](v2-integration-plan.md) records working decisions and the
-remaining calendar/review/lifetime/second-domain proofs. #180 is a draft foundation
-PR for `v2`; this cleanup does not merge it or complete the V2 release milestone.
+calendar/review/lifetime/second-domain proof boundaries. #180 is merged into `v2`;
+[workflow evidence](v2-workflow-proof.md) records the subsequent results and
+remaining migration gates. The V2 release milestone remains separate.

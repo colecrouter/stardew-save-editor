@@ -1,5 +1,9 @@
 # Reference-traced frame kit
 
+This is the earlier tracing/extraction proof. Active outer wood and divider assets
+now come from the user-authored kit in `../user-frame/`. Its paper/field/tab
+extractions remain in use pending a separate parchment pass.
+
 `proof.html` assembles the outer corners, header rail intersections, central post,
 lower joins, recessed parchment and selected navigation tab. Width/height controls
 extend the composition without resizing the artwork. On narrow screens the
@@ -35,7 +39,7 @@ it is not sharpened or redrawn into uniform vector bevels.
 
 ## Production extraction and use
 
-The application uses native PNG crops of this same reference, rather than
+This experiment exported native PNG crops of this same reference, rather than
 rasterizing the colour-clustered SVG proof. Run:
 
 ```powershell

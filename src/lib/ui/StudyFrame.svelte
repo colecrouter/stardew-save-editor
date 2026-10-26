@@ -1,27 +1,18 @@
 <script lang="ts">
 	import type { Snippet } from "svelte";
-	import { frameParts } from "./frame/frameParts";
 	let { children }: { children: Snippet } = $props();
-	const corners = ["outer-tl", "outer-tr", "outer-bl", "outer-br"] as const;
-	const edges = [
-		"outer-top",
-		"outer-bottom",
-		"outer-left",
-		"outer-right",
-	] as const;
+	const corners = ["tl", "tr", "bl", "br"] as const;
+	const edges = ["top", "bottom", "left", "right"] as const;
 </script>
 
 <div class="study-frame">
 	{@render children()}
-	{#each [...edges, ...corners] as name (name)}
-		<span
+	{#each corners as corner (corner)}<span
+			class="art corner corner-{corner}"
 			aria-hidden="true"
-			class="art {name}"
-			style:background-image={`url("${frameParts[name].url}")`}
-			style:--width={`${frameParts[name].width}px`}
-			style:--height={`${frameParts[name].height}px`}
-		></span>
-	{/each}
+		></span>{/each}
+	{#each edges as edge (edge)}<span class="art edge-{edge}" aria-hidden="true"
+		></span>{/each}
 </div>
 
 <style>
@@ -32,60 +23,81 @@
 		flex-direction: column;
 		min-width: 0;
 		height: var(--study-frame-height, auto);
-		padding: 24px 24px 28px;
-		background: #542710;
+		padding: 21px;
 	}
+	.study-frame::before {
+		content: "";
+		position: absolute;
+		inset: 21px;
+		background: #542710;
+		z-index: -1;
+		pointer-events: none;
+	}
+	/* Seven-pixel timber at 3x. Ten-pixel corners include the dark joint seam;
+    it must never enter a repeating edge. Tile origins stay on integer pixels. */
 	.art {
 		position: absolute;
 		pointer-events: none;
 		z-index: 5;
 		image-rendering: pixelated;
-		width: var(--width);
-		height: var(--height);
+		background-position: left top;
 		background-repeat: no-repeat;
 	}
-	.outer-tl {
+	.corner {
+		width: 30px;
+		height: 30px;
+		background-size: 30px 30px;
+	}
+	.corner-tl {
 		left: 0;
 		top: 0;
+		background-image: url("./frame/art/user/parts/frame-tl.png");
 	}
-	.outer-tr {
+	.corner-tr {
 		right: 0;
 		top: 0;
+		background-image: url("./frame/art/user/parts/frame-tr.png");
 	}
-	.outer-bl {
+	.corner-bl {
 		left: 0;
 		bottom: 0;
+		background-image: url("./frame/art/user/parts/frame-bl.png");
 	}
-	.outer-br {
+	.corner-br {
 		right: 0;
 		bottom: 0;
+		background-image: url("./frame/art/user/parts/frame-br.png");
 	}
-	.outer-top {
-		left: 40px;
-		right: 50px;
-		top: 0;
-		width: auto;
+	.edge-top,
+	.edge-bottom {
+		left: 30px;
+		right: 30px;
+		height: 21px;
+		background-size: 105px 21px;
 		background-repeat: repeat-x;
 	}
-	.outer-bottom {
-		left: 48px;
-		right: 48px;
+	.edge-top {
+		top: 0;
+		background-image: url("./frame/art/user/parts/frame-top.png");
+	}
+	.edge-bottom {
 		bottom: 0;
-		width: auto;
-		background-repeat: repeat-x;
+		background-image: url("./frame/art/user/parts/frame-bottom.png");
 	}
-	.outer-left {
+	.edge-left,
+	.edge-right {
+		top: 30px;
+		bottom: 30px;
+		width: 21px;
+		background-size: 21px 75px;
+		background-repeat: repeat-y;
+	}
+	.edge-left {
 		left: 0;
-		top: 60px;
-		bottom: 52px;
-		height: auto;
-		background-repeat: repeat-y;
+		background-image: url("./frame/art/user/parts/frame-left.png");
 	}
-	.outer-right {
+	.edge-right {
 		right: 0;
-		top: 72px;
-		bottom: 52px;
-		height: auto;
-		background-repeat: repeat-y;
+		background-image: url("./frame/art/user/parts/frame-right.png");
 	}
 </style>

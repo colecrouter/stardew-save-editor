@@ -6,6 +6,36 @@ import { inventoryFixture } from "./inventory-model.ts";
 import { coreOperations, EditorOperations } from "./operations.ts";
 
 it.effect(
+	"actual patches expose adapter writes even when receipts omit or misdescribe them",
+	() => {
+		const layer = Layer.succeed(EditorOperations, {
+			prepare: (state) =>
+				Effect.sync(() => {
+					const document = structuredClone(state.document);
+					document.SaveGame.player.money = 78;
+					document.SaveGame.player.farmName = "Unexpected adapter write";
+					return { ...state, document }; // Deliberately no receipt.
+				}),
+		});
+		return Effect.gen(function* () {
+			const session = yield* makeHistorySession(inventoryFixture());
+			const before = yield* session.snapshot;
+			const after = yield* session.execute([
+				{ type: "money", farmerId: "host", value: 78 },
+			]);
+			expect(after.entries[0].intent).toMatchObject({
+				label: "Unlabelled changes",
+				review: "standalone",
+			});
+			expect((yield* session.review).net.map((patch) => patch.path)).toContain(
+				"/SaveGame/player/farmName",
+			);
+			expect((yield* session.undo).document).toEqual(before.document);
+		}).pipe(Effect.provide(layer));
+	},
+);
+
+it.effect(
 	"a session captures its domain service and rolls back a failed compound preparation",
 	() => {
 		let calls = 0;

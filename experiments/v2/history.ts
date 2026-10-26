@@ -292,7 +292,7 @@ export const makeHistorySession = (
 									resolved[0],
 								label: resolved.some((action) => action.type === "reorder")
 									? "Reorder backpack"
-									: "Edit save",
+									: "Unlabelled changes",
 								review: "compact" as const,
 							};
 							const payload: Omit<Entry, "bytes"> = {
@@ -304,12 +304,20 @@ export const makeHistorySession = (
 								actions: structuredClone(resolved),
 								intent: {
 									intent: structuredClone(first.intent),
-									label: label ?? first.label,
-									review: receipts.some(
-										(receipt) => receipt.review === "standalone",
-									)
-										? "standalone"
-										: "compact",
+									label:
+										label ??
+										(receipts.length > 1
+											? receipts
+													.map(
+														(receipt) => receipt.label || "Unlabelled changes",
+													)
+													.join("; ")
+											: first.label),
+									review:
+										(receipts.length === 0 && forward.length > 0) ||
+										receipts.some((receipt) => receipt.review === "standalone")
+											? "standalone"
+											: "compact",
 								},
 								forward,
 								backward: JsonPatch.get(

@@ -12,6 +12,15 @@ The combined workflow does: typed dependencies, replaceable runtime layers, muta
 execution, resource ownership, interruption, Schema and scoped tests work together.
 These capabilities match recurring problems better than individual UI conventions.
 
+## Complete workflow evidence
+
+The [calendar/review/bundle workflow proof](v2-workflow-proof.md) now connects import,
+Atom feature projections, Svelte controls, explicit operations, undo/redo and export
+through one Effect-owned session. It confirms the incremental adoption decision.
+Browser stress and a session-only control support this ownership boundary while
+leaving residual UI heap growth and legacy factory lifetimes as explicit follow-ups.
+The lab is separate from the production application; no broad migration is implied.
+
 ## Evidence and boundaries
 
 The isolated package uses Effect, platform-node and @effect/vitest 4.0.6, plus Vitest

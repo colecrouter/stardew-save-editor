@@ -282,6 +282,7 @@ or accessibility audit of those libraries in this editor.
 ## Integration follow-up
 
 See [the V2 integration plan](v2-integration-plan.md) for the branch workflow,
-working architecture defaults and four bounded remaining foundation proofs. The
-visual prototype does not make the production UI Effect-backed; the first complete
-calendar workflow is the next integration task.
+working architecture defaults and four bounded foundation proofs. The complete
+Effect-backed calendar/review/bundle sample now runs in a separate editor lab.
+[Workflow evidence](v2-workflow-proof.md) records the migration decision and limits;
+the production application remains proxy-backed.

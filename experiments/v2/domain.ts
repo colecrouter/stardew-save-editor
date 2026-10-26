@@ -37,6 +37,7 @@ export interface SaveDocument {
 }
 export type Mutation =
 	| CalendarEdit
+	| { type: "bundle-complete"; bundleId: 13 }
 	| { type: "item-place"; farmerId: string; slot: number; item: unknown }
 	| { type: "item-remove"; farmerId: string; slot: number; entityId?: string }
 	| {
@@ -114,6 +115,10 @@ export function apply(
 	label: string;
 	review: Receipt["review"];
 } {
+	if (mutation.type === "bundle-complete")
+		throw new MutationError(
+			"Bundle operations require the bundle domain adapter",
+		);
 	if (mutation.type === "calendar-date" || mutation.type === "calendar-weather")
 		throw new MutationError(
 			"Calendar operations require the calendar domain adapter",

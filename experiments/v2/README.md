@@ -56,9 +56,10 @@ The worker layer starts a real Node worker per request and awaits termination on
 success, error or cancellation. This intentionally costly arrangement proves ownership,
 not an optimized pool. Production Comlink remains; replacing it is not a prerequisite.
 
-Eight native Node tests cover mutation semantics. Twenty-one @effect/vitest tests cover
-the production codec, compression, opaque fields, typed errors, service substitution,
-scoped files, cancellation, actual workers, transactions, JSON Patch and net review.
+Eleven native Node tests and seventy-nine @effect/vitest tests cover mutation and
+calendar semantics, the production codec, compression, opaque fields, typed errors,
+service substitution, scoped files, cancellation, actual workers, transactions,
+JSON Patch, net review and the complete calendar/bundle editing model.
 Ten canceled worker requests leave zero tracked live workers. These counts are not
 a comprehensive heap-leak measurement or proof about existing item proxies.
 
@@ -215,4 +216,7 @@ The complete calendar/history runtime graph runs directly on Node 24. Its
 TypeScript configuration permits legacy enums reached through type-only save
 interfaces; the runtime graph remains enum-free and is exercised by native tests.
 The older plain/Effect comparator sessions do not implement calendar actions.
-Production remains proxy-backed; calendar lab controls and a read model are next.
+The production application remains proxy-backed. The complete Effect/Atom editor
+workflow now runs at `http://127.0.0.1:5190/?flow=editor` after starting the lab.
+It includes calendar drafts/weather, history/net review, one vanilla bundle
+completion, undo/redo and export/reimport. See [workflow evidence and reproduction](../../docs/v2-workflow-proof.md).

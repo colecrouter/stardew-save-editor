@@ -1,0 +1,213 @@
+import { Effect } from "effect";
+import {
+	diff,
+	farmers,
+	MutationError,
+	type SaveDocument,
+	type SessionState,
+} from "./domain.ts";
+
+// Bounded second-domain proof: vanilla Spring Foraging only. Unsupported saves
+// remain editable elsewhere; this adapter never normalizes their bundle data.
+interface BundleRecord {
+	key: { int: number };
+	value: { ArrayOfBoolean: { boolean: boolean[] } };
+}
+interface BundleGame {
+	bundleData: {
+		item: { key: { string: string }; value: { string: string } }[];
+	};
+	locations: {
+		GameLocation: {
+			name: string;
+			bundles: { item: BundleRecord[] };
+			bundleRewards: {
+				item: { key: { int: number }; value: { boolean: boolean } }[];
+			};
+			areasComplete: { boolean: boolean[] };
+		}[];
+	};
+}
+const vanilla =
+	"Spring Foraging/O 495 30/16 1 0 18 1 0 20 1 0 22 1 0/0///Spring Foraging";
+function inspect(document: SaveDocument) {
+	const game = document.SaveGame as unknown as BundleGame;
+	const centers = game.locations.GameLocation.filter(
+		(location) => location.name === "CommunityCenter",
+	);
+	if (centers.length !== 1)
+		throw new Error("A single Community Center is required.");
+	const cc = centers[0];
+	const definitions = game.bundleData.item;
+	const targets = definitions.filter(
+		(entry) => entry.key.string === "Crafts Room/13",
+	);
+	if (targets.length !== 1 || targets[0].value.string !== vanilla)
+		throw new Error(
+			"This sample supports the vanilla Spring Foraging bundle only.",
+		);
+	const records = cc.bundles.item.filter((entry) => entry.key.int === 13);
+	if (records.length !== 1)
+		throw new Error("Spring Foraging progress is missing or duplicated.");
+	const submitted = records[0].value.ArrayOfBoolean.boolean;
+	if (
+		!Array.isArray(submitted) ||
+		submitted.length < 4 ||
+		submitted.some((value) => typeof value !== "boolean")
+	)
+		throw new Error("Spring Foraging progress is malformed.");
+	const rewards = cc.bundleRewards.item.filter((entry) => entry.key.int === 13);
+	if (
+		rewards.length > 1 ||
+		(rewards.length === 1 && typeof rewards[0].value.boolean !== "boolean")
+	)
+		throw new Error("Spring Foraging reward is malformed or duplicated.");
+	return { cc, definitions, submitted, reward: rewards[0] };
+}
+export function springBundleView(document: SaveDocument) {
+	try {
+		const { submitted, reward } = inspect(document);
+		return {
+			supported: true,
+			completed: submitted.slice(0, 4).every(Boolean),
+			rewardAvailable: reward?.value.boolean === true,
+			reason: "",
+		};
+	} catch (cause) {
+		return {
+			supported: false,
+			completed: false,
+			rewardAvailable: false,
+			reason: cause instanceof Error ? cause.message : String(cause),
+		};
+	}
+}
+function complete(document: SaveDocument) {
+	const { cc, definitions, submitted, reward } = inspect(document);
+	if (submitted.slice(0, 4).every(Boolean)) return; // Never reissue a claimed reward.
+	const roomDefinitions = definitions.filter((entry) =>
+		entry.key.string.startsWith("Crafts Room/"),
+	);
+	const ids = roomDefinitions.map((entry) =>
+		Number(entry.key.string.split("/")[1]),
+	);
+	if (
+		ids.length !== 6 ||
+		new Set(ids).size !== 6 ||
+		![13, 14, 15, 16, 17, 19].every((id) => ids.includes(id))
+	)
+		throw new Error(
+			"The sample requires the six vanilla Crafts Room bundle IDs.",
+		);
+	const areas = cc.areasComplete.boolean;
+	if (
+		!Array.isArray(areas) ||
+		areas.length < 6 ||
+		areas.length > 7 ||
+		areas.some((value) => typeof value !== "boolean")
+	)
+		throw new Error("Community Center room progress is unsupported.");
+	const roomComplete = roomDefinitions.every((definition) => {
+		const id = Number(definition.key.string.split("/")[1]);
+		const parts = definition.value.string.split("/");
+		const tokens = parts[2]?.trim().split(/\s+/) ?? [];
+		const required = parts[4] ? Number(parts[4]) : tokens.length / 3;
+		const records = cc.bundles.item.filter((entry) => entry.key.int === id);
+		if (
+			tokens.length === 0 ||
+			tokens.length % 3 ||
+			!Number.isInteger(required) ||
+			required < 1 ||
+			required > tokens.length / 3 ||
+			records.length !== 1
+		)
+			throw new Error("A Crafts Room bundle definition is unsupported.");
+		const flags = records[0].value.ArrayOfBoolean.boolean;
+		if (
+			!Array.isArray(flags) ||
+			flags.length < tokens.length / 3 ||
+			flags.some((value) => typeof value !== "boolean")
+		)
+			throw new Error("A Crafts Room bundle has malformed progress.");
+		return (
+			id === 13 ||
+			flags.slice(0, tokens.length / 3).filter(Boolean).length >= required
+		);
+	});
+	const previouslyComplete = areas.slice(0, 6).every(Boolean);
+	for (let index = 0; index < 4; index++) submitted[index] = true;
+	if (reward) reward.value.boolean = true;
+	else
+		cc.bundleRewards.item.push({ key: { int: 13 }, value: { boolean: true } });
+	if (!roomComplete) return;
+	const newlyComplete = !areas[1];
+	areas[1] = true;
+	const overall = !previouslyComplete && areas.slice(0, 6).every(Boolean);
+	if (!newlyComplete && !overall) return;
+	for (const farmer of farmers(document)) {
+		const player = farmer as unknown as {
+			mailReceived: "" | { string: string[] };
+		};
+		if (
+			player.mailReceived !== "" &&
+			(!player.mailReceived ||
+				!Array.isArray(player.mailReceived.string) ||
+				player.mailReceived.string.some((flag) => typeof flag !== "string"))
+		)
+			throw new Error("Farmer mail flags are unsupported.");
+		let mail =
+			player.mailReceived === "" ? [] : [...player.mailReceived.string];
+		const add = (flag: string) => {
+			if (!mail.includes(flag)) mail.push(flag);
+		};
+		const remove = (flag: string) => {
+			mail = mail.filter((value) => value !== flag);
+		};
+		if (newlyComplete) {
+			add("ccCraftsRoom");
+			if (mail.includes("JojaMember")) add("jojaCraftsRoom");
+			else remove("jojaCraftsRoom");
+		}
+		if (overall) {
+			for (const flag of [
+				"ccIsComplete",
+				"ccBulletinThankYou",
+				"seenJunimoNote",
+			])
+				add(flag);
+			if (mail.includes("JojaMember")) remove("abandonedJojaMartAccessible");
+			else add("abandonedJojaMartAccessible");
+		}
+		if (player.mailReceived === "") player.mailReceived = { string: mail };
+		else player.mailReceived.string = mail;
+	}
+}
+export const prepareBundleOperation = (
+	state: SessionState,
+	action: { type: "bundle-complete"; bundleId: 13 },
+): Effect.Effect<SessionState, MutationError> =>
+	Effect.try({
+		try: () => {
+			if (action.bundleId !== 13)
+				throw new Error("Only Spring Foraging is supported by this sample.");
+			const document = structuredClone(state.document);
+			complete(document);
+			const changes = diff(state.document, document);
+			if (changes.length === 0) return state;
+			return {
+				...state,
+				document,
+				history: [
+					...state.history,
+					{
+						intent: structuredClone(action),
+						label: "Complete Spring Foraging bundle",
+						review: "standalone" as const,
+						changes,
+					},
+				],
+			};
+		},
+		catch: (cause) =>
+			new MutationError(cause instanceof Error ? cause.message : String(cause)),
+	});

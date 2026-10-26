@@ -1,31 +1,91 @@
 <script lang="ts">
 	import type { Snippet } from "svelte";
+	import { frameParts } from "./frame/frameParts";
 	let { children }: { children: Snippet } = $props();
+	const corners = ["outer-tl", "outer-tr", "outer-bl", "outer-br"] as const;
+	const edges = [
+		"outer-top",
+		"outer-bottom",
+		"outer-left",
+		"outer-right",
+	] as const;
 </script>
 
-<div class="study-frame">{@render children()}</div>
+<div class="study-frame">
+	{@render children()}
+	{#each [...edges, ...corners] as name (name)}
+		<span
+			aria-hidden="true"
+			class="art {name}"
+			style:background-image={`url("${frameParts[name].url}")`}
+			style:--width={`${frameParts[name].width}px`}
+			style:--height={`${frameParts[name].height}px`}
+		></span>
+	{/each}
+</div>
 
 <style>
 	.study-frame {
 		position: relative;
+		isolation: isolate;
 		display: flex;
 		flex-direction: column;
 		min-width: 0;
 		height: var(--study-frame-height, auto);
-		border: 16px solid #9b561e;
-		border-image: url("./study-frame.svg") 16 / 16px / 0 repeat;
-		background: #77421f;
-		box-shadow:
-			0 0 0 2px #392415,
-			0 3px 0 3px #211b1270,
-			0 8px 24px #102c3440;
-		padding: 2px;
-		border-radius: 3px;
+		padding: 24px 24px 28px;
+		background: #542710;
 	}
-	@media (max-width: 900px) {
-		.study-frame {
-			border-width: 8px;
-			border-image-width: 8px;
-		}
+	.art {
+		position: absolute;
+		pointer-events: none;
+		z-index: 5;
+		image-rendering: pixelated;
+		width: var(--width);
+		height: var(--height);
+		background-repeat: no-repeat;
+	}
+	.outer-tl {
+		left: 0;
+		top: 0;
+	}
+	.outer-tr {
+		right: 0;
+		top: 0;
+	}
+	.outer-bl {
+		left: 0;
+		bottom: 0;
+	}
+	.outer-br {
+		right: 0;
+		bottom: 0;
+	}
+	.outer-top {
+		left: 40px;
+		right: 50px;
+		top: 0;
+		width: auto;
+		background-repeat: repeat-x;
+	}
+	.outer-bottom {
+		left: 48px;
+		right: 48px;
+		bottom: 0;
+		width: auto;
+		background-repeat: repeat-x;
+	}
+	.outer-left {
+		left: 0;
+		top: 60px;
+		bottom: 52px;
+		height: auto;
+		background-repeat: repeat-y;
+	}
+	.outer-right {
+		right: 0;
+		top: 72px;
+		bottom: 52px;
+		height: auto;
+		background-repeat: repeat-y;
 	}
 </style>

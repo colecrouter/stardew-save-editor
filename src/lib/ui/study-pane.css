@@ -1,0 +1,17 @@
+/* Native raster rims: fixed corners and repeating edges, never scaled artwork. */
+.study-pane {
+	position: relative;
+	isolation: isolate;
+	background: transparent;
+}
+.study-pane::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	border: 12px solid transparent;
+	border-image: url("./frame/art/field-border.png") 12 / 12px / 0 repeat;
+}
+.study-pane--thin::after {
+	border-width: 12px;
+}

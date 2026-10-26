@@ -32,79 +32,59 @@ and collapsible creation settings. Narrow screens use a collapsible section menu
 weather choices. Inventory, equipment,
 item editing and character controls also reflow on narrow screens.
 
-`StudyFrame` uses an original, code-native nine-slice SVG with wood grain and
-corner details. Theme tokens and locally bundled Pixelify Sans/VT323 fonts supply
-consistent text, controls and surfaces. Font licenses are included alongside the
-files; the fonts and frame do not require third-party requests. Checkbox controls
-use native appearance, checked state and keyboard behavior.
+`EditorShell` composes the header, shared wood lattice and workspace using native
+raster crops from the original approved study. `StudyFrame` owns the outer art;
+`ParchmentPane` separates stationary paper edges from scrolling contents;
+`SectionLink` keeps selected-tab decoration behind native anchor contents.
+Fixed corners and repeated edge strips retain their source dimensions. Mobile
+replaces the vertical post with a horizontal rail rather than reducing the art.
+Theme tokens and locally bundled Pixelify Sans/VT323 fonts supply consistent text
+and controls. Checkbox controls retain native appearance and keyboard behavior.
 
 #### Fidelity ledger
 
-| Area        | Study evidence                                                    | Implementation and deliberate differences                                                                                                                    |
-| ----------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Composition | Header, dark left rail, broad parchment work area                 | Container frame with header beam and inset workspace; mobile sections use a native disclosure.                                                               |
-| Frame       | Detailed wood edges and brass-colored corners                     | Original SVG nine-slice; the game's flatter dialogue frame stays in the lab.                                                                                 |
-| Palette     | Pale cream controls, warm paper, green export, blue selected date | Shared theme tokens and component styles reproduce this hierarchy.                                                                                           |
-| Typography  | Pixel headings and narrower body/control lettering                | Pixelify Sans headings and VT323 body text; generated lettering has no exact font asset.                                                                     |
-| Controls    | Labeled inputs, calendar grid, checkbox, weather selects          | Real native controls with existing validation and bindings; detailed explanations remain available in disclosures. Profit/monster help is shortened.         |
-| Icons       | Illustrated navigation and farm heading                           | Original small-grid pictograms replace unreadable tab/building reductions; item rendering retains game sprites.                                              |
-| Content     | Compact farm settings and collapsed creation options              | Existing date/forced-weather diagnostics retained; date help and forecast notes can expand. Existing farmer selection remains available below the workspace. |
+| Area        | Study evidence                                                    | Implementation and deliberate differences                                                                                                                |
+| ----------- | ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Composition | Header, dark left rail, broad parchment work area                 | Container frame with header beam and inset workspace; mobile sections use a native disclosure.                                                           |
+| Frame       | Detailed wood edges and brass-colored corners                     | Native crops of the approved study, joined with explicit shared-post geometry; the game frame stays in the lab.                                          |
+| Palette     | Pale cream controls, warm paper, green export, blue selected date | Shared theme tokens and component styles reproduce this hierarchy.                                                                                       |
+| Typography  | Pixel headings and narrower body/control lettering                | Pixelify Sans headings and VT323 body text; generated lettering has no exact font asset.                                                                 |
+| Controls    | Labeled inputs, calendar grid, checkbox, weather selects          | Real native controls with existing validation and bindings; detailed explanations remain available in disclosures. Profit/monster help is shortened.     |
+| Icons       | Illustrated navigation and farm heading                           | The softer illustrated raster atlas supplies navigation/domain icons; remaining actions/weather use temporary glyphs.                                    |
+| Content     | Compact farm settings and collapsed creation options              | Existing date/forced-weather diagnostics retained; date help and forecast notes can expand. Existing farmer selection stays inside the workspace footer. |
 
 This is the first implemented study slice, not completion of the entire V2 visual
-milestone. Exact generated artwork is not shipped as interface chrome. Further
+milestone. Frame pieces are extracted directly from the study; icons remain reconstructed
+interface artwork from the approved softer atlas. Further
 screens still need their own content/layout work, complex selection evaluation,
 and icon refinement. The shared shell must remain usable during that migration.
 
-Validation: the full app run passed 560 tests and timed out in one existing Qi
-quest test at five seconds while the production build was running. Its entire
-34-test file passed on isolated retry. All 561 app tests therefore have a passing
-result across the full run and retry. Type/Svelte and formatting checks pass; app
-and lab builds complete. Sentry sourcemap upload still returns HTTP 403. Browser
-checks cover date entry, day selection, Space on the native checkbox, creation
-details, and five routes at 390px without page overflow. Calendar day targets are
-approximately 42 by 48px at that width. The real fixture still produces existing
-unknown-item/out-of-bounds warnings; no client runtime errors were observed.
+Validation of the native shell includes app TypeScript/Svelte and formatting
+checks, a production build, deterministic raster verification and browser checks
+at 320, 390, 768, 1280 and 1366px. The browser checks exercise mobile navigation,
+year commit on blur, day selection, Space on the native checkbox, stationary
+frame art while content scrolls, and export. The configured Sentry upload still
+returns HTTP 403; the app build completes. Save-fixture warnings remain visible.
 
-### Review follow-up: frame, density and mobile layout
+### Responsive shell and icon ownership
 
-Review found that the first implementation did not reproduce the study closely
-enough: the frame was too flat, colors too close to the game palette, navigation
-icons unreadable, and fixed sizing crowded laptops and mobile screens.
+The editor reserves desktop viewport space for the frame and attribution. Content
+and navigation scroll independently; expanded help and longer page content can
+extend within the workspace. Below 900px, a native section disclosure replaces the
+left navigation and the page scrolls normally. Calendar/farm panels stack at their
+content breakpoints. This does not promise that every migrated page fits without
+vertical scrolling or that mobile controls are identical to the study.
 
-The shell now separates a textured outer container/header beam from the wood
-navigation and inset parchment workspace. Warmer cream controls and paper,
-smaller typography/spacing and a narrower rail follow the study's density.
-Desktop frames fit the viewport; navigation and content can scroll independently
-when expanded content requires it. Below 900px, the document scrolls normally and
-a native Sections disclosure replaces the horizontal navigation strip. Section
-labels wrap within their column. Single-player saves do not reserve a farmer
-switcher footer.
+The softer illustrated icon atlas lives in `src/lib/ui/art`, with generation
+briefs and original comparisons under `design/v2/study-assets-v1`. `StudyIcon`
+uses one shared atlas URL and preserves its inspected source aspect ratio. A
+separate width override must not clip the display box. The icon atlas remains
+reconstructed art; it is not a substitute for domain-specific sprite rendering.
+Fallback code glyphs supply actions/weather outside the sixteen-icon atlas.
 
-`StudyIcon` uses original code-native pixel pictograms drawn on a 24px grid for
-navigation, framed weather, seasons, creation settings, export, exit and the
-information notice. These avoid shrinking full building sheets or relying on
-menu tabs whose visual meaning did not carry over. Game-derived item rendering
-and the atlas comparison remain available. Unknown weather gets a neutral info
-symbol rather than a misleading sun. Dropdowns have a divided triangle area;
-number fields retain visible native spinners, validation and keyboard behavior.
-Exact study artwork and bespoke number-spinner artwork remain differences.
-
-Relationships also needed mobile repair: smaller portraits, wrapping name/gift
-controls and normal page scrolling prevent clipped descriptions and inputs.
-Browser checks cover widths 320, 390, 768, 1024, 1280, 1366 and 1440, plus the
-Inventory, Character, Relationships and Buildings routes at 390px. A 1366x768
-shell fits without page scrolling; expanded help remains scrollable. The shared
-preview opened but two snapshot calls timed out after 15000ms, so validation used
-local Playwright. Existing fixture warnings and the favicon 404 are separate from
-client runtime failures.
-
-The follow-up passes 49 focused calendar/input tests, root type/Svelte checks,
-formatting, lab Svelte checks and both builds. At 1366x768, the default Farm
-content and shell fit without page or workspace scrolling. Browser interactions
-cover date/weather changes, checkbox Space, creation disclosure, keyboard menu
-activation and route-change collapse. The native save picker is intercepted by
-automation; export was verified through the existing download fallback. Sentry
-sourcemap upload still returns HTTP 403.
+Frame raster extraction and shared join geometry are described under
+[Native frame extraction](#native-frame-extraction) and in the frame kit README.
+Effect calendar state remains in the lab; these components do not own save state.
 
 ### Game asset implementation proof
 
@@ -295,3 +275,23 @@ Both experiment configurations include the existing content JSON declarations,
 so unpacked game assets are not required. The test command runs root SvelteKit
 sync before Vitest transforms shared source, matching the lab commands. Clean
 archive validation covers these prerequisites without local game content.
+
+### Native frame extraction
+
+The prior hand-authored 12px/6px vector rims were rejected in visual review. The
+replacement uses original study pixels, not another bevel approximation. The
+source reference, crop rectangles and explicit junction masks are retained under
+`design/v2/frame-kit`; its README describes regeneration and the component API.
+The optional exporter verifies 29 PNGs (63,331 bytes), source/output hashes and
+native dimensions. Generated assets are checked in; Python is not a build dependency.
+
+The frame has one owner for each beam/post join. Corners remain fixed-size,
+edges repeat, and the content scroll box does not carry the artwork. The selected
+link's native border is painted behind its label. Field rims use clean strips so
+source calendar grid lines cannot repeat into their borders. The raised close
+control is a real button with a separate native image and keyboard focus.
+
+Browser validation covers 1366, 1280, 768, 390 and 320px widths, with no horizontal
+page overflow and invariant 48 by 52px lower corner caps. Desktop frame height
+reserves space for attribution; narrow screens flow vertically. This is the shared
+shell/farm integration, not completion of the V2 redesign or an Effect UI migration.

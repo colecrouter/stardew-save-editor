@@ -1,7 +1,7 @@
 ﻿<script lang="ts">
 	import { resolve } from "$app/paths";
 	import { page } from "$app/state";
-	import StudyIcon from "$lib/ui/StudyIcon.svelte";
+	import SectionLink from "$lib/ui/frame/SectionLink.svelte";
 	import type { StudyIconName } from "$lib/ui/studyIcons";
 	const routes = [
 		["/inventory", "Inventory", "inventory"],
@@ -28,15 +28,13 @@
 
 {#snippet links()}
 	{#each routes as [path, label, icon] (path)}
-		<a
+		<SectionLink
 			href={resolve(path)}
-			aria-current={page.url.pathname === resolve(path) ? "page" : undefined}
+			{label}
+			{icon}
+			active={page.url.pathname === resolve(path)}
 			onclick={() => (expanded = false)}
-		>
-			<span class="glyph"><StudyIcon name={icon} size={28} /></span><span
-				class="label">{label}</span
-			>
-		</a>
+		/>
 	{/each}
 {/snippet}
 <nav aria-label="Save editor sections" class="desktop-nav">
@@ -51,44 +49,12 @@
 	.desktop-nav {
 		display: flex;
 		flex-direction: column;
+		height: 100%;
+		overflow: auto;
 		padding: 4px;
 	}
 	nav {
 		min-width: 0;
-	}
-	a {
-		display: flex;
-		align-items: center;
-		gap: 10px;
-		min-height: 39px;
-		padding: 4px 9px;
-		color: #ffedc9;
-		text-decoration: none;
-		border-bottom: 1px solid #a36a354d;
-		font-size: 22px;
-		line-height: 1.15;
-	}
-	.label {
-		min-width: 0;
-		overflow-wrap: anywhere;
-	}
-	.glyph {
-		display: grid;
-		place-items: center;
-		width: 30px;
-		height: 30px;
-		flex: none;
-	}
-	a:hover {
-		background: #bc7e3940;
-	}
-	a[aria-current="page"] {
-		color: #44270f;
-		background: linear-gradient(#ffe2a2, #f4c56d);
-		outline: 1px solid #44220d;
-		box-shadow: inset 0 0 0 2px #fff0bd;
-		border-radius: 3px;
-		font-weight: 700;
 	}
 	.mobile-nav {
 		display: none;
@@ -115,12 +81,6 @@
 			grid-template-columns: repeat(2, minmax(0, 1fr));
 			padding: 4px;
 			gap: 2px;
-		}
-		a {
-			font-size: 21px;
-			min-height: 44px;
-			padding-inline: 6px;
-			gap: 5px;
 		}
 	}
 </style>

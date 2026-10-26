@@ -159,7 +159,7 @@
 	</div>
 
 	<details class="creation-settings">
-		<summary
+		<summary class="study-pane study-pane--thin"
 			><StudyIcon name="tree" size={30} /><strong>Farm creation settings</strong
 			><span>View settings recorded when this farm was created.</span></summary
 		>
@@ -199,7 +199,7 @@
 	}
 	.farm-layout {
 		display: grid;
-		grid-template-columns: minmax(200px, 0.85fr) minmax(0, 1.65fr);
+		grid-template-columns: minmax(240px, 0.95fr) minmax(0, 1.55fr);
 		gap: 20px;
 	}
 	.farm-settings {
@@ -215,7 +215,9 @@
 		padding: 6px 10px;
 		font-size: 20px;
 		line-height: 1.1;
-		border: 2px solid #bd9051;
+		--pane-fill: linear-gradient(#fbd9a044, #f4cc8e33);
+		--pane-outset: 0px;
+		--pane-shadow: drop-shadow(1px 1px 0 #b3854570);
 	}
 	summary :global(svg) {
 		vertical-align: middle;

@@ -101,7 +101,7 @@
 {/snippet}
 
 <div class="calendar-layout">
-	<div class="settings date-panel">
+	<div class="settings date-panel study-pane study-pane--thin">
 		<div class="date-inputs">
 			<UiField label="Year">
 				{#snippet children(field)}
@@ -185,7 +185,7 @@
 		</details>
 	</div>
 
-	<div class="settings weather-panel">
+	<div class="settings weather-panel study-pane study-pane--thin">
 		<h3>Weather</h3>
 		<label>
 			<span class="weather-label">
@@ -284,9 +284,9 @@
 	}
 	.date-panel,
 	.weather-panel {
-		border: 2px solid #bf9253;
-		border-radius: 3px;
-		background: #f9d99d66;
+		--pane-fill: linear-gradient(#fbd9a066, #f4cc8e44);
+		--pane-outset: 0px;
+		--pane-shadow: drop-shadow(1px 1px 0 #b3854570);
 	}
 	.date-inputs {
 		display: grid;
@@ -422,10 +422,14 @@
 		margin-top: 0;
 	}
 	.weather-panel details {
+		min-width: 0;
+		max-width: 100%;
 		font-size: 17px;
 		font-weight: normal;
 	}
 	.weather-panel summary {
+		white-space: normal;
+		overflow-wrap: anywhere;
 		min-height: 26px;
 	}
 	.weather-panel .weather-label {
@@ -467,6 +471,8 @@
 		.weather-panel h3,
 		.weather-panel small,
 		.weather-panel details {
+			min-width: 0;
+			max-width: 100%;
 			grid-column: 1 / -1;
 		}
 		.month :global(.day) {

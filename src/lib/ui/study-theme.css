@@ -1,3 +1,4 @@
+@import "./study-pane.css";
 @font-face {
 	font-family: "VT323";
 	src: url("./fonts/VT323-Regular.ttf") format("truetype");
@@ -11,14 +12,14 @@
 }
 
 .study-theme {
-	--ui-control-bg: #fbedd5;
+	--ui-control-bg: #fdedd7;
 	--ui-control-selected: #8dccf5;
-	--ui-control-text: #351b0e;
+	--ui-control-text: #311304;
 	--ui-border-light: #c3a276;
 	--ui-border-dark: #987746;
 	--ui-focus: #176fb4;
 	--ui-error: #9c2922;
-	--study-paper: #f9dca4;
+	--study-paper: #fddda8;
 	--study-rule: #be8d4d;
 	--ui-panel-bg: transparent;
 	--ui-panel-padding: 0px;
@@ -28,7 +29,7 @@
 	font-family: "VT323", "Trebuchet MS", sans-serif;
 	font-size: 21px;
 	line-height: 1.25;
-	color: #351b0e;
+	color: #311304;
 	text-shadow: none;
 }
 
@@ -83,7 +84,7 @@ body:has(.study-theme) {
 	background: radial-gradient(ellipse at 50% 35%, #4c8490, #285f6d);
 }
 main:has(> .study-theme) {
-	padding: 12px 16px 22px;
+	padding: 8px 8px 24px;
 	min-height: 0;
 }
 .study-theme .select-wrapper::before {
@@ -133,4 +134,26 @@ main:has(> .study-theme) {
 	main:has(> .study-theme) {
 		padding: 8px 8px 32px;
 	}
+}
+
+/* Keep the global repository shortcut clear of the raised close control. */
+body:has(.study-theme) a[aria-label="GitHub repository link"] {
+	position: absolute;
+	top: auto;
+	bottom: 0;
+	right: 8px;
+	padding: 2px;
+	z-index: 1;
+}
+body:has(.study-theme) a[aria-label="GitHub repository link"]::before {
+	display: none;
+}
+body:has(.study-theme) a[aria-label="GitHub repository link"] > img {
+	width: 18px;
+	height: 18px;
+}
+
+main:has(> .study-theme) ~ small {
+	max-width: calc(100% - 32px);
+	font-size: 12px;
 }

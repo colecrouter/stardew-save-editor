@@ -4,6 +4,8 @@ The workspace rim is a lower-resolution derivative of the previous study crops.
 Its 9-10px corners render at exactly 3x (27-30 CSS pixels), matching the logical
 pixel density of the user-authored wood kit. Narrow profiles repeat on the same
 grid. The broad parchment fill remains a CSS gradient rather than a tiled image.
+The pane reserves six pixels below its content box for the rim outset, keeping
+the bottom edge above the outer wood rail rather than hidden beneath it.
 This first trial changes only `ParchmentPane`; field rims and selected tabs remain
 unchanged so they can be evaluated separately.
 

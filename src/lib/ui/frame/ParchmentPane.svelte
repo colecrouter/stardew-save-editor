@@ -18,6 +18,8 @@
 		min-width: 0;
 		min-height: 0;
 		margin-left: -3px;
+		/* Reserve the rim outset so the outer wood cannot cover its bottom. */
+		margin-bottom: 6px;
 		background: linear-gradient(110deg, #ffe3af, #fcdda6);
 	}
 	/* Reduced logical-pixel artwork shares the wood kit's integer 3x grid.

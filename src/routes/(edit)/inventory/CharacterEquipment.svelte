@@ -167,4 +167,13 @@
 		grid-auto-flow: column;
 		grid-template-rows: repeat(3, min-content);
 	}
+	@media (max-width: 600px) {
+		.character-details {
+			flex-direction: column;
+			gap: 16px;
+		}
+		.character-info {
+			width: 100%;
+		}
+	}
 </style>

@@ -1,0 +1,40 @@
+/* Shared native-control appearance; feature screens supply layout and content. */
+:root {
+	--ui-control-bg: #f9bb65;
+	--ui-control-selected: #de9a3c;
+	--ui-control-text: #3f2117;
+	--ui-border-light: #9c613b;
+	--ui-border-dark: #6f3b31;
+	--ui-focus: #5b2b29;
+	--ui-error: #b8312f;
+}
+
+.ui-control {
+	box-sizing: border-box;
+	min-height: 40px;
+	max-width: 100%;
+	border: 2px solid;
+	border-color: var(--ui-border-dark) var(--ui-border-dark)
+		var(--ui-border-light) var(--ui-border-light);
+	border-radius: 4px;
+	background: var(--ui-control-bg);
+	color: var(--ui-control-text);
+	font: inherit;
+}
+
+.ui-control:focus-visible,
+.ui-button:focus-visible {
+	outline: 3px solid var(--ui-focus);
+	outline-offset: 3px;
+}
+
+.ui-control:disabled,
+.ui-button:disabled,
+.ui-button[aria-disabled="true"] {
+	opacity: 0.65;
+	cursor: default;
+}
+
+.ui-control[aria-invalid="true"] {
+	border-color: var(--ui-error);
+}

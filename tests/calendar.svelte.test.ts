@@ -69,20 +69,23 @@ describe("Calendar", () => {
 		[1, Season.Summer],
 		[2, Season.Fall],
 		[3, Season.Winter],
-	] as const)("preserves numeric season %i when editing the date", async (index, season) => {
-		const xml = (await readFile("tests/TestSave", "utf-8")).replace(
-			"<currentSeason>spring</currentSeason>",
-			`<currentSeason>${index}</currentSeason>`,
-		);
-		saveManager = await importSave(xml);
-		const { calendar } = save();
-		expect(calendar.season).toBe(season);
-		expect(calendar.dateProblems).toEqual([]);
-		expect(Number(game().currentSeason)).toBe(index);
-		calendar.day = 10;
-		expect(game().currentSeason).toBe(season);
-		expect(game().player.seasonForSaveGame).toBe(index);
-	});
+	] as const)(
+		"preserves numeric season %i when editing the date",
+		async (index, season) => {
+			const xml = (await readFile("tests/TestSave", "utf-8")).replace(
+				"<currentSeason>spring</currentSeason>",
+				`<currentSeason>${index}</currentSeason>`,
+			);
+			saveManager = await importSave(xml);
+			const { calendar } = save();
+			expect(calendar.season).toBe(season);
+			expect(calendar.dateProblems).toEqual([]);
+			expect(Number(game().currentSeason)).toBe(index);
+			calendar.day = 10;
+			expect(game().currentSeason).toBe(season);
+			expect(game().player.seasonForSaveGame).toBe(index);
+		},
+	);
 
 	it("changes every copy of the date, and days played with it", () => {
 		const { calendar } = save();
@@ -352,6 +355,94 @@ describe("Calendar", () => {
 		expect(dry.state).toBe(1);
 		calendar.day = 10;
 		expect(dry.state).toBe(0);
+	});
+
+	it("restores moved watering targets but leaves removed targets and replacements untouched", () => {
+		const { calendar } = save();
+		const farm = save().farm?.[Raw];
+		if (!farm) throw new Error("No farm");
+		const features = farm.terrainFeatures?.item ?? [];
+		const buildings = farm.buildings?.Building ?? [];
+		const entry = features.find(
+			(entry) => entry.value.TerrainFeature["@_xsi:type"] === "HoeDirt",
+		);
+		const bowl = buildings.find(
+			(building) => building["@_xsi:type"] === "PetBowl",
+		);
+		if (!entry || !bowl) throw new Error("No soil or bowl");
+		const soil = entry.value.TerrainFeature;
+		calendar.today = "Sun";
+		soil.state = 0;
+		bowl.watered = false;
+		calendar.today = "Rain";
+		features.reverse();
+		buildings.reverse();
+		calendar.today = "Sun";
+		expect(soil.state).toBe(0);
+		expect(bowl.watered).toBe(false);
+
+		calendar.today = "Rain";
+		const soilReplacement = {
+			...entry,
+			value: { ...entry.value, TerrainFeature: { ...soil } },
+		};
+		const bowlReplacement = { ...bowl };
+		features.splice(features.indexOf(entry), 1, soilReplacement);
+		buildings.splice(buildings.indexOf(bowl), 1, bowlReplacement);
+		calendar.today = "Sun";
+		expect(soilReplacement.value.TerrainFeature.state).toBe(1);
+		expect(bowlReplacement.watered).toBe(true);
+		// Removed objects may still be retained by a UI reference. Don't write to them.
+		expect(soil.state).toBe(1);
+		expect(bowl.watered).toBe(true);
+	});
+
+	it("waters known outdoor valley locations without touching independent, indoor or unresolved locations", () => {
+		const { calendar } = save();
+		const farm = save().farm?.[Raw];
+		const source = farm?.terrainFeatures?.item.find(
+			(entry) => entry.value.TerrainFeature["@_xsi:type"] === "HoeDirt",
+		);
+		if (!farm || !source) throw new Error("No farm soil");
+		calendar.today = "Sun";
+		const prepare = (name: string) => {
+			const location = save().locations.find(
+				(location) => location[Raw].name === name,
+			)?.[Raw];
+			if (!location) throw new Error(`No ${name}`);
+			location.terrainFeatures = {
+				item: [
+					{
+						...source,
+						value: {
+							...source.value,
+							TerrainFeature: { ...source.value.TerrainFeature, state: 0 },
+						},
+					},
+				],
+			};
+			const entry = location.terrainFeatures.item[0];
+			if (!entry) throw new Error("No prepared soil");
+			return { location, entry, soil: entry.value.TerrainFeature };
+		};
+		const forest = prepare("Forest");
+		const island = prepare("IslandWest");
+		const desert = prepare("Desert");
+		const indoors = prepare("FarmHouse");
+		const unknown = prepare("Town");
+		unknown.location.name = "CustomTown";
+		calendar.today = "Rain";
+		expect(forest.soil.state).toBe(1);
+		for (const target of [island, desert, indoors, unknown])
+			expect(target.soil.state).toBe(0);
+
+		// A move between known locations retains the object's session identity.
+		forest.location.terrainFeatures = { item: [] };
+		farm.terrainFeatures?.item.push(forest.entry);
+		calendar.today = "Sun";
+		expect(forest.soil.state).toBe(0);
+		for (const target of [island, desert, indoors, unknown])
+			expect(target.soil.state).toBe(0);
 	});
 
 	it("leaves weather from mods alone", async () => {

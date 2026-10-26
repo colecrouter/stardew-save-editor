@@ -130,9 +130,9 @@
 	<h3>Events</h3>
 	<p class="hint">
 		Untick an event to watch it again: it plays the next time {player.name} enters
-		its location while its conditions (hearts, time of day, weather...) are met,
-		and anything it gives is given again. Tick one to skip it: {player.name} won't
-		get anything it would have given.
+		its location while its conditions (hearts, time of day, weather...) are met, and
+		anything it gives is given again. Tick one to skip it: {player.name} won't get
+		anything it would have given.
 	</p>
 
 	<div class="toolbar">

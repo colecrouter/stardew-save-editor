@@ -2,6 +2,7 @@
 	import { type DragDropState, draggable, droppable } from "@thisux/sveltednd";
 	import { sortSlots } from "$lib/chestMoves";
 	import type { ParentIndex } from "$lib/ItemParentIndex";
+	import { Dispose } from "$lib/proxies";
 	import { Item, ValidSlotForItem } from "$lib/proxies/Item.svelte";
 	import type { ItemProxy } from "$lib/proxies/items";
 	import { getSaveManager } from "$lib/SaveManager.svelte";
@@ -84,13 +85,15 @@
 				);
 			}
 			const newItem = Item.fromName(item);
-
-			// Check if the item can go in the selected slot
-			const isValid = testSlotValid(newItem, selectedIndex);
-			if (!isValid) return;
-
-			// Set the new item in the inventory
-			save.player.inventory.set(selectedIndex, newItem);
+			let adopted = false;
+			try {
+				if (!testSlotValid(newItem, selectedIndex)) return;
+				save.player.inventory.set(selectedIndex, newItem);
+				adopted = true;
+			} finally {
+				// Until insertion succeeds, this temporary item's root belongs here.
+				if (!adopted) newItem[Dispose]?.();
+			}
 		} catch (e) {
 			toastManager.add(new Toast("Failed to create item", "failure"));
 			throw e;
@@ -121,7 +124,7 @@
 			/>
 		</div>
 		<div class="item-grid">
-			{#each gridSlots as { index, item }}
+			{#each gridSlots as { index, item } (index)}
 				<div
 					use:droppable={{
 						container: index.toString(),
@@ -189,5 +192,12 @@
 	.item:hover {
 		transform: scale(1.2);
 		transform-origin: center;
+	}
+	@media (max-width: 600px) {
+		.item-grid {
+			grid-template-columns: repeat(6, min-content);
+			grid-template-rows: none;
+			gap: 4px;
+		}
 	}
 </style>

@@ -1,0 +1,159 @@
+@import "./study-pane.css";
+@font-face {
+	font-family: "VT323";
+	src: url("./fonts/VT323-Regular.ttf") format("truetype");
+	font-display: swap;
+}
+@font-face {
+	font-family: "Pixelify Sans";
+	src: url("./fonts/PixelifySans.ttf") format("truetype");
+	font-weight: 400 700;
+	font-display: swap;
+}
+
+.study-theme {
+	--ui-control-bg: #fdedd7;
+	--ui-control-selected: #8dccf5;
+	--ui-control-text: #311304;
+	--ui-border-light: #c3a276;
+	--ui-border-dark: #987746;
+	--ui-focus: #176fb4;
+	--ui-error: #9c2922;
+	--study-paper: #fddda8;
+	--study-rule: #be8d4d;
+	--ui-panel-bg: transparent;
+	--ui-panel-padding: 0px;
+	--ui-panel-shadow: none;
+	--ui-panel-width: 100%;
+	--ui-panel-inset: 0px;
+	font-family: "VT323", "Trebuchet MS", sans-serif;
+	font-size: 21px;
+	line-height: 1.25;
+	color: #311304;
+	text-shadow: none;
+}
+
+.study-theme h1,
+.study-theme h2,
+.study-theme h3 {
+	padding: 0;
+	border: 0;
+	font-family: "Pixelify Sans", sans-serif;
+	line-height: 1.1;
+}
+.study-theme h1 {
+	font-size: 36px;
+}
+.study-theme h2 {
+	font-size: 25px;
+}
+.study-theme h3 {
+	font-size: 21px;
+}
+.study-theme small {
+	font-size: 19px;
+	line-height: 1.25;
+}
+.study-theme .ui-control {
+	padding: 5px 9px;
+	border-radius: 2px;
+	border-width: 2px;
+	box-shadow:
+		inset 1px 2px #d8c3a1,
+		0 1px #fff4d9;
+	font-size: 21px;
+	min-height: 38px;
+}
+.study-theme .ui-control[type="number"] {
+	width: 8rem;
+}
+.study-theme .ui-button {
+	font: inherit;
+	text-shadow: none;
+}
+.study-theme :is(button, a, summary, input, select):focus-visible {
+	outline: 3px solid var(--ui-focus);
+	outline-offset: 3px;
+}
+.study-theme details > summary {
+	cursor: pointer;
+	min-height: 38px;
+}
+
+body:has(.study-theme) {
+	background: radial-gradient(ellipse at 50% 35%, #4c8490, #285f6d);
+}
+main:has(> .study-theme) {
+	padding: 8px 8px 24px;
+	min-height: 0;
+}
+.study-theme .select-wrapper::before {
+	content: "";
+	position: absolute;
+	right: 2px;
+	top: 2px;
+	bottom: 2px;
+	width: 29px;
+	border-left: 1px solid #b99769;
+	background: #fff4df;
+	pointer-events: none;
+}
+.study-theme .select-wrapper.select-wrapper::after {
+	right: 11px;
+	width: 0;
+	height: 0;
+	border: 6px solid transparent;
+	border-top-color: #563621;
+	transform: translateY(-20%);
+}
+.study-theme .select-wrapper select {
+	padding-right: 36px;
+}
+.study-theme input.ui-control[type="number"] {
+	text-align: left;
+	padding-right: 3px;
+}
+.study-theme input.ui-control[type="number"]::-webkit-inner-spin-button {
+	appearance: auto;
+	opacity: 1;
+	height: 32px;
+	margin-left: 8px;
+	cursor: pointer;
+}
+@media (max-width: 900px) {
+	.study-theme {
+		font-size: 21px;
+	}
+	.study-theme h1 {
+		font-size: 30px;
+	}
+	.study-theme .ui-control {
+		min-height: 44px;
+		font-size: 21px;
+	}
+	main:has(> .study-theme) {
+		padding: 8px 8px 32px;
+	}
+}
+
+/* Keep the global repository shortcut clear of the raised close control. */
+body:has(.study-theme) a[aria-label="GitHub repository link"] {
+	position: absolute;
+	top: auto;
+	bottom: 0;
+	right: 8px;
+	padding: 2px;
+	z-index: 1;
+}
+body:has(.study-theme) a[aria-label="GitHub repository link"]::before {
+	display: none;
+}
+body:has(.study-theme) a[aria-label="GitHub repository link"] > img {
+	width: 18px;
+	height: 18px;
+}
+
+main:has(> .study-theme) ~ small {
+	max-width: calc(100% - 32px);
+	font-size: 12px;
+}

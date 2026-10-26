@@ -186,18 +186,22 @@ const dotNetRandomSamples: [number, number[]][] = [
 ];
 
 describe("TrinketStats", () => {
-	it.each(
-		dotNetRandomSamples,
-	)("matches .NET Random for seed %i", (seed, samples) => {
-		const rng = new DotNetRandom(seed);
-		expect(samples.map(() => rng.nextDouble())).toEqual(samples);
-	});
+	it.each(dotNetRandomSamples)(
+		"matches .NET Random for seed %i",
+		(seed, samples) => {
+			const rng = new DotNetRandom(seed);
+			expect(samples.map(() => rng.nextDouble())).toEqual(samples);
+		},
+	);
 
-	it.each(
-		iridiumSpurs,
-	)("rolls Golden Spur seed %i as %is", (seed, duration) => {
-		expect(rollIridiumSpur(createRandom(seed, false)).duration).toBe(duration);
-	});
+	it.each(iridiumSpurs)(
+		"rolls Golden Spur seed %i as %is",
+		(seed, duration) => {
+			expect(rollIridiumSpur(createRandom(seed, false)).duration).toBe(
+				duration,
+			);
+		},
+	);
 
 	it.each(magicQuivers)("rolls Magic Quiver seed %i as %o", (seed, stats) => {
 		expect(rollMagicQuiver(createRandom(seed, false))).toEqual(stats);

@@ -4,6 +4,7 @@ import pako from "pako";
 import { getContext, setContext } from "svelte";
 import { dev } from "$app/environment";
 import { BackupManager } from "$lib/BackupManager.svelte";
+import { Dispose } from "$lib/proxies";
 import { SaveProxy } from "$lib/proxies/SaveFile.svelte";
 import {
 	describeProblems,
@@ -104,8 +105,14 @@ export class SaveManager {
 		const parsed = JSON.parse(saveData);
 		if (!isSaveFile(parsed)) return;
 
-		this.save = new SaveProxy(parsed);
+		const cleanup = $effect.root(() => {
+			const save = new SaveProxy(parsed);
+			this.save = save;
+			return () => save[Dispose]();
+		});
+		this.disposeSave = cleanup;
 		this.filename = filename;
+		return cleanup;
 	}
 
 	private saveDevState() {
@@ -187,7 +194,11 @@ export class SaveManager {
 		}
 
 		const cleanup = $effect.root(() => {
-			this.save = new SaveProxy(json);
+			const save = new SaveProxy(json);
+			this.save = save;
+			// Factory-created items have independent roots. Their inventory owner
+			// releases them alongside the enclosing save, even before an effect flush.
+			return () => save[Dispose]();
 		});
 		this.disposeSave = cleanup;
 

@@ -14,7 +14,7 @@ If you need to upload your save file to an issue in GitHub, do the following:
    - Windows: Right-click -> `Compress to...` -> `ZIP file`
    - macOS: Ctrl-click -> `Compress`
    - Android: Select file -> Press `...` -> `Compress`
-   - *(Alternative)* If you can't compress it, rename it to add ".txt" (e.g. `Player_123456` -> `Player_123456.txt`)
+   - _(Alternative)_ If you can't compress it, rename it to add ".txt" (e.g. `Player_123456` -> `Player_123456.txt`)
 3. Upload the file into the textbox in [GitHub issues](https://github.com/colecrouter/stardew-save-editor/issues).
 
 > Thanks for your cooperation. Without your save file, it can be difficult/impossible to debug certain issues.

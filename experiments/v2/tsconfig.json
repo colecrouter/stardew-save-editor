@@ -1,0 +1,29 @@
+{
+	"compilerOptions": {
+		"plugins": [
+			{
+				"name": "@effect/language-service",
+				"includeSuggestionsInTsc": false,
+				"ignoreEffectWarningsInTscExitCode": true,
+				"diagnosticSeverity": {
+					"unstableApiUsage": "off"
+				}
+			}
+		],
+		"target": "ES2022",
+		"module": "ESNext",
+		"moduleResolution": "Bundler",
+		"strict": true,
+		"allowImportingTsExtensions": true,
+		// Shared type-only save definitions contain legacy enums. Native Node tests
+		// check the actual runtime graph; this flag cannot distinguish type imports.
+		"erasableSyntaxOnly": false,
+		"paths": { "$types/*": ["../../codegen/*"] },
+		"verbatimModuleSyntax": true,
+		"skipLibCheck": true,
+		"noEmit": true,
+		"types": ["node"],
+		"lib": ["ES2023", "DOM"]
+	},
+	"include": ["*.ts", "../../codegen/content-json.d.ts"]
+}

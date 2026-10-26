@@ -1,0 +1,19 @@
+/* Four-pixel native corners at integer 3x, with decoration behind content. */
+.study-pane {
+	position: relative;
+	isolation: isolate;
+	background: transparent;
+}
+.study-pane::after {
+	content: "";
+	position: absolute;
+	z-index: -1;
+	inset: 0;
+	pointer-events: none;
+	image-rendering: pixelated;
+	border: 12px solid transparent;
+	border-image: url("./frame/art/chrome/panel.png") 4 / 12px / 0 repeat;
+}
+.study-pane--thin::after {
+	border-width: 12px;
+}

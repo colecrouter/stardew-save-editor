@@ -1,0 +1,651 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Reference-traced frame kit</title>
+		<style>
+			@font-face {
+				font-family: study;
+				src: url(../../../src/lib/ui/fonts/VT323-Regular.ttf);
+			}
+			* {
+				box-sizing: border-box;
+			}
+			body {
+				margin: 0;
+				color: var(--foreground, #352315);
+				font:
+					14px system-ui,
+					sans-serif;
+			}
+			.controls {
+				display: flex;
+				align-items: center;
+				gap: 10px;
+				flex-wrap: wrap;
+				margin-bottom: 12px;
+			}
+			input[type="range"] {
+				width: 150px;
+			}
+			button {
+				font: inherit;
+				color: inherit;
+				background: var(--secondary, #eee5d3);
+				border: 1px solid var(--border, #a79681);
+				padding: 7px 10px;
+				border-radius: 5px;
+				cursor: pointer;
+			}
+			button:focus-visible,
+			input:focus-visible {
+				outline: 3px solid #2785b4;
+				outline-offset: 2px;
+			}
+			.viewport {
+				max-width: 100%;
+				overflow: auto;
+				padding: 8px;
+				background: #2b6673;
+				border-radius: 5px;
+			}
+			.frame {
+				--post: 200px;
+				position: relative;
+				isolation: isolate;
+				width: var(--frame-width, 680px);
+				height: var(--frame-height, 500px);
+				background: #542710;
+				color: #301607;
+				font:
+					22px study,
+					monospace;
+			}
+			.art {
+				position: absolute;
+				pointer-events: none;
+				background-repeat: no-repeat;
+				image-rendering: pixelated;
+			}
+			.nav-fill {
+				position: absolute;
+				left: 24px;
+				width: calc(var(--post) - 24px);
+				top: 120px;
+				bottom: 28px;
+				background: #542710;
+			}
+			.nav-right {
+				left: calc(var(--post) - 10px);
+				width: 10px;
+				top: 120px;
+				bottom: 28px;
+				background: url(nav-right.svg) repeat-y;
+			}
+			.header-fill {
+				position: absolute;
+				left: 24px;
+				right: 24px;
+				top: 24px;
+				height: 72px;
+				background: linear-gradient(#fddca3, #fccb81);
+			}
+			.paper-fill {
+				position: absolute;
+				left: calc(var(--post) + 18px);
+				right: 24px;
+				top: 120px;
+				bottom: 28px;
+				background: #fcdea8 url(../study-assets-v1/parchment.png) center/cover;
+			}
+			.outer-top {
+				left: 40px;
+				right: 50px;
+				top: 0;
+				height: 24px;
+				background-image: url(outer-top.svg);
+				background-repeat: repeat-x;
+			}
+			.outer-bottom {
+				left: 48px;
+				right: 48px;
+				bottom: 0;
+				height: 28px;
+				background-image: url(outer-bottom.svg);
+				background-repeat: repeat-x;
+			}
+			.outer-left {
+				left: 0;
+				top: 60px;
+				bottom: 52px;
+				width: 24px;
+				background-image: url(outer-left.svg);
+				background-repeat: repeat-y;
+			}
+			.outer-right {
+				right: 0;
+				top: 72px;
+				bottom: 52px;
+				width: 24px;
+				background-image: url(outer-right.svg);
+				background-repeat: repeat-y;
+			}
+			.nav-left {
+				left: 16px;
+				top: 120px;
+				bottom: 28px;
+				width: 16px;
+				background-image: url(nav-left.svg);
+				background-repeat: repeat-y;
+			}
+			.header-left {
+				left: 20px;
+				top: 40px;
+				height: 56px;
+				width: 18px;
+				background-image: url(header-left.svg);
+				background-repeat: repeat-y;
+			}
+			.header-rail {
+				left: 24px;
+				right: 24px;
+				top: 92px;
+				height: 28px;
+				background-image: url(header-rail.svg);
+				background-repeat: repeat-x;
+			}
+			.post {
+				left: var(--post);
+				top: 120px;
+				bottom: 28px;
+				width: 22px;
+				background-image: url(post.svg);
+				background-repeat: repeat-y;
+			}
+			.paper-top {
+				left: calc(var(--post) + 44px);
+				right: 36px;
+				top: 112px;
+				height: 24px;
+				background-image: url(paper-top.svg);
+				background-repeat: repeat-x;
+			}
+			.paper-bottom {
+				left: calc(var(--post) + 44px);
+				right: 48px;
+				bottom: 20px;
+				height: 20px;
+				background-image: url(paper-bottom.svg);
+				background-repeat: repeat-x;
+			}
+			.paper-left {
+				left: calc(var(--post) + 18px);
+				top: 148px;
+				bottom: 52px;
+				width: 20px;
+				background-image: url(paper-left.svg);
+				background-repeat: repeat-y;
+			}
+			.paper-right {
+				right: 16px;
+				top: 148px;
+				bottom: 52px;
+				width: 20px;
+				background-image: url(paper-right.svg);
+				background-repeat: repeat-y;
+			}
+			.upper-join {
+				left: calc(var(--post) - 20px);
+				top: 88px;
+				width: 64px;
+				height: 60px;
+				background-image: url(upper-join.svg);
+				clip-path: polygon(
+					0 4px,
+					64px 4px,
+					64px 48px,
+					48px 48px,
+					48px 60px,
+					18px 60px,
+					18px 40px,
+					0 40px
+				);
+			}
+			.lower-join {
+				left: calc(var(--post) - 20px);
+				bottom: 0;
+				width: 64px;
+				height: 52px;
+				background-image: url(lower-join.svg);
+				clip-path: polygon(
+					18px 0,
+					48px 0,
+					48px 12px,
+					64px 12px,
+					64px 52px,
+					0 52px,
+					0 28px,
+					18px 28px
+				);
+			}
+			.paper-tr {
+				clip-path: polygon(
+					0 0,
+					38px 0,
+					38px 44px,
+					18px 44px,
+					18px 32px,
+					0 32px
+				);
+				right: 16px;
+				top: 104px;
+				width: 38px;
+				height: 44px;
+				background-image: url(paper-tr.svg);
+			}
+			.outer-tl {
+				left: 0;
+				top: 0;
+				width: 40px;
+				height: 60px;
+				background-image: url(outer-tl.svg);
+			}
+			.outer-tr {
+				right: 0;
+				top: 0;
+				width: 50px;
+				height: 72px;
+				background-image: url(outer-tr.svg);
+			}
+			.outer-bl {
+				clip-path: polygon(
+					0 0,
+					24px 0,
+					24px 24px,
+					48px 24px,
+					48px 52px,
+					0 52px
+				);
+				left: 0;
+				bottom: 0;
+				width: 48px;
+				height: 52px;
+				background-image: url(outer-bl.svg);
+			}
+			.outer-br {
+				clip-path: polygon(
+					12px 0,
+					48px 0,
+					48px 52px,
+					0 52px,
+					0 12px,
+					12px 12px
+				);
+				right: 0;
+				bottom: 0;
+				width: 48px;
+				height: 52px;
+				background-image: url(outer-br.svg);
+			}
+			.left-header-join {
+				clip-path: polygon(
+					0 0,
+					38px 0,
+					38px 40px,
+					24px 40px,
+					24px 60px,
+					0 60px
+				);
+				left: 0;
+				top: 80px;
+				width: 38px;
+				height: 60px;
+				background-image: url(left-header-join.svg);
+			}
+			.right-header-join {
+				right: 0;
+				top: 80px;
+				width: 36px;
+				height: 68px;
+				background-image: url(right-header-join.svg);
+			}
+			.heading {
+				position: absolute;
+				left: 48px;
+				top: 40px;
+				font:
+					26px study,
+					monospace;
+				margin: 0;
+			}
+			.paper-content {
+				position: absolute;
+				left: calc(var(--post) + 44px);
+				right: 48px;
+				top: 150px;
+				bottom: 52px;
+				overflow: auto;
+			}
+			.paper-content h2 {
+				font:
+					34px study,
+					monospace;
+				margin: 0 0 8px;
+			}
+			.paper-content p {
+				margin: 0 0 16px;
+				line-height: 1.1;
+			}
+			.paper-content hr {
+				border: 0;
+				border-top: 2px solid #b5854d;
+				margin: 16px 0;
+			}
+			.paper-content label {
+				display: grid;
+				gap: 5px;
+			}
+			.paper-content input {
+				width: 100%;
+				min-width: 0;
+				border: 1px solid #ae8c60;
+				background: #fdedd7;
+				padding: 6px 9px;
+				font:
+					22px study,
+					monospace;
+				color: #301607;
+				border-radius: 2px;
+			}
+			.nav-item {
+				position: absolute;
+				left: 38px;
+				top: 150px;
+				color: #ffeccd;
+				margin: 0;
+			}
+			.nav-item.second {
+				top: 207px;
+			}
+			.nav-item.last {
+				top: 335px;
+			}
+			.tab {
+				position: absolute;
+				left: 18px;
+				right: calc(100% - var(--post));
+				top: 264px;
+				height: 56px;
+				background: url(tab-fill.svg) repeat-x;
+				isolation: isolate;
+				display: flex;
+				align-items: center;
+				padding: 0 18px;
+				gap: 10px;
+				font:
+					26px study,
+					monospace;
+			}
+			.tab .art {
+				z-index: 1;
+			}
+			.tab-tl {
+				left: 0;
+				top: 0;
+				width: 14px;
+				height: 20px;
+				background-image: url(tab-tl.svg);
+			}
+			.tab-tr {
+				right: 0;
+				top: 0;
+				width: 20px;
+				height: 20px;
+				background-image: url(tab-tr.svg);
+			}
+			.tab-bl {
+				left: 0;
+				bottom: 0;
+				width: 14px;
+				height: 20px;
+				background-image: url(tab-bl.svg);
+			}
+			.tab-br {
+				right: 0;
+				bottom: 0;
+				width: 20px;
+				height: 20px;
+				background-image: url(tab-br.svg);
+			}
+			.tab-top {
+				left: 14px;
+				right: 20px;
+				top: 0;
+				height: 10px;
+				background-image: url(tab-top.svg);
+				background-repeat: repeat-x;
+			}
+			.tab-bottom {
+				left: 14px;
+				right: 20px;
+				bottom: 0;
+				height: 10px;
+				background-image: url(tab-bottom.svg);
+				background-repeat: repeat-x;
+			}
+			.tab-left {
+				left: 0;
+				top: 20px;
+				bottom: 20px;
+				width: 10px;
+				background-image: url(tab-left.svg);
+				background-repeat: repeat-y;
+			}
+			.tab-right {
+				right: 0;
+				top: 20px;
+				bottom: 20px;
+				width: 10px;
+				background-image: url(tab-right.svg);
+				background-repeat: repeat-y;
+			}
+			.close {
+				position: absolute;
+				right: 6px;
+				top: 12px;
+				width: 42px;
+				height: 46px;
+				padding: 0;
+				border: 0;
+				border-radius: 0;
+				background: url(close.svg) no-repeat;
+				image-rendering: pixelated;
+			}
+			.status,
+			.note {
+				font-size: 13px;
+				color: var(--muted-foreground, #675b4b);
+				line-height: 1.5;
+				margin: 10px 0;
+			}
+			.status:empty {
+				display: none;
+			}
+			.gallery {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 20px;
+				margin-top: 18px;
+			}
+			.gallery figure {
+				margin: 0;
+			}
+			.gallery figcaption {
+				font-size: 13px;
+				margin: 0 0 8px;
+				color: var(--muted-foreground, #675b4b);
+			}
+			.gallery img {
+				image-rendering: pixelated;
+				display: block;
+			}
+			.gallery [data-size="corner"] {
+				width: 96px;
+				height: 104px;
+			}
+			.gallery [data-size="join"] {
+				width: 128px;
+				height: 104px;
+			}
+			.gallery [data-size="tab"] {
+				width: 28px;
+				height: 40px;
+			}
+			details {
+				margin-top: 14px;
+			}
+			summary {
+				cursor: pointer;
+				padding: 7px 0;
+			}
+			.reference {
+				display: block;
+				width: 100%;
+				height: auto;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="controls">
+			<label for="width">Frame width</label
+			><input id="width" type="range" min="420" max="720" value="680" /><output
+				for="width"
+				id="width-value"
+				>680px</output
+			><label for="height">Height</label
+			><input id="height" type="range" min="430" max="620" value="500" /><output
+				for="height"
+				id="height-value"
+				>500px</output
+			><button id="seams" type="button" aria-pressed="false">
+				Show component seams
+			</button>
+		</div>
+		<div class="viewport">
+			<div class="frame">
+				<div class="nav-fill"></div>
+				<div class="header-fill"></div>
+				<div class="paper-fill"></div>
+				<div class="art outer-top"></div>
+				<div class="art outer-bottom"></div>
+				<div class="art outer-left"></div>
+				<div class="art outer-right"></div>
+				<div class="art nav-left"></div>
+				<div class="art nav-right"></div>
+				<div class="art header-left"></div>
+				<div class="art header-rail"></div>
+				<div class="art post"></div>
+				<div class="art paper-top"></div>
+				<div class="art paper-bottom"></div>
+				<div class="art paper-left"></div>
+				<div class="art paper-right"></div>
+				<div class="art upper-join"></div>
+				<div class="art lower-join"></div>
+				<div class="art paper-tr"></div>
+				<div class="art outer-tl"></div>
+				<div class="art outer-tr"></div>
+				<div class="art outer-bl"></div>
+				<div class="art outer-br"></div>
+				<div class="art left-header-join"></div>
+				<div class="art right-header-join"></div>
+				<p class="heading">Stardew Save Editor</p>
+				<p class="nav-item">Inventory</p>
+				<p class="nav-item second">Chests</p>
+				<p class="nav-item last">Buildings</p>
+				<div class="tab" aria-label="Selected Farm section">
+					<div class="art tab-top"></div>
+					<div class="art tab-bottom"></div>
+					<div class="art tab-left"></div>
+					<div class="art tab-right"></div>
+					<div class="art tab-tl"></div>
+					<div class="art tab-tr"></div>
+					<div class="art tab-bl"></div>
+					<div class="art tab-br"></div>
+					<strong>Farm</strong>
+				</div>
+				<div class="paper-content">
+					<h2>Farm</h2>
+					<p>Reference-traced frame kit.</p>
+					<hr />
+					<label>Farm name<input value="Test Farm" /></label>
+				</div>
+				<button
+					class="close"
+					type="button"
+					aria-label="Preview close action"
+				></button>
+			</div>
+		</div>
+		<p class="status" role="status"></p>
+		<p class="note">
+			All structural pieces share the original study’s pixel grid. Corners and
+			joins retain their source dimensions; rails and edge profiles repeat. The
+			gallery below displays details at exactly 2×. This is an isolated
+			composition sample, not the application.
+		</p>
+		<div class="gallery">
+			<figure>
+				<figcaption>Lower outer corner · 2×</figcaption>
+				<img
+					src="outer-br.svg"
+					data-size="corner"
+					alt="Traced lower-right wood corner and recessed paper"
+				/>
+			</figure>
+			<figure>
+				<figcaption>Lower post join · 2×</figcaption>
+				<img
+					src="lower-join.svg"
+					data-size="join"
+					alt="Traced post meeting the lower rail"
+				/>
+			</figure>
+			<figure>
+				<figcaption>Selected tab corners · 2×</figcaption>
+				<img src="tab-tl.svg" data-size="tab" alt="Traced stepped tab corner" />
+			</figure>
+		</div>
+		<details>
+			<summary>Compare with the original study</summary>
+			<img
+				class="reference"
+				src="reference-study.png"
+				alt="Original approved study"
+			/>
+		</details>
+		<script>
+			const frame = document.querySelector(".frame");
+			for (const name of ["width", "height"]) {
+				const input = document.querySelector(`#${name}`),
+					output = document.querySelector(`#${name}-value`);
+				input.addEventListener("input", () => {
+					frame.style.setProperty(`--frame-${name}`, `${input.value}px`);
+					output.value = `${input.value}px`;
+				});
+			}
+			document.querySelector("#seams").addEventListener("click", function () {
+				const active = this.getAttribute("aria-pressed") !== "true";
+				this.setAttribute("aria-pressed", String(active));
+				frame.querySelectorAll(".art").forEach((part) => {
+					part.style.outline = active ? "1px dashed #2785b4" : "";
+					part.title = active ? part.className : "";
+				});
+			});
+			document.querySelector(".close").addEventListener("click", () => {
+				document.querySelector(".status").textContent =
+					"Close action previewed.";
+			});
+		</script>
+	</body>
+</html>

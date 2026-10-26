@@ -103,8 +103,8 @@
 	{/if}
 	{#if cantStart}
 		<small class="warning" data-testid="quest-follow-ups-skipped">
-			Finishing it in-game starts {cantStart} next. The editor can't, so if it's
-			completed here, {followUps?.cantStart.length === 1
+			Finishing it in-game starts {cantStart} next. The editor can't, so if it's completed
+			here, {followUps?.cantStart.length === 1
 				? "that quest never starts"
 				: "those quests never start"}.
 		</small>

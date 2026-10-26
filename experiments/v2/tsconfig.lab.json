@@ -1,0 +1,10 @@
+{
+	"extends": "./tsconfig.json",
+	"compilerOptions": { "types": ["node", "vite/client"] },
+	"include": [
+		"*.ts",
+		"ui/**/*.ts",
+		"ui/**/*.svelte",
+		"../../codegen/content-json.d.ts"
+	]
+}

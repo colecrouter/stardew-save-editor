@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { asset } from "$app/paths";
 	import {
 		calendarFestivalOn,
 		DAYS_PER_SEASON,
@@ -10,6 +9,10 @@
 		WEEKDAYS,
 	} from "$lib/calendar";
 	import type { Calendar } from "$lib/proxies/Calendar.svelte";
+	import StudyIcon from "$lib/ui/StudyIcon.svelte";
+	import WeatherIcon from "$lib/ui/WeatherIcon.svelte";
+	import UiButton from "$lib/ui/UIButton.svelte";
+	import UiField from "$lib/ui/UIField.svelte";
 	import UiInput from "$lib/ui/UIInput.svelte";
 	import UiSelect from "$lib/ui/UISelect.svelte";
 	import { Season } from "$types/save";
@@ -67,217 +70,258 @@
 		}
 		select.value = current();
 	};
-
-	// The weather icons beside the clock: Cursors.png (317 + 12 * index, 421), 12x8
-	// (Game1.updateWeatherIcon). Green rain's icon isn't in that sheet, so it's
-	// the rain icon tinted green.
-	const sheet = `url(${asset("/assets/Cursors.png")})`;
-	const iconIndex = (weather: string, season: Season) => {
-		switch (weather) {
-			case "Wedding":
-				return 0;
-			case "Festival":
-				return 1;
-			case "Sun":
-				return 2;
-			case "Wind":
-				return season === Season.Spring
-					? 3
-					: season === Season.Fall
-						? 6
-						: season === Season.Winter
-							? 7
-							: 2;
-			case "Rain":
-			case "GreenRain":
-				return 4;
-			case "Storm":
-				return 5;
-			case "Snow":
-				return 7;
-			default:
-				return undefined;
-		}
-	};
 </script>
 
 {#snippet weatherIcon(weather: string, season: Season)}
-	{@const index = iconIndex(weather, season)}
-	<span
-		class="weather-icon"
-		class:green={weather === "GreenRain"}
-		style:--sheet={index === undefined ? undefined : sheet}
-		style:background-position={`-${317 + 12 * (index ?? 0)}px -421px`}
-		aria-hidden="true"
-	></span>
+	<span class="weather-emblem"><WeatherIcon {weather} {season} /></span>
 {/snippet}
 
-<h3>Date</h3>
-<div class="settings">
-	<label>
-		Year
-		<!-- UiInput only passes on years that fit min, max and step, and puts
+<div class="calendar-layout">
+	<div class="settings date-panel study-pane study-pane--thin">
+		<div class="date-inputs">
+			<UiField label="Year">
+				{#snippet children(field)}
+					<!-- UiInput only passes on years that fit min, max and step, and puts
 		the current year back (defaultValue) if the field is left empty -->
-		<UiInput
-			type="number"
-			min="1"
-			max={MAX_YEAR}
-			step="1"
-			defaultValue={calendar.year}
-			bind:value={() => yearDraft ?? calendar.year,
-			(v) => {
-				const year = v === null ? undefined : Number(v);
-				yearDraft = year === calendar.year ? undefined : year;
-			}}
-			onchange={applyYear}
-			data-testid="calendar-year"
-		/>
-	</label>
-	<label>
-		Season
-		<UiSelect
-			value={calendar.season}
-			onchange={(e) => (calendar.season = e.currentTarget.value as Season)}
-			data-testid="calendar-season"
-		>
-			{#each SEASONS as season (season)}
-				<option value={season}>{seasonName(season)}</option>
+					<UiInput
+						id={field.id}
+						aria-describedby={field.describedby}
+						type="number"
+						min="1"
+						max={MAX_YEAR}
+						step="1"
+						defaultValue={calendar.year}
+						bind:value={
+							() => yearDraft ?? calendar.year,
+							(v) => {
+								const year = v === null ? undefined : Number(v);
+								yearDraft = year === calendar.year ? undefined : year;
+							}
+						}
+						onchange={applyYear}
+						data-testid="calendar-year"
+					/>
+				{/snippet}
+			</UiField>
+			<UiField label="Season">
+				{#snippet children(field)}
+					<span class="season-control"
+						><StudyIcon name={calendar.season} size={22} /><UiSelect
+							id={field.id}
+							aria-describedby={field.describedby}
+							value={calendar.season}
+							onchange={(e) =>
+								(calendar.season = e.currentTarget.value as Season)}
+							data-testid="calendar-season"
+						>
+							{#each SEASONS as season (season)}
+								<option value={season}>{seasonName(season)}</option>
+							{/each}
+						</UiSelect></span
+					>
+				{/snippet}
+			</UiField>
+		</div>
+		<div class="month" role="group" aria-label="Day of the month">
+			{#each weekdays as name (name)}
+				<span class="weekday" aria-hidden="true">{name.slice(0, 3)}</span>
 			{/each}
-		</UiSelect>
-	</label>
-	<div class="month" role="group" aria-label="Day of the month">
-		{#each weekdays as name (name)}
-			<span class="weekday" aria-hidden="true">{name.slice(0, 3)}</span>
-		{/each}
-		{#each days as day (day)}
-			{@const note = dayNote(day)}
-			<button
-				type="button"
-				class="day"
-				class:noted={note !== undefined}
-				aria-pressed={calendar.day === day}
-				aria-label={`${seasonName(calendar.season)} ${day}${note ? `, ${note}` : ""}`}
-				title={note}
-				onclick={() => (calendar.day = day)}
-				data-testid={`calendar-day-${day}`}>{day}</button
+			{#each days as day (day)}
+				{@const note = dayNote(day)}
+				<UiButton
+					variant="plain"
+					type="button"
+					class={note !== undefined ? "day noted" : "day"}
+					aria-pressed={calendar.day === day}
+					aria-label={`${seasonName(calendar.season)} ${day}${note ? `, ${note}` : ""}`}
+					title={note}
+					onclick={() => (calendar.day = day)}
+					data-testid={`calendar-day-${day}`}>{day}</UiButton
+				>
+			{/each}
+		</div>
+		<p class="today" data-testid="calendar-date">
+			{formatDate(calendar.date)}{calendar.festival
+				? `: ${calendar.festival.name}`
+				: ""}
+		</p>
+		{#each calendar.dateProblems as problem (problem)}
+			<small class="problem" data-testid="calendar-date-problem"
+				>{problem}</small
 			>
 		{/each}
+		<details class="calendar-help">
+			<summary>About date changes</summary><small
+				>Days played ({calendar.daysPlayed}) changes to match. Changing the date
+				doesn't do what happens overnight: crops outside that are out of season
+				die the next time you sleep, and special orders and other timers keep
+				their due dates. The game's load screen shows the old date until you
+				save in-game.</small
+			>
+		</details>
 	</div>
-	<p class="today" data-testid="calendar-date">
-		{formatDate(calendar.date)}{calendar.festival
-			? `: ${calendar.festival.name}`
-			: ""}
-	</p>
-	{#each calendar.dateProblems as problem (problem)}
-		<small class="problem" data-testid="calendar-date-problem">{problem}</small>
-	{/each}
-	<small
-		>Days played ({calendar.daysPlayed}) changes to match. Changing the date
-		doesn't do what happens overnight: crops outside that are out of season die
-		the next time you sleep, and special orders and other timers keep their due
-		dates. The game's load screen shows the old date until you save in-game.</small
-	>
-</div>
 
-<h3>Weather</h3>
-<div class="settings">
-	<label>
-		<span class="weather-label">
-			{@render weatherIcon(calendar.today, calendar.season)}
-			Today
-		</span>
-		<UiSelect
-			value={calendar.today}
-			onchange={(e) =>
-				choose(
-					e.currentTarget,
-					(v) => (calendar.today = v),
-					() => calendar.today,
-				)}
-			disabled={onlyChoice(calendar.todayOptions, calendar.today)}
-			data-testid="weather-today"
-		>
-			{#each calendar.todayOptions as option (option.id)}
-				<option value={option.id} disabled={!option.allowed}
-					>{option.label}</option
-				>
-			{/each}
-		</UiSelect>
-	</label>
-	{#if calendar.forcedToday}
-		<small data-testid="weather-today-forced"
-			>{calendar.forcedToday.reason}.</small
-		>
-	{:else}
-		<small
-			>What you wake up to. Choosing rain waters the farm's tilled soil and pet
-			bowl, as a rainy morning does; taking the rain away again only dries what
-			that watered.</small
-		>
-	{/if}
-	<label>
-		<span class="weather-label">
-			{@render weatherIcon(calendar.tomorrow, tomorrow.season)}
-			Tomorrow
-		</span>
-		<UiSelect
-			value={calendar.tomorrow}
-			onchange={(e) =>
-				choose(
-					e.currentTarget,
-					(v) => (calendar.tomorrow = v),
-					() => calendar.tomorrow,
-				)}
-			disabled={onlyChoice(calendar.tomorrowOptions, calendar.tomorrow)}
-			data-testid="weather-tomorrow"
-		>
-			{#each calendar.tomorrowOptions as option (option.id)}
-				<option value={option.id} disabled={!option.allowed}
-					>{option.label}</option
-				>
-			{/each}
-		</UiSelect>
-	</label>
-	{#if calendar.forcedTomorrow}
-		<small data-testid="weather-tomorrow-forced"
-			>{calendar.forcedTomorrow.reason}, whatever the forecast says.</small
-		>
-	{:else}
-		<small
-			>The forecast on the TV. Ginger Island and the desert keep their own
-			weather.</small
-		>
-		{#if calendar.tomorrow === "GreenRain"}
-			<small data-testid="weather-green-rain-note"
-				>The game picks one green rain day each summer (Summer {calendar.greenRainDay(
-					tomorrow.year,
-				)} in Year {tomorrow.year}). Green rain on another day still grows its
-				weeds and trees, but if you reload that day's save, the game won't clear
-				them away the next day.</small
+	<div class="settings weather-panel study-pane study-pane--thin">
+		<h3>Weather</h3>
+		<label>
+			<span class="weather-label">
+				{@render weatherIcon(calendar.today, calendar.season)}
+				Today
+			</span>
+			<UiSelect
+				value={calendar.today}
+				onchange={(e) =>
+					choose(
+						e.currentTarget,
+						(v) => (calendar.today = v),
+						() => calendar.today,
+					)}
+				disabled={onlyChoice(calendar.todayOptions, calendar.today)}
+				data-testid="weather-today"
 			>
+				{#each calendar.todayOptions as option (option.id)}
+					<option value={option.id} disabled={!option.allowed}
+						>{option.label}</option
+					>
+				{/each}
+			</UiSelect>
+		</label>
+		{#if calendar.forcedToday}
+			<small data-testid="weather-today-forced"
+				>{calendar.forcedToday.reason}.</small
+			>
+		{:else}
+			<details>
+				<summary>Rain and watering</summary><small
+					>What you wake up to. Choosing rain waters tilled soil and pet bowls
+					in known outdoor valley locations. Taking the rain away restores only
+					that watering. Island, Desert and unresolved locations keep their own
+					state.</small
+				>
+			</details>
 		{/if}
-	{/if}
+		<label>
+			<span class="weather-label">
+				{@render weatherIcon(calendar.tomorrow, tomorrow.season)}
+				Tomorrow
+			</span>
+			<UiSelect
+				value={calendar.tomorrow}
+				onchange={(e) =>
+					choose(
+						e.currentTarget,
+						(v) => (calendar.tomorrow = v),
+						() => calendar.tomorrow,
+					)}
+				disabled={onlyChoice(calendar.tomorrowOptions, calendar.tomorrow)}
+				data-testid="weather-tomorrow"
+			>
+				{#each calendar.tomorrowOptions as option (option.id)}
+					<option value={option.id} disabled={!option.allowed}
+						>{option.label}</option
+					>
+				{/each}
+			</UiSelect>
+		</label>
+		{#if calendar.forcedTomorrow}
+			<small data-testid="weather-tomorrow-forced"
+				>{calendar.forcedTomorrow.reason}, whatever the forecast says.</small
+			>
+		{:else}
+			<details>
+				<summary>About forecasts</summary><small
+					>The forecast on the TV. Ginger Island and the desert keep their own
+					weather.</small
+				>
+			</details>
+			{#if calendar.tomorrow === "GreenRain"}
+				<small data-testid="weather-green-rain-note"
+					>The game picks one green rain day each summer (Summer {calendar.greenRainDay(
+						tomorrow.year,
+					)} in Year {tomorrow.year}). Green rain on another day still grows its
+					weeds and trees, but if you reload that day's save, the game won't
+					clear them away the next day.</small
+				>
+			{/if}
+		{/if}
+	</div>
 </div>
+<p class="date-notice">
+	<StudyIcon name="info" size={26} /><span
+		>Changing the date does not simulate an overnight transition.</span
+	>
+</p>
 
 <style>
+	.calendar-layout {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) 150px;
+		gap: 12px;
+	}
+	.date-panel,
+	.weather-panel {
+		--pane-fill: linear-gradient(#fbd9a066, #f4cc8e44);
+		--pane-outset: 0px;
+		--pane-shadow: drop-shadow(1px 1px 0 #b3854570);
+	}
+	.date-inputs {
+		display: grid;
+		grid-template-columns: minmax(0, 0.8fr) minmax(0, 1fr);
+		gap: 12px;
+	}
+	.date-inputs :global(.ui-field) {
+		display: flex;
+		flex-direction: column;
+		align-items: stretch;
+		gap: 2px;
+		margin: 0;
+	}
+	.date-inputs :global(input[type="number"]) {
+		width: 100%;
+	}
+	.season-control {
+		position: relative;
+		display: flex;
+		align-items: center;
+		min-width: 0;
+	}
+	.season-control :global(svg) {
+		position: absolute;
+		left: 8px;
+		z-index: 1;
+		pointer-events: none;
+	}
+	.season-control :global(select) {
+		padding-left: 36px;
+	}
+	.date-notice {
+		display: flex;
+		align-items: start;
+		gap: 10px;
+		background: #d5e8ef;
+		border: 2px solid #90b6c4;
+		padding: 10px 12px;
+		margin-bottom: 0;
+		color: #234d74;
+	}
 	.settings {
 		display: flex;
 		flex-direction: column;
-		gap: 4px;
-		padding: 8px 16px;
-		font-weight: bold;
+		gap: 2px;
+		padding: 8px;
+		font-weight: normal;
 	}
 
 	.settings label {
 		display: grid;
-		grid-template-columns: 1fr 14rem;
+		grid-template-columns: minmax(0, 1fr);
 		align-items: center;
 		gap: 8px;
-		margin-top: 8px;
+		margin-top: 4px;
 	}
 
 	.settings small {
-		font-size: x-small;
+		font-size: 18px;
 		font-weight: normal;
 		opacity: 0.8;
 	}
@@ -289,43 +333,39 @@
 
 	.month {
 		display: grid;
-		grid-template-columns: repeat(7, minmax(0, 2.5rem));
-		gap: 4px;
-		margin-top: 8px;
+		grid-template-columns: repeat(7, minmax(0, 1fr));
+		gap: 0;
+		margin-top: 4px;
 		justify-content: center;
 	}
 
 	.weekday {
-		font-size: x-small;
+		font-size: 20px;
 		text-align: center;
+		border: 1px solid #c59a5b;
+		padding: 2px 0;
 	}
 
-	.day {
+	.month :global(.day) {
 		position: relative;
-		padding: 4px 0;
-		border: solid 2px;
-		border-radius: 4px;
-		border-bottom-color: #9c613b;
-		border-left-color: #9c613b;
-		border-right-color: #6f3b31;
-		border-top-color: #6f3b31;
-		background-color: #f9bb65;
-		color: #3f2117;
-		font: inherit;
-		cursor: pointer;
+		padding: 2px 0;
+		border: 1px solid #c59a5b;
+		border-radius: 0;
+		background: #ffefc5;
+		min-height: 36px;
+		min-width: 0;
+	}
+	.month :global(.wrapper) {
+		min-width: 0;
 	}
 
-	.day:hover {
-		filter: brightness(1.05);
-	}
-
-	.day[aria-pressed="true"] {
-		background-color: #de9a3c;
-		box-shadow: inset 0 0 0 2px #5b2b29;
+	.month :global(.day[aria-pressed="true"]) {
+		background-color: #8dccf5;
+		box-shadow: inset 0 0 0 2px #2584c3;
 	}
 
 	/* A dot in the corner on festival, storm and green rain days */
-	.day.noted::after {
+	.month :global(.day.noted)::after {
 		position: absolute;
 		top: 2px;
 		right: 3px;
@@ -336,13 +376,15 @@
 		content: "";
 	}
 
-	.day:focus-visible {
+	.month :global(.day:focus-visible) {
 		outline: 2px solid #5b2b29;
 		outline-offset: 1px;
 	}
 
 	.today {
 		margin: 4px 0 0;
+		font-size: 19px;
+		line-height: 1.1;
 		text-align: center;
 	}
 
@@ -351,17 +393,80 @@
 		align-items: center;
 		gap: 6px;
 	}
-
-	.weather-icon {
-		display: inline-block;
-		width: 12px;
-		height: 8px;
-		zoom: 2;
-		background-image: var(--sheet);
-		image-rendering: pixelated;
+	.weather-panel label {
+		gap: 6px;
+		margin-top: 0;
+	}
+	.weather-panel details {
+		min-width: 0;
+		max-width: 100%;
+		font-size: 17px;
+		font-weight: normal;
+	}
+	.weather-panel summary {
+		white-space: normal;
+		overflow-wrap: anywhere;
+		min-height: 26px;
+	}
+	.weather-panel .weather-label {
+		flex-direction: row-reverse;
+		justify-content: space-between;
+		align-items: center;
+		gap: 8px;
 	}
 
-	.weather-icon.green {
-		filter: hue-rotate(-110deg);
+	.weather-emblem {
+		display: grid;
+		place-items: center;
+		width: 72px;
+		height: 52px;
+		border: 1px solid #c39b60;
+		box-shadow: inset 0 0 0 2px #fff1ca;
+		background: #fce8bf;
+	}
+	.calendar-help {
+		font-size: 17px;
+		font-weight: normal;
+	}
+	.calendar-help summary {
+		min-height: 26px;
+	}
+
+	@media (max-width: 600px) {
+		.calendar-layout {
+			grid-template-columns: minmax(0, 1fr);
+		}
+		.weather-panel {
+			display: grid;
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+			gap: 12px;
+		}
+		.weather-panel h3,
+		.weather-panel small,
+		.weather-panel details {
+			min-width: 0;
+			max-width: 100%;
+			grid-column: 1 / -1;
+		}
+		.month :global(.day) {
+			min-height: 44px;
+		}
+		.weather-panel label:nth-of-type(1) {
+			grid-column: 1;
+			grid-row: 2;
+		}
+		.weather-panel label:nth-of-type(2) {
+			grid-column: 2;
+			grid-row: 2;
+		}
+		.date-inputs {
+			gap: 12px;
+		}
+		.settings {
+			padding-inline: 8px;
+		}
+		.settings label {
+			grid-template-columns: minmax(0, 1fr);
+		}
 	}
 </style>

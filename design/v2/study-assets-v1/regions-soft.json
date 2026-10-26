@@ -1,0 +1,102 @@
+{
+	"width": 1254,
+	"height": 1254,
+	"regions": {
+		"inventory": {
+			"x": 48,
+			"y": 80,
+			"width": 242,
+			"height": 244
+		},
+		"chests": {
+			"x": 355,
+			"y": 109,
+			"width": 249,
+			"height": 214
+		},
+		"character": {
+			"x": 661,
+			"y": 91,
+			"width": 242,
+			"height": 241
+		},
+		"appearance": {
+			"x": 950,
+			"y": 106,
+			"width": 251,
+			"height": 218
+		},
+		"relationships": {
+			"x": 61,
+			"y": 411,
+			"width": 229,
+			"height": 203
+		},
+		"events": {
+			"x": 387,
+			"y": 399,
+			"width": 197,
+			"height": 211
+		},
+		"crafting": {
+			"x": 674,
+			"y": 396,
+			"width": 219,
+			"height": 227
+		},
+		"cooking": {
+			"x": 964,
+			"y": 399,
+			"width": 237,
+			"height": 219
+		},
+		"farmhands": {
+			"x": 54,
+			"y": 667,
+			"width": 225,
+			"height": 229
+		},
+		"farm": {
+			"x": 330,
+			"y": 672,
+			"width": 298,
+			"height": 230
+		},
+		"buildings": {
+			"x": 656,
+			"y": 664,
+			"width": 259,
+			"height": 238
+		},
+		"community": {
+			"x": 979,
+			"y": 671,
+			"width": 222,
+			"height": 228
+		},
+		"quests": {
+			"x": 72,
+			"y": 948,
+			"width": 196,
+			"height": 230
+		},
+		"qi": {
+			"x": 378,
+			"y": 962,
+			"width": 199,
+			"height": 212
+		},
+		"tree": {
+			"x": 675,
+			"y": 937,
+			"width": 215,
+			"height": 252
+		},
+		"chicken": {
+			"x": 971,
+			"y": 950,
+			"width": 208,
+			"height": 239
+		}
+	}
+}

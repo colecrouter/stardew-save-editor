@@ -2,6 +2,13 @@
 	// Shared base TypeScript options used across the project
 	// Extended by tsconfig.json (main app) and codegen/tsconfig.json (build scripts)
 	"compilerOptions": {
+		"plugins": [
+			{
+				"name": "@effect/language-service",
+				"includeSuggestionsInTsc": false,
+				"ignoreEffectWarningsInTscExitCode": true
+			}
+		],
 		"allowJs": true,
 		"checkJs": true,
 		"esModuleInterop": true,

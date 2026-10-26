@@ -166,4 +166,19 @@
 		font-size: x-small;
 		opacity: 0.8;
 	}
+	@media (max-width: 900px) {
+		.wrapper {
+			height: auto;
+			overflow: visible;
+		}
+		.toolbar {
+			flex-wrap: wrap;
+			gap: 8px;
+			margin-bottom: 10px;
+		}
+		.toolbar h4 {
+			margin: 0;
+			padding: 0;
+		}
+	}
 </style>

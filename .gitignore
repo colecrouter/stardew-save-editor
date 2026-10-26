@@ -3,7 +3,10 @@ openspec
 .idea
 .DS_Store
 node_modules
+.playwright-cli
+/output/playwright
 /build
+experiments/v2/lab-build
 /.svelte-kit
 /package
 .env

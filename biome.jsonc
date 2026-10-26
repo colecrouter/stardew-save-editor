@@ -3,27 +3,26 @@
 	"vcs": {
 		"enabled": true,
 		"clientKind": "git",
-		"useIgnoreFile": true
+		"useIgnoreFile": true,
 	},
 	"files": {
-		"includes": ["**", "!content"]
+		"includes": ["**", "!content"],
 	},
 	"formatter": {
-		"indentStyle": "tab",
-		"lineEnding": "lf"
+		"enabled": false,
 	},
 	"linter": {
 		"rules": {
 			"complexity": {
-				"noStaticOnlyClass": "off"
-			}
-		}
+				"noStaticOnlyClass": "off",
+			},
+		},
 	},
 	"json": {
 		"parser": {
 			"allowComments": true,
-			"allowTrailingCommas": true
-		}
+			"allowTrailingCommas": true,
+		},
 	},
 	"overrides": [
 		{
@@ -32,17 +31,17 @@
 				"rules": {
 					"style": {
 						"useConst": "off",
-						"useImportType": "off"
+						"useImportType": "off",
 					},
 					"correctness": {
 						"noUnusedVariables": "off",
-						"noUnusedImports": "off"
-					}
-				}
+						"noUnusedImports": "off",
+					},
+				},
 			},
 			"formatter": {
-				"enabled": false
-			}
-		}
-	]
+				"enabled": false,
+			},
+		},
+	],
 }

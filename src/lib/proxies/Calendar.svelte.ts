@@ -1,28 +1,39 @@
 import {
 	calendarFestivalOn,
+	type CalendarWeatherChoices,
 	DAYS_PER_SEASON,
 	dateInRange,
 	type ForcedWeather,
 	forcedWeather,
 	type GameDate,
 	greenRainDay,
-	isWeatherId,
 	MAX_YEAR,
 	nextDay,
+	planCalendarWeather,
 	SEASONS,
-	seasonIndex,
 	seasonName,
 	seasonWeathers,
 	totalDays,
-	WEATHER_FLAGS,
 	type WeatherFlags,
 	type WeatherId,
-	weatherFromFlags,
 	weatherLabel,
 	weekday,
 } from "$lib/calendar";
 import type { SaveProxy } from "$lib/proxies/SaveFile.svelte";
-import { type LocationWeatherClass, type Save, Season } from "$types/save";
+import { locationWeatherContext } from "$lib/locationWeather";
+import {
+	planRainWatering,
+	type WateringMark,
+	type WateringTarget,
+	type WateringWrite,
+} from "$lib/calendarWatering";
+import { type Save, Season } from "$types/save";
+import {
+	readCalendarView,
+	writeCalendarDate,
+	writeCalendarToday,
+	writeCalendarTomorrow,
+} from "$lib/calendarDocument";
 import { type DataProxy, Raw } from ".";
 
 export interface WeatherOption {
@@ -31,15 +42,6 @@ export interface WeatherOption {
 	/** False for the current weather when the day can't have it */
 	allowed: boolean;
 }
-
-/** LocationWeather's flags: the net field (`<isRaining><boolean>`), then the property (`<IsRaining>`) */
-const FLAG_FIELDS = [
-	["isRaining", "IsRaining"],
-	["isSnowing", "IsSnowing"],
-	["isLightning", "IsLightning"],
-	["isDebrisWeather", "IsDebrisWeather"],
-	["isGreenRain", "IsGreenRain"],
-] as const;
 
 /**
     Today's date and weather, and tomorrow's forecast.
@@ -69,66 +71,25 @@ export class Calendar implements DataProxy<Save> {
 	    day...) only has it while the date is on that day; moving on goes
 	    back to this.
 	*/
-	#chosenToday: string | undefined;
-	#chosenTomorrow: string | undefined;
+	#chosenWeather: CalendarWeatherChoices = {};
 	/** Today's flags as loaded, for weather from a mod, whose flags the editor doesn't know */
 	#loadedFlags: WeatherFlags;
-	/** Puts back the soil and pet bowls the editor watered, if the rain is taken away again */
-	#undoWatering: (() => void)[] = [];
+	/** Explicit provenance; identities are weakly associated with current proxy objects. */
+	#watering: WateringMark[] = [];
+	#wateringIds = new WeakMap<object, string>();
+	#nextWateringId = 0;
 
 	constructor(save: SaveProxy) {
 		this.#save = save;
 		this[Raw] = save[Raw].SaveGame;
-		const game = this[Raw];
-		const seasonText = String(game.currentSeason).trim().toLowerCase();
-		const seasonNumber = /^-?\d+$/.test(seasonText)
-			? Number(seasonText)
-			: Number.NaN;
-
-		this.#date = {
-			year: game.year,
-			// Match validation: the game accepts names or enum numbers 0–3.
-			// Normalize only the editor's view; leave the uploaded save untouched.
-			season: SEASONS[seasonNumber] ?? (seasonText as Season),
-			day: game.dayOfMonth,
-		};
-		this.#daysPlayed = save.players[0]?.daysPlayed ?? 0;
-		this.#tomorrow = String(game.weatherForTomorrow ?? "Sun");
-
-		// Prefer the weather's name, unless today's flags say otherwise
-		const weather = this.#weather;
-		this.#loadedFlags = {
-			isRaining: game.isRaining === true,
-			isSnowing: game.isSnowing === true,
-			isLightning: game.isLightning === true,
-			isDebrisWeather: game.isDebrisWeather === true,
-			isGreenRain: weather?.IsGreenRain === true,
-		};
-		const fromFlags = weatherFromFlags(this.#loadedFlags);
-		const named = weather?.Weather ?? weather?.weather?.string;
-		this.#today =
-			typeof named === "string" &&
-			named &&
-			(!isWeatherId(named) ||
-				weatherFromFlags(WEATHER_FLAGS[named]) === fromFlags)
-				? named
-				: fromFlags;
-
-		// The weather the save's date fixes wasn't picked, so it isn't kept
-		if (this.#today !== this.forcedToday?.weather)
-			this.#chosenToday = this.#today;
-		if (this.#tomorrow !== this.forcedTomorrow?.weather)
-			this.#chosenTomorrow = this.#tomorrow;
+		const state = readCalendarView(this[Raw]);
+		this.#date = state.date;
+		this.#daysPlayed = state.daysPlayed;
+		this.#today = state.today;
+		this.#tomorrow = state.tomorrow;
+		this.#chosenWeather = state.choices;
+		this.#loadedFlags = state.loadedFlags;
 	}
-
-	/** The valley's entry in locationWeather */
-	get #weather(): LocationWeatherClass | undefined {
-		const all = this[Raw].locationWeather;
-		if (typeof all !== "object" || !all) return undefined;
-		return all.item?.find((entry) => entry.key?.string === "Default")?.value
-			?.LocationWeather;
-	}
-
 	get date(): GameDate {
 		return this.#date;
 	}
@@ -236,7 +197,8 @@ export class Calendar implements DataProxy<Save> {
 				this.forcedToday?.reason ??
 					`${weatherLabel(value)} isn't possible in ${seasonName(this.#date.season)}`,
 			);
-		if (!this.forcedToday) this.#chosenToday = value;
+		if (!this.forcedToday)
+			this.#chosenWeather = { ...this.#chosenWeather, today: value };
 		this.#writeToday(value);
 	}
 
@@ -251,7 +213,8 @@ export class Calendar implements DataProxy<Save> {
 				this.forcedTomorrow?.reason ??
 					`${weatherLabel(value)} isn't possible in ${seasonName(this.tomorrowDate.season)}`,
 			);
-		if (!this.forcedTomorrow) this.#chosenTomorrow = value;
+		if (!this.forcedTomorrow)
+			this.#chosenWeather = { ...this.#chosenWeather, tomorrow: value };
 		this.#writeTomorrow(value);
 	}
 
@@ -307,18 +270,11 @@ export class Calendar implements DataProxy<Save> {
 		// Days played starts at 1 and goes up with the date (Game1.newDayAfterFade).
 		// Written first: it refuses a count the game can't load, before anything changes.
 		const daysPlayed = totalDays(next) + 1;
-		const host = this.#save.players[0];
-		if (host) host.daysPlayed = daysPlayed;
-
-		const game = this[Raw];
-		game.year = next.year;
-		game.currentSeason = next.season;
-		game.dayOfMonth = next.day;
-		for (const player of this.#save.players) {
-			player[Raw].dayOfMonthForSaveGame = next.day;
-			player[Raw].seasonForSaveGame = seasonIndex(next.season);
-			player[Raw].yearForSaveGame = next.year;
-		}
+		writeCalendarDate(
+			this[Raw],
+			next,
+			this.#save.players.map((player) => player[Raw]),
+		);
 		this.#date = next;
 		this.#daysPlayed = daysPlayed;
 		this.#applyWeather();
@@ -333,106 +289,91 @@ export class Calendar implements DataProxy<Save> {
 	    doesn't know (from a mod) is kept.
 	*/
 	#applyWeather() {
-		const ordinary = (chosen: string | undefined, allowed: WeatherId[]) =>
-			chosen !== undefined && (!isWeatherId(chosen) || allowed.includes(chosen))
-				? chosen
-				: "Sun";
-
-		const today =
-			this.forcedToday?.weather ??
-			ordinary(this.#chosenToday, this.#todayWeathers());
+		const { today, tomorrow } = planCalendarWeather({
+			date: this.#date,
+			daysPlayed: this.#daysPlayed,
+			gameId: Number(this[Raw].uniqueIDForThisGame),
+			legacyRandom: this[Raw].useLegacyRandom === true,
+			choices: this.#chosenWeather,
+		});
 		if (today !== this.#today) this.#writeToday(today);
-
-		const tomorrow =
-			this.forcedTomorrow?.weather ??
-			ordinary(this.#chosenTomorrow, this.#tomorrowWeathers());
 		if (tomorrow !== this.#tomorrow) this.#writeTomorrow(tomorrow);
 	}
 
 	#writeToday(id: string) {
-		const game = this[Raw];
-		const flags = isWeatherId(id) ? WEATHER_FLAGS[id] : this.#loadedFlags;
-		const wasRaining = game.isRaining === true;
-
-		game.isRaining = flags.isRaining;
-		game.isSnowing = flags.isSnowing;
-		game.isLightning = flags.isLightning;
-		game.isDebrisWeather = flags.isDebrisWeather;
-
-		const weather = this.#weather;
-		if (weather) {
-			if (typeof weather.weather === "object" && weather.weather)
-				weather.weather.string = id;
-			else weather.weather = { string: id };
-			weather.Weather = id;
-			for (const [field, property] of FLAG_FIELDS) {
-				if (typeof weather[field] === "object" && weather[field])
-					weather[field].boolean = flags[field];
-				else weather[field] = { boolean: flags[field] };
-				weather[property] = flags[field];
-			}
-		}
-
-		if (flags.isRaining && !wasRaining) this.#waterFarm();
-		if (!flags.isRaining && wasRaining) this.#dryFarm();
+		const wasRaining = this[Raw].isRaining === true;
+		writeCalendarToday(this[Raw], id, this.#loadedFlags);
+		const raining = this[Raw].isRaining === true;
+		if (raining !== wasRaining) this.#applyWatering(wasRaining, raining);
 		this.#today = id;
 	}
-
 	/**
 	    Rain at the start of a day waters the pet bowl and all tilled soil
 	    (Game1.newDayAfterFade), apart from soil the game hides (state 2).
-	    What this waters is remembered, so #dryFarm can put it back.
+	    Provenance records only the editor's watering, so removing rain can restore it.
 	*/
-	#waterFarm() {
-		const farm = this.#save.farm?.[Raw];
-		if (!farm) return;
-		for (const building of farm.buildings?.Building ?? []) {
-			if (building["@_xsi:type"] !== "PetBowl" || building.watered === true)
-				continue;
-			const before = building.watered;
-			building.watered = true;
-			this.#undoWatering.push(() => {
-				if (building.watered === true) building.watered = before;
-			});
+	#applyWatering(wasRaining: boolean, raining: boolean) {
+		const targets: WateringTarget[] = [];
+		const bindings = new Map<string, (write: WateringWrite) => void>();
+		const identity = (target: object) => {
+			let id = this.#wateringIds.get(target);
+			if (id === undefined) {
+				id = `watering:${++this.#nextWateringId}`;
+				this.#wateringIds.set(target, id);
+			}
+			return id;
+		};
+		for (const location of this.#save.locations) {
+			const raw = location[Raw];
+			const context = locationWeatherContext(raw);
+			if (raw.isOutdoors !== true || context !== "Default") continue;
+			for (const building of raw.buildings?.Building ?? []) {
+				if (building["@_xsi:type"] !== "PetBowl") continue;
+				const id = identity(building);
+				targets.push({
+					id,
+					context,
+					outdoors: true,
+					kind: "bowl",
+					value: building.watered,
+				});
+				bindings.set(id, (write) => {
+					if (write.kind === "bowl") building.watered = write.value;
+				});
+			}
+			const features =
+				typeof raw.terrainFeatures === "object" && raw.terrainFeatures
+					? (raw.terrainFeatures.item ?? [])
+					: [];
+			for (const { value } of features) {
+				const feature = value?.TerrainFeature;
+				if (feature?.["@_xsi:type"] !== "HoeDirt") continue;
+				const id = identity(feature);
+				targets.push({
+					id,
+					context,
+					outdoors: true,
+					kind: "soil",
+					value: feature.state,
+				});
+				bindings.set(id, (write) => {
+					if (write.kind === "soil") feature.state = write.value;
+				});
+			}
 		}
-		const features =
-			typeof farm.terrainFeatures === "object" && farm.terrainFeatures
-				? (farm.terrainFeatures.item ?? [])
-				: [];
-		for (const { value } of features) {
-			const feature = value?.TerrainFeature;
-			if (
-				feature?.["@_xsi:type"] !== "HoeDirt" ||
-				feature.state === 1 ||
-				feature.state === 2
-			)
-				continue;
-			const before = feature.state;
-			feature.state = 1;
-			this.#undoWatering.push(() => {
-				if (feature.state === 1) feature.state = before;
-			});
-		}
-	}
-
-	/** Dry what #waterFarm watered; what the save had watered stays watered */
-	#dryFarm() {
-		for (const undo of this.#undoWatering) undo();
-		this.#undoWatering = [];
+		const prepared = planRainWatering({
+			targets,
+			provenance: this.#watering,
+			context: "Default",
+			wasRaining,
+			raining,
+		});
+		for (const write of prepared.writes) bindings.get(write.id)?.(write);
+		this.#watering = prepared.provenance;
 	}
 
 	#writeTomorrow(id: string) {
-		this[Raw].weatherForTomorrow = id;
-		const weather = this.#weather;
-		if (weather) {
-			if (
-				typeof weather.weatherForTomorrow === "object" &&
-				weather.weatherForTomorrow
-			)
-				weather.weatherForTomorrow.string = id;
-			else weather.weatherForTomorrow = { string: id };
-			weather.WeatherForTomorrow = id;
-		}
+		writeCalendarTomorrow(this[Raw], id);
 		this.#tomorrow = id;
 	}
 }

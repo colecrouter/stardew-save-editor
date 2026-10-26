@@ -1,0 +1,758 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width,initial-scale=1" />
+		<style>
+			@font-face {
+				font-family: bodyPixel;
+				src: url(../../../src/lib/ui/fonts/VT323-Regular.ttf);
+			}
+			@font-face {
+				font-family: headingPixel;
+				src: url(../../../src/lib/ui/fonts/PixelifySans.ttf);
+			}
+			* {
+				box-sizing: border-box;
+			}
+			body {
+				margin: 0;
+				font: 14px system-ui;
+				color: var(--foreground);
+			}
+			.sample {
+				background: #2d6672;
+				padding: 12px;
+				border-radius: 6px;
+			}
+			.frame {
+				border: 32px solid transparent;
+				border-image: url(wood-frame.png) 80 /32px stretch;
+				background: #542710;
+				background-clip: padding-box;
+			}
+			.header {
+				display: flex;
+				gap: 10px;
+				align-items: center;
+				padding: 10px;
+				background: linear-gradient(100deg, #fddda8, #fccc82);
+				color: #311304;
+				font:
+					22px bodyPixel,
+					monospace;
+			}
+			.header strong {
+				font:
+					700 20px headingPixel,
+					monospace;
+			}
+			.header button {
+				margin-left: auto;
+				background: #1e8146;
+				border: 2px solid #13522b;
+				box-shadow: inset 0 0 0 2px #67aa63;
+				color: #fff4d8;
+				padding: 6px 10px;
+				font:
+					20px bodyPixel,
+					monospace;
+			}
+			.beam {
+				height: 10px;
+				background: #99501b url(wood-frame.png) center -22px /768px 512px;
+				box-shadow:
+					0 1px #3c1f0e,
+					inset 0 1px #d69742;
+			}
+			.shell {
+				display: grid;
+				grid-template-columns: 208px minmax(0, 1fr);
+				min-height: 300px;
+			}
+			.nav {
+				padding: 5px 6px;
+				background: linear-gradient(95deg, #542710, #743b1c);
+				border-right: 8px solid #a0581f;
+			}
+			.nav a {
+				overflow-wrap: anywhere;
+				display: flex;
+				gap: 9px;
+				align-items: center;
+				color: #fff0cf;
+				text-decoration: none;
+				font:
+					21px bodyPixel,
+					monospace;
+				padding: 8px 5px;
+				border-bottom: 1px solid #9e5828;
+			}
+			.nav a:last-child {
+				background: linear-gradient(#ffe4a3, #f9ca75);
+				color: #311304;
+				box-shadow: inset 0 0 0 2px #e6a94a;
+				outline: 1px solid #3c1e0c;
+			}
+			.paper {
+				padding: 16px;
+				background: #fddda8 url(parchment.png) center / cover;
+				box-shadow:
+					inset 0 0 0 2px #d3a267,
+					inset 0 0 0 4px #ffecc7;
+				color: #311304;
+				font:
+					22px bodyPixel,
+					monospace;
+			}
+			.title {
+				display: flex;
+				gap: 14px;
+				align-items: center;
+				border-bottom: 2px solid #b58447;
+				padding-bottom: 10px;
+				margin-bottom: 14px;
+			}
+			h2 {
+				margin: 0;
+				font:
+					700 31px headingPixel,
+					monospace;
+			}
+			.title p {
+				font:
+					19px bodyPixel,
+					monospace;
+				margin: 3px 0 0;
+			}
+			.fields {
+				display: grid;
+				grid-template-columns: 1fr 1fr;
+				gap: 12px;
+			}
+			label {
+				display: grid;
+				gap: 5px;
+				font:
+					21px bodyPixel,
+					monospace;
+			}
+			input,
+			select {
+				min-width: 0;
+				width: 100%;
+				font:
+					21px bodyPixel,
+					monospace;
+				color: #311304;
+				background: #fdedd7;
+				border: 1px solid #ae895b;
+				border-radius: 1px;
+				box-shadow:
+					inset 1px 1px #d6bd94,
+					0 1px #fff4d9;
+				padding: 7px 9px;
+				min-height: 38px;
+			}
+			.all {
+				grid-column: 1/-1;
+			}
+			.sprite {
+				background-image: url(icons.png);
+				background-repeat: no-repeat;
+				image-rendering: pixelated;
+				position: relative;
+				display: inline-block;
+				overflow: hidden;
+				flex: none;
+				vertical-align: middle;
+			}
+			.icon-strip {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 14px;
+				padding: 16px;
+				margin-top: 12px;
+				background: #542710;
+				border: 1px solid #a36830;
+				border-radius: 6px;
+				align-items: center;
+			}
+			.palette {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 10px;
+				margin: 14px 0;
+			}
+			.swatch {
+				display: grid;
+				gap: 5px;
+				min-width: 74px;
+				font-size: 12px;
+			}
+			.swatch i {
+				display: block;
+				height: 32px;
+				background: var(--color);
+				border: 1px solid #8886;
+			}
+			.caption {
+				font-size: 13px;
+				line-height: 1.5;
+				color: var(--muted-foreground);
+				margin: 10px 0;
+			}
+			summary {
+				cursor: pointer;
+				padding: 8px 0;
+			}
+			details > img {
+				display: block;
+				width: 100%;
+			}
+			button:focus-visible,
+			a:focus-visible,
+			input:focus-visible,
+			select:focus-visible,
+			summary:focus-visible {
+				outline: 3px solid #2785b4;
+				outline-offset: 2px;
+			}
+			@media (max-width: 520px) {
+				.sample {
+					padding: 8px;
+				}
+				.frame {
+					border-width: 20px;
+					border-image-width: 20px;
+				}
+				.shell {
+					grid-template-columns: 1fr;
+				}
+				.nav {
+					display: flex;
+					justify-content: space-around;
+					border-right: 0;
+					border-bottom: 7px solid #a0581f;
+				}
+				.nav a {
+					padding: 6px;
+				}
+				.nav a span.label {
+					display: none;
+				}
+				.header strong {
+					font-size: 17px;
+				}
+				.header button {
+					font-size: 18px;
+					padding: 6px;
+				}
+				.header > .sprite {
+					display: none;
+				}
+				.paper {
+					padding: 14px;
+				}
+				.fields {
+					gap: 10px;
+				}
+				.title {
+					gap: 8px;
+				}
+				h2 {
+					font-size: 28px;
+				}
+			}
+
+			/* The pane layer owns its silhouette, paper and shadow. Content stays square. */
+			.header,
+			.paper {
+				position: relative;
+				isolation: isolate;
+				background: none;
+				box-shadow: none;
+			}
+			.header::before,
+			.paper::before {
+				content: "";
+				position: absolute;
+				inset: 0;
+				z-index: -2;
+				border-radius: 6px 8px 5px 7px;
+				background: #fddda8 url(parchment.png) center/cover;
+				filter: drop-shadow(-1px -1px 0 #603718)
+					drop-shadow(2px 2px 0 #68381388);
+			}
+			.header::before {
+				background: linear-gradient(100deg, #fddda8, #fccc82);
+			}
+			.header::after,
+			.paper::after {
+				content: "";
+				pointer-events: none;
+				position: absolute;
+				inset: -3px;
+				z-index: -1;
+				border: 10px solid transparent;
+				border-image: url(pane-edge.svg) 16 /10px stretch;
+			}
+			.header {
+				margin: -2px -2px 0;
+				z-index: 3;
+			}
+			.paper {
+				margin: -1px -2px -2px -1px;
+				z-index: 2;
+			}
+			.nav {
+				position: relative;
+				border-right-width: 9px;
+				padding-top: 8px;
+				padding-bottom: 8px;
+			}
+			.nav a:last-child {
+				position: relative;
+				isolation: isolate;
+				background: none;
+				box-shadow: none;
+				outline: none;
+				margin-left: -3px;
+				margin-right: -3px;
+				padding-left: 8px;
+			}
+			.nav a:last-child::before {
+				content: "";
+				position: absolute;
+				inset: 1px -1px;
+				z-index: -2;
+				border-radius: 5px;
+				background: linear-gradient(#ffe4a3, #f9ca75);
+				filter: drop-shadow(-1px 0 0 #542710) drop-shadow(1px 2px 0 #54271088);
+			}
+			.nav a:last-child::after {
+				content: "";
+				position: absolute;
+				inset: -1px -2px;
+				z-index: -1;
+				border: 8px solid transparent;
+				border-image: url(pane-edge.svg) 16 /8px stretch;
+				pointer-events: none;
+			}
+			input,
+			select {
+				border-radius: 3px;
+			}
+			.art-controls {
+				display: flex;
+				flex-wrap: wrap;
+				align-items: center;
+				gap: 8px;
+				margin: 12px 0;
+				font: 13px system-ui;
+			}
+			.art-controls button {
+				font: inherit;
+				color: inherit;
+				padding: 7px 10px;
+				border: 1px solid var(--border, #888);
+				border-radius: 5px;
+				background: var(--secondary, #eee);
+				cursor: pointer;
+			}
+			.art-controls button[aria-pressed="true"] {
+				background: var(--accent, #dadada);
+			}
+			.caption {
+				margin-top: 14px;
+			}
+			@media (max-width: 520px) {
+				.paper {
+					margin: -2px;
+				}
+				.header {
+					margin: -1px;
+				}
+				.nav {
+					border-right: 0;
+				}
+			}
+			body[data-art="soft"] .sprite {
+				background-image: url(icons-soft.png);
+				image-rendering: auto;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="sample">
+			<div class="frame">
+				<header class="header">
+					<span
+						class="sprite"
+						style="
+							width: 36px;
+							height: 36px;
+							background-size: 194.58620689655174px 194.58620689655174px;
+							background-position: -148.11206896551727px -147.25862068965517px;
+						"
+					></span
+					><strong>Stardew Save Editor</strong
+					><button type="button">Export save</button>
+				</header>
+				<div class="beam"></div>
+				<div class="shell">
+					<nav class="nav" aria-label="Asset proof navigation">
+						<a href="#proof" aria-label="Inventory"
+							><span
+								class="sprite"
+								style="
+									width: 30px;
+									height: 30px;
+									background-size: 156.09958506224066px 156.09958506224066px;
+									background-position: -6.348547717842324px -10.45643153526971px;
+								"
+							></span
+							><span class="label">Inventory</span></a
+						><a href="#proof" aria-label="Chests"
+							><span
+								class="sprite"
+								style="
+									width: 30px;
+									height: 30px;
+									background-size: 149.8804780876494px 149.8804780876494px;
+									background-position: -42.310756972111555px -10.219123505976098px;
+								"
+							></span
+							><span class="label">Chests</span></a
+						><a href="#proof" aria-label="Relationships"
+							><span
+								class="sprite"
+								style="
+									width: 30px;
+									height: 30px;
+									background-size: 162.1551724137931px 162.1551724137931px;
+									background-position: -7.887931034482761px -50.883620689655174px;
+								"
+							></span
+							><span class="label">Relationships</span></a
+						><a href="#proof" aria-label="Farm"
+							><span
+								class="sprite"
+								style="
+									width: 30px;
+									height: 30px;
+									background-size: 127.9591836734694px 127.9591836734694px;
+									background-position: -33.775510204081634px -64.59183673469389px;
+								"
+							></span
+							><span class="label">Farm</span></a
+						>
+					</nav>
+					<section class="paper" id="proof">
+						<div class="title">
+							<span
+								class="sprite"
+								style="
+									width: 68px;
+									height: 68px;
+									background-size: 290.0408163265306px 290.0408163265306px;
+									background-position: -76.5578231292517px -146.40816326530611px;
+								"
+							></span>
+							<div>
+								<h2>Farm</h2>
+								<p>Layered pane and icon sample</p>
+							</div>
+						</div>
+						<div class="fields">
+							<label class="all">Farm name<input value="Test Farm" /></label
+							><label
+								>Profit margin<input
+									type="number"
+									value="100"
+									min="1"
+									max="1000" /></label
+							><label
+								>Mine rewards<select>
+									<option>Normal</option>
+									<option>Remixed</option>
+								</select></label
+							>
+						</div>
+					</section>
+				</div>
+			</div>
+		</div>
+		<div class="art-controls" aria-label="Icon treatment">
+			<span>Icons at UI size:</span
+			><button type="button" data-art="soft" aria-pressed="true">
+				Coarser candidate</button
+			><button type="button" data-art="original" aria-pressed="false">
+				Original atlas
+			</button>
+		</div>
+		<p class="caption">
+			Isolated asset proof. Pane silhouettes and shadows live on separate
+			layers, overlapping the wood divider by roughly two pixels. Generated
+			reconstructions preserve the study’s illustrated materials; they are not
+			pixel-identical extractions.
+		</p>
+		<div class="icon-strip" aria-label="Illustrated icons at interface size">
+			<span
+				class="sprite"
+				style="
+					width: 36px;
+					height: 36px;
+					background-size: 187.31950207468878px 187.31950207468878px;
+					background-position: -7.618257261410788px -12.54771784232365px;
+				"
+			></span
+			><span
+				class="sprite"
+				style="
+					width: 36px;
+					height: 36px;
+					background-size: 179.8565737051793px 179.8565737051793px;
+					background-position: -50.77290836653387px -12.262948207171316px;
+				"
+			></span
+			><span
+				class="sprite"
+				style="
+					width: 36px;
+					height: 36px;
+					background-size: 187.31950207468878px 187.31950207468878px;
+					background-position: -99.03734439834025px -12.995850622406639px;
+				"
+			></span
+			><span
+				class="sprite"
+				style="
+					width: 36px;
+					height: 36px;
+					background-size: 182.03225806451613px 182.03225806451613px;
+					background-position: -138.0483870967742px -12.483870967741938px;
+				"
+			></span
+			><span
+				class="sprite"
+				style="
+					width: 36px;
+					height: 36px;
+					background-size: 194.58620689655174px 194.58620689655174px;
+					background-position: -9.465517241379311px -61.060344827586206px;
+				"
+			></span
+			><span
+				class="sprite"
+				style="
+					width: 36px;
+					height: 36px;
+					background-size: 217.03846153846155px 217.03846153846155px;
+					background-position: -65.33653846153845px -69.0576923076923px;
+				"
+			></span
+			><span
+				class="sprite"
+				style="
+					width: 36px;
+					height: 36px;
+					background-size: 201.5357142857143px 201.5357142857143px;
+					background-position: -107.83928571428572px -63.32142857142858px;
+				"
+			></span
+			><span
+				class="sprite"
+				style="
+					width: 36px;
+					height: 36px;
+					background-size: 191.28813559322035px 191.28813559322035px;
+					background-position: -146.28813559322035px -58.957627118644076px;
+				"
+			></span
+			><span
+				class="sprite"
+				style="
+					width: 36px;
+					height: 36px;
+					background-size: 197.1353711790393px 197.1353711790393px;
+					background-position: -8.960698689956333px -105.32751091703057px;
+				"
+			></span
+			><span
+				class="sprite"
+				style="
+					width: 36px;
+					height: 36px;
+					background-size: 153.55102040816325px 153.55102040816325px;
+					background-position: -40.53061224489796px -77.51020408163265px;
+				"
+			></span
+			><span
+				class="sprite"
+				style="
+					width: 36px;
+					height: 36px;
+					background-size: 177.73228346456693px 177.73228346456693px;
+					background-position: -93.11811023622047px -92.76377952755905px;
+				"
+			></span
+			><span
+				class="sprite"
+				style="
+					width: 36px;
+					height: 36px;
+					background-size: 201.5357142857143px 201.5357142857143px;
+					background-position: -156.77678571428575px -108.00000000000001px;
+				"
+			></span
+			><span
+				class="sprite"
+				style="
+					width: 36px;
+					height: 36px;
+					background-size: 199.75221238938053px 199.75221238938053px;
+					background-position: -9.557522123893804px -151.32743362831857px;
+				"
+			></span
+			><span
+				class="sprite"
+				style="
+					width: 36px;
+					height: 36px;
+					background-size: 218.08695652173913px 218.08695652173913px;
+					background-position: -64.43478260869566px -166.95652173913044px;
+				"
+			></span
+			><span
+				class="sprite"
+				style="
+					width: 36px;
+					height: 36px;
+					background-size: 182.76923076923075px 182.76923076923075px;
+					background-position: -96.19433198380565px -136.12955465587044px;
+				"
+			></span
+			><span
+				class="sprite"
+				style="
+					width: 36px;
+					height: 36px;
+					background-size: 194.58620689655174px 194.58620689655174px;
+					background-position: -148.11206896551727px -147.25862068965517px;
+				"
+			></span>
+		</div>
+		<div class="palette">
+			<span class="swatch"
+				><i style="--color: #fcdea9"></i>Paper light<code>#fcdea9</code></span
+			><span class="swatch"
+				><i style="--color: #fddda8"></i>Paper<code>#fddda8</code></span
+			><span class="swatch"
+				><i style="--color: #fad297"></i>Paper shade<code>#fad297</code></span
+			><span class="swatch"
+				><i style="--color: #fdedd7"></i>Control<code>#fdedd7</code></span
+			><span class="swatch"
+				><i style="--color: #fccc82"></i>Header<code>#fccc82</code></span
+			><span class="swatch"
+				><i style="--color: #542710"></i>Navigation<code>#542710</code></span
+			><span class="swatch"
+				><i style="--color: #1e8146"></i>Export<code>#1e8146</code></span
+			>
+		</div>
+		<script>
+			const atlasNames = [
+				"chicken",
+				"inventory",
+				"chests",
+				"relationships",
+				"farm",
+				"farm",
+				"inventory",
+				"chests",
+				"character",
+				"appearance",
+				"relationships",
+				"events",
+				"crafting",
+				"cooking",
+				"farmhands",
+				"farm",
+				"buildings",
+				"community",
+				"quests",
+				"qi",
+				"tree",
+				"chicken",
+			];
+			const atlases = {
+				original: {
+					width: 1254,
+					height: 1254,
+					regions: {
+						inventory: { x: 51, y: 87, width: 241, height: 235 },
+						chests: { x: 354, y: 106, width: 251, height: 210 },
+						character: { x: 663, y: 89, width: 241, height: 237 },
+						appearance: { x: 951, y: 100, width: 248, height: 220 },
+						relationships: { x: 61, y: 408, width: 232, height: 203 },
+						events: { x: 384, y: 399, width: 195, height: 208 },
+						crafting: { x: 671, y: 395, width: 224, height: 222 },
+						cooking: { x: 959, y: 396, width: 236, height: 217 },
+						farmhands: { x: 59, y: 670, width: 225, height: 229 },
+						farm: { x: 331, y: 667, width: 294, height: 226 },
+						buildings: { x: 657, y: 668, width: 254, height: 227 },
+						community: { x: 977, y: 672, width: 221, height: 224 },
+						quests: { x: 77, y: 950, width: 192, height: 226 },
+						qi: { x: 375, y: 960, width: 198, height: 207 },
+						tree: { x: 671, y: 934, width: 225, height: 247 },
+						chicken: { x: 967, y: 949, width: 207, height: 232 },
+					},
+				},
+				soft: {
+					width: 1254,
+					height: 1254,
+					regions: {
+						inventory: { x: 48, y: 80, width: 242, height: 244 },
+						chests: { x: 355, y: 109, width: 249, height: 214 },
+						character: { x: 661, y: 91, width: 242, height: 241 },
+						appearance: { x: 950, y: 106, width: 251, height: 218 },
+						relationships: { x: 61, y: 411, width: 229, height: 203 },
+						events: { x: 387, y: 399, width: 197, height: 211 },
+						crafting: { x: 674, y: 396, width: 219, height: 227 },
+						cooking: { x: 964, y: 399, width: 237, height: 219 },
+						farmhands: { x: 54, y: 667, width: 225, height: 229 },
+						farm: { x: 330, y: 672, width: 298, height: 230 },
+						buildings: { x: 656, y: 664, width: 259, height: 238 },
+						community: { x: 979, y: 671, width: 222, height: 228 },
+						quests: { x: 72, y: 948, width: 196, height: 230 },
+						qi: { x: 378, y: 962, width: 199, height: 212 },
+						tree: { x: 675, y: 937, width: 215, height: 252 },
+						chicken: { x: 971, y: 950, width: 208, height: 239 },
+					},
+				},
+			};
+			const sprites = [...document.querySelectorAll(".sprite")];
+			function setAtlas(name) {
+				document.body.dataset.art = name;
+				sprites.forEach((node, i) => {
+					const region = atlases[name].regions[atlasNames[i]];
+					const size = parseFloat(node.style.width),
+						scale = size / Math.max(region.width, region.height);
+					node.style.backgroundSize = `${atlases[name].width * scale}px ${atlases[name].height * scale}px`;
+					node.style.backgroundPosition = `${(size - region.width * scale) / 2 - region.x * scale}px ${(size - region.height * scale) / 2 - region.y * scale}px`;
+				});
+				document.querySelectorAll("[data-art]").forEach((button) => {
+					if (button.tagName === "BUTTON")
+						button.setAttribute(
+							"aria-pressed",
+							String(button.dataset.art === name),
+						);
+				});
+			}
+			document.querySelectorAll("button[data-art]").forEach((button) => {
+				button.addEventListener("click", () => setAtlas(button.dataset.art));
+			});
+			setAtlas("soft");
+		</script>
+	</body>
+</html>

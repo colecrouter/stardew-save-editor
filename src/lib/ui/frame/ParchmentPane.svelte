@@ -31,15 +31,11 @@
 		pointer-events: none;
 		z-index: 3;
 		image-rendering: pixelated;
-		background:
-			url("./art/parchment/tl.png") left top / 27px 27px no-repeat,
-			url("./art/parchment/tr.png") right top / 30px 30px no-repeat,
-			url("./art/parchment/bl.png") left bottom / 27px 27px no-repeat,
-			url("./art/parchment/br.png") right bottom / 30px 27px no-repeat,
-			url("./art/parchment/top.png") left top / 3px 24px repeat-x,
-			url("./art/parchment/bottom.png") left bottom / 3px 18px repeat-x,
-			url("./art/parchment/left.png") 3px top / 18px 3px repeat-y,
-			url("./art/parchment/right.png") right top / 18px 3px repeat-y;
+		border-style: solid;
+		border-color: transparent;
+		border-width: 30px 30px 27px 27px;
+		border-image: url("./art/parchment/frame.png") 10 10 9 9 / 30px 30px 27px
+			27px / 0 repeat;
 	}
 
 	.content {

@@ -1,39 +1,30 @@
 # User-authored wood frame
 
-The current outer frame and inner posts use the user's three original PNGs,
-copied byte-for-byte into `src/lib/ui/frame/art/user/`:
+The application directly consumes the user's three original PNGs in
+`src/lib/ui/frame/art/user/`:
 
-- `frame.png`: 55 by 45 pixels.
-- `post.png`: 7 by 50 pixels.
-- `post-horizontal.png`: 43 by 7 pixels.
+| Asset                 | Native size | CSS slicing                   | Display        |
+| --------------------- | ----------- | ----------------------------- | -------------- |
+| `frame.png`           | 55 x 45     | 10px on each side             | 30px corners   |
+| `post.png`            | 7 x 50      | 7px top/bottom, filled middle | 21px wide/caps |
+| `post-horizontal.png` | 43 x 7      | 7px left/right, filled middle | 21px high/caps |
 
-Edit those originals, then regenerate their production slices:
+Edit the PNGs directly. Vite reloads the changed source; no crop/export command,
+Python dependency, or generated pieces are involved. Keep the cap/corner slices
+intact if changing the canvas size. The originals are unchanged from the supplied
+attachments. Earlier generated pieces and scripts remain available in Git history.
 
-```powershell
-python design/v2/user-frame/extract.py
-python design/v2/user-frame/extract.py --check
-```
+`StudyFrame` uses `border-image: ... 10 / 30px / 0 repeat`. The tenth pixel includes
+the dark corner seam so it never repeats along the middle. Seven-pixel straight
+timber renders at 21 CSS pixels. Transparent outer corners reveal the page.
 
-Pillow is needed only for this optional maintenance command. The application uses
-committed PNGs; its build requires neither Python nor Pillow. Files under `parts/`
-are generated and will be overwritten. The script only crops; it does not resize,
-sharpen, quantize, or repaint the supplied artwork.
+`WoodDivider` uses the original post in one axis with `border-image-slice: 7 0 fill`
+(vertical) or `0 7 fill` (horizontal). The centre repeats between fixed end caps;
+it does not cover their transparent silhouettes. Every source pixel renders at
+integer 3x with `image-rendering: pixelated`. Border-image owns tile placement;
+there are no independently positioned corner or middle elements. Native-size
+Chromium samples of opaque wood/post regions contain only source-image colours.
 
-`StudyFrame` renders ten-pixel corner patches at exactly 3x (30 CSS pixels). The
-corner includes the dark seam at source coordinate 9; including that seam in a
-repeated edge would create spurious black lines. Straight timber is seven source
-pixels thick (21 CSS pixels). Clean edge strips repeat from top-left origins,
-without centred tile placement or fractional scaling. Original transparent corners
-remain transparent against the page background.
-
-`WoodDivider` uses seven-pixel end caps, rendered once at each end. Its middles
-repeat independently at 3x: 87 by 21 CSS pixels horizontally and 21 by 108 vertically.
-The middle does not paint under the transparent end-cap silhouettes.
-
-`EditorShell` overlaps rail caps 9 CSS pixels onto the outside wood. The vertical
-post begins 12 pixels into the header rail and ends 9 pixels into the bottom wood.
-On mobile the vertical post is replaced by a horizontal rail. These joints are a
-first structural pass with the supplied rough art; material polish is deferred.
-
-Parchment, field rims, selected navigation tabs and icons are unchanged by this
-pass. The original study extraction remains in `../frame-kit/` as a prior proof.
+`EditorShell` retains the existing rail/post overlaps. Mobile substitutes a
+horizontal rail for the vertical post. These are still rough structural assets;
+material refinement can now be done in each original image.

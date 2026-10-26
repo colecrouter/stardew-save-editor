@@ -6,10 +6,10 @@ one shared atlas URL. Its display box must not be independently constrained to a
 smaller width: doing that previously clipped icon right edges. Remaining action
 and weather glyphs are temporary code assets.
 
-Production wood sources and generated slices live in `../frame/art/user`, using
-the user's original frame/post PNGs at integer 3x scale. See
-`design/v2/user-frame/README.md` for editing and regeneration. The workspace rim uses reduced logical-pixel assets in `../frame/art/parchment`,
-documented in `design/v2/parchment/README.md`. Field and selected-tab treatments
-still use the earlier study extraction in `../frame/art`. Prior source references remain
-in the design directories. Vite bundles application URLs, including deployments
-under a base path.
+Production frames use four directly editable PNGs: the user's original frame and
+vertical/horizontal posts under `../frame/art/user/`, plus the consolidated
+`../frame/art/parchment/frame.png`. CSS border-image slicing renders them at integer
+3x scale. There are no generated pieces or required asset maintenance scripts.
+See `design/v2/user-frame/README.md` and `design/v2/parchment/README.md` for slice
+boundaries. Field and selected-tab treatments retain their earlier assets.
+Vite bundles application URLs, including deployments under a base path.

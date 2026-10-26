@@ -2,65 +2,32 @@
 	let { orientation }: { orientation: "horizontal" | "vertical" } = $props();
 </script>
 
-<div class="wood-divider {orientation}" aria-hidden="true">
-	<span class="middle"></span>
-</div>
+<div class="wood-divider {orientation}" aria-hidden="true"></div>
 
 <style>
-	/* All art remains at 3x. Only clean middles repeat; caps occur once at each end. */
+	/* Slice the original in one axis. The filled centre repeats between fixed
+    seven-pixel end caps; widths and caps both render at exactly 3x. */
 	.wood-divider {
-		position: relative;
 		pointer-events: none;
 		image-rendering: pixelated;
-	}
-	.wood-divider::before,
-	.wood-divider::after {
-		content: "";
-		position: absolute;
-		width: 21px;
-		height: 21px;
-		background-repeat: no-repeat;
-		background-size: 21px 21px;
+		border-style: solid;
+		border-color: transparent;
+		border-image-repeat: repeat;
 	}
 	.horizontal {
 		width: 100%;
 		height: 21px;
-	}
-	.horizontal::before {
-		left: 0;
-		top: 0;
-		background-image: url("./art/user/parts/rail-left.png");
-	}
-	.horizontal::after {
-		right: 0;
-		top: 0;
-		background-image: url("./art/user/parts/rail-right.png");
+		border-width: 0 21px;
+		border-image-source: url("./art/user/post-horizontal.png");
+		border-image-slice: 0 7 fill;
+		border-image-width: 0 21px;
 	}
 	.vertical {
 		width: 21px;
 		height: 100%;
-	}
-	.vertical::before {
-		left: 0;
-		top: 0;
-		background-image: url("./art/user/parts/post-top.png");
-	}
-	.vertical::after {
-		left: 0;
-		bottom: 0;
-		background-image: url("./art/user/parts/post-bottom.png");
-	}
-	.middle {
-		position: absolute;
-	}
-	.horizontal .middle {
-		inset: 0 21px;
-		background: url("./art/user/parts/rail-middle.png") left top / 87px 21px
-			repeat-x;
-	}
-	.vertical .middle {
-		inset: 21px 0;
-		background: url("./art/user/parts/post-middle.png") left top / 21px 108px
-			repeat-y;
+		border-width: 21px 0;
+		border-image-source: url("./art/user/post.png");
+		border-image-slice: 7 0 fill;
+		border-image-width: 21px 0;
 	}
 </style>

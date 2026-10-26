@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { asset } from "$app/paths";
+	import StudyIcon from "$lib/ui/StudyIcon.svelte";
 	import { getSaveManager } from "$lib/SaveManager.svelte";
 	import UiCheckbox from "$lib/ui/UICheckbox.svelte";
 	import UiContainer from "$lib/ui/UIContainer.svelte";
@@ -72,7 +72,7 @@
 
 <UiContainer>
 	<header class="farm-heading">
-		<img src={asset("/assets/buildings/Barn.png")} alt="" />
+		<span class="farm-emblem"><StudyIcon name="farm" size={48} /></span>
 		<div>
 			<h1>Farm</h1>
 			<p>Edit your farm settings, date, weather and related options.</p>
@@ -160,9 +160,8 @@
 
 	<details class="creation-settings">
 		<summary
-			><strong>Farm creation settings</strong><span
-				>View settings recorded when this farm was created.</span
-			></summary
+			><StudyIcon name="tree" size={30} /><strong>Farm creation settings</strong
+			><span>View settings recorded when this farm was created.</span></summary
 		>
 		<dl class="locked">
 			{#each locked as [label, value, reason] (label)}
@@ -180,57 +179,71 @@
 	.farm-heading {
 		display: flex;
 		align-items: center;
-		gap: 20px;
-		padding-bottom: 16px;
+		gap: 12px;
+		padding-bottom: 10px;
 		border-bottom: 3px double #a97536;
-		margin-bottom: 20px;
+		margin-bottom: 10px;
 	}
-	.farm-heading img {
-		width: 80px;
-		height: 80px;
-		object-fit: contain;
+	.farm-emblem {
+		display: grid;
+		place-items: center;
+		flex: none;
+	}
+	.farm-heading h1 {
+		margin-bottom: 2px;
 	}
 	.farm-heading p {
 		margin: 0;
+		font-size: 20px;
+		line-height: 1.1;
 	}
 	.farm-layout {
 		display: grid;
-		grid-template-columns: minmax(240px, 0.85fr) minmax(0, 1.45fr);
-		gap: 28px;
+		grid-template-columns: minmax(200px, 0.85fr) minmax(0, 1.65fr);
+		gap: 20px;
 	}
 	.farm-settings {
-		padding-right: 24px;
+		padding-right: 18px;
 		border-right: 2px solid #c39452;
 	}
 	.creation-settings {
 		border-top: 3px double #a97536;
-		margin-top: 24px;
-		padding-top: 14px;
+		margin-top: 8px;
+		padding-top: 6px;
 	}
 	summary {
-		padding: 12px;
+		padding: 6px 10px;
+		font-size: 20px;
+		line-height: 1.1;
 		border: 2px solid #bd9051;
+	}
+	summary :global(svg) {
+		vertical-align: middle;
+		margin: 0 8px;
+		width: 20px;
+		height: 20px;
 	}
 	summary span {
 		display: block;
-		margin: 4px 0 0 24px;
-		font-size: 18px;
+		margin: 2px 0 0 48px;
+		font-size: 17px;
+		line-height: 1.1;
 		color: #77542f;
 	}
 	.settings {
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
+		gap: 4px;
 		padding: 0;
-		font-weight: bold;
+		font-weight: normal;
 	}
 
 	.settings label {
 		display: grid;
 		grid-template-columns: minmax(0, 1fr);
 		align-items: center;
-		gap: 8px;
-		margin-top: 8px;
+		gap: 4px;
+		margin-top: 4px;
 	}
 
 	.percent {
@@ -246,7 +259,8 @@
 
 	.settings small,
 	.reason {
-		font-size: 21px;
+		font-size: 19px;
+		line-height: 1.1;
 		font-weight: normal;
 		opacity: 0.8;
 	}
@@ -266,7 +280,7 @@
 	}
 
 	.locked dt {
-		font-weight: bold;
+		font-weight: normal;
 	}
 
 	.locked dd {
@@ -276,7 +290,7 @@
 	.locked .reason {
 		grid-column: 1 / -1;
 	}
-	@media (max-width: 1250px) {
+	@media (max-width: 1000px) {
 		.farm-layout {
 			grid-template-columns: minmax(0, 1fr);
 		}
@@ -285,7 +299,7 @@
 			padding-right: 0;
 		}
 	}
-	@media (max-width: 480px) {
+	@media (max-width: 760px) {
 		.settings,
 		.locked {
 			padding-inline: 0;

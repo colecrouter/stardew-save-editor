@@ -1,89 +1,126 @@
 ﻿<script lang="ts">
 	import { resolve } from "$app/paths";
 	import { page } from "$app/state";
-	import UiIcon from "$lib/ui/UIIcon.svelte";
-	import type { UiIconName } from "$lib/ui/uiAssets";
+	import StudyIcon from "$lib/ui/StudyIcon.svelte";
+	import type { StudyIconName } from "$lib/ui/studyIcons";
 	const routes = [
 		["/inventory", "Inventory", "inventory"],
 		["/chests", "Chests", "chests"],
-		["/character", "Character", "relationships"],
+		["/character", "Character", "character"],
 		["/appearance", "Appearance", "appearance"],
 		["/relationships", "Relationships", "relationships"],
 		["/events", "Events", "events"],
 		["/crafting", "Crafting", "crafting"],
 		["/cooking", "Cooking", "cooking"],
-		["/farmhands", "Farmhands", "relationships"],
+		["/farmhands", "Farmhands", "farmhands"],
 		["/farm", "Farm", "farm"],
-		["/buildings", "Buildings", "farm"],
+		["/buildings", "Buildings", "buildings"],
 		["/bundles", "Community Center", "community"],
 		["/quests", "Quests", "quests"],
 		["/qi-quests", "Qi's Quests", "qi"],
-	] as const satisfies readonly (readonly [string, string, UiIconName])[];
+	] as const satisfies readonly (readonly [string, string, StudyIconName])[];
+	let expanded = $state(false);
+	const current = $derived(
+		routes.find(([path]) => page.url.pathname === resolve(path))?.[1] ??
+			"Sections",
+	);
 </script>
 
-<nav aria-label="Save editor sections">
+{#snippet links()}
 	{#each routes as [path, label, icon] (path)}
 		<a
 			href={resolve(path)}
 			aria-current={page.url.pathname === resolve(path) ? "page" : undefined}
+			onclick={() => (expanded = false)}
 		>
-			<span class="glyph"><UiIcon name={icon} /></span><span>{label}</span>
+			<span class="glyph"><StudyIcon name={icon} size={28} /></span><span
+				class="label">{label}</span
+			>
 		</a>
 	{/each}
+{/snippet}
+<nav aria-label="Save editor sections" class="desktop-nav">
+	{@render links()}
 </nav>
+<details class="mobile-nav" bind:open={expanded}>
+	<summary>Sections <span>{current}</span></summary>
+	<nav aria-label="Save editor sections">{@render links()}</nav>
+</details>
 
 <style>
-	nav {
+	.desktop-nav {
 		display: flex;
 		flex-direction: column;
 		padding: 4px;
-		background: linear-gradient(90deg, #50280f, #713b17);
-		border-right: 8px ridge #ac6b26;
+	}
+	nav {
+		min-width: 0;
 	}
 	a {
 		display: flex;
 		align-items: center;
-		gap: 14px;
-		min-height: 52px;
-		padding: 6px 14px;
-		color: #fff0ce;
+		gap: 10px;
+		min-height: 39px;
+		padding: 4px 9px;
+		color: #ffedc9;
 		text-decoration: none;
-		border-bottom: 2px solid #925324;
-		font-size: 26px;
+		border-bottom: 1px solid #a36a354d;
+		font-size: 22px;
+		line-height: 1.15;
+	}
+	.label {
+		min-width: 0;
+		overflow-wrap: anywhere;
 	}
 	.glyph {
 		display: grid;
 		place-items: center;
-		width: 32px;
-		height: 36px;
+		width: 30px;
+		height: 30px;
 		flex: none;
 	}
 	a:hover {
-		background: #a461274f;
+		background: #bc7e3940;
 	}
 	a[aria-current="page"] {
-		color: #321b0c;
-		background: linear-gradient(#ffe8af, #ffcd6d);
-		border: 2px solid #bd7828;
-		outline: 2px solid #40220e;
-		box-shadow: inset 0 0 0 2px #ffe7a2;
-		border-radius: 6px;
+		color: #44270f;
+		background: linear-gradient(#ffe2a2, #f4c56d);
+		outline: 1px solid #44220d;
+		box-shadow: inset 0 0 0 2px #fff0bd;
+		border-radius: 3px;
 		font-weight: 700;
 	}
-	@media (max-width: 600px) {
-		nav {
-			flex-direction: row;
-			overflow-x: auto;
-			border-right: 0;
-			border-bottom: 6px ridge #ac6b26;
-			gap: 4px;
+	.mobile-nav {
+		display: none;
+	}
+	@media (max-width: 900px) {
+		.desktop-nav {
+			display: none;
+		}
+		.mobile-nav {
+			display: block;
+			color: #ffedc9;
+		}
+		summary {
+			padding: 8px 12px;
+			cursor: pointer;
+			min-height: 44px;
+		}
+		summary span {
+			float: right;
+			color: #ffdc91;
+		}
+		.mobile-nav nav {
+			display: grid;
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+			padding: 4px;
+			gap: 2px;
 		}
 		a {
-			flex: none;
-			min-height: 48px;
-			font-size: 22px;
-			gap: 8px;
-			padding: 4px 10px;
+			font-size: 21px;
+			min-height: 44px;
+			padding-inline: 6px;
+			gap: 5px;
 		}
 	}
 </style>

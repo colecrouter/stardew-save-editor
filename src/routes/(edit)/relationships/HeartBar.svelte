@@ -44,8 +44,7 @@
 			aria-label={`${name} portrait`}
 			style:background-image={loaded ? `url("${portrait}")` : undefined}
 			style:background-size={`${framesPerRow * 100}% auto`}
-			style:width={`${portraitSize}px`}
-			style:height={`${portraitSize}px`}
+			style:--portrait-size={`${portraitSize}px`}
 		>
 			{#if !loaded}
 				<strong aria-hidden="true">{name.slice(0, 1)}</strong>
@@ -113,6 +112,8 @@
 	}
 
 	.portrait {
+		width: var(--portrait-size);
+		height: var(--portrait-size);
 		position: relative;
 		border: 2px solid #f0d2a8;
 		border-radius: 2px;
@@ -171,5 +172,30 @@
 
 	.gifts :global(input[type="number"]) {
 		width: 2.5em;
+	}
+	@media (max-width: 600px) {
+		.row {
+			grid-template-columns: 74px minmax(0, 1fr);
+			align-items: start;
+			gap: 12px;
+		}
+		.portrait {
+			width: 64px;
+			height: 64px;
+		}
+		.header {
+			flex-wrap: wrap;
+			gap: 4px;
+		}
+		.description {
+			font-size: 18px;
+			line-height: 1.15;
+		}
+		.main :global(.numeric) {
+			max-width: 100%;
+		}
+		.main :global(.numeric input) {
+			width: 6rem;
+		}
 	}
 </style>

@@ -3,6 +3,7 @@
 	import { goto } from "$app/navigation";
 	import { asset, resolve } from "$app/paths";
 	import "$lib/ui/study-theme.css";
+	import StudyIcon from "$lib/ui/StudyIcon.svelte";
 	import StudyFrame from "$lib/ui/StudyFrame.svelte";
 	import { setUiAssets, resolveUiAssets } from "$lib/ui/uiAssets";
 	import { getSaveManager, SaveValidationError } from "$lib/SaveManager.svelte";
@@ -82,46 +83,54 @@
 					onclick={() => download()}
 					pending={isDownloading}
 					alt="Export save"
-					data-testid="save-button">Export save</UiButton
+					data-testid="save-button"
+					><StudyIcon name="save" size={24} /> Export save</UiButton
 				>
 				<UiButton
 					variant="plain"
 					onclick={cancel}
 					alt="Exit"
-					data-testid="cancel-button">Exit</UiButton
+					class="exit"
+					data-testid="cancel-button"
+					><StudyIcon name="exit" size={22} /><span class="exit-label"
+						>Exit</span
+					></UiButton
 				>
 			</header>
 			<div class="inner-wrapper">
-				<Router />
+				<aside class="navigation"><Router /></aside>
 				<div class="content" id="editor-content" tabindex="-1">
 					{@render children()}
 				</div>
 			</div>
-			<div class="sidebar" aria-label="Current farmer">
-				<UiButton
-					alt={`Previous Character: ${saveManager.save.previousPlayer?.name ?? ""}`}
-					onclick={() => saveManager.save?.prevFarmer()}
-					disabled={saveManager.save.players.length <= 1}
-					data-testid="previous-character"
-					>⬅️
-				</UiButton>
-				<Tooltip text={saveManager.save.player.name ?? ""}>
-					<div
-						class="current-character"
-						aria-label={`Current character: ${saveManager.save.player.name}`}
-						data-testid="current-character"
-					>
-						<CharacterPreview player={saveManager.save.player} />
-					</div>
-				</Tooltip>
-				<UiButton
-					alt={`Next Character: ${saveManager.save.nextPlayer?.name ?? ""}`}
-					onclick={() => saveManager.save?.nextFarmer()}
-					disabled={saveManager.save.players.length <= 1}
-					data-testid="next-character"
-					>➡️
-				</UiButton>
-			</div>
+			{#if saveManager.save.players.length > 1}<div
+					class="sidebar"
+					aria-label="Current farmer"
+				>
+					<UiButton
+						alt={`Previous Character: ${saveManager.save.previousPlayer?.name ?? ""}`}
+						onclick={() => saveManager.save?.prevFarmer()}
+						disabled={saveManager.save.players.length <= 1}
+						data-testid="previous-character"
+						>⬅️
+					</UiButton>
+					<Tooltip text={saveManager.save.player.name ?? ""}>
+						<div
+							class="current-character"
+							aria-label={`Current character: ${saveManager.save.player.name}`}
+							data-testid="current-character"
+						>
+							<CharacterPreview player={saveManager.save.player} />
+						</div>
+					</Tooltip>
+					<UiButton
+						alt={`Next Character: ${saveManager.save.nextPlayer?.name ?? ""}`}
+						onclick={() => saveManager.save?.nextFarmer()}
+						disabled={saveManager.save.players.length <= 1}
+						data-testid="next-character"
+						>➡️
+					</UiButton>
+				</div>{/if}
 		</StudyFrame>
 	</div>
 {/if}
@@ -140,110 +149,156 @@
 	.skip-link:focus {
 		transform: none;
 	}
-	.sidebar {
-		display: flex;
-		justify-content: end;
-		align-items: center;
-		gap: 8px;
-	}
-
-	/* The current character, shrunk to fit between the arrows */
-	.current-character {
-		zoom: 0.5;
-		align-self: center;
-	}
-
 	.outer-wrapper {
-		width: min(1472px, calc(100vw - 64px));
+		width: min(1440px, 100%);
+		--study-frame-height: calc(100dvh - 34px);
 	}
 	.editor-header {
+		position: relative;
 		display: flex;
 		align-items: center;
-		flex-wrap: wrap;
-		gap: 16px;
-		padding: 16px 20px;
-		border-bottom: 8px ridge #a26726;
-		background: linear-gradient(100deg, #ffe6ad, #f8d18b);
+		gap: 12px;
+		padding: 10px 16px;
+		border-bottom: 9px solid #93531f;
+		box-shadow:
+			0 2px #422912,
+			inset 0 0 0 2px #ffecc6;
+		background: linear-gradient(105deg, #f9dfac, #f4cf91);
+		flex: none;
+	}
+	.editor-header::after {
+		content: "";
+		position: absolute;
+		bottom: -9px;
+		left: 0;
+		right: 0;
+		height: 9px;
+		background: url("../../lib/ui/wood-grain.svg") repeat-x;
+		background-size: 96px 9px;
 	}
 	.brand {
 		font-family: "Pixelify Sans", sans-serif;
-		font-size: 29px;
+		font-size: 25px;
 		margin-right: auto;
 	}
 	.loaded-save {
 		display: flex;
 		align-items: center;
-		gap: 12px;
-		font-size: 24px;
+		gap: 8px;
+		font-size: 21px;
 	}
 	.loaded-save span {
-		max-width: 220px;
+		max-width: 180px;
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
-		border: 2px solid #b68e56;
-		padding: 7px 12px;
-		background: #ffedc5;
+		border: 1px solid #b68e56;
+		padding: 5px 10px;
+		background: #fce3b5;
 	}
 	.editor-header :global(.export) {
-		background: linear-gradient(#249a4c, #10733d);
+		gap: 8px;
+		padding: 4px 14px;
+		background: linear-gradient(#329457, #1d7143);
 		color: #fff5d6;
-		border: 3px solid #164e28;
+		border: 2px solid #24522a;
 		box-shadow:
-			inset 0 0 0 2px #5db45b,
+			inset 0 0 0 1px #7cb96d,
 			0 2px #663c1a;
-		min-width: 180px;
 	}
-
+	.editor-header :global(.exit) {
+		gap: 4px;
+		min-width: 36px;
+		background: #ab4c29;
+		color: #fff1d2;
+		border: 2px solid #70391d;
+		padding: 2px 5px;
+		box-shadow: inset 0 0 0 1px #e49a58;
+	}
+	.exit-label {
+		display: none;
+	}
 	.inner-wrapper {
 		display: grid;
-		grid-template-columns: 250px minmax(0, 1fr);
-		min-height: 740px;
+		grid-template-columns: 212px minmax(0, 1fr);
+		flex: 1;
+		min-height: 0;
 	}
-
+	.navigation {
+		min-height: 0;
+		overflow: auto;
+		background: linear-gradient(100deg, #59351e, #754622);
+		border-right: 9px solid #985c2b;
+		box-shadow:
+			inset -2px 0 #4a2b17,
+			inset 2px 0 #ae733a;
+	}
 	.content {
-		display: flex;
-		flex-direction: column;
-		gap: 8px;
 		min-width: 0;
-		padding: 24px;
-		background: radial-gradient(ellipse at 40% 30%, #fff0cc, #f9d697);
+		min-height: 0;
+		overflow: auto;
+		padding: 12px 20px;
+		background: radial-gradient(ellipse at 30% 20%, #ffe8bf, #f4d39a);
+		border: 3px solid #c08b4f;
+		box-shadow: inset 0 0 0 2px #fff0cd;
 	}
-	@media (max-width: 1150px) {
-		.inner-wrapper {
-			grid-template-columns: 200px minmax(0, 1fr);
-		}
+	.sidebar {
+		display: flex;
+		justify-content: end;
+		align-items: center;
+		gap: 8px;
+		background: #f6d8a1;
+	}
+	.current-character {
+		zoom: 0.5;
+	}
+	@media (max-width: 1100px) {
 		.loaded-save {
 			display: none;
 		}
+		.inner-wrapper {
+			grid-template-columns: 190px minmax(0, 1fr);
+		}
+		.content {
+			padding: 14px;
+		}
 	}
-
-	@media (max-width: 600px) {
+	@media (max-width: 900px) {
 		.outer-wrapper {
-			width: calc(100vw - 20px);
-			max-width: 100%;
+			--study-frame-height: auto;
 		}
 		.inner-wrapper {
 			grid-template-columns: minmax(0, 1fr);
-			min-height: 0;
+		}
+		.navigation {
+			overflow: visible;
+			border-right: 0;
+			border-bottom: 5px solid #985c2b;
 		}
 		.content {
-			width: 100%;
-			min-width: 0;
-			padding: 16px 8px;
+			padding: 14px 10px;
+			overflow: visible;
 		}
 		.editor-header {
-			padding: 10px;
+			padding: 8px;
 			gap: 8px;
+			flex-wrap: wrap;
+			border-bottom-width: 6px;
 		}
 		.brand {
-			width: 100%;
-			font-size: 25px;
+			font-size: 21px;
+			flex: 1 1 100%;
 		}
-		.sidebar {
-			flex-direction: row;
-			flex-wrap: wrap;
-			align-items: center;
+		.editor-header :global(.export) {
+			min-height: 44px;
+			padding: 3px 12px;
+		}
+		.editor-header :global(.exit) {
+			min-width: 44px;
+			min-height: 44px;
+		}
+		.exit-label {
+			display: inline;
 		}
 	}
 </style>

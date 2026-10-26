@@ -28,8 +28,8 @@ chrome does not need to acquire item editing behavior just to draw an icon.
 The production editor now has a wide, parchment workspace, a dark wood navigation
 rail, labeled section links, and a header with export and exit actions. Farm uses
 the study's settings/date/weather columns, selected-day blue, information strip
-and collapsible creation settings. Narrow screens use a scrollable navigation
-rail, stacked settings and side-by-side weather choices. Inventory, equipment,
+and collapsible creation settings. Narrow screens use a collapsible section menu, stacked settings and side-by-side
+weather choices. Inventory, equipment,
 item editing and character controls also reflow on narrow screens.
 
 `StudyFrame` uses an original, code-native nine-slice SVG with wood grain and
@@ -42,12 +42,12 @@ use native appearance, checked state and keyboard behavior.
 
 | Area        | Study evidence                                                    | Implementation and deliberate differences                                                                                                                    |
 | ----------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Composition | Header, dark left rail, broad parchment work area                 | Same container hierarchy; mobile rail scrolls within its own region.                                                                                         |
+| Composition | Header, dark left rail, broad parchment work area                 | Container frame with header beam and inset workspace; mobile sections use a native disclosure.                                                               |
 | Frame       | Detailed wood edges and brass-colored corners                     | Original SVG nine-slice; the game's flatter dialogue frame stays in the lab.                                                                                 |
 | Palette     | Pale cream controls, warm paper, green export, blue selected date | Shared theme tokens and component styles reproduce this hierarchy.                                                                                           |
 | Typography  | Pixel headings and narrower body/control lettering                | Pixelify Sans headings and VT323 body text; generated lettering has no exact font asset.                                                                     |
 | Controls    | Labeled inputs, calendar grid, checkbox, weather selects          | Real native controls with existing validation and bindings; detailed explanations remain available in disclosures. Profit/monster help is shortened.         |
-| Icons       | Illustrated navigation and farm heading                           | Existing game atlases replace generated icons; some related sections share a glyph. Custom gaps remain a design task.                                        |
+| Icons       | Illustrated navigation and farm heading                           | Original small-grid pictograms replace unreadable tab/building reductions; item rendering retains game sprites.                                              |
 | Content     | Compact farm settings and collapsed creation options              | Existing date/forced-weather diagnostics retained; date help and forecast notes can expand. Existing farmer selection remains available below the workspace. |
 
 This is the first implemented study slice, not completion of the entire V2 visual
@@ -65,6 +65,47 @@ details, and five routes at 390px without page overflow. Calendar day targets ar
 approximately 42 by 48px at that width. The real fixture still produces existing
 unknown-item/out-of-bounds warnings; no client runtime errors were observed.
 
+### Review follow-up: frame, density and mobile layout
+
+Review found that the first implementation did not reproduce the study closely
+enough: the frame was too flat, colors too close to the game palette, navigation
+icons unreadable, and fixed sizing crowded laptops and mobile screens.
+
+The shell now separates a textured outer container/header beam from the wood
+navigation and inset parchment workspace. Warmer cream controls and paper,
+smaller typography/spacing and a narrower rail follow the study's density.
+Desktop frames fit the viewport; navigation and content can scroll independently
+when expanded content requires it. Below 900px, the document scrolls normally and
+a native Sections disclosure replaces the horizontal navigation strip. Section
+labels wrap within their column. Single-player saves do not reserve a farmer
+switcher footer.
+
+`StudyIcon` uses original code-native pixel pictograms drawn on a 24px grid for
+navigation, framed weather, seasons, creation settings, export, exit and the
+information notice. These avoid shrinking full building sheets or relying on
+menu tabs whose visual meaning did not carry over. Game-derived item rendering
+and the atlas comparison remain available. Unknown weather gets a neutral info
+symbol rather than a misleading sun. Dropdowns have a divided triangle area;
+number fields retain visible native spinners, validation and keyboard behavior.
+Exact study artwork and bespoke number-spinner artwork remain differences.
+
+Relationships also needed mobile repair: smaller portraits, wrapping name/gift
+controls and normal page scrolling prevent clipped descriptions and inputs.
+Browser checks cover widths 320, 390, 768, 1024, 1280, 1366 and 1440, plus the
+Inventory, Character, Relationships and Buildings routes at 390px. A 1366x768
+shell fits without page scrolling; expanded help remains scrollable. The shared
+preview opened but two snapshot calls timed out after 15000ms, so validation used
+local Playwright. Existing fixture warnings and the favicon 404 are separate from
+client runtime failures.
+
+The follow-up passes 49 focused calendar/input tests, root type/Svelte checks,
+formatting, lab Svelte checks and both builds. At 1366x768, the default Farm
+content and shell fit without page or workspace scrolling. Browser interactions
+cover date/weather changes, checkbox Space, creation disclosure, keyboard menu
+activation and route-change collapse. The native save picker is intercepted by
+automation; export was verified through the existing download fallback. Sentry
+sourcemap upload still returns HTTP 403.
+
 ### Game asset implementation proof
 
 The inventory lab retains a **Game frame and icons** shell (`?skin=game`).
@@ -72,7 +113,8 @@ The inventory lab retains a **Game frame and icons** shell (`?skin=game`).
 `UIIcon` exposes named game sprites. The local decompiled `Game1.drawDialogueBox`
 and `GameMenu.draw` establish the coordinates. The skills tab also draws a farmer
 portrait, so its otherwise blank base cell is deliberately absent from this set.
-The production farm icon now uses the existing barn texture instead of the map tab.
+This was the initial icon experiment; production now uses purpose-drawn small-grid
+icons after review found the tab icons and reduced building texture unreadable.
 
 `MenuTiles.png` comes from `content/Maps/MenuTiles.png`; the asset producer now
 copies it alongside the existing Cursors atlas. A context provider supplies URLs,

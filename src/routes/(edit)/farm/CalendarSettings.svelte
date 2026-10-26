@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { asset } from "$app/paths";
+	import type { StudyIconName } from "$lib/ui/studyIcons";
 	import {
 		calendarFestivalOn,
 		DAYS_PER_SEASON,
@@ -10,6 +10,7 @@
 		WEEKDAYS,
 	} from "$lib/calendar";
 	import type { Calendar } from "$lib/proxies/Calendar.svelte";
+	import StudyIcon from "$lib/ui/StudyIcon.svelte";
 	import UiButton from "$lib/ui/UIButton.svelte";
 	import UiField from "$lib/ui/UIField.svelte";
 	import UiInput from "$lib/ui/UIInput.svelte";
@@ -70,47 +71,33 @@
 		select.value = current();
 	};
 
-	// The weather icons beside the clock: Cursors.png (317 + 12 * index, 421), 12x8
-	// (Game1.updateWeatherIcon). Green rain's icon isn't in that sheet, so it's
-	// the rain icon tinted green.
-	const sheet = `url(${asset("/assets/Cursors.png")})`;
-	const iconIndex = (weather: string, season: Season) => {
+	const weatherPictogram = (weather: string, season: Season): StudyIconName => {
 		switch (weather) {
-			case "Wedding":
-				return 0;
-			case "Festival":
-				return 1;
-			case "Sun":
-				return 2;
-			case "Wind":
-				return season === Season.Spring
-					? 3
-					: season === Season.Fall
-						? 6
-						: season === Season.Winter
-							? 7
-							: 2;
 			case "Rain":
 			case "GreenRain":
-				return 4;
+				return "rain";
 			case "Storm":
-				return 5;
+				return "storm";
 			case "Snow":
-				return 7;
+				return "snow";
+			case "Wind":
+				return season === Season.Winter ? "snow" : "wind";
+			case "Wedding":
+				return "relationships";
+			case "Festival":
+				return "community";
+			case "Sun":
+				return "summer";
 			default:
-				return undefined;
+				return "info";
 		}
 	};
 </script>
 
 {#snippet weatherIcon(weather: string, season: Season)}
-	{@const index = iconIndex(weather, season)}
-	<span
-		class={["weather-icon", { green: weather === "GreenRain" }]}
-		style:--sheet={index === undefined ? undefined : sheet}
-		style:background-position={`-${317 + 12 * (index ?? 0)}px -421px`}
-		aria-hidden="true"
-	></span>
+	<span class={["weather-emblem", { green: weather === "GreenRain" }]}
+		><StudyIcon name={weatherPictogram(weather, season)} size={44} /></span
+	>
 {/snippet}
 
 <div class="calendar-layout">
@@ -142,18 +129,20 @@
 			</UiField>
 			<UiField label="Season">
 				{#snippet children(field)}
-					<UiSelect
-						id={field.id}
-						aria-describedby={field.describedby}
-						value={calendar.season}
-						onchange={(e) =>
-							(calendar.season = e.currentTarget.value as Season)}
-						data-testid="calendar-season"
+					<span class="season-control"
+						><StudyIcon name={calendar.season} size={22} /><UiSelect
+							id={field.id}
+							aria-describedby={field.describedby}
+							value={calendar.season}
+							onchange={(e) =>
+								(calendar.season = e.currentTarget.value as Season)}
+							data-testid="calendar-season"
+						>
+							{#each SEASONS as season (season)}
+								<option value={season}>{seasonName(season)}</option>
+							{/each}
+						</UiSelect></span
 					>
-						{#each SEASONS as season (season)}
-							<option value={season}>{seasonName(season)}</option>
-						{/each}
-					</UiSelect>
 				{/snippet}
 			</UiField>
 		</div>
@@ -282,14 +271,16 @@
 	</div>
 </div>
 <p class="date-notice">
-	Changing the date does not simulate an overnight transition.
+	<StudyIcon name="info" size={26} /><span
+		>Changing the date does not simulate an overnight transition.</span
+	>
 </p>
 
 <style>
 	.calendar-layout {
 		display: grid;
-		grid-template-columns: minmax(0, 1fr) 180px;
-		gap: 16px;
+		grid-template-columns: minmax(0, 1fr) 150px;
+		gap: 12px;
 	}
 	.date-panel,
 	.weather-panel {
@@ -300,31 +291,49 @@
 	.date-inputs {
 		display: grid;
 		grid-template-columns: minmax(0, 0.8fr) minmax(0, 1fr);
-		gap: 20px;
+		gap: 12px;
 	}
 	.date-inputs :global(.ui-field) {
 		display: flex;
 		flex-direction: column;
 		align-items: stretch;
-		gap: 6px;
+		gap: 2px;
 		margin: 0;
 	}
 	.date-inputs :global(input[type="number"]) {
 		width: 100%;
 	}
+	.season-control {
+		position: relative;
+		display: flex;
+		align-items: center;
+		min-width: 0;
+	}
+	.season-control :global(svg) {
+		position: absolute;
+		left: 8px;
+		z-index: 1;
+		pointer-events: none;
+	}
+	.season-control :global(select) {
+		padding-left: 36px;
+	}
 	.date-notice {
+		display: flex;
+		align-items: start;
+		gap: 10px;
 		background: #d5e8ef;
 		border: 2px solid #90b6c4;
-		padding: 14px 18px;
+		padding: 10px 12px;
 		margin-bottom: 0;
 		color: #234d74;
 	}
 	.settings {
 		display: flex;
 		flex-direction: column;
-		gap: 4px;
-		padding: 12px;
-		font-weight: bold;
+		gap: 2px;
+		padding: 8px;
+		font-weight: normal;
 	}
 
 	.settings label {
@@ -332,11 +341,11 @@
 		grid-template-columns: minmax(0, 1fr);
 		align-items: center;
 		gap: 8px;
-		margin-top: 8px;
+		margin-top: 4px;
 	}
 
 	.settings small {
-		font-size: 20px;
+		font-size: 18px;
 		font-weight: normal;
 		opacity: 0.8;
 	}
@@ -350,24 +359,24 @@
 		display: grid;
 		grid-template-columns: repeat(7, minmax(0, 1fr));
 		gap: 0;
-		margin-top: 8px;
+		margin-top: 4px;
 		justify-content: center;
 	}
 
 	.weekday {
-		font-size: 22px;
+		font-size: 20px;
 		text-align: center;
 		border: 1px solid #c59a5b;
-		padding: 6px 0;
+		padding: 2px 0;
 	}
 
 	.month :global(.day) {
 		position: relative;
-		padding: 4px 0;
+		padding: 2px 0;
 		border: 1px solid #c59a5b;
 		border-radius: 0;
 		background: #ffefc5;
-		min-height: 48px;
+		min-height: 36px;
 		min-width: 0;
 	}
 	.month :global(.wrapper) {
@@ -398,6 +407,8 @@
 
 	.today {
 		margin: 4px 0 0;
+		font-size: 19px;
+		line-height: 1.1;
 		text-align: center;
 	}
 
@@ -407,27 +418,44 @@
 		gap: 6px;
 	}
 	.weather-panel label {
-		gap: 14px;
+		gap: 6px;
+		margin-top: 0;
+	}
+	.weather-panel details {
+		font-size: 17px;
+		font-weight: normal;
+	}
+	.weather-panel summary {
+		min-height: 26px;
 	}
 	.weather-panel .weather-label {
-		flex-direction: column-reverse;
-		align-items: start;
-		gap: 16px;
+		flex-direction: row-reverse;
+		justify-content: space-between;
+		align-items: center;
+		gap: 8px;
 	}
 
-	.weather-icon {
-		display: inline-block;
-		width: 12px;
-		height: 8px;
-		zoom: 3;
-		background-image: var(--sheet);
-		image-rendering: pixelated;
+	.weather-emblem {
+		display: grid;
+		place-items: center;
+		width: 72px;
+		height: 52px;
+		border: 1px solid #c39b60;
+		box-shadow: inset 0 0 0 2px #fff1ca;
+		background: #fce8bf;
+	}
+	.weather-emblem.green {
+		filter: hue-rotate(-60deg);
+	}
+	.calendar-help {
+		font-size: 17px;
+		font-weight: normal;
+	}
+	.calendar-help summary {
+		min-height: 26px;
 	}
 
-	.weather-icon.green {
-		filter: hue-rotate(-110deg);
-	}
-	@media (max-width: 480px) {
+	@media (max-width: 600px) {
 		.calendar-layout {
 			grid-template-columns: minmax(0, 1fr);
 		}
@@ -440,6 +468,9 @@
 		.weather-panel small,
 		.weather-panel details {
 			grid-column: 1 / -1;
+		}
+		.month :global(.day) {
+			min-height: 44px;
 		}
 		.weather-panel label:nth-of-type(1) {
 			grid-column: 1;

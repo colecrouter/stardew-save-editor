@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { untrack } from "svelte";
-	import type { createDraft } from "../field.ts";
+	import { useAtomValue } from "effect-atom-svelte";
+	import type { createRuneDraft } from "../field.svelte.ts";
 	import type { GameDate } from "../../../src/lib/calendar.ts";
 	import type { EditorModel } from "../editor-model.ts";
 	import {
@@ -10,17 +10,25 @@
 		seasonName,
 	} from "../../../src/lib/calendar.ts";
 	import WeatherIcon from "../../../src/lib/ui/WeatherIcon.svelte";
-	let {
-		model,
-		draft,
-	}: { model: EditorModel; draft: ReturnType<typeof createDraft<GameDate>> } =
-		$props();
-	const { view, pending } = untrack(() => model);
+	interface Props {
+		model: EditorModel;
+		draft: ReturnType<typeof createRuneDraft<GameDate>>;
+	}
+	let { model, draft }: Props = $props();
+
+	// Hooks subscribe through the nearest file provider. Keep the accessor object:
+	// destructuring .current would capture a stale non-reactive value.
+	const view = useAtomValue(() => model.atomBindings.view);
+	const pending = useAtomValue(() => model.atomBindings.pending);
 	const weatherDays = ["today", "tomorrow"] as const;
 	// This JSON text is owned by the date draft, not the save. Preserve partially
 	// entered strings; validation and conversion happen only when Apply is submitted.
 	const parts = $derived(
-		JSON.parse($draft.text) as { year: string; season: string; day: string },
+		JSON.parse(draft.current.text) as {
+			year: string;
+			season: string;
+			day: string;
+		},
 	);
 	let error = $state("");
 	const edit = (part: "year" | "season" | "day", value: string) =>
@@ -32,7 +40,7 @@
 		try {
 			await model.execute(
 				[{ type: "calendar-weather", day, value }],
-				$view?.revision,
+				view.current?.revision,
 			);
 		} catch (cause) {
 			error = String(cause);
@@ -40,10 +48,10 @@
 	}
 </script>
 
-{#if $view}
+{#if view.current}
 	<header>
 		<h1>Date and weather</h1>
-		<p>Current save: {formatDate($view.calendar.date)}</p>
+		<p>Current save: {formatDate(view.current.calendar.date)}</p>
 	</header>
 	<div class="calendar-layout">
 		<section class="study-pane date-panel" aria-label="Farm date">
@@ -63,18 +71,20 @@
 							max="9999"
 							step="1"
 							required
-							value={parts.year}
-							oninput={(event) => edit("year", event.currentTarget.value)}
-							disabled={$pending > 0}
+							bind:value={
+								() => (parts.year === "" ? undefined : Number(parts.year)),
+								(value) =>
+									edit("year", value === undefined ? "" : String(value))
+							}
+							disabled={pending.current > 0}
 							aria-describedby="date-feedback"
 						/>
 					</label>
 					<label>
 						Season
 						<select
-							value={parts.season}
-							onchange={(event) => edit("season", event.currentTarget.value)}
-							disabled={$pending > 0}
+							bind:value={() => parts.season, (value) => edit("season", value)}
+							disabled={pending.current > 0}
 							aria-describedby="date-feedback"
 						>
 							{#each SEASONS as season (season)}
@@ -90,7 +100,7 @@
 						<button
 							type="button"
 							aria-pressed={Number(parts.day) === day}
-							disabled={$pending > 0}
+							disabled={pending.current > 0}
 							onclick={() => edit("day", String(day))}
 						>
 							{day}
@@ -100,25 +110,28 @@
 				<div class="actions">
 					<button
 						type="submit"
-						disabled={!$draft.dirty || $draft.conflict || $pending > 0}
+						disabled={!draft.current.dirty ||
+							draft.current.conflict ||
+							pending.current > 0}
 					>
 						Apply date
 					</button>
 					<button
 						type="button"
 						onclick={draft.reload}
-						disabled={$pending > 0 || (!$draft.dirty && !$draft.conflict)}
+						disabled={pending.current > 0 ||
+							(!draft.current.dirty && !draft.current.conflict)}
 					>
 						Reload current date
 					</button>
 				</div>
 				<p id="date-feedback" role="status">
-					{#if $draft.error}
-						{$draft.error}
-					{:else if $draft.conflict}
+					{#if draft.current.error}
+						{draft.current.error}
+					{:else if draft.current.conflict}
 						The save changed. Your date draft is kept; reload the current date
-						before applying.{:else if $draft.pending}
-						Applying date…{:else if $draft.dirty}
+						before applying.{:else if draft.current.pending}
+						Applying date…{:else if draft.current.dirty}
 						Unapplied date draft.{:else}
 						Date matches the save.{/if}
 				</p>
@@ -128,24 +141,28 @@
 			<h2>Weather</h2>
 			{#each weatherDays as day (day)}
 				{@const options =
-					day === "today" ? $view.todayOptions : $view.tomorrowOptions}
-				{@const current = $view.calendar[day]}
+					day === "today"
+						? view.current.todayOptions
+						: view.current.tomorrowOptions}
+				{@const current = view.current.calendar[day]}
 				{@const reason =
-					day === "today" ? $view.todayReason : $view.tomorrowReason}
+					day === "today"
+						? view.current.todayReason
+						: view.current.tomorrowReason}
 				<label>
 					{day === "today" ? "Today" : "Tomorrow"}
 					<span class="weather-picture">
 						<WeatherIcon
 							weather={current}
 							season={(day === "today"
-								? $view.calendar.date
-								: nextDay($view.calendar.date)
+								? view.current.calendar.date
+								: nextDay(view.current.calendar.date)
 							).season}
 						/>
 					</span>
 					<select
 						value={current}
-						disabled={$pending > 0 ||
+						disabled={pending.current > 0 ||
 							options.every(
 								(option) => !option.allowed || option.id === current,
 							)}

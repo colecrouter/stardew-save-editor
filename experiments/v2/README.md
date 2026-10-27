@@ -17,6 +17,7 @@ npm run demo --prefix experiments/v2
 npm run demo:platform --prefix experiments/v2
 npm run measure:bundle --prefix experiments/v2
 npm run check:ui --prefix experiments/v2
+npm run test:ui --prefix experiments/v2
 npm run lab --prefix experiments/v2
 ```
 
@@ -229,3 +230,35 @@ three tests cover nesting, typed domain failures, failed groups and concurrent
 isolation. It does not replace the document/history commit boundary yet.
 See [adapter and annotation findings](../../docs/v2-adapter-and-annotations.md) for
 how this can fit `effect-atom-svelte`, and the package's ownership/command caveats.
+
+## Svelte Atom bindings
+
+The complete editor entry uses `effect-atom-svelte` 0.4.1 with Svelte 5.57.2 in this
+package. The keyed provider borrows the session registry; the file scope remains
+its owner. Components use read bindings while the command queue and field drafts
+retain their existing semantics. File teardown unmounts hooks before disposal.
+
+`adapter-proof.mjs` and `ui/testing` cover provider remounts and owner close through
+the actual Svelte runtime. See [adapter evidence](../../docs/v2-adapter-and-annotations.md#adapter-implementation-and-result)
+for the verified behavior and deliberately deferred package features.
+
+## Review follow-up: reactive UI ownership
+
+Panels pass getters to `useAtomValue` so atom selection follows model props. The
+file-level keyed provider remains intentional: the adapter captures its registry
+once, and that registry belongs to the imported file scope. Session replacement
+detaches consumers before disposal through one shared helper.
+
+Rendered fields use `createRuneDraft`; the store draft remains as the original
+comparison adapter. Replacing a field preserves dirty input and requires an
+explicit reload, even if its key/revision coincides with the previous field.
+The UI test runs Svelte transforms and verifies invalid text, replacement safety
+and subscription teardown. Calendar function bindings preserve an empty numeric
+input as an empty draft string; applying is still an explicit operation.
+
+Repository comment/readability guidance lives in root `AGENTS.md`, linked from
+`CONTRIBUTING.md`; it applies to both foundation PRs and subsequent work.
+
+The compiled UI test command runs root SvelteKit sync before Vitest, just like
+the lab/domain commands. Without that generated configuration a clean checkout
+fails during dependency optimization, even though a warm local checkout passes.

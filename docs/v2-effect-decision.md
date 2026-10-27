@@ -84,7 +84,7 @@ rendering/transfers. Effect interruption does not preempt synchronous parsing on
 thread; terminating its worker provides that boundary. A worker per request proves
 cleanup but is not a recommended production pool.
 
-No Svelte adapter is selected. Registry metadata for effect-atom-svelte 0.4.1 requires
+The initial proof selected no adapter. Registry metadata for effect-atom-svelte 0.4.1 requires
 Svelte ^5.57.2; this checkout resolves 5.55.7. @thomasfosterau/effect-svelte 0.6.0 declares
 compatible peers. They remain candidates, not prerequisites; the store contract already
 demonstrates basic interoperability. Neither metadata compatibility nor bundling proves
@@ -97,12 +97,14 @@ See [the adapter investigation and annotation proof](v2-adapter-and-annotations.
 for concrete package capabilities, command/ownership caveats, and an executable
 Context-based alternative to a universal metadata/action union.
 
-The expanded editor still uses a handwritten registry-to-store bridge. This proves
+The initial expanded editor used a handwritten registry-to-store bridge. That proved
 interoperability, not that maintaining that bridge is preferable to the suggested
 `effect-atom-svelte` package. Registry metadata was rechecked: 0.4.1 still declares
 Svelte ^5.57.2 while this experiment pins 5.55.7, with compatible Effect ~4.0.0.
 That compatibility gap justified deferring installation, not dismissing the adapter.
-The next comparison should upgrade Svelte deliberately and test session-provided
+The follow-up now upgrades the experiment Svelte and adopts read bindings with a
+session-provided registry; [implementation evidence](v2-adapter-and-annotations.md#adapter-implementation-and-result)
+records teardown/remount verification. The comparison tests session-provided
 registry ownership, navigation/remount freshness, pending/errors and teardown through
 the package's own bindings. Its SSR/suspense support is not itself required here.
 
@@ -117,8 +119,8 @@ Shared pure calendar calculations remain useful ordinary TypeScript, because the
 proxy also consumes them. Effect should orchestrate validation/preparation/failure at
 the domain operation boundary without forcing every arithmetic helper into Effect.
 This is an outstanding experiment refinement, not evidence of complete Effect-domain
-adoption. No adapter dependency or domain error-contract change is made by the
-comment/readability cleanup.
+adoption. The earlier comment/readability cleanup made no adapter dependency or domain error-contract
+change; the subsequent adapter PR changes read bindings only.
 
 ## Node 24
 

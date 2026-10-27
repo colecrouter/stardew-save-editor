@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { untrack } from "svelte";
-	import { createDraft, type NumericField } from "../field.ts";
+	import { createRuneDraft } from "../field.svelte.ts";
+	import { type NumericField } from "../field.ts";
 	let { field }: { field: NumericField } = $props();
-	// The parent keys this editing interaction when it replaces the field itself.
-	const draft = createDraft(untrack(() => field));
+	// Follow field replacements without applying a dirty draft to a new target.
+	const draft = createRuneDraft(() => field);
 	const uid = $props.id();
 </script>
 
@@ -23,38 +23,39 @@
 			max={field.constraints.max}
 			step={field.constraints.step}
 			required
-			value={$draft.text}
+			value={draft.current.text}
 			oninput={(event) => draft.input(event.currentTarget.value)}
 			aria-describedby={`${uid}-description ${uid}-feedback`}
-			aria-invalid={$draft.error ? true : undefined}
-			disabled={!$draft.base.available || $draft.pending}
+			aria-invalid={draft.current.error ? true : undefined}
+			disabled={!draft.current.base.available || draft.current.pending}
 		/>
 		<button
 			type="submit"
-			disabled={!$draft.dirty ||
-				$draft.conflict ||
-				!$draft.base.available ||
-				$draft.pending}
+			disabled={!draft.current.dirty ||
+				draft.current.conflict ||
+				!draft.current.base.available ||
+				draft.current.pending}
 		>
 			{field.actionLabel}
 		</button>
 		<button
 			type="button"
 			onclick={draft.reload}
-			disabled={$draft.pending || (!$draft.dirty && !$draft.conflict)}
+			disabled={draft.current.pending ||
+				(!draft.current.dirty && !draft.current.conflict)}
 		>
 			Reload current value
 		</button>
 	</div>
 	<p id={`${uid}-feedback`} role="status">
-		{#if $draft.error}
-			{$draft.error}
-		{:else if $draft.conflict}
+		{#if draft.current.error}
+			{draft.current.error}
+		{:else if draft.current.conflict}
 			The save or selection changed. Your draft is kept; reload to edit the
 			current selection.
-		{:else if $draft.pending}
+		{:else if draft.current.pending}
 			Applying change…
-		{:else if $draft.dirty}
+		{:else if draft.current.dirty}
 			Unapplied draft.
 		{:else}
 			Current saved value.{/if}

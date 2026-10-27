@@ -48,6 +48,11 @@ export class ReviewJournal extends Context.Service<
 	}
 >()("v2/ReviewJournal") {}
 
+/**
+ * Provide review defaults to nested operations: labels/emphasis override the
+ * parent while tags accumulate. Metadata becomes durable only when a successful
+ * `recordAnnotatedOperation` is collected by the enclosing history transaction.
+ */
 export const withReviewMetadata =
 	(metadata: ReviewMetadata) =>
 	<A, E, R>(

@@ -185,11 +185,20 @@ const runCalendarEdit = Effect.fn("Calendar.stageEdit")(function* (
 	);
 });
 
+/**
+ * Stage a date change and its coordinated farmer/statistics/weather updates.
+ * Execute through `model.commands.transact` to commit it with history; changing
+ * the date does not simulate the intervening days.
+ */
 export const setCalendarDate = Effect.fn("Calendar.setDate")(function* (
 	change: Extract<CalendarEdit, { type: "calendar-date" }>["change"],
 ) {
 	yield* runCalendarEdit({ type: "calendar-date", change });
 });
+/**
+ * Stage today's or tomorrow's weather, ordinary choices and watering provenance.
+ * Execute through `model.commands.transact`; forced-weather rules still apply.
+ */
 export const setCalendarWeather = Effect.fn("Calendar.setWeather")(function* (
 	day: "today" | "tomorrow",
 	value: string,

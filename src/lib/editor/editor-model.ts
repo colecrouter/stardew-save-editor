@@ -486,6 +486,15 @@ export type EditorModel = Effect.Success<ReturnType<typeof makeEditorModel>>;
 
 // Scope acquisition can fail after some resources exist. Close on every failure
 // path as well as normal teardown; callers receive ownership only after success.
+/**
+ * Decode an import and acquire its calendar session, read models and registry.
+ * The caller owns `close()`: unmount registry consumers before awaiting it.
+ * Failed acquisition releases resources before rejecting.
+ *
+ * Calendar-only projections and export validation are enabled by default;
+ * `includeProofs` and `validateExport: false` support the comparison lab.
+ * @returns The application model and the function that closes its file scope.
+ */
 export async function openEditor(
 	bytes: Uint8Array,
 	limits: HistoryLimits = {},

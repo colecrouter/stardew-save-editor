@@ -1,5 +1,11 @@
-// Both editors use the same browser file behavior. Returning false means the
-// user cancelled or the owning screen closed before a write could begin.
+/**
+ * Save bytes under the original filename using a picker or browser download.
+ * The signal suppresses work before writing; it cannot roll back a started write.
+ * Fallback anchors/URLs are released after a delay needed by Safari/WebKit.
+ * @returns True after a picker write completes or a fallback download starts;
+ * false on picker cancellation or an aborted owner before writing.
+ * @throws Browser failures other than picker cancellation.
+ */
 export async function downloadSave(
 	blob: Blob,
 	filename: string,

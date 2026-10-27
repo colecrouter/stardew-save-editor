@@ -16,6 +16,12 @@ export class TransactionDraft extends Context.Service<
 	}
 >()("v2/TransactionDraft") {}
 
+/**
+ * Create one transaction attempt's isolated, versioned staging capability.
+ * Reads are detached snapshots; replacement checks their captured version.
+ * The owner must finalize `close` after capture or failure so escaped services
+ * cannot retain or update an abandoned draft. This does not publish a commit.
+ */
 export function makeTransactionDraft(initial: SessionState) {
 	let state: SessionState | undefined = structuredClone(initial);
 	let version = 0;

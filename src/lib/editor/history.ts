@@ -67,6 +67,7 @@ const isDomainState = (value: unknown): value is DomainState =>
 	!Array.isArray(value) &&
 	Schema.is(Schema.Json)(value);
 
+/** Bounds retained undo entries and serialized payload bytes, not total heap use. */
 export interface HistoryLimits {
 	entries?: number;
 	bytes?: number;
@@ -83,6 +84,15 @@ function entryBytes(payload: Omit<Entry, "bytes">): number {
 	return size;
 }
 
+/**
+ * Acquire authoritative document/history state in the enclosing Effect scope.
+ * Prepared document, identity, domain-state and review changes commit atomically;
+ * failed preparation publishes none of them. External side effects are not undone.
+ *
+ * Limits default to 100 entries and 8 MiB; the import baseline survives eviction.
+ * Set `features.inventory` to false for calendar sessions that must preserve
+ * unrelated inventory representations without allocating item identities.
+ */
 export const makeHistorySession = (
 	document: SaveDocument,
 	limits: number | HistoryLimits = {},

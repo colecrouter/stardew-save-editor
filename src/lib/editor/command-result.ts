@@ -1,5 +1,8 @@
 import type { Result } from "effect";
 
-// null means the application handled an unsuccessful execution (defect or
-// cancellation). Features only branch on completion and expected typed failures.
+/**
+ * Success or an expected typed failure from a session-owned command.
+ * `null` means the application handled noncompletion (defect or cancellation);
+ * feature UIs must not show success or duplicate defect reporting in that case.
+ */
 export type CommandResult<A, E> = Result.Result<A, E> | null;

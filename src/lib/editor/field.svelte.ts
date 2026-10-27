@@ -3,8 +3,12 @@ import { untrack } from "svelte";
 import { get } from "svelte/store";
 import type { Field, FieldValue } from "./field.ts";
 
-// UI drafts use runes; the original store adapter remains for the isolated
-// Atom/store comparison. A getter lets a mounted interaction follow a new field.
+/**
+ * Create a component-owned editing draft; typing does not mutate the save.
+ * Call during Svelte initialization so its source subscription is disposed with
+ * the component. The getter may select another field: dirty input is preserved
+ * as a conflict until explicitly reloaded, rather than retargeted on submission.
+ */
 export function createRuneDraft<T>(getField: () => Field<T>) {
 	const clean = (field: Field<T>, source: FieldValue<T>) => ({
 		field,

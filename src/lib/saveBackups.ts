@@ -22,6 +22,7 @@ export function restoreOriginal(file: StoredOriginal): File {
 	});
 }
 
+/** Encode exact source bytes for IndexedDB, preserving compressed saves and file metadata. */
 export async function serializeOriginal(file: File): Promise<StoredOriginal> {
 	const bytes = new Uint8Array(await file.arrayBuffer());
 	// Bound each conversion chunk; spreading a whole multi-megabyte save exceeds
@@ -40,6 +41,11 @@ export async function serializeOriginal(file: File): Promise<StoredOriginal> {
 	return stored;
 }
 
+/**
+ * Append an original file to the shared backup store and retain the newest five.
+ * Append/pruning share one transaction. Rejections let the caller warn that the
+ * backup failed without treating the editing session itself as unusable.
+ */
 export async function saveOriginalBackup(file: File): Promise<void> {
 	const stored = await serializeOriginal(file);
 	const db = await openDB("backups", 1, {

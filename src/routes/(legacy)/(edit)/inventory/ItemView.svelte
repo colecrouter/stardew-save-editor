@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { tick } from "svelte";
 	import { ItemDescription, ItemNameHelper } from "$lib/ItemData";
 	import type { ParentIndex } from "$lib/ItemParentIndex";
 	import { Raw } from "$lib/proxies";
@@ -24,6 +25,7 @@
 		type TrinketRollContext,
 		type TrinketStats,
 	} from "$lib/TrinketStats";
+	import UiButton from "$lib/ui/UIButton.svelte";
 	import UiCheckbox from "$lib/ui/UICheckbox.svelte";
 	import UiInput from "$lib/ui/UIInput.svelte";
 	import UiSelect from "$lib/ui/UISelect.svelte";
@@ -47,6 +49,30 @@
 	}: Props = $props();
 
 	const save = getSaveManager().save;
+
+	// A different slot or item must never inherit a pending removal confirmation.
+	let removalTarget = $state<ItemProxy>();
+	let editorRoot: HTMLDivElement;
+
+	async function focusRemovalControl(selector: string) {
+		// Wait for the replacement controls before restoring the keyboard's task position.
+		await tick();
+		editorRoot?.querySelector<HTMLElement>(selector)?.focus();
+	}
+	$effect(() => {
+		// Selection changes cancel the prompt even when a moved item keeps its identity.
+		selectedItem;
+		selectedIndex;
+		removalTarget = undefined;
+	});
+	let confirmingRemoval = $derived(
+		selectedItem !== undefined && removalTarget === selectedItem,
+	);
+	let slotLabel = $derived(
+		typeof selectedIndex === "number"
+			? `Slot ${selectedIndex + 1}`
+			: selectedIndex?.replace(/([A-Z])/g, " $1"),
+	);
 
 	let description = $derived(ItemDescription(selectedItem?.info));
 
@@ -231,7 +257,7 @@
 	max?: number,
 	step?: number,
 )}
-	{#if key in selectedItem}
+	{#if key in selectedItem && selectedItem[key] !== undefined}
 		<label>
 			<small>{label}</small>
 			{#if key === "quality" && selectedItem instanceof ObjectProxy}
@@ -271,25 +297,33 @@
 	{/if}
 {/snippet}
 
-<div class="editor">
-	<!-- Item icon -->
-	<div class="big-icon">
-		<ItemSlot item={selectedItem}>
-			<ItemSprite item={selectedItem} />
-		</ItemSlot>
-	</div>
+<div class="editor" bind:this={editorRoot}>
+	<!-- Identity leads the inspector; the name is information, not a disabled input. -->
+	<header class="item-heading">
+		<div class="big-icon" aria-hidden="true" inert>
+			<ItemSlot item={selectedItem}><ItemSprite item={selectedItem} /></ItemSlot
+			>
+		</div>
+		<div>
+			<h3>
+				{selectedItem
+					? (ItemNameHelper(selectedItem[Raw]) ?? "Unknown item")
+					: "Add an item"}
+			</h3>
+			<p class="slot-label">
+				{slotLabel ?? "Select a slot"}{selectedItem
+					? " · Changes update immediately"
+					: " · Empty"}
+			</p>
+		</div>
+	</header>
+	{#if description}
+		<p class="description" data-testid="item-description">{description}</p>
+	{/if}
 
-	<!-- Item stats -->
+	<!-- Keep every supported property available, grouped in a compact scanning order. -->
 	<div class="stats">
 		{#if selectedItem}
-			<label>
-				<small>Item Name</small>
-				<UiInput
-					type="text"
-					value={ItemNameHelper(selectedItem[Raw]) ?? ""}
-					disabled
-				/>
-			</label>
 			{#each properties as { ctor, props }}
 				{#if selectedItem instanceof ctor}
 					{#each props as [label, key, min, max, step]}
@@ -383,128 +417,146 @@
 				{/if}
 			{/if}
 		{:else if selectedIndex !== undefined}
-			<label>
-				<small>Item Name</small>
-				<!-- <UiInput
-                    type="text"
-                    list="new-items"
-                    data-testid="item-name"
-                    bind:value={newItemName}
-                /> -->
-				<!-- Remount per slot so the hint's CSS animations replay -->
+			<div class="add-item">
+				<p>Search by item name or ID, then choose an item to fill this slot.</p>
+				<!-- Each empty slot owns its search text independently. -->
 				{#key selectedIndex}
 					<ItemSelect onsubmit={createItem} />
 				{/key}
-			</label>
+			</div>
 		{/if}
 	</div>
 
-	<!-- Delete/create the item -->
-	<div class="edit">
-		{#if selectedItem}
-			<button
-				class="btn btn-danger"
-				onclick={() => {
-					if (selectedIndex !== undefined) {
-						deleteItem();
-					}
-				}}
-			>
-				🗑️
-			</button>
-		{/if}
-	</div>
-
-	<!-- Item description -->
-	{#if description}
-		<p class="description" data-testid="item-description">{description}</p>
+	<!-- Confirm inline so removing an item cannot be mistaken for editing a stat. -->
+	{#if selectedItem}
+		<footer class="item-actions">
+			{#if confirmingRemoval}
+				<p>
+					Remove {ItemNameHelper(selectedItem[Raw]) ?? "this item"} from {slotLabel?.toLowerCase()}?
+				</p>
+				<div class="action-buttons">
+					<UiButton
+						variant="plain"
+						onclick={() => {
+							if (selectedIndex !== undefined) deleteItem();
+							removalTarget = undefined;
+							focusRemovalControl('[data-testid="item-name"]');
+						}}>Remove item</UiButton
+					>
+					<UiButton
+						variant="plain"
+						data-keep-item
+						onclick={() => {
+							removalTarget = undefined;
+							focusRemovalControl("[data-remove-trigger]");
+						}}>Keep item</UiButton
+					>
+				</div>
+			{:else}
+				<UiButton
+					variant="plain"
+					data-remove-trigger
+					onclick={() => {
+						removalTarget = selectedItem;
+						focusRemovalControl("[data-keep-item]");
+					}}>Remove item…</UiButton
+				>
+			{/if}
+		</footer>
 	{/if}
 </div>
 
 <style>
+	.editor {
+		display: flex;
+		flex-direction: column;
+		gap: 20px;
+		min-width: 0;
+		color: #311304;
+	}
+	.item-heading {
+		display: flex;
+		align-items: center;
+		gap: 16px;
+	}
+	.item-heading h3 {
+		margin: 0 0 6px;
+		overflow-wrap: anywhere;
+	}
 	.big-icon {
 		pointer-events: none;
-		touch-action: none;
-		zoom: 2;
+		flex: 0 0 auto;
+		zoom: 1.5;
 	}
-
-	.editor {
-		/* Three sections, edges are fix size, middle expands */
-		display: grid;
-		grid-template-columns: min-content 5fr 1fr;
-		flex-direction: row;
-		gap: 8px;
-	}
-
-	.stats {
-		display: flex;
-		flex-direction: column;
-		gap: 8px;
-	}
-
-	.edit {
-		display: flex;
-		flex-direction: column;
-		justify-content: start;
-		align-items: center;
-	}
-
-	.edit button {
-		background: none;
-		border: none;
-		padding: 0;
+	.slot-label {
 		margin: 0;
-		margin-top: 16px;
-		font-size: 1.5em;
-		cursor: pointer;
+		color: #694621;
+		font-size: 18px;
 	}
-
 	.description {
-		grid-column: 1 / -1;
 		margin: 0;
-		padding-top: 8px;
-		border-top: 2px solid rgba(0, 0, 0, 0.15);
+		max-width: 65ch;
 		white-space: pre-line;
 	}
-
-	.editor label {
-		display: flex;
-		width: 100%;
-		flex-direction: row;
-		gap: 2px;
-		align-items: center;
-		justify-content: space-between;
+	.stats {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 16px 24px;
 	}
-
+	.stats label {
+		display: flex;
+		flex-direction: column;
+		align-items: start;
+		gap: 6px;
+		min-width: 0;
+	}
+	.stats label :global(input:not([type="color"])),
+	.stats label :global(.select-wrapper) {
+		width: 100%;
+		min-width: 0;
+	}
+	.stats small {
+		margin: 0;
+	}
 	.stat {
 		display: flex;
-		align-items: center;
-		gap: 6px;
+		flex-wrap: wrap;
+		gap: 4px;
+		width: 100%;
 	}
-
 	.hint {
-		white-space: nowrap;
-		font-size: 0.85em;
-		opacity: 0.8;
+		color: #694621;
+		font-size: 18px;
 	}
-
-	.editor small {
-		margin-right: 2em;
+	.add-item {
+		grid-column: 1 / -1;
+		min-width: 0;
 	}
-	@media (max-width: 600px) {
-		.editor {
-			grid-template-columns: minmax(0, 1fr);
-		}
-		.editor label {
-			flex-wrap: wrap;
-			gap: 8px;
-		}
-		.edit {
-			flex-direction: row;
+	.add-item p {
+		margin: 0 0 16px;
+	}
+	.item-actions {
+		border-top: 1px solid #be8d4d;
+		padding-top: 16px;
+	}
+	.item-actions p {
+		margin: 0 0 12px;
+	}
+	.item-actions :global(button) {
+		color: #86291e;
+	}
+	.action-buttons {
+		display: flex;
+		gap: 12px;
+		flex-wrap: wrap;
+	}
+	@media (max-width: 480px) {
+		.stats {
 			gap: 16px;
 		}
-		.big-icon {
-			justify-self: center;
+		.item-heading {
+			align-items: start;
+			gap: 12px;
 		}
 	}
 </style>

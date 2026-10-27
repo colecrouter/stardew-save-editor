@@ -524,7 +524,15 @@
 			<div class="side">
 				<UiContainer>
 					<small class="editing">Editing: {chestName(selectedChest)}</small>
-					<ItemView {selectedItem} {selectedIndex} {createItem} {deleteItem} />
+					<!-- A chest owns the inspector's search and removal confirmation, even if an item moves between chests. -->
+					{#key selectedChest}
+						<ItemView
+							{selectedItem}
+							{selectedIndex}
+							{createItem}
+							{deleteItem}
+						/>
+					{/key}
 				</UiContainer>
 			</div>
 		{/if}

@@ -113,64 +113,101 @@
 </script>
 
 {#if save.player}
-	<!-- Inventory view -->
-	<UiContainer>
-		<div class="title">
-			<h3>Inventory</h3>
-			<SortButton
-				label="Sort inventory"
-				onclick={sortInventory}
-				data-testid="sort-inventory"
-			/>
-		</div>
-		<div class="item-grid">
-			{#each gridSlots as { index, item } (index)}
-				<div
-					use:droppable={{
-						container: index.toString(),
-						callbacks: {
-							onDrop: handleDrop,
-						},
-					}}
-					data-testid={`slot-${index}`}
-				>
-					<ItemSlot
-						data-testid={`item-${index}`}
-						active={index === selectedIndex}
-						{item}
-						onclick={() => handleClick(index)}
+	<div class="inventory-layout">
+		<!-- Inventory view -->
+		<UiContainer>
+			<div class="title">
+				<h3>Inventory</h3>
+				<SortButton
+					label="Sort inventory"
+					onclick={sortInventory}
+					data-testid="sort-inventory"
+				/>
+			</div>
+			<div class="item-grid">
+				{#each gridSlots as { index, item } (index)}
+					<div
+						use:droppable={{
+							container: index.toString(),
+							callbacks: {
+								onDrop: handleDrop,
+							},
+						}}
+						data-testid={`slot-${index}`}
 					>
-						<div
-							use:draggable={{
-								container: index.toString(),
-								dragData: "asd",
-							}}
-							data-testid={`draggable-${index}`}
+						<ItemSlot
+							data-testid={`item-${index}`}
+							active={index === selectedIndex}
+							{item}
+							onclick={() => handleClick(index)}
 						>
-							<div class="item">
-								<ItemSprite {item} />
+							<div
+								use:draggable={{
+									container: index.toString(),
+									dragData: "asd",
+								}}
+								data-testid={`draggable-${index}`}
+							>
+								<div class="item">
+									<ItemSprite {item} />
+								</div>
 							</div>
-						</div>
-					</ItemSlot>
-				</div>
-			{/each}
+						</ItemSlot>
+					</div>
+				{/each}
+			</div>
+		</UiContainer>
+
+		<section class="item-inspector" aria-label="Selected item">
+			<!-- Item view -->
+			<UiContainer>
+				<ItemView {selectedItem} {selectedIndex} {createItem} {deleteItem} />
+			</UiContainer>
+		</section>
+		<!-- Equipment stays available below the selected item on narrow screens. -->
+		<div class="equipment">
+			<UiContainer>
+				{#if save.player}
+					<CharacterView player={save.player} bind:selectedIndex />
+				{/if}
+			</UiContainer>
 		</div>
-	</UiContainer>
-
-	<!-- Character View -->
-	<UiContainer>
-		{#if save.player}
-			<CharacterView player={save.player} bind:selectedIndex />
-		{/if}
-	</UiContainer>
-
-	<!-- Item view -->
-	<UiContainer>
-		<ItemView {selectedItem} {selectedIndex} {createItem} {deleteItem} />
-	</UiContainer>
+	</div>
 {/if}
 
 <style>
+	.inventory-layout {
+		display: grid;
+		grid-template-columns: minmax(440px, 1fr) minmax(320px, 420px);
+		grid-template-rows: min-content 1fr;
+		gap: 32px;
+		align-items: start;
+	}
+	.equipment {
+		grid-column: 1;
+		min-width: 0;
+	}
+	.item-inspector {
+		grid-column: 2;
+		grid-row: 1 / span 2;
+		min-width: 0;
+		padding-left: 24px;
+		border-left: 1px solid #be8d4d;
+	}
+	@media (max-width: 1200px) {
+		.inventory-layout {
+			grid-template-columns: minmax(0, 1fr);
+			grid-template-rows: none;
+		}
+		.item-inspector {
+			grid-column: 1;
+			grid-row: 2;
+			border-left: 0;
+			border-top: 1px solid #be8d4d;
+			padding: 24px 0 0;
+		}
+	}
+
 	.title {
 		display: flex;
 		justify-content: space-between;

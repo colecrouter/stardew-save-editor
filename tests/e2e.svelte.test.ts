@@ -410,9 +410,9 @@ describe("Save Manager Integration Tests", () => {
 			const context = setToastManagerContext(new ToastManager());
 			const page = harness.render(editorPage, { context });
 			// Headed like the chests page, with the sort button beside the title
-			expect(page.getByRole("heading", { level: 3 }).textContent).toBe(
-				"Inventory",
-			);
+			expect(
+				page.getByRole("heading", { level: 3, name: "Inventory" }).textContent,
+			).toBe("Inventory");
 
 			await fireEvent.click(page.getByTestId("sort-inventory"));
 			const used = [...Array(inventory.slotCount).keys()].filter(
@@ -558,10 +558,30 @@ describe("Save Manager Integration Tests", () => {
 				expect(saveManager.save?.player.inventory.get(9)?.[Raw]?.stack).toBe(5);
 			}
 
-			// Delete button (trash emoji)
-			const deleteBtn = page.getByRole("button", { name: "🗑️" });
-			await fireEvent.click(deleteBtn);
+			// Removal is a separate, reversible choice until explicitly confirmed.
+			await fireEvent.click(page.getByRole("button", { name: "Remove item…" }));
 			await tick();
+			expect(saveManager.save?.player.inventory.get(9)).toBeDefined();
+			expect(document.activeElement).toBe(
+				page.getByRole("button", { name: "Keep item" }),
+			);
+			await fireEvent.click(page.getByRole("button", { name: "Keep item" }));
+			await tick();
+			expect(document.activeElement).toBe(
+				page.getByRole("button", { name: "Remove item…" }),
+			);
+
+			// Leaving and returning to a slot cancels its earlier confirmation.
+			await fireEvent.click(page.getByRole("button", { name: "Remove item…" }));
+			await fireEvent.click(page.getByTestId("item-0"));
+			await tick();
+			await fireEvent.click(page.getByTestId("item-9"));
+			await tick();
+			expect(page.queryByRole("button", { name: "Keep item" })).toBeNull();
+			await fireEvent.click(page.getByRole("button", { name: "Remove item…" }));
+			await fireEvent.click(page.getByRole("button", { name: "Remove item" }));
+			await tick();
+			expect(document.activeElement).toBe(page.getByTestId("item-name"));
 			expect(saveManager.save?.player.inventory.get(9)).toBeUndefined();
 
 			// Validate raw slot is xsi:nil sentinel

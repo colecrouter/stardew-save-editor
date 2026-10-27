@@ -28,8 +28,12 @@ interface BundleGame {
 		}[];
 	};
 }
+// The encoded definition is deliberately an exact compatibility gate. A modded
+// reward/requirement/localization layout must not receive guessed vanilla writes.
 const vanilla =
 	"Spring Foraging/O 495 30/16 1 0 18 1 0 20 1 0 22 1 0/0///Spring Foraging";
+// Resolve a unique save target without repairing or normalizing anything. The
+// view uses this same inspection so merely opening the panel cannot change XML.
 function inspect(document: SaveDocument) {
 	const game = document.SaveGame as unknown as BundleGame;
 	const centers = game.locations.GameLocation.filter(
@@ -49,6 +53,8 @@ function inspect(document: SaveDocument) {
 	const records = cc.bundles.item.filter((entry) => entry.key.int === 13);
 	if (records.length !== 1)
 		throw new Error("Spring Foraging progress is missing or duplicated.");
+	// Vanilla reserves more donation flags than this bundle consumes. Validate the
+	// representation, but preserve those unused flags when completing four slots.
 	const submitted = records[0].value.ArrayOfBoolean.boolean;
 	if (
 		!Array.isArray(submitted) ||
@@ -64,6 +70,8 @@ function inspect(document: SaveDocument) {
 		throw new Error("Spring Foraging reward is malformed or duplicated.");
 	return { cc, definitions, submitted, reward: rewards[0] };
 }
+// Unsupported bundle data disables only this sample. Other features can still
+// edit the full preservation document, including opaque mod data.
 export function springBundleView(document: SaveDocument) {
 	try {
 		const { submitted, reward } = inspect(document);
@@ -84,7 +92,11 @@ export function springBundleView(document: SaveDocument) {
 }
 function complete(document: SaveDocument) {
 	const { cc, definitions, submitted, reward } = inspect(document);
+	// Completion is idempotent: an already-completed bundle may have had its reward
+	// claimed. Repeating this command must never issue that reward again.
 	if (submitted.slice(0, 4).every(Boolean)) return; // Never reissue a claimed reward.
+	// A room repair depends on every bundle in that room, not just this donation.
+	// Bound the proof to the vanilla room membership before deriving that result.
 	const roomDefinitions = definitions.filter((entry) =>
 		entry.key.string.startsWith("Crafts Room/"),
 	);
@@ -107,6 +119,8 @@ function complete(document: SaveDocument) {
 		areas.some((value) => typeof value !== "boolean")
 	)
 		throw new Error("Community Center room progress is unsupported.");
+	// Optional requirement counts allow bundles such as choose-N donations. Count
+	// only actual requirement slots; trailing reserved flags do not complete them.
 	const roomComplete = roomDefinitions.every((definition) => {
 		const id = Number(definition.key.string.split("/")[1]);
 		const parts = definition.value.string.split("/");
@@ -134,16 +148,22 @@ function complete(document: SaveDocument) {
 			flags.slice(0, tokens.length / 3).filter(Boolean).length >= required
 		);
 	});
+	// Everything below mutates a detached preparation draft. Even a late mail
+	// validation failure must discard all donations, reward and room changes.
 	const previouslyComplete = areas.slice(0, 6).every(Boolean);
 	for (let index = 0; index < 4; index++) submitted[index] = true;
 	if (reward) reward.value.boolean = true;
 	else
 		cc.bundleRewards.item.push({ key: { int: 13 }, value: { boolean: true } });
 	if (!roomComplete) return;
+	// Apply repair/mail side effects only on a completion transition. Existing
+	// completed rooms may contain game-established flags we must not recompute.
 	const newlyComplete = !areas[1];
 	areas[1] = true;
 	const overall = !previouslyComplete && areas.slice(0, 6).every(Boolean);
 	if (!newlyComplete && !overall) return;
+	// Room unlocks affect all farmers. Preserve unrelated mail and duplicates; only
+	// the editor-owned flags below have set-like insertion/removal semantics.
 	for (const farmer of farmers(document)) {
 		const player = farmer as unknown as {
 			mailReceived: "" | { string: string[] };
@@ -168,6 +188,8 @@ function complete(document: SaveDocument) {
 			if (mail.includes("JojaMember")) add("jojaCraftsRoom");
 			else remove("jojaCraftsRoom");
 		}
+		// Match the legacy editor's immediate completion policy. Joja membership is
+		// per farmer for these mail variants; this does not simulate overnight play.
 		if (overall) {
 			for (const flag of [
 				"ccIsComplete",
@@ -182,6 +204,9 @@ function complete(document: SaveDocument) {
 		else player.mailReceived.string = mail;
 	}
 }
+// This is currently a compatibility adapter around synchronous validation. Its
+// single MutationError loses domain-specific failure distinctions; the next Effect
+// domain pass should retain tagged failures and name preparation steps with Effect.fn.
 export const prepareBundleOperation = (
 	state: SessionState,
 	action: { type: "bundle-complete"; bundleId: 13 },
@@ -192,6 +217,8 @@ export const prepareBundleOperation = (
 				throw new Error("Only Spring Foraging is supported by this sample.");
 			const document = structuredClone(state.document);
 			complete(document);
+			// Build the receipt from actual draft differences, not an assumed field list.
+			// No difference means no undo entry and no misleading completion action.
 			const changes = diff(state.document, document);
 			if (changes.length === 0) return state;
 			return {

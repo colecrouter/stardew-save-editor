@@ -15,9 +15,9 @@
 	<option value="bits">Bits UI dialog</option>
 </select>
 {#if implementation === "native"}
-	<button type="button" onclick={() => nativeDialog?.showModal()}
-		>Reverse backpack…</button
-	>
+	<button type="button" onclick={() => nativeDialog?.showModal()}>
+		Reverse backpack…
+	</button>
 	<dialog
 		bind:this={nativeDialog}
 		aria-labelledby="native-title"
@@ -34,11 +34,15 @@
 	</dialog>
 {:else}
 	{#if bitsModule}
-		{#await bitsModule}<p role="status">Loading dialog?</p>
-		{:then module}<module.default {commit} />
-		{:catch}<p role="alert">
+		{#await bitsModule}
+			<p role="status">Loading dialog?</p>
+		{:then module}
+			<module.default {commit} />
+		{:catch}
+			<p role="alert">
 				The dialog could not load. Choose the native dialog to continue.
-			</p>{/await}
+			</p>
+		{/await}
 	{/if}
 {/if}
 

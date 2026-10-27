@@ -17,12 +17,16 @@
 		$props();
 	const { view, pending } = untrack(() => model);
 	const weatherDays = ["today", "tomorrow"] as const;
+	// This JSON text is owned by the date draft, not the save. Preserve partially
+	// entered strings; validation and conversion happen only when Apply is submitted.
 	const parts = $derived(
 		JSON.parse($draft.text) as { year: string; season: string; day: string },
 	);
 	let error = $state("");
 	const edit = (part: "year" | "season" | "day", value: string) =>
 		draft.input(JSON.stringify({ ...parts, [part]: value }));
+	// Weather is an immediate explicit command, unlike the staged date form.
+	// Capture the displayed revision so an intervening commit cannot be overwritten.
 	async function weather(day: "today" | "tomorrow", value: string) {
 		error = "";
 		try {
@@ -51,8 +55,9 @@
 				}}
 			>
 				<div class="date-fields">
-					<label
-						>Year<input
+					<label>
+						Year
+						<input
 							type="number"
 							min="1"
 							max="9999"
@@ -62,45 +67,60 @@
 							oninput={(event) => edit("year", event.currentTarget.value)}
 							disabled={$pending > 0}
 							aria-describedby="date-feedback"
-						/></label
-					>
-					<label
-						>Season<select
+						/>
+					</label>
+					<label>
+						Season
+						<select
 							value={parts.season}
 							onchange={(event) => edit("season", event.currentTarget.value)}
 							disabled={$pending > 0}
 							aria-describedby="date-feedback"
-							>{#each SEASONS as season (season)}<option value={season}
-									>{seasonName(season)}</option
-								>{/each}</select
-						></label
-					>
+						>
+							{#each SEASONS as season (season)}
+								<option value={season}>
+									{seasonName(season)}
+								</option>
+							{/each}
+						</select>
+					</label>
 				</div>
 				<div class="days" role="group" aria-label="Day of month">
-					{#each Array.from({ length: 28 }, (_, i) => i + 1) as day (day)}<button
+					{#each Array.from({ length: 28 }, (_, i) => i + 1) as day (day)}
+						<button
 							type="button"
 							aria-pressed={Number(parts.day) === day}
 							disabled={$pending > 0}
-							onclick={() => edit("day", String(day))}>{day}</button
-						>{/each}
+							onclick={() => edit("day", String(day))}
+						>
+							{day}
+						</button>
+					{/each}
 				</div>
 				<div class="actions">
 					<button
 						type="submit"
 						disabled={!$draft.dirty || $draft.conflict || $pending > 0}
-						>Apply date</button
-					><button
+					>
+						Apply date
+					</button>
+					<button
 						type="button"
 						onclick={draft.reload}
 						disabled={$pending > 0 || (!$draft.dirty && !$draft.conflict)}
-						>Reload current date</button
 					>
+						Reload current date
+					</button>
 				</div>
 				<p id="date-feedback" role="status">
-					{#if $draft.error}{$draft.error}{:else if $draft.conflict}The save
-						changed. Your date draft is kept; reload the current date before
-						applying.{:else if $draft.pending}Applying date…{:else if $draft.dirty}Unapplied
-						date draft.{:else}Date matches the save.{/if}
+					{#if $draft.error}
+						{$draft.error}
+					{:else if $draft.conflict}
+						The save changed. Your date draft is kept; reload the current date
+						before applying.{:else if $draft.pending}
+						Applying date…{:else if $draft.dirty}
+						Unapplied date draft.{:else}
+						Date matches the save.{/if}
 				</p>
 			</form>
 		</section>
@@ -112,33 +132,41 @@
 				{@const current = $view.calendar[day]}
 				{@const reason =
 					day === "today" ? $view.todayReason : $view.tomorrowReason}
-				<label
-					>{day === "today" ? "Today" : "Tomorrow"}<span class="weather-picture"
-						><WeatherIcon
+				<label>
+					{day === "today" ? "Today" : "Tomorrow"}
+					<span class="weather-picture">
+						<WeatherIcon
 							weather={current}
 							season={(day === "today"
 								? $view.calendar.date
 								: nextDay($view.calendar.date)
 							).season}
-						/></span
-					><select
+						/>
+					</span>
+					<select
 						value={current}
 						disabled={$pending > 0 ||
 							options.every(
 								(option) => !option.allowed || option.id === current,
 							)}
 						onchange={(event) => void weather(day, event.currentTarget.value)}
-						>{#each options as option (option.id)}<option
-								value={option.id}
-								disabled={!option.allowed}>{option.label}</option
-							>{/each}</select
-					></label
-				>
-				{#if reason}<small>{reason}</small>{/if}
+					>
+						{#each options as option (option.id)}
+							<option value={option.id} disabled={!option.allowed}>
+								{option.label}
+							</option>
+						{/each}
+					</select>
+				</label>
+				{#if reason}
+					<small>{reason}</small>
+				{/if}
 			{/each}
 		</section>
 	</div>
-	{#if error}<p role="alert">{error}</p>{/if}
+	{#if error}
+		<p role="alert">{error}</p>
+	{/if}
 	<p class="notice">
 		Changing the date does not simulate an overnight transition. Review changes
 		before exporting.

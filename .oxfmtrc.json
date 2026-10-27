@@ -11,5 +11,13 @@
 		"generated/**",
 		"static/**",
 		"**/package-lock.json"
+	],
+	"overrides": [
+		{
+			"files": ["experiments/v2/ui/**/*.svelte"],
+			"options": {
+				"htmlWhitespaceSensitivity": "ignore"
+			}
+		}
 	]
 }

@@ -19,6 +19,8 @@
 		ondownload: () => Promise<void>;
 	} = $props();
 	const { view, pending, dateField } = untrack(() => model);
+	// The workspace owns the draft across section navigation. Keeping its panels
+	// mounted preserves input and lets external revisions mark conflicts visibly.
 	const dateDraft = createDraft(dateField);
 	let tab = $state("calendar");
 	let error = $state("");
@@ -34,26 +36,38 @@
 
 <div class="editor study-theme">
 	<EditorShell {onclose}>
-		{#snippet header()}<header class="toolbar">
-				<strong>Stardew Save Editor - V2</strong><span>{filename}</span>
+		{#snippet header()}
+			<header class="toolbar">
+				<strong>Stardew Save Editor - V2</strong>
+				<span>{filename}</span>
 				<div class="buttons">
 					<button
 						type="button"
 						disabled={!$view?.canUndo || $pending > 0}
-						onclick={() => void perform(model.undo)}>Undo</button
-					><button
+						onclick={() => void perform(model.undo)}
+					>
+						Undo
+					</button>
+					<button
 						type="button"
 						disabled={!$view?.canRedo || $pending > 0}
-						onclick={() => void perform(model.redo)}>Redo</button
-					><button
+						onclick={() => void perform(model.redo)}
+					>
+						Redo
+					</button>
+					<button
 						type="button"
 						class="export"
 						disabled={$pending > 0 || $dateDraft.dirty}
-						onclick={() => void perform(ondownload)}>Export save</button
+						onclick={() => void perform(ondownload)}
 					>
+						Export save
+					</button>
 				</div>
-			</header>{/snippet}
-		{#snippet navigation()}<nav aria-label="Editor sections">
+			</header>
+		{/snippet}
+		{#snippet navigation()}
+			<nav aria-label="Editor sections">
 				<SectionLink
 					href="#calendar"
 					label="Date and weather"
@@ -74,11 +88,14 @@
 					active={tab === "bundles"}
 					onclick={() => (tab = "bundles")}
 				/>
-			</nav>{/snippet}
-		{#if error}<p role="alert">{error}</p>{/if}
-		{#if $dateDraft.dirty}<p role="status">
-				Apply or reload your date draft before exporting.
-			</p>{/if}
+			</nav>
+		{/snippet}
+		{#if error}
+			<p role="alert">{error}</p>
+		{/if}
+		{#if $dateDraft.dirty}
+			<p role="status">Apply or reload your date draft before exporting.</p>
+		{/if}
 		<div hidden={tab !== "calendar"}>
 			<CalendarPanel {model} draft={dateDraft} />
 		</div>

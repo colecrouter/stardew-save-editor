@@ -56,6 +56,8 @@ export interface EditorView {
 	backpackSize: number;
 }
 
+// Build the feature projection from committed state only. Form drafts never
+// enter this function, and projection must not normalize the imported document.
 function project(state: HistoryState): EditorView {
 	const game = state.document.SaveGame as unknown as Save;
 	if (!Number.isFinite(game.year) || !Number.isFinite(game.dayOfMonth))
@@ -66,6 +68,9 @@ function project(state: HistoryState): EditorView {
 		Number(game.uniqueIDForThisGame),
 		game.useLegacyRandom === true,
 	);
+	// Weather constraints belong to the date being edited: tomorrow can cross a
+	// season or year boundary. Keep an unknown imported choice visible rather than
+	// silently replacing it with the first vanilla option.
 	const options = (tomorrow: boolean) => {
 		const date = tomorrow ? nextDay(calendar.date) : calendar.date;
 		const fixed = forcedWeather(
@@ -116,12 +121,16 @@ function project(state: HistoryState): EditorView {
 			applied: index < state.cursor,
 			paths: entry.forward.map((patch) => patch.path),
 		})),
+		// Baseline comparison survives undo-history eviction and exposes actual
+		// document writes even if an operation supplied an incomplete receipt.
 		net: JsonPatch.get(state.baseline as never, state.document as never),
 		farmerId: String(game.player.UniqueMultiplayerID),
 		backpackSize: game.player.items.Item.length,
 	};
 }
 
+// Draft fields intentionally retain strings, including blank/invalid input. Only
+// submission converts them to a complete validated game date.
 export function parseDateDraft(text: string): GameDate {
 	const input: unknown = JSON.parse(text);
 	if (!input || typeof input !== "object")
@@ -162,10 +171,14 @@ export const makeEditorModel = (
 	codec: SaveCodec["Service"],
 ) =>
 	Effect.gen(function* () {
+		// Capture the session scope and services once at the application boundary.
+		// UI promises run child fibers here so closing the file interrupts owned work.
 		const scope = yield* Effect.scope;
 		const runWithContext = Effect.runPromiseWith(
 			yield* Effect.context<Scope.Scope>(),
 		);
+		// Retained UI handles must become inert after close and release their engine
+		// reference; rejecting later commands alone would still retain the save.
 		let engine: HistorySession | undefined = session;
 		let closed = false;
 		yield* Effect.acquireRelease(
@@ -193,10 +206,14 @@ export const makeEditorModel = (
 						resources.registries--;
 					}),
 			);
+		// Keep projections while panels have no consumers. Registry disposal, rather
+		// than temporary unmounting, defines their lifetime within this session.
 		const viewAtom = Atom.make<EditorView | undefined>(undefined).pipe(
 			Atom.keepAlive,
 		);
 		const pendingAtom = Atom.make(0).pipe(Atom.keepAlive);
+		// Serialize commands and export together: an export requested after Apply
+		// must include that commit. A rejected command must not poison later work.
 		let queue: Promise<void> = Promise.resolve();
 		const command = <A>(work: () => Promise<A>): Promise<A> => {
 			if (closed)
@@ -211,6 +228,8 @@ export const makeEditorModel = (
 				if (registry) registry.set(pendingAtom, registry.get(pendingAtom) - 1);
 			});
 		};
+		// Both the command result and subscription stream can deliver a revision.
+		// Ignore duplicates and late older deliveries to avoid regression/reprojection.
 		const publish = (state: HistoryState) => {
 			if (
 				!closed &&
@@ -220,6 +239,8 @@ export const makeEditorModel = (
 				registry.set(viewAtom, project(state));
 		};
 		publish(yield* session.snapshot);
+		// Own the observer fiber with the file, not with an individual screen. Panel
+		// navigation should neither fork additional streams nor lose committed state.
 		const stream = Stream.unwrap(
 			Effect.gen(function* () {
 				yield* Effect.acquireRelease(
@@ -268,6 +289,8 @@ export const makeEditorModel = (
 				publish(result);
 			});
 		};
+		// Each field snapshot captures its source revision. A dirty draft keeps that
+		// handle, so undo/redo or any intervening commit causes an explicit conflict.
 		const dateField: Field<GameDate> = {
 			label: "Farm date",
 			description: "Apply the date as one undoable action.",
@@ -305,6 +328,8 @@ export const makeEditorModel = (
 				command(async () => {
 					publish(await run(live().redo));
 				}),
+			// Encode only the preservation document; session provenance and history
+			// remain internal. Decode once to reject an unreadable output before download.
 			export: () =>
 				command(async () => {
 					const state = await run(live().snapshot);
@@ -317,6 +342,8 @@ export const makeEditorModel = (
 	});
 export type EditorModel = Effect.Success<ReturnType<typeof makeEditorModel>>;
 
+// Scope acquisition can fail after some resources exist. Close on every failure
+// path as well as normal teardown; callers receive ownership only after success.
 export async function openEditor(
 	bytes: Uint8Array,
 	limits: HistoryLimits = {},

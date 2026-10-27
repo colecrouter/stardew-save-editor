@@ -14,17 +14,19 @@
 		<Dialog.Overlay class="dialog-overlay" />
 		<Dialog.Content class="dialog-content">
 			<Dialog.Title>Reverse backpack?</Dialog.Title>
-			<Dialog.Description
-				>Every slot moves, including empty slots. You can undo this action.</Dialog.Description
-			>
+			<Dialog.Description>
+				Every slot moves, including empty slots. You can undo this action.
+			</Dialog.Description>
 			<Dialog.Close>Cancel</Dialog.Close>
 			<button
 				type="button"
 				onclick={() => {
 					commit();
 					bitsOpen = false;
-				}}>Reverse slots</button
+				}}
 			>
+				Reverse slots
+			</button>
 		</Dialog.Content>
 	</Dialog.Portal>
 </Dialog.Root>

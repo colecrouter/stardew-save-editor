@@ -54,6 +54,12 @@ If you want to make a contribution, just make a pull request.
 
 ### Code Style
 
+Follow the explanatory-comment and readability requirements in [AGENTS.md](AGENTS.md).
+Comments should describe the intended progression and assumptions so reviewers can
+compare the implementation against that intent. Prefer expanded Svelte markup.
+The experiment uses whitespace-insensitive HTML formatting to keep multiline tag
+delimiters readable; use explicit spaces where inline whitespace is meaningful.
+
 Oxfmt formats TypeScript, Svelte, styles, and documentation. Run `npm run format`
 to write formatting and `npm run format:check` to verify it. Generated game data
 and assets are excluded. Biome remains the linter while we assess replacement

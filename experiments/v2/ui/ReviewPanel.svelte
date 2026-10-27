@@ -30,61 +30,76 @@
 		History records what you did. Net changes compare the current save with the
 		imported file.
 	</p>
-	{#if $view.dropped}<p role="status">
+	{#if $view.dropped}
+		<p role="status">
 			{$view.dropped} older undo entries were removed to stay within the history limit.
 			Net changes still include them.
-		</p>{/if}
+		</p>
+	{/if}
 	<h2>Edit history</h2>
 	<ol>
-		{#each $view.entries.filter((entry) => !entry.compact) as entry (entry.id)}<li
-				class={{ undone: !entry.applied }}
-			>
-				<strong>{entry.label}</strong>{#if !entry.applied}
+		{#each $view.entries.filter((entry) => !entry.compact) as entry (entry.id)}
+			<li class={{ undone: !entry.applied }}>
+				<strong>{entry.label}</strong>
+				{#if !entry.applied}
 					(undone){/if}
 				<details>
 					<summary>Affected save fields ({entry.paths.length})</summary>
 					<ul>
-						{#each entry.paths as path, index (`${index}:${path}`)}<li>
+						{#each entry.paths as path, index (`${index}
+:${path}`)}
+							<li>
 								<code>{path}</code>
-							</li>{/each}
+							</li>
+						{/each}
 					</ul>
 				</details>
-			</li>{/each}
+			</li>
+		{/each}
 	</ol>
 	<details>
-		<summary
-			>Compact inventory operations ({$view.entries.filter(
+		<summary>
+			Compact inventory operations ({$view.entries.filter(
 				(entry) => entry.compact,
-			).length})</summary
-		>
+			).length})
+		</summary>
 		<ul>
-			{#each $view.entries.filter((entry) => entry.compact) as entry (entry.id)}<li
-					class={{ undone: !entry.applied }}
-				>
+			{#each $view.entries.filter((entry) => entry.compact) as entry (entry.id)}
+				<li class={{ undone: !entry.applied }}>
 					{entry.label}{#if !entry.applied}
 						(undone){/if}
 					<details>
 						<summary>Affected fields</summary>
 						<ul>
-							{#each entry.paths as path, index (`${index}:${path}`)}<li>
+							{#each entry.paths as path, index (`${index}
+:${path}`)}
+								<li>
 									<code>{path}</code>
-								</li>{/each}
+								</li>
+							{/each}
 						</ul>
 					</details>
-				</li>{/each}
+				</li>
+			{/each}
 		</ul>
 	</details>
 	<h2>Net changes ({$view.net.length})</h2>
-	{#if $view.net.length === 0}<p>
-			No exported changes from the imported save.
-		</p>{/if}
+	{#if $view.net.length === 0}
+		<p>No exported changes from the imported save.</p>
+	{/if}
 	<ul>
-		{#each $view.net as patch, index (`${index}:${patch.path}`)}<li>
+		{#each $view.net as patch, index (`${index}
+:${patch.path}`)}
+			<li>
 				<details>
-					<summary>{patch.op}: <code>{patch.path}</code></summary>
+					<summary>
+						{patch.op}:
+						<code>{patch.path}</code>
+					</summary>
 					<pre>{JSON.stringify(patch, null, 2)}</pre>
 				</details>
-			</li>{/each}
+			</li>
+		{/each}
 	</ul>
 	<details>
 		<summary>Inventory operation sample</summary>
@@ -92,11 +107,17 @@
 			Reverse the host backpack to compare a compact action with its actual
 			exported changes.
 		</p>
-		<button type="button" disabled={$pending > 0} onclick={() => void reverse()}
-			>Reverse backpack</button
+		<button
+			type="button"
+			disabled={$pending > 0}
+			onclick={() => void reverse()}
 		>
+			Reverse backpack
+		</button>
 	</details>
-	{#if error}<p role="alert">{error}</p>{/if}
+	{#if error}
+		<p role="alert">{error}</p>
+	{/if}
 {/if}
 
 <style>

@@ -72,17 +72,17 @@
 	</p>
 	<label for="implementation">Implementation</label>
 	<select id="implementation" bind:value={kind} onchange={() => void open()}>
-		<option value="atom">Effect Atom</option><option value="store"
-			>Svelte stores</option
-		>
+		<option value="atom">Effect Atom</option>
+		<option value="store">Svelte stores</option>
 	</select>
 	<label for="visual-shell">Visual shell</label>
 	<select id="visual-shell" bind:value={gameSkin}>
-		<option value={false}>Plain comparison</option><option value={true}
-			>Game frame and icons</option
-		>
+		<option value={false}>Plain comparison</option>
+		<option value={true}>Game frame and icons</option>
 	</select>
-	{#if error}<p role="alert">{error}</p>{/if}
+	{#if error}
+		<p role="alert">{error}</p>
+	{/if}
 	<div data-ui-theme class={{ game: gameSkin }}>
 		<PixelFrame enabled={gameSkin}>
 			{#if gameSkin}
@@ -92,15 +92,20 @@
 					editor.
 				</p>
 				<div class="icon-study">
-					{#each iconNames as name (name)}<figure>
+					{#each iconNames as name (name)}
+						<figure>
 							<UiIcon {name} />
 							<figcaption>{name}</figcaption>
-						</figure>{/each}
+						</figure>
+					{/each}
 				</div>
 			{/if}
 			{#if active}
-				{#key active}<Panel model={active.model} />{/key}
-			{:else}<p role="status">Opening session…</p>{/if}
+				{#key active}
+					<Panel model={active.model} />{/key}
+			{:else}
+				<p role="status">Opening session…</p>
+			{/if}
 		</PixelFrame>
 	</div>
 </main>

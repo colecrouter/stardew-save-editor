@@ -16,10 +16,14 @@
 		commit: () => Promise<unknown>;
 		oncomplete?: () => void;
 	} = $props();
+	// Each mounted dialog has its own label/description IDs. Native modal behavior
+	// provides focus containment and Escape cancellation without custom key handling.
 	const id = $props.id();
 	let dialog: HTMLDialogElement;
 	let busy = $state(false);
 	let error = $state("");
+	// Keep validation failures inside the dialog for correction/retry. Success may
+	// remove this component, so its bound element can already be cleared on return.
 	async function confirm(event: SubmitEvent) {
 		event.preventDefault();
 		busy = true;
@@ -27,6 +31,7 @@
 		try {
 			await commit();
 			dialog?.close();
+			// The caller can focus a replacement result when the original trigger is gone.
 			oncomplete();
 		} catch (cause) {
 			error = String(cause);
@@ -43,8 +48,10 @@
 		prepare();
 		error = "";
 		dialog.showModal();
-	}}>{label}</button
+	}}
 >
+	{label}
+</button>
 <dialog
 	bind:this={dialog}
 	aria-labelledby={`${id}-title`}
@@ -55,13 +62,16 @@
 >
 	<h2 id={`${id}-title`}>{title}</h2>
 	<p id={`${id}-description`}>{description}</p>
-	{#if error}<p role="alert">{error}</p>{/if}
+	{#if error}
+		<p role="alert">{error}</p>
+	{/if}
 	<form onsubmit={confirm}>
-		<button type="button" disabled={busy} onclick={() => dialog.close()}
-			>Cancel</button
-		>
-		<button type="submit" disabled={busy}>{busy ? "Applying..." : label}</button
-		>
+		<button type="button" disabled={busy} onclick={() => dialog.close()}>
+			Cancel
+		</button>
+		<button type="submit" disabled={busy}>
+			{busy ? "Applying..." : label}
+		</button>
 	</form>
 </dialog>
 

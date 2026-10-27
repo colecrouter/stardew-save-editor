@@ -34,22 +34,30 @@
 			disabled={!$draft.dirty ||
 				$draft.conflict ||
 				!$draft.base.available ||
-				$draft.pending}>{field.actionLabel}</button
+				$draft.pending}
 		>
+			{field.actionLabel}
+		</button>
 		<button
 			type="button"
 			onclick={draft.reload}
 			disabled={$draft.pending || (!$draft.dirty && !$draft.conflict)}
-			>Reload current value</button
 		>
+			Reload current value
+		</button>
 	</div>
 	<p id={`${uid}-feedback`} role="status">
-		{#if $draft.error}{$draft.error}
-		{:else if $draft.conflict}The save or selection changed. Your draft is kept;
-			reload to edit the current selection.
-		{:else if $draft.pending}Applying change…
-		{:else if $draft.dirty}Unapplied draft.
-		{:else}Current saved value.{/if}
+		{#if $draft.error}
+			{$draft.error}
+		{:else if $draft.conflict}
+			The save or selection changed. Your draft is kept; reload to edit the
+			current selection.
+		{:else if $draft.pending}
+			Applying change…
+		{:else if $draft.dirty}
+			Unapplied draft.
+		{:else}
+			Current saved value.{/if}
 	</p>
 </form>
 

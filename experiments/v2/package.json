@@ -13,7 +13,7 @@
 		"check:ui": "svelte-check --workspace . --tsconfig tsconfig.lab.json",
 		"check": "node ../../node_modules/@typescript/native/bin/tsc --noEmit -p tsconfig.json",
 		"effect:diagnostics": "effect-tsgo diagnostics --project tsconfig.json",
-		"test:ui": "vitest run --config vitest.ui.config.ts"
+		"test:ui": "npm run sync --prefix ../.. && vitest run --config vitest.ui.config.ts"
 	},
 	"engines": {
 		"node": ">=24"

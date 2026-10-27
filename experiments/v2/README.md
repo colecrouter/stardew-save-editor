@@ -258,3 +258,7 @@ input as an empty draft string; applying is still an explicit operation.
 
 Repository comment/readability guidance lives in root `AGENTS.md`, linked from
 `CONTRIBUTING.md`; it applies to both foundation PRs and subsequent work.
+
+The compiled UI test command runs root SvelteKit sync before Vitest, just like
+the lab/domain commands. Without that generated configuration a clean checkout
+fails during dependency optimization, even though a warm local checkout passes.

@@ -296,3 +296,6 @@ Regression coverage includes typed failures, staged-write defects, redo retentio
 queue recovery, closure cancellation, reactive model replacement, draft retry and
 one shared toast with continued editing. Run `npm run test:ui --prefix experiments/v2`
 for the Svelte-compiled cases in addition to the native/domain suite.
+The compiled UI test command runs root SvelteKit sync before Vitest, just like
+the lab/domain commands. Without that generated configuration a clean checkout
+fails during dependency optimization, even though a warm local checkout passes.

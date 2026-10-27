@@ -22,7 +22,7 @@ describe("wallet flag migration", () => {
 		const baseline = await readFile("tests/TestSave", "utf-8");
 		const legacyXml = injectLegacyWalletNodes(baseline);
 
-		let importTask: Promise<void> = Promise.resolve();
+		let importTask: Promise<void | boolean> = Promise.resolve();
 		let saveManager: SaveManager | undefined;
 		const cleanup = $effect.root(() => {
 			saveManager = new SaveManager();

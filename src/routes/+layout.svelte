@@ -1,15 +1,13 @@
 <script lang="ts">
 	import { beforeNavigate } from "$app/navigation";
 	import { asset, resolve } from "$app/paths";
-	import { updated } from "$app/state";
-	import { setSaveManager } from "$lib/SaveManager.svelte";
+	import { updated, page } from "$app/state";
 	import { setToastManager } from "$lib/ToastManager.svelte";
 	import Toasts from "$lib/ui/Toasts.svelte";
 
 	let { children } = $props();
 
 	setToastManager();
-	setSaveManager();
 
 	// Should fix random import errors due to version mismatches
 	beforeNavigate(({ to, willUnload }) => {
@@ -41,7 +39,7 @@
 	<img src={asset("/img/github.svg")} alt="GitHub Logo" />
 </a>
 
-<main>
+<main class:calendar-workspace={page.route.id === "/v2"}>
 	{@render children?.()}
 </main>
 
@@ -100,6 +98,11 @@
 		padding-top: 5rem;
 		min-height: 100%;
 		padding-bottom: 4rem;
+	}
+
+	.calendar-workspace {
+		padding: 8px 0 32px;
+		width: 100%;
 	}
 
 	/* GitHub logo */

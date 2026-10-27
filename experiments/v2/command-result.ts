@@ -1,5 +1,2 @@
-import type { Result } from "effect";
-
-// null means the application handled an unsuccessful execution (defect or
-// cancellation). Features only branch on completion and expected typed failures.
-export type CommandResult<A, E> = Result.Result<A, E> | null;
+// Compatibility import for the original experiment; the application owns this implementation.
+export * from "../../src/lib/editor/command-result.ts";

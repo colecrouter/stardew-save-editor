@@ -1,8 +1,12 @@
 import { expect, it } from "vitest";
 import { flushSync } from "svelte";
 import { writable } from "svelte/store";
-import { createRuneDraft } from "./field.svelte.ts";
-import { parseStack, type Field, type FieldValue } from "./field.ts";
+import { createRuneDraft } from "../../src/lib/editor/field.svelte.ts";
+import {
+	parseStack,
+	type Field,
+	type FieldValue,
+} from "../../src/lib/editor/field.ts";
 
 it("rune drafts preserve invalid text and prevent commits to a replacement field", async () => {
 	let commits = 0;

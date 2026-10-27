@@ -1,3 +1,4 @@
+import { downloadSave } from "./downloadSave";
 import { error } from "@sveltejs/kit";
 import * as Comlink from "comlink";
 import pako from "pako";
@@ -44,40 +45,6 @@ const isSaveFile = (obj: unknown): obj is SaveFile =>
 const isValidGameVersion = (version: string | undefined): boolean =>
 	SUPPORTED_VERSIONS.some((v) => version?.startsWith(v));
 
-// File handling utilities
-const downloadFile = async (blob: Blob, filename: string) => {
-	if ("showSaveFilePicker" in window) {
-		const handle = await window.showSaveFilePicker({
-			types: [
-				{
-					description: "Stardew Valley Save File",
-					accept: { "text/text": [] },
-				},
-			],
-			suggestedName: filename,
-		});
-		const writable = await handle.createWritable();
-		await writable.write(blob);
-		await writable.close();
-		return;
-	}
-
-	const url = URL.createObjectURL(blob);
-	const a = document.createElement("a");
-	a.href = url;
-	a.download = filename;
-	// Some browsers (Safari/WebKit, some Edge builds) can truncate downloads
-	// if the Object URL is revoked synchronously after click. Append to DOM
-	// and delay revocation to ensure the download stream is established.
-	// TODO https://developer.mozilla.org/en-US/docs/Web/API/File_System_API
-	document.body.appendChild(a);
-	a.click();
-	setTimeout(() => {
-		URL.revokeObjectURL(url);
-		a.remove();
-	}, 1000);
-};
-
 /** Thrown by download() when the exported save fails validation */
 export class SaveValidationError extends Error {
 	constructor(readonly validation: SaveValidation) {
@@ -92,6 +59,9 @@ export class SaveManager {
 	loadValidation = $state<SaveValidation>();
 	backups = new BackupManager();
 	private disposeSave?: () => void;
+	// Route teardown invalidates work already waiting on files, workers or pickers.
+	private generation = 0;
+	private downloads = new AbortController();
 
 	constructor() {
 		if (dev) $effect(() => this.loadDevState());
@@ -126,84 +96,99 @@ export class SaveManager {
 	}
 
 	async import(file: File) {
-		const buf = await file.arrayBuffer();
-		const content = new Uint8Array(buf);
+		const generation = ++this.generation;
+		this.downloads.abort();
+		this.downloads = new AbortController();
+		try {
+			const buf = await file.arrayBuffer();
+			if (generation !== this.generation) return false;
+			const content = new Uint8Array(buf);
 
-		let decompressedContent: string;
+			let decompressedContent: string;
 
-		if (content[0] === 120) {
-			// This is also how vanilla checks if a save is compressed. Around SaveGame.cs Line 671
-			// File is zlib compressed
-			const decompressed = pako.inflate(content);
-			decompressedContent = new TextDecoder().decode(decompressed);
-		} else {
-			// File is not compressed
-			decompressedContent = new TextDecoder().decode(content);
-		}
+			if (content[0] === 120) {
+				// This is also how vanilla checks if a save is compressed. Around SaveGame.cs Line 671
+				// File is zlib compressed
+				const decompressed = pako.inflate(content);
+				decompressedContent = new TextDecoder().decode(decompressed);
+			} else {
+				// File is not compressed
+				decompressedContent = new TextDecoder().decode(content);
+			}
 
-		const xmlManager = await getXmlManager();
-		const json = await xmlManager.parse(decompressedContent);
+			const xmlManager = await getXmlManager();
+			const json = await xmlManager.parse(decompressedContent);
+			if (generation !== this.generation) return false;
 
-		if (!isSaveFile(json)) {
-			throw new Error("Invalid save file");
-		}
+			if (!isSaveFile(json)) {
+				throw new Error("Invalid save file");
+			}
 
-		if (!isValidGameVersion(json.SaveGame.gameVersion as string)) {
-			throw new Error(`Unsupported game version: ${json.SaveGame.gameVersion}`);
-		}
+			if (!isValidGameVersion(json.SaveGame.gameVersion as string)) {
+				throw new Error(
+					`Unsupported game version: ${json.SaveGame.gameVersion}`,
+				);
+			}
 
-		// Checked before the editor touches anything, so it reflects the uploaded file
-		const validation = validateSave(json);
+			// Checked before the editor touches anything, so it reflects the uploaded file
+			const validation = validateSave(json);
 
-		await this.handleBackup(file);
+			await this.handleBackup(file);
+			if (generation !== this.generation) return false;
 
-		// I hate that I have to do this
-		function fixEmpty(obj: unknown) {
-			if (typeof obj !== "object" || obj === null) return;
-			for (const [child, parents] of nestedArrayTags.entries()) {
-				for (const parent of parents) {
-					// @ts-expect-error
-					if (parent in obj && obj[parent] === "") {
+			// I hate that I have to do this
+			function fixEmpty(obj: unknown) {
+				if (typeof obj !== "object" || obj === null) return;
+				for (const [child, parents] of nestedArrayTags.entries()) {
+					for (const parent of parents) {
 						// @ts-expect-error
-						obj[parent] = { [child]: [] };
-						// console.debug(
-						// 	`Fixed empty "${parent}" tag by converting to object with empty "${child}" array`,
-						// );
+						if (parent in obj && obj[parent] === "") {
+							// @ts-expect-error
+							obj[parent] = { [child]: [] };
+							// console.debug(
+							// 	`Fixed empty "${parent}" tag by converting to object with empty "${child}" array`,
+							// );
+						}
 					}
 				}
 			}
-		}
 
-		fixEmpty(json.SaveGame.player);
-		if (json.SaveGame.farmhands !== "") {
-			for (const farmer of json.SaveGame.farmhands.Farmer) {
-				fixEmpty(farmer);
+			fixEmpty(json.SaveGame.player);
+			if (json.SaveGame.farmhands !== "") {
+				for (const farmer of json.SaveGame.farmhands.Farmer) {
+					fixEmpty(farmer);
+				}
 			}
-		}
 
-		// Replace current save with a fresh proxy inside an effect root
-		// and capture cleanup to avoid memory leaks when replacing or resetting.
-		if (this.disposeSave) {
-			try {
-				this.disposeSave();
-			} catch (e) {
-				console.warn("Previous save cleanup failed", e);
-			} finally {
-				this.disposeSave = undefined;
+			// Replace current save with a fresh proxy inside an effect root
+			// and capture cleanup to avoid memory leaks when replacing or resetting.
+			if (this.disposeSave) {
+				try {
+					this.disposeSave();
+				} catch (e) {
+					console.warn("Previous save cleanup failed", e);
+				} finally {
+					this.disposeSave = undefined;
+				}
 			}
+
+			const cleanup = $effect.root(() => {
+				const save = new SaveProxy(json);
+				this.save = save;
+				// Factory-created items have independent roots. Their inventory owner
+				// releases them alongside the enclosing save, even before an effect flush.
+				return () => save[Dispose]();
+			});
+			this.disposeSave = cleanup;
+
+			this.filename = file.name;
+			this.loadValidation = validation;
+			return true;
+		} catch (cause) {
+			// A departed screen must not navigate or toast on a late failure.
+			if (generation !== this.generation) return false;
+			throw cause;
 		}
-
-		const cleanup = $effect.root(() => {
-			const save = new SaveProxy(json);
-			this.save = save;
-			// Factory-created items have independent roots. Their inventory owner
-			// releases them alongside the enclosing save, even before an effect flush.
-			return () => save[Dispose]();
-		});
-		this.disposeSave = cleanup;
-
-		this.filename = file.name;
-		this.loadValidation = validation;
 	}
 
 	private async handleBackup(file: File) {
@@ -239,10 +224,20 @@ export class SaveManager {
 
 	/** Download the save if it passes validation; throws SaveValidationError if not */
 	async download() {
-		const { blob, validation } = await this.validatedExport();
-		if (!validation.valid) throw new SaveValidationError(validation);
-		await downloadFile(blob, this.filename);
-		return validation;
+		const generation = this.generation;
+		const filename = this.filename;
+		const signal = this.downloads.signal;
+		try {
+			const { blob, validation } = await this.validatedExport();
+			if (generation !== this.generation) return;
+			if (!validation.valid) throw new SaveValidationError(validation);
+			if (!(await downloadSave(blob, filename, signal))) return;
+			if (generation !== this.generation) return;
+			return validation;
+		} catch (cause) {
+			if (generation !== this.generation) return;
+			throw cause;
+		}
 	}
 
 	async export(pretty = false) {
@@ -264,6 +259,9 @@ export class SaveManager {
 	}
 
 	reset() {
+		this.generation++;
+		this.downloads.abort();
+		this.downloads = new AbortController();
 		// Dispose reactive effects created for the current save
 		try {
 			this.disposeSave?.();

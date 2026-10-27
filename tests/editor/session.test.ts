@@ -1,16 +1,25 @@
-import { expect, it } from "@effect/vitest";
-import { readFile } from "node:fs/promises";
+import { expect, it } from "vitest";
+import { fixtureXml } from "./fixtures";
 import { get } from "svelte/store";
-import { createDraft } from "./field.ts";
+import { createDraft } from "../../src/lib/editor/field.ts";
 import {
 	editorResources,
 	formatDateDraft,
-	openEditor,
-} from "./editor-model.ts";
-import { exportDocument, parser, tinyFixture } from "./fixture.ts";
+	openEditor as openApplicationEditor,
+} from "../../src/lib/editor/editor-model.ts";
+import { exportDocument, parser, tinyFixture } from "./fixtures";
 import type { Save } from "../../codegen/save.ts";
 
-const input = () => readFile(new URL("../../tests/TestSave", import.meta.url));
+const openEditor = (
+	bytes: Uint8Array,
+	limits: import("../../src/lib/editor/history.ts").HistoryLimits = {},
+) =>
+	openApplicationEditor(bytes, limits, {
+		includeProofs: true,
+		validateExport: false,
+	});
+
+const input = async () => new TextEncoder().encode(fixtureXml);
 const parseBytes = (bytes: Uint8Array) =>
 	parser.parse(new TextDecoder().decode(bytes));
 

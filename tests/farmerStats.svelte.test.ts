@@ -13,7 +13,7 @@ describe("Farmer stats", () => {
 		const baseline = await readFile("tests/TestSave", "utf-8");
 		const saveXml = removeStatValues(baseline);
 
-		let importTask: Promise<void> = Promise.resolve();
+		let importTask: Promise<void | boolean> = Promise.resolve();
 		let saveManager: SaveManager | undefined;
 		const cleanup = $effect.root(() => {
 			saveManager = new SaveManager();

@@ -6,7 +6,9 @@
 			{
 				"name": "@effect/language-service",
 				"includeSuggestionsInTsc": false,
-				"ignoreEffectWarningsInTscExitCode": true
+				"ignoreEffectWarningsInTscExitCode": true,
+				// Atom APIs are an explicitly adopted foundation; other diagnostics stay active.
+				"diagnosticSeverity": { "unstableApiUsage": "off" }
 			}
 		],
 		"allowJs": true,

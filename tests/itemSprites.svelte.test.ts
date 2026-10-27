@@ -11,7 +11,7 @@ import {
 import { Sprite } from "$lib/Sprite.svelte";
 import type { ItemInformation } from "$types/items";
 import type { Item } from "$types/save";
-import ItemSprite from "../src/routes/(edit)/inventory/ItemSprite.svelte";
+import ItemSprite from "../src/routes/(legacy)/(edit)/inventory/ItemSprite.svelte";
 
 function metadata(name: string) {
 	const info = ItemData.get(name);

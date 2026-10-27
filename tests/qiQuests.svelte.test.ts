@@ -7,7 +7,7 @@ import { Raw } from "$lib/proxies";
 import qiQuestTemplates from "../generated/qiquests.json";
 import { SaveManager } from "../src/lib/SaveManager.svelte";
 import { XMLManager } from "../src/lib/workers/xml";
-import QuestList from "../src/routes/(edit)/(list)/qi-quests/QuestList.svelte";
+import QuestList from "../src/routes/(legacy)/(edit)/(list)/qi-quests/QuestList.svelte";
 
 // A structurally realistic `<SpecialOrder>` block (shape borrowed from the
 // fixture's own QiChallenge2 entry) for building an accepted order under
@@ -47,7 +47,7 @@ function specialOrderXml(questKey: string, requester: string): string {
 
 async function importSave(xml: string): Promise<SaveManager> {
 	let saveManager!: SaveManager;
-	let promise: Promise<void> = Promise.resolve();
+	let promise: Promise<void | boolean> = Promise.resolve();
 	const cleanup = $effect.root(() => {
 		saveManager = new SaveManager();
 		promise = saveManager.import(new File([xml], "TestSave"));

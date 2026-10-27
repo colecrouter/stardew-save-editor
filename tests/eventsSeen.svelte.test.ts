@@ -16,7 +16,7 @@ const importWithoutEvents = async () => {
 		"<eventsSeen />",
 	);
 	let saveManager!: SaveManager;
-	let importTask!: Promise<void>;
+	let importTask!: Promise<void | boolean>;
 	const cleanup = $effect.root(() => {
 		saveManager = new SaveManager();
 		importTask = saveManager.import(new File([xml], "TestSave"));

@@ -14,7 +14,7 @@ describe("Import/Export roundtrip", () => {
 	beforeEach(async () => {
 		const fileBlob = await readFile("tests/TestSave");
 		originalXml = fileBlob.toString("utf-8");
-		let promise: Promise<void> = Promise.resolve();
+		let promise: Promise<void | boolean> = Promise.resolve();
 		const cleanup = $effect.root(() => {
 			saveManager = new SaveManager();
 			promise = saveManager.import(new File([fileBlob], "TestSave"));
@@ -45,7 +45,7 @@ describe("Number-like text roundtrip", () => {
 			)
 			.replace("<name>Test</name>", "<name>1e3</name>");
 		let saveManager!: SaveManager;
-		let promise: Promise<void> = Promise.resolve();
+		let promise: Promise<void | boolean> = Promise.resolve();
 		const cleanup = $effect.root(() => {
 			saveManager = new SaveManager();
 			promise = saveManager.import(new File([xml], "TestSave"));

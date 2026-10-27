@@ -38,6 +38,8 @@
 		return saveManager
 			.download()
 			.then((validation) => {
+				// A dismissed save picker did not download a file.
+				if (!validation) return;
 				// Downloaded, but there may still be warnings to show
 				const { message, type, duration } = describeResult(
 					"downloaded",

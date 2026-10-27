@@ -27,7 +27,7 @@
 
 		try {
 			uploading = true;
-			await saveManager.import(file);
+			if (!(await saveManager.import(file))) return;
 			const validation = $state.snapshot(saveManager.loadValidation);
 
 			goto(resolve("/inventory"));
@@ -49,6 +49,10 @@
 </script>
 
 <section>
+	<p>
+		<a href={resolve("/v2")}>Try calendar editing with undo and change review</a
+		>
+	</p>
 	<UiContainer>
 		<form onsubmit={preventDefault(handle)} method="POST">
 			<div class="dropzone">

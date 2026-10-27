@@ -1,5 +1,11 @@
 # Editor foundation experiments (#166, #167)
 
+The calendar/session implementation has moved into `src/lib/editor` and the existing
+application at `/v2`. Files here forward to that implementation; the lab is a proof
+harness, not another application runtime. Workflow/draft/UI tests now run in
+`tests/editor` through `npm run test:editor` at the root. See
+[the migration](../../docs/v2-calendar-migration.md).
+
 Runnable comparisons of plain TypeScript mutations and an Effect 4.0.6 application
 layer. Effect remains outside the production app's dependency graph. The production
 XML codec is extracted from worker transport so these experiments use the actual

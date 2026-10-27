@@ -1,4 +1,7 @@
 <script lang="ts">
+	import { Result } from "effect";
+	import type { CommandResult } from "../command-result.ts";
+	import CommandToasts from "./CommandToasts.svelte";
 	import { useAtomValue } from "effect-atom-svelte";
 	import type { EditorModel } from "../editor-model.ts";
 	import { createRuneDraft } from "../field.svelte.ts";
@@ -11,7 +14,9 @@
 		model: EditorModel;
 		filename: string;
 		onclose: () => void;
-		ondownload: () => Promise<void>;
+		ondownload: () => Promise<
+			undefined | CommandResult<unknown, { message: string }>
+		>;
 	}
 	let { model, filename, onclose, ondownload }: Props = $props();
 
@@ -24,17 +29,19 @@
 	const dateDraft = createRuneDraft(() => model.dateField);
 	let tab = $state("calendar");
 	let error = $state("");
-	async function perform(action: () => Promise<unknown>) {
+	async function perform(
+		action: () => Promise<
+			undefined | CommandResult<unknown, { message: string }>
+		>,
+	) {
 		error = "";
-		try {
-			await action();
-		} catch (cause) {
-			error = String(cause);
-		}
+		const result = await action();
+		if (result && Result.isFailure(result)) error = result.failure.message;
 	}
 </script>
 
 <div class="editor study-theme">
+	<CommandToasts {model} />
 	<EditorShell {onclose}>
 		{#snippet header()}
 			<header class="toolbar">
@@ -44,14 +51,14 @@
 					<button
 						type="button"
 						disabled={!view.current?.canUndo || pending.current > 0}
-						onclick={() => void perform(model.undo)}
+						onclick={() => void perform(model.commands.undo)}
 					>
 						Undo
 					</button>
 					<button
 						type="button"
 						disabled={!view.current?.canRedo || pending.current > 0}
-						onclick={() => void perform(model.redo)}
+						onclick={() => void perform(model.commands.redo)}
 					>
 						Redo
 					</button>

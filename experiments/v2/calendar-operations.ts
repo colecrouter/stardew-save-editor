@@ -1,3 +1,4 @@
+import { CalendarDocumentError } from "../../src/lib/calendarErrors.ts";
 import { Data, Effect, Schema } from "effect";
 import type { Save } from "../../codegen/save.ts";
 import {
@@ -92,10 +93,12 @@ export const prepareCalendarState = Effect.fn("Calendar.prepare")(function* (
 			state.domainState && Object.hasOwn(state.domainState, "calendar")
 				? state.domainState.calendar
 				: initializeCalendarDocument(game),
-		catch: (cause) =>
-			new CalendarStateInvalid({
-				message: cause instanceof Error ? cause.message : String(cause),
-			}),
+		// Only deliberate planner rejections are expected failures. A TypeError or
+		// cloning defect retains its original cause and stack.
+		catch: (cause) => {
+			if (!(cause instanceof CalendarDocumentError)) throw cause;
+			return new CalendarStateInvalid({ message: cause.message });
+		},
 	});
 	if (!Schema.is(stateSchema)(current) || !Schema.is(Schema.Json)(current))
 		return yield* new CalendarStateInvalid({
@@ -108,11 +111,13 @@ export const prepareCalendarState = Effect.fn("Calendar.prepare")(function* (
 				current as unknown as CalendarDocumentState,
 				action,
 			),
-		catch: (cause) =>
-			new CalendarRuleViolation({
+		catch: (cause) => {
+			if (!(cause instanceof CalendarDocumentError)) throw cause;
+			return new CalendarRuleViolation({
 				operation: action.type,
-				message: cause instanceof Error ? cause.message : String(cause),
-			}),
+				message: cause.message,
+			});
+		},
 	});
 	const document = {
 		...state.document,

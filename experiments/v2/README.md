@@ -254,6 +254,7 @@ Domain-specific tagged failures remain typed through the runner.
 See `domain-transactions.effect.ts` and [the implementation record](../../docs/v2-adapter-and-annotations.md#domainhistory-implementation)
 for rollback, retry/interruption, capability lifetime and compatibility coverage.
 Only session history carries annotations; XML export remains the preservation document.
+
 ## Review follow-up: reactive UI ownership
 
 Panels pass getters to `useAtomValue` so atom selection follows model props. The
@@ -270,3 +271,28 @@ input as an empty draft string; applying is still an explicit operation.
 
 Repository comment/readability guidance lives in root `AGENTS.md`, linked from
 `CONTRIBUTING.md`; it applies to both foundation PRs and subsequent work.
+
+## Review follow-up: failures and defects
+
+Rendered editor flows use `model.commands`: the file-owned runtime executes each
+command in the existing queue and scope, returning `Result` for success/expected
+failures and `null` for application-handled noncompletion. Panels display domain
+failures; they neither inspect defect causes nor report them. The boundary reports
+the full cause once to the console and emits a generic session toast. No save or
+command payload is attached. Sentry wiring remains with the production application;
+the isolated lab does not initialize it. Pure interruption is quiet. Pending state
+clears in every outcome, and a failed transaction preserves committed state/redo.
+The original promise/rejection methods remain compatibility adapters for older
+comparison callers; they are not used by the rendered editor command flow.
+
+Draft reads/replacements/capture/close are Effects. Bundle inspection and validation
+fail explicitly in named Effects. Shared calendar rules stay pure for legacy
+consumers; `CalendarDocumentError` marks deliberate rejections. The narrow Effect
+adapter converts only that class, leaving TypeError/clone and other defects intact.
+These changes do not claim recovery from arbitrary external side effects or prove
+that a defect in post-commit rendering rolls back a successful engine commit.
+
+Regression coverage includes typed failures, staged-write defects, redo retention,
+queue recovery, closure cancellation, reactive model replacement, draft retry and
+one shared toast with continued editing. Run `npm run test:ui --prefix experiments/v2`
+for the Svelte-compiled cases in addition to the native/domain suite.

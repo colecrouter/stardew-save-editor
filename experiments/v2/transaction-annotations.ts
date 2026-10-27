@@ -20,22 +20,15 @@ const metadataSchema = Schema.Struct({
 	emphasis: Schema.optionalKey(Schema.Literals(["standalone", "compact"])),
 	tags: Schema.optionalKey(Schema.Array(Schema.String)),
 });
-const validateMetadata = (metadata: ReviewMetadata) =>
-	Effect.try({
-		try: () => {
-			if (
-				!Schema.is(metadataSchema)(metadata) ||
-				!Schema.is(Schema.Json)(metadata)
-			)
-				throw new Error(
-					"Review annotations require serializable labels, emphasis and string tags",
-				);
-		},
-		catch: (cause) =>
-			new ReviewMetadataError({
-				message: cause instanceof Error ? cause.message : String(cause),
-			}),
-	});
+const validateMetadata = Effect.fn("Review.validateMetadata")(function* (
+	metadata: ReviewMetadata,
+) {
+	if (!Schema.is(metadataSchema)(metadata) || !Schema.is(Schema.Json)(metadata))
+		return yield* new ReviewMetadataError({
+			message:
+				"Review annotations require serializable labels, emphasis and string tags",
+		});
+});
 
 // Defaults must be immutable: Context.Reference caches its default across reads.
 // Each wrapper provides a fresh value, so concurrent/nested operations cannot

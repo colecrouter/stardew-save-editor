@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { Result } from "effect";
 	import { setCalendarWeather } from "../calendar-operations.ts";
 	import { useAtomValue } from "effect-atom-svelte";
 	import type { createRuneDraft } from "../field.svelte.ts";
@@ -38,14 +39,11 @@
 	// Capture the displayed revision so an intervening commit cannot be overwritten.
 	async function weather(day: "today" | "tomorrow", value: string) {
 		error = "";
-		try {
-			await model.transact(
-				setCalendarWeather(day, value),
-				view.current?.revision,
-			);
-		} catch (cause) {
-			error = String(cause);
-		}
+		const result = await model.commands.transact(
+			setCalendarWeather(day, value),
+			view.current?.revision,
+		);
+		if (result && Result.isFailure(result)) error = result.failure.message;
 	}
 </script>
 

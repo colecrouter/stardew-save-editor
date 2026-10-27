@@ -1,11 +1,13 @@
 <script lang="ts">
+	import { Result } from "effect";
+	import type { CommandResult } from "../command-result.ts";
 	interface Props {
 		title: string;
 		description: string;
 		label: string;
 		disabled?: boolean;
 		prepare?: () => void;
-		commit: () => Promise<unknown>;
+		commit: () => Promise<CommandResult<unknown, { message: string }>>;
 		oncomplete?: () => void;
 	}
 	let {
@@ -29,16 +31,16 @@
 		event.preventDefault();
 		busy = true;
 		error = "";
-		try {
-			await commit();
-			dialog?.close();
-			// The caller can focus a replacement result when the original trigger is gone.
-			oncomplete();
-		} catch (cause) {
-			error = String(cause);
-		} finally {
-			busy = false;
+		const result = await commit();
+		busy = false;
+		// Noncompletion is handled globally. Keep the dialog open for retry.
+		if (!result) return;
+		if (Result.isFailure(result)) {
+			error = result.failure.message;
+			return;
 		}
+		dialog?.close();
+		oncomplete();
 	}
 </script>
 

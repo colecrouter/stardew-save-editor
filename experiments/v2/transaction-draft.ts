@@ -20,54 +20,51 @@ export function makeTransactionDraft(initial: SessionState) {
 	let state: SessionState | undefined = structuredClone(initial);
 	let version = 0;
 	let active = true;
+	// Capture is lazy: validation is an expected failure, cloning validated JSON
+	// is an invariant. Unexpected clone exceptions remain defects.
+	const read = Effect.gen(function* () {
+		if (!active || !state)
+			return yield* Effect.fail(
+				new MutationError("This transaction draft is closed"),
+			);
+		return { version, state: structuredClone(state) };
+	});
 	return {
 		service: {
-			read: Effect.try({
-				try: () => {
-					if (!active || !state)
-						throw new MutationError("This transaction draft is closed");
-					return { version, state: structuredClone(state) };
-				},
-				catch: (cause) =>
-					cause instanceof MutationError
-						? cause
-						: new MutationError(String(cause)),
+			read,
+			replace: Effect.fn("TransactionDraft.replace")(function* (
+				next: DraftSnapshot,
+			) {
+				if (!active || !state)
+					return yield* Effect.fail(
+						new MutationError("This transaction draft is closed"),
+					);
+				if (next.version !== version)
+					return yield* Effect.fail(
+						new MutationError(
+							"Another operation changed this transaction draft",
+						),
+					);
+				if (!Schema.is(Schema.Json)(next.state))
+					return yield* Effect.fail(
+						new MutationError("Transaction drafts require plain JSON state"),
+					);
+				state = structuredClone(next.state);
+				version++;
 			}),
-			replace: (next: DraftSnapshot) =>
-				Effect.try({
-					try: () => {
-						if (!active || !state)
-							throw new MutationError("This transaction draft is closed");
-						if (next.version !== version)
-							throw new MutationError(
-								"Another operation changed this transaction draft",
-							);
-						// Preserve raw JSON, including opaque fields. Reject resource handles
-						// rather than serializing them away or retaining them in history.
-						if (!Schema.is(Schema.Json)(next.state))
-							throw new MutationError(
-								"Transaction drafts require plain JSON state",
-							);
-						state = structuredClone(next.state);
-						version++;
-					},
-					catch: (cause) =>
-						cause instanceof MutationError
-							? cause
-							: new MutationError(String(cause)),
-				}),
 		},
-		// History reads this only after every operation has succeeded. The final
-		// commit detaches again so adapter-retained snapshots never own live state.
-		prepared: () => {
-			if (!state) throw new MutationError("This transaction draft is closed");
+		// History captures the prepared state before finalization clears the capability.
+		prepared: Effect.gen(function* () {
+			if (!active || !state)
+				return yield* Effect.fail(
+					new MutationError("This transaction draft is closed"),
+				);
 			return state;
-		},
-		// Detached services retained by a child fiber must not report successful
-		// staging after the parent program has finished or failed.
-		close: () => {
+		}),
+		// Escaped services become inert on both successful and failed transactions.
+		close: Effect.sync(() => {
 			active = false;
 			state = undefined;
-		},
+		}),
 	};
 }

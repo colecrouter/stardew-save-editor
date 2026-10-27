@@ -255,32 +255,26 @@ export const makeHistorySession = (
 			};
 		};
 
-		const update = <E, R = never>(
+		const update = <E = never, R = never>(
 			change: (state: History) => History | Effect.Effect<History, E, R>,
 			expectedRevision?: number,
 		) =>
 			Effect.tx(
 				Effect.gen(function* () {
 					const state = yield* TxSubscriptionRef.get(ref);
-					const proposed = yield* Effect.try({
-						try: () => {
-							if (closed) throw new MutationError("Session closed");
-							// A draft cannot commit against a document changed since it opened,
-							// including an undo/redo cycle returning to the same visible value.
-							if (
-								expectedRevision !== undefined &&
-								state.revision !== expectedRevision
-							)
-								throw new MutationError(
-									"The save changed while editing. Reload the current value.",
-								);
-							return change(state);
-						},
-						catch: (error) =>
-							error instanceof MutationError
-								? error
-								: new MutationError(String(error)),
-					});
+					if (closed)
+						return yield* Effect.fail(new MutationError("Session closed"));
+					// A stale draft must fail before its preparer can stage any writes.
+					if (
+						expectedRevision !== undefined &&
+						state.revision !== expectedRevision
+					)
+						return yield* Effect.fail(
+							new MutationError(
+								"The save changed while editing. Reload the current value.",
+							),
+						);
+					const proposed = change(state);
 					const next = Effect.isEffect(proposed) ? yield* proposed : proposed;
 					const published =
 						next === state ? state : { ...next, revision: state.revision + 1 };
@@ -425,11 +419,13 @@ export const makeHistorySession = (
 								Effect.provideService(TransactionDraft, draft.service),
 								// Take the result before close clears retained service state.
 								// Escaped capability handles must not retain an abandoned save.
-								Effect.map((collected) => ({
-									collected,
-									prepared: draft.prepared(),
-								})),
-								Effect.ensuring(Effect.sync(() => draft.close())),
+								Effect.flatMap((collected) =>
+									Effect.map(draft.prepared, (prepared) => ({
+										collected,
+										prepared,
+									})),
+								),
+								Effect.ensuring(draft.close),
 							);
 							// Inventory identity changes still use the legacy identity adapter.
 							// Until that capability migrates, reject untracked entity changes
@@ -459,10 +455,10 @@ export const makeHistorySession = (
 										undefined,
 										collected.records,
 									),
-								catch: (cause) =>
-									cause instanceof MutationError
-										? cause
-										: new MutationError(String(cause)),
+								catch: (cause) => {
+									if (!(cause instanceof MutationError)) throw cause;
+									return cause;
+								},
 							});
 						}),
 					expectedRevision,

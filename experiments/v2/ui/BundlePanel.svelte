@@ -46,7 +46,7 @@
 			prepare={() => {
 				revision = view.current?.revision;
 			}}
-			commit={() => model.transact(completeSpringForaging(), revision)}
+			commit={() => model.commands.transact(completeSpringForaging(), revision)}
 		/>
 	{/if}
 </section>

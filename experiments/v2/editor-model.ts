@@ -1,8 +1,18 @@
+import type { CommandResult } from "./command-result.ts";
 import type { TransactionDraft } from "./transaction-draft.ts";
 import type { ReviewJournal } from "./transaction-annotations.ts";
 import { setCalendarDate } from "./calendar-operations.ts";
 import { springBundleView } from "./bundle-operations.ts";
-import { Effect, Exit, Fiber, JsonPatch, Scope, Stream } from "effect";
+import {
+	Cause,
+	Effect,
+	Exit,
+	Fiber,
+	JsonPatch,
+	Result,
+	Scope,
+	Stream,
+} from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { derived, type Readable } from "svelte/store";
@@ -179,9 +189,9 @@ export const makeEditorModel = (
 		// Capture the session scope and services once at the application boundary.
 		// UI promises run child fibers here so closing the file interrupts owned work.
 		const scope = yield* Effect.scope;
-		const runWithContext = Effect.runPromiseWith(
-			yield* Effect.context<Scope.Scope>(),
-		);
+		const context = yield* Effect.context<Scope.Scope>();
+		const runWithContext = Effect.runPromiseWith(context);
+		const runExitWithContext = Effect.runPromiseExitWith(context);
 		// Retained UI handles must become inert after close and release their engine
 		// reference; rejecting later commands alone would still retain the save.
 		let engine: HistorySession | undefined = session;
@@ -217,6 +227,12 @@ export const makeEditorModel = (
 			Atom.keepAlive,
 		);
 		const pendingAtom = Atom.make(0).pipe(Atom.keepAlive);
+		// Notifications belong to the session boundary, not individual features.
+		// Store only a generic message; no document or operation payload is logged.
+		const noticeAtom = Atom.make<{ id: number; message: string } | undefined>(
+			undefined,
+		).pipe(Atom.keepAlive);
+		let noticeId = 0;
 		// Serialize commands and export together: an export requested after Apply
 		// must include that commit. A rejected command must not poison later work.
 		let queue: Promise<void> = Promise.resolve();
@@ -304,6 +320,71 @@ export const makeEditorModel = (
 			command(async () => {
 				publish(await run(live().transact(program, expectedRevision)));
 			});
+		// Execute inside the file scope and queue, preserving the full Exit until
+		// the boundary distinguishes expected failures, cancellation and defects.
+		const submit = <A, E>(
+			work: () => Effect.Effect<A, E>,
+		): Promise<CommandResult<A, E>> => {
+			if (closed) return Promise.resolve(null);
+			return command(async () => {
+				if (closed) return null;
+				const exit = await runExitWithContext(
+					Effect.gen(function* () {
+						const fiber = yield* Effect.forkScoped(Effect.suspend(work));
+						return yield* Fiber.join(fiber);
+					}).pipe(Effect.provideService(Scope.Scope, scope)),
+				);
+				if (Exit.isSuccess(exit)) return Result.succeed(exit.value);
+				// A mixed failure/defect must not be reduced to its first typed error.
+				if (!Cause.hasDies(exit.cause) && !Cause.hasInterrupts(exit.cause)) {
+					const failure = Cause.findError(exit.cause);
+					if (Result.isSuccess(failure)) return Result.fail(failure.success);
+				}
+				if (!Cause.hasInterruptsOnly(exit.cause)) {
+					console.error("V2 command defect", Cause.pretty(exit.cause));
+					if (!closed && registry)
+						registry.set(noticeAtom, {
+							id: ++noticeId,
+							message: "The action couldn’t be completed. Please try again.",
+						});
+				}
+				return null;
+			});
+		};
+		const publishEffect = <E>(effect: Effect.Effect<HistoryState, E>) =>
+			Effect.flatMap(effect, (state) =>
+				Effect.sync(() => {
+					publish(state);
+				}),
+			);
+		const commands = {
+			transact: <E>(
+				program: Effect.Effect<unknown, E, TransactionDraft | ReviewJournal>,
+				expectedRevision?: number,
+			) =>
+				submit(() =>
+					Effect.flatMap(live().transact(program, expectedRevision), (state) =>
+						Effect.sync(() => {
+							publish(state);
+						}),
+					),
+				),
+			execute: (actions: readonly Mutation[], expectedRevision?: number) =>
+				submit(() =>
+					publishEffect(live().execute(actions, undefined, expectedRevision)),
+				),
+			undo: () => submit(() => publishEffect(live().undo)),
+			redo: () => submit(() => publishEffect(live().redo)),
+			export: () =>
+				submit(() =>
+					Effect.gen(function* () {
+						const state = yield* live().snapshot;
+						const bytes = yield* codec.encode(state.document);
+						yield* codec.decode(bytes);
+						return bytes;
+					}),
+				),
+		};
 		// Each field snapshot captures its source revision. A dirty draft keeps that
 		// handle, so undo/redo or any intervening commit causes an explicit conflict.
 		const dateField: Field<GameDate> = {
@@ -319,7 +400,7 @@ export const makeEditorModel = (
 				revision: state?.revision ?? -1,
 				available: state !== undefined,
 				commit: (value: GameDate) =>
-					transact(setCalendarDate(value), state?.revision),
+					commands.transact(setCalendarDate(value), state?.revision),
 			})),
 		};
 		return {
@@ -330,7 +411,14 @@ export const makeEditorModel = (
 				registry: registry as AtomRegistry.AtomRegistry,
 				view: viewAtom as Atom.Atom<EditorView | undefined>,
 				pending: pendingAtom as Atom.Atom<number>,
+				notice: noticeAtom as Atom.Atom<
+					{ id: number; message: string } | undefined
+				>,
 			},
+			commands,
+			dismissNotice: () => registry?.set(noticeAtom, undefined),
+			// Promise/rejection adapters remain for the original comparator tests.
+			// Rendered editing flows use commands and never inspect defect causes.
 			view,
 			dateField,
 			execute,

@@ -1,3 +1,4 @@
+import { Result } from "effect";
 import { untrack } from "svelte";
 import { get } from "svelte/store";
 import type { Field, FieldValue } from "./field.ts";
@@ -70,7 +71,17 @@ export function createRuneDraft<T>(getField: () => Field<T>) {
 			try {
 				const value = draft.field.parse(draft.text);
 				state = { ...state, pending: true, error: "" };
-				await draft.base.commit(value);
+				const result = await draft.base.commit(value);
+				// Defects/cancellation are already handled by the application. Keep
+				// the draft for retry without presenting them as validation errors.
+				if (result === null || (result && Result.isFailure(result))) {
+					state = {
+						...state,
+						pending: false,
+						error: result ? String(result.failure) : "",
+					};
+					return;
+				}
 				// A replacement during the await must not silently discard the old draft.
 				if (getField() !== draft.field)
 					state = { ...state, pending: false, conflict: true };

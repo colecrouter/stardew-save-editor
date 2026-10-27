@@ -1,4 +1,4 @@
-import { Data, Effect } from "effect";
+import { Data, Effect, Result } from "effect";
 import {
 	diff,
 	farmers,
@@ -53,13 +53,15 @@ const vanilla =
 	"Spring Foraging/O 495 30/16 1 0 18 1 0 20 1 0 22 1 0/0///Spring Foraging";
 // Resolve a unique save target without repairing or normalizing anything. The
 // view uses this same inspection so merely opening the panel cannot change XML.
-function inspect(document: SaveDocument) {
+const inspect = Effect.fn("Bundles.inspect")(function* (
+	document: SaveDocument,
+) {
 	const game = document.SaveGame as unknown as BundleGame;
 	const centers = game.locations.GameLocation.filter(
 		(location) => location.name === "CommunityCenter",
 	);
 	if (centers.length !== 1)
-		throw new BundleProgressInvalid({
+		return yield* new BundleProgressInvalid({
 			message: "A single Community Center is required.",
 		});
 	const cc = centers[0];
@@ -68,12 +70,12 @@ function inspect(document: SaveDocument) {
 		(entry) => entry.key.string === "Crafts Room/13",
 	);
 	if (targets.length !== 1 || targets[0].value.string !== vanilla)
-		throw new BundleUnavailable({
+		return yield* new BundleUnavailable({
 			message: "This sample supports the vanilla Spring Foraging bundle only.",
 		});
 	const records = cc.bundles.item.filter((entry) => entry.key.int === 13);
 	if (records.length !== 1)
-		throw new BundleProgressInvalid({
+		return yield* new BundleProgressInvalid({
 			message: "Spring Foraging progress is missing or duplicated.",
 		});
 	// Vanilla reserves more donation flags than this bundle consumes. Validate the
@@ -84,7 +86,7 @@ function inspect(document: SaveDocument) {
 		submitted.length < 4 ||
 		submitted.some((value) => typeof value !== "boolean")
 	)
-		throw new BundleProgressInvalid({
+		return yield* new BundleProgressInvalid({
 			message: "Spring Foraging progress is malformed.",
 		});
 	const rewards = cc.bundleRewards.item.filter((entry) => entry.key.int === 13);
@@ -92,46 +94,38 @@ function inspect(document: SaveDocument) {
 		rewards.length > 1 ||
 		(rewards.length === 1 && typeof rewards[0].value.boolean !== "boolean")
 	)
-		throw new BundleProgressInvalid({
+		return yield* new BundleProgressInvalid({
 			message: "Spring Foraging reward is malformed or duplicated.",
 		});
 	return { cc, definitions, submitted, reward: rewards[0] };
-}
+});
 // Unsupported bundle data disables only this sample. Other features can still
 // edit the full preservation document, including opaque mod data.
 export function springBundleView(document: SaveDocument) {
-	try {
-		const { submitted, reward } = inspect(document);
-		return {
-			supported: true,
-			completed: submitted.slice(0, 4).every(Boolean),
-			rewardAvailable: reward?.value.boolean === true,
-			reason: "",
-		};
-	} catch (cause) {
+	// This synchronous projection consumes typed inspection failures only. Defects
+	// escape to the application boundary instead of masquerading as unsupported data.
+	const inspected = Effect.runSync(Effect.result(inspect(document)));
+	if (Result.isFailure(inspected))
 		return {
 			supported: false,
 			completed: false,
 			rewardAvailable: false,
-			reason: cause instanceof Error ? cause.message : String(cause),
+			reason: inspected.failure.message,
 		};
-	}
+	const { submitted, reward } = inspected.success;
+	return {
+		supported: true,
+		completed: submitted.slice(0, 4).every(Boolean),
+		rewardAvailable: reward?.value.boolean === true,
+		reason: "",
+	};
 }
 // Preparation is lazy and named for tracing. Expected rule failures stay in the
 // Effect error channel, while all writes target the transaction-owned snapshot.
 const complete = Effect.fn("Bundles.prepareSpringForaging")(function* (
 	document: SaveDocument,
 ) {
-	const { cc, definitions, submitted, reward } = yield* Effect.try({
-		try: () => inspect(document),
-		catch: (cause) =>
-			cause instanceof BundleUnavailable ||
-			cause instanceof BundleProgressInvalid
-				? cause
-				: new BundleProgressInvalid({
-						message: cause instanceof Error ? cause.message : String(cause),
-					}),
-	});
+	const { cc, definitions, submitted, reward } = yield* inspect(document);
 	// Completion is idempotent: an already-completed bundle may have had its reward
 	// claimed. Repeating this command must never issue that reward again.
 	if (submitted.slice(0, 4).every(Boolean)) return false; // Never reissue a claimed reward.
@@ -163,44 +157,41 @@ const complete = Effect.fn("Bundles.prepareSpringForaging")(function* (
 		});
 	// Optional requirement counts allow bundles such as choose-N donations. Count
 	// only actual requirement slots; trailing reserved flags do not complete them.
-	const roomComplete = yield* Effect.try({
-		try: () =>
-			roomDefinitions.every((definition) => {
-				const id = Number(definition.key.string.split("/")[1]);
-				const parts = definition.value.string.split("/");
-				const tokens = parts[2]?.trim().split(/\s+/) ?? [];
-				const required = parts[4] ? Number(parts[4]) : tokens.length / 3;
-				const records = cc.bundles.item.filter((entry) => entry.key.int === id);
-				if (
-					tokens.length === 0 ||
-					tokens.length % 3 ||
-					!Number.isInteger(required) ||
-					required < 1 ||
-					required > tokens.length / 3 ||
-					records.length !== 1
-				)
-					throw new BundleProgressInvalid({
-						message: "A Crafts Room bundle definition is unsupported.",
-					});
-				const flags = records[0].value.ArrayOfBoolean.boolean;
-				if (
-					!Array.isArray(flags) ||
-					flags.length < tokens.length / 3 ||
-					flags.some((value) => typeof value !== "boolean")
-				)
-					throw new BundleProgressInvalid({
-						message: "A Crafts Room bundle has malformed progress.",
-					});
-				return (
-					id === 13 ||
-					flags.slice(0, tokens.length / 3).filter(Boolean).length >= required
-				);
-			}),
-		catch: (cause) =>
-			cause instanceof BundleProgressInvalid
-				? cause
-				: new BundleProgressInvalid({ message: String(cause) }),
-	});
+	// Validate each member explicitly so expected failures use the error channel.
+	let roomComplete = true;
+	for (const definition of roomDefinitions) {
+		const id = Number(definition.key.string.split("/")[1]);
+		const parts = definition.value.string.split("/");
+		const tokens = parts[2]?.trim().split(/\s+/) ?? [];
+		const required = parts[4] ? Number(parts[4]) : tokens.length / 3;
+		const records = cc.bundles.item.filter((entry) => entry.key.int === id);
+		if (
+			tokens.length === 0 ||
+			tokens.length % 3 ||
+			!Number.isInteger(required) ||
+			required < 1 ||
+			required > tokens.length / 3 ||
+			records.length !== 1
+		)
+			return yield* new BundleProgressInvalid({
+				message: "A Crafts Room bundle definition is unsupported.",
+			});
+		const flags = records[0].value.ArrayOfBoolean.boolean;
+		if (
+			!Array.isArray(flags) ||
+			flags.length < tokens.length / 3 ||
+			flags.some((value) => typeof value !== "boolean")
+		)
+			return yield* new BundleProgressInvalid({
+				message: "A Crafts Room bundle has malformed progress.",
+			});
+		if (
+			id !== 13 &&
+			flags.slice(0, tokens.length / 3).filter(Boolean).length < required
+		)
+			roomComplete = false;
+	}
+
 	// Everything below mutates a detached preparation draft. Even a late mail
 	// validation failure must discard all donations, reward and room changes.
 	const previouslyComplete = areas.slice(0, 6).every(Boolean);

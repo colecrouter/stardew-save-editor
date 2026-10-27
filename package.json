@@ -13,10 +13,11 @@
 		"format": "oxfmt --write .",
 		"format:check": "oxfmt --check .",
 		"test": "vitest run",
+		"test:editor": "npm run sync && vitest run tests/editor",
 		"emulate:webkit": "node tests/webkit.js",
 		"prepare": "effect-language-service patch && effect-tsgo patch --typescript",
 		"check:types": "npm run sync && node node_modules/@typescript/native/bin/tsc --noEmit -p tsconfig.json",
-		"effect:diagnostics": "effect-tsgo diagnostics",
+		"effect:diagnostics": "effect-tsgo diagnostics --project tsconfig.json",
 		"sync": "svelte-kit sync",
 		"check:codegen": "node node_modules/@typescript/native/bin/tsc --noEmit -p codegen/tsconfig.json"
 	},
@@ -46,7 +47,7 @@
 		"oxfmt": "0.74.0",
 		"pako": "^2.1.0",
 		"string-similarity-js": "^2.1.4",
-		"svelte": "^5.42.3",
+		"svelte": "5.57.2",
 		"svelte-check": "^4.3.3",
 		"tslib": "^2.4.1",
 		"tsx": "^4.19.1",
@@ -62,5 +63,9 @@
 	"type": "module",
 	"engines": {
 		"node": ">=24 <25"
+	},
+	"dependencies": {
+		"effect": "4.0.6",
+		"effect-atom-svelte": "0.4.1"
 	}
 }

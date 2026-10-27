@@ -14,8 +14,9 @@ interactions justify it. Preserve imported save data and existing format/domain
 knowledge through adapters. These are integration defaults, not claims of complete
 production readiness or a commitment to rewrite all format knowledge.
 
-The visible editor is still proxy-backed. The Effect engine and its inventory
-lab are separate proofs. Every editing session must have one authoritative commit
+The default editor remains proxy-backed; `/v2` now hosts the migrated calendar
+workflow in the same application. See [the migration](v2-calendar-migration.md).
+The inventory lab remains a bounded comparison. Every editing session must have one authoritative commit
 path; old writable proxies cannot silently bypass V2 history. A separate legacy
 entrypoint can remain available while V2 workflows migrate.
 

@@ -20,8 +20,8 @@ import {
 	setToastManagerContext,
 	ToastManager,
 } from "../src/lib/ToastManager.svelte";
-import editLayout from "../src/routes/(edit)/+layout.svelte";
-import uploadPage from "../src/routes/(home)/(upload)/+page.svelte";
+import editLayout from "../src/routes/(legacy)/(edit)/+layout.svelte";
+import uploadPage from "../src/routes/(legacy)/(home)/(upload)/+page.svelte";
 
 // The pages navigate after uploading, which isn't possible here
 vi.mock("$app/navigation", () => ({ goto: vi.fn() }));
@@ -400,7 +400,7 @@ describe("describeResult", () => {
 
 async function importSave(xml: string): Promise<SaveManager> {
 	let saveManager!: SaveManager;
-	let promise: Promise<void> = Promise.resolve();
+	let promise: Promise<void | boolean> = Promise.resolve();
 	const cleanup = $effect.root(() => {
 		saveManager = new SaveManager();
 		promise = saveManager.import(new File([xml], "TestSave"));
@@ -455,7 +455,7 @@ describe("SaveManager validation", () => {
 
 		const validation = await saveManager.download();
 		expect(click).toHaveBeenCalledOnce();
-		expect(validation.warnings).toEqual(["Test's money (-5) is negative"]);
+		expect(validation?.warnings).toEqual(["Test's money (-5) is negative"]);
 		click.mockRestore();
 	});
 });

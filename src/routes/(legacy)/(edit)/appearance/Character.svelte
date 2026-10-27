@@ -17,7 +17,7 @@
 	import type { ClothingProxy } from "$lib/proxies/items";
 	import { Sprite } from "$lib/Sprite.svelte";
 	import type { Coordinates } from "$types/items";
-	import { type Color as ColorType, Gender } from "../../../../codegen/save";
+	import { type Color as ColorType, Gender } from "$types/save";
 
 	interface Props {
 		player: Farmer;

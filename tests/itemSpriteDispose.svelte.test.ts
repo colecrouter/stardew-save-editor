@@ -5,10 +5,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setup as mockIDB } from "vitest-indexeddb";
 import { Gender } from "../codegen/save";
 import { SaveManager } from "../src/lib/SaveManager.svelte";
-import List from "../src/routes/(edit)/(list)/List.svelte";
-import Character from "../src/routes/(edit)/appearance/Character.svelte";
-import ItemSelect from "../src/routes/(edit)/inventory/ItemSelect.svelte";
-import NamedItemSprite from "../src/routes/(edit)/inventory/NamedItemSprite.svelte";
+import List from "../src/routes/(legacy)/(edit)/(list)/List.svelte";
+import Character from "../src/routes/(legacy)/(edit)/appearance/Character.svelte";
+import ItemSelect from "../src/routes/(legacy)/(edit)/inventory/ItemSelect.svelte";
+import NamedItemSprite from "../src/routes/(legacy)/(edit)/inventory/NamedItemSprite.svelte";
 import { trackItems } from "./helpers/trackItems";
 
 const live = (created: ReturnType<typeof trackItems>) =>
@@ -21,7 +21,7 @@ describe("Item sprites drawn by name", () => {
 
 	beforeEach(async () => {
 		const xml = await readFile("tests/TestSave", "utf-8");
-		let promise!: Promise<void>;
+		let promise!: Promise<void | boolean>;
 		cleanup = $effect.root(() => {
 			saveManager = new SaveManager();
 			promise = saveManager.import(new File([xml], "TestSave"));

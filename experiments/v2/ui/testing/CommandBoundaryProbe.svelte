@@ -1,13 +1,7 @@
 <script lang="ts">
-	import { RegistryProvider } from "effect-atom-svelte";
-	import type { EditorModel } from "../../editor-model.ts";
-	import CommandToasts from "../CommandToasts.svelte";
-	import AdapterReadProbe from "./AdapterReadProbe.svelte";
-	let { model }: { model: EditorModel } = $props();
+	import Probe from "../../../../tests/editor/components/CommandBoundaryProbe.svelte";
+	import type { ComponentProps } from "svelte";
+	let props: ComponentProps<typeof Probe> = $props();
 </script>
 
-<!-- Test-only presenter exercises the same borrowed registry as the workspace. -->
-<RegistryProvider registry={model.atomBindings.registry}>
-	<CommandToasts {model} />
-	<AdapterReadProbe {model} />
-</RegistryProvider>
+<Probe {...props} />

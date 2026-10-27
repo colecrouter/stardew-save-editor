@@ -229,7 +229,7 @@ describe("SaveProxy", () => {
 	// The raw save, as SaveManager.import parses it
 	const importedRaw = async () => {
 		const xml = await readFile("tests/TestSave", "utf-8");
-		let importTask: Promise<void> = Promise.resolve();
+		let importTask: Promise<void | boolean> = Promise.resolve();
 		let saveManager!: SaveManager;
 		const cleanup = $effect.root(() => {
 			saveManager = new SaveManager();
@@ -289,7 +289,7 @@ describe("SaveProxy", () => {
 
 	it("keeps cellar assignments aligned when promoting a farmhand to host", async () => {
 		const xml = await readFile("tests/TestSave", "utf-8");
-		let importTask: Promise<void> = Promise.resolve();
+		let importTask: Promise<void | boolean> = Promise.resolve();
 		let saveManager!: SaveManager;
 		const managerCleanup = $effect.root(() => {
 			saveManager = new SaveManager();

@@ -13,7 +13,7 @@ describe("CommunityBundles sanitizer", () => {
 
 	beforeEach(async () => {
 		const file = await readFile("tests/TestSave");
-		let promise: Promise<void> = Promise.resolve();
+		let promise: Promise<void | boolean> = Promise.resolve();
 		const cleanup = $effect.root(() => {
 			saveManager = new SaveManager();
 			promise = saveManager.import(new File([file], "TestSave"));

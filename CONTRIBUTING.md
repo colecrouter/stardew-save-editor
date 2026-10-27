@@ -89,7 +89,10 @@ turning every stylistic preference into a compiler failure.
 
 The [V2 implementation requirements](docs/v2-implementation.md) and
 [editor blueprint](docs/v2-editor-blueprint.md) describe the active migration.
-The prototype remains isolated in `experiments/v2` until its migration gates pass.
+The calendar workflow now lives in `src/lib/editor` and the `/v2` application route.
+Run `npm run test:editor` for its migrated tests, or `npm test` for the full suite.
+The lab forwards to the application-owned implementation. See the
+[calendar migration](docs/v2-calendar-migration.md) for legacy isolation and retirement gates.
 
 ## General Conventions
 

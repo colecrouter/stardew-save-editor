@@ -1,12 +1,15 @@
-import { expect, it } from "@effect/vitest";
+import { expect, it } from "vitest";
 import { Effect, Result } from "effect";
 import { vi } from "vitest";
-import { readFile } from "node:fs/promises";
+import { fixtureXml } from "./fixtures";
 import { get } from "svelte/store";
-import { openEditor } from "./editor-model.ts";
-import { setCalendarDate, setCalendarWeather } from "./calendar-operations.ts";
+import { openEditor } from "../../src/lib/editor/editor-model.ts";
+import {
+	setCalendarDate,
+	setCalendarWeather,
+} from "../../src/lib/editor/calendar-operations.ts";
 
-const input = () => readFile(new URL("../../tests/TestSave", import.meta.url));
+const input = async () => new TextEncoder().encode(fixtureXml);
 
 it("command results retain expected errors without reporting defects", async () => {
 	const report = vi.spyOn(console, "error").mockImplementation(() => {});
@@ -43,7 +46,7 @@ it("a defect after staged writes reports once, clears pending and preserves redo
 		expect(result).toBeNull();
 		expect(await opened.model.snapshot()).toEqual(before);
 		expect(report).toHaveBeenCalledTimes(1);
-		expect(report.mock.calls[0][1]).toContain("TypeError: test defect");
+		expect(report.mock.calls[0]?.[1]).toContain("TypeError: test defect");
 		const bindings = opened.model.atomBindings;
 		expect(bindings.registry.get(bindings.pending)).toBe(0);
 		expect(bindings.registry.get(bindings.notice)?.message).toContain(

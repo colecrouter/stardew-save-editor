@@ -1,6 +1,8 @@
 {
 	"extends": "./tsconfig.json",
-	"compilerOptions": { "types": ["node", "vite/client"] },
+	"compilerOptions": {
+		"types": ["node", "vite/client", "wicg-file-system-access"]
+	},
 	"include": [
 		"*.ts",
 		"ui/**/*.ts",

@@ -22,3 +22,6 @@ jobs:
       - run: npm run build
       - name: Run `svelte-check`
         run: npm run check
+
+      - name: Check application Effect diagnostics
+        run: npm run effect:diagnostics

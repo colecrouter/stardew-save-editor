@@ -1,3 +1,8 @@
+import {
+	restoreOriginal,
+	serializeOriginal,
+	type StoredOriginal,
+} from "./saveBackups";
 import { openDB } from "idb";
 import {
 	getToastManager,
@@ -7,7 +12,7 @@ import {
 
 const BACKUP_LIMIT = 5;
 
-interface SerializedFile {
+interface SerializedFile extends StoredOriginal {
 	name: string;
 	data: string;
 	lastModified: number;
@@ -78,14 +83,7 @@ export class BackupManager {
 			if (!isSerializedFileArray(backupFiles)) throw new Error("Invalid data");
 
 			const newFiles: File[] = [];
-			for (const file of backupFiles) {
-				newFiles.unshift(
-					new File([file.data], file.name, {
-						lastModified: file.lastModified,
-						type: "text/text",
-					}),
-				);
-			}
+			for (const file of backupFiles) newFiles.unshift(restoreOriginal(file));
 			this.files = newFiles;
 		} catch (e) {
 			// Empty the database, clear the files
@@ -121,15 +119,8 @@ export class BackupManager {
 		const serializedFiles: SerializedFile[] = [];
 
 		// Iterate through our updated
-		for (const file of this.files) {
-			serializedFiles.unshift({
-				name: file.name,
-				data: await file.text(),
-				lastModified: file.lastModified,
-				size: file.size,
-				type: "text/text",
-			});
-		}
+		for (const file of this.files)
+			serializedFiles.unshift(await serializeOriginal(file));
 
 		try {
 			const db = await openDB("backups", 1);

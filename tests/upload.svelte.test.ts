@@ -9,7 +9,7 @@ import {
 	setToastManagerContext,
 	ToastManager,
 } from "../src/lib/ToastManager.svelte";
-import uploadPage from "../src/routes/(home)/(upload)/+page.svelte";
+import uploadPage from "../src/routes/(legacy)/(home)/(upload)/+page.svelte";
 
 const renderUploadPage = () => {
 	let saveManager!: SaveManager;

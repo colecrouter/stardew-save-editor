@@ -3,7 +3,7 @@ import { tick } from "svelte";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Dispose } from "$lib/proxies";
 import { Friendship } from "$lib/proxies/Friendship.svelte";
-import HeartBar from "../src/routes/(edit)/relationships/HeartBar.svelte";
+import HeartBar from "../src/routes/(legacy)/(edit)/relationships/HeartBar.svelte";
 
 // happy-dom doesn't load images: report each portrait sheet as loaded, this wide
 const stubPortraits = (naturalWidth: number) => {

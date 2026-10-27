@@ -14,7 +14,7 @@ describe("bundle side effects - Abandoned JojaMart access", () => {
 
 	beforeEach(async () => {
 		const file = await readFile("tests/TestSave");
-		let promise: Promise<void> = Promise.resolve();
+		let promise: Promise<void | boolean> = Promise.resolve();
 		const cleanup = $effect.root(() => {
 			saveManager = new SaveManager();
 			promise = saveManager.import(new File([file], "TestSave"));
@@ -261,7 +261,7 @@ const loadCoop = async (hostMail: MailFlag[], handMail: MailFlag[]) => {
 		);
 
 	let saveManager!: SaveManager;
-	let promise: Promise<void> = Promise.resolve();
+	let promise: Promise<void | boolean> = Promise.resolve();
 	const cleanup = $effect.root(() => {
 		saveManager = new SaveManager();
 		promise = saveManager.import(new File([coop], "TestSave"));

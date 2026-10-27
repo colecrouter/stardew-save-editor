@@ -244,7 +244,7 @@ describe("Quest log", () => {
 
 	// The proxies write some edits (mail, item stacks) back through effects, so keep their root alive
 	async function load(xml = fixture) {
-		let promise!: Promise<void>;
+		let promise!: Promise<void | boolean>;
 		dispose = $effect.root(() => {
 			saveManager = new SaveManager();
 			promise = saveManager.import(new File([xml], "TestSave"));

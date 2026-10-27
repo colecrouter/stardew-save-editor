@@ -12,7 +12,7 @@ const parse = (xml: string) => new XMLManager().parse<SaveFile>(xml);
 
 async function importSave(xml: string): Promise<SaveManager> {
 	let saveManager!: SaveManager;
-	let promise: Promise<void> = Promise.resolve();
+	let promise: Promise<void | boolean> = Promise.resolve();
 	const cleanup = $effect.root(() => {
 		saveManager = new SaveManager();
 		promise = saveManager.import(new File([xml], "TestSave"));

@@ -24,6 +24,12 @@ A web-based save editor for Stardew Valley. Safely edit your save files directly
   - Automatic save backups
   - Cross-platform support
 
+### Calendar workflow preview
+
+On the `v2` branch, `/v2` adds transactional date/weather editing, change review
+and undo/redo. Other features remain in the existing editor; open the save
+separately in either workflow. See [the migration notes](docs/v2-calendar-migration.md).
+
 ### Planned Features
 
 - 🔄 Animal editing

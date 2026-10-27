@@ -15,7 +15,7 @@ it("the pure adapter and production calendar agree through date, weather and fes
 	mockIDB();
 	const xml = await readFile("tests/TestSave", "utf8");
 	let manager: SaveManager | undefined;
-	let pending = Promise.resolve();
+	let pending: Promise<void | boolean> = Promise.resolve();
 	const close = $effect.root(() => {
 		manager = new SaveManager();
 		pending = manager.import(new File([xml], "Calendar comparison"));

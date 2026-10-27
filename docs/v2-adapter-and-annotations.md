@@ -55,7 +55,7 @@ domain command in one union. Three separate concepts should stay distinguishable
   commits a detached metadata record with them. Metadata does not establish what
   changed or prove that an operation succeeded.
 
-`transaction-annotations.ts` is an executable isolated proof using `Context.Reference`
+`transaction-annotations.ts` began as an executable isolated proof using `Context.Reference`
 for immutable ambient metadata, a transaction-local journal service and `Effect.fn`
 for named execution. It supports feature-defined string tags without adding any
 action variants. Its three tests establish nested inheritance/sibling isolation,
@@ -88,7 +88,8 @@ error `_tag`s, and review tags therefore have different responsibilities.
 
 ## Integration constraints
 
-This proof stages metadata only and deliberately does not replace history yet.
+The initial proof staged metadata only. The follow-up below now integrates its journal
+with the authoritative history commit.
 Its mutable journal is private to one collection; it must not be shared across
 transaction retries. Production integration should stage records inside the same
 prepared state/transaction attempt as document patches, publish once on success,
@@ -157,3 +158,72 @@ export/reimport, narrow widths and repeated file close; its samples are recorded
 separately from the pre-adapter baseline. These checks support adopting the read
 bindings. They do not establish every package feature or eliminate the previously
 recorded UI heap measurement limitations.
+
+## Domain/history implementation
+
+`session.transact(program, expectedRevision?)` now executes typed Effect programs
+inside the same transactional update as the legacy `execute(actions)` API. Error
+and environment types are inferred from each program rather than listed in an
+all-domain union. `Effect.fn` names the calendar and bundle operations; portable
+calendar planners remain shared ordinary TypeScript. Legacy command adapters map
+errors only at their compatibility boundary.
+
+The editor's calendar field, weather selectors and bundle confirmation now call
+`model.transact` with domain-local functions. `CalendarStateInvalid`,
+`CalendarRuleViolation`, `BundleUnavailable`, `BundleProgressInvalid` and
+`BundleMailInvalid` retain their tags through the runner, so callers can use
+`Effect.catchTag` without parsing a string or adding variants to a shared error type.
+The older inventory comparison and compact reorder continue to use the identity-aware
+legacy command adapter.
+
+A `TransactionDraft` capability supplies a detached snapshot and versioned replacement.
+The operation validates/prepares that snapshot, then records its successful staged
+replacement under scoped review annotations. A sibling staging against an older
+version fails instead of overwriting another child. Each transaction attempt owns a
+fresh draft and journal; both become inactive when the program finishes, including
+failure/interruption. Captured capabilities cannot stage or append after that boundary; cleanup also
+clears their internal document/journal buffers so retained service handles do not
+retain an abandoned save.
+Program code must await its mutations; starting an unjoined child is not an alternative
+commit path.
+
+One shared history finalizer derives real forward/reverse patches, detaches state,
+applies the undo byte/entry budgets and commits document, identities, domain provenance
+and annotations together. Annotations count toward the byte budget and must pass
+plain-JSON/metadata validation. No-op programs create no entry; calendar and bundle
+no-op children also omit misleading annotations from a group with other real edits.
+Failures preserve revision, history, redo and all document/domain state.
+
+`Entry.annotations` records successful operation metadata. Labels from standalone
+operations form the primary group label; compact records remain inspectable. The
+review panel exposes operation labels/tags separately from actual save-field patches.
+Annotations explain intent and are not trusted as a complete change list. Unannotated
+writes remain prominent, and net review still compares against the original import
+after undo-history eviction. These records live in session history; they are not
+exported to game XML or persisted between file sessions.
+
+New domain functions need no entry in `Mutation`. A test-only feature outside that
+union commits a typed program and tags through the same runner. The remaining union
+serves legacy command/identity dispatch and compatibility tests, not the new metadata
+system. Until explicit identity capabilities migrate, the Effect-program path rejects
+inventory record/owner changes rather than keeping stale item handles. Calendar's
+fixed-topology provenance limits also remain; this work does not authorize arbitrary
+farm object replacement.
+
+`domain-transactions.effect.ts` adds twelve tests: extension without a new action
+variant, grouped calendar/bundle export, undo/redo, no-ops, typed failures and late-mail
+rollback, failed/interrupted group rollback, stale revisions/sibling conflicts,
+concurrent retry journal isolation, metadata validation/byte limits, eviction/net
+review, retained-reference isolation and expired capabilities. All 105 experiment
+tests pass (11 native Node and 94 Effect/Vitest). Type/Svelte checks, Effect diagnostics,
+formatting and lab build pass. The browser proof additionally checks operation-tag
+presentation and repeats the complete import/edit/review/undo/export/close workflow
+thirty times, with all tracked resources and export URLs released after every close.
+[Raw observations](../design/v2/domain-measurements.json) retain the same measurement
+limits as the earlier runs; they are not controlled performance comparisons.
+
+Next migration gates remain bounded: explicit inventory identity capabilities, a
+supported production entrypoint, broader failure presentation and real-device checks.
+The bundle sample retains its bounded vanilla coverage; broader Joja-route and
+bundle compatibility remain future domain work. A persistent command/replay schema is a separate need; it is not required to tag or
+review a new typed operation today.

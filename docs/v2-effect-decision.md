@@ -108,18 +108,18 @@ records teardown/remount verification. The comparison tests session-provided
 registry ownership, navigation/remount freshness, pending/errors and teardown through
 the package's own bindings. Its SSR/suspense support is not itself required here.
 
-The current new bundle adapter also underuses Effect: synchronous throwing validation
-is wrapped in Effect.try and collapsed into MutationError. Before production migration,
-represent meaningful domain failures as tagged error variants and use named Effect.fn
-operations for lazy execution/tracing. Preserve those variants through history's error
-channel and test catchTag handling as well as rollback. An intent's review classification
+The initial bundle adapter underused Effect: throwing validation was collapsed into
+MutationError. The domain/history follow-up now supplies tagged calendar/bundle
+failures, named Effect.fn operations and scoped annotation capture inside generic
+transaction programs. Typed failures survive history and are tested with catchTag
+and rollback. Only legacy command compatibility boundaries map to MutationError. An intent's review classification
 is separate from a tracing span or an error tag; neither replaces the actual patches.
 
 Shared pure calendar calculations remain useful ordinary TypeScript, because the legacy
 proxy also consumes them. Effect should orchestrate validation/preparation/failure at
 the domain operation boundary without forcing every arithmetic helper into Effect.
-This is an outstanding experiment refinement, not evidence of complete Effect-domain
-adoption. The earlier comment/readability cleanup made no adapter dependency or domain error-contract
+Calendar and bundle domain boundaries now adopt these contracts. Broader feature
+migration, identity capabilities and production release gates remain outstanding. The earlier comment/readability cleanup made no adapter dependency or domain error-contract
 change; the subsequent adapter PR changes read bindings only.
 
 ## Node 24

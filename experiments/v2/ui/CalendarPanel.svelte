@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { setCalendarWeather } from "../calendar-operations.ts";
 	import { useAtomValue } from "effect-atom-svelte";
 	import { untrack } from "svelte";
 	import type { createDraft } from "../field.ts";
@@ -35,8 +36,8 @@
 	async function weather(day: "today" | "tomorrow", value: string) {
 		error = "";
 		try {
-			await model.execute(
-				[{ type: "calendar-weather", day, value }],
+			await model.transact(
+				setCalendarWeather(day, value),
 				view.current?.revision,
 			);
 		} catch (cause) {

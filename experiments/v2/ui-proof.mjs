@@ -81,7 +81,15 @@ export default async function proof(page) {
 	await page.getByRole("button", { name: "Redo", exact: true }).click();
 	await page.getByRole("link", { name: "Review changes", exact: true }).click();
 	await page
-		.getByText("Complete Spring Foraging bundle", { exact: true })
+		.locator("strong")
+		.filter({ hasText: "Complete Spring Foraging bundle" })
+		.waitFor();
+	await page
+		.getByText("Operations in this change (1)", { exact: true })
+		.last()
+		.click();
+	await page
+		.getByText("Tags: community-center, bundle:13", { exact: true })
 		.waitFor();
 	const downloadPromise = page.waitForEvent("download");
 	await page.getByRole("button", { name: "Export save", exact: true }).click();

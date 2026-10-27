@@ -1,3 +1,6 @@
+import type { TransactionDraft } from "./transaction-draft.ts";
+import type { ReviewJournal } from "./transaction-annotations.ts";
+import { setCalendarDate } from "./calendar-operations.ts";
 import { springBundleView } from "./bundle-operations.ts";
 import { Effect, Exit, Fiber, JsonPatch, Scope, Stream } from "effect";
 import * as Atom from "effect/reactivity/Atom";
@@ -50,6 +53,7 @@ export interface EditorView {
 		compact: boolean;
 		applied: boolean;
 		paths: string[];
+		annotations: HistoryState["entries"][number]["annotations"];
 	}[];
 	net: JsonPatch.JsonPatch;
 	farmerId: string;
@@ -120,6 +124,7 @@ function project(state: HistoryState): EditorView {
 			compact: entry.intent.review === "compact",
 			applied: index < state.cursor,
 			paths: entry.forward.map((patch) => patch.path),
+			annotations: entry.annotations,
 		})),
 		// Baseline comparison survives undo-history eviction and exposes actual
 		// document writes even if an operation supplied an incomplete receipt.
@@ -289,6 +294,16 @@ export const makeEditorModel = (
 				publish(result);
 			});
 		};
+		// Domain programs carry their inferred errors and ambient metadata into the
+		// same command queue. This boundary does not enumerate feature actions or
+		// erase their tagged failures into a framework-wide error union.
+		const transact = <E>(
+			program: Effect.Effect<unknown, E, TransactionDraft | ReviewJournal>,
+			expectedRevision?: number,
+		) =>
+			command(async () => {
+				publish(await run(live().transact(program, expectedRevision)));
+			});
 		// Each field snapshot captures its source revision. A dirty draft keeps that
 		// handle, so undo/redo or any intervening commit causes an explicit conflict.
 		const dateField: Field<GameDate> = {
@@ -304,7 +319,7 @@ export const makeEditorModel = (
 				revision: state?.revision ?? -1,
 				available: state !== undefined,
 				commit: (value: GameDate) =>
-					execute([{ type: "calendar-date", change: value }], state?.revision),
+					transact(setCalendarDate(value), state?.revision),
 			})),
 		};
 		return {
@@ -319,6 +334,7 @@ export const makeEditorModel = (
 			view,
 			dateField,
 			execute,
+			transact,
 			pending: {
 				subscribe: (notify: (value: number) => void) => {
 					if (!registry) {

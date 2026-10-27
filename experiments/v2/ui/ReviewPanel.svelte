@@ -51,6 +51,25 @@
 				<strong>{entry.label}</strong>
 				{#if !entry.applied}
 					(undone){/if}
+				{#if entry.annotations.length}
+					<!-- Show the successful domain substeps separately from actual
+                         patches. Metadata explains intent; patches verify it. -->
+					<details>
+						<summary>
+							Operations in this change ({entry.annotations.length})
+						</summary>
+						<ul>
+							{#each entry.annotations as annotation, index (index)}
+								<li>
+									{annotation.label || "Unlabelled changes"}
+									{#if annotation.tags?.length}
+										<small>Tags: {annotation.tags.join(", ")}</small>
+									{/if}
+								</li>
+							{/each}
+						</ul>
+					</details>
+				{/if}
 				<details>
 					<summary>Affected save fields ({entry.paths.length})</summary>
 					<ul>

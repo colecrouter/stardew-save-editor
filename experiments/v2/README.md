@@ -56,7 +56,7 @@ The worker layer starts a real Node worker per request and awaits termination on
 success, error or cancellation. This intentionally costly arrangement proves ownership,
 not an optimized pool. Production Comlink remains; replacing it is not a prerequisite.
 
-Eleven native Node tests and eighty-two @effect/vitest tests cover mutation and
+Eleven native Node tests and ninety-four @effect/vitest tests cover mutation and
 calendar semantics, the production codec, compression, opaque fields, typed errors,
 service substitution, scoped files, cancellation, actual workers, transactions,
 JSON Patch, net review and the complete calendar/bundle editing model.
@@ -226,7 +226,8 @@ completion, undo/redo and export/reimport. See [workflow evidence and reproducti
 `transaction-annotations.ts` proves scoped, inheritable review metadata without a
 union of every domain action. A transaction-local journal stages successful records;
 three tests cover nesting, typed domain failures, failed groups and concurrent
-isolation. It does not replace the document/history commit boundary yet.
+isolation. The generic history transaction now commits these annotations alongside actual
+patches; the initial proof remains useful as an isolated contract test.
 See [adapter and annotation findings](../../docs/v2-adapter-and-annotations.md) for
 how this can fit `effect-atom-svelte`, and the package's ownership/command caveats.
 
@@ -240,3 +241,15 @@ retain their existing semantics. File teardown unmounts hooks before disposal.
 `adapter-proof.mjs` and `ui/testing` cover provider remounts and owner close through
 the actual Svelte runtime. See [adapter evidence](../../docs/v2-adapter-and-annotations.md#adapter-implementation-and-result)
 for the verified behavior and deliberately deferred package features.
+
+## Typed domain transaction programs
+
+`session.transact(program, expectedRevision?)` stages domain-local Effect operations
+without adding them to the legacy Mutation union. Calendar and bundle UI use that
+path; legacy inventory identity commands remain separate. Metadata is scoped through
+Context, validated, detached and committed with patches under the history budget.
+Domain-specific tagged failures remain typed through the runner.
+
+See `domain-transactions.effect.ts` and [the implementation record](../../docs/v2-adapter-and-annotations.md#domainhistory-implementation)
+for rollback, retry/interruption, capability lifetime and compatibility coverage.
+Only session history carries annotations; XML export remains the preservation document.

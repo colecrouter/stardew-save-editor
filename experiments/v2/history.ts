@@ -6,6 +6,12 @@ import {
 	TxSubscriptionRef,
 	Option,
 } from "effect";
+import {
+	collectTransactionMetadata,
+	type ReviewMetadata,
+	type ReviewJournal,
+} from "./transaction-annotations.ts";
+import { TransactionDraft, makeTransactionDraft } from "./transaction-draft.ts";
 import { coreOperations, EditorOperations } from "./operations.ts";
 import {
 	type Mutation,
@@ -24,7 +30,14 @@ interface Entry {
 	identitiesBefore: Record<string, string[]>;
 	identitiesAfter: Record<string, string[]>;
 	id: number;
-	intent: Omit<Receipt, "changes">;
+	// Domain inputs remain typed at their call sites. History needs presentation
+	// and an opaque operation identifier, not a union of every executable command.
+	intent: {
+		intent: { type: string };
+		label: string;
+		review: "standalone" | "compact";
+	};
+	annotations: readonly ReviewMetadata[];
 	actions: readonly Mutation[];
 	forward: JsonPatch.JsonPatch;
 	backward: JsonPatch.JsonPatch;
@@ -136,10 +149,114 @@ export const makeHistorySession = (
 			}),
 		);
 
-		const update = (
-			change: (
-				state: History,
-			) => History | Effect.Effect<History, MutationError>,
+		// Every entry, whether driven by legacy commands or a typed Effect program,
+		// uses this one diff/budget/retention path. Annotation success alone cannot
+		// create a history entry when document, provenance and identities did not change.
+		const finish = (
+			state: History,
+			input: SessionState,
+			identities: History["identities"],
+			nextIdentity: number,
+			resolved: readonly Mutation[],
+			label?: string,
+			annotations: readonly ReviewMetadata[] = [],
+		): History => {
+			let prepared = input;
+			// Quiet children remain in annotations, but a standalone child should
+			// supply the group heading rather than being drowned out by maintenance.
+			const emphasized = annotations.filter(
+				(value) => value.emphasis !== "compact",
+			);
+			const annotationLabel = (emphasized.length ? emphasized : annotations)
+				.map((value) => value.label || "Unlabelled changes")
+				.join("; ");
+			// Detach published state from drafts retained by an adapter.
+			prepared = structuredClone(prepared);
+			const forward = JsonPatch.get(
+				json(state.document),
+				json(prepared.document),
+			);
+			// Swapping byte-identical items still moves distinct session entities.
+			// Keep that undoable even when the XML has no net difference.
+			if (
+				forward.length === 0 &&
+				JsonPatch.get(json(state.domainState), json(prepared.domainState ?? {}))
+					.length === 0 &&
+				JSON.stringify(identities) === JSON.stringify(state.identities)
+			)
+				return state;
+			const receipts = prepared.history;
+			const first = receipts[0] ?? {
+				intent: resolved.find((action) => action.type === "reorder") ??
+					resolved[0] ?? { type: "effect-transaction" },
+				label: resolved.some((action) => action.type === "reorder")
+					? "Reorder backpack"
+					: "Unlabelled changes",
+				review: "compact" as const,
+			};
+			const payload: Omit<Entry, "bytes"> = {
+				domainBefore: state.domainState,
+				domainAfter: prepared.domainState ?? {},
+				identitiesBefore: state.identities,
+				identitiesAfter: identities,
+				id: state.nextId,
+				actions: structuredClone(resolved),
+				annotations: structuredClone(annotations),
+				intent: {
+					intent: structuredClone(first.intent),
+					label:
+						label ??
+						(annotations.length ? annotationLabel : undefined) ??
+						(receipts.length > 1
+							? receipts
+									.map((receipt) => receipt.label || "Unlabelled changes")
+									.join("; ")
+							: first.label),
+					review: (
+						annotations.length > 0
+							? annotations.some((value) => value.emphasis !== "compact")
+							: (receipts.length === 0 && forward.length > 0) ||
+								receipts.some((receipt) => receipt.review === "standalone")
+					)
+						? "standalone"
+						: "compact",
+				},
+				forward,
+				backward: JsonPatch.get(json(prepared.document), json(state.document)),
+			};
+			const entry: Entry = { ...payload, bytes: entryBytes(payload) };
+			// Reject one oversized operation before publishing anything. Silently
+			// applying an action that cannot be undone would be misleading.
+			if (entry.bytes > byteLimit)
+				throw new MutationError(
+					"This action exceeds the undo history byte budget",
+				);
+			const entries = [...state.entries.slice(0, state.cursor), entry];
+			let retainedBytes = entries.reduce(
+				(total, entry) => total + entry.bytes,
+				0,
+			);
+			let evict = 0;
+			while (entries.length - evict > limit || retainedBytes > byteLimit) {
+				retainedBytes -= entries[evict].bytes;
+				evict++;
+			}
+			return {
+				...state,
+				retainedBytes,
+				domainState: prepared.domainState ?? {},
+				identities,
+				nextIdentity,
+				document: prepared.document,
+				entries: entries.slice(evict),
+				cursor: entries.length - evict,
+				nextId: state.nextId + 1,
+				dropped: state.dropped + evict,
+			};
+		};
+
+		const update = <E, R = never>(
+			change: (state: History) => History | Effect.Effect<History, E, R>,
 			expectedRevision?: number,
 		) =>
 			Effect.tx(
@@ -268,95 +385,14 @@ export const makeHistorySession = (
 									};
 								}
 							}
-							// Detach published state from drafts retained by an adapter.
-							prepared = structuredClone(prepared);
-							const forward = JsonPatch.get(
-								json(state.document),
-								json(prepared.document),
-							);
-							// Swapping byte-identical items still moves distinct session entities.
-							// Keep that undoable even when the XML has no net difference.
-							if (
-								forward.length === 0 &&
-								JsonPatch.get(
-									json(state.domainState),
-									json(prepared.domainState ?? {}),
-								).length === 0 &&
-								JSON.stringify(identities) === JSON.stringify(state.identities)
-							)
-								return state;
-							const receipts = prepared.history;
-							const first = receipts[0] ?? {
-								intent:
-									resolved.find((action) => action.type === "reorder") ??
-									resolved[0],
-								label: resolved.some((action) => action.type === "reorder")
-									? "Reorder backpack"
-									: "Unlabelled changes",
-								review: "compact" as const,
-							};
-							const payload: Omit<Entry, "bytes"> = {
-								domainBefore: state.domainState,
-								domainAfter: prepared.domainState ?? {},
-								identitiesBefore: state.identities,
-								identitiesAfter: identities,
-								id: state.nextId,
-								actions: structuredClone(resolved),
-								intent: {
-									intent: structuredClone(first.intent),
-									label:
-										label ??
-										(receipts.length > 1
-											? receipts
-													.map(
-														(receipt) => receipt.label || "Unlabelled changes",
-													)
-													.join("; ")
-											: first.label),
-									review:
-										(receipts.length === 0 && forward.length > 0) ||
-										receipts.some((receipt) => receipt.review === "standalone")
-											? "standalone"
-											: "compact",
-								},
-								forward,
-								backward: JsonPatch.get(
-									json(prepared.document),
-									json(state.document),
-								),
-							};
-							const entry: Entry = { ...payload, bytes: entryBytes(payload) };
-							// Reject one oversized operation before publishing anything. Silently
-							// applying an action that cannot be undone would be misleading.
-							if (entry.bytes > byteLimit)
-								throw new MutationError(
-									"This action exceeds the undo history byte budget",
-								);
-							const entries = [...state.entries.slice(0, state.cursor), entry];
-							let retainedBytes = entries.reduce(
-								(total, entry) => total + entry.bytes,
-								0,
-							);
-							let evict = 0;
-							while (
-								entries.length - evict > limit ||
-								retainedBytes > byteLimit
-							) {
-								retainedBytes -= entries[evict].bytes;
-								evict++;
-							}
-							return {
-								...state,
-								retainedBytes,
-								domainState: prepared.domainState ?? {},
+							return finish(
+								state,
+								prepared,
 								identities,
 								nextIdentity,
-								document: prepared.document,
-								entries: entries.slice(evict),
-								cursor: entries.length - evict,
-								nextId: state.nextId + 1,
-								dropped: state.dropped + evict,
-							};
+								resolved,
+								label,
+							);
 						}).pipe(
 							Effect.catchDefect((error) =>
 								Effect.fail(
@@ -366,6 +402,69 @@ export const makeHistorySession = (
 								),
 							),
 						),
+					expectedRevision,
+				),
+			// Program error types are inferred locally, not enumerated centrally.
+			// Allocate both draft and journal inside the transaction attempt so a
+			// retry, interruption or failed child publishes no partial metadata.
+			transact: <A, E, R>(
+				program: Effect.Effect<A, E, R | TransactionDraft | ReviewJournal>,
+				expectedRevision?: number,
+			) =>
+				update(
+					(state) =>
+						Effect.gen(function* () {
+							const draft = makeTransactionDraft({
+								document: state.document,
+								domainState: state.domainState,
+								history: [],
+							});
+							const { collected, prepared } = yield* collectTransactionMetadata(
+								program,
+							).pipe(
+								Effect.provideService(TransactionDraft, draft.service),
+								// Take the result before close clears retained service state.
+								// Escaped capability handles must not retain an abandoned save.
+								Effect.map((collected) => ({
+									collected,
+									prepared: draft.prepared(),
+								})),
+								Effect.ensuring(Effect.sync(() => draft.close())),
+							);
+							// Inventory identity changes still use the legacy identity adapter.
+							// Until that capability migrates, reject untracked entity changes
+							// rather than publishing patches with stale item identities.
+							const inventories = (document: SaveDocument) =>
+								farmers(document).map((farmer) => ({
+									id: String(farmer.UniqueMultiplayerID),
+									items: farmer.items,
+								}));
+							if (
+								JSON.stringify(inventories(state.document)) !==
+								JSON.stringify(inventories(prepared.document))
+							)
+								return yield* Effect.fail(
+									new MutationError(
+										"Effect transactions do not yet support inventory identity changes",
+									),
+								);
+							return yield* Effect.try({
+								try: () =>
+									finish(
+										state,
+										prepared,
+										state.identities,
+										state.nextIdentity,
+										[],
+										undefined,
+										collected.records,
+									),
+								catch: (cause) =>
+									cause instanceof MutationError
+										? cause
+										: new MutationError(String(cause)),
+							});
+						}),
 					expectedRevision,
 				),
 			undo: update((state) => {

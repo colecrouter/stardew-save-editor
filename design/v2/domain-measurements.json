@@ -1,0 +1,385 @@
+{
+	"layouts": [
+		{
+			"width": 1280,
+			"scroll": 1280
+		},
+		{
+			"width": 768,
+			"scroll": 768
+		},
+		{
+			"width": 390,
+			"scroll": 390
+		},
+		{
+			"width": 320,
+			"scroll": 320
+		}
+	],
+	"samples": [
+		{
+			"cycle": 0,
+			"importMs": 850,
+			"editMs": 338,
+			"reviewUndoExportMs": 823,
+			"heapBytes": 21758364,
+			"resources": {
+				"models": 0,
+				"registries": 0,
+				"streams": 0
+			}
+		},
+		{
+			"cycle": 1,
+			"importMs": 912,
+			"editMs": 335,
+			"reviewUndoExportMs": 820,
+			"heapBytes": 21816368,
+			"resources": {
+				"models": 0,
+				"registries": 0,
+				"streams": 0
+			}
+		},
+		{
+			"cycle": 2,
+			"importMs": 885,
+			"editMs": 348,
+			"reviewUndoExportMs": 781,
+			"heapBytes": 21915028,
+			"resources": {
+				"models": 0,
+				"registries": 0,
+				"streams": 0
+			}
+		},
+		{
+			"cycle": 3,
+			"importMs": 767,
+			"editMs": 310,
+			"reviewUndoExportMs": 783,
+			"heapBytes": 21981192,
+			"resources": {
+				"models": 0,
+				"registries": 0,
+				"streams": 0
+			}
+		},
+		{
+			"cycle": 4,
+			"importMs": 847,
+			"editMs": 356,
+			"reviewUndoExportMs": 863,
+			"heapBytes": 22028840,
+			"resources": {
+				"models": 0,
+				"registries": 0,
+				"streams": 0
+			}
+		},
+		{
+			"cycle": 5,
+			"importMs": 861,
+			"editMs": 349,
+			"reviewUndoExportMs": 835,
+			"heapBytes": 22055676,
+			"resources": {
+				"models": 0,
+				"registries": 0,
+				"streams": 0
+			}
+		},
+		{
+			"cycle": 6,
+			"importMs": 894,
+			"editMs": 346,
+			"reviewUndoExportMs": 851,
+			"heapBytes": 22327776,
+			"resources": {
+				"models": 0,
+				"registries": 0,
+				"streams": 0
+			}
+		},
+		{
+			"cycle": 7,
+			"importMs": 873,
+			"editMs": 359,
+			"reviewUndoExportMs": 853,
+			"heapBytes": 22409424,
+			"resources": {
+				"models": 0,
+				"registries": 0,
+				"streams": 0
+			}
+		},
+		{
+			"cycle": 8,
+			"importMs": 852,
+			"editMs": 334,
+			"reviewUndoExportMs": 792,
+			"heapBytes": 22425472,
+			"resources": {
+				"models": 0,
+				"registries": 0,
+				"streams": 0
+			}
+		},
+		{
+			"cycle": 9,
+			"importMs": 832,
+			"editMs": 358,
+			"reviewUndoExportMs": 835,
+			"heapBytes": 22435088,
+			"resources": {
+				"models": 0,
+				"registries": 0,
+				"streams": 0
+			}
+		},
+		{
+			"cycle": 10,
+			"importMs": 855,
+			"editMs": 331,
+			"reviewUndoExportMs": 785,
+			"heapBytes": 22443844,
+			"resources": {
+				"models": 0,
+				"registries": 0,
+				"streams": 0
+			}
+		},
+		{
+			"cycle": 11,
+			"importMs": 815,
+			"editMs": 320,
+			"reviewUndoExportMs": 777,
+			"heapBytes": 22452264,
+			"resources": {
+				"models": 0,
+				"registries": 0,
+				"streams": 0
+			}
+		},
+		{
+			"cycle": 12,
+			"importMs": 792,
+			"editMs": 321,
+			"reviewUndoExportMs": 829,
+			"heapBytes": 22463908,
+			"resources": {
+				"models": 0,
+				"registries": 0,
+				"streams": 0
+			}
+		},
+		{
+			"cycle": 13,
+			"importMs": 817,
+			"editMs": 344,
+			"reviewUndoExportMs": 791,
+			"heapBytes": 22475672,
+			"resources": {
+				"models": 0,
+				"registries": 0,
+				"streams": 0
+			}
+		},
+		{
+			"cycle": 14,
+			"importMs": 773,
+			"editMs": 310,
+			"reviewUndoExportMs": 769,
+			"heapBytes": 22485788,
+			"resources": {
+				"models": 0,
+				"registries": 0,
+				"streams": 0
+			}
+		},
+		{
+			"cycle": 15,
+			"importMs": 798,
+			"editMs": 316,
+			"reviewUndoExportMs": 766,
+			"heapBytes": 22491272,
+			"resources": {
+				"models": 0,
+				"registries": 0,
+				"streams": 0
+			}
+		},
+		{
+			"cycle": 16,
+			"importMs": 794,
+			"editMs": 340,
+			"reviewUndoExportMs": 774,
+			"heapBytes": 22516884,
+			"resources": {
+				"models": 0,
+				"registries": 0,
+				"streams": 0
+			}
+		},
+		{
+			"cycle": 17,
+			"importMs": 793,
+			"editMs": 313,
+			"reviewUndoExportMs": 780,
+			"heapBytes": 22534824,
+			"resources": {
+				"models": 0,
+				"registries": 0,
+				"streams": 0
+			}
+		},
+		{
+			"cycle": 18,
+			"importMs": 812,
+			"editMs": 316,
+			"reviewUndoExportMs": 793,
+			"heapBytes": 22539200,
+			"resources": {
+				"models": 0,
+				"registries": 0,
+				"streams": 0
+			}
+		},
+		{
+			"cycle": 19,
+			"importMs": 800,
+			"editMs": 311,
+			"reviewUndoExportMs": 766,
+			"heapBytes": 22547748,
+			"resources": {
+				"models": 0,
+				"registries": 0,
+				"streams": 0
+			}
+		},
+		{
+			"cycle": 20,
+			"importMs": 776,
+			"editMs": 309,
+			"reviewUndoExportMs": 772,
+			"heapBytes": 22557976,
+			"resources": {
+				"models": 0,
+				"registries": 0,
+				"streams": 0
+			}
+		},
+		{
+			"cycle": 21,
+			"importMs": 779,
+			"editMs": 316,
+			"reviewUndoExportMs": 772,
+			"heapBytes": 22565344,
+			"resources": {
+				"models": 0,
+				"registries": 0,
+				"streams": 0
+			}
+		},
+		{
+			"cycle": 22,
+			"importMs": 800,
+			"editMs": 310,
+			"reviewUndoExportMs": 765,
+			"heapBytes": 22571528,
+			"resources": {
+				"models": 0,
+				"registries": 0,
+				"streams": 0
+			}
+		},
+		{
+			"cycle": 23,
+			"importMs": 793,
+			"editMs": 315,
+			"reviewUndoExportMs": 786,
+			"heapBytes": 22593972,
+			"resources": {
+				"models": 0,
+				"registries": 0,
+				"streams": 0
+			}
+		},
+		{
+			"cycle": 24,
+			"importMs": 800,
+			"editMs": 315,
+			"reviewUndoExportMs": 781,
+			"heapBytes": 22600284,
+			"resources": {
+				"models": 0,
+				"registries": 0,
+				"streams": 0
+			}
+		},
+		{
+			"cycle": 25,
+			"importMs": 800,
+			"editMs": 313,
+			"reviewUndoExportMs": 801,
+			"heapBytes": 22609224,
+			"resources": {
+				"models": 0,
+				"registries": 0,
+				"streams": 0
+			}
+		},
+		{
+			"cycle": 26,
+			"importMs": 805,
+			"editMs": 312,
+			"reviewUndoExportMs": 769,
+			"heapBytes": 22610456,
+			"resources": {
+				"models": 0,
+				"registries": 0,
+				"streams": 0
+			}
+		},
+		{
+			"cycle": 27,
+			"importMs": 802,
+			"editMs": 313,
+			"reviewUndoExportMs": 755,
+			"heapBytes": 22616576,
+			"resources": {
+				"models": 0,
+				"registries": 0,
+				"streams": 0
+			}
+		},
+		{
+			"cycle": 28,
+			"importMs": 790,
+			"editMs": 315,
+			"reviewUndoExportMs": 778,
+			"heapBytes": 22615280,
+			"resources": {
+				"models": 0,
+				"registries": 0,
+				"streams": 0
+			}
+		},
+		{
+			"cycle": 29,
+			"importMs": 775,
+			"editMs": 310,
+			"reviewUndoExportMs": 776,
+			"heapBytes": 22638368,
+			"resources": {
+				"models": 0,
+				"registries": 0,
+				"streams": 0
+			}
+		}
+	],
+	"failures": [],
+	"browser": "156.0.8078.47",
+	"notes": "Development-mode observation of annotated domain programs; timings include browser automation. Different runs/system load are not controlled performance comparisons."
+}

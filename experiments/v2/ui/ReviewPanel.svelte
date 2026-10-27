@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { Result } from "effect";
 	import { useAtomValue } from "effect-atom-svelte";
 	import type { EditorModel } from "../editor-model.ts";
 	let { model }: { model: EditorModel } = $props();
@@ -14,20 +15,17 @@
 		const snapshot = view.current;
 		if (!snapshot) return;
 		error = "";
-		try {
-			await model.execute([
-				{
-					type: "reorder",
-					farmerId: snapshot.farmerId,
-					order: Array.from(
-						{ length: snapshot.backpackSize },
-						(_, i) => snapshot.backpackSize - i - 1,
-					),
-				},
-			]);
-		} catch (cause) {
-			error = String(cause);
-		}
+		const result = await model.commands.execute([
+			{
+				type: "reorder",
+				farmerId: snapshot.farmerId,
+				order: Array.from(
+					{ length: snapshot.backpackSize },
+					(_, i) => snapshot.backpackSize - i - 1,
+				),
+			},
+		]);
+		if (result && Result.isFailure(result)) error = result.failure.message;
 	}
 </script>
 
@@ -50,6 +48,25 @@
 				<strong>{entry.label}</strong>
 				{#if !entry.applied}
 					(undone){/if}
+				{#if entry.annotations.length}
+					<!-- Show the successful domain substeps separately from actual
+                         patches. Metadata explains intent; patches verify it. -->
+					<details>
+						<summary>
+							Operations in this change ({entry.annotations.length})
+						</summary>
+						<ul>
+							{#each entry.annotations as annotation, index (index)}
+								<li>
+									{annotation.label || "Unlabelled changes"}
+									{#if annotation.tags?.length}
+										<small>Tags: {annotation.tags.join(", ")}</small>
+									{/if}
+								</li>
+							{/each}
+						</ul>
+					</details>
+				{/if}
 				<details>
 					<summary>Affected save fields ({entry.paths.length})</summary>
 					<ul>

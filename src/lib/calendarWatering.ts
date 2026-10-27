@@ -1,3 +1,4 @@
+import { CalendarDocumentError } from "./calendarErrors.ts";
 interface TargetLocation {
 	/** Session identity, retained through moves and never reused for a replacement. */
 	id: string;
@@ -37,13 +38,17 @@ export function planRainWatering({
 	const byId = new Map<string, WateringTarget>();
 	for (const target of targets) {
 		if (byId.has(target.id))
-			throw new Error(`Duplicate watering target: ${target.id}`);
+			throw new CalendarDocumentError(
+				`Duplicate watering target: ${target.id}`,
+			);
 		byId.set(target.id, target);
 	}
 	const marked = new Set<string>();
 	for (const mark of provenance) {
 		if (marked.has(mark.id))
-			throw new Error(`Duplicate watering provenance: ${mark.id}`);
+			throw new CalendarDocumentError(
+				`Duplicate watering provenance: ${mark.id}`,
+			);
 		marked.add(mark.id);
 	}
 	const next = provenance.map((mark) => ({ ...mark }));

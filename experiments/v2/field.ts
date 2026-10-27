@@ -1,3 +1,5 @@
+import { Result } from "effect";
+import type { CommandResult } from "./command-result.ts";
 import { get, writable, type Readable } from "svelte/store";
 
 // A snapshot is an operation handle bound to its original target and revision.
@@ -7,7 +9,7 @@ export interface FieldValue<T> {
 	value: T;
 	revision: number;
 	available: boolean;
-	commit: (value: T) => Promise<void>;
+	commit: (value: T) => Promise<void | CommandResult<void, unknown>>;
 }
 export interface Field<T> {
 	label: string;
@@ -76,7 +78,17 @@ export function createDraft<T>(field: Field<T>) {
 			try {
 				const value = field.parse(draft.text);
 				state.update((current) => ({ ...current, pending: true, error: "" }));
-				await draft.base.commit(value);
+				const result = await draft.base.commit(value);
+				// Legacy comparator commits return void; editor commands return a
+				// typed Result or null when the application handled noncompletion.
+				if (result === null || (result && Result.isFailure(result))) {
+					state.update((current) => ({
+						...current,
+						pending: false,
+						error: result ? String(result.failure) : "",
+					}));
+					return;
+				}
 				state.update((current) => clean(current.current));
 			} catch (error) {
 				// Failed validation or a stale operation leaves the user's input intact.

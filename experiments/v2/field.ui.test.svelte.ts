@@ -60,3 +60,36 @@ it("rune drafts preserve invalid text and prevent commits to a replacement field
 	}
 	expect(listeners).toBe(0);
 });
+
+it("an application-handled noncompletion leaves the rune draft editable for retry", async () => {
+	const field: Field<number> = {
+		label: "Stack",
+		description: "",
+		parse: parseStack,
+		format: String,
+		value: writable({
+			key: "a",
+			revision: 0,
+			available: true,
+			value: 2,
+			commit: async () => null,
+		}),
+	};
+	let draft!: ReturnType<typeof createRuneDraft<number>>;
+	const dispose = $effect.root(() => {
+		draft = createRuneDraft(() => field);
+	});
+	try {
+		flushSync();
+		draft.input("8");
+		await draft.submit();
+		expect(draft.current.pending).toBe(false);
+		expect(draft.current.dirty).toBe(true);
+		expect(draft.current.text).toBe("8");
+		expect(draft.current.error).toBe("");
+		draft.input("9");
+		expect(draft.current.text).toBe("9");
+	} finally {
+		dispose();
+	}
+});

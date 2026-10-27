@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { completeSpringForaging } from "../bundle-operations.ts";
 	import { useAtomValue } from "effect-atom-svelte";
 	import { tick } from "svelte";
 	import type { EditorModel } from "../editor-model.ts";
@@ -45,8 +46,7 @@
 			prepare={() => {
 				revision = view.current?.revision;
 			}}
-			commit={() =>
-				model.execute([{ type: "bundle-complete", bundleId: 13 }], revision)}
+			commit={() => model.commands.transact(completeSpringForaging(), revision)}
 		/>
 	{/if}
 </section>

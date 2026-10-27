@@ -57,7 +57,7 @@ The worker layer starts a real Node worker per request and awaits termination on
 success, error or cancellation. This intentionally costly arrangement proves ownership,
 not an optimized pool. Production Comlink remains; replacing it is not a prerequisite.
 
-Eleven native Node tests and eighty-two @effect/vitest tests cover mutation and
+Eleven native Node tests and ninety-four @effect/vitest tests cover mutation and
 calendar semantics, the production codec, compression, opaque fields, typed errors,
 service substitution, scoped files, cancellation, actual workers, transactions,
 JSON Patch, net review and the complete calendar/bundle editing model.
@@ -227,7 +227,8 @@ completion, undo/redo and export/reimport. See [workflow evidence and reproducti
 `transaction-annotations.ts` proves scoped, inheritable review metadata without a
 union of every domain action. A transaction-local journal stages successful records;
 three tests cover nesting, typed domain failures, failed groups and concurrent
-isolation. It does not replace the document/history commit boundary yet.
+isolation. The generic history transaction now commits these annotations alongside actual
+patches; the initial proof remains useful as an isolated contract test.
 See [adapter and annotation findings](../../docs/v2-adapter-and-annotations.md) for
 how this can fit `effect-atom-svelte`, and the package's ownership/command caveats.
 
@@ -241,6 +242,18 @@ retain their existing semantics. File teardown unmounts hooks before disposal.
 `adapter-proof.mjs` and `ui/testing` cover provider remounts and owner close through
 the actual Svelte runtime. See [adapter evidence](../../docs/v2-adapter-and-annotations.md#adapter-implementation-and-result)
 for the verified behavior and deliberately deferred package features.
+
+## Typed domain transaction programs
+
+`session.transact(program, expectedRevision?)` stages domain-local Effect operations
+without adding them to the legacy Mutation union. Calendar and bundle UI use that
+path; legacy inventory identity commands remain separate. Metadata is scoped through
+Context, validated, detached and committed with patches under the history budget.
+Domain-specific tagged failures remain typed through the runner.
+
+See `domain-transactions.effect.ts` and [the implementation record](../../docs/v2-adapter-and-annotations.md#domainhistory-implementation)
+for rollback, retry/interruption, capability lifetime and compatibility coverage.
+Only session history carries annotations; XML export remains the preservation document.
 
 ## Review follow-up: reactive UI ownership
 
@@ -259,6 +272,30 @@ input as an empty draft string; applying is still an explicit operation.
 Repository comment/readability guidance lives in root `AGENTS.md`, linked from
 `CONTRIBUTING.md`; it applies to both foundation PRs and subsequent work.
 
+## Review follow-up: failures and defects
+
+Rendered editor flows use `model.commands`: the file-owned runtime executes each
+command in the existing queue and scope, returning `Result` for success/expected
+failures and `null` for application-handled noncompletion. Panels display domain
+failures; they neither inspect defect causes nor report them. The boundary reports
+the full cause once to the console and emits a generic session toast. No save or
+command payload is attached. Sentry wiring remains with the production application;
+the isolated lab does not initialize it. Pure interruption is quiet. Pending state
+clears in every outcome, and a failed transaction preserves committed state/redo.
+The original promise/rejection methods remain compatibility adapters for older
+comparison callers; they are not used by the rendered editor command flow.
+
+Draft reads/replacements/capture/close are Effects. Bundle inspection and validation
+fail explicitly in named Effects. Shared calendar rules stay pure for legacy
+consumers; `CalendarDocumentError` marks deliberate rejections. The narrow Effect
+adapter converts only that class, leaving TypeError/clone and other defects intact.
+These changes do not claim recovery from arbitrary external side effects or prove
+that a defect in post-commit rendering rolls back a successful engine commit.
+
+Regression coverage includes typed failures, staged-write defects, redo retention,
+queue recovery, closure cancellation, reactive model replacement, draft retry and
+one shared toast with continued editing. Run `npm run test:ui --prefix experiments/v2`
+for the Svelte-compiled cases in addition to the native/domain suite.
 The compiled UI test command runs root SvelteKit sync before Vitest, just like
 the lab/domain commands. Without that generated configuration a clean checkout
 fails during dependency optimization, even though a warm local checkout passes.

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { Result } from "effect";
 	import { onDestroy, tick } from "svelte";
 	import { RegistryProvider } from "effect-atom-svelte";
 	import { openEditor } from "../editor-model.ts";
@@ -62,7 +63,10 @@
 	async function download() {
 		const current = active;
 		if (!current) return;
-		const bytes = await current.model.export();
+		const result = await current.model.commands.export();
+		if (!result) return;
+		if (Result.isFailure(result)) return result;
+		const bytes = result.success;
 		if (active !== current) return;
 		releaseUrl();
 		downloadUrl = URL.createObjectURL(

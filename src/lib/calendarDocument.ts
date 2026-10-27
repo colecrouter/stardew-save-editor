@@ -1,3 +1,4 @@
+import { CalendarDocumentError } from "./calendarErrors.ts";
 import type { LocationWeatherClass, Player, Save, Season } from "$types/save";
 import {
 	dateInRange,
@@ -186,7 +187,7 @@ function bindings(game: Save): Map<string, TargetBinding> {
 	const locations = new Set<string>();
 	const add = (binding: TargetBinding) => {
 		if (result.has(binding.key))
-			throw new Error("Calendar target key is ambiguous");
+			throw new CalendarDocumentError("Calendar target key is ambiguous");
 		result.set(binding.key, binding);
 	};
 	for (const location of game.locations.GameLocation) {
@@ -197,17 +198,19 @@ function bindings(game: Save): Map<string, TargetBinding> {
 				? location.uniqueName
 				: location.name;
 		if (locations.has(locationKey))
-			throw new Error("Calendar location key is ambiguous");
+			throw new CalendarDocumentError("Calendar location key is ambiguous");
 		locations.add(locationKey);
 		for (const building of location.buildings?.Building ?? []) {
 			if (building["@_xsi:type"] !== "PetBowl") continue;
 			if (typeof building.id !== "string" || !building.id)
-				throw new Error("A pet bowl is missing its building ID");
+				throw new CalendarDocumentError(
+					"A pet bowl is missing its building ID",
+				);
 			if (
 				building.watered !== undefined &&
 				typeof building.watered !== "boolean"
 			)
-				throw new Error("Pet bowl watering is invalid");
+				throw new CalendarDocumentError("Pet bowl watering is invalid");
 			const { watered: _watered, ...detail } = building;
 			add({
 				key: JSON.stringify([locationKey, "bowl", building.id]),
@@ -220,7 +223,7 @@ function bindings(game: Save): Map<string, TargetBinding> {
 				},
 				write: (write) => {
 					if (write.kind !== "bowl")
-						throw new Error("Calendar target kind changed");
+						throw new CalendarDocumentError("Calendar target kind changed");
 					if (write.value === undefined) delete building.watered;
 					else building.watered = write.value;
 				},
@@ -231,9 +234,11 @@ function bindings(game: Save): Map<string, TargetBinding> {
 			if (feature?.["@_xsi:type"] !== "HoeDirt") continue;
 			const tile = entry.key?.Vector2;
 			if (!tile || !Number.isInteger(tile.X) || !Number.isInteger(tile.Y))
-				throw new Error("A tilled tile is missing its map coordinates");
+				throw new CalendarDocumentError(
+					"A tilled tile is missing its map coordinates",
+				);
 			if (feature.state !== undefined && !Number.isFinite(feature.state))
-				throw new Error("Soil watering is invalid");
+				throw new CalendarDocumentError("Soil watering is invalid");
 			const { state: _state, ...detail } = feature;
 			add({
 				key: JSON.stringify([locationKey, "soil", tile.X, tile.Y]),
@@ -241,7 +246,7 @@ function bindings(game: Save): Map<string, TargetBinding> {
 				target: { context, outdoors: true, kind: "soil", value: feature.state },
 				write: (write) => {
 					if (write.kind !== "soil")
-						throw new Error("Calendar target kind changed");
+						throw new CalendarDocumentError("Calendar target kind changed");
 					if (write.value === undefined) delete feature.state;
 					else feature.state = write.value;
 				},
@@ -256,7 +261,9 @@ function assertCalendarDocument(game: Save) {
 		typeof value === "object" && value !== null && !Array.isArray(value);
 	const stats: unknown = game.player?.stats;
 	if (!record(stats))
-		throw new Error("The host statistics have an unsupported format");
+		throw new CalendarDocumentError(
+			"The host statistics have an unsupported format",
+		);
 	const values = stats.Values;
 	if (
 		values !== undefined &&
@@ -264,14 +271,18 @@ function assertCalendarDocument(game: Save) {
 		(!record(values) ||
 			(values.item !== undefined && !Array.isArray(values.item)))
 	)
-		throw new Error("The host statistics have an unsupported format");
+		throw new CalendarDocumentError(
+			"The host statistics have an unsupported format",
+		);
 	if (
 		!Number.isInteger(game.year) ||
 		!Number.isInteger(game.dayOfMonth) ||
 		!game.player?.stats ||
 		!Array.isArray(game.locations?.GameLocation)
 	)
-		throw new Error("Calendar requires a date, host stats and locations");
+		throw new CalendarDocumentError(
+			"Calendar requires a date, host stats and locations",
+		);
 }
 
 export function initializeCalendarDocument(game: Save): CalendarDocumentState {
@@ -299,7 +310,8 @@ export function prepareCalendarDocument(
 	const live = bindings(game);
 	const resolve = (key: string) => {
 		const binding = live.get(key);
-		if (!binding) throw new Error("A farm object is no longer available");
+		if (!binding)
+			throw new CalendarDocumentError("A farm object is no longer available");
 		return binding;
 	};
 	if (
@@ -308,7 +320,7 @@ export function prepareCalendarDocument(
 			(target) => live.get(target.key)?.fingerprint !== target.fingerprint,
 		)
 	)
-		throw new Error(
+		throw new CalendarDocumentError(
 			"Farm objects changed. Undo that edit before changing the date or weather.",
 		);
 	const ids = new Set(state.targets.map((target) => target.id));
@@ -317,7 +329,9 @@ export function prepareCalendarDocument(
 		new Set(state.targets.map((target) => target.key)).size !==
 			state.targets.length
 	)
-		throw new Error("Some farm objects could not be matched uniquely");
+		throw new CalendarDocumentError(
+			"Some farm objects could not be matched uniquely",
+		);
 	const owned = new Map(
 		state.targets.map((target) => [target.id, resolve(target.key).target]),
 	);
@@ -330,7 +344,9 @@ export function prepareCalendarDocument(
 			target.context !== mark.context ||
 			marks.has(mark.id)
 		)
-			throw new Error("Recorded watering no longer matches the farm");
+			throw new CalendarDocumentError(
+				"Recorded watering no longer matches the farm",
+			);
 		marks.add(mark.id);
 	}
 	const writeToday = (id: string) => {
@@ -348,7 +364,8 @@ export function prepareCalendarDocument(
 		});
 		for (const write of prepared.writes) {
 			const target = state.targets.find((target) => target.id === write.id);
-			if (!target) throw new Error("A farm object is no longer available");
+			if (!target)
+				throw new CalendarDocumentError("A farm object is no longer available");
 			resolve(target.key).write(write);
 		}
 		state.watering = prepared.provenance;
@@ -362,23 +379,25 @@ export function prepareCalendarDocument(
 				(key) => !["year", "season", "day"].includes(key),
 			)
 		)
-			throw new Error("Choose a calendar date field");
+			throw new CalendarDocumentError("Choose a calendar date field");
 		if (
 			"year" in change &&
 			(!Number.isInteger(change.year) ||
 				Number(change.year) < 1 ||
 				Number(change.year) > MAX_YEAR)
 		)
-			throw new Error(`The year must be from 1 to ${MAX_YEAR}`);
+			throw new CalendarDocumentError(`The year must be from 1 to ${MAX_YEAR}`);
 		if (
 			"day" in change &&
 			(!Number.isInteger(change.day) ||
 				Number(change.day) < 1 ||
 				Number(change.day) > DAYS_PER_SEASON)
 		)
-			throw new Error(`The day must be from 1 to ${DAYS_PER_SEASON}`);
+			throw new CalendarDocumentError(
+				`The day must be from 1 to ${DAYS_PER_SEASON}`,
+			);
 		if ("season" in change && !SEASONS.includes(change.season as Season))
-			throw new Error("Choose a valid season");
+			throw new CalendarDocumentError("Choose a valid season");
 		state.date = dateInRange({ ...state.date, ...change });
 		writeCalendarDate(game, state.date);
 		state.daysPlayed = totalDays(state.date) + 1;
@@ -397,7 +416,7 @@ export function prepareCalendarDocument(
 	} else {
 		const tomorrow = edit.day === "tomorrow";
 		if (edit.day !== "today" && !tomorrow)
-			throw new Error("Choose today or tomorrow");
+			throw new CalendarDocumentError("Choose today or tomorrow");
 		const forced = fixed(game, state, tomorrow);
 		const date = tomorrow ? nextDay(state.date) : state.date;
 		const allowed: WeatherId[] = forced
@@ -406,7 +425,9 @@ export function prepareCalendarDocument(
 					(id) => tomorrow || id !== "GreenRain",
 				);
 		if (!allowed.includes(edit.value as WeatherId))
-			throw new Error(forced?.reason ?? "Weather is not allowed on this date");
+			throw new CalendarDocumentError(
+				forced?.reason ?? "Weather is not allowed on this date",
+			);
 		if (tomorrow) {
 			if (!forced) state.choices = { ...state.choices, tomorrow: edit.value };
 			writeCalendarTomorrow(game, edit.value);

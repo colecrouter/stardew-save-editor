@@ -5,7 +5,6 @@ import type { Save } from "../../codegen/save";
 import { openEditor } from "../../src/lib/editor/editor-model";
 import {
 	setFarmSettings,
-	changedFarmSettings,
 	readFarmSettings,
 } from "../../src/lib/editor/farm-operations";
 import { setCalendarDate } from "../../src/lib/editor/calendar-operations";
@@ -134,8 +133,9 @@ describe("full-save farm operations", { timeout: 15_000 }, () => {
 		expect(initial.mineRewards).toBe("ModdedRewardMode");
 		const opened = await openEditor(bytes(exportDocument(document)));
 		try {
-			const source = get(opened.model.farmField.value);
-			await source.commit({ ...source.value, name: "Only Name" });
+			await opened.model.commands.transact(
+				setFarmSettings({ name: "Only Name" }),
+			);
 			const after = (await opened.model.snapshot()).document;
 			expect(Object.hasOwn(after.SaveGame.player, "difficultyModifier")).toBe(
 				false,
@@ -151,22 +151,23 @@ describe("full-save farm operations", { timeout: 15_000 }, () => {
 		}
 	});
 
-	it("farm no-ops retain no action and stale settings drafts cannot overwrite newer calendar edits", async () => {
+	it("farm no-ops retain no action and an explicit stale revision cannot overwrite newer calendar edits", async () => {
 		const opened = await openEditor(bytes(fixtureXml));
 		try {
 			const initial = await opened.model.snapshot();
 			await opened.model.commands.transact(setFarmSettings({}));
-			const source = get(opened.model.farmField.value);
+			const source = get(opened.model.view);
+			if (!source) throw Error("Expected a committed farm projection");
 			await opened.model.commands.transact(
-				setFarmSettings(changedFarmSettings(source.value, source.value)),
+				setFarmSettings({ name: source.farm.name }),
 			);
 			expect(await opened.model.snapshot()).toEqual(initial);
 			await opened.model.commands.transact(setCalendarDate({ day: 8 }));
 			const beforeStale = await opened.model.snapshot();
-			const result = await source.commit({
-				...source.value,
-				name: "Stale Name",
-			});
+			const result = await opened.model.commands.transact(
+				setFarmSettings({ name: "Stale Name" }),
+				source.revision,
+			);
 			expect(
 				result && Result.isFailure(result) && result.failure,
 			).toMatchObject({

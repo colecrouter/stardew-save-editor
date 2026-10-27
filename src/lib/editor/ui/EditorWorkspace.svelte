@@ -33,11 +33,9 @@
 	// Hooks subscribe through the nearest file provider. Keep the accessor object:
 	// destructuring .current would capture a stale non-reactive value.
 	const view = useAtomValue(() => model.atomBindings.view);
-	const pending = useAtomValue(() => model.atomBindings.pending);
 	// The workspace owns the draft across section navigation. Keeping its panels
 	// mounted preserves input and lets external revisions mark conflicts visibly.
 	const dateDraft = createRuneDraft(() => model.dateField);
-	const farmDraft = createRuneDraft(() => model.farmField);
 	let tab = $state("calendar");
 	let error = $state("");
 	async function perform(
@@ -58,28 +56,29 @@
 			<header class="toolbar">
 				<strong>Stardew Save Editor - V2</strong>
 				<span>{filename}</span>
+				<!-- History commands queue after a field's blur commit, preserving
+				     the same click rather than disabling its target mid-gesture. -->
 				<div class="buttons">
 					<button
 						type="button"
-						disabled={!view.current?.canUndo || pending.current > 0}
+						disabled={!view.current?.canUndo}
 						onclick={() => void perform(model.commands.undo)}
 					>
 						Undo
 					</button>
 					<button
 						type="button"
-						disabled={!view.current?.canRedo || pending.current > 0}
+						disabled={!view.current?.canRedo}
 						onclick={() => void perform(model.commands.redo)}
 					>
 						Redo
 					</button>
+					<!-- Export joins the command queue after a field's blur commit;
+					     disabling it during that commit would swallow the same click. -->
 					<button
 						type="button"
 						class="export"
-						disabled={downloading ||
-							pending.current > 0 ||
-							dateDraft.current.dirty ||
-							farmDraft.current.dirty}
+						disabled={downloading || dateDraft.current.dirty}
 						aria-busy={downloading}
 						aria-label="Export save"
 						onclick={() => void perform(ondownload)}
@@ -125,10 +124,10 @@
 		{#if error}
 			<p role="alert">{error}</p>
 		{/if}
-		{#if dateDraft.current.dirty || farmDraft.current.dirty}
-			<p role="status">Apply or reload your drafts before exporting.</p>
+		{#if dateDraft.current.dirty}
+			<p role="status">Apply or reload your date draft before exporting.</p>
 		{/if}
-		<div hidden={tab !== "farm"}><FarmPanel {model} draft={farmDraft} /></div>
+		<div hidden={tab !== "farm"}><FarmPanel {model} /></div>
 		<div hidden={tab !== "calendar"}>
 			<CalendarPanel {model} draft={dateDraft} />
 		</div>
@@ -197,6 +196,9 @@
 		}
 		nav :global(a) {
 			flex: 1;
+			/* Put icons above labels so long section names keep whole words. */
+			flex-direction: column;
+			text-align: center;
 		}
 		.toolbar strong {
 			flex-basis: 100%;

@@ -3,7 +3,7 @@
 The calendar workflow is part of the existing SvelteKit application at `/v2`.
 The upload page links to it. The application owns `src/lib/editor`: the preservation
 document, transactional session, calendar operations, read models, draft controls,
-review, undo/redo and export. Farm settings now use that same session and draft
+review, undo/redo and export. Farm settings now use that same session and command
 boundary: farm name, profit margin, nighttime monsters and mine reward mode. Experiment imports are compatibility forwards to those
 modules, not independent implementations. The bundle/inventory proof UI is enabled
 only by the lab wrapper and is absent from the application workflow.
@@ -51,24 +51,34 @@ another runtime.
 
 ## Farm settings migration
 
-The Farm settings section stages one explicit draft. Apply commits changed controls
-as one annotated history action; undo/redo restores every coordinated field. Farm
-name and profit multiplier copies update on every serialized farmer, including
+Farm settings commit independently. A checkbox or selection updates immediately;
+text and numeric input updates on blur or Enter, producing one undo step per completed
+field edit. Incomplete typing stays local. Invalid input restores the committed value
+and explains the validation problem. Each partial command changes only its setting;
+export joins the same queue after a blur commit, so a single click includes that edit.
+
+Farm name and profit multiplier copies update on every serialized farmer, including
 unclaimed cabin records. Monster spawning and mine reward mode remain global.
 Unrelated/opaque data and untouched custom or missing settings are preserved.
 Profit is displayed as a percentage (100% means the stored multiplier 1); a changed
 percentage must be finite and from 1 to 1000. Normal/remixed mine mode affects only
 unopened reward chests, matching the legacy editor policy.
 
-Drafts survive navigation. Calendar or history changes mark dirty farm drafts as
-conflicted, requiring an explicit reload; export stays disabled while either farm
-or date input is unapplied. Farm type, bundle creation choices, Year 1 guarantee,
+Editable controls and read-only creation explanations occupy two desktop columns,
+stacking on narrower screens. Farm type, bundle creation choices, Year 1 guarantee,
 wallet mode, random seed and legacy randomization remain read-only explanations.
 These controls do not migrate topology, wallets or random item outcomes.
 
+Independent settings use direct commits and undo. An explicit Apply boundary is for
+changes with coordinated consequences, such as calendar date/weather/watering rules;
+incomplete input alone does not justify a page-wide draft. The calendar retains its
+draft, conflict handling and export gate. Farm settings have no Apply/Reload controls
+or draft-specific export gate.
+
 `tests/editor/farm.test.ts` covers coordinated multiplayer changes, preservation,
-undo/redo/export, grouped failure and no-op/stale behavior. The rendered farm test
-checks local drafts, navigation, conflicts, reload and export gating.
+undo/redo/export, grouped failure and no-op/stale behavior. Rendered Farm tests cover
+field commit boundaries, invalid input, independent history and calendar-only export
+gating.
 
 ## Retiring old paths
 

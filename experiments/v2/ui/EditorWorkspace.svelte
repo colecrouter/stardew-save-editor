@@ -1,32 +1,27 @@
 <script lang="ts">
 	import { useAtomValue } from "effect-atom-svelte";
-	import { untrack } from "svelte";
 	import type { EditorModel } from "../editor-model.ts";
-	import { createDraft } from "../field.ts";
+	import { createRuneDraft } from "../field.svelte.ts";
 	import EditorShell from "../../../src/lib/ui/frame/EditorShell.svelte";
 	import SectionLink from "../../../src/lib/ui/frame/SectionLink.svelte";
 	import CalendarPanel from "./CalendarPanel.svelte";
 	import BundlePanel from "./BundlePanel.svelte";
 	import ReviewPanel from "./ReviewPanel.svelte";
-	let {
-		model,
-		filename,
-		onclose,
-		ondownload,
-	}: {
+	interface Props {
 		model: EditorModel;
 		filename: string;
 		onclose: () => void;
 		ondownload: () => Promise<void>;
-	} = $props();
-	const { atomBindings, dateField } = untrack(() => model);
+	}
+	let { model, filename, onclose, ondownload }: Props = $props();
+
 	// Hooks subscribe through the nearest file provider. Keep the accessor object:
 	// destructuring .current would capture a stale non-reactive value.
-	const view = useAtomValue(atomBindings.view);
-	const pending = useAtomValue(atomBindings.pending);
+	const view = useAtomValue(() => model.atomBindings.view);
+	const pending = useAtomValue(() => model.atomBindings.pending);
 	// The workspace owns the draft across section navigation. Keeping its panels
 	// mounted preserves input and lets external revisions mark conflicts visibly.
-	const dateDraft = createDraft(dateField);
+	const dateDraft = createRuneDraft(() => model.dateField);
 	let tab = $state("calendar");
 	let error = $state("");
 	async function perform(action: () => Promise<unknown>) {
@@ -63,7 +58,7 @@
 					<button
 						type="button"
 						class="export"
-						disabled={pending.current > 0 || $dateDraft.dirty}
+						disabled={pending.current > 0 || dateDraft.current.dirty}
 						onclick={() => void perform(ondownload)}
 					>
 						Export save
@@ -98,7 +93,7 @@
 		{#if error}
 			<p role="alert">{error}</p>
 		{/if}
-		{#if $dateDraft.dirty}
+		{#if dateDraft.current.dirty}
 			<p role="status">Apply or reload your date draft before exporting.</p>
 		{/if}
 		<div hidden={tab !== "calendar"}>

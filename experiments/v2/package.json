@@ -12,7 +12,8 @@
 		"lab:build": "npm run sync --prefix ../.. && vite build --config vite.lab.config.ts",
 		"check:ui": "svelte-check --workspace . --tsconfig tsconfig.lab.json",
 		"check": "node ../../node_modules/@typescript/native/bin/tsc --noEmit -p tsconfig.json",
-		"effect:diagnostics": "effect-tsgo diagnostics --project tsconfig.json"
+		"effect:diagnostics": "effect-tsgo diagnostics --project tsconfig.json",
+		"test:ui": "vitest run --config vitest.ui.config.ts"
 	},
 	"engines": {
 		"node": ">=24"

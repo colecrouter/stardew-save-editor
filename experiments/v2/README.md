@@ -17,6 +17,7 @@ npm run demo --prefix experiments/v2
 npm run demo:platform --prefix experiments/v2
 npm run measure:bundle --prefix experiments/v2
 npm run check:ui --prefix experiments/v2
+npm run test:ui --prefix experiments/v2
 npm run lab --prefix experiments/v2
 ```
 
@@ -253,3 +254,19 @@ Domain-specific tagged failures remain typed through the runner.
 See `domain-transactions.effect.ts` and [the implementation record](../../docs/v2-adapter-and-annotations.md#domainhistory-implementation)
 for rollback, retry/interruption, capability lifetime and compatibility coverage.
 Only session history carries annotations; XML export remains the preservation document.
+## Review follow-up: reactive UI ownership
+
+Panels pass getters to `useAtomValue` so atom selection follows model props. The
+file-level keyed provider remains intentional: the adapter captures its registry
+once, and that registry belongs to the imported file scope. Session replacement
+detaches consumers before disposal through one shared helper.
+
+Rendered fields use `createRuneDraft`; the store draft remains as the original
+comparison adapter. Replacing a field preserves dirty input and requires an
+explicit reload, even if its key/revision coincides with the previous field.
+The UI test runs Svelte transforms and verifies invalid text, replacement safety
+and subscription teardown. Calendar function bindings preserve an empty numeric
+input as an empty draft string; applying is still an explicit operation.
+
+Repository comment/readability guidance lives in root `AGENTS.md`, linked from
+`CONTRIBUTING.md`; it applies to both foundation PRs and subsequent work.

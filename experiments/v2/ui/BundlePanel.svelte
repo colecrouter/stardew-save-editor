@@ -1,15 +1,15 @@
 <script lang="ts">
 	import { completeSpringForaging } from "../bundle-operations.ts";
 	import { useAtomValue } from "effect-atom-svelte";
-	import { untrack, tick } from "svelte";
+	import { tick } from "svelte";
 	import type { EditorModel } from "../editor-model.ts";
 	import ConfirmAction from "./ConfirmAction.svelte";
 	let { model }: { model: EditorModel } = $props();
-	const { atomBindings } = untrack(() => model);
+
 	// Hooks subscribe through the nearest file provider. Keep the accessor object:
 	// destructuring .current would capture a stale non-reactive value.
-	const view = useAtomValue(atomBindings.view);
-	const pending = useAtomValue(atomBindings.pending);
+	const view = useAtomValue(() => model.atomBindings.view);
+	const pending = useAtomValue(() => model.atomBindings.pending);
 	let revision: number | undefined;
 	let result = $state<HTMLParagraphElement>();
 </script>

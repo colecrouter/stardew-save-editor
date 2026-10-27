@@ -1,20 +1,28 @@
 <script lang="ts">
+	import { useAtomValue } from "effect-atom-svelte";
 	import { untrack } from "svelte";
 	import type { EditorModel } from "../editor-model.ts";
 	let { model }: { model: EditorModel } = $props();
-	const { view, pending } = untrack(() => model);
+	const { atomBindings } = untrack(() => model);
+	// Hooks subscribe through the nearest file provider. Keep the accessor object:
+	// destructuring .current would capture a stale non-reactive value.
+	const view = useAtomValue(atomBindings.view);
+	const pending = useAtomValue(atomBindings.pending);
 	let error = $state("");
 	async function reverse() {
-		if (!$view) return;
+		// Capture one committed projection for the entire permutation. A reactive
+		// accessor can change later; the operation itself still validates the target.
+		const snapshot = view.current;
+		if (!snapshot) return;
 		error = "";
 		try {
 			await model.execute([
 				{
 					type: "reorder",
-					farmerId: $view.farmerId,
+					farmerId: snapshot.farmerId,
 					order: Array.from(
-						{ length: $view.backpackSize },
-						(_, i) => $view.backpackSize - i - 1,
+						{ length: snapshot.backpackSize },
+						(_, i) => snapshot.backpackSize - i - 1,
 					),
 				},
 			]);
@@ -24,21 +32,21 @@
 	}
 </script>
 
-{#if $view}
+{#if view.current}
 	<h1>Review changes</h1>
 	<p>
 		History records what you did. Net changes compare the current save with the
 		imported file.
 	</p>
-	{#if $view.dropped}
+	{#if view.current.dropped}
 		<p role="status">
-			{$view.dropped} older undo entries were removed to stay within the history limit.
-			Net changes still include them.
+			{view.current.dropped} older undo entries were removed to stay within the history
+			limit. Net changes still include them.
 		</p>
 	{/if}
 	<h2>Edit history</h2>
 	<ol>
-		{#each $view.entries.filter((entry) => !entry.compact) as entry (entry.id)}
+		{#each view.current.entries.filter((entry) => !entry.compact) as entry (entry.id)}
 			<li class={{ undone: !entry.applied }}>
 				<strong>{entry.label}</strong>
 				{#if !entry.applied}
@@ -59,12 +67,12 @@
 	</ol>
 	<details>
 		<summary>
-			Compact inventory operations ({$view.entries.filter(
+			Compact inventory operations ({view.current.entries.filter(
 				(entry) => entry.compact,
 			).length})
 		</summary>
 		<ul>
-			{#each $view.entries.filter((entry) => entry.compact) as entry (entry.id)}
+			{#each view.current.entries.filter((entry) => entry.compact) as entry (entry.id)}
 				<li class={{ undone: !entry.applied }}>
 					{entry.label}{#if !entry.applied}
 						(undone){/if}
@@ -83,12 +91,12 @@
 			{/each}
 		</ul>
 	</details>
-	<h2>Net changes ({$view.net.length})</h2>
-	{#if $view.net.length === 0}
+	<h2>Net changes ({view.current.net.length})</h2>
+	{#if view.current.net.length === 0}
 		<p>No exported changes from the imported save.</p>
 	{/if}
 	<ul>
-		{#each $view.net as patch, index (`${index}
+		{#each view.current.net as patch, index (`${index}
 :${patch.path}`)}
 			<li>
 				<details>
@@ -109,7 +117,7 @@
 		</p>
 		<button
 			type="button"
-			disabled={$pending > 0}
+			disabled={pending.current > 0}
 			onclick={() => void reverse()}
 		>
 			Reverse backpack

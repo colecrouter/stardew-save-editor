@@ -229,3 +229,14 @@ three tests cover nesting, typed domain failures, failed groups and concurrent
 isolation. It does not replace the document/history commit boundary yet.
 See [adapter and annotation findings](../../docs/v2-adapter-and-annotations.md) for
 how this can fit `effect-atom-svelte`, and the package's ownership/command caveats.
+
+## Svelte Atom bindings
+
+The complete editor entry uses `effect-atom-svelte` 0.4.1 with Svelte 5.57.2 in this
+package. The keyed provider borrows the session registry; the file scope remains
+its owner. Components use read bindings while the command queue and field drafts
+retain their existing semantics. File teardown unmounts hooks before disposal.
+
+`adapter-proof.mjs` and `ui/testing` cover provider remounts and owner close through
+the actual Svelte runtime. See [adapter evidence](../../docs/v2-adapter-and-annotations.md#adapter-implementation-and-result)
+for the verified behavior and deliberately deferred package features.

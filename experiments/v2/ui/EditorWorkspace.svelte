@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { useAtomValue } from "effect-atom-svelte";
 	import { untrack } from "svelte";
 	import type { EditorModel } from "../editor-model.ts";
 	import { createDraft } from "../field.ts";
@@ -18,7 +19,11 @@
 		onclose: () => void;
 		ondownload: () => Promise<void>;
 	} = $props();
-	const { view, pending, dateField } = untrack(() => model);
+	const { atomBindings, dateField } = untrack(() => model);
+	// Hooks subscribe through the nearest file provider. Keep the accessor object:
+	// destructuring .current would capture a stale non-reactive value.
+	const view = useAtomValue(atomBindings.view);
+	const pending = useAtomValue(atomBindings.pending);
 	// The workspace owns the draft across section navigation. Keeping its panels
 	// mounted preserves input and lets external revisions mark conflicts visibly.
 	const dateDraft = createDraft(dateField);
@@ -43,14 +48,14 @@
 				<div class="buttons">
 					<button
 						type="button"
-						disabled={!$view?.canUndo || $pending > 0}
+						disabled={!view.current?.canUndo || pending.current > 0}
 						onclick={() => void perform(model.undo)}
 					>
 						Undo
 					</button>
 					<button
 						type="button"
-						disabled={!$view?.canRedo || $pending > 0}
+						disabled={!view.current?.canRedo || pending.current > 0}
 						onclick={() => void perform(model.redo)}
 					>
 						Redo
@@ -58,7 +63,7 @@
 					<button
 						type="button"
 						class="export"
-						disabled={$pending > 0 || $dateDraft.dirty}
+						disabled={pending.current > 0 || $dateDraft.dirty}
 						onclick={() => void perform(ondownload)}
 					>
 						Export save

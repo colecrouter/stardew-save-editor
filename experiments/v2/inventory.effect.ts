@@ -1,6 +1,6 @@
 import { expect, it } from "@effect/vitest";
 import { Effect } from "effect";
-import { get } from "svelte/store";
+import { get, type Readable } from "svelte/store";
 import { exportDocument, loadFixture, parser } from "./fixture.ts";
 import { makeAtomInventory } from "./inventory-atoms.ts";
 import { type InventoryModel, openInventory } from "./inventory-model.ts";
@@ -14,7 +14,9 @@ async function until(check: () => boolean) {
 	throw new Error("Inventory observation did not settle");
 }
 function mount(model: InventoryModel) {
-	const stop = [
+	// Widen only the observation value: heterogeneous stores still keep their
+	// own typed writes, while this harness merely mounts their subscriptions.
+	const stores: Readable<unknown>[] = [
 		model.items,
 		model.selected,
 		model.money,
@@ -22,7 +24,8 @@ function mount(model: InventoryModel) {
 		model.canRedo,
 		model.count,
 		model.error,
-	].map((store) => store.subscribe(() => {}));
+	];
+	const stop = stores.map((store) => store.subscribe(() => {}));
 	return () => {
 		for (const unsubscribe of stop) unsubscribe();
 	};

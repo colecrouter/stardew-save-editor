@@ -1,9 +1,14 @@
 <script lang="ts">
+	import { useAtomValue } from "effect-atom-svelte";
 	import { untrack, tick } from "svelte";
 	import type { EditorModel } from "../editor-model.ts";
 	import ConfirmAction from "./ConfirmAction.svelte";
 	let { model }: { model: EditorModel } = $props();
-	const { view, pending } = untrack(() => model);
+	const { atomBindings } = untrack(() => model);
+	// Hooks subscribe through the nearest file provider. Keep the accessor object:
+	// destructuring .current would capture a stale non-reactive value.
+	const view = useAtomValue(atomBindings.view);
+	const pending = useAtomValue(atomBindings.pending);
 	let revision: number | undefined;
 	let result = $state<HTMLParagraphElement>();
 </script>
@@ -15,11 +20,11 @@
 		This prototype supports one vanilla bundle: Wild Horseradish, Daffodil,
 		Leek, and Dandelion.
 	</p>
-	{#if !$view?.bundle.supported}
-		<p role="status">{$view?.bundle.reason}</p>
-	{:else if $view.bundle.completed}
+	{#if !view.current?.bundle.supported}
+		<p role="status">{view.current?.bundle.reason}</p>
+	{:else if view.current.bundle.completed}
 		<p role="status" tabindex="-1" bind:this={result}>
-			Complete. {$view.bundle.rewardAvailable
+			Complete. {view.current.bundle.rewardAvailable
 				? "30 Spring Seeds are available to collect in game."
 				: "The reward has already been collected."}
 		</p>
@@ -36,9 +41,9 @@
 			oncomplete={() => {
 				void tick().then(() => result?.focus());
 			}}
-			disabled={$pending > 0}
+			disabled={pending.current > 0}
 			prepare={() => {
-				revision = $view?.revision;
+				revision = view.current?.revision;
 			}}
 			commit={() =>
 				model.execute([{ type: "bundle-complete", bundleId: 13 }], revision)}

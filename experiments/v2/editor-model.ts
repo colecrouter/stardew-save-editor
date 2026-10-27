@@ -308,6 +308,14 @@ export const makeEditorModel = (
 			})),
 		};
 		return {
+			// The UI provider borrows this registry; the Effect file scope remains
+			// its sole owner. Expose read-only atom types so bindings cannot bypass
+			// explicit commands by assigning a new feature projection.
+			atomBindings: {
+				registry: registry as AtomRegistry.AtomRegistry,
+				view: viewAtom as Atom.Atom<EditorView | undefined>,
+				pending: pendingAtom as Atom.Atom<number>,
+			},
 			view,
 			dateField,
 			execute,

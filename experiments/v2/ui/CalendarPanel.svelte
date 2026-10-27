@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { useAtomValue } from "effect-atom-svelte";
 	import { untrack } from "svelte";
 	import type { createDraft } from "../field.ts";
 	import type { GameDate } from "../../../src/lib/calendar.ts";
@@ -15,7 +16,11 @@
 		draft,
 	}: { model: EditorModel; draft: ReturnType<typeof createDraft<GameDate>> } =
 		$props();
-	const { view, pending } = untrack(() => model);
+	const { atomBindings } = untrack(() => model);
+	// Hooks subscribe through the nearest file provider. Keep the accessor object:
+	// destructuring .current would capture a stale non-reactive value.
+	const view = useAtomValue(atomBindings.view);
+	const pending = useAtomValue(atomBindings.pending);
 	const weatherDays = ["today", "tomorrow"] as const;
 	// This JSON text is owned by the date draft, not the save. Preserve partially
 	// entered strings; validation and conversion happen only when Apply is submitted.
@@ -32,7 +37,7 @@
 		try {
 			await model.execute(
 				[{ type: "calendar-weather", day, value }],
-				$view?.revision,
+				view.current?.revision,
 			);
 		} catch (cause) {
 			error = String(cause);
@@ -40,10 +45,10 @@
 	}
 </script>
 
-{#if $view}
+{#if view.current}
 	<header>
 		<h1>Date and weather</h1>
-		<p>Current save: {formatDate($view.calendar.date)}</p>
+		<p>Current save: {formatDate(view.current.calendar.date)}</p>
 	</header>
 	<div class="calendar-layout">
 		<section class="study-pane date-panel" aria-label="Farm date">
@@ -65,7 +70,7 @@
 							required
 							value={parts.year}
 							oninput={(event) => edit("year", event.currentTarget.value)}
-							disabled={$pending > 0}
+							disabled={pending.current > 0}
 							aria-describedby="date-feedback"
 						/>
 					</label>
@@ -74,7 +79,7 @@
 						<select
 							value={parts.season}
 							onchange={(event) => edit("season", event.currentTarget.value)}
-							disabled={$pending > 0}
+							disabled={pending.current > 0}
 							aria-describedby="date-feedback"
 						>
 							{#each SEASONS as season (season)}
@@ -90,7 +95,7 @@
 						<button
 							type="button"
 							aria-pressed={Number(parts.day) === day}
-							disabled={$pending > 0}
+							disabled={pending.current > 0}
 							onclick={() => edit("day", String(day))}
 						>
 							{day}
@@ -100,14 +105,15 @@
 				<div class="actions">
 					<button
 						type="submit"
-						disabled={!$draft.dirty || $draft.conflict || $pending > 0}
+						disabled={!$draft.dirty || $draft.conflict || pending.current > 0}
 					>
 						Apply date
 					</button>
 					<button
 						type="button"
 						onclick={draft.reload}
-						disabled={$pending > 0 || (!$draft.dirty && !$draft.conflict)}
+						disabled={pending.current > 0 ||
+							(!$draft.dirty && !$draft.conflict)}
 					>
 						Reload current date
 					</button>
@@ -128,24 +134,28 @@
 			<h2>Weather</h2>
 			{#each weatherDays as day (day)}
 				{@const options =
-					day === "today" ? $view.todayOptions : $view.tomorrowOptions}
-				{@const current = $view.calendar[day]}
+					day === "today"
+						? view.current.todayOptions
+						: view.current.tomorrowOptions}
+				{@const current = view.current.calendar[day]}
 				{@const reason =
-					day === "today" ? $view.todayReason : $view.tomorrowReason}
+					day === "today"
+						? view.current.todayReason
+						: view.current.tomorrowReason}
 				<label>
 					{day === "today" ? "Today" : "Tomorrow"}
 					<span class="weather-picture">
 						<WeatherIcon
 							weather={current}
 							season={(day === "today"
-								? $view.calendar.date
-								: nextDay($view.calendar.date)
+								? view.current.calendar.date
+								: nextDay(view.current.calendar.date)
 							).season}
 						/>
 					</span>
 					<select
 						value={current}
-						disabled={$pending > 0 ||
+						disabled={pending.current > 0 ||
 							options.every(
 								(option) => !option.allowed || option.id === current,
 							)}

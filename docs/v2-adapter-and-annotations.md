@@ -4,9 +4,10 @@
 
 `effect-atom-svelte` is a credible replacement for the Svelte-facing Atom bridge,
 not a replacement for the transactional session. Its current 0.4.1 package peers
-match Effect ~4.0.0 but require Svelte ^5.57.2; the experiment pins 5.55.7.
-This pass inspects the upstream implementation, rather than installing with ignored
-peers or claiming an untested integration works.
+match Effect ~4.0.0 but require Svelte ^5.57.2; the original experiment pinned 5.55.7.
+The initial pass inspected the upstream implementation. The follow-up adapter branch
+now installs Svelte 5.57.2 and effect-atom-svelte 0.4.1 in the experiment only, with
+matching compiler/plugin/runtime dependencies. Root application dependencies stay unchanged.
 
 The most useful detail is external registry support. `RegistryProvider` accepts an
 existing registry and leaves disposal to its owner. We can provide the session's
@@ -117,5 +118,42 @@ command union. History should not dispatch every domain operation itself.
 
 The annotation proof uses the installed Effect 4.0.6 APIs. Run native type checks,
 Effect diagnostics and `transaction-annotations.effect.ts` with the experiment's
-Vitest config. Neither the package nor Svelte was upgraded in this research pass;
-the existing application/session behavior is unchanged.
+Vitest config. The original research pass did not install the adapter. The implementation below
+records the follow-up integration and its verification.
+
+## Adapter implementation and result
+
+The complete editor workflow now provides its Effect-owned registry through a
+keyed `RegistryProvider`. Calendar, bundles, review and workspace controls read
+read-only atoms with `useAtomValue`; `.current` stays reactive without duplicating
+the preservation document. The old readable interfaces remain for headless tests
+and the existing generic draft/field contract, not as another writable state graph.
+
+The command queue, revision guards, draft conflicts, XML codec, transaction/history
+and explicit close ownership are retained. No Atom.fn command migration, useForm
+rewrite or suspense/SSR integration is included. New Svelte types exposed two
+compile-time assumptions: heterogeneous test subscriptions now have an explicit
+read-only observation type, and reorder captures one projection before building
+its permutation instead of repeatedly reading a potentially-changing accessor.
+
+Borrowed registry disposal requires an ordering boundary. Svelte consumer hooks
+must unmount before the Effect owner disposes the registry; disposal is not a
+final reactive "closed" emission. Closing the registry with live readers reproduced
+an access-after-dispose error. File close/replacement now clears the workspace,
+awaits `tick()`, then closes the scope. Parent teardown captures its session and
+closes after child teardown. The provider never disposes the borrowed registry.
+
+`adapter-proof.mjs` mounts/unmounts the provider ten times around the same file,
+edits while all consumers are absent, and verifies fresh values on remount and a
+still-live single model/registry/stream. Owner close then returns all counters to
+zero without browser errors. Its small harness is imported only by the development
+proof, not by the lab application entrypoint. Invoke it through Playwright CLI's
+`--filename` using the same export-to-function conversion as `ui-proof.mjs`.
+
+The existing 93 experiment tests pass with the upgraded experiment Svelte. Native
+and Svelte checks, Effect diagnostics, formatting and the lab build also pass.
+The full UI proof covers import/edit/conflicts, native dialog focus/cancel,
+export/reimport, narrow widths and repeated file close; its samples are recorded
+separately from the pre-adapter baseline. These checks support adopting the read
+bindings. They do not establish every package feature or eliminate the previously
+recorded UI heap measurement limitations.

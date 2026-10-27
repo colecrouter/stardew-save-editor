@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { onDestroy } from "svelte";
+	import { onDestroy, tick } from "svelte";
+	import { RegistryProvider } from "effect-atom-svelte";
 	import { openEditor } from "../editor-model.ts";
 	import EditorWorkspace from "./EditorWorkspace.svelte";
 	import "../../../src/lib/ui/study-theme.css";
@@ -27,6 +28,9 @@
 		active = undefined;
 		opening = false;
 		releaseUrl();
+		// Detach hooks before disposing the borrowed registry. A disposed registry
+		// is not a final reactive update that mounted consumers can keep reading.
+		await tick();
 		await previous?.close();
 	}
 	// Replacement releases the previous file before acquiring the next one.
@@ -38,6 +42,9 @@
 		const previous = active;
 		active = undefined;
 		releaseUrl();
+		// Detach hooks before disposing the borrowed registry. A disposed registry
+		// is not a final reactive update that mounted consumers can keep reading.
+		await tick();
 		await previous?.close();
 		try {
 			const bytes = new Uint8Array(await file.arrayBuffer());
@@ -74,19 +81,25 @@
 	onDestroy(() => {
 		generation++;
 		releaseUrl();
-		void active?.close();
+		const previous = active;
+		void tick().then(() => previous?.close());
 	});
 </script>
 
 <main>
 	{#if active}
 		{#key active}
-			<EditorWorkspace
-				model={active.model}
-				{filename}
-				onclose={() => void close()}
-				ondownload={download}
-			/>{/key}
+			<!-- A file replacement remounts the provider: it reads its registry
+                 once. Passing our registry leaves disposal with the file scope. -->
+			<RegistryProvider registry={active.model.atomBindings.registry}>
+				<EditorWorkspace
+					model={active.model}
+					{filename}
+					onclose={() => void close()}
+					ondownload={download}
+				/>
+			</RegistryProvider>
+		{/key}
 	{:else}
 		<section class="upload study-theme">
 			<h1>V2 editing workspace</h1>

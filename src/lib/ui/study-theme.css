@@ -1,4 +1,10 @@
 @import "./study-pane.css";
+.study-theme,
+.study-theme *,
+.study-theme *::before,
+.study-theme *::after {
+	box-sizing: border-box;
+}
 @font-face {
 	font-family: "VT323";
 	src: url("./fonts/VT323-Regular.ttf") format("truetype");

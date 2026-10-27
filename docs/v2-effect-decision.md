@@ -12,6 +12,15 @@ The combined workflow does: typed dependencies, replaceable runtime layers, muta
 execution, resource ownership, interruption, Schema and scoped tests work together.
 These capabilities match recurring problems better than individual UI conventions.
 
+## Complete workflow evidence
+
+The [calendar/review/bundle workflow proof](v2-workflow-proof.md) now connects import,
+Atom feature projections, Svelte controls, explicit operations, undo/redo and export
+through one Effect-owned session. It confirms the incremental adoption decision.
+Browser stress and a session-only control support this ownership boundary while
+leaving residual UI heap growth and legacy factory lifetimes as explicit follow-ups.
+The lab is separate from the production application; no broad migration is implied.
+
 ## Evidence and boundaries
 
 The isolated package uses Effect, platform-node and @effect/vitest 4.0.6, plus Vitest
@@ -79,7 +88,37 @@ No Svelte adapter is selected. Registry metadata for effect-atom-svelte 0.4.1 re
 Svelte ^5.57.2; this checkout resolves 5.55.7. @thomasfosterau/effect-svelte 0.6.0 declares
 compatible peers. They remain candidates, not prerequisites; the store contract already
 demonstrates basic interoperability. Neither metadata compatibility nor bundling proves
-rendered UI correctness. A second reactive graph needs its own justification.
+rendered UI correctness. An adapter must preserve the single session authority;
+it can reuse the existing registry without introducing another writable graph.
+
+### Review follow-up: adapter and domain Effect usage
+
+See [the adapter investigation and annotation proof](v2-adapter-and-annotations.md)
+for concrete package capabilities, command/ownership caveats, and an executable
+Context-based alternative to a universal metadata/action union.
+
+The expanded editor still uses a handwritten registry-to-store bridge. This proves
+interoperability, not that maintaining that bridge is preferable to the suggested
+`effect-atom-svelte` package. Registry metadata was rechecked: 0.4.1 still declares
+Svelte ^5.57.2 while this experiment pins 5.55.7, with compatible Effect ~4.0.0.
+That compatibility gap justified deferring installation, not dismissing the adapter.
+The next comparison should upgrade Svelte deliberately and test session-provided
+registry ownership, navigation/remount freshness, pending/errors and teardown through
+the package's own bindings. Its SSR/suspense support is not itself required here.
+
+The current new bundle adapter also underuses Effect: synchronous throwing validation
+is wrapped in Effect.try and collapsed into MutationError. Before production migration,
+represent meaningful domain failures as tagged error variants and use named Effect.fn
+operations for lazy execution/tracing. Preserve those variants through history's error
+channel and test catchTag handling as well as rollback. An intent's review classification
+is separate from a tracing span or an error tag; neither replaces the actual patches.
+
+Shared pure calendar calculations remain useful ordinary TypeScript, because the legacy
+proxy also consumes them. Effect should orchestrate validation/preparation/failure at
+the domain operation boundary without forcing every arithmetic helper into Effect.
+This is an outstanding experiment refinement, not evidence of complete Effect-domain
+adoption. No adapter dependency or domain error-contract change is made by the
+comment/readability cleanup.
 
 ## Node 24
 
@@ -90,8 +129,7 @@ properties and runtime namespaces by default. Experimental transform-types handl
 non-erasable syntax but does not replace the Svelte toolchain.
 
 Root codegen still has enums and extensionless imports, so keep its tsx runner until a
-separate migration is justified. Root CI jobs remain on Node 22; a new experiment job
-uses Node 24. Local tests use 24.11.0; current Node docs mark stripping stable from 24.12.0.
+separate migration is justified. Root CI and the experiment jobs now use Node 24. Local tests use 24.11.0; current Node docs mark stripping stable from 24.12.0.
 
 ## Next sequence
 

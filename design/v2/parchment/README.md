@@ -19,5 +19,5 @@ scrollable content. Small panel borders remain behind text.
 
 Only the main workspace uses this parchment frame; smaller field and selected-tab
 borders retain their existing assets. The original study source is preserved in
-`../frame-kit/`. This asset was assembled deterministically from existing pieces;
+`../references/study.png`. This asset was assembled deterministically from existing pieces;
 no new AI-generated art was used.

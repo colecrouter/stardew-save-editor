@@ -24,10 +24,12 @@
 		id="farmer"
 		onchange={(event) => model.chooseFarmer(event.currentTarget.value)}
 	>
-		<option value="host">Host</option><option value="guest">Guest</option>
+		<option value="host">Host</option>
+		<option value="guest">Guest</option>
 	</select>
 	<p>
-		Money: <strong>{$money}</strong> · Applied actions:
+		Money: <strong>{$money}</strong>
+		· Applied actions:
 		<strong data-testid="count">{$count}</strong>
 	</p>
 	<div class="slots" aria-label="Backpack slots">
@@ -43,22 +45,28 @@
 	</div>
 	<h2>Selected: {$selected?.name ?? "None"}</h2>
 	<NumberField field={model.stackField} />
-	{#if !$selected?.editable}<p>
-			This slot does not contain a supported stackable object.
-		</p>{/if}
+	{#if !$selected?.editable}
+		<p>This slot does not contain a supported stackable object.</p>
+	{/if}
 	<div class="actions">
-		<button type="button" onclick={model.undo} disabled={!$canUndo}>Undo</button
-		>
-		<button type="button" onclick={model.redo} disabled={!$canRedo}>Redo</button
-		>
+		<button type="button" onclick={model.undo} disabled={!$canUndo}>
+			Undo
+		</button>
+		<button type="button" onclick={model.redo} disabled={!$canRedo}>
+			Redo
+		</button>
 	</div>
 	<ReorderDialog commit={model.reverse} />
 	<p>Undo payload: {($historyUsage.bytes / 1024).toFixed(1)} KiB.</p>
-	{#if $historyUsage.dropped}<p role="status">
+	{#if $historyUsage.dropped}
+		<p role="status">
 			{$historyUsage.dropped} earlier actions are no longer undoable. Export review
 			still includes their net changes.
-		</p>{/if}
-	{#if $error}<p role="alert">{$error}</p>{/if}
+		</p>
+	{/if}
+	{#if $error}
+		<p role="alert">{$error}</p>
+	{/if}
 	<p role="status">
 		{$canUndo
 			? "Changes are recorded in transactional history."

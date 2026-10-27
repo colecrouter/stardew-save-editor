@@ -16,8 +16,9 @@ rendering is pixelated, and the selected tab's natural minimum height is 57px.
 These were reduced deterministically from the earlier study crops: whole 3px
 blocks, twelve colours per image, binary alpha and no sharpening. The tab's 56px
 source height was padded to 57px and the close image's 46px height to 48px before
-reduction. The existing source crops are preserved under
-`design/v2/frame-kit/raster-reference` for reference; they are not runtime assets. No new AI art was generated.
+reduction. The obsolete split crops and extraction tools have been removed; Git history
+preserves them. The original study is `design/v2/references/study.png`. No new AI
+art was generated.
 
 Browser checks cover 320, 390, 768, 1280 and 1366px without horizontal page overflow,
 long section labels, mobile navigation and keyboard activation of close. No

@@ -3,8 +3,7 @@
 ## Destination and working decisions
 
 `main` remains the release branch. `v2` starts from `main` and receives reviewed,
-focused feature PRs. PR #180 is the proposed foundation and stays a draft until
-reviewed; retargeting it is not authorization to merge it. Bring `main` fixes into
+focused feature PRs. PR #180 is merged into `v2` as the foundation. Bring `main` fixes into
 `v2` regularly. Keep ordinary release fixes independently reviewable on `main`.
 The initial foundation belongs to the existing V2 editor foundation milestone.
 
@@ -34,7 +33,12 @@ entrypoint can remain available while V2 workflows migrate.
 - Tooling/CI foundation and targeted lifecycle repairs. Full heap/lifetime safety
   and end-to-end Effect UI integration are not established by those repairs.
 
-## Remaining bounded foundation proofs
+## Bounded foundation proofs
+
+The four proofs below now have implemented evidence in the separate editor lab.
+See [workflow results and the migration decision](v2-workflow-proof.md) for commands,
+coverage, measurements and remaining lifetime/release gates. These acceptance criteria
+remain the boundary for this stretch; they do not certify the legacy application.
 
 ### 1. Calendar as a complete Effect-backed workflow
 

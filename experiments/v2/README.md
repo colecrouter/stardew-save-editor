@@ -56,7 +56,7 @@ The worker layer starts a real Node worker per request and awaits termination on
 success, error or cancellation. This intentionally costly arrangement proves ownership,
 not an optimized pool. Production Comlink remains; replacing it is not a prerequisite.
 
-Eleven native Node tests and seventy-nine @effect/vitest tests cover mutation and
+Eleven native Node tests and eighty-two @effect/vitest tests cover mutation and
 calendar semantics, the production codec, compression, opaque fields, typed errors,
 service substitution, scoped files, cancellation, actual workers, transactions,
 JSON Patch, net review and the complete calendar/bundle editing model.
@@ -220,3 +220,12 @@ The production application remains proxy-backed. The complete Effect/Atom editor
 workflow now runs at `http://127.0.0.1:5190/?flow=editor` after starting the lab.
 It includes calendar drafts/weather, history/net review, one vanilla bundle
 completion, undo/redo and export/reimport. See [workflow evidence and reproduction](../../docs/v2-workflow-proof.md).
+
+## Transaction annotation investigation
+
+`transaction-annotations.ts` proves scoped, inheritable review metadata without a
+union of every domain action. A transaction-local journal stages successful records;
+three tests cover nesting, typed domain failures, failed groups and concurrent
+isolation. It does not replace the document/history commit boundary yet.
+See [adapter and annotation findings](../../docs/v2-adapter-and-annotations.md) for
+how this can fit `effect-atom-svelte`, and the package's ownership/command caveats.

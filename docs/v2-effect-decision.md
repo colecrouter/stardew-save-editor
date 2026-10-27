@@ -93,6 +93,10 @@ it can reuse the existing registry without introducing another writable graph.
 
 ### Review follow-up: adapter and domain Effect usage
 
+See [the adapter investigation and annotation proof](v2-adapter-and-annotations.md)
+for concrete package capabilities, command/ownership caveats, and an executable
+Context-based alternative to a universal metadata/action union.
+
 The expanded editor still uses a handwritten registry-to-store bridge. This proves
 interoperability, not that maintaining that bridge is preferable to the suggested
 `effect-atom-svelte` package. Registry metadata was rechecked: 0.4.1 still declares

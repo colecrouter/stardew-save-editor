@@ -1,4 +1,13 @@
 import {
+	readFarmSettings,
+	parseFarmDraft,
+	formatFarmDraft,
+	changedFarmSettings,
+	setFarmSettings,
+	type FarmSettings,
+	type FarmView,
+} from "./farm-operations.ts";
+import {
 	validateSave,
 	describeProblems,
 	type SaveValidation,
@@ -59,6 +68,7 @@ export interface EditorView {
 	revision: number;
 	bundle: ReturnType<typeof springBundleView>;
 	calendar: CalendarViewState;
+	farm: FarmView;
 	greenRain: number;
 	todayOptions: WeatherChoice[];
 	tomorrowOptions: WeatherChoice[];
@@ -137,6 +147,7 @@ function project(state: HistoryState, includeProofs = false): EditorView {
 					reason: "",
 				},
 		calendar,
+		farm: readFarmSettings(state.document),
 		greenRain: day,
 		todayOptions: today.values,
 		tomorrowOptions: tomorrow.values,
@@ -432,6 +443,32 @@ export const makeEditorModel = (
 					commands.transact(setCalendarDate(value), state?.revision),
 			})),
 		};
+		// Capture this settings projection and revision together. Dirty edits keep
+		// this original command handle and cannot overwrite a newer operation.
+		const farmField: Field<FarmSettings> = {
+			label: "Farm settings",
+			description:
+				"Apply changed farm controls together as one undoable action.",
+			parse: parseFarmDraft,
+			format: formatFarmDraft,
+			value: derived(view, (state) => ({
+				key: "farm-settings",
+				value: state?.farm ?? {
+					name: "",
+					profitPercent: 100,
+					monsters: false,
+					mineRewards: "Default",
+				},
+				revision: state?.revision ?? -1,
+				available: state !== undefined,
+				commit: (value: FarmSettings) =>
+					commands.transact(
+						setFarmSettings(changedFarmSettings(state?.farm ?? value, value)),
+						state?.revision,
+					),
+			})),
+		};
+
 		return {
 			// The UI provider borrows this registry; the Effect file scope remains
 			// its sole owner. Expose read-only atom types so bindings cannot bypass
@@ -451,6 +488,7 @@ export const makeEditorModel = (
 			// Rendered editing flows use commands and never inspect defect causes.
 			view,
 			dateField,
+			farmField,
 			execute,
 			transact,
 			pending: {

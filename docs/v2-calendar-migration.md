@@ -3,7 +3,8 @@
 The calendar workflow is part of the existing SvelteKit application at `/v2`.
 The upload page links to it. The application owns `src/lib/editor`: the preservation
 document, transactional session, calendar operations, read models, draft controls,
-review, undo/redo and export. Experiment imports are compatibility forwards to those
+review, undo/redo and export. Farm settings now use that same session and draft
+boundary: farm name, profit margin, nighttime monsters and mine reward mode. Experiment imports are compatibility forwards to those
 modules, not independent implementations. The bundle/inventory proof UI is enabled
 only by the lab wrapper and is absent from the application workflow.
 
@@ -48,14 +49,36 @@ layouts and the deployed `/stardew-save-editor/v2` base path. Physical-device an
 broader lifetime/performance coverage remain release gates, not reasons to maintain
 another runtime.
 
+## Farm settings migration
+
+The Farm settings section stages one explicit draft. Apply commits changed controls
+as one annotated history action; undo/redo restores every coordinated field. Farm
+name and profit multiplier copies update on every serialized farmer, including
+unclaimed cabin records. Monster spawning and mine reward mode remain global.
+Unrelated/opaque data and untouched custom or missing settings are preserved.
+Profit is displayed as a percentage (100% means the stored multiplier 1); a changed
+percentage must be finite and from 1 to 1000. Normal/remixed mine mode affects only
+unopened reward chests, matching the legacy editor policy.
+
+Drafts survive navigation. Calendar or history changes mark dirty farm drafts as
+conflicted, requiring an explicit reload; export stays disabled while either farm
+or date input is unapplied. Farm type, bundle creation choices, Year 1 guarantee,
+wallet mode, random seed and legacy randomization remain read-only explanations.
+These controls do not migrate topology, wallets or random item outcomes.
+
+`tests/editor/farm.test.ts` covers coordinated multiplayer changes, preservation,
+undo/redo/export, grouped failure and no-op/stale behavior. The rendered farm test
+checks local drafts, navigation, conflicts, reload and export gating.
+
 ## Retiring old paths
 
 The next work migrates features into this application session. Do not add another
 runtime or interaction-specific application. New editing workflows must use the same
 commit authority and move their applicable tests with them.
 
-Keep the legacy calendar while the rest of `/farm` settings still depend on proxy
-state. Retire it when those supported farm workflows have an explicit session-backed
-replacement, preservation/interaction coverage and a release/rollback decision.
+The legacy `/farm` remains an explicitly available compatibility path. Its settings
+and calendar now have session-backed replacements and regression coverage; retiring
+the legacy route is a rollout/rollback decision rather than a reason to maintain
+another implementation for new work.
 Remove experiment forwarding modules as their remaining comparisons are retired.
 Toast styling/interaction polish remains a separate task from command error behavior.

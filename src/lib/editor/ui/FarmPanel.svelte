@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Result } from "effect";
 	import { useAtomValue } from "effect-atom-svelte";
+	import { decodeFarmSettingsChange } from "../farm-settings.ts";
 	import type { EditorModel } from "../editor-model.ts";
 	import { setFarmSettings, type FarmSettings } from "../farm-operations.ts";
 
@@ -33,15 +34,22 @@
 		value: FarmSettings[K],
 	) {
 		if (saving[field]) return;
-		saving[field] = true;
 		error = "";
+		// Give immediate field feedback using the command's exact schema. Parsing
+		// incomplete numeric text remains a UI concern; the schema owns validity.
+		const decoded = decodeFarmSettingsChange({ [field]: value });
+		if (Result.isFailure(decoded)) {
+			error = `${decoded.failure.message} The current save value was kept.`;
+			return;
+		}
+		saving[field] = true;
 		try {
 			// Lock only the submitted control: clicking another setting may first
 			// blur a text field, and both independent edits must reach the queue.
 			// A control submits only its own setting. The queued transaction reads
 			// the latest document, so independent edits do not overwrite one another.
 			const result = await model.commands.transact(
-				setFarmSettings({ [field]: value }),
+				setFarmSettings(decoded.success),
 			);
 			if (result && Result.isFailure(result))
 				error = `${result.failure.message} The current save value was kept.`;

@@ -69,6 +69,14 @@ stacking on narrower screens. Farm type, bundle creation choices, Year 1 guarant
 wallet mode, random seed and legacy randomization remain read-only explanations.
 These controls do not migrate topology, wallets or random item outcomes.
 
+Farm command validation lives in `farm-settings.ts`: one Effect schema defines
+optional changed fields, allowed values and user-facing constraints. The UI uses
+the same decoder for field feedback, and the operation enforces it before staging
+writes. Only decoded own request fields reach the transaction; inherited fields do
+not become incidental edits. The schema does not validate or normalize imported
+save values. This is a focused Farm trial of shared validation, not a replacement
+for the full-save preservation or export validator.
+
 Independent settings use direct commits and undo. An explicit Apply boundary is for
 changes with coordinated consequences, such as calendar date/weather/watering rules;
 incomplete input alone does not justify a page-wide draft. The calendar retains its

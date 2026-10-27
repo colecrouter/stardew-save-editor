@@ -1,4 +1,9 @@
-import { Data, Effect } from "effect";
+import { Effect, Result } from "effect";
+import {
+	decodeFarmSettingsChange,
+	type FarmSettingsChange,
+} from "./farm-settings.ts";
+export { FarmSettingsInvalid } from "./farm-settings.ts";
 import type { Save } from "../../../codegen/save.ts";
 import { farmers, type SaveDocument } from "./domain.ts";
 import { TransactionDraft } from "./transaction-draft.ts";
@@ -7,11 +12,14 @@ import {
 	withReviewMetadata,
 } from "./transaction-annotations.ts";
 
-/** Editable farm controls. Profit uses percentage units (100 means multiplier 1). */
-export interface FarmSettings {
-	name: string;
-	profitPercent: number;
-	monsters: boolean;
+/**
+ * Committed display values use the schema's field types, except mine rewards:
+ * imported modded modes must remain visible even though new edits use known modes.
+ */
+export interface FarmSettings extends Omit<
+	Required<FarmSettingsChange>,
+	"mineRewards"
+> {
 	mineRewards: string;
 }
 /** A recorded creation setting and why the editor presents it as read-only. */
@@ -24,13 +32,6 @@ export interface FarmCreationSetting {
 export interface FarmView extends FarmSettings {
 	creation: FarmCreationSetting[];
 }
-/** An expected invalid farm request; unexpected implementation errors stay defects. */
-export class FarmSettingsInvalid extends Data.TaggedError(
-	"FarmSettingsInvalid",
-)<{
-	readonly message: string;
-}> {}
-
 /**
  * Project committed farm settings without modifying or normalizing the source.
  * Missing/custom values receive display defaults only; they remain preserved
@@ -114,47 +115,14 @@ export function readFarmSettings(document: SaveDocument): FarmView {
  * Expected invalid requests fail with FarmSettingsInvalid before publication.
  */
 export const setFarmSettings = Effect.fn("Farm.setSettings")(function* (
-	change: Partial<FarmSettings>,
+	request: Partial<FarmSettings>,
 ) {
-	// Validate the complete request before staging writes. Unchanged imported mod
-	// values are not constrained by controls which the user has not edited.
+	// Enforce the same rules used for control feedback at the write boundary.
+	// Decode only requested changes so untouched imported custom values survive.
+	const decoded = decodeFarmSettingsChange(request);
+	if (Result.isFailure(decoded)) return yield* decoded.failure;
+	const change = decoded.success;
 	const keys = Object.keys(change);
-	if (
-		keys.some(
-			(key) =>
-				!["name", "profitPercent", "monsters", "mineRewards"].includes(key),
-		)
-	)
-		return yield* new FarmSettingsInvalid({
-			message: "Choose a supported farm setting.",
-		});
-	if (
-		Object.hasOwn(change, "name") &&
-		(typeof change.name !== "string" || !change.name.trim())
-	)
-		return yield* new FarmSettingsInvalid({ message: "Enter a farm name." });
-	if (
-		Object.hasOwn(change, "profitPercent") &&
-		(typeof change.profitPercent !== "number" ||
-			!Number.isFinite(change.profitPercent) ||
-			change.profitPercent < 1 ||
-			change.profitPercent > 1000)
-	)
-		return yield* new FarmSettingsInvalid({
-			message: "Enter a profit percentage from 1 to 1000.",
-		});
-	if (Object.hasOwn(change, "monsters") && typeof change.monsters !== "boolean")
-		return yield* new FarmSettingsInvalid({
-			message: "Choose whether monsters spawn on the farm.",
-		});
-	if (
-		Object.hasOwn(change, "mineRewards") &&
-		change.mineRewards !== "Default" &&
-		change.mineRewards !== "Remixed"
-	)
-		return yield* new FarmSettingsInvalid({
-			message: "Choose normal or remixed mine rewards.",
-		});
 	const transaction = yield* TransactionDraft;
 	const snapshot = yield* transaction.read;
 	const game = snapshot.state.document.SaveGame as unknown as Save;

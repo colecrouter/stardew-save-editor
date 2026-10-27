@@ -151,6 +151,34 @@ describe("full-save farm operations", { timeout: 15_000 }, () => {
 		}
 	});
 
+	it("an imported out-of-range multiplier survives edits to other fields", async () => {
+		const document = parser.parse(fixtureXml);
+		const game = document.SaveGame as unknown as Save;
+		// Request validation governs deliberate edits, not normalization of an
+		// imported modded baseline that the user has not chosen to replace.
+		game.player.difficultyModifier = 12.345;
+		const opened = await openEditor(bytes(exportDocument(document)));
+		try {
+			const before = await opened.model.snapshot();
+			const result = await opened.model.commands.transact(
+				setFarmSettings({
+					monsters: !readFarmSettings(before.document).monsters,
+				}),
+			);
+			expect(result && Result.isSuccess(result)).toBe(true);
+			const after = await opened.model.snapshot();
+			expect(
+				(after.document.SaveGame as unknown as Save).player.difficultyModifier,
+			).toBe(12.345);
+			const expected = structuredClone(before.document);
+			(expected.SaveGame as unknown as Save).shouldSpawnMonsters =
+				!readFarmSettings(before.document).monsters;
+			expect(after.document).toEqual(expected);
+		} finally {
+			await opened.close();
+		}
+	});
+
 	it("farm no-ops retain no action and an explicit stale revision cannot overwrite newer calendar edits", async () => {
 		const opened = await openEditor(bytes(fixtureXml));
 		try {
@@ -179,6 +207,35 @@ describe("full-save farm operations", { timeout: 15_000 }, () => {
 		}
 	});
 
+	it("inherited monster settings do not become edits alongside an own farm name", async () => {
+		const document = parser.parse(fixtureXml);
+		// Force a baseline opposite the prototype value so a leaked inherited edit
+		// cannot pass simply because the fixture already had monsters enabled.
+		(document.SaveGame as unknown as Save).shouldSpawnMonsters = false;
+		const opened = await openEditor(bytes(exportDocument(document)));
+		try {
+			const before = await opened.model.snapshot();
+			const request = Object.assign(
+				Object.create({ monsters: true, profitPercent: 0 }),
+				{ name: "Own" },
+			);
+			const result = await opened.model.commands.transact(
+				setFarmSettings(request),
+			);
+			expect(result && Result.isSuccess(result)).toBe(true);
+			const after = await opened.model.snapshot();
+			const expected = structuredClone(before.document);
+			expected.SaveGame.player.farmName = "Own";
+			expect(after.document).toEqual(expected);
+			expect(
+				(after.document.SaveGame as unknown as Save).shouldSpawnMonsters,
+			).toBe(false);
+			expect(after.entries).toHaveLength(1);
+		} finally {
+			await opened.close();
+		}
+	});
+
 	it.each([
 		{ name: "   " },
 		{ profitPercent: 0 },
@@ -186,6 +243,14 @@ describe("full-save farm operations", { timeout: 15_000 }, () => {
 		{ profitPercent: Number.NaN },
 		{ mineRewards: "Unsupported" },
 		{ monsters: "yes" as never },
+		// Runtime callers may bypass TypeScript; validation must reject the entire
+		// request before a valid sibling field can produce any staged writes.
+		{ name: "Must not publish", profitPercent: undefined } as never,
+		{ name: "Must not publish", unsupportedSetting: true } as never,
+		Object.assign(Object.create({ profitPercent: 75 }), {
+			name: "Must not publish",
+			profitPercent: 0,
+		}) as never,
 	])(
 		"invalid farm request %j preserves all committed state",
 		async (change) => {

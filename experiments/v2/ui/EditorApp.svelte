@@ -20,18 +20,19 @@
 			downloadUrl = undefined;
 		}
 	}
-	// Remove the workspace before closing its resources. Any UI handles retained
-	// during teardown then see a closed model instead of an abandoned live save.
-	async function close() {
-		generation++;
+	// All release paths detach consumers before disposing their borrowed registry.
+	// Keeping this ordering in one helper avoids drift between close/replacement.
+	async function detach() {
 		const previous = active;
 		active = undefined;
-		opening = false;
 		releaseUrl();
-		// Detach hooks before disposing the borrowed registry. A disposed registry
-		// is not a final reactive update that mounted consumers can keep reading.
 		await tick();
 		await previous?.close();
+	}
+	async function close() {
+		generation++;
+		opening = false;
+		await detach();
 	}
 	// Replacement releases the previous file before acquiring the next one.
 	// If the result is stale, close the newly acquired session immediately.
@@ -39,13 +40,7 @@
 		const token = ++generation;
 		opening = true;
 		error = "";
-		const previous = active;
-		active = undefined;
-		releaseUrl();
-		// Detach hooks before disposing the borrowed registry. A disposed registry
-		// is not a final reactive update that mounted consumers can keep reading.
-		await tick();
-		await previous?.close();
+		await detach();
 		try {
 			const bytes = new Uint8Array(await file.arrayBuffer());
 			if (token !== generation) return;
@@ -80,9 +75,7 @@
 	}
 	onDestroy(() => {
 		generation++;
-		releaseUrl();
-		const previous = active;
-		void tick().then(() => previous?.close());
+		void detach();
 	});
 </script>
 

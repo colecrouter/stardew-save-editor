@@ -1,4 +1,13 @@
 <script lang="ts">
+	interface Props {
+		title: string;
+		description: string;
+		label: string;
+		disabled?: boolean;
+		prepare?: () => void;
+		commit: () => Promise<unknown>;
+		oncomplete?: () => void;
+	}
 	let {
 		title,
 		description,
@@ -7,15 +16,7 @@
 		prepare = () => {},
 		commit,
 		oncomplete = () => {},
-	}: {
-		title: string;
-		description: string;
-		label: string;
-		disabled?: boolean;
-		prepare?: () => void;
-		commit: () => Promise<unknown>;
-		oncomplete?: () => void;
-	} = $props();
+	}: Props = $props();
 	// Each mounted dialog has its own label/description IDs. Native modal behavior
 	// provides focus containment and Escape cancellation without custom key handling.
 	const id = $props.id();

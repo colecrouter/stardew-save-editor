@@ -68,6 +68,7 @@
 			type="text"
 			list="new-items"
 			data-testid="item-name"
+			aria-label="Search items by name or ID"
 			aria-describedby="item-name-hint"
 			bind:value={filter}
 		/>

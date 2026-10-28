@@ -1,3 +1,4 @@
+import { readFarmSettings, type FarmView } from "./farm-operations.ts";
 import {
 	validateSave,
 	describeProblems,
@@ -59,6 +60,7 @@ export interface EditorView {
 	revision: number;
 	bundle: ReturnType<typeof springBundleView>;
 	calendar: CalendarViewState;
+	farm: FarmView;
 	greenRain: number;
 	todayOptions: WeatherChoice[];
 	tomorrowOptions: WeatherChoice[];
@@ -137,6 +139,7 @@ function project(state: HistoryState, includeProofs = false): EditorView {
 					reason: "",
 				},
 		calendar,
+		farm: readFarmSettings(state.document),
 		greenRain: day,
 		todayOptions: today.values,
 		tomorrowOptions: tomorrow.values,
@@ -432,6 +435,7 @@ export const makeEditorModel = (
 					commands.transact(setCalendarDate(value), state?.revision),
 			})),
 		};
+
 		return {
 			// The UI provider borrows this registry; the Effect file scope remains
 			// its sole owner. Expose read-only atom types so bindings cannot bypass

@@ -18,7 +18,11 @@
 		// Shared type-only save definitions contain legacy enums. Native Node tests
 		// check the actual runtime graph; this flag cannot distinguish type imports.
 		"erasableSyntaxOnly": false,
-		"paths": { "$types/*": ["../../codegen/*"] },
+		"paths": {
+			"$types/*": ["../../codegen/*"],
+			"$lib/*": ["../../src/lib/*"],
+			"$generated/*": ["../../generated/*"]
+		},
 		"verbatimModuleSyntax": true,
 		"skipLibCheck": true,
 		"noEmit": true,

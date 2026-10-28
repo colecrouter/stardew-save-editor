@@ -37,6 +37,7 @@
 	// mounted preserves input and lets external revisions mark conflicts visibly.
 	const dateDraft = createRuneDraft(() => model.dateField);
 	let tab = $state("calendar");
+	let inventoryOpened = $state(false);
 	let error = $state("");
 	async function perform(
 		action: () => Promise<
@@ -91,6 +92,17 @@
 		{#snippet navigation()}
 			<nav aria-label="Editor sections">
 				<SectionLink
+					href="#inventory"
+					label="Inventory"
+					icon="inventory"
+					active={tab === "inventory"}
+					onclick={() => {
+						inventoryOpened = true;
+						tab = "inventory";
+					}}
+				/>
+
+				<SectionLink
 					href="#farm"
 					label="Farm settings"
 					icon="farm"
@@ -126,6 +138,22 @@
 		{/if}
 		{#if dateDraft.current.dirty}
 			<p role="status">Apply or reload your date draft before exporting.</p>
+		{/if}
+		<!-- Load item metadata/atlases only when inventory is opened. Keep that
+		     consumer mounted afterward so its entity selection survives navigation. -->
+		{#if inventoryOpened}
+			<div hidden={tab !== "inventory"}>
+				{#await import("./BackpackPanel.svelte")}
+					<p role="status">Loading backpack…</p>
+				{:then panel}
+					<panel.default {model} />
+				{:catch}
+					<p role="alert">
+						The backpack view could not be loaded. Reopen the editor to try
+						again.
+					</p>
+				{/await}
+			</div>
 		{/if}
 		<div hidden={tab !== "farm"}><FarmPanel {model} /></div>
 		<div hidden={tab !== "calendar"}>
@@ -191,14 +219,14 @@
 			--study-frame-height: auto;
 		}
 		nav {
-			display: flex;
-			flex-wrap: wrap;
+			/* Four section labels need two columns to keep complete words at phone widths. */
+			display: grid;
+			grid-template-columns: repeat(2, minmax(0, 1fr));
 		}
 		nav :global(a) {
 			flex: 1;
-			/* Put icons above labels so long section names keep whole words. */
-			flex-direction: column;
-			text-align: center;
+			flex-direction: row;
+			text-align: left;
 		}
 		.toolbar strong {
 			flex-basis: 100%;

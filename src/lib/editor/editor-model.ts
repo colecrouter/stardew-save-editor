@@ -1,3 +1,8 @@
+import {
+	readBackpacks,
+	type BackpackView,
+	type BackpackItemEdits,
+} from "./inventory-operations.ts";
 import { readFarmSettings, type FarmView } from "./farm-operations.ts";
 import {
 	validateSave,
@@ -61,6 +66,7 @@ export interface EditorView {
 	bundle: ReturnType<typeof springBundleView>;
 	calendar: CalendarViewState;
 	farm: FarmView;
+	backpacks: BackpackView[];
 	greenRain: number;
 	todayOptions: WeatherChoice[];
 	tomorrowOptions: WeatherChoice[];
@@ -140,6 +146,7 @@ function project(state: HistoryState, includeProofs = false): EditorView {
 				},
 		calendar,
 		farm: readFarmSettings(state.document),
+		backpacks: readBackpacks(state),
 		greenRain: day,
 		todayOptions: today.values,
 		tomorrowOptions: tomorrow.values,
@@ -338,7 +345,11 @@ export const makeEditorModel = (
 		// same command queue. This boundary does not enumerate feature actions or
 		// erase their tagged failures into a framework-wide error union.
 		const transact = <E>(
-			program: Effect.Effect<unknown, E, TransactionDraft | ReviewJournal>,
+			program: Effect.Effect<
+				unknown,
+				E,
+				TransactionDraft | ReviewJournal | BackpackItemEdits
+			>,
 			expectedRevision?: number,
 		) =>
 			command(async () => {
@@ -383,7 +394,11 @@ export const makeEditorModel = (
 			);
 		const commands = {
 			transact: <E>(
-				program: Effect.Effect<unknown, E, TransactionDraft | ReviewJournal>,
+				program: Effect.Effect<
+					unknown,
+					E,
+					TransactionDraft | ReviewJournal | BackpackItemEdits
+				>,
 				expectedRevision?: number,
 			) =>
 				submit(() =>
@@ -514,7 +529,7 @@ export async function openEditor(
 					document,
 					limits,
 					{},
-					{ inventory: options.includeProofs === true },
+					{ inventory: options.includeProofs === true ? true : "backpacks" },
 				);
 				return yield* makeEditorModel(session, codec, options);
 			}).pipe(

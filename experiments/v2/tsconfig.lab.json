@@ -1,7 +1,13 @@
 {
 	"extends": "./tsconfig.json",
 	"compilerOptions": {
-		"types": ["node", "vite/client", "wicg-file-system-access"]
+		"types": ["node", "vite/client", "wicg-file-system-access"],
+		"paths": {
+			"$types/*": ["../../codegen/*"],
+			"$lib/*": ["../../src/lib/*"],
+			"$generated/*": ["../../generated/*"],
+			"$app/paths": ["./ui/app-paths.ts"]
+		}
 	},
 	"include": [
 		"*.ts",

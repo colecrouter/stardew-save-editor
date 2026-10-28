@@ -1,4 +1,11 @@
 import {
+	BackpackItemEdits,
+	makeBackpackItemEdits,
+	backpackFarmers,
+	backpackInventorySnapshot,
+	hasBackpackFarmerId,
+} from "./inventory-operations.ts";
+import {
 	Effect,
 	JsonPatch,
 	Schema,
@@ -91,13 +98,14 @@ function entryBytes(payload: Omit<Entry, "bytes">): number {
  *
  * Limits default to 100 entries and 8 MiB; the import baseline survives eviction.
  * Set `features.inventory` to false for calendar sessions that must preserve
- * unrelated inventory representations without allocating item identities.
+ * unrelated inventory representations without allocating item identities. Use
+ * `"backpacks"` in production to allocate only supported, unambiguous farmer arrays.
  */
 export const makeHistorySession = (
 	document: SaveDocument,
 	limits: number | HistoryLimits = {},
 	initialDomainState: DomainState = {},
-	features: { inventory?: boolean } = {},
+	features: { inventory?: boolean | "backpacks" } = {},
 ) =>
 	Effect.gen(function* () {
 		const operations = Option.getOrElse(
@@ -132,11 +140,27 @@ export const makeHistorySession = (
 		// including opaque/empty slots, without adding fields to the exported save.
 		let nextIdentity = 0;
 		const identities: Record<string, string[]> = Object.create(null);
-		// Calendar sessions do not decode or assign identities to unrelated inventories.
-		for (const farmer of features.inventory === false
-			? []
-			: farmers(baseline)) {
+		// Production enables only unambiguous backpack arrays. Unsupported unrelated
+		// inventories and duplicate farmer IDs must not prevent calendar/Farm edits.
+		// The lab retains its strict initialization to expose adapter invariants.
+		const inventoryFarmers =
+			features.inventory === false
+				? []
+				: features.inventory === "backpacks"
+					? backpackFarmers(baseline)
+					: farmers(baseline);
+		for (const farmer of inventoryFarmers) {
 			const id = String(farmer.UniqueMultiplayerID);
+			if (
+				features.inventory === "backpacks" &&
+				(!hasBackpackFarmerId(farmer) ||
+					inventoryFarmers.filter(
+						(other) => String(other.UniqueMultiplayerID) === id,
+					).length !== 1 ||
+					!farmer.items ||
+					!Array.isArray(farmer.items.Item))
+			)
+				continue;
 			if (Object.hasOwn(identities, id))
 				return yield* Effect.fail(
 					new MutationError("Farmer ID must resolve exactly once"),
@@ -455,7 +479,11 @@ export const makeHistorySession = (
 			// Allocate both draft and journal inside the transaction attempt so a
 			// retry, interruption or failed child publishes no partial metadata.
 			transact: <A, E, R>(
-				program: Effect.Effect<A, E, R | TransactionDraft | ReviewJournal>,
+				program: Effect.Effect<
+					A,
+					E,
+					R | TransactionDraft | ReviewJournal | BackpackItemEdits
+				>,
 				expectedRevision?: number,
 			) =>
 				update(
@@ -466,10 +494,16 @@ export const makeHistorySession = (
 								domainState: state.domainState,
 								history: [],
 							});
+							const itemEdits = makeBackpackItemEdits(
+								draft.service,
+								state.identities,
+								state.document,
+							);
 							const { collected, prepared } = yield* collectTransactionMetadata(
 								program,
 							).pipe(
 								Effect.provideService(TransactionDraft, draft.service),
+								Effect.provideService(BackpackItemEdits, itemEdits.service),
 								// Take the result before close clears retained service state.
 								// Escaped capability handles must not retain an abandoned save.
 								Effect.flatMap((collected) =>
@@ -479,18 +513,16 @@ export const makeHistorySession = (
 									})),
 								),
 								Effect.ensuring(draft.close),
+								Effect.ensuring(itemEdits.close),
 							);
-							// Inventory identity changes still use the legacy identity adapter.
-							// Until that capability migrates, reject untracked entity changes
-							// rather than publishing patches with stale item identities.
-							const inventories = (document: SaveDocument) =>
-								farmers(document).map((farmer) => ({
-									id: String(farmer.UniqueMultiplayerID),
-									items: farmer.items,
-								}));
+							// The bounded item capability authorizes field-only writes and keeps
+							// every entity in place. Compare against its replay, rejecting raw
+							// inventory mutations, replacement, movement or untracked fields.
 							if (
-								JSON.stringify(inventories(state.document)) !==
-								JSON.stringify(inventories(prepared.document))
+								JSON.stringify(
+									backpackInventorySnapshot(itemEdits.replay(state.document)),
+								) !==
+								JSON.stringify(backpackInventorySnapshot(prepared.document))
 							)
 								return yield* Effect.fail(
 									new MutationError(

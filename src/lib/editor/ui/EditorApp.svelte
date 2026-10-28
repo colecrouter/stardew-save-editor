@@ -156,12 +156,13 @@
 		<section class="upload study-theme">
 			<h1>V2 editing workspace</h1>
 			<p>
-				Open a Stardew Valley 1.6 save to edit its date and weather, review
-				changes, and undo before exporting.
+				Open a Stardew Valley 1.6 save to edit backpack items, farm settings,
+				and date and weather. Review changes and undo before exporting.
 			</p>
 			<p>
-				Calendar editing is available here. Use the legacy editor for other
-				features; each editor opens its own file.
+				Backpack quantity and quality, farm settings, and calendar editing are
+				available here. Use the legacy editor for other features; each editor
+				opens its own file.
 			</p>
 			{#if legacyHref}<a href={legacyHref}>Open the legacy editor</a>{/if}
 			<p>

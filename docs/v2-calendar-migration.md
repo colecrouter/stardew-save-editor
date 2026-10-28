@@ -10,9 +10,10 @@ only by the lab wrapper and is absent from the application workflow.
 
 ## Application boundaries
 
-The default calendar session neither projects bundle state nor allocates backpack
-identities. Unsupported inventory/bundle representations therefore do not prevent
-calendar editing. The full document remains authoritative and unknown data survives.
+The application does not project bundle proof state. It allocates session handles
+only for supported backpack arrays with unambiguous farmer IDs; unsupported
+inventory/bundle representations therefore do not prevent calendar editing.
+The first production inventory slice is described in [Backpack migration](v2-backpack-migration.md). The full document remains authoritative and unknown data survives.
 Calendar rules still use the shared raw-document helpers; validation does not replace
 the imported baseline with a decoded schema projection.
 

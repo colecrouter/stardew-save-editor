@@ -1,3 +1,4 @@
+import { packRgba, rgbaHex } from "$lib/color.ts";
 import type { Color as ColorType } from "$types/save";
 
 const RGB_REGEX = /^rgb\((\d{1,3}),\s*(\d{1,3}),\s*(\d{1,3})\)$/;
@@ -23,9 +24,7 @@ export class Color implements ColorType {
 		this.R = $state(0);
 		this.G = $state(0);
 		this.B = $state(0);
-		this.PackedValue = $derived(
-			Color.computePackedValue(this.R, this.G, this.B, this.A),
-		);
+		this.PackedValue = $derived(packRgba(this.R, this.G, this.B, this.A));
 
 		if (typeof color === "string") {
 			if (color.startsWith("#")) {
@@ -59,35 +58,9 @@ export class Color implements ColorType {
 		}
 	}
 
-	private static computePackedValue(
-		R: number,
-		G: number,
-		B: number,
-		A: number,
-	) {
-		// Updated packing order with unsigned conversion: A << 24 | B << 16 | G << 8 | R, then >>> 0 to convert to unsigned.
-		return (
-			(((A & 0xff) << 24) |
-				((B & 0xff) << 16) |
-				((G & 0xff) << 8) |
-				(R & 0xff)) >>>
-			0
-		);
-	}
-
 	toHex(length: 3 | 6 | 8 = 6) {
-		const hex = [this.R, this.G, this.B, this.A].map((val) =>
-			val.toString(16).padStart(2, "0"),
-		) as [string, string, string, string];
-
-		switch (length) {
-			case 3:
-				return `#${hex[0][0]}${hex[1][0]}${hex[2][0]}`;
-			case 6:
-				return `#${hex[0]}${hex[1]}${hex[2]}`;
-			case 8:
-				return `#${hex[0]}${hex[1]}${hex[2]}${hex[3]}`;
-		}
+		// Keep the legacy formatting API while sharing the arithmetic with v2.
+		return rgbaHex([this.R, this.G, this.B, this.A], length);
 	}
 
 	toJSON() {

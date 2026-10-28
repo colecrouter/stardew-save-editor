@@ -1,3 +1,5 @@
+import { colorHex } from "../color.ts";
+export { colorHex, itemColorPatch } from "../color.ts";
 import { Data, Result, Schema, SchemaIssue } from "effect";
 import type { ItemInformation } from "$types/items";
 import type { Farmer, SaveDocument } from "./domain.ts";
@@ -124,59 +126,6 @@ const record = (value: unknown): value is Record<string, unknown> =>
 	value !== null && typeof value === "object" && !Array.isArray(value);
 const finite = (value: unknown): value is number =>
 	typeof value === "number" && Number.isFinite(value);
-/** Valid RGB editing preserves alpha and opaque color members without filling absent data. */
-export function colorHex(value: unknown): string | undefined {
-	if (
-		!record(value) ||
-		!["R", "G", "B", "A"].every((key) => {
-			const channel = value[key];
-			return (
-				finite(channel) &&
-				Number.isInteger(channel) &&
-				channel >= 0 &&
-				channel <= 255
-			);
-		})
-	)
-		return undefined;
-	// A malformed packed representation cannot be silently repaired by changing RGB.
-	if (
-		Object.hasOwn(value, "PackedValue") &&
-		(!finite(value.PackedValue) ||
-			!Number.isInteger(value.PackedValue) ||
-			value.PackedValue < 0 ||
-			value.PackedValue > 4294967295)
-	)
-		return undefined;
-	return `#${[value.R, value.G, value.B].map((channel) => Number(channel).toString(16).padStart(2, "0")).join("")}`;
-}
-/** Rebuild only RGB and an existing packed mirror; alpha and every other member survive. */
-export function itemColorPatch(
-	value: unknown,
-	hex: string,
-): Record<string, unknown> | undefined {
-	if (
-		!record(value) ||
-		colorHex(value) === undefined ||
-		!/^#[0-9a-f]{6}$/i.test(hex)
-	)
-		return undefined;
-	const R = Number.parseInt(hex.slice(1, 3), 16),
-		G = Number.parseInt(hex.slice(3, 5), 16),
-		B = Number.parseInt(hex.slice(5, 7), 16);
-	return {
-		...value,
-		R,
-		G,
-		B,
-		...(Object.hasOwn(value, "PackedValue")
-			? {
-					PackedValue:
-						(R | (G << 8) | (B << 16) | (Number(value.A) << 24)) >>> 0,
-				}
-			: {}),
-	};
-}
 /** Resolve only usable game context; missing normal defaults do not write into the save. */
 export function readItemPropertyContext(
 	document: SaveDocument,

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { readRgba } from "$lib/color.ts";
 	import { asset } from "$app/paths";
 	import { ObjectData, ResolveItemData } from "$lib/ItemData";
 	import UnknownItemVisual from "./UnknownItemVisual.svelte";
@@ -45,22 +46,13 @@
 		}[] = [{ rect: sprite.sourceRect }];
 		// Saved colors affect the preview without constructing a Color proxy or
 		// supplying missing channels. That keeps mere inspection read-only.
-		const channels = (value: unknown) => {
-			if (!value || typeof value !== "object") return undefined;
-			const color = value as Record<string, unknown>;
-			return ["R", "G", "B", "A"].every(
-				(key) => typeof color[key] === "number" && Number.isFinite(color[key]),
-			)
-				? ["R", "G", "B", "A"].map((key) => color[key] as number)
-				: undefined;
-		};
 		if (smoked) {
 			layers.push({ rect: sprite.sourceRect, tint: [80, 30, 10, 153] });
 		} else if (
 			raw["@_xsi:type"] === "Clothing" &&
 			(info._type === "Shirt" || info._type === "Pants")
 		) {
-			const tint = channels(raw.clothesColor);
+			const tint = readRgba(raw.clothesColor);
 			// Shirts keep their original base and tint the dye mask in the second
 			// half of the sheet. Pants multiply their complete base by the saved dye.
 			if (info._type === "Shirt") {
@@ -73,7 +65,7 @@
 				});
 			} else layers.splice(0, 1, { rect: sprite.sourceRect, tint });
 		} else if (raw["@_xsi:type"] === "ColoredObject") {
-			const tint = channels(raw.color);
+			const tint = readRgba(raw.color);
 			// Some colored objects tint the base; others overlay the next sheet
 			// cell. Sprite resolves adjacent-cell row wrapping for the latter.
 			if (raw.colorSameIndexAsParentSheetIndex === true)

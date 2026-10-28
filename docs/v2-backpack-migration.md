@@ -18,6 +18,45 @@ numeric fields are editable. Quality retains the legacy category policy. Opaque
 records, tools, unsupported types and unusual imported values remain preserved;
 viewing does not normalize them or initialize missing fields.
 
+## Item properties
+
+The same inspector edits supported properties in backpack and equipment locations:
+boots’ defense and immunity, weapon combat values, object base price and edibility,
+colored-object/clothing RGB, Bottomless watering cans, and six editable trinket
+families. Existing quantity and quality controls keep their established behavior.
+Fields appear only when their saved representation and resolved item type support
+them. Missing, malformed, custom and unsupported imported properties remain
+preserved; opening the inspector does not initialize or repair them.
+
+Numeric values commit immediately when valid. Empty numeric input stays local
+while someone replaces a value; each valid input is independently undoable.
+Checkboxes, native color controls and selections also write through the shared
+request schema and bounded item capability. Rapid edits retain the latest visible
+request while the command queue applies each change to the current item instance.
+Changing equipment/backpack position does not retarget an item by its former slot.
+
+Color edits preserve alpha and opaque members, updating an existing packed mirror
+without introducing an absent one. The sprite preview reflects saved clothing dye.
+Bottomless reads the game’s effective uppercase alias when present, and synchronizes
+only the aliases already present after an explicit edit. Undo restores their exact
+previous values, even when an imported save contained mismatched aliases.
+
+Trinket controls show stats rolled from the saved seed with the current owner’s
+income and the save’s RNG mode. A change finds a compatible seed and writes its
+game-derived templates/name fields as one action, rather than saving stats that the
+game would discard. Search yields between bounded batches and is interrupted when
+the file scope closes. Missing/unsupported seeds and contexts stay read-only; a
+no-op preserves the original seed and templates. Authoritative RNG/income reads
+are checked both before preparation and before publication, so raw draft changes
+cannot authorize a roll for a different game context.
+
+Approved property patches share the inventory replay guard for complete backpack
+and equipment preservation. Failed/interrupted commands publish no partial writes.
+Finalization releases the baseline, patches and context reads, making escaped
+capabilities inert without retaining the file’s raw data.
+
+## Inventory identity and movement
+
 Session-only entity handles identify instances, including byte-identical records.
 Selection follows its entity across reorders, transfers and Undo/Redo. A transfer
 invalidates the old owner handle; the UI follows the same item to its current owner

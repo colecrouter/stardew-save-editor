@@ -383,3 +383,41 @@ it.each([0, 1, 2, 3, 4])(
 		}
 	},
 );
+
+// Clothes must show the saved dye immediately without filling missing save fields.
+it.each(["shirtItem", "pantsItem"] as const)(
+	"previews saved %s color without normalizing the record",
+	(key) => {
+		const document = parser.parse(fixtureXml);
+		const raw = Object.freeze({
+			...(document.SaveGame.player[key] as Record<string, unknown>),
+			clothesColor: Object.freeze({
+				R: 18,
+				G: 32,
+				B: 64,
+				A: 128,
+				custom: "retain",
+			}),
+		});
+		const before = structuredClone(raw);
+		const page = render(BackpackItemVisual, { raw });
+		try {
+			flushSync();
+			expect(page.container.querySelectorAll("svg image").length).toBe(
+				key === "shirtItem" ? 2 : 1,
+			);
+			const matrix = page.container
+				.querySelector("feColorMatrix")
+				?.getAttribute("values")
+				?.split(" ")
+				.map(Number);
+			expect(matrix?.[0]).toBeCloseTo(18 / 255);
+			expect(matrix?.[6]).toBeCloseTo(32 / 255);
+			expect(matrix?.[12]).toBeCloseTo(64 / 255);
+			expect(matrix?.[18]).toBeCloseTo(128 / 255);
+			expect(raw).toEqual(before);
+		} finally {
+			page.unmount();
+		}
+	},
+);

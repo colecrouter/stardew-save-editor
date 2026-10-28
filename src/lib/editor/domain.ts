@@ -36,11 +36,16 @@ export interface Farmer extends Partial<Record<EquipmentSlot, unknown>> {
 	name: string;
 	farmName: string;
 	money: number;
+	// Parrot Egg stat rolls depend on the owning farmer's lifetime earnings.
+	totalMoneyEarned?: unknown;
 	items: { Item: unknown[] };
 }
 export interface SaveDocument {
 	SaveGame: {
 		player: Farmer;
+		// Trinket seed interpretation follows the save's selected game RNG algorithm.
+		// Keep raw context unknown until validated; inspection must not normalize it.
+		useLegacyRandom?: unknown;
 		farmhands: "" | { Farmer: Farmer[] };
 	};
 }

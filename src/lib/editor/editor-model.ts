@@ -1,3 +1,4 @@
+import { readCharacters, type CharacterView } from "./character-operations.ts";
 import type { BackpackMoveRequest } from "./backpack-movement.ts";
 import type { BackpackLifecycleRequest } from "./backpack-lifecycle.ts";
 import {
@@ -71,6 +72,7 @@ export interface EditorView {
 	farm: FarmView;
 	backpacks: BackpackView[];
 	chests: BackpackView[];
+	characters: CharacterView[];
 	greenRain: number;
 	todayOptions: WeatherChoice[];
 	tomorrowOptions: WeatherChoice[];
@@ -152,6 +154,7 @@ function project(state: HistoryState, includeProofs = false): EditorView {
 		farm: readFarmSettings(state.document),
 		backpacks: readBackpacks(state),
 		chests: readChests(state),
+		characters: readCharacters(state.document),
 		greenRain: day,
 		todayOptions: today.values,
 		tomorrowOptions: tomorrow.values,

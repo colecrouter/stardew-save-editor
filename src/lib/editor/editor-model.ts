@@ -1,3 +1,4 @@
+import type { BackpackMoveRequest } from "./backpack-movement.ts";
 import type { BackpackLifecycleRequest } from "./backpack-lifecycle.ts";
 import {
 	readBackpacks,
@@ -394,6 +395,24 @@ export const makeEditorModel = (
 				}),
 			);
 		const commands = {
+			/** Move or swap across actual backpack slots and return the moved instance. */
+			moveBackpackItem: (request: BackpackMoveRequest) =>
+				submit(() =>
+					Effect.gen(function* () {
+						// Read and execute while this command owns the UI queue. The history
+						// resolver rechecks both handles against the authoritative revision.
+						const before = yield* live().snapshot;
+						const after = yield* live().execute(
+							[request],
+							undefined,
+							before.revision,
+						);
+						publish(after);
+						// Handles travel with whole records, so the committed owner is known
+						// without a later snapshot that could already reflect queued Undo.
+						return { farmerId: request.toFarmerId, entityId: request.entityId };
+					}),
+				),
 			/** Publish a slot replacement and return its exact committed identity pair. */
 			changeBackpackSlot: (request: BackpackLifecycleRequest) =>
 				submit(() =>

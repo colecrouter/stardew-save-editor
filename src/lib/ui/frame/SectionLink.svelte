@@ -4,25 +4,39 @@
 	let {
 		href,
 		label,
+		shortLabel,
 		icon,
 		active = false,
 		onclick,
 	}: {
 		href: string;
 		label: string;
+		shortLabel?: string;
 		icon: StudyIconName;
 		active?: boolean;
 		onclick?: () => void;
 	} = $props();
 </script>
 
-<a {href} aria-current={active ? "page" : undefined} {onclick}>
-	<span class="glyph"><StudyIcon name={icon} size={28} /></span><span
-		class="label">{label}</span
-	>
+<a
+	{href}
+	aria-label={label}
+	aria-current={active ? "page" : undefined}
+	{onclick}
+>
+	<span class="glyph"><StudyIcon name={icon} size={28} /></span>
+
+	<span class="label" class:has-short={shortLabel !== undefined}>{label}</span>
+
+	{#if shortLabel}
+		<span class="short-label" aria-hidden="true">{shortLabel}</span>
+	{/if}
 </a>
 
 <style>
+	.short-label {
+		display: none;
+	}
 	a {
 		display: flex;
 		align-items: center;
@@ -70,6 +84,16 @@
 		border-width: 21px 21px 21px 15px;
 		border-image: url("./art/chrome/selected-tab.png") 7 7 7 5 fill / 21px 21px
 			21px 15px / 0 repeat;
+	}
+	@media (max-width: 600px) {
+		/* Compact names fit the inventory's phone tab row; accessible names retain
+		   the complete section labels for navigation and voice control. */
+		.label.has-short {
+			display: none;
+		}
+		.short-label {
+			display: inline;
+		}
 	}
 	@media (max-width: 900px) {
 		a {

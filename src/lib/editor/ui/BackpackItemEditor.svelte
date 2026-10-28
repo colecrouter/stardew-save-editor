@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Result } from "effect";
+	import type { EquipmentSlotView } from "../equipment.ts";
 	import type { EditorModel } from "../editor-model.ts";
 	import {
 		setBackpackItem,
@@ -12,7 +13,8 @@
 	interface Props {
 		model: EditorModel;
 		farmerId: string;
-		item: BackpackSlotView;
+		item: BackpackSlotView | EquipmentSlotView;
+		locationLabel?: string;
 		name: string;
 		description?: string;
 		canStack: boolean;
@@ -28,6 +30,7 @@
 		description,
 		canStack,
 		canQuality,
+		locationLabel,
 		onremove,
 		removing = false,
 	}: Props = $props();
@@ -130,77 +133,88 @@
 	}
 </script>
 
-<section aria-label="Selected backpack item" class="inspector">
+<section
+	aria-label={locationLabel
+		? "Selected equipment item"
+		: "Selected backpack item"}
+	class="inspector"
+>
 	<header>
 		<div class="large-icon"><BackpackItemVisual raw={item.raw} /></div>
 		<div>
 			<h2>{name}</h2>
-			<p class="slot-label">Slot {item.slot + 1}</p>
+			<p class="slot-label">
+				{locationLabel ?? `Slot ${"slot" in item ? item.slot + 1 : ""}`}
+			</p>
 		</div>
 	</header>
 	{#if description}
 		<p class="description">{description}</p>
 	{/if}
-	<div class="properties">
-		{#if canStack}
-			<label>
-				Quantity
-				<input
-					type="number"
-					step="1"
-					bind:value={readQuantity, writeQuantity}
-				/>
-			</label>
-		{:else if item.stack !== undefined}
-			<p>Quantity: {item.stack}</p>
-		{/if}
-		{#if canQuality}
-			<!-- Binding the group preserves native focus and arrow-key selection while
+	<!-- Equipment is inspected in its named slot. Its saved stack/quality defaults
+	     are not editing controls; quantity and quality belong to supported backpack items. -->
+	{#if !locationLabel}
+		<div class="properties">
+			{#if canStack}
+				<label>
+					Quantity
+					<input
+						type="number"
+						step="1"
+						bind:value={readQuantity, writeQuantity}
+					/>
+				</label>
+			{:else if item.stack !== undefined}
+				<p>Quantity: {item.stack}</p>
+			{/if}
+			{#if canQuality}
+				<!-- Binding the group preserves native focus and arrow-key selection while
 			     each valid choice enters the same serialized command queue. -->
-			<fieldset
-				aria-busy={pending.quality !== undefined}
-				class="quality-picker"
-			>
-				<legend>Quality</legend>
+				<fieldset
+					aria-busy={pending.quality !== undefined}
+					class="quality-picker"
+				>
+					<legend>Quality</legend>
 
-				{#if !qualities.some((quality) => quality.value === item.quality)}
-					<p class="custom-quality">Current: Custom ({item.quality})</p>
-				{/if}
+					{#if !qualities.some((quality) => quality.value === item.quality)}
+						<p class="custom-quality">Current: Custom ({item.quality})</p>
+					{/if}
 
-				<div class="quality-options">
-					{#each qualities as quality (quality.value)}
-						<label class="quality-choice">
-							<input
-								type="radio"
-								name={qualityGroup}
-								value={quality.value}
-								bind:group={qualityBinding.value}
-							/>
+					<div class="quality-options">
+						{#each qualities as quality (quality.value)}
+							<label class="quality-choice">
+								<input
+									type="radio"
+									name={qualityGroup}
+									value={quality.value}
+									bind:group={qualityBinding.value}
+								/>
 
-							<span class="quality-symbol" aria-hidden="true">
-								{#if quality.value === 0}
-									<svg viewBox="0 0 10 10" width="20" height="20">
-										<path
-											d="M4 1h2v2h1v1h2v2H7v1h1v2H6V8H4v1H2V7h1V6H1V4h2V3h1Z"
-											fill="none"
-											stroke="currentColor"
-										/>
-									</svg>
-								{:else}
-									<QualityBadge quality={quality.value} />
-								{/if}
-							</span>
+								<span class="quality-symbol" aria-hidden="true">
+									{#if quality.value === 0}
+										<svg viewBox="0 0 10 10" width="20" height="20">
+											<path
+												d="M4 1h2v2h1v1h2v2H7v1h1v2H6V8H4v1H2V7h1V6H1V4h2V3h1Z"
+												fill="none"
+												stroke="currentColor"
+											/>
+										</svg>
+									{:else}
+										<QualityBadge quality={quality.value} />
+									{/if}
+								</span>
 
-							<span>{quality.label}</span>
-						</label>
-					{/each}
-				</div>
-			</fieldset>
-		{:else if item.quality !== undefined}
-			<p>Quality: {item.quality}</p>
-		{/if}
-	</div>
-	{#if !canStack && !canQuality}
+								<span>{quality.label}</span>
+							</label>
+						{/each}
+					</div>
+				</fieldset>
+			{:else if item.quality !== undefined}
+				<p>Quality: {item.quality}</p>
+			{/if}
+		</div>
+	{/if}
+	{#if !locationLabel && !canStack && !canQuality}
 		<p>
 			Quantity and quality are preserved but cannot be edited for this item.
 		</p>
@@ -369,5 +383,32 @@
 		margin-top: 24px;
 		font-size: 19px;
 		color: #694621;
+	}
+	@media (max-width: 600px) {
+		.large-icon {
+			width: 48px;
+			height: 48px;
+		}
+		.large-icon :global(.visual) {
+			transform: scale(1.5);
+		}
+		header {
+			gap: 12px;
+		}
+		h2 {
+			font-size: 24px;
+		}
+		.description,
+		.properties,
+		[role="status"],
+		.remove-action {
+			font-size: 18px;
+		}
+		.properties {
+			margin-top: 16px;
+		}
+		[role="status"] {
+			margin-top: 16px;
+		}
 	}
 </style>

@@ -95,7 +95,7 @@ describe("full-save backpack workflow", { timeout: 15_000 }, () => {
 			await waitFor(
 				() =>
 					expect(
-						page.getByRole("heading", { name: /^Backpack$/ }),
+						page.getByRole("heading", { name: /^Inventory$/ }),
 					).toBeTruthy(),
 				{ timeout: 5000 },
 			);

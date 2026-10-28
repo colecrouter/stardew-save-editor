@@ -18,6 +18,14 @@
 </script>
 
 <svelte:head>
+	<!-- V2 lays out for the actual device width. Legacy screens retain their
+	     existing zoom while their wider layouts are still in use. -->
+	<meta
+		name="viewport"
+		content={page.route.id === "/v2"
+			? "width=device-width, initial-scale=1"
+			: "width=device-width, initial-scale=0.58"}
+	/>
 	<meta property="og:image" content={asset("/img/summary.png")} />
 	<link rel="icon" type="image/png" href={asset("/img/favicon.png")} />
 	<link rel="canonical" href={resolve("/backups")} />

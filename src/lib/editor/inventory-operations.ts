@@ -1,3 +1,10 @@
+import {
+	equipmentSlots,
+	equipmentLabels,
+	trinketAvailable,
+	type EquipmentSlotView,
+	type EquipmentIdentities,
+} from "./equipment.ts";
 import { Context, Data, Effect, Result, Schema, SchemaIssue } from "effect";
 import { emptySlot, farmers, type SaveDocument } from "./domain.ts";
 import type { HistoryState } from "./history.ts";
@@ -27,6 +34,7 @@ export interface BackpackView {
 	supported: boolean;
 	reason?: string;
 	slots: BackpackSlotView[];
+	equipment: EquipmentSlotView[];
 }
 /** Expected unsupported, invalid or stale backpack request. */
 export class BackpackItemInvalid extends Data.TaggedError(
@@ -126,7 +134,9 @@ export function hasBackpackFarmerId(farmer: unknown): boolean {
 
 /** Project supported arrays without normalizing any imported item representation. */
 export function readBackpacks(
-	state: Pick<HistoryState, "document" | "identities">,
+	state: Pick<HistoryState, "document" | "identities"> & {
+		equipmentIdentities?: EquipmentIdentities;
+	},
 ): BackpackView[] {
 	const all = backpackFarmers(state.document);
 	return all.map((farmer) => {
@@ -148,6 +158,30 @@ export function readBackpacks(
 			unique && Array.isArray(items) && ids?.length === items.length;
 		return {
 			farmerId,
+			equipment: equipmentSlots.flatMap((key) => {
+				const entityId = state.equipmentIdentities?.[farmerId]?.[key];
+				if (!entityId) return [];
+				const value = farmer[key];
+				const raw = record(value) ? structuredClone(value) : undefined;
+				return [
+					{
+						entityId,
+						key,
+						label: equipmentLabels[key],
+						empty: emptySlot(value),
+						locked: key === "trinketItem" && !trinketAvailable(farmer),
+						name:
+							typeof raw?.name === "string" ? raw.name : equipmentLabels[key],
+						itemId:
+							typeof raw?.itemId === "string" || typeof raw?.itemId === "number"
+								? String(raw.itemId)
+								: "",
+						...(raw ? { raw } : {}),
+						...(numeric(raw?.stack) ? { stack: raw.stack } : {}),
+						...(numeric(raw?.quality) ? { quality: raw.quality } : {}),
+					},
+				];
+			}),
 			name:
 				typeof farmer.name === "string" && farmer.name
 					? farmer.name
@@ -175,7 +209,13 @@ export function readBackpacks(
 									: typeof raw?.name === "string"
 										? raw.name
 										: "Unknown item",
-								itemId: raw?.itemId === undefined ? "" : String(raw.itemId),
+								// Opaque identifiers may contain non-callable conversion members.
+								// Only serialized scalar IDs are displayable; preserve others raw.
+								itemId:
+									typeof raw?.itemId === "string" ||
+									typeof raw?.itemId === "number"
+										? String(raw.itemId)
+										: "",
 								...(numeric(raw?.stack) ? { stack: raw.stack } : {}),
 								...(numeric(raw?.quality) ? { quality: raw.quality } : {}),
 								canStack: canEdit && numeric(raw?.stack),
@@ -223,7 +263,17 @@ export const setBackpackItem = Effect.fn("Backpack.setItem")(function* (
 export function backpackInventorySnapshot(document: SaveDocument) {
 	return farmers(document).map((farmer) =>
 		record(farmer)
-			? { id: farmer.UniqueMultiplayerID, items: farmer.items }
+			? {
+					id: farmer.UniqueMultiplayerID,
+					items: farmer.items,
+					// Field presence matters too: a raw draft cannot eagerly add empty
+					// equipment to a save whose corresponding field was absent.
+					equipment: Object.fromEntries(
+						equipmentSlots
+							.filter((key) => Object.hasOwn(farmer, key))
+							.map((key) => [key, farmer[key]]),
+					),
+				}
 			: farmer,
 	);
 }

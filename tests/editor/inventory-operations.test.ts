@@ -595,3 +595,21 @@ describe("bounded backpack edits", () => {
 		},
 	);
 });
+
+it("projects opaque item identifiers without invoking their conversion fields", () => {
+	const document = tinyFixture();
+	document.SaveGame.player.items.Item[0] = {
+		itemId: { toString: 0 },
+		name: "Opaque ID",
+	};
+	const before = structuredClone(document);
+	const view = readBackpacks({
+		document,
+		identities: { host: ["a", "b", "c"] },
+	});
+	expect(view[0]?.slots[0]?.itemId).toBe("");
+	expect(view[0]?.slots[0]?.raw).toEqual(
+		document.SaveGame.player.items.Item[0],
+	);
+	expect(document).toEqual(before);
+});

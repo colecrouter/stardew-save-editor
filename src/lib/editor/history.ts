@@ -1,3 +1,4 @@
+import { resolveBackpackLifecycle } from "./backpack-lifecycle.ts";
 import {
 	BackpackItemEdits,
 	makeBackpackItemEdits,
@@ -344,7 +345,19 @@ export const makeHistorySession = (
 							let nextIdentity = state.nextIdentity;
 							const resolved: Mutation[] = [];
 							for (const requested of structuredClone(actions)) {
-								let action = requested;
+								let action: Mutation = requested;
+								// Creation/removal resolves its instance inside this queue turn.
+								// A stale view cannot target a replacement by its old slot index.
+								if (
+									requested.type === "backpack-add" ||
+									requested.type === "backpack-remove"
+								) {
+									action = yield* resolveBackpackLifecycle(
+										prepared.document,
+										identities,
+										requested,
+									);
+								}
 								if (
 									(requested.type === "item-stack" ||
 										requested.type === "item-remove" ||

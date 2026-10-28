@@ -1,3 +1,4 @@
+import type { BackpackLifecycleRequest } from "./backpack-lifecycle.ts";
 import type { CalendarEdit } from "../calendarDocument.ts";
 
 // Parsed XML consists of plain records, arrays, and primitive values. This
@@ -36,6 +37,7 @@ export interface SaveDocument {
 	};
 }
 export type Mutation =
+	| BackpackLifecycleRequest
 	| CalendarEdit
 	| { type: "bundle-complete"; bundleId: 13 }
 	| { type: "item-place"; farmerId: string; slot: number; item: unknown }
@@ -115,6 +117,10 @@ export function apply(
 	label: string;
 	review: Receipt["review"];
 } {
+	if (mutation.type === "backpack-add" || mutation.type === "backpack-remove")
+		throw new MutationError(
+			"Backpack lifecycle requests require session identity resolution",
+		);
 	if (mutation.type === "bundle-complete")
 		throw new MutationError(
 			"Bundle operations require the bundle domain adapter",
@@ -128,9 +134,17 @@ export function apply(
 		for (const farmer of farmers(document)) farmer.farmName = mutation.value;
 		return { label: `Rename farm to ${mutation.value}`, review: "standalone" };
 	}
-	const matches = farmers(document).filter(
-		(farmer) => String(farmer.UniqueMultiplayerID) === mutation.farmerId,
-	);
+	// Opaque farmer records and identifiers are preserved but cannot acquire
+	// ownership by coercion, including objects with non-callable toString fields.
+	const matches = farmers(document).filter((farmer) => {
+		if (!farmer || typeof farmer !== "object") return false;
+		const id = farmer.UniqueMultiplayerID;
+		return (
+			(typeof id === "string" ||
+				(typeof id === "number" && Number.isFinite(id))) &&
+			String(id) === mutation.farmerId
+		);
+	});
 	const farmer = matches[0];
 	if (!farmer || matches.length !== 1)
 		throw new MutationError("Farmer ID must resolve exactly once");
@@ -146,7 +160,7 @@ export function apply(
 			throw new MutationError("An item must be a nonempty save record");
 		farmer.items.Item[mutation.slot] = structuredClone(mutation.item);
 		return {
-			label: `Place item in ${farmer.name}'s backpack`,
+			label: `Add ${typeof (mutation.item as Record<string, unknown>).name === "string" ? (mutation.item as Record<string, unknown>).name : "item"} to ${farmer.name}’s backpack (slot ${mutation.slot + 1})`,
 			review: "standalone",
 		};
 	}
@@ -156,7 +170,7 @@ export function apply(
 		if (mutation.type === "item-remove") {
 			farmer.items.Item[mutation.slot] = { "@_xsi:nil": "true" };
 			return {
-				label: `Remove item from ${farmer.name}'s backpack`,
+				label: `Remove ${item && typeof item === "object" && "name" in item && typeof item.name === "string" ? item.name : "item"} from ${farmer.name}’s backpack (slot ${mutation.slot + 1})`,
 				review: "standalone",
 			};
 		}

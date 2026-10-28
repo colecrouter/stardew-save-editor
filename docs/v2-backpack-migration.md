@@ -3,8 +3,9 @@
 The existing `/v2` workspace now has an Inventory section for host and farmhand
 backpacks. Select an existing item and edit supported ordinary-object quantities
 or quality through the same session, review, undo/redo and export boundary as Farm
-and calendar. This is the first backpack slice; creation, removal, stacking/merging,
-equipment, chests and moving items in the UI remain outside its scope.
+and calendar. The first slice covered quantity and quality; the workspace now also adds catalog
+items to empty slots and removes existing records. Stacking/merging, equipment,
+chest contents and moving items in the UI remain outside its scope.
 
 Valid quantity input commits immediately, using the existing editor range
 1–9999; neither blur nor Enter is required. Clearing the number permits replacement
@@ -22,7 +23,13 @@ Session-only entity handles identify instances, including byte-identical records
 Selection follows its entity across reorders and undo; moving it to another farmer
 invalidates the old owner handle. These cases are verified through the existing
 identity-aware move/reorder commands, without exposing move controls in this slice.
-No identity is serialized into XML. Tolerant production initialization allocates
+Add/remove starts from an exact session handle, including the empty destination.
+The command queue validates that handle and the current slot state before writing;
+occupied targets and stale clicks reject instead of replacing another item. Every
+replacement receives a fresh handle. The model returns that exact committed pair
+before releasing the queue, so a subsequent Undo cannot race a UI snapshot lookup.
+Selection remembers only its own replacement lineage across Undo/Redo; an explicit
+slot or owner selection starts a new lineage. No identity is serialized into XML. Tolerant production initialization allocates
 handles only for unambiguous farmer IDs and array-shaped backpacks. Unsupported
 inventory representations do not prevent calendar editing. This is the single
 initialization policy for application and comparison consumers; no inventory mode
@@ -36,6 +43,24 @@ publishes none of the document, history or identity changes. Finalization clears
 the capability's captured document authority so escaped services cannot keep files
 alive or modify them later.
 
+The in-place catalog spans the desktop workspace beneath the backpack. Name,
+qualified ID and bare ID searches share one matching/ranking helper; type filters
+and 48-result pages make the full supported catalog reachable. Choosing a result
+previews its sprite, description and ID without writing to the save. The explicit
+Add action places one item in the selected empty slot. Removal is a separate
+immediately undoable inspector action, including for opaque imported items.
+Neither action merges with another stack or changes unrelated slots.
+
+Catalog construction uses generated metadata and plain records, with no legacy
+proxy/effect root. Only new items receive these defaults; imported records never
+pass through the factory. Preview records are not write authority: the command
+reconstructs the chosen ID from trusted metadata. Type-specific construction and
+conservative exclusions are covered by domain tests. Specialized subclasses such
+as chests, garden pots, beds/storage/fish-tank furniture and slingshots, furniture
+without explicit geometry, and player trash-can upgrades are not addable yet.
+Existing saved records of those kinds can still be removed and restored exactly
+with Undo; the exclusion is solely about constructing new instances.
+
 The read model detaches slot records. Metadata and sprite sheets load with the
 Inventory panel; pure metadata/Sprite geometry renders them without constructing
 legacy proxies. This prevents display-time writes and proxy/effect ownership from
@@ -47,6 +72,9 @@ and prismatic animation remain outside this slice's visual parity claim.
 Regression coverage includes exact-document export/reimport, quantity/quality undo,
 byte-identical entities, cross-farmer ownership, no-ops and redo retention, illegal
 raw/transient draft writes, interrupted/escaped capabilities, unsupported farmer
-records, and actual application controls. The legacy inventory remains available
+records, and actual application controls. Catalog coverage also verifies stale empty
+handles, occupied-slot rejection, new-item defaults, preview isolation, filtering
+and pagination, complete opaque-item removal/Undo, and add/remove selection through
+Undo/Redo. The legacy inventory remains available
 for broader property editing. Its applicable preservation and interaction assertions
 are ported into the application tests; no suite is parked behind TODOs.

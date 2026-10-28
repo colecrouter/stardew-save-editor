@@ -1,3 +1,4 @@
+import type { BackpackLifecycleRequest } from "./backpack-lifecycle.ts";
 import {
 	readBackpacks,
 	type BackpackView,
@@ -393,6 +394,37 @@ export const makeEditorModel = (
 				}),
 			);
 		const commands = {
+			/** Publish a slot replacement and return its exact committed identity pair. */
+			changeBackpackSlot: (request: BackpackLifecycleRequest) =>
+				submit(() =>
+					Effect.gen(function* () {
+						// Resolve the destination before executing within this command queue.
+						// Expected revision also protects callers that hold the lower engine API.
+						const before = yield* live().snapshot;
+						const previous = Object.hasOwn(before.identities, request.farmerId)
+							? before.identities[request.farmerId]
+							: undefined;
+						const slot = previous?.indexOf(request.entityId) ?? -1;
+						const after = yield* live().execute(
+							[request],
+							undefined,
+							before.revision,
+						);
+						const entityId = after.identities[request.farmerId]?.[slot];
+						// A successful add/remove always allocates a replacement handle. Read
+						// it from that committed state, never from a later snapshot after Undo.
+						if (!entityId)
+							return yield* Effect.die(
+								new Error("Committed backpack replacement has no identity"),
+							);
+						publish(after);
+						return {
+							farmerId: request.farmerId,
+							previousEntityId: request.entityId,
+							entityId,
+						};
+					}),
+				),
 			transact: <E>(
 				program: Effect.Effect<
 					unknown,

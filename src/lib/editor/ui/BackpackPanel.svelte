@@ -1,4 +1,8 @@
 <script lang="ts">
+	import { tick } from "svelte";
+	import { Result } from "effect";
+	import { catalogEntries } from "../item-catalog.ts";
+	import BackpackItemPicker from "./BackpackItemPicker.svelte";
 	import { useAtomValue } from "effect-atom-svelte";
 	import {
 		CategoriesWithQuality,
@@ -18,23 +22,104 @@
 	const view = useAtomValue(() => model.atomBindings.view);
 	let farmerIndex = $state(0);
 	let selectedEntity = $state<string>();
+	let selectionFamily = $state<string[]>([]);
+	let selectionVersion = 0;
+	let operationError = $state("");
+	let removing = $state(false);
+	let slotGrid = $state<HTMLDivElement>();
+	// Explicit selection starts a new lineage. Add/remove replace a slot's handle;
+	// remembering those related handles lets Undo/Redo restore the same selection
+	// without accidentally selecting an unrelated replacement or a moved item.
+	function choose(entityId: string | undefined) {
+		selectionVersion++;
+		selectedEntity = entityId;
+		selectionFamily = entityId ? [entityId] : [];
+		operationError = "";
+	}
 	const backpacks = $derived(view.current?.backpacks ?? []);
 	const backpack = $derived(backpacks[farmerIndex]);
-	// Selection follows the session entity through reorders and undo. An entity
-	// leaving this farmer stays unavailable rather than selecting its replacement.
+	// Selection follows the session entity through reorders and undo. Only our
+	// own add/remove replacements extend its lineage; moves to another farmer
+	// stay unavailable rather than selecting an unrelated replacement.
 	const selected = $derived(
 		selectedEntity === undefined
 			? (backpack?.slots.find((slot) => !slot.empty) ?? backpack?.slots[0])
-			: backpack?.slots.find((slot) => slot.entityId === selectedEntity),
+			: (backpack?.slots.find((slot) => slot.entityId === selectedEntity) ??
+					backpack?.slots.find((slot) =>
+						selectionFamily.includes(slot.entityId),
+					)),
 	);
 	$effect(() => {
 		// Pin the initial instance too: a later reorder must not turn the implicit
 		// first-slot selection into a different entity before the user's first click.
-		if (selectedEntity === undefined && backpack?.slots.length)
+		if (selectedEntity === undefined && backpack?.slots.length) {
 			selectedEntity = (
 				backpack.slots.find((slot) => !slot.empty) ?? backpack.slots[0]
 			)?.entityId;
+			selectionFamily = selectedEntity ? [selectedEntity] : [];
+		}
 	});
+	async function changeSlot(kind: "add" | "remove", catalogId?: string) {
+		if (!backpack || !selected) return false;
+		const owner = backpack.farmerId;
+		const target = selected;
+		const version = selectionVersion;
+		const invokingControl = document.activeElement;
+		operationError = "";
+		// Pass an instance handle, never a slot index from the view. The queued
+		// command rechecks both ownership and emptiness before changing anything.
+		if (kind === "add" && catalogId === undefined) return false;
+		const result = await model.commands.changeBackpackSlot(
+			kind === "add"
+				? {
+						type: "backpack-add",
+						farmerId: owner,
+						entityId: target.entityId,
+						catalogId: catalogId!,
+					}
+				: {
+						type: "backpack-remove",
+						farmerId: owner,
+						entityId: target.entityId,
+					},
+		);
+		if (!result) return false;
+		if (Result.isFailure(result)) {
+			if (selectionVersion === version) operationError = result.failure.message;
+			return false;
+		}
+		// A later click or owner switch wins over completion of an earlier edit.
+		// Only our own replacement extends the lineage used by Undo/Redo selection.
+		if (selectionVersion === version && backpack?.farmerId === owner) {
+			const replacement = result.success.entityId;
+			if (replacement) {
+				selectionFamily = [...selectionFamily, replacement];
+				selectedEntity = replacement;
+				await tick();
+				// Added items return focus to their slot. Removal opens the picker's
+				// search instead; later toolbar actions keep their own focus.
+				if (
+					kind === "add" &&
+					(document.activeElement === invokingControl ||
+						document.activeElement === document.body)
+				)
+					slotGrid
+						?.querySelector<HTMLButtonElement>('[aria-pressed="true"]')
+						?.focus();
+			}
+		}
+		return true;
+	}
+	async function removeSelected() {
+		if (removing) return;
+		removing = true;
+		try {
+			await changeSlot("remove");
+		} finally {
+			removing = false;
+		}
+	}
+
 	function display(item: BackpackSlotView) {
 		let info: ReturnType<typeof ResolveItemData>;
 		let name = item.name;
@@ -58,7 +143,8 @@
 
 <h1>Backpack</h1>
 <p>
-	Select an item to edit its quantity or quality. Use Undo to revert changes.
+	Select an item to edit it, or choose an empty slot to add something. Use Undo
+	to revert changes.
 </p>
 {#if backpacks.length > 1}
 	<label class="farmer">
@@ -70,7 +156,7 @@
 					// Changing owners starts selection within the new backpack rather
 					// than carrying another farmer's entity handle into its inspector.
 					farmerIndex = value;
-					selectedEntity = undefined;
+					choose(undefined);
 				}
 			}
 		>
@@ -86,12 +172,12 @@
 		remain available.
 	</p>
 {:else}
-	<div class="inventory-layout">
+	<div class="inventory-layout" class:browsing={selected?.empty}>
 		<section aria-label={`${backpack.name}'s backpack`}>
 			<h2>{backpack.name}’s backpack</h2>
 			<!-- Slot position stays in the upper corner; quality and quantity identify
 			     the saved item instance along the lower edge. -->
-			<div class="slots">
+			<div class="slots" bind:this={slotGrid}>
 				{#each backpack.slots as item (item.entityId)}
 					{@const details = display(item)}
 					<button
@@ -102,7 +188,7 @@
 						aria-label={`Slot ${item.slot + 1}: ${item.empty ? "Empty" : details.name}`}
 						title={item.empty ? "Empty slot" : details.name}
 						onclick={() => {
-							selectedEntity = item.entityId;
+							choose(item.entityId);
 						}}
 					>
 						<span class="slot-number" aria-hidden="true">{item.slot + 1}</span>
@@ -118,7 +204,7 @@
 				{/each}
 			</div>
 		</section>
-		<div class="inspector">
+		<div class="inspector" class:browsing={selected?.empty}>
 			{#if selected && !selected.empty}
 				{@const details = display(selected)}
 				{#key JSON.stringify([backpack.farmerId, selected.entityId])}
@@ -127,14 +213,24 @@
 						farmerId={backpack.farmerId}
 						item={selected}
 						{...details}
+						onremove={removeSelected}
+						{removing}
 					/>
 				{/key}
+			{:else if selected?.empty}
+				<BackpackItemPicker
+					slot={selected.slot}
+					entries={catalogEntries}
+					error={operationError}
+					onadd={(id) => changeSlot("add", id)}
+				/>
 			{:else}
 				<p role="status">
-					{selected?.empty
-						? "This slot is empty."
-						: "The selected item is no longer in this backpack. Select another slot."}
+					The selected item is no longer in this backpack. Select another slot.
 				</p>
+			{/if}
+			{#if operationError && !selected?.empty}
+				<p role="status">{operationError}</p>
 			{/if}
 		</div>
 	</div>
@@ -161,6 +257,14 @@
 		gap: 32px;
 		align-items: start;
 		margin-top: 24px;
+	}
+	.inventory-layout.browsing {
+		grid-template-columns: minmax(0, 1fr);
+	}
+	.inspector.browsing {
+		border-left: 0;
+		border-top: 1px solid #be8d4d;
+		padding: 24px 0 0;
 	}
 	.inventory-layout section {
 		min-width: 0;

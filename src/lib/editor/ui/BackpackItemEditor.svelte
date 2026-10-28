@@ -17,6 +17,8 @@
 		description?: string;
 		canStack: boolean;
 		canQuality: boolean;
+		onremove?: () => Promise<void>;
+		removing?: boolean;
 	}
 	let {
 		model,
@@ -26,6 +28,8 @@
 		description,
 		canStack,
 		canQuality,
+		onremove,
+		removing = false,
 	}: Props = $props();
 	let error = $state("");
 	const qualityGroup = $props.id();
@@ -197,14 +201,55 @@
 		{/if}
 	</div>
 	{#if !canStack && !canQuality}
-		<p>This item’s properties are preserved but cannot be edited here.</p>
+		<p>
+			Quantity and quality are preserved but cannot be edited for this item.
+		</p>
 	{/if}
 	{#if error || guidance}
 		<p role="status">{error || guidance}</p>
 	{/if}
+	{#if onremove}
+		<!-- Removal is immediately undoable, like the other independent controls. -->
+		<div class="remove-action">
+			<button
+				type="button"
+				disabled={removing}
+				onclick={() => void onremove?.()}
+			>
+				{removing ? "Removing…" : "Remove item"}
+			</button>
+			<p>Undo restores the complete item.</p>
+		</div>
+	{/if}
 </section>
 
 <style>
+	.remove-action {
+		margin-top: 24px;
+		padding-top: 20px;
+		border-top: 1px solid #be8d4d;
+	}
+	.remove-action button {
+		font: inherit;
+		min-height: 44px;
+		padding: 6px 14px;
+		background: #fff2d3;
+		color: #8c2f1b;
+		border: 2px solid #a55832;
+		cursor: pointer;
+	}
+	.remove-action button:hover {
+		background: #ffe4c7;
+	}
+	.remove-action button:focus-visible {
+		outline: 2px solid #311304;
+		outline-offset: 3px;
+	}
+	.remove-action p {
+		font-size: 19px;
+		color: #694621;
+		margin: 8px 0 0;
+	}
 	.inspector {
 		min-width: 0;
 	}

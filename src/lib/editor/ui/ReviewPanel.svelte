@@ -129,7 +129,8 @@
 			</li>
 		{/each}
 	</ul>
-	{#if includeProofs}<details>
+	{#if includeProofs}
+		<details>
 			<summary>Inventory operation sample</summary>
 			<p>
 				Reverse the host backpack to compare a compact action with its actual

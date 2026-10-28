@@ -1,3 +1,8 @@
+import {
+	readBackpacks,
+	type BackpackView,
+	type BackpackItemEdits,
+} from "./inventory-operations.ts";
 import { readFarmSettings, type FarmView } from "./farm-operations.ts";
 import {
 	validateSave,
@@ -61,6 +66,7 @@ export interface EditorView {
 	bundle: ReturnType<typeof springBundleView>;
 	calendar: CalendarViewState;
 	farm: FarmView;
+	backpacks: BackpackView[];
 	greenRain: number;
 	todayOptions: WeatherChoice[];
 	tomorrowOptions: WeatherChoice[];
@@ -140,6 +146,7 @@ function project(state: HistoryState, includeProofs = false): EditorView {
 				},
 		calendar,
 		farm: readFarmSettings(state.document),
+		backpacks: readBackpacks(state),
 		greenRain: day,
 		todayOptions: today.values,
 		tomorrowOptions: tomorrow.values,
@@ -338,7 +345,11 @@ export const makeEditorModel = (
 		// same command queue. This boundary does not enumerate feature actions or
 		// erase their tagged failures into a framework-wide error union.
 		const transact = <E>(
-			program: Effect.Effect<unknown, E, TransactionDraft | ReviewJournal>,
+			program: Effect.Effect<
+				unknown,
+				E,
+				TransactionDraft | ReviewJournal | BackpackItemEdits
+			>,
 			expectedRevision?: number,
 		) =>
 			command(async () => {
@@ -383,7 +394,11 @@ export const makeEditorModel = (
 			);
 		const commands = {
 			transact: <E>(
-				program: Effect.Effect<unknown, E, TransactionDraft | ReviewJournal>,
+				program: Effect.Effect<
+					unknown,
+					E,
+					TransactionDraft | ReviewJournal | BackpackItemEdits
+				>,
 				expectedRevision?: number,
 			) =>
 				submit(() =>
@@ -495,7 +510,7 @@ export type EditorModel = Effect.Success<ReturnType<typeof makeEditorModel>>;
  * The caller owns `close()`: unmount registry consumers before awaiting it.
  * Failed acquisition releases resources before rejecting.
  *
- * Calendar-only projections and export validation are enabled by default;
+ * The production projections and export validation are enabled by default;
  * `includeProofs` and `validateExport: false` support the comparison lab.
  * @returns The application model and the function that closes its file scope.
  */
@@ -510,12 +525,7 @@ export async function openEditor(
 			Effect.gen(function* () {
 				const codec = yield* SaveCodec;
 				const document = yield* codec.decode(bytes);
-				const session = yield* makeHistorySession(
-					document,
-					limits,
-					{},
-					{ inventory: options.includeProofs === true },
-				);
+				const session = yield* makeHistorySession(document, limits);
 				return yield* makeEditorModel(session, codec, options);
 			}).pipe(
 				Effect.provide(SaveCodecLive),

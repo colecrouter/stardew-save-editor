@@ -1,4 +1,11 @@
 import {
+	BackpackItemEdits,
+	makeBackpackItemEdits,
+	backpackFarmers,
+	backpackInventorySnapshot,
+	hasBackpackFarmerId,
+} from "./inventory-operations.ts";
+import {
 	Effect,
 	JsonPatch,
 	Schema,
@@ -16,7 +23,6 @@ import { coreOperations, EditorOperations } from "./operations.ts";
 import {
 	type Mutation,
 	MutationError,
-	farmers,
 	type Receipt,
 	type SaveDocument,
 	type DomainState,
@@ -90,14 +96,13 @@ function entryBytes(payload: Omit<Entry, "bytes">): number {
  * failed preparation publishes none of them. External side effects are not undone.
  *
  * Limits default to 100 entries and 8 MiB; the import baseline survives eviction.
- * Set `features.inventory` to false for calendar sessions that must preserve
- * unrelated inventory representations without allocating item identities.
+ * Item handles are allocated only for supported, unambiguous backpack arrays;
+ * unsupported inventories remain preserved and do not block other save edits.
  */
 export const makeHistorySession = (
 	document: SaveDocument,
 	limits: number | HistoryLimits = {},
 	initialDomainState: DomainState = {},
-	features: { inventory?: boolean } = {},
 ) =>
 	Effect.gen(function* () {
 		const operations = Option.getOrElse(
@@ -132,15 +137,25 @@ export const makeHistorySession = (
 		// including opaque/empty slots, without adding fields to the exported save.
 		let nextIdentity = 0;
 		const identities: Record<string, string[]> = Object.create(null);
-		// Calendar sessions do not decode or assign identities to unrelated inventories.
-		for (const farmer of features.inventory === false
-			? []
-			: farmers(baseline)) {
+		// Allocate handles only when ownership and slot order can be resolved safely.
+		// Unsupported inventories and duplicate farmer IDs stay in the document,
+		// but cannot prevent calendar/Farm edits or gain editable item handles.
+		const inventoryFarmers = backpackFarmers(baseline);
+		for (const farmer of inventoryFarmers) {
+			// Opaque identifiers can contain non-callable conversion properties.
+			// Validate their scalar shape before attempting string conversion.
+			if (!hasBackpackFarmerId(farmer)) continue;
 			const id = String(farmer.UniqueMultiplayerID);
-			if (Object.hasOwn(identities, id))
-				return yield* Effect.fail(
-					new MutationError("Farmer ID must resolve exactly once"),
-				);
+			if (
+				inventoryFarmers.filter(
+					(other) =>
+						hasBackpackFarmerId(other) &&
+						String(other.UniqueMultiplayerID) === id,
+				).length !== 1 ||
+				!farmer.items ||
+				!Array.isArray(farmer.items.Item)
+			)
+				continue;
 			identities[id] = farmer.items.Item.map(() => `item:${++nextIdentity}`);
 		}
 		const ref = yield* TxSubscriptionRef.make<History>({
@@ -318,19 +333,6 @@ export const makeHistorySession = (
 					(state) =>
 						Effect.gen(function* () {
 							if (actions.length === 0) return state;
-							if (
-								features.inventory === false &&
-								actions.some(
-									(action) =>
-										action.type.startsWith("item-") ||
-										action.type === "reorder",
-								)
-							)
-								return yield* Effect.fail(
-									new MutationError(
-										"Inventory editing is not enabled in this session",
-									),
-								);
 							// A replaceable adapter may stage in-place writes. Never give it
 							// references to published state, including before a later failure.
 							let prepared: SessionState = {
@@ -455,7 +457,11 @@ export const makeHistorySession = (
 			// Allocate both draft and journal inside the transaction attempt so a
 			// retry, interruption or failed child publishes no partial metadata.
 			transact: <A, E, R>(
-				program: Effect.Effect<A, E, R | TransactionDraft | ReviewJournal>,
+				program: Effect.Effect<
+					A,
+					E,
+					R | TransactionDraft | ReviewJournal | BackpackItemEdits
+				>,
 				expectedRevision?: number,
 			) =>
 				update(
@@ -466,10 +472,16 @@ export const makeHistorySession = (
 								domainState: state.domainState,
 								history: [],
 							});
+							const itemEdits = makeBackpackItemEdits(
+								draft.service,
+								state.identities,
+								state.document,
+							);
 							const { collected, prepared } = yield* collectTransactionMetadata(
 								program,
 							).pipe(
 								Effect.provideService(TransactionDraft, draft.service),
+								Effect.provideService(BackpackItemEdits, itemEdits.service),
 								// Take the result before close clears retained service state.
 								// Escaped capability handles must not retain an abandoned save.
 								Effect.flatMap((collected) =>
@@ -479,18 +491,16 @@ export const makeHistorySession = (
 									})),
 								),
 								Effect.ensuring(draft.close),
+								Effect.ensuring(itemEdits.close),
 							);
-							// Inventory identity changes still use the legacy identity adapter.
-							// Until that capability migrates, reject untracked entity changes
-							// rather than publishing patches with stale item identities.
-							const inventories = (document: SaveDocument) =>
-								farmers(document).map((farmer) => ({
-									id: String(farmer.UniqueMultiplayerID),
-									items: farmer.items,
-								}));
+							// The bounded item capability authorizes field-only writes and keeps
+							// every entity in place. Compare against its replay, rejecting raw
+							// inventory mutations, replacement, movement or untracked fields.
 							if (
-								JSON.stringify(inventories(state.document)) !==
-								JSON.stringify(inventories(prepared.document))
+								JSON.stringify(
+									backpackInventorySnapshot(itemEdits.replay(state.document)),
+								) !==
+								JSON.stringify(backpackInventorySnapshot(prepared.document))
 							)
 								return yield* Effect.fail(
 									new MutationError(

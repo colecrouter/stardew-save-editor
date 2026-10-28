@@ -128,8 +128,9 @@
 					/>
 				</label>
 				<datalist id={`${id}-profit-presets`}>
-					{#each [100, 75, 50, 25] as percent (percent)}<option value={percent}
-						></option>{/each}
+					{#each [100, 75, 50, 25] as percent (percent)}
+						<option value={percent}></option>
+					{/each}
 				</datalist>
 				<p id={`${id}-profit-help`} class="help">
 					Multiplies sale and seed shop prices. 100% is normal. Name and profit
@@ -164,10 +165,11 @@
 						}}
 						aria-describedby={`${id}-rewards-help`}
 					>
-						{#if !["Default", "Remixed"].includes(view.current.farm.mineRewards)}<option
-								value={view.current.farm.mineRewards}
-								>Custom ({view.current.farm.mineRewards})</option
-							>{/if}
+						{#if !["Default", "Remixed"].includes(view.current.farm.mineRewards)}
+							<option value={view.current.farm.mineRewards}>
+								Custom ({view.current.farm.mineRewards})
+							</option>
+						{/if}
 						<option value="Default">Normal</option>
 						<option value="Remixed">Remixed</option>
 					</select>

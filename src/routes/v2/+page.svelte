@@ -4,6 +4,6 @@
 	import EditorApp from "$lib/editor/ui/EditorApp.svelte";
 </script>
 
-<svelte:head><title>Calendar editor – Stardew Save Editor</title></svelte:head>
+<svelte:head><title>V2 editor – Stardew Save Editor</title></svelte:head>
 
 <EditorApp legacyHref={resolve("/")} backupOriginal={saveOriginalBackup} />

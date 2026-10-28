@@ -121,16 +121,21 @@
 
 <div class="editor-application">
 	{#if active}
-		{#if error}<p role="alert">{error}</p>{/if}
-		{#if downloadError}<p role="alert">{downloadError}</p>{/if}
+		{#if error}
+			<p role="alert">{error}</p>
+		{/if}
+		{#if downloadError}
+			<p role="alert">{downloadError}</p>
+		{/if}
 		{#if active.model.loadValidation.errors.length || active.model.loadValidation.warnings.length}
 			<details class="validation">
 				<summary>Imported save has existing problems</summary>
 				<ul>
-					{#each [...active.model.loadValidation.errors, ...active.model.loadValidation.warnings] as problem}<li
-						>
+					{#each [...active.model.loadValidation.errors, ...active.model.loadValidation.warnings] as problem}
+						<li>
 							{problem}
-						</li>{/each}
+						</li>
+					{/each}
 				</ul>
 				<p>
 					Viewing does not change these fields. Export is blocked if definite
@@ -156,14 +161,17 @@
 		<section class="upload study-theme">
 			<h1>V2 editing workspace</h1>
 			<p>
-				Open a Stardew Valley 1.6 save to edit its date and weather, review
-				changes, and undo before exporting.
+				Open a Stardew Valley 1.6 save to edit backpack items, farm settings,
+				and date and weather. Review changes and undo before exporting.
 			</p>
 			<p>
-				Calendar editing is available here. Use the legacy editor for other
-				features; each editor opens its own file.
+				Backpack quantity and quality, farm settings, and calendar editing are
+				available here. Use the legacy editor for other features; each editor
+				opens its own file.
 			</p>
-			{#if legacyHref}<a href={legacyHref}>Open the legacy editor</a>{/if}
+			{#if legacyHref}
+				<a href={legacyHref}>Open the legacy editor</a>
+			{/if}
 			<p>
 				Keep a backup. Select the main farm save, not SaveGameInfo. Downloaded
 				saves keep their original name without adding an extension.

@@ -50,8 +50,7 @@
 
 <section>
 	<p>
-		<a href={resolve("/v2")}>Try calendar editing with undo and change review</a
-		>
+		<a href={resolve("/v2")}>Try v2 editing with undo and change review</a>
 	</p>
 	<UiContainer>
 		<form onsubmit={preventDefault(handle)} method="POST">

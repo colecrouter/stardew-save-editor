@@ -1,9 +1,23 @@
 import {
+	decodeItemPropertyChange,
+	getItemPropertyFields,
+	itemColorPatch,
+	readItemPropertyContext,
+	ItemPropertyInvalid,
+	type ItemPropertyChange,
+} from "./item-properties.ts";
+import {
+	prepareTrinketPropertyChange,
+	TrinketPropertyChangeSchema,
+} from "./trinket-properties.ts";
+import type { TrinketRollContext } from "../TrinketStats.ts";
+import {
 	equipmentSlots,
 	equipmentLabels,
 	trinketAvailable,
 	type EquipmentSlotView,
 	type EquipmentIdentities,
+	type InventoryLocation,
 } from "./equipment.ts";
 import { Context, Data, Effect, Result, Schema, SchemaIssue } from "effect";
 import { emptySlot, farmers, type SaveDocument } from "./domain.ts";
@@ -35,6 +49,7 @@ export interface BackpackView {
 	reason?: string;
 	slots: BackpackSlotView[];
 	equipment: EquipmentSlotView[];
+	itemContext?: TrinketRollContext;
 }
 /** Expected unsupported, invalid or stale backpack request. */
 export class BackpackItemInvalid extends Data.TaggedError(
@@ -95,7 +110,8 @@ function editable(item: unknown) {
 	return (
 		record(item) &&
 		!emptySlot(item) &&
-		item["@_xsi:type"] === "Object" &&
+		(item["@_xsi:type"] === "Object" ||
+			item["@_xsi:type"] === "ColoredObject") &&
 		item.bigCraftable === false
 	);
 }
@@ -158,6 +174,7 @@ export function readBackpacks(
 			unique && Array.isArray(items) && ids?.length === items.length;
 		return {
 			farmerId,
+			itemContext: readItemPropertyContext(state.document, farmer),
 			equipment: equipmentSlots.flatMap((key) => {
 				const entityId = state.equipmentIdentities?.[farmerId]?.[key];
 				if (!entityId) return [];
@@ -238,6 +255,12 @@ export class BackpackItemEdits extends Context.Service<
 			{ changed: boolean; label: string; tags: readonly string[] },
 			BackpackItemInvalid | import("./domain.ts").MutationError
 		>;
+		setProperty: (
+			change: ItemPropertyChange,
+		) => Effect.Effect<
+			{ changed: boolean; label: string; tags: readonly string[] },
+			ItemPropertyInvalid | import("./domain.ts").MutationError
+		>;
 	}
 >()("v2/BackpackItemEdits") {}
 
@@ -258,6 +281,22 @@ export const setBackpackItem = Effect.fn("Backpack.setItem")(function* (
 			}),
 		);
 });
+
+/** Change one supported saved property through the history-owned inventory capability. */
+export const setInventoryItemProperty = Effect.fn("Inventory.setProperty")(
+	function* (change: ItemPropertyChange) {
+		const edits = yield* BackpackItemEdits;
+		const result = yield* edits.setProperty(change);
+		if (result.changed)
+			yield* recordAnnotatedOperation(Effect.void).pipe(
+				withReviewMetadata({
+					label: result.label,
+					emphasis: "standalone",
+					tags: result.tags,
+				}),
+			);
+	},
+);
 
 /** Inventory authority includes opaque farmer entries and complete item records. */
 export function backpackInventorySnapshot(document: SaveDocument) {
@@ -283,77 +322,173 @@ export function makeBackpackItemEdits(
 	draft: typeof TransactionDraft.Service,
 	identities: Record<string, string[]>,
 	originalDocument: SaveDocument,
+	equipmentIdentities: EquipmentIdentities = {},
 ) {
-	// Only approved field writes may affect subsequent eligibility checks. Retain
-	// authority for this attempt, then clear it when the owning draft closes.
+	// Approved top-level patches are the sole inventory write authority. Retain the
+	// baseline only while this draft is open; replay retains no published save object.
 	let authority: SaveDocument | undefined = originalDocument;
 	const writes: {
 		farmerId: string;
-		slot: number;
-		property: "stack" | "quality";
-		value: number;
+		location: InventoryLocation;
+		patch: Record<string, unknown>;
 	}[] = [];
+	const contexts = new Map<string, string>();
+	const ownerIn = (document: SaveDocument, id: string) => {
+		const matches = backpackFarmers(document).filter(
+			(farmer) =>
+				hasBackpackFarmerId(farmer) &&
+				String(farmer.UniqueMultiplayerID) === id,
+		);
+		return matches.length === 1 ? matches[0] : undefined;
+	};
 	const replay = (document: SaveDocument) => {
 		const expected = structuredClone(document);
 		for (const write of writes) {
-			const farmer = backpackFarmers(expected).find(
-				(farmer) =>
-					hasBackpackFarmerId(farmer) &&
-					String(farmer.UniqueMultiplayerID) === write.farmerId,
-			);
-			const item = farmer?.items.Item[write.slot];
-			if (record(item)) item[write.property] = write.value;
+			const farmer = ownerIn(expected, write.farmerId);
+			const item =
+				typeof write.location === "number"
+					? farmer?.items.Item[write.location]
+					: farmer?.[write.location];
+			if (record(item)) Object.assign(item, structuredClone(write.patch));
 		}
 		return expected;
 	};
+	// Trinket seeds depend on owner income and the root RNG mode. Record those
+	// authoritative reads so later raw draft edits cannot change their meaning.
+	const contextMatches = (document: SaveDocument) => {
+		for (const [farmerId, context] of contexts) {
+			const farmer = ownerIn(document, farmerId);
+			if (
+				!farmer ||
+				JSON.stringify(readItemPropertyContext(document, farmer)) !== context
+			)
+				return false;
+		}
+		return true;
+	};
+	const target = Effect.fn("Inventory.authorizedTarget")(function* (
+		farmerId: string,
+		entityId: string,
+	) {
+		const snapshot = yield* draft.read;
+		// Compare before checking eligibility: temporary raw type/category edits
+		// must not authorize a property that the imported item did not support.
+		if (
+			!authority ||
+			JSON.stringify(backpackInventorySnapshot(snapshot.state.document)) !==
+				JSON.stringify(backpackInventorySnapshot(replay(authority))) ||
+			!contextMatches(snapshot.state.document)
+		)
+			return yield* new ItemPropertyInvalid({
+				message: "Inventory changed outside the supported item operation.",
+			});
+		const farmer = ownerIn(snapshot.state.document, farmerId);
+		const ids = Object.hasOwn(identities, farmerId)
+			? identities[farmerId]
+			: undefined;
+		const items =
+			farmer && record(farmer.items) ? farmer.items.Item : undefined;
+		if (!farmer || !ids || !Array.isArray(items) || ids.length !== items.length)
+			return yield* new ItemPropertyInvalid({
+				message: "This item is no longer editable in this inventory.",
+			});
+		const backpackSlot = ids.indexOf(entityId);
+		const equipment = Object.hasOwn(equipmentIdentities, farmerId)
+			? equipmentIdentities[farmerId]
+			: undefined;
+		const location =
+			backpackSlot >= 0
+				? backpackSlot
+				: equipmentSlots.find((key) => equipment?.[key] === entityId);
+		const item =
+			location === undefined
+				? undefined
+				: typeof location === "number"
+					? items[location]
+					: farmer[location];
+		if (location === undefined || !record(item) || emptySlot(item))
+			return yield* new ItemPropertyInvalid({
+				message: "This item is no longer editable in this inventory.",
+			});
+		return { snapshot, farmer, location, item };
+	});
+	const metadataFor = Effect.fn("Inventory.metadata")(function* (
+		item: Record<string, unknown>,
+	) {
+		// Catalog data remains lazy; calendar/Farm startup only projects raw records.
+		const catalog = yield* Effect.promise(() => import("../ItemData.ts"));
+		const info = yield* Effect.try({
+			try: () => catalog.ResolveItemData(item as never),
+			catch: () =>
+				new ItemPropertyInvalid({ message: "Item metadata is unavailable." }),
+		}).pipe(Effect.orElseSucceed(() => undefined));
+		return { catalog, info };
+	});
+	const reviewFor = (
+		farmerId: string,
+		entityId: string,
+		farmerName: unknown,
+		item: Record<string, unknown>,
+		label: string,
+		property: string,
+	) => ({
+		label: `${typeof farmerName === "string" && farmerName ? farmerName : farmerId}: ${typeof item.name === "string" && item.name ? item.name : "Item"} ${label}`,
+		tags: [
+			"inventory",
+			`inventory:${property}`,
+			`farmer:${farmerId}`,
+			`entity:${entityId}`,
+		],
+	});
+	const apply = Effect.fn("Inventory.authorizePatch")(function* (
+		resolved: Effect.Success<ReturnType<typeof target>>,
+		farmerId: string,
+		patch: Record<string, unknown>,
+	) {
+		// Skip identical patches before replacing the draft, preserving the redo branch.
+		const changed = Object.entries(patch).some(
+			([key, value]) =>
+				JSON.stringify(resolved.item[key]) !== JSON.stringify(value),
+		);
+		if (!changed) return false;
+		Object.assign(resolved.item, structuredClone(patch));
+		yield* draft.replace(resolved.snapshot);
+		writes.push({
+			farmerId,
+			location: resolved.location,
+			patch: structuredClone(patch),
+		});
+		return true;
+	});
 	const service: typeof BackpackItemEdits.Service = {
 		set: Effect.fn("Backpack.stageField")(function* (
-			change: BackpackItemChange,
+			input: BackpackItemChange,
 		) {
-			const invalid = (message: string) => new BackpackItemInvalid({ message });
-			// Decode before acquiring a snapshot; only validated own fields may drive
-			// target resolution, catalog policy, or the eventual authorized write.
-			const decoded = decodeBackpackItemChange(change);
+			const decoded = decodeBackpackItemChange(input);
 			if (Result.isFailure(decoded)) return yield* decoded.failure;
-			change = decoded.success;
-			const snapshot = yield* draft.read;
-			// Eligibility must come from authoritative inventory, not raw draft edits
-			// that temporarily manufacture a supported type, ID or quality category.
-			// Noninventory changes remain free to compose in the same transaction.
-			if (
-				!authority ||
-				JSON.stringify(backpackInventorySnapshot(snapshot.state.document)) !==
-					JSON.stringify(backpackInventorySnapshot(replay(authority)))
-			)
-				return yield* invalid(
-					"Inventory changed outside the supported item operation.",
-				);
-			const matches = backpackFarmers(snapshot.state.document).filter(
-				(farmer) =>
-					hasBackpackFarmerId(farmer) &&
-					String(farmer.UniqueMultiplayerID) === change.farmerId,
+			const change = decoded.success;
+			const resolved = yield* target(change.farmerId, change.entityId).pipe(
+				Effect.mapError((error) =>
+					error._tag === "ItemPropertyInvalid"
+						? new BackpackItemInvalid({ message: error.message })
+						: error,
+				),
 			);
-			const ids = Object.hasOwn(identities, change.farmerId)
-				? identities[change.farmerId]
-				: undefined;
-			const slot = ids?.indexOf(change.entityId) ?? -1;
-			const farmer = matches.length === 1 ? matches[0] : undefined;
-			const items =
-				farmer && record(farmer.items) ? farmer.items.Item : undefined;
-			const item =
-				Array.isArray(items) && ids?.length === items.length && slot >= 0
-					? items[slot]
-					: undefined;
-			if (!editable(item) || !record(item) || !numeric(item[change.property]))
-				return yield* invalid(
-					"This item is no longer editable in this backpack.",
-				);
-			// Metadata is loaded only when editing a backpack; calendar/Farm startup
-			// never pays for the catalog. Unknown records remain fully preserved.
-			const catalog = yield* Effect.promise(() => import("../ItemData.ts"));
+			const { item, farmer } = resolved;
+			// Quantity/quality keep their existing ordinary-object policy and must not
+			// become generic fields merely because equipment now shares the resolver.
+			if (
+				typeof resolved.location !== "number" ||
+				!editable(item) ||
+				!numeric(item[change.property])
+			)
+				return yield* new BackpackItemInvalid({
+					message: "This item is no longer editable in this backpack.",
+				});
+			const { catalog, info } = yield* metadataFor(item);
 			const capabilities = getBackpackItemCapabilities(
 				item,
-				catalog.ResolveItemData(item as never)?._type === "Object",
+				info?._type === "Object",
 				catalog.CategoriesWithQuality.has(item.category as never),
 			);
 			if (
@@ -361,44 +496,113 @@ export function makeBackpackItemEdits(
 					? !capabilities.canStack
 					: !capabilities.canQuality
 			)
-				return yield* invalid("This item does not support that edit.");
-			// Describe the resolved owner and instance, so review remains intelligible
-			// when a group edits similarly named items across multiple farmers.
-			const owner =
-				typeof farmer?.name === "string" && farmer.name
-					? farmer.name
-					: change.farmerId;
-			const itemName =
-				typeof item.name === "string" && item.name
-					? item.name
-					: `Slot ${slot + 1}`;
-			const review = {
-				label: `${owner}: ${itemName} ${change.property === "stack" ? "quantity" : "quality"}`,
-				tags: [
-					"inventory",
-					`inventory:${change.property}`,
-					`farmer:${change.farmerId}`,
-					`entity:${change.entityId}`,
-				],
+				return yield* new BackpackItemInvalid({
+					message: "This item does not support that edit.",
+				});
+			const review = reviewFor(
+				change.farmerId,
+				change.entityId,
+				farmer.name,
+				item,
+				change.property === "stack" ? "quantity" : "quality",
+				change.property,
+			);
+			return {
+				changed: yield* apply(resolved, change.farmerId, {
+					[change.property]: change.value,
+				}),
+				...review,
 			};
-			if (item[change.property] === change.value)
-				return { changed: false, ...review };
-			item[change.property] = change.value;
-			yield* draft.replace(snapshot);
-			writes.push({
-				farmerId: change.farmerId,
-				slot,
-				property: change.property,
-				value: change.value,
-			});
-			return { changed: true, ...review };
+		}),
+		setProperty: Effect.fn("Inventory.stageProperty")(function* (
+			input: ItemPropertyChange,
+		) {
+			const decoded = decodeItemPropertyChange(input);
+			if (Result.isFailure(decoded)) return yield* decoded.failure;
+			const change = decoded.success;
+			const resolved = yield* target(change.farmerId, change.entityId);
+			const { item, farmer, snapshot } = resolved;
+			const { info } = yield* metadataFor(item);
+			const context = readItemPropertyContext(snapshot.state.document, farmer);
+			const field = getItemPropertyFields(item, info, context).find(
+				(field) => field.property === change.property,
+			);
+			if (!field)
+				return yield* new ItemPropertyInvalid({
+					message: "This item does not support that property edit.",
+				});
+			let patch: Record<string, unknown>;
+			if (Schema.is(TrinketPropertyChangeSchema)(change)) {
+				const originalOwner = authority && ownerIn(authority, change.farmerId);
+				const originalContext =
+					authority && originalOwner
+						? readItemPropertyContext(authority, originalOwner)
+						: undefined;
+				if (
+					!context ||
+					!originalContext ||
+					JSON.stringify(context) !== JSON.stringify(originalContext)
+				)
+					return yield* new ItemPropertyInvalid({
+						message:
+							"Trinket game context changed outside the supported operation.",
+					});
+				contexts.set(change.farmerId, JSON.stringify(originalContext));
+				patch = yield* prepareTrinketPropertyChange(
+					item,
+					change,
+					originalContext,
+				).pipe(
+					Effect.mapError(
+						(error) => new ItemPropertyInvalid({ message: error.message }),
+					),
+				);
+			} else if (
+				change.property === "color" ||
+				change.property === "clothesColor"
+			) {
+				const color = itemColorPatch(item[change.property], change.value);
+				if (!color)
+					return yield* new ItemPropertyInvalid({
+						message: "This saved color cannot be edited safely.",
+					});
+				patch = { [change.property]: color };
+			} else if (change.property === "isBottomless") {
+				patch = {
+					...(Object.hasOwn(item, "isBottomless")
+						? { isBottomless: change.value }
+						: {}),
+					...(Object.hasOwn(item, "IsBottomless")
+						? { IsBottomless: change.value }
+						: {}),
+				};
+			} else {
+				patch = { [change.property]: change.value };
+			}
+			const review = reviewFor(
+				change.farmerId,
+				change.entityId,
+				farmer.name,
+				item,
+				field.label.toLowerCase(),
+				change.property,
+			);
+			return {
+				changed: yield* apply(resolved, change.farmerId, patch),
+				...review,
+			};
 		}),
 	};
 	return {
 		service,
-		replay,
+		validate: (document: SaveDocument, baseline: SaveDocument) =>
+			contextMatches(document) &&
+			JSON.stringify(backpackInventorySnapshot(replay(baseline))) ===
+				JSON.stringify(backpackInventorySnapshot(document)),
 		close: Effect.sync(() => {
 			authority = undefined;
+			writes.length = 0;
+			contexts.clear();
 		}),
 	};
 }

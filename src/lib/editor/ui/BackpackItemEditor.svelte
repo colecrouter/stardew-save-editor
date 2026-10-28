@@ -1,5 +1,9 @@
 <script lang="ts">
 	import { Result } from "effect";
+	import type { ItemInformation } from "$types/items";
+	import type { TrinketRollContext } from "../../TrinketStats.ts";
+	import ItemPropertyControls from "./ItemPropertyControls.svelte";
+	import { getItemPropertyFields } from "../item-properties.ts";
 	import type { EquipmentSlotView } from "../equipment.ts";
 	import type { EditorModel } from "../editor-model.ts";
 	import {
@@ -17,6 +21,8 @@
 		locationLabel?: string;
 		name: string;
 		description?: string;
+		metadata?: Pick<ItemInformation, "_type">;
+		propertyContext?: TrinketRollContext;
 		canStack: boolean;
 		canQuality: boolean;
 		onremove?: () => Promise<void>;
@@ -28,6 +34,8 @@
 		item,
 		name,
 		description,
+		metadata,
+		propertyContext,
 		canStack,
 		canQuality,
 		locationLabel,
@@ -54,8 +62,12 @@
 		)
 			clearedQuantity = undefined;
 	});
+	// Deriving controls must not add missing save fields or repair imported values.
+	const itemFields = $derived(
+		getItemPropertyFields(item.raw, metadata, propertyContext),
+	);
 	const guidance = $derived(
-		canStack || canQuality
+		canStack || canQuality || itemFields.length > 0
 			? "Changes update immediately. Use Undo to revert."
 			: "",
 	);
@@ -153,7 +165,7 @@
 	{/if}
 	<!-- Equipment is inspected in its named slot. Its saved stack/quality defaults
 	     are not editing controls; quantity and quality belong to supported backpack items. -->
-	{#if !locationLabel}
+	{#if !locationLabel && (canStack || canQuality || itemFields.length === 0)}
 		<div class="properties">
 			{#if canStack}
 				<label>
@@ -214,7 +226,16 @@
 			{/if}
 		</div>
 	{/if}
-	{#if !locationLabel && !canStack && !canQuality}
+	<!-- Saved item properties apply to the instance regardless of whether it is
+	     currently in a backpack or equipped on the farmer. -->
+	<ItemPropertyControls
+		{model}
+		{farmerId}
+		entityId={item.entityId}
+		fields={itemFields}
+	/>
+
+	{#if !locationLabel && !canStack && !canQuality && itemFields.length === 0}
 		<p>
 			Quantity and quality are preserved but cannot be edited for this item.
 		</p>

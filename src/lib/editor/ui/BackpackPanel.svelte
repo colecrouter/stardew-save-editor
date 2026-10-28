@@ -150,7 +150,12 @@
 					info?._type === "Object",
 					CategoriesWithQuality.has(item.raw?.category as never),
 				);
-		return { name, description: ItemDescription(info), ...capabilities };
+		return {
+			name,
+			description: ItemDescription(info),
+			metadata: info,
+			...capabilities,
+		};
 	}
 	function slotLabel(item: InventorySlot) {
 		return `${isEquipment(item) ? item.label : `Slot ${item.slot + 1}`}: ${item.empty ? "Empty" : display(item).name}`;
@@ -495,6 +500,7 @@
 						farmerId={backpack.farmerId}
 						item={selected}
 						{...details}
+						propertyContext={backpack.itemContext}
 						locationLabel={isEquipment(selected) ? selected.label : undefined}
 						onremove={isEquipment(selected) ? undefined : removeSelected}
 						{removing}

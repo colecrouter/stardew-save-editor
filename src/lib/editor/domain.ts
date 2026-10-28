@@ -36,11 +36,13 @@ export interface Farmer extends Partial<Record<EquipmentSlot, unknown>> {
 	name: string;
 	farmName: string;
 	money: number;
+	totalMoneyEarned?: unknown;
 	items: { Item: unknown[] };
 }
 export interface SaveDocument {
 	SaveGame: {
 		player: Farmer;
+		useLegacyRandom?: unknown;
 		farmhands: "" | { Farmer: Farmer[] };
 	};
 }

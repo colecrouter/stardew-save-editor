@@ -5,7 +5,6 @@ import {
 	BackpackItemEdits,
 	makeBackpackItemEdits,
 	backpackFarmers,
-	backpackInventorySnapshot,
 	hasBackpackFarmerId,
 } from "./inventory-operations.ts";
 import {
@@ -562,35 +561,35 @@ export const makeHistorySession = (
 								draft.service,
 								state.identities,
 								state.document,
+								state.equipmentIdentities,
 							);
-							const { collected, prepared } = yield* collectTransactionMetadata(
-								program,
-							).pipe(
-								Effect.provideService(TransactionDraft, draft.service),
-								Effect.provideService(BackpackItemEdits, itemEdits.service),
-								// Take the result before close clears retained service state.
-								// Escaped capability handles must not retain an abandoned save.
-								Effect.flatMap((collected) =>
-									Effect.map(draft.prepared, (prepared) => ({
-										collected,
-										prepared,
-									})),
-								),
-								Effect.ensuring(draft.close),
-								Effect.ensuring(itemEdits.close),
-							);
-							// The bounded item capability authorizes field-only writes and keeps
-							// every entity in place. Compare against its replay, rejecting raw
-							// inventory mutations, replacement, movement or untracked fields.
-							if (
-								JSON.stringify(
-									backpackInventorySnapshot(itemEdits.replay(state.document)),
-								) !==
-								JSON.stringify(backpackInventorySnapshot(prepared.document))
-							)
+							const { collected, prepared, authorized } =
+								yield* collectTransactionMetadata(program).pipe(
+									Effect.provideService(TransactionDraft, draft.service),
+									Effect.provideService(BackpackItemEdits, itemEdits.service),
+									// Take the result before close clears retained service state.
+									// Escaped capability handles must not retain an abandoned save.
+									Effect.flatMap((collected) =>
+										Effect.map(draft.prepared, (prepared) => ({
+											collected,
+											prepared,
+											// Validate while the attempt still owns its patch/read authority;
+											// close then clears those retained values before publication.
+											authorized: itemEdits.validate(
+												prepared.document,
+												state.document,
+											),
+										})),
+									),
+									Effect.ensuring(draft.close),
+									Effect.ensuring(itemEdits.close),
+								);
+							// A prepared snapshot must match the exact approved inventory patches
+							// and context reads captured before the attempt was closed.
+							if (!authorized)
 								return yield* Effect.fail(
 									new MutationError(
-										"Effect transactions do not yet support inventory identity changes",
+										"Inventory changes or game context did not match the supported item operation",
 									),
 								);
 							return yield* Effect.try({

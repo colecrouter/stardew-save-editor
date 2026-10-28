@@ -20,7 +20,7 @@ export const equipmentSlots = [
 export type EquipmentSlot = (typeof equipmentSlots)[number];
 export type EquipmentIdentities = Record<string, Record<EquipmentSlot, string>>;
 export type InventoryLocation = number | EquipmentSlot;
-export const equipmentLabels: Record<EquipmentSlot, string> = {
+export const equipmentLabels = {
 	hat: "Hat",
 	leftRing: "Left ring",
 	rightRing: "Right ring",
@@ -28,7 +28,7 @@ export const equipmentLabels: Record<EquipmentSlot, string> = {
 	shirtItem: "Shirt",
 	pantsItem: "Pants",
 	trinketItem: "Trinket",
-};
+} as const satisfies Record<EquipmentSlot, string>;
 export interface EquipmentSlotView {
 	entityId: string;
 	key: EquipmentSlot;
@@ -112,7 +112,7 @@ export function inventoryItem(
 		// farmer field masquerade as an equipment location.
 		if (!equipmentSlots.includes(location))
 			throw new MutationError("Unknown equipment slot");
-		return (farmer as unknown as Record<string, unknown>)[location];
+		return farmer[location];
 	}
 	if (
 		!Number.isInteger(location) ||
@@ -157,7 +157,7 @@ export function applyEquipmentSwap(
 		// item, the vacated backpack uses a normal nil; history restores absence on Undo.
 		const saved = value === undefined ? { "@_xsi:nil": "true" } : value;
 		if (typeof key === "number") farmer.items.Item[key] = saved;
-		else (farmer as unknown as Record<string, unknown>)[key] = saved;
+		else farmer[key] = saved;
 	};
 	write(from, action.slot, destination);
 	write(to, action.toSlot, source);

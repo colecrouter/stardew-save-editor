@@ -1,4 +1,8 @@
-import { applyEquipmentSwap, type InventoryLocation } from "./equipment.ts";
+import {
+	applyEquipmentSwap,
+	type InventoryLocation,
+	type EquipmentSlot,
+} from "./equipment.ts";
 import type { BackpackMoveRequest } from "./backpack-movement.ts";
 import type { BackpackLifecycleRequest } from "./backpack-lifecycle.ts";
 import type { CalendarEdit } from "../calendarDocument.ts";
@@ -25,7 +29,9 @@ function equal(left: unknown, right: unknown): boolean {
 }
 
 // Deliberately narrow lens over a full parsed save. Unknown fields stay attached.
-export interface Farmer {
+// Equipment fields may be absent or contain opaque imported records. Describing
+// their actual keys permits typed access without asserting that their values are valid.
+export interface Farmer extends Partial<Record<EquipmentSlot, unknown>> {
 	UniqueMultiplayerID: string | number;
 	name: string;
 	farmName: string;

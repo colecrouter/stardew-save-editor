@@ -190,19 +190,12 @@
 									bind:group={qualityBinding.value}
 								/>
 
-								<span class="quality-symbol" aria-hidden="true">
-									{#if quality.value === 0}
-										<svg viewBox="0 0 10 10" width="20" height="20">
-											<path
-												d="M4 1h2v2h1v1h2v2H7v1h1v2H6V8H4v1H2V7h1V6H1V4h2V3h1Z"
-												fill="none"
-												stroke="currentColor"
-											/>
-										</svg>
-									{:else}
+								<!-- Normal quality has no star, matching item sprite presentation. -->
+								{#if quality.value !== 0}
+									<span class="quality-symbol" aria-hidden="true">
 										<QualityBadge quality={quality.value} />
-									{/if}
-								</span>
+									</span>
+								{/if}
 
 								<span>{quality.label}</span>
 							</label>

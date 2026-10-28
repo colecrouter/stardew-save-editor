@@ -145,8 +145,9 @@
 		{#if dateDraft.current.dirty}
 			<p role="status">Apply or reload your date draft before exporting.</p>
 		{/if}
-		<!-- Load item metadata/atlases only when inventory is opened. Keep that
-		     consumer mounted afterward so its entity selection survives navigation. -->
+		<!-- Load inventory code/catalog only when this section first opens; visible
+		     sprites then request their sheets. This boundary can also load locale data
+		     in future. Keep the consumer mounted so selection survives navigation. -->
 		{#if inventoryOpened}
 			<div hidden={tab !== "inventory"}>
 				{#await import("./BackpackPanel.svelte")}

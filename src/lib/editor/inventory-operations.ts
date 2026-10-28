@@ -161,7 +161,7 @@ export function readBackpacks(
 			equipment: equipmentSlots.flatMap((key) => {
 				const entityId = state.equipmentIdentities?.[farmerId]?.[key];
 				if (!entityId) return [];
-				const value = (farmer as unknown as Record<string, unknown>)[key];
+				const value = farmer[key];
 				const raw = record(value) ? structuredClone(value) : undefined;
 				return [
 					{
@@ -271,10 +271,7 @@ export function backpackInventorySnapshot(document: SaveDocument) {
 					equipment: Object.fromEntries(
 						equipmentSlots
 							.filter((key) => Object.hasOwn(farmer, key))
-							.map((key) => [
-								key,
-								(farmer as unknown as Record<string, unknown>)[key],
-							]),
+							.map((key) => [key, farmer[key]]),
 					),
 				}
 			: farmer,

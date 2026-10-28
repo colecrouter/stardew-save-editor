@@ -7,6 +7,11 @@ mapped migration coverage, and one examined correctness and architecture. Neithe
 authored the feature. Generated assets and the separately pulled decompiled game
 repository are reference inputs, not application code covered by this inventory.
 
+For the broader assessment of recurring code smells, duplication, Effect usage,
+UI reuse, types and organization, see the
+[engineering quality audit](v2-code-quality-audit.md). The findings below are the
+original coverage/correctness scope, not the complete quality assessment.
+
 ## Coverage inventory
 
 The inspected tree contains 43 application editor files, 28 editor test files,

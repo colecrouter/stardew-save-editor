@@ -85,6 +85,8 @@
 	<div class="inventory-layout">
 		<section aria-label={`${backpack.name}'s backpack`}>
 			<h2>{backpack.name}’s backpack</h2>
+			<!-- Keep slot positions in accessible names and the inspector; the grid
+			     reserves its overlays for instance quality and stack quantity. -->
 			<div class="slots">
 				{#each backpack.slots as item (item.entityId)}
 					{@const details = display(item)}
@@ -99,7 +101,6 @@
 							selectedEntity = item.entityId;
 						}}
 					>
-						<span class="slot-number" aria-hidden="true">{item.slot + 1}</span>
 						{#if !item.empty}<BackpackItemVisual raw={item.raw} />{/if}
 						{#if item.stack !== undefined && item.stack > 1}<span
 								class="quantity"
@@ -182,18 +183,13 @@
 		background: #b5d6e7;
 		border-color: #176fb4;
 	}
-	.slot-number {
-		position: absolute;
-		top: 1px;
-		left: 3px;
-		font-size: 14px;
-		color: #694621;
-	}
 	.quantity {
 		position: absolute;
 		bottom: 0;
 		right: 2px;
 		font-size: 17px;
+		line-height: 1;
+		font-variant-numeric: tabular-nums;
 		background: #fff2d3;
 		color: #311304;
 		padding: 0 2px;

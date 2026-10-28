@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { asset } from "$app/paths";
 	import { ObjectData, ResolveItemData } from "$lib/ItemData";
+	import QualityBadge from "./QualityBadge.svelte";
 	import { Sprite } from "$lib/Sprite.svelte";
 	import type { Item } from "$types/save";
 
@@ -112,6 +113,9 @@
 				/>
 			</svg>
 		{/each}
+		<!-- Quality belongs to the saved instance; display only recognized tiers
+		     without guessing at custom values or changing the preserved record. -->
+		<span class="quality-badge"><QualityBadge quality={raw?.quality} /></span>
 	</div>
 {:else}
 	<span aria-hidden="true">??</span>
@@ -121,6 +125,12 @@
 	.visual {
 		position: relative;
 		flex: none;
+	}
+	.quality-badge {
+		position: absolute;
+		left: -2px;
+		bottom: -2px;
+		line-height: 0;
 	}
 	svg {
 		position: absolute;

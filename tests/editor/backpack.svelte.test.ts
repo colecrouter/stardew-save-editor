@@ -131,17 +131,15 @@ describe("full-save backpack workflow", { timeout: 15_000 }, () => {
 			const quantity = inspector(page).getByRole("spinbutton", {
 				name: "Quantity",
 			}) as HTMLInputElement;
-			const quality = inspector(page).getByRole("combobox", {
-				name: "Quality",
-			}) as HTMLSelectElement;
-			expect(quality.value).toBe("1");
-			// Quality is sparse: value 3 is not a supported replacement for Gold.
-			expect(Array.from(quality.options, (option) => option.value)).toEqual([
-				"0",
-				"1",
-				"2",
-				"4",
-			]);
+			const quality = (name: string) =>
+				inspector(page).getByRole("radio", { name }) as HTMLInputElement;
+			expect(quality("Silver").checked).toBe(true);
+			// Every supported tier is labeled; custom value 3 is never silently mapped.
+			expect(
+				inspector(page)
+					.getAllByRole("radio")
+					.map((input) => (input as HTMLInputElement).value),
+			).toEqual(["0", "1", "2", "4"]);
 			expect(
 				page.queryByRole("button", { name: /Apply.*(?:item|inventory)/i }),
 			).toBeNull();
@@ -166,16 +164,16 @@ describe("full-save backpack workflow", { timeout: 15_000 }, () => {
 			});
 			await fireEvent.blur(quantity);
 			expect(actions(page)).toBe(2);
-			await fireEvent.change(quality, { target: { value: "4" } });
+			await fireEvent.click(quality("Iridium"));
 			await waitFor(() => {
 				expect(actions(page)).toBe(3);
-				expect(quality.disabled).toBe(false);
+				expect(quality("Iridium").disabled).toBe(false);
 			});
 			await fireEvent.click(page.getByRole("button", { name: "Undo" }));
-			await waitFor(() => expect(quality.value).toBe("1"));
+			await waitFor(() => expect(quality("Silver").checked).toBe(true));
 			expect(quantity.value).toBe("13");
 			await fireEvent.click(page.getByRole("button", { name: "Redo" }));
-			await waitFor(() => expect(quality.value).toBe("4"));
+			await waitFor(() => expect(quality("Iridium").checked).toBe(true));
 			await fireEvent.click(page.getByRole("button", { name: "Export save" }));
 			await waitFor(() => expect(written).toBeTruthy(), { timeout: 5000 });
 			if (!written)
@@ -271,3 +269,25 @@ it("raw backpack visuals resolve missing display names without adding or normali
 		page.unmount();
 	}
 });
+
+// Badge rendering must recognize only game tiers and leave imported custom values intact.
+it.each([0, 1, 2, 3, 4])(
+	"shows a quality badge only for recognized star tier %s",
+	(quality) => {
+		const raw = Object.freeze({
+			"@_xsi:type": "Object",
+			itemId: "24",
+			quality,
+		});
+		const page = render(BackpackItemVisual, { raw });
+		try {
+			flushSync();
+			expect(page.container.querySelector(".quality-badge svg") !== null).toBe(
+				[1, 2, 4].includes(quality),
+			);
+			expect(raw.quality).toBe(quality);
+		} finally {
+			page.unmount();
+		}
+	},
+);

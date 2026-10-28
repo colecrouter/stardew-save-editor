@@ -1,3 +1,4 @@
+import type { BackpackMoveRequest } from "./backpack-movement.ts";
 import type { BackpackLifecycleRequest } from "./backpack-lifecycle.ts";
 import type { CalendarEdit } from "../calendarDocument.ts";
 
@@ -38,6 +39,14 @@ export interface SaveDocument {
 }
 export type Mutation =
 	| BackpackLifecycleRequest
+	| BackpackMoveRequest
+	| {
+			type: "item-swap";
+			farmerId: string;
+			slot: number;
+			toFarmerId: string;
+			toSlot: number;
+	  }
 	| CalendarEdit
 	| { type: "bundle-complete"; bundleId: 13 }
 	| { type: "item-place"; farmerId: string; slot: number; item: unknown }
@@ -117,9 +126,13 @@ export function apply(
 	label: string;
 	review: Receipt["review"];
 } {
-	if (mutation.type === "backpack-add" || mutation.type === "backpack-remove")
+	if (
+		mutation.type === "backpack-add" ||
+		mutation.type === "backpack-remove" ||
+		mutation.type === "backpack-move"
+	)
 		throw new MutationError(
-			"Backpack lifecycle requests require session identity resolution",
+			"Backpack requests require session identity resolution",
 		);
 	if (mutation.type === "bundle-complete")
 		throw new MutationError(
@@ -164,7 +177,11 @@ export function apply(
 			review: "standalone",
 		};
 	}
-	if (mutation.type === "item-remove" || mutation.type === "item-move") {
+	if (
+		mutation.type === "item-remove" ||
+		mutation.type === "item-move" ||
+		mutation.type === "item-swap"
+	) {
 		const item = slotIn(farmer, mutation.slot);
 		if (emptySlot(item)) throw new MutationError("Source slot is empty");
 		if (mutation.type === "item-remove") {
@@ -174,9 +191,17 @@ export function apply(
 				review: "standalone",
 			};
 		}
-		const targets = farmers(document).filter(
-			(entry) => String(entry.UniqueMultiplayerID) === mutation.toFarmerId,
-		);
+		const targets = farmers(document).filter((entry) => {
+			// The destination follows the same scalar-ID rule as the source; unrelated
+			// opaque farmers must not throw during an otherwise valid transfer.
+			if (!entry || typeof entry !== "object") return false;
+			const id = entry.UniqueMultiplayerID;
+			return (
+				(typeof id === "string" ||
+					(typeof id === "number" && Number.isFinite(id))) &&
+				String(id) === mutation.toFarmerId
+			);
+		});
 		const target = targets[0];
 		if (!target || targets.length !== 1)
 			throw new MutationError(
@@ -185,13 +210,21 @@ export function apply(
 		if (target === farmer && mutation.toSlot === mutation.slot)
 			return { label: "Move item", review: "compact" };
 		const destination = slotIn(target, mutation.toSlot);
-		if (!emptySlot(destination))
+		if (mutation.type === "item-move" && !emptySlot(destination))
 			throw new MutationError("Destination slot is occupied");
-		// Swap with the destination's existing nil marker, preserving its fields.
+		// Move/swap whole records, including any opaque metadata and the exact nil
+		// marker. The older move-only command intentionally keeps its empty-only rule.
 		farmer.items.Item[mutation.slot] = destination;
 		target.items.Item[mutation.toSlot] = item;
+		const name =
+			item &&
+			typeof item === "object" &&
+			"name" in item &&
+			typeof item.name === "string"
+				? item.name
+				: "item";
 		return {
-			label: `Move item to ${target.name}'s backpack`,
+			label: `${emptySlot(destination) ? "Move" : "Swap"} ${name} from ${farmer.name}’s backpack (slot ${mutation.slot + 1}) to ${target.name}’s backpack (slot ${mutation.toSlot + 1})`,
 			review: target === farmer ? "compact" : "standalone",
 		};
 	}

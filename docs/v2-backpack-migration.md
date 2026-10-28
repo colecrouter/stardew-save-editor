@@ -5,7 +5,8 @@ backpacks. Select an existing item and edit supported ordinary-object quantities
 or quality through the same session, review, undo/redo and export boundary as Farm
 and calendar. The first slice covered quantity and quality; the workspace now also adds catalog
 items to empty slots and removes existing records. Stacking/merging, equipment,
-chest contents and moving items in the UI remain outside its scope.
+and chest contents remain outside its scope. Backpack organization now supports
+moving and swapping existing items within or between farmers’ backpacks.
 
 Valid quantity input commits immediately, using the existing editor range
 1–9999; neither blur nor Enter is required. Clearing the number permits replacement
@@ -20,9 +21,9 @@ records, tools, unsupported types and unusual imported values remain preserved;
 viewing does not normalize them or initialize missing fields.
 
 Session-only entity handles identify instances, including byte-identical records.
-Selection follows its entity across reorders and undo; moving it to another farmer
-invalidates the old owner handle. These cases are verified through the existing
-identity-aware move/reorder commands, without exposing move controls in this slice.
+Selection follows its entity across reorders, transfers and Undo/Redo. A transfer
+invalidates the old owner handle; the UI follows the same item to its current owner
+rather than selecting whatever replaced its old slot.
 Add/remove starts from an exact session handle, including the empty destination.
 The command queue validates that handle and the current slot state before writing;
 occupied targets and stale clicks reject instead of replacing another item. Every
@@ -42,6 +43,21 @@ eligibility or replace/reorder entities. Failure, interruption or stale ownershi
 publishes none of the document, history or identity changes. Finalization clears
 the capability's captured document authority so escaped services cannot keep files
 alive or modify them later.
+
+Movement names both endpoint identities, including an empty slot’s handle. The
+history lock resolves both against the current owners before applying one atomic
+exchange of full records and handles. An empty destination returns its exact nil
+representation to the source; an occupied destination swaps complete items without
+merging or normalizing either one. Byte-identical items remain distinct instances.
+Self-drops are no-ops and preserve redo. Stale endpoints, empty sources, ambiguous
+owners and unsupported inventories fail without publishing any partial movement.
+
+Desktop users can drag onto another slot in the displayed backpack. The Move item
+action pins the source, exposes a destination backpack selector and labels each
+available destination as Move or Swap; it also serves touch and keyboard users.
+Escape/Cancel returns to the source without changing the save. Transfers operate
+within actual serialized slot arrays, including farmers with different backpack
+sizes; neither their lengths nor maxItems upgrade settings change.
 
 The in-place catalog spans the desktop workspace beneath the backpack. Name,
 qualified ID and bare ID searches share one matching/ranking helper; type filters
@@ -75,6 +91,7 @@ raw/transient draft writes, interrupted/escaped capabilities, unsupported farmer
 records, and actual application controls. Catalog coverage also verifies stale empty
 handles, occupied-slot rejection, new-item defaults, preview isolation, filtering
 and pagination, complete opaque-item removal/Undo, and add/remove selection through
-Undo/Redo. The legacy inventory remains available
+Undo/Redo. Movement coverage includes cross-owner selection, both stale endpoint
+handles, variable capacities, opaque/nil records and byte-identical swaps. The legacy inventory remains available
 for broader property editing. Its applicable preservation and interaction assertions
 are ported into the application tests; no suite is parked behind TODOs.

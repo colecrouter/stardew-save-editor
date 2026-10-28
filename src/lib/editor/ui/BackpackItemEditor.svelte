@@ -17,6 +17,7 @@
 		description?: string;
 		canStack: boolean;
 		canQuality: boolean;
+		onmove?: () => void;
 		onremove?: () => Promise<void>;
 		removing?: boolean;
 	}
@@ -28,6 +29,7 @@
 		description,
 		canStack,
 		canQuality,
+		onmove,
 		onremove,
 		removing = false,
 	}: Props = $props();
@@ -208,6 +210,12 @@
 	{#if error || guidance}
 		<p role="status">{error || guidance}</p>
 	{/if}
+	{#if onmove}
+		<div class="move-action">
+			<button type="button" onclick={onmove}>Move item</button>
+			<p>Choose a slot in this or another farmer’s backpack.</p>
+		</div>
+	{/if}
 	{#if onremove}
 		<!-- Removal is immediately undoable, like the other independent controls. -->
 		<div class="remove-action">
@@ -224,6 +232,31 @@
 </section>
 
 <style>
+	.move-action {
+		margin-top: 24px;
+	}
+	.move-action button {
+		font: inherit;
+		min-height: 44px;
+		padding: 6px 14px;
+		color: #311304;
+		background: #fff2d3;
+		border: 2px solid #b98b52;
+		cursor: pointer;
+	}
+	.move-action button:hover {
+		background: #fff8e8;
+	}
+	.move-action button:focus-visible {
+		outline: 2px solid #311304;
+		outline-offset: 3px;
+	}
+	.move-action p {
+		margin: 8px 0 0;
+		color: #694621;
+		font-size: 19px;
+	}
+
 	.remove-action {
 		margin-top: 24px;
 		padding-top: 20px;

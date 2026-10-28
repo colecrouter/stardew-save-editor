@@ -1,3 +1,4 @@
+import { resolveBackpackMove } from "./backpack-movement.ts";
 import { resolveBackpackLifecycle } from "./backpack-lifecycle.ts";
 import {
 	BackpackItemEdits,
@@ -346,13 +347,22 @@ export const makeHistorySession = (
 							const resolved: Mutation[] = [];
 							for (const requested of structuredClone(actions)) {
 								let action: Mutation = requested;
-								// Creation/removal resolves its instance inside this queue turn.
+								// Backpack actions resolve their instances inside this queue turn.
 								// A stale view cannot target a replacement by its old slot index.
 								if (
 									requested.type === "backpack-add" ||
 									requested.type === "backpack-remove"
 								) {
 									action = yield* resolveBackpackLifecycle(
+										prepared.document,
+										identities,
+										requested,
+									);
+								}
+								if (requested.type === "backpack-move") {
+									// Validate source and destination handles together before preparing
+									// an atomic record/identity swap in this same queue turn.
+									action = yield* resolveBackpackMove(
 										prepared.document,
 										identities,
 										requested,
@@ -409,7 +419,10 @@ export const makeHistorySession = (
 									slots[action.slot] = `item:${++nextIdentity}`;
 									identities = { ...identities, [action.farmerId]: slots };
 								}
-								if (action.type === "item-move") {
+								if (
+									action.type === "item-move" ||
+									action.type === "item-swap"
+								) {
 									// Handles travel with the records, even across farmer inventories.
 									identities = structuredClone(identities);
 									const source = identities[action.farmerId];

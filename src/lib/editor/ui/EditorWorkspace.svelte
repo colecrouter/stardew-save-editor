@@ -94,6 +94,7 @@
 				<SectionLink
 					href="#inventory"
 					label="Inventory"
+					shortLabel="Inventory"
 					icon="inventory"
 					active={tab === "inventory"}
 					onclick={() => {
@@ -105,6 +106,7 @@
 				<SectionLink
 					href="#farm"
 					label="Farm settings"
+					shortLabel="Farm"
 					icon="farm"
 					active={tab === "farm"}
 					onclick={() => (tab = "farm")}
@@ -112,12 +114,16 @@
 				<SectionLink
 					href="#calendar"
 					label="Date and weather"
+					shortLabel="Calendar"
 					icon="farm"
 					active={tab === "calendar"}
 					onclick={() => (tab = "calendar")}
-				/><SectionLink
+				/>
+
+				<SectionLink
 					href="#review"
 					label="Review changes"
+					shortLabel="Changes"
 					icon="quests"
 					active={tab === "review"}
 					onclick={() => (tab = "review")}
@@ -144,12 +150,12 @@
 		{#if inventoryOpened}
 			<div hidden={tab !== "inventory"}>
 				{#await import("./BackpackPanel.svelte")}
-					<p role="status">Loading backpack…</p>
+					<p role="status">Loading inventory…</p>
 				{:then panel}
 					<panel.default {model} />
 				{:catch}
 					<p role="alert">
-						The backpack view could not be loaded. Reopen the editor to try
+						The inventory view could not be loaded. Reopen the editor to try
 						again.
 					</p>
 				{/await}
@@ -235,6 +241,59 @@
 		}
 		.toolbar span {
 			display: none;
+		}
+	}
+	@media (max-width: 600px) {
+		/* Keep the inventory overview in reach: phone chrome uses one compact
+		   tab row and smaller type instead of consuming half the viewport. */
+		.editor {
+			font-size: 18px;
+			line-height: 1.3;
+		}
+		.toolbar {
+			min-height: 0;
+			padding: 8px 42px 8px 10px;
+			gap: 8px;
+		}
+		.toolbar strong {
+			font-size: 18px;
+			line-height: 1.15;
+		}
+		.buttons {
+			gap: 6px;
+		}
+		.buttons button {
+			min-height: 36px;
+			padding: 4px 9px;
+			font-size: 17px;
+		}
+		nav {
+			display: flex;
+			flex-wrap: nowrap;
+		}
+		nav :global(a) {
+			min-width: 0;
+			min-height: 44px;
+			padding: 4px;
+			font-size: 17px;
+			justify-content: center;
+		}
+		nav :global(.glyph) {
+			display: none;
+		}
+		.editor :global(.content) {
+			/* Keep text inside the parchment rim while reducing vertical chrome. */
+			padding: 12px 20px;
+		}
+		.editor :global(h1) {
+			font-size: 27px;
+			margin: 0 0 12px;
+		}
+		.editor :global(h2) {
+			font-size: 22px;
+		}
+		.editor :global(h3) {
+			font-size: 20px;
 		}
 	}
 </style>

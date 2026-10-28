@@ -1,3 +1,4 @@
+import { applyEquipmentSwap, type InventoryLocation } from "./equipment.ts";
 import type { BackpackMoveRequest } from "./backpack-movement.ts";
 import type { BackpackLifecycleRequest } from "./backpack-lifecycle.ts";
 import type { CalendarEdit } from "../calendarDocument.ts";
@@ -38,6 +39,13 @@ export interface SaveDocument {
 	};
 }
 export type Mutation =
+	| {
+			type: "equipment-swap";
+			farmerId: string;
+			slot: InventoryLocation;
+			toFarmerId: string;
+			toSlot: InventoryLocation;
+	  }
 	| BackpackLifecycleRequest
 	| BackpackMoveRequest
 	| {
@@ -126,6 +134,8 @@ export function apply(
 	label: string;
 	review: Receipt["review"];
 } {
+	if (mutation.type === "equipment-swap")
+		return applyEquipmentSwap(document, mutation);
 	if (
 		mutation.type === "backpack-add" ||
 		mutation.type === "backpack-remove" ||

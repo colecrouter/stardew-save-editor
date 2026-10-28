@@ -1,12 +1,10 @@
-# Backpack application migration
+# Inventory application migration
 
-The existing `/v2` workspace now has an Inventory section for host and farmhand
-backpacks. Select an existing item and edit supported ordinary-object quantities
-or quality through the same session, review, undo/redo and export boundary as Farm
-and calendar. The first slice covered quantity and quality; the workspace now also adds catalog
-items to empty slots and removes existing records. Stacking/merging, equipment,
-and chest contents remain outside its scope. Backpack organization now supports
-moving and swapping existing items within or between farmers’ backpacks.
+The `/v2` Inventory section shows the selected farmer’s equipment and backpack
+together. Selecting a saved item opens its inspector; selecting an empty backpack
+slot opens the catalog. Dragging moves or swaps complete items, and all edits share
+the application’s review, Undo/Redo and export boundary. Stacking/merging, backpack
+resizing and chest contents remain outside this slice.
 
 Valid quantity input commits immediately, using the existing editor range
 1–9999; neither blur nor Enter is required. Clearing the number permits replacement
@@ -52,12 +50,25 @@ merging or normalizing either one. Byte-identical items remain distinct instance
 Self-drops are no-ops and preserve redo. Stale endpoints, empty sources, ambiguous
 owners and unsupported inventories fail without publishing any partial movement.
 
-Desktop users can drag onto another slot in the displayed backpack. The Move item
-action pins the source, exposes a destination backpack selector and labels each
-available destination as Move or Swap; it also serves touch and keyboard users.
-Escape/Cancel returns to the source without changing the save. Transfers operate
-within actual serialized slot arrays, including farmers with different backpack
-sizes; neither their lengths nor maxItems upgrade settings change.
+Desktop mouse dragging and touch/pen pointer dragging use the same operation.
+An 8-pixel movement threshold separates a drag from an ordinary selection tap;
+cancellation changes no saved state. The current farmer’s labeled equipment slots
+are visible above the backpack, and the inspector stays beside them on desktop or
+below them on phones. Transfers operate within actual serialized backpack arrays;
+neither lengths nor maxItems upgrade settings change.
+
+Equipment has separate session identities retained alongside backpack identities.
+Hat, boots, rings (including CombinedRing), shirt, pants and trinket slots accept
+only compatible serialized subtypes, with shirts and pants checked distinctly.
+Both exchanged records must fit their destination. Locked trinket slots reject
+new equipped items; existing imported records remain preserved. Missing equipment
+fields are session-only empty targets until a drop explicitly writes one, and
+Undo restores the original field absence. The inventory snapshot guard includes
+equipment so raw drafts cannot bypass these operations.
+
+V2’s viewport uses the actual device width. The phone workspace reduces toolbar,
+navigation and type sizes to keep equipment and backpack slots visible together;
+legacy screens retain their prior viewport scale.
 
 The in-place catalog spans the desktop workspace beneath the backpack. Name,
 qualified ID and bare ID searches share one matching/ranking helper; type filters

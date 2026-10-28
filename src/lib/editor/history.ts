@@ -1,3 +1,4 @@
+import { equipmentSlots, type EquipmentIdentities } from "./equipment.ts";
 import { resolveBackpackMove } from "./backpack-movement.ts";
 import { resolveBackpackLifecycle } from "./backpack-lifecycle.ts";
 import {
@@ -32,6 +33,8 @@ import {
 } from "./domain.ts";
 
 interface Entry {
+	equipmentBefore: EquipmentIdentities;
+	equipmentAfter: EquipmentIdentities;
 	bytes: number;
 	domainBefore: DomainState;
 	domainAfter: DomainState;
@@ -51,6 +54,7 @@ interface Entry {
 	backward: JsonPatch.JsonPatch;
 }
 interface History {
+	equipmentIdentities: EquipmentIdentities;
 	domainState: DomainState;
 	retainedBytes: number;
 	nextIdentity: number;
@@ -139,6 +143,7 @@ export const makeHistorySession = (
 		// including opaque/empty slots, without adding fields to the exported save.
 		let nextIdentity = 0;
 		const identities: Record<string, string[]> = Object.create(null);
+		const equipmentIdentities: EquipmentIdentities = Object.create(null);
 		// Allocate handles only when ownership and slot order can be resolved safely.
 		// Unsupported inventories and duplicate farmer IDs stay in the document,
 		// but cannot prevent calendar/Farm edits or gain editable item handles.
@@ -159,12 +164,18 @@ export const makeHistorySession = (
 			)
 				continue;
 			identities[id] = farmer.items.Item.map(() => `item:${++nextIdentity}`);
+			// Equipment has stable field locations, including absent fields. Its handles
+			// remain session-only; allocating them must not materialize empty XML nodes.
+			equipmentIdentities[id] = Object.fromEntries(
+				equipmentSlots.map((key) => [key, `item:${++nextIdentity}`]),
+			) as Record<(typeof equipmentSlots)[number], string>;
 		}
 		const ref = yield* TxSubscriptionRef.make<History>({
 			domainState: structuredClone(initialDomainState),
 			retainedBytes: 0,
 			nextIdentity,
 			identities,
+			equipmentIdentities,
 			revision: 0,
 			document: baseline,
 			baseline,
@@ -191,6 +202,7 @@ export const makeHistorySession = (
 			resolved: readonly Mutation[],
 			label?: string,
 			annotations: readonly ReviewMetadata[] = [],
+			equipmentIdentities: EquipmentIdentities = state.equipmentIdentities,
 		): History => {
 			let prepared = input;
 			// Quiet children remain in annotations, but a standalone child should
@@ -213,7 +225,9 @@ export const makeHistorySession = (
 				forward.length === 0 &&
 				JsonPatch.get(json(state.domainState), json(prepared.domainState ?? {}))
 					.length === 0 &&
-				JSON.stringify(identities) === JSON.stringify(state.identities)
+				JSON.stringify(identities) === JSON.stringify(state.identities) &&
+				JSON.stringify(equipmentIdentities) ===
+					JSON.stringify(state.equipmentIdentities)
 			)
 				return state;
 			const receipts = prepared.history;
@@ -228,6 +242,8 @@ export const makeHistorySession = (
 			const payload: Omit<Entry, "bytes"> = {
 				domainBefore: state.domainState,
 				domainAfter: prepared.domainState ?? {},
+				equipmentBefore: state.equipmentIdentities,
+				equipmentAfter: equipmentIdentities,
 				identitiesBefore: state.identities,
 				identitiesAfter: identities,
 				id: state.nextId,
@@ -280,6 +296,7 @@ export const makeHistorySession = (
 				retainedBytes,
 				domainState: prepared.domainState ?? {},
 				identities,
+				equipmentIdentities,
 				nextIdentity,
 				document: prepared.document,
 				entries: entries.slice(evict),
@@ -343,6 +360,7 @@ export const makeHistorySession = (
 								history: [] as Receipt[],
 							};
 							let identities = state.identities;
+							let equipmentIdentities = state.equipmentIdentities;
 							let nextIdentity = state.nextIdentity;
 							const resolved: Mutation[] = [];
 							for (const requested of structuredClone(actions)) {
@@ -366,6 +384,7 @@ export const makeHistorySession = (
 										prepared.document,
 										identities,
 										requested,
+										equipmentIdentities,
 									);
 								}
 								if (
@@ -419,6 +438,45 @@ export const makeHistorySession = (
 									slots[action.slot] = `item:${++nextIdentity}`;
 									identities = { ...identities, [action.farmerId]: slots };
 								}
+								if (action.type === "equipment-swap") {
+									// The prepared document exchanged both complete records. Exchange
+									// their session handles across the corresponding maps as one undo unit.
+									identities = structuredClone(identities);
+									equipmentIdentities = structuredClone(equipmentIdentities);
+									const get = (owner: string, key: typeof action.slot) =>
+										typeof key === "number"
+											? identities[owner]?.[key]
+											: equipmentIdentities[owner]?.[key];
+									const from = get(action.farmerId, action.slot),
+										to = get(action.toFarmerId, action.toSlot);
+									if (!from || !to)
+										throw new Error(
+											"Prepared equipment exchange has no identities",
+										);
+									const set = (
+										owner: string,
+										key: typeof action.slot,
+										id: string,
+									) => {
+										if (typeof key === "number") {
+											const slots = identities[owner];
+											if (!slots)
+												throw new Error(
+													"Prepared backpack identity map disappeared",
+												);
+											slots[key] = id;
+										} else {
+											const slots = equipmentIdentities[owner];
+											if (!slots)
+												throw new Error(
+													"Prepared equipment identity map disappeared",
+												);
+											slots[key] = id;
+										}
+									};
+									set(action.farmerId, action.slot, to);
+									set(action.toFarmerId, action.toSlot, from);
+								}
 								if (
 									action.type === "item-move" ||
 									action.type === "item-swap"
@@ -467,6 +525,8 @@ export const makeHistorySession = (
 								nextIdentity,
 								resolved,
 								label,
+								[],
+								equipmentIdentities,
 							);
 						}).pipe(
 							Effect.catchDefect((error) =>
@@ -559,6 +619,7 @@ export const makeHistorySession = (
 				return {
 					...state,
 					identities: entry.identitiesBefore,
+					equipmentIdentities: entry.equipmentBefore,
 					domainState: entry.domainBefore,
 					document: JsonPatch.apply(
 						entry.backward,
@@ -574,6 +635,7 @@ export const makeHistorySession = (
 				return {
 					...state,
 					identities: entry.identitiesAfter,
+					equipmentIdentities: entry.equipmentAfter,
 					domainState: entry.domainAfter,
 					document: JsonPatch.apply(
 						entry.forward,

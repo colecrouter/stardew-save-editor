@@ -1,37 +1,61 @@
 import { fireEvent, render, waitFor } from "@testing-library/svelte";
 import { describe, expect, it, vi } from "vitest";
 import { openEditor } from "../../src/lib/editor/editor-model";
+import { createCatalogItem } from "../../src/lib/editor/item-catalog";
 import BackpackHarness from "./BackpackHarness.svelte";
 import { exportDocument, fixtureXml, parser } from "./fixtures";
 
-// These interactions run through the real queue and full-save projections. The
-// larger farmhand fixture needs a bounded CI budget for copies and Undo history.
-describe("backpack moving and swapping controls", { timeout: 25_000 }, () => {
-	it("moves and swaps through visible destination controls without merging quantities, and Cancel leaves history unchanged", async () => {
+function dragData() {
+	const values = new Map<string, string>();
+	return {
+		types: ["application/x-stardew-backpack-item"],
+		setData: (type: string, value: string) => values.set(type, value),
+		getData: (type: string) => values.get(type) ?? "",
+		effectAllowed: "",
+		dropEffect: "",
+	};
+}
+async function drag(source: HTMLElement, target: HTMLElement) {
+	const dataTransfer = dragData();
+	await fireEvent.dragStart(source, { dataTransfer });
+	// Native HTML dragging cancels the preceding mouse pointer stream. That event
+	// must not clear the drag state owned by DragEvent rather than touch/pen.
+	await fireEvent.pointerCancel(source, { pointerType: "mouse" });
+	await fireEvent.dragOver(target, { dataTransfer });
+	await fireEvent.drop(target, { dataTransfer });
+}
+
+// Exercise the same native drag path for positional and named equipment slots.
+// Full-save copies and export projections need a bounded CI integration budget.
+describe("inventory drag and equipment controls", { timeout: 25_000 }, () => {
+	it("shows equipment beside the backpack and moves/swaps through dragging without Move mode", async () => {
 		const opened = await openEditor(new TextEncoder().encode(fixtureXml));
 		const page = render(BackpackHarness, { model: opened.model });
 		try {
 			const before = await opened.model.snapshot();
-			await fireEvent.click(
-				page.getByRole("button", { name: "Slot 5: Parsnip" }),
-			);
-			await fireEvent.click(page.getByRole("button", { name: "Move item" }));
-			// The retained panel must not consume Escape while another workspace
-			// section is active and this subtree is hidden.
-			page.container.hidden = true;
-			await fireEvent.keyDown(window, { key: "Escape" });
 			expect(
-				page.container.querySelector('[aria-label="Move backpack item"]'),
+				page.getByRole("heading", { name: "Inventory", level: 1 }),
 			).toBeTruthy();
-			page.container.hidden = false;
-			await fireEvent.click(page.getByRole("button", { name: "Cancel move" }));
-			expect((await opened.model.snapshot()).entries).toHaveLength(0);
-			expect(document.activeElement).toBe(
-				page.getByRole("button", { name: "Slot 5: Parsnip" }),
-			);
-			await fireEvent.click(page.getByRole("button", { name: "Move item" }));
+			expect(
+				page.getByRole("region", { name: "Test's equipment" }),
+			).toBeTruthy();
+			expect(page.getByRole("button", { name: "Shirt: Shirt" })).toBeTruthy();
 			await fireEvent.click(
-				page.getByRole("button", { name: "Move Parsnip to slot 4: Empty" }),
+				page.getByRole("button", { name: "Trinket: Empty" }),
+			);
+			expect(
+				page.getByRole("region", { name: "Empty equipment slot" }).textContent,
+			).toContain("locked");
+			expect(
+				page.queryByRole("region", { name: "Add backpack item" }),
+			).toBeNull();
+			expect(page.queryByRole("button", { name: "Move item" })).toBeNull();
+			expect(
+				page.queryByRole("region", { name: "Move backpack item" }),
+			).toBeNull();
+			await drag(
+				page.getByRole("button", { name: "Slot 5: Parsnip" }),
+				page.getByRole("button", { name: "Slot 4: Empty" }),
 			);
 			await waitFor(
 				() =>
@@ -42,46 +66,26 @@ describe("backpack moving and swapping controls", { timeout: 25_000 }, () => {
 					).toBe("true"),
 				{ timeout: 5000 },
 			);
-			expect(document.activeElement).toBe(
-				page.getByRole("button", { name: "Slot 4: Parsnip" }),
-			);
-			const moved = await opened.model.snapshot();
-			expect(moved.document.SaveGame.player.items.Item[3]).toEqual(
-				before.document.SaveGame.player.items.Item[4],
-			);
-			expect(moved.document.SaveGame.player.items.Item[4]).toEqual(
-				before.document.SaveGame.player.items.Item[3],
-			);
-			expect(moved.entries).toHaveLength(1);
-			await opened.model.commands.undo();
 			await waitFor(() =>
-				expect(
-					page
-						.getByRole("button", { name: "Slot 5: Parsnip" })
-						.getAttribute("aria-pressed"),
-				).toBe("true"),
+				expect(document.activeElement).toBe(
+					page.getByRole("button", { name: "Slot 4: Parsnip" }),
+				),
 			);
-			await fireEvent.click(page.getByRole("button", { name: "Move item" }));
-			await fireEvent.click(
-				page.getByRole("button", { name: "Swap Parsnip with slot 2: Pickaxe" }),
+			await opened.model.commands.undo();
+			await drag(
+				page.getByRole("button", { name: "Slot 5: Parsnip" }),
+				page.getByRole("button", { name: "Slot 2: Pickaxe" }),
 			);
 			await waitFor(
 				() =>
 					expect(
-						page
-							.getByRole("button", { name: "Slot 2: Parsnip" })
-							.getAttribute("aria-pressed"),
-					).toBe("true"),
+						page.getByRole("button", { name: "Slot 2: Parsnip" }),
+					).toBeTruthy(),
 				{ timeout: 5000 },
 			);
-			const swapped = await opened.model.snapshot();
-			expect(swapped.document.SaveGame.player.items.Item[1]).toEqual(
-				before.document.SaveGame.player.items.Item[4],
-			);
-			expect(swapped.document.SaveGame.player.items.Item[4]).toEqual(
-				before.document.SaveGame.player.items.Item[1],
-			);
-			expect(swapped.entries).toHaveLength(1);
+			expect(
+				(await opened.model.snapshot()).document.SaveGame.player.items.Item[4],
+			).toEqual(before.document.SaveGame.player.items.Item[1]);
 			await opened.model.commands.undo();
 			expect((await opened.model.snapshot()).document).toEqual(before.document);
 		} finally {
@@ -89,89 +93,39 @@ describe("backpack moving and swapping controls", { timeout: 25_000 }, () => {
 			await opened.close();
 		}
 	});
-
-	it("targets the last slot of a larger farmhand backpack and follows the selected item across owner Undo/Redo", async () => {
+	it("equips boots by dragging, follows selection across equipment Undo/Redo, and rejects incompatible equipment", async () => {
 		const document = parser.parse(fixtureXml);
-		const host = document.SaveGame.player;
-		const guest = structuredClone(host);
-		guest.UniqueMultiplayerID = "guest";
-		guest.name = "Guest";
-		guest.items.Item = Array.from({ length: 36 }, () => ({
-			"@_xsi:nil": "true",
-		}));
-		guest.items.Item[35] = structuredClone(host.items.Item[0]);
-		const unsupported = structuredClone(guest);
-		unsupported.UniqueMultiplayerID = "unsupported";
-		unsupported.name = "Unsupported";
-		unsupported.items = "ModdedInventory" as never;
-		document.SaveGame.farmhands = { Farmer: [guest, unsupported] };
+		const boots = createCatalogItem("Sneakers");
+		if (!boots) throw Error("Expected catalog boots");
+		document.SaveGame.player.items.Item[3] = boots;
 		const opened = await openEditor(
 			new TextEncoder().encode(exportDocument(document)),
 		);
 		const page = render(BackpackHarness, { model: opened.model });
 		try {
 			const before = await opened.model.snapshot();
-			await fireEvent.click(
-				page.getByRole("button", { name: "Slot 5: Parsnip" }),
-			);
-			await fireEvent.click(page.getByRole("button", { name: "Move item" }));
-			const select = page.getByRole("combobox", {
-				name: "Destination backpack",
-			}) as HTMLSelectElement;
-			// Happy DOM only matches inputs for :checked; Svelte's native select
-			// binding needs the selected OPTION. The actual browser is checked too.
-			expect(
-				(
-					page.getByRole("option", {
-						name: "Unsupported (unavailable)",
-					}) as HTMLOptionElement
-				).disabled,
-			).toBe(true);
-			const query = select.querySelector.bind(select);
-			const mock = vi
-				.spyOn(select, "querySelector")
-				.mockImplementation((selector) =>
-					selector === ":checked"
-						? ([...select.options].find((option) => option.selected) ?? null)
-						: query(selector),
-				);
-			try {
-				await fireEvent.change(select, { target: { value: "1" } });
-			} finally {
-				mock.mockRestore();
-			}
-			expect(page.getByText(/36 slots in Guest/)).toBeTruthy();
-			await fireEvent.click(
-				page.getByRole("button", {
-					name: "Swap Parsnip with slot 36: Rusty Sword",
-				}),
+			await drag(
+				page.getByRole("button", { name: "Slot 4: Sneakers" }),
+				page.getByRole("button", { name: "Boots: Empty" }),
 			);
 			await waitFor(
 				() =>
 					expect(
 						page
-							.getByRole("button", { name: "Slot 36: Parsnip" })
+							.getByRole("button", { name: "Boots: Sneakers" })
 							.getAttribute("aria-pressed"),
 					).toBe("true"),
 				{ timeout: 5000 },
 			);
-			const after = await opened.model.snapshot();
-			if (
-				after.document.SaveGame.farmhands === "" ||
-				before.document.SaveGame.farmhands === ""
-			)
-				throw Error("Expected farmhand fixture");
 			expect(
-				after.document.SaveGame.farmhands.Farmer[0]?.items.Item[35],
-			).toEqual(before.document.SaveGame.player.items.Item[4]);
-			expect(after.document.SaveGame.player.items.Item[4]).toEqual(
-				before.document.SaveGame.farmhands.Farmer[0]?.items.Item[35],
-			);
+				page.getByRole("region", { name: "Selected equipment item" }),
+			).toBeTruthy();
+			expect(page.queryByRole("button", { name: "Remove item" })).toBeNull();
 			await opened.model.commands.undo();
 			await waitFor(() =>
 				expect(
 					page
-						.getByRole("button", { name: "Slot 5: Parsnip" })
+						.getByRole("button", { name: "Slot 4: Sneakers" })
 						.getAttribute("aria-pressed"),
 				).toBe("true"),
 			);
@@ -179,44 +133,74 @@ describe("backpack moving and swapping controls", { timeout: 25_000 }, () => {
 			await opened.model.commands.redo();
 			await waitFor(() =>
 				expect(
-					page
-						.getByRole("button", { name: "Slot 36: Parsnip" })
-						.getAttribute("aria-pressed"),
-				).toBe("true"),
+					page.getByRole("button", { name: "Boots: Sneakers" }),
+				).toBeTruthy(),
+			);
+			const equipped = await opened.model.snapshot();
+			await drag(
+				page.getByRole("button", { name: "Slot 5: Parsnip" }),
+				page.getByRole("button", { name: "Hat: Empty" }),
+			);
+			await waitFor(
+				() =>
+					expect(
+						page.getByText(/cannot|compatible|hat/i, {
+							selector: ".operation-error",
+						}),
+					).toBeTruthy(),
+				{ timeout: 5000 },
+			);
+			expect((await opened.model.snapshot()).document).toEqual(
+				equipped.document,
+			);
+			await drag(
+				page.getByRole("button", { name: "Shirt: Shirt" }),
+				page.getByRole("button", { name: "Pants: Farmer Pants" }),
+			);
+			await waitFor(
+				() =>
+					expect(
+						page.getByText(/cannot|compatible|pants/i, {
+							selector: ".operation-error",
+						}),
+					).toBeTruthy(),
+				{ timeout: 5000 },
+			);
+			expect((await opened.model.snapshot()).document).toEqual(
+				equipped.document,
 			);
 		} finally {
 			page.unmount();
 			await opened.close();
 		}
 	});
-
-	it("accepts an in-panel drag and ignores unrelated drops", async () => {
+	it("uses touch pointer dragging without Move mode and cancels interrupted gestures without writes", async () => {
 		const opened = await openEditor(new TextEncoder().encode(fixtureXml));
 		const page = render(BackpackHarness, { model: opened.model });
+		const hit = vi.spyOn(document, "elementFromPoint");
 		try {
-			const before = await opened.model.snapshot();
-			const values = new Map<string, string>();
-			const dataTransfer = {
-				types: ["application/x-stardew-backpack-item"],
-				setData: (type: string, value: string) => values.set(type, value),
-				getData: (type: string) => values.get(type) ?? "",
-				effectAllowed: "",
-				dropEffect: "",
-			};
-			await fireEvent.drop(
-				page.getByRole("button", { name: "Slot 4: Empty" }),
-				{ dataTransfer },
-			);
-			expect((await opened.model.snapshot()).entries).toHaveLength(0);
-			await fireEvent.dragStart(
-				page.getByRole("button", { name: "Slot 5: Parsnip" }),
-				{ dataTransfer },
-			);
-			const target = page.getByRole("button", {
-				name: "Move Parsnip to slot 4: Empty",
+			const source = page.getByRole("button", { name: "Slot 5: Parsnip" });
+			const target = page.getByRole("button", { name: "Slot 4: Empty" });
+			hit.mockReturnValue(target);
+			await fireEvent.pointerDown(source, {
+				pointerId: 7,
+				pointerType: "touch",
+				clientX: 10,
+				clientY: 10,
 			});
-			await fireEvent.dragOver(target, { dataTransfer });
-			await fireEvent.drop(target, { dataTransfer });
+			await fireEvent.pointerMove(source, {
+				pointerId: 7,
+				pointerType: "touch",
+				clientX: 70,
+				clientY: 10,
+			});
+			await fireEvent.pointerUp(source, {
+				pointerId: 7,
+				pointerType: "touch",
+				clientX: 70,
+				clientY: 10,
+			});
+			await fireEvent.click(source, { detail: 1 });
 			await waitFor(
 				() =>
 					expect(
@@ -226,19 +210,51 @@ describe("backpack moving and swapping controls", { timeout: 25_000 }, () => {
 					).toBe("true"),
 				{ timeout: 5000 },
 			);
-			expect(
-				(await opened.model.snapshot()).document.SaveGame.player.items.Item[3],
-			).toEqual(before.document.SaveGame.player.items.Item[4]);
+			const moved = await opened.model.snapshot();
+			expect(moved.entries).toHaveLength(1);
+			const nextSource = page.getByRole("button", { name: "Slot 4: Parsnip" });
+			hit.mockReturnValue(page.getByRole("button", { name: "Slot 7: Empty" }));
+			await fireEvent.pointerDown(nextSource, {
+				pointerId: 8,
+				pointerType: "touch",
+				clientX: 10,
+				clientY: 10,
+			});
+			await fireEvent.pointerMove(nextSource, {
+				pointerId: 8,
+				pointerType: "touch",
+				clientX: 90,
+				clientY: 10,
+			});
+			await fireEvent.pointerCancel(nextSource, {
+				pointerId: 8,
+				pointerType: "touch",
+			});
+			await fireEvent.pointerUp(nextSource, {
+				pointerId: 8,
+				pointerType: "touch",
+				clientX: 90,
+				clientY: 10,
+			});
+			expect((await opened.model.snapshot()).document).toEqual(moved.document);
+			expect((await opened.model.snapshot()).entries).toHaveLength(1);
 		} finally {
+			hit.mockRestore();
 			page.unmount();
 			await opened.close();
 		}
 	});
-	it("retains an added item's selection lineage through move Undo and creation Undo", async () => {
+
+	it("ignores outside drops and preserves add/remove selection lineage through drag Undo", async () => {
 		const opened = await openEditor(new TextEncoder().encode(fixtureXml));
 		const page = render(BackpackHarness, { model: opened.model });
 		try {
 			const before = (await opened.model.snapshot()).document;
+			await fireEvent.drop(
+				page.getByRole("button", { name: "Slot 4: Empty" }),
+				{ dataTransfer: dragData() },
+			);
+			expect((await opened.model.snapshot()).entries).toHaveLength(0);
 			await fireEvent.click(
 				page.getByRole("button", { name: "Slot 4: Empty" }),
 			);
@@ -258,9 +274,9 @@ describe("backpack moving and swapping controls", { timeout: 25_000 }, () => {
 					).toBe("true"),
 				{ timeout: 5000 },
 			);
-			await fireEvent.click(page.getByRole("button", { name: "Move item" }));
-			await fireEvent.click(
-				page.getByRole("button", { name: "Move Wood to slot 7: Empty" }),
+			await drag(
+				page.getByRole("button", { name: "Slot 4: Wood" }),
+				page.getByRole("button", { name: "Slot 7: Empty" }),
 			);
 			await waitFor(
 				() =>

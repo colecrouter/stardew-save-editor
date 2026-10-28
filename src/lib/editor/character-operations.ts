@@ -6,66 +6,21 @@ import {
 	withReviewMetadata,
 } from "./transaction-annotations.ts";
 
-/** Game skill indices and their saved level mirrors (Farmer.getBaseExperienceForLevel). */
-export const skillDefinitions = [
-	{ key: "farming", label: "Farming", index: 0, levelField: "farmingLevel" },
-	{ key: "fishing", label: "Fishing", index: 1, levelField: "fishingLevel" },
-	{ key: "foraging", label: "Foraging", index: 2, levelField: "foragingLevel" },
-	{ key: "mining", label: "Mining", index: 3, levelField: "miningLevel" },
-	{ key: "combat", label: "Combat", index: 4, levelField: "combatLevel" },
-] as const;
-export type SkillKey = (typeof skillDefinitions)[number]["key"];
-export const skillXpForLevel = [
-	0, 100, 380, 770, 1300, 2150, 3300, 4800, 6900, 10000, 15000,
-] as const;
-export const masteryXpForLevel = [
-	0, 10000, 25000, 45000, 70000, 100000,
-] as const;
-const professionNames = [
-	"Rancher",
-	"Tiller",
-	"Coopmaster",
-	"Shepherd",
-	"Artisan",
-	"Agriculturist",
-	"Fisher",
-	"Trapper",
-	"Angler",
-	"Pirate",
-	"Mariner",
-	"Luremaster",
-	"Forester",
-	"Gatherer",
-	"Lumberjack",
-	"Tapper",
-	"Botanist",
-	"Tracker",
-	"Miner",
-	"Geologist",
-	"Blacksmith",
-	"Prospector",
-	"Excavator",
-	"Gemologist",
-	"Fighter",
-	"Scout",
-	"Brute",
-	"Defender",
-	"Acrobat",
-	"Desperado",
-] as const;
-/** The six professions for each skill contain two parents and four branch choices. */
-export const professionDefinitions = skillDefinitions.flatMap((definition) =>
-	professionNames
-		.slice(definition.index * 6, definition.index * 6 + 6)
-		.map((name, offset) => ({
-			id: definition.index * 6 + offset,
-			name,
-			skill: definition.key,
-			...(offset >= 2
-				? { parent: definition.index * 6 + (offset >= 4 ? 1 : 0) }
-				: {}),
-		})),
-);
+import {
+	skillDefinitions,
+	skillXpForLevel,
+	masteryXpForLevel,
+	professionDefinitions,
+	type SkillKey,
+} from "./character-data.ts";
+// Preserve existing operation consumers while presentation imports the pure data.
+export {
+	skillDefinitions,
+	skillXpForLevel,
+	masteryXpForLevel,
+	professionDefinitions,
+	type SkillKey,
+} from "./character-data.ts";
 /** Requested edits validate separately from imported baselines, which may be custom. */
 export class CharacterInvalid extends Data.TaggedError("CharacterInvalid")<{
 	readonly message: string;

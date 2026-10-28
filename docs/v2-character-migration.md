@@ -49,3 +49,18 @@ Request schemas and domain validation share the value rules. Supported mutations
 run against the current authoritative farmer inside the history queue, and a
 failure publishes no partial edits. Undo restores original representations rather
 than reconstructing a normalized farmer.
+
+## Metadata and farmer selection follow-ups
+
+Pure skill thresholds and profession definitions/summaries live in
+`src/lib/editor/character-data.ts`; UI presentation does not import operation code
+just to obtain that metadata. The short descriptions are editor-authored, not
+copied from generated game text. The game loads profession text from `Strings/UI`
+keys `LevelUp_ProfessionName_<name>` and `LevelUp_ProfessionDescription_<name>`.
+Generating that text from unpacked assets is tracked in #194.
+
+Legacy exposes a shared `save.player` through its sidebar farmer controls. V2
+Character and Inventory currently keep separate farmer selections. A shared
+session-owned selection by stable farmer identity is also a #194 planning item;
+this migration does not change cross-page selection behavior. Queued commands
+continue to capture their own target before asynchronous work.

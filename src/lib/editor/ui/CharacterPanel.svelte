@@ -1,10 +1,8 @@
 <script lang="ts">
 	import { useAtomValue } from "effect-atom-svelte";
 	import type { EditorModel } from "../editor-model.ts";
-	import {
-		professionDefinitions,
-		setCharacter,
-	} from "../character-operations.ts";
+	import { professionDefinitions } from "../character-data.ts";
+	import { setCharacter } from "../character-operations.ts";
 	import CharacterNumberField from "./CharacterNumberField.svelte";
 	import CharacterProfession from "./CharacterProfession.svelte";
 
@@ -13,40 +11,6 @@
 	const characters = $derived(view.current?.characters ?? []);
 	let farmerIndex = $state(0);
 	const character = $derived(characters[farmerIndex]);
-	// Descriptions summarize the named game professions. Branch membership comes
-	// from the shared domain definitions, so the visible tree and writes agree.
-	const descriptions: Record<number, string> = {
-		0: "Animal products sell for more.",
-		1: "Crops sell for more.",
-		2: "Befriend coop animals faster; incubate eggs faster.",
-		3: "Befriend barn animals faster; sheep grow wool faster.",
-		4: "Artisan goods sell for more.",
-		5: "Crops grow faster.",
-		6: "Fish sell for more.",
-		7: "Crab pots cost fewer resources to craft.",
-		8: "Fish sell for more.",
-		9: "Find more treasure while fishing.",
-		10: "Crab pots no longer catch trash.",
-		11: "Crab pots no longer need bait.",
-		12: "Trees yield more wood.",
-		13: "Chance to collect double forage.",
-		14: "All trees can drop hardwood.",
-		15: "Syrups sell for more.",
-		16: "Foraged items have the highest quality.",
-		17: "Reveals nearby forage locations.",
-		18: "Ore veins yield extra ore.",
-		19: "Chance for gems to appear in pairs.",
-		20: "Metal bars sell for more.",
-		21: "Find more coal.",
-		22: "Find more geodes.",
-		23: "Gems sell for more.",
-		24: "Deal more damage and gain health.",
-		25: "Critical strikes happen more often.",
-		26: "Deal more damage.",
-		27: "Gain more health.",
-		28: "Special moves recharge faster.",
-		29: "Critical strikes deal more damage.",
-	};
 </script>
 
 <div class="character-heading">
@@ -127,7 +91,7 @@
 										farmerId={character.farmerId}
 										profession={primary}
 										checked={character.professions.values.includes(primary.id)}
-										description={descriptions[primary.id] ?? ""}
+										description={primary.description}
 									/>
 
 									<div class="secondaries">
@@ -143,7 +107,7 @@
 													primary.id,
 												) &&
 													!character.professions.values.includes(secondary.id)}
-												description={descriptions[secondary.id] ?? ""}
+												description={secondary.description}
 											/>
 										{/each}
 									</div>

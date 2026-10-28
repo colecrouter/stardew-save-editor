@@ -150,12 +150,18 @@ export const makeHistorySession = (
 					? backpackFarmers(baseline)
 					: farmers(baseline);
 		for (const farmer of inventoryFarmers) {
+			// Opaque identifiers can contain non-callable conversion properties.
+			// Validate their scalar shape before attempting string conversion.
+			if (features.inventory === "backpacks" && !hasBackpackFarmerId(farmer))
+				continue;
 			const id = String(farmer.UniqueMultiplayerID);
 			if (
 				features.inventory === "backpacks" &&
 				(!hasBackpackFarmerId(farmer) ||
 					inventoryFarmers.filter(
-						(other) => String(other.UniqueMultiplayerID) === id,
+						(other) =>
+							hasBackpackFarmerId(other) &&
+							String(other.UniqueMultiplayerID) === id,
 					).length !== 1 ||
 					!farmer.items ||
 					!Array.isArray(farmer.items.Item))

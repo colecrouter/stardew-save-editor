@@ -135,11 +135,16 @@ export function readBackpacks(
 ): BackpackView[] {
 	const all = backpackFarmers(state.document);
 	return all.map((farmer) => {
-		const farmerId = String(farmer.UniqueMultiplayerID);
+		const farmerId = hasBackpackFarmerId(farmer)
+			? String(farmer.UniqueMultiplayerID)
+			: "";
 		const unique =
 			hasBackpackFarmerId(farmer) &&
-			all.filter((other) => String(other.UniqueMultiplayerID) === farmerId)
-				.length === 1;
+			all.filter(
+				(other) =>
+					hasBackpackFarmerId(other) &&
+					String(other.UniqueMultiplayerID) === farmerId,
+			).length === 1;
 		const items = record(farmer.items) ? farmer.items.Item : undefined;
 		const ids = Object.hasOwn(state.identities, farmerId)
 			? state.identities[farmerId]
@@ -247,7 +252,9 @@ export function makeBackpackItemEdits(
 		const expected = structuredClone(document);
 		for (const write of writes) {
 			const farmer = backpackFarmers(expected).find(
-				(farmer) => String(farmer.UniqueMultiplayerID) === write.farmerId,
+				(farmer) =>
+					hasBackpackFarmerId(farmer) &&
+					String(farmer.UniqueMultiplayerID) === write.farmerId,
 			);
 			const item = farmer?.items.Item[write.slot];
 			if (record(item)) item[write.property] = write.value;
@@ -277,7 +284,9 @@ export function makeBackpackItemEdits(
 					"Inventory changed outside the supported item operation.",
 				);
 			const matches = backpackFarmers(snapshot.state.document).filter(
-				(farmer) => String(farmer.UniqueMultiplayerID) === change.farmerId,
+				(farmer) =>
+					hasBackpackFarmerId(farmer) &&
+					String(farmer.UniqueMultiplayerID) === change.farmerId,
 			);
 			const ids = Object.hasOwn(identities, change.farmerId)
 				? identities[change.farmerId]

@@ -528,6 +528,13 @@ describe("bounded backpack edits", () => {
 					null,
 					42,
 					{ name: "Missing ID", items: { Item: [] } },
+					// Imported JSON can shadow conversion methods. Inspecting an invalid
+					// identifier must not coerce it or prevent edits to the valid host.
+					{
+						name: "Opaque ID",
+						UniqueMultiplayerID: { toString: 0 },
+						items: { Item: [] },
+					},
 				] as never;
 				const session = yield* makeHistorySession(
 					document,
@@ -539,6 +546,7 @@ describe("bounded backpack edits", () => {
 				expect(Object.keys(before.identities)).toEqual(["host"]);
 				expect(readBackpacks(before).map((view) => view.supported)).toEqual([
 					true,
+					false,
 					false,
 				]);
 				const after = yield* session.transact(

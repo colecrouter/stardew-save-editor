@@ -1,3 +1,4 @@
+import { resolveInventoryContainer } from "./inventory-containers.ts";
 import {
 	emptySlot,
 	farmers,
@@ -128,15 +129,28 @@ export function applyEquipmentSwap(
 	document: SaveDocument,
 	action: Extract<Mutation, { type: "equipment-swap" }>,
 ) {
-	const from = inventoryOwner(document, action.farmerId),
-		to = inventoryOwner(document, action.toFarmerId);
+	const from = resolveInventoryContainer(document, action.farmerId),
+		to =
+			action.toFarmerId === action.farmerId
+				? from
+				: resolveInventoryContainer(document, action.toFarmerId);
 	if (!from || !to)
 		throw new MutationError("Farmer ID must resolve exactly once");
-	const source = inventoryItem(from, action.slot),
-		destination = inventoryItem(to, action.toSlot);
+	const read = (owner: typeof from, key: InventoryLocation) => {
+		if (typeof key !== "number") {
+			if (!owner.farmer)
+				throw new MutationError("Chests do not have equipment slots");
+			return inventoryItem(owner.farmer, key);
+		}
+		if (!Number.isInteger(key) || key < 0 || key >= owner.slots.length)
+			throw new MutationError("Slot is outside the inventory");
+		return owner.slots[key];
+	};
+	const source = read(from, action.slot),
+		destination = read(to, action.toSlot);
 	if (emptySlot(source))
 		throw new MutationError("Choose a nonempty source item");
-	if (from === to && action.slot === action.toSlot)
+	if (from.id === to.id && action.slot === action.toSlot)
 		return { label: "Move item", review: "compact" as const };
 	// Validate both records before writing either endpoint. In particular, swapping
 	// an equipped hat onto an occupied backpack slot must also fit its displaced item.
@@ -149,18 +163,26 @@ export function applyEquipmentSwap(
 			throw new MutationError(
 				`This item cannot go in the ${equipmentLabels[key].toLowerCase()} slot.`,
 			);
-		if (key === "trinketItem" && !emptySlot(item) && !trinketAvailable(farmer))
+		if (
+			key === "trinketItem" &&
+			!emptySlot(item) &&
+			!trinketAvailable(farmer.farmer)
+		)
 			throw new MutationError("The trinket slot is locked for this farmer.");
 	}
-	const write = (farmer: Farmer, key: InventoryLocation, value: unknown) => {
-		// A missing equipment field has no transferable XML record. If it receives an
-		// item, the vacated backpack uses a normal nil; history restores absence on Undo.
+	const write = (
+		owner: typeof from,
+		key: InventoryLocation,
+		value: unknown,
+	) => {
 		const saved = value === undefined ? { "@_xsi:nil": "true" } : value;
-		if (typeof key === "number") farmer.items.Item[key] = saved;
-		else farmer[key] = saved;
+		if (typeof key === "number") owner.slots[key] = saved;
+		else if (owner.farmer) owner.farmer[key] = saved;
 	};
 	write(from, action.slot, destination);
 	write(to, action.toSlot, source);
+	if (typeof action.slot === "number") from.write(from.slots);
+	if (typeof action.toSlot === "number") to.write(to.slots);
 	const label = (key: InventoryLocation) =>
 		typeof key === "number"
 			? `slot ${key + 1}`

@@ -1,3 +1,4 @@
+import { resolveInventoryContainer } from "./inventory-containers.ts";
 import { Effect, Result, Schema, SchemaIssue } from "effect";
 import {
 	emptySlot,
@@ -5,12 +6,10 @@ import {
 	type Mutation,
 	type SaveDocument,
 } from "./domain.ts";
-import {
-	backpackFarmers,
-	hasBackpackFarmerId,
-} from "./inventory-operations.ts";
 
-/** UI requests name a session instance, never a position or an arbitrary item record. */
+/** UI requests name a session instance, never a position or an arbitrary item record.
+ * farmerId is an opaque inventory owner key for a farmer or a placed chest.
+ */
 export const BackpackLifecycleRequestSchema = Schema.Union([
 	Schema.Struct({
 		type: Schema.Literal("backpack-add"),
@@ -48,16 +47,11 @@ export const resolveBackpackLifecycle = Effect.fn("Backpack.resolveLifecycle")(
 					"Choose a valid backpack action.",
 			);
 		const request = decoded.success;
-		const matches = backpackFarmers(document).filter(
-			(farmer) =>
-				hasBackpackFarmerId(farmer) &&
-				String(farmer.UniqueMultiplayerID) === request.farmerId,
-		);
+		const owner = resolveInventoryContainer(document, request.farmerId);
 		const ids = Object.hasOwn(identities, request.farmerId)
 			? identities[request.farmerId]
 			: undefined;
-		const farmer = matches.length === 1 ? matches[0] : undefined;
-		const items = farmer?.items?.Item;
+		const items = owner?.slots;
 		const slot = ids?.indexOf(request.entityId) ?? -1;
 		// Both existing items and empty destinations have handles. Replacements receive
 		// new handles, so stale clicks can never remove a replacement or fill another slot.

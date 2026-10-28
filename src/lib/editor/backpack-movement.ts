@@ -1,3 +1,4 @@
+import { resolveInventoryContainer } from "./inventory-containers.ts";
 import {
 	equipmentSlots,
 	type EquipmentIdentities,
@@ -10,12 +11,10 @@ import {
 	type Mutation,
 	type SaveDocument,
 } from "./domain.ts";
-import {
-	backpackFarmers,
-	hasBackpackFarmerId,
-} from "./inventory-operations.ts";
 
-/** Both ends name session instances, including an empty destination's nil marker. */
+/** Both ends name session instances, including virtual chest empties.
+ * farmerId/toFarmerId are opaque inventory owner keys for farmers or placed chests.
+ */
 export const BackpackMoveRequestSchema = Schema.Struct({
 	type: Schema.Literal("backpack-move"),
 	farmerId: Schema.String,
@@ -52,18 +51,12 @@ export const resolveBackpackMove = Effect.fn("Backpack.resolveMove")(function* (
 				"Choose a valid backpack destination.",
 		);
 	const request = decoded.success;
-	const all = backpackFarmers(document);
 	function endpoint(farmerId: string, entityId: string) {
-		const owners = all.filter(
-			(farmer) =>
-				hasBackpackFarmerId(farmer) &&
-				String(farmer.UniqueMultiplayerID) === farmerId,
-		);
-		const owner = owners.length === 1 ? owners[0] : undefined;
+		const owner = resolveInventoryContainer(document, farmerId);
 		const ids = Object.hasOwn(identities, farmerId)
 			? identities[farmerId]
 			: undefined;
-		const items = owner?.items?.Item;
+		const items = owner?.slots;
 		const backpackSlot = ids?.indexOf(entityId) ?? -1;
 		const equipment = Object.hasOwn(equipmentIdentities, farmerId)
 			? equipmentIdentities[farmerId]
@@ -75,7 +68,15 @@ export const resolveBackpackMove = Effect.fn("Backpack.resolveMove")(function* (
 			return undefined;
 		const slot = backpackSlot >= 0 ? backpackSlot : equipmentKey;
 		if (slot === undefined) return undefined;
-		return { slot, item: inventoryItem(owner, slot) };
+		return {
+			slot,
+			item:
+				typeof slot === "number"
+					? items[slot]
+					: owner.farmer
+						? inventoryItem(owner.farmer, slot)
+						: undefined,
+		};
 	}
 	const source = endpoint(request.farmerId, request.entityId);
 	const destination = endpoint(request.toFarmerId, request.toEntityId);

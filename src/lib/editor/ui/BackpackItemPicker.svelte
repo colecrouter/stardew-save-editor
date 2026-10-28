@@ -4,12 +4,20 @@
 
 	interface Props {
 		slot: number;
+		inventoryKind?: "backpack" | "chest";
 		entries: readonly CatalogEntry[];
 		onadd: (id: string) => Promise<boolean>;
 		oncancel?: () => void;
 		error?: string;
 	}
-	let { slot, entries, onadd, oncancel, error }: Props = $props();
+	let {
+		slot,
+		entries,
+		onadd,
+		oncancel,
+		error,
+		inventoryKind = "backpack",
+	}: Props = $props();
 	const id = $props.id();
 	let query = $state("");
 	let kind = $state("all");
@@ -80,7 +88,12 @@
 	}
 </script>
 
-<section aria-label="Add backpack item" class="picker">
+<section
+	aria-label={inventoryKind === "chest"
+		? "Add chest item"
+		: "Add backpack item"}
+	class="picker"
+>
 	<header>
 		<div>
 			<h2>Add an item</h2>

@@ -2,6 +2,7 @@ import type { BackpackMoveRequest } from "./backpack-movement.ts";
 import type { BackpackLifecycleRequest } from "./backpack-lifecycle.ts";
 import {
 	readBackpacks,
+	readChests,
 	type BackpackView,
 	type BackpackItemEdits,
 } from "./inventory-operations.ts";
@@ -69,6 +70,7 @@ export interface EditorView {
 	calendar: CalendarViewState;
 	farm: FarmView;
 	backpacks: BackpackView[];
+	chests: BackpackView[];
 	greenRain: number;
 	todayOptions: WeatherChoice[];
 	tomorrowOptions: WeatherChoice[];
@@ -149,6 +151,7 @@ function project(state: HistoryState, includeProofs = false): EditorView {
 		calendar,
 		farm: readFarmSettings(state.document),
 		backpacks: readBackpacks(state),
+		chests: readChests(state),
 		greenRain: day,
 		todayOptions: today.values,
 		tomorrowOptions: tomorrow.values,
@@ -395,7 +398,7 @@ export const makeEditorModel = (
 				}),
 			);
 		const commands = {
-			/** Move or swap across actual backpack slots and return the moved instance. */
+			/** Move or swap farmer slots or virtual chest targets, returning the moved instance. */
 			moveBackpackItem: (request: BackpackMoveRequest) =>
 				submit(() =>
 					Effect.gen(function* () {
@@ -420,16 +423,17 @@ export const makeEditorModel = (
 						// Resolve the destination before executing within this command queue.
 						// Expected revision also protects callers that hold the lower engine API.
 						const before = yield* live().snapshot;
-						const previous = Object.hasOwn(before.identities, request.farmerId)
-							? before.identities[request.farmerId]
-							: undefined;
-						const slot = previous?.indexOf(request.entityId) ?? -1;
 						const after = yield* live().execute(
 							[request],
 							undefined,
 							before.revision,
 						);
-						const entityId = after.identities[request.farmerId]?.[slot];
+						// One lifecycle request allocates exactly one replacement. Chest
+						// compaction may move it away from the requested display position.
+						const entityId =
+							after.nextIdentity === before.nextIdentity + 1
+								? `item:${after.nextIdentity}`
+								: undefined;
 						// A successful add/remove always allocates a replacement handle. Read
 						// it from that committed state, never from a later snapshot after Undo.
 						if (!entityId)

@@ -53,10 +53,12 @@ describe("full-save backpack workflow", { timeout: 15_000 }, () => {
 				name: "Quantity",
 			}) as HTMLInputElement;
 			await fireEvent.input(quantity, { target: { value: "18" } });
-			await fireEvent.blur(quantity);
-			await waitFor(() => {
-				expect(quantity.value).toBe("18");
-				expect(quantity.disabled).toBe(false);
+			await waitFor(async () => {
+				expect(
+					(await opened.model.snapshot()).document.SaveGame.player.items.Item[
+						count - 5
+					],
+				).toMatchObject({ stack: 18 });
 			});
 			// Inspect the committed save, not only optimistic input text: the edit
 			// must reach Parsnip's moved slot while the sword remains untouched.
@@ -145,8 +147,7 @@ describe("full-save backpack workflow", { timeout: 15_000 }, () => {
 			).toBeNull();
 			quantity.focus();
 			await fireEvent.input(quantity, { target: { value: "12" } });
-			expect(actions(page)).toBe(0);
-			await fireEvent.blur(quantity);
+			// Input itself publishes the edit; no Enter or blur is required.
 			await waitFor(() => {
 				expect(actions(page)).toBe(1);
 				expect(quantity.disabled).toBe(false);
@@ -155,7 +156,7 @@ describe("full-save backpack workflow", { timeout: 15_000 }, () => {
 			await waitFor(() => expect(quantity.value).toBe("1"));
 			await fireEvent.click(page.getByRole("button", { name: "Redo" }));
 			await waitFor(() => expect(quantity.value).toBe("12"));
-			// A completed Enter edit followed by blur must contribute one action.
+			// Enter and blur after an input must not contribute duplicate actions.
 			await fireEvent.input(quantity, { target: { value: "13" } });
 			await fireEvent.keyDown(quantity, { key: "Enter", code: "Enter" });
 			await waitFor(() => {
@@ -195,6 +196,94 @@ describe("full-save backpack workflow", { timeout: 15_000 }, () => {
 		}
 	});
 
+	it("clearing and rapid valid input preserve focus and commit the latest quantity without blur", async () => {
+		const opened = await openEditor(new TextEncoder().encode(fixtureXml));
+		const page = render(BackpackHarness, { model: opened.model });
+		try {
+			await fireEvent.click(
+				page.getByRole("button", { name: "Slot 5: Parsnip" }),
+			);
+			const quantity = page.getByRole("spinbutton", {
+				name: "Quantity",
+			}) as HTMLInputElement;
+			quantity.focus();
+			// A pending valid write must not refill a subsequently cleared control.
+			await fireEvent.input(quantity, { target: { value: "12" } });
+			await fireEvent.input(quantity, { target: { value: "" } });
+			await waitFor(async () =>
+				expect(
+					(await opened.model.snapshot()).document.SaveGame.player.items
+						.Item[4],
+				).toMatchObject({ stack: 12 }),
+			);
+			expect(quantity.value).toBe("");
+			expect(document.activeElement).toBe(quantity);
+			// Each complete input enters the queue; later text is never dropped or
+			// replaced by an earlier asynchronous completion while typing continues.
+			await fireEvent.input(quantity, { target: { value: "2" } });
+			await fireEvent.input(quantity, { target: { value: "25" } });
+			await fireEvent.input(quantity, { target: { value: "250" } });
+			await waitFor(async () =>
+				expect(
+					(await opened.model.snapshot()).document.SaveGame.player.items
+						.Item[4],
+				).toMatchObject({ stack: 250 }),
+			);
+			expect(quantity.value).toBe("250");
+			expect(document.activeElement).toBe(quantity);
+			await opened.model.commands.undo();
+			await waitFor(() => expect(quantity.value).toBe("25"));
+			await fireEvent.input(quantity, { target: { value: "" } });
+			expect(quantity.value).toBe("");
+			await opened.model.commands.undo();
+			await waitFor(() => expect(quantity.value).toBe("2"));
+			await opened.model.commands.redo();
+			await waitFor(() => expect(quantity.value).toBe("25"));
+		} finally {
+			page.unmount();
+			await opened.close();
+		}
+	});
+
+	it("custom quality stays unselected until an explicit radio choice and Undo restores it", async () => {
+		const document = parser.parse(fixtureXml);
+		const parsnip = document.SaveGame.player.items.Item[4] as Record<
+			string,
+			unknown
+		>;
+		parsnip.quality = 3;
+		const page = await openBackpack(exportDocument(document));
+		try {
+			await fireEvent.click(
+				page.getByRole("button", { name: "Slot 5: Parsnip" }),
+			);
+			expect(inspector(page).getByText("Current: Custom (3)")).toBeTruthy();
+			expect(
+				inspector(page)
+					.getAllByRole("radio")
+					.some((input) => (input as HTMLInputElement).checked),
+			).toBe(false);
+			const gold = inspector(page).getByRole("radio", {
+				name: "Gold",
+			}) as HTMLInputElement;
+			gold.focus();
+			await fireEvent.click(gold);
+			await waitFor(() => expect(actions(page)).toBe(1));
+			expect(globalThis.document.activeElement).toBe(gold);
+			await fireEvent.click(page.getByRole("button", { name: "Undo" }));
+			await waitFor(() =>
+				expect(inspector(page).getByText("Current: Custom (3)")).toBeTruthy(),
+			);
+			expect(
+				inspector(page)
+					.getAllByRole("radio")
+					.some((input) => (input as HTMLInputElement).checked),
+			).toBe(false);
+		} finally {
+			page.unmount();
+		}
+	});
+
 	it("invalid quantity restores the committed value, selection survives navigation, and tools/unknown items stay read-only", async () => {
 		const document = parser.parse(fixtureXml);
 		// Keep an unresolved mod item in a real slot to check the fallback without
@@ -215,7 +304,6 @@ describe("full-save backpack workflow", { timeout: 15_000 }, () => {
 				name: "Quantity",
 			}) as HTMLInputElement;
 			await fireEvent.input(quantity, { target: { value: "0" } });
-			await fireEvent.blur(quantity);
 			await waitFor(() => expect(quantity.value).toBe("1"));
 			expect(inspector(page).getByRole("status").textContent).toMatch(
 				/quantity from 1 to 9999/,
@@ -235,7 +323,7 @@ describe("full-save backpack workflow", { timeout: 15_000 }, () => {
 				inspector(page).queryByRole("spinbutton", { name: "Quantity" }),
 			).toBeNull();
 			expect(
-				inspector(page).queryByRole("combobox", { name: "Quality" }),
+				inspector(page).queryByRole("group", { name: "Quality" }),
 			).toBeNull();
 			await fireEvent.click(
 				page.getByRole("button", { name: "Slot 4: Unknown custom item" }),
@@ -243,7 +331,7 @@ describe("full-save backpack workflow", { timeout: 15_000 }, () => {
 			expect(inspector(page).getByText("Quantity: 7")).toBeTruthy();
 			expect(inspector(page).getByText("Quality: 3")).toBeTruthy();
 			expect(inspector(page).queryByRole("spinbutton")).toBeNull();
-			expect(inspector(page).queryByRole("combobox")).toBeNull();
+			expect(inspector(page).queryByRole("radio")).toBeNull();
 			expect(actions(page)).toBe(0);
 		} finally {
 			page.unmount();

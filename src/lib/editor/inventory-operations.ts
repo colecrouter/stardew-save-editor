@@ -28,13 +28,6 @@ export interface BackpackView {
 	reason?: string;
 	slots: BackpackSlotView[];
 }
-/** One field edit to the entity currently owned by the requested farmer. */
-export interface BackpackItemChange {
-	farmerId: string;
-	entityId: string;
-	property: "stack" | "quality";
-	value: number;
-}
 /** Expected unsupported, invalid or stale backpack request. */
 export class BackpackItemInvalid extends Data.TaggedError(
 	"BackpackItemInvalid",
@@ -60,6 +53,8 @@ export const BackpackItemChangeSchema = Schema.Union([
 		}),
 	}),
 ]);
+/** One validated field edit; the schema owns both the shape and sparse value rules. */
+export type BackpackItemChange = typeof BackpackItemChangeSchema.Type;
 const decodeChange = Schema.decodeUnknownResult(BackpackItemChangeSchema, {
 	onExcessProperty: "error",
 });

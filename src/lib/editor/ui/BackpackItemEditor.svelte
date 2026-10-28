@@ -27,24 +27,59 @@
 		canStack,
 		canQuality,
 	}: Props = $props();
-	let quantity = $state("");
-	let savingQuantity = $state(false);
-	let savingQuality = $state(false);
 	let error = $state("");
 	const qualityGroup = $props.id();
+	type Property = "stack" | "quality";
+	let request = 0;
+	let pending = $state<
+		Partial<Record<Property, { value: number; request: number }>>
+	>({});
+	let clearedQuantity = $state<{ value: number | undefined }>();
 	const committedQuantity = $derived(item.stack);
+	// Clearing waits for replacement text, without changing the save. Remember
+	// the latest in-flight value so its completion cannot refill the control;
+	// a subsequent external revision (Undo/Redo) dismisses that empty input.
 	$effect(() => {
-		quantity = committedQuantity === undefined ? "" : String(committedQuantity);
+		if (
+			clearedQuantity &&
+			!pending.stack &&
+			committedQuantity !== clearedQuantity.value
+		)
+			clearedQuantity = undefined;
 	});
 	const guidance = $derived(
-		canStack && canQuality
-			? "Quantity updates when you leave the field or press Enter. Quality updates immediately. Use Undo to revert."
-			: canStack
-				? "Quantity updates when you leave the field or press Enter. Use Undo to revert."
-				: canQuality
-					? "Quality updates immediately. Use Undo to revert."
-					: "",
+		canStack || canQuality
+			? "Changes update immediately. Use Undo to revert."
+			: "",
 	);
+	// Svelte does not accept function-pair bindings for bind:group. An accessor
+	// gives the native radio group the same read/write boundary as the number input.
+	const qualityBinding = {
+		get value() {
+			return pending.quality?.value ?? item.quality;
+		},
+		set value(value: number | undefined) {
+			if (canQuality && value !== qualityBinding.value && value !== undefined)
+				void update("quality", value);
+		},
+	};
+	function readQuantity() {
+		return clearedQuantity
+			? undefined
+			: (pending.stack?.value ?? committedQuantity);
+	}
+	function writeQuantity(value: number | null | undefined) {
+		if (!canStack) return;
+		if (value == null) {
+			// Clearing the control lets someone replace the number without exporting
+			// an absent quantity or adding an undo action for incomplete input.
+			clearedQuantity = { value: pending.stack?.value ?? committedQuantity };
+			error = "";
+			return;
+		}
+		clearedQuantity = undefined;
+		if (value !== readQuantity()) void update("stack", value);
+	}
 	const qualities = [
 		{ value: 0, label: "Normal" },
 		{ value: 1, label: "Silver" },
@@ -52,7 +87,7 @@
 		{ value: 4, label: "Iridium" },
 	];
 
-	async function update(property: "stack" | "quality", value: number) {
+	async function update(property: Property, value: number) {
 		error = "";
 		// The enclosing keyed inspector owns this farmer/entity pair. Capture it
 		// before the await: a later selection must never retarget a pending edit.
@@ -66,27 +101,27 @@
 			error = decoded.failure.message;
 			return;
 		}
-		// Field feedback and the command boundary share one schema; the command
-		// additionally rechecks ownership/eligibility against the current document.
-		const result = await model.commands.transact(
-			setBackpackItem(decoded.success),
-		);
-		if (result && Result.isFailure(result)) error = result.failure.message;
-		// Defects/cancellation remain with the shared session/toast boundary.
-	}
-	async function commitQuantity() {
-		if (!canStack || savingQuantity) return;
-		const value = quantity.trim() === "" ? Number.NaN : Number(quantity);
-		if (value === committedQuantity) return;
-		savingQuantity = true;
+		// Valid input writes through immediately. Keep the latest requested value
+		// visible while the shared command queue serializes rapid keystrokes; an
+		// earlier completion must not replace a more recent input or steal focus.
+		const currentRequest = ++request;
+		pending[property] = { value, request: currentRequest };
 		try {
-			await update("stack", value);
+			const result = await model.commands.transact(
+				setBackpackItem(decoded.success),
+			);
+			if (
+				result &&
+				Result.isFailure(result) &&
+				pending[property]?.request === currentRequest
+			)
+				error = result.failure.message;
+			// Defects/cancellation remain with the shared session/toast boundary.
 		} finally {
-			// Rejected or interrupted text returns to the committed value; typing
-			// itself does not enter history, and Enter followed by blur is one edit.
-			quantity =
-				committedQuantity === undefined ? "" : String(committedQuantity);
-			savingQuantity = false;
+			// Completion exposes the committed projection again. A rejected write
+			// therefore rolls back the bound control without manipulating the DOM.
+			if (pending[property]?.request === currentRequest)
+				delete pending[property];
 		}
 	}
 </script>
@@ -107,25 +142,17 @@
 				<input
 					type="number"
 					step="1"
-					value={quantity}
-					disabled={savingQuantity}
-					oninput={(event) => {
-						quantity = event.currentTarget.value;
-					}}
-					onblur={() => void commitQuantity()}
-					onkeydown={(event) => {
-						if (event.key === "Enter") {
-							event.preventDefault();
-							void commitQuantity();
-						}
-					}}
+					bind:value={readQuantity, writeQuantity}
 				/>
 			</label>
 		{:else if item.stack !== undefined}<p>Quantity: {item.stack}</p>{/if}
 		{#if canQuality}
-			<!-- Keep the focused radio mounted and enabled during writes so repeated
-			     keyboard selections retain focus. Pending changes are guarded below. -->
-			<fieldset aria-busy={savingQuality} class="quality-picker">
+			<!-- Binding the group preserves native focus and arrow-key selection while
+			     each valid choice enters the same serialized command queue. -->
+			<fieldset
+				aria-busy={pending.quality !== undefined}
+				class="quality-picker"
+			>
 				<legend>Quality</legend>
 
 				{#if !qualities.some((quality) => quality.value === item.quality)}
@@ -139,38 +166,7 @@
 								type="radio"
 								name={qualityGroup}
 								value={quality.value}
-								checked={item.quality === quality.value}
-								onchange={async (event) => {
-									// Native radios supply arrow-key navigation. Keep their selection
-									// tied to the committed item, including rejected/interrupted edits.
-									const control = event.currentTarget;
-									if (savingQuality) {
-										for (const radio of control
-											.closest("fieldset")
-											?.querySelectorAll<HTMLInputElement>(
-												'input[type="radio"]',
-											) ?? []) {
-											radio.checked = Number(radio.value) === item.quality;
-										}
-										return;
-									}
-									if (item.quality === quality.value) return;
-									savingQuality = true;
-									try {
-										await update("quality", quality.value);
-									} finally {
-										// A failed write leaves item unchanged, so restore the whole
-										// native group even when no reactive revision was published.
-										for (const radio of control
-											.closest("fieldset")
-											?.querySelectorAll<HTMLInputElement>(
-												'input[type="radio"]',
-											) ?? []) {
-											radio.checked = Number(radio.value) === item.quality;
-										}
-										savingQuality = false;
-									}
-								}}
+								bind:group={qualityBinding.value}
 							/>
 
 							<span class="quality-symbol" aria-hidden="true">

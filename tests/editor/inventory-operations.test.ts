@@ -5,6 +5,7 @@ import {
 	readBackpacks,
 	setBackpackItem,
 	decodeBackpackItemChange,
+	type BackpackItemChange,
 } from "../../src/lib/editor/inventory-operations";
 import { TransactionDraft } from "../../src/lib/editor/transaction-draft";
 import { tinyFixture } from "./fixtures";
@@ -52,12 +53,7 @@ describe("bounded backpack edits", () => {
 		run(
 			Effect.gen(function* () {
 				const original = fixture();
-				const session = yield* makeHistorySession(
-					original,
-					{},
-					{},
-					{ inventory: "backpacks" },
-				);
+				const session = yield* makeHistorySession(original);
 				const before = yield* session.snapshot;
 				const view = readBackpacks(before);
 				const slot = required(required(view[0]).slots[0]);
@@ -258,8 +254,9 @@ describe("bounded backpack edits", () => {
 						yield* setBackpackItem({
 							farmerId: "host",
 							entityId: required(before.identities.host?.[slot]),
-							property,
-							value,
+							...(property === "quality"
+								? { property, value: 4 as const }
+								: { property, value }),
 						});
 						const restored = yield* draft.read;
 						const target = restored.state.document.SaveGame.player.items.Item[
@@ -386,7 +383,11 @@ describe("bounded backpack edits", () => {
 				] as const) {
 					expect(
 						Result.isFailure(
-							yield* Effect.result(session.transact(setBackpackItem(change))),
+							// Deliberately cross the typed boundary with malformed runtime input:
+							// schema validation must still reject callers that bypass TypeScript.
+							yield* Effect.result(
+								session.transact(setBackpackItem(change as BackpackItemChange)),
+							),
 						),
 					).toBe(true);
 					expect(yield* session.snapshot).toEqual(before);
@@ -413,12 +414,7 @@ describe("bounded backpack edits", () => {
 					"host";
 				(document.SaveGame.player as unknown as Record<string, unknown>).items =
 					"ModdedInventory";
-				const session = yield* makeHistorySession(
-					document,
-					{},
-					{},
-					{ inventory: "backpacks" },
-				);
+				const session = yield* makeHistorySession(document);
 				const before = yield* session.snapshot;
 				expect(before.identities).toEqual({});
 				expect(readBackpacks(before).every((view) => !view.supported)).toBe(
@@ -434,7 +430,7 @@ describe("bounded backpack edits", () => {
 			}),
 		));
 
-	it("preserves opaque and unsupported records and rejects disabled inventory sessions", async () =>
+	it("preserves opaque and unsupported records without granting edit capabilities", async () =>
 		run(
 			Effect.gen(function* () {
 				const document = fixture();
@@ -470,12 +466,7 @@ describe("bounded backpack edits", () => {
 						quality: 0,
 					},
 				);
-				const session = yield* makeHistorySession(
-					document,
-					{},
-					{},
-					{ inventory: "backpacks" },
-				);
+				const session = yield* makeHistorySession(document);
 				const before = yield* session.snapshot;
 				for (const entityId of required(before.identities.host).slice(3)) {
 					expect(
@@ -494,27 +485,6 @@ describe("bounded backpack edits", () => {
 					).toBe(true);
 					expect(yield* session.snapshot).toEqual(before);
 				}
-				const disabled = yield* makeHistorySession(
-					document,
-					{},
-					{},
-					{ inventory: false },
-				);
-				expect(
-					Result.isFailure(
-						yield* Effect.result(
-							disabled.transact(
-								setBackpackItem({
-									farmerId: "host",
-									entityId: required(before.identities.host?.[0]),
-									property: "stack",
-									value: 2,
-								}),
-							),
-						),
-					),
-				).toBe(true);
-				expect((yield* disabled.snapshot).document).toEqual(document);
 			}),
 		));
 
@@ -536,12 +506,7 @@ describe("bounded backpack edits", () => {
 						items: { Item: [] },
 					},
 				] as never;
-				const session = yield* makeHistorySession(
-					document,
-					{},
-					{},
-					{ inventory: "backpacks" },
-				);
+				const session = yield* makeHistorySession(document);
 				const before = yield* session.snapshot;
 				expect(Object.keys(before.identities)).toEqual(["host"]);
 				expect(readBackpacks(before).map((view) => view.supported)).toEqual([

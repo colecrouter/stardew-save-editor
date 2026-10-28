@@ -64,11 +64,15 @@
 	<label class="farmer"
 		>Farmer
 		<select
-			value={farmerIndex}
-			onchange={(event) => {
-				farmerIndex = Number(event.currentTarget.value);
-				selectedEntity = undefined;
-			}}
+			bind:value={
+				() => farmerIndex,
+				(value) => {
+					// Changing owners starts selection within the new backpack rather
+					// than carrying another farmer's entity handle into its inspector.
+					farmerIndex = value;
+					selectedEntity = undefined;
+				}
+			}
 		>
 			{#each backpacks as farmer, index (index)}<option value={index}
 					>{farmer.name}</option

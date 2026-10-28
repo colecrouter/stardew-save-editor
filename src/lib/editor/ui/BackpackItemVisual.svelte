@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { asset } from "$app/paths";
 	import { ObjectData, ResolveItemData } from "$lib/ItemData";
+	import UnknownItemVisual from "./UnknownItemVisual.svelte";
 	import QualityBadge from "./QualityBadge.svelte";
 	import { Sprite } from "$lib/Sprite.svelte";
 	import type { Item } from "$types/save";
@@ -118,7 +119,7 @@
 		<span class="quality-badge"><QualityBadge quality={raw?.quality} /></span>
 	</div>
 {:else}
-	<span aria-hidden="true">??</span>
+	<UnknownItemVisual />
 {/if}
 
 <style>

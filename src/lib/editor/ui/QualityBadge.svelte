@@ -2,14 +2,13 @@
 	let { quality }: { quality?: unknown } = $props();
 	// Quality is sparse in the save format. Unknown/custom values must not be
 	// pictured as a supported tier, and normal quality intentionally has no badge.
+	const tiers = new Map([
+		[1, { fill: "#dce6ee", shade: "#8196aa" }],
+		[2, { fill: "#ffe65a", shade: "#bf7c22" }],
+		[4, { fill: "#df91ed", shade: "#8844ab" }],
+	]);
 	const colors = $derived(
-		quality === 1
-			? { fill: "#dce6ee", shade: "#8196aa" }
-			: quality === 2
-				? { fill: "#ffe65a", shade: "#bf7c22" }
-				: quality === 4
-					? { fill: "#df91ed", shade: "#8844ab" }
-					: undefined,
+		typeof quality === "number" ? tiers.get(quality) : undefined,
 	);
 </script>
 

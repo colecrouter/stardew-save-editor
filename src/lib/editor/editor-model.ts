@@ -510,7 +510,7 @@ export type EditorModel = Effect.Success<ReturnType<typeof makeEditorModel>>;
  * The caller owns `close()`: unmount registry consumers before awaiting it.
  * Failed acquisition releases resources before rejecting.
  *
- * Calendar-only projections and export validation are enabled by default;
+ * The production projections and export validation are enabled by default;
  * `includeProofs` and `validateExport: false` support the comparison lab.
  * @returns The application model and the function that closes its file scope.
  */
@@ -525,12 +525,7 @@ export async function openEditor(
 			Effect.gen(function* () {
 				const codec = yield* SaveCodec;
 				const document = yield* codec.decode(bytes);
-				const session = yield* makeHistorySession(
-					document,
-					limits,
-					{},
-					{ inventory: options.includeProofs === true ? true : "backpacks" },
-				);
+				const session = yield* makeHistorySession(document, limits);
 				return yield* makeEditorModel(session, codec, options);
 			}).pipe(
 				Effect.provide(SaveCodecLive),

@@ -223,11 +223,15 @@ describe("full-save backpack workflow", { timeout: 15_000 }, () => {
 			await fireEvent.input(quantity, { target: { value: "2" } });
 			await fireEvent.input(quantity, { target: { value: "25" } });
 			await fireEvent.input(quantity, { target: { value: "250" } });
-			await waitFor(async () =>
-				expect(
-					(await opened.model.snapshot()).document.SaveGame.player.items
-						.Item[4],
-				).toMatchObject({ stack: 250 }),
+			await waitFor(
+				async () =>
+					expect(
+						(await opened.model.snapshot()).document.SaveGame.player.items
+							.Item[4],
+					).toMatchObject({ stack: 250 }),
+				// Three serialized full-save copies can exceed Testing Library’s default
+				// one-second wait on CI; still require the final committed document.
+				{ timeout: 5000 },
 			);
 			expect(quantity.value).toBe("250");
 			expect(document.activeElement).toBe(quantity);

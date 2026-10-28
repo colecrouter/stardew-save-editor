@@ -61,8 +61,8 @@
 	Select an item to edit its quantity or quality. Use Undo to revert changes.
 </p>
 {#if backpacks.length > 1}
-	<label class="farmer"
-		>Farmer
+	<label class="farmer">
+		Farmer
 		<select
 			bind:value={
 				() => farmerIndex,
@@ -74,9 +74,9 @@
 				}
 			}
 		>
-			{#each backpacks as farmer, index (index)}<option value={index}
-					>{farmer.name}</option
-				>{/each}
+			{#each backpacks as farmer, index (index)}
+				<option value={index}>{farmer.name}</option>
+			{/each}
 		</select>
 	</label>
 {/if}
@@ -106,11 +106,14 @@
 						}}
 					>
 						<span class="slot-number" aria-hidden="true">{item.slot + 1}</span>
-						{#if !item.empty}<BackpackItemVisual raw={item.raw} />{/if}
-						{#if item.stack !== undefined && item.stack > 1}<span
-								class="quantity"
-								aria-hidden="true">{item.stack}</span
-							>{/if}
+						{#if !item.empty}
+							<BackpackItemVisual raw={item.raw} />
+						{/if}
+						{#if item.stack !== undefined && item.stack > 1}
+							<span class="quantity" aria-hidden="true">
+								{item.stack}
+							</span>
+						{/if}
 					</button>
 				{/each}
 			</div>
@@ -126,11 +129,13 @@
 						{...details}
 					/>
 				{/key}
-			{:else}<p role="status">
+			{:else}
+				<p role="status">
 					{selected?.empty
 						? "This slot is empty."
 						: "The selected item is no longer in this backpack. Select another slot."}
-				</p>{/if}
+				</p>
+			{/if}
 		</div>
 	</div>
 {/if}

@@ -159,9 +159,11 @@
 		<div hidden={tab !== "calendar"}>
 			<CalendarPanel {model} draft={dateDraft} />
 		</div>
-		{#if includeProofs}<div hidden={tab !== "bundles"}>
+		{#if includeProofs}
+			<div hidden={tab !== "bundles"}>
 				<BundlePanel {model} />
-			</div>{/if}
+			</div>
+		{/if}
 		<div hidden={tab !== "review"}><ReviewPanel {model} {includeProofs} /></div>
 	</EditorShell>
 </div>

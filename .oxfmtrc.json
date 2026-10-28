@@ -14,7 +14,10 @@
 	],
 	"overrides": [
 		{
-			"files": ["experiments/v2/ui/**/*.svelte"],
+			"files": [
+				"experiments/v2/ui/**/*.svelte",
+				"src/lib/editor/ui/**/*.svelte"
+			],
 			"options": {
 				"htmlWhitespaceSensitivity": "ignore"
 			}

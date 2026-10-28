@@ -134,18 +134,22 @@
 			<p class="slot-label">Slot {item.slot + 1}</p>
 		</div>
 	</header>
-	{#if description}<p class="description">{description}</p>{/if}
+	{#if description}
+		<p class="description">{description}</p>
+	{/if}
 	<div class="properties">
 		{#if canStack}
-			<label
-				>Quantity
+			<label>
+				Quantity
 				<input
 					type="number"
 					step="1"
 					bind:value={readQuantity, writeQuantity}
 				/>
 			</label>
-		{:else if item.stack !== undefined}<p>Quantity: {item.stack}</p>{/if}
+		{:else if item.stack !== undefined}
+			<p>Quantity: {item.stack}</p>
+		{/if}
 		{#if canQuality}
 			<!-- Binding the group preserves native focus and arrow-key selection while
 			     each valid choice enters the same serialized command queue. -->
@@ -188,12 +192,16 @@
 					{/each}
 				</div>
 			</fieldset>
-		{:else if item.quality !== undefined}<p>Quality: {item.quality}</p>{/if}
+		{:else if item.quality !== undefined}
+			<p>Quality: {item.quality}</p>
+		{/if}
 	</div>
-	{#if !canStack && !canQuality}<p>
-			This item’s properties are preserved but cannot be edited here.
-		</p>{/if}
-	{#if error || guidance}<p role="status">{error || guidance}</p>{/if}
+	{#if !canStack && !canQuality}
+		<p>This item’s properties are preserved but cannot be edited here.</p>
+	{/if}
+	{#if error || guidance}
+		<p role="status">{error || guidance}</p>
+	{/if}
 </section>
 
 <style>

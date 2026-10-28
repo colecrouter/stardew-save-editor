@@ -1,3 +1,8 @@
+<script lang="ts">
+	// Keep this presentation-only component typed for consumers outside the app's
+	// Svelte workspace as well as the production route.
+</script>
+
 <!-- A missing picture must remain visibly different from an empty slot. This
      decorative fallback never implies that the saved item can be repaired. -->
 <svg

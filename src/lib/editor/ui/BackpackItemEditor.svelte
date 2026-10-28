@@ -19,6 +19,7 @@
 		farmerId: string;
 		item: BackpackSlotView | EquipmentSlotView;
 		locationLabel?: string;
+		inventoryKind?: "backpack" | "chest";
 		name: string;
 		description?: string;
 		metadata?: Pick<ItemInformation, "_type">;
@@ -39,9 +40,12 @@
 		canStack,
 		canQuality,
 		locationLabel,
+		inventoryKind = "backpack",
 		onremove,
 		removing = false,
 	}: Props = $props();
+	// A location caption is display context, never evidence that an item is equipped.
+	const equipmentItem = $derived("key" in item);
 	let error = $state("");
 	const qualityGroup = $props.id();
 	type Property = "stack" | "quality";
@@ -146,9 +150,11 @@
 </script>
 
 <section
-	aria-label={locationLabel
+	aria-label={equipmentItem
 		? "Selected equipment item"
-		: "Selected backpack item"}
+		: inventoryKind === "chest"
+			? "Selected chest item"
+			: "Selected backpack item"}
 	class="inspector"
 >
 	<header>
@@ -164,8 +170,8 @@
 		<p class="description">{description}</p>
 	{/if}
 	<!-- Equipment is inspected in its named slot. Its saved stack/quality defaults
-	     are not editing controls; quantity and quality belong to supported backpack items. -->
-	{#if !locationLabel && (canStack || canQuality || itemFields.length === 0)}
+	     are not editing controls; quantity and quality belong to supported inventory items. -->
+	{#if !equipmentItem && (canStack || canQuality || itemFields.length === 0)}
 		<div class="properties">
 			{#if canStack}
 				<label>
@@ -227,7 +233,7 @@
 		</div>
 	{/if}
 	<!-- Saved item properties apply to the instance regardless of whether it is
-	     currently in a backpack or equipped on the farmer. -->
+	     currently in a backpack, chest or equipped on the farmer. -->
 	<ItemPropertyControls
 		{model}
 		{farmerId}
@@ -235,7 +241,7 @@
 		fields={itemFields}
 	/>
 
-	{#if !locationLabel && !canStack && !canQuality && itemFields.length === 0}
+	{#if !equipmentItem && !canStack && !canQuality && itemFields.length === 0}
 		<p>
 			Quantity and quality are preserved but cannot be edited for this item.
 		</p>

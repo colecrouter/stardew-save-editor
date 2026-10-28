@@ -1,4 +1,9 @@
 import {
+	resolveInventoryContainer,
+	inventoryContainers,
+} from "./inventory-containers.ts";
+import { discoverPlacedChests } from "./chest-storage.ts";
+import {
 	decodeItemPropertyChange,
 	getItemPropertyFields,
 	itemColorPatch,
@@ -41,10 +46,15 @@ export interface BackpackSlotView {
 	canQuality: boolean;
 	raw?: Record<string, unknown>;
 }
-/** Unsupported or ambiguous backpacks remain visible without editable handles. */
+/** Farmer backpacks and placed chests share slots; unsupported owners remain visible without handles. */
 export interface BackpackView {
+	/** Opaque session owner key: a scalar farmer ID or a namespaced placed-chest path. */
 	farmerId: string;
 	name: string;
+	/** Chest IDs share the request owner namespace; they never denote a farmer. */
+	kind?: "chest";
+	location?: string;
+	capacity?: number;
 	supported: boolean;
 	reason?: string;
 	slots: BackpackSlotView[];
@@ -155,6 +165,9 @@ export function readBackpacks(
 	},
 ): BackpackView[] {
 	const all = backpackFarmers(state.document);
+	const containers = new Map(
+		inventoryContainers(state.document).map((owner) => [owner.id, owner]),
+	);
 	return all.map((farmer) => {
 		const farmerId = hasBackpackFarmerId(farmer)
 			? String(farmer.UniqueMultiplayerID)
@@ -171,7 +184,10 @@ export function readBackpacks(
 			? state.identities[farmerId]
 			: undefined;
 		const supported =
-			unique && Array.isArray(items) && ids?.length === items.length;
+			unique &&
+			containers.get(farmerId)?.kind === "farmer" &&
+			Array.isArray(items) &&
+			ids?.length === items.length;
 		return {
 			farmerId,
 			itemContext: readItemPropertyContext(state.document, farmer),
@@ -245,6 +261,68 @@ export function readBackpacks(
 	});
 }
 
+/** Project placed world storage separately so farmer navigation retains its existing meaning. */
+export function readChests(
+	state: Pick<HistoryState, "document" | "identities">,
+): BackpackView[] {
+	const containers = new Map(
+		inventoryContainers(state.document).map((owner) => [owner.id, owner]),
+	);
+	return discoverPlacedChests(state.document).map((chest) => {
+		const owner = containers.get(chest.id);
+		const ids = Object.hasOwn(state.identities, chest.id)
+			? state.identities[chest.id]
+			: undefined;
+		const supported =
+			chest.supported &&
+			owner?.kind === "chest" &&
+			ids?.length === chest.slots.length;
+		return {
+			farmerId: chest.id,
+			name: chest.label,
+			kind: "chest",
+			location: chest.location,
+			capacity: chest.capacity,
+			supported,
+			equipment: [],
+			...(!supported
+				? {
+						reason:
+							chest.reason ?? "This chest's inventory identity is ambiguous.",
+					}
+				: {}),
+			slots:
+				supported && ids
+					? chest.slots.map((item, slot) => {
+							const raw = record(item) ? structuredClone(item) : undefined;
+							const empty = emptySlot(item),
+								canEdit = editable(item);
+							return {
+								entityId: ids[slot] ?? "",
+								slot,
+								empty,
+								name: empty
+									? "Empty slot"
+									: typeof raw?.name === "string"
+										? raw.name
+										: "Unknown item",
+								itemId:
+									typeof raw?.itemId === "string" ||
+									typeof raw?.itemId === "number"
+										? String(raw.itemId)
+										: "",
+								canStack: canEdit && numeric(raw?.stack),
+								canQuality: canEdit && numeric(raw?.quality),
+								...(raw ? { raw } : {}),
+								...(numeric(raw?.stack) ? { stack: raw.stack } : {}),
+								...(numeric(raw?.quality) ? { quality: raw.quality } : {}),
+							};
+						})
+					: [],
+		};
+	});
+}
+
 /** History-owned bounded capability: validates and stages only existing item fields. */
 export class BackpackItemEdits extends Context.Service<
 	BackpackItemEdits,
@@ -300,21 +378,29 @@ export const setInventoryItemProperty = Effect.fn("Inventory.setProperty")(
 
 /** Inventory authority includes opaque farmer entries and complete item records. */
 export function backpackInventorySnapshot(document: SaveDocument) {
-	return farmers(document).map((farmer) =>
-		record(farmer)
-			? {
-					id: farmer.UniqueMultiplayerID,
-					items: farmer.items,
-					// Field presence matters too: a raw draft cannot eagerly add empty
-					// equipment to a save whose corresponding field was absent.
-					equipment: Object.fromEntries(
-						equipmentSlots
-							.filter((key) => Object.hasOwn(farmer, key))
-							.map((key) => [key, farmer[key]]),
-					),
-				}
-			: farmer,
-	);
+	return [
+		...farmers(document).map((farmer) =>
+			record(farmer)
+				? {
+						id: farmer.UniqueMultiplayerID,
+						items: farmer.items,
+						// Field presence matters too: a raw draft cannot eagerly add empty
+						// equipment to a save whose corresponding field was absent.
+						equipment: Object.fromEntries(
+							equipmentSlots
+								.filter((key) => Object.hasOwn(farmer, key))
+								.map((key) => [key, farmer[key]]),
+						),
+					}
+				: farmer,
+		),
+		...discoverPlacedChests(document).map((chest) => ({
+			chest: chest.id,
+			location: chest.location,
+			label: chest.label,
+			raw: chest.raw,
+		})),
+	];
 }
 
 /** Create per-attempt authorization; history compares its replay with final drafts. */
@@ -333,22 +419,15 @@ export function makeBackpackItemEdits(
 		patch: Record<string, unknown>;
 	}[] = [];
 	const contexts = new Map<string, string>();
-	const ownerIn = (document: SaveDocument, id: string) => {
-		const matches = backpackFarmers(document).filter(
-			(farmer) =>
-				hasBackpackFarmerId(farmer) &&
-				String(farmer.UniqueMultiplayerID) === id,
-		);
-		return matches.length === 1 ? matches[0] : undefined;
-	};
+	const ownerIn = resolveInventoryContainer;
 	const replay = (document: SaveDocument) => {
 		const expected = structuredClone(document);
 		for (const write of writes) {
 			const farmer = ownerIn(expected, write.farmerId);
 			const item =
 				typeof write.location === "number"
-					? farmer?.items.Item[write.location]
-					: farmer?.[write.location];
+					? farmer?.slots[write.location]
+					: farmer?.farmer?.[write.location];
 			if (record(item)) Object.assign(item, structuredClone(write.patch));
 		}
 		return expected;
@@ -359,8 +438,9 @@ export function makeBackpackItemEdits(
 		for (const [farmerId, context] of contexts) {
 			const farmer = ownerIn(document, farmerId);
 			if (
-				!farmer ||
-				JSON.stringify(readItemPropertyContext(document, farmer)) !== context
+				!farmer?.farmer ||
+				JSON.stringify(readItemPropertyContext(document, farmer.farmer)) !==
+					context
 			)
 				return false;
 		}
@@ -386,8 +466,7 @@ export function makeBackpackItemEdits(
 		const ids = Object.hasOwn(identities, farmerId)
 			? identities[farmerId]
 			: undefined;
-		const items =
-			farmer && record(farmer.items) ? farmer.items.Item : undefined;
+		const items = farmer?.slots;
 		if (!farmer || !ids || !Array.isArray(items) || ids.length !== items.length)
 			return yield* new ItemPropertyInvalid({
 				message: "This item is no longer editable in this inventory.",
@@ -405,7 +484,7 @@ export function makeBackpackItemEdits(
 				? undefined
 				: typeof location === "number"
 					? items[location]
-					: farmer[location];
+					: farmer.farmer?.[location];
 		if (location === undefined || !record(item) || emptySlot(item))
 			return yield* new ItemPropertyInvalid({
 				message: "This item is no longer editable in this inventory.",
@@ -523,7 +602,9 @@ export function makeBackpackItemEdits(
 			const resolved = yield* target(change.farmerId, change.entityId);
 			const { item, farmer, snapshot } = resolved;
 			const { info } = yield* metadataFor(item);
-			const context = readItemPropertyContext(snapshot.state.document, farmer);
+			const context = farmer.farmer
+				? readItemPropertyContext(snapshot.state.document, farmer.farmer)
+				: undefined;
 			const field = getItemPropertyFields(item, info, context).find(
 				(field) => field.property === change.property,
 			);
@@ -535,8 +616,8 @@ export function makeBackpackItemEdits(
 			if (Schema.is(TrinketPropertyChangeSchema)(change)) {
 				const originalOwner = authority && ownerIn(authority, change.farmerId);
 				const originalContext =
-					authority && originalOwner
-						? readItemPropertyContext(authority, originalOwner)
+					authority && originalOwner?.farmer
+						? readItemPropertyContext(authority, originalOwner.farmer)
 						: undefined;
 				if (
 					!context ||

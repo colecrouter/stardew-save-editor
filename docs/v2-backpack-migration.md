@@ -4,7 +4,8 @@ The `/v2` Inventory section shows the selected farmer’s equipment and backpack
 together. Selecting a saved item opens its inspector; selecting an empty backpack
 slot opens the catalog. Dragging moves or swaps complete items, and all edits share
 the application’s review, Undo/Redo and export boundary. Stacking/merging, backpack
-resizing and chest contents remain outside this slice.
+resizing remain outside this slice. Placed chest contents use the same interaction
+and command boundaries, as described below.
 
 Valid quantity input commits immediately, using the existing editor range
 1–9999; neither blur nor Enter is required. Clearing the number permits replacement
@@ -17,6 +18,35 @@ ordinary Object records with an explicit false bigCraftable flag and existing
 numeric fields are editable. Quality retains the legacy category policy. Opaque
 records, tools, unsupported types and unusual imported values remain preserved;
 viewing does not normalize them or initialize missing fields.
+
+## Placed chest inventories
+
+Inventory keeps the selected farmer's equipment and backpack visible beside a
+selected placed chest. Search and location labels help distinguish containers;
+selecting a chest item opens the shared inspector, and an empty slot opens the
+same catalog. Dragging exchanges complete items directly between the visible
+inventories, with equipment compatibility enforced at the command boundary.
+Every successful edit is immediate and independently undoable.
+
+Discovery reads placed chest objects in save locations and building interiors
+without constructing legacy proxies. Fridges, machine-held storage, building
+output containers, and shared Junimo/global inventories are outside this slice.
+Chest creation, type changes, resizing, sorting, and stack splitting/merging are
+separate work. Unsupported imported containers stay preserved.
+
+Backpacks retain their actual serialized slot arrays. Chests instead expose their
+capacity through session-only empty slots over a compact saved list. Viewing one
+never pads or initializes that list. Structural edits compact the changed chest
+while moving item identities with their records; selection follows the instance
+rather than its old displayed position. Undo restores the exact previous save
+representation and identities. Property-only edits retain the original list shape.
+An empty backpack marker carrying opaque fields cannot move into a compact chest;
+that exchange rejects atomically rather than discarding the marker's mod data.
+
+The existing request field named `farmerId` carries an opaque inventory-owner
+handle at this boundary; a chest handle identifies a discovered container rather
+than a farmer. Chest contents have no owning farmer context, so owner-dependent
+trinket stat controls remain read-only until the item is in a farmer inventory.
 
 ## Item properties
 

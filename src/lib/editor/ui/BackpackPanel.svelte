@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { tick } from "svelte";
+	import { onDestroy, tick } from "svelte";
 	import { Result } from "effect";
 	import { useAtomValue } from "effect-atom-svelte";
 	import {
@@ -30,6 +30,21 @@
 	let farmerIndex = $state(0);
 	const backpacks = $derived(view.current?.backpacks ?? []);
 	const backpack = $derived(backpacks[farmerIndex]);
+	const chests = $derived(view.current?.chests ?? []);
+	const owners = $derived([...backpacks, ...chests]);
+	let chestQuery = $state("");
+	let chestId = $state<string>();
+	const matchingChests = $derived(
+		chests.filter((owner) =>
+			`${owner.name} ${owner.location ?? ""}`
+				.toLocaleLowerCase()
+				.includes(chestQuery.trim().toLocaleLowerCase()),
+		),
+	);
+	const chest = $derived(
+		matchingChests.find((owner) => owner.farmerId === chestId) ??
+			matchingChests[0],
+	);
 	type InventorySlot = BackpackSlotView | EquipmentSlotView;
 	let selectedEntity = $state<string>();
 	let selectionFamily = $state<string[]>([]);
@@ -53,6 +68,58 @@
 				dragging: boolean;
 		  }
 		| undefined;
+	let dragScrollFrame: number | undefined;
+	let pointerPosition: { clientX: number; clientY: number } | undefined;
+	function stopDragScroll() {
+		if (dragScrollFrame !== undefined) cancelAnimationFrame(dragScrollFrame);
+		dragScrollFrame = undefined;
+		pointerPosition = undefined;
+	}
+	onDestroy(stopDragScroll);
+	function startDragScroll() {
+		if (dragScrollFrame !== undefined) return;
+		const scroll = () => {
+			if (!pointerGesture?.dragging || !pointerPosition) {
+				stopDragScroll();
+				return;
+			}
+			// A phone can place the two grids several screens apart. Keeping a held
+			// finger near an edge scrolls toward the destination without a Move mode.
+			const edge = 72;
+			const y = pointerPosition.clientY;
+			const delta =
+				y < edge
+					? -Math.ceil((edge - y) / 5)
+					: y > window.innerHeight - edge
+						? Math.ceil((y - window.innerHeight + edge) / 5)
+						: 0;
+			if (delta) {
+				// Desktop/tablet frames may own their scroll; phones scroll the document.
+				// Give the nearest scrollable ancestor first chance, then the page.
+				let container: HTMLElement | null | undefined = inventory;
+				let scrolled = false;
+				while (container && container !== document.body) {
+					if (/(auto|scroll)/.test(getComputedStyle(container).overflowY)) {
+						const before = container.scrollTop;
+						container.scrollTop += delta;
+						if (container.scrollTop !== before) {
+							scrolled = true;
+							break;
+						}
+					}
+					container = container.parentElement;
+				}
+				if (!scrolled) window.scrollBy(0, delta);
+				// Capture still delivers events to the source: refresh the destination
+				// under the stationary finger as the content moves underneath it.
+				const target = pointerTarget(pointerPosition);
+				dropEntity =
+					target && acceptsDrop(target) ? target.entityId : undefined;
+			}
+			dragScrollFrame = requestAnimationFrame(scroll);
+		};
+		dragScrollFrame = requestAnimationFrame(scroll);
+	}
 	let ignorePointerClick = false;
 	let dropEntity = $state<string>();
 	const dragToken = $props.id();
@@ -87,18 +154,46 @@
 		selectionFamily = entityId ? [entityId] : [];
 		operationError = "";
 	}
+	// Selection belongs to an item instance, not whichever grid happens to be open.
+	// Both visible inventories share this lookup, including replacement Undo lineage.
+	const selectedOwner = $derived(
+		selectedEntity === undefined
+			? backpack?.supported
+				? backpack
+				: chest
+			: owners.find((owner) =>
+					allSlots(owner).some(
+						(item) =>
+							item.entityId === selectedEntity ||
+							selectionFamily.includes(item.entityId),
+					),
+				),
+	);
 	const selected = $derived(
-		!backpack
+		!selectedOwner
 			? undefined
 			: selectedEntity === undefined
-				? (allSlots(backpack).find((item) => !item.empty) ?? backpack.slots[0])
-				: (allSlots(backpack).find(
+				? (allSlots(selectedOwner).find((item) => !item.empty) ??
+					selectedOwner.slots[0])
+				: (allSlots(selectedOwner).find(
 						(item) => item.entityId === selectedEntity,
 					) ??
-					allSlots(backpack).find((item) =>
+					allSlots(selectedOwner).find((item) =>
 						selectionFamily.includes(item.entityId),
 					)),
 	);
+	function ownerOf(item: InventorySlot) {
+		return owners.find((owner) =>
+			allSlots(owner).some((entry) => entry.entityId === item.entityId),
+		);
+	}
+	function selectChest(owner: BackpackView | undefined) {
+		chestId = owner?.farmerId;
+		choose(
+			owner?.slots.find((item) => !item.empty)?.entityId ??
+				owner?.slots[0]?.entityId,
+		);
+	}
 	const browsing = $derived(selected?.empty && !isEquipment(selected));
 	$effect(() => {
 		// Pin the initial instance too; later reorders must not retarget an implicit
@@ -109,19 +204,20 @@
 		}
 	});
 	$effect(() => {
-		// Handles travel between equipment, backpacks and owners. Undo/Redo follows
-		// the selected instance, while explicit farmer selection starts a new lineage.
-		if (!dragSource && selectedEntity) {
-			const owner = backpacks.findIndex(
-				(owner) =>
-					owner.supported &&
-					allSlots(owner).some(
-						(item) =>
-							item.entityId === selectedEntity ||
-							selectionFamily.includes(item.entityId),
-					),
+		// Transfers and Undo reveal the current owner while preserving the other grid.
+		// Explicit owner/search changes start a new selection and cannot be undone here.
+		if (!dragSource && selectedOwner && selectedEntity) {
+			const farmer = backpacks.findIndex(
+				(owner) => owner.farmerId === selectedOwner.farmerId,
 			);
-			if (owner >= 0 && owner !== farmerIndex) farmerIndex = owner;
+			if (farmer >= 0 && farmer !== farmerIndex) farmerIndex = farmer;
+			if (
+				selectedOwner.kind === "chest" &&
+				chest?.farmerId !== selectedOwner.farmerId
+			) {
+				chestQuery = "";
+				chestId = selectedOwner.farmerId;
+			}
 		}
 	});
 	async function focusSelected(version = selectionVersion) {
@@ -158,11 +254,12 @@
 		};
 	}
 	function slotLabel(item: InventorySlot) {
-		return `${isEquipment(item) ? item.label : `Slot ${item.slot + 1}`}: ${item.empty ? "Empty" : display(item).name}`;
+		return `${isEquipment(item) ? item.label : `${ownerOf(item)?.kind === "chest" ? "Chest slot" : "Slot"} ${item.slot + 1}`}: ${item.empty ? "Empty" : display(item).name}`;
 	}
 	function startDrag(event: DragEvent, item: InventorySlot) {
+		const owner = ownerOf(item);
 		if (
-			!backpack ||
+			!owner ||
 			item.empty ||
 			moving ||
 			pointerGesture ||
@@ -173,7 +270,7 @@
 		}
 		if (selectedEntity !== item.entityId) choose(item.entityId);
 		dragSource = {
-			farmerId: backpack.farmerId,
+			farmerId: owner.farmerId,
 			entityId: item.entityId,
 			location: isEquipment(item) ? item.key : "backpack",
 		};
@@ -183,7 +280,7 @@
 		event.dataTransfer.effectAllowed = "move";
 	}
 	function acceptsDrop(item: InventorySlot) {
-		const owner = backpacks.find(
+		const owner = owners.find(
 			(owner) => owner.farmerId === dragSource?.farmerId,
 		);
 		const source =
@@ -220,9 +317,10 @@
 		void moveItem(item, source);
 	}
 	function pointerDown(event: PointerEvent, item: InventorySlot) {
+		const owner = ownerOf(item);
 		ignorePointerClick = false;
 		if (
-			!backpack ||
+			!owner ||
 			item.empty ||
 			moving ||
 			pointerGesture ||
@@ -237,22 +335,21 @@
 			y: event.clientY,
 			dragging: false,
 			source: {
-				farmerId: backpack.farmerId,
+				farmerId: owner.farmerId,
 				entityId: item.entityId,
 				location: isEquipment(item) ? item.key : "backpack",
 			},
 		};
 		(event.currentTarget as HTMLElement).setPointerCapture?.(event.pointerId);
 	}
-	function pointerTarget(event: PointerEvent) {
+	function pointerTarget(event: { clientX: number; clientY: number }) {
 		const control = document
 			.elementFromPoint(event.clientX, event.clientY)
 			?.closest<HTMLElement>("[data-inventory-entity]");
-		if (!control || !inventory?.contains(control) || !backpack)
-			return undefined;
-		return allSlots(backpack).find(
-			(item) => item.entityId === control.dataset.inventoryEntity,
-		);
+		if (!control || !inventory?.contains(control)) return undefined;
+		return [backpack, chest]
+			.flatMap((owner) => (owner ? allSlots(owner) : []))
+			.find((item) => item.entityId === control.dataset.inventoryEntity);
 	}
 	function pointerMove(event: PointerEvent) {
 		const gesture = pointerGesture;
@@ -269,6 +366,8 @@
 			dragSource = gesture.source;
 		}
 		event.preventDefault();
+		pointerPosition = { clientX: event.clientX, clientY: event.clientY };
+		startDragScroll();
 		const target = pointerTarget(event);
 		dropEntity = target && acceptsDrop(target) ? target.entityId : undefined;
 	}
@@ -276,6 +375,7 @@
 		const gesture = pointerGesture;
 		if (!gesture || gesture.id !== event.pointerId) return;
 		pointerGesture = undefined;
+		stopDragScroll();
 		if (!gesture.dragging) return;
 		// Hit-test the release position because pointer capture keeps delivery on
 		// the source button. Suppress its synthetic click after a completed drag.
@@ -293,13 +393,15 @@
 		if (!pointerGesture) return;
 		// Browser cancellation/scroll takeover must never publish a partial drag.
 		pointerGesture = undefined;
+		stopDragScroll();
 		dragSource = undefined;
 		dropEntity = undefined;
 	}
 	async function moveItem(item: InventorySlot, source: DragSource) {
-		if (!backpack || moving) return;
+		const destination = ownerOf(item);
+		if (!destination || moving) return;
 		const version = selectionVersion;
-		const destinationOwner = backpack.farmerId;
+		const destinationOwner = destination.farmerId;
 		moving = true;
 		operationError = "";
 		try {
@@ -336,8 +438,8 @@
 		}
 	}
 	async function changeSlot(kind: "add" | "remove", catalogId?: string) {
-		if (!backpack || !selected || isEquipment(selected)) return false;
-		const owner = backpack.farmerId;
+		if (!selectedOwner || !selected || isEquipment(selected)) return false;
+		const owner = selectedOwner.farmerId;
 		const target = selected;
 		const version = selectionVersion;
 		const invokingControl = document.activeElement;
@@ -364,7 +466,7 @@
 		}
 		// The exact committed replacement pair keeps selection stable even if a later
 		// queued Undo runs before this callback completes. Later user selection wins.
-		if (selectionVersion === version && backpack?.farmerId === owner) {
+		if (selectionVersion === version) {
 			selectionFamily = [...selectionFamily, result.success.entityId];
 			selectedEntity = result.success.entityId;
 			await tick();
@@ -460,7 +562,7 @@
 		</label>
 	{/if}
 </div>
-{#if !backpack || !backpack.supported}
+{#if (!backpack || !backpack.supported) && chests.length === 0}
 	<p role="status">
 		{backpack?.reason ?? "No supported backpack is available."} Other save settings
 		remain available.
@@ -468,40 +570,118 @@
 {:else}
 	<div class="inventory-layout" class:browsing bind:this={inventory}>
 		<div class="possessions">
-			<section aria-label={`${backpack.name}'s equipment`} class="equipment">
-				<h2>Equipment</h2>
-				<div class="equipment-slots">
-					{#each equipment as item (item.entityId)}
-						<div class="equipment-entry">
-							<span class="equipment-label">{item.label}</span>
+			{#if backpack?.supported}
+				<section aria-label={`${backpack.name}'s equipment`} class="equipment">
+					<h2>Equipment</h2>
+					<div class="equipment-slots">
+						{#each equipment as item (item.entityId)}
+							<div class="equipment-entry">
+								<span class="equipment-label">{item.label}</span>
+								{@render slot(item)}
+							</div>
+						{/each}
+					</div>
+				</section>
+				<section aria-label={`${backpack.name}'s backpack`} class="backpack">
+					<div class="backpack-heading">
+						<h2>Backpack</h2>
+						<span>{backpack.slots.length} slots</span>
+					</div>
+					<div class="slots">
+						{#each backpack.slots as item (item.entityId)}
 							{@render slot(item)}
-						</div>
-					{/each}
-				</div>
-			</section>
-			<section aria-label={`${backpack.name}'s backpack`} class="backpack">
+						{/each}
+					</div>
+				</section>
+			{:else}
+				<p role="status">
+					{backpack?.reason ?? "No supported backpack is available."} Chest inventories
+					remain available below.
+				</p>
+			{/if}
+
+			<section class="chest" aria-label="Chest inventory">
 				<div class="backpack-heading">
-					<h2>Backpack</h2>
-					<span>{backpack.slots.length} slots</span>
+					<h2>Chests</h2>
+					{#if chest}
+						<span>{chest.slots.length} slots</span>
+					{/if}
 				</div>
-				<div class="slots">
-					{#each backpack.slots as item (item.entityId)}
-						{@render slot(item)}
-					{/each}
-				</div>
+				{#if chests.length}
+					<div class="chest-controls">
+						<label>
+							Find a chest
+							<input
+								type="search"
+								placeholder="Name or location"
+								bind:value={
+									() => chestQuery,
+									(value) => {
+										chestQuery = value;
+										chestId = undefined;
+										choose(undefined);
+									}
+								}
+							/>
+						</label>
+						{#if matchingChests.length}
+							<label>
+								Chest
+								<select
+									bind:value={
+										() => chest?.farmerId,
+										(value) =>
+											selectChest(
+												chests.find((owner) => owner.farmerId === value),
+											)
+									}
+								>
+									{#each matchingChests as owner (owner.farmerId)}
+										<option value={owner.farmerId}>{owner.name}</option>
+									{/each}
+								</select>
+							</label>
+						{/if}
+					</div>
+					{#if chest}
+						<p class="chest-location">{chest.location}</p>
+						{#if chest.supported}
+							<div class="slots" aria-label={chest.name}>
+								{#each chest.slots as item (item.entityId)}
+									{@render slot(item)}
+								{/each}
+							</div>
+						{:else}
+							<p role="status">{chest.reason}</p>
+						{/if}
+					{:else}
+						<p role="status">No chests match. Try another name or location.</p>
+					{/if}
+				{:else}
+					<p class="chest-location">
+						No placed chests were found in this save.
+					</p>
+				{/if}
 			</section>
 		</div>
 		<div class="inspector" class:browsing>
-			{#if selected && !selected.empty}
+			{#if selectedOwner && selected && !selected.empty}
 				{@const details = display(selected)}
-				{#key JSON.stringify([backpack.farmerId, selected.entityId])}
+				{#key JSON.stringify([selectedOwner?.farmerId, selected.entityId])}
 					<BackpackItemEditor
 						{model}
-						farmerId={backpack.farmerId}
+						farmerId={selectedOwner.farmerId}
+						inventoryKind={selectedOwner.kind === "chest"
+							? "chest"
+							: "backpack"}
 						item={selected}
 						{...details}
-						propertyContext={backpack.itemContext}
-						locationLabel={isEquipment(selected) ? selected.label : undefined}
+						propertyContext={selectedOwner?.itemContext}
+						locationLabel={isEquipment(selected)
+							? selected.label
+							: selectedOwner?.kind === "chest"
+								? `${selectedOwner.name} · Slot ${selected.slot + 1}`
+								: undefined}
 						onremove={isEquipment(selected) ? undefined : removeSelected}
 						{removing}
 					/>
@@ -518,6 +698,7 @@
 			{:else if selected?.empty}
 				<BackpackItemPicker
 					slot={selected.slot}
+					inventoryKind={selectedOwner?.kind === "chest" ? "chest" : "backpack"}
 					entries={catalogEntries}
 					error={operationError}
 					onadd={(id) => changeSlot("add", id)}
@@ -554,7 +735,8 @@
 		align-items: center;
 		gap: 10px;
 	}
-	select {
+	select,
+	input[type="search"] {
 		font: inherit;
 		min-height: 40px;
 		max-width: 220px;
@@ -562,6 +744,37 @@
 		background: #fff2d3;
 		border: 2px solid #b98b52;
 		padding: 4px 8px;
+	}
+	.chest {
+		margin-top: 28px;
+		padding-top: 24px;
+		border-top: 1px solid #be8d4d;
+	}
+	.chest-controls {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr);
+		gap: 12px;
+	}
+	.chest-controls label {
+		display: grid;
+		gap: 6px;
+		min-width: 0;
+		font-size: 17px;
+	}
+	.chest-controls select,
+	.chest-controls input {
+		width: 100%;
+		max-width: none;
+		min-width: 0;
+	}
+	.chest-location {
+		color: #694621;
+		font-size: 17px;
+		margin: 12px 0;
+	}
+	.chest-controls :is(input, select):focus-visible {
+		outline: 2px solid #311304;
+		outline-offset: 2px;
 	}
 	.inventory-layout {
 		display: grid;
@@ -708,6 +921,9 @@
 		}
 	}
 	@media (max-width: 600px) {
+		.chest-controls {
+			grid-template-columns: minmax(0, 1fr);
+		}
 		.inventory-heading {
 			margin-bottom: 16px;
 			align-items: center;

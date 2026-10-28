@@ -1,3 +1,4 @@
+import { resolveInventoryContainer } from "./inventory-containers.ts";
 import {
 	applyEquipmentSwap,
 	type InventoryLocation,
@@ -43,6 +44,8 @@ export interface Farmer extends Partial<Record<EquipmentSlot, unknown>> {
 export interface SaveDocument {
 	SaveGame: {
 		player: Farmer;
+		// World storage is traversed conservatively without asserting a complete game schema.
+		locations?: unknown;
 		// Trinket seed interpretation follows the save's selected game RNG algorithm.
 		// Keep raw context unknown until validated; inspection must not normalize it.
 		useLegacyRandom?: unknown;
@@ -132,12 +135,6 @@ export const emptySlot = (item: unknown) =>
 		"@_xsi:nil" in item &&
 		String(item["@_xsi:nil"]) === "true");
 
-function slotIn(farmer: Farmer, slot: number) {
-	if (!Number.isInteger(slot) || slot < 0 || slot >= farmer.items.Item.length)
-		throw new MutationError("Slot is outside the backpack");
-	return farmer.items.Item[slot];
-}
-
 export function apply(
 	document: SaveDocument,
 	mutation: Mutation,
@@ -168,6 +165,73 @@ export function apply(
 		for (const farmer of farmers(document)) farmer.farmName = mutation.value;
 		return { label: `Rename farm to ${mutation.value}`, review: "standalone" };
 	}
+	// Numbered slots share one owner boundary. Chest adapters compact their own
+	// serialization only after an explicit structural action, never during reads.
+	if (
+		mutation.type === "item-place" ||
+		mutation.type === "item-remove" ||
+		mutation.type === "item-move" ||
+		mutation.type === "item-swap"
+	) {
+		const owner = resolveInventoryContainer(document, mutation.farmerId);
+		if (!owner)
+			throw new MutationError("Inventory owner must resolve exactly once");
+		const slots = owner.slots;
+		const check = (index: number, values: unknown[]) => {
+			if (!Number.isInteger(index) || index < 0 || index >= values.length)
+				throw new MutationError("Slot is outside the inventory");
+		};
+		check(mutation.slot, slots);
+		const item = slots[mutation.slot];
+		if (mutation.type === "item-place") {
+			if (!emptySlot(item))
+				throw new MutationError("Destination slot is occupied");
+			if (
+				!mutation.item ||
+				typeof mutation.item !== "object" ||
+				Array.isArray(mutation.item) ||
+				emptySlot(mutation.item)
+			)
+				throw new MutationError("An item must be a nonempty save record");
+			slots[mutation.slot] = structuredClone(mutation.item);
+			owner.write(slots);
+			return {
+				label: `Add item to ${owner.name} (slot ${mutation.slot + 1})`,
+				review: "standalone",
+			};
+		}
+		if (emptySlot(item)) throw new MutationError("Source slot is empty");
+		if (mutation.type === "item-remove") {
+			slots[mutation.slot] = { "@_xsi:nil": "true" };
+			owner.write(slots);
+			return {
+				label: `Remove item from ${owner.name} (slot ${mutation.slot + 1})`,
+				review: "standalone",
+			};
+		}
+		const target = resolveInventoryContainer(document, mutation.toFarmerId);
+		if (!target)
+			throw new MutationError(
+				"Destination inventory owner must resolve exactly once",
+			);
+		if (owner.id === target.id && mutation.slot === mutation.toSlot)
+			return { label: "Move item", review: "compact" };
+		const targetSlots = owner.id === target.id ? slots : target.slots;
+		check(mutation.toSlot, targetSlots);
+		const destination = targetSlots[mutation.toSlot];
+		if (mutation.type === "item-move" && !emptySlot(destination))
+			throw new MutationError("Destination slot is occupied");
+		// Empty chest targets are virtual nils. Their XML is never padded to capacity;
+		// each adapter serializes only its own storage representation after both writes.
+		slots[mutation.slot] = destination;
+		targetSlots[mutation.toSlot] = item;
+		owner.write(slots);
+		if (owner.id !== target.id) target.write(targetSlots);
+		return {
+			label: `${emptySlot(destination) ? "Move" : "Swap"} item from ${owner.name} (slot ${mutation.slot + 1}) to ${target.name} (slot ${mutation.toSlot + 1})`,
+			review: owner.id === target.id ? "compact" : "standalone",
+		};
+	}
 	// Opaque farmer records and identifiers are preserved but cannot acquire
 	// ownership by coercion, including objects with non-callable toString fields.
 	const matches = farmers(document).filter((farmer) => {
@@ -182,73 +246,6 @@ export function apply(
 	const farmer = matches[0];
 	if (!farmer || matches.length !== 1)
 		throw new MutationError("Farmer ID must resolve exactly once");
-	if (mutation.type === "item-place") {
-		if (!emptySlot(slotIn(farmer, mutation.slot)))
-			throw new MutationError("Destination slot is occupied");
-		if (
-			!mutation.item ||
-			typeof mutation.item !== "object" ||
-			Array.isArray(mutation.item) ||
-			emptySlot(mutation.item)
-		)
-			throw new MutationError("An item must be a nonempty save record");
-		farmer.items.Item[mutation.slot] = structuredClone(mutation.item);
-		return {
-			label: `Add ${typeof (mutation.item as Record<string, unknown>).name === "string" ? (mutation.item as Record<string, unknown>).name : "item"} to ${farmer.name}’s backpack (slot ${mutation.slot + 1})`,
-			review: "standalone",
-		};
-	}
-	if (
-		mutation.type === "item-remove" ||
-		mutation.type === "item-move" ||
-		mutation.type === "item-swap"
-	) {
-		const item = slotIn(farmer, mutation.slot);
-		if (emptySlot(item)) throw new MutationError("Source slot is empty");
-		if (mutation.type === "item-remove") {
-			farmer.items.Item[mutation.slot] = { "@_xsi:nil": "true" };
-			return {
-				label: `Remove ${item && typeof item === "object" && "name" in item && typeof item.name === "string" ? item.name : "item"} from ${farmer.name}’s backpack (slot ${mutation.slot + 1})`,
-				review: "standalone",
-			};
-		}
-		const targets = farmers(document).filter((entry) => {
-			// The destination follows the same scalar-ID rule as the source; unrelated
-			// opaque farmers must not throw during an otherwise valid transfer.
-			if (!entry || typeof entry !== "object") return false;
-			const id = entry.UniqueMultiplayerID;
-			return (
-				(typeof id === "string" ||
-					(typeof id === "number" && Number.isFinite(id))) &&
-				String(id) === mutation.toFarmerId
-			);
-		});
-		const target = targets[0];
-		if (!target || targets.length !== 1)
-			throw new MutationError(
-				"Destination farmer ID must resolve exactly once",
-			);
-		if (target === farmer && mutation.toSlot === mutation.slot)
-			return { label: "Move item", review: "compact" };
-		const destination = slotIn(target, mutation.toSlot);
-		if (mutation.type === "item-move" && !emptySlot(destination))
-			throw new MutationError("Destination slot is occupied");
-		// Move/swap whole records, including any opaque metadata and the exact nil
-		// marker. The older move-only command intentionally keeps its empty-only rule.
-		farmer.items.Item[mutation.slot] = destination;
-		target.items.Item[mutation.toSlot] = item;
-		const name =
-			item &&
-			typeof item === "object" &&
-			"name" in item &&
-			typeof item.name === "string"
-				? item.name
-				: "item";
-		return {
-			label: `${emptySlot(destination) ? "Move" : "Swap"} ${name} from ${farmer.name}’s backpack (slot ${mutation.slot + 1}) to ${target.name}’s backpack (slot ${mutation.toSlot + 1})`,
-			review: target === farmer ? "compact" : "standalone",
-		};
-	}
 	if (mutation.type === "item-stack") {
 		const item = farmer.items.Item[mutation.slot];
 		if (

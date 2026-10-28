@@ -1,3 +1,7 @@
+import {
+	inventoryContainers,
+	compactChestIdentities,
+} from "./inventory-containers.ts";
 import { equipmentSlots, type EquipmentIdentities } from "./equipment.ts";
 import { resolveBackpackMove } from "./backpack-movement.ts";
 import { resolveBackpackLifecycle } from "./backpack-lifecycle.ts";
@@ -168,6 +172,11 @@ export const makeHistorySession = (
 			equipmentIdentities[id] = Object.fromEntries(
 				equipmentSlots.map((key) => [key, `item:${++nextIdentity}`]),
 			) as Record<(typeof equipmentSlots)[number], string>;
+		}
+		// Virtual empty chest slots receive handles without materializing them in XML.
+		for (const owner of inventoryContainers(baseline)) {
+			if (owner.kind === "chest")
+				identities[owner.id] = owner.slots.map(() => `item:${++nextIdentity}`);
 		}
 		const ref = yield* TxSubscriptionRef.make<History>({
 			domainState: structuredClone(initialDomainState),
@@ -402,6 +411,14 @@ export const makeHistorySession = (
 										);
 									action = { ...requested, slot };
 								}
+								// Retain pre-write slot positions so compact chest serialization and
+								// its session identities apply the same permutation after the action.
+								const storageBefore = inventoryContainers(
+									prepared.document,
+								).map((owner) => ({
+									...owner,
+									slots: structuredClone(owner.slots),
+								}));
 								const previousDomain = prepared.domainState ?? {};
 								const result = yield* operations.prepare(prepared, action);
 								prepared = {
@@ -499,6 +516,78 @@ export const makeHistorySession = (
 										);
 									source[action.slot] = to;
 									target[action.toSlot] = from;
+								}
+								if (
+									action.type === "item-place" ||
+									action.type === "item-remove" ||
+									action.type === "item-move" ||
+									action.type === "item-swap" ||
+									action.type === "equipment-swap"
+								) {
+									const source = storageBefore.find(
+										(owner) => owner.id === action.farmerId,
+									);
+									const affected = new Set<string>();
+									const selfDrop =
+										(action.type === "item-move" ||
+											action.type === "item-swap" ||
+											action.type === "equipment-swap") &&
+										action.farmerId === action.toFarmerId &&
+										action.slot === action.toSlot;
+									if (source && typeof action.slot === "number")
+										affected.add(source.id);
+									if (action.type === "item-place" && source)
+										source.slots[action.slot] = action.item;
+									else if (action.type === "item-remove" && source)
+										source.slots[action.slot] = { "@_xsi:nil": "true" };
+									else if (
+										action.type === "item-move" ||
+										action.type === "item-swap" ||
+										action.type === "equipment-swap"
+									) {
+										const destination = storageBefore.find(
+											(owner) => owner.id === action.toFarmerId,
+										);
+										// Only emptiness determines compaction. An equipment endpoint always
+										// receives a nonempty source; its prior value may be absent.
+										const sourceItem =
+											typeof action.slot === "number"
+												? source?.slots[action.slot]
+												: source?.farmer?.[action.slot];
+										const targetItem =
+											typeof action.toSlot === "number"
+												? destination?.slots[action.toSlot]
+												: destination?.farmer?.[action.toSlot];
+										if (source && typeof action.slot === "number")
+											source.slots[action.slot] = targetItem;
+										if (destination && typeof action.toSlot === "number") {
+											destination.slots[action.toSlot] = sourceItem;
+											affected.add(destination.id);
+										}
+									}
+									const after = inventoryContainers(prepared.document);
+									for (const owner of storageBefore) {
+										if (
+											owner.kind !== "chest" ||
+											!affected.has(owner.id) ||
+											selfDrop
+										)
+											continue;
+										const ids = identities[owner.id],
+											count = after.find((entry) => entry.id === owner.id)
+												?.slots.length;
+										if (!ids || count === undefined)
+											throw new MutationError(
+												"Chest changed during inventory operation",
+											);
+										identities = {
+											...identities,
+											[owner.id]: compactChestIdentities(
+												owner.slots,
+												ids,
+											).slice(0, count),
+										};
+									}
 								}
 								if (action.type === "reorder") {
 									const before = identities[action.farmerId];

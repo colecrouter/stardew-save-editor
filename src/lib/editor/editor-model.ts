@@ -1,3 +1,5 @@
+import { readQuestJournals, type QuestFarmerView } from "./quest-operations.ts";
+import { readQiOrders, type QiOrdersView } from "./qi-order-operations.ts";
 import { readEvents, type EventFarmerView } from "./event-operations.ts";
 import { readRecipes, type RecipeFarmerView } from "./recipe-operations.ts";
 import {
@@ -36,6 +38,7 @@ import {
 	Exit,
 	Fiber,
 	JsonPatch,
+	Option,
 	Result,
 	Scope,
 	Stream,
@@ -86,6 +89,8 @@ export interface EditorView {
 	characters: CharacterView[];
 	recipes: RecipeFarmerView[];
 	events: EventFarmerView[];
+	questJournals: QuestFarmerView[];
+	qiOrders: QiOrdersView;
 	appearances: AppearanceView[];
 	relationships: RelationshipFarmerView[];
 	greenRain: number;
@@ -172,6 +177,8 @@ function project(state: HistoryState, includeProofs = false): EditorView {
 		characters: readCharacters(state.document),
 		recipes: readRecipes(state.document),
 		events: readEvents(state.document),
+		questJournals: readQuestJournals(state.document),
+		qiOrders: readQiOrders(state.document),
 		appearances: readAppearances(state.document),
 		relationships: readRelationships(state.document),
 		greenRain: day,
@@ -553,20 +560,39 @@ export const makeEditorModel = (
 						};
 					}),
 				),
-			transact: <E>(
+			transact: <A, E>(
 				program: Effect.Effect<
-					unknown,
+					A,
 					E,
 					TransactionDraft | ReviewJournal | BackpackItemEdits
 				>,
 				expectedRevision?: number,
 			) =>
 				submit(() =>
-					Effect.flatMap(live().transact(program, expectedRevision), (state) =>
-						Effect.sync(() => {
-							publish(state);
-						}),
-					),
+					Effect.gen(function* () {
+						// The history transaction owns publication; its result is the new state.
+						// Capture the domain receipt per queued submission and expose it only
+						// after that transaction succeeds. Failed/retried attempts never emit it.
+						const receipt: { current: Option.Option<A> } = {
+							current: Option.none(),
+						};
+						const state = yield* live().transact(
+							program.pipe(
+								Effect.tap((value) =>
+									Effect.sync(() => {
+										receipt.current = Option.some(value);
+									}),
+								),
+							),
+							expectedRevision,
+						);
+						publish(state);
+						if (Option.isNone(receipt.current))
+							return yield* Effect.die(
+								new Error("A committed transaction has no domain receipt"),
+							);
+						return receipt.current.value;
+					}),
 				),
 			execute: (actions: readonly Mutation[], expectedRevision?: number) =>
 				submit(() =>

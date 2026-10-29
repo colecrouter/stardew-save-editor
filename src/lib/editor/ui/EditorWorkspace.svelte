@@ -10,6 +10,8 @@
 	import CalendarPanel from "./CalendarPanel.svelte";
 	import RelationshipPanel from "./RelationshipPanel.svelte";
 	import AppearancePanel from "./AppearancePanel.svelte";
+	import QuestJournalPanel from "./QuestJournalPanel.svelte";
+	import QiOrdersPanel from "./QiOrdersPanel.svelte";
 	import EventsPanel from "./EventsPanel.svelte";
 	import RecipesPanel from "./RecipesPanel.svelte";
 	import CharacterPanel from "./CharacterPanel.svelte";
@@ -50,6 +52,8 @@
 	let appearanceOpened = $state(false);
 	let recipesOpened = $state(false);
 	let eventsOpened = $state(false);
+	let questsOpened = $state(false);
+	let qiOpened = $state(false);
 	function chooseSection(section: string) {
 		// Hidden panels retain their local state, so navigation explicitly finishes
 		// any field gesture even when no native blur event accompanies the change.
@@ -59,6 +63,8 @@
 		if (section === "appearance") appearanceOpened = true;
 		if (section === "recipes") recipesOpened = true;
 		if (section === "events") eventsOpened = true;
+		if (section === "quests") questsOpened = true;
+		if (section === "qi") qiOpened = true;
 		tab = section;
 	}
 	let error = $state("");
@@ -151,6 +157,23 @@
 					icon="character"
 					active={tab === "relationships"}
 					onclick={() => chooseSection("relationships")}
+				/>
+
+				<SectionLink
+					href="#quests"
+					label="Quest journal"
+					shortLabel="Quests"
+					icon="quests"
+					active={tab === "quests"}
+					onclick={() => chooseSection("quests")}
+				/>
+				<SectionLink
+					href="#qi"
+					label="Qi orders"
+					shortLabel="Qi"
+					icon="quests"
+					active={tab === "qi"}
+					onclick={() => chooseSection("qi")}
 				/>
 
 				<SectionLink
@@ -251,6 +274,16 @@
 		{#if eventsOpened}
 			<div hidden={tab !== "events"}>
 				<EventsPanel {model} />
+			</div>
+		{/if}
+		{#if questsOpened}
+			<div hidden={tab !== "quests"}>
+				<QuestJournalPanel {model} />
+			</div>
+		{/if}
+		{#if qiOpened}
+			<div hidden={tab !== "qi"}>
+				<QiOrdersPanel {model} />
 			</div>
 		{/if}
 		<div hidden={tab !== "farm"}><FarmPanel {model} /></div>

@@ -1,3 +1,4 @@
+import { prizeTicketDestination } from "./quest-ticket.ts";
 import {
 	resolveInventoryContainer,
 	inventoryContainers,
@@ -323,10 +324,17 @@ export function readChests(
 	});
 }
 
-/** History-owned bounded capability: validates and stages only existing item fields. */
+/** History-owned bounded inventory operations; raw draft writes remain untrusted. */
 export class BackpackItemEdits extends Context.Service<
 	BackpackItemEdits,
 	{
+		/** Award the fixed quest reward without accepting caller-supplied item data. */
+		grantPrizeTicket: (
+			farmerId: string,
+		) => Effect.Effect<
+			"added" | "noRoom",
+			BackpackItemInvalid | import("./domain.ts").MutationError
+		>;
 		resize: (
 			farmerId: string,
 			size: number,
@@ -418,13 +426,15 @@ export function makeBackpackItemEdits(
 	originalDocument: SaveDocument,
 	equipmentIdentities: EquipmentIdentities = {},
 ) {
-	// Approved top-level patches are the sole inventory write authority. Retain the
+	// Approved field patches, reward replacements and capacity changes authorize
+	// inventory writes. Retain the
 	// baseline only while this draft is open; replay retains no published save object.
 	let authority: SaveDocument | undefined = originalDocument;
 	const writes: {
 		farmerId: string;
 		location: InventoryLocation;
 		patch: Record<string, unknown>;
+		replacement?: Record<string, unknown>;
 	}[] = [];
 	const contexts = new Map<string, string>();
 	const resizes: { farmerId: string; size: number }[] = [];
@@ -437,7 +447,9 @@ export function makeBackpackItemEdits(
 				typeof write.location === "number"
 					? farmer?.slots[write.location]
 					: farmer?.farmer?.[write.location];
-			if (record(item)) Object.assign(item, structuredClone(write.patch));
+			if (write.replacement && farmer && typeof write.location === "number")
+				farmer.slots[write.location] = structuredClone(write.replacement);
+			else if (record(item)) Object.assign(item, structuredClone(write.patch));
 		}
 		// Capacity changes append canonical empty slots or remove only validated nils.
 		// Replay after retained-item patches because shrinking can never remove an item.
@@ -472,9 +484,17 @@ export function makeBackpackItemEdits(
 	) {
 		const snapshot = yield* draft.read;
 		// New slot handles are published only with the enclosing history commit.
-		if (resizes.length)
+		if (
+			resizes.length ||
+			writes.some(
+				(write) =>
+					write.replacement &&
+					write.farmerId === farmerId &&
+					identities[farmerId]?.[Number(write.location)] === entityId,
+			)
+		)
 			return yield* new ItemPropertyInvalid({
-				message: "Finish the capacity change before editing an item.",
+				message: "Finish the inventory change before editing this item.",
 			});
 		// Compare before checking eligibility: temporary raw type/category edits
 		// must not authorize a property that the imported item did not support.
@@ -565,6 +585,55 @@ export function makeBackpackItemEdits(
 		return true;
 	});
 	const service: typeof BackpackItemEdits.Service = {
+		grantPrizeTicket: Effect.fn("Backpack.grantPrizeTicket")(function* (
+			farmerId: string,
+		) {
+			const snapshot = yield* draft.read;
+			const owner = ownerIn(snapshot.state.document, farmerId);
+			// This bounded capability authorizes only the fixed reward. Earlier raw
+			// draft edits cannot manufacture a stack/slot eligible for replacement.
+			if (
+				!authority ||
+				resizes.length ||
+				!owner?.farmer ||
+				!identities[farmerId] ||
+				identities[farmerId].length !== owner.slots.length ||
+				JSON.stringify(backpackInventorySnapshot(snapshot.state.document)) !==
+					JSON.stringify(backpackInventorySnapshot(replay(authority)))
+			)
+				return yield* new BackpackItemInvalid({
+					message: "This backpack cannot receive a Prize Ticket safely.",
+				});
+			const destination = prizeTicketDestination(owner.slots);
+			if (!destination) return "noRoom" as const;
+			const stackSlot = destination.slot;
+			if (destination.kind === "stack") {
+				const item = owner.slots[stackSlot];
+				if (!record(item) || typeof item.stack !== "number")
+					throw new Error("Validated ticket stack disappeared");
+				const patch = { stack: item.stack + 1 };
+				Object.assign(item, patch);
+				yield* draft.replace(snapshot);
+				writes.push({ farmerId, location: stackSlot, patch });
+				return "added" as const;
+			}
+			// Even an empty marker can carry opaque mod data. Never discard it to
+			// make room for a reward; the journal reports no room explicitly instead.
+			const slot = destination.slot;
+			const catalog = yield* Effect.promise(() => import("./item-catalog.ts"));
+			const item = catalog.createCatalogItem("Prize Ticket");
+			if (!item)
+				throw new Error("Prize Ticket is missing from the item catalog");
+			owner.slots[slot] = item;
+			yield* draft.replace(snapshot);
+			writes.push({
+				farmerId,
+				location: slot,
+				patch: {},
+				replacement: structuredClone(item),
+			});
+			return "added" as const;
+		}),
 		resize: Effect.fn("Backpack.resize")(function* (
 			farmerId: string,
 			size: number,
@@ -574,6 +643,7 @@ export function makeBackpackItemEdits(
 			const valid = [12, 24, 36];
 			if (
 				!authority ||
+				writes.some((write) => write.replacement) ||
 				!owner?.farmer ||
 				!record(owner.farmer) ||
 				!valid.includes(size) ||
@@ -748,6 +818,12 @@ export function makeBackpackItemEdits(
 	return {
 		service,
 		resizes: () => [...resizes],
+		replacements: () =>
+			writes.flatMap((write) =>
+				write.replacement && typeof write.location === "number"
+					? [{ farmerId: write.farmerId, slot: write.location }]
+					: [],
+			),
 		validate: (document: SaveDocument, baseline: SaveDocument) =>
 			contextMatches(document) &&
 			JSON.stringify(backpackInventorySnapshot(replay(baseline))) ===

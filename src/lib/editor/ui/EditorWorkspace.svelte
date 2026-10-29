@@ -9,6 +9,7 @@
 	import SectionLink from "../../ui/frame/SectionLink.svelte";
 	import CalendarPanel from "./CalendarPanel.svelte";
 	import RelationshipPanel from "./RelationshipPanel.svelte";
+	import AppearancePanel from "./AppearancePanel.svelte";
 	import CharacterPanel from "./CharacterPanel.svelte";
 	import FarmPanel from "./FarmPanel.svelte";
 	import BundlePanel from "./BundlePanel.svelte";
@@ -121,6 +122,15 @@
 				/>
 
 				<SectionLink
+					href="#appearance"
+					label="Appearance"
+					shortLabel="Looks"
+					icon="character"
+					active={tab === "appearance"}
+					onclick={() => chooseSection("appearance")}
+				/>
+
+				<SectionLink
 					href="#relationships"
 					label="Relationships"
 					shortLabel="Friends"
@@ -189,6 +199,9 @@
 			</div>
 		{/if}
 		<div hidden={tab !== "character"}><CharacterPanel {model} /></div>
+		<div hidden={tab !== "appearance"}>
+			<AppearancePanel {model} />
+		</div>
 		<div hidden={tab !== "relationships"}>
 			<RelationshipPanel {model} />
 		</div>
@@ -299,8 +312,9 @@
 			font-size: 17px;
 		}
 		nav {
-			display: flex;
-			flex-wrap: wrap;
+			/* Seven sections need two rows so phone labels never overlap. */
+			display: grid;
+			grid-template-columns: repeat(4, minmax(0, 1fr));
 		}
 		nav :global(a) {
 			min-width: 0;

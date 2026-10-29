@@ -744,7 +744,7 @@ export const makeHistorySession = (
 								state.document,
 								state.equipmentIdentities,
 							);
-							const { collected, prepared, authorized, resizes } =
+							const { collected, prepared, authorized, resizes, replacements } =
 								yield* collectTransactionMetadata(program).pipe(
 									Effect.provideService(TransactionDraft, draft.service),
 									Effect.provideService(BackpackItemEdits, itemEdits.service),
@@ -754,6 +754,7 @@ export const makeHistorySession = (
 										Effect.map(draft.prepared, (prepared) => ({
 											collected,
 											resizes: itemEdits.resizes(),
+											replacements: itemEdits.replacements(),
 											prepared,
 											// Validate while the attempt still owns its patch/read authority;
 											// close then clears those retained values before publication.
@@ -774,9 +775,10 @@ export const makeHistorySession = (
 								);
 							// Retained slots keep their handles. New slots get fresh monotonic
 							// identities; Undo/Redo retain exact before/after identity snapshots.
-							const resizedIdentities = resizes.length
-								? structuredClone(state.identities)
-								: state.identities;
+							const resizedIdentities =
+								resizes.length || replacements.length
+									? structuredClone(state.identities)
+									: state.identities;
 							let nextIdentity = state.nextIdentity;
 							for (const resize of resizes) {
 								const slots = resizedIdentities[resize.farmerId];
@@ -786,6 +788,15 @@ export const makeHistorySession = (
 								while (slots.length < resize.size)
 									slots.push(`item:${++nextIdentity}`);
 							}
+							// Replacing an empty slot creates a new item lifetime. Publish its
+							// handle with the reward and restore exact old handles on Undo.
+							for (const replacement of replacements) {
+								const slots = resizedIdentities[replacement.farmerId];
+								if (!slots || slots[replacement.slot] === undefined)
+									throw new Error("Reward slot has no identity");
+								slots[replacement.slot] = `item:${++nextIdentity}`;
+							}
+
 							return yield* Effect.try({
 								try: () =>
 									finishEdit(

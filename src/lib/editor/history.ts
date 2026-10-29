@@ -68,6 +68,8 @@ interface History {
 	revision: number;
 	document: SaveDocument;
 	baseline: SaveDocument;
+	// Computed while immutable branches are still shared, before public detachment.
+	net: JsonPatch.JsonPatch;
 	entries: Entry[];
 	cursor: number;
 	nextId: number;
@@ -79,6 +81,13 @@ interface History {
 // values with JSON.stringify: that would silently discard data.
 const json = (value: SaveDocument | DomainState) =>
 	value as unknown as Schema.Json;
+// These patches are generated from validated SaveDocuments (or their exact
+// inverses), not external patch requests. Keep the JSON/SaveDocument assertion
+// at this one representation boundary; Effect's patch API forgets the root type.
+const applyDocumentPatch = (
+	patch: JsonPatch.JsonPatch,
+	document: SaveDocument,
+) => JsonPatch.apply(patch, json(document)) as unknown as SaveDocument;
 const isDomainState = (value: unknown): value is DomainState =>
 	value !== null &&
 	typeof value === "object" &&
@@ -183,6 +192,7 @@ export const makeHistorySession = (
 			equipmentIdentities,
 			revision: 0,
 			document: baseline,
+			net: [],
 			baseline,
 			entries: [],
 			cursor: 0,
@@ -226,12 +236,18 @@ export const makeHistorySession = (
 			const annotationLabel = (emphasized.length ? emphasized : annotations)
 				.map((value) => value.label || "Unlabelled changes")
 				.join("; ");
-			// Detach published state from drafts retained by an adapter.
-			prepared = structuredClone(prepared);
-			const forward = JsonPatch.get(
-				json(state.document),
-				json(prepared.document),
+			// Adapters may retain their mutable drafts. Detach every changed value,
+			// then replay onto our immutable document: unchanged branches remain
+			// session-owned and shared with earlier revisions and the import baseline.
+			// No draft object crosses this publication boundary by reference.
+			const forward = structuredClone(
+				JsonPatch.get(json(state.document), json(prepared.document)),
 			);
+			prepared = {
+				document: applyDocumentPatch(forward, state.document),
+				domainState: structuredClone(input.domainState ?? {}),
+				history: structuredClone(input.history),
+			};
 			// Swapping byte-identical items still moves distinct session entities.
 			// Keep that undoable even when the XML has no net difference.
 			if (
@@ -327,10 +343,19 @@ export const makeHistorySession = (
 			identities = state.identities,
 			nextIdentity = state.nextIdentity,
 		): Result.Result<History, MutationError> => {
+			// Compare against the latest commit once, then recover immutable sharing
+			// before comparing with the gesture baseline. Otherwise each keystroke
+			// walks the entire save again for the forward, inverse and net patches.
+			const step = structuredClone(
+				JsonPatch.get(json(state.document), json(prepared.document)),
+			);
+			prepared = {
+				...prepared,
+				document: applyDocumentPatch(step, state.document),
+			};
 			// A repeated valid value creates neither a revision nor a history step.
 			if (
-				JsonPatch.get(json(state.document), json(prepared.document)).length ===
-					0 &&
+				step.length === 0 &&
 				JsonPatch.get(json(state.domainState), json(prepared.domainState ?? {}))
 					.length === 0
 			)
@@ -409,7 +434,16 @@ export const makeHistorySession = (
 						const published =
 							next === state
 								? state
-								: { ...next, revision: current.revision + 1 };
+								: {
+										...next,
+										revision: current.revision + 1,
+										// Preserve review accuracy across eviction and Undo, without
+										// repeating a full baseline diff on detached public documents.
+										net: JsonPatch.get(
+											json(next.baseline),
+											json(next.document),
+										),
+									};
 						// Clearing only grouping metadata does not advance the document
 						// revision, but still needs publication into the authoritative ref.
 						if (published !== current)
@@ -656,10 +690,7 @@ export const makeHistorySession = (
 					identities: entry.identitiesBefore,
 					equipmentIdentities: entry.equipmentBefore,
 					domainState: entry.domainBefore,
-					document: JsonPatch.apply(
-						entry.backward,
-						json(state.document),
-					) as unknown as SaveDocument,
+					document: applyDocumentPatch(entry.backward, state.document),
 					cursor: state.cursor - 1,
 				};
 			}),
@@ -672,17 +703,14 @@ export const makeHistorySession = (
 					identities: entry.identitiesAfter,
 					equipmentIdentities: entry.equipmentAfter,
 					domainState: entry.domainAfter,
-					document: JsonPatch.apply(
-						entry.forward,
-						json(state.document),
-					) as unknown as SaveDocument,
+					document: applyDocumentPatch(entry.forward, state.document),
 					cursor: state.cursor + 1,
 				};
 			}),
 			review: Effect.map(TxSubscriptionRef.get(ref), (state) =>
 				structuredClone({
 					// Original import survives history eviction, so export review remains complete.
-					net: JsonPatch.get(json(state.baseline), json(state.document)),
+					net: state.net,
 					entries: state.entries.slice(0, state.cursor),
 					dropped: state.dropped,
 				}),

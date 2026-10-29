@@ -465,6 +465,10 @@ export function makeBackpackItemEdits(
 	const resizes: { farmerId: string; size: number }[] = [];
 	const ownerIn = resolveInventoryContainer;
 	const replay = (document: SaveDocument) => {
+		// With no approved writes, compare the original inventory directly. The
+		// comparison below still rejects raw unauthorized edits; only replay needs
+		// a mutable document, so ordinary field edits need no replay clone.
+		if (writes.length === 0 && resizes.length === 0) return document;
 		const expected = structuredClone(document);
 		for (const write of writes) {
 			const farmer = ownerIn(expected, write.farmerId);

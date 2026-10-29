@@ -1,5 +1,8 @@
 # V2 large-save edit profile
 
+The subsequent [edit publication performance slice](v2-edit-performance.md) records
+further ownership changes, measurements and the work still outstanding in #201.
+
 This is a bounded Node profile of the application editor command/history path,
 using the committed public `tests/TestSave` fixture and deterministic synthetic
 chests. It is not a browser rendering benchmark, a cross-machine comparison, or

@@ -479,10 +479,8 @@ export const makeEditorModel = (
 									character.supported && character.farmerId === farmerId,
 							)
 						)
-							return yield* Effect.fail(
-								new MutationError(
-									"Choose a farmer with an unambiguous saved identifier.",
-								),
+							return yield* new MutationError(
+								"Choose a farmer with an unambiguous saved identifier.",
 							);
 						if (registry) registry.set(selectedFarmerAtom, farmerId);
 					}),

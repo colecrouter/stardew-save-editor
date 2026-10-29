@@ -128,24 +128,18 @@ export const makeHistorySession = (
 				? 8 * 1024 * 1024
 				: (limits.bytes ?? 8 * 1024 * 1024);
 		if (!Number.isInteger(limit) || limit < 1)
-			return yield* Effect.fail(
-				new MutationError("History limit must be a positive integer"),
+			return yield* new MutationError(
+				"History limit must be a positive integer",
 			);
 		if (!Number.isSafeInteger(byteLimit) || byteLimit < 1)
-			return yield* Effect.fail(
-				new MutationError(
-					"History byte budget must be a positive safe integer",
-				),
+			return yield* new MutationError(
+				"History byte budget must be a positive safe integer",
 			);
 		if (!Schema.is(Schema.Json)(document))
-			return yield* Effect.fail(
-				new MutationError("History requires plain JSON save data"),
-			);
+			return yield* new MutationError("History requires plain JSON save data");
 		const baseline = structuredClone(document);
 		if (!isDomainState(initialDomainState))
-			return yield* Effect.fail(
-				new MutationError("Domain state requires plain JSON data"),
-			);
+			return yield* new MutationError("Domain state requires plain JSON data");
 		// Item IDs describe types, not instances. Allocate session-only handles,
 		// including opaque/empty slots, without adding fields to the exported save.
 		let nextIdentity = 0;
@@ -396,17 +390,14 @@ export const makeHistorySession = (
 								: editGroup
 									? withoutGroup
 									: current;
-						if (closed)
-							return yield* Effect.fail(new MutationError("Session closed"));
+						if (closed) return yield* new MutationError("Session closed");
 						// A stale draft must fail before its preparer can stage any writes.
 						if (
 							expectedRevision !== undefined &&
 							state.revision !== expectedRevision
 						)
-							return yield* Effect.fail(
-								new MutationError(
-									"The save changed while editing. Reload the current value.",
-								),
+							return yield* new MutationError(
+								"The save changed while editing. Reload the current value.",
 							);
 						const proposed = change(state);
 						const next = Effect.isEffect(proposed) ? yield* proposed : proposed;
@@ -429,8 +420,7 @@ export const makeHistorySession = (
 			Effect.tx(
 				Effect.gen(function* () {
 					const state = yield* TxSubscriptionRef.get(ref);
-					if (closed)
-						return yield* Effect.fail(new MutationError("Session closed"));
+					if (closed) return yield* new MutationError("Session closed");
 					if (
 						state.editGroup &&
 						(key === undefined || state.editGroup.key === key)
@@ -776,10 +766,8 @@ export const makeHistorySession = (
 							// A prepared snapshot must match the exact approved inventory patches
 							// and context reads captured before the attempt was closed.
 							if (!authorized)
-								return yield* Effect.fail(
-									new MutationError(
-										"Inventory changes or game context did not match the supported item operation",
-									),
+								return yield* new MutationError(
+									"Inventory changes or game context did not match the supported item operation",
 								);
 							return yield* Effect.try({
 								try: () =>

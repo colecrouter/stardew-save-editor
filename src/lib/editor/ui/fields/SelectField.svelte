@@ -1,34 +1,56 @@
 <script lang="ts">
+	import type { HTMLSelectAttributes } from "svelte/elements";
 	import type { ImmediateField } from "../../immediate-field.ts";
 	import { createImmediateFieldController } from "../../immediate-field.svelte.ts";
 
-	let {
-		field,
-		description,
-		inline = false,
-	}: {
+	interface Props extends Omit<HTMLSelectAttributes, "value" | "children"> {
 		field: ImmediateField<string>;
 		description?: string;
 		inline?: boolean;
-	} = $props();
-	const id = $props.id();
+	}
+	const generatedId = $props.id();
+	// Native attributes belong to the control. Value and editor lifecycle remain
+	// field-owned; compose caller handlers rather than replacing that lifecycle.
+	let {
+		field,
+		description,
+		id = generatedId,
+		disabled = false,
+		"aria-describedby": ariaDescribedBy,
+		"aria-invalid": ariaInvalid,
+		inline = false,
+		onchange,
+		...nativeProps
+	}: Props = $props();
 	const editing = createImmediateFieldController(() => field, {
 		discrete: true,
 	});
+	const describedBy = $derived(
+		[
+			ariaDescribedBy,
+			editing.error || description || field.reason
+				? `${id}-feedback`
+				: undefined,
+		]
+			.filter(Boolean)
+			.join(" ") || undefined,
+	);
 </script>
 
 <div class="editor-field" class:inline>
 	<label for={id}>{field.label}</label>
 
 	<select
+		{...nativeProps}
 		{id}
-		disabled={!field.available}
+		disabled={disabled || !field.available}
 		value={editing.value}
-		aria-invalid={editing.error ? "true" : undefined}
-		aria-describedby={editing.error || description || field.reason
-			? `${id}-feedback`
-			: undefined}
-		onchange={(event) => editing.input(event.currentTarget.value)}
+		aria-invalid={editing.error ? "true" : ariaInvalid}
+		aria-describedby={describedBy}
+		onchange={(event) => {
+			editing.input(event.currentTarget.value);
+			onchange?.(event);
+		}}
 	>
 		{#each field.options ?? [] as option (option.value)}
 			<option value={option.value}>{option.label}</option>

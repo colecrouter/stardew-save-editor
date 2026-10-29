@@ -1,3 +1,4 @@
+import { Data } from "effect";
 import { resolveInventoryContainer } from "./inventory-containers.ts";
 import {
 	applyEquipmentSwap,
@@ -118,8 +119,14 @@ export type DomainValue =
 	| DomainValue[]
 	| { [key: string]: DomainValue };
 export type DomainState = Record<string, DomainValue>;
-export class MutationError extends Error {
-	readonly _tag = "MutationError";
+/** Expected operation rejection, usable directly in Effect generators and pure planners. */
+export class MutationError extends Data.TaggedError("MutationError")<{
+	readonly message: string;
+}> {
+	constructor(message: string) {
+		// Existing pure domain callers throw this same error with a message string.
+		super({ message });
+	}
 }
 export const farmers = (document: SaveDocument) => [
 	document.SaveGame.player,

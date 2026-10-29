@@ -1,27 +1,52 @@
 <script lang="ts">
+	import type { HTMLInputAttributes } from "svelte/elements";
 	import type { ImmediateField } from "../../immediate-field.ts";
 	import { createImmediateFieldController } from "../../immediate-field.svelte.ts";
 
+	interface Props extends Omit<
+		HTMLInputAttributes,
+		"value" | "checked" | "type" | "children"
+	> {
+		field: ImmediateField<boolean>;
+		description?: string;
+	}
+	const generatedId = $props.id();
+	// Native attributes belong to the control. Value and editor lifecycle remain
+	// field-owned; compose caller handlers rather than replacing that lifecycle.
 	let {
 		field,
 		description,
-	}: { field: ImmediateField<boolean>; description?: string } = $props();
-	const id = $props.id();
+		id = generatedId,
+		disabled = false,
+		"aria-describedby": ariaDescribedBy,
+		"aria-invalid": ariaInvalid,
+		...nativeProps
+	}: Props = $props();
 	// A toggle is one discrete action, even if keyboard focus stays on the box.
 	const editing = createImmediateFieldController(() => field, {
 		discrete: true,
 	});
+	const describedBy = $derived(
+		[
+			ariaDescribedBy,
+			editing.error || description || field.reason
+				? `${id}-feedback`
+				: undefined,
+		]
+			.filter(Boolean)
+			.join(" ") || undefined,
+	);
 </script>
 
 <div class="checkbox-field">
 	<label>
 		<input
+			{...nativeProps}
+			{id}
 			type="checkbox"
-			disabled={!field.available}
-			aria-invalid={editing.error ? "true" : undefined}
-			aria-describedby={description || editing.error
-				? `${id}-feedback`
-				: undefined}
+			disabled={disabled || !field.available}
+			aria-invalid={editing.error ? "true" : ariaInvalid}
+			aria-describedby={describedBy}
 			bind:checked={
 				() => editing.value === true, (value) => editing.input(value)
 			}
@@ -30,13 +55,13 @@
 		<span>{field.label}</span>
 	</label>
 
-	{#if editing.error || description}
+	{#if editing.error || description || field.reason}
 		<p
 			id={`${id}-feedback`}
 			class:error={!!editing.error}
 			role={editing.error ? "status" : undefined}
 		>
-			{editing.error || description}
+			{editing.error || field.reason || description}
 		</p>
 	{/if}
 </div>

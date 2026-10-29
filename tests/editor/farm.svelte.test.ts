@@ -69,9 +69,14 @@ describe("full-save farm workflow", { timeout: 15_000 }, () => {
 			await waitFor(() => expect(actionCount(page)).toBe(1));
 			await fireEvent.blur(name);
 			await fireEvent.click(page.getByRole("button", { name: "Undo" }));
-			await waitFor(() => expect(name.value).toBe(initial));
+			// The first history row can appear while later full-save edits are still
+			// queued. Undo must run behind all of them; allow that bounded CI work
+			// without waiting for idle first and losing the ordering regression.
+			await waitFor(() => expect(name.value).toBe(initial), { timeout: 5000 });
 			await fireEvent.click(page.getByRole("button", { name: "Redo" }));
-			await waitFor(() => expect(name.value).toBe("River Farm"));
+			await waitFor(() => expect(name.value).toBe("River Farm"), {
+				timeout: 5000,
+			});
 			name.focus();
 			await fireEvent.input(name, { target: { value: "" } });
 			expect(name.value).toBe("");

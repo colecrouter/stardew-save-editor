@@ -19,7 +19,8 @@
 		"check:types": "npm run sync && node node_modules/@typescript/native/bin/tsc --noEmit -p tsconfig.json",
 		"effect:diagnostics": "effect-tsgo diagnostics --project tsconfig.json",
 		"sync": "svelte-kit sync",
-		"check:codegen": "node node_modules/@typescript/native/bin/tsc --noEmit -p codegen/tsconfig.json"
+		"check:codegen": "node node_modules/@typescript/native/bin/tsc --noEmit -p codegen/tsconfig.json",
+		"postinstall": "node tools/patch-core-js.mts"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.4.4",

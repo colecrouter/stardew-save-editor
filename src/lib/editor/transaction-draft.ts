@@ -1,4 +1,3 @@
-import { cloneEditorData } from "./clone-data.ts";
 import { Context, Effect, Schema, JsonPatch } from "effect";
 import { MutationError, type SessionState } from "./domain.ts";
 
@@ -26,7 +25,7 @@ export class TransactionDraft extends Context.Service<
 export function makeTransactionDraft(initial: SessionState) {
 	// General factory callers keep their own mutable data. Isolate it before
 	// constructing the capability so later caller writes cannot alter the draft.
-	return stageTransactionDraft(cloneEditorData(initial));
+	return stageTransactionDraft(structuredClone(initial));
 }
 
 /** History-only construction from a stable, session-owned committed snapshot.
@@ -45,7 +44,7 @@ function stageTransactionDraft(initial: SessionState) {
 	const read = Effect.gen(function* () {
 		if (!active || !state)
 			return yield* new MutationError("This transaction draft is closed");
-		return { version, state: cloneEditorData(state) };
+		return { version, state: structuredClone(state) };
 	});
 	return {
 		service: {
@@ -67,7 +66,7 @@ function stageTransactionDraft(initial: SessionState) {
 				// changed values, then replay them onto the stable staged baseline.
 				// Unchanged branches stay owned internally; no submitted reference
 				// becomes authoritative. This also preserves sharing for history diffs.
-				const patch = cloneEditorData(
+				const patch = structuredClone(
 					JsonPatch.get(
 						state as unknown as Schema.Json,
 						next.state as unknown as Schema.Json,

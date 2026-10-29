@@ -1,4 +1,3 @@
-import { cloneEditorData } from "./clone-data.ts";
 import { Context, Data, Effect, Schema } from "effect";
 
 // Review information describes how to present a transaction, not every possible
@@ -107,12 +106,12 @@ export const collectTransactionMetadata = <A, E, R>(
 							});
 						yield* validateMetadata(metadata);
 						// Detach recorded data from annotation objects retained by a feature.
-						staged.push(cloneEditorData(metadata));
+						staged.push(structuredClone(metadata));
 					}),
 			}),
 			// Copy the successful records before teardown clears the journal. A
 			// captured service then retains an empty buffer, even after failure.
-			Effect.map((value) => ({ value, records: cloneEditorData(staged) })),
+			Effect.map((value) => ({ value, records: structuredClone(staged) })),
 			// A service captured by an unjoined child must not append after the
 			// enclosing program returned. Retries acquire a separate active journal.
 			Effect.ensuring(

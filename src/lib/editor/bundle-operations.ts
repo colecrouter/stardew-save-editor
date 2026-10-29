@@ -1,4 +1,3 @@
-import { cloneEditorData } from "./clone-data.ts";
 import { Data, Effect, Result } from "effect";
 import {
 	diff,
@@ -284,7 +283,7 @@ export const prepareBundleOperation = (
 			return yield* new BundleUnavailable({
 				message: "Only Spring Foraging is supported by this sample.",
 			});
-		const document = cloneEditorData(state.document);
+		const document = structuredClone(state.document);
 		yield* complete(document);
 		// Actual differences define undo/export; a repeated completion stays a no-op.
 		const changes = diff(state.document, document);
@@ -295,7 +294,7 @@ export const prepareBundleOperation = (
 			history: [
 				...state.history,
 				{
-					intent: cloneEditorData(action),
+					intent: structuredClone(action),
 					label: "Complete Spring Foraging bundle",
 					review: "standalone" as const,
 					changes,

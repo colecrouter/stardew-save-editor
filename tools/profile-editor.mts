@@ -262,7 +262,6 @@ async function scenario(name: string, bytes: Uint8Array) {
 // collecting samples. Matching hashes show the measured core stayed stable.
 const sourcePaths = [
 	"src/app.html",
-	"src/lib/editor/clone-data.ts",
 	"src/lib/editor/plain-data.ts",
 	"src/lib/editor/transaction-draft.ts",
 	"src/lib/editor/history.ts",

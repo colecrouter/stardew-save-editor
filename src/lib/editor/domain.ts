@@ -1,5 +1,4 @@
 import { samePlainData } from "./plain-data.ts";
-import { cloneEditorData } from "./clone-data.ts";
 import { Effect, Result } from "effect";
 import { MutationError } from "./mutation-error.ts";
 export { MutationError } from "./mutation-error.ts";
@@ -221,7 +220,7 @@ export function diff(before: unknown, after: unknown, path = ""): Change[] {
 		);
 	}
 	return [
-		{ path, before: cloneEditorData(before), after: cloneEditorData(after) },
+		{ path, before: structuredClone(before), after: structuredClone(after) },
 	];
 }
 
@@ -233,10 +232,10 @@ export function prepareResult(
 	input: Mutation,
 	inspect: (draft: SaveDocument) => void = () => {},
 ): Result.Result<SessionState, MutationError> {
-	const mutation = cloneEditorData(input);
-	const draft = cloneEditorData(state.document);
+	const mutation = structuredClone(input);
+	const draft = structuredClone(state.document);
 	const inventory = state.inventory
-		? cloneEditorData(state.inventory)
+		? structuredClone(state.inventory)
 		: undefined;
 	const result = applyResult(draft, mutation, inventory);
 	if (Result.isFailure(result)) return Result.fail(result.failure);

@@ -1,4 +1,3 @@
-import { cloneEditorData } from "./clone-data.ts";
 import { Result } from "effect";
 import type { Mutation, Receipt, SaveDocument } from "./domain.ts";
 import { MutationError } from "./mutation-error.ts";
@@ -269,7 +268,7 @@ export function applyInventoryMutation(
 		if (!record(action.item) || empty(action.item))
 			return invalid("An item must be a nonempty save record");
 		put(owner, action.slot, {
-			value: cloneEditorData(action.item),
+			value: structuredClone(action.item),
 			id: fresh(),
 		});
 		return finish(

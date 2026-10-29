@@ -1,4 +1,3 @@
-import { cloneEditorData } from "./clone-data.ts";
 import { immutableView } from "./immutable-view.ts";
 import { readItemVisual, type ItemVisual } from "./item-presentation.ts";
 import {
@@ -277,7 +276,7 @@ function construct(
 				data.tilesheetSize.width * 16,
 				data.tilesheetSize.height * 16,
 			);
-			item.defaultSourceRect = cloneEditorData(item.sourceRect);
+			item.defaultSourceRect = structuredClone(item.sourceRect);
 		}
 		if (data.boundingBoxSize) {
 			item.boundingBox = rectangle(
@@ -286,7 +285,7 @@ function construct(
 				data.boundingBoxSize.width * 64,
 				data.boundingBoxSize.height * 64,
 			);
-			item.defaultBoundingBox = cloneEditorData(item.boundingBox);
+			item.defaultBoundingBox = structuredClone(item.boundingBox);
 		}
 		if (data.type === "lamp") item.isLamp = true;
 	}

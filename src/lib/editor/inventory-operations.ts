@@ -1,5 +1,4 @@
 import { samePlainData } from "./plain-data.ts";
-import { cloneEditorData } from "./clone-data.ts";
 import { inventoryQuantity, inventoryQualities } from "./inventory-policy.ts";
 import type { Item } from "$types/save";
 import {
@@ -296,7 +295,7 @@ export function makeBackpackItemEdits(
 		// comparison below still rejects raw unauthorized edits; only replay needs
 		// a mutable document, so ordinary field edits need no replay clone.
 		if (writes.length === 0 && resizes.length === 0) return document;
-		const expected = cloneEditorData(document);
+		const expected = structuredClone(document);
 		for (const write of writes) {
 			const farmer = ownerIn(expected, write.farmerId);
 			const item =
@@ -304,8 +303,8 @@ export function makeBackpackItemEdits(
 					? farmer?.slots[write.location]
 					: farmer?.farmer?.[write.location];
 			if (write.replacement && farmer && typeof write.location === "number")
-				farmer.slots[write.location] = cloneEditorData(write.replacement);
-			else if (record(item)) Object.assign(item, cloneEditorData(write.patch));
+				farmer.slots[write.location] = structuredClone(write.replacement);
+			else if (record(item)) Object.assign(item, structuredClone(write.patch));
 		}
 		// Capacity changes append canonical empty slots or remove only validated nils.
 		// Replay after retained-item patches because shrinking can never remove an item.
@@ -440,12 +439,12 @@ export function makeBackpackItemEdits(
 				JSON.stringify(resolved.item[key]) !== JSON.stringify(value),
 		);
 		if (!changed) return false;
-		Object.assign(resolved.item, cloneEditorData(patch));
+		Object.assign(resolved.item, structuredClone(patch));
 		yield* draft.replace(resolved.snapshot);
 		writes.push({
 			farmerId,
 			location: resolved.location,
-			patch: cloneEditorData(patch),
+			patch: structuredClone(patch),
 		});
 		return true;
 	});
@@ -500,7 +499,7 @@ export function makeBackpackItemEdits(
 				farmerId,
 				location: slot,
 				patch: {},
-				replacement: cloneEditorData(item),
+				replacement: structuredClone(item),
 			});
 			return "added" as const;
 		}),

@@ -1,4 +1,3 @@
-import { cloneEditorData } from "./clone-data.ts";
 import { CalendarDocumentError } from "../calendarErrors.ts";
 import { Data, Effect, Schema } from "effect";
 import type { Save } from "../../../codegen/save.ts";
@@ -146,7 +145,7 @@ export const prepareCalendarState = Effect.fn("Calendar.prepare")(function* (
 		history: [
 			...state.history,
 			{
-				intent: cloneEditorData(action),
+				intent: structuredClone(action),
 				label,
 				review: "standalone" as const,
 				changes,

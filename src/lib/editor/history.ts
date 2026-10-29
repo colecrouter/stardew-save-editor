@@ -1,4 +1,3 @@
-import { cloneEditorData } from "./clone-data.ts";
 import { isInventoryMutation } from "./inventory-transition.ts";
 import { inventoryContainers } from "./inventory-containers.ts";
 import { equipmentSlots, type EquipmentIdentities } from "./equipment.ts";
@@ -152,7 +151,7 @@ export const makeHistorySession = (
 			);
 		if (!Schema.is(Schema.Json)(document))
 			return yield* new MutationError("History requires plain JSON save data");
-		const baseline = cloneEditorData(document);
+		const baseline = structuredClone(document);
 		if (!isDomainState(initialDomainState))
 			return yield* new MutationError("Domain state requires plain JSON data");
 		// Item IDs describe types, not instances. Allocate session-only handles,
@@ -192,7 +191,7 @@ export const makeHistorySession = (
 				identities[owner.id] = owner.slots.map(() => `item:${++nextIdentity}`);
 		}
 		const ref = yield* TxSubscriptionRef.make<History>({
-			domainState: cloneEditorData(initialDomainState),
+			domainState: structuredClone(initialDomainState),
 			retainedBytes: 0,
 			nextIdentity,
 			identities,
@@ -248,13 +247,13 @@ export const makeHistorySession = (
 			// then replay onto our immutable document: unchanged branches remain
 			// session-owned and shared with earlier revisions and the import baseline.
 			// No draft object crosses this publication boundary by reference.
-			const forward = cloneEditorData(
+			const forward = structuredClone(
 				JsonPatch.get(json(state.document), json(prepared.document)),
 			);
 			prepared = {
 				document: applyDocumentPatch(forward, state.document),
-				domainState: cloneEditorData(input.domainState ?? {}),
-				history: cloneEditorData(input.history),
+				domainState: structuredClone(input.domainState ?? {}),
+				history: structuredClone(input.history),
 			};
 			// Swapping byte-identical items still moves distinct session entities.
 			// Keep that undoable even when the XML has no net difference.
@@ -284,10 +283,10 @@ export const makeHistorySession = (
 				identitiesBefore: state.identities,
 				identitiesAfter: identities,
 				id: state.nextId,
-				actions: cloneEditorData(resolved),
-				annotations: cloneEditorData(annotations),
+				actions: structuredClone(resolved),
+				annotations: structuredClone(annotations),
 				intent: {
-					intent: cloneEditorData(first.intent),
+					intent: structuredClone(first.intent),
 					label:
 						label ??
 						(annotations.length ? annotationLabel : undefined) ??
@@ -354,7 +353,7 @@ export const makeHistorySession = (
 			// Compare against the latest commit once, then recover immutable sharing
 			// before comparing with the gesture baseline. Otherwise each keystroke
 			// walks the entire save again for the forward, inverse and net patches.
-			const step = cloneEditorData(
+			const step = structuredClone(
 				JsonPatch.get(json(state.document), json(prepared.document)),
 			);
 			prepared = {
@@ -484,7 +483,7 @@ export const makeHistorySession = (
 			);
 		const detached = (state: History) => {
 			const { editGroup: _group, ...visible } = state;
-			return cloneEditorData(visible);
+			return structuredClone(visible);
 		};
 		return {
 			endEdit,
@@ -520,10 +519,10 @@ export const makeHistorySession = (
 							// A replaceable adapter may stage in-place writes. Never give it
 							// references to published state, including before a later failure.
 							let prepared: SessionState = {
-								document: cloneEditorData(state.document),
-								domainState: cloneEditorData(state.domainState),
+								document: structuredClone(state.document),
+								domainState: structuredClone(state.domainState),
 								history: [] as Receipt[],
-								inventory: cloneEditorData({
+								inventory: structuredClone({
 									identities: state.identities,
 									equipmentIdentities: state.equipmentIdentities,
 									nextIdentity: state.nextIdentity,
@@ -533,7 +532,7 @@ export const makeHistorySession = (
 							let equipmentIdentities = state.equipmentIdentities;
 							let nextIdentity = state.nextIdentity;
 							const resolved: Mutation[] = [];
-							for (const requested of cloneEditorData(actions)) {
+							for (const requested of structuredClone(actions)) {
 								let action: Mutation = requested;
 								// Backpack actions resolve their instances inside this queue turn.
 								// A stale view cannot target a replacement by its old slot index.
@@ -721,7 +720,7 @@ export const makeHistorySession = (
 				};
 			}),
 			review: Effect.map(TxSubscriptionRef.get(ref), (state) =>
-				cloneEditorData({
+				structuredClone({
 					// Original import survives history eviction, so export review remains complete.
 					net: state.net,
 					entries: state.entries.slice(0, state.cursor),

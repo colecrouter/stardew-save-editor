@@ -39,6 +39,12 @@
 	const dateDraft = createRuneDraft(() => model.dateField);
 	let tab = $state("calendar");
 	let inventoryOpened = $state(false);
+	function chooseSection(section: string) {
+		// Hidden panels retain their local state, so navigation explicitly finishes
+		// any field gesture even when no native blur event accompanies the change.
+		void model.edits.endActive();
+		tab = section;
+	}
 	let error = $state("");
 	async function perform(
 		action: () => Promise<
@@ -100,7 +106,7 @@
 					active={tab === "inventory"}
 					onclick={() => {
 						inventoryOpened = true;
-						tab = "inventory";
+						chooseSection("inventory");
 					}}
 				/>
 
@@ -110,7 +116,7 @@
 					shortLabel="Skills"
 					icon="character"
 					active={tab === "character"}
-					onclick={() => (tab = "character")}
+					onclick={() => chooseSection("character")}
 				/>
 
 				<SectionLink
@@ -119,7 +125,7 @@
 					shortLabel="Farm"
 					icon="farm"
 					active={tab === "farm"}
-					onclick={() => (tab = "farm")}
+					onclick={() => chooseSection("farm")}
 				/>
 				<SectionLink
 					href="#calendar"
@@ -127,7 +133,7 @@
 					shortLabel="Calendar"
 					icon="farm"
 					active={tab === "calendar"}
-					onclick={() => (tab = "calendar")}
+					onclick={() => chooseSection("calendar")}
 				/>
 
 				<SectionLink
@@ -136,7 +142,7 @@
 					shortLabel="Changes"
 					icon="quests"
 					active={tab === "review"}
-					onclick={() => (tab = "review")}
+					onclick={() => chooseSection("review")}
 				/>
 				{#if includeProofs}
 					<SectionLink
@@ -144,7 +150,7 @@
 						label="Bundles"
 						icon="community"
 						active={tab === "bundles"}
-						onclick={() => (tab = "bundles")}
+						onclick={() => chooseSection("bundles")}
 					/>
 				{/if}
 			</nav>

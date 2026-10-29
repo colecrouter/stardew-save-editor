@@ -1,3 +1,4 @@
+import type { EditGesture } from "./edit-gesture.ts";
 import { readCharacters, type CharacterView } from "./character-operations.ts";
 import type { BackpackMoveRequest } from "./backpack-movement.ts";
 import type { BackpackLifecycleRequest } from "./backpack-lifecycle.ts";
@@ -48,7 +49,7 @@ import {
 	type CalendarViewState,
 } from "../calendarDocument.ts";
 import type { Field } from "./field.ts";
-import type { Mutation } from "./domain.ts";
+import { MutationError, type Mutation } from "./domain.ts";
 import { makeHistorySession, type HistoryLimits } from "./history.ts";
 import type { HistorySession, HistoryState } from "./history.ts";
 import { SaveCodec, SaveCodecLive } from "./save-service.ts";
@@ -263,6 +264,13 @@ export const makeEditorModel = (
 		const viewAtom = Atom.make<EditorView | undefined>(undefined).pipe(
 			Atom.keepAlive,
 		);
+		const selectedFarmerAtom = Atom.make<string | undefined>(undefined).pipe(
+			Atom.keepAlive,
+		);
+		// Handles contain no save data. A WeakMap limits their authority to the
+		// model that allocated them without retaining unmounted field instances.
+		const gestures = new WeakMap<EditGesture, string>();
+		let nextGesture = 0;
 		const pendingAtom = Atom.make(0).pipe(Atom.keepAlive);
 		// Notifications belong to the session boundary, not individual features.
 		// Store only a generic message; no document or operation payload is logged.
@@ -293,8 +301,23 @@ export const makeEditorModel = (
 				!closed &&
 				registry &&
 				state.revision > (registry.get(viewAtom)?.revision ?? -1)
-			)
-				registry.set(viewAtom, project(state, options.includeProofs));
+			) {
+				const next = project(state, options.includeProofs);
+				registry.set(viewAtom, next);
+				// Selection belongs to the file, not a page index. Preserve its
+				// stable ID through revisions; only unavailable/ambiguous owners
+				// fall back to the first currently supported farmer.
+				const choices = next.characters.filter(
+					(character) => character.supported,
+				);
+				if (
+					!choices.some(
+						(character) =>
+							character.farmerId === registry?.get(selectedFarmerAtom),
+					)
+				)
+					registry.set(selectedFarmerAtom, choices[0]?.farmerId);
+			}
 		};
 		const imported = yield* session.snapshot;
 		const loadValidation = validateSave(imported.document);
@@ -367,13 +390,21 @@ export const makeEditorModel = (
 		// the boundary distinguishes expected failures, cancellation and defects.
 		const submit = <A, E>(
 			work: () => Effect.Effect<A, E>,
-		): Promise<CommandResult<A, E>> => {
+			preserveEdit = false,
+		): Promise<CommandResult<A, E | MutationError>> => {
 			if (closed) return Promise.resolve(null);
 			return command(async () => {
 				if (closed) return null;
 				const exit = await runExitWithContext(
 					Effect.gen(function* () {
-						const fiber = yield* Effect.forkScoped(Effect.suspend(work));
+						const fiber = yield* Effect.forkScoped(
+							Effect.gen(function* () {
+								// A different command is a gesture boundary even when
+								// its domain operation is subsequently rejected.
+								if (!preserveEdit) yield* live().endEdit();
+								return yield* Effect.suspend(work);
+							}),
+						);
 						return yield* Fiber.join(fiber);
 					}).pipe(Effect.provideService(Scope.Scope, scope)),
 				);
@@ -400,7 +431,60 @@ export const makeEditorModel = (
 					publish(state);
 				}),
 			);
+		const edits = {
+			// Symbols survive reactive descriptor wrapping without proxy identity drift.
+			scope: Symbol("editor-fields"),
+			endActive: () => submit(() => live().endEdit(), true),
+			begin: (fieldKey: string): EditGesture => {
+				const gesture = Object.freeze({ fieldKey });
+				gestures.set(gesture, `edit:${++nextGesture}:${fieldKey}`);
+				return gesture;
+			},
+			end: (gesture: EditGesture) =>
+				submit(() => {
+					const key = gestures.get(gesture);
+					return key === undefined
+						? Effect.fail(
+								new MutationError("This edit belongs to another save session."),
+							)
+						: live().endEdit(key);
+				}, true),
+		};
 		const commands = {
+			edit: <E>(
+				program: Effect.Effect<
+					unknown,
+					E,
+					TransactionDraft | ReviewJournal | BackpackItemEdits
+				>,
+				gesture: EditGesture,
+			) =>
+				submit(() => {
+					const key = gestures.get(gesture);
+					if (key === undefined)
+						return Effect.fail(
+							new MutationError("This edit belongs to another save session."),
+						);
+					return Effect.asVoid(
+						publishEffect(live().transact(program, undefined, key)),
+					);
+				}, true),
+			selectFarmer: (farmerId: string) =>
+				submit(() =>
+					Effect.gen(function* () {
+						const state = yield* live().snapshot;
+						if (
+							!readCharacters(state.document).some(
+								(character) =>
+									character.supported && character.farmerId === farmerId,
+							)
+						)
+							return yield* new MutationError(
+								"Choose a farmer with an unambiguous saved identifier.",
+							);
+						if (registry) registry.set(selectedFarmerAtom, farmerId);
+					}),
+				),
 			/** Move or swap farmer slots or virtual chest targets, returning the moved instance. */
 			moveBackpackItem: (request: BackpackMoveRequest) =>
 				submit(() =>
@@ -516,6 +600,7 @@ export const makeEditorModel = (
 			atomBindings: {
 				registry: registry as AtomRegistry.AtomRegistry,
 				view: viewAtom as Atom.Atom<EditorView | undefined>,
+				selectedFarmerId: selectedFarmerAtom as Atom.Atom<string | undefined>,
 				pending: pendingAtom as Atom.Atom<number>,
 				notice: noticeAtom as Atom.Atom<
 					{ id: number; message: string } | undefined
@@ -523,6 +608,18 @@ export const makeEditorModel = (
 			},
 			loadValidation,
 			commands,
+			edits,
+			selectedFarmerId: {
+				subscribe: (notify: (value: string | undefined) => void) => {
+					if (!registry) {
+						notify(undefined);
+						return () => {};
+					}
+					return registry.subscribe(selectedFarmerAtom, notify, {
+						immediate: true,
+					});
+				},
+			} satisfies Readable<string | undefined>,
 			dismissNotice: () => registry?.set(noticeAtom, undefined),
 			// Promise/rejection adapters remain for the original comparator tests.
 			// Rendered editing flows use commands and never inspect defect causes.
@@ -551,6 +648,7 @@ export const makeEditorModel = (
 			// remain internal. Decode once to reject an unreadable output before download.
 			export: () =>
 				command(async () => {
+					await run(live().endEdit());
 					const state = await run(live().snapshot);
 					const bytes = await run(codec.encode(state.document));
 					await run(codec.decode(bytes));

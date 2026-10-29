@@ -49,12 +49,13 @@ describe("full-save farm workflow", { timeout: 15_000 }, () => {
 				expect(control.hasAttribute("disabled")).toBe(false);
 		});
 
-	it("farm name commits once on blur or Enter and undo/redo restores each committed value", async () => {
+	it("farm name applies while typing but preserves one Undo step for the whole focus gesture", async () => {
 		const page = await openFarm();
 		try {
 			const name = page.getByRole("textbox", {
 				name: "Farm name",
 			}) as HTMLInputElement;
+			const initial = name.value;
 			expect(
 				page.queryByRole("button", { name: "Apply farm settings" }),
 			).toBeNull();
@@ -62,38 +63,34 @@ describe("full-save farm workflow", { timeout: 15_000 }, () => {
 				page.queryByRole("button", { name: "Reload farm settings" }),
 			).toBeNull();
 			name.focus();
-			await fireEvent.input(name, { target: { value: "Blur Farm" } });
-			// Text entry itself is not an action and introduces no export gating contract.
-			expect(actionCount(page)).toBe(0);
-			expect(
-				page
-					.getByRole("button", { name: "Export save" })
-					.hasAttribute("disabled"),
-			).toBe(false);
-			await fireEvent.blur(name);
+			await fireEvent.input(name, { target: { value: "R" } });
+			await fireEvent.input(name, { target: { value: "River" } });
+			await fireEvent.input(name, { target: { value: "River Farm" } });
 			await waitFor(() => expect(actionCount(page)).toBe(1));
-			await idle(page);
-			name.focus();
-			await fireEvent.input(name, { target: { value: "Enter Farm" } });
-			await fireEvent.keyDown(name, { key: "Enter", code: "Enter" });
-			await waitFor(() => expect(actionCount(page)).toBe(2));
-			await idle(page);
-			// Enter may also move focus. A subsequent blur must not duplicate the action.
 			await fireEvent.blur(name);
-			await idle(page);
-			expect(actionCount(page)).toBe(2);
 			await fireEvent.click(page.getByRole("button", { name: "Undo" }));
-			await waitFor(() => expect(name.value).toBe("Blur Farm"));
-			await idle(page);
+			// The first history row can appear while later full-save edits are still
+			// queued. Undo must run behind all of them; allow that bounded CI work
+			// without waiting for idle first and losing the ordering regression.
+			await waitFor(() => expect(name.value).toBe(initial), { timeout: 5000 });
 			await fireEvent.click(page.getByRole("button", { name: "Redo" }));
-			await waitFor(() => expect(name.value).toBe("Enter Farm"));
-			await idle(page);
+			await waitFor(() => expect(name.value).toBe("River Farm"), {
+				timeout: 5000,
+			});
+			name.focus();
+			await fireEvent.input(name, { target: { value: "" } });
+			expect(name.value).toBe("");
+			await fireEvent.blur(name);
+			await waitFor(() => expect(name.value).toBe("River Farm"));
+			expect(actionCount(page)).toBe(1);
 			name.focus();
 			await fireEvent.input(name, { target: { value: "   " } });
+			await waitFor(() =>
+				expect(name.getAttribute("aria-invalid")).toBe("true"),
+			);
 			await fireEvent.blur(name);
-			await waitFor(() => expect(name.value).toBe("Enter Farm"));
+			await waitFor(() => expect(name.value).toBe("River Farm"));
 			expect(page.getByText(/Enter a farm name/)).toBeTruthy();
-			expect(actionCount(page)).toBe(2);
 			expect(
 				page.getByRole("heading", { name: "Farm creation settings" }),
 			).toBeTruthy();
@@ -103,51 +100,38 @@ describe("full-save farm workflow", { timeout: 15_000 }, () => {
 		}
 	});
 
-	it("profit commits on blur or Enter, while invalid values restore the committed percentage without history", async () => {
+	it("profit edits apply immediately, group typing, and reject invalid values without new history", async () => {
 		const page = await openFarm();
 		try {
 			const profit = page.getByRole("spinbutton", {
 				name: "Profit margin (%)",
 			}) as HTMLInputElement;
 			profit.focus();
+			await fireEvent.input(profit, { target: { value: "7" } });
 			await fireEvent.input(profit, { target: { value: "75" } });
-			expect(actionCount(page)).toBe(0);
-			expect(
-				page
-					.getByRole("button", { name: "Export save" })
-					.hasAttribute("disabled"),
-			).toBe(false);
-			await fireEvent.blur(profit);
 			await waitFor(() => expect(actionCount(page)).toBe(1));
-			await idle(page);
+			await fireEvent.blur(profit);
 			profit.focus();
 			await fireEvent.input(profit, { target: { value: "0" } });
+			await waitFor(() =>
+				expect(profit.getAttribute("aria-invalid")).toBe("true"),
+			);
 			await fireEvent.blur(profit);
 			await waitFor(() => expect(profit.value).toBe("75"));
 			expect(actionCount(page)).toBe(1);
 			expect(page.getByText(/profit percentage from 1 to 1000/)).toBeTruthy();
-			await idle(page);
 			profit.focus();
 			await fireEvent.input(profit, { target: { value: "50" } });
-			await fireEvent.keyDown(profit, { key: "Enter", code: "Enter" });
 			await waitFor(() => expect(actionCount(page)).toBe(2));
-			await idle(page);
-			await fireEvent.blur(profit);
-			await idle(page);
-			expect(actionCount(page)).toBe(2);
 			await fireEvent.click(page.getByRole("button", { name: "Undo" }));
 			await waitFor(() => expect(profit.value).toBe("75"));
-			await idle(page);
 			await fireEvent.click(page.getByRole("button", { name: "Redo" }));
 			await waitFor(() => expect(profit.value).toBe("50"));
-			await idle(page);
-			profit.focus();
 			await fireEvent.input(profit, { target: { value: "" } });
-			await fireEvent.keyDown(profit, { key: "Enter", code: "Enter" });
+			expect(profit.value).toBe("");
+			await fireEvent.blur(profit);
 			await waitFor(() => expect(profit.value).toBe("50"));
 			expect(actionCount(page)).toBe(2);
-			expect(page.getByText(/profit percentage from 1 to 1000/)).toBeTruthy();
-			await idle(page);
 		} finally {
 			page.unmount();
 		}
@@ -234,7 +218,7 @@ describe("full-save farm workflow", { timeout: 15_000 }, () => {
 		}
 	});
 
-	it("export clicked after name blur queues behind the edit and downloads the committed value", async () => {
+	it("export includes the latest typed name before blur and finalizes its Undo group", async () => {
 		let written: Blob | undefined;
 		const picker = vi.fn(async () => ({
 			createWritable: async () => ({
@@ -255,10 +239,7 @@ describe("full-save farm workflow", { timeout: 15_000 }, () => {
 			}) as HTMLInputElement;
 			name.focus();
 			await fireEvent.input(name, { target: { value: "Export Farm" } });
-			await Promise.all([
-				fireEvent.blur(name),
-				fireEvent.click(page.getByRole("button", { name: "Export save" })),
-			]);
+			await fireEvent.click(page.getByRole("button", { name: "Export save" }));
 			await waitFor(() => expect(written).toBeTruthy(), { timeout: 5000 });
 			if (!written)
 				throw Error("Expected the browser file writer to receive a save");

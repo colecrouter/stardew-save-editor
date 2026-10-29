@@ -61,7 +61,16 @@ token stylesheet, or component wrapper alone does not satisfy this work. The
 native/Bits confirmation experiment informs one interaction; it does not settle
 the choice of a broader component system.
 
-## First working UI slice
+## Current editing boundary
+
+The original draft comparison below is historical proof work. Independent fields
+now follow the [domain view and immediate-field contract](v2-domain-fields.md):
+valid values apply immediately, while a shared editing gesture groups their Undo
+history. Explicit drafts are reserved for coordinated consequences such as the
+calendar. Domain APIs and shared field adapters replace UI-owned save-format and
+transaction plumbing. Parser/raw save type replacement is separate work.
+
+## Original first working UI slice (historical)
 
 1. Give stack editing an explicit draft: typing creates no mutation or history.
    Invalid input stays visible; a successful submit creates one action.

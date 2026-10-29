@@ -325,6 +325,8 @@ export const makeHistorySession = (
 			prepared: SessionState,
 			annotations: readonly ReviewMetadata[],
 			editKey?: string,
+			identities = state.identities,
+			nextIdentity = state.nextIdentity,
 		): History => {
 			// A repeated valid value creates neither a revision nor a history step.
 			if (
@@ -342,8 +344,8 @@ export const makeHistorySession = (
 			const next = finish(
 				before,
 				prepared,
-				state.identities,
-				state.nextIdentity,
+				identities,
+				nextIdentity,
 				[],
 				undefined,
 				annotations,
@@ -742,7 +744,7 @@ export const makeHistorySession = (
 								state.document,
 								state.equipmentIdentities,
 							);
-							const { collected, prepared, authorized } =
+							const { collected, prepared, authorized, resizes } =
 								yield* collectTransactionMetadata(program).pipe(
 									Effect.provideService(TransactionDraft, draft.service),
 									Effect.provideService(BackpackItemEdits, itemEdits.service),
@@ -751,6 +753,7 @@ export const makeHistorySession = (
 									Effect.flatMap((collected) =>
 										Effect.map(draft.prepared, (prepared) => ({
 											collected,
+											resizes: itemEdits.resizes(),
 											prepared,
 											// Validate while the attempt still owns its patch/read authority;
 											// close then clears those retained values before publication.
@@ -769,9 +772,30 @@ export const makeHistorySession = (
 								return yield* new MutationError(
 									"Inventory changes or game context did not match the supported item operation",
 								);
+							// Retained slots keep their handles. New slots get fresh monotonic
+							// identities; Undo/Redo retain exact before/after identity snapshots.
+							const resizedIdentities = resizes.length
+								? structuredClone(state.identities)
+								: state.identities;
+							let nextIdentity = state.nextIdentity;
+							for (const resize of resizes) {
+								const slots = resizedIdentities[resize.farmerId];
+								if (!slots)
+									throw new Error("Resized backpack has no identities");
+								slots.length = Math.min(slots.length, resize.size);
+								while (slots.length < resize.size)
+									slots.push(`item:${++nextIdentity}`);
+							}
 							return yield* Effect.try({
 								try: () =>
-									finishEdit(state, prepared, collected.records, editKey),
+									finishEdit(
+										state,
+										prepared,
+										collected.records,
+										editKey,
+										resizedIdentities,
+										nextIdentity,
+									),
 								catch: (cause) => {
 									if (!(cause instanceof MutationError)) throw cause;
 									return cause;

@@ -8,6 +8,7 @@
 	import EditorShell from "../../ui/frame/EditorShell.svelte";
 	import SectionLink from "../../ui/frame/SectionLink.svelte";
 	import CalendarPanel from "./CalendarPanel.svelte";
+	import RelationshipPanel from "./RelationshipPanel.svelte";
 	import CharacterPanel from "./CharacterPanel.svelte";
 	import FarmPanel from "./FarmPanel.svelte";
 	import BundlePanel from "./BundlePanel.svelte";
@@ -113,10 +114,19 @@
 				<SectionLink
 					href="#character"
 					label="Character"
-					shortLabel="Skills"
+					shortLabel="Character"
 					icon="character"
 					active={tab === "character"}
 					onclick={() => chooseSection("character")}
+				/>
+
+				<SectionLink
+					href="#relationships"
+					label="Relationships"
+					shortLabel="Friends"
+					icon="character"
+					active={tab === "relationships"}
+					onclick={() => chooseSection("relationships")}
 				/>
 
 				<SectionLink
@@ -179,6 +189,9 @@
 			</div>
 		{/if}
 		<div hidden={tab !== "character"}><CharacterPanel {model} /></div>
+		<div hidden={tab !== "relationships"}>
+			<RelationshipPanel {model} />
+		</div>
 		<div hidden={tab !== "farm"}><FarmPanel {model} /></div>
 		<div hidden={tab !== "calendar"}>
 			<CalendarPanel {model} draft={dateDraft} />
@@ -262,8 +275,8 @@
 		}
 	}
 	@media (max-width: 600px) {
-		/* Keep the inventory overview in reach: phone chrome uses one compact
-		   tab row and smaller type instead of consuming half the viewport. */
+		/* Keep the inventory overview in reach: phone chrome uses compact
+		   wrapping tabs so added sections remain reachable without clipped labels. */
 		.editor {
 			font-size: 18px;
 			line-height: 1.3;
@@ -287,7 +300,7 @@
 		}
 		nav {
 			display: flex;
-			flex-wrap: nowrap;
+			flex-wrap: wrap;
 		}
 		nav :global(a) {
 			min-width: 0;

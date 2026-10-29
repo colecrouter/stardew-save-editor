@@ -327,6 +327,13 @@ export function readChests(
 export class BackpackItemEdits extends Context.Service<
 	BackpackItemEdits,
 	{
+		resize: (
+			farmerId: string,
+			size: number,
+		) => Effect.Effect<
+			boolean,
+			BackpackItemInvalid | import("./domain.ts").MutationError
+		>;
 		set: (
 			change: BackpackItemChange,
 		) => Effect.Effect<
@@ -384,6 +391,7 @@ export function backpackInventorySnapshot(document: SaveDocument) {
 				? {
 						id: farmer.UniqueMultiplayerID,
 						items: farmer.items,
+						maxItems: farmer.maxItems,
 						// Field presence matters too: a raw draft cannot eagerly add empty
 						// equipment to a save whose corresponding field was absent.
 						equipment: Object.fromEntries(
@@ -419,6 +427,7 @@ export function makeBackpackItemEdits(
 		patch: Record<string, unknown>;
 	}[] = [];
 	const contexts = new Map<string, string>();
+	const resizes: { farmerId: string; size: number }[] = [];
 	const ownerIn = resolveInventoryContainer;
 	const replay = (document: SaveDocument) => {
 		const expected = structuredClone(document);
@@ -429,6 +438,17 @@ export function makeBackpackItemEdits(
 					? farmer?.slots[write.location]
 					: farmer?.farmer?.[write.location];
 			if (record(item)) Object.assign(item, structuredClone(write.patch));
+		}
+		// Capacity changes append canonical empty slots or remove only validated nils.
+		// Replay after retained-item patches because shrinking can never remove an item.
+		for (const resize of resizes) {
+			const owner = ownerIn(expected, resize.farmerId);
+			if (owner?.farmer && record(owner.farmer)) {
+				owner.slots.length = Math.min(owner.slots.length, resize.size);
+				while (owner.slots.length < resize.size)
+					owner.slots.push({ "@_xsi:nil": "true" });
+				owner.farmer.maxItems = resize.size;
+			}
 		}
 		return expected;
 	};
@@ -451,6 +471,11 @@ export function makeBackpackItemEdits(
 		entityId: string,
 	) {
 		const snapshot = yield* draft.read;
+		// New slot handles are published only with the enclosing history commit.
+		if (resizes.length)
+			return yield* new ItemPropertyInvalid({
+				message: "Finish the capacity change before editing an item.",
+			});
 		// Compare before checking eligibility: temporary raw type/category edits
 		// must not authorize a property that the imported item did not support.
 		if (
@@ -540,6 +565,52 @@ export function makeBackpackItemEdits(
 		return true;
 	});
 	const service: typeof BackpackItemEdits.Service = {
+		resize: Effect.fn("Backpack.resize")(function* (
+			farmerId: string,
+			size: number,
+		) {
+			const snapshot = yield* draft.read;
+			const owner = ownerIn(snapshot.state.document, farmerId);
+			const valid = [12, 24, 36];
+			if (
+				!authority ||
+				!owner?.farmer ||
+				!record(owner.farmer) ||
+				!valid.includes(size) ||
+				!valid.includes(owner.slots.length) ||
+				owner.farmer.maxItems !== owner.slots.length ||
+				JSON.stringify(backpackInventorySnapshot(snapshot.state.document)) !==
+					JSON.stringify(backpackInventorySnapshot(replay(authority)))
+			)
+				return yield* new BackpackItemInvalid({
+					message:
+						"Choose a supported backpack with matching saved capacity and slots.",
+				});
+			// Even a nil marker can carry mod data. Shrinking discards only the exact
+			// canonical empty record, never a broadly 'empty' item with opaque members.
+			if (
+				owner.slots
+					.slice(size)
+					.some(
+						(slot) =>
+							!record(slot) ||
+							Object.keys(slot).length !== 1 ||
+							String(slot["@_xsi:nil"]) !== "true",
+					)
+			)
+				return yield* new BackpackItemInvalid({
+					message:
+						"Empty the backpack's last slots before shrinking it; slots with extra saved data must be preserved.",
+				});
+			if (size === owner.slots.length) return false;
+			owner.slots.length = Math.min(size, owner.slots.length);
+			while (owner.slots.length < size)
+				owner.slots.push({ "@_xsi:nil": "true" });
+			owner.farmer.maxItems = size;
+			yield* draft.replace(snapshot);
+			resizes.push({ farmerId, size });
+			return true;
+		}),
 		set: Effect.fn("Backpack.stageField")(function* (
 			input: BackpackItemChange,
 		) {
@@ -676,6 +747,7 @@ export function makeBackpackItemEdits(
 	};
 	return {
 		service,
+		resizes: () => [...resizes],
 		validate: (document: SaveDocument, baseline: SaveDocument) =>
 			contextMatches(document) &&
 			JSON.stringify(backpackInventorySnapshot(replay(baseline))) ===
@@ -683,6 +755,7 @@ export function makeBackpackItemEdits(
 		close: Effect.sync(() => {
 			authority = undefined;
 			writes.length = 0;
+			resizes.length = 0;
 			contexts.clear();
 		}),
 	};

@@ -7,6 +7,9 @@ only the existing adapters needed by these domains are used.
 
 ## Ownership
 
+Component-facing values follow the [immutable domain projection contract](v2-domain-projections.md).
+Views should be intuitive for UI use, rather than mirror the underlying save DTO.
+
 UI consumes editor-owned domain views and field adapters, not SDV field names,
 XML arrays, stats dictionaries, or generated save-type casts. Character, Farm and the migrated inventory inspectors use this boundary. Named domain operations own validation and coordinated
 saved-value updates; they expose typed Effect failures. Deterministic arithmetic

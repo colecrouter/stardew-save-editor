@@ -2,11 +2,11 @@ import { describe, expect, it } from "vitest";
 import { Effect, Result } from "effect";
 import { makeHistorySession } from "../../src/lib/editor/history";
 import {
-	readBackpacks,
 	setBackpackItem,
 	decodeBackpackItemChange,
 	type BackpackItemChange,
 } from "../../src/lib/editor/inventory-operations";
+import { readBackpacks } from "../../src/lib/editor/inventory-views";
 import { TransactionDraft } from "../../src/lib/editor/transaction-draft";
 import { tinyFixture } from "./fixtures";
 
@@ -58,7 +58,8 @@ describe("bounded backpack edits", () => {
 				const view = readBackpacks(before);
 				const slot = required(required(view[0]).slots[0]);
 				const entityId = slot.entityId;
-				required(slot.raw).stack = 900;
+				Object.assign(slot, { quantity: 900 });
+				expect(slot).not.toHaveProperty("raw");
 				expect(yield* session.snapshot).toEqual(before);
 				const after = yield* session.transact(
 					setBackpackItem({
@@ -209,7 +210,7 @@ describe("bounded backpack edits", () => {
 				);
 				expect(
 					readBackpacks(edited).find((view) => view.farmerId === "guest")
-						?.slots[0]?.stack,
+						?.slots[0]?.quantity,
 				).toBe(7);
 				yield* session.undo;
 				const restored = yield* session.undo;
@@ -608,8 +609,6 @@ it("projects opaque item identifiers without invoking their conversion fields", 
 		identities: { host: ["a", "b", "c"] },
 	});
 	expect(view[0]?.slots[0]?.itemId).toBe("");
-	expect(view[0]?.slots[0]?.raw).toEqual(
-		document.SaveGame.player.items.Item[0],
-	);
+	expect(view[0]?.slots[0]).not.toHaveProperty("raw");
 	expect(document).toEqual(before);
 });

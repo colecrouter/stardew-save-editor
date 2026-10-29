@@ -1,3 +1,4 @@
+import type { ItemPresentation } from "./item-presentation.ts";
 import {
 	emptySlot,
 	farmers,
@@ -27,17 +28,18 @@ export const equipmentLabels = {
 	pantsItem: "Pants",
 	trinketItem: "Trinket",
 } as const satisfies Record<EquipmentSlot, string>;
-export interface EquipmentSlotView {
-	entityId: string;
-	key: EquipmentSlot;
-	label: string;
-	empty: boolean;
-	locked: boolean;
-	name: string;
-	itemId: string;
-	raw?: Record<string, unknown>;
-	stack?: number;
-	quality?: number;
+export interface EquipmentSlotView extends ItemPresentation {
+	readonly entityId: string;
+	readonly key: EquipmentSlot;
+	readonly label: string;
+	readonly empty: boolean;
+	readonly locked: boolean;
+	readonly name: string;
+	readonly itemId: string;
+	readonly canStack: boolean;
+	readonly canQuality: boolean;
+	readonly quantity?: number;
+	readonly quality?: number;
 }
 const record = (value: unknown): value is Record<string, unknown> =>
 	value !== null && typeof value === "object" && !Array.isArray(value);

@@ -3,13 +3,10 @@
 	import { createImmediateFieldController } from "../immediate-field.svelte.ts";
 	import { createInventoryQuantityFields } from "../inventory-domain.ts";
 	import NumberField from "./fields/NumberField.svelte";
-	import type { ItemInformation } from "$types/items";
-	import type { TrinketRollContext } from "../../TrinketStats.ts";
 	import ItemPropertyControls from "./ItemPropertyControls.svelte";
-	import { getItemPropertyFields } from "../item-properties.ts";
 	import type { EquipmentSlotView } from "../equipment.ts";
 	import type { EditorModel } from "../editor-model.ts";
-	import { type BackpackSlotView } from "../inventory-operations.ts";
+	import type { BackpackSlotView } from "../inventory-views.ts";
 	import BackpackItemVisual from "./BackpackItemVisual.svelte";
 	import QualityBadge from "./QualityBadge.svelte";
 
@@ -19,12 +16,6 @@
 		item: BackpackSlotView | EquipmentSlotView;
 		locationLabel?: string;
 		inventoryKind?: "backpack" | "chest";
-		name: string;
-		description?: string;
-		metadata?: Pick<ItemInformation, "_type">;
-		propertyContext?: TrinketRollContext;
-		canStack: boolean;
-		canQuality: boolean;
 		onremove?: () => Promise<void>;
 		removing?: boolean;
 	}
@@ -32,12 +23,6 @@
 		model,
 		farmerId,
 		item,
-		name,
-		description,
-		metadata,
-		propertyContext,
-		canStack,
-		canQuality,
 		locationLabel,
 		inventoryKind = "backpack",
 		onremove,
@@ -47,19 +32,24 @@
 	const equipmentItem = $derived("key" in item);
 	const qualityGroup = $props.id();
 	const fields = $derived(
-		createInventoryQuantityFields(model, farmerId, item, canStack, canQuality),
+		createInventoryQuantityFields(
+			model,
+			farmerId,
+			item,
+			item.canStack,
+			item.canQuality,
+		),
 	);
 	// The radio presentation shares the same lifecycle/error controller as ordinary
 	// fields. Each quality choice is discrete even while keyboard focus stays here.
 	const qualityEditing = createImmediateFieldController(() => fields.quality, {
 		discrete: true,
 	});
-	// Deriving controls must not add missing save fields or repair imported values.
-	const itemFields = $derived(
-		getItemPropertyFields(item.raw, metadata, propertyContext),
-	);
+	// The domain supplies supported fields and their display values. Rendering an
+	// inspector never decodes save records or guesses at missing property defaults.
+	const itemFields = $derived(item.properties);
 	const guidance = $derived(
-		canStack || canQuality || itemFields.length > 0
+		item.canStack || item.canQuality || itemFields.length > 0
 			? "Changes update immediately. Use Undo to revert."
 			: "",
 	);
@@ -75,27 +65,27 @@
 	class="inspector"
 >
 	<header>
-		<div class="large-icon"><BackpackItemVisual raw={item.raw} /></div>
+		<div class="large-icon"><BackpackItemVisual visual={item.visual} /></div>
 		<div>
-			<h2>{name}</h2>
+			<h2>{item.name}</h2>
 			<p class="slot-label">
 				{locationLabel ?? `Slot ${"slot" in item ? item.slot + 1 : ""}`}
 			</p>
 		</div>
 	</header>
-	{#if description}
-		<p class="description">{description}</p>
+	{#if item.description}
+		<p class="description">{item.description}</p>
 	{/if}
 	<!-- Equipment is inspected in its named slot. Its saved stack/quality defaults
 	     are not editing controls; quantity and quality belong to supported inventory items. -->
-	{#if !equipmentItem && (canStack || canQuality || itemFields.length === 0)}
+	{#if !equipmentItem && (item.canStack || item.canQuality || itemFields.length === 0)}
 		<div class="properties">
-			{#if canStack}
+			{#if item.canStack}
 				<NumberField field={fields.quantity} />
-			{:else if item.stack !== undefined}
-				<p>Quantity: {item.stack}</p>
+			{:else if item.quantity !== undefined}
+				<p>Quantity: {item.quantity}</p>
 			{/if}
-			{#if canQuality}
+			{#if item.canQuality}
 				<!-- Native radio grouping preserves focus and arrow-key selection while
 			     each discrete choice enters the serialized command queue. -->
 				<fieldset aria-busy={qualityEditing.pending} class="quality-picker">
@@ -152,7 +142,7 @@
 		fields={itemFields}
 	/>
 
-	{#if !equipmentItem && !canStack && !canQuality && itemFields.length === 0}
+	{#if !equipmentItem && !item.canStack && !item.canQuality && itemFields.length === 0}
 		<p>
 			Quantity and quality are preserved but cannot be edited for this item.
 		</p>

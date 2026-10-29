@@ -2,7 +2,7 @@ import { inventoryQuantity } from "./inventory-policy.ts";
 import { Effect } from "effect";
 import { bindImmediateField, type ImmediateEditPort } from "./field-binding.ts";
 import type { ImmediateField } from "./immediate-field.ts";
-import type { BackpackSlotView } from "./inventory-operations.ts";
+import type { BackpackSlotView } from "./inventory-views.ts";
 import {
 	setBackpackItem,
 	decodeBackpackItemChange,
@@ -35,7 +35,7 @@ export function createInventoryQuantityFields(
 			{
 				key: `inventory:${JSON.stringify([farmerId, entityId, property])}`,
 				label,
-				value: item[property],
+				value: property === "stack" ? item.quantity : item.quality,
 				available,
 				constraints: property === "stack" ? inventoryQuantity : undefined,
 			},

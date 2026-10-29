@@ -6,7 +6,7 @@ import {
 	equipmentSlots,
 	trinketAvailable,
 } from "../../src/lib/editor/equipment";
-import { readBackpacks } from "../../src/lib/editor/inventory-operations";
+import { readBackpacks } from "../../src/lib/editor/inventory-views";
 import { TransactionDraft } from "../../src/lib/editor/transaction-draft";
 import { tinyFixture } from "./fixtures";
 import type { BackpackMoveRequest } from "../../src/lib/editor/backpack-movement";

@@ -1,9 +1,10 @@
+import type { ImmutableView } from "./immutable-view.ts";
 import { bindImmediateField, type DomainEditPort } from "./field-binding.ts";
 import type { RecipeKind } from "./recipe-data.ts";
 import { setRecipe, type RecipeFarmerView } from "./recipe-operations.ts";
 /** Capture recipe/farmer identity before queued work can outlive page selection. */
 export function createRecipeDomain(
-	view: RecipeFarmerView,
+	view: ImmutableView<RecipeFarmerView>,
 	kind: RecipeKind,
 	model: DomainEditPort,
 ) {

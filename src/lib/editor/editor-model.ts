@@ -1,3 +1,4 @@
+import { immutableView, type ImmutableView } from "./immutable-view.ts";
 import { readFarmerChoices } from "./farmer-selection.ts";
 import { readQuestJournals, type QuestFarmerView } from "./quest-operations.ts";
 import { readQiOrders, type QiOrdersView } from "./qi-order-operations.ts";
@@ -15,12 +16,12 @@ import type { EditGesture } from "./edit-gesture.ts";
 import { readCharacters, type CharacterView } from "./character-operations.ts";
 import type { BackpackMoveRequest } from "./backpack-movement.ts";
 import type { BackpackLifecycleRequest } from "./backpack-lifecycle.ts";
+import { type BackpackItemEdits } from "./inventory-operations.ts";
 import {
 	readBackpacks,
 	readChests,
 	type BackpackView,
-	type BackpackItemEdits,
-} from "./inventory-operations.ts";
+} from "./inventory-views.ts";
 import { readFarmSettings, type FarmView } from "./farm-operations.ts";
 import {
 	validateSave,
@@ -80,31 +81,31 @@ export interface WeatherChoice {
 	label: string;
 	allowed: boolean;
 }
-export interface EditorView {
-	revision: number;
-	bundle: ReturnType<typeof springBundleView>;
-	calendar: CalendarViewState;
-	farm: FarmView;
-	backpacks: BackpackView[];
-	chests: BackpackView[];
-	characters: CharacterView[];
-	farmerChoices: ReturnType<typeof readFarmerChoices>;
-	recipes: RecipeFarmerView[];
-	events: EventFarmerView[];
-	questJournals: QuestFarmerView[];
-	qiOrders: QiOrdersView;
-	appearances: AppearanceView[];
-	relationships: RelationshipFarmerView[];
-	greenRain: number;
-	todayOptions: WeatherChoice[];
-	tomorrowOptions: WeatherChoice[];
-	todayReason?: string;
-	tomorrowReason?: string;
-	canUndo: boolean;
-	canRedo: boolean;
-	retainedBytes: number;
-	dropped: number;
-	entries: {
+interface EditorViewData {
+	readonly revision: number;
+	readonly bundle: ReturnType<typeof springBundleView>;
+	readonly calendar: CalendarViewState;
+	readonly farm: FarmView;
+	readonly backpacks: readonly BackpackView[];
+	readonly chests: readonly BackpackView[];
+	readonly characters: CharacterView[];
+	readonly farmerChoices: ReturnType<typeof readFarmerChoices>;
+	readonly recipes: RecipeFarmerView[];
+	readonly events: EventFarmerView[];
+	readonly questJournals: QuestFarmerView[];
+	readonly qiOrders: QiOrdersView;
+	readonly appearances: AppearanceView[];
+	readonly relationships: RelationshipFarmerView[];
+	readonly greenRain: number;
+	readonly todayOptions: WeatherChoice[];
+	readonly tomorrowOptions: WeatherChoice[];
+	readonly todayReason?: string;
+	readonly tomorrowReason?: string;
+	readonly canUndo: boolean;
+	readonly canRedo: boolean;
+	readonly retainedBytes: number;
+	readonly dropped: number;
+	readonly entries: {
 		id: number;
 		label: string;
 		compact: boolean;
@@ -112,14 +113,21 @@ export interface EditorView {
 		paths: string[];
 		annotations: HistoryState["entries"][number]["annotations"];
 	}[];
-	net: JsonPatch.JsonPatch;
-	farmerId: string;
-	backpackSize: number;
+	readonly net: JsonPatch.JsonPatch;
+	readonly farmerId: string;
+	readonly backpackSize: number;
 }
+
+/** Component-facing committed values; all nested data is immutable. */
+export type EditorView = ImmutableView<EditorViewData>;
 
 // Build the feature projection from committed state only. Form drafts never
 // enter this function, and projection must not normalize the imported document.
-function project(state: HistoryState, includeProofs = false): EditorView {
+function project(
+	state: HistoryState,
+	includeProofs = false,
+	chests: readonly BackpackView[] = readChests(state),
+): EditorView {
 	const game = state.document.SaveGame as unknown as Save;
 	if (!Number.isFinite(game.year) || !Number.isFinite(game.dayOfMonth))
 		throw new Error("The save has no readable calendar date.");
@@ -175,7 +183,7 @@ function project(state: HistoryState, includeProofs = false): EditorView {
 		calendar,
 		farm: readFarmSettings(state.document),
 		backpacks: readBackpacks(state),
-		chests: readChests(state),
+		chests,
 		characters: readCharacters(state.document),
 		farmerChoices: readFarmerChoices(state.document),
 		recipes: readRecipes(state.document),
@@ -262,6 +270,9 @@ export const makeEditorModel = (
 		// reference; rejecting later commands alone would still retain the save.
 		let engine: HistorySession | undefined = session;
 		let closed = false;
+		let chestCache:
+			| { revision: number; value: ImmutableView<BackpackView[]> }
+			| undefined;
 		yield* Effect.acquireRelease(
 			Effect.sync(() => {
 				resources.models++;
@@ -284,6 +295,7 @@ export const makeEditorModel = (
 						value.set(viewAtom, undefined);
 						value.dispose();
 						registry = undefined;
+						chestCache = undefined;
 						resources.registries--;
 					}),
 			);
@@ -324,13 +336,24 @@ export const makeEditorModel = (
 		};
 		// Both the command result and subscription stream can deliver a revision.
 		// Ignore duplicates and late older deliveries to avoid regression/reprojection.
+		// One canonical immutable chest view belongs to this file, not a revision
+		// archive. Public mutations cannot poison a cache hit. Replacing the cache
+		// releases the previous descriptor tree; closure clears it as well.
 		const publish = (state: HistoryState) => {
 			if (
 				!closed &&
 				registry &&
 				state.revision > (registry.get(viewAtom)?.revision ?? -1)
 			) {
-				const next = project(state, options.includeProofs);
+				if (!chestCache || chestCache.revision !== state.chestRevision) {
+					chestCache = {
+						revision: state.chestRevision,
+						value: immutableView(readChests(state)),
+					};
+				}
+				const next = immutableView(
+					project(state, options.includeProofs, chestCache.value),
+				);
 				registry.set(viewAtom, next);
 				// Selection belongs to the file, not a page index. Preserve its
 				// stable ID through revisions; only unavailable/ambiguous owners

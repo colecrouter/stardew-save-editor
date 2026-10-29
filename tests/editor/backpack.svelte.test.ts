@@ -1,3 +1,4 @@
+import { readItemVisual } from "../../src/lib/editor/item-presentation.ts";
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, waitFor, within } from "@testing-library/svelte";
 import { flushSync } from "svelte";
@@ -353,14 +354,14 @@ describe("full-save backpack workflow", { timeout: 15_000 }, () => {
 	});
 });
 
-it("raw backpack visuals resolve missing display names without adding or normalizing saved fields", () => {
+it("projected backpack visuals resolve missing display names without adding or normalizing saved fields", () => {
 	const raw = Object.freeze({
 		"@_xsi:type": "Object",
 		itemId: "388",
 		quality: 3,
 	});
 	const before = structuredClone(raw);
-	const page = render(BackpackItemVisual, { raw });
+	const page = render(BackpackItemVisual, { visual: readItemVisual(raw) });
 	try {
 		flushSync();
 		expect(page.container.querySelector("svg image")).toBeTruthy();
@@ -381,7 +382,7 @@ it.each([0, 1, 2, 3, 4])(
 			itemId: "24",
 			quality,
 		});
-		const page = render(BackpackItemVisual, { raw });
+		const page = render(BackpackItemVisual, { visual: readItemVisual(raw) });
 		try {
 			flushSync();
 			expect(page.container.querySelector(".quality-badge svg") !== null).toBe(
@@ -410,7 +411,7 @@ it.each(["shirtItem", "pantsItem"] as const)(
 			}),
 		});
 		const before = structuredClone(raw);
-		const page = render(BackpackItemVisual, { raw });
+		const page = render(BackpackItemVisual, { visual: readItemVisual(raw) });
 		try {
 			flushSync();
 			expect(page.container.querySelectorAll("svg image").length).toBe(

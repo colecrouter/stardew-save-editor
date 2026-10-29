@@ -30,9 +30,7 @@ export function makeTransactionDraft(initial: SessionState) {
 	// is an invariant. Unexpected clone exceptions remain defects.
 	const read = Effect.gen(function* () {
 		if (!active || !state)
-			return yield* Effect.fail(
-				new MutationError("This transaction draft is closed"),
-			);
+			return yield* new MutationError("This transaction draft is closed");
 		return { version, state: structuredClone(state) };
 	});
 	return {
@@ -42,18 +40,14 @@ export function makeTransactionDraft(initial: SessionState) {
 				next: DraftSnapshot,
 			) {
 				if (!active || !state)
-					return yield* Effect.fail(
-						new MutationError("This transaction draft is closed"),
-					);
+					return yield* new MutationError("This transaction draft is closed");
 				if (next.version !== version)
-					return yield* Effect.fail(
-						new MutationError(
-							"Another operation changed this transaction draft",
-						),
+					return yield* new MutationError(
+						"Another operation changed this transaction draft",
 					);
 				if (!Schema.is(Schema.Json)(next.state))
-					return yield* Effect.fail(
-						new MutationError("Transaction drafts require plain JSON state"),
+					return yield* new MutationError(
+						"Transaction drafts require plain JSON state",
 					);
 				state = structuredClone(next.state);
 				version++;
@@ -62,9 +56,7 @@ export function makeTransactionDraft(initial: SessionState) {
 		// History captures the prepared state before finalization clears the capability.
 		prepared: Effect.gen(function* () {
 			if (!active || !state)
-				return yield* Effect.fail(
-					new MutationError("This transaction draft is closed"),
-				);
+				return yield* new MutationError("This transaction draft is closed");
 			return state;
 		}),
 		// Escaped services become inert on both successful and failed transactions.

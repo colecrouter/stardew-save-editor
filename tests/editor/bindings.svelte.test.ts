@@ -16,6 +16,7 @@ it("mounted Atom readers follow a model replacement within their provider regist
 			atomBindings: {
 				registry,
 				view: Atom.make({ calendar: { date: { day } } } as EditorView),
+				selectedFarmerId: Atom.make<string | undefined>(undefined),
 				pending: Atom.make(0),
 				notice: Atom.make(undefined),
 			},

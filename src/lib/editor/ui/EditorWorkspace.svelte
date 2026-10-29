@@ -8,6 +8,7 @@
 	import EditorShell from "../../ui/frame/EditorShell.svelte";
 	import SectionLink from "../../ui/frame/SectionLink.svelte";
 	import CalendarPanel from "./CalendarPanel.svelte";
+	import CharacterPanel from "./CharacterPanel.svelte";
 	import FarmPanel from "./FarmPanel.svelte";
 	import BundlePanel from "./BundlePanel.svelte";
 	import ReviewPanel from "./ReviewPanel.svelte";
@@ -38,6 +39,12 @@
 	const dateDraft = createRuneDraft(() => model.dateField);
 	let tab = $state("calendar");
 	let inventoryOpened = $state(false);
+	function chooseSection(section: string) {
+		// Hidden panels retain their local state, so navigation explicitly finishes
+		// any field gesture even when no native blur event accompanies the change.
+		void model.edits.endActive();
+		tab = section;
+	}
 	let error = $state("");
 	async function perform(
 		action: () => Promise<
@@ -99,8 +106,17 @@
 					active={tab === "inventory"}
 					onclick={() => {
 						inventoryOpened = true;
-						tab = "inventory";
+						chooseSection("inventory");
 					}}
+				/>
+
+				<SectionLink
+					href="#character"
+					label="Character"
+					shortLabel="Skills"
+					icon="character"
+					active={tab === "character"}
+					onclick={() => chooseSection("character")}
 				/>
 
 				<SectionLink
@@ -109,7 +125,7 @@
 					shortLabel="Farm"
 					icon="farm"
 					active={tab === "farm"}
-					onclick={() => (tab = "farm")}
+					onclick={() => chooseSection("farm")}
 				/>
 				<SectionLink
 					href="#calendar"
@@ -117,7 +133,7 @@
 					shortLabel="Calendar"
 					icon="farm"
 					active={tab === "calendar"}
-					onclick={() => (tab = "calendar")}
+					onclick={() => chooseSection("calendar")}
 				/>
 
 				<SectionLink
@@ -126,7 +142,7 @@
 					shortLabel="Changes"
 					icon="quests"
 					active={tab === "review"}
-					onclick={() => (tab = "review")}
+					onclick={() => chooseSection("review")}
 				/>
 				{#if includeProofs}
 					<SectionLink
@@ -134,7 +150,7 @@
 						label="Bundles"
 						icon="community"
 						active={tab === "bundles"}
-						onclick={() => (tab = "bundles")}
+						onclick={() => chooseSection("bundles")}
 					/>
 				{/if}
 			</nav>
@@ -162,6 +178,7 @@
 				{/await}
 			</div>
 		{/if}
+		<div hidden={tab !== "character"}><CharacterPanel {model} /></div>
 		<div hidden={tab !== "farm"}><FarmPanel {model} /></div>
 		<div hidden={tab !== "calendar"}>
 			<CalendarPanel {model} draft={dateDraft} />
@@ -228,7 +245,7 @@
 			--study-frame-height: auto;
 		}
 		nav {
-			/* Four section labels need two columns to keep complete words at phone widths. */
+			/* Section labels need two columns to keep complete words at phone widths. */
 			display: grid;
 			grid-template-columns: repeat(2, minmax(0, 1fr));
 		}
@@ -276,7 +293,7 @@
 			min-width: 0;
 			min-height: 44px;
 			padding: 4px;
-			font-size: 17px;
+			font-size: 16px;
 			justify-content: center;
 		}
 		nav :global(.glyph) {

@@ -57,6 +57,10 @@ interface Entry {
 	backward: JsonPatch.JsonPatch;
 }
 interface History {
+	// The baseline is retained only while one field gesture is open. Each write is
+	// still atomic; this state describes Undo grouping, never an open transaction.
+	editGroup?: { key: string; before: Omit<History, "editGroup"> };
+
 	equipmentIdentities: EquipmentIdentities;
 	domainState: DomainState;
 	retainedBytes: number;
@@ -124,24 +128,18 @@ export const makeHistorySession = (
 				? 8 * 1024 * 1024
 				: (limits.bytes ?? 8 * 1024 * 1024);
 		if (!Number.isInteger(limit) || limit < 1)
-			return yield* Effect.fail(
-				new MutationError("History limit must be a positive integer"),
+			return yield* new MutationError(
+				"History limit must be a positive integer",
 			);
 		if (!Number.isSafeInteger(byteLimit) || byteLimit < 1)
-			return yield* Effect.fail(
-				new MutationError(
-					"History byte budget must be a positive safe integer",
-				),
+			return yield* new MutationError(
+				"History byte budget must be a positive safe integer",
 			);
 		if (!Schema.is(Schema.Json)(document))
-			return yield* Effect.fail(
-				new MutationError("History requires plain JSON save data"),
-			);
+			return yield* new MutationError("History requires plain JSON save data");
 		const baseline = structuredClone(document);
 		if (!isDomainState(initialDomainState))
-			return yield* Effect.fail(
-				new MutationError("Domain state requires plain JSON data"),
-			);
+			return yield* new MutationError("Domain state requires plain JSON data");
 		// Item IDs describe types, not instances. Allocate session-only handles,
 		// including opaque/empty slots, without adding fields to the exported save.
 		let nextIdentity = 0;
@@ -194,8 +192,16 @@ export const makeHistorySession = (
 		});
 		let closed = false;
 		yield* Effect.addFinalizer(() =>
-			Effect.sync(() => {
+			Effect.gen(function* () {
 				closed = true;
+				// A retained gesture handle must not keep its start-document snapshot
+				// alive after the file scope closes. Ordinary history is unaffected.
+				yield* Effect.tx(
+					TxSubscriptionRef.update(ref, (state) => {
+						const { editGroup: _group, ...finished } = state;
+						return finished;
+					}),
+				);
 			}),
 		);
 
@@ -314,41 +320,124 @@ export const makeHistorySession = (
 			};
 		};
 
+		const finishEdit = (
+			state: History,
+			prepared: SessionState,
+			annotations: readonly ReviewMetadata[],
+			editKey?: string,
+		): History => {
+			// A repeated valid value creates neither a revision nor a history step.
+			if (
+				JsonPatch.get(json(state.document), json(prepared.document)).length ===
+					0 &&
+				JsonPatch.get(json(state.domainState), json(prepared.domainState ?? {}))
+					.length === 0
+			)
+				return state;
+			const { editGroup, ...ungrouped } = state;
+			const before =
+				editKey !== undefined && editGroup?.key === editKey
+					? editGroup.before
+					: ungrouped;
+			const next = finish(
+				before,
+				prepared,
+				state.identities,
+				state.nextIdentity,
+				[],
+				undefined,
+				annotations,
+			);
+			// Recompute both patch directions against the first value, not by
+			// appending inverse patches. Returning to that value removes the entry
+			// and restores the pre-gesture redo tail without rolling back revisions.
+			return editKey === undefined
+				? next
+				: {
+						...next,
+						revision: state.revision,
+						nextId: Math.max(next.nextId, state.nextId),
+						editGroup: { key: editKey, before },
+					};
+		};
+
 		const update = <E = never, R = never>(
 			change: (state: History) => History | Effect.Effect<History, E, R>,
 			expectedRevision?: number,
+			editKey?: string,
 		) =>
+			Effect.andThen(
+				// A new field is a boundary even if its first value is rejected or
+				// unchanged. Keep this outside the attempt so failure cannot reopen it.
+				editKey === undefined
+					? endEdit()
+					: Effect.flatMap(TxSubscriptionRef.get(ref), (state) =>
+							state.editGroup && state.editGroup.key !== editKey
+								? endEdit()
+								: Effect.void,
+						),
+				Effect.tx(
+					Effect.gen(function* () {
+						const current = yield* TxSubscriptionRef.get(ref);
+						// The transaction may retry after another lower-level caller has
+						// published a gesture since the outer boundary ran. Re-establish
+						// that boundary against this attempt's actual state: otherwise a
+						// later field write could reuse a baseline preceding this action.
+						const { editGroup, ...withoutGroup } = current;
+						const state =
+							editKey !== undefined && editGroup?.key === editKey
+								? current
+								: editGroup
+									? withoutGroup
+									: current;
+						if (closed) return yield* new MutationError("Session closed");
+						// A stale draft must fail before its preparer can stage any writes.
+						if (
+							expectedRevision !== undefined &&
+							state.revision !== expectedRevision
+						)
+							return yield* new MutationError(
+								"The save changed while editing. Reload the current value.",
+							);
+						const proposed = change(state);
+						const next = Effect.isEffect(proposed) ? yield* proposed : proposed;
+						const published =
+							next === state
+								? state
+								: { ...next, revision: current.revision + 1 };
+						// Clearing only grouping metadata does not advance the document
+						// revision, but still needs publication into the authoritative ref.
+						if (published !== current)
+							yield* TxSubscriptionRef.set(ref, published);
+						return detached(published);
+					}),
+				),
+			);
+
+		// Ending a gesture changes no saved value or revision. Commit it separately
+		// so even a later rejected standalone action cannot reopen an older group.
+		const endEdit = (key?: string) =>
 			Effect.tx(
 				Effect.gen(function* () {
 					const state = yield* TxSubscriptionRef.get(ref);
-					if (closed)
-						return yield* Effect.fail(new MutationError("Session closed"));
-					// A stale draft must fail before its preparer can stage any writes.
+					if (closed) return yield* new MutationError("Session closed");
 					if (
-						expectedRevision !== undefined &&
-						state.revision !== expectedRevision
-					)
-						return yield* Effect.fail(
-							new MutationError(
-								"The save changed while editing. Reload the current value.",
-							),
-						);
-					const proposed = change(state);
-					const next = Effect.isEffect(proposed) ? yield* proposed : proposed;
-					const published =
-						next === state ? state : { ...next, revision: state.revision + 1 };
-					if (published !== state) yield* TxSubscriptionRef.set(ref, published);
-					return structuredClone(published);
+						state.editGroup &&
+						(key === undefined || state.editGroup.key === key)
+					) {
+						const { editGroup: _group, ...finished } = state;
+						yield* TxSubscriptionRef.set(ref, finished);
+					}
 				}),
 			);
-
+		const detached = (state: History) => {
+			const { editGroup: _group, ...visible } = state;
+			return structuredClone(visible);
+		};
 		return {
-			snapshot: Effect.map(TxSubscriptionRef.get(ref), (state) =>
-				structuredClone(state),
-			),
-			changes: Stream.map(TxSubscriptionRef.changesStream(ref), (state) =>
-				structuredClone(state),
-			),
+			endEdit,
+			snapshot: Effect.map(TxSubscriptionRef.get(ref), detached),
+			changes: Stream.map(TxSubscriptionRef.changesStream(ref), detached),
 			// A group has one undo boundary and one review emphasis. Each constituent
 			// intent remains inspectable; a quiet operation never disappears from patches.
 			execute: (
@@ -637,6 +726,7 @@ export const makeHistorySession = (
 					R | TransactionDraft | ReviewJournal | BackpackItemEdits
 				>,
 				expectedRevision?: number,
+				editKey?: string,
 			) =>
 				update(
 					(state) =>
@@ -676,22 +766,12 @@ export const makeHistorySession = (
 							// A prepared snapshot must match the exact approved inventory patches
 							// and context reads captured before the attempt was closed.
 							if (!authorized)
-								return yield* Effect.fail(
-									new MutationError(
-										"Inventory changes or game context did not match the supported item operation",
-									),
+								return yield* new MutationError(
+									"Inventory changes or game context did not match the supported item operation",
 								);
 							return yield* Effect.try({
 								try: () =>
-									finish(
-										state,
-										prepared,
-										state.identities,
-										state.nextIdentity,
-										[],
-										undefined,
-										collected.records,
-									),
+									finishEdit(state, prepared, collected.records, editKey),
 								catch: (cause) => {
 									if (!(cause instanceof MutationError)) throw cause;
 									return cause;
@@ -699,6 +779,7 @@ export const makeHistorySession = (
 							});
 						}),
 					expectedRevision,
+					editKey,
 				),
 			undo: update((state) => {
 				if (state.cursor === 0) return state;

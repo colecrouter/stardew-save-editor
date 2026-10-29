@@ -392,6 +392,8 @@ describe("backpack creation and removal", () => {
 
 // The command returns its own committed handle pair even when Undo is already
 // queued behind it. UI selection can follow that lineage without a racy reread.
+// Full-save import, projection and several queued history revisions need the same
+// bounded CI budget as the other application integration tests (25 seconds).
 it("returns exact replacement lineage before a queued Undo and preserves raw instances", async () => {
 	const original = parser.parse(fixtureXml);
 	const farmerId = String(original.SaveGame.player.UniqueMultiplayerID);
@@ -446,4 +448,4 @@ it("returns exact replacement lineage before a queued Undo and preserves raw ins
 	} finally {
 		await opened.close();
 	}
-});
+}, 25_000);

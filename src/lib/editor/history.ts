@@ -1,7 +1,5 @@
-import {
-	inventoryContainers,
-	compactChestIdentities,
-} from "./inventory-containers.ts";
+import { isInventoryMutation } from "./inventory-transition.ts";
+import { inventoryContainers } from "./inventory-containers.ts";
 import { equipmentSlots, type EquipmentIdentities } from "./equipment.ts";
 import { resolveBackpackMove } from "./backpack-movement.ts";
 import { resolveBackpackLifecycle } from "./backpack-lifecycle.ts";
@@ -18,6 +16,7 @@ import {
 	Stream,
 	TxSubscriptionRef,
 	Option,
+	Result,
 } from "effect";
 import {
 	collectTransactionMetadata,
@@ -217,7 +216,7 @@ export const makeHistorySession = (
 			label?: string,
 			annotations: readonly ReviewMetadata[] = [],
 			equipmentIdentities: EquipmentIdentities = state.equipmentIdentities,
-		): History => {
+		): Result.Result<History, MutationError> => {
 			let prepared = input;
 			// Quiet children remain in annotations, but a standalone child should
 			// supply the group heading rather than being drowned out by maintenance.
@@ -243,7 +242,7 @@ export const makeHistorySession = (
 				JSON.stringify(equipmentIdentities) ===
 					JSON.stringify(state.equipmentIdentities)
 			)
-				return state;
+				return Result.succeed(state);
 			const receipts = prepared.history;
 			const first = receipts[0] ?? {
 				intent: resolved.find((action) => action.type === "reorder") ??
@@ -289,8 +288,8 @@ export const makeHistorySession = (
 			// Reject one oversized operation before publishing anything. Silently
 			// applying an action that cannot be undone would be misleading.
 			if (entry.bytes > byteLimit)
-				throw new MutationError(
-					"This action exceeds the undo history byte budget",
+				return Result.fail(
+					new MutationError("This action exceeds the undo history byte budget"),
 				);
 			const entries = [...state.entries.slice(0, state.cursor), entry];
 			let retainedBytes = entries.reduce(
@@ -305,7 +304,7 @@ export const makeHistorySession = (
 				retainedBytes -= removed.bytes;
 				evict++;
 			}
-			return {
+			return Result.succeed({
 				...state,
 				retainedBytes,
 				domainState: prepared.domainState ?? {},
@@ -317,7 +316,7 @@ export const makeHistorySession = (
 				cursor: entries.length - evict,
 				nextId: state.nextId + 1,
 				dropped: state.dropped + evict,
-			};
+			});
 		};
 
 		const finishEdit = (
@@ -327,7 +326,7 @@ export const makeHistorySession = (
 			editKey?: string,
 			identities = state.identities,
 			nextIdentity = state.nextIdentity,
-		): History => {
+		): Result.Result<History, MutationError> => {
 			// A repeated valid value creates neither a revision nor a history step.
 			if (
 				JsonPatch.get(json(state.document), json(prepared.document)).length ===
@@ -335,13 +334,13 @@ export const makeHistorySession = (
 				JsonPatch.get(json(state.domainState), json(prepared.domainState ?? {}))
 					.length === 0
 			)
-				return state;
+				return Result.succeed(state);
 			const { editGroup, ...ungrouped } = state;
 			const before =
 				editKey !== undefined && editGroup?.key === editKey
 					? editGroup.before
 					: ungrouped;
-			const next = finish(
+			const checked = finish(
 				before,
 				prepared,
 				identities,
@@ -350,17 +349,21 @@ export const makeHistorySession = (
 				undefined,
 				annotations,
 			);
+			if (Result.isFailure(checked)) return checked;
+			const next = checked.success;
 			// Recompute both patch directions against the first value, not by
 			// appending inverse patches. Returning to that value removes the entry
 			// and restores the pre-gesture redo tail without rolling back revisions.
-			return editKey === undefined
-				? next
-				: {
-						...next,
-						revision: state.revision,
-						nextId: Math.max(next.nextId, state.nextId),
-						editGroup: { key: editKey, before },
-					};
+			return Result.succeed(
+				editKey === undefined
+					? next
+					: {
+							...next,
+							revision: state.revision,
+							nextId: Math.max(next.nextId, state.nextId),
+							editGroup: { key: editKey, before },
+						},
+			);
 		};
 
 		const update = <E = never, R = never>(
@@ -439,7 +442,23 @@ export const makeHistorySession = (
 		return {
 			endEdit,
 			snapshot: Effect.map(TxSubscriptionRef.get(ref), detached),
-			changes: Stream.map(TxSubscriptionRef.changesStream(ref), detached),
+			// Group closure changes only private history metadata. Filter unchanged
+			// revisions before detaching so blur never clones the entire save again.
+			changes: Stream.unwrap(
+				Effect.sync(() => {
+					// Each subscription retains only a revision number. Retaining the last
+					// History here would keep a closed gesture's baseline document alive.
+					let revision: number | undefined;
+					return TxSubscriptionRef.changesStream(ref).pipe(
+						Stream.filter((state) => {
+							if (state.revision === revision) return false;
+							revision = state.revision;
+							return true;
+						}),
+						Stream.map(detached),
+					);
+				}),
+			),
 			// A group has one undo boundary and one review emphasis. Each constituent
 			// intent remains inspectable; a quiet operation never disappears from patches.
 			execute: (
@@ -457,6 +476,11 @@ export const makeHistorySession = (
 								document: structuredClone(state.document),
 								domainState: structuredClone(state.domainState),
 								history: [] as Receipt[],
+								inventory: structuredClone({
+									identities: state.identities,
+									equipmentIdentities: state.equipmentIdentities,
+									nextIdentity: state.nextIdentity,
+								}),
 							};
 							let identities = state.identities;
 							let equipmentIdentities = state.equipmentIdentities;
@@ -497,225 +521,58 @@ export const makeHistorySession = (
 											requested.entityId,
 										) ?? -1;
 									if (slot < 0)
-										throw new MutationError(
+										return yield* new MutationError(
 											"Item no longer belongs to this farmer",
 										);
 									action = { ...requested, slot };
 								}
-								// Retain pre-write slot positions so compact chest serialization and
-								// its session identities apply the same permutation after the action.
-								const storageBefore = inventoryContainers(
-									prepared.document,
-								).map((owner) => ({
-									...owner,
-									slots: structuredClone(owner.slots),
-								}));
+								// Operations prepare records and session lifetimes together. History
+								// validates publication data but never replays slot semantics.
 								const previousDomain = prepared.domainState ?? {};
+								const previousInventory = prepared.inventory;
+
 								const result = yield* operations.prepare(prepared, action);
+								if (
+									!result.inventory &&
+									previousInventory &&
+									isInventoryMutation(action)
+								)
+									return yield* new MutationError(
+										"Inventory adapters must prepare record and identity changes together",
+									);
 								prepared = {
 									...result,
-									domainState:
-										result.domainState === undefined
-											? previousDomain
-											: result.domainState,
+									domainState: result.domainState ?? previousDomain,
+									inventory: result.inventory ?? previousInventory,
 								};
 								if (
 									!Schema.is(Schema.Json)(prepared.document) ||
 									!isDomainState(prepared.domainState)
 								)
-									throw new MutationError(
+									return yield* new MutationError(
 										"Prepared document and domain state require plain JSON data",
 									);
-								if (
-									action.type === "item-place" &&
-									!Schema.is(Schema.Json)(action.item)
-								)
-									throw new MutationError(
-										"Placed items require plain JSON save data",
-									);
+								if (prepared.inventory) {
+									identities = prepared.inventory.identities;
+									equipmentIdentities = prepared.inventory.equipmentIdentities;
+									nextIdentity = prepared.inventory.nextIdentity;
+								}
 								resolved.push(action);
-								if (
-									action.type === "item-place" ||
-									action.type === "item-remove"
-								) {
-									const previous = identities[action.farmerId];
-									if (!previous)
-										throw new Error("Prepared inventory has no identity map");
-									const slots = [...previous];
-									slots[action.slot] = `item:${++nextIdentity}`;
-									identities = { ...identities, [action.farmerId]: slots };
-								}
-								if (action.type === "equipment-swap") {
-									// The prepared document exchanged both complete records. Exchange
-									// their session handles across the corresponding maps as one undo unit.
-									identities = structuredClone(identities);
-									equipmentIdentities = structuredClone(equipmentIdentities);
-									const get = (owner: string, key: typeof action.slot) =>
-										typeof key === "number"
-											? identities[owner]?.[key]
-											: equipmentIdentities[owner]?.[key];
-									const from = get(action.farmerId, action.slot),
-										to = get(action.toFarmerId, action.toSlot);
-									if (!from || !to)
-										throw new Error(
-											"Prepared equipment exchange has no identities",
-										);
-									const set = (
-										owner: string,
-										key: typeof action.slot,
-										id: string,
-									) => {
-										if (typeof key === "number") {
-											const slots = identities[owner];
-											if (!slots)
-												throw new Error(
-													"Prepared backpack identity map disappeared",
-												);
-											slots[key] = id;
-										} else {
-											const slots = equipmentIdentities[owner];
-											if (!slots)
-												throw new Error(
-													"Prepared equipment identity map disappeared",
-												);
-											slots[key] = id;
-										}
-									};
-									set(action.farmerId, action.slot, to);
-									set(action.toFarmerId, action.toSlot, from);
-								}
-								if (
-									action.type === "item-move" ||
-									action.type === "item-swap"
-								) {
-									// Handles travel with the records, even across farmer inventories.
-									identities = structuredClone(identities);
-									const source = identities[action.farmerId];
-									const target = identities[action.toFarmerId];
-									const from = source?.[action.slot],
-										to = target?.[action.toSlot];
-									// Preparation already checked both inventories and slots.
-									// Missing identities here indicate a broken engine invariant.
-									if (
-										!source ||
-										!target ||
-										from === undefined ||
-										to === undefined
-									)
-										throw new Error(
-											"Prepared transfer has missing item identities",
-										);
-									source[action.slot] = to;
-									target[action.toSlot] = from;
-								}
-								if (
-									action.type === "item-place" ||
-									action.type === "item-remove" ||
-									action.type === "item-move" ||
-									action.type === "item-swap" ||
-									action.type === "equipment-swap"
-								) {
-									const source = storageBefore.find(
-										(owner) => owner.id === action.farmerId,
-									);
-									const affected = new Set<string>();
-									const selfDrop =
-										(action.type === "item-move" ||
-											action.type === "item-swap" ||
-											action.type === "equipment-swap") &&
-										action.farmerId === action.toFarmerId &&
-										action.slot === action.toSlot;
-									if (source && typeof action.slot === "number")
-										affected.add(source.id);
-									if (action.type === "item-place" && source)
-										source.slots[action.slot] = action.item;
-									else if (action.type === "item-remove" && source)
-										source.slots[action.slot] = { "@_xsi:nil": "true" };
-									else if (
-										action.type === "item-move" ||
-										action.type === "item-swap" ||
-										action.type === "equipment-swap"
-									) {
-										const destination = storageBefore.find(
-											(owner) => owner.id === action.toFarmerId,
-										);
-										// Only emptiness determines compaction. An equipment endpoint always
-										// receives a nonempty source; its prior value may be absent.
-										const sourceItem =
-											typeof action.slot === "number"
-												? source?.slots[action.slot]
-												: source?.farmer?.[action.slot];
-										const targetItem =
-											typeof action.toSlot === "number"
-												? destination?.slots[action.toSlot]
-												: destination?.farmer?.[action.toSlot];
-										if (source && typeof action.slot === "number")
-											source.slots[action.slot] = targetItem;
-										if (destination && typeof action.toSlot === "number") {
-											destination.slots[action.toSlot] = sourceItem;
-											affected.add(destination.id);
-										}
-									}
-									const after = inventoryContainers(prepared.document);
-									for (const owner of storageBefore) {
-										if (
-											owner.kind !== "chest" ||
-											!affected.has(owner.id) ||
-											selfDrop
-										)
-											continue;
-										const ids = identities[owner.id],
-											count = after.find((entry) => entry.id === owner.id)
-												?.slots.length;
-										if (!ids || count === undefined)
-											throw new MutationError(
-												"Chest changed during inventory operation",
-											);
-										identities = {
-											...identities,
-											[owner.id]: compactChestIdentities(
-												owner.slots,
-												ids,
-											).slice(0, count),
-										};
-									}
-								}
-								if (action.type === "reorder") {
-									const before = identities[action.farmerId];
-									if (!before)
-										throw new Error("Prepared reorder has no identity map");
-									identities = {
-										...identities,
-										[action.farmerId]: action.order.map((slot) => {
-											const identity = before[slot];
-											if (identity === undefined)
-												throw new Error(
-													"Prepared reorder has a missing item identity",
-												);
-											return identity;
-										}),
-									};
-								}
 							}
-							return finish(
-								state,
-								prepared,
-								identities,
-								nextIdentity,
-								resolved,
-								label,
-								[],
-								equipmentIdentities,
-							);
-						}).pipe(
-							Effect.catchDefect((error) =>
-								Effect.fail(
-									error instanceof MutationError
-										? error
-										: new MutationError(String(error)),
+							return yield* Effect.fromResult(
+								finish(
+									state,
+									prepared,
+									identities,
+									nextIdentity,
+									resolved,
+									label,
+									[],
+									equipmentIdentities,
 								),
-							),
-						),
+							);
+						}),
+
 					expectedRevision,
 				),
 			// Program error types are inferred locally, not enumerated centrally.
@@ -743,8 +600,9 @@ export const makeHistorySession = (
 								state.identities,
 								state.document,
 								state.equipmentIdentities,
+								state.nextIdentity,
 							);
-							const { collected, prepared, authorized, resizes, replacements } =
+							const { collected, prepared, authorized, inventory } =
 								yield* collectTransactionMetadata(program).pipe(
 									Effect.provideService(TransactionDraft, draft.service),
 									Effect.provideService(BackpackItemEdits, itemEdits.service),
@@ -753,8 +611,7 @@ export const makeHistorySession = (
 									Effect.flatMap((collected) =>
 										Effect.map(draft.prepared, (prepared) => ({
 											collected,
-											resizes: itemEdits.resizes(),
-											replacements: itemEdits.replacements(),
+											inventory: itemEdits.inventory(),
 											prepared,
 											// Validate while the attempt still owns its patch/read authority;
 											// close then clears those retained values before publication.
@@ -773,45 +630,19 @@ export const makeHistorySession = (
 								return yield* new MutationError(
 									"Inventory changes or game context did not match the supported item operation",
 								);
-							// Retained slots keep their handles. New slots get fresh monotonic
-							// identities; Undo/Redo retain exact before/after identity snapshots.
-							const resizedIdentities =
-								resizes.length || replacements.length
-									? structuredClone(state.identities)
-									: state.identities;
-							let nextIdentity = state.nextIdentity;
-							for (const resize of resizes) {
-								const slots = resizedIdentities[resize.farmerId];
-								if (!slots)
-									throw new Error("Resized backpack has no identities");
-								slots.length = Math.min(slots.length, resize.size);
-								while (slots.length < resize.size)
-									slots.push(`item:${++nextIdentity}`);
-							}
-							// Replacing an empty slot creates a new item lifetime. Publish its
-							// handle with the reward and restore exact old handles on Undo.
-							for (const replacement of replacements) {
-								const slots = resizedIdentities[replacement.farmerId];
-								if (!slots || slots[replacement.slot] === undefined)
-									throw new Error("Reward slot has no identity");
-								slots[replacement.slot] = `item:${++nextIdentity}`;
-							}
+							// Inventory capabilities return the same paired transition contract as
+							// actions. History owns publication, never slot allocation/replay.
 
-							return yield* Effect.try({
-								try: () =>
-									finishEdit(
-										state,
-										prepared,
-										collected.records,
-										editKey,
-										resizedIdentities,
-										nextIdentity,
-									),
-								catch: (cause) => {
-									if (!(cause instanceof MutationError)) throw cause;
-									return cause;
-								},
-							});
+							return yield* Effect.fromResult(
+								finishEdit(
+									state,
+									prepared,
+									collected.records,
+									editKey,
+									inventory.identities,
+									inventory.nextIdentity,
+								),
+							);
 						}),
 					expectedRevision,
 					editKey,

@@ -15,7 +15,11 @@
 	);
 	const characters = $derived(view.current?.characters ?? []);
 	const farmerField = $derived(
-		createFarmerSelectionField(characters, selectedFarmer.current, model),
+		createFarmerSelectionField(
+			view.current?.farmerChoices ?? [],
+			selectedFarmer.current,
+			model,
+		),
 	);
 	const selected = $derived(
 		characters.find(

@@ -1,5 +1,8 @@
 <script lang="ts">
-	import type { EditorModel } from "../editor-model.ts";
+	import {
+		createInventoryPropertyField,
+		type InventoryEditPort,
+	} from "../inventory-domain.ts";
 	import type { ItemPropertyField } from "../item-properties.ts";
 	import ItemPropertyControl from "./ItemPropertyControl.svelte";
 
@@ -9,7 +12,7 @@
 		entityId,
 		fields,
 	}: {
-		model: EditorModel;
+		model: InventoryEditPort;
 		farmerId: string;
 		entityId: string;
 		fields: readonly ItemPropertyField[];
@@ -19,7 +22,9 @@
 {#if fields.length}
 	<div class="item-properties" role="group" aria-label="Item properties">
 		{#each fields as field (field.property)}
-			<ItemPropertyControl {model} {farmerId} {entityId} {field} />
+			<ItemPropertyControl
+				field={createInventoryPropertyField(model, farmerId, entityId, field)}
+			/>
 		{/each}
 	</div>
 {/if}

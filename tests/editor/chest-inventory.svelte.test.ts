@@ -86,10 +86,13 @@ describe("placed chest inventory controls", { timeout: 25_000 }, () => {
 			await fireEvent.click(
 				page.getByRole("button", { name: "Chest slot 1: Wood" }),
 			);
-			await fireEvent.input(
-				page.getByRole("spinbutton", { name: "Quantity" }),
-				{ target: { value: "9" } },
-			);
+			const quantity = page.getByRole("spinbutton", { name: "Quantity" });
+			await fireEvent.focus(quantity);
+			await fireEvent.input(quantity, { target: { value: "2" } });
+			await fireEvent.input(quantity, { target: { value: "9" } });
+			// Chest quantity uses the same grouped field policy as backpacks. The
+			// following transfer queues after these writes and retains their old owner.
+			expect((await opened.model.snapshot()).entries).toHaveLength(1);
 			await waitFor(() =>
 				expect(
 					(

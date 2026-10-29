@@ -1,3 +1,4 @@
+import { characterLimits } from "./character-data.ts";
 import { Data, Effect, Result, Schema, SchemaIssue } from "effect";
 import {
 	readCharacterDetails,
@@ -46,13 +47,16 @@ export const CharacterChangeSchema = Schema.Union([
 		farmerId: Schema.String,
 		kind: Schema.Literal("skill-xp"),
 		skill,
-		value: integer(0, 99999),
+		value: integer(characterLimits.skillXp.min, characterLimits.skillXp.max),
 	}),
 	Schema.Struct({
 		farmerId: Schema.String,
 		kind: Schema.Literal("skill-level"),
 		skill,
-		value: integer(0, 10),
+		value: integer(
+			characterLimits.skillLevel.min,
+			characterLimits.skillLevel.max,
+		),
 	}),
 	Schema.Struct({
 		farmerId: Schema.String,
@@ -63,7 +67,7 @@ export const CharacterChangeSchema = Schema.Union([
 	Schema.Struct({
 		farmerId: Schema.String,
 		kind: Schema.Literal("mastery-xp"),
-		value: integer(0, 2147483647),
+		value: integer(0, characterLimits.masteryXp.max),
 	}),
 ]);
 export type CharacterChange = typeof CharacterChangeSchema.Type;

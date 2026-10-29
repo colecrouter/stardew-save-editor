@@ -1,9 +1,5 @@
 import type { Farmer, SaveDocument } from "./domain.ts";
-import {
-	discoverPlacedChests,
-	writeChestSlots,
-	emptyChestSlot,
-} from "./chest-storage.ts";
+import { discoverPlacedChests, writeChestSlots } from "./chest-storage.ts";
 
 /** A transient lens over an inventory; numbered slots are shared, equipment belongs to farmers. */
 export interface InventoryContainer {
@@ -80,14 +76,4 @@ export function resolveInventoryContainer(
 	id: string,
 ): InventoryContainer | undefined {
 	return inventoryContainers(document).find((owner) => owner.id === id);
-}
-/** Structural chest changes compact empty slots; identities must follow the same permutation. */
-export function compactChestIdentities(
-	slots: readonly unknown[],
-	ids: readonly string[],
-): string[] {
-	return [
-		...ids.filter((_, index) => !emptyChestSlot(slots[index])),
-		...ids.filter((_, index) => emptyChestSlot(slots[index])),
-	];
 }

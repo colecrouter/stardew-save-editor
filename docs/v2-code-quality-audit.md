@@ -1,5 +1,8 @@
 # V2 engineering quality audit
 
+> Historical snapshot. See [current V2 status](v2-status.md) and the
+> [cleanup audit](v2-cleanup-audit.md) for completed work and remaining follow-ups.
+
 Reviewed 2026-10-28 at Character feature commit `773be79`. This supplements the
 [coverage and correctness audit](v2-code-audit.md); it asks what will become
 expensive, inconsistent, or difficult to reason about as migration continues.

@@ -1,10 +1,52 @@
-import type { EditorModel } from "./editor-model.ts";
+import { farmers, type SaveDocument } from "./domain.ts";
+import type { ImmediateEditPort } from "./field-binding.ts";
+import type { CommandResult } from "./command-result.ts";
+import type { MutationError } from "./mutation-error.ts";
 import type { ImmediateField } from "./immediate-field.ts";
 
 /** Domain selection candidates expose identity and display text, never raw farmer records. */
 export interface FarmerChoice {
 	readonly farmerId: string;
 	readonly name: string;
+}
+
+/** Shared identity projection; selection is independent of any feature's fields. */
+export function readFarmerChoices(
+	document: SaveDocument,
+): (FarmerChoice & { readonly supported: boolean })[] {
+	// Imported IDs may be numeric or textual. Other shapes remain visible as
+	// unavailable choices rather than coupling selection to a feature decoder.
+	const values = farmers(document).map((farmer) => {
+		const key = farmer?.UniqueMultiplayerID;
+		const farmerId =
+			typeof key === "string"
+				? key
+				: typeof key === "number" && Number.isFinite(key)
+					? String(key)
+					: "";
+		return {
+			farmerId,
+			name: typeof farmer?.name === "string" ? farmer.name : "Unnamed farmer",
+		};
+	});
+	// A command must resolve exactly one owner; duplicate IDs cannot be selected.
+	const counts = new Map<string, number>();
+	for (const value of values)
+		counts.set(value.farmerId, (counts.get(value.farmerId) ?? 0) + 1);
+	return values.map((value) => ({
+		...value,
+		supported: value.farmerId !== "" && counts.get(value.farmerId) === 1,
+	}));
+}
+
+/** Selection needs only its file scope and queued selection command. */
+interface FarmerSelectionPort {
+	readonly edits: ImmediateEditPort["edits"];
+	readonly commands: {
+		selectFarmer: (
+			id: string,
+		) => Promise<CommandResult<unknown, MutationError>>;
+	};
 }
 
 /**
@@ -15,7 +57,7 @@ export interface FarmerChoice {
 export function createFarmerSelectionField(
 	farmers: readonly FarmerChoice[],
 	selectedId: string | undefined,
-	model: EditorModel,
+	model: FarmerSelectionPort,
 ): ImmediateField<string> {
 	const counts = new Map<string, number>();
 	for (const farmer of farmers)

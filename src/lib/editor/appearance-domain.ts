@@ -1,4 +1,4 @@
-import type { EditorModel } from "./editor-model.ts";
+import { bindImmediateField, type ImmediateEditPort } from "./field-binding.ts";
 import type { ImmediateField } from "./immediate-field.ts";
 import { createFarmFields } from "./farm-domain.ts";
 import type { FarmView } from "./farm-operations.ts";
@@ -12,7 +12,7 @@ import {
 export function createAppearanceDomain(
 	view: AppearanceView,
 	farm: FarmView,
-	model: EditorModel,
+	model: ImmediateEditPort,
 ) {
 	function field<T extends string | number>(
 		key: string,
@@ -24,19 +24,11 @@ export function createAppearanceDomain(
 		reason?: string,
 	): ImmediateField<T> {
 		const identity = `appearance:${JSON.stringify([view.farmerId, key])}`;
-		return {
-			scope: model.edits.scope,
-			key: identity,
-			label,
-			value,
-			available,
-			reason,
-			constraints,
-			begin: () => model.edits.begin(identity),
-			commit: (value, gesture) =>
-				model.commands.edit(setAppearance(change(value)), gesture),
-			end: (gesture) => model.edits.end(gesture),
-		};
+		return bindImmediateField(
+			model,
+			{ key: identity, label, value, available, reason, constraints },
+			(value: T) => setAppearance(change(value)),
+		);
 	}
 	return {
 		...view,

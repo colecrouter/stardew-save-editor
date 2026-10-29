@@ -7,8 +7,11 @@ export class FarmSettingsInvalid extends Data.TaggedError(
 	readonly message: string;
 }> {}
 
+/** Display-unit bounds shared by schema enforcement and field presentation. */
+export const farmProfitLimits = { min: 1, max: 1000, step: "any" } as const;
+
 const nameMessage = "Enter a farm name.";
-const profitMessage = "Enter a profit percentage from 1 to 1000.";
+const profitMessage = `Enter a profit percentage from ${farmProfitLimits.min} to ${farmProfitLimits.max}.`;
 
 /**
  * Shared rules for deliberate Farm edits, in display units (100% = multiplier 1).
@@ -25,7 +28,7 @@ export const FarmSettingsChangeSchema = Schema.Struct({
 		Schema.Number.check(
 			Schema.isFinite({ message: profitMessage }),
 			Schema.isBetween(
-				{ minimum: 1, maximum: 1000 },
+				{ minimum: farmProfitLimits.min, maximum: farmProfitLimits.max },
 				{ message: profitMessage },
 			),
 		).annotate({ message: profitMessage }),

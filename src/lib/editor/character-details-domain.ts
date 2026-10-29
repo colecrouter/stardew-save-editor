@@ -1,4 +1,4 @@
-import type { EditorModel } from "./editor-model.ts";
+import { bindImmediateField, type ImmediateEditPort } from "./field-binding.ts";
 import type { ImmediateField } from "./immediate-field.ts";
 import {
 	setCharacterDetails,
@@ -8,7 +8,7 @@ import {
 export function createCharacterDetailsDomain(
 	view: CharacterDetailsView,
 	farmerId: string,
-	model: EditorModel,
+	model: ImmediateEditPort,
 ) {
 	function field<T extends number | boolean | string>(
 		key: string,
@@ -19,22 +19,11 @@ export function createCharacterDetailsDomain(
 		constraints?: ImmediateField<T>["constraints"],
 	): ImmediateField<T> {
 		const identity = `character-details:${JSON.stringify([key === "hay" || key === "walnuts" || key === "mine" ? "shared" : farmerId, key])}`;
-		return {
-			scope: model.edits.scope,
-			key: identity,
-			label,
-			value,
-			available,
-			reason,
-			constraints,
-			begin: () => model.edits.begin(identity),
-			commit: (value, gesture) =>
-				model.commands.edit(
-					setCharacterDetails({ farmerId, key, value }),
-					gesture,
-				),
-			end: (gesture) => model.edits.end(gesture),
-		};
+		return bindImmediateField(
+			model,
+			{ key: identity, label, value, available, constraints, reason },
+			(value: T) => setCharacterDetails({ farmerId, key, value }),
+		);
 	}
 	return {
 		...view,

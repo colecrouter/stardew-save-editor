@@ -96,3 +96,10 @@ export const professionDefinitions = skillDefinitions.flatMap((definition) =>
 				: {}),
 		})),
 );
+
+/** Deliberate edit bounds are shared by validation and field descriptors. */
+export const characterLimits = {
+	skillXp: { min: 0, max: 99999, step: 1 },
+	skillLevel: { min: 0, max: 10, step: 1 },
+	masteryXp: { max: 2147483647, step: 1 },
+} as const;

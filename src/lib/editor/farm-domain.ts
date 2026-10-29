@@ -1,9 +1,10 @@
-import type { EditorModel } from "./editor-model.ts";
+import { farmProfitLimits } from "./farm-settings.ts";
+import { bindImmediateField, type ImmediateEditPort } from "./field-binding.ts";
 import type { ImmediateField } from "./immediate-field.ts";
 import { setFarmSettings, type FarmView } from "./farm-operations.ts";
 
 /** Domain field handles keep shared farm copies and transaction construction out of controls. */
-export function createFarmFields(view: FarmView, model: EditorModel) {
+export function createFarmFields(view: FarmView, model: ImmediateEditPort) {
 	function field<
 		K extends "name" | "profitPercent" | "monsters" | "mineRewards",
 	>(
@@ -12,18 +13,11 @@ export function createFarmFields(view: FarmView, model: EditorModel) {
 		constraints?: ImmediateField<FarmView[K]>["constraints"],
 	): ImmediateField<FarmView[K]> {
 		const key = `farm:${property}`;
-		return {
-			scope: model.edits.scope,
-			key,
-			label,
-			value: view[property],
-			available: true,
-			constraints,
-			begin: () => model.edits.begin(key),
-			commit: (value, gesture) =>
-				model.commands.edit(setFarmSettings({ [property]: value }), gesture),
-			end: (gesture) => model.edits.end(gesture),
-		};
+		return bindImmediateField(
+			model,
+			{ key, label, value: view[property], available: true, constraints },
+			(value: FarmView[K]) => setFarmSettings({ [property]: value }),
+		);
 	}
 	const mineRewards = field("mineRewards", "Mine rewards");
 	const choices = [
@@ -38,11 +32,11 @@ export function createFarmFields(view: FarmView, model: EditorModel) {
 		});
 	return {
 		name: field("name", "Farm name", { required: true }),
-		profitPercent: field("profitPercent", "Profit margin (%)", {
-			min: 1,
-			max: 1000,
-			step: "any",
-		}),
+		profitPercent: field(
+			"profitPercent",
+			"Profit margin (%)",
+			farmProfitLimits,
+		),
 		monsters: field("monsters", "Spawn monsters on the farm"),
 		mineRewards: { ...mineRewards, options: choices },
 	};

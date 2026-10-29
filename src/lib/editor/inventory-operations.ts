@@ -1,3 +1,10 @@
+import { inventoryQuantity, inventoryQualities } from "./inventory-policy.ts";
+import type { Item } from "$types/save";
+import {
+	replaceInventorySlot,
+	resizeInventorySlots,
+	type InventoryIdentityState,
+} from "./inventory-transition.ts";
 import { prizeTicketDestination } from "./quest-ticket.ts";
 import {
 	resolveInventoryContainer,
@@ -75,14 +82,19 @@ export const BackpackItemChangeSchema = Schema.Union([
 		property: Schema.Literal("stack"),
 		value: Schema.Number.check(
 			Schema.isInt(),
-			Schema.isBetween({ minimum: 1, maximum: 9999 }),
+			Schema.isBetween({
+				minimum: inventoryQuantity.min,
+				maximum: inventoryQuantity.max,
+			}),
 		).annotate({ message: "Enter a quantity from 1 to 9999." }),
 	}),
 	Schema.Struct({
 		farmerId: Schema.String,
 		entityId: Schema.String,
 		property: Schema.Literal("quality"),
-		value: Schema.Literals([0, 1, 2, 4]).annotate({
+		value: Schema.Literals(
+			inventoryQualities.map((quality) => quality.value),
+		).annotate({
 			message: "Choose a supported item quality.",
 		}),
 	}),
@@ -189,6 +201,10 @@ export function readBackpacks(
 			containers.get(farmerId)?.kind === "farmer" &&
 			Array.isArray(items) &&
 			ids?.length === items.length;
+		// Parsed saves are JSON trees. Detach one owner's complete slot list once,
+		// instead of invoking structuredClone separately for every rendered slot.
+		const detachedItems =
+			supported && Array.isArray(items) ? structuredClone(items) : undefined;
 		return {
 			farmerId,
 			itemContext: readItemPropertyContext(state.document, farmer),
@@ -229,9 +245,9 @@ export function readBackpacks(
 					}
 				: {}),
 			slots:
-				supported && Array.isArray(items) && ids
-					? items.map((item, slot) => {
-							const raw = record(item) ? structuredClone(item) : undefined;
+				supported && detachedItems && ids
+					? detachedItems.map((item, slot) => {
+							const raw = record(item) ? item : undefined;
 							const empty = emptySlot(item);
 							const canEdit = editable(item);
 							return {
@@ -278,6 +294,9 @@ export function readChests(
 			chest.supported &&
 			owner?.kind === "chest" &&
 			ids?.length === chest.slots.length;
+		// A detached owner snapshot keeps both the save and later projections
+		// isolated while batching the cost across occupied and virtual slots.
+		const detachedSlots = supported ? structuredClone(chest.slots) : undefined;
 		return {
 			farmerId: chest.id,
 			name: chest.label,
@@ -293,9 +312,9 @@ export function readChests(
 					}
 				: {}),
 			slots:
-				supported && ids
-					? chest.slots.map((item, slot) => {
-							const raw = record(item) ? structuredClone(item) : undefined;
+				supported && detachedSlots && ids
+					? detachedSlots.map((item, slot) => {
+							const raw = record(item) ? item : undefined;
 							const empty = emptySlot(item),
 								canEdit = editable(item);
 							return {
@@ -425,11 +444,17 @@ export function makeBackpackItemEdits(
 	identities: Record<string, string[]>,
 	originalDocument: SaveDocument,
 	equipmentIdentities: EquipmentIdentities = {},
+	nextIdentity = 0,
 ) {
 	// Approved field patches, reward replacements and capacity changes authorize
 	// inventory writes. Retain the
 	// baseline only while this draft is open; replay retains no published save object.
 	let authority: SaveDocument | undefined = originalDocument;
+	let preparedInventory: InventoryIdentityState = {
+		identities,
+		equipmentIdentities,
+		nextIdentity,
+	};
 	const writes: {
 		farmerId: string;
 		location: InventoryLocation;
@@ -541,11 +566,18 @@ export function makeBackpackItemEdits(
 	) {
 		// Catalog data remains lazy; calendar/Farm startup only projects raw records.
 		const catalog = yield* Effect.promise(() => import("../ItemData.ts"));
-		const info = yield* Effect.try({
-			try: () => catalog.ResolveItemData(item as never),
-			catch: () =>
-				new ItemPropertyInvalid({ message: "Item metadata is unavailable." }),
-		}).pipe(Effect.orElseSucceed(() => undefined));
+		// Imported XML may contain non-scalar identifiers or a non-text name.
+		// Those records have no safe catalog lookup; unexpected catalog exceptions
+		// remain defects instead of masquerading as missing metadata.
+		const scalarKey = (value: unknown) =>
+			value == null || typeof value === "string" || typeof value === "number";
+		const supported =
+			scalarKey(item.itemId) &&
+			scalarKey(item.preservedParentSheetIndex) &&
+			(item.name == null || typeof item.name === "string");
+		const info = supported
+			? catalog.ResolveItemData(item as unknown as Item)
+			: undefined;
 		return { catalog, info };
 	});
 	const reviewFor = (
@@ -624,8 +656,11 @@ export function makeBackpackItemEdits(
 			const item = catalog.createCatalogItem("Prize Ticket");
 			if (!item)
 				throw new Error("Prize Ticket is missing from the item catalog");
-			owner.slots[slot] = item;
+			const paired = yield* Effect.fromResult(
+				replaceInventorySlot(owner, slot, item, preparedInventory),
+			);
 			yield* draft.replace(snapshot);
+			preparedInventory = paired;
 			writes.push({
 				farmerId,
 				location: slot,
@@ -673,11 +708,11 @@ export function makeBackpackItemEdits(
 						"Empty the backpack's last slots before shrinking it; slots with extra saved data must be preserved.",
 				});
 			if (size === owner.slots.length) return false;
-			owner.slots.length = Math.min(size, owner.slots.length);
-			while (owner.slots.length < size)
-				owner.slots.push({ "@_xsi:nil": "true" });
-			owner.farmer.maxItems = size;
+			const paired = yield* Effect.fromResult(
+				resizeInventorySlots(owner, size, preparedInventory),
+			);
 			yield* draft.replace(snapshot);
+			preparedInventory = paired;
 			resizes.push({ farmerId, size });
 			return true;
 		}),
@@ -709,7 +744,9 @@ export function makeBackpackItemEdits(
 			const capabilities = getBackpackItemCapabilities(
 				item,
 				info?._type === "Object",
-				catalog.CategoriesWithQuality.has(item.category as never),
+				[...catalog.CategoriesWithQuality].some(
+					(category) => category === item.category,
+				),
 			);
 			if (
 				change.property === "stack"
@@ -817,13 +854,7 @@ export function makeBackpackItemEdits(
 	};
 	return {
 		service,
-		resizes: () => [...resizes],
-		replacements: () =>
-			writes.flatMap((write) =>
-				write.replacement && typeof write.location === "number"
-					? [{ farmerId: write.farmerId, slot: write.location }]
-					: [],
-			),
+		inventory: () => preparedInventory,
 		validate: (document: SaveDocument, baseline: SaveDocument) =>
 			contextMatches(document) &&
 			JSON.stringify(backpackInventorySnapshot(replay(baseline))) ===

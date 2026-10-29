@@ -1,9 +1,5 @@
 import { resolveInventoryContainer } from "./inventory-containers.ts";
-import {
-	equipmentSlots,
-	type EquipmentIdentities,
-	inventoryItem,
-} from "./equipment.ts";
+import { equipmentSlots, type EquipmentIdentities } from "./equipment.ts";
 import { Effect, Result, Schema, SchemaIssue } from "effect";
 import {
 	emptySlot,
@@ -74,7 +70,7 @@ export const resolveBackpackMove = Effect.fn("Backpack.resolveMove")(function* (
 				typeof slot === "number"
 					? items[slot]
 					: owner.farmer
-						? inventoryItem(owner.farmer, slot)
+						? owner.farmer[slot]
 						: undefined,
 		};
 	}

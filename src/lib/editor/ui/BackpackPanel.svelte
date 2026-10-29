@@ -34,7 +34,11 @@
 	);
 	const backpacks = $derived(view.current?.backpacks ?? []);
 	const farmerField = $derived(
-		createFarmerSelectionField(backpacks, selectedFarmer.current, model),
+		createFarmerSelectionField(
+			view.current?.farmerChoices ?? [],
+			selectedFarmer.current,
+			model,
+		),
 	);
 	const backpack = $derived(
 		backpacks.find((owner) => owner.farmerId === selectedFarmer.current),

@@ -1,3 +1,4 @@
+import { readFarmerChoices } from "./farmer-selection.ts";
 import { readQuestJournals, type QuestFarmerView } from "./quest-operations.ts";
 import { readQiOrders, type QiOrdersView } from "./qi-order-operations.ts";
 import { readEvents, type EventFarmerView } from "./event-operations.ts";
@@ -87,6 +88,7 @@ export interface EditorView {
 	backpacks: BackpackView[];
 	chests: BackpackView[];
 	characters: CharacterView[];
+	farmerChoices: ReturnType<typeof readFarmerChoices>;
 	recipes: RecipeFarmerView[];
 	events: EventFarmerView[];
 	questJournals: QuestFarmerView[];
@@ -175,6 +177,7 @@ function project(state: HistoryState, includeProofs = false): EditorView {
 		backpacks: readBackpacks(state),
 		chests: readChests(state),
 		characters: readCharacters(state.document),
+		farmerChoices: readFarmerChoices(state.document),
 		recipes: readRecipes(state.document),
 		events: readEvents(state.document),
 		questJournals: readQuestJournals(state.document),
@@ -332,7 +335,7 @@ export const makeEditorModel = (
 				// Selection belongs to the file, not a page index. Preserve its
 				// stable ID through revisions; only unavailable/ambiguous owners
 				// fall back to the first currently supported farmer.
-				const choices = next.characters.filter(
+				const choices = next.farmerChoices.filter(
 					(character) => character.supported,
 				);
 				if (
@@ -499,7 +502,7 @@ export const makeEditorModel = (
 					Effect.gen(function* () {
 						const state = yield* live().snapshot;
 						if (
-							!readCharacters(state.document).some(
+							!readFarmerChoices(state.document).some(
 								(character) =>
 									character.supported && character.farmerId === farmerId,
 							)

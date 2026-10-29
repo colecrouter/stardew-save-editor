@@ -1,16 +1,15 @@
 <script lang="ts">
-	import { Result } from "effect";
+	import { inventoryQualities } from "../inventory-policy.ts";
+	import { createImmediateFieldController } from "../immediate-field.svelte.ts";
+	import { createInventoryQuantityFields } from "../inventory-domain.ts";
+	import NumberField from "./fields/NumberField.svelte";
 	import type { ItemInformation } from "$types/items";
 	import type { TrinketRollContext } from "../../TrinketStats.ts";
 	import ItemPropertyControls from "./ItemPropertyControls.svelte";
 	import { getItemPropertyFields } from "../item-properties.ts";
 	import type { EquipmentSlotView } from "../equipment.ts";
 	import type { EditorModel } from "../editor-model.ts";
-	import {
-		setBackpackItem,
-		decodeBackpackItemChange,
-		type BackpackSlotView,
-	} from "../inventory-operations.ts";
+	import { type BackpackSlotView } from "../inventory-operations.ts";
 	import BackpackItemVisual from "./BackpackItemVisual.svelte";
 	import QualityBadge from "./QualityBadge.svelte";
 
@@ -46,25 +45,14 @@
 	}: Props = $props();
 	// A location caption is display context, never evidence that an item is equipped.
 	const equipmentItem = $derived("key" in item);
-	let error = $state("");
 	const qualityGroup = $props.id();
-	type Property = "stack" | "quality";
-	let request = 0;
-	let pending = $state<
-		Partial<Record<Property, { value: number; request: number }>>
-	>({});
-	let clearedQuantity = $state<{ value: number | undefined }>();
-	const committedQuantity = $derived(item.stack);
-	// Clearing waits for replacement text, without changing the save. Remember
-	// the latest in-flight value so its completion cannot refill the control;
-	// a subsequent external revision (Undo/Redo) dismisses that empty input.
-	$effect(() => {
-		if (
-			clearedQuantity &&
-			!pending.stack &&
-			committedQuantity !== clearedQuantity.value
-		)
-			clearedQuantity = undefined;
+	const fields = $derived(
+		createInventoryQuantityFields(model, farmerId, item, canStack, canQuality),
+	);
+	// The radio presentation shares the same lifecycle/error controller as ordinary
+	// fields. Each quality choice is discrete even while keyboard focus stays here.
+	const qualityEditing = createImmediateFieldController(() => fields.quality, {
+		discrete: true,
 	});
 	// Deriving controls must not add missing save fields or repair imported values.
 	const itemFields = $derived(
@@ -75,78 +63,7 @@
 			? "Changes update immediately. Use Undo to revert."
 			: "",
 	);
-	// Svelte does not accept function-pair bindings for bind:group. An accessor
-	// gives the native radio group the same read/write boundary as the number input.
-	const qualityBinding = {
-		get value() {
-			return pending.quality?.value ?? item.quality;
-		},
-		set value(value: number | undefined) {
-			if (canQuality && value !== qualityBinding.value && value !== undefined)
-				void update("quality", value);
-		},
-	};
-	function readQuantity() {
-		return clearedQuantity
-			? undefined
-			: (pending.stack?.value ?? committedQuantity);
-	}
-	function writeQuantity(value: number | null | undefined) {
-		if (!canStack) return;
-		if (value == null) {
-			// Clearing the control lets someone replace the number without exporting
-			// an absent quantity or adding an undo action for incomplete input.
-			clearedQuantity = { value: pending.stack?.value ?? committedQuantity };
-			error = "";
-			return;
-		}
-		clearedQuantity = undefined;
-		if (value !== readQuantity()) void update("stack", value);
-	}
-	const qualities = [
-		{ value: 0, label: "Normal" },
-		{ value: 1, label: "Silver" },
-		{ value: 2, label: "Gold" },
-		{ value: 4, label: "Iridium" },
-	];
-
-	async function update(property: Property, value: number) {
-		error = "";
-		// The enclosing keyed inspector owns this farmer/entity pair. Capture it
-		// before the await: a later selection must never retarget a pending edit.
-		const decoded = decodeBackpackItemChange({
-			farmerId,
-			entityId: item.entityId,
-			property,
-			value,
-		});
-		if (Result.isFailure(decoded)) {
-			error = decoded.failure.message;
-			return;
-		}
-		// Valid input writes through immediately. Keep the latest requested value
-		// visible while the shared command queue serializes rapid keystrokes; an
-		// earlier completion must not replace a more recent input or steal focus.
-		const currentRequest = ++request;
-		pending[property] = { value, request: currentRequest };
-		try {
-			const result = await model.commands.transact(
-				setBackpackItem(decoded.success),
-			);
-			if (
-				result &&
-				Result.isFailure(result) &&
-				pending[property]?.request === currentRequest
-			)
-				error = result.failure.message;
-			// Defects/cancellation remain with the shared session/toast boundary.
-		} finally {
-			// Completion exposes the committed projection again. A rejected write
-			// therefore rolls back the bound control without manipulating the DOM.
-			if (pending[property]?.request === currentRequest)
-				delete pending[property];
-		}
-	}
+	const qualities = inventoryQualities;
 </script>
 
 <section
@@ -174,24 +91,14 @@
 	{#if !equipmentItem && (canStack || canQuality || itemFields.length === 0)}
 		<div class="properties">
 			{#if canStack}
-				<label>
-					Quantity
-					<input
-						type="number"
-						step="1"
-						bind:value={readQuantity, writeQuantity}
-					/>
-				</label>
+				<NumberField field={fields.quantity} />
 			{:else if item.stack !== undefined}
 				<p>Quantity: {item.stack}</p>
 			{/if}
 			{#if canQuality}
-				<!-- Binding the group preserves native focus and arrow-key selection while
-			     each valid choice enters the same serialized command queue. -->
-				<fieldset
-					aria-busy={pending.quality !== undefined}
-					class="quality-picker"
-				>
+				<!-- Native radio grouping preserves focus and arrow-key selection while
+			     each discrete choice enters the serialized command queue. -->
+				<fieldset aria-busy={qualityEditing.pending} class="quality-picker">
 					<legend>Quality</legend>
 
 					{#if !qualities.some((quality) => quality.value === item.quality)}
@@ -205,7 +112,8 @@
 									type="radio"
 									name={qualityGroup}
 									value={quality.value}
-									bind:group={qualityBinding.value}
+									checked={qualityEditing.value === quality.value}
+									onchange={() => qualityEditing.input(quality.value)}
 								/>
 
 								<span class="quality-symbol" aria-hidden="true">
@@ -226,6 +134,9 @@
 							</label>
 						{/each}
 					</div>
+					{#if qualityEditing.error}
+						<p role="status">{qualityEditing.error}</p>
+					{/if}
 				</fieldset>
 			{:else if item.quality !== undefined}
 				<p>Quality: {item.quality}</p>
@@ -246,8 +157,8 @@
 			Quantity and quality are preserved but cannot be edited for this item.
 		</p>
 	{/if}
-	{#if error || guidance}
-		<p role="status">{error || guidance}</p>
+	{#if guidance}
+		<p class="guidance">{guidance}</p>
 	{/if}
 	{#if onremove}
 		<!-- Removal is immediately undoable, like the other independent controls. -->
@@ -332,16 +243,7 @@
 		gap: 8px;
 		min-width: 0;
 	}
-	input[type="number"] {
-		width: 100%;
-		min-width: 0;
-		min-height: 44px;
-		font: inherit;
-		color: #311304;
-		background: #fff2d3;
-		border: 2px solid #b98b52;
-		padding: 5px 8px;
-	}
+
 	.quality-picker {
 		border: 0;
 		padding: 0;
@@ -406,6 +308,7 @@
 		color: #694621;
 	}
 
+	.guidance,
 	[role="status"] {
 		margin-top: 24px;
 		font-size: 19px;
@@ -427,6 +330,7 @@
 		}
 		.description,
 		.properties,
+		.guidance,
 		[role="status"],
 		.remove-action {
 			font-size: 18px;
@@ -434,6 +338,7 @@
 		.properties {
 			margin-top: 16px;
 		}
+		.guidance,
 		[role="status"] {
 			margin-top: 16px;
 		}

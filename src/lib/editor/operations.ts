@@ -3,7 +3,7 @@ import { Context, Effect } from "effect";
 import { prepareCalendarOperation } from "./calendar-operations.ts";
 import {
 	MutationError,
-	prepare,
+	prepareEffect,
 	type Mutation,
 	type SessionState,
 } from "./domain.ts";
@@ -28,11 +28,5 @@ export const coreOperations: Operations = {
 			? prepareBundleOperation(state, action)
 			: action.type === "calendar-date" || action.type === "calendar-weather"
 				? prepareCalendarOperation(state, action)
-				: Effect.try({
-						try: () => prepare(state, action),
-						catch: (error) =>
-							error instanceof MutationError
-								? error
-								: new MutationError(String(error)),
-					}),
+				: prepareEffect(state, action),
 };

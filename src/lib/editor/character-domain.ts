@@ -1,11 +1,11 @@
-import type { EditorModel } from "./editor-model.ts";
+import { bindImmediateField, type ImmediateEditPort } from "./field-binding.ts";
 import type { ImmediateField } from "./immediate-field.ts";
 import {
 	setCharacter,
 	type CharacterChange,
 	type CharacterView,
 } from "./character-operations.ts";
-import { professionDefinitions } from "./character-data.ts";
+import { characterLimits, professionDefinitions } from "./character-data.ts";
 
 type ProfessionField = (typeof professionDefinitions)[number] & {
 	field: ImmediateField<boolean>;
@@ -27,7 +27,7 @@ export interface CharacterDomain extends Omit<CharacterView, "skills"> {
 /** Capture stable farmer identity once; a later selection never retargets queued field work. */
 export function createCharacterDomain(
 	view: CharacterView,
-	model: EditorModel,
+	model: ImmediateEditPort,
 ): CharacterDomain {
 	function field<T extends string | number | boolean>(
 		property: string,
@@ -39,19 +39,11 @@ export function createCharacterDomain(
 		reason?: string,
 	): ImmediateField<T> {
 		const key = `character:${JSON.stringify([view.farmerId, property])}`;
-		return {
-			scope: model.edits.scope,
-			key,
-			label,
-			value,
-			available,
-			constraints,
-			reason,
-			begin: () => model.edits.begin(key),
-			commit: (value, gesture) =>
-				model.commands.edit(setCharacter(change(value)), gesture),
-			end: (gesture) => model.edits.end(gesture),
-		};
+		return bindImmediateField(
+			model,
+			{ key: key, label, value, available, constraints, reason },
+			(value: T) => setCharacter(change(value)),
+		);
 	}
 	// Profession branches are resolved once in the domain view. The screen renders
 	// these relationships without knowing numeric IDs, prerequisites or list shape.
@@ -84,7 +76,7 @@ export function createCharacterDomain(
 		view.mastery.xp,
 		view.mastery.supported,
 		(value) => ({ farmerId: view.farmerId, kind: "mastery-xp", value }),
-		{ min: view.mastery.minXp, max: 2147483647, step: 1 },
+		{ min: view.mastery.minXp, ...characterLimits.masteryXp },
 		view.mastery.reason,
 	);
 	return {
@@ -114,7 +106,7 @@ export function createCharacterDomain(
 						skill: skill.key,
 						value,
 					}),
-					{ min: 0, max: 99999, step: 1 },
+					characterLimits.skillXp,
 					skill.reason,
 				),
 				level: field(
@@ -128,7 +120,7 @@ export function createCharacterDomain(
 						skill: skill.key,
 						value,
 					}),
-					{ min: 0, max: 10, step: 1 },
+					characterLimits.skillLevel,
 					skill.reason,
 				),
 			},

@@ -79,12 +79,26 @@ describe("item property controls", { timeout: 25_000 }, () => {
 				await waitCommitted(async () =>
 					expect((await readBoots()).defenseBonus).toBe(79),
 				);
+				// All values in the focused field share one Undo entry, including a
+				// blank replacement. Undo restores the original boot stat in one step.
+				expect(entries).toBe(1);
 				await opened.model.commands.undo();
-				await waitFor(() => expect(defense.value).toBe("78"));
+				await waitFor(() => expect(defense.value).toBe("1"));
 				await fireEvent.input(defense, { target: { value: "100" } });
-				expect(defense.value).toBe("78");
-				expect(defense.getAttribute("aria-invalid")).toBe("true");
-				expect((await opened.model.snapshot()).cursor).toBe(entries);
+				await waitFor(() =>
+					expect(defense.getAttribute("aria-invalid")).toBe("true"),
+				);
+				expect(defense.value).toBe("1");
+				expect((await opened.model.snapshot()).cursor).toBe(0);
+				await fireEvent.input(defense, { target: { value: "1" } });
+				await waitFor(() =>
+					expect(defense.getAttribute("aria-invalid")).toBeNull(),
+				);
+				expect((await opened.model.snapshot()).cursor).toBe(0);
+				await fireEvent.input(defense, { target: { value: "78" } });
+				await waitCommitted(async () =>
+					expect((await readBoots()).defenseBonus).toBe(78),
+				);
 				await fireEvent.input(immunity, { target: { value: "4" } });
 				await waitCommitted(async () =>
 					expect((await readBoots()).immunityBonus).toBe(4),

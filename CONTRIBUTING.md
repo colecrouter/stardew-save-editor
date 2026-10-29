@@ -89,6 +89,7 @@ legitimately run Effects, and the experiment deliberately evaluates unstable Ato
 APIs. Errors fail checks; suggestions are shown by the diagnostic command without
 turning every stylistic preference into a compiler failure.
 
+Start with the [current V2 status and conventions](docs/v2-status.md).
 The [V2 implementation requirements](docs/v2-implementation.md) and
 [editor blueprint](docs/v2-editor-blueprint.md) describe the active migration.
 The calendar workflow now lives in `src/lib/editor` and the `/v2` application route.

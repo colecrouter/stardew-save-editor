@@ -8,8 +8,7 @@ only the existing adapters needed by these domains are used.
 ## Ownership
 
 UI consumes editor-owned domain views and field adapters, not SDV field names,
-XML arrays, stats dictionaries, or generated save-type casts. Character is the
-first complete consumer. Named domain operations own validation and coordinated
+XML arrays, stats dictionaries, or generated save-type casts. Character, Farm and the migrated inventory inspectors use this boundary. Named domain operations own validation and coordinated
 saved-value updates; they expose typed Effect failures. Deterministic arithmetic
 on checked values remains plain code. Pure metadata lives separately from the
 operation implementation.
@@ -67,11 +66,18 @@ Selection itself is UI session state, not an XML mutation or an Undo entry.
 
 ## Scope and verification
 
-This slice establishes Character's domain fields and shared presentation controls,
-applies the same independent-field policy to Farm settings, and shares farmer
-selection with Inventory. Calendar retains its explicit coordinated draft. The
-inventory transition/identity refactor, broader conversion of inventory property
-controls, parser/raw types and large-save projection work remain separate tasks.
+The shared field policy now covers Character, Character details, Farm,
+Inventory inspectors, Appearance, Relationships, Recipes, Events, Quests and Qi
+orders. `field-binding.ts` binds narrow editing capabilities to captured domain
+operations; presentation controls receive no complete editor model. Farmer
+selection has a separate identity projection and narrow selection capability.
+Calendar retains its explicit coordinated draft. Inventory record/identity
+transitions now have a paired owner in `inventory-transition.ts`.
+
+Parser/raw types remain outside this work. Whole-save projection costs and
+inventory controller/metadata consolidation continue in [#201](https://github.com/colecrouter/stardew-save-editor/issues/201)
+and [#202](https://github.com/colecrouter/stardew-save-editor/issues/202).
+See [current status](v2-status.md) for coverage and the latest audit.
 
 Verification must cover grouped text and numeric edits, cross-field/action
 boundaries, valid export before blur, invalid and incomplete values, returning to
@@ -80,5 +86,6 @@ exact-document Undo/Redo, and history-limit behavior. A follow-up independent
 quality audit assesses whether the new boundaries remove duplication instead of
 hiding it behind new names.
 
-The [independent follow-up audit](v2-domain-fields-audit.md) records improvements,
-fixed findings and remaining quality concerns, including clone/projection costs.
+The [original follow-up audit](v2-domain-fields-audit.md) records the first field
+refactor. The [cleanup audit](v2-cleanup-audit.md) assesses the current boundaries,
+remaining concerns and measured clone/projection costs.

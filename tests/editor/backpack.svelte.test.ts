@@ -235,14 +235,18 @@ describe("full-save backpack workflow", { timeout: 15_000 }, () => {
 			);
 			expect(quantity.value).toBe("250");
 			expect(document.activeElement).toBe(quantity);
+			// Every valid value was applied, but the whole focus gesture is one Undo.
+			expect((await opened.model.snapshot()).entries).toHaveLength(1);
 			await opened.model.commands.undo();
-			await waitFor(() => expect(quantity.value).toBe("25"));
+			await waitFor(() => expect(quantity.value).toBe("1"));
+			await opened.model.commands.redo();
+			await waitFor(() => expect(quantity.value).toBe("250"));
 			await fireEvent.input(quantity, { target: { value: "" } });
 			expect(quantity.value).toBe("");
 			await opened.model.commands.undo();
-			await waitFor(() => expect(quantity.value).toBe("2"));
+			await waitFor(() => expect(quantity.value).toBe("1"));
 			await opened.model.commands.redo();
-			await waitFor(() => expect(quantity.value).toBe("25"));
+			await waitFor(() => expect(quantity.value).toBe("250"));
 		} finally {
 			page.unmount();
 			await opened.close();
@@ -311,6 +315,12 @@ describe("full-save backpack workflow", { timeout: 15_000 }, () => {
 			await waitFor(() => expect(quantity.value).toBe("1"));
 			expect(inspector(page).getByRole("status").textContent).toMatch(
 				/quantity from 1 to 9999/,
+			);
+			expect(actions(page)).toBe(0);
+			// Correcting to the committed value clears rejected feedback without an edit.
+			await fireEvent.input(quantity, { target: { value: "1" } });
+			await waitFor(() =>
+				expect(quantity.getAttribute("aria-invalid")).toBeNull(),
 			);
 			expect(actions(page)).toBe(0);
 			await fireEvent.click(page.getByRole("link", { name: "Farm settings" }));

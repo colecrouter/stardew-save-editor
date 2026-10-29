@@ -18,7 +18,7 @@
 	const selection = useAtomValue(() => model.atomBindings.selectedFarmerId);
 	const farmerField = $derived(
 		createFarmerSelectionField(
-			view.current?.characters ?? [],
+			view.current?.farmerChoices ?? [],
 			selection.current,
 			model,
 		),

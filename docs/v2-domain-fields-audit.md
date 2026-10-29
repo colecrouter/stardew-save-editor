@@ -1,5 +1,8 @@
 # Independent follow-up audit: domain fields and Undo gestures
 
+> Historical snapshot. See [current V2 status](v2-status.md) and the
+> [cleanup audit](v2-cleanup-audit.md) for completed work and remaining follow-ups.
+
 This review compares `v2-domain-fields` with its parent `v2-character-skills`
 (commit `9a1d09a`) against the systemic concerns in
 [the original engineering audit](v2-code-quality-audit.md). Two independent agents

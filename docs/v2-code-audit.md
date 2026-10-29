@@ -1,5 +1,8 @@
 # V2 code inventory and audit — 2026-10-28
 
+> Historical snapshot. See [current V2 status](v2-status.md) and the
+> [cleanup audit](v2-cleanup-audit.md) for completed work and remaining follow-ups.
+
 This review follows the Character skills/professions/mastery slice on
 `v2-character-skills`, based on integrated v2 commit `68c0e07`. Feature work is
 paused after that slice. Two independent agents reviewed the actual source: one

@@ -15,11 +15,17 @@ import type { Item } from "../../../codegen/save.ts";
 const record = (value: unknown): value is Record<string, unknown> =>
 	value !== null && typeof value === "object" && !Array.isArray(value);
 export interface AppearanceLayer {
-	part: string;
-	sheet: string;
-	x: number;
-	y: number;
-	tint?: readonly number[];
+	readonly part: string;
+	readonly sheet: string;
+	readonly x: number;
+	readonly y: number;
+	readonly tint?: readonly number[];
+}
+/** Ready-to-render composition; consumers need no saved farmer or equipment fields. */
+export interface AppearancePreviewView {
+	readonly layers: readonly AppearanceLayer[];
+	readonly gender: "male" | "female";
+	readonly notice?: string;
 }
 /** Resolve imported equipment through the existing read-only catalog adapter.
  * The one generated-type cast stays here: no reactive Item/Farmer proxies are created. */
@@ -42,7 +48,9 @@ function equipment(raw: unknown) {
 	return ResolveItemData(raw as unknown as Item);
 }
 /** Build ordered sprite layers without holding save references or changing defaults. */
-export function appearanceLayers(raw: Record<string, unknown> | undefined) {
+export function appearanceLayers(
+	raw: Record<string, unknown> | undefined,
+): AppearancePreviewView {
 	const layers: AppearanceLayer[] = [];
 	if (
 		!raw ||

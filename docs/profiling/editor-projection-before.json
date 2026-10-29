@@ -1,0 +1,295 @@
+{
+	"measuredAt": "2026-10-29T20:31:54.031Z",
+	"source": {
+		"commit": "e8edf962b0af6351413965d47f0414aacc4ad652",
+		"before": {
+			"src/lib/editor/history.ts": "6b07a39f1c262b5c30eb23d9be657fbb93a27b13a78927420b65a97cc845941e",
+			"src/lib/editor/editor-model.ts": "a4c4e9e3d998c32053675d32b293c78bcaa0e25e672b9235b973c2ab92ad27b0",
+			"src/lib/editor/inventory-operations.ts": "2176be166ed52f2610751a90a62445ea143a656a8bfddfb81135b7dace9ca5c1"
+		},
+		"after": {
+			"src/lib/editor/history.ts": "6b07a39f1c262b5c30eb23d9be657fbb93a27b13a78927420b65a97cc845941e",
+			"src/lib/editor/editor-model.ts": "a4c4e9e3d998c32053675d32b293c78bcaa0e25e672b9235b973c2ab92ad27b0",
+			"src/lib/editor/inventory-operations.ts": "2176be166ed52f2610751a90a62445ea143a656a8bfddfb81135b7dace9ca5c1"
+		},
+		"stable": true
+	},
+	"runtime": {
+		"node": "v24.22.2",
+		"platform": "darwin",
+		"release": "27.2.0",
+		"cpu": "Apple M4 Pro",
+		"forcedGc": true
+	},
+	"configuration": {
+		"samples": 16,
+		"burst": 8,
+		"extraChests": 250,
+		"chestSlots": 36,
+		"syntheticOpaqueCharacters": 256
+	},
+	"scenarios": [
+		{
+			"name": "fixture",
+			"xmlBytes": 6652242,
+			"importMs": 363.975458,
+			"documentJsonBytes": 1728391,
+			"serializedHistoryBytes": 5680,
+			"entries": 5,
+			"inventorySlots": 12,
+			"projectionProbes": {
+				"farm": {
+					"samples": 5,
+					"medianMs": 0.0006250000001273293,
+					"p95Ms": 0.03562499999998181,
+					"maxMs": 0.03562499999998181
+				},
+				"backpacks": {
+					"samples": 5,
+					"medianMs": 0.07500000000027285,
+					"p95Ms": 0.23387500000035288,
+					"maxMs": 0.23387500000035288
+				},
+				"chests": {
+					"samples": 5,
+					"medianMs": 0.09312499999987267,
+					"p95Ms": 0.10875000000032742,
+					"maxMs": 0.10875000000032742
+				},
+				"character": {
+					"samples": 5,
+					"medianMs": 0.014874999999847205,
+					"p95Ms": 0.041917000000012195,
+					"maxMs": 0.041917000000012195
+				},
+				"appearance": {
+					"samples": 5,
+					"medianMs": 0.0031249999997271516,
+					"p95Ms": 0.022792000000208645,
+					"maxMs": 0.022792000000208645
+				},
+				"relationships": {
+					"samples": 5,
+					"medianMs": 0.010459000000082597,
+					"p95Ms": 0.033290999999735504,
+					"maxMs": 0.033290999999735504
+				},
+				"recipes": {
+					"samples": 5,
+					"medianMs": 0.1439580000001115,
+					"p95Ms": 0.23504100000036487,
+					"maxMs": 0.23504100000036487
+				},
+				"events": {
+					"samples": 5,
+					"medianMs": 0.0012499999997999112,
+					"p95Ms": 0.02062500000010914,
+					"maxMs": 0.02062500000010914
+				},
+				"quests": {
+					"samples": 5,
+					"medianMs": 0.0400830000003225,
+					"p95Ms": 0.08783299999959127,
+					"maxMs": 0.08783299999959127
+				},
+				"qiOrders": {
+					"samples": 5,
+					"medianMs": 0.013166000000182976,
+					"p95Ms": 0.02220800000031886,
+					"maxMs": 0.02220800000031886
+				},
+				"baselineDiff": {
+					"samples": 5,
+					"medianMs": 0.05033400000002075,
+					"p95Ms": 0.09033299999964584,
+					"maxMs": 0.09033299999964584
+				}
+			},
+			"sequential": {
+				"value": {
+					"samples": 16,
+					"medianMs": 63.63325000000009,
+					"p95Ms": 67.3567079999998,
+					"maxMs": 67.3567079999998
+				},
+				"wallMs": 1021.0888340000001,
+				"cloneCalls": 272,
+				"cloneMs": 629.3071129999989
+			},
+			"burst": {
+				"value": {
+					"samples": 8,
+					"medianMs": 306.14133300000003,
+					"p95Ms": 517.1185839999998,
+					"maxMs": 517.1185839999998
+				},
+				"wallMs": 525.4550829999998,
+				"cloneCalls": 136,
+				"cloneMs": 321.8812929999999
+			},
+			"closure": {
+				"value": {
+					"_id": "Result",
+					"_tag": "Success"
+				},
+				"wallMs": 1.5225420000001577,
+				"cloneCalls": 0,
+				"cloneMs": 0
+			},
+			"memory": {
+				"beforeGesture": {
+					"heapUsed": 42416416,
+					"rss": 393379840,
+					"external": 16197547
+				},
+				"activeGesture": {
+					"heapUsed": 42949128,
+					"rss": 393789440,
+					"external": 16197587
+				},
+				"afterEnd": {
+					"heapUsed": 42950672,
+					"rss": 393789440,
+					"external": 16197587
+				},
+				"afterClose": {
+					"heapUsed": 42942448,
+					"rss": 395182080,
+					"external": 16197587
+				}
+			},
+			"note": "Projection probes exclude calendar option assembly, registry dispatch and view entry mapping. Clone timing is instrumented wall time; memory deltas are GC-conditioned process observations."
+		},
+		{
+			"name": "large",
+			"xmlBytes": 7063901,
+			"importMs": 457.5970419999999,
+			"documentJsonBytes": 5435889,
+			"serializedHistoryBytes": 1160072,
+			"entries": 5,
+			"inventorySlots": 9012,
+			"projectionProbes": {
+				"farm": {
+					"samples": 5,
+					"medianMs": 0.0005420000006779446,
+					"p95Ms": 0.026667000000088592,
+					"maxMs": 0.026667000000088592
+				},
+				"backpacks": {
+					"samples": 5,
+					"medianMs": 0.646125000000211,
+					"p95Ms": 0.9140830000005735,
+					"maxMs": 0.9140830000005735
+				},
+				"chests": {
+					"samples": 5,
+					"medianMs": 9.048791999999594,
+					"p95Ms": 11.624541000000136,
+					"maxMs": 11.624541000000136
+				},
+				"character": {
+					"samples": 5,
+					"medianMs": 0.013249999999970896,
+					"p95Ms": 0.08037499999954889,
+					"maxMs": 0.08037499999954889
+				},
+				"appearance": {
+					"samples": 5,
+					"medianMs": 0.003958999999667867,
+					"p95Ms": 0.023624999999810825,
+					"maxMs": 0.023624999999810825
+				},
+				"relationships": {
+					"samples": 5,
+					"medianMs": 0.010458000000653556,
+					"p95Ms": 0.026708000000326138,
+					"maxMs": 0.026708000000326138
+				},
+				"recipes": {
+					"samples": 5,
+					"medianMs": 0.13354199999957928,
+					"p95Ms": 0.15708300000005693,
+					"maxMs": 0.15708300000005693
+				},
+				"events": {
+					"samples": 5,
+					"medianMs": 0.0012500000002546585,
+					"p95Ms": 0.015166999999564723,
+					"maxMs": 0.015166999999564723
+				},
+				"quests": {
+					"samples": 5,
+					"medianMs": 0.04066700000021228,
+					"p95Ms": 0.09875000000010914,
+					"maxMs": 0.09875000000010914
+				},
+				"qiOrders": {
+					"samples": 5,
+					"medianMs": 0.009290999999393534,
+					"p95Ms": 0.024832999999489402,
+					"maxMs": 0.024832999999489402
+				},
+				"baselineDiff": {
+					"samples": 5,
+					"medianMs": 0.044125000000349246,
+					"p95Ms": 0.093166999999994,
+					"maxMs": 0.093166999999994
+				}
+			},
+			"sequential": {
+				"value": {
+					"samples": 16,
+					"medianMs": 133.80970799999977,
+					"p95Ms": 143.43074999999953,
+					"maxMs": 143.43074999999953
+				},
+				"wallMs": 2155.336375,
+				"cloneCalls": 4272,
+				"cloneMs": 1346.1544190000204
+			},
+			"burst": {
+				"value": {
+					"samples": 8,
+					"medianMs": 672.2888750000002,
+					"p95Ms": 1092.1671670000005,
+					"maxMs": 1092.1671670000005
+				},
+				"wallMs": 1109.5575420000005,
+				"cloneCalls": 2136,
+				"cloneMs": 691.0138569999881
+			},
+			"closure": {
+				"value": {
+					"_id": "Result",
+					"_tag": "Success"
+				},
+				"wallMs": 1.5383330000004207,
+				"cloneCalls": 0,
+				"cloneMs": 0
+			},
+			"memory": {
+				"beforeGesture": {
+					"heapUsed": 52077096,
+					"rss": 553500672,
+					"external": 23667746
+				},
+				"activeGesture": {
+					"heapUsed": 52087280,
+					"rss": 883359744,
+					"external": 23667746
+				},
+				"afterEnd": {
+					"heapUsed": 52105536,
+					"rss": 883359744,
+					"external": 23667746
+				},
+				"afterClose": {
+					"heapUsed": 46162360,
+					"rss": 883785728,
+					"external": 23667746
+				}
+			},
+			"note": "Projection probes exclude calendar option assembly, registry dispatch and view entry mapping. Clone timing is instrumented wall time; memory deltas are GC-conditioned process observations."
+		}
+	]
+}

@@ -1,6 +1,6 @@
 import { fireEvent, render, waitFor, within } from "@testing-library/svelte";
 import { expect, it, vi } from "vitest";
-import type { CatalogEntry } from "../../src/lib/editor/item-catalog";
+import type { CatalogChoice } from "../../src/lib/editor/item-catalog";
 import BackpackItemPicker from "../../src/lib/editor/ui/BackpackItemPicker.svelte";
 
 // Small catalog fixtures isolate browsing from save construction; integration
@@ -10,13 +10,13 @@ const entry = (
 	name: string,
 	qualifiedId: string,
 	kind = "Object",
-): CatalogEntry => ({
+): CatalogChoice => ({
 	id,
 	name,
 	qualifiedId,
 	kind,
 	description: `${name} description`,
-	raw: { "@_xsi:type": "Object", itemId: "388" },
+	visual: undefined,
 });
 const entries = [
 	entry("Hardwood", "Hardwood", "(O)709"),

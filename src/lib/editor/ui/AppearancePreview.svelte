@@ -1,19 +1,18 @@
 <script lang="ts">
 	import { asset } from "$app/paths";
-	import { appearanceLayers } from "../appearance-preview.ts";
+	import type { AppearancePreviewView } from "../appearance-preview.ts";
 	interface Props {
-		appearance?: Record<string, unknown>;
+		preview: AppearancePreviewView;
 	}
-	let { appearance }: Props = $props();
-	const drawing = $derived(appearanceLayers(appearance));
+	let { preview }: Props = $props();
 </script>
 
 <div class="preview" role="img" aria-label="Character appearance preview">
 	<!-- The stage reserves scaled layout space; layer offsets stay in source
 	     pixels, including room above the head and below the pants. -->
 	<div class="stage">
-		<div class="figure" class:female={drawing.gender === "female"}>
-			{#each drawing.layers as layer, index (index)}
+		<div class="figure" class:female={preview.gender === "female"}>
+			{#each preview.layers as layer, index (index)}
 				<div
 					class={layer.part}
 					style:--sheet={`url(${asset(layer.sheet)})`}
@@ -27,7 +26,7 @@
 		</div>
 	</div>
 </div>
-{#if drawing.notice}<p role="status">{drawing.notice}</p>{/if}
+{#if preview.notice}<p role="status">{preview.notice}</p>{/if}
 
 <style>
 	.preview {

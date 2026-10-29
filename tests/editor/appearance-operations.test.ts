@@ -49,17 +49,31 @@ describe("appearance operations", () => {
 		const view = readAppearances(document)[0];
 		expect(view?.numbers.find((field) => field.key === "hair")?.value).toBe(56);
 		expect(
-			appearanceLayers(view?.preview).layers.some(
+			view?.preview.layers.some(
 				(layer) =>
 					layer.part === "hair" && layer.sheet.endsWith("hairstyles2.png"),
 			),
 		).toBe(true);
-		expect(
-			appearanceLayers(view?.preview).layers.some(
-				(layer) => layer.part === "shirt",
-			),
-		).toBe(true);
+		expect(view?.preview.layers.some((layer) => layer.part === "shirt")).toBe(
+			true,
+		);
 		expect(document).toEqual(before);
+	});
+	it("projects plain drawing instructions without exposing saved appearance records", () => {
+		const document = fixture();
+		const savedColor = { R: 10, G: 20, B: 30, A: 120 };
+		Object.assign(document.SaveGame.player, { hairstyleColor: savedColor });
+		const preview = readAppearances(document)[0]?.preview;
+		if (!preview) throw new Error("Missing appearance preview");
+		const before = structuredClone(preview);
+		// A domain view owns its drawing instructions. Changing an imported color
+		// afterwards cannot alter the already projected tint or reveal equipment DTOs.
+		savedColor.R = 250;
+		expect(preview).toEqual(before);
+		expect(preview.layers.find((layer) => layer.part === "hair")?.tint).toEqual(
+			[10, 20, 30, 120],
+		);
+		expect(Object.keys(preview).sort()).toEqual(["gender", "layers", "notice"]);
 	});
 	it("keeps unknown equipment read-only and gives a preview notice", () => {
 		const document = fixture();
@@ -72,9 +86,7 @@ describe("appearance operations", () => {
 		});
 		const before = structuredClone(document),
 			view = readAppearances(document)[0];
-		expect(appearanceLayers(view?.preview).notice).toMatch(
-			/imported equipment/,
-		);
+		expect(view?.preview.notice).toMatch(/imported equipment/);
 		expect(document).toEqual(before);
 	});
 	it("allows an explicitly empty favorite thing", () =>

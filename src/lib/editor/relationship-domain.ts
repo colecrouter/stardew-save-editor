@@ -1,3 +1,4 @@
+import type { ImmutableView } from "./immutable-view.ts";
 import { bindImmediateField, type DomainEditPort } from "./field-binding.ts";
 import type { ImmediateField } from "./immediate-field.ts";
 import {
@@ -7,7 +8,7 @@ import {
 
 /** Capture the farmer and villager keys before queued edits can outlive selection. */
 export function createRelationshipDomain(
-	view: RelationshipFarmerView,
+	view: ImmutableView<RelationshipFarmerView>,
 	model: DomainEditPort,
 ) {
 	return {

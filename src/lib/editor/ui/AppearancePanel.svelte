@@ -43,7 +43,7 @@
 	{#key domain.farmerId}
 		<div class="appearance-layout">
 			<aside>
-				<AppearancePreview appearance={domain.preview} />
+				<AppearancePreview preview={domain.preview} />
 				<SelectField field={domain.gender} />
 				{#each domain.numbers as field (field.key)}
 					<NumberField {field} />

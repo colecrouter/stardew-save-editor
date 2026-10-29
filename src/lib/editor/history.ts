@@ -6,6 +6,7 @@ import { resolveBackpackLifecycle } from "./backpack-lifecycle.ts";
 import {
 	BackpackItemEdits,
 	makeBackpackItemEdits,
+	sameChestProjectionInputs,
 	backpackFarmers,
 	hasBackpackFarmerId,
 } from "./inventory-operations.ts";
@@ -66,6 +67,8 @@ interface History {
 	nextIdentity: number;
 	identities: Record<string, string[]>;
 	revision: number;
+	// Domain-input version survives snapshot detachment and skipped deliveries.
+	chestRevision: number;
 	document: SaveDocument;
 	baseline: SaveDocument;
 	// Computed while immutable branches are still shared, before public detachment.
@@ -191,6 +194,7 @@ export const makeHistorySession = (
 			identities,
 			equipmentIdentities,
 			revision: 0,
+			chestRevision: 0,
 			document: baseline,
 			net: [],
 			baseline,
@@ -437,6 +441,11 @@ export const makeHistorySession = (
 								: {
 										...next,
 										revision: current.revision + 1,
+										// Use actual committed inputs, not labels: compound/custom
+										// operations and Undo may change any domain dependency.
+										chestRevision: sameChestProjectionInputs(current, next)
+											? current.chestRevision
+											: current.chestRevision + 1,
 										// Preserve review accuracy across eviction and Undo, without
 										// repeating a full baseline diff on detached public documents.
 										net: JsonPatch.get(

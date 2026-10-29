@@ -1,3 +1,4 @@
+import type { ImmutableView } from "./immutable-view.ts";
 import { bindImmediateField, type ImmediateEditPort } from "./field-binding.ts";
 import type { ImmediateField } from "./immediate-field.ts";
 import {
@@ -6,7 +7,7 @@ import {
 } from "./character-details.ts";
 /** Capture the farmer selected when descriptors were built, including queued work. */
 export function createCharacterDetailsDomain(
-	view: CharacterDetailsView,
+	view: ImmutableView<CharacterDetailsView>,
 	farmerId: string,
 	model: ImmediateEditPort,
 ) {

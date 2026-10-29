@@ -23,7 +23,6 @@ import {
 	prepareTrinketPropertyChange,
 	TrinketPropertyChangeSchema,
 } from "./trinket-properties.ts";
-import type { TrinketRollContext } from "../TrinketStats.ts";
 import {
 	equipmentSlots,
 	equipmentLabels,
@@ -34,41 +33,12 @@ import {
 } from "./equipment.ts";
 import { Context, Data, Effect, Result, Schema, SchemaIssue } from "effect";
 import { emptySlot, farmers, type SaveDocument } from "./domain.ts";
-import type { HistoryState } from "./history.ts";
 import type { TransactionDraft } from "./transaction-draft.ts";
 import {
 	recordAnnotatedOperation,
 	withReviewMetadata,
 } from "./transaction-annotations.ts";
 
-/** A detached backpack slot, identified independently of its current position. */
-export interface BackpackSlotView {
-	entityId: string;
-	slot: number;
-	name: string;
-	itemId: string;
-	empty: boolean;
-	stack?: number;
-	quality?: number;
-	canStack: boolean;
-	canQuality: boolean;
-	raw?: Record<string, unknown>;
-}
-/** Farmer backpacks and placed chests share slots; unsupported owners remain visible without handles. */
-export interface BackpackView {
-	/** Opaque session owner key: a scalar farmer ID or a namespaced placed-chest path. */
-	farmerId: string;
-	name: string;
-	/** Chest IDs share the request owner namespace; they never denote a farmer. */
-	kind?: "chest";
-	location?: string;
-	capacity?: number;
-	supported: boolean;
-	reason?: string;
-	slots: BackpackSlotView[];
-	equipment: EquipmentSlotView[];
-	itemContext?: TrinketRollContext;
-}
 /** Expected unsupported, invalid or stale backpack request. */
 export class BackpackItemInvalid extends Data.TaggedError(
 	"BackpackItemInvalid",
@@ -171,176 +141,31 @@ export function hasBackpackFarmerId(farmer: unknown): boolean {
 		: typeof id === "number" && Number.isFinite(id);
 }
 
-/** Project supported arrays without normalizing any imported item representation. */
-export function readBackpacks(
-	state: Pick<HistoryState, "document" | "identities"> & {
-		equipmentIdentities?: EquipmentIdentities;
-	},
-): BackpackView[] {
-	const all = backpackFarmers(state.document);
-	const containers = new Map(
-		inventoryContainers(state.document).map((owner) => [owner.id, owner]),
+/** Domain-owned cache dependencies. Compare committed immutable branches before
+ * history detaches snapshots. Farmer identifiers matter because a modded farmer
+ * may collide with a chest handle; names and unrelated farmer fields do not.
+ * Identity comparison is deliberately conservative across all inventory owners. */
+export function sameChestProjectionInputs(
+	before: { document: SaveDocument; identities: Record<string, string[]> },
+	after: { document: SaveDocument; identities: Record<string, string[]> },
+): boolean {
+	return (
+		before.document.SaveGame.locations === after.document.SaveGame.locations &&
+		JSON.stringify(
+			backpackFarmers(before.document).map(
+				(farmer) => farmer.UniqueMultiplayerID,
+			),
+		) ===
+			JSON.stringify(
+				backpackFarmers(after.document).map(
+					(farmer) => farmer.UniqueMultiplayerID,
+				),
+			) &&
+		// Ordinary domain edits retain the authoritative identity map. Only an
+		// adapter supplying another map needs a structural equality check.
+		(before.identities === after.identities ||
+			JSON.stringify(before.identities) === JSON.stringify(after.identities))
 	);
-	return all.map((farmer) => {
-		const farmerId = hasBackpackFarmerId(farmer)
-			? String(farmer.UniqueMultiplayerID)
-			: "";
-		const unique =
-			hasBackpackFarmerId(farmer) &&
-			all.filter(
-				(other) =>
-					hasBackpackFarmerId(other) &&
-					String(other.UniqueMultiplayerID) === farmerId,
-			).length === 1;
-		const items = record(farmer.items) ? farmer.items.Item : undefined;
-		const ids = Object.hasOwn(state.identities, farmerId)
-			? state.identities[farmerId]
-			: undefined;
-		const supported =
-			unique &&
-			containers.get(farmerId)?.kind === "farmer" &&
-			Array.isArray(items) &&
-			ids?.length === items.length;
-		// Parsed saves are JSON trees. Detach one owner's complete slot list once,
-		// instead of invoking structuredClone separately for every rendered slot.
-		const detachedItems =
-			supported && Array.isArray(items) ? structuredClone(items) : undefined;
-		return {
-			farmerId,
-			itemContext: readItemPropertyContext(state.document, farmer),
-			equipment: equipmentSlots.flatMap((key) => {
-				const entityId = state.equipmentIdentities?.[farmerId]?.[key];
-				if (!entityId) return [];
-				const value = farmer[key];
-				const raw = record(value) ? structuredClone(value) : undefined;
-				return [
-					{
-						entityId,
-						key,
-						label: equipmentLabels[key],
-						empty: emptySlot(value),
-						locked: key === "trinketItem" && !trinketAvailable(farmer),
-						name:
-							typeof raw?.name === "string" ? raw.name : equipmentLabels[key],
-						itemId:
-							typeof raw?.itemId === "string" || typeof raw?.itemId === "number"
-								? String(raw.itemId)
-								: "",
-						...(raw ? { raw } : {}),
-						...(numeric(raw?.stack) ? { stack: raw.stack } : {}),
-						...(numeric(raw?.quality) ? { quality: raw.quality } : {}),
-					},
-				];
-			}),
-			name:
-				typeof farmer.name === "string" && farmer.name
-					? farmer.name
-					: "Unnamed farmer",
-			supported,
-			...(!supported
-				? {
-						reason: unique
-							? "This backpack format is not supported."
-							: "Farmer IDs are ambiguous.",
-					}
-				: {}),
-			slots:
-				supported && detachedItems && ids
-					? detachedItems.map((item, slot) => {
-							const raw = record(item) ? item : undefined;
-							const empty = emptySlot(item);
-							const canEdit = editable(item);
-							return {
-								entityId: ids[slot] ?? "",
-								slot,
-								empty,
-								name: empty
-									? "Empty slot"
-									: typeof raw?.name === "string"
-										? raw.name
-										: "Unknown item",
-								// Opaque identifiers may contain non-callable conversion members.
-								// Only serialized scalar IDs are displayable; preserve others raw.
-								itemId:
-									typeof raw?.itemId === "string" ||
-									typeof raw?.itemId === "number"
-										? String(raw.itemId)
-										: "",
-								...(numeric(raw?.stack) ? { stack: raw.stack } : {}),
-								...(numeric(raw?.quality) ? { quality: raw.quality } : {}),
-								canStack: canEdit && numeric(raw?.stack),
-								canQuality: canEdit && numeric(raw?.quality),
-								...(raw ? { raw } : {}),
-							};
-						})
-					: [],
-		};
-	});
-}
-
-/** Project placed world storage separately so farmer navigation retains its existing meaning. */
-export function readChests(
-	state: Pick<HistoryState, "document" | "identities">,
-): BackpackView[] {
-	const containers = new Map(
-		inventoryContainers(state.document).map((owner) => [owner.id, owner]),
-	);
-	return discoverPlacedChests(state.document).map((chest) => {
-		const owner = containers.get(chest.id);
-		const ids = Object.hasOwn(state.identities, chest.id)
-			? state.identities[chest.id]
-			: undefined;
-		const supported =
-			chest.supported &&
-			owner?.kind === "chest" &&
-			ids?.length === chest.slots.length;
-		// A detached owner snapshot keeps both the save and later projections
-		// isolated while batching the cost across occupied and virtual slots.
-		const detachedSlots = supported ? structuredClone(chest.slots) : undefined;
-		return {
-			farmerId: chest.id,
-			name: chest.label,
-			kind: "chest",
-			location: chest.location,
-			capacity: chest.capacity,
-			supported,
-			equipment: [],
-			...(!supported
-				? {
-						reason:
-							chest.reason ?? "This chest's inventory identity is ambiguous.",
-					}
-				: {}),
-			slots:
-				supported && detachedSlots && ids
-					? detachedSlots.map((item, slot) => {
-							const raw = record(item) ? item : undefined;
-							const empty = emptySlot(item),
-								canEdit = editable(item);
-							return {
-								entityId: ids[slot] ?? "",
-								slot,
-								empty,
-								name: empty
-									? "Empty slot"
-									: typeof raw?.name === "string"
-										? raw.name
-										: "Unknown item",
-								itemId:
-									typeof raw?.itemId === "string" ||
-									typeof raw?.itemId === "number"
-										? String(raw.itemId)
-										: "",
-								canStack: canEdit && numeric(raw?.stack),
-								canQuality: canEdit && numeric(raw?.quality),
-								...(raw ? { raw } : {}),
-								...(numeric(raw?.stack) ? { stack: raw.stack } : {}),
-								...(numeric(raw?.quality) ? { quality: raw.quality } : {}),
-							};
-						})
-					: [],
-		};
-	});
 }
 
 /** History-owned bounded inventory operations; raw draft writes remain untrusted. */

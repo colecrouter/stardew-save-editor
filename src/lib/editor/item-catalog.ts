@@ -1,3 +1,5 @@
+import { immutableView } from "./immutable-view.ts";
+import { readItemVisual, type ItemVisual } from "./item-presentation.ts";
 import {
 	FurnitureTypeToNumber,
 	ItemData,
@@ -15,6 +17,12 @@ export interface CatalogEntry {
 	readonly kind: string;
 	readonly description: string;
 	readonly raw: Record<string, unknown>;
+}
+
+/** Picker-ready catalog metadata. Item construction stays private to the domain;
+ * visual instructions are resolved only for choices the UI actually displays. */
+export interface CatalogChoice extends Omit<CatalogEntry, "raw"> {
+	readonly visual?: ItemVisual;
 }
 
 const prefixes: Record<ItemInformation["_type"], string> = {
@@ -339,6 +347,23 @@ export const catalogEntries: readonly CatalogEntry[] = [...ItemData].flatMap(
 			: [];
 	},
 );
+// Browsing a catalog needs no serialized item template. Keep the existing
+// factory entries behind this projection and resolve sprites lazily so opening
+// the editor does not eagerly construct drawings for every catalog variant.
+export const catalogChoices: readonly CatalogChoice[] = Object.freeze(
+	catalogEntries.map((entry) =>
+		Object.freeze({
+			id: entry.id,
+			name: entry.name,
+			qualifiedId: entry.qualifiedId,
+			kind: entry.kind,
+			description: entry.description,
+			get visual() {
+				return immutableView(readItemVisual(entry.raw));
+			},
+		}),
+	),
+);
 const entriesById = new Map(catalogEntries.map((entry) => [entry.id, entry]));
 
 /** Create a detached item from an exact catalog choice; callers cannot supply raw XML. */
@@ -361,8 +386,8 @@ export function createCatalogItem(
 export function searchCatalog(
 	query: string,
 	kind = "all",
-	entries: readonly CatalogEntry[] = catalogEntries,
-): readonly CatalogEntry[] {
+	entries: readonly CatalogChoice[] = catalogChoices,
+): readonly CatalogChoice[] {
 	const search = query.trim().toLowerCase();
 	return entries
 		.filter(
@@ -375,7 +400,7 @@ export function searchCatalog(
 					entry.qualifiedId.replace(/^\([^)]*\)/, "").toLowerCase() === search),
 		)
 		.sort((a, b) => {
-			const rank = (entry: CatalogEntry) =>
+			const rank = (entry: CatalogChoice) =>
 				entry.qualifiedId.toLowerCase() === search ||
 				entry.qualifiedId.replace(/^\([^)]*\)/, "").toLowerCase() === search ||
 				entry.name.toLowerCase() === search ||

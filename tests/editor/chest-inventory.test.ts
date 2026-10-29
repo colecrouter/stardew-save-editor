@@ -3,10 +3,10 @@ import { Effect, Result } from "effect";
 import { makeHistorySession } from "../../src/lib/editor/history";
 import { discoverPlacedChests } from "../../src/lib/editor/chest-storage";
 import {
-	readChests,
 	setBackpackItem,
 	setInventoryItemProperty,
 } from "../../src/lib/editor/inventory-operations";
+import { readChests } from "../../src/lib/editor/inventory-views";
 import { createCatalogItem } from "../../src/lib/editor/item-catalog";
 import { TransactionDraft } from "../../src/lib/editor/transaction-draft";
 import { tinyFixture } from "./fixtures";
@@ -90,9 +90,10 @@ describe("placed chest inventory boundary", () => {
 					expect(projected.supported).toBe(true);
 					expect(projected.slots).toHaveLength(36);
 					expect(projected.equipment).toEqual([]);
-					expect(projected.itemContext).toBeUndefined();
-					if (projected.slots[0]?.raw)
-						projected.slots[0].raw.name = "Changed preview";
+					expect(projected).not.toHaveProperty("itemContext");
+					expect(projected.slots[0]).not.toHaveProperty("raw");
+					if (projected.slots[0])
+						Object.assign(projected.slots[0], { name: "Changed preview" });
 					expect((yield* session.snapshot).document).toEqual(original);
 				}
 			}),

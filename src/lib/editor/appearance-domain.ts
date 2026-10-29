@@ -1,3 +1,4 @@
+import type { ImmutableView } from "./immutable-view.ts";
 import { bindImmediateField, type ImmediateEditPort } from "./field-binding.ts";
 import type { ImmediateField } from "./immediate-field.ts";
 import { createFarmFields } from "./farm-domain.ts";
@@ -10,8 +11,8 @@ import {
 
 /** Bind editor-owned fields to the farmer captured when this view was projected. */
 export function createAppearanceDomain(
-	view: AppearanceView,
-	farm: FarmView,
+	view: ImmutableView<AppearanceView>,
+	farm: ImmutableView<FarmView>,
 	model: ImmediateEditPort,
 ) {
 	function field<T extends string | number>(

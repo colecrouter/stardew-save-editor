@@ -1,11 +1,11 @@
 <script lang="ts">
-	import { searchCatalog, type CatalogEntry } from "../item-catalog.ts";
+	import { searchCatalog, type CatalogChoice } from "../item-catalog.ts";
 	import BackpackItemVisual from "./BackpackItemVisual.svelte";
 
 	interface Props {
 		slot: number;
 		inventoryKind?: "backpack" | "chest";
-		entries: readonly CatalogEntry[];
+		entries: readonly CatalogChoice[];
 		onadd: (id: string) => Promise<boolean>;
 		oncancel?: () => void;
 		error?: string;
@@ -172,7 +172,7 @@
 							}}
 						>
 							<span class="item-icon">
-								<BackpackItemVisual raw={entry.raw} />
+								<BackpackItemVisual visual={entry.visual} />
 							</span>
 							<span class="item-identity">
 								<span class="item-name">{entry.name}</span>
@@ -221,7 +221,7 @@
 			<section aria-label="Item preview" class="preview">
 				<div class="preview-header">
 					<div class="preview-icon">
-						<BackpackItemVisual raw={selected.raw} />
+						<BackpackItemVisual visual={selected.visual} />
 					</div>
 					<div>
 						<h3>{selected.name}</h3>

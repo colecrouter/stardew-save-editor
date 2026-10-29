@@ -1,3 +1,7 @@
+import {
+	appearanceLayers,
+	type AppearancePreviewView,
+} from "./appearance-preview.ts";
 import { Data, Effect, Result, Schema } from "effect";
 import { colorHex, itemColorPatch } from "../color.ts";
 import { farmers, type SaveDocument } from "./domain.ts";
@@ -109,8 +113,8 @@ export interface AppearanceView {
 		available: boolean;
 		reason?: string;
 	}[];
-	/** Detached appearance input for the read-only sprite adapter. */
-	preview?: Record<string, unknown>;
+	/** Complete drawing instructions, not a detached copy of saved appearance fields. */
+	preview: AppearancePreviewView;
 }
 function checked<T>(
 	value: T | undefined,
@@ -192,24 +196,9 @@ export function readAppearances(document: SaveDocument): AppearanceView[] {
 					...checked(value, supported && value !== undefined),
 				};
 			}),
-			preview: supported
-				? Object.fromEntries(
-						[
-							"gender",
-							"skin",
-							"hair",
-							"accessory",
-							"hairstyleColor",
-							"newEyeColor",
-							"hat",
-							"shirtItem",
-							"pantsItem",
-							"boots",
-						]
-							.map((key) => [key, owner[key]])
-							.filter(([, value]) => value !== undefined),
-					)
-				: undefined,
+			// Resolve saved indices, colors and equipment at the domain boundary.
+			// The UI receives only drawing layers and notices, with no save references.
+			preview: appearanceLayers(supported ? owner : undefined),
 		};
 	});
 }

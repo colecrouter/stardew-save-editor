@@ -1,3 +1,4 @@
+import type { ImmutableView } from "./immutable-view.ts";
 import { bindImmediateField, type ImmediateEditPort } from "./field-binding.ts";
 import type { ImmediateField } from "./immediate-field.ts";
 import {
@@ -11,7 +12,10 @@ type ProfessionField = (typeof professionDefinitions)[number] & {
 	field: ImmediateField<boolean>;
 };
 /** Character-facing values with captured editor operations, never XML array/stat details. */
-export interface CharacterDomain extends Omit<CharacterView, "skills"> {
+export interface CharacterDomain extends Omit<
+	ImmutableView<CharacterView>,
+	"skills"
+> {
 	skills: (CharacterView["skills"][number] & {
 		fields: { xp: ImmediateField<number>; level: ImmediateField<number> };
 		professionBranches: {
@@ -26,7 +30,7 @@ export interface CharacterDomain extends Omit<CharacterView, "skills"> {
 
 /** Capture stable farmer identity once; a later selection never retargets queued field work. */
 export function createCharacterDomain(
-	view: CharacterView,
+	view: ImmutableView<CharacterView>,
 	model: ImmediateEditPort,
 ): CharacterDomain {
 	function field<T extends string | number | boolean>(

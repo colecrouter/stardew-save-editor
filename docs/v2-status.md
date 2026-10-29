@@ -40,7 +40,10 @@ transition and error-boundary cleanup and identifies systemic residual concerns.
 The [performance profile](v2-performance-profile.md) includes reproducible inputs,
 raw measurements and source fingerprints. The [edit publication follow-up](v2-edit-performance.md)
 records immutable internal sharing and cached review comparisons; feature-view
-invalidation and browser budgets remain outstanding. Grouping Undo does not eliminate the
+invalidation and browser budgets were its follow-ups.
+The [domain projection boundary](v2-domain-projections.md) now removes raw item data
+from components and shares immutable chest views across unrelated revisions;
+browser budgets and remaining copying costs are still outstanding. Grouping Undo does not eliminate the
 cost of each immediate write.
 
 - [#201: measured editing latency and performance budgets](https://github.com/colecrouter/stardew-save-editor/issues/201)

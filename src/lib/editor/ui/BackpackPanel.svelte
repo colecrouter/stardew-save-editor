@@ -2,25 +2,10 @@
 	import { onDestroy, tick } from "svelte";
 	import { Result } from "effect";
 	import { useAtomValue } from "effect-atom-svelte";
-	import {
-		CategoriesWithQuality,
-		ItemDescription,
-		ItemNameHelper,
-		ResolveItemData,
-	} from "$lib/ItemData";
-	import type { Item } from "$types/save";
 	import type { EditorModel } from "../editor-model.ts";
-	import {
-		canEquipItem,
-		type EquipmentSlot,
-		type EquipmentSlotView,
-	} from "../equipment.ts";
-	import {
-		getBackpackItemCapabilities,
-		type BackpackSlotView,
-		type BackpackView,
-	} from "../inventory-operations.ts";
-	import { catalogEntries } from "../item-catalog.ts";
+	import type { EquipmentSlot, EquipmentSlotView } from "../equipment.ts";
+	import type { BackpackSlotView, BackpackView } from "../inventory-views.ts";
+	import { catalogChoices } from "../item-catalog.ts";
 	import { createFarmerSelectionField } from "../farmer-selection.ts";
 	import FarmerSelector from "./fields/FarmerSelector.svelte";
 	import BackpackItemVisual from "./BackpackItemVisual.svelte";
@@ -256,34 +241,8 @@
 			?.querySelector<HTMLButtonElement>('[aria-pressed="true"]')
 			?.focus();
 	}
-	function display(item: InventorySlot) {
-		let info: ReturnType<typeof ResolveItemData>;
-		let name = item.name;
-		try {
-			if (item.raw) {
-				info = ResolveItemData(item.raw as unknown as Item);
-				name = ItemNameHelper(item.raw as unknown as Item) ?? name;
-			}
-		} catch {
-			// Imported records remain visible and draggable even when their metadata
-			// cannot resolve. Displaying one never constructs a repairing legacy proxy.
-		}
-		const capabilities = isEquipment(item)
-			? { canStack: false, canQuality: false }
-			: getBackpackItemCapabilities(
-					item.raw,
-					info?._type === "Object",
-					CategoriesWithQuality.has(item.raw?.category as never),
-				);
-		return {
-			name,
-			description: ItemDescription(info),
-			metadata: info,
-			...capabilities,
-		};
-	}
 	function slotLabel(item: InventorySlot) {
-		return `${isEquipment(item) ? item.label : `${ownerOf(item)?.kind === "chest" ? "Chest slot" : "Slot"} ${item.slot + 1}`}: ${item.empty ? "Empty" : display(item).name}`;
+		return `${isEquipment(item) ? item.label : `${ownerOf(item)?.kind === "chest" ? "Chest slot" : "Slot"} ${item.slot + 1}`}: ${item.empty ? "Empty" : item.name}`;
 	}
 	function startDrag(event: DragEvent, item: InventorySlot) {
 		const owner = ownerOf(item);
@@ -316,15 +275,17 @@
 			owner &&
 			allSlots(owner).find((entry) => entry.entityId === dragSource?.entityId);
 		if (!source) return false;
-		// The shared positive equipment policy supplies only a cursor hint here.
+		// Domain-projected equipment eligibility supplies only a cursor hint here.
 		// The command rechecks both directions against current records at commit.
 		if (
 			isEquipment(item) &&
-			(item.locked || !source.raw || !canEquipItem(source.raw, item.key))
+			(item.locked || !source.allowedEquipmentSlots.includes(item.key))
 		)
 			return false;
 		return (
-			!isEquipment(source) || item.empty || canEquipItem(item.raw, source.key)
+			!isEquipment(source) ||
+			item.empty ||
+			item.allowedEquipmentSlots.includes(source.key)
 		);
 	}
 	function dragOver(event: DragEvent, item: InventorySlot) {
@@ -560,12 +521,12 @@
 			<span class="slot-number" aria-hidden="true">{item.slot + 1}</span>
 		{/if}
 		{#if !item.empty}
-			<BackpackItemVisual raw={item.raw} />
+			<BackpackItemVisual visual={item.visual} />
 		{:else if isEquipment(item)}
 			<span class="empty-equipment" aria-hidden="true"></span>
 		{/if}
-		{#if !isEquipment(item) && item.stack !== undefined && item.stack > 1}
-			<span class="quantity" aria-hidden="true">{item.stack}</span>
+		{#if !isEquipment(item) && item.quantity !== undefined && item.quantity > 1}
+			<span class="quantity" aria-hidden="true">{item.quantity}</span>
 		{/if}
 	</button>
 {/snippet}
@@ -678,7 +639,6 @@
 		</div>
 		<div class="inspector" class:browsing>
 			{#if selectedOwner && selected && !selected.empty}
-				{@const details = display(selected)}
 				{#key JSON.stringify([selectedOwner?.farmerId, selected.entityId])}
 					<BackpackItemEditor
 						{model}
@@ -687,8 +647,6 @@
 							? "chest"
 							: "backpack"}
 						item={selected}
-						{...details}
-						propertyContext={selectedOwner?.itemContext}
 						locationLabel={isEquipment(selected)
 							? selected.label
 							: selectedOwner?.kind === "chest"
@@ -711,7 +669,7 @@
 				<BackpackItemPicker
 					slot={selected.slot}
 					inventoryKind={selectedOwner?.kind === "chest" ? "chest" : "backpack"}
-					entries={catalogEntries}
+					entries={catalogChoices}
 					error={operationError}
 					onadd={(id) => changeSlot("add", id)}
 				/>

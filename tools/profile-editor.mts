@@ -14,7 +14,7 @@ import {
 import {
 	readBackpacks,
 	readChests,
-} from "../src/lib/editor/inventory-operations.ts";
+} from "../src/lib/editor/inventory-views.ts";
 import { readCharacters } from "../src/lib/editor/character-operations.ts";
 import { readAppearances } from "../src/lib/editor/appearance-operations.ts";
 import { readRelationships } from "../src/lib/editor/relationship-operations.ts";
@@ -192,7 +192,13 @@ async function scenario(name: string, bytes: Uint8Array) {
 		await tick();
 		const details = await (async () => {
 			const state = await model.snapshot();
+			// A cache preserving the previous detached mutable-view contract must copy its
+			// result on every hit. Measure that lower bound before adding invalidation
+			// plumbing: descriptor-rich inventory views can cost more to clone than
+			// rebuilding them from detached raw slot arrays.
+			const cachedChests = readChests(state);
 			const probes: Record<string, () => unknown> = {
+				cachedChestDetachment: () => structuredClone(cachedChests),
 				farm: () => readFarmSettings(state.document),
 				backpacks: () => readBackpacks(state),
 				chests: () => readChests(state),
@@ -258,6 +264,12 @@ const sourcePaths = [
 	"src/lib/editor/history.ts",
 	"src/lib/editor/editor-model.ts",
 	"src/lib/editor/inventory-operations.ts",
+	"src/lib/editor/inventory-views.ts",
+	"src/lib/editor/item-presentation.ts",
+	"src/lib/editor/immutable-view.ts",
+	"src/lib/editor/appearance-operations.ts",
+	"src/lib/editor/appearance-preview.ts",
+	"src/lib/editor/item-catalog.ts",
 ];
 const sourceFingerprint = () =>
 	Object.fromEntries(

@@ -6,11 +6,11 @@ import {
 	coreOperations,
 	EditorOperations,
 } from "../../src/lib/editor/operations";
+import { setBackpackItem } from "../../src/lib/editor/inventory-operations";
 import {
 	readBackpacks,
 	readChests,
-	setBackpackItem,
-} from "../../src/lib/editor/inventory-operations";
+} from "../../src/lib/editor/inventory-views";
 import { tinyFixture } from "./fixtures";
 
 const run = <A, E>(
@@ -199,14 +199,12 @@ describe("prepared inventory transitions", () => {
 				for (const project of [readBackpacks, readChests]) {
 					const first = project(state);
 					const second = project(state);
-					const raw = first[0]?.slots[0]?.raw;
-					expect(raw).toBeDefined();
-					// Mutating consumer-owned nested data must not alter any other view or export.
-					(required(raw).modData as Record<string, unknown>).opaque = "changed";
-					expect(second[0]?.slots[0]?.raw?.modData).toEqual({ opaque: "007" });
-					expect(project(state)[0]?.slots[0]?.raw?.modData).toEqual({
-						opaque: "007",
-					});
+					const slot = required(first[0]?.slots[0]);
+					expect(slot).not.toHaveProperty("raw");
+					// Consumer-owned presentation data never exposes opaque saved fields.
+					Object.assign(slot, { name: "Changed presentation" });
+					expect(second[0]?.slots[0]?.name).not.toBe(slot.name);
+					expect(project(state)[0]?.slots[0]?.name).not.toBe(slot.name);
 				}
 				expect(state.document).toEqual(original);
 			}),

@@ -111,16 +111,19 @@ export function decodeItemPropertyChange(
 
 /** Display policy is shared with command enforcement; values are detached saved data. */
 export interface ItemPropertyField {
-	property: ItemPropertyChange["property"];
-	label: string;
-	kind: "number" | "boolean" | "color" | "select";
-	value: number | boolean | string;
-	min?: number;
-	max?: number;
-	step?: number;
-	hint?: string;
-	title?: string;
-	options?: readonly { value: string | number; label: string }[];
+	readonly property: ItemPropertyChange["property"];
+	readonly label: string;
+	readonly kind: "number" | "boolean" | "color" | "select";
+	readonly value: number | boolean | string;
+	readonly min?: number;
+	readonly max?: number;
+	readonly step?: number;
+	readonly hint?: string;
+	readonly title?: string;
+	readonly options?: readonly {
+		readonly value: string | number;
+		readonly label: string;
+	}[];
 }
 const record = (value: unknown): value is Record<string, unknown> =>
 	value !== null && typeof value === "object" && !Array.isArray(value);

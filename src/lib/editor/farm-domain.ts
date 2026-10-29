@@ -3,20 +3,29 @@ import { bindImmediateField, type ImmediateEditPort } from "./field-binding.ts";
 import type { ImmediateField } from "./immediate-field.ts";
 import { setFarmSettings, type FarmView } from "./farm-operations.ts";
 
+// This adapter reads editable farm values only; creation explanations are not
+// part of its input contract and need not regain mutable array types here.
+type FarmFieldValues = Readonly<
+	Pick<FarmView, "name" | "profitPercent" | "monsters" | "mineRewards">
+>;
+
 /** Domain field handles keep shared farm copies and transaction construction out of controls. */
-export function createFarmFields(view: FarmView, model: ImmediateEditPort) {
+export function createFarmFields(
+	view: FarmFieldValues,
+	model: ImmediateEditPort,
+) {
 	function field<
 		K extends "name" | "profitPercent" | "monsters" | "mineRewards",
 	>(
 		property: K,
 		label: string,
-		constraints?: ImmediateField<FarmView[K]>["constraints"],
-	): ImmediateField<FarmView[K]> {
+		constraints?: ImmediateField<FarmFieldValues[K]>["constraints"],
+	): ImmediateField<FarmFieldValues[K]> {
 		const key = `farm:${property}`;
 		return bindImmediateField(
 			model,
 			{ key, label, value: view[property], available: true, constraints },
-			(value: FarmView[K]) => setFarmSettings({ [property]: value }),
+			(value: FarmFieldValues[K]) => setFarmSettings({ [property]: value }),
 		);
 	}
 	const mineRewards = field("mineRewards", "Mine rewards");

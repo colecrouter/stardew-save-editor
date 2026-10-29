@@ -1,3 +1,4 @@
+import type { ImmutableView } from "./immutable-view.ts";
 import { bindImmediateField, type DomainEditPort } from "./field-binding.ts";
 import type { ImmediateField } from "./immediate-field.ts";
 import { setEventSeen, type EventFarmerView } from "./event-operations.ts";
@@ -5,7 +6,7 @@ import { toEventId } from "../eventId.ts";
 
 /** Capture the selected farmer once; queued event changes never follow selection. */
 export function createEventDomain(
-	view: EventFarmerView,
+	view: ImmutableView<EventFarmerView>,
 	model: DomainEditPort,
 ) {
 	return {

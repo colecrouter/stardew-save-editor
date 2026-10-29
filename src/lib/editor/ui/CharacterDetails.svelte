@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { ImmutableView } from "../immutable-view.ts";
 	import type { CharacterDetailsView } from "../character-details.ts";
 	import { createCharacterDetailsDomain } from "../character-details-domain.ts";
 	import type { EditorModel } from "../editor-model.ts";
@@ -6,7 +7,7 @@
 	import NumberField from "./fields/NumberField.svelte";
 	import CheckboxField from "./fields/CheckboxField.svelte";
 	interface Props {
-		details: CharacterDetailsView;
+		details: ImmutableView<CharacterDetailsView>;
 		farmerId: string;
 		model: EditorModel;
 	}

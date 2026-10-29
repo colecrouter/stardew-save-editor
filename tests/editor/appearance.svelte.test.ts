@@ -25,7 +25,23 @@ it(
 		);
 		const page = render(CharacterHarness, { model: opened.model });
 		try {
+			// Unvisited editors must not mount their controls or subscriptions.
+			expect(
+				page.queryByLabelText("Favorite thing", { selector: "input" }),
+			).toBeNull();
+			expect(
+				page.queryByLabelText("Farming XP", { selector: "input" }),
+			).toBeNull();
+			expect(page.queryByLabelText("Search villagers")).toBeNull();
 			await fireEvent.click(page.getByRole("link", { name: "Appearance" }));
+			const firstFavorite = page.getByRole("textbox", {
+				name: "Favorite thing",
+			});
+			await fireEvent.click(page.getByRole("link", { name: "Farm settings" }));
+			await fireEvent.click(page.getByRole("link", { name: "Appearance" }));
+			expect(page.getByRole("textbox", { name: "Favorite thing" })).toBe(
+				firstFavorite,
+			);
 			const name = page.getByRole("textbox", { name: "Name" });
 			await fireEvent.focus(name);
 			await fireEvent.input(name, { target: { value: "A" } });

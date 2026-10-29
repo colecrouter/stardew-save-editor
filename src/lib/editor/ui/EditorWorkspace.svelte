@@ -41,10 +41,18 @@
 	const dateDraft = createRuneDraft(() => model.dateField);
 	let tab = $state("calendar");
 	let inventoryOpened = $state(false);
+	// Large editors subscribe only after their first visit. Once opened, retain
+	// them so navigating away preserves local input and selection state.
+	let characterOpened = $state(false);
+	let relationshipsOpened = $state(false);
+	let appearanceOpened = $state(false);
 	function chooseSection(section: string) {
 		// Hidden panels retain their local state, so navigation explicitly finishes
 		// any field gesture even when no native blur event accompanies the change.
 		void model.edits.endActive();
+		if (section === "character") characterOpened = true;
+		if (section === "relationships") relationshipsOpened = true;
+		if (section === "appearance") appearanceOpened = true;
 		tab = section;
 	}
 	let error = $state("");
@@ -198,13 +206,19 @@
 				{/await}
 			</div>
 		{/if}
-		<div hidden={tab !== "character"}><CharacterPanel {model} /></div>
-		<div hidden={tab !== "appearance"}>
-			<AppearancePanel {model} />
-		</div>
-		<div hidden={tab !== "relationships"}>
-			<RelationshipPanel {model} />
-		</div>
+		{#if characterOpened}
+			<div hidden={tab !== "character"}><CharacterPanel {model} /></div>
+		{/if}
+		{#if appearanceOpened}
+			<div hidden={tab !== "appearance"}>
+				<AppearancePanel {model} />
+			</div>
+		{/if}
+		{#if relationshipsOpened}
+			<div hidden={tab !== "relationships"}>
+				<RelationshipPanel {model} />
+			</div>
+		{/if}
 		<div hidden={tab !== "farm"}><FarmPanel {model} /></div>
 		<div hidden={tab !== "calendar"}>
 			<CalendarPanel {model} draft={dateDraft} />

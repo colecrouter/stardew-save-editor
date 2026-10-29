@@ -1,31 +1,37 @@
 <script lang="ts">
 	import { useAtomValue } from "effect-atom-svelte";
 	import type { EditorModel } from "../editor-model.ts";
-	import { professionDefinitions } from "../character-data.ts";
-	import { setCharacter } from "../character-operations.ts";
-	import CharacterNumberField from "./CharacterNumberField.svelte";
-	import CharacterProfession from "./CharacterProfession.svelte";
+	import { createCharacterDomain } from "../character-domain.ts";
+	import NumberField from "./fields/NumberField.svelte";
+	import CheckboxField from "./fields/CheckboxField.svelte";
+	import { createFarmerSelectionField } from "../farmer-selection.ts";
+	import FarmerSelector from "./fields/FarmerSelector.svelte";
 
 	let { model }: { model: EditorModel } = $props();
 	const view = useAtomValue(() => model.atomBindings.view);
+	const selectedFarmer = useAtomValue(
+		() => model.atomBindings.selectedFarmerId,
+	);
 	const characters = $derived(view.current?.characters ?? []);
-	let farmerIndex = $state(0);
-	const character = $derived(characters[farmerIndex]);
+	const farmerField = $derived(
+		createFarmerSelectionField(characters, selectedFarmer.current, model),
+	);
+	const selected = $derived(
+		characters.find(
+			(character) => character.farmerId === selectedFarmer.current,
+		),
+	);
+	// The screen receives editor-owned conveniences and captured field operations.
+	// Raw save representations and coordinated writes stay in the domain adapter.
+	const character = $derived(
+		selected ? createCharacterDomain(selected, model) : undefined,
+	);
 </script>
 
 <div class="character-heading">
 	<h1>Character</h1>
 
-	{#if characters.length > 1}
-		<label class="farmer">
-			Farmer
-			<select bind:value={farmerIndex}>
-				{#each characters as farmer, index (index)}
-					<option value={index}>{farmer.name}</option>
-				{/each}
-			</select>
-		</label>
-	{/if}
+	<FarmerSelector field={farmerField} />
 </div>
 
 {#if !character || !character.supported}
@@ -47,35 +53,9 @@
 
 						{#if skill.supported}
 							<div class="experience">
-								<CharacterNumberField
-									label={`${skill.label} XP`}
-									value={skill.xp}
-									max={99999}
-									onchange={(value) =>
-										model.commands.transact(
-											setCharacter({
-												farmerId: character.farmerId,
-												kind: "skill-xp",
-												skill: skill.key,
-												value,
-											}),
-										)}
-								/>
+								<NumberField field={skill.fields.xp} />
 
-								<CharacterNumberField
-									label={`${skill.label} level`}
-									value={skill.level}
-									max={10}
-									onchange={(value) =>
-										model.commands.transact(
-											setCharacter({
-												farmerId: character.farmerId,
-												kind: "skill-level",
-												skill: skill.key,
-												value,
-											}),
-										)}
-								/>
+								<NumberField field={skill.fields.level} />
 							</div>
 						{:else}
 							<p role="status">{skill.reason}</p>
@@ -84,29 +64,17 @@
 
 					{#if character.professions.supported}
 						<div class="branches" aria-label={`${skill.label} professions`}>
-							{#each professionDefinitions.filter((profession) => profession.skill === skill.key && profession.parent === undefined) as primary (primary.id)}
+							{#each skill.professionBranches as branch (branch.primary.id)}
 								<div class="branch">
-									<CharacterProfession
-										{model}
-										farmerId={character.farmerId}
-										profession={primary}
-										checked={character.professions.values.includes(primary.id)}
-										description={primary.description}
+									<CheckboxField
+										field={branch.primary.field}
+										description={branch.primary.description}
 									/>
 
 									<div class="secondaries">
-										{#each professionDefinitions.filter((profession) => profession.parent === primary.id) as secondary (secondary.id)}
-											<CharacterProfession
-												{model}
-												farmerId={character.farmerId}
-												profession={secondary}
-												checked={character.professions.values.includes(
-													secondary.id,
-												)}
-												disabled={!character.professions.values.includes(
-													primary.id,
-												) &&
-													!character.professions.values.includes(secondary.id)}
+										{#each branch.secondary as secondary (secondary.id)}
+											<CheckboxField
+												field={secondary.field}
 												description={secondary.description}
 											/>
 										{/each}
@@ -135,20 +103,7 @@
 
 			<div>
 				{#if character.mastery.supported}
-					<CharacterNumberField
-						label="Mastery XP"
-						value={character.mastery.xp}
-						min={character.mastery.minXp}
-						max={2147483647}
-						onchange={(value) =>
-							model.commands.transact(
-								setCharacter({
-									farmerId: character.farmerId,
-									kind: "mastery-xp",
-									value,
-								}),
-							)}
-					/>
+					<NumberField field={character.fields.masteryXp} />
 
 					<p class="hint">
 						{character.mastery.spent} claimed. {character.mastery.minXp
@@ -181,20 +136,6 @@
 		color: #694621;
 		max-width: 65ch;
 		margin: 12px 0 24px;
-	}
-	.farmer {
-		display: flex;
-		align-items: center;
-		gap: 10px;
-	}
-	select {
-		min-height: 40px;
-		max-width: 220px;
-		font: inherit;
-		color: #311304;
-		background: #fff2d3;
-		border: 2px solid #b98b52;
-		padding: 4px 8px;
 	}
 	.skill {
 		display: grid;

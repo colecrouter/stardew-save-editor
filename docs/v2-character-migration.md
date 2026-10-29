@@ -40,7 +40,8 @@ untouched; their level projection follows that signed conversion.
 ## Interaction and preservation
 
 Valid inputs commit immediately; a temporarily empty numeric field remains local
-while its replacement is typed. Each committed change is independently undoable.
+while its replacement is typed. Consecutive changes to one field are grouped into one Undo gesture; discrete
+profession selections remain separate actions.
 Farmer identity is captured before asynchronous commands, so changing the selected
 farmer cannot redirect an outstanding edit. Invalid or unsupported imported data
 remains visible without display-time normalization.

@@ -1,5 +1,5 @@
 import { fireEvent, render, waitFor } from "@testing-library/svelte";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { openEditor } from "../../src/lib/editor/editor-model";
 import type { SaveDocument } from "../../src/lib/editor/domain";
 import CharacterHarness from "./CharacterHarness.svelte";
@@ -30,7 +30,7 @@ const rawFarmer = (document: SaveDocument) =>
 // Whole-save commands verify that immediate controls publish only the requested
 // progression fields and retain unrecognized profession IDs and stat payloads.
 describe("character progression controls", { timeout: 25000 }, () => {
-	it("commits rapid XP and level edits independently, preserves focus, and undoes without blur", async () => {
+	it("groups rapid XP typing into one Undo gesture while level edits remain a separate action", async () => {
 		const opened = await open();
 		try {
 			const before = (await opened.model.snapshot()).document;
@@ -58,7 +58,13 @@ describe("character progression controls", { timeout: 25000 }, () => {
 			expect(xp.value).toBe("");
 			expect((await opened.model.snapshot()).entries).toHaveLength(count);
 			await opened.model.commands.undo();
-			await waitFor(() => expect(xp.value).toBe("380"));
+			await waitFor(() =>
+				expect(xp.value).toBe(
+					String(
+						(rawFarmer(before).experiencePoints as { int: number[] }).int[0],
+					),
+				),
+			);
 			await opened.model.commands.redo();
 			await waitFor(() => expect(xp.value).toBe("770"));
 			await fireEvent.input(
@@ -72,7 +78,6 @@ describe("character progression controls", { timeout: 25000 }, () => {
 					2150,
 				);
 			});
-			await opened.model.commands.undo();
 			await opened.model.commands.undo();
 			await opened.model.commands.undo();
 			expect((await opened.model.snapshot()).document).toEqual(before);
@@ -192,24 +197,13 @@ describe("character progression controls", { timeout: 25000 }, () => {
 				opened.page.getByRole("spinbutton", { name: "Fishing XP" }),
 				{ target: { value: "10000" } },
 			);
-			await committed(async () =>
-				expect(
-					rawFarmer((await opened.model.snapshot()).document).fishingLevel,
-				).toBe(9),
-			);
 
 			const farmerSelect = opened.page.getByRole("combobox", {
 				name: "Farmer",
 			}) as HTMLSelectElement;
-			// Happy DOM does not match selected options with :checked, which
-			// Svelte's binding uses. Supply that one native selector result only;
-			// the actual change event still runs the application binding.
-			farmerSelect.value = "1";
-			const selection = vi
-				.spyOn(farmerSelect, "querySelector")
-				.mockReturnValueOnce(farmerSelect.options[1]!);
-			await fireEvent.change(farmerSelect);
-			selection.mockRestore();
+			// The shared selector sends stable farmer identity through the actual change
+			// event, without Svelte's index-bound selected-option DOM query.
+			await fireEvent.change(farmerSelect, { target: { value: "guest" } });
 
 			await waitFor(() =>
 				expect(
@@ -226,21 +220,112 @@ describe("character progression controls", { timeout: 25000 }, () => {
 				).toBe(9),
 			);
 			await fireEvent.click(
-				opened.page.getByRole("link", { name: "Date and weather" }),
+				opened.page.getByRole("link", { name: "Inventory" }),
 			);
+			const inventoryFarmer = (await opened.page.findByRole("combobox", {
+				name: "Farmer",
+			})) as HTMLSelectElement;
+			// Selection is session-owned across feature pages; choosing a farmer in
+			// Inventory also changes Character without retargeting the earlier edit.
+			expect(inventoryFarmer.value).toBe("guest");
+			await fireEvent.change(inventoryFarmer, {
+				target: { value: String(before.SaveGame.player.UniqueMultiplayerID) },
+			});
 			await fireEvent.click(
 				opened.page.getByRole("link", { name: "Character" }),
 			);
-			expect(
-				(
-					opened.page.getByRole("spinbutton", {
-						name: "Fishing XP",
-					}) as HTMLInputElement
-				).value,
-			).toBe("114");
+			await waitFor(() =>
+				expect(
+					(
+						opened.page.getByRole("spinbutton", {
+							name: "Fishing XP",
+						}) as HTMLInputElement
+					).value,
+				).toBe("10000"),
+			);
 			await opened.model.commands.undo();
 			await opened.model.commands.undo();
 			expect((await opened.model.snapshot()).document).toEqual(before);
+		} finally {
+			await opened.dispose();
+		}
+	});
+	it("filters ambiguous farmer choices and rolls back a rejected stale selection with visible feedback", async () => {
+		const opened = await open((document) => {
+			const guest = structuredClone(document.SaveGame.player);
+			guest.UniqueMultiplayerID = "guest";
+			guest.name = "Guest";
+			const duplicate = structuredClone(guest);
+			duplicate.UniqueMultiplayerID = "duplicate";
+			duplicate.name = "Duplicate A";
+			const secondDuplicate = {
+				...structuredClone(duplicate),
+				name: "Duplicate B",
+			};
+			const missing = {
+				...structuredClone(guest),
+				UniqueMultiplayerID: "",
+				name: "Missing identity",
+			};
+			document.SaveGame.farmhands = {
+				Farmer: [guest, duplicate, secondDuplicate, missing],
+			};
+		});
+		try {
+			const before = await opened.model.snapshot();
+			const farmer = opened.page.getByRole("combobox", {
+				name: "Farmer",
+			}) as HTMLSelectElement;
+			const hostId = String(
+				before.document.SaveGame.player.UniqueMultiplayerID,
+			);
+			expect([...farmer.options].map((option) => option.value)).toEqual([
+				hostId,
+				"guest",
+			]);
+			expect(
+				opened.page.getByText(
+					"Farmers with missing or ambiguous identities cannot be selected.",
+				),
+			).toBeTruthy();
+			// A stale browser option must still pass the domain command's current
+			// identity checks. The portable select shares rejection/rollback behavior.
+			const stale = document.createElement("option");
+			stale.value = "duplicate";
+			stale.textContent = "Stale farmer";
+			farmer.append(stale);
+			await fireEvent.change(farmer, { target: { value: "duplicate" } });
+			await waitFor(() =>
+				expect(farmer.getAttribute("aria-invalid")).toBe("true"),
+			);
+			expect(farmer.value).toBe(hostId);
+			expect(
+				opened.page.getByText(
+					"Choose a farmer with an unambiguous saved identifier.",
+				),
+			).toBeTruthy();
+			expect((await opened.model.snapshot()).document).toEqual(before.document);
+			expect((await opened.model.snapshot()).entries).toHaveLength(0);
+			await fireEvent.change(farmer, { target: { value: "guest" } });
+			await waitFor(() =>
+				expect(farmer.getAttribute("aria-invalid")).toBeNull(),
+			);
+			await waitFor(() =>
+				expect(
+					opened.page.getByText(/Edit experience and professions for Guest/),
+				).toBeTruthy(),
+			);
+			await fireEvent.click(
+				opened.page.getByRole("link", { name: "Inventory" }),
+			);
+			const inventoryFarmer = (await opened.page.findByRole("combobox", {
+				name: "Farmer",
+			})) as HTMLSelectElement;
+			expect(inventoryFarmer.value).toBe("guest");
+			expect(
+				[...inventoryFarmer.options].map((option) => option.value),
+			).toEqual([hostId, "guest"]);
+			expect((await opened.model.snapshot()).entries).toHaveLength(0);
 		} finally {
 			await opened.dispose();
 		}

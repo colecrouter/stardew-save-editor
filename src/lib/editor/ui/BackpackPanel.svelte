@@ -21,15 +21,24 @@
 		type BackpackView,
 	} from "../inventory-operations.ts";
 	import { catalogEntries } from "../item-catalog.ts";
+	import { createFarmerSelectionField } from "../farmer-selection.ts";
+	import FarmerSelector from "./fields/FarmerSelector.svelte";
 	import BackpackItemVisual from "./BackpackItemVisual.svelte";
 	import BackpackItemEditor from "./BackpackItemEditor.svelte";
 	import BackpackItemPicker from "./BackpackItemPicker.svelte";
 
 	let { model }: { model: EditorModel } = $props();
 	const view = useAtomValue(() => model.atomBindings.view);
-	let farmerIndex = $state(0);
+	const selectedFarmer = useAtomValue(
+		() => model.atomBindings.selectedFarmerId,
+	);
 	const backpacks = $derived(view.current?.backpacks ?? []);
-	const backpack = $derived(backpacks[farmerIndex]);
+	const farmerField = $derived(
+		createFarmerSelectionField(backpacks, selectedFarmer.current, model),
+	);
+	const backpack = $derived(
+		backpacks.find((owner) => owner.farmerId === selectedFarmer.current),
+	);
 	const chests = $derived(view.current?.chests ?? []);
 	const owners = $derived([...backpacks, ...chests]);
 	let chestQuery = $state("");
@@ -203,14 +212,30 @@
 			selectionFamily = [selected.entityId];
 		}
 	});
+	let previousFarmerId = selectedFarmer.current;
+	$effect(() => {
+		const current = selectedFarmer.current;
+		if (current !== previousFarmerId) {
+			previousFarmerId = current;
+			// External page selection changes the farmer grid, while transferred
+			// instances already at that owner retain their inspector selection.
+			if (
+				selectedOwner &&
+				selectedOwner.kind !== "chest" &&
+				selectedOwner.farmerId !== current
+			)
+				choose(undefined);
+		}
+	});
 	$effect(() => {
 		// Transfers and Undo reveal the current owner while preserving the other grid.
 		// Explicit owner/search changes start a new selection and cannot be undone here.
 		if (!dragSource && selectedOwner && selectedEntity) {
-			const farmer = backpacks.findIndex(
-				(owner) => owner.farmerId === selectedOwner.farmerId,
-			);
-			if (farmer >= 0 && farmer !== farmerIndex) farmerIndex = farmer;
+			if (
+				selectedOwner.kind !== "chest" &&
+				selectedOwner.farmerId !== selectedFarmer.current
+			)
+				void model.commands.selectFarmer(selectedOwner.farmerId);
 			if (
 				selectedOwner.kind === "chest" &&
 				chest?.farmerId !== selectedOwner.farmerId
@@ -543,24 +568,7 @@
 
 <div class="inventory-heading">
 	<h1>Inventory</h1>
-	{#if backpacks.length > 1}
-		<label class="farmer">
-			Farmer
-			<select
-				bind:value={
-					() => farmerIndex,
-					(value) => {
-						farmerIndex = value;
-						choose(undefined);
-					}
-				}
-			>
-				{#each backpacks as farmer, index (index)}
-					<option value={index}>{farmer.name}</option>
-				{/each}
-			</select>
-		</label>
-	{/if}
+	<FarmerSelector field={farmerField} />
 </div>
 {#if (!backpack || !backpack.supported) && chests.length === 0}
 	<p role="status">
@@ -729,11 +737,6 @@
 	h2 {
 		font-size: 24px;
 		margin: 0 0 12px;
-	}
-	.farmer {
-		display: flex;
-		align-items: center;
-		gap: 10px;
 	}
 	select,
 	input[type="search"] {
@@ -934,10 +937,6 @@
 		h2 {
 			font-size: 22px;
 			margin-bottom: 10px;
-		}
-		.farmer {
-			font-size: 17px;
-			gap: 6px;
 		}
 		select {
 			max-width: 140px;

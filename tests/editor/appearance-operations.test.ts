@@ -1,3 +1,5 @@
+import { ItemData } from "../../src/lib/ItemData.ts";
+import { Sprite } from "../../src/lib/Sprite.svelte.ts";
 import { describe, expect, it } from "vitest";
 import { Effect } from "effect";
 import { tinyFixture } from "./fixtures.ts";
@@ -240,4 +242,26 @@ describe("appearance operations", () => {
 				expect(result._tag).toBe("Failure");
 			}),
 		));
+});
+
+// The game draws a complete standing frame from each 192×688 pants block;
+// inventory icons live below the animation and must never replace the legs.
+it("previews standing pants frames for both body types instead of inventory icons", () => {
+	const info = ItemData.get("Polka Dot Shorts");
+	if (!info) throw new Error("Missing preview pants");
+	const sprite = new Sprite(info);
+	for (const [gender, column] of [
+		["Male", 0],
+		["Female", 96],
+	] as const) {
+		const pants = appearanceLayers({
+			gender,
+			skin: 0,
+			hair: 0,
+			accessory: -1,
+		}).layers.find((layer) => layer.part === "pants");
+		if (!pants) throw new Error("Missing pants layer");
+		expect((sprite.sheetSize.height - pants.y) % 688).toBe(0);
+		expect((sprite.sheetSize.width - pants.x) % 192).toBe(column);
+	}
 });

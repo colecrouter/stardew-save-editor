@@ -147,9 +147,13 @@ export function appearanceLayers(raw: Record<string, unknown> | undefined) {
 		add(
 			part,
 			`/assets/${sprite.sheet}`,
+			// Pants dimensions point at the inventory icon, 672px below the
+			// standing animation. Draw the full frame at body origin; female
+			// frames sit 96px to the right within the same pants block.
 			pos.x -
+				(part === "pants" && gender === "female" ? 96 : 0) -
 				(part === "shirt" && info.canBeDyed ? sprite.sheetSize.width / 2 : 0),
-			pos.y,
+			pos.y + (part === "pants" ? 672 : 0),
 			tint,
 		);
 	}

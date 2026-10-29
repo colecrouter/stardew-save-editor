@@ -3,6 +3,7 @@
 	import type { EditorModel } from "../editor-model.ts";
 	import { createRelationshipDomain } from "../relationship-domain.ts";
 	import { createFarmerSelectionField } from "../farmer-selection.ts";
+	import ConfirmAction from "./ConfirmAction.svelte";
 	import NumberField from "./fields/NumberField.svelte";
 	import FarmerSelector from "./fields/FarmerSelector.svelte";
 	import { Result } from "effect";
@@ -40,13 +41,15 @@
 			)
 			.toSorted((a, b) => a.name.localeCompare(b.name)),
 	);
-	async function addMissing() {
+	async function addVillager(name: string) {
 		const target = domain;
 		if (!target || pending) return;
 		pending = true;
 		feedback = undefined;
 		try {
-			const result = await target.addMissing();
+			const result = await target.relationships
+				.find((row) => row.name === name)
+				?.add();
 			// A captured operation may finish after selection changes. Its data still
 			// belongs to the original farmer; feedback belongs only to the current one.
 			if (
@@ -78,15 +81,6 @@
 		<label>
 			Search villagers <input type="search" bind:value={search} />
 		</label>
-		<button
-			type="button"
-			onclick={addMissing}
-			disabled={pending || domain.missingCount === 0}
-		>
-			{domain.missingCount
-				? `Add ${domain.missingCount} missing villagers`
-				: "All villagers present"}
-		</button>
 	</div>
 	{#if feedback?.farmerId === domain.farmerId}
 		<p role="alert">{feedback.message}</p>
@@ -94,8 +88,29 @@
 	{#key domain.farmerId}
 		<div class="relationships">
 			{#each shown as row (row.name)}
-				<section aria-label={`${row.name} relationship`}>
+				<section
+					class:missing={!row.present}
+					aria-label={`${row.name} relationship`}
+				>
 					<h2>{row.name}</h2>
+					{#if row.present}
+						<ConfirmAction
+							title={`Remove ${row.name}?`}
+							description="This removes their saved relationship, including friendship points and gift history. You can Undo this change."
+							label={`Remove ${row.name}`}
+							disabled={!row.supported || pending}
+							commit={row.remove}
+						/>
+					{:else}
+						<p class="missing-label">Not in this farmer's save</p>
+						<button
+							type="button"
+							disabled={pending}
+							onclick={() => addVillager(row.name)}
+						>
+							Add {row.name}
+						</button>
+					{/if}
 					{#if Villagers.get(row.name)?.description}
 						<p class="description">{Villagers.get(row.name)?.description}</p>
 					{/if}
@@ -154,6 +169,12 @@
 		display: grid;
 		grid-template-columns: repeat(3, minmax(0, 1fr));
 		gap: 12px;
+	}
+	.missing .fields {
+		opacity: 0.55;
+	}
+	.missing-label {
+		font-style: italic;
 	}
 	.description {
 		color: #694621;

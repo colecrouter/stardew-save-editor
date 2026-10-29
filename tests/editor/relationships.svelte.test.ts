@@ -102,3 +102,75 @@ it(
 		}
 	},
 );
+
+// Missing rows are an explicit editor choice, never opening-time save defaults.
+it(
+	"keeps absent villagers disabled until added and confirms individual removal",
+	{ timeout: 25000 },
+	async () => {
+		const document = parser.parse(fixtureXml);
+		Object.assign(document.SaveGame.player, { friendshipData: "" });
+		const opened = await openEditor(
+			new TextEncoder().encode(exportDocument(document)),
+		);
+		const page = render(CharacterHarness, { model: opened.model });
+		try {
+			await fireEvent.click(page.getByRole("link", { name: "Relationships" }));
+			const points = () =>
+				page.getByRole("spinbutton", {
+					name: "Alex points",
+				}) as HTMLInputElement;
+			expect(points().disabled).toBe(true);
+			expect((await opened.model.snapshot()).entries).toHaveLength(0);
+			await fireEvent.click(page.getByRole("button", { name: /^Add Alex$/ }));
+			await waitFor(() => expect(points().disabled).toBe(false), {
+				timeout: 5000,
+			});
+			expect(points().value).toBe("0");
+			// Projection arrives before the command promise finishes; wait for the
+			// membership action to release its pending guard before opening removal.
+			await waitFor(
+				() =>
+					expect(
+						(
+							page.getByRole("button", {
+								name: /^Remove Alex$/,
+							}) as HTMLButtonElement
+						).disabled,
+					).toBe(false),
+				{ timeout: 5000 },
+			);
+			// Native dialog opening is supplied by the browser; happy-dom needs only the
+			// open/close attribute behavior for this component interaction assertion.
+			const dialog = page
+				.getByRole("heading", { name: "Remove Alex?", hidden: true })
+				.closest("dialog");
+			if (!dialog) throw new Error("Missing relationship confirmation");
+			dialog.showModal = () => {
+				dialog.open = true;
+			};
+			dialog.close = () => {
+				dialog.open = false;
+			};
+			await fireEvent.click(
+				page.getByRole("button", { name: /^Remove Alex$/ }),
+			);
+			expect(dialog.open).toBe(true);
+			expect((await opened.model.snapshot()).entries).toHaveLength(1);
+			const form = dialog.querySelector("form");
+			if (!form) throw new Error("Missing removal form");
+			await fireEvent.submit(form);
+			await waitFor(() => expect(points().disabled).toBe(true), {
+				timeout: 5000,
+			});
+			expect((await opened.model.snapshot()).entries).toHaveLength(2);
+			await opened.model.commands.undo();
+			await waitFor(() => expect(points().disabled).toBe(false), {
+				timeout: 5000,
+			});
+		} finally {
+			page.unmount();
+			await opened.close();
+		}
+	},
+);

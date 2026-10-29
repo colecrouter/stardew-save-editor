@@ -12,10 +12,6 @@ export function createRelationshipDomain(
 ) {
 	return {
 		...view,
-		addMissing: () =>
-			model.commands.transact(
-				setRelationship({ farmerId: view.farmerId, kind: "add-missing" }),
-			),
 		relationships: view.relationships.map((row) => {
 			function field(
 				kind: "points" | "gifts" | "hearts",
@@ -64,6 +60,23 @@ export function createRelationshipDomain(
 			}
 			return {
 				...row,
+				// Membership changes are discrete transactions with one Undo entry.
+				add: () =>
+					model.commands.transact(
+						setRelationship({
+							farmerId: view.farmerId,
+							name: row.name,
+							kind: "add",
+						}),
+					),
+				remove: () =>
+					model.commands.transact(
+						setRelationship({
+							farmerId: view.farmerId,
+							name: row.name,
+							kind: "remove",
+						}),
+					),
 				fields: {
 					points: field("points"),
 					hearts: field("hearts"),

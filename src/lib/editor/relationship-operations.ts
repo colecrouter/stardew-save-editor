@@ -31,7 +31,13 @@ const changeSchema = Schema.Union([
 	}),
 	Schema.Struct({
 		farmerId: Schema.String,
-		kind: Schema.Literal("add-missing"),
+		kind: Schema.Literal("add"),
+		name: Schema.String,
+	}),
+	Schema.Struct({
+		farmerId: Schema.String,
+		kind: Schema.Literal("remove"),
+		name: Schema.String,
 	}),
 ]);
 export type RelationshipChange = typeof changeSchema.Type;
@@ -56,6 +62,7 @@ const owners = (document: SaveDocument) =>
 /** Presentation retains unknown villagers while exposing only independently checked fields. */
 export interface RelationshipView {
 	name: string;
+	present: boolean;
 	supported: boolean;
 	reason?: string;
 	points?: number;
@@ -71,7 +78,6 @@ export interface RelationshipFarmerView {
 	supported: boolean;
 	reason?: string;
 	relationships: RelationshipView[];
-	missingCount: number;
 }
 function dictionary(farmer: Record<string, unknown>) {
 	const raw = farmer.friendshipData;
@@ -115,7 +121,7 @@ function project(
 	// Duplicate names cannot be safely addressed through the game's dictionary key.
 	// Keep the first visible row as read-only rather than accidentally selecting one.
 	const shown = new Set<string>();
-	const relationships = data.entries.flatMap((entry) => {
+	const relationships: RelationshipView[] = data.entries.flatMap((entry) => {
 		const name = entryName(entry);
 		if (name === undefined || shown.has(name)) return [];
 		shown.add(name);
@@ -141,6 +147,7 @@ function project(
 		return [
 			{
 				name,
+				present: true,
 				supported,
 				reason: supported
 					? undefined
@@ -156,6 +163,23 @@ function project(
 			},
 		];
 	});
+	// Known villagers absent from the dictionary are projected without creating
+	// save data. Their controls stay disabled until an explicit add transaction.
+	for (const name of characters.filter((name) => !names.includes(name))) {
+		const maxHearts = dateableCharacters.some((candidate) => candidate === name)
+			? 8
+			: 10;
+		relationships.push({
+			name,
+			present: false,
+			supported: false,
+			reason:
+				"Not present in this farmer's save. Add the villager to edit their relationship.",
+			giftsSupported: false,
+			maxHearts,
+			maxPoints: maxHearts * 250 + 249,
+		});
+	}
 	return {
 		farmerId: farmerId(farmer) ?? "",
 		name: typeof farmer.name === "string" ? farmer.name : "Unnamed farmer",
@@ -166,7 +190,6 @@ function project(
 				? "This farmer's relationship dictionary is unsupported."
 				: undefined,
 		relationships,
-		missingCount: characters.filter((name) => !names.includes(name)).length,
 	};
 }
 /** Read relationships without constructing proxies, filling defaults, or touching XML. */
@@ -212,35 +235,55 @@ export const setRelationship = Effect.fn("Relationships.set")(function* (
 		});
 	const data = dictionary(owner);
 	let label: string;
-	if (request.kind === "add-missing") {
-		const existing = data.entries.map(entryName);
-		const missing = characters.filter((name) => !existing.includes(name));
-		if (missing.length === 0) return;
-		// This explicit action creates only the vanilla social NPCs. Existing modded,
-		// duplicate, or opaque entries stay byte-for-byte represented in the snapshot.
-		const entries = [
-			...data.entries,
-			...missing.map((name) => ({
-				key: { string: name },
-				value: {
-					Friendship: {
-						Points: 0,
-						GiftsThisWeek: 0,
-						GiftsToday: 0,
-						TalkedToToday: false,
-						ProposalRejected: false,
-						Status: "Friendly",
-						Proposer: 0,
-						RoommateMarriage: false,
-					},
-				},
-			})),
-		];
+	if (request.kind === "add") {
+		// Only known absent villagers can receive editor-authored defaults. Reject
+		// stale clicks rather than replacing an existing imported friendship.
+		if (
+			!characters.some((name) => name === request.name) ||
+			data.entries.some((entry) => entryName(entry) === request.name)
+		)
+			return yield* new RelationshipInvalid({
+				message: "This villager is already present or cannot be added.",
+			});
 		owner.friendshipData = {
 			...(record(data.raw) ? data.raw : {}),
-			item: entries,
+			item: [
+				...data.entries,
+				{
+					key: { string: request.name },
+					value: {
+						Friendship: {
+							Points: 0,
+							GiftsThisWeek: 0,
+							GiftsToday: 0,
+							TalkedToToday: false,
+							ProposalRejected: false,
+							Status: "Friendly",
+							Proposer: 0,
+							RoommateMarriage: false,
+						},
+					},
+				},
+			],
 		};
-		label = `Add ${missing.length} missing villagers`;
+		label = `Add ${request.name} relationship`;
+	} else if (request.kind === "remove") {
+		const row = view.relationships.find((row) => row.name === request.name);
+		if (!row?.present || !row.supported)
+			return yield* new RelationshipInvalid({
+				message: "This relationship cannot be removed safely.",
+			});
+		// Removal is explicit and reversible through Undo. Preserve dictionary
+		// metadata, other entries and their representations, including opaque data.
+		const entries = data.entries.filter(
+			(entry) => entryName(entry) !== request.name,
+		);
+		const raw = { ...(record(data.raw) ? data.raw : {}) };
+		if (entries.length === 0) delete raw.item;
+		else
+			raw.item = data.singleton && entries.length === 1 ? entries[0] : entries;
+		owner.friendshipData = raw;
+		label = `Remove ${request.name} relationship`;
 	} else {
 		const row = view.relationships.find((row) => row.name === request.name);
 		if (!row?.supported || (request.kind === "gifts" && !row.giftsSupported))

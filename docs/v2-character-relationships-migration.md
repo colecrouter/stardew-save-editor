@@ -30,7 +30,8 @@ mastery. Imported unsupported fields remain visible and unavailable independentl
 one malformed field does not disable unrelated edits.
 
 Relationships includes existing and unknown villagers, points/hearts, weekly gifts,
-search, and adding all missing known NPCs as one atomic action. Rows retain saved
+search, and explicit per-villager add/remove transactions. Missing known villagers
+remain visible with disabled fields until added; removal requires confirmation. Rows retain saved
 order in the projection and render alphabetically so changing points never moves
 a focused input. Portraits and further presentation refinement are deferred.
 

@@ -50,7 +50,10 @@ describe("relationship domain operations", () => {
 		const document = fixture(),
 			before = structuredClone(document);
 		const rows = readRelationships(document)[0]?.relationships;
-		expect(rows?.map((row) => row.name)).toEqual(["Abigail", "Modded"]);
+		expect(rows?.filter((row) => row.present).map((row) => row.name)).toEqual([
+			"Abigail",
+			"Modded",
+		]);
 		expect(rows?.[0]).toMatchObject({
 			gifts: 0,
 			maxHearts: 8,
@@ -123,24 +126,61 @@ describe("relationship domain operations", () => {
 				expect((yield* session.snapshot).entries).toEqual([]);
 			}),
 		));
-	it("adds missing vanilla villagers once while preserving existing opaque and modded records", () =>
+	it("adds and removes individual villagers in atomic Undoable transactions", () =>
 		run(
 			Effect.gen(function* () {
 				const document = fixture();
 				const session = yield* makeHistorySession(document);
-				const before = readRelationships(document)[0];
+				expect(
+					readRelationships(document)[0]?.relationships.find(
+						(row) => row.name === "Alex",
+					),
+				).toMatchObject({ present: false, supported: false });
 				yield* session.transact(
-					setRelationship({ farmerId: "host", kind: "add-missing" }),
+					setRelationship({ farmerId: "host", kind: "add", name: "Alex" }),
+				);
+				const added = yield* session.snapshot;
+				expect(added.entries).toHaveLength(1);
+				expect(
+					readRelationships(added.document)[0]?.relationships.find(
+						(row) => row.name === "Alex",
+					),
+				).toMatchObject({ present: true, supported: true, points: 0 });
+				const duplicate = yield* Effect.result(
+					session.transact(
+						setRelationship({ farmerId: "host", kind: "add", name: "Alex" }),
+					),
+				);
+				expect(Result.isFailure(duplicate)).toBe(true);
+				yield* session.transact(
+					setRelationship({ farmerId: "host", kind: "remove", name: "Alex" }),
+				);
+				expect((yield* session.snapshot).document).toEqual(document);
+				yield* session.undo;
+				expect((yield* session.snapshot).document).toEqual(added.document);
+				yield* session.undo;
+				expect((yield* session.snapshot).document).toEqual(document);
+				yield* session.redo;
+				expect((yield* session.snapshot).document).toEqual(added.document);
+			}),
+		));
+	it("removes unique modded records while preserving opaque data and restores their exact record with Undo", () =>
+		run(
+			Effect.gen(function* () {
+				const document = fixture();
+				const session = yield* makeHistorySession(document);
+				yield* session.transact(
+					setRelationship({ farmerId: "host", kind: "remove", name: "Modded" }),
 				);
 				const after = yield* session.snapshot;
-				expect(readRelationships(after.document)[0]?.missingCount).toBe(0);
-				expect(readRelationships(after.document)[0]?.relationships.length).toBe(
-					(before?.relationships.length ?? 0) + (before?.missingCount ?? 0),
+				expect(
+					readRelationships(after.document)[0]?.relationships.some(
+						(row) => row.name === "Modded",
+					),
+				).toBe(false);
+				expect(JSON.stringify(after.document)).toContain(
+					'"opaque":["001",false]',
 				);
-				yield* session.transact(
-					setRelationship({ farmerId: "host", kind: "add-missing" }),
-				);
-				expect((yield* session.snapshot).entries.length).toBe(1);
 				yield* session.undo;
 				expect((yield* session.snapshot).document).toEqual(document);
 			}),
@@ -174,8 +214,7 @@ describe("relationship domain operations", () => {
 								setRelationship({
 									farmerId: "host",
 									name: "Abigail",
-									kind: "points",
-									value: 50,
+									kind: "remove",
 								}),
 							),
 						),

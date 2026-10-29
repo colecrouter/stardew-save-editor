@@ -485,26 +485,37 @@ export const makeHistorySession = (
 			const { editGroup: _group, ...visible } = state;
 			return structuredClone(visible);
 		};
-		return {
-			endEdit,
-			snapshot: Effect.map(TxSubscriptionRef.get(ref), detached),
-			// Group closure changes only private history metadata. Filter unchanged
-			// revisions before detaching so blur never clones the entire save again.
-			changes: Stream.unwrap(
+		// Each subscription owns its revision cursor and returns detached mutable
+		// snapshots. A consumer can acknowledge revisions delivered by another path;
+		// only those already-observed revisions are skipped before the costly copy.
+		const changesAfter = (publishedRevision: () => number | undefined) =>
+			Stream.unwrap(
 				Effect.sync(() => {
 					// Each subscription retains only a revision number. Retaining the last
 					// History here would keep a closed gesture's baseline document alive.
 					let revision: number | undefined;
 					return TxSubscriptionRef.changesStream(ref).pipe(
 						Stream.filter((state) => {
+							// Group closure changes only private metadata. Filtering unchanged
+							// revisions here keeps blur from copying the whole save again.
 							if (state.revision === revision) return false;
 							revision = state.revision;
-							return true;
+							// Commands also publish their detached result directly. Consult the
+							// consumer cursor before copying a revision it has already displayed.
+							const published = publishedRevision();
+							return published === undefined || state.revision > published;
 						}),
 						Stream.map(detached),
 					);
 				}),
-			),
+			);
+		return {
+			endEdit,
+			snapshot: Effect.map(TxSubscriptionRef.get(ref), detached),
+			changes: changesAfter(() => undefined),
+			/** Detached changes newer than this consumer's already-published revision. */
+			changesAfter,
+
 			// A group has one undo boundary and one review emphasis. Each constituent
 			// intent remains inspectable; a quiet operation never disappears from patches.
 			execute: (

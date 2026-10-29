@@ -386,7 +386,10 @@ export const makeEditorModel = (
 							resources.streams--;
 						}),
 				);
-				return session.changes;
+				// The command result may already have projected this revision. Skip
+				// that duplicate before history detaches the full preservation document.
+				// Lower-level writes and other models still arrive through this stream.
+				return session.changesAfter(() => registry?.get(viewAtom)?.revision);
 			}),
 		);
 		yield* Effect.forkScoped(

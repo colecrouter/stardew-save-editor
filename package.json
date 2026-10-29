@@ -20,7 +20,7 @@
 		"effect:diagnostics": "effect-tsgo diagnostics --project tsconfig.json",
 		"sync": "svelte-kit sync",
 		"check:codegen": "node node_modules/@typescript/native/bin/tsc --noEmit -p codegen/tsconfig.json",
-		"postinstall": "node tools/patch-core-js.mts"
+		"postinstall": "patch-package --error-on-fail"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.4.4",
@@ -40,13 +40,14 @@
 		"@vitejs/plugin-legacy": "^7.2.1",
 		"@vitest/web-worker": "3.2.7",
 		"comlink": "^4.4.2",
-		"core-js": "^3.46.0",
+		"core-js": "3.46.0",
 		"fast-xml-parser": "^5.8.0",
 		"happy-dom": "^20.8.9",
 		"idb": "^7.1.1",
 		"image-dimensions": "^2.3.0",
 		"oxfmt": "0.74.0",
 		"pako": "^2.1.0",
+		"patch-package": "^8.0.1",
 		"string-similarity-js": "^2.1.4",
 		"svelte": "5.57.2",
 		"svelte-check": "^4.3.3",

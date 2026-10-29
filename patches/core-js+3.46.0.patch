@@ -1,0 +1,30 @@
+diff --git a/node_modules/core-js/modules/web.structured-clone.js b/node_modules/core-js/modules/web.structured-clone.js
+index b274d34..235d622 100644
+--- a/node_modules/core-js/modules/web.structured-clone.js
++++ b/node_modules/core-js/modules/web.structured-clone.js
+@@ -64,7 +64,9 @@ var checkErrorsCloning = function (structuredCloneImplementation, $Error) {
+   return !fails(function () {
+     var error = new $Error();
+     var test = structuredCloneImplementation({ a: error, b: error });
+-    return !(test && test.a === test.b && test.a instanceof $Error && test.a.stack === error.stack);
++    // Native DOMException clones may omit the stack added by core-js. Still
++    // require correct types/shared references, and preserve ordinary Error stacks.
++    return !(test && test.a === test.b && test.a instanceof $Error && ($Error === DOMException || test.a.stack === error.stack));
+   });
+ };
+ 
+@@ -90,10 +92,12 @@ var checkNewErrorsCloningSemantic = function (structuredCloneImplementation) {
+ // only FF103+ supports new (html/5749) error cloning semantic
+ var nativeStructuredClone = globalThis.structuredClone;
+ 
++// Application policy: proposed AggregateError serialization alone must not
++// replace native cloning. Keep Error stacks, DOMException type/alias repairs,
++// and the missing-native fallback. DOMException stack loss alone is accepted.
+ var FORCED_REPLACEMENT = IS_PURE
+   || !checkErrorsCloning(nativeStructuredClone, Error)
+-  || !checkErrorsCloning(nativeStructuredClone, DOMException)
+-  || !checkNewErrorsCloningSemantic(nativeStructuredClone);
++  || !checkErrorsCloning(nativeStructuredClone, DOMException);
+ 
+ // Chrome 82+, Safari 14.1+, Deno 1.11+
+ // Chrome 78-81 implementation swaps `.name` and `.message` of cloned `DOMException`

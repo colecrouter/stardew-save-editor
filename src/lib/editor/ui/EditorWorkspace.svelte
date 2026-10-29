@@ -10,6 +10,7 @@
 	import CalendarPanel from "./CalendarPanel.svelte";
 	import RelationshipPanel from "./RelationshipPanel.svelte";
 	import AppearancePanel from "./AppearancePanel.svelte";
+	import RecipesPanel from "./RecipesPanel.svelte";
 	import CharacterPanel from "./CharacterPanel.svelte";
 	import FarmPanel from "./FarmPanel.svelte";
 	import BundlePanel from "./BundlePanel.svelte";
@@ -46,6 +47,7 @@
 	let characterOpened = $state(false);
 	let relationshipsOpened = $state(false);
 	let appearanceOpened = $state(false);
+	let recipesOpened = $state(false);
 	function chooseSection(section: string) {
 		// Hidden panels retain their local state, so navigation explicitly finishes
 		// any field gesture even when no native blur event accompanies the change.
@@ -53,6 +55,7 @@
 		if (section === "character") characterOpened = true;
 		if (section === "relationships") relationshipsOpened = true;
 		if (section === "appearance") appearanceOpened = true;
+		if (section === "recipes") recipesOpened = true;
 		tab = section;
 	}
 	let error = $state("");
@@ -148,6 +151,15 @@
 				/>
 
 				<SectionLink
+					href="#recipes"
+					label="Recipes"
+					shortLabel="Recipes"
+					icon="cooking"
+					active={tab === "recipes"}
+					onclick={() => chooseSection("recipes")}
+				/>
+
+				<SectionLink
 					href="#farm"
 					label="Farm settings"
 					shortLabel="Farm"
@@ -217,6 +229,11 @@
 		{#if relationshipsOpened}
 			<div hidden={tab !== "relationships"}>
 				<RelationshipPanel {model} />
+			</div>
+		{/if}
+		{#if recipesOpened}
+			<div hidden={tab !== "recipes"}>
+				<RecipesPanel {model} />
 			</div>
 		{/if}
 		<div hidden={tab !== "farm"}><FarmPanel {model} /></div>
@@ -326,7 +343,7 @@
 			font-size: 17px;
 		}
 		nav {
-			/* Seven sections need two rows so phone labels never overlap. */
+			/* Eight sections need two rows so phone labels never overlap. */
 			display: grid;
 			grid-template-columns: repeat(4, minmax(0, 1fr));
 		}

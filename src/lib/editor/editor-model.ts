@@ -1,3 +1,4 @@
+import { readRecipes, type RecipeFarmerView } from "./recipe-operations.ts";
 import {
 	readAppearances,
 	type AppearanceView,
@@ -82,6 +83,7 @@ export interface EditorView {
 	backpacks: BackpackView[];
 	chests: BackpackView[];
 	characters: CharacterView[];
+	recipes: RecipeFarmerView[];
 	appearances: AppearanceView[];
 	relationships: RelationshipFarmerView[];
 	greenRain: number;
@@ -166,6 +168,7 @@ function project(state: HistoryState, includeProofs = false): EditorView {
 		backpacks: readBackpacks(state),
 		chests: readChests(state),
 		characters: readCharacters(state.document),
+		recipes: readRecipes(state.document),
 		appearances: readAppearances(state.document),
 		relationships: readRelationships(state.document),
 		greenRain: day,

@@ -324,6 +324,24 @@ await writeFile(
 	JSON.stringify(cookingRecipesArray),
 );
 
+// Cooking progress uses output item IDs, independently of recipe knowledge.
+// Keep this compact lookup separate from the inventory catalog so core editor
+// projections do not eagerly import the full item metadata on every app entry.
+const cookingRecipeOutputs = Object.fromEntries(
+	Object.entries(cookingRecipes).map(([name, definition]) => {
+		// The game reads output ID/quantity pairs from slash field 2. Vanilla cooking
+		// has one output; reject ambiguous definitions instead of guessing progress IDs.
+		const outputs = definition.split("/")[2]?.trim().split(/\s+/);
+		if (!outputs || outputs.length !== 2 || !outputs[0])
+			throw new Error(`Unsupported cooking output for ${name}`);
+		return [name, outputs[0].replace(/^\(O\)/, "")];
+	}),
+);
+await writeFile(
+	"./generated/cookingrecipeoutputs.json",
+	JSON.stringify(cookingRecipeOutputs),
+);
+
 const craftingRecipes = JSON.parse(
 	await readFile("./content/Data/CraftingRecipes.json", "utf-8"),
 ) as Record<string, string>;

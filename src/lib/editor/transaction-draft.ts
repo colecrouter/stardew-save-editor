@@ -1,4 +1,4 @@
-import { Context, Effect, Schema } from "effect";
+import { Context, Effect, Schema, JsonPatch } from "effect";
 import { MutationError, type SessionState } from "./domain.ts";
 
 // A domain operation receives a detached snapshot and submits its replacement
@@ -23,7 +23,20 @@ export class TransactionDraft extends Context.Service<
  * cannot retain or update an abandoned draft. This does not publish a commit.
  */
 export function makeTransactionDraft(initial: SessionState) {
-	let state: SessionState | undefined = structuredClone(initial);
+	// General factory callers keep their own mutable data. Isolate it before
+	// constructing the capability so later caller writes cannot alter the draft.
+	return stageTransactionDraft(structuredClone(initial));
+}
+
+/** History-only construction from a stable, session-owned committed snapshot.
+ * The owner must not mutate this baseline. Programs still receive detached reads;
+ * no service method exposes or mutates the borrowed committed objects. */
+export function makeTransactionDraftFromCommitted(initial: SessionState) {
+	return stageTransactionDraft(initial);
+}
+
+function stageTransactionDraft(initial: SessionState) {
+	let state: SessionState | undefined = initial;
 	let version = 0;
 	let active = true;
 	// Capture is lazy: validation is an expected failure, cloning validated JSON
@@ -49,7 +62,22 @@ export function makeTransactionDraft(initial: SessionState) {
 					return yield* new MutationError(
 						"Transaction drafts require plain JSON state",
 					);
-				state = structuredClone(next.state);
+				// A program may retain and mutate its submitted snapshot later. Copy
+				// changed values, then replay them onto the stable staged baseline.
+				// Unchanged branches stay owned internally; no submitted reference
+				// becomes authoritative. This also preserves sharing for history diffs.
+				const patch = structuredClone(
+					JsonPatch.get(
+						state as unknown as Schema.Json,
+						next.state as unknown as Schema.Json,
+					),
+				);
+				// The patch was derived from validated SessionState values, so replay
+				// preserves that envelope even though JsonPatch forgets its root type.
+				state = JsonPatch.apply(
+					patch,
+					state as unknown as Schema.Json,
+				) as unknown as SessionState;
 				version++;
 			}),
 		},

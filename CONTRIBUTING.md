@@ -97,6 +97,21 @@ Run `npm run test:editor` for its migrated tests, or `npm test` for the full sui
 The lab forwards to the application-owned implementation. See the
 [calendar migration](docs/v2-calendar-migration.md) for legacy isolation and retirement gates.
 
+### Native structured cloning
+
+The browser baseline includes Safari/iOS 15.4 and native `structuredClone`.
+`npm ci`/`npm install` runs `patch-package --error-on-fail` to apply
+`patches/core-js+3.46.0.patch`, adjusting core-js 3.46.0's
+replacement policy: lack of proposed AggregateError serialization alone must not
+replace native cloning. Loss of core-js-added DOMException stacks is also accepted.
+Ordinary Error stacks, DOMException types/shared references, and the missing-native
+fallback remain checked. Automatic polyfill selection stays enabled.
+Core-js is pinned to the reviewed version. Patch application failures fail installation;
+review and regenerate the patch when upgrading core-js. Regression tests exercise
+both the direct copy and the copy Vite resolves, so a future nested installation
+cannot silently bypass the policy. Do not remove the patch without checking the
+generated production polyfills.
+
 ## General Conventions
 
 The code is broken up into a few sections.

@@ -1,3 +1,4 @@
+import { samePlainData } from "./plain-data.ts";
 import { inventoryQuantity, inventoryQualities } from "./inventory-policy.ts";
 import type { Item } from "$types/save";
 import {
@@ -354,8 +355,10 @@ export function makeBackpackItemEdits(
 		// must not authorize a property that the imported item did not support.
 		if (
 			!authority ||
-			JSON.stringify(backpackInventorySnapshot(snapshot.state.document)) !==
-				JSON.stringify(backpackInventorySnapshot(replay(authority))) ||
+			!samePlainData(
+				backpackInventorySnapshot(snapshot.state.document),
+				backpackInventorySnapshot(replay(authority)),
+			) ||
 			!contextMatches(snapshot.state.document)
 		)
 			return yield* new ItemPropertyInvalid({
@@ -459,8 +462,10 @@ export function makeBackpackItemEdits(
 				!owner?.farmer ||
 				!identities[farmerId] ||
 				identities[farmerId].length !== owner.slots.length ||
-				JSON.stringify(backpackInventorySnapshot(snapshot.state.document)) !==
-					JSON.stringify(backpackInventorySnapshot(replay(authority)))
+				!samePlainData(
+					backpackInventorySnapshot(snapshot.state.document),
+					backpackInventorySnapshot(replay(authority)),
+				)
 			)
 				return yield* new BackpackItemInvalid({
 					message: "This backpack cannot receive a Prize Ticket safely.",
@@ -513,8 +518,10 @@ export function makeBackpackItemEdits(
 				!valid.includes(size) ||
 				!valid.includes(owner.slots.length) ||
 				owner.farmer.maxItems !== owner.slots.length ||
-				JSON.stringify(backpackInventorySnapshot(snapshot.state.document)) !==
-					JSON.stringify(backpackInventorySnapshot(replay(authority)))
+				!samePlainData(
+					backpackInventorySnapshot(snapshot.state.document),
+					backpackInventorySnapshot(replay(authority)),
+				)
 			)
 				return yield* new BackpackItemInvalid({
 					message:
@@ -684,10 +691,15 @@ export function makeBackpackItemEdits(
 	return {
 		service,
 		inventory: () => preparedInventory,
+		// Authorization compares field presence and values, not object insertion
+		// order. A patch-created reward must equal the approved record even when
+		// replay enumerates its keys differently; opaque extra fields still reject.
 		validate: (document: SaveDocument, baseline: SaveDocument) =>
 			contextMatches(document) &&
-			JSON.stringify(backpackInventorySnapshot(replay(baseline))) ===
-				JSON.stringify(backpackInventorySnapshot(document)),
+			samePlainData(
+				backpackInventorySnapshot(replay(baseline)),
+				backpackInventorySnapshot(document),
+			),
 		close: Effect.sync(() => {
 			authority = undefined;
 			writes.length = 0;

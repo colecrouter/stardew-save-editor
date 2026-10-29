@@ -24,7 +24,10 @@ import {
 	type ReviewMetadata,
 	type ReviewJournal,
 } from "./transaction-annotations.ts";
-import { TransactionDraft, makeTransactionDraft } from "./transaction-draft.ts";
+import {
+	TransactionDraft,
+	makeTransactionDraftFromCommitted,
+} from "./transaction-draft.ts";
 import { coreOperations, EditorOperations } from "./operations.ts";
 import {
 	type Mutation,
@@ -633,7 +636,7 @@ export const makeHistorySession = (
 				update(
 					(state) =>
 						Effect.gen(function* () {
-							const draft = makeTransactionDraft({
+							const draft = makeTransactionDraftFromCommitted({
 								document: state.document,
 								domainState: state.domainState,
 								history: [],

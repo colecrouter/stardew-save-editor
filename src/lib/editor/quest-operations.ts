@@ -30,23 +30,27 @@ export type QuestChange = typeof schema.Type;
 const decode = Schema.decodeUnknownResult(schema, {
 	onExcessProperty: "error",
 });
-const record = (v: unknown): v is Record<string, unknown> =>
-	v !== null && typeof v === "object" && !Array.isArray(v);
-const integer = (v: unknown): v is number =>
-	typeof v === "number" && Number.isSafeInteger(v);
+// Predicates validate only the values inspected by the adapter. They never decode
+// an imported save record or strip opaque members from its representation.
+const record = Schema.is(
+	Schema.Record(Schema.String, Schema.mutableKey(Schema.Unknown)),
+);
+const integer = Schema.is(
+	Schema.Finite.check(
+		Schema.isInt(),
+		Schema.isBetween({
+			minimum: Number.MIN_SAFE_INTEGER,
+			maximum: Number.MAX_SAFE_INTEGER,
+		}),
+	),
+);
+const isScalar = Schema.is(Schema.Union([Schema.String, Schema.Finite]));
+// XML singleton/list adaptation is representation handling, not domain validation.
 const list = (v: unknown): unknown[] =>
 	v === undefined ? [] : Array.isArray(v) ? v : [v];
-const scalar = (v: unknown) =>
-	typeof v === "string"
-		? v
-		: typeof v === "number" && Number.isFinite(v)
-			? String(v)
-			: undefined;
+const scalar = (v: unknown) => (isScalar(v) ? String(v) : undefined);
 const owners = (document: SaveDocument) =>
 	farmers(document).flatMap((owner) => (record(owner) ? [owner] : []));
-function reject(message: string): never {
-	throw new QuestInvalid({ message });
-}
 // A nil or opaque container has no safe insertion semantics. Empty XML and
 // independently valid entries remain editable without replacing their metadata.
 function dictionary(raw: unknown, field: string, omitted = false) {
@@ -219,15 +223,16 @@ function project(
 						starts.push(definition.title);
 					else skipped.push(questLabel(id));
 				}
-				let ticketDue = false;
-				if (helpWanted && !completed && !secret) {
-					try {
-						ticketDue = (readStat(owner, "BillboardQuestsDone") + 1) % 3 === 0;
-					} catch (cause) {
-						if (!(cause instanceof QuestInvalid)) throw cause;
-						/* The command will show a typed rejection if saved completion stats are unsupported. */
-					}
-				}
+				// Projection must stay synchronous and read-only. A checked Result
+				// describes unsupported stats without executing a mutation Effect.
+				const billboard =
+					helpWanted && !completed && !secret
+						? readStatResult(owner, "BillboardQuestsDone")
+						: undefined;
+				const ticketDue =
+					billboard !== undefined &&
+					Result.isSuccess(billboard) &&
+					(billboard.success + 1) % 3 === 0;
 				const gold = reward(raw);
 				const days =
 					raw.daysLeft === undefined
@@ -294,37 +299,69 @@ export function readQuestJournals(document: SaveDocument): QuestFarmerView[] {
 		);
 	});
 }
-function stats(owner: Record<string, unknown>) {
+// Shared checked reading keeps projection and command rejection in agreement.
+// Unsupported imported values remain untouched; mutation helpers lift this Result
+// into the typed Effect error channel instead of throwing during preparation.
+function statDataResult(owner: Record<string, unknown>) {
 	if (!record(owner.stats))
-		return reject("This farmer's completion stats are unsupported.");
+		return Result.fail(
+			new QuestInvalid({
+				message: "This farmer's completion stats are unsupported.",
+			}),
+		);
 	const values = dictionary(owner.stats.Values, "item", true);
 	if (!values.supported)
-		return reject("This farmer's completion stats are unsupported.");
-	return { root: owner.stats, ...values };
+		return Result.fail(
+			new QuestInvalid({
+				message: "This farmer's completion stats are unsupported.",
+			}),
+		);
+	return Result.succeed({ root: owner.stats, ...values });
 }
 // Stat keys are case-insensitive in-game. Preserve existing spelling and
 // opaque members, rejecting duplicate relevant keys rather than choosing one.
-function readStat(owner: Record<string, unknown>, name: string) {
-	const data = stats(owner);
-	const matches = data.entries.filter(
+function readStatResult(
+	owner: Record<string, unknown>,
+	name: string,
+): Result.Result<number, QuestInvalid> {
+	const checked = statDataResult(owner);
+	if (Result.isFailure(checked)) return Result.fail(checked.failure);
+	const matches = checked.success.entries.filter(
 		(entry) =>
 			record(entry) &&
 			record(entry.key) &&
 			typeof entry.key.string === "string" &&
 			entry.key.string.toLowerCase() === name.toLowerCase(),
 	);
-	if (matches.length > 1) return reject(`The saved ${name} stat is ambiguous.`);
+	if (matches.length > 1)
+		return Result.fail(
+			new QuestInvalid({ message: `The saved ${name} stat is ambiguous.` }),
+		);
 	const first = matches[0];
-	if (first === undefined) return 0;
+	if (first === undefined) return Result.succeed(0);
 	const value =
 		record(first) && record(first.value) ? first.value.unsignedInt : undefined;
 	if (!integer(value) || value < 0 || value >= 4294967295)
-		return reject(`The saved ${name} stat cannot be incremented safely.`);
-	return value;
+		return Result.fail(
+			new QuestInvalid({
+				message: `The saved ${name} stat cannot be incremented safely.`,
+			}),
+		);
+	return Result.succeed(value);
 }
-function incrementStat(owner: Record<string, unknown>, name: string) {
-	const value = readStat(owner, name) + 1;
-	const data = stats(owner);
+const stats = Effect.fn("Quest.completionStats")(
+	(owner: Record<string, unknown>) => Effect.fromResult(statDataResult(owner)),
+);
+const readStat = Effect.fn("Quest.readCompletionStat")(
+	(owner: Record<string, unknown>, name: string) =>
+		Effect.fromResult(readStatResult(owner, name)),
+);
+const incrementStat = Effect.fn("Quest.incrementStat")(function* (
+	owner: Record<string, unknown>,
+	name: string,
+) {
+	const value = (yield* readStat(owner, name)) + 1;
+	const data = yield* stats(owner);
 	const existing = data.entries.find(
 		(entry) =>
 			record(entry) &&
@@ -343,31 +380,44 @@ function incrementStat(owner: Record<string, unknown>, name: string) {
 			],
 		};
 	return value;
-}
+});
 // Completion adds only its own flags, leaving unrelated mail and metadata intact.
-function mail(owner: Record<string, unknown>, flag: string) {
+const mail = Effect.fn("Quest.mail")(function* (
+	owner: Record<string, unknown>,
+	flag: string,
+) {
 	const raw = owner.mailReceived;
 	if (
 		raw !== "" &&
 		(!record(raw) || raw["@_xsi:nil"] === true || raw["@_xsi:nil"] === "true")
 	)
-		return reject("This farmer's mail flags are unsupported.");
+		return yield* new QuestInvalid({
+			message: "This farmer's mail flags are unsupported.",
+		});
 	const values = record(raw) ? list(raw.string) : [];
 	if (values.some((value) => typeof value !== "string"))
-		return reject("This farmer's mail flags are unsupported.");
+		return yield* new QuestInvalid({
+			message: "This farmer's mail flags are unsupported.",
+		});
 	if (values.includes(flag)) return;
 	owner.mailReceived = {
 		...(record(raw) ? raw : {}),
 		string: [...values, flag],
 	};
-}
+});
 // Villagers should not repeat an already seen conversation topic. Inspect both
 // active and historical dictionaries before deliberately adding a new topic.
-function topic(owner: Record<string, unknown>, id: string, duration = 4) {
+const topic = Effect.fn("Quest.topic")(function* (
+	owner: Record<string, unknown>,
+	id: string,
+	duration = 4,
+) {
 	const active = dictionary(owner.activeDialogueEvents, "item", true);
 	const previous = dictionary(owner.previousActiveDialogueEvents, "item", true);
 	if (!active.supported || !previous.supported)
-		return reject("This farmer's dialogue topics are unsupported.");
+		return yield* new QuestInvalid({
+			message: "This farmer's dialogue topics are unsupported.",
+		});
 	const values = [...active.entries, ...previous.entries];
 	if (
 		values.some(
@@ -377,7 +427,9 @@ function topic(owner: Record<string, unknown>, id: string, duration = 4) {
 				typeof entry.key.string !== "string",
 		)
 	)
-		return reject("This farmer's dialogue topic keys are unsupported.");
+		return yield* new QuestInvalid({
+			message: "This farmer's dialogue topic keys are unsupported.",
+		});
 	if (
 		values.some(
 			(entry) => record(entry) && record(entry.key) && entry.key.string === id,
@@ -391,11 +443,16 @@ function topic(owner: Record<string, unknown>, id: string, duration = 4) {
 			{ key: { string: id }, value: { int: duration } },
 		],
 	};
-}
-function setRewardText(raw: Record<string, unknown>, gold: number) {
+});
+const setRewardText = Effect.fn("Quest.setRewardText")(function* (
+	raw: Record<string, unknown>,
+	gold: number,
+) {
 	if (raw.parts === undefined || raw.parts === "") return;
 	if (!record(raw.parts))
-		return reject("This quest's reward description is unsupported.");
+		return yield* new QuestInvalid({
+			message: "This quest's reward description is unsupported.",
+		});
 	for (const part of list(raw.parts.DescriptionElement)) {
 		if (!record(part)) continue;
 		const xmlKey = part.xmlKey;
@@ -410,17 +467,19 @@ function setRewardText(raw: Record<string, unknown>, gold: number) {
 			continue;
 		const first = list(part.param)[0];
 		if (!record(first))
-			return reject("This quest's advertised reward cannot be updated safely.");
+			return yield* new QuestInvalid({
+				message: "This quest's advertised reward cannot be updated safely.",
+			});
 		first["#text"] = gold;
 	}
-}
+});
 export interface QuestCompletionResult {
 	removed: boolean;
 	started: string[];
 	skippedFollowUps: string[];
 	prizeTickets: ("added" | "noRoom")[];
 }
-function complete(
+const complete = Effect.fn("Quest.complete")(function* (
 	document: SaveDocument,
 	owner: Record<string, unknown>,
 	initial: Record<string, unknown>,
@@ -435,124 +494,143 @@ function complete(
 	const processed = new Set<Record<string, unknown>>();
 	const completedIds = new Set<string>();
 	const game: unknown = document.SaveGame;
-	function finish(raw: Record<string, unknown>, depth = 0) {
-		if (depth > 50)
-			return reject("The follow-up chain is too deep to complete safely.");
-		if (raw.completed === true || processed.has(raw)) return;
-		for (const field of ["completed", "dailyQuest", "destroy"]) {
-			if (raw[field] !== undefined && typeof raw[field] !== "boolean")
-				return reject("This quest has unsupported completion flags.");
-		}
-		if (raw.questType !== undefined && !integer(raw.questType))
-			return reject("This quest has an unsupported saved type.");
-		processed.add(raw);
-		const id = scalar(raw.id);
-		if (id) completedIds.add(id);
-		// Secret retrieval quests bypass ordinary quest stats and replace another
-		// journal entry; completing them here does not grant friendship or take items.
-		if (questType(raw) === "SecretLostItemQuest") {
-			const replaced = scalar(raw.exclusiveQuestId);
-			writeJournal(
-				owner,
-				journal(owner).entries.filter(
-					(candidate) =>
-						candidate !== raw &&
-						(!replaced ||
-							!record(candidate) ||
-							scalar(candidate.id) !== replaced),
-				),
-			);
-			if (raw === initial) result.removed = true;
-			return;
-		}
-		// These counters and mail flags belong to completion, not reward collection.
-		if (raw.dailyQuest === true) {
-			const done = incrementStat(owner, "BillboardQuestsDone");
-			mail(owner, "completedFirstBillboardQuest");
-			if (done % 3 === 0) {
-				tickets++;
-				if (done >= 6) mail(owner, "gotFirstBillboardPrizeTicket");
+	const finish = (
+		raw: Record<string, unknown>,
+		depth = 0,
+	): Effect.Effect<void, QuestInvalid> =>
+		Effect.gen(function* () {
+			if (depth > 50)
+				return yield* new QuestInvalid({
+					message: "The follow-up chain is too deep to complete safely.",
+				});
+			if (raw.completed === true || processed.has(raw)) return;
+			for (const field of ["completed", "dailyQuest", "destroy"]) {
+				if (raw[field] !== undefined && typeof raw[field] !== "boolean")
+					return yield* new QuestInvalid({
+						message: "This quest has unsupported completion flags.",
+					});
 			}
-		}
-		if (raw.dailyQuest === true || raw.questType === 7)
-			incrementStat(owner, "questsCompleted");
-		if (paysReward(raw)) {
-			if (!integer(raw.reward))
-				return reject("This quest's advertised reward is unsupported.");
-			raw.moneyReward = raw.reward;
-		}
-		raw.completed = true;
-		const ids = followIds(raw);
-		if (!ids) return reject("This quest's follow-up list is unsupported.");
-		// Follow-ups append like Farmer.addQuest. Already built buildings may finish
-		// immediately, recursively starting their own supported follow-ups.
-		for (const nextId of ids) {
-			if (
-				nextId === "7" &&
-				record(game) &&
-				String(game.whichFarm) === "MeadowlandsFarm"
-			)
-				continue;
-			if (
-				completedIds.has(nextId) ||
-				journal(owner).entries.some(
-					(candidate) => record(candidate) && scalar(candidate.id) === nextId,
+			if (raw.questType !== undefined && !integer(raw.questType))
+				return yield* new QuestInvalid({
+					message: "This quest has an unsupported saved type.",
+				});
+			processed.add(raw);
+			const id = scalar(raw.id);
+			if (id) completedIds.add(id);
+			// Secret retrieval quests bypass ordinary quest stats and replace another
+			// journal entry; completing them here does not grant friendship or take items.
+			if (questType(raw) === "SecretLostItemQuest") {
+				const replaced = scalar(raw.exclusiveQuestId);
+				writeJournal(
+					owner,
+					journal(owner).entries.filter(
+						(candidate) =>
+							candidate !== raw &&
+							(!replaced ||
+								!record(candidate) ||
+								scalar(candidate.id) !== replaced),
+					),
+				);
+				if (raw === initial) result.removed = true;
+				return;
+			}
+			// These counters and mail flags belong to completion, not reward collection.
+			if (raw.dailyQuest === true) {
+				const done = yield* incrementStat(owner, "BillboardQuestsDone");
+				yield* mail(owner, "completedFirstBillboardQuest");
+				if (done % 3 === 0) {
+					tickets++;
+					if (done >= 6) yield* mail(owner, "gotFirstBillboardPrizeTicket");
+				}
+			}
+			if (raw.dailyQuest === true || raw.questType === 7)
+				yield* incrementStat(owner, "questsCompleted");
+			if (paysReward(raw)) {
+				if (!integer(raw.reward))
+					return yield* new QuestInvalid({
+						message: "This quest's advertised reward is unsupported.",
+					});
+				raw.moneyReward = raw.reward;
+			}
+			raw.completed = true;
+			const ids = followIds(raw);
+			if (!ids)
+				return yield* new QuestInvalid({
+					message: "This quest's follow-up list is unsupported.",
+				});
+			// Follow-ups append like Farmer.addQuest. Already built buildings may finish
+			// immediately, recursively starting their own supported follow-ups.
+			for (const nextId of ids) {
+				if (
+					nextId === "7" &&
+					record(game) &&
+					String(game.whichFarm) === "MeadowlandsFarm"
 				)
-			)
-				continue;
-			const definition = questDefinitions.get(nextId);
-			const next = definition
-				? questFromData(
-						definition,
-						(document.SaveGame.player as unknown) === owner,
+					continue;
+				if (
+					completedIds.has(nextId) ||
+					journal(owner).entries.some(
+						(candidate) => record(candidate) && scalar(candidate.id) === nextId,
 					)
-				: undefined;
-			if (!next) {
-				result.skippedFollowUps.push(questLabel(nextId));
-				continue;
+				)
+					continue;
+				const definition = questDefinitions.get(nextId);
+				const next = definition
+					? questFromData(
+							definition,
+							(document.SaveGame.player as unknown) === owner,
+						)
+					: undefined;
+				if (!next) {
+					result.skippedFollowUps.push(questLabel(nextId));
+					continue;
+				}
+				writeJournal(owner, [...journal(owner).entries, next]);
+				result.started.push(
+					typeof next.questTitle === "string"
+						? next.questTitle
+						: questLabel(nextId),
+				);
+				if (typeof next.completionString === "string") {
+					const built = record(game) ? game.constructedBuildings : undefined;
+					const values =
+						built === "" || built === undefined
+							? []
+							: record(built)
+								? list(built.string)
+								: undefined;
+					if (!values || values.some((value) => typeof value !== "string"))
+						return yield* new QuestInvalid({
+							message:
+								"The team's constructed-building history is unsupported.",
+						});
+					if (values.includes(next.completionString))
+						yield* finish(next, depth + 1);
+				}
 			}
-			writeJournal(owner, [...journal(owner).entries, next]);
-			result.started.push(
-				typeof next.questTitle === "string"
-					? next.questTitle
-					: questLabel(nextId),
-			);
-			if (typeof next.completionString === "string") {
-				const built = record(game) ? game.constructedBuildings : undefined;
-				const values =
-					built === "" || built === undefined
-						? []
-						: record(built)
-							? list(built.string)
-							: undefined;
-				if (!values || values.some((value) => typeof value !== "string"))
-					return reject(
-						"The team's constructed-building history is unsupported.",
-					);
-				if (values.includes(next.completionString)) finish(next, depth + 1);
+			const gold = reward(raw);
+			if (gold === undefined)
+				return yield* new QuestInvalid({
+					message: "This quest's reward is unsupported.",
+				});
+			// Reward-bearing quests remain in the journal for in-game collection;
+			// rewardless quests leave immediately, without paying money into the wallet.
+			if (gold <= 0 && !rewardText(raw)) {
+				writeJournal(
+					owner,
+					journal(owner).entries.filter((candidate) => candidate !== raw),
+				);
+				if (raw === initial) result.removed = true;
 			}
-		}
-		const gold = reward(raw);
-		if (gold === undefined)
-			return reject("This quest's reward is unsupported.");
-		// Reward-bearing quests remain in the journal for in-game collection;
-		// rewardless quests leave immediately, without paying money into the wallet.
-		if (gold <= 0 && !rewardText(raw)) {
-			writeJournal(
-				owner,
-				journal(owner).entries.filter((candidate) => candidate !== raw),
-			);
-			if (raw === initial) result.removed = true;
-		}
-		if (id === "126") {
-			mail(owner, "emilyFiber");
-			topic(owner, "emilyFiber", 2);
-		}
-		if (id !== undefined) topic(owner, `questComplete_${id}`);
-	}
-	finish(initial);
+			if (id === "126") {
+				yield* mail(owner, "emilyFiber");
+				yield* topic(owner, "emilyFiber", 2);
+			}
+			if (id !== undefined) yield* topic(owner, `questComplete_${id}`);
+		});
+	yield* finish(initial);
 	return { result, tickets };
-}
+});
 /** Queue one deliberate quest edit; completion consequences publish as one Undo step. */
 export const setQuest = Effect.fn("Quest.set")(function* (input: QuestChange) {
 	const parsed = decode(record(input) ? { ...input } : input);
@@ -585,44 +663,41 @@ export const setQuest = Effect.fn("Quest.set")(function* (input: QuestChange) {
 		return yield* new QuestInvalid({
 			message: "This quest is no longer available.",
 		});
-	const prepared = yield* Effect.try({
-		try: () => {
-			if (request.kind === "remove") {
-				writeJournal(
-					owner,
-					journal(owner).entries.filter((candidate) => candidate !== raw),
-				);
-				return undefined;
-			}
-			if (request.kind === "complete") {
-				if (row.completed) return undefined;
-				return complete(snapshot.state.document, owner, raw);
-			}
-			if (request.kind === "reward") {
-				if (!row.rewardSupported)
-					return reject("This quest's reward cannot be edited safely.");
-				if (request.value === row.reward) return undefined;
-				raw[paysReward(raw) && !row.completed ? "reward" : "moneyReward"] =
-					request.value;
-				if (row.helpWanted) setRewardText(raw, request.value);
-			} else {
-				if (
-					!row.daysSupported ||
-					!row.timed ||
-					request.value < 1 ||
-					request.value > 99
-				)
-					return reject(
-						"Days left must be between 1 and 99 for an unfinished timed quest.",
-					);
-				raw.daysLeft = request.value;
-			}
+	const prepared = yield* Effect.gen(function* () {
+		if (request.kind === "remove") {
+			writeJournal(
+				owner,
+				journal(owner).entries.filter((candidate) => candidate !== raw),
+			);
 			return undefined;
-		},
-		catch: (cause) => {
-			if (cause instanceof QuestInvalid) return cause;
-			throw cause;
-		},
+		}
+		if (request.kind === "complete") {
+			if (row.completed) return undefined;
+			return yield* complete(snapshot.state.document, owner, raw);
+		}
+		if (request.kind === "reward") {
+			if (!row.rewardSupported)
+				return yield* new QuestInvalid({
+					message: "This quest's reward cannot be edited safely.",
+				});
+			if (request.value === row.reward) return undefined;
+			raw[paysReward(raw) && !row.completed ? "reward" : "moneyReward"] =
+				request.value;
+			if (row.helpWanted) yield* setRewardText(raw, request.value);
+		} else {
+			if (
+				!row.daysSupported ||
+				!row.timed ||
+				request.value < 1 ||
+				request.value > 99
+			)
+				return yield* new QuestInvalid({
+					message:
+						"Days left must be between 1 and 99 for an unfinished timed quest.",
+				});
+			raw.daysLeft = request.value;
+		}
+		return undefined;
 	});
 	// Publish all journal/stat/mail/topic staging before inventory staging reads
 	// it. History commits both capabilities together or rolls the whole action back.

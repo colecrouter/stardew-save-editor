@@ -284,7 +284,7 @@ describe("character progression controls", { timeout: 25000 }, () => {
 				"guest",
 			]);
 			expect(
-				opened.page.getByText(
+				opened.page.getAllByText(
 					"Farmers with missing or ambiguous identities cannot be selected.",
 				),
 			).toBeTruthy();
@@ -312,7 +312,9 @@ describe("character progression controls", { timeout: 25000 }, () => {
 			);
 			await waitFor(() =>
 				expect(
-					opened.page.getByText(/Edit experience and professions for Guest/),
+					opened.page.getByText(
+						/Edit character details, experience and professions for Guest/,
+					),
 				).toBeTruthy(),
 			);
 			await fireEvent.click(

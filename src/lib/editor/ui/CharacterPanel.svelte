@@ -2,6 +2,7 @@
 	import { useAtomValue } from "effect-atom-svelte";
 	import type { EditorModel } from "../editor-model.ts";
 	import { createCharacterDomain } from "../character-domain.ts";
+	import CharacterDetails from "./CharacterDetails.svelte";
 	import NumberField from "./fields/NumberField.svelte";
 	import CheckboxField from "./fields/CheckboxField.svelte";
 	import { createFarmerSelectionField } from "../farmer-selection.ts";
@@ -40,11 +41,17 @@
 	</p>
 {:else}
 	<p class="intro">
-		Edit experience and professions for {character.name}. Changes update
-		immediately; use Undo to revert.
+		Edit character details, experience and professions for {character.name}.
+		Changes update immediately; use Undo to revert.
 	</p>
 
 	{#key character.farmerId}
+		<CharacterDetails
+			details={character.details}
+			farmerId={character.farmerId}
+			{model}
+		/>
+
 		<div class="skills">
 			{#each character.skills as skill (skill.key)}
 				<section class="skill" aria-label={`${skill.label} skill`}>

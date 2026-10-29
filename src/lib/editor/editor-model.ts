@@ -1,3 +1,7 @@
+import {
+	readRelationships,
+	type RelationshipFarmerView,
+} from "./relationship-operations.ts";
 import type { EditGesture } from "./edit-gesture.ts";
 import { readCharacters, type CharacterView } from "./character-operations.ts";
 import type { BackpackMoveRequest } from "./backpack-movement.ts";
@@ -74,6 +78,7 @@ export interface EditorView {
 	backpacks: BackpackView[];
 	chests: BackpackView[];
 	characters: CharacterView[];
+	relationships: RelationshipFarmerView[];
 	greenRain: number;
 	todayOptions: WeatherChoice[];
 	tomorrowOptions: WeatherChoice[];
@@ -156,6 +161,7 @@ function project(state: HistoryState, includeProofs = false): EditorView {
 		backpacks: readBackpacks(state),
 		chests: readChests(state),
 		characters: readCharacters(state.document),
+		relationships: readRelationships(state.document),
 		greenRain: day,
 		todayOptions: today.values,
 		tomorrowOptions: tomorrow.values,

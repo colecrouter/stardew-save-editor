@@ -1,4 +1,8 @@
 import { Data, Effect, Result, Schema, SchemaIssue } from "effect";
+import {
+	readCharacterDetails,
+	type CharacterDetailsView,
+} from "./character-details.ts";
 import { farmers, type SaveDocument } from "./domain.ts";
 import { TransactionDraft } from "./transaction-draft.ts";
 import {
@@ -120,6 +124,7 @@ export interface SkillView {
 	reason?: string;
 }
 export interface CharacterView {
+	details: CharacterDetailsView;
 	farmerId: string;
 	name: string;
 	supported: boolean;
@@ -236,6 +241,7 @@ export function readCharacters(document: SaveDocument): CharacterView[] {
 			mastery = readMastery(farmer);
 		return {
 			farmerId: id ?? "",
+			details: readCharacterDetails(document, id ?? ""),
 			name:
 				typeof farmer.name === "string" && farmer.name
 					? farmer.name

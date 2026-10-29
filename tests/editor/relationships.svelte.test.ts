@@ -55,6 +55,15 @@ it(
 			await fireEvent.change(page.getByRole("combobox", { name: "Farmer" }), {
 				target: { value: "guest" },
 			});
+			// Submit the farmer switch while both keystrokes may still be queued.
+			// A queued snapshot is our completion barrier, so this assertion checks
+			// targeting/order rather than timing full-save projections under suite load.
+			const snapshot = await opened.model.snapshot();
+			expect(
+				opened.model.atomBindings.registry.get(
+					opened.model.atomBindings.selectedFarmerId,
+				),
+			).toBe("guest");
 			await waitFor(
 				() =>
 					expect(
@@ -66,7 +75,6 @@ it(
 					).toBe("700"),
 				{ timeout: 5000 },
 			);
-			const snapshot = await opened.model.snapshot();
 			expect(snapshot.entries).toHaveLength(1);
 			expect(
 				opened.model.atomBindings.registry
@@ -85,6 +93,7 @@ it(
 			await fireEvent.change(page.getByRole("combobox", { name: "Farmer" }), {
 				target: { value: String(host.UniqueMultiplayerID) },
 			});
+			await opened.model.snapshot();
 			await waitFor(
 				() =>
 					expect(

@@ -1,4 +1,8 @@
 import {
+	readAppearances,
+	type AppearanceView,
+} from "./appearance-operations.ts";
+import {
 	readRelationships,
 	type RelationshipFarmerView,
 } from "./relationship-operations.ts";
@@ -78,6 +82,7 @@ export interface EditorView {
 	backpacks: BackpackView[];
 	chests: BackpackView[];
 	characters: CharacterView[];
+	appearances: AppearanceView[];
 	relationships: RelationshipFarmerView[];
 	greenRain: number;
 	todayOptions: WeatherChoice[];
@@ -161,6 +166,7 @@ function project(state: HistoryState, includeProofs = false): EditorView {
 		backpacks: readBackpacks(state),
 		chests: readChests(state),
 		characters: readCharacters(state.document),
+		appearances: readAppearances(state.document),
 		relationships: readRelationships(state.document),
 		greenRain: day,
 		todayOptions: today.values,

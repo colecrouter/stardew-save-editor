@@ -204,6 +204,9 @@ describe("character progression controls", { timeout: 25000 }, () => {
 			// The shared selector sends stable farmer identity through the actual change
 			// event, without Svelte's index-bound selected-option DOM query.
 			await fireEvent.change(farmerSelect, { target: { value: "guest" } });
+			// Submit selection immediately after typing, then drain the shared queue
+			// before checking DOM publication instead of timing full-save work.
+			await opened.model.snapshot();
 
 			await waitFor(() =>
 				expect(

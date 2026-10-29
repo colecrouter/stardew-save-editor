@@ -38,7 +38,9 @@ together; history publishes that prepared result atomically.
 The [independent cleanup audit](v2-cleanup-audit.md) verifies the completed field,
 transition and error-boundary cleanup and identifies systemic residual concerns.
 The [performance profile](v2-performance-profile.md) includes reproducible inputs,
-raw measurements and source fingerprints. Grouping Undo does not eliminate the
+raw measurements and source fingerprints. The [edit publication follow-up](v2-edit-performance.md)
+records immutable internal sharing and cached review comparisons; feature-view
+invalidation and browser budgets remain outstanding. Grouping Undo does not eliminate the
 cost of each immediate write.
 
 - [#201: measured editing latency and performance budgets](https://github.com/colecrouter/stardew-save-editor/issues/201)

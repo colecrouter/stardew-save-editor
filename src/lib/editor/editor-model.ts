@@ -203,7 +203,7 @@ function project(state: HistoryState, includeProofs = false): EditorView {
 		})),
 		// Baseline comparison survives undo-history eviction and exposes actual
 		// document writes even if an operation supplied an incomplete receipt.
-		net: JsonPatch.get(state.baseline as never, state.document as never),
+		net: state.net,
 		farmerId: String(game.player.UniqueMultiplayerID),
 		backpackSize: includeProofs ? game.player.items.Item.length : 0,
 	};

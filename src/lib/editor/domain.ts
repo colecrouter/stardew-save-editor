@@ -1,3 +1,5 @@
+import { samePlainData } from "./plain-data.ts";
+import { cloneEditorData } from "./clone-data.ts";
 import { Effect, Result } from "effect";
 import { MutationError } from "./mutation-error.ts";
 export { MutationError } from "./mutation-error.ts";
@@ -10,27 +12,6 @@ import {
 import type { BackpackMoveRequest } from "./backpack-movement.ts";
 import type { BackpackLifecycleRequest } from "./backpack-lifecycle.ts";
 import type { CalendarEdit } from "../calendarDocument.ts";
-
-// Parsed XML consists of plain records, arrays, and primitive values. This
-// comparator intentionally does not support class instances, cycles, Maps or Sets.
-function equal(left: unknown, right: unknown): boolean {
-	if (Object.is(left, right)) return true;
-	if (
-		!left ||
-		!right ||
-		typeof left !== "object" ||
-		typeof right !== "object" ||
-		Array.isArray(left) !== Array.isArray(right)
-	)
-		return false;
-	const a = left as Record<string, unknown>;
-	const b = right as Record<string, unknown>;
-	const keys = Object.keys(a);
-	return (
-		keys.length === Object.keys(b).length &&
-		keys.every((key) => Object.hasOwn(b, key) && equal(a[key], b[key]))
-	);
-}
 
 // Deliberately narrow lens over a full parsed save. Unknown fields stay attached.
 // Equipment fields may be absent or contain opaque imported records. Describing
@@ -219,7 +200,7 @@ export function apply(document: SaveDocument, mutation: Mutation) {
 // Discovery implementation, not a complete semantic diff engine. Arrays are deliberately
 // recorded as complete values so a reorder never loses unknown or hidden entries.
 export function diff(before: unknown, after: unknown, path = ""): Change[] {
-	if (equal(before, after)) return [];
+	if (samePlainData(before, after)) return [];
 	if (
 		before &&
 		after &&
@@ -240,7 +221,7 @@ export function diff(before: unknown, after: unknown, path = ""): Change[] {
 		);
 	}
 	return [
-		{ path, before: structuredClone(before), after: structuredClone(after) },
+		{ path, before: cloneEditorData(before), after: cloneEditorData(after) },
 	];
 }
 
@@ -252,10 +233,10 @@ export function prepareResult(
 	input: Mutation,
 	inspect: (draft: SaveDocument) => void = () => {},
 ): Result.Result<SessionState, MutationError> {
-	const mutation = structuredClone(input);
-	const draft = structuredClone(state.document);
+	const mutation = cloneEditorData(input);
+	const draft = cloneEditorData(state.document);
 	const inventory = state.inventory
-		? structuredClone(state.inventory)
+		? cloneEditorData(state.inventory)
 		: undefined;
 	const result = applyResult(draft, mutation, inventory);
 	if (Result.isFailure(result)) return Result.fail(result.failure);

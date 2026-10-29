@@ -261,6 +261,10 @@ async function scenario(name: string, bytes: Uint8Array) {
 // Record the exact source inputs because concurrent cleanup edits can land while
 // collecting samples. Matching hashes show the measured core stayed stable.
 const sourcePaths = [
+	"src/app.html",
+	"src/lib/editor/clone-data.ts",
+	"src/lib/editor/plain-data.ts",
+	"src/lib/editor/transaction-draft.ts",
 	"src/lib/editor/history.ts",
 	"src/lib/editor/editor-model.ts",
 	"src/lib/editor/inventory-operations.ts",

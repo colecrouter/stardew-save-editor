@@ -1,3 +1,5 @@
+import { samePlainData } from "./plain-data.ts";
+import { cloneEditorData } from "./clone-data.ts";
 import { inventoryQuantity, inventoryQualities } from "./inventory-policy.ts";
 import type { Item } from "$types/save";
 import {
@@ -294,7 +296,7 @@ export function makeBackpackItemEdits(
 		// comparison below still rejects raw unauthorized edits; only replay needs
 		// a mutable document, so ordinary field edits need no replay clone.
 		if (writes.length === 0 && resizes.length === 0) return document;
-		const expected = structuredClone(document);
+		const expected = cloneEditorData(document);
 		for (const write of writes) {
 			const farmer = ownerIn(expected, write.farmerId);
 			const item =
@@ -302,8 +304,8 @@ export function makeBackpackItemEdits(
 					? farmer?.slots[write.location]
 					: farmer?.farmer?.[write.location];
 			if (write.replacement && farmer && typeof write.location === "number")
-				farmer.slots[write.location] = structuredClone(write.replacement);
-			else if (record(item)) Object.assign(item, structuredClone(write.patch));
+				farmer.slots[write.location] = cloneEditorData(write.replacement);
+			else if (record(item)) Object.assign(item, cloneEditorData(write.patch));
 		}
 		// Capacity changes append canonical empty slots or remove only validated nils.
 		// Replay after retained-item patches because shrinking can never remove an item.
@@ -354,8 +356,10 @@ export function makeBackpackItemEdits(
 		// must not authorize a property that the imported item did not support.
 		if (
 			!authority ||
-			JSON.stringify(backpackInventorySnapshot(snapshot.state.document)) !==
-				JSON.stringify(backpackInventorySnapshot(replay(authority))) ||
+			!samePlainData(
+				backpackInventorySnapshot(snapshot.state.document),
+				backpackInventorySnapshot(replay(authority)),
+			) ||
 			!contextMatches(snapshot.state.document)
 		)
 			return yield* new ItemPropertyInvalid({
@@ -436,12 +440,12 @@ export function makeBackpackItemEdits(
 				JSON.stringify(resolved.item[key]) !== JSON.stringify(value),
 		);
 		if (!changed) return false;
-		Object.assign(resolved.item, structuredClone(patch));
+		Object.assign(resolved.item, cloneEditorData(patch));
 		yield* draft.replace(resolved.snapshot);
 		writes.push({
 			farmerId,
 			location: resolved.location,
-			patch: structuredClone(patch),
+			patch: cloneEditorData(patch),
 		});
 		return true;
 	});
@@ -459,8 +463,10 @@ export function makeBackpackItemEdits(
 				!owner?.farmer ||
 				!identities[farmerId] ||
 				identities[farmerId].length !== owner.slots.length ||
-				JSON.stringify(backpackInventorySnapshot(snapshot.state.document)) !==
-					JSON.stringify(backpackInventorySnapshot(replay(authority)))
+				!samePlainData(
+					backpackInventorySnapshot(snapshot.state.document),
+					backpackInventorySnapshot(replay(authority)),
+				)
 			)
 				return yield* new BackpackItemInvalid({
 					message: "This backpack cannot receive a Prize Ticket safely.",
@@ -494,7 +500,7 @@ export function makeBackpackItemEdits(
 				farmerId,
 				location: slot,
 				patch: {},
-				replacement: structuredClone(item),
+				replacement: cloneEditorData(item),
 			});
 			return "added" as const;
 		}),
@@ -513,8 +519,10 @@ export function makeBackpackItemEdits(
 				!valid.includes(size) ||
 				!valid.includes(owner.slots.length) ||
 				owner.farmer.maxItems !== owner.slots.length ||
-				JSON.stringify(backpackInventorySnapshot(snapshot.state.document)) !==
-					JSON.stringify(backpackInventorySnapshot(replay(authority)))
+				!samePlainData(
+					backpackInventorySnapshot(snapshot.state.document),
+					backpackInventorySnapshot(replay(authority)),
+				)
 			)
 				return yield* new BackpackItemInvalid({
 					message:
@@ -684,10 +692,15 @@ export function makeBackpackItemEdits(
 	return {
 		service,
 		inventory: () => preparedInventory,
+		// Authorization compares field presence and values, not object insertion
+		// order. A patch-created reward must equal the approved record even when
+		// replay enumerates its keys differently; opaque extra fields still reject.
 		validate: (document: SaveDocument, baseline: SaveDocument) =>
 			contextMatches(document) &&
-			JSON.stringify(backpackInventorySnapshot(replay(baseline))) ===
-				JSON.stringify(backpackInventorySnapshot(document)),
+			samePlainData(
+				backpackInventorySnapshot(replay(baseline)),
+				backpackInventorySnapshot(document),
+			),
 		close: Effect.sync(() => {
 			authority = undefined;
 			writes.length = 0;

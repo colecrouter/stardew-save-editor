@@ -29,6 +29,24 @@
 			name="keywords"
 			content="stardew valley, save editor, online editor, game editor, pc, mac, linux, android, ios"
 		/>
+		<!-- Capture the browser intrinsic before compatibility modules run. The
+		     editor clones validated plain data, while the global compatibility
+		     implementation must remain available for Error and host-object fixes. -->
+		<script data-editor-native-clone>
+			(() => {
+				const key = Symbol.for("stardew-save-editor.nativeStructuredClone");
+				// Record absence too: a later bootstrap must not mistake the installed
+				// compatibility implementation for the original browser intrinsic.
+				if (!Object.prototype.hasOwnProperty.call(globalThis, key)) {
+					const clone = globalThis.structuredClone;
+					Object.defineProperty(globalThis, key, {
+						value:
+							typeof clone === "function" ? clone.bind(globalThis) : undefined,
+						configurable: true,
+					});
+				}
+			})();
+		</script>
 		%sveltekit.head%
 	</head>
 

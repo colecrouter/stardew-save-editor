@@ -17,9 +17,12 @@ export class TransactionDraft extends Context.Service<
 		/** Synchronously edit private staging. Do not retain the writer or run effects
 		 * inside it. Expected failures belong in the surrounding Effect program.
 		 * Use ordinary JSON writes: cycles and frozen containers holding writers
-		 * are recipe defects, not supported snapshot construction patterns. */
+		 * are recipe defects, not supported snapshot construction patterns.
+		 * An expectedVersion ties a prepared edit to its earlier inspection; a
+		 * mismatch rejects before the recipe runs, including no-op recipes. */
 		mutate: (
 			recipe: (state: SessionState) => undefined,
+			expectedVersion?: number,
 		) => Effect.Effect<void, MutationError>;
 		replace: (snapshot: DraftSnapshot) => Effect.Effect<void, MutationError>;
 	}
@@ -29,6 +32,8 @@ export class TransactionDraft extends Context.Service<
  * Create one transaction attempt's isolated, versioned staging capability.
  * Reads are detached snapshots; replacement checks their captured version.
  * Opt-in mutate callbacks are synchronous temporary writers, never snapshot values.
+ * Owner-only inspect borrows frozen state and its version for engine checkouts;
+ * it must not be exposed through the domain-program service.
  * The owner must finalize `close` after capture or failure so escaped services
  * cannot retain or update an abandoned draft. This does not publish a commit.
  */
@@ -61,9 +66,16 @@ function stageTransactionDraft(initial: SessionState) {
 			read,
 			mutate: Effect.fn("TransactionDraft.mutate")(function* (
 				recipe: (state: SessionState) => undefined,
+				expectedVersion?: number,
 			) {
 				if (!active || !state)
 					return yield* new MutationError("This transaction draft is closed");
+				// Metadata preparation may yield after checkout. Reject a stale
+				// inspection before its recipe can read or modify the current writer.
+				if (expectedVersion !== undefined && expectedVersion !== version)
+					return yield* new MutationError(
+						"Another operation changed this transaction draft",
+					);
 				const before = state;
 				const capturedVersion = version;
 				const run = (writer: SessionState) => {
@@ -165,6 +177,15 @@ function stageTransactionDraft(initial: SessionState) {
 				version++;
 			}),
 		},
+		// Owner-only inspection borrows a frozen baseline with its version. History
+		// passes it only to the inventory engine, which detaches its narrow checkout
+		// before metadata work. Domain programs keep the detached service.read API.
+		inspect: Effect.gen(function* () {
+			if (!active || !state)
+				return yield* new MutationError("This transaction draft is closed");
+			freezeDraftState(state);
+			return { version, state };
+		}),
 		// History captures the prepared state before finalization clears the capability.
 		prepared: Effect.gen(function* () {
 			if (!active || !state)

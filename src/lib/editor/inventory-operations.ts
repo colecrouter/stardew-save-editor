@@ -36,7 +36,7 @@ import {
 } from "./equipment.ts";
 import { Context, Data, Effect, Result, Schema, SchemaIssue } from "effect";
 import { emptySlot, farmers, type SaveDocument } from "./domain.ts";
-import type { TransactionDraft } from "./transaction-draft.ts";
+import type { makeTransactionDraftFromCommitted } from "./transaction-draft.ts";
 import {
 	recordAnnotatedOperation,
 	withReviewMetadata,
@@ -270,12 +270,16 @@ export function backpackInventorySnapshot(document: SaveDocument) {
  * History supplies a stable, privately owned originalDocument: replay may deeply
  * freeze that baseline. Public/caller-owned documents must be detached first. */
 export function makeBackpackItemEdits(
-	draft: typeof TransactionDraft.Service,
+	draftOwner: Pick<
+		ReturnType<typeof makeTransactionDraftFromCommitted>,
+		"service" | "inspect"
+	>,
 	identities: Record<string, string[]>,
 	originalDocument: SaveDocument,
 	equipmentIdentities: EquipmentIdentities = {},
 	nextIdentity = 0,
 ) {
+	const draft = draftOwner.service;
 	// Approved field patches, reward replacements and capacity changes authorize
 	// inventory writes. Retain the
 	// baseline only while this draft is open; replay retains no published save object.
@@ -361,7 +365,7 @@ export function makeBackpackItemEdits(
 		farmerId: string,
 		entityId: string,
 	) {
-		const snapshot = yield* draft.read;
+		const snapshot = yield* draftOwner.inspect;
 		// New slot handles are published only with the enclosing history commit.
 		if (
 			resizes.length ||
@@ -415,7 +419,18 @@ export function makeBackpackItemEdits(
 			return yield* new ItemPropertyInvalid({
 				message: "This item is no longer editable in this inventory.",
 			});
-		return { snapshot, farmer, location, item };
+		// Keep authoritative references inside this engine step. Metadata and
+		// fallible preparation receive only the selected item, scalar display name,
+		// fresh scalar context and the version needed for a later compare-and-set.
+		return {
+			version: snapshot.version,
+			location,
+			item: structuredClone(item),
+			ownerName: typeof farmer.name === "string" ? farmer.name : undefined,
+			context: farmer.farmer
+				? readItemPropertyContext(snapshot.state.document, farmer.farmer)
+				: undefined,
+		};
 	});
 	const metadataFor = Effect.fn("Inventory.metadata")(function* (
 		item: Record<string, unknown>,
@@ -457,14 +472,26 @@ export function makeBackpackItemEdits(
 		farmerId: string,
 		patch: Record<string, unknown>,
 	) {
-		// Skip identical patches before replacing the draft, preserving the redo branch.
+		// A no-op still validates its checkout version, but produces no patch or
+		// history entry. A concurrent edit must never be hidden by the no-op path.
 		const changed = Object.entries(patch).some(
 			([key, value]) =>
 				JSON.stringify(resolved.item[key]) !== JSON.stringify(value),
 		);
+		yield* draft.mutate((state) => {
+			if (!changed) return;
+			// The version guard runs before this callback. Re-resolving the fixed
+			// location therefore addresses the exact item checked before metadata.
+			const currentOwner = ownerIn(state.document, farmerId);
+			const item =
+				typeof resolved.location === "number"
+					? currentOwner?.slots[resolved.location]
+					: currentOwner?.farmer?.[resolved.location];
+			if (!record(item))
+				throw new Error("Authorized inventory item disappeared");
+			Object.assign(item, patch);
+		}, resolved.version);
 		if (!changed) return false;
-		Object.assign(resolved.item, structuredClone(patch));
-		yield* draft.replace(resolved.snapshot);
 		writes.push({
 			farmerId,
 			location: resolved.location,
@@ -589,7 +616,7 @@ export function makeBackpackItemEdits(
 						: error,
 				),
 			);
-			const { item, farmer } = resolved;
+			const { item, ownerName } = resolved;
 			// Quantity/quality keep their existing ordinary-object policy and must not
 			// become generic fields merely because equipment now shares the resolver.
 			if (
@@ -619,7 +646,7 @@ export function makeBackpackItemEdits(
 			const review = reviewFor(
 				change.farmerId,
 				change.entityId,
-				farmer.name,
+				ownerName,
 				item,
 				change.property === "stack" ? "quantity" : "quality",
 				change.property,
@@ -638,11 +665,8 @@ export function makeBackpackItemEdits(
 			if (Result.isFailure(decoded)) return yield* decoded.failure;
 			const change = decoded.success;
 			const resolved = yield* target(change.farmerId, change.entityId);
-			const { item, farmer, snapshot } = resolved;
+			const { item, ownerName, context } = resolved;
 			const { info } = yield* metadataFor(item);
-			const context = farmer.farmer
-				? readItemPropertyContext(snapshot.state.document, farmer.farmer)
-				: undefined;
 			const field = getItemPropertyFields(item, info, context).find(
 				(field) => field.property === change.property,
 			);
@@ -701,7 +725,7 @@ export function makeBackpackItemEdits(
 			const review = reviewFor(
 				change.farmerId,
 				change.entityId,
-				farmer.name,
+				ownerName,
 				item,
 				field.label.toLowerCase(),
 				change.property,

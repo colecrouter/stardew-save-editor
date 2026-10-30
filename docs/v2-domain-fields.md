@@ -43,10 +43,19 @@ Copy-on-write handles tree-shaped state; shared-reference graphs use the detache
 fallback to preserve existing alias-driven writes. Changed mutations invalidate
 older draft snapshots; no-op mutations leave their version intact. Ordinary
 `read`/`replace` retains detached mutable snapshots for calendar and other planners.
-Only Farm uses the new synchronous draft path initially. Inventory authorization
-separately replays approved writes with copy-on-write for tree-shaped baselines,
-retaining detached replay for shared-reference graphs and all global inventory/context
-comparisons. Inventory operations still use detached draft read/replace.
+Farm and individual inventory item fields use synchronous draft mutation. The
+history-owned inventory engine inspects frozen staging internally, validates the
+existing global inventory/context and item-handle rules, then checks out only a
+detached item, fresh scalar context, display name, location and draft version.
+Metadata and fallible preparation never receive authoritative document references.
+Apply compares that captured version before invoking its writer, including for a
+no-op; another draft edit requires a fresh checkout rather than silently rebasing.
+
+Inventory authorization separately replays approved writes with copy-on-write for
+tree-shaped baselines, retaining detached replay for shared-reference graphs and
+all global comparisons. Rewards, backpack resizing and other planners keep their
+detached draft read/replace path. Owner inspection is not part of the domain-program
+service or UI boundary.
 
 ## Undo gestures
 

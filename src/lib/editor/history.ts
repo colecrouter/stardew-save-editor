@@ -756,8 +756,10 @@ export const makeHistorySession = (
 		return {
 			...commandsWith(detached),
 			/** Owner-only result projection for the model bridge. The synchronous
-			 * projector must neither mutate nor retain the borrowed source, and its
-			 * output must contain only detached presentation data or scalar receipts.
+			 * projector must neither mutate nor strongly retain the borrowed source.
+			 * Output may contain detached views, scalar receipts and owner-private
+			 * projection caches with weak source keys; borrowed data must not escape
+			 * through component-facing values.
 			 * Keep it pure: an enclosing Effect.tx may retry projection too. Publish
 			 * UI effects only after the complete command succeeds. */
 			forProjection: <A>(project: (state: HistoryState) => A) =>

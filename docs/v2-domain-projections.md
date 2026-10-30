@@ -38,7 +38,8 @@ input-controller state stays mutable, and editing continues through domain
 commands. Engine snapshots and transaction draft reads retain their detached,
 mutable contract.
 
-One private chest projection belongs to each file session. History compares the
+One private current generation of chest projections belongs to each file session.
+History compares the
 actual committed chest dependencies before detaching public state and publishes
 a numeric `chestRevision`. The domain-owned selector covers world locations and
 building interiors, farmer IDs that could collide with chest IDs, and inventory
@@ -51,8 +52,23 @@ operation labels or equality between detached snapshots. Custom operations can
 change fields their labels do not describe; skipped stream revisions cannot
 skip a token change. Byte-identical replacement data does not invalidate merely
 because an adapter allocated a new object. Cache replacement releases the prior
-canonical projection, and session cleanup clears the cache. There is no archive
-indexed by every historical revision.
+generation, and session cleanup clears the cache. There is no archive indexed by
+every historical revision.
+
+When the aggregate token changes, unchanged individual chest views can still be
+reused. Global owner eligibility is recomputed first; cache hits also compare
+labels/location, capacity, support/reason and the current slot identity values.
+A weak source-key index distinguishes placed owner paths even when they share a
+raw chest object. Values contain only immutable presentation data, not saved
+records or authoritative identity arrays. Each candidate builds fresh generation
+maps, so history retaining old source objects cannot retain an archive of views.
+The lookup closure is constructed separately without capturing the previous cache
+or the projection's source state. Removing a chest evicts its current entry.
+
+Initial cache keys come from the owner projection channel, rather than the detached
+import-validation copy. Unchanged sibling views can therefore be reused from the
+first item edit. Plain `readChests` still returns fresh detached mutable values for
+independent snapshot readers.
 
 The remaining small projections still rebuild per document revision. Caching
 every reader is not a goal by itself: the measured cost must justify the retained
@@ -67,8 +83,10 @@ or filtered stream revision directly into domain views and small revision/identi
 stamps. It never rereads the latest state to manufacture a command receipt: another
 writer or queued Undo could already have changed it.
 
-The synchronous projector borrows engine-owned state without mutating or retaining
-it. Its output contains detached presentation values and scalars. In particular,
+The synchronous projector borrows engine-owned state without mutating or strongly
+retaining it. Its component-facing output contains detached presentation values and
+scalars. Owner-private cache candidates may use weak source keys; they are installed
+separately and never enter `EditorView`. In particular,
 review patches and annotation descriptors receive a narrow copy before the view is
 frozen. No saved-state reference may escape through a presentation descriptor.
 
@@ -82,7 +100,8 @@ presentation cache and on-demand command facade preserve file-scope cleanup.
 ## Verification
 
 Regressions cover immutable nested public data, mutable independent engine
-snapshots, cache reuse after unrelated writes and their Undo/Redo, item changes,
+snapshots, sibling reuse from the first item edit and Undo/Redo, ancestor label and
+identity changes, removal/reordering and aliased placed paths, item changes,
 custom world-storage changes, equal-data replacements and farmer-ID collisions.
 Existing preservation and operation tests continue to check opaque nested data,
 actual backpack sizes, equipment validation, grouped editing and exact Undo/Redo.

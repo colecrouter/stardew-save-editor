@@ -271,6 +271,7 @@
 						<h2>Backpack</h2>
 						<span>{backpack.slots.length} slots</span>
 						<button
+							class="ui-control ui-button"
 							type="button"
 							disabled={organizing || moving}
 							onclick={() => void organize(backpack.ownerId)}
@@ -297,6 +298,7 @@
 					{#if chest}
 						<span>{chest.slots.length} slots</span>
 						<button
+							class="ui-control ui-button"
 							type="button"
 							disabled={!chest.supported || organizing || moving}
 							onclick={() => void organize(chest.ownerId)}

@@ -79,7 +79,11 @@
 	</p>
 	<div class="toolbar">
 		<label>
-			Search villagers <input type="search" bind:value={search} />
+			Search villagers <input
+				class="ui-control"
+				type="search"
+				bind:value={search}
+			/>
 		</label>
 	</div>
 	{#if feedback?.farmerId === domain.farmerId}
@@ -104,6 +108,7 @@
 					{:else}
 						<p class="missing-label">Not in this farmer's save</p>
 						<button
+							class="ui-control ui-button"
 							type="button"
 							disabled={pending}
 							onclick={() => addVillager(row.name)}

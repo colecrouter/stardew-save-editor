@@ -8,7 +8,7 @@ import {
 	coreOperations,
 } from "../../src/lib/editor/operations";
 import { setFarmSettings } from "../../src/lib/editor/farm-operations";
-import { setBackpackItem } from "../../src/lib/editor/inventory-operations";
+import { setInventoryItem } from "../../src/lib/editor/inventory-operations";
 import { readChests } from "../../src/lib/editor/inventory-views";
 import { XMLCodec } from "../../src/lib/xmlCodec";
 import { fixtureXml, parser, tinyFixture } from "./fixtures";
@@ -86,8 +86,8 @@ it(
 			await model.commands.redo();
 			expect(required(get(model.view)).chests).toBe(original.chests);
 			const changed = await model.commands.transact(
-				setBackpackItem({
-					farmerId: chest.farmerId,
+				setInventoryItem({
+					ownerId: chest.ownerId,
 					entityId: item.entityId,
 					property: "stack",
 					value: 25,
@@ -141,7 +141,7 @@ it("versions actual committed inputs for custom writes, ID collisions and Undo",
 													...state,
 													identities: required(state.inventory).identities,
 												})[0],
-											).farmerId;
+											).ownerId;
 									return prepared;
 								}),
 							),

@@ -7,7 +7,7 @@ import {
 	searchCatalog,
 } from "../../src/lib/editor/item-catalog";
 import { openEditor } from "../../src/lib/editor/editor-model";
-import type { BackpackLifecycleRequest } from "../../src/lib/editor/backpack-lifecycle";
+import type { InventorySlotRequest } from "../../src/lib/editor/inventory-lifecycle.ts";
 import { tinyFixture, parser, exportDocument, fixtureXml } from "./fixtures";
 
 const run = <A, E>(
@@ -176,7 +176,7 @@ describe("backpack creation and removal", () => {
 				yield* session.execute([
 					{
 						type: "backpack-add",
-						farmerId: "host",
+						ownerId: "host",
 						entityId: empty,
 						catalogId: "Parsnip",
 					},
@@ -216,7 +216,7 @@ describe("backpack creation and removal", () => {
 				const before = yield* session.snapshot;
 				const entityId = required(before.identities.host?.[0]);
 				yield* session.execute([
-					{ type: "backpack-remove", farmerId: "host", entityId },
+					{ type: "backpack-remove", ownerId: "host", entityId },
 				]);
 				const removed = yield* session.snapshot;
 				expect(removed.document.SaveGame.player.items.Item[0]).toEqual({
@@ -241,25 +241,25 @@ describe("backpack creation and removal", () => {
 				for (const request of [
 					{
 						type: "backpack-add",
-						farmerId: "host",
+						ownerId: "host",
 						entityId: occupied,
 						catalogId: "Wood",
 					},
 					{
 						type: "backpack-add",
-						farmerId: "host",
+						ownerId: "host",
 						entityId: empty,
 						catalogId: "unknown",
 					},
 					{
 						type: "backpack-add",
-						farmerId: "guest",
+						ownerId: "guest",
 						entityId: empty,
 						catalogId: "Wood",
 					},
-					{ type: "backpack-remove", farmerId: "host", entityId: empty },
-					{ type: "backpack-remove", farmerId: "host", entityId: "item:stale" },
-				] satisfies BackpackLifecycleRequest[]) {
+					{ type: "backpack-remove", ownerId: "host", entityId: empty },
+					{ type: "backpack-remove", ownerId: "host", entityId: "item:stale" },
+				] satisfies InventorySlotRequest[]) {
 					expect(
 						Result.isFailure(yield* Effect.result(session.execute([request]))),
 					).toBe(true);
@@ -268,7 +268,7 @@ describe("backpack creation and removal", () => {
 				yield* session.execute([
 					{
 						type: "backpack-add",
-						farmerId: "host",
+						ownerId: "host",
 						entityId: empty,
 						catalogId: "Wood",
 					},
@@ -280,7 +280,7 @@ describe("backpack creation and removal", () => {
 							session.execute([
 								{
 									type: "backpack-add",
-									farmerId: "host",
+									ownerId: "host",
 									entityId: empty,
 									catalogId: "Parsnip",
 								},
@@ -297,7 +297,7 @@ describe("backpack creation and removal", () => {
 							session.execute([
 								{
 									type: "backpack-remove",
-									farmerId: "host",
+									ownerId: "host",
 									entityId: required(added.identities.host?.[1]),
 								},
 							]),
@@ -323,12 +323,12 @@ describe("backpack creation and removal", () => {
 				const before = yield* session.snapshot;
 				const empty = required(before.identities.host?.[1]);
 				yield* session.execute([
-					{ type: "reorder", farmerId: "host", order: [1, 2, 0] },
+					{ type: "reorder", ownerId: "host", order: [1, 2, 0] },
 				]);
 				yield* session.execute([
 					{
 						type: "backpack-add",
-						farmerId: "host",
+						ownerId: "host",
 						entityId: empty,
 						catalogId: "Parsnip",
 					},
@@ -343,7 +343,7 @@ describe("backpack creation and removal", () => {
 				yield* session.execute([
 					{
 						type: "backpack-remove",
-						farmerId: "host",
+						ownerId: "host",
 						entityId: required(added.identities.host?.[0]),
 					},
 				]);
@@ -359,7 +359,7 @@ describe("backpack creation and removal", () => {
 				const before = yield* session.snapshot;
 				const empty = required(before.identities.host?.[1]);
 				const inherited = Object.create({
-					farmerId: "host",
+					ownerId: "host",
 					entityId: empty,
 					catalogId: "Wood",
 				});
@@ -368,13 +368,13 @@ describe("backpack creation and removal", () => {
 					session.execute([
 						{
 							type: "backpack-add",
-							farmerId: "host",
+							ownerId: "host",
 							entityId: empty,
 							catalogId: "Wood",
 						},
 						{
 							type: "backpack-add",
-							farmerId: "host",
+							ownerId: "host",
 							entityId: empty,
 							catalogId: "Parsnip",
 						},
@@ -409,9 +409,9 @@ it("returns exact replacement lineage before a queued Undo and preserves raw ins
 	try {
 		const before = await opened.model.snapshot();
 		const empty = required(before.identities[farmerId]?.[slot]);
-		const addition = opened.model.commands.changeBackpackSlot({
+		const addition = opened.model.commands.changeInventorySlot({
 			type: "backpack-add",
-			farmerId,
+			ownerId: farmerId,
 			entityId: empty,
 			catalogId: "Wood",
 		});
@@ -421,7 +421,7 @@ it("returns exact replacement lineage before a queued Undo and preserves raw ins
 		if (!result || Result.isFailure(result))
 			throw Error("Expected successful slot replacement");
 		expect(result.success).toMatchObject({
-			farmerId,
+			ownerId: farmerId,
 			previousEntityId: empty,
 		});
 		expect(result.success.entityId).not.toBe(empty);
@@ -433,9 +433,9 @@ it("returns exact replacement lineage before a queued Undo and preserves raw ins
 		expect((await opened.model.snapshot()).identities[farmerId]?.[slot]).toBe(
 			result.success.entityId,
 		);
-		const removal = await opened.model.commands.changeBackpackSlot({
+		const removal = await opened.model.commands.changeInventorySlot({
 			type: "backpack-remove",
-			farmerId,
+			ownerId: farmerId,
 			entityId: result.success.entityId,
 		});
 		expect(removal && Result.isSuccess(removal)).toBe(true);

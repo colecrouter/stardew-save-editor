@@ -1,6 +1,6 @@
 import { Effect, Fiber, Stream, SubscriptionRef } from "effect";
 import {
-	type Mutation,
+	type ResolvedMutation,
 	MutationError,
 	prepare,
 	type SaveDocument,
@@ -53,7 +53,10 @@ export const makeEffectSession = (document: SaveDocument) =>
 			snapshot: Effect.map(SubscriptionRef.get(state), (value) =>
 				structuredClone(value),
 			),
-			execute: (mutation: Mutation, inspect?: (draft: SaveDocument) => void) =>
+			execute: (
+				mutation: ResolvedMutation,
+				inspect?: (draft: SaveDocument) => void,
+			) =>
 				SubscriptionRef.modifyEffect(state, (current) =>
 					Effect.try({
 						try: () => {

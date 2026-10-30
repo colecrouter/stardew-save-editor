@@ -4,14 +4,14 @@ import { prepareCalendarOperation } from "./calendar-operations.ts";
 import {
 	MutationError,
 	prepareEffect,
-	type Mutation,
+	type ResolvedMutation,
 	type SessionState,
 } from "./domain.ts";
 
 export interface Operations {
 	prepare: (
 		state: SessionState,
-		action: Mutation,
+		action: ResolvedMutation,
 	) => Effect.Effect<SessionState, MutationError>;
 }
 

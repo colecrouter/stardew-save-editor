@@ -27,9 +27,9 @@ it.each(["success", "failure"] as const)(
 		const opened = await openEditor(new TextEncoder().encode(fixtureXml));
 		const ready = Promise.withResolvers<void>();
 		const release = Promise.withResolvers<void>();
-		const original = opened.model.commands.changeBackpackSlot;
+		const original = opened.model.commands.changeInventorySlot;
 		const command = vi
-			.spyOn(opened.model.commands, "changeBackpackSlot")
+			.spyOn(opened.model.commands, "changeInventorySlot")
 			.mockImplementation(async (request) => {
 				const result =
 					outcome === "success"
@@ -72,9 +72,9 @@ it.each(["hidden", "unmounted"] as const)(
 		const opened = await openEditor(new TextEncoder().encode(fixtureXml));
 		const ready = Promise.withResolvers<void>();
 		const release = Promise.withResolvers<void>();
-		const original = opened.model.commands.changeBackpackSlot;
+		const original = opened.model.commands.changeInventorySlot;
 		const command = vi
-			.spyOn(opened.model.commands, "changeBackpackSlot")
+			.spyOn(opened.model.commands, "changeInventorySlot")
 			.mockImplementation(async (request) => {
 				const result = await original(request);
 				ready.resolve();

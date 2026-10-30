@@ -157,7 +157,7 @@ it("bundle domain failures retain unsupported-data and late-mail tags", async ()
 	}
 });
 
-// This test-only feature is intentionally absent from Mutation. It proves that
+// This test-only feature is intentionally absent from MutationRequest. It proves that
 // typed local functions and annotations can extend history without a central case.
 const setMoney = (value: number) =>
 	recordAnnotatedOperation(
@@ -170,7 +170,7 @@ const setMoney = (value: number) =>
 	);
 
 it.effect(
-	"an independent domain program commits metadata and patches without extending Mutation",
+	"an independent domain program commits metadata and patches without extending MutationRequest",
 	() =>
 		Effect.gen(function* () {
 			const session = yield* makeHistorySession(inventoryFixture());

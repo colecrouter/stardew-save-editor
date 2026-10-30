@@ -1,5 +1,5 @@
 import { TransactionDraft } from "../../src/lib/editor/transaction-draft.ts";
-import { setBackpackItem } from "../../src/lib/editor/inventory-operations.ts";
+import { setInventoryItem } from "../../src/lib/editor/inventory-operations.ts";
 import { describe, expect, it } from "vitest";
 import { Effect } from "effect";
 import {
@@ -200,8 +200,8 @@ it("rejects a removed slot handle after shrink and regrowth", () =>
 			const before = yield* session.snapshot;
 			const failure = yield* Effect.result(
 				session.transact(
-					setBackpackItem({
-						farmerId: "host",
+					setInventoryItem({
+						ownerId: "host",
 						entityId: stale,
 						property: "stack",
 						value: 2,
@@ -273,8 +273,8 @@ it("composes retained item edits before shrinking without losing item identity",
 			if (!entityId) throw new Error("Missing retained identity");
 			yield* session.transact(
 				Effect.gen(function* () {
-					yield* setBackpackItem({
-						farmerId: "host",
+					yield* setInventoryItem({
+						ownerId: "host",
 						entityId,
 						property: "stack",
 						value: 9,

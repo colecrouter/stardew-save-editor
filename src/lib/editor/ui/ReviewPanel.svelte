@@ -22,7 +22,7 @@
 		const result = await model.commands.execute([
 			{
 				type: "reorder",
-				farmerId: snapshot.farmerId,
+				ownerId: snapshot.farmerId,
 				order: Array.from(
 					{ length: snapshot.backpackSize },
 					(_, i) => snapshot.backpackSize - i - 1,

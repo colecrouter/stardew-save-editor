@@ -6,7 +6,7 @@ import {
 	coreOperations,
 	EditorOperations,
 } from "../../src/lib/editor/operations";
-import { setBackpackItem } from "../../src/lib/editor/inventory-operations";
+import { setInventoryItem } from "../../src/lib/editor/inventory-operations";
 import {
 	readBackpacks,
 	readChests,
@@ -42,7 +42,7 @@ describe("prepared inventory transitions", () => {
 				);
 				const before = yield* session.snapshot;
 				const after = yield* session.execute([
-					{ type: "reorder", farmerId: "host", order: [1, 0, 2] },
+					{ type: "reorder", ownerId: "host", order: [1, 0, 2] },
 				]);
 				expect(after.document.SaveGame.player.items.Item).toEqual(
 					[...before.document.SaveGame.player.items.Item].reverse(),
@@ -68,7 +68,7 @@ describe("prepared inventory transitions", () => {
 				const session = yield* makeHistorySession(document);
 				const before = yield* session.snapshot;
 				const after = yield* session.execute([
-					{ type: "reorder", farmerId: "host", order: [1, 0] },
+					{ type: "reorder", ownerId: "host", order: [1, 0] },
 				]);
 				// Empty handles are future drop targets, so this permutation is observable
 				// even though its XML patch is empty. Undo must restore their original roles.
@@ -96,7 +96,7 @@ describe("prepared inventory transitions", () => {
 				const before = yield* session.snapshot;
 				const result = yield* Effect.result(
 					session.execute([
-						{ type: "reorder", farmerId: "host", order: [2, 1, 0] },
+						{ type: "reorder", ownerId: "host", order: [2, 1, 0] },
 					]),
 				);
 				expect(Result.isFailure(result)).toBe(true);
@@ -122,8 +122,8 @@ describe("prepared inventory transitions", () => {
 				const before = yield* session.snapshot;
 				const result = yield* Effect.result(
 					session.transact(
-						setBackpackItem({
-							farmerId: "host",
+						setInventoryItem({
+							ownerId: "host",
 							entityId: required(before.identities.host?.[0]),
 							property: "stack",
 							value: 4,
@@ -149,8 +149,8 @@ describe("prepared inventory transitions", () => {
 					const before = yield* session.snapshot;
 					const exit = yield* Effect.exit(
 						session.transact(
-							setBackpackItem({
-								farmerId: "host",
+							setInventoryItem({
+								ownerId: "host",
 								entityId: required(before.identities.host?.[0]),
 								property: "stack",
 								value: 4,

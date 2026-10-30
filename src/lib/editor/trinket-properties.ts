@@ -13,7 +13,7 @@ import {
 	type TrinketStats,
 } from "../TrinketStats.ts";
 
-const owner = { farmerId: Schema.String, entityId: Schema.String };
+const owner = { ownerId: Schema.String, entityId: Schema.String };
 const integer = (minimum: number, maximum: number) =>
 	Schema.Number.check(Schema.isInt(), Schema.isBetween({ minimum, maximum }));
 

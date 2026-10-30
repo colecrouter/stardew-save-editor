@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { Effect, Result } from "effect";
 import { makeHistorySession } from "../../src/lib/editor/history";
 import { openEditor } from "../../src/lib/editor/editor-model";
-import type { BackpackMoveRequest } from "../../src/lib/editor/backpack-movement";
+import type { InventoryMoveRequest } from "../../src/lib/editor/inventory-movement.ts";
 import { tinyFixture, fixtureXml, parser } from "./fixtures";
 
 const run = <A, E>(
@@ -45,14 +45,14 @@ function request(
 	ids: Record<string, string[]>,
 	source = 0,
 	destination = 1,
-	toFarmerId = "host",
-): BackpackMoveRequest {
+	toOwnerId = "host",
+): InventoryMoveRequest {
 	return {
 		type: "backpack-move",
-		farmerId: "host",
+		ownerId: "host",
 		entityId: required(ids.host?.[source]),
-		toFarmerId,
-		toEntityId: required(ids[toFarmerId]?.[destination]),
+		toOwnerId: toOwnerId,
+		toEntityId: required(ids[toOwnerId]?.[destination]),
 	};
 }
 
@@ -158,7 +158,7 @@ describe("backpack moving and swapping", () => {
 				yield* session.execute([
 					{
 						type: "backpack-add",
-						farmerId: "host",
+						ownerId: "host",
 						entityId: stale.toEntityId,
 						catalogId: "Wood",
 					},
@@ -176,7 +176,7 @@ describe("backpack moving and swapping", () => {
 				yield* session.execute([
 					{
 						type: "backpack-remove",
-						farmerId: "host",
+						ownerId: "host",
 						entityId: sourceRemoved.entityId,
 					},
 				]);
@@ -206,7 +206,7 @@ describe("backpack moving and swapping", () => {
 				yield* session.execute([
 					{
 						type: "reorder",
-						farmerId: "host",
+						ownerId: "host",
 						order: Array.from({ length: 12 }, (_, index) => 11 - index),
 					},
 				]);
@@ -245,14 +245,14 @@ describe("backpack moving and swapping", () => {
 					Object.create(valid),
 					{ ...valid, extra: true },
 					{ ...valid, toEntityId: "missing" },
-					{ ...valid, toFarmerId: "ambiguous" },
+					{ ...valid, toOwnerId: "ambiguous" },
 					{ ...valid, entityId: valid.toEntityId },
-					{ ...valid, toFarmerId: "constructor" },
+					{ ...valid, toOwnerId: "constructor" },
 				]) {
 					expect(
 						Result.isFailure(
 							yield* Effect.result(
-								session.execute([input as BackpackMoveRequest]),
+								session.execute([input as InventoryMoveRequest]),
 							),
 						),
 					).toBe(true);
@@ -274,17 +274,17 @@ it(
 			);
 			const entityId = required(initial.identities[farmerId]?.[0]);
 			const toEntityId = required(initial.identities[farmerId]?.[1]);
-			const moving = opened.model.commands.moveBackpackItem({
+			const moving = opened.model.commands.moveInventoryItem({
 				type: "backpack-move",
-				farmerId,
+				ownerId: farmerId,
 				entityId,
-				toFarmerId: farmerId,
+				toOwnerId: farmerId,
 				toEntityId,
 			});
 			const undo = opened.model.commands.undo();
 			const result = await moving;
 			expect(result && Result.isSuccess(result) && result.success).toEqual({
-				farmerId,
+				ownerId: farmerId,
 				entityId,
 			});
 			await undo;

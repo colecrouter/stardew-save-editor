@@ -5,9 +5,9 @@ import type { EditGesture } from "./edit-gesture.ts";
 import type { ImmediateField } from "./immediate-field.ts";
 import type { TransactionDraft } from "./transaction-draft.ts";
 import type { ReviewJournal } from "./transaction-annotations.ts";
-import type { BackpackItemEdits } from "./inventory-operations.ts";
+import type { InventoryEdits } from "./inventory-operations.ts";
 
-type EditServices = TransactionDraft | ReviewJournal | BackpackItemEdits;
+type EditServices = TransactionDraft | ReviewJournal | InventoryEdits;
 /** Domain fields need only an editing capability, never the full editor model. */
 export interface ImmediateEditPort {
 	readonly edits: {

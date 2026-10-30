@@ -33,7 +33,7 @@
 		),
 	);
 	const backpack = $derived(
-		backpacks.find((owner) => owner.farmerId === selectedFarmer.current),
+		backpacks.find((owner) => owner.ownerId === selectedFarmer.current),
 	);
 	const chests = $derived(view.current?.chests ?? []);
 	const owners = $derived([...backpacks, ...chests]);
@@ -106,19 +106,17 @@
 		const destination = selection.ownerOf(item);
 		if (!destination || moving) return;
 		const version = selection.version;
-		const destinationOwnerId = destination.farmerId;
+		const destinationOwnerId = destination.ownerId;
 		moving = true;
 		operationError = "";
 		try {
 			// Both endpoint handles are rechecked in the queue. Equipment policy checks
 			// both exchanged records; the UI never writes optimistic slot replacements.
-			// Transport names all containers as owners; the existing command contract
-			// still calls these scalar fields farmerId, including placed chests.
-			const result = await model.commands.moveBackpackItem({
+			const result = await model.commands.moveInventoryItem({
 				type: "backpack-move",
-				farmerId: source.ownerId,
+				ownerId: source.ownerId,
 				entityId: source.entityId,
-				toFarmerId: destinationOwnerId,
+				toOwnerId: destinationOwnerId,
 				toEntityId: item.entityId,
 				fromLocation: source.location,
 				toLocation: isEquipment(item) ? item.key : "backpack",
@@ -141,22 +139,22 @@
 	}
 	async function changeSlot(change: SlotChange) {
 		if (!selectedOwner || !selected || isEquipment(selected)) return false;
-		const ownerId = selectedOwner.farmerId;
+		const ownerId = selectedOwner.ownerId;
 		const target = selected;
 		const version = selection.version;
 		const invokingControl = document.activeElement;
 		operationError = "";
-		const result = await model.commands.changeBackpackSlot(
+		const result = await model.commands.changeInventorySlot(
 			change.kind === "add"
 				? {
 						type: "backpack-add",
-						farmerId: ownerId,
+						ownerId: ownerId,
 						entityId: target.entityId,
 						catalogId: change.catalogId,
 					}
 				: {
 						type: "backpack-remove",
-						farmerId: ownerId,
+						ownerId: ownerId,
 						entityId: target.entityId,
 					},
 		);
@@ -295,12 +293,12 @@
 								Chest
 								<select
 									bind:value={
-										() => chest?.farmerId,
+										() => chest?.ownerId,
 										(value) => selection.selectChest(value)
 									}
 								>
-									{#each matchingChests as owner (owner.farmerId)}
-										<option value={owner.farmerId}>{owner.name}</option>
+									{#each matchingChests as owner (owner.ownerId)}
+										<option value={owner.ownerId}>{owner.name}</option>
 									{/each}
 								</select>
 							</label>
@@ -329,10 +327,10 @@
 		</div>
 		<div class="inspector" class:browsing>
 			{#if selectedOwner && selected && !selected.empty}
-				{#key JSON.stringify([selectedOwner?.farmerId, selected.entityId])}
+				{#key JSON.stringify([selectedOwner?.ownerId, selected.entityId])}
 					<BackpackItemEditor
 						{model}
-						farmerId={selectedOwner.farmerId}
+						ownerId={selectedOwner.ownerId}
 						inventoryKind={selectedOwner.kind === "chest"
 							? "chest"
 							: "backpack"}

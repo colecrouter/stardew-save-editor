@@ -1,7 +1,10 @@
 import fixtureXml from "../TestSave?raw";
 export { fixtureXml };
 import { XMLCodec } from "../../src/lib/xmlCodec.ts";
-import type { Mutation, SaveDocument } from "../../src/lib/editor/domain.ts";
+import type {
+	ResolvedMutation,
+	SaveDocument,
+} from "../../src/lib/editor/domain.ts";
 
 // Use the production codec, including equipment types and XML normalization.
 const codec = new XMLCodec();
@@ -45,7 +48,7 @@ export function tinyFixture(): SaveDocument {
 		},
 	};
 }
-export function scenarios(document: SaveDocument): Mutation[] {
+export function scenarios(document: SaveDocument): ResolvedMutation[] {
 	const farmer = document.SaveGame.player;
 	return [
 		{
@@ -56,7 +59,7 @@ export function scenarios(document: SaveDocument): Mutation[] {
 		{ type: "farm-name", value: "Experiment Farm" },
 		{
 			type: "reorder",
-			farmerId: String(farmer.UniqueMultiplayerID),
+			ownerId: String(farmer.UniqueMultiplayerID),
 			order: farmer.items.Item.map((_, i, all) => all.length - 1 - i),
 		},
 	];

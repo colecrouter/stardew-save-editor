@@ -1,8 +1,8 @@
 import { Effect, Scope } from "effect";
 import { expect, it } from "vitest";
 import {
-	BackpackItemEdits,
-	setBackpackItem,
+	InventoryEdits,
+	setInventoryItem,
 } from "../../src/lib/editor/inventory-operations.ts";
 import { TransactionDraft } from "../../src/lib/editor/transaction-draft.ts";
 import { makeHistorySession } from "../../src/lib/editor/history.ts";
@@ -10,7 +10,7 @@ import { tinyFixture } from "./fixtures.ts";
 const run = <E>(program: Effect.Effect<void, E, Scope.Scope>) =>
 	Effect.runPromise(Effect.scoped(program));
 const grant = Effect.gen(function* () {
-	return yield* (yield* BackpackItemEdits).grantPrizeTicket("host");
+	return yield* (yield* InventoryEdits).grantPrizeTicket("host");
 });
 
 it("awards a fixed ticket with a fresh slot identity and restores exact Undo/Redo snapshots", () =>
@@ -41,8 +41,8 @@ it("awards a fixed ticket with a fresh slot identity and restores exact Undo/Red
 			if (!stale) throw new Error("Missing test slot");
 			const result = yield* Effect.result(
 				session.transact(
-					setBackpackItem({
-						farmerId: "host",
+					setInventoryItem({
+						ownerId: "host",
 						entityId: stale,
 						property: "stack",
 						value: 5,

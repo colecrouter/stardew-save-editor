@@ -3,7 +3,7 @@ import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import type { Readable } from "svelte/store";
-import type { Mutation } from "./domain.ts";
+import type { MutationRequest } from "./domain.ts";
 import {
 	type HistorySession,
 	type InventoryModel,
@@ -77,7 +77,7 @@ export const makeAtomInventory = (session: HistorySession) =>
 		// Capture target at the write boundary; selection changes cannot retarget an
 		// asynchronous action. Concurrent actions still commit via the history service.
 		type Command =
-			| { type: "mutate"; actions: Mutation[] }
+			| { type: "mutate"; actions: MutationRequest[] }
 			| { type: "undo" | "redo" };
 		const command = Atom.fn(
 			(input: Command) =>
@@ -144,7 +144,7 @@ export const makeAtomInventory = (session: HistorySession) =>
 					actions: [
 						{
 							type: "reorder",
-							farmerId: registry.get(farmer),
+							ownerId: registry.get(farmer),
 							order: registry
 								.get(items)
 								.map((_, index, all) => all.length - index - 1),

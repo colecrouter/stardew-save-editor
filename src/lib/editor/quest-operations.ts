@@ -2,7 +2,7 @@ import { Data, Effect, Result, Schema } from "effect";
 import { farmers, type SaveDocument } from "./domain.ts";
 import { TransactionDraft } from "./transaction-draft.ts";
 import { prizeTicketDestination } from "./quest-ticket.ts";
-import { BackpackItemEdits } from "./inventory-operations.ts";
+import { InventoryEdits } from "./inventory-operations.ts";
 import {
 	recordAnnotatedOperation,
 	withReviewMetadata,
@@ -703,7 +703,7 @@ export const setQuest = Effect.fn("Quest.set")(function* (input: QuestChange) {
 	// it. History commits both capabilities together or rolls the whole action back.
 	yield* transaction.replace(snapshot);
 	if (prepared) {
-		const inventory = yield* BackpackItemEdits;
+		const inventory = yield* InventoryEdits;
 		for (let index = 0; index < prepared.tickets; index++)
 			prepared.result.prizeTickets.push(
 				yield* inventory.grantPrizeTicket(request.farmerId),

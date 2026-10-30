@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 import { Effect, Result } from "effect";
 import { makeHistorySession } from "../../src/lib/editor/history";
 import {
-	setBackpackItem,
-	decodeBackpackItemChange,
-	type BackpackItemChange,
+	setInventoryItem,
+	decodeInventoryItemChange,
+	type InventoryItemChange,
 } from "../../src/lib/editor/inventory-operations";
 import { readBackpacks } from "../../src/lib/editor/inventory-views";
 import { TransactionDraft } from "../../src/lib/editor/transaction-draft";
@@ -62,8 +62,8 @@ describe("bounded backpack edits", () => {
 				expect(slot).not.toHaveProperty("raw");
 				expect(yield* session.snapshot).toEqual(before);
 				const after = yield* session.transact(
-					setBackpackItem({
-						farmerId: "host",
+					setInventoryItem({
+						ownerId: "host",
 						entityId,
 						property: "stack",
 						value: 9999,
@@ -88,8 +88,8 @@ describe("bounded backpack edits", () => {
 					expect.arrayContaining(["farmer:host", `entity:${entityId}`]),
 				);
 				const quality = yield* session.transact(
-					setBackpackItem({
-						farmerId: "host",
+					setInventoryItem({
+						ownerId: "host",
 						entityId,
 						property: "quality",
 						value: 4,
@@ -116,11 +116,11 @@ describe("bounded backpack edits", () => {
 				const before = yield* session.snapshot;
 				const entityId = required(before.identities.host?.[0]);
 				yield* session.execute([
-					{ type: "reorder", farmerId: "host", order: [2, 1, 0] },
+					{ type: "reorder", ownerId: "host", order: [2, 1, 0] },
 				]);
 				const edited = yield* session.transact(
-					setBackpackItem({
-						farmerId: "host",
+					setInventoryItem({
+						ownerId: "host",
 						entityId,
 						property: "stack",
 						value: 12,
@@ -140,15 +140,15 @@ describe("bounded backpack edits", () => {
 				yield* session.execute([
 					{
 						type: "item-move",
-						farmerId: "host",
+						ownerId: "host",
 						slot: 0,
-						toFarmerId: "host",
+						toOwnerId: "host",
 						toSlot: 1,
 					},
 				]);
 				const moved = yield* session.transact(
-					setBackpackItem({
-						farmerId: "host",
+					setInventoryItem({
+						ownerId: "host",
 						entityId,
 						property: "quality",
 						value: 2,
@@ -179,9 +179,9 @@ describe("bounded backpack edits", () => {
 				const moved = yield* session.execute([
 					{
 						type: "item-move",
-						farmerId: "host",
+						ownerId: "host",
 						slot: 0,
-						toFarmerId: "guest",
+						toOwnerId: "guest",
 						toSlot: 0,
 					},
 				]);
@@ -189,8 +189,8 @@ describe("bounded backpack edits", () => {
 					Result.isFailure(
 						yield* Effect.result(
 							session.transact(
-								setBackpackItem({
-									farmerId: "host",
+								setInventoryItem({
+									ownerId: "host",
 									entityId,
 									property: "stack",
 									value: 7,
@@ -201,15 +201,15 @@ describe("bounded backpack edits", () => {
 				).toBe(true);
 				expect(yield* session.snapshot).toEqual(moved);
 				const edited = yield* session.transact(
-					setBackpackItem({
-						farmerId: "guest",
+					setInventoryItem({
+						ownerId: "guest",
 						entityId,
 						property: "stack",
 						value: 7,
 					}),
 				);
 				expect(
-					readBackpacks(edited).find((view) => view.farmerId === "guest")
+					readBackpacks(edited).find((view) => view.ownerId === "guest")
 						?.slots[0]?.quantity,
 				).toBe(7);
 				yield* session.undo;
@@ -252,8 +252,8 @@ describe("bounded backpack edits", () => {
 						const original = structuredClone(item);
 						Object.assign(item, temporary);
 						yield* draft.replace(edited);
-						yield* setBackpackItem({
-							farmerId: "host",
+						yield* setInventoryItem({
+							ownerId: "host",
 							entityId: required(before.identities.host?.[slot]),
 							...(property === "quality"
 								? { property, value: 4 as const }
@@ -289,14 +289,14 @@ describe("bounded backpack edits", () => {
 						const snapshot = yield* draft.read;
 						snapshot.state.document.SaveGame.player.money = 99;
 						yield* draft.replace(snapshot);
-						yield* setBackpackItem({
-							farmerId: "host",
+						yield* setInventoryItem({
+							ownerId: "host",
 							entityId,
 							property: "stack",
 							value: 5,
 						});
-						yield* setBackpackItem({
-							farmerId: "host",
+						yield* setInventoryItem({
+							ownerId: "host",
 							entityId,
 							property: "quality",
 							value: 2,
@@ -320,8 +320,8 @@ describe("bounded backpack edits", () => {
 				const before = yield* session.snapshot;
 				const entityId = required(before.identities.host?.[0]);
 				const raw = Effect.gen(function* () {
-					yield* setBackpackItem({
-						farmerId: "host",
+					yield* setInventoryItem({
+						ownerId: "host",
 						entityId,
 						property: "stack",
 						value: 9,
@@ -350,8 +350,8 @@ describe("bounded backpack edits", () => {
 				const initial = yield* session.snapshot;
 				const entityId = required(initial.identities.host?.[0]);
 				yield* session.transact(
-					setBackpackItem({
-						farmerId: "host",
+					setInventoryItem({
+						ownerId: "host",
 						entityId,
 						property: "stack",
 						value: 9,
@@ -360,23 +360,23 @@ describe("bounded backpack edits", () => {
 				yield* session.undo;
 				const before = yield* session.snapshot;
 				for (const change of [
-					{ farmerId: "host", entityId, property: "stack", value: 0 },
-					{ farmerId: "host", entityId, property: "quality", value: 3 },
+					{ ownerId: "host", entityId, property: "stack", value: 0 },
+					{ ownerId: "host", entityId, property: "quality", value: 3 },
 					{
-						farmerId: "host",
+						ownerId: "host",
 						entityId: "missing",
 						property: "stack",
 						value: 9,
 					},
-					{ farmerId: "guest", entityId, property: "stack", value: 9 },
+					{ ownerId: "guest", entityId, property: "stack", value: 9 },
 					{
-						farmerId: "host",
+						ownerId: "host",
 						entityId: required(initial.identities.host?.[1]),
 						property: "stack",
 						value: 9,
 					},
 					{
-						farmerId: "host",
+						ownerId: "host",
 						entityId: required(initial.identities.host?.[2]),
 						property: "quality",
 						value: 4,
@@ -387,15 +387,17 @@ describe("bounded backpack edits", () => {
 							// Deliberately cross the typed boundary with malformed runtime input:
 							// schema validation must still reject callers that bypass TypeScript.
 							yield* Effect.result(
-								session.transact(setBackpackItem(change as BackpackItemChange)),
+								session.transact(
+									setInventoryItem(change as InventoryItemChange),
+								),
 							),
 						),
 					).toBe(true);
 					expect(yield* session.snapshot).toEqual(before);
 				}
 				yield* session.transact(
-					setBackpackItem({
-						farmerId: "host",
+					setInventoryItem({
+						ownerId: "host",
 						entityId,
 						property: "stack",
 						value: 3,
@@ -474,8 +476,8 @@ describe("bounded backpack edits", () => {
 						Result.isFailure(
 							yield* Effect.result(
 								session.transact(
-									setBackpackItem({
-										farmerId: "host",
+									setInventoryItem({
+										ownerId: "host",
 										entityId,
 										property: "stack",
 										value: 2,
@@ -516,8 +518,8 @@ describe("bounded backpack edits", () => {
 					false,
 				]);
 				const after = yield* session.transact(
-					setBackpackItem({
-						farmerId: "host",
+					setInventoryItem({
+						ownerId: "host",
 						entityId: required(before.identities.host?.[0]),
 						property: "stack",
 						value: 4,
@@ -537,8 +539,8 @@ describe("bounded backpack edits", () => {
 				const result = yield* Effect.exit(
 					session.transact(
 						Effect.gen(function* () {
-							yield* setBackpackItem({
-								farmerId: "host",
+							yield* setInventoryItem({
+								ownerId: "host",
 								entityId: required(before.identities.host?.[0]),
 								property: "stack",
 								value: 4,
@@ -554,28 +556,28 @@ describe("bounded backpack edits", () => {
 
 	it("rejects inherited and unknown request fields without coercing valid quantities", () => {
 		const base = {
-			farmerId: "host",
+			ownerId: "host",
 			entityId: "item:1",
 			property: "stack",
 			value: 1,
 		};
 		expect(
-			Result.isFailure(decodeBackpackItemChange({ ...base, extra: true })),
+			Result.isFailure(decodeInventoryItemChange({ ...base, extra: true })),
 		).toBe(true);
 		expect(
-			Result.isFailure(decodeBackpackItemChange(Object.create(base))),
+			Result.isFailure(decodeInventoryItemChange(Object.create(base))),
 		).toBe(true);
 		expect(
-			Result.isFailure(decodeBackpackItemChange({ ...base, value: "1" })),
+			Result.isFailure(decodeInventoryItemChange({ ...base, value: "1" })),
 		).toBe(true);
 		for (const value of [1, 9999])
 			expect(
-				Result.isSuccess(decodeBackpackItemChange({ ...base, value })),
+				Result.isSuccess(decodeInventoryItemChange({ ...base, value })),
 			).toBe(true);
 		for (const value of [0, 1, 2, 4])
 			expect(
 				Result.isSuccess(
-					decodeBackpackItemChange({ ...base, property: "quality", value }),
+					decodeInventoryItemChange({ ...base, property: "quality", value }),
 				),
 			).toBe(true);
 	});
@@ -585,8 +587,8 @@ describe("bounded backpack edits", () => {
 		(value) => {
 			expect(
 				Result.isFailure(
-					decodeBackpackItemChange({
-						farmerId: "host",
+					decodeInventoryItemChange({
+						ownerId: "host",
 						entityId: "item:1",
 						property: "stack",
 						value,

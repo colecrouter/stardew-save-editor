@@ -49,7 +49,7 @@ it.effect(
 				session.execute([
 					{
 						type: "item-place",
-						farmerId: "host",
+						ownerId: "host",
 						slot: 2,
 						item: { modData: "x".repeat(budget * 2) },
 					},

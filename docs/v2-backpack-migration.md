@@ -43,9 +43,9 @@ representation and identities. Property-only edits retain the original list shap
 An empty backpack marker carrying opaque fields cannot move into a compact chest;
 that exchange rejects atomically rather than discarding the marker's mod data.
 
-The existing request field named `farmerId` carries an opaque inventory-owner
-handle at this boundary; a chest handle identifies a discovered container rather
-than a farmer. Chest contents have no owning farmer context, so owner-dependent
+Shared inventory views and requests use `ownerId` (and `toOwnerId` for a
+destination). A chest key identifies a discovered container; `farmerId` remains
+reserved for character-specific operations. Chest contents have no owning farmer context, so owner-dependent
 trinket stat controls remain read-only until the item is in a farmer inventory.
 
 ## Item properties
@@ -103,7 +103,7 @@ inventory representations do not prevent calendar editing. This is the single
 initialization policy for application and comparison consumers; no inventory mode
 or feature flag changes session behavior.
 
-A bounded BackpackItemEdits capability stages field-only writes inside a typed
+A bounded InventoryEdits capability stages field-only writes inside a typed
 Effect transaction. Before each edit, and again before publication, inventory must
 match the original snapshot plus approved writes. Raw draft edits cannot fabricate
 eligibility or replace/reorder entities. Failure, interruption or stale ownership

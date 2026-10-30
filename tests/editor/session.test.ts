@@ -144,7 +144,7 @@ describe("full-save calendar session", { timeout: 15_000 }, () => {
 			if (!view) throw new Error("Missing editor view");
 			const reverse = {
 				type: "reorder",
-				farmerId: view.farmerId,
+				ownerId: view.farmerId,
 				order: Array.from(
 					{ length: view.backpackSize },
 					(_, i) => view.backpackSize - i - 1,

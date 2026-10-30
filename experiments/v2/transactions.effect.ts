@@ -1,13 +1,13 @@
 import { expect, it } from "@effect/vitest";
 import { Effect, Exit, JsonPatch, type Schema, TxRef } from "effect";
-import { prepare, type Receipt, type SessionState } from "./domain.ts";
+import { prepare, type OperationChange, type SessionState } from "./domain.ts";
 import { scenarios, tinyFixture } from "./fixture.ts";
 
 it.effect("Effect transactions commit document and receipt refs together", () =>
 	Effect.gen(function* () {
 		const original = tinyFixture();
 		const document = yield* TxRef.make(original);
-		const receipts = yield* TxRef.make<Receipt[]>([]);
+		const receipts = yield* TxRef.make<OperationChange[]>([]);
 		const rename = { type: "farm-name", value: "New farm" } as const;
 		const mutate = (fail: boolean) =>
 			Effect.tx(

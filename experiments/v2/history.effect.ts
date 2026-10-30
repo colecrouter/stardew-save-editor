@@ -1,10 +1,10 @@
 import { expect, it } from "@effect/vitest";
 import { Effect, Exit } from "effect";
-import type { Mutation } from "./domain.ts";
+import type { MutationRequest } from "./domain.ts";
 import { loadFixture, tinyFixture } from "./fixture.ts";
 import { makeHistorySession } from "./history.ts";
 
-const money = (value: number): Mutation => ({
+const money = (value: number): MutationRequest => ({
 	type: "money",
 	farmerId: "host",
 	value,
@@ -14,7 +14,7 @@ it.effect("undo and redo restore a compound action as one entry", () =>
 	Effect.gen(function* () {
 		const baseline = tinyFixture();
 		const session = yield* makeHistorySession(baseline);
-		const actions: Mutation[] = [
+		const actions: MutationRequest[] = [
 			money(99),
 			{ type: "farm-name", value: "New farm" },
 		];
@@ -35,7 +35,7 @@ it.effect(
 			yield* session.execute([money(50)]);
 			yield* session.undo;
 			const before = yield* session.snapshot;
-			const invalid: Mutation = {
+			const invalid: MutationRequest = {
 				type: "money",
 				farmerId: "missing",
 				value: 5,
@@ -94,7 +94,7 @@ it.effect("quiet reorder remains undoable and inspectable in net review", () =>
 		const baseline = tinyFixture();
 		const session = yield* makeHistorySession(baseline);
 		yield* session.execute([
-			{ type: "reorder", farmerId: "host", order: [2, 1, 0] },
+			{ type: "reorder", ownerId: "host", order: [2, 1, 0] },
 		]);
 		const review = yield* session.review;
 		expect(review.entries[0].intent.review).toBe("compact");
@@ -149,7 +149,7 @@ it.effect("full parsed save can be undone and redone without lost fields", () =>
 	Effect.gen(function* () {
 		const baseline = yield* Effect.promise(loadFixture);
 		const session = yield* makeHistorySession(baseline);
-		const action: Mutation = {
+		const action: MutationRequest = {
 			type: "money",
 			farmerId: String(baseline.SaveGame.player.UniqueMultiplayerID),
 			value: 999,

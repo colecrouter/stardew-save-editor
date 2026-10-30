@@ -22,7 +22,7 @@ describe("full-save backpack workflow", { timeout: 15_000 }, () => {
 				opened.model.commands.execute([
 					{
 						type: "reorder",
-						farmerId: String(farmer.UniqueMultiplayerID),
+						ownerId: String(farmer.UniqueMultiplayerID),
 						order: farmer.items.Item.map((_, index) => count - 1 - index),
 					},
 				]);

@@ -1,6 +1,6 @@
 import type { TransactionDraft } from "../../src/lib/editor/transaction-draft.ts";
 import type { ReviewJournal } from "../../src/lib/editor/transaction-annotations.ts";
-import type { BackpackItemEdits } from "../../src/lib/editor/inventory-operations.ts";
+import type { InventoryEdits } from "../../src/lib/editor/inventory-operations.ts";
 import type { QuestCompletionResult } from "../../src/lib/editor/quest-operations.ts";
 import { Effect, Scope } from "effect";
 import { describe, it, expect } from "vitest";
@@ -60,7 +60,7 @@ const transactValue = <A, E>(
 	program: Effect.Effect<
 		A,
 		E,
-		TransactionDraft | ReviewJournal | BackpackItemEdits
+		TransactionDraft | ReviewJournal | InventoryEdits
 	>,
 ) =>
 	Effect.gen(function* () {

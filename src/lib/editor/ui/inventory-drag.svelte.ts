@@ -271,9 +271,10 @@ export function createInventoryDrag(input: DragInput) {
 		click(event: MouseEvent, item: InventorySlot) {
 			if (ignorePointerClick && event.detail !== 0) {
 				ignorePointerClick = false;
-				return;
+				return false;
 			}
 			input.choose(item.entityId);
+			return true;
 		},
 		dispose() {
 			stopDragScroll();

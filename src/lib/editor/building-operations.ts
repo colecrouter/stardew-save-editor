@@ -1,8 +1,9 @@
+import { progressionFarmers } from "./progression-farmers.ts";
 import { Data, Effect, Schema, Result } from "effect";
 import { createFarmAnimal, newAnimalId } from "../farmAnimalData.ts";
 import { changeBuildingTier } from "../animalBuildings.ts";
 import { upgradeTiers, purchasedAnimalTopic } from "../animalBuildingData.ts";
-import { farmers, type SaveDocument } from "./domain.ts";
+import { type SaveDocument } from "./domain.ts";
 import { TransactionDraft } from "./transaction-draft.ts";
 import { InventoryEdits } from "./inventory-operations.ts";
 import {
@@ -192,7 +193,7 @@ const sendMail = Effect.fn("Buildings.mail")(function* (
 	key: string,
 ) {
 	yield* addString(document.SaveGame, "broadcastedMail", `%&SM&%${key}`);
-	for (const farmer of farmers(document)) {
+	for (const farmer of yield* progressionFarmers(document)) {
 		if (!record(farmer))
 			return yield* invalid("A farmer record is unsupported.");
 		const received = yield* checkedStrings(farmer.mailReceived),
@@ -315,7 +316,7 @@ export const prepareBuildingUpgrade = Effect.fn("Buildings.prepareUpgrade")(
 		for (const name of built)
 			yield* addString(document.SaveGame, "constructedBuildings", name);
 		for (const key of mail) yield* sendMail(document, key);
-		for (const farmer of farmers(document)) {
+		for (const farmer of yield* progressionFarmers(document)) {
 			if (!record(farmer))
 				return yield* invalid("A farmer record is unsupported.");
 			for (const id of topics) yield* topic(farmer, id);
@@ -383,7 +384,7 @@ export const adoptAnimal = Effect.fn("Buildings.adopt")(function* (
 				? "Another animal already has this name."
 				: "The animal needs a name.",
 		);
-	const owners = farmers(document).filter(
+	const owners = (yield* progressionFarmers(document)).filter(
 		(owner) => record(owner) && long(owner.UniqueMultiplayerID) === farmerId,
 	);
 	const owner = owners.length === 1 ? owners[0] : undefined;
@@ -428,7 +429,7 @@ export const adoptAnimal = Effect.fn("Buildings.adopt")(function* (
 	};
 	building.raw.currentOccupants = dictionary.entries.length + 1;
 	game.latestID = id;
-	for (const farmer of farmers(document)) {
+	for (const farmer of yield* progressionFarmers(document)) {
 		if (!record(farmer))
 			return yield* invalid("A farmer record is unsupported.");
 		yield* topic(farmer, purchasedAnimalTopic(type));

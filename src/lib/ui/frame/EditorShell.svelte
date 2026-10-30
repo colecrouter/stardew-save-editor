@@ -74,7 +74,9 @@
 	}
 	.navigation {
 		min-height: 0;
-		overflow: hidden;
+		/* Every section stays reachable when the complete port exceeds the viewport. */
+		overflow-x: hidden;
+		overflow-y: auto;
 		background: #542710;
 	}
 	.post {

@@ -1,3 +1,4 @@
+import { compareInventoryItems, isInventoryTool } from "./inventory-order.ts";
 import { Dispose, Raw } from "$lib/proxies";
 import type { ChestProxy } from "$lib/proxies/Chest.svelte";
 import type { ItemProxy } from "$lib/proxies/items";
@@ -54,22 +55,6 @@ export function moveItems(from: SlotRef[], target: ChestProxy): MoveResult {
 	return { ok: true, moved };
 }
 
-// Tools (including weapons) go first when the game organizes a chest
-const TOOL_TYPES = new Set([
-	"Tool",
-	"MeleeWeapon",
-	"Slingshot",
-	"FishingRod",
-	"WateringCan",
-	"Pickaxe",
-	"Axe",
-	"Hoe",
-	"Pan",
-	"MilkPail",
-	"Shears",
-	"Wand",
-	"GenericTool",
-]);
 const STACKABLE_TYPES = new Set(["Object", "ColoredObject"]);
 const MAX_STACK = 999;
 // Object.maximumStackSize: Secret Notes, Journal Scraps, the Horse Flute and
@@ -97,32 +82,9 @@ type RawFields = {
 
 const raw = (item: ItemProxy) => item[Raw] as unknown as RawFields;
 
-// Item.getCategorySortValue: "Clothing" (-100) sorts with the furniture
-const categorySortValue = (item: ItemProxy) => {
-	const category = Number(raw(item).category ?? 0);
-	return category === -100 ? -94 : category;
-};
-
-const isObject = (item: ItemProxy) =>
-	!TOOL_TYPES.has(raw(item)["@_xsi:type"] ?? "") &&
-	raw(item).type !== undefined;
-
-/** Item.CompareTo from the game */
+/** Use the same ordering as domain operations while retaining the proxy's mirrored count. */
 function compareItems(a: ItemProxy, b: ItemProxy) {
-	const ra = raw(a);
-	const rb = raw(b);
-	if (Number(ra.category ?? 0) !== Number(rb.category ?? 0))
-		return categorySortValue(b) - categorySortValue(a);
-	if (ra.name === rb.name && ra.parentSheetIndex === rb.parentSheetIndex) {
-		const byQuality = Number(rb.quality ?? 0) - Number(ra.quality ?? 0);
-		if (byQuality !== 0) return byQuality;
-		return count(a) - count(b);
-	}
-	if (isObject(a) && isObject(b))
-		return `${ra.type ?? ""}${ra.name ?? ""}`.localeCompare(
-			`${rb.type ?? ""}${rb.name ?? ""}`,
-		);
-	return (ra.name ?? "").localeCompare(rb.name ?? "");
+	return compareInventoryItems(raw(a), raw(b), count(a), count(b));
 }
 
 /**
@@ -201,9 +163,8 @@ export function sortSlots(slots: SortableSlots) {
 	// Leave empty containers exactly as they were saved
 	if (!items.length) return;
 
-	const tools = items.filter((item) =>
-		TOOL_TYPES.has(raw(item)["@_xsi:type"] ?? ""),
-	);
+	// Tools (including weapons) go first in their current order.
+	const tools = items.filter((item) => isInventoryTool(raw(item)));
 	const rest = items.filter((item) => !tools.includes(item));
 
 	const merged: ItemProxy[] = [];

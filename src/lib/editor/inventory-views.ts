@@ -1,3 +1,7 @@
+import {
+	storageCapabilities,
+	type StorageCapabilities,
+} from "./storage-policy.ts";
 import { CategoriesWithQuality } from "../ItemData.ts";
 import {
 	readItemPresentation,
@@ -53,6 +57,7 @@ export interface InventoryView {
 	readonly kind?: "chest";
 	readonly location?: string;
 	readonly capacity?: number;
+	readonly storage?: StorageCapabilities;
 	readonly supported: boolean;
 	readonly reason?: string;
 	readonly slots: readonly InventorySlotView[];
@@ -216,6 +221,7 @@ function projectChestView({
 		kind: "chest",
 		location: chest.location,
 		capacity: chest.capacity,
+		storage: storageCapabilities(chest.raw, chest.source),
 		supported,
 		equipment: [],
 		...(!supported ? { reason } : {}),

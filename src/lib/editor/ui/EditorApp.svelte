@@ -6,6 +6,7 @@
 	import { SaveReadError, describeImportError } from "../save-service.ts";
 	import { openEditor } from "../editor-model.ts";
 	import EditorWorkspace from "./EditorWorkspace.svelte";
+	import BackupPanel from "./BackupPanel.svelte";
 	import "../../ui/study-theme.css";
 	interface Props {
 		includeProofs?: boolean;
@@ -19,6 +20,7 @@
 	let error = $state("");
 	let downloadError = $state("");
 	let downloading = $state(false);
+	let backupsOpen = $state(false);
 	// File reads cannot be canceled reliably. A generation token prevents an older
 	// import from installing its session after replacement, cancellation or unmount.
 	let generation = 0;
@@ -45,7 +47,7 @@
 	}
 	// Replacement releases the previous file before acquiring the next one.
 	// If the result is stale, close the newly acquired session immediately.
-	async function load(file: File) {
+	async function load(file: File, saveBackup = true) {
 		const token = ++generation;
 		opening = true;
 		error = "";
@@ -64,7 +66,7 @@
 			// Back up only a successfully decoded import. Failure must not block
 			// editing; retain the original selected file and surface the warning.
 			try {
-				await backupOriginal?.(file);
+				if (saveBackup) await backupOriginal?.(file);
 			} catch {
 				if (token === generation)
 					error =
@@ -161,13 +163,13 @@
 		<section class="upload study-theme">
 			<h1>V2 editing workspace</h1>
 			<p>
-				Open a Stardew Valley 1.6 save to edit backpack items, farm settings,
-				and date and weather. Review changes and undo before exporting.
+				Open a Stardew Valley 1.6 save to edit your farm, characters, inventory,
+				storage and progression. Review changes and undo before exporting.
 			</p>
 			<p>
-				Backpack quantity and quality, farm settings, and calendar editing are
-				available here. Use the legacy editor for other features; each editor
-				opens its own file.
+				The workspace includes buildings and animals, relationships, appearance,
+				recipes, quests, Community Center and Joja projects, and farmhand
+				reassignment. Each editor opens its own file.
 			</p>
 			{#if legacyHref}
 				<a href={legacyHref}>Open the legacy editor</a>
@@ -204,6 +206,16 @@
 					}}
 				/>
 			</label>
+			<details class="backups" bind:open={backupsOpen}>
+				<summary>Original save backups</summary>
+				{#if backupsOpen}
+					<BackupPanel
+						disabled={opening}
+						onopen={(file) => load(file, false)}
+					/>
+				{/if}
+			</details>
+
 			{#if opening}
 				<p role="status">Opening save…</p>
 				<button type="button" onclick={() => void close()}>

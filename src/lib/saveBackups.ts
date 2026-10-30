@@ -41,6 +41,14 @@ export async function serializeOriginal(file: File): Promise<StoredOriginal> {
 	return stored;
 }
 
+/** Open the shared store without altering existing archive records. Each caller closes its connection. */
+export const openOriginalBackupStore = () =>
+	openDB("backups", 1, {
+		upgrade: (db) => {
+			db.createObjectStore("files", { autoIncrement: true });
+		},
+	});
+
 /**
  * Append an original file to the shared backup store and retain the newest five.
  * Append/pruning share one transaction. Rejections let the caller warn that the
@@ -48,11 +56,7 @@ export async function serializeOriginal(file: File): Promise<StoredOriginal> {
  */
 export async function saveOriginalBackup(file: File): Promise<void> {
 	const stored = await serializeOriginal(file);
-	const db = await openDB("backups", 1, {
-		upgrade: (db) => {
-			db.createObjectStore("files", { autoIncrement: true });
-		},
-	});
+	const db = await openOriginalBackupStore();
 	try {
 		// Append and prune in one transaction so another import never sees half a list.
 		const transaction = db.transaction("files", "readwrite");

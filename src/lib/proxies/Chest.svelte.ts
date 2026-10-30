@@ -1,3 +1,4 @@
+import { storageTypes as SwappableChests } from "../storageTypes.ts";
 import { SvelteMap } from "svelte/reactivity";
 import type {
 	Building as RawBuilding,
@@ -180,36 +181,7 @@ export class ChestInventory extends SvelteMap<number, ItemProxy | undefined> {
  * items (big craftables tagged `swappable_chest`). The big ones have 70 slots
  * (Chest.GetActualCapacity).
  */
-export const SwappableChests = [
-	{
-		itemId: "130",
-		name: "Chest",
-		spriteIndex: 130,
-		capacity: 36,
-		special: "None",
-	},
-	{
-		itemId: "232",
-		name: "Stone Chest",
-		spriteIndex: 232,
-		capacity: 36,
-		special: "None",
-	},
-	{
-		itemId: "BigChest",
-		name: "Big Chest",
-		spriteIndex: 304,
-		capacity: 70,
-		special: "BigChest",
-	},
-	{
-		itemId: "BigStoneChest",
-		name: "Big Stone Chest",
-		spriteIndex: 328,
-		capacity: 70,
-		special: "BigChest",
-	},
-] as const;
+export { storageTypes as SwappableChests } from "../storageTypes.ts";
 
 export type SwappableChest = (typeof SwappableChests)[number];
 

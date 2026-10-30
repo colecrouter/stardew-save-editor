@@ -73,6 +73,13 @@ export type ResolvedMutation =
 			entityId?: string;
 			value: number;
 	  }
+	| { type: "inventory-organize"; ownerId: string }
+	| {
+			type: "inventory-transfer";
+			ownerId: string;
+			sources: readonly { ownerId: string; entityId: string }[];
+	  }
+	| { type: "chest-type"; ownerId: string; itemId: string }
 	| { type: "farm-name"; value: string }
 	| { type: "reorder"; ownerId: string; order: readonly number[] };
 /** Public execution inputs include instance handles whose positions may change before the queue runs. */

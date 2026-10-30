@@ -28,9 +28,6 @@ import {
 } from "./trinket-properties.ts";
 import {
 	equipmentSlots,
-	equipmentLabels,
-	trinketAvailable,
-	type EquipmentSlotView,
 	type EquipmentIdentities,
 	type InventoryLocation,
 } from "./equipment.ts";
@@ -93,6 +90,38 @@ export function decodeInventoryItemChange(
 					message:
 						formatIssues(result.failure.issue).issues[0]?.message ??
 						"Choose valid backpack item settings.",
+				}),
+			)
+		: Result.succeed(result.success);
+}
+
+/** Captured instance handles for one checked batch; sparse quality rules share the single-item policy. */
+export const InventoryQualityBatchSchema = Schema.Struct({
+	items: Schema.Array(
+		Schema.Struct({ ownerId: Schema.String, entityId: Schema.String }),
+	),
+	quality: Schema.Literals(inventoryQualities.map((quality) => quality.value)),
+});
+export type InventoryQualityBatch = typeof InventoryQualityBatchSchema.Type;
+const decodeQualityBatch = Schema.decodeUnknownResult(
+	InventoryQualityBatchSchema,
+	{ onExcessProperty: "error" },
+);
+/** Every nested handle must provide its own fields, just like a single-item request. */
+export function decodeInventoryQualityBatch(
+	input: unknown,
+): Result.Result<InventoryQualityBatch, BackpackItemInvalid> {
+	const own =
+		input !== null && typeof input === "object" && !Array.isArray(input)
+			? { ...input }
+			: input;
+	if (record(own) && Array.isArray(own.items))
+		own.items = own.items.map((item) => (record(item) ? { ...item } : item));
+	const result = decodeQualityBatch(own);
+	return Result.isFailure(result)
+		? Result.fail(
+				new BackpackItemInvalid({
+					message: "Choose supported items and a valid quality.",
 				}),
 			)
 		: Result.succeed(result.success);
@@ -175,6 +204,16 @@ export function sameChestProjectionInputs(
 export class InventoryEdits extends Context.Service<
 	InventoryEdits,
 	{
+		/** Reassign whole farmers while their inventory/equipment handles keep the same owner IDs. */
+		swapFarmers: (
+			sourceId: string,
+			targetId: string,
+		) => Effect.Effect<
+			void,
+			| import("./farmer-roster-operations.ts").FarmerRosterInvalid
+			| import("./domain.ts").MutationError
+		>;
+
 		/** Building transitions can relocate placed storage; this capability owns those paired handles. */
 		upgradeBuilding: (
 			buildingId: string,
@@ -199,6 +238,14 @@ export class InventoryEdits extends Context.Service<
 			boolean,
 			BackpackItemInvalid | import("./domain.ts").MutationError
 		>;
+		/** Resolve and authorize one captured quality batch before a single staging write. */
+		setQualityBatch: (
+			request: InventoryQualityBatch,
+		) => Effect.Effect<
+			{ readonly changed: number },
+			BackpackItemInvalid | import("./domain.ts").MutationError
+		>;
+
 		set: (
 			change: InventoryItemChange,
 		) => Effect.Effect<
@@ -310,7 +357,14 @@ export function makeInventoryEdits(
 	// Replay in operation order: an upgrade can change a chest path before a later
 	// item edit. Grouping writes by kind would silently replay against the old owner.
 	const replaySteps: (
+		| {
+				kind: "farmer-swap";
+				sourceId: string;
+				targetId: string;
+				apply: typeof import("./farmer-roster-operations.ts").replayFarmerSwap;
+		  }
 		| { kind: "write"; write: (typeof writes)[number] }
+		| { kind: "quality-batch"; writes: readonly (typeof writes)[number][] }
 		| { kind: "resize"; resize: (typeof resizes)[number] }
 		| {
 				kind: "upgrade";
@@ -338,8 +392,26 @@ export function makeInventoryEdits(
 		// operation never touched. Global inventory comparisons remain authoritative.
 		const applyApproved = (expected: SaveDocument) => {
 			for (const step of replaySteps) {
-				if (step.kind === "upgrade") {
+				if (step.kind === "farmer-swap") {
+					step.apply(expected, step.sourceId, step.targetId);
+				} else if (step.kind === "upgrade") {
 					step.apply(expected, step.buildingId, step.target);
+				} else if (step.kind === "quality-batch") {
+					const owners = new Map(
+						inventoryContainers(expected).map((owner) => [owner.id, owner]),
+					);
+					for (const write of step.writes) {
+						const owner = owners.get(write.ownerId);
+						const item =
+							typeof write.location === "number"
+								? owner?.slots[write.location]
+								: owner?.farmer?.[write.location];
+						if (!record(item))
+							throw new Error(
+								"Approved quality batch item disappeared during replay",
+							);
+						Object.assign(item, write.patch);
+					}
 				} else if (step.kind === "write") {
 					const write = step.write,
 						owner = ownerIn(expected, write.ownerId);
@@ -396,47 +468,55 @@ export function makeInventoryEdits(
 		}
 		return true;
 	};
-	const target = Effect.fn("Inventory.authorizedTarget")(function* (
+	const authorityMatches = (document: SaveDocument) =>
+		!!authority &&
+		samePlainData(
+			inventorySnapshot(document),
+			inventorySnapshot(replay(authority)),
+		) &&
+		contextMatches(document);
+	const resolveTarget = (
+		document: SaveDocument,
 		ownerId: string,
 		entityId: string,
-	) {
-		const snapshot = yield* draftOwner.inspect;
+		owners?: ReadonlyMap<
+			string,
+			ReturnType<typeof inventoryContainers>[number]
+		>,
+		positions?: ReadonlyMap<string, ReadonlyMap<string, number>>,
+		blocked?: ReadonlySet<string>,
+	) => {
 		// New slot handles are published only with the enclosing history commit.
 		if (
 			resizes.length ||
-			writes.some(
-				(write) =>
-					write.replacement &&
-					write.ownerId === ownerId &&
-					identities[ownerId]?.[Number(write.location)] === entityId,
-			)
+			(blocked
+				? blocked.has(entityId)
+				: writes.some(
+						(write) =>
+							write.replacement &&
+							write.ownerId === ownerId &&
+							identities[ownerId]?.[Number(write.location)] === entityId,
+					))
 		)
-			return yield* new ItemPropertyInvalid({
-				message: "Finish the inventory change before editing this item.",
-			});
-		// Compare before checking eligibility: temporary raw type/category edits
-		// must not authorize a property that the imported item did not support.
-		if (
-			!authority ||
-			!samePlainData(
-				inventorySnapshot(snapshot.state.document),
-				inventorySnapshot(replay(authority)),
-			) ||
-			!contextMatches(snapshot.state.document)
-		)
-			return yield* new ItemPropertyInvalid({
-				message: "Inventory changed outside the supported item operation.",
-			});
-		const owner = ownerIn(snapshot.state.document, ownerId);
+			return Result.fail(
+				new ItemPropertyInvalid({
+					message: "Finish the inventory change before editing this item.",
+				}),
+			);
+		const owner = owners?.get(ownerId) ?? ownerIn(document, ownerId);
 		const ids = Object.hasOwn(identities, ownerId)
 			? identities[ownerId]
 			: undefined;
 		const items = owner?.slots;
 		if (!owner || !ids || !Array.isArray(items) || ids.length !== items.length)
-			return yield* new ItemPropertyInvalid({
-				message: "This item is no longer editable in this inventory.",
-			});
-		const backpackSlot = ids.indexOf(entityId);
+			return Result.fail(
+				new ItemPropertyInvalid({
+					message: "This item is no longer editable in this inventory.",
+				}),
+			);
+		const backpackSlot = positions
+			? (positions.get(ownerId)?.get(entityId) ?? -1)
+			: ids.indexOf(entityId);
 		const equipment = Object.hasOwn(equipmentIdentities, ownerId)
 			? equipmentIdentities[ownerId]
 			: undefined;
@@ -451,27 +531,107 @@ export function makeInventoryEdits(
 					? items[location]
 					: owner.farmer?.[location];
 		if (location === undefined || !record(item) || emptySlot(item))
-			return yield* new ItemPropertyInvalid({
-				message: "This item is no longer editable in this inventory.",
-			});
-		// Keep authoritative references inside this engine step. Metadata and
-		// fallible preparation receive only the selected item, scalar display name,
-		// fresh scalar context and the version needed for a later compare-and-set.
-		return {
-			version: snapshot.version,
+			return Result.fail(
+				new ItemPropertyInvalid({
+					message: "This item is no longer editable in this inventory.",
+				}),
+			);
+		return Result.succeed({
 			location,
-			item: structuredClone(item),
+			item,
 			ownerName: typeof owner.name === "string" ? owner.name : undefined,
 			context: owner.farmer
-				? readItemPropertyContext(snapshot.state.document, owner.farmer)
+				? readItemPropertyContext(document, owner.farmer)
 				: undefined,
+		});
+	};
+	const target = Effect.fn("Inventory.authorizedTarget")(function* (
+		ownerId: string,
+		entityId: string,
+	) {
+		const snapshot = yield* draftOwner.inspect;
+		// Raw type/category edits never grant eligibility, even if later reverted.
+		if (!authorityMatches(snapshot.state.document))
+			return yield* new ItemPropertyInvalid({
+				message: "Inventory changed outside the supported item operation.",
+			});
+		const resolved = yield* Effect.fromResult(
+			resolveTarget(snapshot.state.document, ownerId, entityId),
+		);
+		// Fallible metadata preparation receives a detached item and scalar context,
+		// never the borrowed authoritative record or the complete engine snapshot.
+		return {
+			...resolved,
+			version: snapshot.version,
+			item: structuredClone(resolved.item),
 		};
 	});
-	const metadataFor = Effect.fn("Inventory.metadata")(function* (
+	const qualityCheckout = Effect.fn("Inventory.authorizedQualityBatch")(
+		function* (items: InventoryQualityBatch["items"]) {
+			const snapshot = yield* draftOwner.inspect;
+			if (!authorityMatches(snapshot.state.document))
+				return yield* new BackpackItemInvalid({
+					message: "Inventory changed outside the supported item operation.",
+				});
+			// One owner traversal and one identity index per owner address the complete
+			// captured set before metadata work can yield or another draft version appears.
+			const owners = new Map(
+				inventoryContainers(snapshot.state.document).map((owner) => [
+					owner.id,
+					owner,
+				]),
+			);
+			const positions = new Map<string, ReadonlyMap<string, number>>();
+			for (const ownerId of new Set(items.map((item) => item.ownerId))) {
+				const ids = Object.hasOwn(identities, ownerId)
+					? identities[ownerId]
+					: undefined;
+				positions.set(
+					ownerId,
+					new Map(ids?.map((id, index) => [id, index]) ?? []),
+				);
+			}
+			const blocked = new Set(
+				writes.flatMap((write) => {
+					const id = write.replacement
+						? identities[write.ownerId]?.[Number(write.location)]
+						: undefined;
+					return id === undefined ? [] : [id];
+				}),
+			);
+
+			const resolved = [];
+			for (const handle of items) {
+				const result = resolveTarget(
+					snapshot.state.document,
+					handle.ownerId,
+					handle.entityId,
+					owners,
+					positions,
+					blocked,
+				);
+				if (Result.isFailure(result))
+					return yield* new BackpackItemInvalid({
+						message: result.failure.message,
+					});
+				if (typeof result.success.location !== "number")
+					return yield* new BackpackItemInvalid({
+						message: "Equipment does not support quality edits.",
+					});
+				resolved.push({
+					ownerId: handle.ownerId,
+					location: result.success.location,
+					item: structuredClone(result.success.item),
+				});
+			}
+			return { version: snapshot.version, items: resolved };
+		},
+	);
+
+	const metadataFrom = (
+		catalog: typeof import("../ItemData.ts"),
 		item: Record<string, unknown>,
-	) {
-		// Catalog data remains lazy; calendar/Farm startup only projects raw records.
-		const catalog = yield* Effect.promise(() => import("../ItemData.ts"));
+	) => {
 		// Imported XML may contain non-scalar identifiers or a non-text name.
 		// Those records have no safe catalog lookup; unexpected catalog exceptions
 		// remain defects instead of masquerading as missing metadata.
@@ -485,7 +645,15 @@ export function makeInventoryEdits(
 			? catalog.ResolveItemData(item as unknown as Item)
 			: undefined;
 		return { catalog, info };
+	};
+	const metadataFor = Effect.fn("Inventory.metadata")(function* (
+		item: Record<string, unknown>,
+	) {
+		// Catalog data remains lazy; calendar/Farm startup only projects raw records.
+		const catalog = yield* Effect.promise(() => import("../ItemData.ts"));
+		return metadataFrom(catalog, item);
 	});
+
 	const reviewFor = (
 		ownerId: string,
 		entityId: string,
@@ -536,6 +704,39 @@ export function makeInventoryEdits(
 		return true;
 	});
 	const service: typeof InventoryEdits.Service = {
+		swapFarmers: Effect.fn("Inventory.swapFarmers")(function* (
+			sourceId: string,
+			targetId: string,
+		) {
+			const operations = yield* Effect.promise(
+				() => import("./farmer-roster-operations.ts"),
+			);
+			const snapshot = yield* draft.read;
+			if (
+				!authority ||
+				!samePlainData(
+					inventorySnapshot(snapshot.state.document),
+					inventorySnapshot(replay(authority)),
+				) ||
+				!contextMatches(snapshot.state.document)
+			)
+				return yield* new operations.FarmerRosterInvalid({
+					message: "Inventory changed outside a supported operation.",
+				});
+			yield* Effect.fromResult(
+				operations.applyFarmerSwap(snapshot.state.document, sourceId, targetId),
+			);
+			// Farmer identities and their paired slots travel with the whole record.
+			// Only the serialized host/farmhand order changes; allocate no new handles.
+			yield* draft.replace(snapshot);
+			replaySteps.push({
+				kind: "farmer-swap",
+				sourceId,
+				targetId,
+				apply: operations.replayFarmerSwap,
+			});
+		}),
+
 		upgradeBuilding: Effect.fn("Inventory.upgradeBuilding")(function* (
 			buildingId: string,
 			target: string,
@@ -564,6 +765,14 @@ export function makeInventoryEdits(
 					preparedInventory.identities[chest.id],
 				]),
 			);
+			// Distinct owner paths need distinct lifetime arrays. A shared raw
+			// chest would collapse this reassociation; preserve the save by rejecting it.
+			if (handles.size !== before.length)
+				return yield* new operations.BuildingInvalid({
+					message:
+						"Shared storage references cannot be moved by a building upgrade.",
+				});
+
 			const warnings = yield* operations.prepareBuildingUpgrade(
 				snapshot.state.document,
 				buildingId,
@@ -707,6 +916,76 @@ export function makeInventoryEdits(
 			recordResize({ farmerId, size });
 			return true;
 		}),
+		setQualityBatch: Effect.fn("Inventory.stageQualityBatch")(function* (
+			input: InventoryQualityBatch,
+		) {
+			const request = yield* Effect.fromResult(
+				decodeInventoryQualityBatch(input),
+			);
+			if (
+				!request.items.length ||
+				new Set(request.items.map((item) => item.entityId)).size !==
+					request.items.length
+			)
+				return yield* new BackpackItemInvalid({
+					message: "Choose a nonempty set of unique item handles.",
+				});
+			const checkout = yield* qualityCheckout(request.items);
+			const approved: (typeof writes)[number][] = [];
+			const catalog = yield* Effect.promise(() => import("../ItemData.ts"));
+			for (const selected of checkout.items) {
+				const item = selected.item;
+				if (!editable(item) || !numeric(item.quality))
+					return yield* new BackpackItemInvalid({
+						message: "This item is no longer quality-editable.",
+					});
+				const category = item.category,
+					savedQuality = item.quality;
+				const { info } = metadataFrom(catalog, item);
+				if (
+					!getInventoryItemCapabilities(
+						item,
+						info?._type === "Object",
+						[...catalog.CategoriesWithQuality].some(
+							(value) => value === category,
+						),
+					).canQuality
+				)
+					return yield* new BackpackItemInvalid({
+						message: "This item does not support quality edits.",
+					});
+				if (savedQuality !== request.quality)
+					approved.push({
+						ownerId: selected.ownerId,
+						location: selected.location,
+						patch: { quality: request.quality },
+					});
+			}
+			// All handles and capabilities are checked before this single mutation.
+			// Validate the checkout version even for a no-op; stale metadata must never
+			// silently succeed after another program changed the same transaction draft.
+			yield* draft.mutate((state) => {
+				if (!approved.length) return;
+				const owners = new Map(
+					inventoryContainers(state.document).map((owner) => [owner.id, owner]),
+				);
+				for (const write of approved) {
+					const item =
+						typeof write.location === "number"
+							? owners.get(write.ownerId)?.slots[write.location]
+							: undefined;
+					if (!record(item))
+						throw new Error("Authorized quality batch item disappeared");
+					Object.assign(item, write.patch);
+				}
+			}, checkout.version);
+			if (approved.length) {
+				for (const write of approved) writes.push(write);
+				replaySteps.push({ kind: "quality-batch", writes: approved });
+			}
+			return { changed: approved.length };
+		}),
+
 		set: Effect.fn("Backpack.stageField")(function* (
 			input: InventoryItemChange,
 		) {

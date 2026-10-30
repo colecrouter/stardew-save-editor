@@ -1,3 +1,4 @@
+import { setStorageQuality } from "../../src/lib/editor/storage-operations";
 import { expect, it, vi } from "vitest";
 import { Effect, Result } from "effect";
 import { makeHistorySession } from "../../src/lib/editor/history";
@@ -118,3 +119,47 @@ it("detaches checkout data before metadata handling can modify it", () =>
 			expect((yield* session.undo).document).toEqual(before.document);
 		}),
 	));
+
+// Metadata may yield or synchronously invoke another domain program. A quality
+// batch must compare-and-set its single checkout even when all values are no-ops.
+it.each([0, 4])(
+	"rejects a stale batch checkout for requested quality %i without partial writes",
+	(value) =>
+		run(
+			Effect.gen(function* () {
+				const document = fixture();
+				const session = yield* makeHistorySession(document),
+					before = yield* session.snapshot,
+					entityId = handleFor(before);
+				const after = yield* session.transact(
+					Effect.gen(function* () {
+						const draft = yield* TransactionDraft,
+							services = yield* Effect.context();
+						catalogHook.run = () => {
+							Effect.runSyncWith(services)(
+								draft.mutate((state) => {
+									state.document.SaveGame.player.money = 99;
+								}),
+							);
+						};
+						const result = yield* Effect.result(
+							setStorageQuality([{ ownerId: "host", entityId }], value),
+						);
+						expect(Result.isFailure(result)).toBe(true);
+						if (Result.isFailure(result))
+							expect(result.failure._tag).toBe("MutationError");
+					}),
+				);
+				expect(after.document.SaveGame.player.money).toBe(99);
+				expect(after.document.SaveGame.player.items.Item[0]).toMatchObject({
+					quality: 0,
+				});
+				expect((yield* session.undo).document).toEqual(before.document);
+			}),
+		),
+);
+function handleFor(state: { identities: Record<string, string[]> }) {
+	const id = state.identities.host?.[0];
+	if (!id) throw new Error("Missing fixture identity");
+	return id;
+}

@@ -50,7 +50,7 @@
 		"patch-package": "^8.0.1",
 		"string-similarity-js": "^2.1.4",
 		"svelte": "5.57.2",
-		"svelte-check": "^4.3.3",
+		"svelte-check": "4.3.3",
 		"tslib": "^2.4.1",
 		"tsx": "^4.19.1",
 		"typescript": "6.0.3",

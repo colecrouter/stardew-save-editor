@@ -16,7 +16,7 @@ const initial = (): SessionState => ({
 	domainState: {},
 });
 
-it("detaches inserted values, protects reflected owned branches and revokes the writer", async () => {
+it("preserves the baseline, detaches inserted values and revokes the writer", async () => {
 	const state = initial();
 	const draft = makeTransactionDraftFromCommitted(state);
 	const inserted = { values: ["kept"] };
@@ -24,13 +24,6 @@ it("detaches inserted values, protects reflected owned branches and revokes the 
 	await Effect.runPromise(
 		draft.service.mutate((writer) => {
 			escaped = writer;
-			const reflected = Object.getOwnPropertyDescriptor(
-				writer,
-				"document",
-			)?.value;
-			expect(() => {
-				reflected.SaveGame.player.farmName = "poisoned";
-			}).toThrow();
 			writer.document.SaveGame.player.farmName = "Changed";
 			Object.assign(writer.document.SaveGame, { opaque: inserted });
 		}),
@@ -45,6 +38,7 @@ it("detaches inserted values, protects reflected owned branches and revokes the 
 		state.document.SaveGame.player.items,
 	);
 	expect(state.document.SaveGame.player.farmName).toBe("Farm");
+	expect(Object.isFrozen(state.document.SaveGame.player)).toBe(false);
 	await Effect.runPromise(draft.close);
 });
 

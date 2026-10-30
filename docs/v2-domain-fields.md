@@ -38,7 +38,9 @@ side effects started by a recipe. Use ordinary JSON property/array updates: do n
 construct cycles or freeze containers holding draft references. These unsupported
 writer patterns are defects; detached read/replace remains the general snapshot path.
 
-The engine freezes privately owned bases and detaches accepted changed values.
+The engine detaches accepted changed values. Owned bases remain unfrozen; operations
+must respect their ownership and use the temporary writer for changes. Reflection
+and retained-reference misuse are outside this internal API contract.
 Copy-on-write handles tree-shaped state; shared-reference graphs use the detached
 fallback to preserve existing alias-driven writes. Changed mutations invalidate
 older draft snapshots; no-op mutations leave their version intact. Ordinary

@@ -1,3 +1,5 @@
+import { create as createCopyOnWrite } from "mutative";
+import { freezeDraftState } from "./draft-state.ts";
 import { samePlainData } from "./plain-data.ts";
 import { inventoryQuantity, inventoryQualities } from "./inventory-policy.ts";
 import type { Item } from "$types/save";
@@ -264,7 +266,9 @@ export function backpackInventorySnapshot(document: SaveDocument) {
 	];
 }
 
-/** Create per-attempt authorization; history compares its replay with final drafts. */
+/** Create per-attempt authorization; history compares its replay with final drafts.
+ * History supplies a stable, privately owned originalDocument: replay may deeply
+ * freeze that baseline. Public/caller-owned documents must be detached first. */
 export function makeBackpackItemEdits(
 	draft: typeof TransactionDraft.Service,
 	identities: Record<string, string[]>,
@@ -295,28 +299,48 @@ export function makeBackpackItemEdits(
 		// comparison below still rejects raw unauthorized edits; only replay needs
 		// a mutable document, so ordinary field edits need no replay clone.
 		if (writes.length === 0 && resizes.length === 0) return document;
-		const expected = structuredClone(document);
-		for (const write of writes) {
-			const farmer = ownerIn(expected, write.farmerId);
-			const item =
-				typeof write.location === "number"
-					? farmer?.slots[write.location]
-					: farmer?.farmer?.[write.location];
-			if (write.replacement && farmer && typeof write.location === "number")
-				farmer.slots[write.location] = structuredClone(write.replacement);
-			else if (record(item)) Object.assign(item, structuredClone(write.patch));
-		}
-		// Capacity changes append canonical empty slots or remove only validated nils.
-		// Replay after retained-item patches because shrinking can never remove an item.
-		for (const resize of resizes) {
-			const owner = ownerIn(expected, resize.farmerId);
-			if (owner?.farmer && record(owner.farmer)) {
-				owner.slots.length = Math.min(owner.slots.length, resize.size);
-				while (owner.slots.length < resize.size)
-					owner.slots.push({ "@_xsi:nil": "true" });
-				owner.farmer.maxItems = resize.size;
+		// Replay only approved mutations, preserving baseline branches that the
+		// operation never touched. Global inventory comparisons remain authoritative.
+		const applyApproved = (expected: SaveDocument) => {
+			for (const write of writes) {
+				const farmer = ownerIn(expected, write.farmerId);
+				const item =
+					typeof write.location === "number"
+						? farmer?.slots[write.location]
+						: farmer?.farmer?.[write.location];
+				if (write.replacement && farmer && typeof write.location === "number")
+					farmer.slots[write.location] = structuredClone(write.replacement);
+				else if (record(item))
+					Object.assign(item, structuredClone(write.patch));
 			}
+			// Capacity changes append canonical empty slots or remove only validated nils.
+			// Replay after retained-item patches because shrinking can never remove an item.
+			for (const resize of resizes) {
+				const owner = ownerIn(expected, resize.farmerId);
+				if (owner?.farmer && record(owner.farmer)) {
+					owner.slots.length = Math.min(owner.slots.length, resize.size);
+					while (owner.slots.length < resize.size)
+						owner.slots.push({ "@_xsi:nil": "true" });
+					owner.farmer.maxItems = resize.size;
+				}
+			}
+		};
+		// Producers assume a tree. Classify the complete owned save so aliases
+		// crossing inventory and unrelated fields keep detached replay semantics.
+		if (freezeDraftState({ document, history: [] })) {
+			// Avoid expanding the raw DTO's recursive unions in Mutative's mapped
+			// types. The producer preserves this SaveDocument root representation.
+			const base: object = document;
+			return createCopyOnWrite(
+				base,
+				(writer) => applyApproved(writer as SaveDocument),
+				{
+					enableAutoFreeze: false,
+				},
+			) as SaveDocument;
 		}
+		const expected = structuredClone(document);
+		applyApproved(expected);
 		return expected;
 	};
 	// Trinket seeds depend on owner income and the root RNG mode. Record those

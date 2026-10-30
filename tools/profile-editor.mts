@@ -269,6 +269,8 @@ const sourcePaths = [
 	"src/lib/editor/history.ts",
 	"src/lib/editor/editor-model.ts",
 	"src/lib/editor/inventory-operations.ts",
+	"src/lib/editor/inventory-containers.ts",
+	"src/lib/editor/chest-storage.ts",
 	"src/lib/editor/inventory-views.ts",
 	"src/lib/editor/item-presentation.ts",
 	"src/lib/editor/immutable-view.ts",

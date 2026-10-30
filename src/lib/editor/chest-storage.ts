@@ -135,7 +135,10 @@ function describe(
 }
 
 /** Discover direct placed chests, including building interiors, without creating legacy proxies. */
-export function discoverPlacedChests(document: SaveDocument): PlacedChest[] {
+export function discoverPlacedChests(
+	document: SaveDocument,
+	ownerId?: string,
+): PlacedChest[] {
 	const game = document.SaveGame as unknown as Record<string, unknown>;
 	const locations = record(game.locations)
 		? game.locations.GameLocation
@@ -160,9 +163,12 @@ export function discoverPlacedChests(document: SaveDocument): PlacedChest[] {
 			const x = vector && text(vector.X),
 				y = vector && text(vector.Y);
 			const tile = x !== undefined && y !== undefined ? ` (${x}, ${y})` : "";
-			result.push(
-				describe(raw, `chest:${path}.objects.${index}`, location, tile),
-			);
+			const id = `chest:${path}.objects.${index}`;
+			// A targeted lookup still visits every placed-chest identity, but only
+			// normalizes slots for its requested owner. Avoid traversing all stored
+			// items through a copy-on-write proxy merely to resolve one container.
+			if (ownerId === undefined || ownerId === id)
+				result.push(describe(raw, id, location, tile));
 		});
 		const buildings = record(value.buildings)
 			? list(value.buildings.Building)

@@ -15,6 +15,7 @@ const record = (value: unknown): value is Record<string, unknown> =>
 /** Resolve owner IDs without coercing opaque imported identifiers or choosing between collisions. */
 export function inventoryContainers(
 	document: SaveDocument,
+	ownerId?: string,
 ): InventoryContainer[] {
 	const game = document.SaveGame;
 	const farmers = [
@@ -29,7 +30,9 @@ export function inventoryContainers(
 			? [String(key)]
 			: [];
 	});
-	const chests = discoverPlacedChests(document);
+	// Restrict expensive slot normalization during a targeted lookup. Keep all
+	// farmer IDs in collision accounting: a chest can share a modded farmer ID.
+	const chests = discoverPlacedChests(document, ownerId);
 	const counts = new Map<string, number>();
 	for (const id of [...scalarIds, ...chests.map((chest) => chest.id)])
 		counts.set(id, (counts.get(id) ?? 0) + 1);
@@ -69,11 +72,15 @@ export function inventoryContainers(
 	}
 	// A namespaced chest ID is still only a scalar string. A modded farmer may use
 	// that exact value, so ambiguity invalidates both instead of choosing by prefix.
-	return result.filter((owner) => counts.get(owner.id) === 1);
+	return result.filter(
+		(owner) =>
+			counts.get(owner.id) === 1 &&
+			(ownerId === undefined || owner.id === ownerId),
+	);
 }
 export function resolveInventoryContainer(
 	document: SaveDocument,
 	id: string,
 ): InventoryContainer | undefined {
-	return inventoryContainers(document).find((owner) => owner.id === id);
+	return inventoryContainers(document, id).find((owner) => owner.id === id);
 }

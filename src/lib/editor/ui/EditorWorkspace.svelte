@@ -393,8 +393,7 @@
 		}
 	}
 	@media (max-width: 600px) {
-		/* Keep the inventory overview in reach: phone chrome uses compact
-		   wrapping tabs so added sections remain reachable without clipped labels. */
+		/* Compact phone typography leaves room for the section picker and editor. */
 		.editor {
 			font-size: 18px;
 			line-height: 1.3;
@@ -417,8 +416,9 @@
 			font-size: 17px;
 		}
 		.editor :global(.content) {
-			/* Keep text inside the parchment rim while reducing vertical chrome. */
-			padding: 12px 20px;
+			/* Retain the pane's safe top inset: its decorative rim overlays the
+			   first 24px, including headings with no default top margin. */
+			padding: 30px 20px 20px;
 		}
 		.editor :global(h1) {
 			font-size: 27px;

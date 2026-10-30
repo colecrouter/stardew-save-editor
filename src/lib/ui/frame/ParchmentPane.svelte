@@ -42,7 +42,9 @@
 		min-width: 0;
 		min-height: 0;
 		overflow: auto;
-		padding: 18px 22px 20px 24px;
+		/* The top rim reaches 24px into the pane (30px artwork minus its
+		   6px outset). Leave a further 6px before the first content row. */
+		padding: 30px 22px 20px 24px;
 		flex: 1;
 	}
 	.pane-footer:empty {
@@ -57,7 +59,7 @@
 			margin-left: 0;
 		}
 		.content {
-			padding: 18px;
+			padding: 30px 18px 20px;
 			overflow: visible;
 		}
 	}

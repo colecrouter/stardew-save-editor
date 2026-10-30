@@ -3,8 +3,15 @@
 	import { Result } from "effect";
 	import { useAtomValue } from "effect-atom-svelte";
 	import type { EditorModel } from "../editor-model.ts";
-	import type { EquipmentSlot, EquipmentSlotView } from "../equipment.ts";
-	import type { BackpackSlotView, BackpackView } from "../inventory-views.ts";
+	import { createInventorySelection } from "./inventory-selection.svelte.ts";
+	import {
+		createInventoryDrag,
+		type InventoryDragSource,
+	} from "./inventory-drag.svelte.ts";
+	import {
+		isEquipmentSlot as isEquipment,
+		type InventorySlot,
+	} from "./inventory-slot.ts";
 	import { catalogChoices } from "../item-catalog.ts";
 	import { createFarmerSelectionField } from "../farmer-selection.ts";
 	import FarmerSelector from "./fields/FarmerSelector.svelte";
@@ -30,98 +37,49 @@
 	);
 	const chests = $derived(view.current?.chests ?? []);
 	const owners = $derived([...backpacks, ...chests]);
-	let chestQuery = $state("");
-	let chestId = $state<string>();
-	const matchingChests = $derived(
-		chests.filter((owner) =>
-			`${owner.name} ${owner.location ?? ""}`
-				.toLocaleLowerCase()
-				.includes(chestQuery.trim().toLocaleLowerCase()),
-		),
-	);
-	const chest = $derived(
-		matchingChests.find((owner) => owner.farmerId === chestId) ??
-			matchingChests[0],
-	);
-	type InventorySlot = BackpackSlotView | EquipmentSlotView;
-	let selectedEntity = $state<string>();
-	let selectionFamily = $state<string[]>([]);
-	let selectionVersion = 0;
 	let operationError = $state("");
 	let removing = $state(false);
 	let moving = $state(false);
 	let inventory = $state<HTMLDivElement>();
-	type DragSource = {
-		farmerId: string;
-		entityId: string;
-		location: "backpack" | EquipmentSlot;
-	};
-	let dragSource = $state<DragSource>();
-	let pointerGesture:
-		| {
-				id: number;
-				x: number;
-				y: number;
-				source: DragSource;
-				dragging: boolean;
-		  }
-		| undefined;
-	let dragScrollFrame: number | undefined;
-	let pointerPosition: { clientX: number; clientY: number } | undefined;
-	function stopDragScroll() {
-		if (dragScrollFrame !== undefined) cancelAnimationFrame(dragScrollFrame);
-		dragScrollFrame = undefined;
-		pointerPosition = undefined;
-	}
-	onDestroy(stopDragScroll);
-	function startDragScroll() {
-		if (dragScrollFrame !== undefined) return;
-		const scroll = () => {
-			if (!pointerGesture?.dragging || !pointerPosition) {
-				stopDragScroll();
-				return;
-			}
-			// A phone can place the two grids several screens apart. Keeping a held
-			// finger near an edge scrolls toward the destination without a Move mode.
-			const edge = 72;
-			const y = pointerPosition.clientY;
-			const delta =
-				y < edge
-					? -Math.ceil((edge - y) / 5)
-					: y > window.innerHeight - edge
-						? Math.ceil((y - window.innerHeight + edge) / 5)
-						: 0;
-			if (delta) {
-				// Desktop/tablet frames may own their scroll; phones scroll the document.
-				// Give the nearest scrollable ancestor first chance, then the page.
-				let container: HTMLElement | null | undefined = inventory;
-				let scrolled = false;
-				while (container && container !== document.body) {
-					if (/(auto|scroll)/.test(getComputedStyle(container).overflowY)) {
-						const before = container.scrollTop;
-						container.scrollTop += delta;
-						if (container.scrollTop !== before) {
-							scrolled = true;
-							break;
-						}
-					}
-					container = container.parentElement;
-				}
-				if (!scrolled) window.scrollBy(0, delta);
-				// Capture still delivers events to the source: refresh the destination
-				// under the stationary finger as the content moves underneath it.
-				const target = pointerTarget(pointerPosition);
-				dropEntity =
-					target && acceptsDrop(target) ? target.entityId : undefined;
-			}
-			dragScrollFrame = requestAnimationFrame(scroll);
-		};
-		dragScrollFrame = requestAnimationFrame(scroll);
-	}
-	let ignorePointerClick = false;
-	let dropEntity = $state<string>();
 	const dragToken = $props.id();
-	const dragType = "application/x-stardew-backpack-item";
+	// Effects/events connect these peers after initialization. Cross-controller
+	// callbacks stay lazy so neither factory needs its peer during construction.
+	const selection = createInventorySelection({
+		owners: () => owners,
+		backpack: () => backpack,
+		chests: () => chests,
+		farmerId: () => selectedFarmer.current,
+		dragging: () => drag.source !== undefined,
+		root: () => inventory,
+		revealFarmer: (id) => {
+			void model.commands.selectFarmer(id);
+		},
+		onChoose: () => {
+			drag.clearHighlight();
+			operationError = "";
+		},
+	});
+	const drag = createInventoryDrag({
+		token: dragToken,
+		owners: () => owners,
+		visibleOwners: () => [backpack, selection.chest],
+		root: () => inventory,
+		movePending: () => moving,
+		selectedEntity: () => selection.entityId,
+		ownerOf: selection.ownerOf,
+		choose: selection.choose,
+		move: (item, source) => {
+			void moveItem(item, source);
+		},
+	});
+	onDestroy(drag.dispose);
+	const matchingChests = $derived(selection.matchingChests);
+	const chest = $derived(selection.chest);
+	const selectedOwner = $derived(selection.selectedOwner);
+	const selected = $derived(selection.selected);
+	const browsing = $derived(selected?.empty && !isEquipment(selected));
+	type SlotChange = { kind: "add"; catalogId: string } | { kind: "remove" };
+	// Keep clothing and footwear together before accessories in the grid.
 	const equipmentOrder = [
 		"hat",
 		"shirtItem",
@@ -136,336 +94,87 @@
 			(a, b) => equipmentOrder.indexOf(a.key) - equipmentOrder.indexOf(b.key),
 		),
 	);
-	function allSlots(owner: BackpackView) {
-		return [...owner.slots, ...owner.equipment];
-	}
-	function isEquipment(item: InventorySlot): item is EquipmentSlotView {
-		return "key" in item;
-	}
-	// Explicit selection starts a new lineage. Only our own add/remove replacements
-	// extend it, so Undo can restore that instance without selecting an unrelated item.
-	function choose(entityId: string | undefined) {
-		selectionVersion++;
-		dragSource = undefined;
-		dropEntity = undefined;
-		selectedEntity = entityId;
-		selectionFamily = entityId ? [entityId] : [];
-		operationError = "";
-	}
-	// Selection belongs to an item instance, not whichever grid happens to be open.
-	// Both visible inventories share this lookup, including replacement Undo lineage.
-	const selectedOwner = $derived(
-		selectedEntity === undefined
-			? backpack?.supported
-				? backpack
-				: chest
-			: owners.find((owner) =>
-					allSlots(owner).some(
-						(item) =>
-							item.entityId === selectedEntity ||
-							selectionFamily.includes(item.entityId),
-					),
-				),
-	);
-	const selected = $derived(
-		!selectedOwner
-			? undefined
-			: selectedEntity === undefined
-				? (allSlots(selectedOwner).find((item) => !item.empty) ??
-					selectedOwner.slots[0])
-				: (allSlots(selectedOwner).find(
-						(item) => item.entityId === selectedEntity,
-					) ??
-					allSlots(selectedOwner).find((item) =>
-						selectionFamily.includes(item.entityId),
-					)),
-	);
-	function ownerOf(item: InventorySlot) {
-		return owners.find((owner) =>
-			allSlots(owner).some((entry) => entry.entityId === item.entityId),
-		);
-	}
-	function selectChest(owner: BackpackView | undefined) {
-		chestId = owner?.farmerId;
-		choose(
-			owner?.slots.find((item) => !item.empty)?.entityId ??
-				owner?.slots[0]?.entityId,
-		);
-	}
-	const browsing = $derived(selected?.empty && !isEquipment(selected));
-	$effect(() => {
-		// Pin the initial instance too; later reorders must not retarget an implicit
-		// first-slot selection. Equipment and backpack records share this identity path.
-		if (selectedEntity === undefined && selected) {
-			selectedEntity = selected.entityId;
-			selectionFamily = [selected.entityId];
-		}
-	});
-	let previousFarmerId = selectedFarmer.current;
-	$effect(() => {
-		const current = selectedFarmer.current;
-		if (current !== previousFarmerId) {
-			previousFarmerId = current;
-			// External page selection changes the farmer grid, while transferred
-			// instances already at that owner retain their inspector selection.
-			if (
-				selectedOwner &&
-				selectedOwner.kind !== "chest" &&
-				selectedOwner.farmerId !== current
-			)
-				choose(undefined);
-		}
-	});
-	$effect(() => {
-		// Transfers and Undo reveal the current owner while preserving the other grid.
-		// Explicit owner/search changes start a new selection and cannot be undone here.
-		if (!dragSource && selectedOwner && selectedEntity) {
-			if (
-				selectedOwner.kind !== "chest" &&
-				selectedOwner.farmerId !== selectedFarmer.current
-			)
-				void model.commands.selectFarmer(selectedOwner.farmerId);
-			if (
-				selectedOwner.kind === "chest" &&
-				chest?.farmerId !== selectedOwner.farmerId
-			) {
-				chestQuery = "";
-				chestId = selectedOwner.farmerId;
-			}
-		}
-	});
-	async function focusSelected(version = selectionVersion) {
-		await tick();
-		if (version !== selectionVersion || inventory?.closest("[hidden]")) return;
-		inventory
-			?.querySelector<HTMLButtonElement>('[aria-pressed="true"]')
-			?.focus();
-	}
 	function slotLabel(item: InventorySlot) {
-		return `${isEquipment(item) ? item.label : `${ownerOf(item)?.kind === "chest" ? "Chest slot" : "Slot"} ${item.slot + 1}`}: ${item.empty ? "Empty" : item.name}`;
+		const name = item.empty ? "Empty" : item.name;
+		if (isEquipment(item)) return `${item.label}: ${name}`;
+		const owner = selection.ownerOf(item);
+		const label = owner?.kind === "chest" ? "Chest slot" : "Slot";
+		return `${label} ${item.slot + 1}: ${name}`;
 	}
-	function startDrag(event: DragEvent, item: InventorySlot) {
-		const owner = ownerOf(item);
-		if (
-			!owner ||
-			item.empty ||
-			moving ||
-			pointerGesture ||
-			!event.dataTransfer
-		) {
-			event.preventDefault();
-			return;
-		}
-		if (selectedEntity !== item.entityId) choose(item.entityId);
-		dragSource = {
-			farmerId: owner.farmerId,
-			entityId: item.entityId,
-			location: isEquipment(item) ? item.key : "backpack",
-		};
-		// A drag carries only this panel's token. External text/files/windows cannot
-		// manufacture an inventory operation, and saved item data never enters the payload.
-		event.dataTransfer.setData(dragType, dragToken);
-		event.dataTransfer.effectAllowed = "move";
-	}
-	function acceptsDrop(item: InventorySlot) {
-		const owner = owners.find(
-			(owner) => owner.farmerId === dragSource?.farmerId,
-		);
-		const source =
-			owner &&
-			allSlots(owner).find((entry) => entry.entityId === dragSource?.entityId);
-		if (!source) return false;
-		// Domain-projected equipment eligibility supplies only a cursor hint here.
-		// The command rechecks both directions against current records at commit.
-		if (
-			isEquipment(item) &&
-			(item.locked || !source.allowedEquipmentSlots.includes(item.key))
-		)
-			return false;
-		return (
-			!isEquipment(source) ||
-			item.empty ||
-			item.allowedEquipmentSlots.includes(source.key)
-		);
-	}
-	function dragOver(event: DragEvent, item: InventorySlot) {
-		if (!dragSource || moving || !event.dataTransfer?.types.includes(dragType))
-			return;
-		event.preventDefault();
-		event.dataTransfer.dropEffect = acceptsDrop(item) ? "move" : "none";
-		dropEntity = acceptsDrop(item) ? item.entityId : undefined;
-	}
-	function drop(event: DragEvent, item: InventorySlot) {
-		const source = dragSource;
-		if (
-			!source ||
-			moving ||
-			event.dataTransfer?.getData(dragType) !== dragToken
-		)
-			return;
-		event.preventDefault();
-		void moveItem(item, source);
-	}
-	function pointerDown(event: PointerEvent, item: InventorySlot) {
-		const owner = ownerOf(item);
-		ignorePointerClick = false;
-		if (
-			!owner ||
-			item.empty ||
-			moving ||
-			pointerGesture ||
-			!["touch", "pen"].includes(event.pointerType)
-		)
-			return;
-		// Touch/pen use the same drag operation as desktop, but wait for deliberate
-		// movement so a tap still selects the item normally.
-		pointerGesture = {
-			id: event.pointerId,
-			x: event.clientX,
-			y: event.clientY,
-			dragging: false,
-			source: {
-				farmerId: owner.farmerId,
-				entityId: item.entityId,
-				location: isEquipment(item) ? item.key : "backpack",
-			},
-		};
-		(event.currentTarget as HTMLElement).setPointerCapture?.(event.pointerId);
-	}
-	function pointerTarget(event: { clientX: number; clientY: number }) {
-		const control = document
-			.elementFromPoint(event.clientX, event.clientY)
-			?.closest<HTMLElement>("[data-inventory-entity]");
-		if (!control || !inventory?.contains(control)) return undefined;
-		return [backpack, chest]
-			.flatMap((owner) => (owner ? allSlots(owner) : []))
-			.find((item) => item.entityId === control.dataset.inventoryEntity);
-	}
-	function pointerMove(event: PointerEvent) {
-		const gesture = pointerGesture;
-		if (!gesture || gesture.id !== event.pointerId) return;
-		if (
-			!gesture.dragging &&
-			Math.hypot(event.clientX - gesture.x, event.clientY - gesture.y) < 8
-		)
-			return;
-		if (!gesture.dragging) {
-			if (selectedEntity !== gesture.source.entityId)
-				choose(gesture.source.entityId);
-			gesture.dragging = true;
-			dragSource = gesture.source;
-		}
-		event.preventDefault();
-		pointerPosition = { clientX: event.clientX, clientY: event.clientY };
-		startDragScroll();
-		const target = pointerTarget(event);
-		dropEntity = target && acceptsDrop(target) ? target.entityId : undefined;
-	}
-	function pointerUp(event: PointerEvent) {
-		const gesture = pointerGesture;
-		if (!gesture || gesture.id !== event.pointerId) return;
-		pointerGesture = undefined;
-		stopDragScroll();
-		if (!gesture.dragging) return;
-		// Hit-test the release position because pointer capture keeps delivery on
-		// the source button. Suppress its synthetic click after a completed drag.
-		ignorePointerClick = true;
-		const target = pointerTarget(event);
-		if (target) void moveItem(target, gesture.source);
-		else {
-			dragSource = undefined;
-			dropEntity = undefined;
-		}
-	}
-	function pointerCancel() {
-		// Native mouse drag cancels its preceding pointer stream too; only a real
-		// touch/pen gesture owns this cleanup, or desktop drag state would be lost.
-		if (!pointerGesture) return;
-		// Browser cancellation/scroll takeover must never publish a partial drag.
-		pointerGesture = undefined;
-		stopDragScroll();
-		dragSource = undefined;
-		dropEntity = undefined;
-	}
-	async function moveItem(item: InventorySlot, source: DragSource) {
-		const destination = ownerOf(item);
+
+	async function moveItem(item: InventorySlot, source: InventoryDragSource) {
+		const destination = selection.ownerOf(item);
 		if (!destination || moving) return;
-		const version = selectionVersion;
-		const destinationOwner = destination.farmerId;
+		const version = selection.version;
+		const destinationOwnerId = destination.farmerId;
 		moving = true;
 		operationError = "";
 		try {
 			// Both endpoint handles are rechecked in the queue. Equipment policy checks
 			// both exchanged records; the UI never writes optimistic slot replacements.
+			// Transport names all containers as owners; the existing command contract
+			// still calls these scalar fields farmerId, including placed chests.
 			const result = await model.commands.moveBackpackItem({
 				type: "backpack-move",
-				farmerId: source.farmerId,
+				farmerId: source.ownerId,
 				entityId: source.entityId,
-				toFarmerId: destinationOwner,
+				toFarmerId: destinationOwnerId,
 				toEntityId: item.entityId,
 				fromLocation: source.location,
 				toLocation: isEquipment(item) ? item.key : "backpack",
 			});
 			if (!result) return;
 			if (Result.isFailure(result)) {
-				if (selectionVersion === version)
+				if (selection.isCurrent(version))
 					operationError = result.failure.message;
 				return;
 			}
-			if (selectionVersion === version) {
-				selectedEntity = result.success.entityId;
-				selectionFamily = [
-					...new Set([...selectionFamily, result.success.entityId]),
-				];
-				dragSource = undefined;
+			if (selection.followMove(result.success.entityId, version)) {
+				drag.clearHighlight();
 				moving = false;
-				await focusSelected(version);
+				await selection.focus(version);
 			}
 		} finally {
 			moving = false;
-			dragSource = undefined;
-			dropEntity = undefined;
+			drag.clearHighlight();
 		}
 	}
-	async function changeSlot(kind: "add" | "remove", catalogId?: string) {
+	async function changeSlot(change: SlotChange) {
 		if (!selectedOwner || !selected || isEquipment(selected)) return false;
-		const owner = selectedOwner.farmerId;
+		const ownerId = selectedOwner.farmerId;
 		const target = selected;
-		const version = selectionVersion;
+		const version = selection.version;
 		const invokingControl = document.activeElement;
 		operationError = "";
-		if (kind === "add" && catalogId === undefined) return false;
 		const result = await model.commands.changeBackpackSlot(
-			kind === "add"
+			change.kind === "add"
 				? {
 						type: "backpack-add",
-						farmerId: owner,
+						farmerId: ownerId,
 						entityId: target.entityId,
-						catalogId: catalogId!,
+						catalogId: change.catalogId,
 					}
 				: {
 						type: "backpack-remove",
-						farmerId: owner,
+						farmerId: ownerId,
 						entityId: target.entityId,
 					},
 		);
 		if (!result) return false;
 		if (Result.isFailure(result)) {
-			if (selectionVersion === version) operationError = result.failure.message;
+			if (selection.isCurrent(version)) operationError = result.failure.message;
 			return false;
 		}
 		// The exact committed replacement pair keeps selection stable even if a later
 		// queued Undo runs before this callback completes. Later user selection wins.
-		if (selectionVersion === version) {
-			selectionFamily = [...selectionFamily, result.success.entityId];
-			selectedEntity = result.success.entityId;
+		if (selection.followReplacement(result.success.entityId, version)) {
 			await tick();
 			if (
-				kind === "add" &&
+				change.kind === "add" &&
 				(document.activeElement === invokingControl ||
 					document.activeElement === document.body)
 			)
-				await focusSelected(version);
+				await selection.focus(version);
 		}
 		return true;
 	}
@@ -473,7 +182,7 @@
 		if (removing) return;
 		removing = true;
 		try {
-			await changeSlot("remove");
+			await changeSlot({ kind: "remove" });
 		} finally {
 			removing = false;
 		}
@@ -486,7 +195,7 @@
 		class="slot"
 		class:equipment-slot={isEquipment(item)}
 		class:active={selected?.entityId === item.entityId}
-		class:drop-target={dropEntity === item.entityId}
+		class:drop-target={drag.targetId === item.entityId}
 		aria-pressed={selected?.entityId === item.entityId}
 		aria-label={slotLabel(item)}
 		data-inventory-entity={item.entityId}
@@ -495,27 +204,16 @@
 			: slotLabel(item)}
 		disabled={moving}
 		draggable={!item.empty && !moving}
-		onclick={(event) => {
-			if (ignorePointerClick && event.detail !== 0) {
-				ignorePointerClick = false;
-				return;
-			}
-			choose(item.entityId);
-		}}
-		onpointerdown={(event) => pointerDown(event, item)}
-		onpointermove={pointerMove}
-		onpointerup={pointerUp}
-		onpointercancel={pointerCancel}
-		ondragstart={(event) => startDrag(event, item)}
-		ondragover={(event) => dragOver(event, item)}
-		ondragleave={() => {
-			if (dropEntity === item.entityId) dropEntity = undefined;
-		}}
-		ondrop={(event) => void drop(event, item)}
-		ondragend={() => {
-			dragSource = undefined;
-			dropEntity = undefined;
-		}}
+		onclick={(event) => drag.click(event, item)}
+		onpointerdown={(event) => drag.pointerDown(event, item)}
+		onpointermove={drag.pointerMove}
+		onpointerup={drag.pointerUp}
+		onpointercancel={drag.pointerCancel}
+		ondragstart={(event) => drag.startNative(event, item)}
+		ondragover={(event) => drag.overNative(event, item)}
+		ondragleave={() => drag.leaveNative(item)}
+		ondrop={(event) => drag.dropNative(event, item)}
+		ondragend={drag.endNative}
 	>
 		{#if !isEquipment(item)}
 			<span class="slot-number" aria-hidden="true">{item.slot + 1}</span>
@@ -588,12 +286,7 @@
 								type="search"
 								placeholder="Name or location"
 								bind:value={
-									() => chestQuery,
-									(value) => {
-										chestQuery = value;
-										chestId = undefined;
-										choose(undefined);
-									}
+									() => selection.query, (value) => selection.search(value)
 								}
 							/>
 						</label>
@@ -603,10 +296,7 @@
 								<select
 									bind:value={
 										() => chest?.farmerId,
-										(value) =>
-											selectChest(
-												chests.find((owner) => owner.farmerId === value),
-											)
+										(value) => selection.selectChest(value)
 									}
 								>
 									{#each matchingChests as owner (owner.farmerId)}
@@ -671,7 +361,7 @@
 					inventoryKind={selectedOwner?.kind === "chest" ? "chest" : "backpack"}
 					entries={catalogChoices}
 					error={operationError}
-					onadd={(id) => changeSlot("add", id)}
+					onadd={(id) => changeSlot({ kind: "add", catalogId: id })}
 				/>
 			{:else}
 				<p role="status">

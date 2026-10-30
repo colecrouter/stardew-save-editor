@@ -49,7 +49,9 @@ cost of each immediate write.
 - [#201: measured editing latency and performance budgets](https://github.com/colecrouter/stardew-save-editor/issues/201)
   owns remaining whole-save work and active-gesture memory accounting.
 - [#202: inventory controllers and legacy metadata adapters](https://github.com/colecrouter/stardew-save-editor/issues/202)
-  owns panel composition, repeated metadata casts and clearer request/prepared-action boundaries.
+  tracks the [inventory interaction controllers](v2-inventory-interactions.md) and
+  remaining request/prepared-action vocabulary. Metadata adaptation is centralized;
+  selection/navigation/focus and drag/scrolling now have feature-local controllers.
 
 These remain actual work, not implied completion of all audit concerns. The
 owner's planned XML/parser/raw-type replacement is separate; avoid broadening

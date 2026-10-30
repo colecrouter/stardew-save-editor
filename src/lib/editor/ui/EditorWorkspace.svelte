@@ -1,4 +1,7 @@
 <script lang="ts">
+	// Native action controls need their base styles even when no legacy UI
+	// component has been loaded in this session. Theme rules refine these tokens.
+	import "../../ui/controls.css";
 	import { Result } from "effect";
 	import type { CommandResult } from "../command-result.ts";
 	import CommandToasts from "./CommandToasts.svelte";
@@ -44,6 +47,38 @@
 	// The workspace owns the draft across section navigation. Keeping its panels
 	// mounted preserves input and lets external revisions mark conflicts visibly.
 	const dateDraft = createRuneDraft(() => model.dateField);
+	// Desktop links and the compact phone picker share one section inventory.
+	// Proof-only sections remain available only in the comparison workspace.
+	const sections = [
+		{ id: "inventory", label: "Inventory", icon: "inventory" },
+		{ id: "buildings", label: "Buildings & animals", icon: "farm" },
+		{ id: "community", label: "Community Center & Joja", icon: "community" },
+		{ id: "farmers", label: "Farmhands", icon: "character" },
+		{ id: "storage", label: "Storage", icon: "inventory" },
+		{ id: "character", label: "Character", icon: "character" },
+		{ id: "appearance", label: "Appearance", icon: "character" },
+		{ id: "relationships", label: "Relationships", icon: "character" },
+		{ id: "quests", label: "Quest journal", icon: "quests" },
+		{ id: "qi", label: "Qi orders", icon: "quests" },
+		{ id: "events", label: "Events", icon: "events" },
+		{ id: "recipes", label: "Recipes", icon: "cooking" },
+		{ id: "farm", label: "Farm settings", icon: "farm" },
+		{ id: "calendar", label: "Date and weather", icon: "farm" },
+		{ id: "review", label: "Review changes", icon: "quests" },
+	] satisfies {
+		id: string;
+		label: string;
+		icon: import("../../ui/studyIcons").StudyIconName;
+	}[];
+	const navigationSections = $derived(
+		includeProofs
+			? [
+					...sections,
+					{ id: "bundles", label: "Bundles", icon: "community" as const },
+				]
+			: sections,
+	);
+	const sectionPickerId = $props.id();
 	let tab = $state("calendar");
 	let inventoryOpened = $state(false);
 	// Large editors subscribe only after their first visit. Once opened, retain
@@ -63,6 +98,7 @@
 		// Hidden panels retain their local state, so navigation explicitly finishes
 		// any field gesture even when no native blur event accompanies the change.
 		void model.edits.endActive();
+		if (section === "inventory") inventoryOpened = true;
 		if (section === "character") characterOpened = true;
 		if (section === "relationships") relationshipsOpened = true;
 		if (section === "appearance") appearanceOpened = true;
@@ -128,151 +164,34 @@
 			</header>
 		{/snippet}
 		{#snippet navigation()}
-			<nav aria-label="Editor sections">
-				<SectionLink
-					href="#inventory"
-					label="Inventory"
-					shortLabel="Inventory"
-					icon="inventory"
-					active={tab === "inventory"}
-					onclick={() => {
-						inventoryOpened = true;
-						chooseSection("inventory");
-					}}
-				/>
-
-				<SectionLink
-					href="#buildings"
-					label="Buildings & animals"
-					shortLabel="Buildings"
-					icon="farm"
-					active={tab === "buildings"}
-					onclick={() => chooseSection("buildings")}
-				/>
-
-				<SectionLink
-					href="#community"
-					label="Community Center & Joja"
-					shortLabel="Community"
-					icon="community"
-					active={tab === "community"}
-					onclick={() => chooseSection("community")}
-				/>
-				<SectionLink
-					href="#farmers"
-					label="Farmhands"
-					shortLabel="Farmhands"
-					icon="character"
-					active={tab === "farmers"}
-					onclick={() => chooseSection("farmers")}
-				/>
-
-				<SectionLink
-					href="#storage"
-					label="Storage"
-					shortLabel="Storage"
-					icon="inventory"
-					active={tab === "storage"}
-					onclick={() => chooseSection("storage")}
-				/>
-
-				<SectionLink
-					href="#character"
-					label="Character"
-					shortLabel="Character"
-					icon="character"
-					active={tab === "character"}
-					onclick={() => chooseSection("character")}
-				/>
-
-				<SectionLink
-					href="#appearance"
-					label="Appearance"
-					shortLabel="Looks"
-					icon="character"
-					active={tab === "appearance"}
-					onclick={() => chooseSection("appearance")}
-				/>
-
-				<SectionLink
-					href="#relationships"
-					label="Relationships"
-					shortLabel="Friends"
-					icon="character"
-					active={tab === "relationships"}
-					onclick={() => chooseSection("relationships")}
-				/>
-
-				<SectionLink
-					href="#quests"
-					label="Quest journal"
-					shortLabel="Quests"
-					icon="quests"
-					active={tab === "quests"}
-					onclick={() => chooseSection("quests")}
-				/>
-				<SectionLink
-					href="#qi"
-					label="Qi orders"
-					shortLabel="Qi"
-					icon="quests"
-					active={tab === "qi"}
-					onclick={() => chooseSection("qi")}
-				/>
-
-				<SectionLink
-					href="#events"
-					label="Events"
-					shortLabel="Events"
-					icon="events"
-					active={tab === "events"}
-					onclick={() => chooseSection("events")}
-				/>
-
-				<SectionLink
-					href="#recipes"
-					label="Recipes"
-					shortLabel="Recipes"
-					icon="cooking"
-					active={tab === "recipes"}
-					onclick={() => chooseSection("recipes")}
-				/>
-
-				<SectionLink
-					href="#farm"
-					label="Farm settings"
-					shortLabel="Farm"
-					icon="farm"
-					active={tab === "farm"}
-					onclick={() => chooseSection("farm")}
-				/>
-				<SectionLink
-					href="#calendar"
-					label="Date and weather"
-					shortLabel="Calendar"
-					icon="farm"
-					active={tab === "calendar"}
-					onclick={() => chooseSection("calendar")}
-				/>
-
-				<SectionLink
-					href="#review"
-					label="Review changes"
-					shortLabel="Changes"
-					icon="quests"
-					active={tab === "review"}
-					onclick={() => chooseSection("review")}
-				/>
-				{#if includeProofs}
+			<nav aria-label="Editor sections" class="section-links">
+				{#each navigationSections as section (section.id)}
 					<SectionLink
-						href="#bundles"
-						label="Bundles"
-						icon="community"
-						active={tab === "bundles"}
-						onclick={() => chooseSection("bundles")}
+						href={`#${section.id}`}
+						label={section.label}
+						icon={section.icon}
+						active={tab === section.id}
+						onclick={() => chooseSection(section.id)}
 					/>
-				{/if}
+				{/each}
 			</nav>
+
+			<div class="section-picker">
+				<label for={sectionPickerId}>Section</label>
+
+				<select
+					id={sectionPickerId}
+					class="ui-control"
+					value={tab}
+					onchange={(event) => chooseSection(event.currentTarget.value)}
+				>
+					{#each navigationSections as section (section.id)}
+						<option value={section.id}>
+							{section.label}
+						</option>
+					{/each}
+				</select>
+			</div>
 		{/snippet}
 		{#if error}
 			<p role="alert">{error}</p>
@@ -394,6 +313,10 @@
 </div>
 
 <style>
+	.section-picker {
+		display: none;
+	}
+
 	.editor {
 		width: min(1440px, 100%);
 		margin: auto;
@@ -445,15 +368,22 @@
 		.editor {
 			--study-frame-height: auto;
 		}
-		nav {
-			/* Section labels need two columns to keep complete words at phone widths. */
-			display: grid;
-			grid-template-columns: repeat(2, minmax(0, 1fr));
+		.section-links {
+			/* Fifteen wrapping tabs displaced the actual editor on phones. The
+			   native picker keeps every full section name in one keyboard/touch control. */
+			display: none;
 		}
-		nav :global(a) {
-			flex: 1;
-			flex-direction: row;
-			text-align: left;
+		.section-picker {
+			display: grid;
+			grid-template-columns: auto minmax(0, 1fr);
+			align-items: center;
+			gap: 12px;
+			padding: 8px 12px;
+			color: #ffedc9;
+		}
+		.section-picker select {
+			width: 100%;
+			min-width: 0;
 		}
 		.toolbar strong {
 			flex-basis: 100%;
@@ -485,21 +415,6 @@
 			min-height: 36px;
 			padding: 4px 9px;
 			font-size: 17px;
-		}
-		nav {
-			/* Section labels wrap into rows so phone labels never overlap. */
-			display: grid;
-			grid-template-columns: repeat(4, minmax(0, 1fr));
-		}
-		nav :global(a) {
-			min-width: 0;
-			min-height: 44px;
-			padding: 4px;
-			font-size: 16px;
-			justify-content: center;
-		}
-		nav :global(.glyph) {
-			display: none;
 		}
 		.editor :global(.content) {
 			/* Keep text inside the parchment rim while reducing vertical chrome. */

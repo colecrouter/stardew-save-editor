@@ -45,6 +45,7 @@
 </script>
 
 <button
+	class="ui-control ui-button"
 	type="button"
 	{disabled}
 	onclick={() => {
@@ -69,10 +70,15 @@
 		<p role="alert">{error}</p>
 	{/if}
 	<form onsubmit={confirm}>
-		<button type="button" disabled={busy} onclick={() => dialog.close()}>
+		<button
+			class="ui-control ui-button"
+			type="button"
+			disabled={busy}
+			onclick={() => dialog.close()}
+		>
 			Cancel
 		</button>
-		<button type="submit" disabled={busy}>
+		<button class="ui-control ui-button" type="submit" disabled={busy}>
 			{busy ? "Applying..." : label}
 		</button>
 	</form>

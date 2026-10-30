@@ -36,7 +36,11 @@
 </p>
 <div class="toolbar">
 	<label>
-		Search Qi orders <input type="search" bind:value={search} />
+		Search Qi orders <input
+			class="ui-control"
+			type="search"
+			bind:value={search}
+		/>
 	</label>
 	<strong>{domain?.offeredCount ?? 0}/{MAX_QI_OFFERS} board offers</strong>
 </div>

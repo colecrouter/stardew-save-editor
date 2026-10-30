@@ -2,7 +2,7 @@ import { render } from "@testing-library/svelte";
 import { describe, expect, it, vi } from "vitest";
 import { Raw } from "$lib/proxies";
 import type { Building } from "$lib/proxies/Building.svelte";
-import BuildingSprite from "../src/routes/(legacy)/(edit)/inventory/BuildingSprite.svelte";
+import BuildingSprite from "../src/lib/ui/BuildingSprite.svelte";
 
 vi.mock("$app/paths", () => ({
 	// Match SvelteKit's concatenation with the GitHub Pages base path.

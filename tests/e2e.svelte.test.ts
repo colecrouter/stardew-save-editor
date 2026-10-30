@@ -37,7 +37,7 @@ import chestsPage from "../src/routes/(legacy)/(edit)/chests/+page.svelte";
 import eventsPage from "../src/routes/(legacy)/(edit)/events/+page.svelte";
 import farmPage from "../src/routes/(legacy)/(edit)/farm/+page.svelte";
 import editorPage from "../src/routes/(legacy)/(edit)/inventory/+page.svelte";
-import BuildingSprite from "../src/routes/(legacy)/(edit)/inventory/BuildingSprite.svelte";
+import BuildingSprite from "../src/lib/ui/BuildingSprite.svelte";
 import questsPage from "../src/routes/(legacy)/(edit)/quests/+page.svelte";
 import relationshipsPage from "../src/routes/(legacy)/(edit)/relationships/+page.svelte";
 import {

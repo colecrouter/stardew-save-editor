@@ -175,6 +175,16 @@ export function sameChestProjectionInputs(
 export class InventoryEdits extends Context.Service<
 	InventoryEdits,
 	{
+		/** Building transitions can relocate placed storage; this capability owns those paired handles. */
+		upgradeBuilding: (
+			buildingId: string,
+			target: string,
+		) => Effect.Effect<
+			import("../animalBuildings.ts").UnplacedItem[],
+			| import("./building-operations.ts").BuildingInvalid
+			| import("./domain.ts").MutationError
+		>;
+
 		/** Award the fixed quest reward without accepting caller-supplied item data. */
 		grantPrizeTicket: (
 			farmerId: string,
@@ -297,35 +307,60 @@ export function makeInventoryEdits(
 	}[] = [];
 	const contexts = new Map<string, string>();
 	const resizes: { farmerId: string; size: number }[] = [];
+	// Replay in operation order: an upgrade can change a chest path before a later
+	// item edit. Grouping writes by kind would silently replay against the old owner.
+	const replaySteps: (
+		| { kind: "write"; write: (typeof writes)[number] }
+		| { kind: "resize"; resize: (typeof resizes)[number] }
+		| {
+				kind: "upgrade";
+				buildingId: string;
+				target: string;
+				apply: typeof import("./building-operations.ts").replayBuildingUpgrade;
+		  }
+	)[] = [];
+	const recordWrite = (write: (typeof writes)[number]) => {
+		writes.push(write);
+		replaySteps.push({ kind: "write", write });
+	};
+	const recordResize = (resize: (typeof resizes)[number]) => {
+		resizes.push(resize);
+		replaySteps.push({ kind: "resize", resize });
+	};
+
 	const ownerIn = resolveInventoryContainer;
 	const replay = (document: SaveDocument) => {
 		// With no approved writes, compare the original inventory directly. The
 		// comparison below still rejects raw unauthorized edits; only replay needs
 		// a mutable document, so ordinary field edits need no replay clone.
-		if (writes.length === 0 && resizes.length === 0) return document;
+		if (replaySteps.length === 0) return document;
 		// Replay only approved mutations, preserving baseline branches that the
 		// operation never touched. Global inventory comparisons remain authoritative.
 		const applyApproved = (expected: SaveDocument) => {
-			for (const write of writes) {
-				const owner = ownerIn(expected, write.ownerId);
-				const item =
-					typeof write.location === "number"
-						? owner?.slots[write.location]
-						: owner?.farmer?.[write.location];
-				if (write.replacement && owner && typeof write.location === "number")
-					owner.slots[write.location] = structuredClone(write.replacement);
-				else if (record(item))
-					Object.assign(item, structuredClone(write.patch));
-			}
-			// Capacity changes append canonical empty slots or remove only validated nils.
-			// Replay after retained-item patches because shrinking can never remove an item.
-			for (const resize of resizes) {
-				const owner = ownerIn(expected, resize.farmerId);
-				if (owner?.farmer && record(owner.farmer)) {
-					owner.slots.length = Math.min(owner.slots.length, resize.size);
-					while (owner.slots.length < resize.size)
-						owner.slots.push({ "@_xsi:nil": "true" });
-					owner.farmer.maxItems = resize.size;
+			for (const step of replaySteps) {
+				if (step.kind === "upgrade") {
+					step.apply(expected, step.buildingId, step.target);
+				} else if (step.kind === "write") {
+					const write = step.write,
+						owner = ownerIn(expected, write.ownerId);
+					const item =
+						typeof write.location === "number"
+							? owner?.slots[write.location]
+							: owner?.farmer?.[write.location];
+					if (write.replacement && owner && typeof write.location === "number")
+						owner.slots[write.location] = structuredClone(write.replacement);
+					else if (record(item))
+						Object.assign(item, structuredClone(write.patch));
+				} else {
+					const resize = step.resize,
+						owner = ownerIn(expected, resize.farmerId);
+					// Capacity replay follows its original place in the transaction journal.
+					if (owner?.farmer && record(owner.farmer)) {
+						owner.slots.length = Math.min(owner.slots.length, resize.size);
+						while (owner.slots.length < resize.size)
+							owner.slots.push({ "@_xsi:nil": "true" });
+						owner.farmer.maxItems = resize.size;
+					}
 				}
 			}
 		};
@@ -493,7 +528,7 @@ export function makeInventoryEdits(
 			Object.assign(item, patch);
 		}, resolved.version);
 		if (!changed) return false;
-		writes.push({
+		recordWrite({
 			ownerId,
 			location: resolved.location,
 			patch: structuredClone(patch),
@@ -501,6 +536,74 @@ export function makeInventoryEdits(
 		return true;
 	});
 	const service: typeof InventoryEdits.Service = {
+		upgradeBuilding: Effect.fn("Inventory.upgradeBuilding")(function* (
+			buildingId: string,
+			target: string,
+		) {
+			const operations = yield* Effect.promise(
+				() => import("./building-operations.ts"),
+			);
+			const snapshot = yield* draft.read;
+			if (
+				!authority ||
+				!samePlainData(
+					inventorySnapshot(snapshot.state.document),
+					inventorySnapshot(replay(authority)),
+				) ||
+				!contextMatches(snapshot.state.document)
+			)
+				return yield* new operations.BuildingInvalid({
+					message: "Inventory changed outside a supported operation.",
+				});
+			// Discover before mutation on the same private snapshot: raw chest identity
+			// survives tile movement and object-array compaction even when its path changes.
+			const before = discoverPlacedChests(snapshot.state.document);
+			const handles = new Map(
+				before.map((chest) => [
+					chest.raw,
+					preparedInventory.identities[chest.id],
+				]),
+			);
+			const warnings = yield* operations.prepareBuildingUpgrade(
+				snapshot.state.document,
+				buildingId,
+				target,
+			);
+			const after = discoverPlacedChests(snapshot.state.document);
+			const nextIds = { ...preparedInventory.identities };
+			for (const chest of before) delete nextIds[chest.id];
+			for (const chest of after) {
+				const ids = handles.get(chest.raw);
+				if (ids) nextIds[chest.id] = [...ids];
+			}
+			// No new/removed storage records are expected from a supported tier change.
+			// Reject a collision or lost record rather than reallocating live item identities.
+			if (
+				after.length !== before.length ||
+				after.some((chest) => !handles.has(chest.raw)) ||
+				after.some(
+					(chest) =>
+						handles.get(chest.raw) &&
+						!inventoryContainers(snapshot.state.document).some(
+							(owner) => owner.id === chest.id,
+						),
+				)
+			)
+				return yield* new operations.BuildingInvalid({
+					message: "This upgrade cannot preserve the placed storage handles.",
+				});
+			yield* draft.replace(snapshot);
+			identities = nextIds;
+			preparedInventory = { ...preparedInventory, identities: nextIds };
+			replaySteps.push({
+				kind: "upgrade",
+				buildingId,
+				target,
+				apply: operations.replayBuildingUpgrade,
+			});
+			return warnings;
+		}),
+
 		grantPrizeTicket: Effect.fn("Backpack.grantPrizeTicket")(function* (
 			farmerId: string,
 		) {
@@ -532,7 +635,7 @@ export function makeInventoryEdits(
 				const patch = { stack: item.stack + 1 };
 				Object.assign(item, patch);
 				yield* draft.replace(snapshot);
-				writes.push({ ownerId: farmerId, location: stackSlot, patch });
+				recordWrite({ ownerId: farmerId, location: stackSlot, patch });
 				return "added" as const;
 			}
 			// Even an empty marker can carry opaque mod data. Never discard it to
@@ -547,7 +650,7 @@ export function makeInventoryEdits(
 			);
 			yield* draft.replace(snapshot);
 			preparedInventory = paired;
-			writes.push({
+			recordWrite({
 				ownerId: farmerId,
 				location: slot,
 				patch: {},
@@ -601,7 +704,7 @@ export function makeInventoryEdits(
 			);
 			yield* draft.replace(snapshot);
 			preparedInventory = paired;
-			resizes.push({ farmerId, size });
+			recordResize({ farmerId, size });
 			return true;
 		}),
 		set: Effect.fn("Backpack.stageField")(function* (
@@ -753,6 +856,7 @@ export function makeInventoryEdits(
 			authority = undefined;
 			writes.length = 0;
 			resizes.length = 0;
+			replaySteps.length = 0;
 			contexts.clear();
 		}),
 	};

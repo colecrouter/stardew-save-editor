@@ -43,7 +43,10 @@ Copy-on-write handles tree-shaped state; shared-reference graphs use the detache
 fallback to preserve existing alias-driven writes. Changed mutations invalidate
 older draft snapshots; no-op mutations leave their version intact. Ordinary
 `read`/`replace` retains detached mutable snapshots for calendar and other planners.
-Only Farm uses the new synchronous path initially; inventory authorization is unchanged.
+Only Farm uses the new synchronous draft path initially. Inventory authorization
+separately replays approved writes with copy-on-write for tree-shaped baselines,
+retaining detached replay for shared-reference graphs and all global inventory/context
+comparisons. Inventory operations still use detached draft read/replace.
 
 ## Undo gestures
 

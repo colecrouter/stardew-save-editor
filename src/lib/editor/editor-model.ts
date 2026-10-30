@@ -170,6 +170,22 @@ function project(
 	};
 	const today = options(false),
 		tomorrow = options(true);
+	// Review payloads may share owned patch/document branches internally. Copy
+	// these narrow descriptors together before immutable UI publication freezes
+	// them. Only review descriptors and their actual patch payloads cross this copy.
+	const review = structuredClone({
+		entries: state.entries.map((entry, index) => ({
+			id: entry.id,
+			label: entry.intent.label || "Unlabelled changes",
+			compact: entry.intent.review === "compact",
+			applied: index < state.cursor,
+			paths: entry.forward.map((patch) => patch.path),
+			annotations: entry.annotations,
+		})),
+		// Baseline comparison survives undo-history eviction and exposes actual
+		// document writes even if an operation supplied an incomplete receipt.
+		net: state.net,
+	});
 	return {
 		revision: state.revision,
 		bundle: includeProofs
@@ -201,17 +217,8 @@ function project(
 		canRedo: state.cursor < state.entries.length,
 		retainedBytes: state.retainedBytes,
 		dropped: state.dropped,
-		entries: state.entries.map((entry, index) => ({
-			id: entry.id,
-			label: entry.intent.label || "Unlabelled changes",
-			compact: entry.intent.review === "compact",
-			applied: index < state.cursor,
-			paths: entry.forward.map((patch) => patch.path),
-			annotations: entry.annotations,
-		})),
-		// Baseline comparison survives undo-history eviction and exposes actual
-		// document writes even if an operation supplied an incomplete receipt.
-		net: state.net,
+		entries: review.entries,
+		net: review.net,
 		farmerId: String(game.player.UniqueMultiplayerID),
 		backpackSize: includeProofs ? game.player.items.Item.length : 0,
 	};
@@ -270,6 +277,8 @@ export const makeEditorModel = (
 		// reference; rejecting later commands alone would still retain the save.
 		let engine: HistorySession | undefined = session;
 		let closed = false;
+		// One canonical immutable chest view belongs to this file. Replacement
+		// releases the previous descriptor tree, and session closure clears it.
 		let chestCache:
 			| { revision: number; value: ImmutableView<BackpackView[]> }
 			| undefined;
@@ -334,26 +343,53 @@ export const makeEditorModel = (
 				if (registry) registry.set(pendingAtom, registry.get(pendingAtom) - 1);
 			});
 		};
-		// Both the command result and subscription stream can deliver a revision.
-		// Ignore duplicates and late older deliveries to avoid regression/reprojection.
-		// One canonical immutable chest view belongs to this file, not a revision
-		// archive. Public mutations cannot poison a cache hit. Replacing the cache
-		// releases the previous descriptor tree; closure clears it as well.
-		const publish = (state: HistoryState) => {
+		// Both direct commands and streams can deliver a revision. Projection only
+		// builds detached presentation data; Atom/cache changes wait for success.
+		type Publication = {
+			revision: number;
+			nextIdentity: number;
+			chestRevision: number;
+			view: EditorView | undefined;
+		};
+		const projectPublication = (state: HistoryState): Publication => {
+			const stamp: Publication = {
+				revision: state.revision,
+				nextIdentity: state.nextIdentity,
+				chestRevision: state.chestRevision,
+				view: undefined,
+			};
+			if (
+				closed ||
+				!registry ||
+				state.revision <= (registry.get(viewAtom)?.revision ?? -1)
+			)
+				return stamp;
+			// Reuse one immutable chest view per dependency revision. Do not update
+			// this cache during projection: an outer transaction may still retry.
+			const chests =
+				chestCache?.revision === state.chestRevision
+					? chestCache.value
+					: immutableView(readChests(state));
+			return {
+				...stamp,
+				view: immutableView(project(state, options.includeProofs, chests)),
+			};
+		};
+		const publish = (publication: Publication) => {
+			const next = publication.view;
+			// A later command or stream may already have displayed a newer revision.
+			// Keep the captured receipt for its caller, while rejecting display regressions.
 			if (
 				!closed &&
 				registry &&
-				state.revision > (registry.get(viewAtom)?.revision ?? -1)
+				next &&
+				next.revision > (registry.get(viewAtom)?.revision ?? -1)
 			) {
-				if (!chestCache || chestCache.revision !== state.chestRevision) {
-					chestCache = {
-						revision: state.chestRevision,
-						value: immutableView(readChests(state)),
-					};
-				}
-				const next = immutableView(
-					project(state, options.includeProofs, chestCache.value),
-				);
+				// This bounded cache retains presentation data, never the borrowed source.
+				chestCache = {
+					revision: publication.chestRevision,
+					value: next.chests,
+				};
 				registry.set(viewAtom, next);
 				// Selection belongs to the file, not a page index. Preserve its
 				// stable ID through revisions; only unavailable/ambiguous owners
@@ -372,7 +408,7 @@ export const makeEditorModel = (
 		};
 		const imported = yield* session.snapshot;
 		const loadValidation = validateSave(imported.document);
-		publish(imported);
+		publish(projectPublication(imported));
 		// Own the observer fiber with the file, not with an individual screen. Panel
 		// navigation should neither fork additional streams nor lose committed state.
 		const stream = Stream.unwrap(
@@ -387,9 +423,11 @@ export const makeEditorModel = (
 						}),
 				);
 				// The command result may already have projected this revision. Skip
-				// that duplicate before history detaches the full preservation document.
-				// Lower-level writes and other models still arrive through this stream.
-				return session.changesAfter(() => registry?.get(viewAtom)?.revision);
+				// that duplicate before projecting. Lower-level writes and other models
+				// still arrive here; ordinary engine streams remain detached snapshots.
+				return session
+					.forProjection(projectPublication)
+					.changesAfter(() => registry?.get(viewAtom)?.revision);
 			}),
 		);
 		yield* Effect.forkScoped(
@@ -408,6 +446,9 @@ export const makeEditorModel = (
 			if (closed || !engine) throw new Error("This save session is closed.");
 			return engine;
 		};
+		// Build a small facade on demand so retained closed model handles do not
+		// keep another session reference beyond the clearable engine variable.
+		const publication = () => live().forProjection(projectPublication);
 		const run = <A, E>(effect: Effect.Effect<A, E>) =>
 			runWithContext(
 				Effect.gen(function* () {
@@ -421,7 +462,7 @@ export const makeEditorModel = (
 		) => {
 			await command(async () => {
 				const result = await run(
-					live().execute(actions, undefined, expectedRevision),
+					publication().execute(actions, undefined, expectedRevision),
 				);
 				publish(result);
 			});
@@ -438,7 +479,7 @@ export const makeEditorModel = (
 			expectedRevision?: number,
 		) =>
 			command(async () => {
-				publish(await run(live().transact(program, expectedRevision)));
+				publish(await run(publication().transact(program, expectedRevision)));
 			});
 		// Execute inside the file scope and queue, preserving the full Exit until
 		// the boundary distinguishes expected failures, cancellation and defects.
@@ -479,7 +520,7 @@ export const makeEditorModel = (
 				return null;
 			});
 		};
-		const publishEffect = <E>(effect: Effect.Effect<HistoryState, E>) =>
+		const publishEffect = <E>(effect: Effect.Effect<Publication, E>) =>
 			Effect.flatMap(effect, (state) =>
 				Effect.sync(() => {
 					publish(state);
@@ -520,7 +561,7 @@ export const makeEditorModel = (
 							new MutationError("This edit belongs to another save session."),
 						);
 					return Effect.asVoid(
-						publishEffect(live().transact(program, undefined, key)),
+						publishEffect(publication().transact(program, undefined, key)),
 					);
 				}, true),
 			selectFarmer: (farmerId: string) =>
@@ -545,8 +586,8 @@ export const makeEditorModel = (
 					Effect.gen(function* () {
 						// Read and execute while this command owns the UI queue. The history
 						// resolver rechecks both handles against the authoritative revision.
-						const before = yield* live().snapshot;
-						const after = yield* live().execute(
+						const before = yield* publication().snapshot;
+						const after = yield* publication().execute(
 							[request],
 							undefined,
 							before.revision,
@@ -563,8 +604,8 @@ export const makeEditorModel = (
 					Effect.gen(function* () {
 						// Resolve the destination before executing within this command queue.
 						// Expected revision also protects callers that hold the lower engine API.
-						const before = yield* live().snapshot;
-						const after = yield* live().execute(
+						const before = yield* publication().snapshot;
+						const after = yield* publication().execute(
 							[request],
 							undefined,
 							before.revision,
@@ -599,13 +640,13 @@ export const makeEditorModel = (
 			) =>
 				submit(() =>
 					Effect.gen(function* () {
-						// The history transaction owns publication; its result is the new state.
+						// History owns the commit; this delivery describes its exact revision.
 						// Capture the domain receipt per queued submission and expose it only
 						// after that transaction succeeds. Failed/retried attempts never emit it.
 						const receipt: { current: Option.Option<A> } = {
 							current: Option.none(),
 						};
-						const state = yield* live().transact(
+						const state = yield* publication().transact(
 							program.pipe(
 								Effect.tap((value) =>
 									Effect.sync(() => {
@@ -625,10 +666,12 @@ export const makeEditorModel = (
 				),
 			execute: (actions: readonly Mutation[], expectedRevision?: number) =>
 				submit(() =>
-					publishEffect(live().execute(actions, undefined, expectedRevision)),
+					publishEffect(
+						publication().execute(actions, undefined, expectedRevision),
+					),
 				),
-			undo: () => submit(() => publishEffect(live().undo)),
-			redo: () => submit(() => publishEffect(live().redo)),
+			undo: () => submit(() => publishEffect(publication().undo)),
+			redo: () => submit(() => publishEffect(publication().redo)),
 			export: () =>
 				submit(() =>
 					Effect.gen(function* () {
@@ -711,11 +754,11 @@ export const makeEditorModel = (
 			} satisfies Readable<number>,
 			undo: () =>
 				command(async () => {
-					publish(await run(live().undo));
+					publish(await run(publication().undo));
 				}),
 			redo: () =>
 				command(async () => {
-					publish(await run(live().redo));
+					publish(await run(publication().redo));
 				}),
 			// Encode only the preservation document; session provenance and history
 			// remain internal. Decode once to reject an unreadable output before download.

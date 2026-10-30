@@ -58,6 +58,27 @@ The remaining small projections still rebuild per document revision. Caching
 every reader is not a goal by itself: the measured cost must justify the retained
 data and invalidation contract.
 
+## Internal publication channel
+
+History defines mutation preparation once and selects how to deliver its result.
+Ordinary commands, snapshots and streams still return detached mutable history.
+The model's owner-only `forProjection` channel converts the captured command result
+or filtered stream revision directly into domain views and small revision/identity
+stamps. It never rereads the latest state to manufacture a command receipt: another
+writer or queued Undo could already have changed it.
+
+The synchronous projector borrows engine-owned state without mutating or retaining
+it. Its output contains detached presentation values and scalars. In particular,
+review patches and annotation descriptors receive a narrow copy before the view is
+frozen. No saved-state reference may escape through a presentation descriptor.
+
+Projection and publication are separate. An enclosing Effect transaction can retry
+projection, so it must not write to Atom or replace the model's chest cache. The
+model publishes only after the complete command succeeds, rejecting duplicate and
+late older revisions. Its projected stream still observes other models and direct
+engine writes; ordinary subscribers retain their detached-copy contract. A bounded
+presentation cache and on-demand command facade preserve file-scope cleanup.
+
 ## Verification
 
 Regressions cover immutable nested public data, mutable independent engine

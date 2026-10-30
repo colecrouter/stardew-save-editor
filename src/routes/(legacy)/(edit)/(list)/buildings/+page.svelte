@@ -8,7 +8,7 @@
 	import UiContainerSmall from "$lib/ui/UIContainerSmall.svelte";
 	import UiInput from "$lib/ui/UIInput.svelte";
 	import { Gender } from "$types/save";
-	import BuildingSprite from "../../inventory/BuildingSprite.svelte";
+	import BuildingSprite from "$lib/ui/BuildingSprite.svelte";
 	import BuildingControls from "./BuildingControls.svelte";
 
 	let saveManager: ReturnType<typeof getSaveManager> | undefined;

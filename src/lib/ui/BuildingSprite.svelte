@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { asset } from "$app/paths";
 	import buildings from "$generated/buildings.json";
-	import type { Building } from "$lib/proxies/Building.svelte";
 
 	interface Props {
-		building?: Building;
+		/** Presentation needs only the type name, shared by domain views and legacy proxies. */
+		building?: { readonly name: string | undefined };
 	}
 
 	type BuildingSpriteData = (typeof buildings)[number] & {

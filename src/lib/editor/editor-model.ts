@@ -1,3 +1,4 @@
+import { readBuildings, type BuildingsView } from "./building-data.ts";
 import { immutableView, type ImmutableView } from "./immutable-view.ts";
 import { readFarmerChoices } from "./farmer-selection.ts";
 import { readQuestJournals, type QuestFarmerView } from "./quest-operations.ts";
@@ -100,6 +101,7 @@ interface EditorViewData {
 	readonly bundle: ReturnType<typeof springBundleView>;
 	readonly calendar: CalendarViewState;
 	readonly farm: FarmView;
+	readonly buildings: BuildingsView;
 	readonly backpacks: readonly InventoryView[];
 	readonly chests: readonly InventoryView[];
 	readonly characters: CharacterView[];
@@ -212,6 +214,7 @@ function project(
 				},
 		calendar,
 		farm: readFarmSettings(state.document),
+		buildings: readBuildings(state.document),
 		backpacks: readBackpacks(state),
 		chests,
 		characters: readCharacters(state.document),

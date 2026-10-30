@@ -2,10 +2,9 @@ import buildings from "$generated/buildings.json";
 import {
 	type AnimalOption,
 	animalOptions,
-	applyIndoorItemMoves,
-	placeIndoorItems,
+	buildingTierBlocker,
+	changeBuildingTier,
 	purchasedAnimalTopic,
-	removeIndoorItems,
 	type UnplacedItem,
 	upgradeTiers,
 } from "$lib/animalBuildings";
@@ -13,12 +12,13 @@ import { FarmAnimal, newAnimalId } from "$lib/proxies/FarmAnimal.svelte";
 import type { Farmer } from "$lib/proxies/Farmer.svelte";
 import { GameLocation } from "$lib/proxies/GameLocation.svelte";
 import type { SaveProxy } from "$lib/proxies/SaveFile.svelte";
-import type { BuildingUpgradeData } from "$types/buildingUpgrade";
+
 import type { Building as BuildingType } from "$types/save";
 import { type DataProxy, Raw } from ".";
 
 /** Generated building info, with every upgrade field typed (each building only has some) */
-export type BuildingInfo = (typeof buildings)[number] & BuildingUpgradeData;
+export type { BuildingInfo } from "../animalBuildings.ts";
+import type { BuildingInfo } from "../animalBuildings.ts";
 
 export class Building implements DataProxy<BuildingType> {
 	[Raw]: BuildingType;
@@ -183,19 +183,7 @@ export class Building implements DataProxy<BuildingType> {
 
 	/** Why this building can't be changed to `target`, if it can't */
 	tierChangeBlocker(target: BuildingInfo): string | undefined {
-		const tiers = this.tiers;
-		const from = tiers.findIndex((t) => t.name === this.#type);
-		const to = tiers.findIndex((t) => t.name === target.name);
-		if (from === -1 || to === -1)
-			return `A ${this.#type} can't become a ${target.name}`;
-		if (this.underConstruction) return `The ${this.#type} is still being built`;
-		if (this[Raw].daysUntilUpgrade > 0)
-			return `Robin is already upgrading the ${this.#type}`;
-		const residents = this.residentIds.length;
-		const limit = target.maxOccupants;
-		if (to < from && residents > limit)
-			return `${residents} animals live here; a ${target.name} holds ${limit}`;
-		return undefined;
+		return buildingTierBlocker(this[Raw], target, this.residentIds.length);
 	}
 
 	/**
@@ -213,55 +201,15 @@ export class Building implements DataProxy<BuildingType> {
 		const blocker = this.tierChangeBlocker(target);
 		if (blocker) throw new Error(blocker);
 
-		const tiers = this.tiers;
-		const from = tiers.findIndex((t) => t.name === this.#type);
-		const to = tiers.findIndex((t) => t.name === target.name);
-		const problems: UnplacedItem[] = [];
-		const indoors = this.#indoors;
-		const interior = indoors?.[Raw];
-
-		for (let i = from + 1; i <= to; i++) {
-			const tier = tiers[i];
-			if (!tier) continue;
-			if (interior) {
-				applyIndoorItemMoves(interior, tier.indoorItemMoves);
-				problems.push(...placeIndoorItems(interior, tier.indoorItems));
-			}
-			this.#context.addConstructedBuilding(tier.name);
-			for (const mail of tier.addMailOnBuild ?? [])
-				this.#context.sendMailToEveryone(mail);
-			this.#context.addDialogueEventForEveryone(`structureBuilt_${tier.name}`);
-		}
-		for (let i = from; i > to; i--) {
-			const tier = tiers[i];
-			const below = tiers[i - 1];
-			if (!tier || !below || !interior) continue;
-			const added = (tier.indoorItems ?? []).filter(
-				(item) => !below.indoorItems?.some((b) => b.id === item.id),
-			);
-			problems.push(...removeIndoorItems(interior, added));
-			problems.push(
-				...applyIndoorItemMoves(interior, tier.indoorItemMoves, {
-					reverse: true,
-				}),
-			);
-		}
-
-		// Building.LoadFromBuildingData
-		const raw = this[Raw];
-		raw.buildingType = target.name;
+		const problems = changeBuildingTier(this[Raw], target, {
+			constructed: (name) => this.#context.addConstructedBuilding(name),
+			mail: (key) => this.#context.sendMailToEveryone(key),
+			topic: (key) => this.#context.addDialogueEventForEveryone(key),
+		});
+		// Keep the legacy reactive facade aligned with the shared raw transition.
 		this.#type = target.name;
-		raw.tilesWide = target.footprint.X;
-		raw.tilesHigh = target.footprint.Y;
-		if (target.maxOccupants >= 0) raw.maxOccupants = target.maxOccupants;
-		raw.hayCapacity = target.hayCapacity;
-		raw.humanDoor = { ...(target.humanDoor ?? { X: -1, Y: -1 }) };
-		raw.animalDoor = { ...(target.animalDoor ?? { X: -1, Y: -1 }) };
-		// AnimalHouse.OnParentBuildingUpgraded
-		if (indoors && this.isAnimalHouse)
-			indoors.animalLimit = target.maxOccupants;
-		// The game names a building's interior after the building (Building.createIndoors)
-		if (interior) interior.name = target.name;
+		if (this.#indoors && this.isAnimalHouse)
+			this.#indoors.animalLimit = target.maxOccupants;
 		return problems;
 	}
 }

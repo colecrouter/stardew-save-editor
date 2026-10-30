@@ -54,6 +54,7 @@
 	let eventsOpened = $state(false);
 	let questsOpened = $state(false);
 	let qiOpened = $state(false);
+	let buildingsOpened = $state(false);
 	function chooseSection(section: string) {
 		// Hidden panels retain their local state, so navigation explicitly finishes
 		// any field gesture even when no native blur event accompanies the change.
@@ -65,6 +66,7 @@
 		if (section === "events") eventsOpened = true;
 		if (section === "quests") questsOpened = true;
 		if (section === "qi") qiOpened = true;
+		if (section === "buildings") buildingsOpened = true;
 		tab = section;
 	}
 	let error = $state("");
@@ -130,6 +132,15 @@
 						inventoryOpened = true;
 						chooseSection("inventory");
 					}}
+				/>
+
+				<SectionLink
+					href="#buildings"
+					label="Buildings & animals"
+					shortLabel="Buildings"
+					icon="farm"
+					active={tab === "buildings"}
+					onclick={() => chooseSection("buildings")}
 				/>
 
 				<SectionLink
@@ -253,6 +264,21 @@
 				{/await}
 			</div>
 		{/if}
+		{#if buildingsOpened}
+			<div hidden={tab !== "buildings"}>
+				{#await import("./BuildingsPanel.svelte")}
+					<p role="status">Loading buildings…</p>
+				{:then panel}
+					<panel.default {model} />
+				{:catch}
+					<p role="alert">
+						The buildings view could not be loaded. Reopen the editor to try
+						again.
+					</p>
+				{/await}
+			</div>
+		{/if}
+
 		{#if characterOpened}
 			<div hidden={tab !== "character"}><CharacterPanel {model} /></div>
 		{/if}

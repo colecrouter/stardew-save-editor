@@ -15,7 +15,7 @@ export class ItemPropertyInvalid extends Data.TaggedError(
 )<{
 	readonly message: string;
 }> {}
-const handles = { farmerId: Schema.String, entityId: Schema.String };
+const handles = { ownerId: Schema.String, entityId: Schema.String };
 const integer = (min: number, max: number) =>
 	Schema.Number.check(
 		Schema.isInt(),

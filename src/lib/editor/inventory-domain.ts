@@ -2,10 +2,10 @@ import { inventoryQuantity } from "./inventory-policy.ts";
 import { Effect } from "effect";
 import { bindImmediateField, type ImmediateEditPort } from "./field-binding.ts";
 import type { ImmediateField } from "./immediate-field.ts";
-import type { BackpackSlotView } from "./inventory-views.ts";
+import type { InventorySlotView } from "./inventory-views.ts";
 import {
-	setBackpackItem,
-	decodeBackpackItemChange,
+	setInventoryItem,
+	decodeInventoryItemChange,
 	setInventoryItemProperty,
 } from "./inventory-operations.ts";
 import {
@@ -19,8 +19,8 @@ export type InventoryEditPort = ImmediateEditPort;
 /** Capture an instance handle, not its current slot; moving/choosing another item cannot retarget queued input. */
 export function createInventoryQuantityFields(
 	port: InventoryEditPort,
-	farmerId: string,
-	item: BackpackSlotView | EquipmentSlotView,
+	ownerId: string,
+	item: InventorySlotView | EquipmentSlotView,
 	canStack: boolean,
 	canQuality: boolean,
 ) {
@@ -33,7 +33,7 @@ export function createInventoryQuantityFields(
 		bindImmediateField(
 			port,
 			{
-				key: `inventory:${JSON.stringify([farmerId, entityId, property])}`,
+				key: `inventory:${JSON.stringify([ownerId, entityId, property])}`,
 				label,
 				value: property === "stack" ? item.quantity : item.quality,
 				available,
@@ -41,8 +41,8 @@ export function createInventoryQuantityFields(
 			},
 			(value: number) =>
 				Effect.fromResult(
-					decodeBackpackItemChange({ farmerId, entityId, property, value }),
-				).pipe(Effect.flatMap(setBackpackItem)),
+					decodeInventoryItemChange({ ownerId, entityId, property, value }),
+				).pipe(Effect.flatMap(setInventoryItem)),
 		);
 	return {
 		quantity: field("stack", "Quantity", canStack),
@@ -64,15 +64,15 @@ export type InventoryPropertyField = PropertyBase &
 /** Decode at the domain command boundary; presentation never interprets property requests or saved shapes. */
 export function createInventoryPropertyField(
 	port: InventoryEditPort,
-	farmerId: string,
+	ownerId: string,
 	entityId: string,
 	property: ItemPropertyField,
 ): InventoryPropertyField {
-	const key = `inventory:${JSON.stringify([farmerId, entityId, property.property])}`;
+	const key = `inventory:${JSON.stringify([ownerId, entityId, property.property])}`;
 	const command = (value: unknown) =>
 		Effect.fromResult(
 			decodeItemPropertyChange({
-				farmerId,
+				ownerId,
 				entityId,
 				property: property.property,
 				value,

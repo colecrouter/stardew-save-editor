@@ -1,6 +1,6 @@
 import { Data, Effect, Schema, Result } from "effect";
 import { farmers, type SaveDocument } from "./domain.ts";
-import { BackpackItemEdits } from "./inventory-operations.ts";
+import { InventoryEdits } from "./inventory-operations.ts";
 import { TransactionDraft } from "./transaction-draft.ts";
 import {
 	recordAnnotatedOperation,
@@ -249,7 +249,7 @@ export const setCharacterDetails = Effect.fn("CharacterDetails.set")(function* (
 			return yield* new CharacterDetailsInvalid({
 				message: "Choose 12, 24 or 36 backpack slots.",
 			});
-		const edits = yield* BackpackItemEdits;
+		const edits = yield* InventoryEdits;
 		yield* recordAnnotatedOperation(
 			edits.resize(request.farmerId, Number(request.value)),
 		).pipe(

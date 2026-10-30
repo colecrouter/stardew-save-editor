@@ -1,11 +1,11 @@
 import { isInventoryMutation } from "./inventory-transition.ts";
 import { inventoryContainers } from "./inventory-containers.ts";
 import { equipmentSlots, type EquipmentIdentities } from "./equipment.ts";
-import { resolveBackpackMove } from "./backpack-movement.ts";
-import { resolveBackpackLifecycle } from "./backpack-lifecycle.ts";
+import { resolveInventoryMove } from "./inventory-movement.ts";
+import { resolveInventorySlotChange } from "./inventory-lifecycle.ts";
 import {
-	BackpackItemEdits,
-	makeBackpackItemEdits,
+	InventoryEdits,
+	makeInventoryEdits,
 	sameChestProjectionInputs,
 	backpackFarmers,
 	hasBackpackFarmerId,
@@ -30,9 +30,10 @@ import {
 } from "./transaction-draft.ts";
 import { coreOperations, EditorOperations } from "./operations.ts";
 import {
-	type Mutation,
+	type MutationRequest,
+	type ResolvedMutation,
 	MutationError,
-	type Receipt,
+	type OperationChange,
 	type SaveDocument,
 	type DomainState,
 	type SessionState,
@@ -55,7 +56,7 @@ interface Entry {
 		review: "standalone" | "compact";
 	};
 	annotations: readonly ReviewMetadata[];
-	actions: readonly Mutation[];
+	actions: readonly ResolvedMutation[];
 	forward: JsonPatch.JsonPatch;
 	backward: JsonPatch.JsonPatch;
 }
@@ -229,7 +230,7 @@ export const makeHistorySession = (
 			input: SessionState,
 			identities: History["identities"],
 			nextIdentity: number,
-			resolved: readonly Mutation[],
+			resolved: readonly ResolvedMutation[],
 			label?: string,
 			annotations: readonly ReviewMetadata[] = [],
 			equipmentIdentities: EquipmentIdentities = state.equipmentIdentities,
@@ -531,7 +532,7 @@ export const makeHistorySession = (
 				// A group has one undo boundary and one review emphasis. Each constituent
 				// intent remains inspectable; a quiet operation never disappears from patches.
 				execute: (
-					actions: readonly Mutation[],
+					actions: readonly MutationRequest[],
 					label?: string,
 					expectedRevision?: number,
 				) =>
@@ -544,7 +545,7 @@ export const makeHistorySession = (
 								let prepared: SessionState = {
 									document: structuredClone(state.document),
 									domainState: structuredClone(state.domainState),
-									history: [] as Receipt[],
+									history: [] as OperationChange[],
 									inventory: structuredClone({
 										identities: state.identities,
 										equipmentIdentities: state.equipmentIdentities,
@@ -554,31 +555,33 @@ export const makeHistorySession = (
 								let identities = state.identities;
 								let equipmentIdentities = state.equipmentIdentities;
 								let nextIdentity = state.nextIdentity;
-								const resolved: Mutation[] = [];
+								const resolved: ResolvedMutation[] = [];
 								for (const requested of structuredClone(actions)) {
-									let action: Mutation = requested;
+									let action: ResolvedMutation;
 									// Backpack actions resolve their instances inside this queue turn.
 									// A stale view cannot target a replacement by its old slot index.
 									if (
 										requested.type === "backpack-add" ||
 										requested.type === "backpack-remove"
 									) {
-										action = yield* resolveBackpackLifecycle(
+										action = yield* resolveInventorySlotChange(
 											prepared.document,
 											identities,
 											requested,
 										);
-									}
-									if (requested.type === "backpack-move") {
+									} else if (requested.type === "backpack-move") {
 										// Validate source and destination handles together before preparing
 										// an atomic record/identity swap in this same queue turn.
-										action = yield* resolveBackpackMove(
+										action = yield* resolveInventoryMove(
 											prepared.document,
 											identities,
 											requested,
 											equipmentIdentities,
 										);
+									} else {
+										action = requested;
 									}
+
 									if (
 										(requested.type === "item-stack" ||
 											requested.type === "item-remove" ||
@@ -586,12 +589,12 @@ export const makeHistorySession = (
 										requested.entityId !== undefined
 									) {
 										const slot =
-											identities[requested.farmerId]?.indexOf(
+											identities[requested.ownerId]?.indexOf(
 												requested.entityId,
 											) ?? -1;
 										if (slot < 0)
 											return yield* new MutationError(
-												"Item no longer belongs to this farmer",
+												"Item no longer belongs to this inventory",
 											);
 										action = { ...requested, slot };
 									}
@@ -652,7 +655,7 @@ export const makeHistorySession = (
 					program: Effect.Effect<
 						A,
 						E,
-						R | TransactionDraft | ReviewJournal | BackpackItemEdits
+						R | TransactionDraft | ReviewJournal | InventoryEdits
 					>,
 					expectedRevision?: number,
 					editKey?: string,
@@ -665,7 +668,7 @@ export const makeHistorySession = (
 									domainState: state.domainState,
 									history: [],
 								});
-								const itemEdits = makeBackpackItemEdits(
+								const itemEdits = makeInventoryEdits(
 									draft,
 									state.identities,
 									state.document,
@@ -675,7 +678,7 @@ export const makeHistorySession = (
 								const { collected, prepared, authorized, inventory } =
 									yield* collectTransactionMetadata(program).pipe(
 										Effect.provideService(TransactionDraft, draft.service),
-										Effect.provideService(BackpackItemEdits, itemEdits.service),
+										Effect.provideService(InventoryEdits, itemEdits.service),
 										// Take the result before close clears retained service state.
 										// Escaped capability handles must not retain an abandoned save.
 										Effect.flatMap((collected) =>

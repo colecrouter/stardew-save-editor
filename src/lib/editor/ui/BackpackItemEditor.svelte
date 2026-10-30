@@ -6,14 +6,14 @@
 	import ItemPropertyControls from "./ItemPropertyControls.svelte";
 	import type { EquipmentSlotView } from "../equipment.ts";
 	import type { EditorModel } from "../editor-model.ts";
-	import type { BackpackSlotView } from "../inventory-views.ts";
+	import type { InventorySlotView } from "../inventory-views.ts";
 	import BackpackItemVisual from "./BackpackItemVisual.svelte";
 	import QualityBadge from "./QualityBadge.svelte";
 
 	interface Props {
 		model: EditorModel;
-		farmerId: string;
-		item: BackpackSlotView | EquipmentSlotView;
+		ownerId: string;
+		item: InventorySlotView | EquipmentSlotView;
 		locationLabel?: string;
 		inventoryKind?: "backpack" | "chest";
 		onremove?: () => Promise<void>;
@@ -21,7 +21,7 @@
 	}
 	let {
 		model,
-		farmerId,
+		ownerId,
 		item,
 		locationLabel,
 		inventoryKind = "backpack",
@@ -34,7 +34,7 @@
 	const fields = $derived(
 		createInventoryQuantityFields(
 			model,
-			farmerId,
+			ownerId,
 			item,
 			item.canStack,
 			item.canQuality,
@@ -137,7 +137,7 @@
 	     currently in a backpack, chest or equipped on the farmer. -->
 	<ItemPropertyControls
 		{model}
-		{farmerId}
+		{ownerId}
 		entityId={item.entityId}
 		fields={itemFields}
 	/>

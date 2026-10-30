@@ -115,7 +115,7 @@ test("invalid IDs, money, and permutations fail without changes in both implemen
 	const actions = [
 		{ type: "money", farmerId: "missing", value: 100 } as const,
 		{ type: "money", farmerId: "host", value: Number.NaN } as const,
-		{ type: "reorder", farmerId: "host", order: [0, 0, 2] } as const,
+		{ type: "reorder", ownerId: "host", order: [0, 0, 2] } as const,
 	];
 	const plain = new PlainSession(document);
 	await Effect.runPromise(
@@ -142,7 +142,7 @@ test("reorder preserves opaque, empty, and hidden entries; no-op creates no hist
 	assert.equal(plain.snapshot().history.length, 0);
 	const result = plain.execute({
 		type: "reorder",
-		farmerId: "host",
+		ownerId: "host",
 		order: [2, 1, 0],
 	});
 	assert.deepEqual(

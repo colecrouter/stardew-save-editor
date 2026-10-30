@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
 import { Deferred, Effect, Fiber, Result } from "effect";
 import { makeHistorySession } from "../../src/lib/editor/history";
-import { setBackpackItem } from "../../src/lib/editor/inventory-operations";
+import { setInventoryItem } from "../../src/lib/editor/inventory-operations";
 import { MutationError } from "../../src/lib/editor/domain";
 import { TransactionDraft } from "../../src/lib/editor/transaction-draft";
 import { tinyFixture } from "./fixtures";
@@ -25,8 +25,8 @@ function fixture() {
 	return { document, item };
 }
 function change(entityId: string, value = 8) {
-	return setBackpackItem({
-		farmerId: "host",
+	return setInventoryItem({
+		ownerId: "host",
 		entityId,
 		property: "stack",
 		value,

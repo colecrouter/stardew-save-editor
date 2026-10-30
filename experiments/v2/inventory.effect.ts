@@ -200,7 +200,7 @@ for (const [name, factory] of [
 				yield* opened.session.execute([
 					{
 						type: "item-stack",
-						farmerId: "host",
+						ownerId: "host",
 						slot: 1,
 						itemId: "388",
 						value: 60,
@@ -231,7 +231,7 @@ for (const [name, factory] of [
 					yield* opened.session.execute([
 						{
 							type: "item-stack",
-							farmerId: "host",
+							ownerId: "host",
 							slot: 0,
 							itemId: "72",
 							value: 7,

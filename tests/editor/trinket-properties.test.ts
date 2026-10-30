@@ -27,7 +27,7 @@ const request = <P extends TrinketPropertyChange["property"]>(
 	property: P,
 	value: Extract<TrinketPropertyChange, { property: P }>["value"],
 ) =>
-	({ farmerId: "host", entityId: "item:1", property, value }) as Extract<
+	({ ownerId: "host", entityId: "item:1", property, value }) as Extract<
 		TrinketPropertyChange,
 		{ property: P }
 	>;

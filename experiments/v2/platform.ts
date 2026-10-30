@@ -1,11 +1,11 @@
 import { Effect, FileSystem } from "effect";
-import type { Mutation } from "./domain.ts";
+import type { ResolvedMutation } from "./domain.ts";
 import { makeEffectSession } from "./effect.ts";
 import { SaveCodec } from "./save-service.ts";
 
 // The domain program asks for abstract filesystem and codec services. Node layers
 // are assembled by the CLI/tests; a browser would instead supply File/worker ports.
-export const editFile = (input: string, actions: readonly Mutation[]) =>
+export const editFile = (input: string, actions: readonly ResolvedMutation[]) =>
 	Effect.gen(function* () {
 		const fs = yield* FileSystem.FileSystem;
 		const codec = yield* SaveCodec;

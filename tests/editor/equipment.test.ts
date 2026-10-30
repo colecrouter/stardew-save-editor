@@ -9,7 +9,7 @@ import {
 import { readBackpacks } from "../../src/lib/editor/inventory-views";
 import { TransactionDraft } from "../../src/lib/editor/transaction-draft";
 import { tinyFixture } from "./fixtures";
-import type { BackpackMoveRequest } from "../../src/lib/editor/backpack-movement";
+import type { InventoryMoveRequest } from "../../src/lib/editor/inventory-movement.ts";
 const run = <A, E>(
 	program: Effect.Effect<A, E, import("effect").Scope.Scope>,
 ) => Effect.runPromise(Effect.scoped(program));
@@ -24,11 +24,11 @@ const owner = (doc: ReturnType<typeof tinyFixture>) =>
 const request = (
 	entityId: string,
 	toEntityId: string,
-): BackpackMoveRequest => ({
+): InventoryMoveRequest => ({
 	type: "backpack-move",
-	farmerId: "host",
+	ownerId: "host",
 	entityId,
-	toFarmerId: "host",
+	toOwnerId: "host",
 	toEntityId,
 });
 
@@ -209,9 +209,9 @@ describe("equipment inventory boundaries", () => {
 				yield* session.execute([
 					{
 						type: "backpack-move",
-						farmerId: "host",
+						ownerId: "host",
 						entityId: source,
-						toFarmerId: "guest",
+						toOwnerId: "guest",
 						toEntityId: before.identities.guest![0]!,
 						fromLocation: "leftRing",
 						toLocation: "backpack",
@@ -313,9 +313,9 @@ describe("equipment inventory boundaries", () => {
 							session.execute([
 								{
 									type: "equipment-swap",
-									farmerId: "host",
+									ownerId: "host",
 									slot: 0,
-									toFarmerId: "host",
+									toOwnerId: "host",
 									toSlot: "money",
 								} as never,
 							]),

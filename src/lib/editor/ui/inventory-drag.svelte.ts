@@ -1,5 +1,5 @@
 import type { EquipmentSlot } from "../equipment.ts";
-import type { BackpackView } from "../inventory-views.ts";
+import type { InventoryView } from "../inventory-views.ts";
 import {
 	allInventorySlots as allSlots,
 	isEquipmentSlot as isEquipment,
@@ -14,12 +14,12 @@ export interface InventoryDragSource {
 }
 interface DragInput {
 	readonly token: string;
-	readonly owners: () => readonly BackpackView[];
-	readonly visibleOwners: () => readonly (BackpackView | undefined)[];
+	readonly owners: () => readonly InventoryView[];
+	readonly visibleOwners: () => readonly (InventoryView | undefined)[];
 	readonly root: () => HTMLElement | undefined;
 	readonly movePending: () => boolean;
 	readonly selectedEntity: () => string | undefined;
-	readonly ownerOf: (item: InventorySlot) => BackpackView | undefined;
+	readonly ownerOf: (item: InventorySlot) => InventoryView | undefined;
 	readonly choose: (entityId: string) => void;
 	readonly move: (item: InventorySlot, source: InventoryDragSource) => void;
 }
@@ -107,7 +107,7 @@ export function createInventoryDrag(input: DragInput) {
 		}
 		if (input.selectedEntity() !== item.entityId) input.choose(item.entityId);
 		dragSource = {
-			ownerId: owner.farmerId,
+			ownerId: owner.ownerId,
 			entityId: item.entityId,
 			location: isEquipment(item) ? item.key : "backpack",
 		};
@@ -119,7 +119,7 @@ export function createInventoryDrag(input: DragInput) {
 	function acceptsDrop(item: InventorySlot) {
 		const owner = input
 			.owners()
-			.find((owner) => owner.farmerId === dragSource?.ownerId);
+			.find((owner) => owner.ownerId === dragSource?.ownerId);
 		const source =
 			owner &&
 			allSlots(owner).find((entry) => entry.entityId === dragSource?.entityId);
@@ -178,7 +178,7 @@ export function createInventoryDrag(input: DragInput) {
 			y: event.clientY,
 			dragging: false,
 			source: {
-				ownerId: owner.farmerId,
+				ownerId: owner.ownerId,
 				entityId: item.entityId,
 				location: isEquipment(item) ? item.key : "backpack",
 			},

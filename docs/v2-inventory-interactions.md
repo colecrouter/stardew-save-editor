@@ -47,10 +47,25 @@ a general writable interaction store.
 
 ## Names and verification
 
-Local transport identifies containers with `ownerId`. The existing inventory
-view/request API still uses `farmerId` for both farmer and chest handles; mapping
-at command submission is explicit. Broader request/prepared-action naming remains
-part of #202 and does not require changing the XML or raw save type system.
+Shared transport, `InventoryView`, property requests and positional actions use
+`ownerId`/`toOwnerId`. Farmer selection, rewards, backpack capacity and trinket RNG
+context still use `farmerId`, since those operations require an actual character.
+The existing `backpack-*` request discriminants and review tag strings remain
+stable; their names do not restrict an owner to a farmer backpack.
+
+`MutationRequest` accepts positional/core actions or instance-handle requests.
+History resolves handle requests inside its queue into `ResolvedMutation` before
+calling the operation adapter. Legacy positional actions may also carry an
+optional entity handle, which history rechecks before preparation. This naming
+describes the adapter boundary without introducing another raw-save schema.
+
+`SessionState` is detached operation state, used during preparation as well as by
+comparison executors. Its `OperationChange` entries are staged metadata, not
+proof of commit. `PreparedInventoryTransition` pairs record writes on that draft
+with staged handle state; history publishes both atomically. In contrast,
+`InventoryMoveReceipt` and `InventoryReplacementReceipt` describe successful
+command completion. They capture that commit's handles before a later queued
+Undo can run, preserving selection lineage without rereading a later snapshot.
 
 Existing inventory tests cover selection through reorder/Undo, replacement lineage,
 equipment rules, farmer/chest transfers, native/touch cancellation and edge-scroll

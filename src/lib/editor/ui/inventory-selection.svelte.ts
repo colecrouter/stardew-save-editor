@@ -1,14 +1,14 @@
 import { tick } from "svelte";
-import type { BackpackView } from "../inventory-views.ts";
+import type { InventoryView } from "../inventory-views.ts";
 import {
 	allInventorySlots as allSlots,
 	type InventorySlot,
 } from "./inventory-slot.ts";
 
 interface SelectionInput {
-	readonly owners: () => readonly BackpackView[];
-	readonly backpack: () => BackpackView | undefined;
-	readonly chests: () => readonly BackpackView[];
+	readonly owners: () => readonly InventoryView[];
+	readonly backpack: () => InventoryView | undefined;
+	readonly chests: () => readonly InventoryView[];
 	readonly farmerId: () => string | undefined;
 	readonly dragging: () => boolean;
 	readonly root: () => HTMLElement | undefined;
@@ -37,7 +37,7 @@ export function createInventorySelection(input: SelectionInput) {
 		),
 	);
 	const chest = $derived(
-		matchingChests.find((owner) => owner.farmerId === chestId) ??
+		matchingChests.find((owner) => owner.ownerId === chestId) ??
 			matchingChests[0],
 	);
 	// Explicit selection starts a new lineage. Only our own add/remove replacements
@@ -81,8 +81,8 @@ export function createInventorySelection(input: SelectionInput) {
 			allSlots(owner).some((entry) => entry.entityId === item.entityId),
 		);
 	}
-	function selectChest(owner: BackpackView | undefined) {
-		chestId = owner?.farmerId;
+	function selectChest(owner: InventoryView | undefined) {
+		chestId = owner?.ownerId;
 		choose(
 			owner?.slots.find((item) => !item.empty)?.entityId ??
 				owner?.slots[0]?.entityId,
@@ -106,7 +106,7 @@ export function createInventorySelection(input: SelectionInput) {
 			if (
 				selectedOwner &&
 				selectedOwner.kind !== "chest" &&
-				selectedOwner.farmerId !== current
+				selectedOwner.ownerId !== current
 			)
 				choose(undefined);
 		}
@@ -117,15 +117,15 @@ export function createInventorySelection(input: SelectionInput) {
 		if (!input.dragging() && selectedOwner && selectedEntity) {
 			if (
 				selectedOwner.kind !== "chest" &&
-				selectedOwner.farmerId !== input.farmerId()
+				selectedOwner.ownerId !== input.farmerId()
 			)
-				input.revealFarmer(selectedOwner.farmerId);
+				input.revealFarmer(selectedOwner.ownerId);
 			if (
 				selectedOwner.kind === "chest" &&
-				chest?.farmerId !== selectedOwner.farmerId
+				chest?.ownerId !== selectedOwner.ownerId
 			) {
 				chestQuery = "";
-				chestId = selectedOwner.farmerId;
+				chestId = selectedOwner.ownerId;
 			}
 		}
 	});
@@ -170,7 +170,7 @@ export function createInventorySelection(input: SelectionInput) {
 			choose(undefined);
 		},
 		selectChest: (ownerId: string | undefined) =>
-			selectChest(chests.find((owner) => owner.farmerId === ownerId)),
+			selectChest(chests.find((owner) => owner.ownerId === ownerId)),
 		// Only an accepted replacement extends this explicit selection's Undo lineage.
 		followReplacement(entityId: string, version: number) {
 			if (version !== selectionVersion) return false;

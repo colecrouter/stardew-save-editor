@@ -14,15 +14,15 @@ import {
 } from "./relationship-operations.ts";
 import type { EditGesture } from "./edit-gesture.ts";
 import { readCharacters, type CharacterView } from "./character-operations.ts";
-import type { BackpackMoveRequest } from "./backpack-movement.ts";
-import type { BackpackLifecycleRequest } from "./backpack-lifecycle.ts";
-import { type BackpackItemEdits } from "./inventory-operations.ts";
+import type { InventoryMoveRequest } from "./inventory-movement.ts";
+import type { InventorySlotRequest } from "./inventory-lifecycle.ts";
+import { type InventoryEdits } from "./inventory-operations.ts";
 import {
 	readBackpacks,
 	readChests,
 	projectChests,
 	type ChestProjection,
-	type BackpackView,
+	type InventoryView,
 } from "./inventory-views.ts";
 import { readFarmSettings, type FarmView } from "./farm-operations.ts";
 import {
@@ -66,7 +66,7 @@ import {
 	type CalendarViewState,
 } from "../calendarDocument.ts";
 import type { Field } from "./field.ts";
-import { MutationError, type Mutation } from "./domain.ts";
+import { MutationError, type MutationRequest } from "./domain.ts";
 import { makeHistorySession, type HistoryLimits } from "./history.ts";
 import type { HistorySession, HistoryState } from "./history.ts";
 import { SaveCodec, SaveCodecLive } from "./save-service.ts";
@@ -78,6 +78,18 @@ export class SaveExportRejected extends Data.TaggedError("SaveExportRejected")<{
 
 const resources = { models: 0, registries: 0, streams: 0 };
 export const editorResources = () => ({ ...resources });
+/** Successful move completion, captured from that commit before later queued commands run. */
+export interface InventoryMoveReceipt {
+	readonly ownerId: string;
+	readonly entityId: string;
+}
+/** Successful add/remove completion, pairing the retired handle with its committed replacement. */
+export interface InventoryReplacementReceipt {
+	readonly ownerId: string;
+	readonly previousEntityId: string;
+	readonly entityId: string;
+}
+
 export interface WeatherChoice {
 	id: string;
 	label: string;
@@ -88,8 +100,8 @@ interface EditorViewData {
 	readonly bundle: ReturnType<typeof springBundleView>;
 	readonly calendar: CalendarViewState;
 	readonly farm: FarmView;
-	readonly backpacks: readonly BackpackView[];
-	readonly chests: readonly BackpackView[];
+	readonly backpacks: readonly InventoryView[];
+	readonly chests: readonly InventoryView[];
 	readonly characters: CharacterView[];
 	readonly farmerChoices: ReturnType<typeof readFarmerChoices>;
 	readonly recipes: RecipeFarmerView[];
@@ -128,7 +140,7 @@ export type EditorView = ImmutableView<EditorViewData>;
 function project(
 	state: HistoryState,
 	includeProofs = false,
-	chests: readonly BackpackView[] = readChests(state),
+	chests: readonly InventoryView[] = readChests(state),
 ): EditorView {
 	const game = state.document.SaveGame as unknown as Save;
 	if (!Number.isFinite(game.year) || !Number.isFinite(game.dayOfMonth))
@@ -470,7 +482,7 @@ export const makeEditorModel = (
 				}).pipe(Effect.provideService(Scope.Scope, scope)),
 			);
 		const execute = async (
-			actions: readonly Mutation[],
+			actions: readonly MutationRequest[],
 			expectedRevision?: number,
 		) => {
 			await command(async () => {
@@ -487,7 +499,7 @@ export const makeEditorModel = (
 			program: Effect.Effect<
 				unknown,
 				E,
-				TransactionDraft | ReviewJournal | BackpackItemEdits
+				TransactionDraft | ReviewJournal | InventoryEdits
 			>,
 			expectedRevision?: number,
 		) =>
@@ -563,7 +575,7 @@ export const makeEditorModel = (
 				program: Effect.Effect<
 					unknown,
 					E,
-					TransactionDraft | ReviewJournal | BackpackItemEdits
+					TransactionDraft | ReviewJournal | InventoryEdits
 				>,
 				gesture: EditGesture,
 			) =>
@@ -594,9 +606,12 @@ export const makeEditorModel = (
 					}),
 				),
 			/** Move or swap farmer slots or virtual chest targets, returning the moved instance. */
-			moveBackpackItem: (request: BackpackMoveRequest) =>
+			moveInventoryItem: (request: InventoryMoveRequest) =>
 				submit(() =>
-					Effect.gen(function* () {
+					Effect.gen(function* (): Effect.fn.Return<
+						InventoryMoveReceipt,
+						MutationError
+					> {
 						// Read and execute while this command owns the UI queue. The history
 						// resolver rechecks both handles against the authoritative revision.
 						const before = yield* publication().snapshot;
@@ -608,13 +623,19 @@ export const makeEditorModel = (
 						publish(after);
 						// Handles travel with whole records, so the committed owner is known
 						// without a later snapshot that could already reflect queued Undo.
-						return { farmerId: request.toFarmerId, entityId: request.entityId };
+						return {
+							ownerId: request.toOwnerId,
+							entityId: request.entityId,
+						} satisfies InventoryMoveReceipt;
 					}),
 				),
 			/** Publish a slot replacement and return its exact committed identity pair. */
-			changeBackpackSlot: (request: BackpackLifecycleRequest) =>
+			changeInventorySlot: (request: InventorySlotRequest) =>
 				submit(() =>
-					Effect.gen(function* () {
+					Effect.gen(function* (): Effect.fn.Return<
+						InventoryReplacementReceipt,
+						MutationError
+					> {
 						// Resolve the destination before executing within this command queue.
 						// Expected revision also protects callers that hold the lower engine API.
 						const before = yield* publication().snapshot;
@@ -637,17 +658,17 @@ export const makeEditorModel = (
 							);
 						publish(after);
 						return {
-							farmerId: request.farmerId,
+							ownerId: request.ownerId,
 							previousEntityId: request.entityId,
 							entityId,
-						};
+						} satisfies InventoryReplacementReceipt;
 					}),
 				),
 			transact: <A, E>(
 				program: Effect.Effect<
 					A,
 					E,
-					TransactionDraft | ReviewJournal | BackpackItemEdits
+					TransactionDraft | ReviewJournal | InventoryEdits
 				>,
 				expectedRevision?: number,
 			) =>
@@ -677,7 +698,10 @@ export const makeEditorModel = (
 						return receipt.current.value;
 					}),
 				),
-			execute: (actions: readonly Mutation[], expectedRevision?: number) =>
+			execute: (
+				actions: readonly MutationRequest[],
+				expectedRevision?: number,
+			) =>
 				submit(() =>
 					publishEffect(
 						publication().execute(actions, undefined, expectedRevision),

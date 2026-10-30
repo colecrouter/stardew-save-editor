@@ -1,7 +1,7 @@
 import { expect, it, vi } from "vitest";
 import { Effect, Result } from "effect";
 import { makeHistorySession } from "../../src/lib/editor/history";
-import { setBackpackItem } from "../../src/lib/editor/inventory-operations";
+import { setInventoryItem } from "../../src/lib/editor/inventory-operations";
 import { TransactionDraft } from "../../src/lib/editor/transaction-draft";
 import { tinyFixture } from "./fixtures";
 
@@ -66,8 +66,8 @@ it.each([8, 3])(
 							);
 						};
 						const result = yield* Effect.result(
-							setBackpackItem({
-								farmerId: "host",
+							setInventoryItem({
+								ownerId: "host",
 								entityId,
 								property: "stack",
 								value,
@@ -104,8 +104,8 @@ it("detaches checkout data before metadata handling can modify it", () =>
 				Object.assign(item, { modData: { opaque: "changed detached input" } });
 			};
 			const after = yield* session.transact(
-				setBackpackItem({
-					farmerId: "host",
+				setInventoryItem({
+					ownerId: "host",
 					entityId,
 					property: "stack",
 					value: 8,

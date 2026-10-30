@@ -8,8 +8,8 @@ import {
 	isInventoryMutation,
 	type InventoryIdentityState,
 } from "./inventory-transition.ts";
-import type { BackpackMoveRequest } from "./backpack-movement.ts";
-import type { BackpackLifecycleRequest } from "./backpack-lifecycle.ts";
+import type { InventoryMoveRequest } from "./inventory-movement.ts";
+import type { InventorySlotRequest } from "./inventory-lifecycle.ts";
 import type { CalendarEdit } from "../calendarDocument.ts";
 
 // Deliberately narrow lens over a full parsed save. Unknown fields stay attached.
@@ -35,39 +35,38 @@ export interface SaveDocument {
 		farmhands: "" | { Farmer: Farmer[] };
 	};
 }
-export type Mutation =
+/** Positional/core actions ready for the operation adapter; handle requests resolve in the queue first. */
+export type ResolvedMutation =
 	| {
 			type: "equipment-swap";
-			farmerId: string;
+			ownerId: string;
 			slot: InventoryLocation;
-			toFarmerId: string;
+			toOwnerId: string;
 			toSlot: InventoryLocation;
 	  }
-	| BackpackLifecycleRequest
-	| BackpackMoveRequest
 	| {
 			type: "item-swap";
-			farmerId: string;
+			ownerId: string;
 			slot: number;
-			toFarmerId: string;
+			toOwnerId: string;
 			toSlot: number;
 	  }
 	| CalendarEdit
 	| { type: "bundle-complete"; bundleId: 13 }
-	| { type: "item-place"; farmerId: string; slot: number; item: unknown }
-	| { type: "item-remove"; farmerId: string; slot: number; entityId?: string }
+	| { type: "item-place"; ownerId: string; slot: number; item: unknown }
+	| { type: "item-remove"; ownerId: string; slot: number; entityId?: string }
 	| {
 			type: "item-move";
-			farmerId: string;
+			ownerId: string;
 			slot: number;
 			entityId?: string;
-			toFarmerId: string;
+			toOwnerId: string;
 			toSlot: number;
 	  }
 	| { type: "money"; farmerId: string; value: number }
 	| {
 			type: "item-stack";
-			farmerId: string;
+			ownerId: string;
 			slot: number;
 			itemId: string;
 			/** Session-owned identity; resolved by the history session before applying. */
@@ -75,21 +74,28 @@ export type Mutation =
 			value: number;
 	  }
 	| { type: "farm-name"; value: string }
-	| { type: "reorder"; farmerId: string; order: readonly number[] };
+	| { type: "reorder"; ownerId: string; order: readonly number[] };
+/** Public execution inputs include instance handles whose positions may change before the queue runs. */
+export type MutationRequest =
+	| ResolvedMutation
+	| InventorySlotRequest
+	| InventoryMoveRequest;
 export interface Change {
 	path: string;
 	before: unknown;
 	after: unknown;
 }
-export interface Receipt {
-	intent: Mutation;
+/** Staged operation metadata. Preparation creates it; publication may still fail or be cancelled. */
+export interface OperationChange {
+	intent: ResolvedMutation;
 	label: string;
 	review: "standalone" | "compact";
 	changes: Change[];
 }
+/** Detached operation state used during preparation and by comparison executors; not proof of commit. */
 export interface SessionState {
 	document: SaveDocument;
-	history: Receipt[];
+	history: OperationChange[];
 	/** Operation-owned state, carried alongside XML and never exported into it. */
 	domainState?: DomainState;
 	/** Paired inventory records/handles are staged by one transition owner. */
@@ -121,28 +127,18 @@ export const emptySlot = (item: unknown) =>
  * when this planner is lifted into the Effect operation boundary. */
 export function applyResult(
 	document: SaveDocument,
-	mutation: Mutation,
+	mutation: ResolvedMutation,
 	inventory?: InventoryIdentityState,
 ): Result.Result<
 	{
 		label: string;
-		review: Receipt["review"];
+		review: OperationChange["review"];
 		inventory?: InventoryIdentityState;
 	},
 	MutationError
 > {
 	if (isInventoryMutation(mutation))
 		return applyInventoryMutation(document, mutation, inventory);
-	if (
-		mutation.type === "backpack-add" ||
-		mutation.type === "backpack-remove" ||
-		mutation.type === "backpack-move"
-	)
-		return Result.fail(
-			new MutationError(
-				"Backpack requests require session identity resolution",
-			),
-		);
 	if (mutation.type === "bundle-complete")
 		return Result.fail(
 			new MutationError("Bundle operations require the bundle domain adapter"),
@@ -192,7 +188,7 @@ export function applyResult(
 
 /** Synchronous compatibility for the retained plain comparison executor only.
  * Application commands use prepareEffect and never bridge thrown validation. */
-export function apply(document: SaveDocument, mutation: Mutation) {
+export function apply(document: SaveDocument, mutation: ResolvedMutation) {
 	return Result.getOrThrow(applyResult(document, mutation));
 }
 
@@ -229,7 +225,7 @@ export function diff(before: unknown, after: unknown, path = ""): Change[] {
 /** Stage record and identity changes together without publishing partial state. */
 export function prepareResult(
 	state: SessionState,
-	input: Mutation,
+	input: ResolvedMutation,
 	inspect: (draft: SaveDocument) => void = () => {},
 ): Result.Result<SessionState, MutationError> {
 	const mutation = structuredClone(input);
@@ -261,7 +257,7 @@ export function prepareResult(
 /** The production action path shares the typed failure/defect policy of programs. */
 export const prepareEffect = Effect.fn("Editor.prepareAction")(function* (
 	state: SessionState,
-	input: Mutation,
+	input: ResolvedMutation,
 ) {
 	return yield* Effect.fromResult(prepareResult(state, input));
 });
@@ -269,7 +265,7 @@ export const prepareEffect = Effect.fn("Editor.prepareAction")(function* (
 /** Historical plain-executor adapter; it intentionally retains synchronous throws. */
 export function prepare(
 	state: SessionState,
-	input: Mutation,
+	input: ResolvedMutation,
 	inspect: (draft: SaveDocument) => void = () => {},
 ): SessionState {
 	return Result.getOrThrow(prepareResult(state, input, inspect));

@@ -21,17 +21,17 @@ it.effect(
 				unknown: [1, { keep: true }],
 			};
 			yield* session.execute([
-				{ type: "item-place", farmerId: "host", slot: 2, item: opaque },
+				{ type: "item-place", ownerId: "host", slot: 2, item: opaque },
 			]);
 			const placed = yield* session.snapshot;
 			const entityId = placed.identities.host[2];
 			yield* session.execute([
 				{
 					type: "item-move",
-					farmerId: "host",
+					ownerId: "host",
 					slot: 0,
 					entityId,
-					toFarmerId: "guest",
+					toOwnerId: "guest",
 					toSlot: 1,
 				},
 			]);
@@ -47,7 +47,7 @@ it.effect(
 				opaque,
 			);
 			yield* session.execute([
-				{ type: "item-remove", farmerId: "guest", slot: 0, entityId },
+				{ type: "item-remove", ownerId: "guest", slot: 0, entityId },
 			]);
 			expect((yield* session.snapshot).identities.guest[1]).not.toBe(entityId);
 			yield* session.undo;
@@ -72,24 +72,24 @@ it.effect(
 			for (const action of [
 				{
 					type: "item-place",
-					farmerId: "host",
+					ownerId: "host",
 					slot: 0,
 					item: { custom: true },
 				},
 				{
 					type: "item-place",
-					farmerId: "host",
+					ownerId: "host",
 					slot: 2,
 					item: { bad: Infinity },
 				},
 				{
 					type: "item-move",
-					farmerId: "host",
+					ownerId: "host",
 					slot: 0,
-					toFarmerId: "guest",
+					toOwnerId: "guest",
 					toSlot: 0,
 				},
-				{ type: "item-remove", farmerId: "host", slot: 99 },
+				{ type: "item-remove", ownerId: "host", slot: 99 },
 			] as const) {
 				expect(
 					Exit.isFailure(yield* Effect.exit(session.execute([action]))),
@@ -97,12 +97,12 @@ it.effect(
 				expect(yield* session.snapshot).toEqual(before);
 			}
 			yield* session.execute([
-				{ type: "item-place", farmerId: "host", slot: 2, item: { custom: 1 } },
+				{ type: "item-place", ownerId: "host", slot: 2, item: { custom: 1 } },
 			]);
 			const abandoned = (yield* session.snapshot).identities.host[2];
 			yield* session.undo;
 			yield* session.execute([
-				{ type: "item-place", farmerId: "host", slot: 2, item: { custom: 2 } },
+				{ type: "item-place", ownerId: "host", slot: 2, item: { custom: 2 } },
 			]);
 			expect((yield* session.snapshot).identities.host[2]).not.toBe(abandoned);
 			expect((yield* session.snapshot).entries).toHaveLength(1);
@@ -122,7 +122,7 @@ it.effect(
 			const [first, second] = original.identities.host;
 			expect(first).not.toBe(second);
 			yield* session.execute([
-				{ type: "reorder", farmerId: "host", order: [1, 0, 2] },
+				{ type: "reorder", ownerId: "host", order: [1, 0, 2] },
 			]);
 			const moved = yield* session.snapshot;
 			expect(moved.document).toEqual(document);
@@ -137,7 +137,7 @@ it.effect(
 			yield* session.execute([
 				{
 					type: "item-stack",
-					farmerId: "host",
+					ownerId: "host",
 					slot: 0,
 					itemId: "72",
 					entityId: first,
@@ -170,10 +170,10 @@ it.effect(
 			const before = yield* session.snapshot;
 			const failure = yield* Effect.exit(
 				session.execute([
-					{ type: "reorder", farmerId: "host", order: [2, 1, 0] },
+					{ type: "reorder", ownerId: "host", order: [2, 1, 0] },
 					{
 						type: "item-stack",
-						farmerId: "host",
+						ownerId: "host",
 						slot: 0,
 						itemId: "72",
 						entityId: "missing",

@@ -6,7 +6,7 @@ import {
 } from "./item-presentation.ts";
 import type { TrinketRollContext } from "../TrinketStats.ts";
 import {
-	getBackpackItemCapabilities,
+	getInventoryItemCapabilities,
 	backpackFarmers,
 	hasBackpackFarmerId,
 } from "./inventory-operations.ts";
@@ -32,8 +32,8 @@ const record = (value: unknown): value is Record<string, unknown> =>
 const numeric = (value: unknown): value is number =>
 	typeof value === "number" && Number.isFinite(value);
 
-/** A detached backpack slot, identified independently of its current position. */
-export interface BackpackSlotView extends ItemPresentation {
+/** A detached numbered inventory slot, identified independently of its current position. */
+export interface InventorySlotView extends ItemPresentation {
 	readonly entityId: string;
 	readonly slot: number;
 	readonly name: string;
@@ -45,9 +45,9 @@ export interface BackpackSlotView extends ItemPresentation {
 	readonly canQuality: boolean;
 }
 /** Farmer backpacks and placed chests share slots; unsupported owners remain visible without handles. */
-export interface BackpackView {
+export interface InventoryView {
 	/** Opaque session owner key: a scalar farmer ID or a namespaced placed-chest path. */
-	readonly farmerId: string;
+	readonly ownerId: string;
 	readonly name: string;
 	/** Chest IDs share the request owner namespace; they never denote a farmer. */
 	readonly kind?: "chest";
@@ -55,7 +55,7 @@ export interface BackpackView {
 	readonly capacity?: number;
 	readonly supported: boolean;
 	readonly reason?: string;
-	readonly slots: readonly BackpackSlotView[];
+	readonly slots: readonly InventorySlotView[];
 	readonly equipment: readonly EquipmentSlotView[];
 }
 /** Combine metadata-backed editing policy with UI-owned presentation fields. */
@@ -66,7 +66,7 @@ function projectInventoryItem(
 	const metadata = resolveItemMetadata(raw);
 	return {
 		...readItemPresentation(raw, context, metadata),
-		...getBackpackItemCapabilities(
+		...getInventoryItemCapabilities(
 			raw,
 			metadata?._type === "Object",
 			[...CategoriesWithQuality].some((category) => category === raw?.category),
@@ -79,13 +79,13 @@ export function readBackpacks(
 	state: Pick<HistoryState, "document" | "identities"> & {
 		equipmentIdentities?: EquipmentIdentities;
 	},
-): BackpackView[] {
+): InventoryView[] {
 	const all = backpackFarmers(state.document);
 	const containers = new Map(
 		inventoryContainers(state.document).map((owner) => [owner.id, owner]),
 	);
 	return all.map((farmer) => {
-		const farmerId = hasBackpackFarmerId(farmer)
+		const ownerId = hasBackpackFarmerId(farmer)
 			? String(farmer.UniqueMultiplayerID)
 			: "";
 		const unique =
@@ -93,24 +93,24 @@ export function readBackpacks(
 			all.filter(
 				(other) =>
 					hasBackpackFarmerId(other) &&
-					String(other.UniqueMultiplayerID) === farmerId,
+					String(other.UniqueMultiplayerID) === ownerId,
 			).length === 1;
 		const items = record(farmer.items) ? farmer.items.Item : undefined;
-		const ids = Object.hasOwn(state.identities, farmerId)
-			? state.identities[farmerId]
+		const ids = Object.hasOwn(state.identities, ownerId)
+			? state.identities[ownerId]
 			: undefined;
 		const supported =
 			unique &&
-			containers.get(farmerId)?.kind === "farmer" &&
+			containers.get(ownerId)?.kind === "farmer" &&
 			Array.isArray(items) &&
 			ids?.length === items.length;
 		// Projection interprets saved values into presentation data; it never retains
 		// item records or opaque mod data in the UI-facing view.
 		const context = readItemPropertyContext(state.document, farmer);
 		return {
-			farmerId,
+			ownerId,
 			equipment: equipmentSlots.flatMap((key) => {
-				const entityId = state.equipmentIdentities?.[farmerId]?.[key];
+				const entityId = state.equipmentIdentities?.[ownerId]?.[key];
 				if (!entityId) return [];
 				const value = farmer[key];
 				const raw = record(value) ? value : undefined;
@@ -207,11 +207,11 @@ function projectChestView({
 	ids,
 	supported,
 	reason,
-}: ChestInput): BackpackView {
+}: ChestInput): InventoryView {
 	// Chests have no farmer RNG/property context. Project only supported item
 	// controls; raw storage and mod data remain solely in the saved document.
 	return {
-		farmerId: chest.id,
+		ownerId: chest.id,
 		name: chest.label,
 		kind: "chest",
 		location: chest.location,
@@ -247,7 +247,7 @@ function projectChestView({
  * views, retaining the mutable reader contract for independent engine snapshots. */
 export function readChests(
 	state: Pick<HistoryState, "document" | "identities">,
-): BackpackView[] {
+): InventoryView[] {
 	return chestProjectionInputs(state).map(projectChestView);
 }
 
@@ -255,18 +255,18 @@ export function readChests(
  * keys and retains presentation values only, never saved records or identity arrays.
  * This capability belongs to the model; components receive only its views. */
 export interface ChestProjection {
-	readonly views: ImmutableView<BackpackView[]>;
+	readonly views: ImmutableView<InventoryView[]>;
 	readonly lookup: (
 		source: object,
 		ownerId: string,
-	) => ImmutableView<BackpackView> | undefined;
+	) => ImmutableView<InventoryView> | undefined;
 }
 
 // Keep this closure factory separate from projection. Its environment receives
 // only this generation's weak index, not the builder's state or previous cache.
 function chestProjectionGeneration(
-	views: ImmutableView<BackpackView[]>,
-	index: WeakMap<object, Map<string, ImmutableView<BackpackView>>>,
+	views: ImmutableView<InventoryView[]>,
+	index: WeakMap<object, Map<string, ImmutableView<InventoryView>>>,
 ): ChestProjection {
 	return {
 		views,
@@ -281,7 +281,10 @@ export function projectChests(
 	state: Pick<HistoryState, "document" | "identities">,
 	previous?: ChestProjection,
 ): ChestProjection {
-	const index = new WeakMap<object, Map<string, ImmutableView<BackpackView>>>();
+	const index = new WeakMap<
+		object,
+		Map<string, ImmutableView<InventoryView>>
+	>();
 	const candidates = chestProjectionInputs(state).map((input) => {
 		const { chest, ids, supported, reason } = input;
 		const cached = previous?.lookup(chest.raw, chest.id);

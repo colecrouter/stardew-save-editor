@@ -1,5 +1,5 @@
 import {
-	type Mutation,
+	type ResolvedMutation,
 	MutationError,
 	prepare,
 	type SaveDocument,
@@ -15,7 +15,7 @@ export class PlainSession {
 	snapshot() {
 		return structuredClone(this.#state);
 	}
-	execute(mutation: Mutation, inspect?: (draft: SaveDocument) => void) {
+	execute(mutation: ResolvedMutation, inspect?: (draft: SaveDocument) => void) {
 		if (this.#closed) throw new MutationError("Session closed");
 		this.#state = prepare(this.#state, mutation, inspect);
 		return this.snapshot();

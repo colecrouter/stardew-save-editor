@@ -8,8 +8,8 @@ import {
 } from "../../src/lib/editor/item-properties";
 import {
 	setInventoryItemProperty,
-	setBackpackItem,
-	BackpackItemEdits,
+	setInventoryItem,
+	InventoryEdits,
 } from "../../src/lib/editor/inventory-operations";
 import { makeHistorySession } from "../../src/lib/editor/history";
 import { TransactionDraft } from "../../src/lib/editor/transaction-draft";
@@ -49,10 +49,10 @@ const change = (
 	entityId: string,
 	property: ItemPropertyChange["property"],
 	value: unknown,
-	farmerId = "host",
+	ownerId = "host",
 ) => {
 	const decoded = decodeItemPropertyChange({
-		farmerId,
+		ownerId,
 		entityId,
 		property,
 		value,
@@ -216,21 +216,21 @@ describe("bounded inventory property edits", () => {
 			Effect.gen(function* () {
 				for (const input of [
 					{
-						farmerId: "host",
+						ownerId: "host",
 						entityId: "id",
 						property: "defenseBonus",
 						value: 100,
 					},
-					{ farmerId: "host", entityId: "id", property: "price", value: -1 },
+					{ ownerId: "host", entityId: "id", property: "price", value: -1 },
 					{
-						farmerId: "host",
+						ownerId: "host",
 						entityId: "id",
 						property: "minDamage",
 						value: 0.5,
 					},
-					{ farmerId: "host", entityId: "id", property: "color", value: "bad" },
+					{ ownerId: "host", entityId: "id", property: "color", value: "bad" },
 					Object.create({
-						farmerId: "host",
+						ownerId: "host",
 						entityId: "id",
 						property: "defenseBonus",
 						value: 1,
@@ -271,9 +271,9 @@ describe("bounded inventory property edits", () => {
 				yield* session.execute([
 					{
 						type: "backpack-move",
-						farmerId: "host",
+						ownerId: "host",
 						entityId: bootsId,
-						toFarmerId: "guest",
+						toOwnerId: "guest",
 						toEntityId: required(before.identities.guest?.[0]),
 					},
 				]);
@@ -416,14 +416,14 @@ it("rolls back a compound property attempt and closes escaped property authority
 		Effect.gen(function* () {
 			const session = yield* makeHistorySession(fixture());
 			const before = yield* session.snapshot;
-			let captured: typeof BackpackItemEdits.Service | undefined;
+			let captured: typeof InventoryEdits.Service | undefined;
 			const request = change(
 				required(before.equipmentIdentities.host?.boots),
 				"defenseBonus",
 				9,
 			);
 			const attempted = Effect.gen(function* () {
-				captured = yield* BackpackItemEdits;
+				captured = yield* InventoryEdits;
 				yield* setInventoryItemProperty(request);
 				return yield* Effect.fail("later operation failed");
 			});
@@ -490,16 +490,16 @@ it("edits colored-object stack and quality without touching color or opaque meta
 			const before = yield* session.snapshot;
 			const entityId = required(before.identities.host?.[2]);
 			yield* session.transact(
-				setBackpackItem({
-					farmerId: "host",
+				setInventoryItem({
+					ownerId: "host",
 					entityId,
 					property: "stack",
 					value: 18,
 				}),
 			);
 			yield* session.transact(
-				setBackpackItem({
-					farmerId: "host",
+				setInventoryItem({
+					ownerId: "host",
 					entityId,
 					property: "quality",
 					value: 4,

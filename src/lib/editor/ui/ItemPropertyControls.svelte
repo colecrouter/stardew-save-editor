@@ -8,12 +8,12 @@
 
 	let {
 		model,
-		farmerId,
+		ownerId,
 		entityId,
 		fields,
 	}: {
 		model: InventoryEditPort;
-		farmerId: string;
+		ownerId: string;
 		entityId: string;
 		fields: readonly ItemPropertyField[];
 	} = $props();
@@ -23,7 +23,7 @@
 	<div class="item-properties" role="group" aria-label="Item properties">
 		{#each fields as field (field.property)}
 			<ItemPropertyControl
-				field={createInventoryPropertyField(model, farmerId, entityId, field)}
+				field={createInventoryPropertyField(model, ownerId, entityId, field)}
 			/>
 		{/each}
 	</div>

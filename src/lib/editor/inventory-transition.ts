@@ -1,5 +1,9 @@
 import { Result } from "effect";
-import type { Mutation, Receipt, SaveDocument } from "./domain.ts";
+import type {
+	ResolvedMutation,
+	OperationChange,
+	SaveDocument,
+} from "./domain.ts";
 import { MutationError } from "./mutation-error.ts";
 import {
 	inventoryContainers,
@@ -22,7 +26,7 @@ export interface InventoryIdentityState {
 	nextIdentity: number;
 }
 export type InventoryMutation = Extract<
-	Mutation,
+	ResolvedMutation,
 	{
 		type:
 			| "equipment-swap"
@@ -35,7 +39,7 @@ export type InventoryMutation = Extract<
 	}
 >;
 export function isInventoryMutation(
-	action: Mutation,
+	action: ResolvedMutation,
 ): action is InventoryMutation {
 	return [
 		"equipment-swap",
@@ -54,9 +58,10 @@ const empty = (value: unknown) =>
 	(record(value) &&
 		(value["@_xsi:nil"] === true || value["@_xsi:nil"] === "true"));
 const invalid = (message: string) => Result.fail(new MutationError(message));
-type Presentation = {
+/** Metadata and paired handles staged on the caller's detached draft; publication is still pending. */
+type PreparedInventoryTransition = {
 	label: string;
-	review: Receipt["review"];
+	review: OperationChange["review"];
 	inventory?: InventoryIdentityState;
 };
 type Pair = { value: unknown; id?: string };
@@ -69,9 +74,9 @@ export function applyInventoryMutation(
 	document: SaveDocument,
 	action: InventoryMutation,
 	inventory?: InventoryIdentityState,
-): Result.Result<Presentation, MutationError> {
+): Result.Result<PreparedInventoryTransition, MutationError> {
 	const owners = inventoryContainers(document);
-	const owner = owners.find((candidate) => candidate.id === action.farmerId);
+	const owner = owners.find((candidate) => candidate.id === action.ownerId);
 	if (!owner) return invalid("Inventory owner must resolve exactly once");
 	const opened = new Map<
 		string,
@@ -137,8 +142,8 @@ export function applyInventoryMutation(
 	};
 	const finish = (
 		label: string,
-		review: Receipt["review"],
-	): Result.Result<Presentation, MutationError> => {
+		review: OperationChange["review"],
+	): Result.Result<PreparedInventoryTransition, MutationError> => {
 		// Validate every affected chest before either endpoint is written. A nil with
 		// extra members cannot be compacted without discarding imported opaque data.
 		for (const { owner: container, pairs } of opened.values()) {
@@ -285,9 +290,9 @@ export function applyInventoryMutation(
 		);
 	}
 	const destinationOwner =
-		action.toFarmerId === owner.id
+		action.toOwnerId === owner.id
 			? owner
-			: owners.find((candidate) => candidate.id === action.toFarmerId);
+			: owners.find((candidate) => candidate.id === action.toOwnerId);
 	if (!destinationOwner)
 		return invalid("Destination inventory owner must resolve exactly once");
 	if (!validLocation(destinationOwner, action.toSlot))

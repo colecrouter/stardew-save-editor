@@ -1,7 +1,7 @@
 import { Effect, Exit, Scope, type Context } from "effect";
 import { derived, type Readable } from "svelte/store";
 import { parseStack, type NumericField } from "./field.ts";
-import { farmers, type Mutation, type SaveDocument } from "./domain.ts";
+import { farmers, type MutationRequest, type SaveDocument } from "./domain.ts";
 import { makeHistorySession } from "./history.ts";
 
 export type HistorySession = Effect.Success<
@@ -99,9 +99,9 @@ export const stackAction = (
 	farmerId: string,
 	item: ItemView | undefined,
 	value: number,
-): Mutation => ({
+): MutationRequest => ({
 	type: "item-stack",
-	farmerId,
+	ownerId: farmerId,
 	slot: item?.slot ?? -1,
 	itemId: item?.id ?? "",
 	entityId: item?.entityId,

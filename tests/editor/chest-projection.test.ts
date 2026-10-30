@@ -8,7 +8,7 @@ import {
 import { discoverPlacedChests } from "../../src/lib/editor/chest-storage";
 import { freezeDraftState } from "../../src/lib/editor/draft-state";
 import { openEditor } from "../../src/lib/editor/editor-model";
-import { setBackpackItem } from "../../src/lib/editor/inventory-operations";
+import { setInventoryItem } from "../../src/lib/editor/inventory-operations";
 import { XMLCodec } from "../../src/lib/xmlCodec";
 import { fixtureXml, parser, tinyFixture } from "./fixtures";
 
@@ -83,7 +83,7 @@ it("checks global collisions and current identity values before reusing a raw ch
 	const raw = chest();
 	const originalState = state([raw]);
 	const original = projectChests(originalState);
-	const id = required(original.views[0]).farmerId;
+	const id = required(original.views[0]).ownerId;
 	const collisionState = state([raw], { farmerId: id });
 	const collided = projectChests(collisionState, original);
 	expect(collided.views).toEqual(readChests(collisionState));
@@ -112,7 +112,7 @@ it("evicts removed entries, keeps candidate generations independent and handles 
 	const a = chest("First"),
 		b = chest("Second");
 	const original = projectChests(state([a, b]));
-	const secondId = required(original.views[1]).farmerId;
+	const secondId = required(original.views[1]).ownerId;
 	const removedState = state([a]);
 	const removed = projectChests(removedState, original);
 	expect(removed.views[0]).toBe(original.views[0]);
@@ -131,7 +131,7 @@ it("keeps aliased raw chests distinct by placed owner path", () => {
 	const raw = chest();
 	const initialState = state([raw, raw]);
 	const original = projectChests(initialState);
-	expect(original.views[0]?.farmerId).not.toBe(original.views[1]?.farmerId);
+	expect(original.views[0]?.ownerId).not.toBe(original.views[1]?.ownerId);
 	expect(original.views[0]?.slots[0]?.entityId).not.toBe(
 		original.views[1]?.slots[0]?.entityId,
 	);
@@ -139,7 +139,7 @@ it("keeps aliased raw chests distinct by placed owner path", () => {
 	expect(hit.views).toBe(original.views);
 	const removed = projectChests(state([raw]), hit);
 	expect(
-		removed.lookup(raw, required(original.views[1]).farmerId),
+		removed.lookup(raw, required(original.views[1]).ownerId),
 	).toBeUndefined();
 	expect(removed.views).toEqual(readChests(state([raw])));
 });
@@ -158,8 +158,8 @@ it("reuses sibling views from the first item edit through Undo/Redo in the model
 			neighbor = required(original[1]);
 		const slot = required(selected.slots[0]);
 		const result = await opened.model.commands.transact(
-			setBackpackItem({
-				farmerId: selected.farmerId,
+			setInventoryItem({
+				ownerId: selected.ownerId,
 				entityId: slot.entityId,
 				property: "stack",
 				value: 25,

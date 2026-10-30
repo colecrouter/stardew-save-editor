@@ -1,11 +1,11 @@
-import type { BackpackSlotView, BackpackView } from "../inventory-views.ts";
+import type { InventorySlotView, InventoryView } from "../inventory-views.ts";
 import type { EquipmentSlotView } from "../equipment.ts";
 
 /** Local interaction targets share instance identity across numbered/equipment slots. */
-export type InventorySlot = BackpackSlotView | EquipmentSlotView;
+export type InventorySlot = InventorySlotView | EquipmentSlotView;
 
 /** Inspect every location an owner's selected instance can occupy. */
-export function allInventorySlots(owner: BackpackView): InventorySlot[] {
+export function allInventorySlots(owner: InventoryView): InventorySlot[] {
 	return [...owner.slots, ...owner.equipment];
 }
 /** Named equipment locations expose a key and lock state instead of a numbered position. */

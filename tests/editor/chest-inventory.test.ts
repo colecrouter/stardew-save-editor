@@ -3,7 +3,7 @@ import { Effect, Result } from "effect";
 import { makeHistorySession } from "../../src/lib/editor/history";
 import { discoverPlacedChests } from "../../src/lib/editor/chest-storage";
 import {
-	setBackpackItem,
+	setInventoryItem,
 	setInventoryItemProperty,
 } from "../../src/lib/editor/inventory-operations";
 import { readChests } from "../../src/lib/editor/inventory-views";
@@ -68,9 +68,9 @@ function move(
 ) {
 	return {
 		type: "backpack-move" as const,
-		farmerId: from,
+		ownerId: from,
 		entityId: handle(state, from, index),
-		toFarmerId: to,
+		toOwnerId: to,
 		toEntityId: handle(state, to, target),
 		fromLocation: "backpack" as const,
 		toLocation: "backpack" as const,
@@ -156,8 +156,8 @@ describe("placed chest inventory boundary", () => {
 				);
 				const stale = yield* Effect.result(
 					session.transact(
-						setBackpackItem({
-							farmerId: id,
+						setInventoryItem({
+							ownerId: id,
 							entityId: handle(before, id, 0),
 							property: "stack",
 							value: 5,
@@ -184,7 +184,7 @@ describe("placed chest inventory boundary", () => {
 					yield* session.execute([
 						{
 							type: "backpack-add",
-							farmerId: id,
+							ownerId: id,
 							entityId: handle(before, id, 35),
 							catalogId: "Sneakers",
 						},
@@ -199,7 +199,7 @@ describe("placed chest inventory boundary", () => {
 						),
 					).toHaveLength(contents === "" ? 1 : 2);
 					yield* session.execute([
-						{ type: "backpack-remove", farmerId: id, entityId: newId },
+						{ type: "backpack-remove", ownerId: id, entityId: newId },
 					]);
 					yield* session.undo;
 					expect((yield* session.snapshot).document).toEqual(added.document);
@@ -221,7 +221,7 @@ describe("placed chest inventory boundary", () => {
 					entityId = handle(before, id, 0);
 				yield* session.transact(
 					setInventoryItemProperty({
-						farmerId: id,
+						ownerId: id,
 						entityId,
 						property: "defenseBonus",
 						value: 8,
@@ -246,7 +246,7 @@ describe("placed chest inventory boundary", () => {
 							chest(snapshot.state.document).raw.specialChestType = "BigChest";
 							yield* draft.replace(snapshot);
 							yield* setInventoryItemProperty({
-								farmerId: id,
+								ownerId: id,
 								entityId,
 								property: "defenseBonus",
 								value: 9,
@@ -266,8 +266,8 @@ describe("placed chest inventory boundary", () => {
 					session = yield* makeHistorySession(original),
 					before = yield* session.snapshot;
 				yield* session.transact(
-					setBackpackItem({
-						farmerId: id,
+					setInventoryItem({
+						ownerId: id,
 						entityId: handle(before, id, 0),
 						property: "stack",
 						value: 17,
@@ -284,7 +284,7 @@ describe("placed chest inventory boundary", () => {
 				const bad = yield* Effect.result(
 					session.transact(
 						setInventoryItemProperty({
-							farmerId: id,
+							ownerId: id,
 							entityId: handle(before, id, 1),
 							property: "trinket:level",
 							value: 2,
@@ -306,9 +306,9 @@ describe("placed chest inventory boundary", () => {
 					session.execute([
 						{
 							type: "backpack-move",
-							farmerId: id,
+							ownerId: id,
 							entityId: handle(before, id, 0),
-							toFarmerId: "host",
+							toOwnerId: "host",
 							toEntityId: boots,
 							toLocation: "boots",
 						},
@@ -318,9 +318,9 @@ describe("placed chest inventory boundary", () => {
 				yield* session.execute([
 					{
 						type: "backpack-move",
-						farmerId: id,
+						ownerId: id,
 						entityId: handle(before, id, 1),
-						toFarmerId: "host",
+						toOwnerId: "host",
 						toEntityId: boots,
 						toLocation: "boots",
 					},
@@ -346,9 +346,9 @@ describe("placed chest inventory boundary", () => {
 				yield* session.execute([
 					{
 						type: "equipment-swap",
-						farmerId: id,
+						ownerId: id,
 						slot: 0,
-						toFarmerId: id,
+						toOwnerId: id,
 						toSlot: 1,
 					},
 				]);
@@ -396,7 +396,7 @@ describe("placed chest inventory boundary", () => {
 				yield* session.execute([
 					{
 						type: "backpack-remove",
-						farmerId: id,
+						ownerId: id,
 						entityId: handle(before, id, 70),
 					},
 				]);
@@ -427,8 +427,8 @@ describe("placed chest inventory boundary", () => {
 				const result = yield* Effect.result(
 					session.transact(
 						Effect.gen(function* () {
-							yield* setBackpackItem({
-								farmerId: id,
+							yield* setInventoryItem({
+								ownerId: id,
 								entityId: handle(before, id, 0),
 								property: "stack",
 								value: 9,
@@ -458,7 +458,7 @@ describe("placed chest inventory boundary", () => {
 					session.execute([
 						{
 							type: "backpack-add",
-							farmerId: ownerId(document),
+							ownerId: ownerId(document),
 							entityId: handle(state, ownerId(document), 1),
 							catalogId: "Parsnip",
 						},

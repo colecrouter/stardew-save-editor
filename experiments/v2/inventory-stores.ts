@@ -120,7 +120,7 @@ export const makeStoreInventory = (session: HistorySession) =>
 					session.execute([
 						{
 							type: "reorder",
-							farmerId: get(farmer),
+							ownerId: get(farmer),
 							order: get(items).map((_, index, all) => all.length - index - 1),
 						},
 					]),

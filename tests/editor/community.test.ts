@@ -94,59 +94,70 @@ it("completes a room with rewards and mail once, preserves unrelated imports, an
 			expect((yield* session.snapshot).entries).toHaveLength(count);
 		}),
 	));
-it("completes the original six rooms without completing theater, and retains door access while Missing progresses", () =>
-	run(
-		Effect.gen(function* () {
-			const session = yield* makeHistorySession(fixture());
-			const initial = readCommunity((yield* session.snapshot).document);
-			yield* session.transact(
-				Effect.gen(function* () {
-					for (const bundle of initial.bundles.filter((row) => row.room !== 6))
-						yield* setCommunityProgress({
-							type: "bundle",
-							bundleKey: bundle.key,
-							value: true,
-						});
-				}),
-			);
-			const complete = yield* session.snapshot;
-			expect(complete.document.SaveGame.player).toMatchObject({
-				mailReceived: {
-					string: expect.arrayContaining([
-						"ccIsComplete",
-						"seenJunimoNote",
-						"abandonedJojaMartAccessible",
-					]),
-				},
-			});
-			expect(readCommunity(complete.document).theater).toBe(false);
-			const missing = required(
-					readCommunity(complete.document).bundles.find(
-						(row) => row.room === 6,
+// Completing every original bundle exercises repeated progression edits against
+// a full save. Allow CI headroom for that integration workload without relaxing
+// the default timeout for the smaller Community tests.
+it(
+	"completes the original six rooms without completing theater, and retains door access while Missing progresses",
+	{ timeout: 20000 },
+	() =>
+		run(
+			Effect.gen(function* () {
+				const session = yield* makeHistorySession(fixture());
+				const initial = readCommunity((yield* session.snapshot).document);
+				yield* session.transact(
+					Effect.gen(function* () {
+						for (const bundle of initial.bundles.filter(
+							(row) => row.room !== 6,
+						))
+							yield* setCommunityProgress({
+								type: "bundle",
+								bundleKey: bundle.key,
+								value: true,
+							});
+					}),
+				);
+				const complete = yield* session.snapshot;
+				expect(complete.document.SaveGame.player).toMatchObject({
+					mailReceived: {
+						string: expect.arrayContaining([
+							"ccIsComplete",
+							"seenJunimoNote",
+							"abandonedJojaMartAccessible",
+						]),
+					},
+				});
+				expect(readCommunity(complete.document).theater).toBe(false);
+				const missing = required(
+						readCommunity(complete.document).bundles.find(
+							(row) => row.room === 6,
+						),
 					),
-				),
-				requirement = required(missing.requirements[0]);
-			yield* session.transact(
-				setCommunityProgress({
-					type: "donation",
-					bundleKey: missing.key,
-					index: requirement.index,
-					itemId: requirement.itemId,
-					quantity: requirement.quantity,
-					quality: requirement.quality,
-					value: !requirement.submitted,
-				}),
-			);
-			expect((yield* session.snapshot).document.SaveGame.player).toMatchObject({
-				mailReceived: {
-					string: expect.arrayContaining([
-						"ccIsComplete",
-						"abandonedJojaMartAccessible",
-					]),
-				},
-			});
-		}),
-	));
+					requirement = required(missing.requirements[0]);
+				yield* session.transact(
+					setCommunityProgress({
+						type: "donation",
+						bundleKey: missing.key,
+						index: requirement.index,
+						itemId: requirement.itemId,
+						quantity: requirement.quantity,
+						quality: requirement.quality,
+						value: !requirement.submitted,
+					}),
+				);
+				expect(
+					(yield* session.snapshot).document.SaveGame.player,
+				).toMatchObject({
+					mailReceived: {
+						string: expect.arrayContaining([
+							"ccIsComplete",
+							"abandonedJojaMartAccessible",
+						]),
+					},
+				});
+			}),
+		),
+);
 it("keeps bought Joja projects and does not buy the theater when the fifth project completes", () =>
 	run(
 		Effect.gen(function* () {

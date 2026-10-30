@@ -20,6 +20,8 @@ import { type BackpackItemEdits } from "./inventory-operations.ts";
 import {
 	readBackpacks,
 	readChests,
+	projectChests,
+	type ChestProjection,
 	type BackpackView,
 } from "./inventory-views.ts";
 import { readFarmSettings, type FarmView } from "./farm-operations.ts";
@@ -277,10 +279,10 @@ export const makeEditorModel = (
 		// reference; rejecting later commands alone would still retain the save.
 		let engine: HistorySession | undefined = session;
 		let closed = false;
-		// One canonical immutable chest view belongs to this file. Replacement
-		// releases the previous descriptor tree, and session closure clears it.
+		// One current chest-view generation belongs to this file. Replacement
+		// releases removed/rebuilt descriptors, and session closure clears it.
 		let chestCache:
-			| { revision: number; value: ImmutableView<BackpackView[]> }
+			| { revision: number; projection: ChestProjection }
 			| undefined;
 		yield* Effect.acquireRelease(
 			Effect.sync(() => {
@@ -350,6 +352,7 @@ export const makeEditorModel = (
 			nextIdentity: number;
 			chestRevision: number;
 			view: EditorView | undefined;
+			chests: ChestProjection | undefined;
 		};
 		const projectPublication = (state: HistoryState): Publication => {
 			const stamp: Publication = {
@@ -357,6 +360,7 @@ export const makeEditorModel = (
 				nextIdentity: state.nextIdentity,
 				chestRevision: state.chestRevision,
 				view: undefined,
+				chests: undefined,
 			};
 			if (
 				closed ||
@@ -364,31 +368,38 @@ export const makeEditorModel = (
 				state.revision <= (registry.get(viewAtom)?.revision ?? -1)
 			)
 				return stamp;
-			// Reuse one immutable chest view per dependency revision. Do not update
-			// this cache during projection: an outer transaction may still retry.
+			// Keep the whole generation when the aggregate token is unchanged;
+			// otherwise recheck individual chest dependencies. Do not install the
+			// candidate here: an outer transaction may still retry projection.
 			const chests =
 				chestCache?.revision === state.chestRevision
-					? chestCache.value
-					: immutableView(readChests(state));
+					? chestCache.projection
+					: projectChests(state, chestCache?.projection);
 			return {
 				...stamp,
-				view: immutableView(project(state, options.includeProofs, chests)),
+				chests,
+				view: immutableView(
+					project(state, options.includeProofs, chests.views),
+				),
 			};
 		};
 		const publish = (publication: Publication) => {
 			const next = publication.view;
+			const chests = publication.chests;
 			// A later command or stream may already have displayed a newer revision.
 			// Keep the captured receipt for its caller, while rejecting display regressions.
 			if (
 				!closed &&
 				registry &&
 				next &&
+				chests &&
 				next.revision > (registry.get(viewAtom)?.revision ?? -1)
 			) {
-				// This bounded cache retains presentation data, never the borrowed source.
+				// Replace the current generation only after publication wins. Its source
+				// keys are weak, and its values retain presentation data only.
 				chestCache = {
 					revision: publication.chestRevision,
-					value: next.chests,
+					projection: chests,
 				};
 				registry.set(viewAtom, next);
 				// Selection belongs to the file, not a page index. Preserve its
@@ -408,7 +419,9 @@ export const makeEditorModel = (
 		};
 		const imported = yield* session.snapshot;
 		const loadValidation = validateSave(imported.document);
-		publish(projectPublication(imported));
+		// Validation keeps a detached import document. Seed cache keys from owned
+		// committed branches, rather than from that unrelated preservation copy.
+		publish(yield* session.forProjection(projectPublication).snapshot);
 		// Own the observer fiber with the file, not with an individual screen. Panel
 		// navigation should neither fork additional streams nor lose committed state.
 		const stream = Stream.unwrap(

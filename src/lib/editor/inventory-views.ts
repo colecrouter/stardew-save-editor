@@ -21,6 +21,7 @@ import {
 	type EquipmentSlotView,
 } from "./equipment.ts";
 import { emptySlot } from "./domain.ts";
+import { immutableView, type ImmutableView } from "./immutable-view.ts";
 import type { HistoryState } from "./history.ts";
 
 // Keep presentation/catalog imports out of the mutation/history runtime graph.
@@ -172,10 +173,11 @@ export function readBackpacks(
 	});
 }
 
-/** Project placed world storage separately so farmer navigation retains its existing meaning. */
-export function readChests(
+// Eligibility is resolved globally before any cache lookup: another farmer
+// can collide with an unchanged chest's ID without changing its saved record.
+function chestProjectionInputs(
 	state: Pick<HistoryState, "document" | "identities">,
-): BackpackView[] {
+) {
 	const containers = new Map(
 		inventoryContainers(state.document).map((owner) => [owner.id, owner]),
 	);
@@ -188,43 +190,135 @@ export function readChests(
 			chest.supported &&
 			owner?.kind === "chest" &&
 			ids?.length === chest.slots.length;
-		// Chests have no farmer RNG/property context. Project only supported item
-		// controls; raw storage and mod data remain solely in the saved document.
 		return {
-			farmerId: chest.id,
-			name: chest.label,
-			kind: "chest",
-			location: chest.location,
-			capacity: chest.capacity,
+			chest,
+			ids,
 			supported,
-			equipment: [],
-			...(!supported
-				? {
-						reason:
-							chest.reason ?? "This chest's inventory identity is ambiguous.",
-					}
-				: {}),
-			slots:
-				supported && ids
-					? chest.slots.map((item, slot) => {
-							const raw = record(item) ? item : undefined;
-							const empty = emptySlot(item);
-							return {
-								entityId: ids[slot] ?? "",
-								slot,
-								empty,
-								itemId:
-									typeof raw?.itemId === "string" ||
-									typeof raw?.itemId === "number"
-										? String(raw.itemId)
-										: "",
-								...projectInventoryItem(raw),
-								...(empty ? { name: "Empty slot" } : {}),
-								...(numeric(raw?.stack) ? { quantity: raw.stack } : {}),
-								...(numeric(raw?.quality) ? { quality: raw.quality } : {}),
-							};
-						})
-					: [],
+			reason: supported
+				? undefined
+				: (chest.reason ?? "This chest's inventory identity is ambiguous."),
 		};
 	});
+}
+
+type ChestInput = ReturnType<typeof chestProjectionInputs>[number];
+function projectChestView({
+	chest,
+	ids,
+	supported,
+	reason,
+}: ChestInput): BackpackView {
+	// Chests have no farmer RNG/property context. Project only supported item
+	// controls; raw storage and mod data remain solely in the saved document.
+	return {
+		farmerId: chest.id,
+		name: chest.label,
+		kind: "chest",
+		location: chest.location,
+		capacity: chest.capacity,
+		supported,
+		equipment: [],
+		...(!supported ? { reason } : {}),
+		slots:
+			supported && ids
+				? chest.slots.map((item, slot) => {
+						const raw = record(item) ? item : undefined;
+						const empty = emptySlot(item);
+						return {
+							entityId: ids[slot] ?? "",
+							slot,
+							empty,
+							itemId:
+								typeof raw?.itemId === "string" ||
+								typeof raw?.itemId === "number"
+									? String(raw.itemId)
+									: "",
+							...projectInventoryItem(raw),
+							...(empty ? { name: "Empty slot" } : {}),
+							...(numeric(raw?.stack) ? { quantity: raw.stack } : {}),
+							...(numeric(raw?.quality) ? { quality: raw.quality } : {}),
+						};
+					})
+				: [],
+	};
+}
+
+/** Project placed storage separately from farmer navigation into fresh detached
+ * views, retaining the mutable reader contract for independent engine snapshots. */
+export function readChests(
+	state: Pick<HistoryState, "document" | "identities">,
+): BackpackView[] {
+	return chestProjectionInputs(state).map(projectChestView);
+}
+
+/** One current generation of immutable chest views. The lookup uses weak source
+ * keys and retains presentation values only, never saved records or identity arrays.
+ * This capability belongs to the model; components receive only its views. */
+export interface ChestProjection {
+	readonly views: ImmutableView<BackpackView[]>;
+	readonly lookup: (
+		source: object,
+		ownerId: string,
+	) => ImmutableView<BackpackView> | undefined;
+}
+
+// Keep this closure factory separate from projection. Its environment receives
+// only this generation's weak index, not the builder's state or previous cache.
+function chestProjectionGeneration(
+	views: ImmutableView<BackpackView[]>,
+	index: WeakMap<object, Map<string, ImmutableView<BackpackView>>>,
+): ChestProjection {
+	return {
+		views,
+		lookup: (source, ownerId) => index.get(source)?.get(ownerId),
+	};
+}
+
+/** Project immutable committed inputs, reusing unchanged current chest views.
+ * Build a new generation without mutating the published cache; the model installs
+ * it only after successful publication. Never pass a mutable snapshot for reuse. */
+export function projectChests(
+	state: Pick<HistoryState, "document" | "identities">,
+	previous?: ChestProjection,
+): ChestProjection {
+	const index = new WeakMap<object, Map<string, ImmutableView<BackpackView>>>();
+	const candidates = chestProjectionInputs(state).map((input) => {
+		const { chest, ids, supported, reason } = input;
+		const cached = previous?.lookup(chest.raw, chest.id);
+		// Labels and eligibility also depend on ancestors and other owners. Slot
+		// IDs are already presentation values, so compare them without retaining
+		// an authoritative identity array as a cache dependency.
+		const reusable =
+			cached &&
+			cached.name === chest.label &&
+			cached.location === chest.location &&
+			cached.capacity === chest.capacity &&
+			cached.supported === supported &&
+			cached.reason === reason &&
+			(!supported ||
+				(ids &&
+					cached.slots.length === ids.length &&
+					cached.slots.every(
+						(slot, position) => slot.entityId === (ids[position] ?? ""),
+					)));
+		const view = reusable ? cached : immutableView(projectChestView(input));
+		// A shared raw chest can appear at multiple placed paths. Give every
+		// current owner its own entry, with fresh buckets even on a cache hit.
+		let bucket = index.get(chest.raw);
+		if (!bucket) {
+			bucket = new Map();
+			index.set(chest.raw, bucket);
+		}
+		bucket.set(chest.id, view);
+		return view;
+	});
+	// Preserve array identity when a global dependency changed without changing
+	// any chest view. Dropping the previous index still evicts removed entries.
+	const views =
+		previous &&
+		previous.views.length === candidates.length &&
+		candidates.every((view, position) => view === previous.views[position])
+			? previous.views
+			: immutableView(candidates);
+	return chestProjectionGeneration(views, index);
 }

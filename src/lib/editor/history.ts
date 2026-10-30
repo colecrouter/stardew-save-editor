@@ -653,7 +653,7 @@ export const makeHistorySession = (
 								history: [],
 							});
 							const itemEdits = makeBackpackItemEdits(
-								draft.service,
+								draft,
 								state.identities,
 								state.document,
 								state.equipmentIdentities,

@@ -286,3 +286,34 @@ it("rejects returned Effects and Promises without treating them as asynchronous 
 	expect(ran).toBe(false);
 	await Effect.runPromise(draft.close);
 });
+
+it("checks inspection versions before invoking writers and closes owner inspection", async () => {
+	const draft = makeTransactionDraft(initial());
+	const inspected = await Effect.runPromise(draft.inspect);
+	expect(Object.isFrozen(inspected.state.document.SaveGame.player)).toBe(true);
+	const detached = await Effect.runPromise(draft.service.read);
+	detached.state.document.SaveGame.player.money = 20;
+	await Effect.runPromise(draft.service.replace(detached));
+	let invoked = false;
+	const stale = await Effect.runPromise(
+		Effect.result(
+			draft.service.mutate(() => {
+				invoked = true;
+			}, inspected.version),
+		),
+	);
+	expect(Result.isFailure(stale)).toBe(true);
+	expect(invoked).toBe(false);
+	// A matching no-op neither changes state nor advances its version.
+	const current = await Effect.runPromise(draft.inspect);
+	await Effect.runPromise(
+		draft.service.mutate(() => undefined, current.version),
+	);
+	expect((await Effect.runPromise(draft.inspect)).version).toBe(
+		current.version,
+	);
+	await Effect.runPromise(draft.close);
+	expect(
+		Result.isFailure(await Effect.runPromise(Effect.result(draft.inspect))),
+	).toBe(true);
+});

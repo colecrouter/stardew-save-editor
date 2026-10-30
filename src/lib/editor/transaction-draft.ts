@@ -1,6 +1,6 @@
 import { Context, Effect, Schema, JsonPatch } from "effect";
 import { create as createCopyOnWrite } from "mutative";
-import { isDraftStateTree } from "./draft-state.ts";
+import { freezeDraftState } from "./draft-state.ts";
 import { MutationError, type SessionState } from "./domain.ts";
 
 // A domain operation receives a detached snapshot and submits its replacement
@@ -39,8 +39,8 @@ export function makeTransactionDraft(initial: SessionState) {
 }
 
 /** History-only construction from a stable, session-owned committed snapshot.
- * The owner must not mutate this baseline: copy-on-write shares unchanged branches.
- * Ordinary reads still return detached mutable snapshots. */
+ * The owner must not mutate this baseline; synchronous mutation may deeply freeze
+ * these owned objects. Ordinary reads still return detached mutable snapshots. */
 export function makeTransactionDraftFromCommitted(initial: SessionState) {
 	return stageTransactionDraft(initial);
 }
@@ -77,9 +77,9 @@ function stageTransactionDraft(initial: SessionState) {
 						);
 				};
 				let next: SessionState;
-				if (isDraftStateTree(before)) {
-					// Copy only branches changed by the operation. Keep auto-freeze off:
-					// ownership is an internal contract, and inserted objects belong to callers.
+				if (freezeDraftState(before)) {
+					// Freezing protects owned branches even from reflective access.
+					// Keep auto-freeze off: caller-inserted objects must remain theirs.
 					// Keep Mutative's recursive mapped type outside the raw DTO's recursive
 					// unions. This boundary preserves the same SessionState root shape.
 					const base: object = before;

@@ -28,6 +28,23 @@ values are applied atomically as they are entered. Blank replacement text stays
 local when it does not represent a domain value. Rejection leaves the last
 committed value intact; it is not a successful save action.
 
+Domain operations can use `TransactionDraft.mutate` for synchronous staging writes.
+Keep the mutation rules in the adapter; no separate field-to-save mapping is needed.
+Validate requests and perform fallible Effect work outside the callback. The callback
+returns no value and must not retain its temporary writer, await work, run Effects
+or schedule callbacks. Writer exceptions remain defects; the surrounding transaction
+still owns rollback, retries and publication. This API does not cancel arbitrary
+side effects started by a recipe. Use ordinary JSON property/array updates: do not
+construct cycles or freeze containers holding draft references. These unsupported
+writer patterns are defects; detached read/replace remains the general snapshot path.
+
+The engine freezes privately owned bases and detaches accepted changed values.
+Copy-on-write handles tree-shaped state; shared-reference graphs use the detached
+fallback to preserve existing alias-driven writes. Changed mutations invalidate
+older draft snapshots; no-op mutations leave their version intact. Ordinary
+`read`/`replace` retains detached mutable snapshots for calendar and other planners.
+Only Farm uses the new synchronous path initially; inventory authorization is unchanged.
+
 ## Undo gestures
 
 Applying a value and finalizing an Undo step are separate operations. A field

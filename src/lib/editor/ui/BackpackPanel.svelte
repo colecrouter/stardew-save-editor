@@ -3,6 +3,7 @@
 	import { Result } from "effect";
 	import { useAtomValue } from "effect-atom-svelte";
 	import type { EditorModel } from "../editor-model.ts";
+	import { createStorageDomain } from "../storage-domain.ts";
 	import { createInventorySelection } from "./inventory-selection.svelte.ts";
 	import {
 		createInventoryDrag,
@@ -38,6 +39,20 @@
 	const chests = $derived(view.current?.chests ?? []);
 	const owners = $derived([...backpacks, ...chests]);
 	let operationError = $state("");
+	const storage = $derived(createStorageDomain(model));
+	let organizing = $state(false);
+	async function organize(ownerId: string) {
+		if (organizing) return;
+		organizing = true;
+		operationError = "";
+		try {
+			const result = await storage.organize(ownerId);
+			if (result && Result.isFailure(result))
+				operationError = result.failure.message;
+		} finally {
+			organizing = false;
+		}
+	}
 	let removing = $state(false);
 	let moving = $state(false);
 	let inventory = $state<HTMLDivElement>();
@@ -255,6 +270,13 @@
 					<div class="backpack-heading">
 						<h2>Backpack</h2>
 						<span>{backpack.slots.length} slots</span>
+						<button
+							type="button"
+							disabled={organizing || moving}
+							onclick={() => void organize(backpack.ownerId)}
+						>
+							Organize backpack
+						</button>
 					</div>
 					<div class="slots">
 						{#each backpack.slots as item (item.entityId)}
@@ -274,6 +296,13 @@
 					<h2>Chests</h2>
 					{#if chest}
 						<span>{chest.slots.length} slots</span>
+						<button
+							type="button"
+							disabled={!chest.supported || organizing || moving}
+							onclick={() => void organize(chest.ownerId)}
+						>
+							Organize chest
+						</button>
 					{/if}
 				</div>
 				{#if chests.length}

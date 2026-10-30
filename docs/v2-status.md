@@ -9,17 +9,19 @@ not active migration checklists.
 The application-owned `/v2` editor includes import/export, history and review,
 calendar/weather, farm settings, inventory and equipment, item catalog/properties,
 Character skills/professions/mastery, Character details, relationships, appearance,
-recipes, events, quest journals, Qi special orders, and buildings/animals. Inventory respects actual
+recipes, events, quest journals, Qi special orders, buildings/animals, Community
+Center/Joja and farmhand reassignment. Inventory respects actual
 backpack capacities and supports placed chests and transfers.
 
 The [building/animal migration](v2-buildings-migration.md) includes animal fields,
 adoption and completed building tier changes with their progression consequences.
-Remaining migration work includes full Community Center and Joja workflows, and
-farmhand reassignment. General special orders beyond the Qi
-workflow and the remaining inventory sorting/storage workflows need explicit
-coverage checks before being counted complete. Stack splitting/merging remain
-deferred. A visual pass follows the functional work; this cleanup does not replace
-that review.
+The [remaining UI porting checkpoint](v2-porting-parity.md) covers Community
+Center/Joja, farmhand reassignment, inventory/storage parity and original backup
+management. The [independent porting audit](v2-porting-audit.md) records core fixes
+and nonblocking P3 follow-ups. Stack splitting/merging remain intentionally
+deferred. General non-Qi special orders, pets/children, location editing and the
+planned parser replacement are separate feature work. Visual/device release
+validation and the deliberate application cutover still remain.
 
 ## Extension contract
 

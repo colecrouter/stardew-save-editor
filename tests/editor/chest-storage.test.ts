@@ -51,7 +51,7 @@ describe("placed chest storage", () => {
 		expect(document).toEqual(original);
 	});
 
-	it("discovers nested building interiors but leaves other storage kinds outside this slice", () => {
+	it("discovers interiors, fridges, machine-held and building storage while retaining placed owner paths", () => {
 		const document = fixture([
 			{
 				name: "Farm",
@@ -80,8 +80,16 @@ describe("placed chest storage", () => {
 			},
 		]);
 		const found = discoverPlacedChests(document);
-		expect(found).toHaveLength(1);
-		expect(found[0]).toMatchObject({
+		expect(found).toHaveLength(5);
+		expect(found.map((chest) => chest.source).sort()).toEqual([
+			"building",
+			"chest",
+			"fridge",
+			"machine",
+			"machine",
+		]);
+		expect(found.find((chest) => chest.capacity === 70)).toMatchObject({
+			id: "chest:locations.0.buildings.0.indoors.objects.0",
 			location: "Farm / Shed / Shed",
 			capacity: 70,
 		});

@@ -13,15 +13,8 @@ import { Raw } from "./proxies";
 
 // Helpers
 
-export enum CCRoom {
-	Pantry = 0,
-	CraftsRoom = 1,
-	FishTank = 2,
-	BoilerRoom = 3,
-	Vault = 4,
-	BulletinBoard = 5,
-	AbandonedJojaMart = 6,
-}
+import { CCRoom, communityRooms } from "./communityCenterData.ts";
+export { CCRoom } from "./communityCenterData.ts";
 
 type SideEffect = (s: SaveProxy, cc: GameLocation) => void;
 
@@ -95,46 +88,19 @@ function makeEffect(
 
 export const bundleSideEffects = Object.freeze(
 	new Map<CCRoom | null, SideEffectPair>([
-		[
-			CCRoom.Pantry,
-			makeEffect(MailFlag.ccPantry, MailFlag.jojaPantry, CCRoom.Pantry),
-		],
-		[
-			CCRoom.CraftsRoom,
-			makeEffect(
-				MailFlag.ccCraftsRoom,
-				MailFlag.jojaCraftsRoom,
-				CCRoom.CraftsRoom,
-			),
-		],
-		[
-			CCRoom.FishTank,
-			makeEffect(MailFlag.ccFishTank, MailFlag.jojaFishTank, CCRoom.FishTank),
-		],
-		[
-			CCRoom.BoilerRoom,
-			makeEffect(
-				MailFlag.ccBoilerRoom,
-				MailFlag.jojaBoilerRoom,
-				CCRoom.BoilerRoom,
-			),
-		],
-		[
-			CCRoom.Vault,
-			makeEffect(MailFlag.ccVault, MailFlag.jojaVault, CCRoom.Vault),
-		],
-		[
-			CCRoom.BulletinBoard,
-			makeEffect(MailFlag.ccBulletin, undefined, CCRoom.BulletinBoard),
-		],
-		[
-			CCRoom.AbandonedJojaMart,
-			makeEffect(
-				MailFlag.ccMovieTheater,
-				MailFlag.ccMovieTheaterJoja,
-				CCRoom.AbandonedJojaMart,
-			),
-		],
+		// Keep legacy side effects and v2 domain projections on one room/flag map.
+		...communityRooms.map(
+			(room) =>
+				[
+					room.id,
+					makeEffect(
+						MailFlag[room.flag],
+						"jojaFlag" in room ? MailFlag[room.jojaFlag] : undefined,
+						room.id,
+					),
+				] as const,
+		),
+
 		[
 			null,
 			{

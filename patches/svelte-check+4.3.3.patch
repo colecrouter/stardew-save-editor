@@ -1,0 +1,17 @@
+diff --git a/node_modules/svelte-check/dist/src/index.js b/node_modules/svelte-check/dist/src/index.js
+index 9eb7d79..334bebf 100644
+--- a/node_modules/svelte-check/dist/src/index.js
++++ b/node_modules/svelte-check/dist/src/index.js
+@@ -107401,7 +107401,11 @@ function requireProject () {
+ 	                this.symlinks = createSymlinkCache(this.getCurrentDirectory(), this.getCanonicalFileName);
+ 	            }
+ 	            if (this.program && !this.symlinks.hasProcessedResolutions()) {
+-	                this.symlinks.setSymlinksFromResolutions(this.program.getSourceFiles(),
++	                // Match the installed TypeScript's resolution-iterator API and the
++	                // compatibility wrapper below. The base host can be captured
++	                // before that wrapper replaces getSymlinkCache.
++	                this.symlinks.setSymlinksFromResolutions(this.program.forEachResolvedModule,
++	                this.program.forEachResolvedTypeReferenceDirective,
+ 	                this.program.getAutomaticTypeDirectiveResolutions());
+ 	            }
+ 	            return this.symlinks;

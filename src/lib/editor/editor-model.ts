@@ -1,3 +1,8 @@
+import { readCommunity, type CommunityView } from "./community-data.ts";
+import {
+	readFarmerRoster,
+	type FarmerRosterView,
+} from "./farmer-roster-data.ts";
 import { readBuildings, type BuildingsView } from "./building-data.ts";
 import { immutableView, type ImmutableView } from "./immutable-view.ts";
 import { readFarmerChoices } from "./farmer-selection.ts";
@@ -102,6 +107,8 @@ interface EditorViewData {
 	readonly calendar: CalendarViewState;
 	readonly farm: FarmView;
 	readonly buildings: BuildingsView;
+	readonly community: CommunityView;
+	readonly farmerRoster: FarmerRosterView;
 	readonly backpacks: readonly InventoryView[];
 	readonly chests: readonly InventoryView[];
 	readonly characters: CharacterView[];
@@ -215,6 +222,8 @@ function project(
 		calendar,
 		farm: readFarmSettings(state.document),
 		buildings: readBuildings(state.document),
+		community: readCommunity(state.document),
+		farmerRoster: readFarmerRoster(state.document),
 		backpacks: readBackpacks(state),
 		chests,
 		characters: readCharacters(state.document),

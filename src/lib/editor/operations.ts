@@ -2,7 +2,7 @@ import { prepareBundleOperation } from "./bundle-operations.ts";
 import { Context, Effect } from "effect";
 import { prepareCalendarOperation } from "./calendar-operations.ts";
 import {
-	MutationError,
+	type MutationError,
 	prepareEffect,
 	type ResolvedMutation,
 	type SessionState,

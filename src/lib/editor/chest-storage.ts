@@ -13,9 +13,11 @@ const text = (value: unknown): string | undefined =>
 		? String(value)
 		: undefined;
 
-/** A placed chest and its display slots; raw references belong only to the supplied document. */
+/** A reachable local storage inventory; raw references belong only to the supplied document. */
 export interface PlacedChest {
 	id: string;
+	/** Source semantics govern conversion eligibility, even when raw chest flags match. */
+	source: "chest" | "fridge" | "machine" | "building";
 	name: string;
 	label: string;
 	location: string;
@@ -51,6 +53,8 @@ function describe(
 	id: string,
 	location: string,
 	tile: string,
+	source: PlacedChest["source"],
+	labelName?: string,
 ): PlacedChest {
 	const name = text(raw.name) || "Chest";
 	const special = raw.specialChestType;
@@ -117,7 +121,8 @@ function describe(
 	return {
 		id,
 		name,
-		label: `${location} - ${name}${tile}`,
+		label: `${location} - ${labelName ?? name}${tile}`,
+		source,
 		location,
 		capacity: slotCount,
 		raw,
@@ -134,7 +139,9 @@ function describe(
 	};
 }
 
-/** Discover direct placed chests, including building interiors, without creating legacy proxies. */
+/** Discover local chest storage at the same explicit roots as v1, without proxy allocation.
+ * Existing object chest IDs are unchanged. Additional roots use distinct suffixes;
+ * arbitrary nested bags and shared/global inventories are not guessed as local storage. */
 export function discoverPlacedChests(
 	document: SaveDocument,
 	ownerId?: string,
@@ -144,18 +151,39 @@ export function discoverPlacedChests(
 		? game.locations.GameLocation
 		: undefined;
 	const result: PlacedChest[] = [];
+	const isChest = (raw: unknown): raw is Record<string, unknown> =>
+		record(raw) &&
+		(raw["@_xsi:type"] === "Chest" ||
+			(Object.hasOwn(raw, "items") &&
+				["playerChest", "fridge", "specialChestType"].some((key) =>
+					Object.hasOwn(raw, key),
+				)));
+	const add = (
+		raw: unknown,
+		path: string,
+		location: string,
+		source: PlacedChest["source"],
+		tile = "",
+		labelName?: string,
+	) => {
+		if (!isChest(raw)) return;
+		const id = `chest:${path}`;
+		// Targeted resolution still traverses identity roots but interprets item lists
+		// only for the requested owner, keeping item property edits bounded.
+		if (ownerId === undefined || ownerId === id)
+			result.push(describe(raw, id, location, tile, source, labelName));
+	};
 	const visit = (value: unknown, path: string, parent?: string) => {
 		if (!record(value)) return;
 		const ownName =
 			text(value.uniqueName) || text(value.name) || "Unknown location";
 		const location = parent ? `${parent} / ${ownName}` : ownName;
+		add(value.fridge, `${path}.fridge`, location, "fridge", "", "Fridge");
 		const objects = record(value.objects) ? list(value.objects.item) : [];
 		objects.forEach((entry, index) => {
-			if (!record(entry) || !record(entry.value)) return;
+			if (!record(entry) || !record(entry.value) || !record(entry.value.Object))
+				return;
 			const raw = entry.value.Object;
-			// Only a positive Chest subtype enters this slice. Fridges, machine-held
-			// storage, nested bags and other chest-like fields have different semantics.
-			if (!record(raw) || raw["@_xsi:type"] !== "Chest") return;
 			const vector =
 				record(entry.key) && record(entry.key.Vector2)
 					? entry.key.Vector2
@@ -163,12 +191,20 @@ export function discoverPlacedChests(
 			const x = vector && text(vector.X),
 				y = vector && text(vector.Y);
 			const tile = x !== undefined && y !== undefined ? ` (${x}, ${y})` : "";
-			const id = `chest:${path}.objects.${index}`;
-			// A targeted lookup still visits every placed-chest identity, but only
-			// normalizes slots for its requested owner. Avoid traversing all stored
-			// items through a copy-on-write proxy merely to resolve one container.
-			if (ownerId === undefined || ownerId === id)
-				result.push(describe(raw, id, location, tile));
+			const objectPath = `${path}.objects.${index}`;
+			add(raw, objectPath, location, "chest", tile);
+			// These are named machine storage roots, not a recursive walk through item
+			// contents. A held produce Object cannot accidentally become a container.
+			const machine = text(raw.name) || "Machine";
+			add(raw.Chest, `${objectPath}.Chest`, location, "machine", tile, machine);
+			add(
+				raw.heldObject,
+				`${objectPath}.heldObject`,
+				location,
+				"machine",
+				tile,
+				machine,
+			);
 		});
 		const buildings = record(value.buildings)
 			? list(value.buildings.Building)
@@ -176,9 +212,25 @@ export function discoverPlacedChests(
 		buildings.forEach((building, index) => {
 			if (!record(building)) return;
 			const label = text(building.buildingType) || `Building ${index + 1}`;
+			const buildingPath = `${path}.buildings.${index}`;
+			const chests = record(building.buildingChests)
+				? list(building.buildingChests.Chest)
+				: [];
+			chests.forEach((chest, chestIndex) => {
+				add(
+					chest,
+					`${buildingPath}.buildingChests.${chestIndex}`,
+					`${location} / ${label}`,
+					"building",
+					"",
+					record(chest)
+						? text(chest.name) || `Chest ${chestIndex + 1}`
+						: undefined,
+				);
+			});
 			visit(
 				building.indoors,
-				`${path}.buildings.${index}.indoors`,
+				`${buildingPath}.indoors`,
 				`${location} / ${label}`,
 			);
 		});

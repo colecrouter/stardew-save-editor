@@ -97,6 +97,16 @@ Run `npm run test:editor` for its migrated tests, or `npm test` for the full sui
 The lab forwards to the application-owned implementation. See the
 [calendar migration](docs/v2-calendar-migration.md) for legacy isolation and retirement gates.
 
+### Svelte checker compatibility
+
+`svelte-check` is pinned to 4.3.3 with a small `patch-package` backport in
+`patches/svelte-check+4.3.3.patch`. Its base language-service host must pass
+TypeScript's resolution iterators to the symlink cache, as its existing wrapper
+already does. Without that change, some inferred component types trigger an
+internal exception and can suppress real Svelte diagnostics. Installation fails
+if the reviewed patch no longer applies; review it when updating the checker.
+The application uses native TypeScript 7 checks and the TypeScript 6 SDK for Svelte.
+
 ### Native structured cloning
 
 The browser baseline includes Safari/iOS 15.4 and native `structuredClone`.

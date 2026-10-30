@@ -1,5 +1,9 @@
 import type { Farmer, SaveDocument } from "./domain.ts";
-import { discoverPlacedChests, writeChestSlots } from "./chest-storage.ts";
+import {
+	discoverPlacedChests,
+	writeChestSlots,
+	type PlacedChest,
+} from "./chest-storage.ts";
 
 /** A transient lens over an inventory; numbered slots are shared, equipment belongs to farmers. */
 export interface InventoryContainer {
@@ -8,6 +12,8 @@ export interface InventoryContainer {
 	kind: "farmer" | "chest";
 	slots: unknown[];
 	farmer?: Farmer;
+	/** Private storage lens, retained only while this adapter resolves a transition. */
+	storage?: PlacedChest;
 	write: (slots: unknown[]) => void;
 }
 const record = (value: unknown): value is Record<string, unknown> =>
@@ -64,6 +70,7 @@ export function inventoryContainers(
 			id: chest.id,
 			name: chest.label,
 			kind: "chest",
+			storage: chest,
 			slots: chest.slots,
 			// The writer rejects opaque nil markers rather than erasing their mod data
 			// when a backpack/chest exchange would compact them out of the save.

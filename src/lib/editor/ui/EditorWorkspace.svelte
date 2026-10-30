@@ -18,6 +18,7 @@
 	import FarmPanel from "./FarmPanel.svelte";
 	import BundlePanel from "./BundlePanel.svelte";
 	import ReviewPanel from "./ReviewPanel.svelte";
+	import FarmerRosterPanel from "./FarmerRosterPanel.svelte";
 	interface Props {
 		includeProofs?: boolean;
 		downloading?: boolean;
@@ -55,6 +56,9 @@
 	let questsOpened = $state(false);
 	let qiOpened = $state(false);
 	let buildingsOpened = $state(false);
+	let rosterOpened = $state(false);
+	let communityOpened = $state(false);
+	let storageOpened = $state(false);
 	function chooseSection(section: string) {
 		// Hidden panels retain their local state, so navigation explicitly finishes
 		// any field gesture even when no native blur event accompanies the change.
@@ -67,6 +71,9 @@
 		if (section === "quests") questsOpened = true;
 		if (section === "qi") qiOpened = true;
 		if (section === "buildings") buildingsOpened = true;
+		if (section === "farmers") rosterOpened = true;
+		if (section === "community") communityOpened = true;
+		if (section === "storage") storageOpened = true;
 		tab = section;
 	}
 	let error = $state("");
@@ -141,6 +148,32 @@
 					icon="farm"
 					active={tab === "buildings"}
 					onclick={() => chooseSection("buildings")}
+				/>
+
+				<SectionLink
+					href="#community"
+					label="Community Center & Joja"
+					shortLabel="Community"
+					icon="community"
+					active={tab === "community"}
+					onclick={() => chooseSection("community")}
+				/>
+				<SectionLink
+					href="#farmers"
+					label="Farmhands"
+					shortLabel="Farmhands"
+					icon="character"
+					active={tab === "farmers"}
+					onclick={() => chooseSection("farmers")}
+				/>
+
+				<SectionLink
+					href="#storage"
+					label="Storage"
+					shortLabel="Storage"
+					icon="inventory"
+					active={tab === "storage"}
+					onclick={() => chooseSection("storage")}
 				/>
 
 				<SectionLink
@@ -273,6 +306,41 @@
 				{:catch}
 					<p role="alert">
 						The buildings view could not be loaded. Reopen the editor to try
+						again.
+					</p>
+				{/await}
+			</div>
+		{/if}
+
+		{#if rosterOpened && view.current}
+			<div hidden={tab !== "farmers"}>
+				<FarmerRosterPanel {model} roster={view.current.farmerRoster} />
+			</div>
+		{/if}
+		{#if communityOpened}
+			<div hidden={tab !== "community"}>
+				{#await import("./CommunityPanel.svelte")}
+					<p role="status">Loading Community Center…</p>
+				{:then panel}
+					<panel.default {model} />
+				{:catch}
+					<p role="alert">
+						The Community Center view could not be loaded. Reopen the editor to
+						try again.
+					</p>
+				{/await}
+			</div>
+		{/if}
+
+		{#if storageOpened}
+			<div hidden={tab !== "storage"}>
+				{#await import("./StoragePanel.svelte")}
+					<p role="status">Loading storage…</p>
+				{:then panel}
+					<panel.default {model} />
+				{:catch}
+					<p role="alert">
+						The storage view could not be loaded. Reopen the editor to try
 						again.
 					</p>
 				{/await}

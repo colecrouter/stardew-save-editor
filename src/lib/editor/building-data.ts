@@ -8,12 +8,10 @@ import type { Building } from "$types/save";
 import type { SaveDocument } from "./domain.ts";
 import { samePlainData } from "./plain-data.ts";
 
-export const record = (value: unknown): value is Record<string, unknown> =>
-	value !== null && typeof value === "object" && !Array.isArray(value);
+import { record, list, collection } from "./saved-collections.ts";
+export { record, list, collection, append } from "./saved-collections.ts";
 const empty = (value: unknown) =>
 	value === undefined || value === null || value === "";
-export const list = (value: unknown): unknown[] =>
-	empty(value) ? [] : Array.isArray(value) ? value : [value];
 export const long = (value: unknown): string | undefined =>
 	typeof value === "string" && /^-?\d+$/.test(value)
 		? value
@@ -23,21 +21,6 @@ export const long = (value: unknown): string | undefined =>
 export const integer = (value: unknown): value is number =>
 	typeof value === "number" && Number.isSafeInteger(value);
 
-/** Read XML empty/singleton/array collections without changing their saved shape. */
-export function collection(raw: unknown, key: string) {
-	const supported =
-		empty(raw) ||
-		(record(raw) &&
-			(empty(raw[key]) || Array.isArray(raw[key]) || record(raw[key])));
-	return { raw, entries: record(raw) ? list(raw[key]) : [], supported };
-}
-/** Deliberate insertion may expand a singleton; retained container members remain untouched. */
-export function append(raw: unknown, key: string, value: unknown) {
-	return {
-		...(record(raw) ? raw : {}),
-		[key]: [...collection(raw, key).entries, value],
-	};
-}
 export function residents(interior: Record<string, unknown> | undefined) {
 	const raw = interior?.animalsThatLiveHere;
 	const values = record(raw) ? list(raw.long) : [];

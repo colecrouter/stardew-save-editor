@@ -1,3 +1,5 @@
+import { compareInventoryItems, isInventoryTool } from "../inventory-order.ts";
+import { storageCapabilities, storageTypes } from "./storage-policy.ts";
 import { Result } from "effect";
 import type {
 	ResolvedMutation,
@@ -35,7 +37,10 @@ export type InventoryMutation = Extract<
 			| "item-move"
 			| "item-swap"
 			| "item-stack"
-			| "reorder";
+			| "reorder"
+			| "inventory-organize"
+			| "inventory-transfer"
+			| "chest-type";
 	}
 >;
 export function isInventoryMutation(
@@ -49,6 +54,9 @@ export function isInventoryMutation(
 		"item-swap",
 		"item-stack",
 		"reorder",
+		"inventory-organize",
+		"inventory-transfer",
+		"chest-type",
 	].includes(action.type);
 }
 const record = (value: unknown): value is Record<string, unknown> =>
@@ -78,6 +86,29 @@ export function applyInventoryMutation(
 	const owners = inventoryContainers(document);
 	const owner = owners.find((candidate) => candidate.id === action.ownerId);
 	if (!owner) return invalid("Inventory owner must resolve exactly once");
+	// A JSON-shaped engine graph may alias one raw chest at several owner paths.
+	// Structural edits cannot independently permute their separate lifetime maps;
+	// reject those affected owners rather than corrupting paired identities.
+	const distinct = (container: InventoryContainer) => {
+		if (container.kind !== "chest") return true;
+		const raw = container.storage?.raw;
+		return (
+			raw !== undefined &&
+			owners.filter((candidate) => candidate.storage?.raw === raw).length === 1
+		);
+	};
+	if (!distinct(owner))
+		return invalid("This storage is aliased at multiple saved paths");
+	if ("toOwnerId" in action) {
+		const destination = owners.find(
+			(candidate) => candidate.id === action.toOwnerId,
+		);
+		if (destination && !distinct(destination))
+			return invalid(
+				"The destination storage is aliased at multiple saved paths",
+			);
+	}
+
 	const opened = new Map<
 		string,
 		{ owner: InventoryContainer; pairs: Pair[] }
@@ -218,6 +249,149 @@ export function applyInventoryMutation(
 			...(working ? { inventory: working } : {}),
 		});
 	};
+	if (action.type === "inventory-organize") {
+		const pairs = pairsFor(owner);
+		if (
+			pairs.some(
+				(pair) =>
+					!identitiesAvailable(pair) ||
+					(!empty(pair.value) && !record(pair.value)),
+			)
+		)
+			return invalid("This inventory cannot be organized safely");
+		// Organizing an empty owner changes no order. Do not serialize its virtual
+		// display slots: that would normalize imported empties and discard Redo.
+		if (pairs.every((pair) => empty(pair.value)))
+			return Result.succeed({
+				label: `Organize ${owner.name}`,
+				review: "standalone",
+				...(working ? { inventory: working } : {}),
+			});
+
+		// Organize is a stable permutation only: each complete item/empty record
+		// travels with its own handle. Stack merging remains an independent feature.
+		const tools = pairs.filter(
+			(pair) =>
+				record(pair.value) && !empty(pair.value) && isInventoryTool(pair.value),
+		);
+		const rest = pairs.filter(
+			(pair) => !empty(pair.value) && !tools.includes(pair),
+		);
+		rest.sort((a, b) =>
+			record(a.value) && record(b.value)
+				? compareInventoryItems(a.value, b.value)
+				: 0,
+		);
+		opened.set(owner.id, {
+			owner,
+			pairs: [...tools, ...rest, ...pairs.filter((pair) => empty(pair.value))],
+		});
+		return finish(`Organize ${owner.name}`, "standalone");
+	}
+	if (action.type === "inventory-transfer") {
+		if (!inventory || !Array.isArray(action.sources) || !action.sources.length)
+			return invalid("Choose the items to transfer");
+		const seen = new Set<string>();
+		const moving: {
+			container: InventoryContainer;
+			slot: number;
+			pair: Pair;
+		}[] = [];
+		for (const source of action.sources) {
+			if (
+				!source ||
+				typeof source.ownerId !== "string" ||
+				typeof source.entityId !== "string" ||
+				seen.has(source.entityId)
+			)
+				return invalid("Selected item handles must be unique");
+			seen.add(source.entityId);
+			const container = owners.find(
+				(candidate) => candidate.id === source.ownerId,
+			);
+			const slot =
+				inventory.identities[source.ownerId]?.indexOf(source.entityId) ?? -1;
+			if (!container || slot < 0 || !distinct(container))
+				return invalid("A selected item no longer belongs to its inventory");
+			const pair = pairAt(container, slot);
+			if (empty(pair.value) || !record(pair.value))
+				return invalid("A selected item is no longer available");
+			if (container.id !== owner.id) moving.push({ container, slot, pair });
+		}
+		if (!moving.length)
+			return Result.succeed({
+				label: "Items already belong to this inventory",
+				review: "compact",
+				inventory,
+			});
+		const free = pairsFor(owner).flatMap((pair, index) =>
+			empty(pair.value) ? [index] : [],
+		);
+		if (moving.length > free.length)
+			return invalid(
+				`${moving.length} items need room; ${owner.name} has ${free.length} free slots`,
+			);
+		// Validate the complete batch before staging swaps. Empty markers move back
+		// to the source too, preserving any supported imported representation.
+		for (const [index, source] of moving.entries()) {
+			const target = free[index];
+			if (target === undefined)
+				throw new Error("Validated transfer has no destination");
+			const displaced = pairAt(owner, target);
+			put(owner, target, source.pair);
+			put(source.container, source.slot, displaced);
+		}
+		return finish(
+			`Transfer ${moving.length} items to ${owner.name}`,
+			"standalone",
+		);
+	}
+	if (action.type === "chest-type") {
+		const chest = owner.storage;
+		const target = storageTypes.find(
+			(candidate) => candidate.itemId === action.itemId,
+		);
+		const capability = chest && storageCapabilities(chest.raw, chest.source);
+		if (
+			!chest ||
+			!target ||
+			!capability ||
+			(!capability.typeId && !capability.miniShippingBin)
+		)
+			return invalid("This container's type cannot be changed");
+		if (
+			capability.miniShippingBin &&
+			(target.itemId !== "130" || capability.expansionReason)
+		)
+			return invalid(
+				capability.expansionReason ??
+					"Mini-Shipping Bins can only expand to a Chest",
+			);
+		const pairs = pairsFor(owner),
+			occupied = pairs.filter((pair) => !empty(pair.value)),
+			empties = pairs.filter((pair) => empty(pair.value));
+		if (occupied.length > target.capacity)
+			return invalid(
+				`${occupied.length} items do not fit in ${target.capacity} slots`,
+			);
+		if (inventory && pairs.some((pair) => !identitiesAvailable(pair)))
+			return invalid("Inventory identities are unavailable");
+		// Keep every occupied lifetime. Growth allocates only new empty handles;
+		// shrinking drops surplus virtual empties, which Undo restores exactly.
+		const arranged = [...occupied, ...empties].slice(0, target.capacity);
+		while (arranged.length < target.capacity)
+			arranged.push({ value: undefined, id: fresh() });
+		Object.assign(chest.raw, {
+			itemId: target.itemId,
+			name: target.name,
+			parentSheetIndex: target.spriteIndex,
+			specialChestType: target.special,
+			currentLidFrame: target.spriteIndex + 1,
+		});
+		opened.set(owner.id, { owner, pairs: arranged });
+		return finish(`Change container to ${target.name}`, "standalone");
+	}
+
 	if (action.type === "reorder") {
 		if (!owner.farmer) return invalid("Only farmer backpacks can be reordered");
 		const pairs = pairsFor(owner);

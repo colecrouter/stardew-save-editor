@@ -398,7 +398,7 @@ export const makeHistorySession = (
 			);
 		};
 
-		const update = <E = never, R = never>(
+		const updateCommitted = <E = never, R = never>(
 			change: (state: History) => History | Effect.Effect<History, E, R>,
 			expectedRevision?: number,
 			editKey?: string,
@@ -460,7 +460,9 @@ export const makeHistorySession = (
 						// revision, but still needs publication into the authoritative ref.
 						if (published !== current)
 							yield* TxSubscriptionRef.set(ref, published);
-						return detached(published);
+						// Return this attempt's exact result; a later ref read could already
+						// observe another command or Undo. Delivery happens outside this tx.
+						return published;
 					}),
 				),
 			);
@@ -485,259 +487,285 @@ export const makeHistorySession = (
 			const { editGroup: _group, ...visible } = state;
 			return structuredClone(visible);
 		};
-		// Each subscription owns its revision cursor and returns detached mutable
-		// snapshots. A consumer can acknowledge revisions delivered by another path;
-		// only those already-observed revisions are skipped before the costly copy.
-		const changesAfter = (publishedRevision: () => number | undefined) =>
-			Stream.unwrap(
-				Effect.sync(() => {
-					// Each subscription retains only a revision number. Retaining the last
-					// History here would keep a closed gesture's baseline document alive.
-					let revision: number | undefined;
-					return TxSubscriptionRef.changesStream(ref).pipe(
-						Stream.filter((state) => {
-							// Group closure changes only private metadata. Filtering unchanged
-							// revisions here keeps blur from copying the whole save again.
-							if (state.revision === revision) return false;
-							revision = state.revision;
-							// Commands also publish their detached result directly. Consult the
-							// consumer cursor before copying a revision it has already displayed.
-							const published = publishedRevision();
-							return published === undefined || state.revision > published;
-						}),
-						Stream.map(detached),
-					);
-				}),
-			);
-		return {
-			endEdit,
-			snapshot: Effect.map(TxSubscriptionRef.get(ref), detached),
-			changes: changesAfter(() => undefined),
-			/** Detached changes newer than this consumer's already-published revision. */
-			changesAfter,
-
-			// A group has one undo boundary and one review emphasis. Each constituent
-			// intent remains inspectable; a quiet operation never disappears from patches.
-			execute: (
-				actions: readonly Mutation[],
-				label?: string,
-				expectedRevision?: number,
-			) =>
-				update(
-					(state) =>
-						Effect.gen(function* () {
-							if (actions.length === 0) return state;
-							// A replaceable adapter may stage in-place writes. Never give it
-							// references to published state, including before a later failure.
-							let prepared: SessionState = {
-								document: structuredClone(state.document),
-								domainState: structuredClone(state.domainState),
-								history: [] as Receipt[],
-								inventory: structuredClone({
-									identities: state.identities,
-									equipmentIdentities: state.equipmentIdentities,
-									nextIdentity: state.nextIdentity,
-								}),
-							};
-							let identities = state.identities;
-							let equipmentIdentities = state.equipmentIdentities;
-							let nextIdentity = state.nextIdentity;
-							const resolved: Mutation[] = [];
-							for (const requested of structuredClone(actions)) {
-								let action: Mutation = requested;
-								// Backpack actions resolve their instances inside this queue turn.
-								// A stale view cannot target a replacement by its old slot index.
-								if (
-									requested.type === "backpack-add" ||
-									requested.type === "backpack-remove"
-								) {
-									action = yield* resolveBackpackLifecycle(
-										prepared.document,
-										identities,
-										requested,
-									);
-								}
-								if (requested.type === "backpack-move") {
-									// Validate source and destination handles together before preparing
-									// an atomic record/identity swap in this same queue turn.
-									action = yield* resolveBackpackMove(
-										prepared.document,
-										identities,
-										requested,
-										equipmentIdentities,
-									);
-								}
-								if (
-									(requested.type === "item-stack" ||
-										requested.type === "item-remove" ||
-										requested.type === "item-move") &&
-									requested.entityId !== undefined
-								) {
-									const slot =
-										identities[requested.farmerId]?.indexOf(
-											requested.entityId,
-										) ?? -1;
-									if (slot < 0)
-										return yield* new MutationError(
-											"Item no longer belongs to this farmer",
-										);
-									action = { ...requested, slot };
-								}
-								// Operations prepare records and session lifetimes together. History
-								// validates publication data but never replays slot semantics.
-								const previousDomain = prepared.domainState ?? {};
-								const previousInventory = prepared.inventory;
-
-								const result = yield* operations.prepare(prepared, action);
-								if (
-									!result.inventory &&
-									previousInventory &&
-									isInventoryMutation(action)
-								)
-									return yield* new MutationError(
-										"Inventory adapters must prepare record and identity changes together",
-									);
-								prepared = {
-									...result,
-									domainState: result.domainState ?? previousDomain,
-									inventory: result.inventory ?? previousInventory,
-								};
-								if (
-									!Schema.is(Schema.Json)(prepared.document) ||
-									!isDomainState(prepared.domainState)
-								)
-									return yield* new MutationError(
-										"Prepared document and domain state require plain JSON data",
-									);
-								if (prepared.inventory) {
-									identities = prepared.inventory.identities;
-									equipmentIdentities = prepared.inventory.equipmentIdentities;
-									nextIdentity = prepared.inventory.nextIdentity;
-								}
-								resolved.push(action);
-							}
-							return yield* Effect.fromResult(
-								finish(
-									state,
-									prepared,
-									identities,
-									nextIdentity,
-									resolved,
-									label,
-									[],
-									equipmentIdentities,
-								),
-							);
-						}),
-
-					expectedRevision,
-				),
-			// Program error types are inferred locally, not enumerated centrally.
-			// Allocate both draft and journal inside the transaction attempt so a
-			// retry, interruption or failed child publishes no partial metadata.
-			transact: <A, E, R>(
-				program: Effect.Effect<
-					A,
-					E,
-					R | TransactionDraft | ReviewJournal | BackpackItemEdits
-				>,
+		// Define operation preparation once. Public delivery detaches full snapshots;
+		// the owner projection channel converts the exact successful result instead.
+		const commandsWith = <Delivered>(
+			deliver: (state: History) => Delivered,
+		) => {
+			const update = <E = never, R = never>(
+				change: (state: History) => History | Effect.Effect<History, E, R>,
 				expectedRevision?: number,
 				editKey?: string,
 			) =>
-				update(
-					(state) =>
-						Effect.gen(function* () {
-							const draft = makeTransactionDraftFromCommitted({
-								document: state.document,
-								domainState: state.domainState,
-								history: [],
-							});
-							const itemEdits = makeBackpackItemEdits(
-								draft,
-								state.identities,
-								state.document,
-								state.equipmentIdentities,
-								state.nextIdentity,
-							);
-							const { collected, prepared, authorized, inventory } =
-								yield* collectTransactionMetadata(program).pipe(
-									Effect.provideService(TransactionDraft, draft.service),
-									Effect.provideService(BackpackItemEdits, itemEdits.service),
-									// Take the result before close clears retained service state.
-									// Escaped capability handles must not retain an abandoned save.
-									Effect.flatMap((collected) =>
-										Effect.map(draft.prepared, (prepared) => ({
-											collected,
-											inventory: itemEdits.inventory(),
-											prepared,
-											// Validate while the attempt still owns its patch/read authority;
-											// close then clears those retained values before publication.
-											authorized: itemEdits.validate(
-												prepared.document,
-												state.document,
-											),
-										})),
-									),
-									Effect.ensuring(draft.close),
-									Effect.ensuring(itemEdits.close),
-								);
-							// A prepared snapshot must match the exact approved inventory patches
-							// and context reads captured before the attempt was closed.
-							if (!authorized)
-								return yield* new MutationError(
-									"Inventory changes or game context did not match the supported item operation",
-								);
-							// Inventory capabilities return the same paired transition contract as
-							// actions. History owns publication, never slot allocation/replay.
+				Effect.map(updateCommitted(change, expectedRevision, editKey), deliver);
+			// Each subscription owns its revision cursor. A consumer can acknowledge
+			// revisions delivered by another path before copying or projecting them.
+			const changesAfter = (publishedRevision: () => number | undefined) =>
+				Stream.unwrap(
+					Effect.sync(() => {
+						// Each subscription retains only a revision number. Retaining the last
+						// History here would keep a closed gesture's baseline document alive.
+						let revision: number | undefined;
+						return TxSubscriptionRef.changesStream(ref).pipe(
+							Stream.filter((state) => {
+								// Group closure changes only private metadata. Filtering unchanged
+								// revisions here keeps blur from copying the whole save again.
+								if (state.revision === revision) return false;
+								revision = state.revision;
+								// Commands can also publish their result directly. Consult the
+								// consumer cursor before copying a revision it has already displayed.
+								const published = publishedRevision();
+								return published === undefined || state.revision > published;
+							}),
+							Stream.map(deliver),
+						);
+					}),
+				);
+			return {
+				endEdit,
+				snapshot: Effect.map(TxSubscriptionRef.get(ref), deliver),
+				changes: changesAfter(() => undefined),
+				/** Changes newer than this consumer's already-published revision. */
+				changesAfter,
 
-							return yield* Effect.fromResult(
-								finishEdit(
-									state,
-									prepared,
-									collected.records,
-									editKey,
-									inventory.identities,
-									inventory.nextIdentity,
-								),
-							);
-						}),
-					expectedRevision,
-					editKey,
-				),
-			undo: update((state) => {
-				if (state.cursor === 0) return state;
-				const entry = state.entries[state.cursor - 1];
-				if (!entry) throw new Error("Undo cursor has no history entry");
-				return {
-					...state,
-					identities: entry.identitiesBefore,
-					equipmentIdentities: entry.equipmentBefore,
-					domainState: entry.domainBefore,
-					document: applyDocumentPatch(entry.backward, state.document),
-					cursor: state.cursor - 1,
-				};
-			}),
-			redo: update((state) => {
-				if (state.cursor === state.entries.length) return state;
-				const entry = state.entries[state.cursor];
-				if (!entry) throw new Error("Redo cursor has no history entry");
-				return {
-					...state,
-					identities: entry.identitiesAfter,
-					equipmentIdentities: entry.equipmentAfter,
-					domainState: entry.domainAfter,
-					document: applyDocumentPatch(entry.forward, state.document),
-					cursor: state.cursor + 1,
-				};
-			}),
-			review: Effect.map(TxSubscriptionRef.get(ref), (state) =>
-				structuredClone({
-					// Original import survives history eviction, so export review remains complete.
-					net: state.net,
-					entries: state.entries.slice(0, state.cursor),
-					dropped: state.dropped,
+				// A group has one undo boundary and one review emphasis. Each constituent
+				// intent remains inspectable; a quiet operation never disappears from patches.
+				execute: (
+					actions: readonly Mutation[],
+					label?: string,
+					expectedRevision?: number,
+				) =>
+					update(
+						(state) =>
+							Effect.gen(function* () {
+								if (actions.length === 0) return state;
+								// A replaceable adapter may stage in-place writes. Never give it
+								// references to published state, including before a later failure.
+								let prepared: SessionState = {
+									document: structuredClone(state.document),
+									domainState: structuredClone(state.domainState),
+									history: [] as Receipt[],
+									inventory: structuredClone({
+										identities: state.identities,
+										equipmentIdentities: state.equipmentIdentities,
+										nextIdentity: state.nextIdentity,
+									}),
+								};
+								let identities = state.identities;
+								let equipmentIdentities = state.equipmentIdentities;
+								let nextIdentity = state.nextIdentity;
+								const resolved: Mutation[] = [];
+								for (const requested of structuredClone(actions)) {
+									let action: Mutation = requested;
+									// Backpack actions resolve their instances inside this queue turn.
+									// A stale view cannot target a replacement by its old slot index.
+									if (
+										requested.type === "backpack-add" ||
+										requested.type === "backpack-remove"
+									) {
+										action = yield* resolveBackpackLifecycle(
+											prepared.document,
+											identities,
+											requested,
+										);
+									}
+									if (requested.type === "backpack-move") {
+										// Validate source and destination handles together before preparing
+										// an atomic record/identity swap in this same queue turn.
+										action = yield* resolveBackpackMove(
+											prepared.document,
+											identities,
+											requested,
+											equipmentIdentities,
+										);
+									}
+									if (
+										(requested.type === "item-stack" ||
+											requested.type === "item-remove" ||
+											requested.type === "item-move") &&
+										requested.entityId !== undefined
+									) {
+										const slot =
+											identities[requested.farmerId]?.indexOf(
+												requested.entityId,
+											) ?? -1;
+										if (slot < 0)
+											return yield* new MutationError(
+												"Item no longer belongs to this farmer",
+											);
+										action = { ...requested, slot };
+									}
+									// Operations prepare records and session lifetimes together. History
+									// validates publication data but never replays slot semantics.
+									const previousDomain = prepared.domainState ?? {};
+									const previousInventory = prepared.inventory;
+
+									const result = yield* operations.prepare(prepared, action);
+									if (
+										!result.inventory &&
+										previousInventory &&
+										isInventoryMutation(action)
+									)
+										return yield* new MutationError(
+											"Inventory adapters must prepare record and identity changes together",
+										);
+									prepared = {
+										...result,
+										domainState: result.domainState ?? previousDomain,
+										inventory: result.inventory ?? previousInventory,
+									};
+									if (
+										!Schema.is(Schema.Json)(prepared.document) ||
+										!isDomainState(prepared.domainState)
+									)
+										return yield* new MutationError(
+											"Prepared document and domain state require plain JSON data",
+										);
+									if (prepared.inventory) {
+										identities = prepared.inventory.identities;
+										equipmentIdentities =
+											prepared.inventory.equipmentIdentities;
+										nextIdentity = prepared.inventory.nextIdentity;
+									}
+									resolved.push(action);
+								}
+								return yield* Effect.fromResult(
+									finish(
+										state,
+										prepared,
+										identities,
+										nextIdentity,
+										resolved,
+										label,
+										[],
+										equipmentIdentities,
+									),
+								);
+							}),
+
+						expectedRevision,
+					),
+				// Program error types are inferred locally, not enumerated centrally.
+				// Allocate both draft and journal inside the transaction attempt so a
+				// retry, interruption or failed child publishes no partial metadata.
+				transact: <A, E, R>(
+					program: Effect.Effect<
+						A,
+						E,
+						R | TransactionDraft | ReviewJournal | BackpackItemEdits
+					>,
+					expectedRevision?: number,
+					editKey?: string,
+				) =>
+					update(
+						(state) =>
+							Effect.gen(function* () {
+								const draft = makeTransactionDraftFromCommitted({
+									document: state.document,
+									domainState: state.domainState,
+									history: [],
+								});
+								const itemEdits = makeBackpackItemEdits(
+									draft,
+									state.identities,
+									state.document,
+									state.equipmentIdentities,
+									state.nextIdentity,
+								);
+								const { collected, prepared, authorized, inventory } =
+									yield* collectTransactionMetadata(program).pipe(
+										Effect.provideService(TransactionDraft, draft.service),
+										Effect.provideService(BackpackItemEdits, itemEdits.service),
+										// Take the result before close clears retained service state.
+										// Escaped capability handles must not retain an abandoned save.
+										Effect.flatMap((collected) =>
+											Effect.map(draft.prepared, (prepared) => ({
+												collected,
+												inventory: itemEdits.inventory(),
+												prepared,
+												// Validate while the attempt still owns its patch/read authority;
+												// close then clears those retained values before publication.
+												authorized: itemEdits.validate(
+													prepared.document,
+													state.document,
+												),
+											})),
+										),
+										Effect.ensuring(draft.close),
+										Effect.ensuring(itemEdits.close),
+									);
+								// A prepared snapshot must match the exact approved inventory patches
+								// and context reads captured before the attempt was closed.
+								if (!authorized)
+									return yield* new MutationError(
+										"Inventory changes or game context did not match the supported item operation",
+									);
+								// Inventory capabilities return the same paired transition contract as
+								// actions. History owns publication, never slot allocation/replay.
+
+								return yield* Effect.fromResult(
+									finishEdit(
+										state,
+										prepared,
+										collected.records,
+										editKey,
+										inventory.identities,
+										inventory.nextIdentity,
+									),
+								);
+							}),
+						expectedRevision,
+						editKey,
+					),
+				undo: update((state) => {
+					if (state.cursor === 0) return state;
+					const entry = state.entries[state.cursor - 1];
+					if (!entry) throw new Error("Undo cursor has no history entry");
+					return {
+						...state,
+						identities: entry.identitiesBefore,
+						equipmentIdentities: entry.equipmentBefore,
+						domainState: entry.domainBefore,
+						document: applyDocumentPatch(entry.backward, state.document),
+						cursor: state.cursor - 1,
+					};
 				}),
-			),
+				redo: update((state) => {
+					if (state.cursor === state.entries.length) return state;
+					const entry = state.entries[state.cursor];
+					if (!entry) throw new Error("Redo cursor has no history entry");
+					return {
+						...state,
+						identities: entry.identitiesAfter,
+						equipmentIdentities: entry.equipmentAfter,
+						domainState: entry.domainAfter,
+						document: applyDocumentPatch(entry.forward, state.document),
+						cursor: state.cursor + 1,
+					};
+				}),
+				review: Effect.map(TxSubscriptionRef.get(ref), (state) =>
+					structuredClone({
+						// Original import survives history eviction, so export review remains complete.
+						net: state.net,
+						entries: state.entries.slice(0, state.cursor),
+						dropped: state.dropped,
+					}),
+				),
+			};
+		};
+		return {
+			...commandsWith(detached),
+			/** Owner-only result projection for the model bridge. The synchronous
+			 * projector must neither mutate nor retain the borrowed source, and its
+			 * output must contain only detached presentation data or scalar receipts.
+			 * Keep it pure: an enclosing Effect.tx may retry projection too. Publish
+			 * UI effects only after the complete command succeeds. */
+			forProjection: <A>(project: (state: HistoryState) => A) =>
+				commandsWith((state) => {
+					// Gesture baselines are private retention state, never projection input.
+					const { editGroup: _group, ...visible } = state;
+					return project(visible);
+				}),
 		};
 	});
 
@@ -745,4 +773,4 @@ export const makeHistorySession = (
 export type HistorySession = Effect.Success<
 	ReturnType<typeof makeHistorySession>
 >;
-export type HistoryState = Effect.Success<HistorySession["snapshot"]>;
+export type HistoryState = Omit<History, "editGroup">;

@@ -124,39 +124,40 @@ export const setFarmSettings = Effect.fn("Farm.setSettings")(function* (
 	const change = decoded.success;
 	const keys = Object.keys(change);
 	const transaction = yield* TransactionDraft;
-	const snapshot = yield* transaction.read;
-	const game = snapshot.state.document.SaveGame as unknown as Save;
 	let changed = false;
-	// Name and sale-price multiplier are mirrored on each serialized farmer. Keep
-	// unclaimed cabin records and their opaque fields rather than rebuilding them.
-	for (const farmer of farmers(snapshot.state.document)) {
-		if (change.name !== undefined && farmer.farmName !== change.name) {
-			farmer.farmName = change.name;
-			changed = true;
+	yield* transaction.mutate((state) => {
+		const game = state.document.SaveGame as unknown as Save;
+		// Name and sale-price multiplier are mirrored on each serialized farmer. Keep
+		// unclaimed cabin records and their opaque fields rather than rebuilding them.
+		for (const farmer of farmers(state.document)) {
+			if (change.name !== undefined && farmer.farmName !== change.name) {
+				farmer.farmName = change.name;
+				changed = true;
+			}
+			const player = farmer as unknown as Save["player"];
+			if (
+				change.profitPercent !== undefined &&
+				player.difficultyModifier !== change.profitPercent / 100
+			) {
+				player.difficultyModifier = change.profitPercent / 100;
+				changed = true;
+			}
 		}
-		const player = farmer as unknown as Save["player"];
 		if (
-			change.profitPercent !== undefined &&
-			player.difficultyModifier !== change.profitPercent / 100
+			change.monsters !== undefined &&
+			game.shouldSpawnMonsters !== change.monsters
 		) {
-			player.difficultyModifier = change.profitPercent / 100;
+			game.shouldSpawnMonsters = change.monsters;
 			changed = true;
 		}
-	}
-	if (
-		change.monsters !== undefined &&
-		game.shouldSpawnMonsters !== change.monsters
-	) {
-		game.shouldSpawnMonsters = change.monsters;
-		changed = true;
-	}
-	if (
-		change.mineRewards !== undefined &&
-		game.shuffleMineChests !== change.mineRewards
-	) {
-		game.shuffleMineChests = change.mineRewards;
-		changed = true;
-	}
+		if (
+			change.mineRewards !== undefined &&
+			game.shuffleMineChests !== change.mineRewards
+		) {
+			game.shuffleMineChests = change.mineRewards;
+			changed = true;
+		}
+	});
 	// A no-op contributes neither patches nor misleading review annotations.
 	if (!changed) return;
 	const labels = [
@@ -165,7 +166,7 @@ export const setFarmSettings = Effect.fn("Farm.setSettings")(function* (
 		change.monsters !== undefined ? "monster spawning" : "",
 		change.mineRewards !== undefined ? "mine rewards" : "",
 	].filter(Boolean);
-	yield* recordAnnotatedOperation(transaction.replace(snapshot)).pipe(
+	yield* recordAnnotatedOperation(Effect.void).pipe(
 		withReviewMetadata({
 			label: `Update ${labels.join(", ")}`,
 			emphasis: "standalone",

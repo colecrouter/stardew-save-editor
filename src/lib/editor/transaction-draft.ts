@@ -1,4 +1,6 @@
 import { Context, Effect, Schema, JsonPatch } from "effect";
+import { create as createCopyOnWrite } from "mutative";
+import { freezeDraftState } from "./draft-state.ts";
 import { MutationError, type SessionState } from "./domain.ts";
 
 // A domain operation receives a detached snapshot and submits its replacement
@@ -12,6 +14,13 @@ export class TransactionDraft extends Context.Service<
 	TransactionDraft,
 	{
 		read: Effect.Effect<DraftSnapshot, MutationError>;
+		/** Synchronously edit private staging. Do not retain the writer or run effects
+		 * inside it. Expected failures belong in the surrounding Effect program.
+		 * Use ordinary JSON writes: cycles and frozen containers holding writers
+		 * are recipe defects, not supported snapshot construction patterns. */
+		mutate: (
+			recipe: (state: SessionState) => undefined,
+		) => Effect.Effect<void, MutationError>;
 		replace: (snapshot: DraftSnapshot) => Effect.Effect<void, MutationError>;
 	}
 >()("v2/TransactionDraft") {}
@@ -19,6 +28,7 @@ export class TransactionDraft extends Context.Service<
 /**
  * Create one transaction attempt's isolated, versioned staging capability.
  * Reads are detached snapshots; replacement checks their captured version.
+ * Opt-in mutate callbacks are synchronous temporary writers, never snapshot values.
  * The owner must finalize `close` after capture or failure so escaped services
  * cannot retain or update an abandoned draft. This does not publish a commit.
  */
@@ -29,8 +39,8 @@ export function makeTransactionDraft(initial: SessionState) {
 }
 
 /** History-only construction from a stable, session-owned committed snapshot.
- * The owner must not mutate this baseline. Programs still receive detached reads;
- * no service method exposes or mutates the borrowed committed objects. */
+ * The owner must not mutate this baseline; synchronous mutation may deeply freeze
+ * these owned objects. Ordinary reads still return detached mutable snapshots. */
 export function makeTransactionDraftFromCommitted(initial: SessionState) {
 	return stageTransactionDraft(initial);
 }
@@ -49,6 +59,78 @@ function stageTransactionDraft(initial: SessionState) {
 	return {
 		service: {
 			read,
+			mutate: Effect.fn("TransactionDraft.mutate")(function* (
+				recipe: (state: SessionState) => undefined,
+			) {
+				if (!active || !state)
+					return yield* new MutationError("This transaction draft is closed");
+				const before = state;
+				const capturedVersion = version;
+				const run = (writer: SessionState) => {
+					// Reject replacement/async recipes inside the producer so its
+					// failure path revokes the temporary writer before returning.
+					if (recipe(writer) !== undefined)
+						throw new Error(
+							"Draft mutations must be synchronous and return no value",
+						);
+				};
+				let next: SessionState;
+				if (freezeDraftState(before)) {
+					// Freezing protects owned branches even from reflective access.
+					// Keep auto-freeze off: caller-inserted objects must remain theirs.
+					// Keep Mutative's recursive mapped type outside the raw DTO's recursive
+					// unions. This boundary preserves the same SessionState root shape.
+					const base: object = before;
+					const [prepared, assignments] = createCopyOnWrite(
+						base,
+						(writer) => run(writer as SessionState),
+						{
+							enablePatches: true,
+							enableAutoFreeze: false,
+						},
+					);
+					// Validate assigned values even if a structural diff would treat
+					// an incompatible replacement as equal. Never walk the proxy graph.
+					if (!Schema.is(Schema.Json)(assignments))
+						return yield* new MutationError(
+							"Transaction drafts require plain JSON state",
+						);
+					next = prepared as SessionState;
+				} else {
+					// Copy-on-write assumes a tree. Preserve existing alias-driven
+					// mutation behavior for valid JSON DAGs through the detached path.
+					next = structuredClone(before);
+					run(next);
+					if (!Schema.is(Schema.Json)(next))
+						return yield* new MutationError(
+							"Transaction drafts require plain JSON state",
+						);
+				}
+				// A recipe normally cannot yield. This guard also rejects reentrant
+				// service calls or close() invoked synchronously from its callback.
+				if (!active || version !== capturedVersion)
+					return yield* new MutationError(
+						"Another operation changed this transaction draft",
+					);
+				// Effect owns patch semantics, including sparse-array rejection and
+				// signed zero. Library patches are validation evidence, not replay data.
+				const patch = JsonPatch.get(
+					before as unknown as Schema.Json,
+					next as unknown as Schema.Json,
+				);
+				if (!Schema.is(Schema.Json)(patch))
+					return yield* new MutationError(
+						"Transaction drafts require plain JSON state",
+					);
+				if (patch.length === 0) return;
+				// Foreign inserted values must be detached before any become owned;
+				// unchanged branches remain shared inside the stable staging boundary.
+				state = JsonPatch.apply(
+					structuredClone(patch),
+					before as unknown as Schema.Json,
+				) as unknown as SessionState;
+				version++;
+			}),
 			replace: Effect.fn("TransactionDraft.replace")(function* (
 				next: DraftSnapshot,
 			) {

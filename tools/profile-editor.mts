@@ -263,6 +263,8 @@ async function scenario(name: string, bytes: Uint8Array) {
 const sourcePaths = [
 	"src/app.html",
 	"src/lib/editor/plain-data.ts",
+	"src/lib/editor/draft-state.ts",
+	"src/lib/editor/farm-operations.ts",
 	"src/lib/editor/transaction-draft.ts",
 	"src/lib/editor/history.ts",
 	"src/lib/editor/editor-model.ts",

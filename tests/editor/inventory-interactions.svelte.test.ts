@@ -156,3 +156,52 @@ it("accepts a keyboard click after touch drag while suppressing the synthetic po
 		await opened.close();
 	}
 });
+
+// A finger can still be held when the user leaves the editor. Teardown owns
+// the edge-scroll frame, and even an already-dispatched callback must not rearm it.
+it("releases a held touch drag's animation loop on unmount", async () => {
+	const opened = await openEditor(new TextEncoder().encode(fixtureXml));
+	const page = render(BackpackHarness, { model: opened.model });
+	const frames = new Map<number, FrameRequestCallback>();
+	let next = 1;
+	const request = vi
+		.spyOn(globalThis, "requestAnimationFrame")
+		.mockImplementation((callback) => {
+			const id = next++;
+			frames.set(id, callback);
+			return id;
+		});
+	const cancel = vi
+		.spyOn(globalThis, "cancelAnimationFrame")
+		.mockImplementation((id) => {
+			frames.delete(id);
+		});
+	try {
+		const source = page.getByRole("button", { name: "Slot 5: Parsnip" });
+		await fireEvent.pointerDown(source, {
+			pointerId: 27,
+			pointerType: "touch",
+			clientX: 10,
+			clientY: 100,
+		});
+		await fireEvent.pointerMove(source, {
+			pointerId: 27,
+			pointerType: "touch",
+			clientX: 70,
+			clientY: 100,
+		});
+		expect(frames.size).toBe(1);
+		const dispatched = frames.values().next().value;
+		if (!dispatched) throw new Error("Expected a held-drag frame");
+		page.unmount();
+		expect(cancel).toHaveBeenCalledOnce();
+		expect(frames.size).toBe(0);
+		dispatched(0);
+		expect(request).toHaveBeenCalledOnce();
+	} finally {
+		page.unmount();
+		request.mockRestore();
+		cancel.mockRestore();
+		await opened.close();
+	}
+});

@@ -175,25 +175,21 @@
 				<a href={legacyHref}>Open the legacy editor</a>
 			{/if}
 			<p>
-				Keep a backup. Select the main farm save, not SaveGameInfo. Downloaded
-				saves keep their original name without adding an extension.
+				Keep a backup. Select the main farm save, not SaveGameInfo. Export uses
+				the original filename; your browser may add a duplicate suffix.
 			</p>
 			<details>
 				<summary>Finding and replacing your save</summary>
 				<p>
-					Windows: %AppData%\StardewValley\Saves. macOS: ~/Library/Application
-					Support/StardewValley/Saves. Linux: ~/.config/StardewValley/Saves.
+					Close the game before replacing its main save. Keep the original
+					folder and companion files until you have checked the edited save
+					in-game.
 				</p>
-				<p>
-					On iOS, use Files → On My iPhone/iPad → Stardew Valley. Android save
-					access depends on the device and game installation. Use your device’s
-					file manager or connect it to a computer.
-				</p>
-				<p>
-					After downloading, close Stardew Valley and copy the file back into
-					the same save folder with its original name. Keep the original until
-					you have loaded and checked the edited save in game.
-				</p>
+				<a
+					href="https://github.com/colecrouter/stardew-save-editor/blob/v2/SUPPORT.md"
+				>
+					Save locations and replacement guide
+				</a>
 			</details>
 			<label>
 				Save file

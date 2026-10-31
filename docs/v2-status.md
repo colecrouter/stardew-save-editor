@@ -1,7 +1,7 @@
 # V2 status and working conventions
 
-This is the current entry point after migrations through #200 (`10b0619`) and
-the quality cleanup following #194. Earlier audit reports are dated snapshots,
+This is the current entry point after core UI porting in #217 and the initial
+visual/lifecycle passes in #221–#224. Earlier audit reports are dated snapshots,
 not active migration checklists.
 
 ## Application coverage

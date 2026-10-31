@@ -75,40 +75,14 @@
 			</div>
 			<input type="submit" value="Upload" bind:this={submit} hidden />
 			<small>
-				Default save locations:
-				<ul>
-					<li>
-						<span class="noselect">Windows:</span>
-						<code>%appdata%\StardewValley\Saves </code>
-					</li>
-					<li>
-						<span class="noselect">Mac:</span><code>
-							~/Library/Application Support/StardewValley/Saves
-						</code>
-					</li>
-					<li>
-						<span class="noselect">Linux:</span>
-						<code>~/.config/StardewValley/Saves</code>
-					</li>
-					<li>
-						<span class="noselect">*Android:</span>
-						<code>
-							/Android/data/com.chucklefish.stardewvalley/files/Saves
-						</code>
-					</li>
-					<li>
-						<span class="noselect">iOS:</span>
-						<code> Locations -> On My iPhone/iPad -> Stardew Valley </code>
-					</li>
-				</ul>
-
-				<p style="font-size: 0.8em">
-					*On Android 14 or later, the apps folder is hidden. You can use an app
+				<p>
+					For desktop and mobile save locations, file access limits and
+					replacement steps, see the
 					<a
-						href="https://play.google.com/store/apps/details?id=com.marc.files"
-						target="_blank"
-						rel="noopener noreferrer">such as this one</a
-					> to access it.
+						href="https://github.com/colecrouter/stardew-save-editor/blob/v2/SUPPORT.md"
+					>
+						save guide
+					</a>. Its Review and Undo instructions apply to v2.
 				</p>
 
 				<div class="warning">
@@ -195,24 +169,6 @@
 		pointer-events: none;
 		touch-action: none;
 		backdrop-filter: brightness(0.75);
-	}
-
-	ul {
-		list-style: none;
-		padding: 0;
-	}
-
-	li {
-		margin-top: 0.3em;
-		white-space: nowrap;
-	}
-
-	li span {
-		margin-right: 0.5em;
-	}
-
-	.noselect {
-		user-select: none;
 	}
 
 	.warning {

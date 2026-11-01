@@ -68,7 +68,9 @@
 	.inner-wrapper {
 		--nav-width: 212px;
 		display: grid;
-		grid-template-columns: var(--nav-width) 21px minmax(0, 1fr);
+		/* The 7px post has a transparent pixel on either side. Allocate its
+		   five opaque pixels at 3x; the clear edges overlap the adjacent surfaces. */
+		grid-template-columns: var(--nav-width) 15px minmax(0, 1fr);
 		flex: 1;
 		min-height: 0;
 	}
@@ -84,6 +86,9 @@
 		z-index: 6;
 		margin-top: -12px;
 		margin-bottom: -9px;
+		/* Preserve the full 21px artwork and its integer scale while painting
+		   its transparent outer columns over the tab and parchment, not backing. */
+		margin-inline: -3px;
 	}
 	.mobile-rail {
 		display: none;

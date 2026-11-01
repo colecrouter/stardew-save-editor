@@ -3,6 +3,8 @@
 	// component has been loaded in this session. Theme rules refine these tokens.
 	import "../../ui/controls.css";
 	import { Result } from "effect";
+	import { untrack } from "svelte";
+	import { formatDate } from "../../calendar.ts";
 	import type { CommandResult } from "../command-result.ts";
 	import CommandToasts from "./CommandToasts.svelte";
 	import { useAtomValue } from "effect-atom-svelte";
@@ -44,6 +46,18 @@
 	// Hooks subscribe through the nearest file provider. Keep the accessor object:
 	// destructuring .current would capture a stale non-reactive value.
 	const view = useAtomValue(() => model.atomBindings.view);
+	// This keyed workspace mounts once per imported file. Capture only display
+	// strings from its initial domain view so edits and farmer selection cannot
+	// rewrite the identity used to recognize the original save.
+	const importedIdentity = untrack(() => {
+		const initial = view.current;
+		if (!initial) return undefined;
+		return {
+			farm: initial.farm.name || "Unnamed",
+			farmer: initial.farmerChoices[0]?.name || "Unnamed farmer",
+			date: formatDate(initial.calendar.date),
+		};
+	});
 	// The workspace owns the draft across section navigation. Keeping its panels
 	// mounted preserves input and lets external revisions mark conflicts visibly.
 	const dateDraft = createRuneDraft(() => model.dateField);
@@ -129,8 +143,23 @@
 	<EditorShell {onclose}>
 		{#snippet header()}
 			<header class="toolbar">
-				<strong>Stardew Save Editor - V2</strong>
-				<span>{filename}</span>
+				<div class="save-heading">
+					<strong>Stardew Save Editor - V2</strong>
+
+					<!-- Wrap identity parts independently on phones; retain the source
+					     filename as secondary text rather than another toolbar control. -->
+					{#if importedIdentity}
+						<div class="save-identity" role="group" aria-label="Imported save">
+							<span>{importedIdentity.farm} Farm</span>
+
+							<span>{importedIdentity.farmer}</span>
+
+							<span>{importedIdentity.date}</span>
+						</div>
+					{/if}
+
+					<div class="source-file" title={filename}>{filename}</div>
+				</div>
 				<!-- History commands queue after a field's blur commit, preserving
 				     the same click rather than disabling its target mid-gesture. -->
 				<div class="buttons">
@@ -333,10 +362,22 @@
 	.toolbar strong {
 		font-family: "Pixelify Sans", sans-serif;
 		font-size: 23px;
-		margin-right: auto;
 	}
-	.toolbar span {
-		max-width: 180px;
+	.save-heading {
+		flex: 1 1 300px;
+		min-width: 0;
+	}
+	.save-identity {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 2px 12px;
+		font-size: 15px;
+		line-height: 1.4;
+		overflow-wrap: anywhere;
+	}
+	.source-file {
+		font-size: 12px;
+		opacity: 0.75;
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
@@ -384,12 +425,6 @@
 		.section-picker select {
 			width: 100%;
 			min-width: 0;
-		}
-		.toolbar strong {
-			flex-basis: 100%;
-		}
-		.toolbar span {
-			display: none;
 		}
 	}
 	@media (max-width: 600px) {

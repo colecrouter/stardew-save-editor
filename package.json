@@ -67,6 +67,7 @@
 		"node": ">=24 <25"
 	},
 	"dependencies": {
+		"bits-ui": "2.20.3",
 		"effect": "4.0.6",
 		"effect-atom-svelte": "0.4.1",
 		"mutative": "2.0.1"

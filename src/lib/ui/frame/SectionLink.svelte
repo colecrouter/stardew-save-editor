@@ -76,6 +76,9 @@
 	a[aria-current="page"] {
 		position: relative;
 		isolation: isolate;
+		/* Crop the selected artwork to the existing hit target, so extending its
+		   rim cannot add horizontal scroll to either navigation implementation. */
+		overflow: hidden;
 		background: transparent;
 		color: #311304;
 		/* Retain the same type metrics and border footprint as inactive rows. */
@@ -84,7 +87,9 @@
 	a[aria-current="page"]::after {
 		content: "";
 		position: absolute;
-		inset: 0;
+		/* The kit's outer brown pixel renders at 3x. Paint that right rim past
+		   the clip edge so the selected fill meets the adjacent wood divider. */
+		inset: 0 -3px 0 0;
 		z-index: -1;
 		pointer-events: none;
 		image-rendering: pixelated;

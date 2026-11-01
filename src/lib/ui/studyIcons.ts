@@ -2,6 +2,22 @@ import type atlas from "./art/icon-regions.json";
 
 // Code-native action and season glyphs outside the illustrated raster kit.
 export const studyIcons = {
+	// Pixel-grid glyphs fill the two section gaps in the existing illustrated kit.
+	// Distinct silhouettes matter at navigation size; colours use the shell palette.
+	calendar: [
+		["#643b25", "M4 4h16v18H4zM6 1h3v6H6zM15 1h3v6h-3z"],
+		["#b74b3d", "M6 6h12v5H6z"],
+		["#fff0c6", "M6 11h12v9H6z"],
+		["#80582c", "M8 13h3v2H8zM13 13h3v2h-3zM8 17h3v2H8zM13 17h3v2h-3z"],
+	],
+	review: [
+		["#643b25", "M4 2h13v3h3v17H4z"],
+		["#fff0c6", "M6 4h10v3h2v13H6z"],
+		["#448044", "M7 8h2v2h2V7h2v5H9v-1H7zM7 15h2v2h2v-3h2v5H9v-1H7z"],
+		["#aa7a42", "M14 8h3v2h-3zM14 15h3v2h-3z"],
+	],
+	undo: [["#643b25", "M9 4v4h6v2h3v3h2v7h-3v-6h-2v-3H9v4L2 9z"]],
+	redo: [["#643b25", "M15 4v4H9v2H6v3H4v7h3v-6h2v-3h6v4l7-6z"]],
 	save: [
 		["#302e55", "M3 2h16v2h2v18H3z"],
 		["#6789cd", "M5 4h13v2h1v14H5z"],

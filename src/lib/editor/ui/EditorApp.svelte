@@ -227,6 +227,10 @@
 
 <style>
 	.editor-application {
+		/* The flex parent's centered children otherwise shrink to intrinsic content.
+		   Opening a catalog must not resize the frame or move every slot. */
+		width: 100%;
+		min-width: 0;
 		padding: 8px;
 	}
 	.upload {

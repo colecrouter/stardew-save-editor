@@ -57,6 +57,7 @@
 	let moving = $state(false);
 	let inventory = $state<HTMLDivElement>();
 	const dragToken = $props.id();
+	const inspectorId = `${dragToken}-details`;
 	// Effects/events connect these peers after initialization. Cross-controller
 	// callbacks stay lazy so neither factory needs its peer during construction.
 	const selection = createInventorySelection({
@@ -243,7 +244,11 @@
 {/snippet}
 
 <div class="inventory-heading">
-	<h1>Inventory</h1>
+	<div>
+		<h1>Inventory</h1>
+
+		<a class="detail-link" href={`#${inspectorId}`}>Selected item</a>
+	</div>
 	<FarmerSelector field={farmerField} />
 </div>
 {#if (!backpack || !backpack.supported) && chests.length === 0}
@@ -252,7 +257,9 @@
 		remain available.
 	</p>
 {:else}
-	<div class="inventory-layout" class:browsing bind:this={inventory}>
+	<!-- The same workbench geometry serves occupied, empty and equipped slots.
+	     Only the detail content changes; the grids remain stable drag targets. -->
+	<div class="inventory-layout" bind:this={inventory}>
 		<div class="possessions">
 			{#if backpack?.supported}
 				<section aria-label={`${backpack.name}'s equipment`} class="equipment">
@@ -271,7 +278,7 @@
 						<h2>Backpack</h2>
 						<span>{backpack.slots.length} slots</span>
 						<button
-							class="ui-control ui-button"
+							class="study-button"
 							type="button"
 							disabled={organizing || moving}
 							onclick={() => void organize(backpack.ownerId)}
@@ -298,7 +305,7 @@
 					{#if chest}
 						<span>{chest.slots.length} slots</span>
 						<button
-							class="ui-control ui-button"
+							class="study-button"
 							type="button"
 							disabled={!chest.supported || organizing || moving}
 							onclick={() => void organize(chest.ownerId)}
@@ -356,7 +363,14 @@
 				{/if}
 			</section>
 		</div>
-		<div class="inspector" class:browsing>
+		<div
+			class="inspector"
+			id={inspectorId}
+			role="group"
+			aria-label="Selected slot details"
+			tabindex="-1"
+		>
+			<div class="inspector-heading">Selected slot</div>
 			{#if selectedOwner && selected && !selected.empty}
 				{#key JSON.stringify([selectedOwner?.ownerId, selected.entityId])}
 					<BackpackItemEditor
@@ -405,8 +419,15 @@
 {/if}
 
 <style>
+	.detail-link {
+		display: none;
+		color: #694621;
+		font-size: 17px;
+		text-underline-offset: 3px;
+	}
 	.inventory-heading {
 		display: flex;
+		flex-wrap: wrap;
 		align-items: end;
 		justify-content: space-between;
 		gap: 16px;
@@ -462,12 +483,9 @@
 	}
 	.inventory-layout {
 		display: grid;
-		grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
-		gap: 28px;
+		grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+		gap: 24px;
 		align-items: start;
-	}
-	.inventory-layout.browsing {
-		grid-template-columns: minmax(0, 1fr);
 	}
 	.possessions {
 		min-width: 0;
@@ -489,10 +507,14 @@
 	.equipment-label {
 		font-size: 17px;
 		color: #694621;
-		white-space: nowrap;
+		text-align: center;
+		min-height: 2.5em;
+		display: grid;
+		align-items: end;
 	}
 	.backpack-heading {
 		display: flex;
+		flex-wrap: wrap;
 		align-items: baseline;
 		justify-content: space-between;
 		gap: 12px;
@@ -503,8 +525,16 @@
 	}
 	.slots {
 		display: grid;
-		grid-template-columns: repeat(12, minmax(0, 1fr));
-		gap: 4px;
+		padding: 4px;
+		border: 2px solid #b98b52;
+		background: #d9a35f;
+		/* Cap at twelve columns, then wrap by available space rather than viewport.
+		   Every target remains at least 44px, including framed phone grids. */
+		grid-template-columns: repeat(
+			auto-fill,
+			minmax(max(44px, calc((100% - 22px) / 12)), 1fr)
+		);
+		gap: 2px;
 	}
 	.slot {
 		position: relative;
@@ -518,6 +548,9 @@
 		padding: 2px;
 		border: 2px solid #b98b52;
 		background: #f7d7a4;
+		box-shadow:
+			inset 1px 1px #fff0cc,
+			inset -1px -1px #d1a56c;
 		cursor: pointer;
 	}
 	.equipment-slot {
@@ -533,8 +566,9 @@
 		background: #fff0d3;
 	}
 	.slot.active {
-		background: #b5d6e7;
-		border-color: #176fb4;
+		background: #fff3c5;
+		border-color: #8a451f;
+		box-shadow: inset 0 0 0 2px #e6a23e;
 	}
 	.slot.drop-target {
 		background: #cce5ef;
@@ -579,14 +613,21 @@
 			1px 1px #311304;
 	}
 	.inspector {
-		border-left: 1px solid #be8d4d;
-		padding-left: 24px;
+		/* A named detail area gives both the editor and catalog a permanent home.
+		   Inline containment also lets the catalog adapt to its actual rail width. */
+		container-type: inline-size;
+		border: 2px solid #b98b52;
+		background: #fff0d0;
+		padding: 16px;
 		min-width: 0;
+		min-height: 560px;
 	}
-	.inspector.browsing {
-		border-left: 0;
-		border-top: 1px solid #be8d4d;
-		padding: 20px 0 0;
+	.inspector-heading {
+		font-size: 17px;
+		color: #694621;
+		padding-bottom: 12px;
+		margin-bottom: 16px;
+		border-bottom: 1px solid #be8d4d;
 	}
 	.operation-error {
 		color: #8c2f1b;
@@ -594,14 +635,15 @@
 	.empty-detail p {
 		color: #694621;
 	}
-	@media (max-width: 1300px) {
+	@media (max-width: 1150px) {
+		/* Narrow layouts retain the grids in place; reveal details deliberately
+		   rather than moving keyboard focus to an offscreen search field. */
+		.detail-link {
+			display: inline-block;
+			padding-block: 8px;
+		}
 		.inventory-layout {
 			grid-template-columns: minmax(0, 1fr);
-		}
-		.inspector {
-			border-left: 0;
-			border-top: 1px solid #be8d4d;
-			padding: 20px 0 0;
 		}
 	}
 	@media (max-width: 600px) {
@@ -636,9 +678,6 @@
 		.equipment-slot {
 			width: 44px;
 			height: 44px;
-		}
-		.slots {
-			grid-template-columns: repeat(6, minmax(0, 1fr));
 		}
 		.inventory-layout {
 			gap: 20px;

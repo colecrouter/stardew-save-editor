@@ -23,18 +23,64 @@
 }
 
 .ui-control:focus-visible,
-.ui-button:focus-visible {
+.ui-button:focus-visible,
+.study-button:focus-visible {
 	outline: 3px solid var(--ui-focus);
 	outline-offset: 3px;
 }
 
 .ui-control:disabled,
 .ui-button:disabled,
-.ui-button[aria-disabled="true"] {
+.ui-button[aria-disabled="true"],
+.study-button:disabled,
+.study-button[aria-disabled="true"] {
 	opacity: 0.65;
 	cursor: default;
 }
 
 .ui-control[aria-invalid="true"] {
 	border-color: var(--ui-error);
+}
+
+/* Actions share geometry across normal, hover, pressed and pending states.
+   Colour conveys emphasis; the border footprint never changes with state. */
+.study-button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	min-height: 44px;
+	max-width: 100%;
+	padding: 6px 12px;
+	border: 2px solid #987746;
+	border-radius: 2px;
+	font: inherit;
+	line-height: 1.2;
+	color: #311304;
+	background: #fdedd7;
+	box-shadow:
+		inset 0 2px #fff8e8,
+		inset 0 -2px #ddbd8b;
+	cursor: pointer;
+}
+.study-button:hover:not(:disabled) {
+	background: #fff6df;
+}
+.study-button:active:not(:disabled) {
+	box-shadow: inset 0 2px #ddbd8b;
+}
+.study-button--primary {
+	background: #35763a;
+	color: #fff8e8;
+	border-color: #234e28;
+	box-shadow:
+		inset 0 2px #6b9d50,
+		inset 0 -2px #285d2d;
+}
+.study-button--primary:hover:not(:disabled) {
+	background: #2c6832;
+}
+.study-button--danger {
+	color: #8c2f1b;
+	border-color: #a55832;
 }

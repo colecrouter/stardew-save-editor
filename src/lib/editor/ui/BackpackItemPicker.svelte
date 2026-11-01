@@ -60,7 +60,12 @@
 	$effect(() => {
 		// Opening an empty slot leads straight to search; later result updates do
 		// not move focus away from the control or item the user is exploring.
-		searchInput?.focus();
+		// A stacked phone inspector may be offscreen. Keep focus on the chosen
+		// slot there; the explicit Selected item link reveals its details on demand.
+		if (!searchInput) return;
+		const bounds = searchInput.getBoundingClientRect();
+		if (bounds.top >= 0 && bounds.bottom <= window.innerHeight)
+			searchInput.focus({ preventScroll: true });
 	});
 	$effect(() => {
 		// A fresh result page starts with its selected first item visible, rather
@@ -217,8 +222,8 @@
 			{/if}
 		</div>
 
-		{#if selected}
-			<section aria-label="Item preview" class="preview">
+		<section aria-label="Item preview" class="preview">
+			{#if selected}
 				<div class="preview-header">
 					<div class="preview-icon">
 						<BackpackItemVisual visual={selected.visual} />
@@ -239,7 +244,7 @@
 
 				<button
 					type="button"
-					class="add"
+					class="study-button study-button--primary add"
 					onclick={() => void add()}
 					disabled={saving}
 				>
@@ -247,10 +252,14 @@
 				</button>
 
 				<p class="feedback" role="status">
-					{error || "Use Undo to remove an added item."}
+					{error ?? ""}
 				</p>
-			</section>
-		{/if}
+			{:else}
+				<p class="no-results">
+					No item selected. Search for an item to preview it here.
+				</p>
+			{/if}
+		</section>
 	</div>
 </section>
 
@@ -272,7 +281,7 @@
 		margin: 0;
 		color: #694621;
 	}
-	button,
+	button:not(:where(.study-button)),
 	input,
 	select {
 		font: inherit;
@@ -285,7 +294,7 @@
 		cursor: pointer;
 		padding: 6px 12px;
 	}
-	button:hover:not(:disabled) {
+	button:not(:where(.study-button)):hover:not(:disabled) {
 		background: #fff8e8;
 	}
 	button:focus-visible,
@@ -303,7 +312,7 @@
 	}
 	.filters {
 		display: grid;
-		grid-template-columns: minmax(0, 1fr) minmax(160px, 200px);
+		grid-template-columns: minmax(0, 1fr);
 		gap: 16px;
 		margin-bottom: 24px;
 	}
@@ -321,12 +330,13 @@
 	}
 	.catalog-layout {
 		display: grid;
-		grid-template-columns: minmax(0, 1fr) minmax(220px, 280px);
+		grid-template-columns: minmax(0, 1fr);
 		gap: 24px;
 		align-items: start;
 	}
 	.results {
 		min-width: 0;
+		min-height: 360px;
 	}
 	.result-count {
 		margin: 0 0 12px;
@@ -336,10 +346,11 @@
 	}
 	.item-list {
 		display: grid;
-		grid-template-columns: repeat(2, minmax(0, 1fr));
+		grid-template-columns: minmax(0, 1fr);
 		align-content: start;
 		gap: 6px;
-		max-height: 420px;
+		/* Search and pagination keep the same result viewport, including short pages. */
+		height: 256px;
 		overflow-y: auto;
 		overscroll-behavior: contain;
 		scrollbar-color: #b98b52 #f7d7a4;
@@ -392,8 +403,8 @@
 		text-align: center;
 	}
 	.preview {
-		border-left: 1px solid #be8d4d;
-		padding-left: 24px;
+		border-top: 1px solid #be8d4d;
+		padding-top: 20px;
 		min-width: 0;
 	}
 	.preview-header {
@@ -441,46 +452,27 @@
 	}
 	.add {
 		width: 100%;
-		background: #278440;
-		border-color: #17632c;
-		color: #fff2d3;
-	}
-	.add:hover:not(:disabled) {
-		background: #1d7134;
 	}
 	.feedback {
 		margin: 12px 0 0;
+		min-height: 1.4em;
 	}
-	@media (max-width: 800px) {
+	/* Compact is the safe baseline for the narrow inspector and older Safari.
+	   Wider detail areas progressively gain a second catalog/preview column. */
+	@container (min-width: 700px) {
+		.filters {
+			grid-template-columns: minmax(0, 1fr) 180px;
+		}
 		.catalog-layout {
-			grid-template-columns: minmax(0, 1fr);
+			grid-template-columns: minmax(0, 1fr) minmax(220px, 280px);
 		}
 		.preview {
-			border-left: 0;
-			border-top: 1px solid #be8d4d;
-			padding: 24px 0 0;
+			border-top: 0;
+			border-left: 1px solid #be8d4d;
+			padding: 0 0 0 24px;
 		}
 		.item-list {
-			max-height: 320px;
-		}
-	}
-	@media (max-width: 560px) {
-		header {
-			flex-direction: column;
-		}
-		.filters,
-		.item-list {
-			grid-template-columns: minmax(0, 1fr);
-		}
-		.filters {
-			gap: 16px;
-		}
-		.pagination {
-			gap: 6px;
-			font-size: 16px;
-		}
-		.pagination button {
-			padding: 6px 8px;
+			grid-template-columns: repeat(2, minmax(0, 1fr));
 		}
 	}
 </style>

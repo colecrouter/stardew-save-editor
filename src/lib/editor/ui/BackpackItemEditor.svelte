@@ -48,11 +48,6 @@
 	// The domain supplies supported fields and their display values. Rendering an
 	// inspector never decodes save records or guesses at missing property defaults.
 	const itemFields = $derived(item.properties);
-	const guidance = $derived(
-		item.canStack || item.canQuality || itemFields.length > 0
-			? "Changes update immediately. Use Undo to revert."
-			: "",
-	);
 	const qualities = inventoryQualities;
 </script>
 
@@ -147,20 +142,17 @@
 			Quantity and quality are preserved but cannot be edited for this item.
 		</p>
 	{/if}
-	{#if guidance}
-		<p class="guidance">{guidance}</p>
-	{/if}
 	{#if onremove}
 		<!-- Removal is immediately undoable, like the other independent controls. -->
 		<div class="remove-action">
 			<button
 				type="button"
+				class="study-button study-button--danger"
 				disabled={removing}
 				onclick={() => void onremove?.()}
 			>
 				{removing ? "Removing…" : "Remove item"}
 			</button>
-			<p>Undo restores the complete item.</p>
 		</div>
 	{/if}
 </section>
@@ -170,27 +162,6 @@
 		margin-top: 24px;
 		padding-top: 20px;
 		border-top: 1px solid #be8d4d;
-	}
-	.remove-action button {
-		font: inherit;
-		min-height: 44px;
-		padding: 6px 14px;
-		background: #fff2d3;
-		color: #8c2f1b;
-		border: 2px solid #a55832;
-		cursor: pointer;
-	}
-	.remove-action button:hover {
-		background: #ffe4c7;
-	}
-	.remove-action button:focus-visible {
-		outline: 2px solid #311304;
-		outline-offset: 3px;
-	}
-	.remove-action p {
-		font-size: 19px;
-		color: #694621;
-		margin: 8px 0 0;
 	}
 	.inspector {
 		min-width: 0;
@@ -298,7 +269,6 @@
 		color: #694621;
 	}
 
-	.guidance,
 	[role="status"] {
 		margin-top: 24px;
 		font-size: 19px;
@@ -320,7 +290,6 @@
 		}
 		.description,
 		.properties,
-		.guidance,
 		[role="status"],
 		.remove-action {
 			font-size: 18px;
@@ -328,7 +297,6 @@
 		.properties {
 			margin-top: 16px;
 		}
-		.guidance,
 		[role="status"] {
 			margin-top: 16px;
 		}

@@ -41,13 +41,16 @@
 		display: flex;
 		align-items: center;
 		gap: 10px;
-		min-height: 39px;
-		padding: 4px 9px;
+		/* Every row reserves two label lines, regardless of selection. Changing
+		   colour/artwork must never move a later section or its pointer target. */
+		height: 48px;
+		min-height: 48px;
+		padding: 2px 9px;
 		color: #ffedc9;
 		text-decoration: none;
 		border-bottom: 1px solid #a36a354d;
-		font-size: 22px;
-		line-height: 1.15;
+		font-size: 20px;
+		line-height: 1.05;
 	}
 	.label {
 		min-width: 0;
@@ -60,22 +63,33 @@
 		height: 30px;
 		flex: none;
 	}
+	a:focus-visible {
+		outline: 2px solid #fff0bc;
+		outline-offset: -4px;
+	}
+	a[aria-current="page"]:focus-visible {
+		outline-color: #673d21;
+	}
 	a:hover {
 		background: #bc7e3940;
 	}
 	a[aria-current="page"] {
 		position: relative;
 		isolation: isolate;
-		min-height: 57px;
+		/* Crop the selected artwork to the existing hit target, so extending its
+		   rim cannot add horizontal scroll to either navigation implementation. */
+		overflow: hidden;
 		background: transparent;
 		color: #311304;
-		font-weight: 700;
-		border-bottom: 0;
+		/* Retain the same type metrics and border footprint as inactive rows. */
+		border-bottom-color: transparent;
 	}
 	a[aria-current="page"]::after {
 		content: "";
 		position: absolute;
-		inset: 0;
+		/* The kit's outer brown pixel renders at 3x. Paint that right rim past
+		   the clip edge so the selected fill meets the adjacent wood divider. */
+		inset: 0 -3px 0 0;
 		z-index: -1;
 		pointer-events: none;
 		image-rendering: pixelated;
@@ -97,8 +111,11 @@
 	}
 	@media (max-width: 900px) {
 		a {
-			font-size: 21px;
-			min-height: 44px;
+			/* The legacy two-column phone menu can need a third label line.
+			   Both active and inactive links use these same content-sized metrics. */
+			height: auto;
+			font-size: 20px;
+			min-height: 48px;
 			padding-inline: 6px;
 			gap: 5px;
 		}

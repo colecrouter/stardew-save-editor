@@ -1,4 +1,4 @@
-import { fireEvent, render, waitFor } from "@testing-library/svelte";
+import { fireEvent, render, waitFor, within } from "@testing-library/svelte";
 import { expect, it } from "vitest";
 import { openEditor } from "../../src/lib/editor/editor-model.ts";
 import { readQuestJournals } from "../../src/lib/editor/quest-operations.ts";
@@ -177,13 +177,75 @@ it(
 	async () => {
 		const opened = await open([quest(), quest()]);
 		try {
+			const notices = within(
+				opened.page.getByRole("navigation", { name: "Quest notices" }),
+			).getAllByRole("button", { name: /^Delivery/ });
+			expect(notices).toHaveLength(2);
+			for (const notice of notices) {
+				await fireEvent.click(notice);
+				expect(
+					opened.page.getByRole("region", { name: "Delivery quest" }),
+				).toBeTruthy();
+				for (const button of opened.page.getAllByRole("button", {
+					name: /^(Complete|Remove) Delivery$/,
+				}))
+					expect(button.hasAttribute("disabled")).toBe(true);
+			}
+		} finally {
+			await opened.dispose();
+		}
+	},
+);
+
+it(
+	"browses notices without history and closes a reward gesture before selecting another quest",
+	{ timeout: 25000 },
+	async () => {
+		const opened = await open([
+			quest(),
+			quest({ id: "second", _questTitle: "Another request", moneyReward: 400 }),
+		]);
+		const { page, model } = opened;
+		try {
+			const before = await model.snapshot();
+			const notices = within(
+				page.getByRole("navigation", { name: "Quest notices" }),
+			);
+			await fireEvent.click(
+				notices.getByRole("button", { name: /^Another request/ }),
+			);
 			expect(
-				opened.page.getAllByRole("region", { name: "Delivery quest" }),
-			).toHaveLength(2);
-			for (const button of opened.page.getAllByRole("button", {
-				name: /^(Complete|Remove) Delivery$/,
-			}))
-				expect((button as HTMLButtonElement).disabled).toBe(true);
+				page.getByRole("spinbutton", { name: "Another request gold reward" }),
+			).toHaveProperty("value", "400");
+			expect((await model.snapshot()).document).toEqual(before.document);
+			expect((await model.snapshot()).entries).toEqual(before.entries);
+			await fireEvent.click(notices.getByRole("button", { name: /^Delivery/ }));
+			const reward = page.getByRole("spinbutton", {
+				name: "Delivery gold reward",
+			});
+			await fireEvent.focus(reward);
+			await fireEvent.input(reward, { target: { value: "250" } });
+			await fireEvent.click(
+				notices.getByRole("button", { name: /^Another request/ }),
+			);
+			const after = await model.snapshot();
+			expect(after.entries).toHaveLength(1);
+			const quests = readQuestJournals(after.document).find(
+				(owner) => owner.farmerId === opened.hostId,
+			)?.quests;
+			expect(quests?.find((row) => row.title === "Delivery")?.reward).toBe(250);
+			expect(
+				quests?.find((row) => row.title === "Another request")?.reward,
+			).toBe(400);
+			await fireEvent.input(
+				page.getByRole("searchbox", { name: "Search quests" }),
+				{ target: { value: "no matching quest" } },
+			);
+			expect(page.getByText("No quests match your search.")).toBeTruthy();
+			expect(page.queryByRole("group", { name: "Selected notice" })).toBeNull();
+			expect((await model.snapshot()).entries).toHaveLength(1);
+			await model.commands.undo();
+			expect((await model.snapshot()).document).toEqual(before.document);
 		} finally {
 			await opened.dispose();
 		}

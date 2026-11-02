@@ -6,7 +6,6 @@
 	import { createCommunityDomain } from "../community-domain.ts";
 	import CommunityBundleCard from "./CommunityBundleCard.svelte";
 	import JojaProjectBoard from "./JojaProjectBoard.svelte";
-	import StudyTabs from "../../ui/kit/StudyTabs.svelte";
 	import StudyDialog from "../../ui/kit/StudyDialog.svelte";
 	import StudyButton from "../../ui/kit/StudyButton.svelte";
 	import StudyAlert from "../../ui/kit/StudyAlert.svelte";
@@ -27,29 +26,32 @@
 		domain?.bundles.filter((row) => row.room === room?.id) ?? [],
 	);
 
-	// Tabs are viewing state, not a second membership setter. Only a committed
-	// membership transition (including Undo/Redo) reveals the corresponding route;
-	// ordinary donations must not reset a manually chosen tab or room.
+	// Only the committed membership determines the visible route. Retained Center
+	// donations are an explicit secondary disclosure, collapsed on route changes;
+	// ordinary donation revisions preserve its state and the selected room.
 	let membershipSeen = untrack(() => view.current?.community.membership);
-	let route = $state(membershipSeen === true ? "joja" : "center");
+	let retainedOpen = $state(false);
 	$effect(() => {
 		const membership = domain?.membership;
 		if (membership !== membershipSeen) {
 			membershipSeen = membership;
-			route = membership === true ? "joja" : "center";
+			retainedOpen = false;
 		}
 	});
 
 	let membershipOpen = $state(false);
 	let desiredMembership = $state(false);
+	let membershipAtOpen = $state<boolean | undefined>();
+	const routeChoiceId = $props.id();
 	let membershipRevision: number | undefined;
 	let membershipBusy = $state(false);
 	let membershipError = $state("");
 	function showMembership(open: boolean) {
 		if (open) {
-			// Freeze both intent and revision when confirmation opens. A later edit
-			// must reject this preview rather than silently reverse a different route.
-			desiredMembership = domain?.membership === false;
+			// Capture the opening membership and revision; the desired route remains
+			// editable in this dialog. Later edits must reject this stale preview.
+			membershipAtOpen = domain?.membership;
+			desiredMembership = membershipAtOpen ?? false;
 			membershipRevision = view.current?.revision;
 			membershipError = "";
 		}
@@ -77,11 +79,12 @@
 </script>
 
 <div class="community-heading">
-	<div>
-		<h1>Community Center &amp; Joja</h1>
+	<h1>Community development</h1>
 
+	<div class="route-control" role="group" aria-label="Restoration route">
 		<p class="route-status">
-			Current route: <strong>
+			<span>Restoration route</span>
+			<strong>
 				{domain?.membership === true
 					? "Joja membership"
 					: domain?.membership === false
@@ -89,67 +92,95 @@
 						: "Membership unavailable"}
 			</strong>
 		</p>
+
+		{#if domain?.supported}
+			<StudyDialog
+				trigger="Change route"
+				title="Change restoration route"
+				description="Choose how Pelican Town is restored. This changes membership for all farmers and updates the route-specific restoration progress. Existing donations and unclaimed rewards are retained."
+				bind:open={() => membershipOpen, showMembership}
+				dismissible={!membershipBusy}
+				disabled={domain.membership === undefined}
+			>
+				<fieldset class="route-options" disabled={membershipBusy}>
+					<legend>Restoration route</legend>
+
+					<label>
+						<input
+							type="radio"
+							name={routeChoiceId}
+							value={false}
+							bind:group={desiredMembership}
+						/>
+						Community Center
+					</label>
+
+					<label>
+						<input
+							type="radio"
+							name={routeChoiceId}
+							value={true}
+							bind:group={desiredMembership}
+						/>
+						Joja membership
+					</label>
+				</fieldset>
+
+				<StudyAside title="A change of route">
+					<p>
+						Completed rooms keep their restoration benefits. This edit does not
+						spend gold or remove items.
+					</p>
+				</StudyAside>
+
+				{#if membershipError}
+					<StudyAlert
+						title="Membership could not be changed"
+						tone="danger"
+						live="assertive"
+					>
+						<p>{membershipError}</p>
+					</StudyAlert>
+				{/if}
+
+				{#snippet actions(close)}
+					<StudyButton onclick={close} disabled={membershipBusy}>
+						Cancel
+					</StudyButton>
+
+					<StudyButton
+						intent="constructive"
+						variant="filled"
+						pending={membershipBusy}
+						disabled={desiredMembership === membershipAtOpen}
+						onclick={() => void changeMembership()}
+					>
+						{desiredMembership
+							? "Switch to Joja"
+							: "Switch to Community Center"}
+					</StudyButton>
+				{/snippet}
+			</StudyDialog>
+		{/if}
 	</div>
-
-	{#if domain?.supported}
-		<StudyDialog
-			trigger={domain.membership ? "Leave Joja" : "Enable Joja"}
-			title={desiredMembership
-				? "Enable Joja membership?"
-				: "Leave Joja membership?"}
-			description="Changes membership for all farmers and updates the route-specific restoration progress. Existing donations and unclaimed rewards are retained."
-			bind:open={() => membershipOpen, showMembership}
-			dismissible={!membershipBusy}
-			disabled={domain.membership === undefined}
-		>
-			<StudyAside title="A change of route">
-				<p>
-					Completed rooms keep their restoration benefits. This edit does not
-					spend gold or remove items.
-				</p>
-			</StudyAside>
-
-			{#if membershipError}
-				<StudyAlert
-					title="Membership could not be changed"
-					tone="danger"
-					live="assertive"
-				>
-					<p>{membershipError}</p>
-				</StudyAlert>
-			{/if}
-
-			{#snippet actions(close)}
-				<StudyButton onclick={close} disabled={membershipBusy}>
-					Cancel
-				</StudyButton>
-
-				<StudyButton
-					intent={desiredMembership ? "constructive" : "destructive"}
-					variant="filled"
-					pending={membershipBusy}
-					onclick={() => void changeMembership()}
-				>
-					{desiredMembership ? "Enable Joja" : "Leave Joja"}
-				</StudyButton>
-			{/snippet}
-		</StudyDialog>
-	{/if}
 </div>
 
 {#if !domain?.supported}
 	<StudyAlert title="Community Center unavailable" tone="warning">
 		<p>{domain?.reason ?? "Community Center data is unavailable."}</p>
 	</StudyAlert>
+{:else if domain.membership === true}
+	<JojaProjectBoard community={domain} />
+
+	<details class="retained-donations" bind:open={retainedOpen}>
+		<summary>Retained Community Center donations</summary>
+
+		{#if retainedOpen}
+			{@render center()}
+		{/if}
+	</details>
 {:else}
-	<StudyTabs
-		label="Community development route"
-		bind:value={route}
-		items={[
-			{ value: "center", label: "Community Center", content: center },
-			{ value: "joja", label: "Joja", content: joja },
-		]}
-	/>
+	{@render center()}
 {/if}
 
 {#snippet center()}
@@ -241,12 +272,6 @@
 	{/if}
 {/snippet}
 
-{#snippet joja()}
-	{#if domain}
-		<JojaProjectBoard community={domain} />
-	{/if}
-{/snippet}
-
 <style>
 	.community-heading {
 		display: flex;
@@ -260,14 +285,52 @@
 		font-size: 32px;
 		margin: 0;
 	}
+	.route-control {
+		display: flex;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: 16px;
+	}
 	.route-status {
-		margin: 8px 0 0;
+		display: grid;
+		gap: 4px;
+		margin: 0;
 		color: #694621;
 		font-size: 18px;
 	}
 	.route-status strong {
 		color: #311304;
 		font-weight: 400;
+		font-size: 21px;
+	}
+	.route-options {
+		margin: 0 0 20px;
+		padding: 0;
+		border: 0;
+	}
+	.route-options legend {
+		margin-bottom: 8px;
+	}
+	.route-options label {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		min-height: 44px;
+		cursor: pointer;
+	}
+	.route-options input {
+		width: 22px;
+		height: 22px;
+		accent-color: #35763a;
+	}
+	.retained-donations {
+		margin-top: 28px;
+		border-top: 2px solid #b98b52;
+	}
+	.retained-donations summary {
+		cursor: pointer;
+		padding-block: 16px;
+		min-height: 44px;
 	}
 	.route-notice {
 		margin-bottom: 20px;

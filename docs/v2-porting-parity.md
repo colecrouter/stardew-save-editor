@@ -31,12 +31,13 @@ Junimo/global shared inventories and nested bags are not writable local containe
 New source kinds cannot gain placed-chest conversion merely by carrying similar
 raw flags. Existing placed owner paths remain stable.
 
-Community Center and Joja now have separate viewing tabs. Viewing tabs and rooms
-creates no history and does not change membership. Confirmed membership changes
-select the matching tab, including Undo/Redo; ordinary donations retain the
-chosen tab and room. Joja members can explicitly inspect and edit retained
-donations in the Community Center tab. Those donations share restoration progress
-with projects, so this is not an independent second progression track.
+Community Center and Joja are mutually exclusive views of the saved restoration
+route. The route choice is a confirmed transaction; opening the choice dialog or
+cancelling it creates no history. Undo/Redo restores the matching view. Joja
+members can explicitly inspect and edit retained Center donations in a collapsed
+secondary disclosure. Those donations share restoration progress with projects,
+so this is not an independent second progression track. Room selection survives
+membership history, and unrelated donation edits retain the disclosure state.
 
 Community Center viewing does not sanitize or rewrite the import. Only changed
 room completion or an explicit project/membership action owns its progression

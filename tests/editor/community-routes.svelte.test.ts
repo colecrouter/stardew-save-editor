@@ -9,7 +9,7 @@ import CharacterHarness from "./CharacterHarness.svelte";
 import { fixtureXml, parser, exportDocument } from "./fixtures";
 
 it(
-	"separates route viewing from membership and preserves donations, rewards and room across membership history",
+	"shows only the saved route and preserves donations, rewards and room across membership history",
 	{ timeout: 30000 },
 	async () => {
 		const opened = await openEditor(new TextEncoder().encode(fixtureXml));
@@ -19,8 +19,7 @@ it(
 				(await opened.model.snapshot()).document,
 			).bundles.find((row) => row.id === 13);
 			if (!spring) throw new Error("Missing spring bundle");
-			// Include real completed/reward state in the preservation assertion rather
-			// than relying only on the fixture's initially empty donation flags.
+			// Include real completed/reward state rather than relying on empty flags.
 			await opened.model.commands.transact(
 				setCommunityProgress({
 					type: "bundle",
@@ -32,43 +31,50 @@ it(
 				page.getByRole("link", { name: "Community Center & Joja" }),
 			);
 			await page.findByRole(
-				"tab",
-				{ name: "Community Center" },
+				"button",
+				{ name: "Change route" },
 				{ timeout: 10000 },
 			);
 			await fireEvent.click(
 				page.getByRole("button", { name: /^Pantry Donations/ }),
 			);
 			const before = await opened.model.snapshot();
-			await fireEvent.click(page.getByRole("tab", { name: "Joja" }));
 			expect(
-				page.queryByRole("article", { name: "Spring Foraging bundle" }),
+				page.queryByRole("region", { name: "Joja development plan" }),
 			).toBeNull();
+			expect(page.queryByRole("tab")).toBeNull();
+			await fireEvent.click(page.getByRole("button", { name: "Change route" }));
+			let dialog = page.getByRole("dialog");
 			expect(
-				page
-					.getByRole("button", { name: "Complete Bridge project" })
+				within(dialog)
+					.getByRole("button", { name: "Switch to Community Center" })
 					.hasAttribute("disabled"),
 			).toBe(true);
-			expect((await opened.model.snapshot()).document).toEqual(before.document);
-			expect((await opened.model.snapshot()).entries).toEqual(before.entries);
-
-			await fireEvent.click(page.getByRole("button", { name: "Enable Joja" }));
 			await fireEvent.click(
-				within(page.getByRole("dialog")).getByRole("button", {
-					name: "Cancel",
-				}),
+				within(dialog).getByRole("radio", { name: "Joja membership" }),
+			);
+			// Choosing a draft route does not reveal it or edit the save before commit.
+			expect(
+				page.queryByRole("region", { name: "Joja development plan" }),
+			).toBeNull();
+			expect((await opened.model.snapshot()).document).toEqual(before.document);
+			await fireEvent.click(
+				within(dialog).getByRole("button", { name: "Cancel" }),
 			);
 			expect((await opened.model.snapshot()).entries).toEqual(before.entries);
-			await fireEvent.click(page.getByRole("button", { name: "Enable Joja" }));
+			await fireEvent.click(page.getByRole("button", { name: "Change route" }));
+			dialog = page.getByRole("dialog");
 			await fireEvent.click(
-				within(page.getByRole("dialog")).getByRole("button", {
-					name: "Enable Joja",
-				}),
+				within(dialog).getByRole("radio", { name: "Joja membership" }),
+			);
+			await fireEvent.click(
+				within(dialog).getByRole("button", { name: "Switch to Joja" }),
 			);
 			await waitFor(() => expect(page.queryByRole("dialog")).toBeNull());
 			expect(
-				page.getByRole("tab", { name: "Joja" }).getAttribute("aria-selected"),
-			).toBe("true");
+				page.getByRole("region", { name: "Joja development plan" }),
+			).toBeTruthy();
+			expect(page.queryByRole("heading", { name: "Pantry" })).toBeNull();
 			const after = await opened.model.snapshot();
 			const progress = (document: typeof before.document) =>
 				readCommunity(document).bundles.map((row) => ({
@@ -83,31 +89,27 @@ it(
 			expect(after.document.SaveGame.player.money).toBe(
 				before.document.SaveGame.player.money,
 			);
-
-			// Explicitly opening the other tab still exposes retained progress; this is
-			// existing editor behavior, not an implicit second membership transition.
-			await fireEvent.click(
-				page.getByRole("tab", { name: "Community Center" }),
-			);
-			expect(page.getByText("Saved Community Center donations")).toBeTruthy();
-			expect(page.getByRole("heading", { name: "Pantry" })).toBeTruthy();
+			// The secondary disclosure offers retained donations without presenting a
+			// second active route. Happy DOM needs an explicit native toggle event.
+			const details = page.getByText("Retained Community Center donations", {
+				selector: "summary",
+			}).parentElement;
+			if (!(details instanceof HTMLDetailsElement))
+				throw new Error("Missing retained donations");
+			details.open = true;
+			await fireEvent(details, new Event("toggle"));
+			expect(await page.findByRole("heading", { name: "Pantry" })).toBeTruthy();
 			expect((await opened.model.snapshot()).entries).toEqual(after.entries);
-			await fireEvent.click(page.getByRole("tab", { name: "Joja" }));
 			await opened.model.commands.undo();
 			await waitFor(() =>
 				expect(
-					page
-						.getByRole("tab", { name: "Community Center" })
-						.getAttribute("aria-selected"),
-				).toBe("true"),
+					page.queryByRole("region", { name: "Joja development plan" }),
+				).toBeNull(),
 			);
 			expect(page.getByRole("heading", { name: "Pantry" })).toBeTruthy();
 			await opened.model.commands.redo();
-			await waitFor(() =>
-				expect(
-					page.getByRole("tab", { name: "Joja" }).getAttribute("aria-selected"),
-				).toBe("true"),
-			);
+			await page.findByRole("region", { name: "Joja development plan" });
+			expect(page.queryByRole("heading", { name: "Pantry" })).toBeNull();
 		} finally {
 			page.unmount();
 			await opened.close();
@@ -126,21 +128,24 @@ it(
 				page.getByRole("link", { name: "Community Center & Joja" }),
 			);
 			await fireEvent.click(
-				await page.findByRole("button", { name: "Enable Joja" }),
+				await page.findByRole("button", { name: "Change route" }),
 			);
 			await opened.model.commands.transact(
 				setCommunityProgress({ type: "membership", value: true }),
 			);
 			const newer = await opened.model.snapshot();
 			const dialog = page.getByRole("dialog");
+			await fireEvent.click(
+				within(dialog).getByRole("radio", { name: "Joja membership" }),
+			);
 			expect(
 				within(dialog).getByRole("heading", {
-					name: "Enable Joja membership?",
+					name: "Change restoration route",
 				}),
 			).toBeTruthy();
 			await fireEvent.click(
 				within(dialog).getByRole("button", {
-					name: "Enable Joja",
+					name: "Switch to Joja",
 				}),
 			);
 			await waitFor(() =>
@@ -180,7 +185,7 @@ it(
 			).toBeTruthy();
 			expect(
 				page
-					.getByRole("button", { name: "Enable Joja" })
+					.getByRole("button", { name: "Change route" })
 					.hasAttribute("disabled"),
 			).toBe(true);
 			expect(
@@ -188,12 +193,9 @@ it(
 					.getAllByRole("checkbox")
 					.every((control) => control.hasAttribute("disabled")),
 			).toBe(true);
-			await fireEvent.click(page.getByRole("tab", { name: "Joja" }));
 			expect(
-				page
-					.getByRole("button", { name: "Complete Bridge project" })
-					.hasAttribute("disabled"),
-			).toBe(true);
+				page.queryByRole("region", { name: "Joja development plan" }),
+			).toBeNull();
 			expect((await opened.model.snapshot()).document).toEqual(before.document);
 		} finally {
 			page.unmount();
@@ -267,16 +269,19 @@ it("keeps membership confirmation open while its command is pending", async () =
 		await fireEvent.click(
 			await page.findByRole(
 				"button",
-				{ name: "Enable Joja" },
+				{ name: "Change route" },
 				{ timeout: 10000 },
 			),
 		);
 		const dialog = page.getByRole("dialog");
 		await fireEvent.click(
-			within(dialog).getByRole("button", { name: "Enable Joja" }),
+			within(dialog).getByRole("radio", { name: "Joja membership" }),
+		);
+		await fireEvent.click(
+			within(dialog).getByRole("button", { name: "Switch to Joja" }),
 		);
 		// The owner locks every dismissal surface for the same pending commit.
-		for (const name of ["Cancel", "Close dialog", "Enable Joja"])
+		for (const name of ["Cancel", "Close dialog", "Switch to Joja"])
 			expect(
 				within(dialog).getByRole("button", { name }).hasAttribute("disabled"),
 			).toBe(true);
@@ -302,3 +307,98 @@ it("keeps membership confirmation open while its command is pending", async () =
 		await opened.close();
 	}
 });
+
+it.each(["failure", "noncompletion"] as const)(
+	"restores a native Joja project toggle after %s",
+	{ timeout: 20000 },
+	async (outcome) => {
+		const opened = await openEditor(new TextEncoder().encode(fixtureXml));
+		await opened.model.commands.transact(
+			setCommunityProgress({ type: "membership", value: true }),
+		);
+		const page = render(CharacterHarness, { model: opened.model });
+		const transact = vi
+			.spyOn(opened.model.commands, "transact")
+			.mockImplementation(async () =>
+				outcome === "failure"
+					? Result.fail(new MutationError("Project rejected for this test."))
+					: null,
+			);
+		try {
+			await fireEvent.click(
+				page.getByRole("link", { name: "Community Center & Joja" }),
+			);
+			const control = await page.findByRole(
+				"checkbox",
+				{ name: "Bridge project complete" },
+				{ timeout: 10000 },
+			);
+			if (!(control instanceof HTMLInputElement))
+				throw new Error("Missing project input");
+			const original = control.checked,
+				before = await opened.model.snapshot();
+			await fireEvent.click(control);
+			await waitFor(() => expect(control.checked).toBe(original));
+			if (outcome === "failure")
+				expect(page.getByRole("alert").textContent).toContain(
+					"Project rejected for this test.",
+				);
+			else expect(page.queryByRole("alert")).toBeNull();
+			expect((await opened.model.snapshot()).document).toEqual(before.document);
+		} finally {
+			transact.mockRestore();
+			page.unmount();
+			await opened.close();
+		}
+	},
+);
+
+it.each(["failure", "noncompletion"] as const)(
+	"restores the native theater toggle after %s",
+	{ timeout: 20000 },
+	async (outcome) => {
+		// Start with an already built Joja theater so reopening is available without
+		// manufacturing five unrelated project transactions in this rejection test.
+		const document = parser.parse(fixtureXml);
+		Object.assign(document.SaveGame.player, {
+			mailReceived: {
+				string: ["JojaMember", "ccMovieTheater", "ccMovieTheaterJoja"],
+			},
+		});
+		const opened = await openEditor(
+			new TextEncoder().encode(exportDocument(document)),
+		);
+		const page = render(CharacterHarness, { model: opened.model });
+		const transact = vi
+			.spyOn(opened.model.commands, "transact")
+			.mockImplementation(async () =>
+				outcome === "failure"
+					? Result.fail(new MutationError("Theater rejected for this test."))
+					: null,
+			);
+		try {
+			await fireEvent.click(
+				page.getByRole("link", { name: "Community Center & Joja" }),
+			);
+			const control = await page.findByRole(
+				"checkbox",
+				{ name: "Movie Theater project complete" },
+				{ timeout: 10000 },
+			);
+			expect(control).toHaveProperty("checked", true);
+			const before = await opened.model.snapshot();
+			await fireEvent.click(control);
+			await waitFor(() => expect(control).toHaveProperty("checked", true));
+			if (outcome === "failure")
+				expect(page.getByRole("alert").textContent).toContain(
+					"Theater rejected for this test.",
+				);
+			else expect(page.queryByRole("alert")).toBeNull();
+			expect((await opened.model.snapshot()).document).toEqual(before.document);
+		} finally {
+			transact.mockRestore();
+			page.unmount();
+			await opened.close();
+		}
+	},
+);

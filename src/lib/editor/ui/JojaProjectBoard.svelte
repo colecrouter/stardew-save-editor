@@ -1,11 +1,24 @@
 <script lang="ts">
 	import { Result } from "effect";
+	import { CCRoom } from "../../communityCenterData.ts";
 	import type { CommunityDomain } from "../community-domain.ts";
 	import type { CommandResult } from "../command-result.ts";
-	import StudyButton from "../../ui/kit/StudyButton.svelte";
 	import StudyAlert from "../../ui/kit/StudyAlert.svelte";
 	let { community }: { community: CommunityDomain } = $props();
-	const projects = $derived(community.rooms.filter((room) => room.project));
+	// Keep the game's form order, including the signature in the sixth cell.
+	// Room identities still come from the domain rather than a second price table.
+	const projectOrder = [
+		CCRoom.Vault,
+		CCRoom.BoilerRoom,
+		CCRoom.CraftsRoom,
+		CCRoom.Pantry,
+		CCRoom.FishTank,
+	];
+	const projects = $derived(
+		projectOrder.flatMap((id) =>
+			community.rooms.filter((room) => room.id === id && room.project),
+		),
+	);
 	// Bought projects and completed donations share restoration progress. Either
 	// known completion grants the benefit; absent donation data stays unavailable.
 	const completed = $derived(
@@ -17,37 +30,47 @@
 		action: () => Promise<CommandResult<unknown, { message: string }>>,
 	) {
 		// Keep coordinated project changes serial while the session commits them.
-		if (pending) return;
+		if (pending) return false;
 		pending = true;
 		error = "";
 		try {
 			const result = await action();
-			if (result && Result.isFailure(result)) error = result.failure.message;
+			if (!result) return false;
+			if (Result.isFailure(result)) {
+				error = result.failure.message;
+				return false;
+			}
+			return true;
 		} finally {
 			pending = false;
 		}
 	}
+	async function changeProject(
+		event: Event & { currentTarget: HTMLInputElement },
+		room: number,
+	) {
+		const control = event.currentTarget;
+		const target = community;
+		const accepted = await perform(() => target.project(room, control.checked));
+		// A native toggle precedes the queued commit. Restore the latest committed
+		// value on failure/noncompletion, including any intervening history changes.
+		const current = community.rooms.find((row) => row.id === room);
+		if (!accepted && control.isConnected)
+			control.checked =
+				current?.restored === true || current?.completed === true;
+	}
+	async function changeTheater(
+		event: Event & { currentTarget: HTMLInputElement },
+	) {
+		const control = event.currentTarget;
+		const target = community;
+		const accepted = await perform(() => target.theaterChange(control.checked));
+		if (!accepted && control.isConnected) control.checked = community.theater;
+	}
 </script>
 
-{#if community.membership !== true}
-	<div class="membership-note">
-		<StudyAlert
-			title={community.membership === false
-				? "Joja membership required"
-				: "Membership could not be read"}
-			tone="info"
-		>
-			<p>
-				{community.membership === false
-					? "You can inspect the development plan here. Use Enable Joja above to change membership before editing projects."
-					: "The saved membership is unsupported. Project edits are unavailable."}
-			</p>
-		</StudyAlert>
-	</div>
-{/if}
-
 {#if error}
-	<div class="membership-note">
+	<div class="project-notice">
 		<StudyAlert
 			title="Project could not be changed"
 			tone="danger"
@@ -58,238 +81,244 @@
 	</div>
 {/if}
 
-<section class="joja-plan" aria-label="Joja development plan">
-	<header>
-		<div class="joja-brand" aria-hidden="true">
-			Joja
-			<svg width="24" height="24" viewBox="0 0 24 24">
-				<path d="m12 0 3 9 9 3-9 3-3 9-3-9-9-3 9-3z" fill="currentColor" />
-			</svg>
-		</div>
-
-		<div>
-			<h2>Joja Community Development</h2>
-
-			<p>Pelican Town</p>
-		</div>
-	</header>
-
-	<div class="plan-status">
-		<span>{completed} of {projects.length} projects complete</span>
-
-		<span>In-game cost</span>
+{#if projects.some((project) => project.completed === undefined)}
+	<div class="project-notice">
+		<StudyAlert title="Some project progress is unavailable" tone="warning">
+			<p>Projects with unsupported saved donation progress cannot be edited.</p>
+		</StudyAlert>
 	</div>
+{/if}
 
-	{#each projects as project (project.id)}
-		{@const done = project.restored || project.completed === true}
-		<article
-			class="project"
-			class:complete={done}
-			aria-label={`${project.project} project`}
-		>
-			<div class="project-copy">
-				<h3>{project.project}</h3>
+<div class="joja-layout">
+	<section class="joja-page" aria-label="Joja development plan">
+		<header>
+			<div class="logo" aria-hidden="true">Joja *</div>
 
-				<p>{project.unlock}</p>
+			<div class="heading">
+				<h2>Community Development Projects</h2>
 
-				{#if project.completed === undefined}
-					<p>
-						Saved donation progress is unavailable; this project cannot be
-						edited.
-					</p>
-				{/if}
-
-				<span class="project-state">
-					{done
-						? "Completed"
-						: project.completed === undefined
-							? "Status unavailable"
-							: "Not completed"}
-				</span>
+				<div class="town">Pelican Town</div>
 			</div>
+		</header>
 
-			<span class="price">{project.price?.toLocaleString()}g</span>
+		<div class="projects-grid">
+			{#each projects as project (project.id)}
+				{@const done = project.restored || project.completed === true}
+				<label
+					class="project-row"
+					title={project.completed === undefined
+						? "Status unavailable"
+						: project.unlock}
+				>
+					<input
+						type="checkbox"
+						checked={done}
+						disabled={community.membership !== true ||
+							project.completed === undefined ||
+							pending}
+						aria-label={`${project.project} project complete`}
+						onchange={(event) => void changeProject(event, project.id)}
+					/>
 
-			<StudyButton
-				intent={done ? "neutral" : "constructive"}
-				disabled={community.membership !== true ||
-					project.completed === undefined ||
-					pending}
-				aria-label={`${done ? "Reopen" : "Complete"} ${project.project} project`}
-				onclick={() => {
-					const target = community;
-					void perform(() => target.project(project.id, !done));
-				}}
-			>
-				{done ? "Reopen project" : "Complete project"}
-			</StudyButton>
-		</article>
-	{/each}
+					<span class="project-name">
+						{project.project}
+						{#if project.completed === undefined}
+							<small class="project-unavailable">Status unavailable</small>
+						{/if}
+					</span>
 
-	<section class="theater" aria-label="Joja Movie Theater">
-		<div class="theater-heading">
-			<div>
-				<h3>Movie Theater</h3>
+					<span class="dots" aria-hidden="true"></span>
 
-				<p>A separate project after the five town improvements.</p>
+					<span class="price">{project.price?.toLocaleString()} g</span>
+				</label>
+			{/each}
+
+			<div class="project-row prepared">
+				Prepared by:
+				<span class="signature">Morris</span>
 			</div>
-
-			<span class="price">1,000,000g</span>
 		</div>
-
-		{#if !community.theater && completed !== projects.length}
-			<p class="theater-note">
-				Complete all five projects to make the theater available.
-			</p>
-		{/if}
-
-		<StudyButton
-			intent={community.theater ? "neutral" : "constructive"}
-			disabled={community.membership !== true ||
-				pending ||
-				(!community.theater && completed !== projects.length)}
-			onclick={() => {
-				const target = community;
-				void perform(() => target.theaterChange(!target.theater));
-			}}
-		>
-			{community.theater ? "Reopen theater project" : "Build Movie Theater"}
-		</StudyButton>
 	</section>
 
-	<footer>
-		Prices are shown for reference. Editor changes do not spend gold.
-	</footer>
-</section>
+	<p class="plan-note">
+		{completed} of 5 projects complete. Prices are for reference; editor changes do
+		not spend gold.
+	</p>
+
+	<!-- The theater is deliberately separate from the original five-project form;
+	     completing the development plan must never buy it implicitly. -->
+	<section class="theater" aria-label="Joja Movie Theater">
+		<label class="project-row">
+			<input
+				type="checkbox"
+				checked={community.theater}
+				disabled={community.membership !== true ||
+					pending ||
+					(!community.theater && completed !== projects.length)}
+				aria-label="Movie Theater project complete"
+				onchange={(event) => void changeTheater(event)}
+			/>
+
+			<span class="project-name">Movie Theater</span>
+
+			<span class="dots" aria-hidden="true"></span>
+
+			<span class="price">1,000,000 g</span>
+		</label>
+
+		{#if !community.theater && completed !== projects.length}
+			<p>Available after all five development projects are complete.</p>
+		{:else}
+			<p>A separate project after the five town improvements.</p>
+		{/if}
+	</section>
+</div>
 
 <style>
-	.membership-note {
+	.project-notice {
 		margin-bottom: 20px;
 	}
-	.joja-plan {
-		min-width: 0;
-		color: #244664;
-		background: #f1f7f7;
-		border: 2px solid #547fa3;
+	.joja-layout {
+		container-type: inline-size;
+		max-width: 640px;
+		margin-inline: auto;
+	}
+	.joja-page {
+		font-family: monospace;
+		font-size: 16px;
+		color: #89b7fc;
+		background: #fff;
+		border: 2px solid #5d5c9b;
+		image-rendering: pixelated;
 	}
 	header {
 		display: flex;
 		align-items: center;
-		gap: 28px;
-		padding: 24px;
-		border-bottom: 2px solid #547fa3;
-		background: #dcebf5;
+		justify-content: space-evenly;
+		flex-direction: column;
+		gap: 12px;
+		margin: 20px 12px;
 	}
-	.joja-brand {
+	.logo {
+		font-size: 32px;
+		white-space: nowrap;
+	}
+	.heading {
+		min-width: 0;
+	}
+	.joja-page h2 {
+		font: bold 16px/1.35 monospace;
+		text-align: center;
+		color: #5d5c9b;
+		margin: 0;
+	}
+	.town {
+		font-size: 13px;
+		border-bottom: 2px solid #89b7fc;
+		color: #68788e;
+		text-align: center;
+		max-width: 150px;
+		margin: 8px auto 0;
+	}
+	.projects-grid {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr);
+		color: #5d5c9b;
+		border-top: 2px solid #5d5c9b;
+	}
+	.project-row {
 		display: flex;
 		align-items: center;
 		gap: 6px;
+		font-size: 14px;
+		min-width: 0;
+		min-height: 52px;
+		padding: 8px;
+		background: #fff;
+		border-bottom: 2px solid #89b7fc;
+		cursor: pointer;
+	}
+	.project-row:has(input:disabled) {
+		cursor: default;
+	}
+	.project-row input {
+		width: 20px;
+		height: 20px;
 		flex: none;
-		font:
-			42px/1 "Pixelify Sans",
-			sans-serif;
-		color: #306d9e;
-	}
-	h2 {
-		font-size: 25px;
 		margin: 0;
+		accent-color: #5d5c9b;
 	}
-	header p {
-		margin: 8px 0 0;
-		font-size: 18px;
+	.project-row input:focus-visible {
+		outline: 3px solid #176fb4;
+		outline-offset: 3px;
 	}
-	.plan-status {
-		display: flex;
-		justify-content: space-between;
-		gap: 16px;
-		padding: 12px 24px;
-		font-size: 18px;
-		border-bottom: 1px solid #a0bcd0;
+	.project-unavailable {
+		display: block;
+		font-size: 11px;
+		margin-top: 4px;
 	}
-	.project {
-		display: grid;
-		grid-template-columns: minmax(0, 1fr) auto auto;
-		align-items: center;
-		gap: 20px;
-		padding: 20px 24px;
-		border-bottom: 1px solid #a0bcd0;
-	}
-	.project.complete {
-		background: #e1ede8;
-	}
-	h3 {
-		font-size: 23px;
-		margin: 0;
-	}
-	.project-copy p,
-	.theater p {
-		margin: 6px 0 0;
-		font-size: 18px;
-	}
-	.project-state {
-		display: inline-block;
-		margin-top: 8px;
-		font-size: 17px;
-	}
+	.project-name,
 	.price {
 		white-space: nowrap;
-		font-size: 22px;
-		font-variant-numeric: tabular-nums;
+	}
+	.dots {
+		border-bottom: 2px dotted #5d5c9b;
+		height: 1em;
+		flex: 1;
+		min-width: 4px;
+	}
+	.prepared {
+		color: #4b73a8;
+		cursor: default;
+	}
+	.signature::before {
+		content: "x";
+		color: #89b7fc;
+		font-family: initial;
+		margin-right: 4px;
+		font-size: 12px;
+	}
+	.signature {
+		color: #5d5c9b;
+		font-size: 24px;
+		font-family: "Brush Script MT", cursive;
+		border-bottom: 2px solid #89b7fc;
+		line-height: 0.8;
+		flex: 1;
+	}
+	.plan-note {
+		color: #694621;
+		font-size: 18px;
+		margin: 12px 0 24px;
 	}
 	.theater {
-		padding: 24px;
+		color: #5d5c9b;
+		background: #fff;
+		border: 2px solid #5d5c9b;
+		font: 16px/1.35 monospace;
 	}
-	.theater-heading {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 20px;
-		justify-content: space-between;
-		margin-bottom: 16px;
+	.theater p {
+		font-size: 13px;
+		padding: 12px;
+		margin: 0;
 	}
-	.theater-note {
-		margin-bottom: 16px !important;
-	}
-	footer {
-		padding: 16px 24px;
-		border-top: 2px solid #547fa3;
-		background: #dcebf5;
-		font-size: 18px;
-	}
-	@media (max-width: 1200px) {
-		.project {
-			grid-template-columns: minmax(0, 1fr) auto;
+	/* Older supported browsers without container queries keep the usable single
+	   column form. Enhance only when this form itself has room for paired cells. */
+	@container (min-width: 561px) {
+		.projects-grid {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
 		}
-		.project :global(.study-button) {
-			grid-column: 1 / -1;
-			justify-self: start;
+		.projects-grid .project-row:nth-child(odd) {
+			border-right: 2px solid #5d5c9b;
 		}
-	}
-	@media (max-width: 600px) {
 		header {
-			align-items: start;
-			flex-direction: column;
+			flex-direction: row;
 			gap: 16px;
-			padding: 20px 16px;
+			margin: 24px 16px;
 		}
-		h2 {
-			font-size: 23px;
-		}
-		.project,
-		.theater {
-			padding: 20px 16px;
-		}
-		.plan-status,
-		footer {
-			padding-inline: 16px;
-		}
-		.plan-status span:last-child {
-			display: none;
-		}
-		.price {
-			font-size: 20px;
-		}
-		.project :global(.study-button) {
-			width: 100%;
+		.project-row {
+			font-size: 16px;
+			gap: 8px;
 		}
 	}
 </style>

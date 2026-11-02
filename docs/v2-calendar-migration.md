@@ -101,3 +101,22 @@ the legacy route is a rollout/rollback decision rather than a reason to maintain
 another implementation for new work.
 Remove experiment forwarding modules as their remaining comparisons are retired.
 Toast styling/interaction polish remains a separate task from command error behavior.
+
+## Calendar visual and event projection
+
+The month grid follows the in-game Monday-first, 28-day calendar. Selecting a day,
+season or year previews events in the existing date draft; only Apply commits the
+coordinated date operation. The saved day has its own marker. Weather controls
+continue to edit the saved date, not the preview month.
+
+Birthdays come from saved residents, with vanilla hidden-until-met policies.
+Festival and derby dates reuse the calendar rules; Desert Festival availability
+uses saved Desert access. Bookseller visits use the game's year/save-ID/season
+seed formula. Unknown inputs are unavailable rather than repaired. Future NPC
+arrivals, custom villagers and weddings are not predicted. Existing portrait
+assets stand in for the game's character sprites.
+
+`game-random.ts` owns shared seed hashing and seeded .NET sequences. Calendar,
+trinkets and event previews each acquire independent local generators; rendering
+cannot advance another calculation's random stream. Compatibility exports remain
+for existing consumers. No Effect service or global RNG state is involved.

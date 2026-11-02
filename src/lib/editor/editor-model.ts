@@ -1,3 +1,7 @@
+import {
+	readCalendarEventContext,
+	type CalendarEventContext,
+} from "./calendar-events.ts";
 import { readCommunity, type CommunityView } from "./community-data.ts";
 import {
 	readFarmerRoster,
@@ -105,6 +109,7 @@ interface EditorViewData {
 	readonly revision: number;
 	readonly bundle: ReturnType<typeof springBundleView>;
 	readonly calendar: CalendarViewState;
+	readonly calendarEventContext: CalendarEventContext;
 	readonly farm: FarmView;
 	readonly buildings: BuildingsView;
 	readonly community: CommunityView;
@@ -220,6 +225,7 @@ function project(
 					reason: "",
 				},
 		calendar,
+		calendarEventContext: readCalendarEventContext(state.document),
 		farm: readFarmSettings(state.document),
 		buildings: readBuildings(state.document),
 		community: readCommunity(state.document),

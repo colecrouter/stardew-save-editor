@@ -1,5 +1,10 @@
 <script lang="ts">
 	import { Result } from "effect";
+	import CalendarMonth from "./CalendarMonth.svelte";
+	import { calendarEventsForMonth } from "../calendar-events.ts";
+	import StudyButton from "../../ui/kit/StudyButton.svelte";
+	import StudyAlert from "../../ui/kit/StudyAlert.svelte";
+	import StudyAside from "../../ui/kit/StudyAside.svelte";
 	import { setCalendarWeather } from "../calendar-operations.ts";
 	import { useAtomValue } from "effect-atom-svelte";
 	import type { createRuneDraft } from "../field.svelte.ts";
@@ -27,6 +32,28 @@
 			day: string;
 		},
 	);
+	// Invalid partial year input remains owned by the draft. Only a readable month
+	// can produce seed-dependent events; never silently invent a fallback year.
+	const month = $derived({
+		year: Number(parts.year),
+		season:
+			SEASONS.find((season) => season === parts.season) ??
+			view.current?.calendar.date.season ??
+			SEASONS[0],
+		day: Number(parts.day),
+	});
+	const readableMonth = $derived(
+		/^\d+$/.test(parts.year) &&
+			Number.isSafeInteger(month.year) &&
+			month.year >= 1 &&
+			month.year <= 9999,
+	);
+	const occasions = $derived(
+		view.current && readableMonth
+			? calendarEventsForMonth(month, view.current.calendarEventContext)
+			: [],
+	);
+
 	let error = $state("");
 	const edit = (part: "year" | "season" | "day", value: string) =>
 		draft.input(JSON.stringify({ ...parts, [part]: value }));
@@ -48,7 +75,7 @@
 		<p>Current save: {formatDate(view.current.calendar.date)}</p>
 	</header>
 	<div class="calendar-layout">
-		<section class="study-pane date-panel" aria-label="Farm date">
+		<section class="date-panel" aria-label="Farm date">
 			<h2>Farm date</h2>
 			<form
 				onsubmit={(event) => {
@@ -89,35 +116,48 @@
 						</select>
 					</label>
 				</div>
-				<div class="days" role="group" aria-label="Day of month">
-					{#each Array.from({ length: 28 }, (_, i) => i + 1) as day (day)}
-						<button
-							type="button"
-							aria-pressed={Number(parts.day) === day}
-							disabled={pending.current > 0}
-							onclick={() => edit("day", String(day))}
-						>
-							{day}
-						</button>
-					{/each}
-				</div>
+				<CalendarMonth
+					yearLabel={readableMonth ? parts.year : "—"}
+					eventsAvailable={readableMonth}
+					date={month}
+					saved={view.current.calendar.date}
+					events={occasions}
+					disabled={pending.current > 0}
+					select={(day) => edit("day", String(day))}
+				/>
+
+				{#if !readableMonth}
+					<StudyAlert
+						title="Enter a year to show calendar events"
+						tone="warning"
+					>
+						<p>The date draft is kept while you finish entering the year.</p>
+					</StudyAlert>
+				{/if}
+
+				{#each view.current.calendarEventContext.notes as note}
+					<p class="event-note">{note}</p>
+				{/each}
+
 				<div class="actions">
-					<button
+					<StudyButton
+						intent="constructive"
+						variant="filled"
 						type="submit"
 						disabled={!draft.current.dirty ||
 							draft.current.conflict ||
 							pending.current > 0}
 					>
 						Apply date
-					</button>
-					<button
+					</StudyButton>
+					<StudyButton
 						type="button"
 						onclick={draft.reload}
 						disabled={pending.current > 0 ||
 							(!draft.current.dirty && !draft.current.conflict)}
 					>
 						Reload current date
-					</button>
+					</StudyButton>
 				</div>
 				<p id="date-feedback" role="status">
 					{#if draft.current.error}
@@ -131,7 +171,7 @@
 				</p>
 			</form>
 		</section>
-		<section class="study-pane weather-panel" aria-label="Weather">
+		<section class="weather-panel" aria-label="Weather">
 			<h2>Weather</h2>
 			{#each weatherDays as day (day)}
 				{@const options =
@@ -144,7 +184,9 @@
 						? view.current.todayReason
 						: view.current.tomorrowReason}
 				<label>
-					{day === "today" ? "Today" : "Tomorrow"}
+					<span class="weather-day">
+						{day === "today" ? "Today" : "Tomorrow"}
+					</span>
 					<span class="weather-picture">
 						<WeatherIcon
 							weather={current}
@@ -176,12 +218,21 @@
 		</section>
 	</div>
 	{#if error}
-		<p role="alert">{error}</p>
+		<StudyAlert
+			title="Weather could not be changed"
+			tone="danger"
+			live="assertive"
+		>
+			<p>{error}</p>
+		</StudyAlert>
 	{/if}
-	<p class="notice">
-		Changing the date does not simulate an overnight transition. Review changes
-		before exporting.
-	</p>
+	<StudyAside title="Changing the date">
+		<p>
+			Choose a date, then Apply date to commit its coordinated changes. This
+			does not simulate an overnight transition. Weather edits apply separately
+			to the current saved date.
+		</p>
+	</StudyAside>
 {/if}
 
 <style>
@@ -204,9 +255,9 @@
 	}
 	.calendar-layout {
 		display: grid;
-		grid-template-columns: minmax(0, 1fr) 190px;
+		grid-template-columns: minmax(0, 1fr) 240px;
 		gap: 16px;
-		max-width: 900px;
+		max-width: 1120px;
 	}
 	section {
 		padding: 14px;
@@ -234,62 +285,54 @@
 		grid-template-columns: 1fr 1fr;
 		gap: 12px;
 	}
-	.days {
-		display: grid;
-		grid-template-columns: repeat(7, minmax(0, 1fr));
-		margin-block: 12px;
-	}
-	.days button {
-		padding: 4px;
-		min-height: 42px;
-		border: 1px solid #bd965e;
-		background: #fff0cf;
-		font: inherit;
-	}
-	.days button[aria-pressed="true"] {
-		background: #8dccf5;
-		box-shadow: inset 0 0 0 2px #2584c3;
-	}
 	.actions {
 		display: flex;
 		gap: 8px;
 		flex-wrap: wrap;
 	}
-	button {
-		cursor: pointer;
-		font: inherit;
-		min-height: 40px;
-		padding: 5px 10px;
-		color: #351b0e;
-	}
-	button:disabled {
-		cursor: default;
-		opacity: 0.6;
-	}
 	.weather-picture {
 		display: grid;
 		place-items: center;
-		background: #fce8bf;
-		padding: 6px;
+		min-height: 44px;
 	}
+	/* The icon belongs to its weather selector, rather than a separate preview
+	   panel. Preserve a full-width caption and a native 44px control below it. */
 	.weather-panel label {
-		margin-top: 12px;
+		display: grid;
+		grid-template-columns: 39px minmax(0, 1fr);
+		align-items: center;
+		gap: 6px 10px;
+		margin-top: 16px;
+	}
+	.weather-day {
+		grid-column: 1 / -1;
 	}
 	small {
 		display: block;
 		font-size: 17px;
 		margin-top: 5px;
 	}
-	.notice {
-		margin-top: 16px;
-		padding: 12px;
-		background: #d5e8ef;
-		border: 2px solid #90b6c4;
+	.event-note {
+		color: #694621;
+		font-size: 17px;
+		margin-block: 12px;
 	}
-	[role="alert"] {
-		color: #8a1c19;
+	.date-panel {
+		padding: 0;
 	}
-	@media (max-width: 650px) {
+	.date-fields {
+		margin-bottom: 16px;
+	}
+	.weather-panel {
+		background: #f3cf96;
+		border: 2px solid #b98b52;
+		align-self: start;
+		padding: 16px;
+	}
+	.weather-panel select {
+		min-height: 44px;
+	}
+	@media (max-width: 1050px) {
 		.calendar-layout {
 			grid-template-columns: minmax(0, 1fr);
 		}
@@ -304,6 +347,12 @@
 		}
 		.date-fields {
 			gap: 8px;
+		}
+	}
+	@media (max-width: 600px) {
+		.weather-panel {
+			grid-template-columns: minmax(0, 1fr);
+			gap: 0;
 		}
 	}
 </style>

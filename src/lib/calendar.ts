@@ -11,6 +11,7 @@
 */
 import type { Season } from "$types/save";
 import { CalendarSeason } from "./calendarSeason.ts";
+import { createGameRandom } from "./game-random.ts";
 
 export const SEASONS = [
 	CalendarSeason.Spring,
@@ -360,108 +361,12 @@ export function planCalendarWeather({
 	};
 }
 
-// The game's random numbers, for the green rain day
-
-/** xxHash32 with seed 0, the hash behind the game's HashUtility */
-function xxHash32(bytes: Uint8Array): number {
-	const PRIME1 = 0x9e3779b1;
-	const PRIME2 = 0x85ebca77;
-	const PRIME3 = 0xc2b2ae3d;
-	const PRIME4 = 0x27d4eb2f;
-	const PRIME5 = 0x165667b1;
-	const rotl = (x: number, r: number) => (x << r) | (x >>> (32 - r));
-	const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-	const round = (acc: number, lane: number) =>
-		Math.imul(rotl((acc + Math.imul(lane, PRIME2)) | 0, 13), PRIME1);
-
-	let i = 0;
-	let hash: number;
-	if (bytes.length >= 16) {
-		let v1 = (PRIME1 + PRIME2) | 0;
-		let v2 = PRIME2;
-		let v3 = 0;
-		let v4 = -PRIME1 | 0;
-		for (; i + 16 <= bytes.length; i += 16) {
-			v1 = round(v1, view.getUint32(i, true));
-			v2 = round(v2, view.getUint32(i + 4, true));
-			v3 = round(v3, view.getUint32(i + 8, true));
-			v4 = round(v4, view.getUint32(i + 12, true));
-		}
-		hash = (rotl(v1, 1) + rotl(v2, 7) + rotl(v3, 12) + rotl(v4, 18)) | 0;
-	} else {
-		hash = PRIME5;
-	}
-	hash = (hash + bytes.length) | 0;
-	for (; i + 4 <= bytes.length; i += 4)
-		hash = Math.imul(
-			rotl((hash + Math.imul(view.getUint32(i, true), PRIME3)) | 0, 17),
-			PRIME4,
-		);
-	for (; i < bytes.length; i++)
-		hash = Math.imul(
-			rotl((hash + Math.imul(bytes[i] ?? 0, PRIME5)) | 0, 11),
-			PRIME1,
-		);
-	hash = Math.imul(hash ^ (hash >>> 15), PRIME2);
-	hash = Math.imul(hash ^ (hash >>> 13), PRIME3);
-	return (hash ^ (hash >>> 16)) >>> 0;
-}
-
-const INT_MAX = 2147483647;
-
-/** Utility.CreateRandomSeed */
-export function createRandomSeed(legacyRandom: boolean, ...seeds: number[]) {
-	const parts = [0, 0, 0, 0, 0].map((_, i) => (seeds[i] ?? 0) % INT_MAX);
-	if (legacyRandom)
-		return Math.trunc(parts.reduce((sum, part) => sum + part, 0) % INT_MAX);
-	// HashUtility.GetDeterministicHashCode(params int[]): the ints' bytes, hashed
-	const ints = Int32Array.from(parts, (part) => Math.trunc(part));
-	return xxHash32(new Uint8Array(ints.buffer)) | 0;
-}
-
-/** .NET's System.Random with a seed, which the game's random numbers come from */
-export class CSharpRandom {
-	#seeds = new Array<number>(56).fill(0);
-	#next = 0;
-	#nextP = 21;
-
-	constructor(seed: number) {
-		const seeds = this.#seeds;
-		let mj = 161803398 - (seed === -2147483648 ? INT_MAX : Math.abs(seed));
-		seeds[55] = mj;
-		let mk = 1;
-		for (let i = 1; i < 55; i++) {
-			const ii = (21 * i) % 55;
-			seeds[ii] = mk;
-			mk = (mj - mk) | 0;
-			if (mk < 0) mk += INT_MAX;
-			mj = seeds[ii] ?? 0;
-		}
-		for (let k = 1; k < 5; k++)
-			for (let i = 1; i < 56; i++) {
-				let value = ((seeds[i] ?? 0) - (seeds[1 + ((i + 30) % 55)] ?? 0)) | 0;
-				if (value < 0) value += INT_MAX;
-				seeds[i] = value;
-			}
-	}
-
-	/** Random.Next(): 0 to int.MaxValue - 1 */
-	nextInt(): number {
-		const seeds = this.#seeds;
-		if (++this.#next >= 56) this.#next = 1;
-		if (++this.#nextP >= 56) this.#nextP = 1;
-		let value = (seeds[this.#next] ?? 0) - (seeds[this.#nextP] ?? 0);
-		if (value === INT_MAX) value--;
-		if (value < 0) value += INT_MAX;
-		seeds[this.#next] = value;
-		return value;
-	}
-
-	/** Random.Next(max): 0 to max - 1 */
-	next(max: number): number {
-		return Math.trunc(this.nextInt() * (1 / INT_MAX) * max);
-	}
-}
+// Existing consumers retain these names; the generator and seed policy now have
+// one implementation shared with trinket rolls and calendar event predictions.
+export {
+	DotNetRandom as CSharpRandom,
+	createRandomSeed,
+} from "./game-random.ts";
 
 const GREEN_RAIN_DAYS = [5, 6, 7, 14, 15, 16, 18, 23];
 
@@ -476,8 +381,6 @@ export function greenRainDay(
 	gameId: number,
 	legacyRandom: boolean,
 ): number {
-	const random = new CSharpRandom(
-		createRandomSeed(legacyRandom, year * 777, gameId),
-	);
+	const random = createGameRandom(legacyRandom, year * 777, gameId);
 	return GREEN_RAIN_DAYS[random.next(GREEN_RAIN_DAYS.length)] ?? 5;
 }

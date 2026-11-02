@@ -37,6 +37,9 @@ plumbing. Shared farmer selection is session state, independent of feature
 availability. Inventory mutations prepare records and instance identities
 together; history publishes that prepared result atomically.
 
+The [export review contract](v2-review-changes.md) separates typed net changes
+from edit history and retains unclassified saved data in an explicit fallback.
+
 ## Quality follow-ups
 
 The [independent cleanup audit](v2-cleanup-audit.md) verifies the completed field,

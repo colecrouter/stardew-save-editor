@@ -362,7 +362,9 @@
 				<BundlePanel {model} />
 			</div>
 		{/if}
-		<div hidden={tab !== "review"}><ReviewPanel {model} {includeProofs} /></div>
+		<div hidden={tab !== "review"}>
+			<ReviewPanel {model} {includeProofs} active={tab === "review"} />
+		</div>
 	</EditorShell>
 </div>
 

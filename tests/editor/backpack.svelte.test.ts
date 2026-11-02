@@ -1,3 +1,4 @@
+import * as editorModel from "../../src/lib/editor/editor-model";
 import { readItemVisual } from "../../src/lib/editor/item-presentation.ts";
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, waitFor, within } from "@testing-library/svelte";
@@ -82,6 +83,15 @@ describe("full-save backpack workflow", { timeout: 15_000 }, () => {
 		}
 	});
 	async function openBackpack(xml = fixtureXml) {
+		// Observe the real imported session; history is now collapsed/lazy in the UI.
+		const load = editorModel.openEditor;
+		let loaded: Awaited<ReturnType<typeof load>> | undefined;
+		const opening = vi
+			.spyOn(editorModel, "openEditor")
+			.mockImplementation(async (...args) => {
+				loaded = await load(...args);
+				return loaded;
+			});
 		const page = render(EditorApp);
 		try {
 			await fireEvent.change(page.getByLabelText("Save file"), {
@@ -100,15 +110,19 @@ describe("full-save backpack workflow", { timeout: 15_000 }, () => {
 					).toBeTruthy(),
 				{ timeout: 5000 },
 			);
-			return page;
+			if (!loaded) throw new Error("Missing imported editor model");
+			return Object.assign(page, { model: loaded.model });
 		} catch (error) {
 			page.unmount();
 			throw error;
+		} finally {
+			opening.mockRestore();
 		}
 	}
 	type Page = Awaited<ReturnType<typeof openBackpack>>;
 	const actions = (page: Page) =>
-		page.container.querySelector("ol")?.children.length ?? 0;
+		page.model.atomBindings.registry.get(page.model.atomBindings.view)?.entries
+			.length ?? 0;
 	const inspector = (page: Page) =>
 		within(page.getByRole("region", { name: "Selected backpack item" }));
 

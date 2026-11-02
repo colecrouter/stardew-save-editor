@@ -83,9 +83,16 @@ export interface CharacterDetailsView {
 	houseUpgrading: boolean;
 }
 function owner(document: SaveDocument, farmerId: string) {
-	const matches = farmers(document).filter(
-		(farmer) => String(farmer.UniqueMultiplayerID) === farmerId,
-	);
+	// Opaque imported identifiers cannot authorize a target or be coerced via
+	// user-shaped toString/valueOf members while projecting another farmer.
+	const matches = farmers(document).filter((farmer) => {
+		const id = farmer.UniqueMultiplayerID;
+		return (
+			(typeof id === "string" ||
+				(typeof id === "number" && Number.isFinite(id))) &&
+			String(id) === farmerId
+		);
+	});
 	return matches.length === 1 && record(matches[0]) ? matches[0] : undefined;
 }
 function numberTarget(

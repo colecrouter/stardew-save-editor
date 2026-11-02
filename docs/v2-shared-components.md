@@ -8,7 +8,12 @@ legacy `UIInput` is not a replacement for those adapters.
 ## Initial inventory
 
 - `StudyButton`: native button attributes/events, default `type="button"`,
-  default/primary/danger variants and explicit disabled/pending states. Pending
+  independent `intent="neutral|constructive|destructive"` and
+  `variant="plain|filled"` choices, plus explicit disabled/pending states.
+  Plain buttons retain paper with intent-coloured text/borders; filled buttons
+  use the intent colour with light text. `iconOnly` reserves a square 44px target
+  and requires a caller-provided accessible name. The global Exit X uses the
+  filled destructive treatment; Export uses filled constructive. Pending
   sets `aria-busy` and disables activation. Do not disable history controls during
   field blur commits: that would swallow the click which must queue after editing.
 - `StudyField`: vertical label, description and error associations around a

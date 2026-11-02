@@ -244,7 +244,7 @@
 
 				<button
 					type="button"
-					class="study-button study-button--primary add"
+					class="study-button study-button--constructive study-button--filled add"
 					onclick={() => void add()}
 					disabled={saving}
 				>

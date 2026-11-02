@@ -319,17 +319,10 @@
 	}
 }
 
-/* Variant specificity must outrank the kit root's default text colour, including
-   portaled buttons that have no enclosing application theme. */
-.study-kit.study-button--primary {
-	color: #fff8e8;
-	background: var(--study-action);
-}
-.study-kit.study-button--primary:hover:not(:disabled) {
-	background: #2c6832;
-}
-.study-kit.study-button--danger {
-	color: var(--study-danger);
+/* The kit root supplies typography, while the button's independent intent and
+   emphasis variables supply its text colour, including inside portals. */
+.study-kit.study-button {
+	color: var(--button-ink);
 }
 .study-dialog {
 	background-clip: padding-box;

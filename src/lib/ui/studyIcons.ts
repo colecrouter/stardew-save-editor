@@ -2,6 +2,25 @@ import type atlas from "./art/icon-regions.json";
 
 // Code-native action and season glyphs outside the illustrated raster kit.
 export const studyIcons = {
+	// Notice glyphs share a 24px pixel grid. Text, not colour alone, names severity.
+	"notice-info": [
+		["currentColor", "M7 2h10v2h3v3h2v10h-2v3h-3v2H7v-2H4v-3H2V7h2V4h3z"],
+		["var(--study-info-surface, #e1eef0)", "M11 6h3v3h-3zM10 11h4v7h-3v-5h-1z"],
+	],
+	check: [
+		["currentColor", "M2 11h4v4h3v-3h3V9h3V6h4v5h-3v3h-3v3h-3v4H6v-4H2z"],
+	],
+	warning: [
+		["currentColor", "M10 2h4v3h2v4h2v4h2v4h2v4H2v-4h2v-4h2V9h2V5h2z"],
+		["var(--study-warning-surface, #ffe3a0)", "M11 7h2v7h-2zM11 17h2v2h-2z"],
+	],
+	error: [
+		["currentColor", "M7 2h10v2h3v3h2v10h-2v3h-3v2H7v-2H4v-3H2V7h2V4h3z"],
+		[
+			"var(--study-danger-surface, #ffe2ce)",
+			"M7 6h3v3h4V6h3v4h-3v4h3v4h-3v-3h-4v3H7v-4h3v-4H7z",
+		],
+	],
 	// Pixel-grid glyphs fill the two section gaps in the existing illustrated kit.
 	// Distinct silhouettes matter at navigation size; colours use the shell palette.
 	calendar: [

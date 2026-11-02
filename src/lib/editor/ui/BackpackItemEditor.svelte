@@ -147,7 +147,7 @@
 		<div class="remove-action">
 			<button
 				type="button"
-				class="study-button study-button--danger"
+				class="study-button study-button--destructive"
 				disabled={removing}
 				onclick={() => void onremove?.()}
 			>

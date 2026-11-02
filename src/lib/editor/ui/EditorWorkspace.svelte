@@ -165,7 +165,7 @@
 					     disabling it during that commit would swallow the same click. -->
 				<button
 					type="button"
-					class="study-button study-button--primary export"
+					class="study-button study-button--constructive study-button--filled export"
 					disabled={downloading || dateDraft.current.dirty}
 					aria-busy={downloading}
 					aria-label="Export save"

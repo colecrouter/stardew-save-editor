@@ -1,0 +1,22 @@
+/* These semantic defaults belong only to the Stardew surfaces. Portaled content
+   repeats the kit scope so it does not inherit the browser's default typography. */
+:where(.study-theme, .study-kit) {
+	--study-ink: #311304;
+	--study-muted: #694621;
+	--study-paper: #ffe2aa;
+	--study-paper-light: #fff2d3;
+	--study-paper-inset: #f3cf96;
+	--study-rule: #b98b52;
+	--study-wood: #70401d;
+	--study-focus: #176fb4;
+	--study-action: #35763a;
+	--study-destructive-action: #9c3b28;
+	--study-success: #285f30;
+	--study-success-surface: #e5edcb;
+	--study-warning: #714312;
+	--study-warning-surface: #ffe3a0;
+	--study-danger: #8a281c;
+	--study-danger-surface: #ffe2ce;
+	--study-info: #245675;
+	--study-info-surface: #e1eef0;
+}

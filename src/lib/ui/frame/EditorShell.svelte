@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from "svelte";
 	import StudyFrame from "../StudyFrame.svelte";
+	import StudyButton from "../kit/StudyButton.svelte";
 	import WoodDivider from "./WoodDivider.svelte";
 	import ParchmentPane from "./ParchmentPane.svelte";
 	let {
@@ -20,12 +21,27 @@
 
 <StudyFrame>
 	<div class="header-pane">{@render header()}</div>
-	<button
-		class="frame-close"
-		onclick={onclose}
-		aria-label="Exit"
-		data-testid="cancel-button"
-	></button>
+	<!-- Exit shares the filled destructive action treatment with the kit. The
+	     positioned wrapper keeps frame geometry separate from button emphasis. -->
+	<div class="frame-close">
+		<StudyButton
+			intent="destructive"
+			variant="filled"
+			iconOnly
+			onclick={onclose}
+			aria-label="Exit"
+			data-testid="cancel-button"
+		>
+			<svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24">
+				<path
+					d="m6 6 12 12M18 6 6 18"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="3"
+				/>
+			</svg>
+		</StudyButton>
+	</div>
 	<div class="header-beam"><WoodDivider orientation="horizontal" /></div>
 	<div class="inner-wrapper">
 		<aside class="navigation">{@render navigation()}</aside>
@@ -46,16 +62,13 @@
 	}
 	.frame-close {
 		position: absolute;
-		right: 4px;
+		/* Keep the action between the outer rim and header-surface edge, with
+		   enough inset to leave its focus ring clear of the viewport boundary. */
+		right: 12px;
 		top: 12px;
 		width: 44px;
-		height: 48px;
+		height: 44px;
 		z-index: 7;
-		background: url("./art/chrome/close.png") left top / 42px 48px no-repeat;
-		border: 0;
-		padding: 0;
-		cursor: pointer;
-		image-rendering: pixelated;
 	}
 	/* Divider caps overlap the outer timber by 9px; they do not replace its corners. */
 	.header-beam {

@@ -249,6 +249,24 @@
 		color: #694621;
 		margin: 0 0 16px;
 	}
+	/* Desktop has room for event markers side by side. Reduce spare vertical
+	   space so the staged date's Apply controls fit beneath the four-week grid.
+	   Keep natural growth for days with several markers or longer event details. */
+	@media (min-width: 1051px) {
+		h2 {
+			padding-block: 6px;
+		}
+		.days button {
+			min-height: 64px;
+		}
+		.day-detail {
+			min-height: 64px;
+			padding-block: 8px;
+		}
+		.calendar-key {
+			margin-bottom: 10px;
+		}
+	}
 	@media (max-width: 600px) {
 		.days button {
 			min-height: 72px;

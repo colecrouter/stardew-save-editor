@@ -3,115 +3,112 @@
 	import buildings from "$generated/buildings.json";
 
 	interface Props {
-		/** Presentation needs only the type name, shared by domain views and legacy proxies. */
-		building?: { readonly name: string | undefined };
+		/** Domain views and legacy proxies share this small presentation contract. */
+		building?: {
+			readonly name: string | undefined;
+			readonly repaired?: boolean;
+		};
+		/** The square stays reserved while the selected building changes. */
+		size?: number;
 	}
 
-	type BuildingSpriteData = (typeof buildings)[number] & {
-		footprint?: { X: number; Y: number };
+	interface SourceRect {
+		X: number;
+		Y: number;
+		Width: number;
+		Height: number;
+	}
+	interface BuildingSpriteData {
+		name: string;
 		texture?: string;
 		textureSize?: { X: number; Y: number };
-		sourceRect?: { X: number; Y: number; Width: number; Height: number };
-	};
-
-	const TARGET_SIZE = 64;
-	const sourceRectOverrides: Record<
-		string,
-		{ X: number; Y: number; Width: number; Height: number }
-	> = {
-		Cabin: { X: 0, Y: 0, Width: 80, Height: 112 },
+		sourceRect?: SourceRect;
+	}
+	const catalog: readonly BuildingSpriteData[] = buildings;
+	// Game menu crops select one recognizable frame from a larger sheet.
+	// Other buildings use the generated pixel rectangle rather than tile footprints.
+	const menuRects: Readonly<Record<string, SourceRect>> = {
 		"Fish Pond": { X: 0, Y: 0, Width: 80, Height: 80 },
-		Farmhouse: { X: 0, Y: 0, Width: 80, Height: 144 },
-		Greenhouse: { X: 0, Y: 0, Width: 112, Height: 160 },
-		"Junimo Hut": { X: 0, Y: 0, Width: 64, Height: 64 },
-		Mill: { X: 0, Y: 0, Width: 64, Height: 128 },
+		"Junimo Hut": { X: 0, Y: 0, Width: 48, Height: 64 },
+		// The first frame already combines the wooden platform and bowl. The
+		// catalog's X32 bowl-only draw layer floats without its separate platform.
 		"Pet Bowl": { X: 0, Y: 0, Width: 32, Height: 32 },
 	};
-
-	let { building }: Props = $props();
-
-	// The building's name is its type, and changes when it's upgraded
-	let buildingData = $derived(
-		buildings.find((b) => b.name === building?.name) as
-			| BuildingSpriteData
-			| undefined,
+	let { building, size = 64 }: Props = $props();
+	const frameSize = $derived(Number.isFinite(size) && size > 0 ? size : 64);
+	const buildingData = $derived(
+		catalog.find((row) => row.name === building?.name),
 	);
-
-	let sourceRect = $derived(
-		sourceRectOverrides[building?.name ?? ""] ?? buildingData?.sourceRect,
-	);
-
-	let spritesheet = $derived.by(() => {
-		const texture = buildingData?.texture;
-		if (texture) return `buildings/${texture}`;
-
-		const type = building?.name;
-		return type ? `buildings/${type}.png` : null;
+	const sourceRect = $derived.by(() => {
+		const rect = menuRects[building?.name ?? ""] ?? buildingData?.sourceRect;
+		// The catalog contains the repaired greenhouse. The game selects the ruins
+		// one frame above it only when the farm's unlock flag is explicitly false.
+		if (rect && building?.name === "Greenhouse" && building.repaired === false)
+			return { ...rect, Y: rect.Y - rect.Height };
+		return rect;
 	});
-
-	let w = $derived(
-		sourceRect?.Width ??
-			buildingData?.textureSize?.X ??
-			buildingData?.footprint?.X ??
-			1,
+	const width = $derived(sourceRect?.Width ?? buildingData?.textureSize?.X);
+	const height = $derived(sourceRect?.Height ?? buildingData?.textureSize?.Y);
+	const known = $derived(
+		!!buildingData?.texture && !!width && width > 0 && !!height && height > 0,
 	);
-	let h = $derived(
-		sourceRect?.Height ??
-			buildingData?.textureSize?.Y ??
-			buildingData?.footprint?.Y ??
-			1,
+	const scale = $derived(frameSize / Math.max(width ?? 1, height ?? 1));
+	// Negative offsets move the chosen source pixels into the crop. Sprite and
+	// scenery URLs both include the deployment base, including GitHub Pages paths.
+	const spriteUrl = $derived(
+		buildingData?.texture
+			? `url("${asset(`/assets/buildings/${buildingData.texture}`)}")`
+			: "none",
 	);
-	let x = $derived(sourceRect?.X ?? 0);
-	let y = $derived(sourceRect?.Y ?? 0);
-	let zoom = $derived(TARGET_SIZE / Math.max(w, h));
-
-	// Compute sprite URL for background
-	let spriteUrl = $derived.by(() => {
-		const sheet = spritesheet;
-		return sheet ? `url("${asset(`/assets/${sheet}`)}")` : "none";
-	});
+	const sceneryUrl = `url("${asset("/assets/daybg.png")}")`;
 </script>
 
 {#if building}
-	{#if buildingData}
-		<div class="wrapper">
-			<div class="inner">
-				<div class="clip">
-					<div
-						class="item"
-						style:--w={`${w}px`}
-						style:--h={`${h}px`}
-						style:--z={zoom}
-						style:--x={`${x}px`}
-						style:--y={`${y}px`}
-						style:--sprite={spriteUrl}
-					></div>
-				</div>
-			</div>
+	<!-- Adjacent text names each building; the thumbnail is decorative. Absolute
+	     source geometry keeps flex/grid layouts from shrinking or stretching it. -->
+	<div
+		class="wrapper"
+		aria-hidden="true"
+		style:--size={`${frameSize}px`}
+		style:--scenery={sceneryUrl}
+	>
+		<div class="clip">
+			{#if known}
+				<div
+					class="item"
+					style:width={`${width}px`}
+					style:height={`${height}px`}
+					style:left={`${(frameSize - (width ?? 1) * scale) / 2}px`}
+					style:top={`${(frameSize - (height ?? 1) * scale) / 2}px`}
+					style:--scale={scale}
+					style:--x={`${-(sourceRect?.X ?? 0)}px`}
+					style:--y={`${-(sourceRect?.Y ?? 0)}px`}
+					style:--sprite={spriteUrl}
+				></div>
+			{:else}
+				<span class="fallback" title="Preview unavailable">?</span>
+			{/if}
 		</div>
-	{:else}
-		<div class="item">??</div>
-	{/if}
+	</div>
 {/if}
 
 <style>
 	.wrapper {
 		position: relative;
-		width: 64px;
-		height: 64px;
+		flex: 0 0 var(--size);
+		width: var(--size);
+		height: var(--size);
 		margin: 6px;
 	}
-
-	.wrapper::before {
-		content: "";
+	.clip {
 		position: absolute;
 		inset: 0;
-		background-image: url(/assets/daybg.png);
+		overflow: hidden;
+		border-radius: 2px;
+		background-image: var(--scenery);
 		background-size: 180% auto;
 		background-position: center 56%;
-		border-radius: 2px;
 	}
-
 	.wrapper::after {
 		content: "";
 		position: absolute;
@@ -123,35 +120,22 @@
 		border-radius: 2px;
 		pointer-events: none;
 	}
-
-	.inner {
-		position: absolute;
-		inset: 0;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-	}
-
-	.clip {
-		width: 100%;
-		height: 100%;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		overflow: hidden;
-		border-radius: 2px;
-	}
-
 	.item {
-		position: relative;
-		z-index: 1;
-		display: block;
+		position: absolute;
 		background-image: var(--sprite);
-		background-position: left var(--x) top var(--y);
+		background-position: var(--x) var(--y);
 		background-repeat: no-repeat;
 		image-rendering: pixelated;
-		width: var(--w);
-		height: var(--h);
-		zoom: var(--z);
+		transform: scale(var(--scale));
+		transform-origin: top left;
+	}
+	.fallback {
+		display: grid;
+		place-items: center;
+		width: 100%;
+		height: 100%;
+		color: #5b2b29;
+		font-size: 28px;
+		background: #f5dda8;
 	}
 </style>

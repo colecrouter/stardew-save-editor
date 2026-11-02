@@ -8,6 +8,9 @@
 	import { createFarmerSelectionField } from "../farmer-selection.ts";
 	import BuildingDetails from "./BuildingDetails.svelte";
 	import AnimalCard from "./AnimalCard.svelte";
+	import BuildingSprite from "../../ui/BuildingSprite.svelte";
+	import StudyAlert from "../../ui/kit/StudyAlert.svelte";
+	import StudyField from "../../ui/kit/StudyField.svelte";
 	let { model }: { model: EditorModel } = $props();
 	const view = useAtomValue(() => model.atomBindings.view);
 	const farmer = useAtomValue(() => model.atomBindings.selectedFarmerId);
@@ -37,32 +40,67 @@
 
 <h1>Buildings &amp; animals</h1>
 <p class="intro">
-	Care for your animals and manage their homes. Field edits update immediately;
-	use Undo to revert.
+	Find a home, care for its residents, or welcome a new animal.
 </p>
+
 {#if buildings?.buildings.length}
 	<div class="workspace">
 		<nav aria-label="Buildings">
-			{#each buildings.buildings as row (row.id)}
-				<button
-					type="button"
-					aria-pressed={selected?.id === row.id}
-					onclick={() => {
-						void model.edits.endActive();
-						buildingId = row.id;
-					}}
-				>
-					<strong>{row.name}</strong>
-					<span>{row.location}</span>
-					{#if row.animalHouse}
-						<small>{row.residents} / {row.capacity ?? "?"} animals</small>
-					{/if}
-					{#if !row.supported}
-						<small>Read-only</small>
-					{/if}
-				</button>
-			{/each}
+			<h2>
+				Your buildings <span>{buildings.buildings.length}</span>
+			</h2>
+
+			<!-- The roster scrolls independently on desktop. A native selector on
+			     narrow screens keeps the selected building close to its details. -->
+			<div class="compact-picker">
+				<StudyField label="Building">
+					{#snippet children(attributes)}
+						<select
+							{...attributes}
+							class="study-input"
+							value={selected?.id}
+							onchange={(event) => {
+								void model.edits.endActive();
+								buildingId = event.currentTarget.value;
+							}}
+						>
+							{#each buildings.buildings as row, index (row.id)}
+								<option value={row.id}>
+									{row.name} · {row.location} · {index + 1}
+								</option>
+							{/each}
+						</select>
+					{/snippet}
+				</StudyField>
+			</div>
+
+			<div class="roster">
+				{#each buildings.buildings as row (row.id)}
+					<button
+						type="button"
+						aria-pressed={selected?.id === row.id}
+						onclick={() => {
+							void model.edits.endActive();
+							buildingId = row.id;
+						}}
+					>
+						<BuildingSprite building={row} size={48} />
+
+						<span class="building-label">
+							<strong>{row.name}</strong>
+							<span>{row.location}</span>
+							{#if row.animalHouse}
+								<small>{row.residents} / {row.capacity ?? "?"} animals</small>
+							{/if}
+							{#if !row.supported}
+								<small>Read-only</small>
+							{/if}
+						</span>
+					</button>
+				{/each}
+			</div>
 		</nav>
+
 		<div class="details">
 			{#if domain}
 				{#key domain.id}
@@ -77,15 +115,20 @@
 		</div>
 	</div>
 {:else}
-	<p>No buildings were found in this save.</p>
+	<StudyAlert title="No buildings found">
+		<p>This save has no discovered buildings to edit.</p>
+	</StudyAlert>
 {/if}
+
 {#if buildings?.unhoused.length}
 	<section class="unhoused" aria-label="Animals without a listed home">
-		<h2>Animals without a listed home</h2>
-		<p>
-			These animals exist in a location but are not listed as a resident of a
-			discovered building. Editing their fields does not reassign a home.
-		</p>
+		<StudyAlert title="Animals without a listed home" tone="warning">
+			<p>
+				These animals are not listed as residents of a discovered building.
+				Editing their fields does not reassign a home.
+			</p>
+		</StudyAlert>
+
 		<div class="animals">
 			{#each buildings.unhoused as row (row.id)}
 				<AnimalCard animal={createAnimalDomain(row, model)} />
@@ -96,77 +139,121 @@
 
 <style>
 	h1 {
-		font-family: "Pixelify Sans", sans-serif;
-		font-size: 34px;
+		font-size: 32px;
 		margin: 0 0 8px;
 	}
 	.intro {
-		color: #6b5239;
+		color: #694621;
 		margin: 0 0 24px;
-		max-width: 70ch;
 	}
 	.workspace {
 		display: grid;
-		grid-template-columns: 205px minmax(0, 1fr);
-		gap: 28px;
+		grid-template-columns: 240px minmax(0, 1fr);
+		gap: 26px;
 		align-items: start;
 	}
 	nav {
-		display: grid;
-		gap: 8px;
+		min-width: 0;
 	}
-	nav button {
+	nav h2 {
+		font-size: 22px;
+		margin: 0 0 14px;
+		display: flex;
+		justify-content: space-between;
+		gap: 12px;
+	}
+	nav h2 span {
+		color: #79522d;
+		font-size: 18px;
+	}
+	.roster {
 		display: grid;
-		gap: 5px;
+		gap: 10px;
+		max-height: 680px;
+		overflow-y: auto;
+		padding: 6px;
+		scrollbar-gutter: stable;
+	}
+	.roster button {
+		display: grid;
+		grid-template-columns: 60px minmax(0, 1fr);
+		gap: 12px;
+		align-items: center;
 		text-align: left;
 		font: inherit;
 		color: inherit;
-		border: 1px solid #bd945f;
-		border-radius: 8px;
-		background: #f7e9cd;
-		padding: 12px 14px;
+		border: 2px solid #b98b52;
+		background: #f5dbab;
+		padding: 12px 8px;
 		cursor: pointer;
 		min-width: 0;
 	}
-	nav button[aria-pressed="true"] {
-		background: #efce92;
-		border: 2px solid #815422;
-		padding: 11px 13px;
+	.roster button:hover {
+		background: #ffe9bb;
 	}
-	nav span,
-	nav small {
+	.roster button[aria-pressed="true"] {
+		background: #fff1d2;
+		border-color: #754522;
+		box-shadow: inset 4px 0 #a45826;
+	}
+	.roster button:focus-visible {
+		outline: 2px solid #311304;
+		outline-offset: 2px;
+	}
+	.building-label {
+		display: grid;
+		gap: 4px;
+		overflow-wrap: anywhere;
+	}
+	.building-label span,
+	.building-label small {
 		color: #735334;
-		font-size: 12px;
-	}
-	nav strong {
 		font-size: 16px;
+	}
+	.building-label strong {
+		font-size: 20px;
 	}
 	.details {
 		min-width: 0;
+	}
+	.compact-picker {
+		display: none;
 	}
 	.unhoused {
 		margin-top: 28px;
 	}
 	.animals {
 		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(min(100%, 310px), 1fr));
-		gap: 16px;
+		grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+		gap: 18px;
+		margin-top: 18px;
+	}
+	@media (max-width: 1100px) {
+		.workspace {
+			grid-template-columns: 200px minmax(0, 1fr);
+			gap: 20px;
+		}
+		.roster button {
+			grid-template-columns: minmax(0, 1fr);
+		}
+		.roster button :global(.wrapper) {
+			display: none;
+		}
 	}
 	@media (max-width: 750px) {
 		.workspace {
 			grid-template-columns: minmax(0, 1fr);
-			gap: 20px;
+			gap: 22px;
 		}
-		nav {
-			display: flex;
-			overflow-x: auto;
-			padding-bottom: 4px;
+		.roster,
+		nav h2 {
+			display: none;
 		}
-		nav button {
-			flex: 0 0 150px;
+		.compact-picker {
+			display: block;
 		}
 		h1 {
-			font-size: 29px;
+			font-size: 28px;
 		}
 	}
 </style>

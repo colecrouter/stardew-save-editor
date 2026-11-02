@@ -78,6 +78,7 @@ it(
 			await waitFor(() =>
 				expect(page.getByRole("heading", { name: "Big Coop" })).toBeTruthy(),
 			);
+			await fireEvent.click(page.getByText("Adopt an animal", { exact: true }));
 			const adoption = within(
 				page.getByRole("form", { name: "Adopt an animal" }),
 			);

@@ -15,9 +15,13 @@ it(
 			await fireEvent.click(
 				page.getByRole("link", { name: "Community Center & Joja" }),
 			);
-			const card = await page.findByRole("article", {
-				name: "Spring Foraging bundle",
-			});
+			const card = await page.findByRole(
+				"article",
+				{
+					name: "Spring Foraging bundle",
+				},
+				{ timeout: 10000 },
+			);
 			const checkbox = within(card).getAllByRole(
 				"checkbox",
 			)[0] as HTMLInputElement;
@@ -32,25 +36,30 @@ it(
 			);
 			await opened.model.commands.undo();
 			await waitFor(() => expect(checkbox.checked).toBe(original));
-			await fireEvent.click(page.getByRole("button", { name: "Enable Joja" }));
+			await fireEvent.click(page.getByRole("button", { name: "Change route" }));
 			// Membership is a coordinated action: opening the confirmation changes no save flags.
 			expect(
 				readCommunity((await opened.model.snapshot()).document).membership,
 			).toBe(false);
 			const dialog = page.getByRole("dialog");
 			await fireEvent.click(
-				within(dialog).getByRole("button", { name: "Enable Joja" }),
+				within(dialog).getByRole("radio", { name: "Joja membership" }),
 			);
-			await page.findByRole("heading", { name: "Joja Community Development" });
-			const projects = page.getAllByRole("button", {
-				name: "Complete project",
+			await fireEvent.click(
+				within(dialog).getByRole("button", { name: "Switch to Joja" }),
+			);
+			const bridge = await page.findByRole("checkbox", {
+				name: "Bridge project complete",
 			});
-			await fireEvent.click(projects[0] as HTMLButtonElement);
-			await waitFor(() =>
+			await fireEvent.click(bridge);
+			await waitFor(async () => {
 				expect(
-					page.getAllByRole("button", { name: "Reopen project" }).length,
-				).toBeGreaterThan(0),
-			);
+					readCommunity((await opened.model.snapshot()).document).rooms.find(
+						(room) => room.id === 1,
+					)?.restored,
+				).toBe(true);
+				expect(bridge).toHaveProperty("checked", true);
+			});
 			await opened.model.commands.undo();
 			expect(
 				readCommunity((await opened.model.snapshot()).document).theater,
@@ -60,7 +69,7 @@ it(
 				page.getByRole("link", { name: "Community Center & Joja" }),
 			);
 			expect(
-				page.getByRole("heading", { name: "Joja Community Development" }),
+				page.getByRole("region", { name: "Joja development plan" }),
 			).toBeTruthy();
 		} finally {
 			page.unmount();

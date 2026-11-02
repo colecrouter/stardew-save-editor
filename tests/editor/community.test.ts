@@ -400,3 +400,30 @@ it("uses internal names without a localized tail and distinguishes category requ
 			.every((row) => row.requirements.every((item) => item.currency)),
 	).toBe(true);
 });
+
+it.each([
+	{ appearance: "0/4", color: 0 },
+	{ appearance: "6/4", color: 6 },
+	{ appearance: "7/4", color: undefined },
+	{ appearance: "0/4/Mods/CustomSeal", color: undefined },
+])(
+	"does not treat optional seal appearance $appearance as editable progress",
+	({ appearance, color }) => {
+		const document = fixture();
+		const entry = inspectCommunity(document).definitions.entries.find(
+			(row) =>
+				record(row) && record(row.key) && row.key.string === "Crafts Room/13",
+		);
+		if (!record(entry) || !record(entry.value))
+			throw new Error("Missing Spring bundle definition");
+		entry.value.string = `Spring Foraging/O 495 30/16 1 0 18 1 0 20 1 0 22 1 0/${appearance}`;
+		const before = structuredClone(document);
+		const bundle = required(
+			readCommunity(document).bundles.find((row) => row.id === 13),
+		);
+		// Unsupported artwork falls back visually while valid donations stay editable.
+		expect(bundle.supported).toBe(true);
+		expect(bundle.color).toBe(color);
+		expect(document).toEqual(before);
+	},
+);

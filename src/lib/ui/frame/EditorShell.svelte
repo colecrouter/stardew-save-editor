@@ -62,9 +62,9 @@
 	}
 	.frame-close {
 		position: absolute;
-		/* Match StudyFrame's 21px timber inset so the action ends flush with
-		   the header surface rather than sitting over the outer right rim. */
-		right: 21px;
+		/* Keep the action between the outer rim and header-surface edge, with
+		   enough inset to leave its focus ring clear of the viewport boundary. */
+		right: 12px;
 		top: 12px;
 		width: 44px;
 		height: 44px;

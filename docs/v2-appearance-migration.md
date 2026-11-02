@@ -22,6 +22,10 @@ appearance indices produce a visible preview notice. Preview omissions never
 change the saved item. Character appearance rendering is an approximation of the
 legacy editor, rather than simulation of the game's full animation/hat logic.
 
-Visual refinement is deferred with the rest of the v2 migration. Tests exercise
+The visual pass groups identity, style and color fields beside a framed mirror
+preview. Character reuses the same read-only composition at a smaller reserved
+scale; both pages continue to capture the shared selected farmer. Names in the
+new profile headings remain masked for telemetry. No new save representations,
+input policies or renderer simulation rules are introduced. Tests exercise
 read-only projection, hair encoding, gender mirrors, color preservation, typed
 rejections, farmer identity checks, shared selection and gesture Undo behavior.

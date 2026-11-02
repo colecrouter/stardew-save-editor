@@ -315,9 +315,7 @@ describe("character progression controls", { timeout: 25000 }, () => {
 			);
 			await waitFor(() =>
 				expect(
-					opened.page.getByText(
-						/Edit character details, experience and professions for Guest/,
-					),
+					opened.page.getByRole("heading", { name: /^Guest$/ }),
 				).toBeTruthy(),
 			);
 			await fireEvent.click(

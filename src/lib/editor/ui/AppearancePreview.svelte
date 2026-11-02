@@ -3,11 +3,17 @@
 	import type { AppearancePreviewView } from "../appearance-preview.ts";
 	interface Props {
 		preview: AppearancePreviewView;
+		compact?: boolean;
 	}
-	let { preview }: Props = $props();
+	let { preview, compact = false }: Props = $props();
 </script>
 
-<div class="preview" role="img" aria-label="Character appearance preview">
+<div
+	class="preview"
+	class:compact
+	role="img"
+	aria-label="Character appearance preview"
+>
 	<!-- The stage reserves scaled layout space; layer offsets stay in source
 	     pixels, including room above the head and below the pants. -->
 	<div class="stage">
@@ -26,7 +32,9 @@
 		</div>
 	</div>
 </div>
-{#if preview.notice}<p role="status">{preview.notice}</p>{/if}
+{#if preview.notice}
+	<p class="notice">{preview.notice}</p>
+{/if}
 
 <style>
 	.preview {
@@ -34,9 +42,28 @@
 		place-items: center;
 		min-height: 260px;
 		padding: 24px;
-		background: linear-gradient(#8fc4d2, #d8eab1);
-		border: 4px solid #8e3d04;
+		/* The pale diagonal reflection distinguishes the dresser's mirror from
+		   an outdoor scene; the reserved stage still owns all sprite geometry. */
+		background: linear-gradient(
+			135deg,
+			#d9e9df 0 46%,
+			#f2f5e8 46% 51%,
+			#d9e9df 51% 100%
+		);
+		border: 2px solid #a57542;
+		box-shadow: inset 0 0 0 4px #f0d3a1;
 		image-rendering: pixelated;
+	}
+	.compact {
+		min-height: 180px;
+		padding: 16px;
+	}
+	.compact .stage {
+		width: 80px;
+		height: 144px;
+	}
+	.compact .figure {
+		transform: scale(4);
 	}
 	.stage {
 		/* Match the transformed 20 × 36 source-pixel canvas at fivefold scale. */

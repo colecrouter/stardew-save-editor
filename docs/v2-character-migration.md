@@ -65,3 +65,16 @@ Character and Inventory currently keep separate farmer selections. A shared
 session-owned selection by stable farmer identity is also a #194 planning item;
 this migration does not change cross-page selection behavior. Queued commands
 continue to capture their own target before asynchronous work.
+
+## Character visual pass
+
+The profile includes the selected farmer's existing appearance view and five
+skill-level summaries. Stats/upgrades and wallet controls form separate paper
+records; game-rule explanations use native disclosure. Skill sections show ten
+level blocks and labelled level-5/level-10 profession branches alongside the
+existing XP, level and profession controls. These labels describe the game, not
+new editor eligibility rules. All fields still use the existing domain adapters,
+keyed by farmer identity, and keep their immediate editing/history policies.
+
+The old migration scope above is historical: stats, wallet, upgrades and
+appearance have since been ported. This pass changes presentation only.

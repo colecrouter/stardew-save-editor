@@ -15,9 +15,13 @@ it(
 			await fireEvent.click(
 				page.getByRole("link", { name: "Community Center & Joja" }),
 			);
-			const card = await page.findByRole("article", {
-				name: "Spring Foraging bundle",
-			});
+			const card = await page.findByRole(
+				"article",
+				{
+					name: "Spring Foraging bundle",
+				},
+				{ timeout: 10000 },
+			);
 			const checkbox = within(card).getAllByRole(
 				"checkbox",
 			)[0] as HTMLInputElement;
@@ -43,12 +47,12 @@ it(
 			);
 			await page.findByRole("heading", { name: "Joja Community Development" });
 			const projects = page.getAllByRole("button", {
-				name: "Complete project",
+				name: /^Complete .+ project$/,
 			});
 			await fireEvent.click(projects[0] as HTMLButtonElement);
 			await waitFor(() =>
 				expect(
-					page.getAllByRole("button", { name: "Reopen project" }).length,
+					page.getAllByRole("button", { name: /^Reopen .+ project$/ }).length,
 				).toBeGreaterThan(0),
 			);
 			await opened.model.commands.undo();

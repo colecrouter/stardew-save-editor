@@ -1,0 +1,304 @@
+import { expect, it, vi } from "vitest";
+import { Result } from "effect";
+import { render, fireEvent, within, waitFor } from "@testing-library/svelte";
+import { openEditor } from "../../src/lib/editor/editor-model";
+import { readCommunity } from "../../src/lib/editor/community-data";
+import { setCommunityProgress } from "../../src/lib/editor/community-operations";
+import { MutationError } from "../../src/lib/editor/mutation-error";
+import CharacterHarness from "./CharacterHarness.svelte";
+import { fixtureXml, parser, exportDocument } from "./fixtures";
+
+it(
+	"separates route viewing from membership and preserves donations, rewards and room across membership history",
+	{ timeout: 30000 },
+	async () => {
+		const opened = await openEditor(new TextEncoder().encode(fixtureXml));
+		const page = render(CharacterHarness, { model: opened.model });
+		try {
+			const spring = readCommunity(
+				(await opened.model.snapshot()).document,
+			).bundles.find((row) => row.id === 13);
+			if (!spring) throw new Error("Missing spring bundle");
+			// Include real completed/reward state in the preservation assertion rather
+			// than relying only on the fixture's initially empty donation flags.
+			await opened.model.commands.transact(
+				setCommunityProgress({
+					type: "bundle",
+					bundleKey: spring.key,
+					value: true,
+				}),
+			);
+			await fireEvent.click(
+				page.getByRole("link", { name: "Community Center & Joja" }),
+			);
+			await page.findByRole(
+				"tab",
+				{ name: "Community Center" },
+				{ timeout: 10000 },
+			);
+			await fireEvent.click(
+				page.getByRole("button", { name: /^Pantry Donations/ }),
+			);
+			const before = await opened.model.snapshot();
+			await fireEvent.click(page.getByRole("tab", { name: "Joja" }));
+			expect(
+				page.queryByRole("article", { name: "Spring Foraging bundle" }),
+			).toBeNull();
+			expect(
+				page
+					.getByRole("button", { name: "Complete Bridge project" })
+					.hasAttribute("disabled"),
+			).toBe(true);
+			expect((await opened.model.snapshot()).document).toEqual(before.document);
+			expect((await opened.model.snapshot()).entries).toEqual(before.entries);
+
+			await fireEvent.click(page.getByRole("button", { name: "Enable Joja" }));
+			await fireEvent.click(
+				within(page.getByRole("dialog")).getByRole("button", {
+					name: "Cancel",
+				}),
+			);
+			expect((await opened.model.snapshot()).entries).toEqual(before.entries);
+			await fireEvent.click(page.getByRole("button", { name: "Enable Joja" }));
+			await fireEvent.click(
+				within(page.getByRole("dialog")).getByRole("button", {
+					name: "Enable Joja",
+				}),
+			);
+			await waitFor(() => expect(page.queryByRole("dialog")).toBeNull());
+			expect(
+				page.getByRole("tab", { name: "Joja" }).getAttribute("aria-selected"),
+			).toBe("true");
+			const after = await opened.model.snapshot();
+			const progress = (document: typeof before.document) =>
+				readCommunity(document).bundles.map((row) => ({
+					key: row.key,
+					requirements: row.requirements,
+					rewardAvailable: row.rewardAvailable,
+				}));
+			expect(progress(after.document)).toEqual(progress(before.document));
+			expect(after.document.SaveGame.player.items).toEqual(
+				before.document.SaveGame.player.items,
+			);
+			expect(after.document.SaveGame.player.money).toBe(
+				before.document.SaveGame.player.money,
+			);
+
+			// Explicitly opening the other tab still exposes retained progress; this is
+			// existing editor behavior, not an implicit second membership transition.
+			await fireEvent.click(
+				page.getByRole("tab", { name: "Community Center" }),
+			);
+			expect(page.getByText("Saved Community Center donations")).toBeTruthy();
+			expect(page.getByRole("heading", { name: "Pantry" })).toBeTruthy();
+			expect((await opened.model.snapshot()).entries).toEqual(after.entries);
+			await fireEvent.click(page.getByRole("tab", { name: "Joja" }));
+			await opened.model.commands.undo();
+			await waitFor(() =>
+				expect(
+					page
+						.getByRole("tab", { name: "Community Center" })
+						.getAttribute("aria-selected"),
+				).toBe("true"),
+			);
+			expect(page.getByRole("heading", { name: "Pantry" })).toBeTruthy();
+			await opened.model.commands.redo();
+			await waitFor(() =>
+				expect(
+					page.getByRole("tab", { name: "Joja" }).getAttribute("aria-selected"),
+				).toBe("true"),
+			);
+		} finally {
+			page.unmount();
+			await opened.close();
+		}
+	},
+);
+
+it(
+	"keeps a stale membership confirmation open without reversing a newer route",
+	{ timeout: 20000 },
+	async () => {
+		const opened = await openEditor(new TextEncoder().encode(fixtureXml));
+		const page = render(CharacterHarness, { model: opened.model });
+		try {
+			await fireEvent.click(
+				page.getByRole("link", { name: "Community Center & Joja" }),
+			);
+			await fireEvent.click(
+				await page.findByRole("button", { name: "Enable Joja" }),
+			);
+			await opened.model.commands.transact(
+				setCommunityProgress({ type: "membership", value: true }),
+			);
+			const newer = await opened.model.snapshot();
+			const dialog = page.getByRole("dialog");
+			expect(
+				within(dialog).getByRole("heading", {
+					name: "Enable Joja membership?",
+				}),
+			).toBeTruthy();
+			await fireEvent.click(
+				within(dialog).getByRole("button", {
+					name: "Enable Joja",
+				}),
+			);
+			await waitFor(() =>
+				expect(within(dialog).getByRole("alert").textContent).toContain(
+					"Membership could not be changed",
+				),
+			);
+			expect((await opened.model.snapshot()).document).toEqual(newer.document);
+			expect((await opened.model.snapshot()).entries).toEqual(newer.entries);
+		} finally {
+			page.unmount();
+			await opened.close();
+		}
+	},
+);
+
+it(
+	"explains unknown membership and disables route-changing controls without normalizing the save",
+	{ timeout: 20000 },
+	async () => {
+		const document = parser.parse(fixtureXml);
+		Object.assign(document.SaveGame.player, { mailReceived: true });
+		const opened = await openEditor(
+			new TextEncoder().encode(exportDocument(document)),
+		);
+		const page = render(CharacterHarness, { model: opened.model });
+		try {
+			const before = await opened.model.snapshot();
+			expect(readCommunity(before.document).membership).toBeUndefined();
+			await fireEvent.click(
+				page.getByRole("link", { name: "Community Center & Joja" }),
+			);
+			expect(
+				await page.findByRole("heading", {
+					name: "Membership could not be read",
+				}),
+			).toBeTruthy();
+			expect(
+				page
+					.getByRole("button", { name: "Enable Joja" })
+					.hasAttribute("disabled"),
+			).toBe(true);
+			expect(
+				page
+					.getAllByRole("checkbox")
+					.every((control) => control.hasAttribute("disabled")),
+			).toBe(true);
+			await fireEvent.click(page.getByRole("tab", { name: "Joja" }));
+			expect(
+				page
+					.getByRole("button", { name: "Complete Bridge project" })
+					.hasAttribute("disabled"),
+			).toBe(true);
+			expect((await opened.model.snapshot()).document).toEqual(before.document);
+		} finally {
+			page.unmount();
+			await opened.close();
+		}
+	},
+);
+
+it.each(["failure", "noncompletion"] as const)(
+	"restores a native donation toggle after %s",
+	{ timeout: 20000 },
+	async (outcome) => {
+		const opened = await openEditor(new TextEncoder().encode(fixtureXml));
+		const page = render(CharacterHarness, { model: opened.model });
+		const transact = vi
+			.spyOn(opened.model.commands, "transact")
+			.mockImplementation(async () =>
+				outcome === "failure"
+					? Result.fail(new MutationError("Donation rejected for this test."))
+					: null,
+			);
+		try {
+			await fireEvent.click(
+				page.getByRole("link", { name: "Community Center & Joja" }),
+			);
+			const card = await page.findByRole(
+				"article",
+				{
+					name: "Spring Foraging bundle",
+				},
+				{ timeout: 10000 },
+			);
+			const control = within(card).getAllByRole("checkbox")[0];
+			if (!(control instanceof HTMLInputElement))
+				throw new Error("Missing donation input");
+			const original = control.checked,
+				before = await opened.model.snapshot();
+			await fireEvent.click(control);
+			await waitFor(() => expect(control.checked).toBe(original));
+			if (outcome === "failure")
+				expect(within(card).getByRole("alert").textContent).toContain(
+					"Donation rejected for this test.",
+				);
+			else expect(within(card).queryByRole("alert")).toBeNull();
+			expect(within(card).getByText("Wild Horseradish")).toBeTruthy();
+			expect((await opened.model.snapshot()).document).toEqual(before.document);
+		} finally {
+			transact.mockRestore();
+			page.unmount();
+			await opened.close();
+		}
+	},
+);
+
+it("keeps membership confirmation open while its command is pending", async () => {
+	const opened = await openEditor(new TextEncoder().encode(fixtureXml));
+	const page = render(CharacterHarness, { model: opened.model });
+	let finish: (() => void) | undefined;
+	const transact = vi
+		.spyOn(opened.model.commands, "transact")
+		.mockImplementation(
+			() =>
+				new Promise((resolve) => {
+					finish = () => resolve(null);
+				}),
+		);
+	try {
+		await fireEvent.click(
+			page.getByRole("link", { name: "Community Center & Joja" }),
+		);
+		await fireEvent.click(
+			await page.findByRole(
+				"button",
+				{ name: "Enable Joja" },
+				{ timeout: 10000 },
+			),
+		);
+		const dialog = page.getByRole("dialog");
+		await fireEvent.click(
+			within(dialog).getByRole("button", { name: "Enable Joja" }),
+		);
+		// The owner locks every dismissal surface for the same pending commit.
+		for (const name of ["Cancel", "Close dialog", "Enable Joja"])
+			expect(
+				within(dialog).getByRole("button", { name }).hasAttribute("disabled"),
+			).toBe(true);
+		await fireEvent.keyDown(dialog, { key: "Escape" });
+		expect(page.getByRole("dialog")).toBe(dialog);
+		finish?.();
+		await waitFor(() =>
+			expect(
+				within(dialog)
+					.getByRole("button", { name: "Cancel" })
+					.hasAttribute("disabled"),
+			).toBe(false),
+		);
+		expect(page.getByRole("dialog")).toBe(dialog);
+		await fireEvent.click(
+			within(dialog).getByRole("button", { name: "Cancel" }),
+		);
+		await waitFor(() => expect(page.queryByRole("dialog")).toBeNull());
+	} finally {
+		finish?.();
+		transact.mockRestore();
+		page.unmount();
+		await opened.close();
+	}
+});

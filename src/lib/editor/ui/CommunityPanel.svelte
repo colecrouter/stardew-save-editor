@@ -1,11 +1,17 @@
 <script lang="ts">
+	import { untrack } from "svelte";
 	import { useAtomValue } from "effect-atom-svelte";
 	import { Result } from "effect";
 	import type { EditorModel } from "../editor-model.ts";
-	import type { CommandResult } from "../command-result.ts";
 	import { createCommunityDomain } from "../community-domain.ts";
-	import ConfirmAction from "./ConfirmAction.svelte";
 	import CommunityBundleCard from "./CommunityBundleCard.svelte";
+	import JojaProjectBoard from "./JojaProjectBoard.svelte";
+	import StudyTabs from "../../ui/kit/StudyTabs.svelte";
+	import StudyDialog from "../../ui/kit/StudyDialog.svelte";
+	import StudyButton from "../../ui/kit/StudyButton.svelte";
+	import StudyAlert from "../../ui/kit/StudyAlert.svelte";
+	import StudyAside from "../../ui/kit/StudyAside.svelte";
+	import StudyIcon from "../../ui/StudyIcon.svelte";
 	let { model }: { model: EditorModel } = $props();
 	const view = useAtomValue(() => model.atomBindings.view);
 	const domain = $derived(
@@ -14,292 +20,360 @@
 			: undefined,
 	);
 	let selectedRoom = $state(1);
-	let revision: number | undefined;
-	let error = $state("");
 	const room = $derived(
 		domain?.rooms.find((row) => row.id === selectedRoom) ?? domain?.rooms[0],
 	);
 	const bundles = $derived(
 		domain?.bundles.filter((row) => row.room === room?.id) ?? [],
 	);
-	const projects = $derived(domain?.rooms.filter((row) => row.project) ?? []);
-	const membershipChange = async () => {
+
+	// Tabs are viewing state, not a second membership setter. Only a committed
+	// membership transition (including Undo/Redo) reveals the corresponding route;
+	// ordinary donations must not reset a manually chosen tab or room.
+	let membershipSeen = untrack(() => view.current?.community.membership);
+	let route = $state(membershipSeen === true ? "joja" : "center");
+	$effect(() => {
+		const membership = domain?.membership;
+		if (membership !== membershipSeen) {
+			membershipSeen = membership;
+			route = membership === true ? "joja" : "center";
+		}
+	});
+
+	let membershipOpen = $state(false);
+	let desiredMembership = $state(false);
+	let membershipRevision: number | undefined;
+	let membershipBusy = $state(false);
+	let membershipError = $state("");
+	function showMembership(open: boolean) {
+		if (open) {
+			// Freeze both intent and revision when confirmation opens. A later edit
+			// must reject this preview rather than silently reverse a different route.
+			desiredMembership = domain?.membership === false;
+			membershipRevision = view.current?.revision;
+			membershipError = "";
+		}
+		membershipOpen = open;
+	}
+	async function changeMembership() {
 		const target = domain;
-		return target
-			? await target.membershipChange(!target.membership, revision)
-			: null;
-	};
-	async function perform(
-		action: () => Promise<CommandResult<unknown, { message: string }>>,
-	) {
-		error = "";
-		const result = await action();
-		if (result && Result.isFailure(result)) error = result.failure.message;
+		if (!target || membershipBusy) return;
+		membershipBusy = true;
+		membershipError = "";
+		try {
+			const result = await target.membershipChange(
+				desiredMembership,
+				membershipRevision,
+			);
+			// Noncompletion already reached the shared defect/cancellation boundary.
+			// Expected failures stay in the open dialog so the user can retry or cancel.
+			if (!result) return;
+			if (Result.isFailure(result)) membershipError = result.failure.message;
+			else membershipOpen = false;
+		} finally {
+			membershipBusy = false;
+		}
 	}
 </script>
 
-<h1>Community Center &amp; Joja</h1>
-<p class="intro">
-	Donations and their resulting restoration flags change together. Inventory
-	items and gold stay untouched. Use Undo to revert the whole change.
-</p>
-{#if !domain?.supported}
-	<p role="status">
-		{domain?.reason ?? "Community Center data is unavailable."}
-	</p>
-{:else}
-	<section class="membership" aria-label="Joja membership">
-		<div>
-			<h2>
-				{domain.membership ? "Joja Community Development" : "Community Center"}
-			</h2>
-			<p>
-				{domain.membership
-					? "Projects are free edits; the displayed prices are their in-game cost."
-					: "Complete the original six rooms to restore the center. The Missing Bundle is separate."}
-			</p>
-		</div>
-		{#if domain.membership !== undefined}
-			<ConfirmAction
-				title={domain.membership
-					? "Leave Joja membership?"
-					: "Enable Joja membership?"}
-				description="Changes membership for all farmers and updates the route-specific flags of completed rooms. Existing donations are retained. You can undo this action."
-				label={domain.membership ? "Leave Joja" : "Enable Joja"}
-				prepare={() => {
-					revision = view.current?.revision;
-				}}
-				commit={membershipChange}
-			/>
-		{/if}
-	</section>
-	{#if error}
-		<p role="alert">{error}</p>
-	{/if}
-	{#if domain.membership}
-		<div class="projects">
-			{#each projects as project (project.id)}
-				<article>
-					<div>
-						<h3>{project.project}</h3>
-						<p>{project.unlock}</p>
-						<small>{project.price?.toLocaleString()}g in game</small>
-					</div>
-					<button
-						type="button"
-						disabled={project.completed === undefined}
-						onclick={() => {
-							const target = domain;
-							if (!target) return;
-							const completed = project.restored || project.completed === true;
-							void perform(() => target.project(project.id, !completed));
-						}}
-					>
-						{project.restored || project.completed
-							? "Reopen project"
-							: "Complete project"}
-					</button>
-				</article>
-			{/each}
-			<article>
-				<div>
-					<h3>Movie Theater</h3>
-					<p>Separate from the five original Joja projects.</p>
-					<small>1,000,000g in game</small>
-				</div>
-				<button
-					type="button"
-					disabled={!domain.theater &&
-						projects.some((row) => !row.restored && row.completed !== true)}
-					onclick={() => {
-						const target = domain;
-						if (target)
-							void perform(() => target.theaterChange(!target.theater));
-					}}
-				>
-					{domain.theater ? "Reopen theater project" : "Build Movie Theater"}
-				</button>
-			</article>
-		</div>
-		<p class="note">
-			Bundle donations remain available below if you want to inspect or change
-			their saved progress.
+<div class="community-heading">
+	<div>
+		<h1>Community Center &amp; Joja</h1>
+
+		<p class="route-status">
+			Current route: <strong>
+				{domain?.membership === true
+					? "Joja membership"
+					: domain?.membership === false
+						? "Community Center"
+						: "Membership unavailable"}
+			</strong>
 		</p>
-	{/if}
-	<div class="room-layout">
-		<nav aria-label="Community Center rooms">
-			{#each domain.rooms as row (row.id)}
-				<button
-					type="button"
-					aria-pressed={room?.id === row.id}
-					onclick={() => {
-						selectedRoom = row.id;
-						error = "";
-					}}
-				>
-					<strong>{row.name}</strong>
-					<small>
-						{row.completed
-							? "Donations complete"
-							: row.completed === undefined
-								? "No supported bundles"
-								: "Donations in progress"}
-					</small>
-				</button>
-			{/each}
-		</nav>
-		<section class="room" aria-label={room?.name}>
-			<header>
-				<h2>{room?.name}</h2>
-				<p>{room?.unlock}</p>
-				{#if room?.note}
-					<p class="note">{room.note}</p>
-				{/if}
-			</header>
-			{#if !bundles.length}
-				<p>No saved bundles were found for this room.</p>
-			{/if}
-			{#each bundles as bundle (bundle.key)}
-				<CommunityBundleCard bundle={domain.bundle(bundle)} />
-			{/each}
-		</section>
 	</div>
-	{#if domain.bundles.some((row) => row.room === undefined)}
-		<details>
-			<summary>Unsupported saved bundles</summary>
-			{#each domain.bundles.filter((row) => row.room === undefined) as bundle (bundle.key)}
-				<p>{bundle.name}: {bundle.reason}</p>
-			{/each}
-		</details>
+
+	{#if domain?.supported}
+		<StudyDialog
+			trigger={domain.membership ? "Leave Joja" : "Enable Joja"}
+			title={desiredMembership
+				? "Enable Joja membership?"
+				: "Leave Joja membership?"}
+			description="Changes membership for all farmers and updates the route-specific restoration progress. Existing donations and unclaimed rewards are retained."
+			bind:open={() => membershipOpen, showMembership}
+			dismissible={!membershipBusy}
+			disabled={domain.membership === undefined}
+		>
+			<StudyAside title="A change of route">
+				<p>
+					Completed rooms keep their restoration benefits. This edit does not
+					spend gold or remove items.
+				</p>
+			</StudyAside>
+
+			{#if membershipError}
+				<StudyAlert
+					title="Membership could not be changed"
+					tone="danger"
+					live="assertive"
+				>
+					<p>{membershipError}</p>
+				</StudyAlert>
+			{/if}
+
+			{#snippet actions(close)}
+				<StudyButton onclick={close} disabled={membershipBusy}>
+					Cancel
+				</StudyButton>
+
+				<StudyButton
+					intent={desiredMembership ? "constructive" : "destructive"}
+					variant="filled"
+					pending={membershipBusy}
+					onclick={() => void changeMembership()}
+				>
+					{desiredMembership ? "Enable Joja" : "Leave Joja"}
+				</StudyButton>
+			{/snippet}
+		</StudyDialog>
 	{/if}
+</div>
+
+{#if !domain?.supported}
+	<StudyAlert title="Community Center unavailable" tone="warning">
+		<p>{domain?.reason ?? "Community Center data is unavailable."}</p>
+	</StudyAlert>
+{:else}
+	<StudyTabs
+		label="Community development route"
+		bind:value={route}
+		items={[
+			{ value: "center", label: "Community Center", content: center },
+			{ value: "joja", label: "Joja", content: joja },
+		]}
+	/>
 {/if}
 
+{#snippet center()}
+	{#if domain}
+		{#if domain.membership === true}
+			<div class="route-notice">
+				<StudyAlert title="Saved Community Center donations" tone="info">
+					<p>
+						Joja membership is active. These saved donations share restoration
+						progress with Joja projects, so editing them can change those
+						projects too. Membership stays unchanged, and no items are spent.
+					</p>
+				</StudyAlert>
+			</div>
+		{:else if domain.membership === undefined}
+			<div class="route-notice">
+				<StudyAlert title="Membership could not be read" tone="warning">
+					<p>
+						Saved donations are shown below. Membership changes and Joja
+						projects are unavailable.
+					</p>
+				</StudyAlert>
+			</div>
+		{/if}
+
+		<div class="room-layout">
+			<nav aria-label="Community Center rooms" class="rooms">
+				{#each domain.rooms as row (row.id)}
+					<button
+						type="button"
+						class="room-choice"
+						aria-pressed={room?.id === row.id}
+						onclick={() => {
+							selectedRoom = row.id;
+						}}
+					>
+						<span class="room-name">{row.name}</span>
+
+						<span class="room-state">
+							{row.completed
+								? "Donations complete"
+								: row.completed === undefined
+									? "No supported bundles"
+									: "Donations in progress"}
+						</span>
+					</button>
+				{/each}
+			</nav>
+
+			<section class="room" aria-label={room?.name}>
+				<header class="room-heading">
+					<div>
+						<h2>{room?.name}</h2>
+
+						<p>{room?.unlock}</p>
+					</div>
+
+					<StudyIcon name={room?.restored ? "check" : "community"} size={32} />
+				</header>
+
+				{#if room?.note}
+					<p class="room-note">{room.note}</p>
+				{/if}
+
+				{#if !bundles.length}
+					<StudyAside title="No saved bundles">
+						<p>No saved bundles were found for this room.</p>
+					</StudyAside>
+				{/if}
+
+				{#each bundles as bundle (bundle.key)}
+					<CommunityBundleCard
+						bundle={domain.bundle(bundle)}
+						disabled={domain.membership === undefined}
+					/>
+				{/each}
+			</section>
+		</div>
+
+		{#if domain.bundles.some((row) => row.room === undefined)}
+			<details class="unsupported">
+				<summary>Unsupported saved bundles</summary>
+
+				{#each domain.bundles.filter((row) => row.room === undefined) as bundle (bundle.key)}
+					<p>{bundle.name}: {bundle.reason}</p>
+				{/each}
+			</details>
+		{/if}
+	{/if}
+{/snippet}
+
+{#snippet joja()}
+	{#if domain}
+		<JojaProjectBoard community={domain} />
+	{/if}
+{/snippet}
+
 <style>
-	h1 {
-		font:
-			32px "Pixelify Sans",
-			sans-serif;
-		margin: 0 0 8px;
-	}
-	h2 {
-		margin: 0;
-		font-size: 24px;
-	}
-	h3 {
-		margin: 0;
-		font-size: 20px;
-	}
-	.intro {
-		color: #6b5239;
-		max-width: 78ch;
-		margin-bottom: 24px;
-	}
-	.membership {
+	.community-heading {
 		display: flex;
-		justify-content: space-between;
 		flex-wrap: wrap;
 		align-items: center;
+		justify-content: space-between;
 		gap: 16px;
-		background: #f2dfb6;
-		border: 1px solid #bb9056;
-		border-radius: 9px;
-		padding: 18px;
-		margin-bottom: 24px;
+		margin-bottom: 20px;
 	}
-	.membership p {
-		margin: 6px 0 0;
-		max-width: 65ch;
-		font-size: 14px;
+	h1 {
+		font-size: 32px;
+		margin: 0;
+	}
+	.route-status {
+		margin: 8px 0 0;
+		color: #694621;
+		font-size: 18px;
+	}
+	.route-status strong {
+		color: #311304;
+		font-weight: 400;
+	}
+	.route-notice {
+		margin-bottom: 20px;
 	}
 	.room-layout {
 		display: grid;
-		grid-template-columns: 190px minmax(0, 1fr);
+		grid-template-columns: 200px minmax(0, 1fr);
 		gap: 24px;
+		align-items: start;
 	}
-	nav {
+	.rooms {
 		display: grid;
-		align-content: start;
-		gap: 8px;
+		gap: 6px;
 	}
-	button {
+	.room-choice {
+		display: grid;
+		align-content: center;
+		gap: 6px;
+		width: 100%;
+		min-height: 74px;
+		padding: 12px;
 		font: inherit;
-		color: inherit;
-		border: 1px solid #b68a52;
-		border-radius: 7px;
-		padding: 10px 12px;
-		background: #f4e3c2;
+		text-align: left;
+		background: #f3cf96;
+		color: #311304;
+		border: 2px solid #b98b52;
 		cursor: pointer;
 	}
-	button:disabled {
-		opacity: 0.55;
-		cursor: default;
+	.room-choice[aria-pressed="true"] {
+		background: #fff2d3;
+		border-color: #70401d;
+		box-shadow: inset 3px 0 #b98b52;
 	}
-	nav button {
-		text-align: left;
-		display: grid;
-		gap: 5px;
+	.room-choice:focus-visible {
+		outline: 3px solid #176fb4;
+		outline-offset: 2px;
 	}
-	nav button[aria-pressed="true"] {
-		background: #eac68b;
-		border-color: #795226;
+	.room-name {
+		font-size: 20px;
 	}
-	nav small,
-	.note,
-	small {
-		color: #725333;
-		font-size: 12px;
+	.room-state {
+		font-size: 16px;
+		color: #694621;
 	}
 	.room {
-		min-width: 0;
 		display: grid;
 		align-content: start;
-		gap: 18px;
+		gap: 16px;
+		min-width: 0;
 	}
-	.room header p {
-		margin: 6px 0 0;
-	}
-	.projects {
-		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
-		gap: 14px;
-		margin-bottom: 18px;
-	}
-	.projects article {
+	.room-heading {
 		display: flex;
-		flex-direction: column;
-		align-items: start;
+		align-items: center;
 		justify-content: space-between;
-		gap: 14px;
-		border: 1px solid #a9b9c7;
-		background: #edf3f4;
-		border-radius: 9px;
-		padding: 18px;
+		gap: 16px;
+		padding-bottom: 16px;
+		border-bottom: 2px solid #b98b52;
+		color: #285f30;
 	}
-	.projects p {
-		margin: 6px 0;
-		font-size: 14px;
+	.room-heading h2 {
+		font-size: 27px;
+		margin: 0;
+		color: #311304;
 	}
-	details {
-		margin-top: 20px;
+	.room-heading p {
+		margin: 8px 0 0;
+		font-size: 19px;
+		color: #694621;
 	}
-	[role="alert"] {
-		color: #972e1c;
+	.room-note {
+		margin: 0;
+		color: #694621;
+		font-size: 18px;
+		max-width: 65ch;
 	}
-	@media (max-width: 750px) {
+	.unsupported {
+		margin-top: 24px;
+	}
+	.unsupported summary {
+		cursor: pointer;
+		min-height: 44px;
+		padding-block: 8px;
+	}
+	@media (max-width: 1050px) {
 		.room-layout {
 			grid-template-columns: minmax(0, 1fr);
-			gap: 18px;
 		}
-		nav {
+		.rooms {
 			display: flex;
 			overflow-x: auto;
-			padding-bottom: 4px;
+			padding: 3px 3px 8px;
+			scrollbar-color: #b98b52 #ffe2aa;
 		}
-		nav button {
-			flex: 0 0 155px;
+		.room-choice {
+			flex: 0 0 164px;
 		}
+	}
+	@media (max-width: 600px) {
 		h1 {
-			font-size: 28px;
+			font-size: 27px;
+		}
+		.room-layout {
+			gap: 16px;
+		}
+		.room-heading h2 {
+			font-size: 23px;
 		}
 	}
 </style>

@@ -7,7 +7,12 @@ import type {
 import type { DomainEditPort } from "./field-binding.ts";
 import type { ImmutableView } from "./immutable-view.ts";
 import { setCommunityProgress } from "./community-operations.ts";
-import { readItemPresentation } from "./item-presentation.ts";
+import { inventoryQualities } from "./inventory-policy.ts";
+import {
+	readItemPresentation,
+	resolveItemMetadata,
+	type ItemVisual,
+} from "./item-presentation.ts";
 
 /** The UI receives drawing instructions and game meaning, never a saved item/proxy. */
 const itemTypes: Record<string, string> = {
@@ -44,13 +49,21 @@ function presentItem(
 		};
 	}
 
-	const presentation = readItemPresentation({
+	const item = {
 		"@_xsi:type": itemTypes[type] ?? "Object",
 		bigCraftable: type === "BO" || type === "BBL",
 		isRecipe: type === "BL" || type === "BBL",
 		itemId,
 		quality,
-	});
+	};
+	// Bundle requirements contain catalog IDs rather than saved instance names.
+	// Seed the name from the same metadata used for drawing the requested item.
+	const metadata = resolveItemMetadata(item);
+	const presentation = readItemPresentation(
+		{ ...item, name: metadata?.name },
+		undefined,
+		metadata,
+	);
 	return {
 		name:
 			presentation.name === "Unknown item"
@@ -80,14 +93,37 @@ export function communityDonation(
 			}),
 		);
 }
+/** Use the paused/open seal frames from the game's Bundle constructor and
+ * completionAnimation. The renderer receives drawing instructions, not atlas math. */
+function bundleSeal(
+	bundle: ImmutableView<CommunityBundleView>,
+): ItemVisual | undefined {
+	if (bundle.color === undefined) return undefined;
+	const rect = {
+		x: (bundle.color % 2) * 256 + (bundle.completed ? 240 : 16),
+		y: 244 + Math.floor(bundle.color / 2) * 16,
+		width: 16,
+		height: 16,
+	};
+	return {
+		sheet: "JunimoNote.png",
+		sheetSize: { width: 640, height: 308 },
+		sourceRect: rect,
+		layers: [{ rect }],
+	};
+}
 export function createCommunityBundle(
 	port: DomainEditPort,
 	bundle: ImmutableView<CommunityBundleView>,
 ) {
 	return {
 		...bundle,
+		seal: bundleSeal(bundle),
 		requirements: bundle.requirements.map((requirement) => ({
 			...requirement,
+			qualityLabel:
+				inventoryQualities.find((row) => row.value === requirement.quality)
+					?.label ?? `Custom quality ${requirement.quality}`,
 			...presentItem(
 				requirement.itemId,
 				requirement.quantity,
@@ -138,3 +174,5 @@ export function createCommunityDomain(
 	};
 }
 export type CommunityBundleDomain = ReturnType<typeof createCommunityBundle>;
+
+export type CommunityDomain = ReturnType<typeof createCommunityDomain>;

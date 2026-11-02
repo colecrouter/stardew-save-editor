@@ -111,7 +111,9 @@
 			<!-- Keyed detail releases old field controllers before another target is
 			     rendered. Selection itself never queues an edit or a history entry. -->
 			{#key current.key}
-				{@render detail(current.key)}
+				<div class="notice-content">
+					{@render detail(current.key)}
+				</div>
 			{/key}
 		</div>
 	{/if}
@@ -119,6 +121,9 @@
 
 <style>
 	.notice-board {
+		/* Fixed desktop columns keep filtering or longer details from resizing the
+		   board. Each column owns its overflow; narrow layouts return to page flow. */
+		--notice-height: clamp(360px, calc(100vh - 420px), 650px);
 		--notice-ink: #432811;
 		--notice-muted: #775632;
 		--notice-rule: #d5b782;
@@ -145,6 +150,12 @@
 		--notice-muted: #625a83;
 		--notice-rule: #b9a7ce;
 		--notice-accent: #6a4387;
+		/* Native confirmation controls inherit this local palette, including their
+		   dialogs. Keep the rest of the editor's warm button theme unchanged. */
+		--ui-control-bg: #eee5f6;
+		--ui-control-text: #432d62;
+		--ui-border-dark: #74578f;
+		--ui-border-light: #b39cc6;
 		border-color: #39315a;
 		box-shadow:
 			inset 0 0 0 3px #74668e,
@@ -158,9 +169,10 @@
 	}
 	.notice-list {
 		display: grid;
+		align-content: start;
 		gap: 20px;
 		min-width: 0;
-		max-height: 650px;
+		height: var(--notice-height);
 		overflow-y: auto;
 		padding: 4px 6px 8px;
 		scrollbar-color: #ceac75 #75451f;
@@ -231,12 +243,30 @@
 		color: var(--notice-muted);
 	}
 	.selected-notice {
+		display: flex;
+		flex-direction: column;
+		height: var(--notice-height);
 		position: relative;
 		min-width: 0;
 		padding: 32px 24px 24px;
 		background: #fff1d2;
 		border: 2px solid #d5b782;
 		box-shadow: 4px 4px #43281166;
+	}
+	.notice-content {
+		min-height: 0;
+		overflow-y: auto;
+	}
+	.qi :global(.study-button) {
+		--button-ink: #432d62;
+		--button-border: #74578f;
+		--button-surface: #eee5f6;
+		--button-hover: #e0d2ed;
+		--button-top: #fbf7ff;
+		--button-bottom: #c6afd9;
+	}
+	.qi :global(input[type="checkbox"]) {
+		accent-color: #795499;
 	}
 	.qi .selected-notice {
 		background: #f4edf9;
@@ -287,7 +317,13 @@
 			padding: 24px 12px 16px;
 		}
 		.notice-list {
-			max-height: none;
+			height: auto;
+			overflow: visible;
+		}
+		.selected-notice {
+			height: auto;
+		}
+		.notice-content {
 			overflow: visible;
 		}
 		.notice-board:not([data-detail="true"]) .selected-notice {

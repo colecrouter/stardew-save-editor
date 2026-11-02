@@ -1,3 +1,4 @@
+import { projectReview } from "./review-projection.ts";
 import {
 	readCalendarEventContext,
 	type CalendarEventContext,
@@ -589,6 +590,17 @@ export const makeEditorModel = (
 				}, true),
 		};
 		const commands = {
+			/** Build a detached immutable export comparison only for review consumers.
+			 * The file queue orders it after pending writes; viewing never creates an
+			 * Undo entry or closes a still-active field gesture on its own. */
+			review: () =>
+				submit(
+					() =>
+						Effect.map(live().snapshot, (state) =>
+							immutableView(projectReview(state)),
+						),
+					true,
+				),
 			edit: <E>(
 				program: Effect.Effect<
 					unknown,

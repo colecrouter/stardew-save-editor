@@ -1,3 +1,4 @@
+import * as editorModel from "../../src/lib/editor/editor-model";
 import { describe, expect, it, vi } from "vitest";
 import { render, fireEvent, waitFor } from "@testing-library/svelte";
 import EditorApp from "../../src/lib/editor/ui/EditorApp.svelte";
@@ -7,6 +8,15 @@ import { fixtureXml, parser } from "./fixtures";
 // Keep a bounded integration budget without changing ordinary unit-test timeouts.
 describe("full-save farm workflow", { timeout: 15_000 }, () => {
 	const openFarm = async () => {
+		// Observe the real imported session; history is now collapsed/lazy in the UI.
+		const load = editorModel.openEditor;
+		let loaded: Awaited<ReturnType<typeof load>> | undefined;
+		const opening = vi
+			.spyOn(editorModel, "openEditor")
+			.mockImplementation(async (...args) => {
+				loaded = await load(...args);
+				return loaded;
+			});
 		const page = render(EditorApp);
 		try {
 			await fireEvent.change(page.getByLabelText("Save file"), {
@@ -20,17 +30,21 @@ describe("full-save farm workflow", { timeout: 15_000 }, () => {
 				{ timeout: 5000 },
 			);
 			await fireEvent.click(page.getByRole("link", { name: "Farm settings" }));
-			return page;
+			if (!loaded) throw new Error("Missing imported editor model");
+			return Object.assign(page, { model: loaded.model });
 		} catch (error) {
 			page.unmount();
 			throw error;
+		} finally {
+			opening.mockRestore();
 		}
 	};
 	type Page = Awaited<ReturnType<typeof openFarm>>;
-	// The mounted Review section renders one ordered-list row per recorded action.
-	// Count that user-facing history rather than introducing a second model harness.
+	// Count committed history through the same session the app imported. Review
+	// stays unopened, so these editing tests do not depend on its DOM layout.
 	const actionCount = (page: Page) =>
-		page.container.querySelector("ol")?.children.length ?? 0;
+		page.model.atomBindings.registry.get(page.model.atomBindings.view)?.entries
+			.length ?? 0;
 	const idle = async (page: Page) =>
 		waitFor(() => {
 			expect(

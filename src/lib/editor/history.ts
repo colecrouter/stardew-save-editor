@@ -75,6 +75,11 @@ interface History {
 	chestRevision: number;
 	document: SaveDocument;
 	baseline: SaveDocument;
+	// Import-time instance handles travel with the retained baseline, independently
+	// of evictable Undo entries. Net review can then identify original inventory
+	// instances after moves, removals and long editing sessions.
+	baselineIdentities: Record<string, string[]>;
+	baselineEquipmentIdentities: EquipmentIdentities;
 	// Computed while immutable branches are still shared, before public detachment.
 	net: JsonPatch.JsonPatch;
 	entries: Entry[];
@@ -202,6 +207,8 @@ export const makeHistorySession = (
 			document: baseline,
 			net: [],
 			baseline,
+			baselineIdentities: identities,
+			baselineEquipmentIdentities: equipmentIdentities,
 			entries: [],
 			cursor: 0,
 			nextId: 1,

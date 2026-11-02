@@ -263,7 +263,7 @@
 		margin-bottom: 24px;
 		padding: 20px;
 		background: #f7e3ba;
-		border-block: 2px solid #b98b52;
+		border: 2px solid #b98b52;
 	}
 	.identity {
 		display: flex;

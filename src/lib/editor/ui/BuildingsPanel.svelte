@@ -47,7 +47,7 @@
 	<div class="workspace">
 		<nav aria-label="Buildings">
 			<h2>
-				Your buildings <span>{buildings.buildings.length}</span>
+				Your buildings <span>({buildings.buildings.length})</span>
 			</h2>
 
 			<!-- The roster scrolls independently on desktop. A native selector on
@@ -101,7 +101,13 @@
 			</div>
 		</nav>
 
-		<div class="details">
+		<!-- svelte-ignore a11y_no_noninteractive_tabindex (This named scroll region needs keyboard focus so Page Up/Down can scroll its content independently.) -->
+		<div
+			class="details"
+			role="region"
+			aria-label="Building details"
+			tabindex="0"
+		>
 			{#if domain}
 				{#key domain.id}
 					<BuildingDetails
@@ -147,6 +153,9 @@
 		margin: 0 0 24px;
 	}
 	.workspace {
+		/* Both desktop columns own their scrolling; changing or editing a home
+		   must not scroll its roster away. Phones return to ordinary page flow. */
+		--building-height: clamp(360px, calc(100vh - 370px), 760px);
 		display: grid;
 		grid-template-columns: 240px minmax(0, 1fr);
 		gap: 26px;
@@ -154,12 +163,15 @@
 	}
 	nav {
 		min-width: 0;
+		display: flex;
+		flex-direction: column;
+		height: var(--building-height);
 	}
 	nav h2 {
 		font-size: 22px;
 		margin: 0 0 14px;
 		display: flex;
-		justify-content: space-between;
+		justify-content: flex-start;
 		gap: 12px;
 	}
 	nav h2 span {
@@ -169,7 +181,9 @@
 	.roster {
 		display: grid;
 		gap: 10px;
-		max-height: 680px;
+		flex: 1;
+		min-height: 0;
+		align-content: start;
 		overflow-y: auto;
 		padding: 6px;
 		scrollbar-gutter: stable;
@@ -215,6 +229,15 @@
 	}
 	.details {
 		min-width: 0;
+		height: var(--building-height);
+		overflow-y: auto;
+		padding: 4px;
+		box-sizing: border-box;
+		scrollbar-gutter: stable;
+	}
+	.details:focus-visible {
+		outline: 2px solid #754522;
+		outline-offset: 2px;
 	}
 	.compact-picker {
 		display: none;
@@ -244,6 +267,15 @@
 		.workspace {
 			grid-template-columns: minmax(0, 1fr);
 			gap: 22px;
+		}
+		nav,
+		.details {
+			height: auto;
+		}
+		.details {
+			overflow: visible;
+			scrollbar-gutter: auto;
+			padding: 0;
 		}
 		.roster,
 		nav h2 {

@@ -72,8 +72,10 @@ animal homes, animal removal, and general location editing are separate features
 
 ## Visual pass and preview corrections
 
-The building roster now includes stable framed thumbnails and scrolls independently
-on desktop. Narrow layouts use a labelled native building selector instead of a
+The building roster includes stable framed thumbnails. On desktop, the roster
+and selected-building details have separate, equally bounded scroll areas, keeping
+both columns in place while browsing or editing. The count stays beside its roster
+heading rather than at the column boundary. Narrow layouts return to page flow. Narrow layouts use a labelled native building selector instead of a
 horizontal strip of cards. Both controls retain the same serialized selection and
 end the active field gesture before switching targets. The selected home shows
 occupancy, including outside residents; animal records show the game's five-heart

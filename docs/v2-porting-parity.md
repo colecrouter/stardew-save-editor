@@ -68,3 +68,12 @@ pass, representative Safari/device checks, broader workflow/performance release
 budgets (#201), compatibility documentation and deliberate default-route cutover
 still precede retiring v1. New feature milestones and the parser replacement stay
 separate from this porting checkpoint.
+
+The quest journal and Qi orders share a bulletin-board presentation: compact
+searchable notices and one selected editor. Desktop shows both together; narrow
+layouts use list/detail navigation with return focus. Browsing does not mutate
+the save or create history. Keyed detail teardown closes any pending input
+gesture against its original quest/farmer. Removing a selected notice returns
+focus to the remaining list; search retains focus in its own input. The journal
+still owns completion receipts and preserves all existing reward, follow-up and
+removal warnings. Qi offer/activation/cancellation rules remain unchanged.

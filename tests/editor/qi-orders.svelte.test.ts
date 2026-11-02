@@ -23,12 +23,25 @@ it(
 		try {
 			await fireEvent.click(page.getByRole("link", { name: "Qi orders" }));
 			await fireEvent.click(
+				await page.findByRole(
+					"button",
+					{ name: /^Let's Play A Game/ },
+					{ timeout: 10000 },
+				),
+			);
+			await fireEvent.click(
 				page.getByRole("checkbox", { name: "Offer Let's Play A Game" }),
+			);
+			await fireEvent.click(
+				page.getByRole("button", { name: /^Four Precious Stones/ }),
 			);
 			await fireEvent.click(
 				page.getByRole("checkbox", { name: "Offer Four Precious Stones" }),
 			);
 			await opened.model.snapshot();
+			await fireEvent.click(
+				page.getByRole("button", { name: /^Qi's Hungry Challenge/ }),
+			);
 			await waitFor(() =>
 				expect(
 					(
@@ -94,6 +107,16 @@ it(
 			);
 			await fireEvent.click(page.getByRole("link", { name: "Farm settings" }));
 			await fireEvent.click(page.getByRole("link", { name: "Qi orders" }));
+			await fireEvent.click(
+				await page.findByRole(
+					"button",
+					{ name: /^Let's Play A Game/ },
+					{ timeout: 10000 },
+				),
+			);
+			await fireEvent.click(
+				page.getByRole("button", { name: /^Qi's Hungry Challenge/ }),
+			);
 			expect(
 				page.getByRole("button", { name: "Cancel Qi's Hungry Challenge" }),
 			).toBeTruthy();
@@ -136,6 +159,13 @@ it(
 		const page = render(CharacterHarness, { model: opened.model });
 		try {
 			await fireEvent.click(page.getByRole("link", { name: "Qi orders" }));
+			await fireEvent.click(
+				await page.findByRole(
+					"button",
+					{ name: /^Let's Play A Game/ },
+					{ timeout: 10000 },
+				),
+			);
 			expect(
 				(
 					page.getByRole("checkbox", {
@@ -143,10 +173,11 @@ it(
 					}) as HTMLInputElement
 				).disabled,
 			).toBe(true);
-			expect(page.getByText("Complete", { exact: true })).toBeTruthy();
+			expect(page.getAllByText("Completed", { exact: true })[0]).toBeTruthy();
 			expect(
 				page.queryByRole("button", { name: "Cancel Let's Play A Game" }),
 			).toBeNull();
+			await fireEvent.click(page.getByRole("button", { name: /^Mod.Unknown/ }));
 			expect(
 				(
 					page.getByRole("checkbox", {
@@ -155,6 +186,53 @@ it(
 				).disabled,
 			).toBe(true);
 			expect((await opened.model.snapshot()).document).toEqual(before.document);
+		} finally {
+			page.unmount();
+			await opened.close();
+		}
+	},
+);
+
+it(
+	"browses and filters Qi notices without changing offers, progress or history",
+	{ timeout: 20000 },
+	async () => {
+		const opened = await openEditor(new TextEncoder().encode(fixtureXml));
+		const page = render(CharacterHarness, { model: opened.model });
+		try {
+			await fireEvent.click(page.getByRole("link", { name: "Qi orders" }));
+			const notice = await page.findByRole(
+				"button",
+				{ name: /^Four Precious Stones/ },
+				{ timeout: 10000 },
+			);
+			const before = await opened.model.snapshot();
+			await fireEvent.click(notice);
+			expect(
+				page.getByRole("region", { name: "Four Precious Stones order" }),
+			).toBeTruthy();
+			await fireEvent.input(
+				page.getByRole("searchbox", { name: "Search Qi orders" }),
+				{ target: { value: "Junimo Kart" } },
+			);
+			expect(
+				page.getByRole("button", { name: /^Let's Play A Game/ }),
+			).toBeTruthy();
+			await fireEvent.input(
+				page.getByRole("searchbox", { name: "Search Qi orders" }),
+				{ target: { value: "no matching notice" } },
+			);
+			expect(page.getByText("No Qi orders match your search.")).toBeTruthy();
+			expect(page.queryByRole("checkbox")).toBeNull();
+			await fireEvent.input(
+				page.getByRole("searchbox", { name: "Search Qi orders" }),
+				{ target: { value: "" } },
+			);
+			expect(
+				page.getByRole("button", { name: /^Four Precious Stones/ }),
+			).toBeTruthy();
+			expect((await opened.model.snapshot()).document).toEqual(before.document);
+			expect((await opened.model.snapshot()).entries).toEqual(before.entries);
 		} finally {
 			page.unmount();
 			await opened.close();

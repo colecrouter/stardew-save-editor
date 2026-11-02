@@ -184,7 +184,9 @@
 						? view.current.todayReason
 						: view.current.tomorrowReason}
 				<label>
-					{day === "today" ? "Today" : "Tomorrow"}
+					<span class="weather-day">
+						{day === "today" ? "Today" : "Tomorrow"}
+					</span>
 					<span class="weather-picture">
 						<WeatherIcon
 							weather={current}
@@ -291,11 +293,19 @@
 	.weather-picture {
 		display: grid;
 		place-items: center;
-		background: #fce8bf;
-		padding: 6px;
+		min-height: 44px;
 	}
+	/* The icon belongs to its weather selector, rather than a separate preview
+	   panel. Preserve a full-width caption and a native 44px control below it. */
 	.weather-panel label {
-		margin-top: 12px;
+		display: grid;
+		grid-template-columns: 39px minmax(0, 1fr);
+		align-items: center;
+		gap: 6px 10px;
+		margin-top: 16px;
+	}
+	.weather-day {
+		grid-column: 1 / -1;
 	}
 	small {
 		display: block;
@@ -319,9 +329,6 @@
 		align-self: start;
 		padding: 16px;
 	}
-	.weather-picture {
-		min-height: 80px;
-	}
 	.weather-panel select {
 		min-height: 44px;
 	}
@@ -340,6 +347,12 @@
 		}
 		.date-fields {
 			gap: 8px;
+		}
+	}
+	@media (max-width: 600px) {
+		.weather-panel {
+			grid-template-columns: minmax(0, 1fr);
+			gap: 0;
 		}
 	}
 </style>

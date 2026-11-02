@@ -69,3 +69,32 @@ input, outside animal editing, tier drafts, adoption and retained navigation.
 
 This migrates the existing building/animal editor. Moving buildings, reassigning
 animal homes, animal removal, and general location editing are separate features.
+
+## Visual pass and preview corrections
+
+The building roster includes stable framed thumbnails. On desktop, the roster
+and selected-building details have separate, equally bounded scroll areas, keeping
+both columns in place while browsing or editing. The count stays beside its roster
+heading rather than at the column boundary. Narrow layouts return to page flow. Narrow layouts use a labelled native building selector instead of a
+horizontal strip of cards. Both controls retain the same serialized selection and
+end the active field gesture before switching targets. The selected home shows
+occupancy, including outside residents; animal records show the game's five-heart
+friendship scale alongside exact editable points. Adoption is a native disclosure;
+opening it does not create a transaction or an animal. Tier consequences remain
+available beside the explicit Apply action without repeating general Undo guidance.
+
+`BuildingSprite` uses generated pixel rectangles and dimensions, never the tile
+footprint as a pixel-size fallback. The farmhouse uses its complete 160×144 frame,
+and the greenhouse chooses the ruined frame only when the farm's repair flag is
+false. Junimo Hut and Fish Pond use the game's menu crop dimensions. Pet Bowl
+uses the complete platform-and-bowl illustration rather than showing its isolated
+bowl draw layer floating over the scenery. Source offsets move the sheet left/up
+into the crop; both scenery and texture URLs include the deployment base. A fixed square and
+positioned source geometry prevent layout shrink/stretch during selection changes.
+
+These are type illustrations, not full reconstructions of saved buildings. Paint,
+skins, seasons, farmhouse/cabin upgrade variants, construction animation and
+additional draw layers are not represented. In particular, Fish Pond is a simplified
+menu crop without the game's water/decoration composite. Source references are
+`Building.getSourceRect`, `JunimoHut.getSourceRectForMenu` and `FishPond.drawInMenu`
+in the local game source checkout. Unknown types have a bounded unavailable preview.

@@ -1,6 +1,10 @@
 <script lang="ts">
 	import BuildingSprite from "../../ui/BuildingSprite.svelte";
 	import { Result } from "effect";
+	import StudyButton from "../../ui/kit/StudyButton.svelte";
+	import StudyAlert from "../../ui/kit/StudyAlert.svelte";
+	import StudyAside from "../../ui/kit/StudyAside.svelte";
+	import "../../ui/kit/styles.css";
 	import { describeUnplaced } from "../../animalBuildings.ts";
 	import { defaultAnimalName } from "../../animalBuildingData.ts";
 	import type { BuildingDomain } from "../building-domain.ts";
@@ -74,42 +78,68 @@
 <section aria-label={`${building.name} details`}>
 	<header>
 		<div class="identity">
-			<BuildingSprite {building} />
+			<BuildingSprite {building} size={96} />
 			<div>
-				<p class="eyebrow">{building.location}</p>
 				<h2>{building.name}</h2>
+				<p class="location">{building.location}</p>
+				{#if building.animalHouse}
+					<p class="capacity">
+						{building.residents} / {building.capacity ?? "?"} residents
+					</p>
+					{#if building.capacity !== undefined && building.capacity > 0}
+						<meter
+							min="0"
+							max={building.capacity}
+							value={building.residents}
+							aria-label="Building occupancy"
+						></meter>
+					{/if}
+					{#if building.outside}
+						<p class="outside">
+							{building.outside} outside · included in capacity
+						</p>
+					{/if}
+				{/if}
 			</div>
 		</div>
-		{#if building.animalHouse}
-			<span class="capacity">
-				{building.residents} / {building.capacity ?? "?"} residents{building.outside
-					? ` · ${building.outside} outside`
-					: ""}
-			</span>
-		{/if}
 	</header>
 	{#if building.reason}
-		<p role="status">{building.reason}</p>
+		<StudyAlert title="Read-only building" tone="warning">
+			<p>{building.reason}</p>
+		</StudyAlert>
 	{/if}
 	{#if building.construction || building.upgrading}
-		<p role="status">
-			{building.construction ? "Under construction" : "Upgrade in progress"}
-		</p>
+		<StudyAlert
+			title={building.construction
+				? "Under construction"
+				: "Upgrade in progress"}
+		>
+			<p>Some building actions are unavailable until construction finishes.</p>
+		</StudyAlert>
 	{/if}
 	{#if error}
-		<p role="alert">{error}</p>
+		<StudyAlert title="Change unavailable" tone="danger" live="assertive">
+			<p>{error}</p>
+		</StudyAlert>
 	{/if}
 	{#each notices as notice}
-		<p role="status">{notice}</p>
+		<StudyAlert
+			title="Interior change needs attention"
+			tone="warning"
+			live="polite"
+		>
+			<p>{notice}</p>
+		</StudyAlert>
 	{/each}
 	{#if building.repaired !== undefined}
 		<CheckboxField field={building.repair} />
 	{/if}
 	{#if building.tiers.length > 1}
-		<form onsubmit={upgrade} class="tier">
+		<form onsubmit={upgrade} class="tier study-theme">
 			<label>
 				Building tier
 				<select
+					class="study-input"
 					value={tier}
 					onchange={(event) => {
 						target = event.currentTarget.value;
@@ -123,20 +153,24 @@
 					{/each}
 				</select>
 			</label>
-			<button
+			<StudyButton
 				type="submit"
+				intent="constructive"
 				disabled={busy ||
 					!selectedTier ||
 					!!selectedTier.reason ||
 					tier === building.name}
 			>
 				Apply tier
-			</button>
-			<p>
-				Updates the interior, capacity and building progression together.
-				Downgrades retain items that are in use or cannot move back. Undo
-				restores the whole change.
-			</p>
+			</StudyButton>
+			<details class="tier-note">
+				<summary>What changes with a tier?</summary>
+
+				<StudyAside title="Changing tiers">
+					Tier changes update the interior, capacity and progression together.
+					Items that cannot move back during a downgrade are retained.
+				</StudyAside>
+			</details>
 			{#if selectedTier?.reason}
 				<p role="status">{selectedTier.reason}</p>
 			{/if}
@@ -145,70 +179,79 @@
 	{#if building.animalHouse}
 		<div class="section-title">
 			<h3>Residents</h3>
-			<span>Outside animals count toward capacity.</span>
+			<span>{building.animals.length} listed here</span>
 		</div>
 		{#if !building.animals.length}
 			<p>No animals live here yet.</p>
 		{/if}
+		<!-- Adoption is an explicit consequence draft, disclosed separately from
+		     the resident fields. Opening this form creates no saved animal. -->
+		<details class="adoption">
+			<summary>Adopt an animal</summary>
+
+			<form class="study-theme" onsubmit={adopt} aria-label="Adopt an animal">
+				<p>
+					Choose a resident to move into this home. New animals start inside,
+					happy and fed; no gold is deducted.
+				</p>
+				{#if building.adoptionReason}
+					<p role="status">{building.adoptionReason}</p>
+				{/if}
+				<div class="adoption-fields">
+					<label>
+						Animal type
+						<select
+							class="study-input"
+							value={option?.type ?? ""}
+							onchange={(event) => {
+								animalType = event.currentTarget.value;
+								name = undefined;
+							}}
+							disabled={busy || !!building.adoptionReason}
+						>
+							{#each building.animalOptions as row (row.type)}
+								<option value={row.type} disabled={!row.allowed}>
+									{row.type}{row.reason ? ` · ${row.reason}` : ""}
+								</option>
+							{/each}
+						</select>
+					</label>
+					<label>
+						New animal name
+						<input
+							class="study-input"
+							value={proposedName}
+							oninput={(event) => {
+								name = event.currentTarget.value;
+							}}
+							disabled={busy || !!building.adoptionReason}
+							data-sentry-mask=""
+						/>
+					</label>
+					<FarmerSelector field={ownerField} />
+				</div>
+				{#if !building.animalOptions.length}
+					<p>This building has no known compatible animal types.</p>
+				{/if}
+				<StudyButton
+					type="submit"
+					intent="constructive"
+					variant="filled"
+					disabled={busy ||
+						!!building.adoptionReason ||
+						!option?.allowed ||
+						!ownerId ||
+						!proposedName.trim()}
+				>
+					Adopt animal
+				</StudyButton>
+			</form>
+		</details>
 		<div class="animals">
 			{#each building.animals as animal (animal.id)}
 				<AnimalCard {animal} />
 			{/each}
 		</div>
-		<form class="adoption" onsubmit={adopt} aria-label="Adopt an animal">
-			<h3>Adopt an animal</h3>
-			<p>
-				A new animal moves inside with full happiness and fullness. Adoption is
-				free and can be undone.
-			</p>
-			{#if building.adoptionReason}
-				<p role="status">{building.adoptionReason}</p>
-			{/if}
-			<div class="adoption-fields">
-				<label>
-					Animal type
-					<select
-						value={option?.type ?? ""}
-						onchange={(event) => {
-							animalType = event.currentTarget.value;
-							name = undefined;
-						}}
-						disabled={busy || !!building.adoptionReason}
-					>
-						{#each building.animalOptions as row (row.type)}
-							<option value={row.type} disabled={!row.allowed}>
-								{row.type}{row.reason ? ` · ${row.reason}` : ""}
-							</option>
-						{/each}
-					</select>
-				</label>
-				<label>
-					New animal name
-					<input
-						value={proposedName}
-						oninput={(event) => {
-							name = event.currentTarget.value;
-						}}
-						disabled={busy || !!building.adoptionReason}
-						data-sentry-mask=""
-					/>
-				</label>
-				<FarmerSelector field={ownerField} />
-			</div>
-			{#if !building.animalOptions.length}
-				<p>This building has no known compatible animal types.</p>
-			{/if}
-			<button
-				type="submit"
-				disabled={busy ||
-					!!building.adoptionReason ||
-					!option?.allowed ||
-					!ownerId ||
-					!proposedName.trim()}
-			>
-				Adopt animal
-			</button>
-		</form>
 	{/if}
 </section>
 
@@ -217,111 +260,108 @@
 		min-width: 0;
 	}
 	header {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 14px;
-		align-items: center;
-		justify-content: space-between;
-		margin-bottom: 20px;
+		margin-bottom: 24px;
+		padding: 20px;
+		background: #f7e3ba;
+		border: 2px solid #b98b52;
 	}
 	.identity {
 		display: flex;
 		align-items: center;
-		gap: 16px;
+		gap: 28px;
+		min-width: 0;
+	}
+	.identity > div {
+		min-width: 0;
 	}
 	h2 {
-		font-family: "Pixelify Sans", sans-serif;
 		font-size: 32px;
-		margin: 3px 0;
+		margin: 0 0 6px;
+		overflow-wrap: anywhere;
 	}
 	h3 {
 		margin: 0;
-		font-size: 20px;
+		font-size: 24px;
 	}
-	.eyebrow {
-		margin: 0;
+	.location {
+		margin: 0 0 14px;
 		color: #795a36;
-		font-size: 13px;
 	}
 	.capacity {
-		font-size: 14px;
-		border-radius: 18px;
-		background: #efe1b9;
-		padding: 8px 12px;
+		margin: 0 0 6px;
+		font-size: 20px;
+	}
+	.outside {
+		margin: 6px 0 0;
+		color: #694621;
+		font-size: 16px;
+	}
+	meter {
+		width: 180px;
+		max-width: 100%;
+		height: 12px;
+		display: block;
+		accent-color: #648146;
 	}
 	label {
 		display: grid;
 		gap: 6px;
-		font-size: 14px;
-		font-weight: 600;
-	}
-	input,
-	select,
-	button {
-		font: inherit;
-		border: 1px solid #ad7d45;
-		border-radius: 6px;
-		min-height: 40px;
-		padding: 8px 10px;
-		color: inherit;
-		box-sizing: border-box;
-		max-width: 100%;
-	}
-	input,
-	select {
-		background: #fffaf0;
 		min-width: 0;
-		width: 100%;
-	}
-	button {
-		background: #efd29a;
-		font-weight: 600;
-		cursor: pointer;
-	}
-	button:disabled {
-		opacity: 0.55;
-		cursor: default;
 	}
 	.tier {
 		display: grid;
 		grid-template-columns: minmax(0, 1fr) auto;
-		gap: 12px;
 		align-items: end;
-		border-block: 1px solid #c7a16c;
-		padding: 18px 0;
-		margin-bottom: 24px;
+		gap: 12px;
+		margin: 22px 0 28px;
 	}
-	.tier p {
+	.tier-note,
+	.tier > p {
 		grid-column: 1 / -1;
 		margin: 0;
-		font-size: 13px;
-		color: #6b5239;
 	}
 	.section-title {
 		display: flex;
 		flex-wrap: wrap;
-		justify-content: space-between;
 		gap: 8px;
+		justify-content: space-between;
 		align-items: baseline;
-		margin-bottom: 16px;
+		margin-bottom: 14px;
+		border-bottom: 2px solid #b98b52;
+		padding-bottom: 10px;
 	}
 	.section-title span {
-		font-size: 13px;
-		color: #6b5239;
+		color: #694621;
+		font-size: 17px;
 	}
 	.animals {
 		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(min(100%, 310px), 1fr));
-		gap: 16px;
+		grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+		gap: 18px;
 	}
 	.adoption {
-		border: 1px dashed #a57e42;
-		border-radius: 10px;
-		padding: 20px;
-		margin-top: 24px;
+		margin: 0 0 20px;
+		border: 2px solid #b98b52;
+		background: #f7e3ba;
+	}
+	summary {
+		padding: 12px 16px;
+		min-height: 44px;
+		box-sizing: border-box;
+		cursor: pointer;
+		color: #486232;
+	}
+	summary:focus-visible {
+		outline: 2px solid #311304;
+		outline-offset: 2px;
+	}
+	.adoption form {
+		padding: 0 16px 16px;
 	}
 	.adoption p {
-		font-size: 14px;
+		margin: 0 0 16px;
+		color: #694621;
+		font-size: 17px;
 	}
 	.adoption-fields {
 		display: grid;
@@ -329,15 +369,26 @@
 		gap: 16px;
 		margin-bottom: 16px;
 	}
-	[role="alert"] {
-		color: #9a2c17;
+	@media (max-width: 1100px) {
+		.identity {
+			gap: 20px;
+		}
+		header {
+			padding: 16px;
+		}
 	}
 	@media (max-width: 500px) {
+		.identity {
+			gap: 16px;
+		}
+		h2 {
+			font-size: 26px;
+		}
 		.tier {
 			grid-template-columns: minmax(0, 1fr);
 		}
-		.adoption {
-			padding: 16px;
+		header {
+			padding: 12px;
 		}
 	}
 </style>

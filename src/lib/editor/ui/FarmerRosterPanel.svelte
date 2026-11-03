@@ -205,7 +205,7 @@
 	}
 	.roster {
 		display: grid;
-		gap: 20px;
+		gap: 12px;
 		max-width: 1050px;
 		margin-bottom: 22px;
 	}
@@ -222,21 +222,23 @@
 	}
 	.drop-target {
 		display: grid;
-		grid-template-columns: 164px minmax(0, 1fr);
-		gap: 24px;
-		padding: 20px;
+		grid-template-columns: 100px minmax(0, 1fr);
+		gap: 16px;
+		padding: 14px;
 	}
 	.farmer-preview {
+		/* Integer scaling keeps the smaller full-body portrait pixel sharp. */
+		--appearance-scale: 3;
 		min-width: 0;
 	}
 	.farmer-preview :global(.preview) {
-		min-height: 200px;
-		padding: 16px;
+		min-height: 136px;
+		padding: 10px;
 	}
 	.preview-unavailable {
 		display: grid;
 		place-items: center;
-		min-height: 216px;
+		min-height: 136px;
 		border: 2px solid #b98b52;
 		background: #f5dbab;
 		color: #694621;
@@ -254,7 +256,7 @@
 		align-items: start;
 		justify-content: space-between;
 		gap: 16px;
-		padding-bottom: 16px;
+		padding-bottom: 8px;
 		border-bottom: 1px solid #d5b782;
 	}
 	header[draggable="true"] {
@@ -266,11 +268,11 @@
 	.position {
 		color: #79522d;
 		font-size: 17px;
-		margin: 0 0 8px;
+		margin: 0 0 4px;
 	}
 	h2 {
 		margin: 0 0 6px;
-		font-size: 28px;
+		font-size: 24px;
 		overflow-wrap: anywhere;
 	}
 	.farm-name {
@@ -288,8 +290,8 @@
 	dl {
 		display: grid;
 		grid-template-columns: repeat(3, minmax(0, 1fr));
-		gap: 18px;
-		margin: 20px 0;
+		gap: 12px;
+		margin: 10px 0;
 	}
 	dt {
 		font-size: 16px;
@@ -297,7 +299,7 @@
 	}
 	dd {
 		font-size: 20px;
-		margin: 6px 0 0;
+		margin: 2px 0 0;
 		overflow-wrap: anywhere;
 	}
 	.actions {
@@ -313,9 +315,7 @@
 	}
 	@media (max-width: 1100px) {
 		.drop-target {
-			grid-template-columns: 140px minmax(0, 1fr);
-			gap: 20px;
-			padding: 18px;
+			grid-template-columns: 100px minmax(0, 1fr);
 		}
 		dl {
 			grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -329,27 +329,36 @@
 			font-size: 28px;
 		}
 		.drop-target {
-			grid-template-columns: minmax(0, 1fr);
-			padding: 16px;
-			gap: 20px;
+			grid-template-columns: 76px minmax(0, 1fr);
+			padding: 12px;
+			gap: 12px;
 		}
 		.farmer-preview {
-			max-width: 164px;
-			justify-self: center;
-			width: 100%;
+			--appearance-scale: 2;
+		}
+		.farmer-preview :global(.preview) {
+			min-height: 100px;
+			padding: 8px;
+		}
+		.record {
+			display: contents;
 		}
 		header {
 			gap: 12px;
 		}
 		h2 {
-			font-size: 26px;
+			font-size: 24px;
 		}
 		dl {
-			margin: 18px 0;
-			gap: 14px;
+			grid-column: 1 / -1;
+			margin: 0;
+			gap: 12px;
 		}
 		dd {
 			font-size: 18px;
+		}
+		.actions {
+			grid-column: 1 / -1;
 		}
 		.actions :global(button) {
 			flex: 1 1 auto;

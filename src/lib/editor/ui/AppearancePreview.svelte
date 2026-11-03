@@ -49,15 +49,16 @@
 		image-rendering: pixelated;
 	}
 	.stage {
-		/* Match the transformed 20 × 36 source-pixel canvas at fivefold scale. */
-		width: 100px;
-		height: 180px;
+		/* Reserve the full source canvas at the chosen scale, including hat/feet
+		   space. Compact roster previews share the same sprite geometry. */
+		width: calc(20px * var(--appearance-scale, 5));
+		height: calc(36px * var(--appearance-scale, 5));
 	}
 	.figure {
 		position: relative;
 		width: 20px;
 		height: 36px;
-		transform: scale(5);
+		transform: scale(var(--appearance-scale, 5));
 		transform-origin: top left;
 	}
 	.figure > :where(div) {

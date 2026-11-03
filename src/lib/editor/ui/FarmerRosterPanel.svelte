@@ -4,15 +4,32 @@
 	import type { ImmutableView } from "../immutable-view.ts";
 	import type { FarmerRosterView } from "../farmer-roster-data.ts";
 	import { createFarmerRosterDomain } from "../farmer-roster-domain.ts";
+	import type { AppearanceView } from "../appearance-operations.ts";
+	import AppearancePreview from "./AppearancePreview.svelte";
+	import StudyButton from "../../ui/kit/StudyButton.svelte";
+	import StudyAlert from "../../ui/kit/StudyAlert.svelte";
+	import StudyAside from "../../ui/kit/StudyAside.svelte";
 	let {
 		model,
 		roster,
-	}: { model: DomainEditPort; roster: ImmutableView<FarmerRosterView> } =
-		$props();
+		appearances,
+	}: {
+		model: DomainEditPort;
+		roster: ImmutableView<FarmerRosterView>;
+		appearances: readonly ImmutableView<AppearanceView>[];
+	} = $props();
 	const domain = $derived(createFarmerRosterDomain(roster, model));
 	let dragging = $state<string>();
 	let pending = $state(false);
 	let error = $state("");
+	function previewFor(farmerId: string) {
+		// Match by identity rather than slot: a promotion moves the farmer's look
+		// with their progress. Ambiguous imported identities must not pick a winner.
+		const matches = appearances.filter(
+			(farmer) => farmer.farmerId === farmerId,
+		);
+		return matches.length === 1 ? matches[0]?.preview : undefined;
+	}
 	async function swap(source: string, target: string) {
 		if (pending || !domain.supported || source === target) return;
 		pending = true;
@@ -27,23 +44,28 @@
 	}
 </script>
 
-<h1>Farmer slots</h1>
-<p class="intro">
-	The first farmer hosts the save. Drag farmers to exchange slots, or use the
-	move buttons. Their belongings and progress move with them; homes and cellars
-	stay assigned to their slots. Undo restores the whole reassignment.
-</p>
+<h1>Farmhands</h1>
+<p class="intro">Your farmers, their homes, and who hosts the save.</p>
+
 {#if domain.reason}
-	<p role="status">{domain.reason}</p>
+	<StudyAlert title="Farmer slots unavailable" tone="warning">
+		<p>{domain.reason}</p>
+	</StudyAlert>
 {/if}
+
 {#if error}
-	<p role="alert">{error}</p>
+	<StudyAlert title="Reassignment unavailable" tone="danger" live="assertive">
+		<p>{error}</p>
+	</StudyAlert>
 {/if}
-<div class="roster" aria-label="Farmer slots">
+
+<div class="roster" aria-label="Farmer slots" aria-busy={pending}>
 	{#each domain.players as farmer, index (farmer.position)}
+		{@const preview = previewFor(farmer.farmerId)}
 		<article
 			aria-label={`${farmer.name} slot`}
 			class:dragging={dragging === farmer.farmerId}
+			class:host={farmer.host}
 		>
 			<div
 				class="drop-target"
@@ -57,80 +79,113 @@
 					if (dragging) void swap(dragging, farmer.farmerId);
 				}}
 			>
-				<header
-					role="group"
-					aria-label={`${farmer.name} drag handle`}
-					draggable={domain.supported && domain.players.length > 1 && !pending}
-					ondragstart={(event) => {
-						dragging = farmer.farmerId;
-						event.dataTransfer?.setData(
-							"application/x-stardew-farmer",
-							farmer.farmerId,
-						);
-					}}
-					ondragend={() => {
-						dragging = undefined;
-					}}
-				>
-					<span class="position">{farmer.position}</span>
-					<div>
-						<h2>{farmer.name}</h2>
-						<span>
-							{farmer.host ? "Host" : "Farmhand"} · {farmer.farmName} Farm
+				<div class="farmer-preview">
+					{#if preview}
+						<AppearancePreview {preview} />
+					{:else}
+						<div class="preview-unavailable">Preview unavailable</div>
+					{/if}
+				</div>
+
+				<div class="record">
+					<header
+						role="group"
+						aria-label={`${farmer.name} drag handle`}
+						draggable={domain.supported &&
+							domain.players.length > 1 &&
+							!pending}
+						ondragstart={(event) => {
+							dragging = farmer.farmerId;
+							event.dataTransfer?.setData(
+								"application/x-stardew-farmer",
+								farmer.farmerId,
+							);
+						}}
+						ondragend={() => {
+							dragging = undefined;
+						}}
+					>
+						<div class="identity">
+							<p class="position">
+								Slot {farmer.position} · {farmer.host ? "Host" : "Farmhand"}
+							</p>
+							<h2 data-sentry-mask="">{farmer.name}</h2>
+							<p class="farm-name" data-sentry-mask="">
+								{farmer.farmName} Farm
+							</p>
+						</div>
+
+						<span class="role-note">
+							{farmer.host ? "Hosts this save" : "Joins the host's farm"}
 						</span>
-					</div>
-				</header>
-				<dl>
-					<div>
-						<dt>Home slot</dt>
-						<dd>{farmer.home}</dd>
-					</div>
-					{#if farmer.played}
+					</header>
+
+					<dl>
 						<div>
-							<dt>Time played</dt>
-							<dd>{farmer.played}</dd>
+							<dt>Home slot</dt>
+							<dd>{farmer.home}</dd>
 						</div>
-					{/if}
-					{#if farmer.moneyEarned !== undefined}
-						<div>
-							<dt>Lifetime earnings</dt>
-							<dd>{farmer.moneyEarned.toLocaleString()}g</dd>
-						</div>
-					{/if}
-				</dl>
-				<div class="actions">
-					<button
-						type="button"
-						disabled={pending || !domain.supported || index === 0}
-						aria-label={`Move ${farmer.name} up`}
-						onclick={() => {
-							const other = domain.players[index - 1];
-							if (other) void swap(farmer.farmerId, other.farmerId);
-						}}
-					>
-						Move up
-					</button>
-					<button
-						type="button"
-						disabled={pending ||
-							!domain.supported ||
-							index === domain.players.length - 1}
-						aria-label={`Move ${farmer.name} down`}
-						onclick={() => {
-							const other = domain.players[index + 1];
-							if (other) void swap(farmer.farmerId, other.farmerId);
-						}}
-					>
-						Move down
-					</button>
+						{#if farmer.played}
+							<div>
+								<dt>Time played</dt>
+								<dd>{farmer.played}</dd>
+							</div>
+						{/if}
+						{#if farmer.moneyEarned !== undefined}
+							<div>
+								<dt>Lifetime earnings</dt>
+								<dd>{farmer.moneyEarned.toLocaleString()}g</dd>
+							</div>
+						{/if}
+					</dl>
+
+					<div class="actions">
+						<StudyButton
+							disabled={pending || !domain.supported || index === 0}
+							aria-label={`Move ${farmer.name} up`}
+							onclick={() => {
+								const other = domain.players[index - 1];
+								if (other) void swap(farmer.farmerId, other.farmerId);
+							}}
+						>
+							<span aria-hidden="true">↑</span>
+							Move up
+						</StudyButton>
+
+						<StudyButton
+							disabled={pending ||
+								!domain.supported ||
+								index === domain.players.length - 1}
+							aria-label={`Move ${farmer.name} down`}
+							onclick={() => {
+								const other = domain.players[index + 1];
+								if (other) void swap(farmer.farmerId, other.farmerId);
+							}}
+						>
+							<span aria-hidden="true">↓</span>
+							Move down
+						</StudyButton>
+					</div>
 				</div>
 			</div>
 		</article>
 	{/each}
 </div>
+
+<StudyAside title="Reassigning farmer slots">
+	<p>
+		Drag a farmer's name onto another card, or use Move up and Move down. Their
+		belongings and progress move with them; homes and cellars stay with their
+		slots. One Undo restores the whole exchange.
+	</p>
+</StudyAside>
+
 {#if domain.players.length < 2}
-	<p>This save has one named farmer. There is nobody to exchange slots with.</p>
+	<p class="note">
+		This save has one named farmer. There is nobody to exchange slots with.
+	</p>
 {/if}
+
 {#if domain.placeholders > 0}
 	<p class="note">
 		{domain.placeholders} unclaimed cabin {domain.placeholders === 1
@@ -141,98 +196,163 @@
 
 <style>
 	h1 {
-		font-family: "Pixelify Sans", sans-serif;
-		font-size: 34px;
-		margin: 0 0 12px;
+		font-size: 32px;
+		margin: 0 0 8px;
 	}
 	.intro {
-		color: #6b5239;
-		max-width: 80ch;
+		color: #694621;
 		margin: 0 0 24px;
 	}
 	.roster {
 		display: grid;
-		gap: 16px;
-		max-width: 900px;
+		gap: 20px;
+		max-width: 1050px;
+		margin-bottom: 22px;
 	}
 	article {
-		border: 1px solid #b58c55;
-		border-radius: 10px;
-		background: #fff7e5;
-		padding: 20px;
+		border: 2px solid #b98b52;
+		background: #fff1d2;
 		min-width: 0;
+	}
+	article.host {
+		border-color: #815126;
 	}
 	article.dragging {
 		opacity: 0.55;
 	}
+	.drop-target {
+		display: grid;
+		grid-template-columns: 164px minmax(0, 1fr);
+		gap: 24px;
+		padding: 20px;
+	}
+	.farmer-preview {
+		min-width: 0;
+	}
+	.farmer-preview :global(.preview) {
+		min-height: 200px;
+		padding: 16px;
+	}
+	.preview-unavailable {
+		display: grid;
+		place-items: center;
+		min-height: 216px;
+		border: 2px solid #b98b52;
+		background: #f5dbab;
+		color: #694621;
+		text-align: center;
+		padding: 16px;
+		box-sizing: border-box;
+	}
+	.record {
+		display: flex;
+		flex-direction: column;
+		min-width: 0;
+	}
 	header {
 		display: flex;
-		align-items: center;
+		align-items: start;
+		justify-content: space-between;
 		gap: 16px;
+		padding-bottom: 16px;
+		border-bottom: 1px solid #d5b782;
 	}
 	header[draggable="true"] {
 		cursor: grab;
 	}
-	h2 {
-		margin: 0 0 5px;
-		font-size: 24px;
-	}
-	header div > span,
-	dt {
-		font-size: 13px;
-		color: #6b5239;
+	.identity {
+		min-width: 0;
 	}
 	.position {
-		width: 40px;
-		height: 40px;
-		display: grid;
-		place-items: center;
-		font-weight: 700;
-		font-size: 22px;
-		border-radius: 50%;
-		background: #eed2a1;
+		color: #79522d;
+		font-size: 17px;
+		margin: 0 0 8px;
+	}
+	h2 {
+		margin: 0 0 6px;
+		font-size: 28px;
+		overflow-wrap: anywhere;
+	}
+	.farm-name {
+		color: #694621;
+		font-size: 17px;
+		margin: 0;
+		overflow-wrap: anywhere;
+	}
+	.role-note {
+		color: #79522d;
+		font-size: 16px;
+		text-align: right;
+		max-width: 150px;
 	}
 	dl {
 		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-		gap: 12px;
-		margin: 18px 0;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		gap: 18px;
+		margin: 20px 0;
+	}
+	dt {
+		font-size: 16px;
+		color: #79522d;
 	}
 	dd {
-		margin: 4px 0 0;
+		font-size: 20px;
+		margin: 6px 0 0;
 		overflow-wrap: anywhere;
 	}
 	.actions {
 		display: flex;
 		flex-wrap: wrap;
 		gap: 10px;
-	}
-	button {
-		font: inherit;
-		padding: 8px 12px;
-		background: #efd29a;
-		border: 1px solid #ad7d45;
-		border-radius: 6px;
-		color: inherit;
-		cursor: pointer;
-	}
-	button:disabled {
-		opacity: 0.5;
-		cursor: default;
+		margin-top: auto;
 	}
 	.note {
-		color: #6b5239;
-		font-size: 13px;
+		color: #694621;
+		font-size: 17px;
+		line-height: 1.4;
 	}
-	[role="alert"] {
-		color: #9a2c17;
-	}
-	@media (max-width: 500px) {
-		article {
-			padding: 16px;
+	@media (max-width: 1100px) {
+		.drop-target {
+			grid-template-columns: 140px minmax(0, 1fr);
+			gap: 20px;
+			padding: 18px;
 		}
+		dl {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+		}
+		.role-note {
+			display: none;
+		}
+	}
+	@media (max-width: 600px) {
 		h1 {
-			font-size: 29px;
+			font-size: 28px;
+		}
+		.drop-target {
+			grid-template-columns: minmax(0, 1fr);
+			padding: 16px;
+			gap: 20px;
+		}
+		.farmer-preview {
+			max-width: 164px;
+			justify-self: center;
+			width: 100%;
+		}
+		header {
+			gap: 12px;
+		}
+		h2 {
+			font-size: 26px;
+		}
+		dl {
+			margin: 18px 0;
+			gap: 14px;
+		}
+		dd {
+			font-size: 18px;
+		}
+		.actions :global(button) {
+			flex: 1 1 auto;
 		}
 	}
 </style>

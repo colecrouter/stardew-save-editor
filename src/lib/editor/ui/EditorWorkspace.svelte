@@ -283,7 +283,11 @@
 
 		{#if rosterOpened && view.current}
 			<div hidden={tab !== "farmers"}>
-				<FarmerRosterPanel {model} roster={view.current.farmerRoster} />
+				<FarmerRosterPanel
+					{model}
+					roster={view.current.farmerRoster}
+					appearances={view.current.appearances}
+				/>
 			</div>
 		{/if}
 		{#if communityOpened}

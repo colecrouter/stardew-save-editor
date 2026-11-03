@@ -2,8 +2,7 @@
 
 This slice continues the Character migration with independent immediate fields and
 adds a Relationships section using the same file-owned farmer selection. It does
-not replace the XML parser or generated save types. Visual refinement is deferred
-until the remaining migration work is reviewed.
+not replace the XML parser or generated save types. The visual pass uses the shared game-inspired component kit.
 
 ## Boundaries
 
@@ -33,7 +32,7 @@ Relationships includes existing and unknown villagers, points/hearts, weekly gif
 search, and explicit per-villager add/remove transactions. Missing known villagers
 remain visible with disabled fields until added; removal requires confirmation. Rows retain saved
 order in the projection and render alphabetically so changing points never moves
-a focused input. Portraits and further presentation refinement are deferred.
+a focused input. Portraits crop the first 64px expression from game assets, with a fixed-size initial fallback for missing or modded portraits. Read-only hearts show fractional point progress within the saved relationship limit; they never infer or change relationship status. Compact row controls retain full villager-specific accessible names, and descriptions expand on demand.
 
 Independent review checked legacy coverage, typed request validation, nil-tool and
 house-level guards, opaque member preservation, shared farmer selection, and stale
@@ -49,3 +48,11 @@ rejects occupied slots and even empty markers carrying extra opaque data. Retain
 slots keep their handles; added slots receive fresh handles in the same history
 publication. Undo/Redo restores both document and identity snapshots. Capacity is
 a discrete action, not part of a text-edit gesture.
+
+## Farmhands visual pass
+
+Farmer cards reuse the Character appearance preview and match it by stable farmer ID,
+so a slot exchange moves the preview with the farmer. Ambiguous identities show an
+unavailable preview. Host/farmhand roles and home slots remain visible alongside
+time played and lifetime earnings. Existing drag exchanges, keyboard move buttons
+and whole-exchange Undo semantics are preserved. Cards stack on narrow screens.

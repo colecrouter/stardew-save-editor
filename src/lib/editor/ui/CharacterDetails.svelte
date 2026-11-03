@@ -22,80 +22,94 @@
 	);
 </script>
 
-<section class="record" aria-label="Stats and upgrades">
-	<header>
-		<h2>
-			<StudyIcon name="character" size={28} />
-			Stats and upgrades
-		</h2>
-		<p>House level {fields.houseLevel ?? "—"}</p>
-	</header>
+<div class="records">
+	<section class="record" aria-label="Stats and upgrades">
+		<header>
+			<h2>
+				<StudyIcon name="character" size={28} />
+				Stats and upgrades
+			</h2>
+			<p>House level {fields.houseLevel ?? "—"}</p>
+		</header>
 
-	<div class="backpack">
-		<SelectField
-			field={fields.backpack}
-			description="To shrink a backpack, empty its last slots on Inventory first."
-		/>
-	</div>
-
-	<!-- The domain supplies labels, availability and field lifetimes. This ledger
-	     changes only their arrangement; every imported value stays represented. -->
-	<div class="details-grid">
-		{#each fields.numbers as field (field.key)}
-			<NumberField {field} />
-		{/each}
-	</div>
-
-	{#if fields.houseUpgrading}
-		<div class="house-action">
-			<CheckboxField
-				field={fields.cancelHouse}
-				description="Stop Robin's current upgrade without a refund."
+		<div class="backpack">
+			<SelectField
+				field={fields.backpack}
+				description="To shrink a backpack, empty its last slots on Inventory first."
 			/>
 		</div>
-	{/if}
 
-	<!-- Detailed game rules stay available beside the fields without filling the
-	     first view. Opening this disclosure does not change any saved value. -->
-	<details>
-		<summary>About upgrades and mine progress</summary>
-
-		<div class="notes">
-			<p>
-				One house upgrade day finishes after the next sleep; the game moves
-				furniture. Cancelling does not refund the purchase. Farmhands must play
-				for their timer to advance.
-			</p>
-			<p>
-				Clint's tool timer: 0 means ready to collect. Trash can levels 0–4
-				reclaim 0–60% of the sale price.
-			</p>
-			<p>Mine floors 1–120 are the Mines; 121 onward is Skull Cavern.</p>
+		<!-- The domain supplies labels, availability and field lifetimes. This ledger
+	     changes only their arrangement; every imported value stays represented. -->
+		<div class="details-grid">
+			{#each fields.numbers as field (field.key)}
+				<NumberField {field} />
+			{/each}
 		</div>
-	</details>
-</section>
 
-<section class="record" aria-label="Wallet">
-	<header>
-		<h2>
-			<StudyIcon name="inventory" size={28} />
-			Wallet
-		</h2>
-		<p>
-			{collected} / {fields.wallet.length} collected
-		</p>
-	</header>
-
-	<div class="wallet-grid">
-		{#each fields.wallet as field (field.key)}
-			<div class="wallet-entry">
-				<CheckboxField {field} />
+		{#if fields.houseUpgrading}
+			<div class="house-action">
+				<CheckboxField
+					field={fields.cancelHouse}
+					description="Stop Robin's current upgrade without a refund."
+				/>
 			</div>
-		{/each}
-	</div>
-</section>
+		{/if}
+
+		<!-- Detailed game rules stay available beside the fields without filling the
+	     first view. Opening this disclosure does not change any saved value. -->
+		<details>
+			<summary>About upgrades and mine progress</summary>
+
+			<div class="notes">
+				<p>
+					One house upgrade day finishes after the next sleep; the game moves
+					furniture. Cancelling does not refund the purchase. Farmhands must
+					play for their timer to advance.
+				</p>
+				<p>
+					Clint's tool timer: 0 means ready to collect. Trash can levels 0–4
+					reclaim 0–60% of the sale price.
+				</p>
+				<p>Mine floors 1–120 are the Mines; 121 onward is Skull Cavern.</p>
+			</div>
+		</details>
+	</section>
+
+	<section class="record" aria-label="Wallet">
+		<header>
+			<h2>
+				<StudyIcon name="inventory" size={28} />
+				Wallet
+			</h2>
+			<p>
+				{collected} / {fields.wallet.length} collected
+			</p>
+		</header>
+
+		<div class="wallet-grid">
+			{#each fields.wallet as field (field.key)}
+				<div class="wallet-entry">
+					<CheckboxField {field} />
+				</div>
+			{/each}
+		</div>
+	</section>
+</div>
 
 <style>
+	.records {
+		display: grid;
+		grid-template-columns: minmax(0, 2fr) minmax(240px, 1fr);
+		gap: 20px;
+		align-items: start;
+	}
+	.records .details-grid {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+	.records .wallet-grid {
+		grid-template-columns: minmax(0, 1fr);
+	}
 	.record {
 		padding: 20px;
 		border: 2px solid #b98b52;
@@ -175,6 +189,9 @@
 		min-width: 0;
 	}
 	@media (max-width: 1100px) {
+		.records {
+			grid-template-columns: minmax(0, 1fr);
+		}
 		.details-grid,
 		.wallet-grid {
 			grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -184,8 +201,8 @@
 		.record {
 			padding: 16px;
 		}
-		.details-grid,
-		.wallet-grid {
+		.records .details-grid,
+		.records .wallet-grid {
 			grid-template-columns: minmax(0, 1fr);
 		}
 	}

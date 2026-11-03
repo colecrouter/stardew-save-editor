@@ -29,3 +29,13 @@ new profile headings remain masked for telemetry. No new save representations,
 input policies or renderer simulation rules are introduced. Tests exercise
 read-only projection, hair encoding, gender mirrors, color preservation, typed
 rejections, farmer identity checks, shared selection and gesture Undo behavior.
+
+The preview always composes foot geometry from the separate boots sheets, even
+when the equipment slot is absent or nil. The saved shoe palette is used when
+supported; otherwise a display-only game-default palette keeps the feet visible.
+The body sheets themselves end above the feet. Equipped boot colors retain their
+existing precedence; no fallback is written to the save.
+
+Desktop identity controls span the dresser, with Style and Colors beside each
+other below. The preview column and total form width stay bounded so short fields
+do not expand across the entire workspace. Narrow screens stack those groups.

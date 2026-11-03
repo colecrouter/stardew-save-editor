@@ -78,3 +78,9 @@ keyed by farmer identity, and keep their immediate editing/history policies.
 
 The old migration scope above is historical: stats, wallet, upgrades and
 appearance have since been ported. This pass changes presentation only.
+
+Desktop stats and wallet records sit side by side, and skills use a two-column
+ledger on wide displays. The level indicators retain the legacy raised red pips
+and wide gold level-5/level-10 milestones. Their geometry stays fixed when values
+change; numeric fields remain the editing controls. Phones use a single-column
+layout and smaller pips to keep all ten indicators visible.

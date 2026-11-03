@@ -11,6 +11,12 @@ import {
 } from "../../src/lib/editor/appearance-operations.ts";
 import { appearanceLayers } from "../../src/lib/editor/appearance-preview.ts";
 import { packRgba } from "../../src/lib/color.ts";
+import {
+	PrimaryBootColors,
+	SecondaryBootColors,
+	TertiaryBootColors,
+	QuaternaryBootColors,
+} from "../../src/lib/CharacterColors.ts";
 function fixture() {
 	const document = tinyFixture();
 	Object.assign(document.SaveGame.player, {
@@ -276,4 +282,75 @@ it("previews standing pants frames for both body types instead of inventory icon
 		expect((sprite.sheetSize.height - pants.y) % 688).toBe(0);
 		expect((sprite.sheetSize.width - pants.x) % 192).toBe(column);
 	}
+});
+
+// The split body artwork stops above the feet. Missing equipment must therefore
+// preserve footwear geometry without constructing or writing a replacement item.
+it("keeps complete feet for omitted and nil boots on both body types", () => {
+	for (const gender of ["Male", "Female"] as const) {
+		for (const boots of [undefined, { "@_xsi:nil": "true" }]) {
+			const raw = {
+				gender,
+				skin: 0,
+				hair: 0,
+				accessory: -1,
+				shoes: "7",
+				...(boots ? { boots } : {}),
+			};
+			const before = structuredClone(raw);
+			const layers = appearanceLayers(raw).layers.filter(
+				(layer) => layer.part === "boots",
+			);
+			expect(layers).toHaveLength(4);
+			expect(layers.map((layer) => layer.x)).toEqual([48, 32, 0, 16]);
+			expect(
+				layers.every(
+					(layer) =>
+						layer.sheet === `/img/${gender.toLowerCase()}_farmer_boots.png`,
+				),
+			).toBe(true);
+			expect(layers.map((layer) => layer.tint)).toEqual(
+				[
+					PrimaryBootColors,
+					SecondaryBootColors,
+					TertiaryBootColors,
+					QuaternaryBootColors,
+				].map((palette) => {
+					const c = palette[7];
+					if (!c) throw new Error("Missing supported boot palette");
+					return [c.R, c.G, c.B, c.A];
+				}),
+			);
+			expect(raw).toEqual(before);
+		}
+	}
+});
+
+it("uses default feet without a supported saved palette and preserves equipped boot colors", () => {
+	const base = { gender: "Male", skin: 0, hair: 0, accessory: -1 };
+	const primary = (raw: Record<string, unknown>) =>
+		appearanceLayers(raw).layers.find((layer) => layer.part === "boots")?.tint;
+	const expected = (index: number) => {
+		const c = PrimaryBootColors[index];
+		if (!c) throw new Error("Missing supported boot palette");
+		return [c.R, c.G, c.B, c.A];
+	};
+	for (const shoes of [undefined, "custom:7", -1, 9999])
+		expect(primary({ ...base, shoes })).toEqual(expected(2));
+	const equipped = {
+		...base,
+		shoes: 2,
+		boots: {
+			"@_xsi:type": "Boots",
+			name: "Sneakers",
+			itemId: "504",
+			indexInColorSheet: 7,
+		},
+	};
+	expect(primary(equipped)).toEqual(expected(7));
+	const malformed = { ...base, boots: { name: { opaque: true } } };
+	expect(appearanceLayers(malformed).notice).toMatch(
+		/equipment cannot be previewed/,
+	);
+	expect(primary(malformed)).toEqual(expected(2));
 });

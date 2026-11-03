@@ -72,7 +72,7 @@
 				<section aria-label="Style">
 					<h2>Style</h2>
 
-					<div class="field-grid styles">
+					<div class="field-grid">
 						{#each domain.numbers as field (field.key)}
 							<NumberField {field} />
 						{/each}
@@ -116,7 +116,8 @@
 	}
 	.appearance-layout {
 		display: grid;
-		grid-template-columns: minmax(220px, 0.8fr) minmax(0, 2fr);
+		grid-template-columns: 240px minmax(0, 1fr);
+		max-width: 960px;
 		gap: 24px;
 		align-items: start;
 	}
@@ -145,8 +146,15 @@
 	}
 	.dresser {
 		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
 		gap: 20px;
 		min-width: 0;
+	}
+	section:first-child {
+		grid-column: 1 / -1;
+	}
+	section:not(:first-child) .field-grid {
+		grid-template-columns: minmax(0, 1fr);
 	}
 	section {
 		border: 2px solid #b98b52;
@@ -159,11 +167,11 @@
 		grid-template-columns: repeat(2, minmax(0, 1fr));
 		gap: 20px 16px;
 	}
-	.styles {
-		grid-template-columns: repeat(3, minmax(0, 1fr));
-	}
 	@media (max-width: 1000px) {
-		.styles {
+		.dresser {
+			grid-template-columns: minmax(0, 1fr);
+		}
+		section:not(:first-child) .field-grid {
 			grid-template-columns: repeat(2, minmax(0, 1fr));
 		}
 	}
@@ -182,7 +190,8 @@
 		}
 	}
 	@media (max-width: 380px) {
-		.field-grid {
+		.field-grid,
+		section:not(:first-child) .field-grid {
 			grid-template-columns: minmax(0, 1fr);
 		}
 	}

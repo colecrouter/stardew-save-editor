@@ -174,8 +174,8 @@
 <style>
 	.profile {
 		display: grid;
-		grid-template-columns: 180px minmax(0, 1fr);
-		gap: 26px;
+		grid-template-columns: 140px minmax(0, 1fr);
+		gap: 22px;
 		align-items: center;
 		margin: 24px 0;
 		background: #f5dbab;
@@ -190,9 +190,10 @@
 		overflow-wrap: anywhere;
 	}
 	.portrait {
-		max-width: 180px;
+		max-width: 140px;
 	}
 	.skill-levels {
+		max-width: 620px;
 		display: grid;
 		grid-template-columns: repeat(5, minmax(0, 1fr));
 		gap: 12px;
@@ -221,26 +222,81 @@
 		gap: 18px;
 	}
 	.level-blocks {
-		display: grid;
-		grid-template-columns: repeat(10, minmax(0, 1fr));
-		gap: 4px;
-		max-width: 230px;
-		margin-bottom: 18px;
+		/* Preserve the legacy game's raised red skill pips and wider gold
+		   profession milestones. Fixed geometry prevents level edits shifting fields. */
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		padding: 6px;
+		margin-bottom: 16px;
 	}
 	.level-blocks span {
-		height: 15px;
-		border: 1px solid #ac8352;
-		background: #e7d0a6;
+		flex: none;
+		box-sizing: content-box;
+		width: 4px;
+		height: 14px;
+		background: #c87c1e;
+		border: 4px solid;
+		border-radius: 4px;
+		border-color: #b26922 #b26922 #c98426 #c98426;
+		box-shadow:
+			0 0 0 2px #ca9133,
+			0 0 0 4px #8c5721,
+			-2px 2px 0 4px #0005;
+	}
+	.level-blocks span:nth-child(5n) {
+		width: 24px;
 	}
 	.level-blocks span.filled {
-		background: #b87035;
-		border-color: #84502a;
-		box-shadow: inset 0 2px #efb45d;
+		background: #dd003b;
+		border-color: #ff6948 #ff6948 #bc004a #bc004a;
+		box-shadow:
+			0 0 0 3px #960027,
+			-2px 2px 0 4px #0005;
+	}
+	.level-blocks span.filled:nth-child(5n) {
+		background: #ffa400;
+		border-color: #ffc62e #ffc62e #e06a00 #e06a00;
 	}
 	.branch-level {
 		font-size: 16px;
 		color: #795a36;
 		margin: 0 0 10px;
+	}
+	@media (min-width: 1200px) {
+		.skills {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+		}
+		.skills .skill {
+			grid-template-columns: minmax(0, 1fr);
+			gap: 18px;
+			padding: 18px;
+		}
+		.branches {
+			gap: 16px;
+		}
+		.branch {
+			padding-left: 10px;
+		}
+	}
+	@media (max-width: 600px) {
+		.level-blocks {
+			gap: 7px;
+		}
+	}
+	@media (max-width: 380px) {
+		.level-blocks {
+			gap: 5px;
+			padding: 5px;
+		}
+		.level-blocks span {
+			width: 2px;
+			height: 12px;
+			border-width: 3px;
+		}
+		.level-blocks span:nth-child(5n) {
+			width: 16px;
+		}
 	}
 	.character-heading {
 		display: flex;
@@ -262,7 +318,7 @@
 	}
 	.skill {
 		display: grid;
-		grid-template-columns: minmax(170px, 0.8fr) minmax(0, 2fr);
+		grid-template-columns: 280px minmax(0, 1fr);
 		gap: 28px;
 		padding: 22px;
 		border: 2px solid #b98b52;

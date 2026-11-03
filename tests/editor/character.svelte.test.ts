@@ -1,5 +1,5 @@
 import { fireEvent, render, waitFor } from "@testing-library/svelte";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { openEditor } from "../../src/lib/editor/editor-model";
 import type { SaveDocument } from "../../src/lib/editor/domain";
 import CharacterHarness from "./CharacterHarness.svelte";
@@ -228,6 +228,10 @@ describe("character progression controls", { timeout: 25000 }, () => {
 			await fireEvent.click(
 				opened.page.getByRole("link", { name: "Inventory" }),
 			);
+			// Inventory starts an unawaited lazy import on navigation. Wait for its
+			// module graph before applying the DOM-query timeout; CI transformation
+			// time is not part of the farmer-selection behavior under test.
+			await vi.dynamicImportSettled();
 			const inventoryFarmer = (await opened.page.findByRole("combobox", {
 				name: "Farmer",
 			})) as HTMLSelectElement;
@@ -324,6 +328,10 @@ describe("character progression controls", { timeout: 25000 }, () => {
 			await fireEvent.click(
 				opened.page.getByRole("link", { name: "Inventory" }),
 			);
+			// Inventory starts an unawaited lazy import on navigation. Wait for its
+			// module graph before applying the DOM-query timeout; CI transformation
+			// time is not part of the farmer-selection behavior under test.
+			await vi.dynamicImportSettled();
 			const inventoryFarmer = (await opened.page.findByRole("combobox", {
 				name: "Farmer",
 			})) as HTMLSelectElement;

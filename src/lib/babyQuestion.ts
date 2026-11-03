@@ -6,9 +6,12 @@
     once every requirement below is met. The wiki also says the farmer must
     be sleeping at home; that isn't in the save, so it isn't checked here.
 
-    Two rules aren't spelled out on those pages and come from the game's
-    own pregnancy check: a roommate can't have children, and a spouse who
-    is already expecting won't ask again.
+    The wiki's Random Events page words the children rule as "aren't already
+    having a child, and have no children or one child at the toddler age".
+
+    One rule isn't on those pages and comes from the game's own pregnancy
+    check: a roommate can't have children. The toddler cutoff (55 days old,
+    the end of the 14 + 14 + 28 day stages) is also from the game, not the wiki.
 */
 import { type GameDate, totalDays } from "$lib/calendar";
 import type { Friendship } from "$lib/proxies/Friendship.svelte";
@@ -19,7 +22,8 @@ export const BABY_QUESTION_POINTS = 2500;
 export const BABY_QUESTION_DAYS_MARRIED = 7;
 /** The second farmhouse upgrade, which adds the nursery */
 export const NURSERY_UPGRADE_LEVEL = 2;
-export const MAX_CHILDREN = 2;
+/** A child is a toddler once they've been through the three baby stages (14 + 14 + 28 days) */
+export const TODDLER_DAYS_OLD = 55;
 /** The wiki's chance per night, once eligible */
 export const BABY_QUESTION_CHANCE = 0.05;
 
@@ -30,6 +34,8 @@ export interface BabyQuestionHome {
 	cribStyle: number | undefined;
 	/** Children already living there */
 	children: number;
+	/** How many of them are toddlers */
+	toddlers: number;
 }
 
 export interface BabyQuestionRequirement {
@@ -104,9 +110,16 @@ export function babyQuestionStatus(
 		},
 		{
 			id: "children",
-			label: `Fewer than ${MAX_CHILDREN} children`,
-			met: home.children < MAX_CHILDREN,
-			detail: `${home.children} ${home.children === 1 ? "child" : "children"} at home`,
+			label: "No children, or one who is a toddler",
+			met: home.children === 0 || (home.children === 1 && home.toddlers === 1),
+			detail:
+				home.children === 0
+					? "No children yet"
+					: home.children === 1
+						? home.toddlers === 1
+							? "One child, a toddler"
+							: "One child, not a toddler yet"
+						: `${home.children} children at home`,
 		},
 		{
 			id: "not-pregnant",
@@ -129,13 +142,18 @@ export function readHome(
 	const characters = home?.characters;
 	const npcs =
 		characters && typeof characters === "object" ? [characters.NPC].flat() : [];
+	const children = (npcs as unknown as RawNPC[]).filter(
+		(npc) => npc?.["@_xsi:type"] === "Child",
+	);
 	return {
 		upgradeLevel,
 		cribStyle: home?.cribStyle,
-		children: npcs.filter(
-			(npc) =>
-				(npc as { "@_xsi:type"?: string } | undefined)?.["@_xsi:type"] ===
-				"Child",
+		children: children.length,
+		toddlers: children.filter(
+			(child) => Number(child.daysOld) >= TODDLER_DAYS_OLD,
 		).length,
 	};
 }
+
+/** A character in the farmhouse; `daysOld` is a child's age in days */
+type RawNPC = { "@_xsi:type"?: string; daysOld?: number | string };

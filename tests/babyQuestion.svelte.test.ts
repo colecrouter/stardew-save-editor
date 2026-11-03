@@ -8,7 +8,7 @@ import { Friendship } from "../src/lib/proxies/Friendship.svelte";
 import BabyQuestion from "../src/routes/(edit)/relationships/BabyQuestion.svelte";
 
 const today = { year: 2, season: Season.Spring, day: 10 };
-const home = { upgradeLevel: 2, cribStyle: 1, children: 0 };
+const home = { upgradeLevel: 2, cribStyle: 1, children: 0, toddlers: 0 };
 
 /** A spouse who meets everything, with `change` applied to the save data */
 const spouse = (change?: (f: Record<string, unknown>) => void) => {
@@ -91,10 +91,20 @@ describe("babyQuestionStatus", () => {
 			unmet(babyQuestionStatus(s, today, { ...home, cribStyle: undefined })),
 		).toEqual([]);
 		expect(
-			unmet(babyQuestionStatus(s, today, { ...home, children: 2 })),
+			unmet(
+				babyQuestionStatus(s, today, { ...home, children: 2, toddlers: 2 }),
+			),
+		).toEqual(["children"]);
+		// One child is fine once they're a toddler, not before
+		expect(
+			unmet(
+				babyQuestionStatus(s, today, { ...home, children: 1, toddlers: 0 }),
+			),
 		).toEqual(["children"]);
 		expect(
-			unmet(babyQuestionStatus(s, today, { ...home, children: 1 })),
+			unmet(
+				babyQuestionStatus(s, today, { ...home, children: 1, toddlers: 1 }),
+			),
 		).toEqual([]);
 	});
 
@@ -109,26 +119,32 @@ describe("readHome", () => {
 	const location = (characters: unknown) =>
 		({ cribStyle: 0, characters }) as unknown as GameLocation;
 
-	it("counts only children", () => {
+	it("counts only children, and which are toddlers", () => {
 		const npcs = {
-			NPC: [{ "@_xsi:type": "Child" }, { "@_xsi:type": "Pet" }],
+			NPC: [
+				{ "@_xsi:type": "Child", daysOld: 55 },
+				{ "@_xsi:type": "Child", daysOld: 54 },
+				{ "@_xsi:type": "Pet", daysOld: 99 },
+			],
 		};
 		expect(readHome(location(npcs), 3)).toEqual({
 			upgradeLevel: 3,
 			cribStyle: 0,
-			children: 1,
+			children: 2,
+			toddlers: 1,
 		});
 	});
 
 	it("handles one child, none, and no home", () => {
 		expect(
-			readHome(location({ NPC: { "@_xsi:type": "Child" } }), 2).children,
-		).toBe(1);
+			readHome(location({ NPC: { "@_xsi:type": "Child", daysOld: 60 } }), 2),
+		).toMatchObject({ children: 1, toddlers: 1 });
 		expect(readHome(location(""), 2).children).toBe(0);
 		expect(readHome(undefined, 0)).toEqual({
 			upgradeLevel: 0,
 			cribStyle: undefined,
 			children: 0,
+			toddlers: 0,
 		});
 	});
 });
@@ -149,6 +165,7 @@ describe("BabyQuestion panel", () => {
 		const status = babyQuestionStatus(spouse(), today, {
 			...home,
 			children: 2,
+			toddlers: 2,
 			upgradeLevel: 1,
 		});
 		render(BabyQuestion, { props: { status, spouse: "Abigail" } });

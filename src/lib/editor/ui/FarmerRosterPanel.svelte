@@ -114,10 +114,6 @@
 								{farmer.farmName} Farm
 							</p>
 						</div>
-
-						<span class="role-note">
-							{farmer.host ? "Hosts this save" : "Joins the host's farm"}
-						</span>
 					</header>
 
 					<dl>
@@ -142,6 +138,8 @@
 					<div class="actions">
 						<StudyButton
 							disabled={pending || !domain.supported || index === 0}
+							iconOnly
+							title="Move up"
 							aria-label={`Move ${farmer.name} up`}
 							onclick={() => {
 								const other = domain.players[index - 1];
@@ -149,13 +147,14 @@
 							}}
 						>
 							<span aria-hidden="true">↑</span>
-							Move up
 						</StudyButton>
 
 						<StudyButton
 							disabled={pending ||
 								!domain.supported ||
 								index === domain.players.length - 1}
+							iconOnly
+							title="Move down"
 							aria-label={`Move ${farmer.name} down`}
 							onclick={() => {
 								const other = domain.players[index + 1];
@@ -163,7 +162,6 @@
 							}}
 						>
 							<span aria-hidden="true">↓</span>
-							Move down
 						</StudyButton>
 					</div>
 				</div>
@@ -201,13 +199,13 @@
 	}
 	.intro {
 		color: #694621;
-		margin: 0 0 24px;
+		margin: 0 0 20px;
 	}
 	.roster {
 		display: grid;
-		gap: 12px;
-		max-width: 1050px;
-		margin-bottom: 22px;
+		gap: 10px;
+		max-width: 1000px;
+		margin-bottom: 20px;
 	}
 	article {
 		border: 2px solid #b98b52;
@@ -220,148 +218,142 @@
 	article.dragging {
 		opacity: 0.55;
 	}
+	/* Identity and statistics share one row; the action rail touches the card's
+    outer edges rather than reserving a separate padded button row. */
 	.drop-target {
 		display: grid;
-		grid-template-columns: 100px minmax(0, 1fr);
-		gap: 16px;
-		padding: 14px;
+		grid-template-columns: 76px minmax(140px, 0.8fr) minmax(240px, 1fr) 44px;
+		gap: 12px;
+		align-items: center;
+	}
+	.record {
+		display: contents;
 	}
 	.farmer-preview {
-		/* Integer scaling keeps the smaller full-body portrait pixel sharp. */
-		--appearance-scale: 3;
+		--appearance-scale: 2;
 		min-width: 0;
+		margin: 8px 0 8px 8px;
 	}
 	.farmer-preview :global(.preview) {
-		min-height: 136px;
-		padding: 10px;
+		min-height: 92px;
+		padding: 6px;
 	}
 	.preview-unavailable {
 		display: grid;
 		place-items: center;
-		min-height: 136px;
+		min-height: 92px;
 		border: 2px solid #b98b52;
 		background: #f5dbab;
 		color: #694621;
 		text-align: center;
-		padding: 16px;
-		box-sizing: border-box;
-	}
-	.record {
-		display: flex;
-		flex-direction: column;
-		min-width: 0;
+		font-size: 14px;
 	}
 	header {
-		display: flex;
-		align-items: start;
-		justify-content: space-between;
-		gap: 16px;
-		padding-bottom: 8px;
-		border-bottom: 1px solid #d5b782;
+		min-width: 0;
+		padding: 8px 0;
 	}
 	header[draggable="true"] {
 		cursor: grab;
 	}
-	.identity {
-		min-width: 0;
-	}
 	.position {
 		color: #79522d;
-		font-size: 17px;
+		font-size: 16px;
 		margin: 0 0 4px;
 	}
 	h2 {
-		margin: 0 0 6px;
+		margin: 0 0 4px;
 		font-size: 24px;
 		overflow-wrap: anywhere;
 	}
 	.farm-name {
 		color: #694621;
-		font-size: 17px;
+		font-size: 16px;
 		margin: 0;
 		overflow-wrap: anywhere;
 	}
-	.role-note {
-		color: #79522d;
-		font-size: 16px;
-		text-align: right;
-		max-width: 150px;
-	}
 	dl {
-		display: grid;
-		grid-template-columns: repeat(3, minmax(0, 1fr));
-		gap: 12px;
-		margin: 10px 0;
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px 20px;
+		margin: 0;
+		padding: 8px 0;
+		min-width: 0;
+	}
+	dl > div {
+		min-width: 0;
 	}
 	dt {
 		font-size: 16px;
 		color: #79522d;
 	}
 	dd {
-		font-size: 20px;
+		font-size: 18px;
 		margin: 2px 0 0;
 		overflow-wrap: anywhere;
 	}
 	.actions {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 10px;
-		margin-top: auto;
+		display: grid;
+		grid-template-rows: 1fr 1fr;
+		align-self: stretch;
+		border-left: 1px solid #b98b52;
+	}
+	.actions :global(button) {
+		width: 44px;
+		height: 100%;
+		min-height: 44px;
+		border: 0;
+		border-radius: 0;
+		box-shadow: none;
+	}
+	.actions :global(button + button) {
+		border-top: 1px solid #b98b52;
 	}
 	.note {
 		color: #694621;
 		font-size: 17px;
 		line-height: 1.4;
 	}
-	@media (max-width: 1100px) {
+	@media (max-width: 900px) {
+		/* Keep both actions flush while allowing statistics to wrap under identity.
+     The full-body preview spans those two rows without adding vertical space. */
 		.drop-target {
-			grid-template-columns: 100px minmax(0, 1fr);
+			grid-template-columns: 76px minmax(0, 1fr) 44px;
+			gap: 0 12px;
+		}
+		.farmer-preview {
+			grid-row: 1 / 3;
+		}
+		header {
+			grid-column: 2;
+			padding-bottom: 0;
 		}
 		dl {
-			grid-template-columns: repeat(2, minmax(0, 1fr));
+			grid-column: 2;
+			padding-top: 6px;
 		}
-		.role-note {
-			display: none;
+		.actions {
+			grid-column: 3;
+			grid-row: 1 / 3;
 		}
 	}
-	@media (max-width: 600px) {
+	@media (max-width: 480px) {
 		h1 {
 			font-size: 28px;
 		}
 		.drop-target {
-			grid-template-columns: 76px minmax(0, 1fr);
-			padding: 12px;
-			gap: 12px;
-		}
-		.farmer-preview {
-			--appearance-scale: 2;
-		}
-		.farmer-preview :global(.preview) {
-			min-height: 100px;
-			padding: 8px;
-		}
-		.record {
-			display: contents;
-		}
-		header {
-			gap: 12px;
+			gap: 0 8px;
 		}
 		h2 {
-			font-size: 24px;
+			font-size: 22px;
 		}
 		dl {
-			grid-column: 1 / -1;
-			margin: 0;
-			gap: 12px;
+			gap: 6px 12px;
+		}
+		dt {
+			font-size: 14px;
 		}
 		dd {
-			font-size: 18px;
-		}
-		.actions {
-			grid-column: 1 / -1;
-		}
-		.actions :global(button) {
-			flex: 1 1 auto;
+			font-size: 16px;
 		}
 	}
 </style>

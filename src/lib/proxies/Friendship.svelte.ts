@@ -1,4 +1,5 @@
 import { SvelteMap } from "svelte/reactivity";
+import { addDays, dateInRange, type GameDate, totalDays } from "$lib/calendar";
 import { characters, dateableCharacters } from "$lib/NPCs";
 import {
 	type FriendshipData,
@@ -25,6 +26,9 @@ export class Friendship implements DataProxy<FriendshipDataItem> {
 	public readonly proposer: number;
 	/** @todo Unused? I've only seen `false` so far. */
 	public readonly roommateMarriage: boolean;
+
+	/** The day the baby is born while the spouse is pregnant, otherwise `null` */
+	public birthingDate: GameDate | null;
 
 	// Derived helpers
 
@@ -105,6 +109,29 @@ export class Friendship implements DataProxy<FriendshipDataItem> {
 			f.RoommateMarriage = this.roommateMarriage;
 		});
 
+		const due = f.NextBirthingDate;
+		this.birthingDate = $state(
+			due
+				? dateInRange({
+						year: due.Year,
+						season: due.Season,
+						day: due.DayOfMonth,
+					})
+				: null,
+		);
+		$effect(() => {
+			const date = this.birthingDate;
+			if (date) {
+				f.NextBirthingDate = {
+					Year: date.year,
+					DayOfMonth: date.day,
+					Season: date.season,
+				};
+			} else {
+				delete f.NextBirthingDate;
+			}
+		});
+
 		// Compute derived values
 		this.maxHearts = $derived(
 			this.dateable
@@ -118,6 +145,30 @@ export class Friendship implements DataProxy<FriendshipDataItem> {
 		this.maxPoints = $derived(
 			this.maxHearts * Friendship.HEART_SIZE + Friendship.HEART_SIZE - 1,
 		); // 250 points per heart, plus 249 points after the last heart
+	}
+
+	/** Whether the spouse is pregnant */
+	get pregnant() {
+		return this.birthingDate !== null;
+	}
+
+	/**
+	 * Make the spouse pregnant, due `days` days after `today` (14 in-game), or
+	 * end the pregnancy. Only a spouse can be, so anything else is left alone.
+	 */
+	setPregnant(pregnant: boolean, today: GameDate, days = 14) {
+		if (!pregnant) {
+			this.birthingDate = null;
+		} else if (this.status === Status.Married) {
+			this.birthingDate = addDays(today, Math.max(days, 1));
+		}
+	}
+
+	/** Days from `today` until the baby is born, or `null` if not pregnant */
+	daysUntilBirth(today: GameDate) {
+		return this.birthingDate
+			? totalDays(this.birthingDate) - totalDays(today)
+			: null;
 	}
 
 	get hearts() {

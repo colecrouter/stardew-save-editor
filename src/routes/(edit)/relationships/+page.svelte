@@ -87,7 +87,7 @@
 	</div>
 	<div class="wrapper">
 		{#each shown as [name, npc] (name)}
-			<HeartBar {name} {npc} />
+			<HeartBar {name} {npc} today={save.calendar.date} />
 		{:else}
 			{#if term}
 				<p class="empty">No villagers match "{search.trim()}".</p>

@@ -3,7 +3,10 @@ import { tick } from "svelte";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Dispose } from "$lib/proxies";
 import { Friendship } from "$lib/proxies/Friendship.svelte";
+import { Season } from "../codegen/save";
 import HeartBar from "../src/routes/(edit)/relationships/HeartBar.svelte";
+
+const today = { year: 1, season: Season.Spring, day: 1 };
 
 // happy-dom doesn't load images: report each portrait sheet as loaded, this wide
 const stubPortraits = (naturalWidth: number) => {
@@ -24,7 +27,7 @@ const stubPortraits = (naturalWidth: number) => {
 
 const renderRow = async (name: string) => {
 	const npc = Friendship.fromName(name);
-	const view = render(HeartBar, { props: { name, npc } });
+	const view = render(HeartBar, { props: { name, npc, today } });
 	const portrait = screen.getByRole("img", { name: `${name} portrait` });
 	// Loaded: the initial shown in its place is gone
 	await vi.waitFor(() => expect(portrait.querySelector("strong")).toBeNull());
@@ -47,7 +50,7 @@ describe("Villager portrait", () => {
 		// An image that never loads, like a modded villager without a portrait
 		vi.stubGlobal("Image", class {});
 		const npc = Friendship.fromName("Abigail");
-		const view = render(HeartBar, { props: { name: "Abigail", npc } });
+		const view = render(HeartBar, { props: { name: "Abigail", npc, today } });
 
 		const portrait = screen.getByRole("img", { name: "Abigail portrait" });
 		expect(portrait.style.backgroundImage).toBe("");

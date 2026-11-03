@@ -1256,6 +1256,8 @@ export interface Friendship {
 	Proposer: number;
 	RoommateMarriage: boolean;
 	WeddingDate?: LastGiftDateClass;
+	/** Set while the spouse is pregnant: the day the baby is born */
+	NextBirthingDate?: LastGiftDateClass;
 }
 
 export interface LastGiftDateClass {

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { asset } from "$app/paths";
+	import type { GameDate } from "$lib/calendar";
 	import type { Friendship } from "$lib/proxies/Friendship.svelte";
 	import EmojiRange from "$lib/ui/EmojiRange.svelte";
 	import UiContainerSmall from "$lib/ui/UIContainerSmall.svelte";
@@ -9,9 +10,11 @@
 	interface Props {
 		name: string;
 		npc: Friendship;
+		/** The save's current date, which a pregnancy is counted from */
+		today: GameDate;
 	}
 
-	let { npc, name }: Props = $props();
+	let { npc, name, today }: Props = $props();
 
 	const description = $derived(Villagers.get(name)?.description);
 	// The name comes from the save and ends up in a CSS url(), so encode it
@@ -81,6 +84,35 @@
 			<small class="description" data-testid="friendship-description"
 				>{description}</small
 			>
+		{/if}
+
+		{#if npc.status === "Married"}
+			<label
+				class="pregnancy"
+				title="Makes your spouse pregnant. The baby arrives overnight on the due date, if your house has been upgraded and has room for a child."
+			>
+				<input
+					type="checkbox"
+					checked={npc.pregnant}
+					onchange={(e) => npc.setPregnant(e.currentTarget.checked, today)}
+					data-testid="friendship-pregnant"
+				/>
+				🤰 Pregnant
+				{#if npc.pregnant}
+					<UiInput
+						type="number"
+						min="1"
+						bind:value={() => npc.daysUntilBirth(today) ?? 0,
+						(v) => {
+							if (v === null) return;
+							npc.setPregnant(true, today, Number(v));
+						}}
+						aria-label={`Days until ${name}'s baby is born`}
+						data-testid="friendship-days-until-birth"
+					/>
+					<small>days until birth</small>
+				{/if}
+			</label>
 		{/if}
 
 		<EmojiRange
@@ -165,6 +197,16 @@
 		width: 1.2rem;
 		height: 1.2rem;
 		font-size: 0.95rem;
+	}
+
+	.pregnancy {
+		display: flex;
+		align-items: center;
+		gap: 4px;
+	}
+
+	.pregnancy :global(input[type="number"]) {
+		width: 3em;
 	}
 
 	.gifts :global(input[type="number"]) {

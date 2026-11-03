@@ -26,7 +26,9 @@
 		</div>
 	</div>
 </div>
-{#if preview.notice}<p role="status">{preview.notice}</p>{/if}
+{#if preview.notice}
+	<p class="notice">{preview.notice}</p>
+{/if}
 
 <style>
 	.preview {
@@ -34,8 +36,16 @@
 		place-items: center;
 		min-height: 260px;
 		padding: 24px;
-		background: linear-gradient(#8fc4d2, #d8eab1);
-		border: 4px solid #8e3d04;
+		/* The pale diagonal reflection distinguishes the dresser's mirror from
+		   an outdoor scene; the reserved stage still owns all sprite geometry. */
+		background: linear-gradient(
+			135deg,
+			#d9e9df 0 46%,
+			#f2f5e8 46% 51%,
+			#d9e9df 51% 100%
+		);
+		border: 2px solid #a57542;
+		box-shadow: inset 0 0 0 4px #f0d3a1;
 		image-rendering: pixelated;
 	}
 	.stage {

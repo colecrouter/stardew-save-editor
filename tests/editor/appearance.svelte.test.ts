@@ -33,12 +33,12 @@ it(
 				page.queryByLabelText("Farming XP", { selector: "input" }),
 			).toBeNull();
 			expect(page.queryByLabelText("Search villagers")).toBeNull();
-			await fireEvent.click(page.getByRole("link", { name: "Appearance" }));
+			await fireEvent.click(page.getByRole("link", { name: "Character" }));
 			const firstFavorite = page.getByRole("textbox", {
 				name: "Favorite thing",
 			});
 			await fireEvent.click(page.getByRole("link", { name: "Farm settings" }));
-			await fireEvent.click(page.getByRole("link", { name: "Appearance" }));
+			await fireEvent.click(page.getByRole("link", { name: "Character" }));
 			expect(page.getByRole("textbox", { name: "Favorite thing" })).toBe(
 				firstFavorite,
 			);
@@ -102,6 +102,64 @@ it(
 					(view) => view.farmerId === "guest",
 				)?.texts.favorite.value,
 			).toBe("Guest favorite");
+		} finally {
+			page.unmount();
+			await opened.close();
+		}
+	},
+);
+
+it(
+	"keeps profile edits across internal tabs and links clothing to Inventory",
+	{ timeout: 25000 },
+	async () => {
+		const opened = await openEditor(new TextEncoder().encode(fixtureXml));
+		const page = render(CharacterHarness, { model: opened.model });
+		try {
+			await fireEvent.click(page.getByRole("link", { name: "Character" }));
+			expect(page.queryByRole("link", { name: "Appearance" })).toBeNull();
+			expect(page.queryByRole("textbox", { name: "Farm name" })).toBeNull();
+			expect(page.queryByRole("spinbutton", { name: "Farming XP" })).toBeNull();
+			const favorite = page.getByRole("textbox", {
+				name: "Favorite thing",
+			}) as HTMLInputElement;
+			favorite.focus();
+			await fireEvent.input(favorite, { target: { value: "Moonflowers" } });
+			// Tab changes must finish a focused edit even without a synthetic blur.
+			await fireEvent.click(
+				page.getByRole("tab", { name: "Skills & progression" }),
+			);
+			await waitFor(() =>
+				expect(
+					page.getByRole("spinbutton", { name: "Farming XP" }),
+				).toBeTruthy(),
+			);
+			expect(
+				page.queryByRole("textbox", { name: "Favorite thing" }),
+			).toBeNull();
+			expect((await opened.model.snapshot()).entries).toHaveLength(1);
+			await fireEvent.click(
+				page.getByRole("tab", { name: "Profile & appearance" }),
+			);
+			expect(page.getByRole("textbox", { name: "Favorite thing" })).toBe(
+				favorite,
+			);
+			expect(favorite.value).toBe("Moonflowers");
+			await opened.model.commands.undo();
+			await waitFor(() => expect(favorite.value).not.toBe("Moonflowers"));
+			await fireEvent.click(
+				page.getByRole("button", { name: "Edit clothing in Inventory" }),
+			);
+			await page.findByRole("heading", { name: "Inventory" });
+			await fireEvent.click(page.getByRole("link", { name: "Character" }));
+			expect(
+				page
+					.getByRole("tab", { name: "Profile & appearance" })
+					.getAttribute("aria-selected"),
+			).toBe("true");
+			expect(page.getByRole("textbox", { name: "Favorite thing" })).toBe(
+				favorite,
+			);
 		} finally {
 			page.unmount();
 			await opened.close();

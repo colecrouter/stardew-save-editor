@@ -15,6 +15,9 @@ async function open(mutate: (document: SaveDocument) => void = () => {}) {
 	);
 	const page = render(CharacterHarness, { model: opened.model });
 	await fireEvent.click(page.getByRole("link", { name: "Character" }));
+	await fireEvent.click(
+		page.getByRole("tab", { name: "Skills & progression" }),
+	);
 	return {
 		...opened,
 		page,
@@ -315,9 +318,7 @@ describe("character progression controls", { timeout: 25000 }, () => {
 			);
 			await waitFor(() =>
 				expect(
-					opened.page.getByText(
-						/Edit character details, experience and professions for Guest/,
-					),
+					opened.page.getByRole("heading", { name: /^Guest$/ }),
 				).toBeTruthy(),
 			);
 			await fireEvent.click(

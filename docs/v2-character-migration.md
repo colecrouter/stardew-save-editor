@@ -65,3 +65,28 @@ Character and Inventory currently keep separate farmer selections. A shared
 session-owned selection by stable farmer identity is also a #194 planning item;
 this migration does not change cross-page selection behavior. Queued commands
 continue to capture their own target before asynchronous work.
+
+## Character visual pass
+
+The profile tab pairs the selected farmer's existing appearance view with
+identity and appearance controls. Stats/upgrades and wallet controls form separate paper
+records; game-rule explanations use native disclosure. Skill sections show ten
+level blocks and labelled level-5/level-10 profession branches alongside the
+existing XP, level and profession controls. These labels describe the game, not
+new editor eligibility rules. All fields still use the existing domain adapters,
+keyed by farmer identity, and keep their immediate editing/history policies.
+
+The old migration scope above is historical: stats, wallet, upgrades and
+appearance have since been ported. This pass changes presentation only.
+
+Desktop stats and wallet records sit side by side, and skills use a two-column
+ledger on wide displays. The level indicators retain the legacy raised red pips
+and wide gold level-5/level-10 milestones. Their geometry stays fixed when values
+change; numeric fields remain the editing controls. Phones use a single-column
+layout and smaller pips to keep all ten indicators visible.
+
+Character now groups profile/appearance and skills/progression behind internal
+retained tabs with one farmer selector. Progression keeps the stats, upgrades,
+wallet, skill and mastery controls. The legacy-inspired skill pips retain red/gold
+milestones with subtler square edges and shadows to match the surrounding kit;
+they remain indicators rather than an additional set of editing buttons.

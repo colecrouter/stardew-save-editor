@@ -94,27 +94,42 @@ export function appearanceLayers(
 		readRgba(raw.newEyeColor),
 	);
 	const boots = equipment(raw.boots);
-	const bootIndex =
-		record(raw.boots) && typeof raw.boots.indexInColorSheet === "number"
+	const bootPalettes = [
+		PrimaryBootColors,
+		SecondaryBootColors,
+		TertiaryBootColors,
+		QuaternaryBootColors,
+	];
+	// Feet live in the split footwear sheet, not the body sheet. Always compose
+	// their geometry even when the equipment slot is empty. Saved shoe colors
+	// remain useful without boots; unsupported/custom palettes get the game's
+	// default shoes (2) as a display-only fallback, never a saved replacement.
+	const savedShoes =
+		typeof raw.shoes === "number"
+			? raw.shoes
+			: typeof raw.shoes === "string" && /^\d+$/.test(raw.shoes)
+				? Number(raw.shoes)
+				: 2;
+	const requestedBootIndex = boots
+		? record(raw.boots) && typeof raw.boots.indexInColorSheet === "number"
 			? raw.boots.indexInColorSheet
-			: 0;
-	if (boots) {
-		for (const [index, palette] of [
-			PrimaryBootColors,
-			SecondaryBootColors,
-			TertiaryBootColors,
-			QuaternaryBootColors,
-		].entries()) {
-			const color = palette[bootIndex];
-			if (color)
-				add(
-					"boots",
-					`/img/${gender}_farmer_boots.png`,
-					[48, 32, 0, 16][index] ?? 0,
-					0,
-					[color.R, color.G, color.B, color.A],
-				);
-		}
+			: 0
+		: savedShoes;
+	const bootIndex =
+		Number.isInteger(requestedBootIndex) &&
+		bootPalettes.every((palette) => palette[requestedBootIndex] !== undefined)
+			? requestedBootIndex
+			: 2;
+	for (const [index, palette] of bootPalettes.entries()) {
+		const color = palette[bootIndex];
+		if (color)
+			add(
+				"boots",
+				`/img/${gender}_farmer_boots.png`,
+				[48, 32, 0, 16][index] ?? 0,
+				0,
+				[color.R, color.G, color.B, color.A],
+			);
 	}
 	// Missing equipment receives the same display-only stand-ins as v1. These
 	// catalog records are never inserted into the save or constructed as proxies.

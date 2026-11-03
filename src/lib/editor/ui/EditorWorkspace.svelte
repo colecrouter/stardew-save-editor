@@ -15,7 +15,6 @@
 	import StudyIcon from "../../ui/StudyIcon.svelte";
 	import CalendarPanel from "./CalendarPanel.svelte";
 	import RelationshipPanel from "./RelationshipPanel.svelte";
-	import AppearancePanel from "./AppearancePanel.svelte";
 	import QuestJournalPanel from "./QuestJournalPanel.svelte";
 	import QiOrdersPanel from "./QiOrdersPanel.svelte";
 	import EventsPanel from "./EventsPanel.svelte";
@@ -71,7 +70,6 @@
 		{ id: "farmers", label: "Farmhands", icon: "farmhands" },
 		{ id: "storage", label: "Storage", icon: "chests" },
 		{ id: "character", label: "Character", icon: "character" },
-		{ id: "appearance", label: "Appearance", icon: "appearance" },
 		{ id: "relationships", label: "Relationships", icon: "relationships" },
 		{ id: "quests", label: "Quest journal", icon: "quests" },
 		{ id: "qi", label: "Qi orders", icon: "qi" },
@@ -100,7 +98,6 @@
 	// them so navigating away preserves local input and selection state.
 	let characterOpened = $state(false);
 	let relationshipsOpened = $state(false);
-	let appearanceOpened = $state(false);
 	let recipesOpened = $state(false);
 	let eventsOpened = $state(false);
 	let questsOpened = $state(false);
@@ -116,7 +113,6 @@
 		if (section === "inventory") inventoryOpened = true;
 		if (section === "character") characterOpened = true;
 		if (section === "relationships") relationshipsOpened = true;
-		if (section === "appearance") appearanceOpened = true;
 		if (section === "recipes") recipesOpened = true;
 		if (section === "events") eventsOpened = true;
 		if (section === "quests") questsOpened = true;
@@ -321,11 +317,11 @@
 		{/if}
 
 		{#if characterOpened}
-			<div hidden={tab !== "character"}><CharacterPanel {model} /></div>
-		{/if}
-		{#if appearanceOpened}
-			<div hidden={tab !== "appearance"}>
-				<AppearancePanel {model} />
+			<div hidden={tab !== "character"}>
+				<CharacterPanel
+					{model}
+					oninventory={() => chooseSection("inventory")}
+				/>
 			</div>
 		{/if}
 		{#if relationshipsOpened}

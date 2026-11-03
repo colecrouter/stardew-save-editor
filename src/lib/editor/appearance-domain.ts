@@ -1,8 +1,6 @@
 import type { ImmutableView } from "./immutable-view.ts";
 import { bindImmediateField, type ImmediateEditPort } from "./field-binding.ts";
 import type { ImmediateField } from "./immediate-field.ts";
-import { createFarmFields } from "./farm-domain.ts";
-import type { FarmView } from "./farm-operations.ts";
 import {
 	setAppearance,
 	type AppearanceChange,
@@ -12,7 +10,6 @@ import {
 /** Bind editor-owned fields to the farmer captured when this view was projected. */
 export function createAppearanceDomain(
 	view: ImmutableView<AppearanceView>,
-	farm: ImmutableView<FarmView>,
 	model: ImmediateEditPort,
 ) {
 	function field<T extends string | number>(
@@ -51,9 +48,6 @@ export function createAppearanceDomain(
 			undefined,
 			view.texts.favorite.reason,
 		),
-		// Farm name is shared across saved farmers and uses the same gesture identity
-		// as Farm settings rather than introducing a conflicting per-farmer setter.
-		farmName: createFarmFields(farm, model).name,
 		gender: {
 			...field(
 				"gender",

@@ -2,27 +2,20 @@
 	import { useAtomValue } from "effect-atom-svelte";
 	import type { EditorModel } from "../editor-model.ts";
 	import { createAppearanceDomain } from "../appearance-domain.ts";
-	import { createFarmerSelectionField } from "../farmer-selection.ts";
-	import FarmerSelector from "./fields/FarmerSelector.svelte";
 	import TextField from "./fields/TextField.svelte";
-	import NumberField from "./fields/NumberField.svelte";
+	import StepperField from "./fields/StepperField.svelte";
+	import StudyButton from "../../ui/kit/StudyButton.svelte";
 	import SelectField from "./fields/SelectField.svelte";
 	import ColorField from "./fields/ColorField.svelte";
 	import AppearancePreview from "./AppearancePreview.svelte";
 	import StudyAlert from "../../ui/kit/StudyAlert.svelte";
 	interface Props {
 		model: EditorModel;
+		oninventory: () => void;
 	}
-	let { model }: Props = $props();
+	let { model, oninventory }: Props = $props();
 	const view = useAtomValue(() => model.atomBindings.view);
 	const selection = useAtomValue(() => model.atomBindings.selectedFarmerId);
-	const farmerField = $derived(
-		createFarmerSelectionField(
-			view.current?.farmerChoices ?? [],
-			selection.current,
-			model,
-		),
-	);
 	const selected = $derived(
 		view.current?.appearances.find(
 			(owner) => owner.farmerId === selection.current,
@@ -30,19 +23,10 @@
 	);
 	const domain = $derived(
 		selected && view.current
-			? createAppearanceDomain(selected, view.current.farm, model)
+			? createAppearanceDomain(selected, model)
 			: undefined,
 	);
 </script>
-
-<div class="heading">
-	<div>
-		<h1>Appearance</h1>
-		<p class="intro">A new look for your farmer.</p>
-	</div>
-
-	<FarmerSelector field={farmerField} />
-</div>
 
 {#if domain?.supported}
 	{#key domain.farmerId}
@@ -52,9 +36,11 @@
 
 				<AppearancePreview preview={domain.preview} />
 
-				<p class="preview-note">
-					Clothing follows the equipped items in Inventory.
-				</p>
+				<div class="preview-note">
+					<StudyButton onclick={oninventory}>
+						Edit clothing in Inventory
+					</StudyButton>
+				</div>
 			</aside>
 
 			<div class="dresser">
@@ -63,18 +49,17 @@
 
 					<div class="field-grid">
 						<TextField field={domain.name} sensitive />
-						<TextField field={domain.farmName} sensitive />
 						<TextField field={domain.favorite} sensitive />
 						<SelectField field={domain.gender} />
 					</div>
 				</section>
 
-				<section aria-label="Style">
+				<section class="style-controls" aria-label="Style">
 					<h2>Style</h2>
 
 					<div class="field-grid">
 						{#each domain.numbers as field (field.key)}
-							<NumberField {field} />
+							<StepperField {field} />
 						{/each}
 					</div>
 				</section>
@@ -98,22 +83,6 @@
 {/if}
 
 <style>
-	.heading {
-		display: flex;
-		justify-content: space-between;
-		align-items: end;
-		flex-wrap: wrap;
-		gap: 16px;
-		margin-bottom: 24px;
-	}
-	h1 {
-		margin: 0;
-		font-size: 32px;
-	}
-	.intro {
-		margin: 8px 0 0;
-		color: #694621;
-	}
 	.appearance-layout {
 		display: grid;
 		grid-template-columns: 240px minmax(0, 1fr);
@@ -150,6 +119,14 @@
 		gap: 20px;
 		min-width: 0;
 	}
+	/* Arrow targets reserve 44px each; give every style selector a full row,
+	   even where identity and color fields can comfortably share columns. */
+	.dresser .style-controls .field-grid {
+		grid-template-columns: minmax(0, 1fr);
+	}
+	section[aria-label="Identity"] .field-grid {
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+	}
 	section:first-child {
 		grid-column: 1 / -1;
 	}
@@ -168,6 +145,9 @@
 		gap: 20px 16px;
 	}
 	@media (max-width: 1000px) {
+		section[aria-label="Identity"] .field-grid {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+		}
 		.dresser {
 			grid-template-columns: minmax(0, 1fr);
 		}
@@ -185,11 +165,11 @@
 		section {
 			padding: 16px;
 		}
-		h1 {
-			font-size: 28px;
-		}
 	}
 	@media (max-width: 380px) {
+		section[aria-label="Identity"] .field-grid {
+			grid-template-columns: minmax(0, 1fr);
+		}
 		.field-grid,
 		section:not(:first-child) .field-grid {
 			grid-template-columns: minmax(0, 1fr);

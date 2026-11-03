@@ -3,17 +3,11 @@
 	import type { AppearancePreviewView } from "../appearance-preview.ts";
 	interface Props {
 		preview: AppearancePreviewView;
-		compact?: boolean;
 	}
-	let { preview, compact = false }: Props = $props();
+	let { preview }: Props = $props();
 </script>
 
-<div
-	class="preview"
-	class:compact
-	role="img"
-	aria-label="Character appearance preview"
->
+<div class="preview" role="img" aria-label="Character appearance preview">
 	<!-- The stage reserves scaled layout space; layer offsets stay in source
 	     pixels, including room above the head and below the pants. -->
 	<div class="stage">
@@ -53,17 +47,6 @@
 		border: 2px solid #a57542;
 		box-shadow: inset 0 0 0 4px #f0d3a1;
 		image-rendering: pixelated;
-	}
-	.compact {
-		min-height: 180px;
-		padding: 16px;
-	}
-	.compact .stage {
-		width: 80px;
-		height: 144px;
-	}
-	.compact .figure {
-		transform: scale(4);
 	}
 	.stage {
 		/* Match the transformed 20 × 36 source-pixel canvas at fivefold scale. */

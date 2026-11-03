@@ -1,418 +1,90 @@
 <script lang="ts">
 	import { useAtomValue } from "effect-atom-svelte";
 	import type { EditorModel } from "../editor-model.ts";
-	import { createCharacterDomain } from "../character-domain.ts";
-	import CharacterDetails from "./CharacterDetails.svelte";
-	import NumberField from "./fields/NumberField.svelte";
-	import CheckboxField from "./fields/CheckboxField.svelte";
 	import { createFarmerSelectionField } from "../farmer-selection.ts";
 	import FarmerSelector from "./fields/FarmerSelector.svelte";
-	import AppearancePreview from "./AppearancePreview.svelte";
-	import StudyAlert from "../../ui/kit/StudyAlert.svelte";
-
-	let { model }: { model: EditorModel } = $props();
+	import StudyTabs from "../../ui/kit/StudyTabs.svelte";
+	import AppearancePanel from "./AppearancePanel.svelte";
+	import CharacterProgression from "./CharacterProgression.svelte";
+	let { model, oninventory }: { model: EditorModel; oninventory: () => void } =
+		$props();
 	const view = useAtomValue(() => model.atomBindings.view);
-	const selectedFarmer = useAtomValue(
-		() => model.atomBindings.selectedFarmerId,
-	);
-	const characters = $derived(view.current?.characters ?? []);
+	const selection = useAtomValue(() => model.atomBindings.selectedFarmerId);
 	const farmerField = $derived(
 		createFarmerSelectionField(
 			view.current?.farmerChoices ?? [],
-			selectedFarmer.current,
+			selection.current,
 			model,
 		),
 	);
-	const preview = $derived(
-		view.current?.appearances.find(
-			(owner) => owner.farmerId === selectedFarmer.current,
-		)?.preview,
-	);
-	const selected = $derived(
-		characters.find(
-			(character) => character.farmerId === selectedFarmer.current,
-		),
-	);
-	// The screen receives editor-owned conveniences and captured field operations.
-	// Raw save representations and coordinated writes stay in the domain adapter.
-	const character = $derived(
-		selected ? createCharacterDomain(selected, model) : undefined,
-	);
+	let tab = $state("profile");
+	let progressionOpened = $state(false);
+	function selectTab(value: string) {
+		// Retained tab panels do not unmount their inputs. Finish the old gesture
+		// explicitly before hiding it, including programmatic/keyboard tab changes.
+		void model.edits.endActive();
+		tab = value;
+		if (value === "progression") progressionOpened = true;
+	}
 </script>
 
-<div class="character-heading">
+<header>
 	<h1>Character</h1>
 
 	<FarmerSelector field={farmerField} />
+</header>
+
+{#snippet profile()}
+	<AppearancePanel {model} {oninventory} />
+{/snippet}
+
+{#snippet progression()}
+	<!-- Avoid progression subscriptions until first visit; retain them afterwards
+	     so hiding a tab preserves local inputs and farmer-scoped ownership. -->
+	{#if progressionOpened}
+		<CharacterProgression {model} />
+	{/if}
+{/snippet}
+
+<!-- Both labels stay visible on phones rather than requiring a horizontal swipe. -->
+<div class="character-views">
+	<StudyTabs
+		label="Character views"
+		bind:value={() => tab, selectTab}
+		items={[
+			{ value: "profile", label: "Profile & appearance", content: profile },
+			{
+				value: "progression",
+				label: "Skills & progression",
+				content: progression,
+			},
+		]}
+	/>
 </div>
 
-{#if !character || !character.supported}
-	<StudyAlert title="Character unavailable" tone="warning">
-		<p>{character?.reason ?? "No supported farmer is available."}</p>
-	</StudyAlert>
-{:else}
-	<div class="profile">
-		{#if preview}
-			<div class="portrait"><AppearancePreview {preview} compact /></div>
-		{/if}
-
-		<div>
-			<h2 data-sentry-mask="">{character.name}</h2>
-			<p class="intro">Skills, professions and life on the farm.</p>
-			<div class="skill-levels" role="group" aria-label="Skill levels">
-				{#each character.skills as skill (skill.key)}
-					<div>
-						<span>{skill.label}</span>
-						<strong>
-							{skill.level ?? "—"}
-							<small>/ 10</small>
-						</strong>
-					</div>
-				{/each}
-			</div>
-		</div>
-	</div>
-
-	{#key character.farmerId}
-		<CharacterDetails
-			details={character.details}
-			farmerId={character.farmerId}
-			{model}
-		/>
-
-		<h2 class="skills-heading">Skills &amp; professions</h2>
-
-		<div class="skills">
-			{#each character.skills as skill (skill.key)}
-				<section class="skill" aria-label={`${skill.label} skill`}>
-					<div class="skill-summary">
-						<h2>{skill.label}</h2>
-						<!-- The ten blocks echo the game's skill ledger. Exact XP and
-						     levels remain editable through the existing field adapters. -->
-						<div
-							class="level-blocks"
-							role="img"
-							aria-label={`${skill.label} level ${skill.level ?? "unavailable"} of 10`}
-						>
-							{#each Array.from({ length: 10 }, (_, index) => index) as index (index)}
-								<span
-									class:filled={skill.level !== undefined &&
-										index < skill.level}
-								></span>
-							{/each}
-						</div>
-
-						{#if skill.supported}
-							<div class="experience">
-								<NumberField field={skill.fields.xp} />
-
-								<NumberField field={skill.fields.level} />
-							</div>
-						{:else}
-							<p role="status">{skill.reason}</p>
-						{/if}
-					</div>
-
-					{#if character.professions.supported}
-						<div class="branches" aria-label={`${skill.label} professions`}>
-							{#each skill.professionBranches as branch (branch.primary.id)}
-								<div class="branch">
-									<p class="branch-level">Level 5</p>
-									<CheckboxField
-										field={branch.primary.field}
-										description={branch.primary.description}
-									/>
-
-									<div class="secondaries">
-										<p class="branch-level">Level 10</p>
-										{#each branch.secondary as secondary (secondary.id)}
-											<CheckboxField
-												field={secondary.field}
-												description={secondary.description}
-											/>
-										{/each}
-									</div>
-								</div>
-							{/each}
-						</div>
-					{/if}
-				</section>
-			{/each}
-		</div>
-
-		{#if !character.professions.supported}
-			<p role="status">{character.professions.reason}</p>
-		{/if}
-
-		<section class="mastery" aria-label="Mastery">
-			<div>
-				<h2>Mastery</h2>
-				<p class="mastery-level">Level {character.mastery.level ?? "—"} / 5</p>
-				<p class="hint">
-					Mastery XP is earned after every skill reaches level 10. Claims are
-					made in the Mastery Cave.
-				</p>
-			</div>
-
-			<div>
-				{#if character.mastery.supported}
-					<NumberField field={character.fields.masteryXp} />
-
-					<p class="hint">
-						{character.mastery.spent} claimed. {character.mastery.minXp
-							? `Keep at least ${character.mastery.minXp.toLocaleString("en-US")} XP for existing claims.`
-							: "No mastery claims recorded."}
-					</p>
-				{:else}
-					<p role="status">{character.mastery.reason}</p>
-				{/if}
-			</div>
-		</section>
-	{/key}
-{/if}
-
 <style>
-	.profile {
-		display: grid;
-		grid-template-columns: 140px minmax(0, 1fr);
-		gap: 22px;
-		align-items: center;
-		margin: 24px 0;
-		background: #f5dbab;
-		border: 2px solid #b98b52;
-		padding: 20px;
-	}
-	.profile > div {
-		min-width: 0;
-	}
-	.profile h2 {
-		font-size: 30px;
-		overflow-wrap: anywhere;
-	}
-	.portrait {
-		max-width: 140px;
-	}
-	.skill-levels {
-		max-width: 620px;
-		display: grid;
-		grid-template-columns: repeat(5, minmax(0, 1fr));
-		gap: 12px;
-	}
-	.skill-levels > div {
-		display: grid;
-		gap: 8px;
-	}
-	.skill-levels span {
-		font-size: 17px;
-		color: #694621;
-	}
-	.skill-levels strong {
-		font-size: 25px;
-	}
-	.skill-levels small {
-		font-size: 16px;
-		color: #795a36;
-		font-weight: 400;
-	}
-	.skills-heading {
-		margin-top: 30px;
-	}
-	.skills {
-		display: grid;
-		gap: 18px;
-	}
-	.level-blocks {
-		/* Preserve the legacy game's raised red skill pips and wider gold
-		   profession milestones. Fixed geometry prevents level edits shifting fields. */
+	header {
 		display: flex;
-		align-items: center;
-		gap: 10px;
-		padding: 6px;
-		margin-bottom: 16px;
-	}
-	.level-blocks span {
-		flex: none;
-		box-sizing: content-box;
-		width: 4px;
-		height: 14px;
-		background: #c87c1e;
-		border: 4px solid;
-		border-radius: 4px;
-		border-color: #b26922 #b26922 #c98426 #c98426;
-		box-shadow:
-			0 0 0 2px #ca9133,
-			0 0 0 4px #8c5721,
-			-2px 2px 0 4px #0005;
-	}
-	.level-blocks span:nth-child(5n) {
-		width: 24px;
-	}
-	.level-blocks span.filled {
-		background: #dd003b;
-		border-color: #ff6948 #ff6948 #bc004a #bc004a;
-		box-shadow:
-			0 0 0 3px #960027,
-			-2px 2px 0 4px #0005;
-	}
-	.level-blocks span.filled:nth-child(5n) {
-		background: #ffa400;
-		border-color: #ffc62e #ffc62e #e06a00 #e06a00;
-	}
-	.branch-level {
-		font-size: 16px;
-		color: #795a36;
-		margin: 0 0 10px;
-	}
-	@media (min-width: 1200px) {
-		.skills {
-			grid-template-columns: repeat(2, minmax(0, 1fr));
-		}
-		.skills .skill {
-			grid-template-columns: minmax(0, 1fr);
-			gap: 18px;
-			padding: 18px;
-		}
-		.branches {
-			gap: 16px;
-		}
-		.branch {
-			padding-left: 10px;
-		}
-	}
-	@media (max-width: 600px) {
-		.level-blocks {
-			gap: 7px;
-		}
-	}
-	@media (max-width: 380px) {
-		.level-blocks {
-			gap: 5px;
-			padding: 5px;
-		}
-		.level-blocks span {
-			width: 2px;
-			height: 12px;
-			border-width: 3px;
-		}
-		.level-blocks span:nth-child(5n) {
-			width: 16px;
-		}
-	}
-	.character-heading {
-		display: flex;
-		align-items: end;
 		justify-content: space-between;
+		align-items: end;
 		gap: 16px;
+		flex-wrap: wrap;
+		margin-bottom: 20px;
 	}
 	h1 {
 		margin: 0;
-	}
-	h2 {
-		font-size: 24px;
-		margin: 0 0 12px;
-	}
-	.intro {
-		color: #694621;
-		max-width: 65ch;
-		margin: 8px 0 20px;
-	}
-	.skill {
-		display: grid;
-		grid-template-columns: 280px minmax(0, 1fr);
-		gap: 28px;
-		padding: 22px;
-		border: 2px solid #b98b52;
-		background: #fff1d2;
-	}
-	.experience {
-		display: grid;
-		grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
-		gap: 12px;
-	}
-	.branches {
-		display: grid;
-		grid-template-columns: repeat(2, minmax(0, 1fr));
-		gap: 24px;
-	}
-	.branch {
-		min-width: 0;
-		border-left: 2px solid #c29b68;
-		padding-left: 14px;
-	}
-	.secondaries {
-		display: grid;
-		gap: 9px;
-		margin: 10px 0 0 14px;
-		padding-left: 12px;
-		border-left: 1px solid #bb925e;
-	}
-	.mastery {
-		display: grid;
-		grid-template-columns: minmax(0, 1fr) minmax(220px, 0.75fr);
-		gap: 32px;
-		border: 2px solid #b98b52;
-		background: #f5dbab;
-		padding: 22px;
-		margin-top: 24px;
-	}
-	.mastery-level {
-		margin: 0 0 8px;
-	}
-	.hint {
-		font-size: 17px;
-		color: #694621;
-		line-height: 1.3;
-		margin: 10px 0 0;
-		max-width: 55ch;
-	}
-	@media (max-width: 1100px) {
-		.skill-levels {
-			grid-template-columns: repeat(3, minmax(0, 1fr));
-		}
-		.skill {
-			grid-template-columns: minmax(0, 1fr);
-			gap: 18px;
-		}
-		.experience {
-			max-width: 380px;
-		}
+		font-size: 32px;
 	}
 	@media (max-width: 600px) {
-		.profile {
-			grid-template-columns: minmax(0, 1fr);
-			padding: 16px;
-			gap: 18px;
+		.character-views :global(.study-tab) {
+			flex: 1 1 0;
+			min-width: 0;
+			white-space: normal;
+			padding: 8px 6px;
+			font-size: 17px;
 		}
-		.portrait {
-			width: 100%;
-			margin-inline: auto;
-		}
-		.skill-levels {
-			grid-template-columns: repeat(2, minmax(0, 1fr));
-		}
-		.skill {
-			padding: 16px;
-		}
-		.branches {
-			grid-template-columns: minmax(0, 1fr);
-		}
-
-		.character-heading {
-			flex-wrap: wrap;
-		}
-		.intro {
-			margin-bottom: 20px;
-		}
-		.branches {
-			gap: 14px;
-		}
-		.secondaries {
-			margin-left: 0;
-			padding-left: 8px;
-		}
-		.mastery {
-			grid-template-columns: minmax(0, 1fr);
-			gap: 18px;
+		h1 {
+			font-size: 28px;
 		}
 	}
 </style>

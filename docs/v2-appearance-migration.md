@@ -1,9 +1,9 @@
 # Appearance migration
 
-The v2 Appearance section retains the legacy name, favorite thing, gender, skin,
-hairstyle, accessory and eye/hair color controls. Farm name deliberately reuses
-the Farm domain field: it remains one farm-wide action updating all farmer copies.
-All other edits capture the selected farmer and use shared immediate fields.
+Character's Profile & appearance tab retains the legacy name, favorite thing,
+gender, skin, hairstyle, accessory and eye/hair color controls. Farm name lives
+only in Farm settings. Appearance edits capture the selected farmer and use shared
+immediate fields.
 Text, number and native color picker input apply valid values immediately and
 are grouped by the shared focus/blur Undo gesture. Gender uses a discrete select.
 
@@ -23,8 +23,7 @@ change the saved item. Character appearance rendering is an approximation of the
 legacy editor, rather than simulation of the game's full animation/hat logic.
 
 The visual pass groups identity, style and color fields beside a framed mirror
-preview. Character reuses the same read-only composition at a smaller reserved
-scale; both pages continue to capture the shared selected farmer. Names in the
+preview in Character's profile tab. All controls capture the shared selected farmer. Names in the
 new profile headings remain masked for telemetry. No new save representations,
 input policies or renderer simulation rules are introduced. Tests exercise
 read-only projection, hair encoding, gender mirrors, color preservation, typed
@@ -39,3 +38,17 @@ existing precedence; no fallback is written to the save.
 Desktop identity controls span the dresser, with Style and Colors beside each
 other below. The preview column and total form width stay bounded so short fields
 do not expand across the entire workspace. Narrow screens stack those groups.
+
+## Unified Character navigation
+
+Character owns the shared farmer selector and retained Profile & appearance /
+Skills & progression tabs. Progression mounts on first visit and remains mounted
+when hidden. Internal and workspace navigation explicitly end the active editing
+gesture; changing tabs never creates an edit of its own. The separate Appearance
+sidebar destination is retired. Clothing remains in Inventory, reached by an
+explicit button from the preview. Legacy v1 routes are unchanged.
+
+Skin, Hairstyle and Accessory have bounded previous/next controls beside the exact
+editable number. Stepping is one discrete Undo action; typing retains the shared
+focus/blur gesture policy. Unsupported imported numbers remain visible, and the
+arrows do not wrap or silently normalize them.

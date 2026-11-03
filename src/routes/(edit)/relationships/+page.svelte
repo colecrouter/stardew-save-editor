@@ -1,10 +1,12 @@
 <script lang="ts">
 	import { untrack } from "svelte";
+	import { babyQuestionStatus, readHome } from "$lib/babyQuestion";
 	import { characters } from "$lib/NPCs";
 	import { getSaveManager } from "$lib/SaveManager.svelte";
 	import UiButton from "$lib/ui/UIButton.svelte";
 	import UiContainer from "$lib/ui/UIContainer.svelte";
 	import UiInput from "$lib/ui/UIInput.svelte";
+	import BabyQuestion from "./BabyQuestion.svelte";
 	import HeartBar from "./HeartBar.svelte";
 
 	const save = getSaveManager().save;
@@ -22,6 +24,19 @@
 	});
 	const missingCharacters = $derived(
 		characters.filter((name) => !player.friendships.has(name)),
+	);
+
+	// The spouse is the villager they're married to; the first by points if mods give them several
+	const spouse = $derived(
+		friendships.map(([, f]) => f).find((f) => f.status === "Married"),
+	);
+	// The house's level, crib and children only change on other pages, so they're read when this one opens
+	const babyQuestion = $derived(
+		babyQuestionStatus(
+			spouse,
+			save.calendar.date,
+			readHome(save.homeOf(player), player.houseUpgradeLevel),
+		),
 	);
 
 	let search = $state("");
@@ -58,6 +73,7 @@
 			</h4>
 		</UiButton>
 	</div>
+	<BabyQuestion status={babyQuestion} spouse={spouse?.name} />
 	<div class="search" bind:this={searchBox}>
 		<UiInput
 			type="text"

@@ -27,6 +27,8 @@ export class Friendship implements DataProxy<FriendshipDataItem> {
 	/** @todo Unused? I've only seen `false` so far. */
 	public readonly roommateMarriage: boolean;
 
+	/** The wedding day, if the save has one */
+	public readonly weddingDate: GameDate | null;
 	/** The day the baby is born while the spouse is pregnant, otherwise `null` */
 	public birthingDate: GameDate | null;
 
@@ -109,6 +111,10 @@ export class Friendship implements DataProxy<FriendshipDataItem> {
 			f.RoommateMarriage = this.roommateMarriage;
 		});
 
+		const wed = f.WeddingDate;
+		this.weddingDate = wed
+			? dateInRange({ year: wed.Year, season: wed.Season, day: wed.DayOfMonth })
+			: null;
 		const due = f.NextBirthingDate;
 		this.birthingDate = $state(
 			due

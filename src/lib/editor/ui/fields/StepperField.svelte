@@ -125,11 +125,40 @@
 		align-items: start;
 		min-width: 0;
 	}
-	/* Short appearance labels occupy the first text line. Align the browse
-	   actions with the native control, independently of any feedback below it. */
-	.stepper > :global(button) {
-		margin-top: 30px;
+	/* Flatten only the field's layout wrapper so its label, input and feedback
+	   share this grid. Explicit label/input associations stay intact. Both arrows
+	   occupy the input row, so wrapped labels or feedback cannot move them apart.
+	   This uses ordinary grid rather than requiring newer subgrid support. */
+	.stepper > :global(.editor-field) {
+		display: contents;
 	}
+	.stepper :global(label) {
+		grid-column: 2;
+		grid-row: 1;
+	}
+	.stepper :global(input) {
+		grid-column: 2;
+		grid-row: 2;
+		box-sizing: border-box;
+		height: 44px;
+		min-height: 44px;
+	}
+	.stepper > :global(button) {
+		grid-row: 2;
+		box-sizing: border-box;
+		height: 44px;
+	}
+	.stepper > :global(button:first-child) {
+		grid-column: 1;
+	}
+	.stepper > :global(button:last-child) {
+		grid-column: 3;
+	}
+	.stepper :global(.editor-field p) {
+		grid-column: 1 / -1;
+		grid-row: 3;
+	}
+
 	.error {
 		margin: 6px 0 0;
 		color: #8a1c19;

@@ -96,33 +96,33 @@
 			<input type="submit" value="Upload" bind:this={submit} hidden />
 			<small>
 				Default save locations:
-					<ul>
-						{#each locations as { os, path } (os)}
-							<li>
-								<span class="noselect">{os}:</span>
-								<!-- Not a <button>: Firefox and Safari don't let you select a button's text -->
-								<span
-									class="copy"
-									role="button"
-									tabindex="0"
-									title="Copy path to clipboard"
-									onclick={() => copyPath(os, path)}
-									onkeydown={(e) => {
-										if (e.key === "Enter" || e.key === " ") {
-											e.preventDefault();
-											copyPath(os, path);
-										}
-									}}
-								>
-									<code>{path}</code>
-								</span>
-							</li>
-						{/each}
+				<ul>
+					{#each locations as { os, path } (os)}
 						<li>
-							<span class="noselect">iOS:</span>
-							<code> Locations -> On My iPhone/iPad -> Stardew Valley </code>
+							<span class="noselect">{os}:</span>
+							<!-- Not a <button>: Firefox and Safari don't let you select a button's text -->
+							<span
+								class="copy"
+								role="button"
+								tabindex="0"
+								title="Copy path to clipboard"
+								onclick={() => copyPath(os, path)}
+								onkeydown={(e) => {
+									if (e.key === "Enter" || e.key === " ") {
+										e.preventDefault();
+										copyPath(os, path);
+									}
+								}}
+							>
+								<code>{path}</code>
+							</span>
 						</li>
-					</ul>
+					{/each}
+					<li>
+						<span class="noselect">iOS:</span>
+						<code> Locations -> On My iPhone/iPad -> Stardew Valley </code>
+					</li>
+				</ul>
 
 				<p style="font-size: 0.8em">
 					*On Android 14 or later, the apps folder is hidden. You can use an app

@@ -155,13 +155,18 @@
 							{#if kind === "cooking" && row.hasCookedEntry}
 								<span class="recorded">Recorded as cooked</span>
 							{/if}
-							{#if presentation.description}
-								<details class="description">
-									<summary>About this recipe</summary>
-									<p>{presentation.description}</p>
-								</details>
-							{/if}
 						</div>
+					</div>
+					<!-- Reserve two lines for flavour text. Longer descriptions scroll inside
+                         their own area so inspecting one recipe never moves its neighbours. -->
+					<!-- svelte-ignore a11y_no_noninteractive_tabindex (The scrollable description needs keyboard access without expanding the card.) -->
+					<div
+						role="region"
+						class="description"
+						tabindex={presentation.description ? 0 : undefined}
+						aria-label={`${row.name} description`}
+					>
+						{presentation.description ?? "No description available."}
 					</div>
 					<div class="recipe-controls">
 						<!-- Presentation stays compact; the binding keeps its captured farmer,
@@ -289,80 +294,115 @@
 		padding-bottom: 10px;
 		text-align: right;
 	}
-	/* Even-sized paper records form a compact book spread. Descriptions expand
-    in place; catalog order and keyed rows keep active count inputs stable. */
+	/* Three compact catalog columns fit more recipes on wide displays. The
+       fixed flavour-text area and stable keys preserve geometry during browsing. */
 	.recipes {
 		display: grid;
-		grid-template-columns: repeat(2, minmax(0, 1fr));
-		gap: 12px;
-		margin: 20px 0;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		gap: 8px;
+		margin: 12px 0;
 		align-items: start;
 	}
 	section {
-		border: 2px solid #b98b52;
+		border: 1px solid #b98b52;
 		background: #fff1d2;
-		padding: 10px;
+		padding: 6px;
 		min-width: 0;
 		display: grid;
-		grid-template-columns: minmax(0, 1fr) 100px;
-		gap: 8px 12px;
-		align-items: start;
+		gap: 4px;
 	}
 	section.unlearned {
 		background: #f1ddb6;
 	}
 	.recipe-summary {
 		display: flex;
-		gap: 10px;
-		align-items: start;
+		gap: 6px;
+		align-items: center;
+		min-height: 40px;
 	}
 	.recipe-summary > div {
 		min-width: 0;
 	}
+	.recipe-summary :global(.visual) {
+		width: 36px;
+		height: 36px;
+	}
+	.recipe-summary :global(.visual > svg) {
+		width: 32px;
+		height: 32px;
+	}
 	h2 {
-		font-size: 21px;
-		margin: 0 0 4px;
+		font-size: 19px;
+		line-height: 1.1;
+		margin: 0 0 2px;
 		overflow-wrap: anywhere;
 	}
+	.known,
 	.recorded {
-		display: block;
-		font-size: 16px;
+		font-size: 15px;
+		color: #694621;
+	}
+	.recorded {
 		color: #246f44;
+		margin-left: 6px;
 	}
-	.known {
+	.description {
+		height: 36px;
+		overflow: auto;
+		margin: 0;
+		color: #79522d;
 		font-size: 16px;
-		color: #694621;
+		line-height: 18px;
+		scrollbar-width: thin;
 	}
-	.description,
-	.reason {
-		font-size: 16px;
-		line-height: 1.35;
-		color: #694621;
-		margin: 4px 0 0;
+	.description:focus-visible {
+		outline: 2px solid #754522;
+		outline-offset: 1px;
 	}
-	.description p {
-		margin: 4px 0 0;
-	}
-	/* Count sits beside identity; actions share a shallow second row. The field
-       keeps its own wrapper so validation feedback can expand without overlap. */
+	/* Counts and actions share the bottom strip. Rejections remain inside the
+    field wrapper and may expand the card rather than covering neighbouring UI. */
 	.recipe-controls {
-		display: contents;
+		display: grid;
+		grid-template-columns: minmax(64px, 1fr) auto;
+		align-items: end;
+		gap: 6px;
 	}
 	.count {
-		grid-column: 2;
-		grid-row: 1;
 		min-width: 0;
+		max-width: 110px;
+	}
+	.count :global(.editor-field) {
+		gap: 2px;
+	}
+	.count :global(label) {
+		font-size: 15px;
+	}
+	.count :global(input) {
+		min-height: 32px;
+		height: 32px;
+		padding: 3px 6px;
 	}
 	.actions {
 		display: flex;
-		gap: 6px;
+		gap: 4px;
 		flex-wrap: wrap;
 		align-items: center;
 		justify-content: end;
-		grid-column: 1 / -1;
 	}
 	.actions :global(button) {
+		min-height: 32px;
+		padding: 3px 8px;
 		font-size: 16px;
+	}
+	.reason {
+		font-size: 16px;
+		color: #694621;
+		margin: 4px 0 0;
+	}
+	@media (max-width: 1279px) {
+		.recipes {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+		}
 	}
 	@media (max-width: 700px) {
 		.recipes {
@@ -378,13 +418,6 @@
 		}
 	}
 	@media (max-width: 480px) {
-		section {
-			grid-template-columns: minmax(0, 1fr) 80px;
-			gap: 8px;
-		}
-		.recipe-summary {
-			gap: 6px;
-		}
 		h1 {
 			font-size: 28px;
 		}
@@ -392,18 +425,11 @@
 			grid-template-columns: minmax(0, 1fr);
 		}
 	}
-	@media (max-width: 360px) {
-		.recipe-summary {
-			grid-column: 1 / -1;
-			flex-wrap: nowrap;
-		}
-		.count {
-			grid-column: 1;
-			grid-row: 2;
-		}
-		.actions {
-			grid-column: 2;
-			align-self: end;
+	@media (pointer: coarse) {
+		.actions :global(button),
+		.count :global(input) {
+			min-height: 44px;
+			height: 44px;
 		}
 	}
 </style>

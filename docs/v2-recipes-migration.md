@@ -38,10 +38,11 @@ construct legacy proxies. Static aliases are shared with the legacy view.
 
 Validation covers exact Undo/Redo preservation, independent cooking knowledge and
 progress, crafting removal, duplicate/malformed containers and keys, queued typing
-with farmer switching, and confirmed per-recipe actions. The visual pass presents a compact two-column cookbook on wide displays and
+with farmer switching, and confirmed per-recipe actions. The visual pass presents a compact three-column cookbook on wide displays and
 a single column on phones. Shared fields/buttons and shorter visible actions
 retain recipe-specific accessible names; confirmation dialogs retain their full
-action labels. Descriptions and progress rules expand on demand. Missing recipe
+action labels. Flavour text occupies a fixed two-line area with keyboard-accessible scrolling
+for longer descriptions; progress rules expand on demand. Missing recipe
 knowledge uses a muted paper treatment without disabling independent cooking
 counts. The 24-row initial limit and complete-catalog search remain unchanged.
 

@@ -149,8 +149,14 @@
 {/if}
 
 <style>
+	/* The search and heading sit outside the notice board, so give their
+       shared input the same Qi palette without recolouring other screens. */
 	.heading,
 	.toolbar {
+		--study-ink: #342b58;
+		--study-paper-light: #f4edf9;
+		--study-rule: #b9a7ce;
+		color: #342b58;
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
@@ -163,7 +169,7 @@
 		margin: 0;
 	}
 	.subtitle {
-		color: #694621;
+		color: #625a83;
 		font-size: 18px;
 		margin-top: 8px;
 	}
@@ -185,7 +191,7 @@
 	}
 	.toolbar p {
 		font-size: 18px;
-		color: #694621;
+		color: #625a83;
 	}
 	section {
 		color: var(--notice-ink, #3c3156);

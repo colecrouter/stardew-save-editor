@@ -9,6 +9,7 @@
 	import UiContainer from "$lib/ui/UIContainer.svelte";
 
 	let submit = $state<HTMLInputElement>();
+	let fileInput = $state<HTMLInputElement>();
 	let files = $state<FileList>();
 	const saveManager = getSaveManager();
 	const toastManager = getToastManager();
@@ -36,6 +37,8 @@
 		} catch {
 			toastManager.add(new Toast("Couldn't copy to the clipboard", "failure"));
 		}
+		// The path is meant to be pasted into the file picker, so open it next
+		fileInput?.click();
 	};
 
 	const handle = async () => {
@@ -82,6 +85,7 @@
 					required
 					aria-label="Save file"
 					bind:files
+					bind:this={fileInput}
 					disabled={uploading}
 					onchange={() => {
 						return submit?.click();
@@ -105,7 +109,7 @@
 								class="copy"
 								role="button"
 								tabindex="0"
-								title="Copy path to clipboard"
+								title="Copy the path and select the file"
 								onclick={() => copyPath(os, path)}
 								onkeydown={(e) => {
 									if (e.key === "Enter" || e.key === " ") {

@@ -1,5 +1,5 @@
 import { fireEvent, render, waitFor } from "@testing-library/svelte";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { setup as mockIDB } from "vitest-indexeddb";
 import {
 	SaveManager,
@@ -34,6 +34,25 @@ describe("Upload page", () => {
 		expect(page.getByTestId("upload-hint").textContent?.trim()).toBe(
 			"Click to select a file, or drag and drop here",
 		);
+		cleanup();
+	});
+
+	it("opens the file picker after a save location is clicked or activated with the keyboard", async () => {
+		const { page, cleanup } = renderUploadPage();
+		const input = page.getByLabelText("Save file") as HTMLInputElement;
+		const openPicker = vi.spyOn(input, "click").mockImplementation(() => {});
+		const path = page
+			.getByText("~/.config/StardewValley/Saves")
+			.closest(".copy");
+		expect(path?.getAttribute("title")).toBe(
+			"Copy the path and select the file",
+		);
+
+		await fireEvent.click(path as Element);
+		await waitFor(() => expect(openPicker).toHaveBeenCalledTimes(1));
+
+		await fireEvent.keyDown(path as Element, { key: "Enter" });
+		await waitFor(() => expect(openPicker).toHaveBeenCalledTimes(2));
 		cleanup();
 	});
 

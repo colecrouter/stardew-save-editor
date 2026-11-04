@@ -240,7 +240,7 @@
 	}
 
 	li .copy code {
-		border: 1px solid white;
+		border: 1px solid #d3d3d3;
 	}
 
 	.noselect {

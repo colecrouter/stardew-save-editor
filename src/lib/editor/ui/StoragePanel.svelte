@@ -245,20 +245,24 @@
 		</div>
 	</div>
 	<div class="bulk" aria-label="Bulk storage actions">
-		<span>
-			{pickedItems.length
-				? `${pickedItems.length} selected`
-				: `${visibleItems.length} visible items`}
-		</span>
-		<StudyButton
-			disabled={!picked.length}
-			type="button"
-			onclick={() => {
-				picked = [];
-			}}
-		>
-			Clear selection
-		</StudyButton>
+		<!-- Group the count with its action so both align with the quality buttons,
+             independently of the fieldset legend above that button row. -->
+		<div class="selection-summary">
+			<span>
+				{pickedItems.length
+					? `${pickedItems.length} selected`
+					: `${visibleItems.length} visible items`}
+			</span>
+			<StudyButton
+				disabled={!picked.length}
+				type="button"
+				onclick={() => {
+					picked = [];
+				}}
+			>
+				Clear selection
+			</StudyButton>
+		</div>
 		<fieldset class="quality-actions">
 			<legend>
 				Quality of {pickedItems.length ? "selected" : "visible"} eligible items
@@ -507,8 +511,13 @@
 		font-size: 17px;
 		border-bottom: 1px solid #b98b52;
 	}
-	.bulk > span {
-		align-self: center;
+	.selection-summary {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 10px;
+	}
+	.selection-summary > span {
 		min-width: 115px;
 		color: #694621;
 	}

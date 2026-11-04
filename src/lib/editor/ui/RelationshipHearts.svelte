@@ -1,9 +1,11 @@
 <script lang="ts">
-	let {
-		points,
-		maxHearts,
-		present,
-	}: { points?: number; maxHearts: number; present: boolean } = $props();
+	import { POINTS_PER_HEART } from "../relationship-operations.ts";
+	interface Props {
+		points?: number;
+		maxHearts: number;
+		present: boolean;
+	}
+	let { points, maxHearts, present }: Props = $props();
 </script>
 
 <!-- Points retain fractional heart progress; the exact editable value remains
@@ -12,7 +14,7 @@
 	class="hearts"
 	role="img"
 	aria-label={present && points !== undefined
-		? `${Math.min(maxHearts, Math.max(0, points / 250)).toLocaleString(undefined, { maximumFractionDigits: 2 })} of ${maxHearts} hearts; ${points.toLocaleString()} points`
+		? `${Math.min(maxHearts, Math.max(0, points / POINTS_PER_HEART)).toLocaleString(undefined, { maximumFractionDigits: 2 })} of ${maxHearts} hearts; ${points.toLocaleString()} points`
 		: present
 			? "Friendship unavailable"
 			: "No saved friendship"}
@@ -25,7 +27,7 @@
 			/>
 			<path
 				fill="#c44d3f"
-				style:clip-path={`inset(0 ${100 - Math.max(0, Math.min(1, (points ?? 0) / 250 - heart)) * 100}% 0 0)`}
+				style:clip-path={`inset(0 ${100 - Math.max(0, Math.min(1, (points ?? 0) / POINTS_PER_HEART - heart)) * 100}% 0 0)`}
 				d="M2 2h4v2h4V2h4v2h2v6h-2v2h-2v2h-2v2H6v-2H4v-2H2v-2H0V4h2z"
 			/>
 		</svg>

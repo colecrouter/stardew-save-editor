@@ -270,6 +270,7 @@ describe("making a couple pregnant", () => {
 				pregnancy: { pregnant: false, daysUntilBirth: null, onchange },
 			},
 		});
+		await fireEvent.click(screen.getByTestId("baby-question-toggle"));
 		await fireEvent.click(screen.getByTestId("baby-player-pregnant"));
 		expect(onchange).toHaveBeenCalledWith(true);
 		expect(screen.queryByTestId("baby-player-days-until-birth")).toBeNull();
@@ -285,9 +286,10 @@ describe("making a couple pregnant", () => {
 		expect(days.value).toBe("14");
 	});
 
-	it("has no toggle without one passed in", () => {
+	it("has no toggle without one passed in", async () => {
 		const status = babyQuestionStatus(spouse(), today, home);
 		render(BabyQuestion, { props: { status } });
+		await fireEvent.click(screen.getByTestId("baby-question-toggle"));
 		expect(screen.queryByTestId("baby-player-pregnant")).toBeNull();
 	});
 });
@@ -327,9 +329,28 @@ describe("readHome", () => {
 });
 
 describe("BabyQuestion panel", () => {
-	it("shows disabled checkboxes and an eligible result", () => {
+	it("starts collapsed with a summary, and expands on click", async () => {
 		const status = babyQuestionStatus(spouse(), today, home);
 		render(BabyQuestion, { props: { status } });
+		const toggle = screen.getByTestId("baby-question-toggle");
+		expect(toggle.getAttribute("aria-expanded")).toBe("false");
+		expect(screen.getByTestId("baby-question-summary").textContent).toContain(
+			"Eligible",
+		);
+		expect(screen.queryAllByRole("checkbox")).toHaveLength(0);
+
+		await fireEvent.click(toggle);
+		expect(toggle.getAttribute("aria-expanded")).toBe("true");
+		expect(screen.getAllByRole("checkbox").length).toBeGreaterThan(0);
+
+		await fireEvent.click(toggle);
+		expect(screen.queryAllByRole("checkbox")).toHaveLength(0);
+	});
+
+	it("shows disabled checkboxes and an eligible result", async () => {
+		const status = babyQuestionStatus(spouse(), today, home);
+		render(BabyQuestion, { props: { status } });
+		await fireEvent.click(screen.getByTestId("baby-question-toggle"));
 		const boxes = screen.getAllByRole("checkbox") as HTMLInputElement[];
 		expect(boxes).toHaveLength(status.requirements.length);
 		expect(boxes.every((b) => b.disabled && b.checked)).toBe(true);
@@ -338,7 +359,7 @@ describe("BabyQuestion panel", () => {
 		);
 	});
 
-	it("leaves unmet requirements unchecked and counts them", () => {
+	it("leaves unmet requirements unchecked and counts them", async () => {
 		const status = babyQuestionStatus(spouse(), today, {
 			...home,
 			children: 2,
@@ -346,6 +367,7 @@ describe("BabyQuestion panel", () => {
 			upgradeLevel: 1,
 		});
 		render(BabyQuestion, { props: { status } });
+		await fireEvent.click(screen.getByTestId("baby-question-toggle"));
 		expect(
 			(screen.getByTestId("baby-requirement-children") as HTMLInputElement)
 				.checked,

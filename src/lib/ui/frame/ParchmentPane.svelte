@@ -42,11 +42,40 @@
 		min-width: 0;
 		min-height: 0;
 		overflow: auto;
+		/* Reserve the scrollbar lane before content grows, so opening an inventory
+           inspector cannot change the grid width. Match the track to the paper
+           instead of exposing the browser's default white scrollbar surface. */
+		scrollbar-gutter: stable;
+		scrollbar-color: #a57542 #fcdda6;
 		/* The top rim reaches 24px into the pane (30px artwork minus its
 		   6px outset). Leave a further 6px before the first content row. */
-		padding: 30px 22px 20px 24px;
+		/* Keep the scrollbar inside the rim instead of underneath its artwork;
+           the inner padding separates the last control from the scroll thumb. */
+		margin-right: 24px;
+		padding: 30px 8px 20px 24px;
 		flex: 1;
 	}
+	/* Older engines retain the same geometry with an always-present vertical
+    lane. WebKit scrollbar colours cover engines without scrollbar-color. */
+	@supports not (scrollbar-gutter: stable) {
+		.content {
+			overflow-y: scroll;
+		}
+	}
+	.content::-webkit-scrollbar {
+		width: 12px;
+		height: 12px;
+	}
+	.content::-webkit-scrollbar-track,
+	.content::-webkit-scrollbar-corner {
+		background: #fcdda6;
+	}
+	.content::-webkit-scrollbar-thumb {
+		background: #a57542;
+		border: 3px solid #fcdda6;
+		border-radius: 6px;
+	}
+
 	.pane-footer:empty {
 		display: none;
 	}
@@ -60,7 +89,10 @@
 		}
 		.content {
 			padding: 30px 18px 20px;
+			margin-right: 0;
 			overflow: visible;
+			/* Phones scroll the document, so no internal lane is needed here. */
+			scrollbar-gutter: auto;
 		}
 	}
 </style>

@@ -53,23 +53,30 @@ export function createInventoryDrag(input: DragInput) {
 				stopDragScroll();
 				return;
 			}
-			// A phone can place the two grids several screens apart. Keeping a held
-			// finger near an edge scrolls toward the destination without a Move mode.
-			const edge = 72;
+			// A held drag follows the visible edge of its scroll pane, which may sit
+			// well inside the viewport. Short/clipped panes use nonoverlapping edge zones.
 			const y = pointerPosition.clientY;
-			const delta =
-				y < edge
-					? -Math.ceil((edge - y) / 5)
-					: y > window.innerHeight - edge
-						? Math.ceil((y - window.innerHeight + edge) / 5)
+			const deltaAt = (top: number, bottom: number) => {
+				const edge = Math.min(72, (bottom - top) / 2);
+				if (edge <= 0 || y < top - edge || y > bottom + edge) return 0;
+				return y < top + edge
+					? -Math.ceil(Math.min(edge, top + edge - y) / 5)
+					: y > bottom - edge
+						? Math.ceil(Math.min(edge, y - bottom + edge) / 5)
 						: 0;
-			if (delta) {
-				// Desktop/tablet frames may own their scroll; phones scroll the document.
-				// Give the nearest scrollable ancestor first chance, then the page.
-				let container: HTMLElement | null | undefined = input.root();
-				let scrolled = false;
-				while (container && container !== document.body) {
-					if (/(auto|scroll)/.test(getComputedStyle(container).overflowY)) {
+			};
+			// Try each scrollable ancestor at its own visible edge. A saturated chest
+			// pane must not move the outer page unless the finger is near that edge too.
+			let container: HTMLElement | null | undefined = input.root();
+			let scrolled = false;
+			while (container && container !== document.body) {
+				if (/(auto|scroll)/.test(getComputedStyle(container).overflowY)) {
+					const rect = container.getBoundingClientRect();
+					const delta = deltaAt(
+						Math.max(0, rect.top),
+						Math.min(window.innerHeight, rect.bottom),
+					);
+					if (delta) {
 						const before = container.scrollTop;
 						container.scrollTop += delta;
 						if (container.scrollTop !== before) {
@@ -77,9 +84,12 @@ export function createInventoryDrag(input: DragInput) {
 							break;
 						}
 					}
-					container = container.parentElement;
 				}
-				if (!scrolled) window.scrollBy(0, delta);
+				container = container.parentElement;
+			}
+			const pageDelta = scrolled ? 0 : deltaAt(0, window.innerHeight);
+			if (pageDelta) window.scrollBy(0, pageDelta);
+			if (scrolled || pageDelta) {
 				// Capture still delivers events to the source: refresh the destination
 				// under the stationary finger as the content moves underneath it.
 				const target = pointerTarget(pointerPosition);

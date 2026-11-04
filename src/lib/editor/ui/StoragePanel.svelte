@@ -14,8 +14,17 @@
 		type InventoryDragSource,
 	} from "./inventory-drag.svelte.ts";
 	import type { InventorySlot } from "./inventory-slot.ts";
+	import StudyButton from "../../ui/kit/StudyButton.svelte";
+	import StudyField from "../../ui/kit/StudyField.svelte";
+	import StudyCheckbox from "../../ui/kit/StudyCheckbox.svelte";
+	import StudyAlert from "../../ui/kit/StudyAlert.svelte";
+	import QualityBadge from "./QualityBadge.svelte";
+	import StudyIcon from "../../ui/StudyIcon.svelte";
 
-	let { model }: { model: EditorModel } = $props();
+	interface Props {
+		model: EditorModel;
+	}
+	let { model }: Props = $props();
 	const view = useAtomValue(() => model.atomBindings.view);
 	const domain = $derived(createStorageDomain(model));
 	const owners = $derived(view.current?.chests ?? []);
@@ -28,6 +37,8 @@
 	let error = $state("");
 	let root = $state<HTMLDivElement>();
 	const token = $props.id();
+	const inspectorId = `${token}-details`;
+	const containersId = `${token}-containers`;
 	const matches = $derived(searchStorage(owners, search));
 	const matchIds = $derived(new Set(matches.map((row) => row.item.entityId)));
 	const locations = $derived([
@@ -172,55 +183,66 @@
 		`Slot ${item.slot + 1}: ${item.empty ? "Empty" : item.name}`;
 </script>
 
-<div class="storage" bind:this={root}>
+<div class="storage">
 	<header class="heading">
 		<div>
 			<h1>Storage</h1>
-			<p>
-				Find items across your containers. Organize keeps stacks separate; Undo
-				restores each whole operation.
-			</p>
+			<p>Find your supplies, wherever you put them.</p>
 		</div>
-		<button
-			type="button"
-			disabled={busy || !owners.some((owner) => owner.supported)}
-			onclick={() =>
-				void perform(() =>
-					domain.organizeAll(
-						owners
-							.filter((owner) => owner.supported)
-							.map((owner) => owner.ownerId),
-					),
-				)}
-		>
-			Organize all storage
-		</button>
+		<div class="heading-actions">
+			<a class="detail-link" href={`#${inspectorId}`}>Selected item</a>
+			<StudyButton
+				type="button"
+				disabled={busy || !owners.some((owner) => owner.supported)}
+				onclick={() =>
+					void perform(() =>
+						domain.organizeAll(
+							owners
+								.filter((owner) => owner.supported)
+								.map((owner) => owner.ownerId),
+						),
+					)}
+			>
+				Organize all storage
+			</StudyButton>
+		</div>
 	</header>
 	<div class="toolbar">
-		<label>
-			Search stored items
-			<input
-				type="search"
-				bind:value={search}
-				placeholder="Item name or ID"
-				onkeydown={(event) => {
-					if (event.key === "Escape") search = "";
-				}}
-			/>
-		</label>
-		<label>
-			Location
-			<select bind:value={location} disabled={!!search.trim()}>
-				<option value="">All locations</option>
-				{#each locations as name (name)}
-					<option value={name}>{name}</option>
-				{/each}
-			</select>
-		</label>
-		<label class="multi">
-			<input type="checkbox" bind:checked={selectMany} />
-			Select multiple items
-		</label>
+		<StudyField label="Search stored items">
+			{#snippet children(attributes)}
+				<input
+					{...attributes}
+					class="study-input"
+					type="search"
+					bind:value={search}
+					placeholder="Item name or ID"
+					onkeydown={(event) => {
+						if (event.key === "Escape") search = "";
+					}}
+				/>
+			{/snippet}
+		</StudyField>
+		<StudyField
+			label="Location"
+			description="Item search covers all locations."
+		>
+			{#snippet children(attributes)}
+				<select
+					{...attributes}
+					class="study-input"
+					bind:value={location}
+					disabled={!!search.trim()}
+				>
+					<option value="">All locations</option>
+					{#each locations as name (name)}
+						<option value={name}>{name}</option>
+					{/each}
+				</select>
+			{/snippet}
+		</StudyField>
+		<div class="multi">
+			<StudyCheckbox label="Select multiple items" bind:checked={selectMany} />
+		</div>
 	</div>
 	<div class="bulk" aria-label="Bulk storage actions">
 		<span>
@@ -228,63 +250,82 @@
 				? `${pickedItems.length} selected`
 				: `${visibleItems.length} visible items`}
 		</span>
-		{#if picked.length}
-			<button
-				type="button"
-				onclick={() => {
-					picked = [];
-				}}
-			>
-				Clear selection
-			</button>
-		{/if}
-		<span>
-			Quality of {pickedItems.length ? "selected" : "visible"} eligible items:
-		</span>
-		{#each inventoryQualities as quality (quality.value)}
-			<button
-				type="button"
-				disabled={busy || !qualityItems.length}
-				onclick={() => {
-					const captured = qualityItems.map((row) => ({
-						ownerId: row.owner.ownerId,
-						entityId: row.item.entityId,
-					}));
-					void perform(() => domain.quality(captured, quality.value));
-				}}
-			>
-				{quality.label}
-			</button>
-		{/each}
+		<StudyButton
+			disabled={!picked.length}
+			type="button"
+			onclick={() => {
+				picked = [];
+			}}
+		>
+			Clear selection
+		</StudyButton>
+		<fieldset class="quality-actions">
+			<legend>
+				Quality of {pickedItems.length ? "selected" : "visible"} eligible items
+			</legend>
+			<div class="quality-buttons">
+				{#each inventoryQualities as quality (quality.value)}
+					<StudyButton
+						type="button"
+						aria-label={quality.label}
+						title={quality.label}
+						disabled={busy || !qualityItems.length}
+						onclick={() => {
+							const captured = qualityItems.map((row) => ({
+								ownerId: row.owner.ownerId,
+								entityId: row.item.entityId,
+							}));
+							void perform(() => domain.quality(captured, quality.value));
+						}}
+					>
+						<span class="quality-symbol" aria-hidden="true">
+							<QualityBadge quality={quality.value} />
+							{#if quality.value === 0}—{/if}
+						</span>
+						<span class="quality-name">{quality.label}</span>
+					</StudyButton>
+				{/each}
+			</div>
+		</fieldset>
 	</div>
 	{#if error}
-		<p role="alert">{error}</p>
+		<StudyAlert
+			title="Storage change unavailable"
+			tone="danger"
+			live="assertive"
+		>
+			<p>{error}</p>
+		</StudyAlert>
 	{/if}
-	{#if pickedItems.length > 1}
-		<p class="hint">
-			Drag a selected item onto another container to move the entire selection
-			into its free slots. Ctrl/Cmd+click also changes the selection.
-		</p>
-	{/if}
+	<!-- Stable guidance keeps the chest grids in place as selection grows. -->
+	<p class="hint">
+		Drag between containers; selected groups move together. Organize keeps
+		stacks separate.
+	</p>
 	<div class="workspace">
-		<div class="containers">
+		<!-- The drag root is the scrollable chest pane, so held touch drags can
+             scroll it before falling back to a parent or the document. -->
+		<div class="containers" id={containersId} bind:this={root}>
 			{#each shown as owner (owner.ownerId)}
 				<section class="container" aria-label={owner.name}>
 					<header>
-						<div>
-							<h2>{owner.name}</h2>
-							<small>
-								{owner.location} · {owner.slots.filter((item) => !item.empty)
-									.length}/{owner.capacity ?? owner.slots.length} occupied
-							</small>
+						<div class="container-identity">
+							<StudyIcon name="chests" size={32} />
+							<div>
+								<h2>{owner.name}</h2>
+								<small>
+									{owner.location} · {owner.slots.filter((item) => !item.empty)
+										.length}/{owner.capacity ?? owner.slots.length} occupied
+								</small>
+							</div>
 						</div>
-						<button
+						<StudyButton
 							type="button"
 							disabled={busy || !owner.supported}
 							onclick={() => void perform(() => domain.organize(owner.ownerId))}
 						>
 							Organize
-						</button>
+						</StudyButton>
 					</header>
 					{#if owner.storage?.typeId}
 						<label class="type">
@@ -308,7 +349,7 @@
 						</label>
 					{/if}
 					{#if owner.storage?.miniShippingBin}
-						<button
+						<StudyButton
 							type="button"
 							disabled={busy ||
 								!owner.supported ||
@@ -318,13 +359,15 @@
 								void perform(() => domain.changeType(owner.ownerId, "130"))}
 						>
 							Expand shipping bin to Chest
-						</button>
+						</StudyButton>
 						<p class="hint">
 							Keeps its items, but they will no longer ship overnight.
 						</p>
 					{/if}
 					{#if !owner.supported}
-						<p role="status">{owner.reason}</p>
+						<StudyAlert title="Container unavailable" tone="warning">
+							<p>{owner.reason}</p>
+						</StudyAlert>
 					{:else}
 						<div class="slots">
 							{#each owner.slots as item (item.entityId)}
@@ -378,21 +421,26 @@
 		</div>
 		<!-- Reserve the desktop inspector column before a drag begins. Selecting
              its source must not reflow the grids underneath the active pointer. -->
-		<aside aria-label="Stored item details">
+		<aside aria-label="Stored item details" id={inspectorId}>
+			<div class="inspector-heading">
+				<span>Selected item</span>
+				<a class="detail-link" href={`#${containersId}`}>Back to containers</a>
+			</div>
 			{#if selected && !selected.item.empty && !selectMany && pickedItems.length === 0}
 				{#key selected.item.entityId}
 					<BackpackItemEditor
 						{model}
 						ownerId={selected.owner.ownerId}
 						item={selected.item}
-						locationLabel={selected.owner.name}
+						locationLabel={`${selected.owner.name} · Slot ${selected.item.slot + 1}`}
 						inventoryKind="chest"
 					/>
 				{/key}
 			{:else}
 				<p class="inspector-hint">
-					Select a single item to edit its properties. Multi-select actions are
-					available above.
+					Select an item in any container to inspect its quantity, quality and
+					properties. Select multiple items to apply a quality or move them
+					together.
 				</p>
 			{/if}
 		</aside>
@@ -400,8 +448,19 @@
 </div>
 
 <style>
+	/* The feature gets one desktop viewport budget. Flex gives the panes the
+    remaining space after wrapped toolbars, rather than guessing their offset. */
+	.storage {
+		display: flex;
+		flex-direction: column;
+		height: calc(100dvh - 240px);
+		min-height: 680px;
+	}
+	.storage > * {
+		flex-shrink: 0;
+	}
+
 	h1 {
-		font-family: "Pixelify Sans", sans-serif;
 		font-size: 34px;
 		margin: 0 0 8px;
 	}
@@ -410,105 +469,154 @@
 		display: flex;
 		justify-content: space-between;
 		align-items: start;
-		gap: 16px;
+		gap: 12px;
+	}
+	.heading {
+		margin-bottom: 18px;
+		flex-wrap: wrap;
 	}
 	.heading p {
-		margin: 0 0 20px;
-		max-width: 70ch;
-		color: #6b5239;
+		margin: 0;
+		color: #694621;
 	}
-	button,
-	input,
-	select {
-		font: inherit;
-		color: inherit;
-		border: 1px solid #ad7d45;
-		border-radius: 6px;
-		background: #fff8e8;
-		padding: 8px 10px;
-		box-sizing: border-box;
+	.heading-actions {
+		display: flex;
+		gap: 12px;
+		align-items: center;
 	}
-	button {
-		cursor: pointer;
-		background: #efd29a;
-	}
-	button:disabled {
-		opacity: 0.5;
-		cursor: default;
-	}
-	input,
-	select {
-		min-width: 0;
-		max-width: 100%;
-	}
-	label {
-		display: grid;
-		gap: 6px;
-		font-size: 14px;
+	.detail-link {
+		display: none;
+		color: #754522;
+		padding-block: 8px;
 	}
 	.toolbar {
 		display: grid;
 		grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
-		gap: 16px;
-		margin-bottom: 16px;
-		align-items: end;
+		gap: 14px;
+		align-items: start;
 	}
 	.multi {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		min-height: 40px;
+		padding-top: 34px;
 	}
 	.bulk {
 		display: flex;
 		flex-wrap: wrap;
-		align-items: center;
-		gap: 8px;
-		margin-bottom: 20px;
-		font-size: 14px;
+		align-items: end;
+		gap: 10px;
+		padding: 12px 0;
+		font-size: 17px;
+		border-bottom: 1px solid #b98b52;
 	}
+	.bulk > span {
+		align-self: center;
+		min-width: 115px;
+		color: #694621;
+	}
+	.quality-actions {
+		border: 0;
+		margin: 0 0 0 auto;
+		padding: 0;
+		min-width: 0;
+	}
+	legend {
+		padding: 0;
+		margin-bottom: 6px;
+		font-size: 16px;
+		color: #694621;
+	}
+	.quality-buttons {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 4px;
+	}
+	.quality-symbol {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		min-width: 14px;
+	}
+	.quality-buttons :global(button) {
+		font-size: 17px;
+	}
+	.hint {
+		color: #694621;
+		font-size: 16px;
+		line-height: 1.3;
+		min-height: 42px;
+		margin: 8px 0;
+	}
+	/* Both panes own fixed desktop scroll areas. Selecting a different item changes
+    the inspector's contents, never the chest grid's width or position. */
 	.workspace {
 		display: grid;
-		grid-template-columns: minmax(0, 1fr) minmax(250px, 330px);
-		gap: 24px;
+		grid-template-columns: minmax(0, 1fr) 320px;
+		gap: 16px;
 		align-items: start;
-	}
-	.inspector-hint {
-		color: #725333;
-		border: 1px dashed #b68a52;
-		border-radius: 8px;
-		padding: 16px;
-		margin: 0;
+		flex: 1 0 360px;
+		min-height: 0;
 	}
 	.containers {
 		display: grid;
-		gap: 20px;
+		gap: 12px;
 		min-width: 0;
+		height: 100%;
+		overflow: auto;
+		align-content: start;
+		scrollbar-gutter: stable;
+		padding: 2px 8px 4px 2px;
 	}
 	.container {
-		border: 1px solid #ad7d45;
-		border-radius: 10px;
-		background: #fff3d9;
-		padding: 16px;
+		border: 2px solid #b98b52;
+		background: #fff1d2;
+		padding: 12px;
+		min-width: 0;
+	}
+	.container header {
+		align-items: center;
+		margin-bottom: 10px;
+	}
+	.container-identity {
+		display: flex;
+		gap: 10px;
+		align-items: center;
+		min-width: 0;
+	}
+	.container-identity > div {
 		min-width: 0;
 	}
 	h2 {
-		font-size: 19px;
-		margin: 0 0 6px;
+		font-size: 21px;
+		margin: 0 0 4px;
 		overflow-wrap: anywhere;
 	}
 	small {
-		color: #6b5239;
+		font-size: 16px;
+		color: #79522d;
 	}
 	.type {
-		margin: 14px 0;
-		max-width: 320px;
+		display: grid;
+		grid-template-columns: auto minmax(0, 240px);
+		align-items: center;
+		gap: 10px;
+		font-size: 16px;
+		color: #694621;
+		margin-bottom: 10px;
+	}
+	select {
+		min-width: 0;
+		max-width: 100%;
+		font: inherit;
+		padding: 5px 8px;
+		min-height: 40px;
+		color: #311304;
+		border: 2px solid #b98b52;
+		background: #fff2d3;
 	}
 	.slots {
 		display: grid;
 		grid-template-columns: repeat(auto-fill, 44px);
-		gap: 5px;
-		margin-top: 14px;
+		gap: 4px;
+		margin-top: 10px;
 	}
 	.slot {
 		position: relative;
@@ -516,71 +624,164 @@
 		place-items: center;
 		width: 44px;
 		height: 44px;
-		padding: 3px;
-		border-radius: 4px;
-		border: 1px solid #a97d45;
-		background: #ead4ac;
-		touch-action: none;
+		padding: 2px;
+		border: 2px solid #b98b52;
+		background: #f7d7a4;
+		box-shadow:
+			inset 1px 1px #fff0cc,
+			inset -1px -1px #d1a56c;
+		cursor: pointer;
+	}
+	.slot:hover {
+		background: #fff0d3;
 	}
 	.slot.selected {
-		outline: 2px solid #5b3820;
-		outline-offset: 1px;
+		background: #fff3c5;
+		border-color: #8a451f;
+		box-shadow: inset 0 0 0 2px #e6a23e;
 	}
 	.slot.picked {
 		background: #d9e4b1;
 		outline: 2px solid #537130;
+		outline-offset: -2px;
 	}
 	.slot.dimmed {
 		opacity: 0.35;
 	}
 	.slot.drop {
-		outline: 3px solid #517947;
+		outline: 3px solid #176fb4;
+		background: #cce5ef;
+	}
+	.slot:focus-visible {
+		outline: 2px solid #311304;
+		outline-offset: 2px;
+	}
+	.slot[draggable="true"] {
+		touch-action: none;
+		user-select: none;
+		cursor: grab;
+	}
+	.slot:disabled {
+		opacity: 0.65;
+		cursor: wait;
 	}
 	.quantity {
 		position: absolute;
 		bottom: 0;
 		right: 2px;
-		font-size: 12px;
-		color: white;
+		font-size: 17px;
+		line-height: 1;
+		font-variant-numeric: tabular-nums;
+		color: #fff2d3;
 		text-shadow:
-			1px 1px #34210d,
-			-1px -1px #34210d,
-			1px -1px #34210d,
-			-1px 1px #34210d;
+			-1px -1px #311304,
+			1px -1px #311304,
+			-1px 1px #311304,
+			1px 1px #311304;
 		pointer-events: none;
 	}
 	aside {
-		position: sticky;
-		top: 12px;
 		min-width: 0;
+		height: 100%;
+		overflow: auto;
+		scrollbar-gutter: stable;
+		border: 2px solid #b98b52;
+		background: #fff0d0;
+		padding: 12px;
+		container-type: inline-size;
 	}
-	.hint {
-		color: #6b5239;
-		font-size: 13px;
+	.inspector-heading {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: 12px;
+		font-size: 17px;
+		color: #694621;
+		border-bottom: 1px solid #be8d4d;
+		padding-bottom: 10px;
+		margin-bottom: 14px;
 	}
-	[role="alert"] {
-		color: #9a2c17;
+	.inspector-hint {
+		color: #79522d;
+		margin: 0;
+		line-height: 1.4;
 	}
-	@media (max-width: 900px) {
+	@media (min-width: 1700px) {
+		.containers {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+			align-items: start;
+		}
+	}
+	@media (max-width: 1150px) {
+		.storage {
+			height: auto;
+			min-height: 0;
+		}
+		/* Narrow screens use document scrolling and deliberate anchor navigation to
+     details; selecting or dragging never forces a jump away from the chest. */
 		.workspace {
 			grid-template-columns: minmax(0, 1fr);
+			height: auto;
+			flex: none;
+		}
+		.containers {
+			height: auto;
+			overflow: visible;
+			padding-right: 2px;
 		}
 		aside {
-			position: static;
+			height: auto;
+			min-height: 260px;
+			overflow: visible;
+		}
+		.detail-link {
+			display: inline-block;
+		}
+		.toolbar {
+			grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+		}
+		.multi {
+			grid-column: 1 / -1;
+			padding-top: 0;
+		}
+		.quality-actions {
+			margin-left: 0;
 		}
 	}
 	@media (max-width: 600px) {
-		.heading {
-			flex-direction: column;
+		/* Four familiar quality symbols fit one phone row. Complete action names
+     remain available to assistive technology and pointer tooltips. */
+		.quality-name {
+			display: none;
+		}
+		.quality-buttons :global(button) {
+			width: 44px;
+			padding: 6px;
+		}
+		.quality-symbol :global(svg) {
+			width: 18px;
+			height: 18px;
+		}
+
+		h1 {
+			font-size: 28px;
 		}
 		.toolbar {
 			grid-template-columns: minmax(0, 1fr);
+			gap: 10px;
 		}
 		.container {
-			padding: 12px;
+			padding: 8px;
 		}
-		h1 {
-			font-size: 29px;
+		.container header {
+			flex-wrap: wrap;
+		}
+		.type {
+			grid-template-columns: minmax(0, 1fr);
+			gap: 4px;
+		}
+		.slots {
+			gap: 3px;
 		}
 	}
 </style>

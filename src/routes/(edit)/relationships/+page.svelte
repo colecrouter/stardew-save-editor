@@ -1,10 +1,21 @@
 <script lang="ts">
 	import { untrack } from "svelte";
+	import {
+		babyQuestionStatus,
+		playerBabyQuestionStatus,
+		playerDueDate,
+		playerMarriageOf,
+		readHome,
+		setPlayerPregnant,
+	} from "$lib/babyQuestion";
+	import { totalDays } from "$lib/calendar";
 	import { characters } from "$lib/NPCs";
+	import { Raw } from "$lib/proxies";
 	import { getSaveManager } from "$lib/SaveManager.svelte";
 	import UiButton from "$lib/ui/UIButton.svelte";
 	import UiContainer from "$lib/ui/UIContainer.svelte";
 	import UiInput from "$lib/ui/UIInput.svelte";
+	import BabyQuestion from "./BabyQuestion.svelte";
 	import HeartBar from "./HeartBar.svelte";
 
 	const save = getSaveManager().save;
@@ -23,6 +34,58 @@
 	const missingCharacters = $derived(
 		characters.filter((name) => !player.friendships.has(name)),
 	);
+
+	// The spouse is the villager they're married to; the first by points if mods give them several
+	const spouse = $derived(
+		friendships.map(([, f]) => f).find((f) => f.status === "Married"),
+	);
+	// The house's level, crib and children only change on other pages, so they're read when this one opens
+	// Married to another player, as the save keeps it apart from villagers
+	const marriage = $derived(
+		spouse
+			? undefined
+			: playerMarriageOf(
+					player[Raw].UniqueMultiplayerID,
+					save[Raw].SaveGame.farmerFriendships,
+				),
+	);
+	const partner = $derived(
+		marriage &&
+			save.players.find(
+				(p) => String(p[Raw].UniqueMultiplayerID) === marriage.partnerId,
+			),
+	);
+	// The couple's due date is kept in the save's data, which isn't reactive, so
+	// changing it bumps this to refresh what depends on it
+	let pregnancyChanges = $state(0);
+	const homeOf = (farmer: typeof player) =>
+		readHome(save.homeOf(farmer), farmer.houseUpgradeLevel);
+	const babyQuestion = $derived.by(() => {
+		pregnancyChanges;
+		if (marriage) {
+			return playerBabyQuestionStatus(
+				{ name: player.name, home: homeOf(player) },
+				partner && { name: partner.name, home: homeOf(partner) },
+				partner && marriage,
+			);
+		}
+		return babyQuestionStatus(spouse, save.calendar.date, homeOf(player));
+	});
+	const couplePregnancy = $derived.by(() => {
+		pregnancyChanges;
+		if (!marriage || !partner) return undefined;
+		const due = playerDueDate(marriage);
+		return {
+			pregnant: due !== null,
+			daysUntilBirth: due
+				? totalDays(due) - totalDays(save.calendar.date)
+				: null,
+			onchange: (pregnant: boolean, days?: number) => {
+				setPlayerPregnant(marriage, pregnant, save.calendar.date, days);
+				pregnancyChanges++;
+			},
+		};
+	});
 
 	let search = $state("");
 	let searchBox: HTMLDivElement | undefined = $state();
@@ -58,6 +121,10 @@
 			</h4>
 		</UiButton>
 	</div>
+	<!-- A villager spouse's goes in their row; a player couple or no spouse has no row to hold it -->
+	{#if !spouse}
+		<BabyQuestion status={babyQuestion} pregnancy={couplePregnancy} />
+	{/if}
 	<div class="search" bind:this={searchBox}>
 		<UiInput
 			type="text"
@@ -87,7 +154,12 @@
 	</div>
 	<div class="wrapper">
 		{#each shown as [name, npc] (name)}
-			<HeartBar {name} {npc} />
+			<HeartBar
+				{name}
+				{npc}
+				today={save.calendar.date}
+				babyQuestion={npc === spouse ? babyQuestion : undefined}
+			/>
 		{:else}
 			{#if term}
 				<p class="empty">No villagers match "{search.trim()}".</p>

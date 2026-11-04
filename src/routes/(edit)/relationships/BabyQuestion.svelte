@@ -5,12 +5,20 @@
 	} from "$lib/babyQuestion";
 	import UiCheckbox from "$lib/ui/UICheckbox.svelte";
 	import UiContainerSmall from "$lib/ui/UIContainerSmall.svelte";
+	import UiInput from "$lib/ui/UIInput.svelte";
 
 	interface Props {
 		status: BabyQuestionStatus;
+		/** Lets the couple be made pregnant, for players married to each other */
+		pregnancy?: {
+			pregnant: boolean;
+			/** Days until the baby is born, while pregnant */
+			daysUntilBirth: number | null;
+			onchange: (pregnant: boolean, days?: number) => void;
+		};
 	}
 
-	let { status }: Props = $props();
+	let { status, pregnancy }: Props = $props();
 	const unmet = $derived(status.requirements.filter((r) => !r.met).length);
 </script>
 
@@ -48,6 +56,34 @@
 		</p>
 		{#if status.note}
 			<small class="note">{status.note}</small>
+		{/if}
+		{#if pregnancy}
+			<label
+				class="pregnancy"
+				title="Makes the couple expect a baby, skipping the question. It arrives overnight on the due date if a home has the nursery and room for a child."
+			>
+				<input
+					type="checkbox"
+					checked={pregnancy.pregnant}
+					onchange={(e) => pregnancy.onchange(e.currentTarget.checked)}
+					data-testid="baby-player-pregnant"
+				/>
+				🤰 Expecting a baby
+				{#if pregnancy.pregnant}
+					<UiInput
+						type="number"
+						min="1"
+						bind:value={() => pregnancy.daysUntilBirth ?? 0,
+						(v) => {
+							if (v === null) return;
+							pregnancy.onchange(true, Number(v));
+						}}
+						aria-label="Days until the baby is born"
+						data-testid="baby-player-days-until-birth"
+					/>
+					<small>days until birth</small>
+				{/if}
+			</label>
 		{/if}
 	</div>
 </UiContainerSmall>
@@ -102,6 +138,17 @@
 		margin: 4px 0 0;
 		font-weight: bold;
 		color: #8a2b1f;
+	}
+
+	.pregnancy {
+		display: flex;
+		align-items: center;
+		gap: 4px;
+		margin-top: 4px;
+	}
+
+	.pregnancy :global(input[type="number"]) {
+		width: 3em;
 	}
 
 	.note {

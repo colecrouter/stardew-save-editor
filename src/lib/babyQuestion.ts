@@ -13,7 +13,7 @@
     check: a roommate can't have children. The toddler cutoff (55 days old,
     the end of the 14 + 14 + 28 day stages) is also from the game, not the wiki.
 */
-import { type GameDate, totalDays } from "$lib/calendar";
+import { addDays, dateInRange, type GameDate, totalDays } from "$lib/calendar";
 import type { Friendship } from "$lib/proxies/Friendship.svelte";
 import {
 	type FarmerFriendshipItem,
@@ -176,6 +176,37 @@ export function playerMarriageOf(
 		}
 	}
 	return undefined;
+}
+
+/** The day a married couple's baby is born, or `null` when they aren't expecting */
+export function playerDueDate(marriage: PlayerMarriage): GameDate | null {
+	const due = marriage.friendship.NextBirthingDate;
+	return due
+		? dateInRange({ year: due.Year, season: due.Season, day: due.DayOfMonth })
+		: null;
+}
+
+/**
+    Make a married couple expecting, due `days` days after `today` (14 in-game),
+    or end it. Their friendship in the save is where the game keeps the due date,
+    as it does for a villager spouse.
+*/
+export function setPlayerPregnant(
+	marriage: PlayerMarriage,
+	pregnant: boolean,
+	today: GameDate,
+	days = 14,
+) {
+	if (!pregnant) {
+		delete marriage.friendship.NextBirthingDate;
+		return;
+	}
+	const due = addDays(today, Math.max(Math.trunc(days), 1));
+	marriage.friendship.NextBirthingDate = {
+		Year: due.year,
+		DayOfMonth: due.day,
+		Season: due.season,
+	};
 }
 
 /**

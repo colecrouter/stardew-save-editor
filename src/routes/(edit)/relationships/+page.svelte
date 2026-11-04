@@ -3,9 +3,12 @@
 	import {
 		babyQuestionStatus,
 		playerBabyQuestionStatus,
+		playerDueDate,
 		playerMarriageOf,
 		readHome,
+		setPlayerPregnant,
 	} from "$lib/babyQuestion";
+	import { totalDays } from "$lib/calendar";
 	import { characters } from "$lib/NPCs";
 	import { Raw } from "$lib/proxies";
 	import { getSaveManager } from "$lib/SaveManager.svelte";
@@ -37,20 +40,29 @@
 		friendships.map(([, f]) => f).find((f) => f.status === "Married"),
 	);
 	// The house's level, crib and children only change on other pages, so they're read when this one opens
-	const babyQuestion = $derived.by(() => {
-		const homeOf = (farmer: typeof player) =>
-			readHome(save.homeOf(farmer), farmer.houseUpgradeLevel);
-		// Married to another player, as the save keeps it apart from villagers
-		const marriage = spouse
+	// Married to another player, as the save keeps it apart from villagers
+	const marriage = $derived(
+		spouse
 			? undefined
 			: playerMarriageOf(
 					player[Raw].UniqueMultiplayerID,
 					save[Raw].SaveGame.farmerFriendships,
-				);
-		if (marriage) {
-			const partner = save.players.find(
+				),
+	);
+	const partner = $derived(
+		marriage &&
+			save.players.find(
 				(p) => String(p[Raw].UniqueMultiplayerID) === marriage.partnerId,
-			);
+			),
+	);
+	// The couple's due date is kept in the save's data, which isn't reactive, so
+	// changing it bumps this to refresh what depends on it
+	let pregnancyChanges = $state(0);
+	const homeOf = (farmer: typeof player) =>
+		readHome(save.homeOf(farmer), farmer.houseUpgradeLevel);
+	const babyQuestion = $derived.by(() => {
+		pregnancyChanges;
+		if (marriage) {
 			return playerBabyQuestionStatus(
 				{ name: player.name, home: homeOf(player) },
 				partner && { name: partner.name, home: homeOf(partner) },
@@ -58,6 +70,21 @@
 			);
 		}
 		return babyQuestionStatus(spouse, save.calendar.date, homeOf(player));
+	});
+	const couplePregnancy = $derived.by(() => {
+		pregnancyChanges;
+		if (!marriage || !partner) return undefined;
+		const due = playerDueDate(marriage);
+		return {
+			pregnant: due !== null,
+			daysUntilBirth: due
+				? totalDays(due) - totalDays(save.calendar.date)
+				: null,
+			onchange: (pregnant: boolean, days?: number) => {
+				setPlayerPregnant(marriage, pregnant, save.calendar.date, days);
+				pregnancyChanges++;
+			},
+		};
 	});
 
 	let search = $state("");
@@ -94,7 +121,7 @@
 			</h4>
 		</UiButton>
 	</div>
-	<BabyQuestion status={babyQuestion} />
+	<BabyQuestion status={babyQuestion} pregnancy={couplePregnancy} />
 	<div class="search" bind:this={searchBox}>
 		<UiInput
 			type="text"

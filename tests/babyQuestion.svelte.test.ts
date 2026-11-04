@@ -1,7 +1,8 @@
-import { render, screen } from "@testing-library/svelte";
-import { flushSync } from "svelte";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/svelte";
+import { flushSync, tick } from "svelte";
+import { describe, expect, it, vi } from "vitest";
 import {
+	type FarmerFriendshipItem,
 	type FarmerFriendships,
 	type GameLocation,
 	Season,
@@ -10,8 +11,10 @@ import {
 import {
 	babyQuestionStatus,
 	playerBabyQuestionStatus,
+	playerDueDate,
 	playerMarriageOf,
 	readHome,
+	setPlayerPregnant,
 } from "../src/lib/babyQuestion";
 import { Raw } from "../src/lib/proxies";
 import { Friendship } from "../src/lib/proxies/Friendship.svelte";
@@ -202,6 +205,90 @@ describe("married to another player", () => {
 		expect(unmet(playerBabyQuestionStatus(you, partner, expecting))).toEqual([
 			"not-pregnant",
 		]);
+	});
+});
+
+describe("making a couple pregnant", () => {
+	const raw = (): FarmerFriendshipItem => ({
+		key: { FarmerPair: { Farmer1: "1", Farmer2: "2" } },
+		value: {
+			Friendship: {
+				Points: 0,
+				GiftsThisWeek: 0,
+				GiftsToday: 0,
+				TalkedToToday: false,
+				ProposalRejected: false,
+				Status: Status.Married,
+				Proposer: 0,
+				RoommateMarriage: false,
+			},
+		},
+	});
+	const today = { year: 1, season: Season.Winter, day: 20 };
+
+	it("sets the due date 14 days out in the couple's friendship, and clears it", () => {
+		const data = { item: [raw()] };
+		const marriage = playerMarriageOf("1", data);
+		if (!marriage) throw new Error("no marriage");
+		expect(playerDueDate(marriage)).toBeNull();
+
+		setPlayerPregnant(marriage, true, today);
+		expect(data.item[0]?.value.Friendship.NextBirthingDate).toEqual({
+			Year: 2,
+			DayOfMonth: 6,
+			Season: Season.Spring,
+		});
+		expect(playerDueDate(marriage)).toEqual({
+			year: 2,
+			season: Season.Spring,
+			day: 6,
+		});
+
+		setPlayerPregnant(marriage, true, today, 3);
+		expect(playerDueDate(marriage)).toEqual({
+			year: 1,
+			season: Season.Winter,
+			day: 23,
+		});
+
+		setPlayerPregnant(marriage, false, today);
+		expect(data.item[0]?.value.Friendship).not.toHaveProperty(
+			"NextBirthingDate",
+		);
+	});
+
+	it("shows a toggle in the panel that reports changes", async () => {
+		const onchange = vi.fn();
+		const status = playerBabyQuestionStatus(
+			{ name: "Princess", home: { ...home, upgradeLevel: 2 } },
+			{ name: "weswy", home },
+			playerMarriageOf("1", { item: [raw()] }),
+		);
+		const view = render(BabyQuestion, {
+			props: {
+				status,
+				pregnancy: { pregnant: false, daysUntilBirth: null, onchange },
+			},
+		});
+		await fireEvent.click(screen.getByTestId("baby-player-pregnant"));
+		expect(onchange).toHaveBeenCalledWith(true);
+		expect(screen.queryByTestId("baby-player-days-until-birth")).toBeNull();
+
+		view.rerender({
+			status,
+			pregnancy: { pregnant: true, daysUntilBirth: 14, onchange },
+		});
+		await tick();
+		const days = screen.getByTestId(
+			"baby-player-days-until-birth",
+		) as HTMLInputElement;
+		expect(days.value).toBe("14");
+	});
+
+	it("has no toggle without one passed in", () => {
+		const status = babyQuestionStatus(spouse(), today, home);
+		render(BabyQuestion, { props: { status } });
+		expect(screen.queryByTestId("baby-player-pregnant")).toBeNull();
 	});
 });
 

@@ -242,10 +242,10 @@ export function playerBabyQuestionStatus(
 		},
 		{
 			id: "nursery",
-			label: "One of your homes has the nursery",
+			label: "A home has the nursery",
 			met: withNursery.length > 0,
 			detail: married
-				? `House upgrade: ${you.name} ${you.home.upgradeLevel}, ${partner.name} ${partner.home.upgradeLevel} (needs ${NURSERY_UPGRADE_LEVEL})`
+				? `${you.name} ${you.home.upgradeLevel}, ${partner.name} ${partner.home.upgradeLevel} (needs ${NURSERY_UPGRADE_LEVEL})`
 				: "Needs a marriage",
 		},
 		{
@@ -261,13 +261,13 @@ export function playerBabyQuestionStatus(
 		},
 		{
 			id: "children",
-			label: "That home has fewer than 2 children",
+			label: "Under 2 children there",
 			met: withRoom.length > 0,
 			detail:
 				withCrib.length === 0
 					? "Needs the nursery and crib"
 					: withRoom.length > 0
-						? "There's room for a child"
+						? "Room for a child"
 						: "Already has 2 children",
 		},
 		{

@@ -198,6 +198,27 @@ describe("married to another player", () => {
 		]);
 	});
 
+	it("needs every child in a home to be a toddler", () => {
+		const marriage = playerMarriageOf("1", pairs(pair("1", "2", true, false)));
+		const withBaby = (h: typeof you.home) => ({
+			home: { ...h, children: 1, toddlers: 0 },
+		});
+		const babyEverywhere = playerBabyQuestionStatus(
+			{ ...you, ...withBaby(you.home) },
+			{ ...partner, ...withBaby(partner.home) },
+			marriage,
+		);
+		expect(unmet(babyEverywhere)).toEqual(["children"]);
+		// One home with only toddlers is enough
+		expect(
+			playerBabyQuestionStatus(
+				{ ...you, ...withBaby(you.home) },
+				partner,
+				marriage,
+			).eligible,
+		).toBe(true);
+	});
+
 	it("is not eligible when not married to a player, or already expecting", () => {
 		expect(playerBabyQuestionStatus(you, undefined, undefined).eligible).toBe(
 			false,

@@ -212,8 +212,8 @@ export function setPlayerPregnant(
 /**
     When two married players are asked about a baby. The wiki words it
     differently for them: a home is eligible if it belongs to one of the two,
-    has the nursery and doesn't already have two children. There are no
-    hearts, and no wait for a child to be a toddler. The crib rule is from the
+    has the nursery, has fewer than two children and every child there is a
+    toddler (`playersCanGetPregnantHere` in the game). There are no hearts. The crib rule is from the
     Children page, which doesn't say it only applies to villagers.
 */
 export function playerBabyQuestionStatus(
@@ -228,7 +228,9 @@ export function playerBabyQuestionStatus(
 		(h) => h.upgradeLevel >= NURSERY_UPGRADE_LEVEL,
 	);
 	const withCrib = withNursery.filter((h) => h.cribStyle !== 0);
-	const withRoom = withCrib.filter((h) => h.children < 2);
+	const withRoom = withCrib.filter(
+			(h) => h.children < 2 && h.toddlers === h.children,
+		);
 	const expecting = marriage?.friendship.NextBirthingDate !== undefined;
 
 	const requirements: BabyQuestionRequirement[] = [
@@ -261,7 +263,7 @@ export function playerBabyQuestionStatus(
 		},
 		{
 			id: "children",
-			label: "Under 2 children there",
+			label: "Under 2 children there, all toddlers",
 			met: withRoom.length > 0,
 			detail:
 				withCrib.length === 0

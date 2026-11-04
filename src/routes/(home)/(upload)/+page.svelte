@@ -245,7 +245,7 @@
 
 	li .copy:hover code,
 	li .copy:focus-visible code {
-		border-color: gold;
+		border-color: #f5f5f5;
 	}
 
 	.noselect {

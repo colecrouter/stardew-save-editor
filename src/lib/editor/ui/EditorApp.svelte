@@ -6,7 +6,7 @@
 	import { SaveReadError, describeImportError } from "../save-service.ts";
 	import { openEditor } from "../editor-model.ts";
 	import EditorWorkspace from "./EditorWorkspace.svelte";
-	import BackupPanel from "./BackupPanel.svelte";
+	import UploadPanel from "./UploadPanel.svelte";
 	import "../../ui/study-theme.css";
 	interface Props {
 		includeProofs?: boolean;
@@ -20,7 +20,6 @@
 	let error = $state("");
 	let downloadError = $state("");
 	let downloading = $state(false);
-	let backupsOpen = $state(false);
 	// File reads cannot be canceled reliably. A generation token prevents an older
 	// import from installing its session after replacement, cancellation or unmount.
 	let generation = 0;
@@ -160,68 +159,14 @@
 			</RegistryProvider>
 		{/key}
 	{:else}
-		<section class="upload study-theme">
-			<h1>V2 editing workspace</h1>
-			<p>
-				Open a Stardew Valley 1.6 save to edit your farm, characters, inventory,
-				storage and progression. Review changes and undo before exporting.
-			</p>
-			<p>
-				The workspace includes buildings and animals, relationships, appearance,
-				recipes, quests, Community Center and Joja projects, and farmhand
-				reassignment. Each editor opens its own file.
-			</p>
-			{#if legacyHref}
-				<a href={legacyHref}>Open the legacy editor</a>
-			{/if}
-			<p>
-				Keep a backup. Select the main farm save, not SaveGameInfo. Export uses
-				the original filename; your browser may add a duplicate suffix.
-			</p>
-			<details>
-				<summary>Finding and replacing your save</summary>
-				<p>
-					Close the game before replacing its main save. Keep the original
-					folder and companion files until you have checked the edited save
-					in-game.
-				</p>
-				<a
-					href="https://github.com/colecrouter/stardew-save-editor/blob/v2/SUPPORT.md"
-				>
-					Save locations and replacement guide
-				</a>
-			</details>
-			<label>
-				Save file
-				<input
-					type="file"
-					disabled={opening}
-					onchange={(event) => {
-						const file = event.currentTarget.files?.[0];
-						if (file) void load(file);
-					}}
-				/>
-			</label>
-			<details class="backups" bind:open={backupsOpen}>
-				<summary>Original save backups</summary>
-				{#if backupsOpen}
-					<BackupPanel
-						disabled={opening}
-						onopen={(file) => load(file, false)}
-					/>
-				{/if}
-			</details>
-
-			{#if opening}
-				<p role="status">Opening save…</p>
-				<button type="button" onclick={() => void close()}>
-					Cancel import
-				</button>
-			{/if}
-			{#if error}
-				<p role="alert">{error}</p>
-			{/if}
-		</section>
+		<UploadPanel
+			{opening}
+			{error}
+			{legacyHref}
+			onfile={(file) => load(file)}
+			onoriginal={(file) => load(file, false)}
+			oncancel={() => void close()}
+		/>
 	{/if}
 </div>
 
@@ -232,25 +177,6 @@
 		width: 100%;
 		min-width: 0;
 		padding: 8px;
-	}
-	.upload {
-		max-width: 700px;
-		margin: 40px auto;
-		padding: 24px;
-		background: #ffe2aa;
-		border-radius: 8px;
-	}
-	.upload label {
-		display: grid;
-		gap: 12px;
-	}
-	.upload input {
-		font: inherit;
-		max-width: 100%;
-	}
-	button {
-		font: inherit;
-		min-height: 44px;
 	}
 	[role="alert"] {
 		color: #8a1c19;

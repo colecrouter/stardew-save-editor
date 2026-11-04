@@ -88,9 +88,6 @@
 	min-height: 38px;
 }
 
-body:has(.study-theme) {
-	background: radial-gradient(ellipse at 50% 35%, #4c8490, #285f6d);
-}
 main:has(> .study-theme) {
 	padding: 8px 8px 24px;
 	min-height: 0;

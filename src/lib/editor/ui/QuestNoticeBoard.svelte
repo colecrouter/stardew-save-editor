@@ -128,6 +128,10 @@
 		--notice-muted: #775632;
 		--notice-rule: #d5b782;
 		--notice-accent: #8a4d20;
+		--notice-paper: #fff1d2;
+		--notice-scroll-thumb: #ceac75;
+		--notice-scroll-track: #75451f;
+		--notice-shadow: #43281166;
 		display: grid;
 		grid-template-columns: minmax(220px, 0.8fr) minmax(0, 1.7fr);
 		gap: 28px;
@@ -150,6 +154,21 @@
 		--notice-muted: #625a83;
 		--notice-rule: #b9a7ce;
 		--notice-accent: #6a4387;
+		--notice-paper: #f4edf9;
+		--notice-scroll-thumb: #a995bf;
+		--notice-scroll-track: #514873;
+		--notice-shadow: #2c254566;
+		/* Shared field text, native dialogs and focus rings follow the same local
+     palette; default town controls keep their warm fallbacks. */
+		--checkbox-ink: var(--notice-ink);
+		--checkbox-muted: var(--notice-muted);
+		--checkbox-accent: #795499;
+		--checkbox-focus: #6a4387;
+		--confirm-border: #74578f;
+		--confirm-surface: var(--notice-paper);
+		--confirm-ink: var(--notice-ink);
+		--confirm-backdrop: #221a3aaa;
+		--ui-focus: #327899;
 		/* Native confirmation controls inherit this local palette, including their
 		   dialogs. Keep the rest of the editor's warm button theme unchanged. */
 		--ui-control-bg: #eee5f6;
@@ -175,7 +194,8 @@
 		height: var(--notice-height);
 		overflow-y: auto;
 		padding: 4px 6px 8px;
-		scrollbar-color: #ceac75 #75451f;
+		scrollbar-color: var(--notice-scroll-thumb) var(--notice-scroll-track);
+		scrollbar-gutter: stable;
 	}
 	.notice {
 		position: relative;
@@ -190,7 +210,7 @@
 		color: var(--notice-ink);
 		background: #ffefc9;
 		border: 2px solid #d5b782;
-		box-shadow: 3px 3px #43281166;
+		box-shadow: 3px 3px var(--notice-shadow);
 		cursor: pointer;
 	}
 	.qi .notice {
@@ -204,7 +224,7 @@
 		height: 10px;
 		border: 2px solid #354b51;
 		background: #95abb1;
-		box-shadow: 1px 2px #43281166;
+		box-shadow: 1px 2px var(--notice-shadow);
 		border-radius: 50%;
 		top: 5px;
 		left: calc(50% - 5px);
@@ -249,14 +269,33 @@
 		position: relative;
 		min-width: 0;
 		padding: 32px 24px 24px;
-		background: #fff1d2;
+		background: var(--notice-paper);
 		border: 2px solid #d5b782;
-		box-shadow: 4px 4px #43281166;
+		box-shadow: 4px 4px var(--notice-shadow);
 	}
 	.notice-content {
 		min-height: 0;
 		overflow-y: auto;
+		scrollbar-gutter: stable;
+		scrollbar-color: var(--notice-scroll-thumb) var(--notice-paper);
 	}
+	/* Explicit WebKit tracks cover engines that do not implement scrollbar-color. */
+	.notice-list::-webkit-scrollbar,
+	.notice-content::-webkit-scrollbar {
+		width: 12px;
+	}
+	.notice-list::-webkit-scrollbar-track {
+		background: var(--notice-scroll-track);
+	}
+	.notice-content::-webkit-scrollbar-track {
+		background: var(--notice-paper);
+	}
+	.notice-list::-webkit-scrollbar-thumb,
+	.notice-content::-webkit-scrollbar-thumb {
+		background: var(--notice-scroll-thumb);
+		border-radius: 6px;
+	}
+
 	.qi :global(.study-button) {
 		--button-ink: #432d62;
 		--button-border: #74578f;
@@ -265,11 +304,7 @@
 		--button-top: #fbf7ff;
 		--button-bottom: #c6afd9;
 	}
-	.qi :global(input[type="checkbox"]) {
-		accent-color: #795499;
-	}
 	.qi .selected-notice {
-		background: #f4edf9;
 		border-color: #b9a7ce;
 	}
 	.selected-notice::before {
@@ -296,8 +331,8 @@
 		display: none;
 	}
 	.empty {
-		background: #fff1d2;
-		color: #432811;
+		background: var(--notice-paper);
+		color: var(--notice-ink);
 		padding: 20px;
 		margin: 0;
 	}
@@ -319,12 +354,14 @@
 		.notice-list {
 			height: auto;
 			overflow: visible;
+			scrollbar-gutter: auto;
 		}
 		.selected-notice {
 			height: auto;
 		}
 		.notice-content {
 			overflow: visible;
+			scrollbar-gutter: auto;
 		}
 		.notice-board:not([data-detail="true"]) .selected-notice {
 			display: none;

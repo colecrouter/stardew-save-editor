@@ -89,18 +89,20 @@
 </dialog>
 
 <style>
+	/* Native dialogs stay in their owner’s palette; defaults preserve the warm
+       editor treatment for screens without a local theme. */
 	dialog {
 		max-width: min(440px, calc(100vw - 32px));
 		box-sizing: border-box;
-		border: 3px solid #70401d;
+		border: 3px solid var(--confirm-border, #70401d);
 		border-radius: 8px;
 		padding: 24px;
-		background: #ffe2aa;
-		color: #351b0e;
+		background: var(--confirm-surface, #ffe2aa);
+		color: var(--confirm-ink, #351b0e);
 		font: inherit;
 	}
 	dialog::backdrop {
-		background: #102016aa;
+		background: var(--confirm-backdrop, #102016aa);
 	}
 	form {
 		display: flex;

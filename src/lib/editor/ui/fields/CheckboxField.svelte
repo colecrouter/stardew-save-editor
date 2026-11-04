@@ -71,6 +71,9 @@
 		min-width: 0;
 	}
 	label {
+		/* Local feature palettes can theme ordinary states; validation errors
+           retain their semantic error colour below. */
+		color: var(--checkbox-ink, inherit);
 		display: flex;
 		align-items: center;
 		gap: 8px;
@@ -81,21 +84,21 @@
 		width: 20px;
 		height: 20px;
 		flex: none;
-		accent-color: #246f44;
+		accent-color: var(--checkbox-accent, #246f44);
 		cursor: inherit;
 	}
 	input:focus-visible {
-		outline: 2px solid #311304;
+		outline: 2px solid var(--checkbox-focus, #311304);
 		outline-offset: 3px;
 	}
 	label:has(input:disabled) {
-		color: #694621;
+		color: var(--checkbox-muted, #694621);
 		cursor: default;
 	}
 	p {
 		font-size: 17px;
 		line-height: 1.25;
-		color: #694621;
+		color: var(--checkbox-muted, #694621);
 		margin: 0 0 4px 28px;
 	}
 	p.error {

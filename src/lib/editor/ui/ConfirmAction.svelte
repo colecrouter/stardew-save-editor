@@ -5,6 +5,7 @@
 		title: string;
 		description: string;
 		label: string;
+		triggerLabel?: string;
 		disabled?: boolean;
 		prepare?: () => void;
 		commit: () => Promise<CommandResult<unknown, { message: string }>>;
@@ -14,6 +15,7 @@
 		title,
 		description,
 		label,
+		triggerLabel,
 		disabled = false,
 		prepare = () => {},
 		commit,
@@ -48,13 +50,15 @@
 	class="ui-control ui-button"
 	type="button"
 	{disabled}
+	aria-label={label}
 	onclick={() => {
 		prepare();
 		error = "";
 		dialog.showModal();
 	}}
 >
-	{label}
+	<!-- A compact trigger retains the complete action name for assistive technology. -->
+	{triggerLabel ?? label}
 </button>
 <dialog
 	bind:this={dialog}

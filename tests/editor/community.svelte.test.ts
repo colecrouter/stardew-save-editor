@@ -48,9 +48,17 @@ it(
 			await fireEvent.click(
 				within(dialog).getByRole("button", { name: "Switch to Joja" }),
 			);
-			const bridge = await page.findByRole("checkbox", {
-				name: "Bridge project complete",
+			// Publishing membership and releasing the modal are asynchronous. Wait for
+			// the route-change dialog to close before querying the newly exposed board;
+			// a busy CI worker must not mistake the still-modal page for missing controls.
+			await waitFor(() => expect(page.queryByRole("dialog")).toBeNull(), {
+				timeout: 10000,
 			});
+			const bridge = await page.findByRole(
+				"checkbox",
+				{ name: "Bridge project complete" },
+				{ timeout: 10000 },
+			);
 			await fireEvent.click(bridge);
 			await waitFor(async () => {
 				expect(

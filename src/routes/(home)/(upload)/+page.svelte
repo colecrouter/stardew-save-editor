@@ -26,6 +26,8 @@
 	];
 
 	const copyPath = async (os: string, path: string) => {
+		// The user is highlighting the text to copy it by hand; don't interfere
+		if (getSelection()?.toString()) return;
 		try {
 			await navigator.clipboard.writeText(path);
 			toastManager.add(
@@ -98,13 +100,22 @@
 						{#each locations as { os, path } (os)}
 							<li>
 								<span class="noselect">{os}:</span>
-								<button
-									type="button"
+								<!-- Not a <button>: Firefox and Safari don't let you select a button's text -->
+								<span
+									class="copy"
+									role="button"
+									tabindex="0"
 									title="Copy path to clipboard"
 									onclick={() => copyPath(os, path)}
+									onkeydown={(e) => {
+										if (e.key === "Enter" || e.key === " ") {
+											e.preventDefault();
+											copyPath(os, path);
+										}
+									}}
 								>
 									<code>{path}</code>
-								</button>
+								</span>
 							</li>
 						{/each}
 						<li>
@@ -222,15 +233,15 @@
 		margin-right: 0.5em;
 	}
 
-	li button {
-		all: unset;
+	li .copy {
+		user-select: text;
 		cursor: pointer;
 		border-radius: 3px;
 		padding: 0 0.25em;
 	}
 
-	li button:hover,
-	li button:focus-visible {
+	li .copy:hover,
+	li .copy:focus-visible {
 		background-color: rgba(142, 61, 4, 0.25);
 		outline: 1px solid #8e3d04;
 	}

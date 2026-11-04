@@ -70,7 +70,8 @@ export interface Save {
 	returnedDonations: string;
 	globalInventories: string;
 	collectedNutTracker: StringContainer;
-	farmerFriendships: string;
+	/** Friendships between players, such as a marriage; empty when there are none */
+	farmerFriendships: "" | FarmerFriendships;
 	cellarAssignments: CellarAssignments;
 	timesFedRaccoons: number;
 	treasureTotemsUsed: number;
@@ -1234,6 +1235,15 @@ export interface FishCaughtItem {
 
 export interface FriendshipData {
 	item: FriendshipDataItem[];
+}
+
+export interface FarmerFriendships {
+	item: FarmerFriendshipItem[];
+}
+
+export interface FarmerFriendshipItem {
+	key: { FarmerPair: { Farmer1: number | string; Farmer2: number | string } };
+	value: AmbitiousValue;
 }
 
 export interface FriendshipDataItem {

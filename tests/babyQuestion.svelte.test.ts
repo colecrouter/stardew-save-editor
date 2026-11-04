@@ -1,8 +1,18 @@
 import { render, screen } from "@testing-library/svelte";
 import { flushSync } from "svelte";
 import { describe, expect, it } from "vitest";
-import { type GameLocation, Season, Status } from "../codegen/save";
-import { babyQuestionStatus, readHome } from "../src/lib/babyQuestion";
+import {
+	type FarmerFriendships,
+	type GameLocation,
+	Season,
+	Status,
+} from "../codegen/save";
+import {
+	babyQuestionStatus,
+	playerBabyQuestionStatus,
+	playerMarriageOf,
+	readHome,
+} from "../src/lib/babyQuestion";
 import { Raw } from "../src/lib/proxies";
 import { Friendship } from "../src/lib/proxies/Friendship.svelte";
 import BabyQuestion from "../src/routes/(edit)/relationships/BabyQuestion.svelte";
@@ -115,6 +125,86 @@ describe("babyQuestionStatus", () => {
 	});
 });
 
+describe("married to another player", () => {
+	const pair = (a: string, b: string, married: boolean, due = false) => ({
+		key: { FarmerPair: { Farmer1: a, Farmer2: b } },
+		value: {
+			Friendship: {
+				Points: 0,
+				GiftsThisWeek: 0,
+				GiftsToday: 0,
+				TalkedToToday: false,
+				ProposalRejected: false,
+				Status: married ? Status.Married : Status.Friendly,
+				Proposer: 0,
+				RoommateMarriage: false,
+				...(due
+					? {
+							NextBirthingDate: {
+								Year: 3,
+								Season: Season.Spring,
+								DayOfMonth: 5,
+							},
+						}
+					: {}),
+			},
+		},
+	});
+	const pairs = (...items: ReturnType<typeof pair>[]): FarmerFriendships => ({
+		item: items,
+	});
+
+	it("finds the partner from either side of the pair", () => {
+		const all = pairs(pair("1", "2", false), pair("3", "4", true));
+		expect(playerMarriageOf("4", all)?.partnerId).toBe("3");
+		expect(playerMarriageOf(3, all)?.partnerId).toBe("4");
+		expect(playerMarriageOf("1", all)).toBeUndefined();
+		expect(playerMarriageOf("1", undefined)).toBeUndefined();
+	});
+
+	const you = {
+		name: "Princess",
+		home: { ...home, upgradeLevel: 2, children: 1, toddlers: 1 },
+	};
+	const partner = { name: "weswy", home: { ...home, upgradeLevel: 3 } };
+
+	it("is eligible when either home qualifies", () => {
+		const marriage = playerMarriageOf("1", pairs(pair("1", "2", true)));
+		const status = playerBabyQuestionStatus(you, partner, marriage);
+		expect(unmet(status)).toEqual([]);
+		expect(status.eligible).toBe(true);
+		expect(status.title).toBe("Will Princess and weswy be asked about a baby?");
+	});
+
+	it("needs one home with the nursery, crib and room, not each in a different one", () => {
+		const marriage = playerMarriageOf("1", pairs(pair("1", "2", true)));
+		// Nursery only in the partner's home, but the partner's crib is gone
+		const noCrib = { ...partner, home: { ...partner.home, cribStyle: 0 } };
+		const lowHouse = { ...you, home: { ...you.home, upgradeLevel: 1 } };
+		expect(unmet(playerBabyQuestionStatus(lowHouse, noCrib, marriage))).toEqual(
+			["crib", "children"],
+		);
+		const full = {
+			...partner,
+			home: { ...partner.home, children: 2, toddlers: 2 },
+		};
+		const yours = { ...you, home: { ...you.home, children: 2, toddlers: 2 } };
+		expect(unmet(playerBabyQuestionStatus(yours, full, marriage))).toEqual([
+			"children",
+		]);
+	});
+
+	it("is not eligible when not married to a player, or already expecting", () => {
+		expect(playerBabyQuestionStatus(you, undefined, undefined).eligible).toBe(
+			false,
+		);
+		const expecting = playerMarriageOf("1", pairs(pair("1", "2", true, true)));
+		expect(unmet(playerBabyQuestionStatus(you, partner, expecting))).toEqual([
+			"not-pregnant",
+		]);
+	});
+});
+
 describe("readHome", () => {
 	const location = (characters: unknown) =>
 		({ cribStyle: 0, characters }) as unknown as GameLocation;
@@ -152,7 +242,7 @@ describe("readHome", () => {
 describe("BabyQuestion panel", () => {
 	it("shows disabled checkboxes and an eligible result", () => {
 		const status = babyQuestionStatus(spouse(), today, home);
-		render(BabyQuestion, { props: { status, spouse: "Abigail" } });
+		render(BabyQuestion, { props: { status } });
 		const boxes = screen.getAllByRole("checkbox") as HTMLInputElement[];
 		expect(boxes).toHaveLength(status.requirements.length);
 		expect(boxes.every((b) => b.disabled && b.checked)).toBe(true);
@@ -168,7 +258,7 @@ describe("BabyQuestion panel", () => {
 			toddlers: 2,
 			upgradeLevel: 1,
 		});
-		render(BabyQuestion, { props: { status, spouse: "Abigail" } });
+		render(BabyQuestion, { props: { status } });
 		expect(
 			(screen.getByTestId("baby-requirement-children") as HTMLInputElement)
 				.checked,

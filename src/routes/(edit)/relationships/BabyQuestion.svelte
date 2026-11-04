@@ -8,17 +8,15 @@
 
 	interface Props {
 		status: BabyQuestionStatus;
-		/** The spouse's name, if the farmer has one */
-		spouse: string | undefined;
 	}
 
-	let { status, spouse }: Props = $props();
+	let { status }: Props = $props();
 	const unmet = $derived(status.requirements.filter((r) => !r.met).length);
 </script>
 
 <UiContainerSmall data-testid="baby-question">
 	<div class="panel">
-		<strong>Will {spouse ?? "a spouse"} ask about a baby?</strong>
+		<strong data-testid="baby-question-title">{status.title}</strong>
 		<ul>
 			{#each status.requirements as requirement (requirement.id)}
 				<li>
@@ -48,6 +46,9 @@
 				Not eligible: {unmet} requirement{unmet === 1 ? "" : "s"} not met.
 			{/if}
 		</p>
+		{#if status.note}
+			<small class="note">{status.note}</small>
+		{/if}
 	</div>
 </UiContainerSmall>
 
@@ -101,6 +102,10 @@
 		margin: 4px 0 0;
 		font-weight: bold;
 		color: #8a2b1f;
+	}
+
+	.note {
+		opacity: 0.8;
 	}
 
 	.result.eligible {

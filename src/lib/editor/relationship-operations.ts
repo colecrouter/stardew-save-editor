@@ -7,6 +7,9 @@ import {
 	withReviewMetadata,
 } from "./transaction-annotations.ts";
 
+/** Friendship points in one heart, shared by projections, edits and UI summaries. */
+export const POINTS_PER_HEART = 250;
+
 /** Expected rejection of an ambiguous target or unsupported imported relationship. */
 export class RelationshipInvalid extends Data.TaggedError(
 	"RelationshipInvalid",
@@ -157,9 +160,11 @@ function project(
 					gifts === undefined ? 0 : integerValue(gifts) ? gifts : undefined,
 				giftsSupported:
 					supported && (gifts === undefined || integerValue(gifts)),
-				hearts: integerValue(points) ? Math.floor(points / 250) : undefined,
+				hearts: integerValue(points)
+					? Math.floor(points / POINTS_PER_HEART)
+					: undefined,
 				maxHearts,
-				maxPoints: maxHearts * 250 + 249,
+				maxPoints: maxHearts * POINTS_PER_HEART + (POINTS_PER_HEART - 1),
 			},
 		];
 	});
@@ -177,7 +182,7 @@ function project(
 				"Not present in this farmer's save. Add the villager to edit their relationship.",
 			giftsSupported: false,
 			maxHearts,
-			maxPoints: maxHearts * 250 + 249,
+			maxPoints: maxHearts * POINTS_PER_HEART + (POINTS_PER_HEART - 1),
 		});
 	}
 	return {

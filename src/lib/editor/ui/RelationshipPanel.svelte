@@ -8,6 +8,11 @@
 	import FarmerSelector from "./fields/FarmerSelector.svelte";
 	import { Result } from "effect";
 	import { Villagers } from "../../Villagers.ts";
+	import VillagerPortrait from "./VillagerPortrait.svelte";
+	import RelationshipHearts from "./RelationshipHearts.svelte";
+	import StudyButton from "../../ui/kit/StudyButton.svelte";
+	import StudyAlert from "../../ui/kit/StudyAlert.svelte";
+	import StudyField from "../../ui/kit/StudyField.svelte";
 	interface Props {
 		model: EditorModel;
 	}
@@ -68,27 +73,48 @@
 </script>
 
 <div class="heading">
-	<h1>Relationships</h1>
+	<div>
+		<h1>Relationships</h1>
+		<p class="intro">Friendship, familiar faces and gifts for the week.</p>
+	</div>
+
 	<FarmerSelector field={farmerField} />
 </div>
 
 {#if domain?.supported}
-	<p>
-		Changes update immediately. Use Undo to revert. Hearts change friendship
-		points without changing relationship status.
-	</p>
 	<div class="toolbar">
-		<label>
-			Search villagers <input
-				class="ui-control"
-				type="search"
-				bind:value={search}
-			/>
-		</label>
+		<p>
+			{domain.relationships.filter((row) => row.present).length} saved relationships
+		</p>
+
+		<div class="search">
+			<StudyField label="Search villagers">
+				{#snippet children(attributes)}
+					<input
+						{...attributes}
+						class="study-input"
+						type="search"
+						bind:value={search}
+					/>
+				{/snippet}
+			</StudyField>
+		</div>
 	</div>
+
+	<p class="hint">
+		Hearts change friendship points without changing relationship status.
+	</p>
+
 	{#if feedback?.farmerId === domain.farmerId}
-		<p role="alert">{feedback.message}</p>
+		<StudyAlert
+			title="Relationship change unavailable"
+			tone="danger"
+			live="assertive"
+		>
+			<p>{feedback.message}</p>
+		</StudyAlert>
 	{/if}
+
 	{#key domain.farmerId}
 		<div class="relationships">
 			{#each shown as row (row.name)}
@@ -96,41 +122,93 @@
 					class:missing={!row.present}
 					aria-label={`${row.name} relationship`}
 				>
-					<h2>{row.name}</h2>
-					{#if row.present}
-						<ConfirmAction
-							title={`Remove ${row.name}?`}
-							description="This removes their saved relationship, including friendship points and gift history. You can Undo this change."
-							label={`Remove ${row.name}`}
-							disabled={!row.supported || pending}
-							commit={row.remove}
+					<VillagerPortrait name={row.name} />
+
+					<div class="identity">
+						<h2>{row.name}</h2>
+
+						<RelationshipHearts
+							points={row.points}
+							maxHearts={row.maxHearts}
+							present={row.present}
 						/>
-					{:else}
-						<p class="missing-label">Not in this farmer's save</p>
-						<button
-							class="ui-control ui-button"
-							type="button"
-							disabled={pending}
-							onclick={() => addVillager(row.name)}
-						>
-							Add {row.name}
-						</button>
-					{/if}
-					{#if Villagers.get(row.name)?.description}
-						<p class="description">{Villagers.get(row.name)?.description}</p>
-					{/if}
-					<div class="fields">
-						<NumberField field={row.fields.hearts} />
-						<NumberField field={row.fields.points} />
-						<NumberField field={row.fields.gifts} />
+
+						{#if row.present}
+							<p class="limit">Current limit: {row.maxHearts} hearts</p>
+						{:else}
+							<p class="missing-label">Not in this farmer's save</p>
+						{/if}
+
+						{#if Villagers.get(row.name)?.description}
+							<details class="about">
+								<summary>About {row.name}</summary>
+
+								<p>{Villagers.get(row.name)?.description}</p>
+							</details>
+						{/if}
+					</div>
+
+					<div class="editor">
+						<!-- Short visual labels keep the ledger compact. Native accessible
+						     names still identify the villager, and field identity/operations
+						     are unchanged. Missing rows explain their state once above. -->
+						<div class="fields">
+							<NumberField
+								field={{
+									...row.fields.hearts,
+									label: "Hearts",
+									reason: row.present ? row.fields.hearts.reason : undefined,
+								}}
+								aria-label={row.fields.hearts.label}
+							/>
+							<NumberField
+								field={{
+									...row.fields.points,
+									label: "Points",
+									reason: row.present ? row.fields.points.reason : undefined,
+								}}
+								aria-label={row.fields.points.label}
+							/>
+							<NumberField
+								field={{
+									...row.fields.gifts,
+									label: "Gifts this week",
+									reason: row.present ? row.fields.gifts.reason : undefined,
+								}}
+								aria-label={row.fields.gifts.label}
+							/>
+						</div>
+
+						<div class="membership">
+							{#if row.present}
+								<ConfirmAction
+									title={`Remove ${row.name}?`}
+									description="This removes their saved relationship, including friendship points and gift history. You can Undo this change."
+									label={`Remove ${row.name}`}
+									disabled={!row.supported || pending}
+									commit={row.remove}
+								/>
+							{:else}
+								<StudyButton
+									intent="constructive"
+									disabled={pending}
+									onclick={() => addVillager(row.name)}
+								>
+									Add {row.name}
+								</StudyButton>
+							{/if}
+						</div>
 					</div>
 				</section>
 			{:else}
-				<p>No villagers match your search.</p>
+				<StudyAlert title="No villagers match your search">
+					<p>Try another name to find a relationship.</p>
+				</StudyAlert>
 			{/each}
 		</div>
 	{/key}
-	<small>
+
+	<small class="attribution">
 		Villager descriptions from <a href="https://stardewvalleywiki.com">
 			Stardew Valley Wiki
 		</a>
@@ -141,63 +219,146 @@
 		.
 	</small>
 {:else}
-	<p role="status">{domain?.reason ?? "No supported farmer is available."}</p>
+	<StudyAlert title="Relationships unavailable" tone="warning">
+		<p>{domain?.reason ?? "No supported farmer is available."}</p>
+	</StudyAlert>
 {/if}
 
 <style>
-	.heading,
-	.toolbar {
+	.heading {
 		display: flex;
 		justify-content: space-between;
 		align-items: end;
 		gap: 16px;
 		flex-wrap: wrap;
+		margin-bottom: 24px;
 	}
 	h1 {
+		font-size: 32px;
 		margin: 0;
 	}
-	h2 {
-		margin: 0 0 8px;
+	.intro {
+		color: #694621;
+		margin: 8px 0 0;
+	}
+	.toolbar {
+		display: flex;
+		justify-content: space-between;
+		align-items: end;
+		gap: 20px;
+		flex-wrap: wrap;
+		border-bottom: 2px solid #b98b52;
+		padding-bottom: 18px;
+	}
+	.toolbar p {
+		margin: 0;
+		color: #694621;
+	}
+	.search {
+		width: 300px;
+		max-width: 100%;
+	}
+	.hint {
+		color: #694621;
+		font-size: 17px;
+		margin: 16px 0;
 	}
 	.relationships {
 		display: grid;
-		grid-template-columns: repeat(2, minmax(0, 1fr));
-		gap: 20px;
-		margin: 24px 0;
+		gap: 12px;
+		margin: 20px 0;
 	}
 	section {
-		border-top: 1px solid #bb925e;
-		padding: 20px 0;
+		display: grid;
+		grid-template-columns: 68px minmax(200px, 1fr) minmax(300px, 1.5fr);
+		gap: 20px;
+		align-items: start;
+		padding: 18px;
+		border: 2px solid #b98b52;
+		background: #fff1d2;
 		min-width: 0;
+	}
+	section.missing {
+		background: #f1ddb6;
+	}
+	.identity,
+	.editor {
+		min-width: 0;
+	}
+	h2 {
+		font-size: 24px;
+		margin: 0 0 10px;
+		overflow-wrap: anywhere;
+	}
+	.limit,
+	.missing-label {
+		font-size: 16px;
+		color: #795a36;
+		margin: 8px 0 0;
 	}
 	.fields {
 		display: grid;
 		grid-template-columns: repeat(3, minmax(0, 1fr));
-		gap: 12px;
+		gap: 14px;
 	}
 	.missing .fields {
-		opacity: 0.55;
+		opacity: 0.6;
 	}
-	.missing-label {
-		font-style: italic;
+	.membership {
+		display: flex;
+		justify-content: end;
+		margin-top: 12px;
 	}
-	.description {
-		color: #694621;
+	.membership :global(button) {
 		font-size: 17px;
-		line-height: 1.3;
 	}
-	input,
-	button {
-		font: inherit;
+	.about {
+		font-size: 16px;
+		color: #694621;
+		margin-top: 10px;
 	}
-	@media (max-width: 1000px) {
-		.relationships {
-			grid-template-columns: minmax(0, 1fr);
+	summary {
+		cursor: pointer;
+		min-height: 28px;
+		padding: 4px 0;
+	}
+	summary:focus-visible {
+		outline: 2px solid #754522;
+		outline-offset: 2px;
+	}
+	.about p {
+		line-height: 1.4;
+		margin: 8px 0 0;
+	}
+	.attribution {
+		font-size: 16px;
+		color: #694621;
+		line-height: 1.4;
+	}
+	@media (max-width: 1100px) {
+		section {
+			grid-template-columns: 68px minmax(0, 1fr);
+		}
+		.editor {
+			grid-column: 1 / -1;
 		}
 	}
 	@media (max-width: 480px) {
+		h1 {
+			font-size: 28px;
+		}
+		section {
+			padding: 14px;
+			gap: 14px;
+		}
 		.fields {
-			grid-template-columns: minmax(0, 1fr);
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+		}
+		.fields > :global(:last-child) {
+			grid-column: 1 / -1;
+		}
+		.search {
+			width: 100%;
 		}
 	}
 </style>

@@ -3,6 +3,7 @@ import { bindImmediateField, type DomainEditPort } from "./field-binding.ts";
 import type { ImmediateField } from "./immediate-field.ts";
 import {
 	setRelationship,
+	POINTS_PER_HEART,
 	type RelationshipFarmerView,
 } from "./relationship-operations.ts";
 
@@ -52,7 +53,7 @@ export function createRelationshipDomain(
 							farmerId: view.farmerId,
 							name: row.name,
 							kind: kind === "gifts" ? "gifts" : "points",
-							value: kind === "hearts" ? value * 250 : value,
+							value: kind === "hearts" ? value * POINTS_PER_HEART : value,
 						}),
 				);
 			}

@@ -15,6 +15,27 @@
 
 	let uploading = $state(false);
 
+	const locations = [
+		{ os: "Windows", path: String.raw`%appdata%\StardewValley\Saves` },
+		{ os: "Mac", path: "~/Library/Application Support/StardewValley/Saves" },
+		{ os: "Linux", path: "~/.config/StardewValley/Saves" },
+		{
+			os: "*Android",
+			path: "/Android/data/com.chucklefish.stardewvalley/files/Saves",
+		},
+	];
+
+	const copyPath = async (os: string, path: string) => {
+		try {
+			await navigator.clipboard.writeText(path);
+			toastManager.add(
+				new Toast(`Copied ${os.replace("*", "")} path`, "success"),
+			);
+		} catch {
+			toastManager.add(new Toast("Couldn't copy to the clipboard", "failure"));
+		}
+	};
+
 	const handle = async () => {
 		// We have to instantiate the filelist here because it's not available in node
 		if (!files) files = new FileList();
@@ -73,31 +94,24 @@
 			<input type="submit" value="Upload" bind:this={submit} hidden />
 			<small>
 				Default save locations:
-				<ul>
-					<li>
-						<span class="noselect">Windows:</span>
-						<code>%appdata%\StardewValley\Saves </code>
-					</li>
-					<li>
-						<span class="noselect">Mac:</span><code>
-							~/Library/Application Support/StardewValley/Saves
-						</code>
-					</li>
-					<li>
-						<span class="noselect">Linux:</span>
-						<code>~/.config/StardewValley/Saves</code>
-					</li>
-					<li>
-						<span class="noselect">*Android:</span>
-						<code>
-							/Android/data/com.chucklefish.stardewvalley/files/Saves
-						</code>
-					</li>
-					<li>
-						<span class="noselect">iOS:</span>
-						<code> Locations -> On My iPhone/iPad -> Stardew Valley </code>
-					</li>
-				</ul>
+					<ul>
+						{#each locations as { os, path } (os)}
+							<li>
+								<span class="noselect">{os}:</span>
+								<button
+									type="button"
+									title="Copy path to clipboard"
+									onclick={() => copyPath(os, path)}
+								>
+									<code>{path}</code>
+								</button>
+							</li>
+						{/each}
+						<li>
+							<span class="noselect">iOS:</span>
+							<code> Locations -> On My iPhone/iPad -> Stardew Valley </code>
+						</li>
+					</ul>
 
 				<p style="font-size: 0.8em">
 					*On Android 14 or later, the apps folder is hidden. You can use an app
@@ -206,6 +220,19 @@
 
 	li span {
 		margin-right: 0.5em;
+	}
+
+	li button {
+		all: unset;
+		cursor: pointer;
+		border-radius: 3px;
+		padding: 0 0.25em;
+	}
+
+	li button:hover,
+	li button:focus-visible {
+		background-color: rgba(142, 61, 4, 0.25);
+		outline: 1px solid #8e3d04;
 	}
 
 	.noselect {

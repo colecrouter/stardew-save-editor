@@ -10,6 +10,9 @@
 	import NumberField from "./fields/NumberField.svelte";
 	import ConfirmAction from "./ConfirmAction.svelte";
 	import RecipeVisual from "./RecipeVisual.svelte";
+	import StudyButton from "../../ui/kit/StudyButton.svelte";
+	import StudyAlert from "../../ui/kit/StudyAlert.svelte";
+	import StudyField from "../../ui/kit/StudyField.svelte";
 	interface Props {
 		model: EditorModel;
 	}
@@ -76,59 +79,74 @@
 </script>
 
 <div class="heading">
-	<h1>Recipes</h1>
+	<div>
+		<h1>Recipes</h1>
+		<p class="subtitle">Your cookbook & crafting collection</p>
+	</div>
 	<FarmerSelector field={farmerField} />
 </div>
 <div class="categories" role="group" aria-label="Recipe category">
-	<button
-		type="button"
+	<StudyButton
+		variant={kind === "cooking" ? "filled" : "plain"}
 		aria-pressed={kind === "cooking"}
 		onclick={() => chooseKind("cooking")}
 	>
 		Cooking
-	</button>
-	<button
-		type="button"
+	</StudyButton>
+	<StudyButton
+		variant={kind === "crafting" ? "filled" : "plain"}
 		aria-pressed={kind === "crafting"}
 		onclick={() => chooseKind("crafting")}
 	>
 		Crafting
-	</button>
+	</StudyButton>
 </div>
-<p class="intro">
-	{#if kind === "cooking"}
-		Learn or forget recipes separately from the number of dishes cooked.
-		Forgetting a recipe keeps your cooking progress. A zero count still counts
-		as cooked until you reset its recorded entry.
-	{:else}
-		Crafted counts record items produced. Forgetting a recipe also clears its
-		crafted count; Undo restores both.
-	{/if}
-	Changes update immediately. Use Undo to revert.
-</p>
+<details class="progress-help">
+	<summary>How recipe progress works</summary>
+	<p class="intro">
+		{#if kind === "cooking"}
+			Learn or forget recipes separately from the number of dishes cooked.
+			Forgetting a recipe keeps your cooking progress. A zero count still counts
+			as cooked until you reset its recorded entry.
+		{:else}
+			Crafted counts record items produced. Forgetting a recipe also clears its
+			crafted count; Undo restores both.
+		{/if}
+	</p>
+</details>
 <div class="toolbar">
-	<label>
-		Search recipes <input type="search" bind:value={search} />
-	</label>
-	<label>
-		Show recipes
-		<select bind:value={filter}>
-			<option value="all">All recipes</option>
-			<option value="known">Known recipes</option>
-			<option value="unknown">Unknown recipes</option>
-		</select>
-	</label>
+	<StudyField label="Search recipes">
+		{#snippet children(attributes)}
+			<input
+				{...attributes}
+				type="search"
+				class="study-input"
+				bind:value={search}
+			/>
+		{/snippet}
+	</StudyField>
+	<StudyField label="Show recipes">
+		{#snippet children(attributes)}
+			<select {...attributes} class="study-input" bind:value={filter}>
+				<option value="all">All recipes</option>
+				<option value="known">Known recipes</option>
+				<option value="unknown">Unknown recipes</option>
+			</select>
+		{/snippet}
+	</StudyField>
 	<span role="status">{rows.length} recipes</span>
 </div>
 {#if feedback?.target === targetKey}
-	<p role="alert">{feedback.message}</p>
+	<StudyAlert tone="danger" title="Recipe change unavailable" live="assertive">
+		<p>{feedback.message}</p>
+	</StudyAlert>
 {/if}
 {#if domain?.supported}
 	{#key targetKey}
 		<div class="recipes">
 			{#each shown as row (row.name)}
 				{@const presentation = recipePresentation(row.outputName)}
-				<section aria-label={`${row.name} recipe`}>
+				<section class:unlearned={!row.known} aria-label={`${row.name} recipe`}>
 					<div class="recipe-summary">
 						<RecipeVisual sprite={presentation.sprite} />
 						<div>
@@ -138,52 +156,62 @@
 								<span class="recorded">Recorded as cooked</span>
 							{/if}
 							{#if presentation.description}
-								<p class="description">
-									{presentation.description}
-								</p>
+								<details class="description">
+									<summary>About this recipe</summary>
+									<p>{presentation.description}</p>
+								</details>
 							{/if}
 						</div>
 					</div>
 					<div class="recipe-controls">
-						<NumberField field={row.fields.count} />
+						<!-- Presentation stays compact; the binding keeps its captured farmer,
+ category and Undo gesture, including the full accessible recipe name. -->
+						<NumberField
+							field={{
+								...row.fields.count,
+								label: kind === "cooking" ? "Cooked" : "Crafted items",
+							}}
+							aria-label={row.fields.count.label}
+						/>
 						<div class="actions">
 							{#if row.known && kind === "crafting" && (row.count ?? 0) > 0}
 								<ConfirmAction
 									title={`Forget ${row.name}?`}
 									description="This also clears the crafted count. Undo can restore the recipe and its count."
 									label={`Forget ${row.name}`}
+									triggerLabel="Forget"
 									disabled={!row.supported || !!pending}
 									commit={() => row.setKnown(false)}
 								/>
 							{:else}
-								<button
-									type="button"
+								<StudyButton
+									aria-label={`${row.known ? "Forget" : "Learn"} ${row.name}`}
 									disabled={!row.supported || !!pending}
 									onclick={() =>
 										void perform(row.name, () => row.setKnown(!row.known))}
 								>
 									{row.known ? "Forget" : "Learn"}
-									{row.name}
-								</button>
+								</StudyButton>
 							{/if}
 							{#if kind === "cooking"}
 								<ConfirmAction
 									title={`Reset ${row.name} cooking progress?`}
 									description="Clear the recorded cooking entry. The game counts an existing entry as cooked even when its count is zero. Undo can restore it."
 									label={`Reset ${row.name} count`}
+									triggerLabel="Reset"
 									disabled={!row.countSupported ||
 										!row.hasCookedEntry ||
 										!!pending}
 									commit={row.reset}
 								/>
 							{:else}
-								<button
-									type="button"
+								<StudyButton
+									aria-label={`Reset ${row.name} count`}
 									disabled={!row.countSupported || !row.count || !!pending}
 									onclick={() => void perform(row.name, row.reset)}
 								>
-									Reset {row.name} count
-								</button>
+									Reset
+								</StudyButton>
 							{/if}
 						</div>
 					</div>
@@ -192,22 +220,25 @@
 					{/if}
 				</section>
 			{:else}
-				<p>No recipes match your search.</p>
+				<StudyAlert title="No recipes match your search">
+					<p>Try another name or recipe filter.</p>
+				</StudyAlert>
 			{/each}
 		</div>
 		{#if rows.length > shown.length}
-			<button type="button" onclick={() => (limit += 24)}>
+			<StudyButton onclick={() => (limit += 24)}>
 				Show more recipes ({rows.length - shown.length} remaining)
-			</button>
+			</StudyButton>
 		{/if}
 	{/key}
 {:else}
-	<p role="status">{domain?.reason ?? "No supported farmer is available."}</p>
+	<StudyAlert title="Recipes unavailable" tone="warning">
+		<p>{domain?.reason ?? "No supported farmer is available."}</p>
+	</StudyAlert>
 {/if}
 
 <style>
-	.heading,
-	.toolbar {
+	.heading {
 		display: flex;
 		align-items: end;
 		justify-content: space-between;
@@ -217,77 +248,73 @@
 	h1 {
 		margin: 0;
 	}
+	.subtitle {
+		color: #694621;
+		margin: 8px 0 0;
+	}
 	.categories {
 		display: flex;
 		gap: 8px;
 		margin: 20px 0 12px;
 	}
-	button,
-	input,
-	select {
-		font: inherit;
+	.progress-help {
+		color: #694621;
+		font-size: 17px;
+		margin-bottom: 16px;
 	}
-	button {
-		min-height: 40px;
-		padding: 6px 12px;
+	summary {
 		cursor: pointer;
-		color: #351b0e;
-		border: 2px solid #a8743a;
-		background: #fff0cc;
+		padding: 6px 0;
 	}
-	button[aria-pressed="true"] {
-		background: #754322;
-		color: #fff1cf;
-		border-color: #512a15;
+	summary:focus-visible {
+		outline: 2px solid #754522;
+		outline-offset: 2px;
 	}
-	button:disabled {
-		opacity: 0.55;
-		cursor: default;
+	.intro {
+		line-height: 1.4;
+		max-width: 700px;
+		margin: 6px 0;
 	}
-	label {
+	.toolbar {
 		display: grid;
-		gap: 6px;
-		min-width: 0;
-	}
-	input,
-	select {
-		min-height: 40px;
-		max-width: 100%;
-		border: 2px solid #bb925e;
-		background: #fff2d3;
-		color: #351b0e;
-		padding: 5px 8px;
-		box-sizing: border-box;
-	}
-	.toolbar input {
-		width: 280px;
+		grid-template-columns: minmax(0, 300px) minmax(0, 220px) 1fr;
+		gap: 16px;
+		align-items: end;
 	}
 	.toolbar [role="status"] {
 		font-size: 17px;
 		color: #694621;
+		padding-bottom: 10px;
+		text-align: right;
 	}
-	.intro {
-		font-size: 18px;
-		line-height: 1.4;
-	}
+	/* Even-sized paper records form a compact book spread. Descriptions expand
+    in place; catalog order and keyed rows keep active count inputs stable. */
 	.recipes {
 		display: grid;
 		grid-template-columns: repeat(2, minmax(0, 1fr));
-		gap: 0 24px;
-		margin-top: 24px;
+		gap: 12px;
+		margin: 20px 0;
+		align-items: start;
 	}
 	section {
-		border-top: 1px solid #bb925e;
-		padding: 20px 0;
+		border: 2px solid #b98b52;
+		background: #fff1d2;
+		padding: 12px;
 		min-width: 0;
+	}
+	section.unlearned {
+		background: #f1ddb6;
 	}
 	.recipe-summary {
 		display: flex;
-		gap: 12px;
+		gap: 10px;
 		align-items: start;
 	}
+	.recipe-summary > div {
+		min-width: 0;
+	}
 	h2 {
-		font-size: 23px;
+		font-size: 21px;
 		margin: 0 0 4px;
 		overflow-wrap: anywhere;
 	}
@@ -297,51 +324,65 @@
 		color: #246f44;
 	}
 	.known {
-		font-size: 17px;
+		font-size: 16px;
 		color: #694621;
 	}
 	.description,
 	.reason {
-		font-size: 17px;
-		line-height: 1.4;
+		font-size: 16px;
+		line-height: 1.35;
 		color: #694621;
-		margin: 8px 0;
+		margin: 4px 0 0;
+	}
+	.description p {
+		margin: 4px 0 0;
 	}
 	.recipe-controls {
 		display: grid;
+		grid-template-columns: minmax(0, 1fr) auto;
 		gap: 12px;
-		margin-top: 16px;
+		align-items: end;
+		margin-top: 12px;
+		border-top: 1px solid #d5b782;
+		padding-top: 10px;
 	}
 	.actions {
 		display: flex;
-		gap: 8px;
+		gap: 6px;
 		flex-wrap: wrap;
 		align-items: center;
+		justify-content: end;
 	}
-	.actions button {
-		font-size: 17px;
+	.actions :global(button) {
+		font-size: 16px;
 	}
-	[role="alert"] {
-		color: #8a1c19;
+	@media (max-width: 1200px) {
+		.recipe-controls {
+			grid-template-columns: minmax(0, 1fr);
+		}
+		.actions {
+			justify-content: start;
+		}
 	}
-	@media (max-width: 1050px) {
+	@media (max-width: 700px) {
 		.recipes {
 			grid-template-columns: minmax(0, 1fr);
 		}
+		.toolbar {
+			grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+		}
+		.toolbar [role="status"] {
+			grid-column: 1 / -1;
+			padding: 0;
+			text-align: left;
+		}
 	}
 	@media (max-width: 480px) {
+		h1 {
+			font-size: 28px;
+		}
 		.toolbar {
-			align-items: stretch;
-		}
-		.toolbar label {
-			width: 100%;
-		}
-		.toolbar input {
-			width: 100%;
-		}
-		.actions {
-			align-items: stretch;
-			flex-direction: column;
+			grid-template-columns: minmax(0, 1fr);
 		}
 	}
 </style>

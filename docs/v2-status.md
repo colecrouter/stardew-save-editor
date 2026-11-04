@@ -69,3 +69,11 @@ these tasks into a replacement type system.
 For validation commands, see [CONTRIBUTING](../CONTRIBUTING.md). The
 [implementation requirements](v2-implementation.md) and
 [editor blueprint](v2-editor-blueprint.md) provide the wider migration context.
+
+## Accepted social and character presentation
+
+Character/Appearance (#238/#239) and Farmhands/Relationships (#240) are merged
+and owner-accepted. The compact farmer roster keeps native dragging, keyboard
+moves and full-body previews; relationship records keep explicit membership
+actions and farmer-owned gestures. Recipes is the next page pass. Storage, Farm
+settings, entrypoint/backups, background/overscroll and history shortcuts remain.

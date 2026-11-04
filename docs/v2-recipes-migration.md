@@ -38,8 +38,12 @@ construct legacy proxies. Static aliases are shared with the legacy view.
 
 Validation covers exact Undo/Redo preservation, independent cooking knowledge and
 progress, crafting removal, duplicate/malformed containers and keys, queued typing
-with farmer switching, and confirmed per-recipe actions. Visual refinement remains
-part of the later v2 visual pass.
+with farmer switching, and confirmed per-recipe actions. The visual pass presents a compact two-column cookbook on wide displays and
+a single column on phones. Shared fields/buttons and shorter visible actions
+retain recipe-specific accessible names; confirmation dialogs retain their full
+action labels. Descriptions and progress rules expand on demand. Missing recipe
+knowledge uses a muted paper treatment without disabling independent cooking
+counts. The 24-row initial limit and complete-catalog search remain unchanged.
 
 `generated/cookingrecipeoutputs.json` is the compact recipe-name to output-ID
 lookup used by core projections. The asset dump regenerates it from cooking

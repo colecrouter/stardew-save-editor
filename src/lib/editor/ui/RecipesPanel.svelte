@@ -165,14 +165,16 @@
 					</div>
 					<div class="recipe-controls">
 						<!-- Presentation stays compact; the binding keeps its captured farmer,
- category and Undo gesture, including the full accessible recipe name. -->
-						<NumberField
-							field={{
-								...row.fields.count,
-								label: kind === "cooking" ? "Cooked" : "Crafted items",
-							}}
-							aria-label={row.fields.count.label}
-						/>
+                             category and Undo gesture, including the full accessible recipe name. -->
+						<div class="count">
+							<NumberField
+								field={{
+									...row.fields.count,
+									label: kind === "cooking" ? "Cooked" : "Crafted items",
+								}}
+								aria-label={row.fields.count.label}
+							/>
+						</div>
 						<div class="actions">
 							{#if row.known && kind === "crafting" && (row.count ?? 0) > 0}
 								<ConfirmAction
@@ -299,8 +301,12 @@
 	section {
 		border: 2px solid #b98b52;
 		background: #fff1d2;
-		padding: 12px;
+		padding: 10px;
 		min-width: 0;
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) 100px;
+		gap: 8px 12px;
+		align-items: start;
 	}
 	section.unlearned {
 		background: #f1ddb6;
@@ -337,14 +343,15 @@
 	.description p {
 		margin: 4px 0 0;
 	}
+	/* Count sits beside identity; actions share a shallow second row. The field
+       keeps its own wrapper so validation feedback can expand without overlap. */
 	.recipe-controls {
-		display: grid;
-		grid-template-columns: minmax(0, 1fr) auto;
-		gap: 12px;
-		align-items: end;
-		margin-top: 12px;
-		border-top: 1px solid #d5b782;
-		padding-top: 10px;
+		display: contents;
+	}
+	.count {
+		grid-column: 2;
+		grid-row: 1;
+		min-width: 0;
 	}
 	.actions {
 		display: flex;
@@ -352,17 +359,10 @@
 		flex-wrap: wrap;
 		align-items: center;
 		justify-content: end;
+		grid-column: 1 / -1;
 	}
 	.actions :global(button) {
 		font-size: 16px;
-	}
-	@media (max-width: 1200px) {
-		.recipe-controls {
-			grid-template-columns: minmax(0, 1fr);
-		}
-		.actions {
-			justify-content: start;
-		}
 	}
 	@media (max-width: 700px) {
 		.recipes {
@@ -378,11 +378,32 @@
 		}
 	}
 	@media (max-width: 480px) {
+		section {
+			grid-template-columns: minmax(0, 1fr) 80px;
+			gap: 8px;
+		}
+		.recipe-summary {
+			gap: 6px;
+		}
 		h1 {
 			font-size: 28px;
 		}
 		.toolbar {
 			grid-template-columns: minmax(0, 1fr);
+		}
+	}
+	@media (max-width: 360px) {
+		.recipe-summary {
+			grid-column: 1 / -1;
+			flex-wrap: nowrap;
+		}
+		.count {
+			grid-column: 1;
+			grid-row: 2;
+		}
+		.actions {
+			grid-column: 2;
+			align-self: end;
 		}
 	}
 </style>

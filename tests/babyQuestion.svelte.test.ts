@@ -19,6 +19,7 @@ import {
 import { Raw } from "../src/lib/proxies";
 import { Friendship } from "../src/lib/proxies/Friendship.svelte";
 import BabyQuestion from "../src/routes/(edit)/relationships/BabyQuestion.svelte";
+import HeartBar from "../src/routes/(edit)/relationships/HeartBar.svelte";
 
 const today = { year: 2, season: Season.Spring, day: 10 };
 const home = { upgradeLevel: 2, cribStyle: 1, children: 0, toddlers: 0 };
@@ -375,5 +376,30 @@ describe("BabyQuestion panel", () => {
 		expect(screen.getByTestId("baby-question-status").textContent).toContain(
 			"Not eligible: 2 requirements not met",
 		);
+	});
+});
+
+describe("in a villager's row", () => {
+	it("shows the panel under the spouse, and only when given one", () => {
+		const npc = spouse();
+		const status = babyQuestionStatus(npc, today, home);
+
+		const withPanel = render(HeartBar, {
+			props: { name: "Abigail", npc, today, babyQuestion: status },
+		});
+		const row = screen.getByTestId("friendship-row");
+		const panel = screen.getByTestId("baby-question");
+		expect(row.contains(panel)).toBe(true);
+		// Below the hearts
+		const hearts = screen.getAllByTestId("friendship-heart")[0];
+		expect(
+			hearts &&
+				hearts.compareDocumentPosition(panel) &
+					Node.DOCUMENT_POSITION_FOLLOWING,
+		).toBeTruthy();
+		withPanel.unmount();
+
+		render(HeartBar, { props: { name: "Abigail", npc, today } });
+		expect(screen.queryByTestId("baby-question")).toBeNull();
 	});
 });

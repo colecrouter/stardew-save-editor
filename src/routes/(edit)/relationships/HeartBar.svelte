@@ -1,20 +1,24 @@
 <script lang="ts">
 	import { asset } from "$app/paths";
+	import type { BabyQuestionStatus } from "$lib/babyQuestion";
 	import type { GameDate } from "$lib/calendar";
 	import type { Friendship } from "$lib/proxies/Friendship.svelte";
 	import EmojiRange from "$lib/ui/EmojiRange.svelte";
 	import UiContainerSmall from "$lib/ui/UIContainerSmall.svelte";
 	import UiInput from "$lib/ui/UIInput.svelte";
 	import { Villagers } from "$lib/Villagers";
+	import BabyQuestion from "./BabyQuestion.svelte";
 
 	interface Props {
 		name: string;
 		npc: Friendship;
 		/** The save's current date, which a pregnancy is counted from */
 		today: GameDate;
+		/** The spouse's row shows whether they can ask about a baby, under their hearts */
+		babyQuestion?: BabyQuestionStatus;
 	}
 
-	let { npc, name, today }: Props = $props();
+	let { npc, name, today, babyQuestion }: Props = $props();
 
 	const description = $derived(Villagers.get(name)?.description);
 	// The name comes from the save and ends up in a CSS url(), so encode it
@@ -130,6 +134,12 @@
 			onInputChange={(value) => (npc.points = value)}
 		/>
 	</div>
+
+	{#if babyQuestion}
+		<div class="baby-question">
+			<BabyQuestion status={babyQuestion} />
+		</div>
+	{/if}
 </div>
 
 <style>
@@ -159,6 +169,11 @@
 		background: linear-gradient(#5a3978, #2e214d);
 		color: #f7d779;
 		font-size: 2rem;
+	}
+
+	/* Across the whole row, under the portrait too, so its labels don't wrap */
+	.baby-question {
+		grid-column: 1 / -1;
 	}
 
 	.main {

@@ -121,7 +121,10 @@
 			</h4>
 		</UiButton>
 	</div>
-	<BabyQuestion status={babyQuestion} pregnancy={couplePregnancy} />
+	<!-- A villager spouse's goes in their row; a player couple or no spouse has no row to hold it -->
+	{#if !spouse}
+		<BabyQuestion status={babyQuestion} pregnancy={couplePregnancy} />
+	{/if}
 	<div class="search" bind:this={searchBox}>
 		<UiInput
 			type="text"
@@ -151,7 +154,12 @@
 	</div>
 	<div class="wrapper">
 		{#each shown as [name, npc] (name)}
-			<HeartBar {name} {npc} today={save.calendar.date} />
+			<HeartBar
+				{name}
+				{npc}
+				today={save.calendar.date}
+				babyQuestion={npc === spouse ? babyQuestion : undefined}
+			/>
 		{:else}
 			{#if term}
 				<p class="empty">No villagers match "{search.trim()}".</p>

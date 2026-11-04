@@ -106,9 +106,9 @@ export function babyQuestionStatus(
 		},
 		{
 			id: "nursery",
-			label: "Farmhouse upgraded twice (nursery)",
+			label: "Nursery (2nd house upgrade)",
 			met: home.upgradeLevel >= NURSERY_UPGRADE_LEVEL,
-			detail: `House upgrade ${home.upgradeLevel} of ${NURSERY_UPGRADE_LEVEL}`,
+			detail: `Upgrade ${home.upgradeLevel} of ${NURSERY_UPGRADE_LEVEL}`,
 		},
 		{
 			id: "crib",

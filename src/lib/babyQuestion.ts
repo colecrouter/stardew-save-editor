@@ -229,8 +229,8 @@ export function playerBabyQuestionStatus(
 	);
 	const withCrib = withNursery.filter((h) => h.cribStyle !== 0);
 	const withRoom = withCrib.filter(
-			(h) => h.children < 2 && h.toddlers === h.children,
-		);
+		(h) => h.children < 2 && h.toddlers === h.children,
+	);
 	const expecting = marriage?.friendship.NextBirthingDate !== undefined;
 
 	const requirements: BabyQuestionRequirement[] = [

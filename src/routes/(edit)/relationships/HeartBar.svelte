@@ -93,7 +93,7 @@
 		{#if npc.status === "Married"}
 			<label
 				class="pregnancy"
-				title="Makes your spouse pregnant. The baby arrives overnight on the due date, if your house has been upgraded and has room for a child."
+				title="Makes the couple expect a baby. The baby arrives overnight on the due date, if your house has been upgraded and has room for a child."
 			>
 				<input
 					type="checkbox"
@@ -101,7 +101,7 @@
 					onchange={(e) => npc.setPregnant(e.currentTarget.checked, today)}
 					data-testid="friendship-pregnant"
 				/>
-				🤰 Pregnant
+				🤰 Having a baby?
 				{#if npc.pregnant}
 					<UiInput
 						type="number"

@@ -173,6 +173,8 @@
 		   dialogs. Keep the rest of the editor's warm button theme unchanged. */
 		--ui-control-bg: #eee5f6;
 		--ui-control-text: #432d62;
+		--ui-control-inset: #c6afd9;
+		--ui-control-highlight: #fbf7ff;
 		--ui-border-dark: #74578f;
 		--ui-border-light: #b39cc6;
 		border-color: #39315a;

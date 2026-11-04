@@ -64,9 +64,11 @@
 	padding: 5px 9px;
 	border-radius: 2px;
 	border-width: 2px;
+	/* Feature palettes must also reach the bevel, rather than leaving warm
+	   highlights inside otherwise themed controls. */
 	box-shadow:
-		inset 1px 2px #d8c3a1,
-		0 1px #fff4d9;
+		inset 1px 2px var(--ui-control-inset, #d8c3a1),
+		0 1px var(--ui-control-highlight, #fff4d9);
 	font-size: 21px;
 	min-height: 38px;
 }

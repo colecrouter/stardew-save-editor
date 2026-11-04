@@ -238,12 +238,12 @@
 		cursor: pointer;
 		border-radius: 3px;
 		padding: 0 0.25em;
+		outline: none;
 	}
 
 	li .copy:hover,
 	li .copy:focus-visible {
 		background-color: rgba(142, 61, 4, 0.25);
-		outline: 1px solid #8e3d04;
 	}
 
 	.noselect {

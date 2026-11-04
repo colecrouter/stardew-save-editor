@@ -243,6 +243,11 @@
 		border: 1px solid #d3d3d3;
 	}
 
+	li .copy:hover code,
+	li .copy:focus-visible code {
+		border-color: gold;
+	}
+
 	.noselect {
 		user-select: none;
 	}

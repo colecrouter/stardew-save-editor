@@ -270,7 +270,9 @@ export function playerBabyQuestionStatus(
 					? "Needs the nursery and crib"
 					: withRoom.length > 0
 						? "Room for a child"
-						: "Already has 2 children",
+						: withCrib.every((h) => h.children >= 2)
+							? "Already has 2 children"
+							: "A child isn't a toddler yet",
 		},
 		{
 			id: "not-pregnant",

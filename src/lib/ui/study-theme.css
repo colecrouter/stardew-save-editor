@@ -88,9 +88,6 @@
 	min-height: 38px;
 }
 
-body:has(.study-theme) {
-	background: radial-gradient(ellipse at 50% 35%, #4c8490, #285f6d);
-}
 main:has(> .study-theme) {
 	padding: 8px 8px 24px;
 	min-height: 0;
@@ -164,4 +161,49 @@ body:has(.study-theme) a[aria-label="GitHub repository link"] > img {
 main:has(> .study-theme) ~ small {
 	max-width: calc(100% - 32px);
 	font-size: 12px;
+}
+
+/* Technical identifiers need a distinct, readable treatment on parchment.
+   Inline values may wrap; blocks retain whitespace and scroll within their owner. */
+.study-theme code,
+.study-kit code,
+.study-theme pre,
+.study-kit pre {
+	font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+	font-size: 0.78em;
+	line-height: 1.5;
+	color: var(--study-ink, #311304);
+	background: var(--study-code-surface, #f1dcba);
+	border: 1px solid var(--study-code-rule, #c8a574);
+	border-radius: 2px;
+	text-shadow: none;
+}
+.study-theme code,
+.study-kit code {
+	padding: 0.1em 0.3em;
+	overflow-wrap: anywhere;
+	box-decoration-break: clone;
+	-webkit-box-decoration-break: clone;
+}
+.study-theme pre,
+.study-kit pre {
+	min-width: 0;
+	max-width: 100%;
+	overflow: auto;
+	padding: 12px;
+	margin: 12px 0;
+	scrollbar-color: #a57542 #f1dcba;
+}
+/* Nested code inherits the block's type size; do not draw a second paper box
+   or repeatedly shrink text when a renderer emits the usual pre/code pair. */
+.study-theme pre code,
+.study-kit pre code {
+	font-size: inherit;
+	line-height: inherit;
+	color: inherit;
+	background: transparent;
+	border: 0;
+	border-radius: 0;
+	padding: 0;
+	overflow-wrap: normal;
 }

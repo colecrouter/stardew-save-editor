@@ -36,6 +36,7 @@
 	let needed = $state(1);
 	let adding = $state(false);
 	let dragging = $state<number>();
+	let dragBlocked = $state(false);
 	let dropTarget = $state<number>();
 	let announcement = $state("");
 	const reorderHelpId = $props.id();
@@ -72,6 +73,7 @@
 		}
 		dragging = undefined;
 		dropTarget = undefined;
+		dragBlocked = false;
 		announcement = "";
 		open = value;
 	}
@@ -109,8 +111,15 @@
 			if (handle.isConnected) handle.focus();
 		});
 	}
+	function prepareDrag(event: PointerEvent) {
+		// The row is the drag surface, but selecting a value or using an action
+		// must remain a native control gesture rather than moving a requirement.
+		dragBlocked =
+			event.target instanceof Element &&
+			!!event.target.closest("input, select, textarea, button:not(.handle), a");
+	}
 	function startDrag(event: DragEvent, id: number) {
-		if (busy) {
+		if (busy || dragBlocked) {
 			event.preventDefault();
 			return;
 		}
@@ -188,7 +197,8 @@
 			{/if}
 		{:else}
 			<p class="sr-only" id={reorderHelpId}>
-				Drag a handle to reorder, or focus it and press Arrow Up or Arrow Down.
+				Drag a row to reorder, or focus its handle and press Arrow Up or Arrow
+				Down.
 			</p>
 			<p class="sr-only" role="status">{announcement}</p>
 			<div class="rows">
@@ -198,6 +208,14 @@
 						class="ingredient"
 						class:drop-target={dropTarget === row.id && dragging !== row.id}
 						role="group"
+						draggable={!busy && !dragBlocked}
+						onpointerdown={prepareDrag}
+						ondragstart={(event) => startDrag(event, row.id)}
+						ondragend={() => {
+							dragging = undefined;
+							dropTarget = undefined;
+							dragBlocked = false;
+						}}
 						aria-label={`Requirement ${index + 1}: ${ingredientName(row.itemId)}`}
 						ondragover={(event) => dragOver(event, row.id)}
 						ondrop={(event) => drop(event, index)}
@@ -205,16 +223,10 @@
 						<button
 							type="button"
 							class="handle"
-							draggable={!busy}
 							aria-label={`Reorder requirement ${index + 1}: ${ingredientName(row.itemId)}`}
 							aria-describedby={reorderHelpId}
 							aria-keyshortcuts="ArrowUp ArrowDown"
 							onkeydown={(event) => reorderKey(event, row, index)}
-							ondragstart={(event) => startDrag(event, row.id)}
-							ondragend={() => {
-								dragging = undefined;
-								dropTarget = undefined;
-							}}
 						>
 							<svg
 								width="10"
@@ -385,6 +397,7 @@
 		gap: 12px;
 	}
 	.ingredient {
+		cursor: grab;
 		display: grid;
 		grid-template-columns:
 			28px minmax(120px, 2fr) minmax(70px, 1fr) minmax(100px, 1fr)
@@ -395,6 +408,12 @@
 		padding-bottom: 12px;
 	}
 	/* Paint the drop marker inside the row so dragging cannot shift neighbours. */
+	.ingredient input {
+		cursor: text;
+	}
+	.ingredient select {
+		cursor: default;
+	}
 	.ingredient.drop-target {
 		box-shadow: inset 0 -2px 0 var(--study-accent, #4c7029);
 	}

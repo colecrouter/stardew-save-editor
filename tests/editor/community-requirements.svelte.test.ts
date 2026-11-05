@@ -157,7 +157,15 @@ it(
 				effectAllowed: "",
 				dropEffect: "",
 			};
-			await fireEvent.dragStart(handle, { dataTransfer });
+			const source = within(dialog).getByRole("group", {
+				name: `Requirement 2: ${firstName}`,
+			});
+			// Native control gestures must not be stolen by the row's drag surface.
+			await fireEvent.pointerDown(within(source).getByRole("spinbutton"));
+			expect(await fireEvent.dragStart(source, { dataTransfer })).toBe(false);
+			// Start on the item name rather than the handle to exercise whole-row dragging.
+			await fireEvent.pointerDown(within(source).getByText(firstName));
+			await fireEvent.dragStart(source, { dataTransfer });
 			const target = within(dialog).getByRole("group", {
 				name: /^Requirement 3:/,
 			});

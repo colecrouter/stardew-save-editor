@@ -283,7 +283,7 @@
 		     sprites then request their sheets. This boundary can also load locale data
 		     in future. Keep the consumer mounted so selection survives navigation. -->
 		{#if inventoryOpened}
-			<div hidden={tab !== "inventory"}>
+			<div class="inventory-section" hidden={tab !== "inventory"}>
 				{#await import("./BackpackPanel.svelte")}
 					<p role="status">Loading inventory…</p>
 				{:then panel}
@@ -399,6 +399,14 @@
 </div>
 
 <style>
+	/* The desktop workbench receives the parchment's available content height;
+       item-specific details must scroll within it rather than resize the page. */
+	@media (min-width: 1151px) {
+		.inventory-section {
+			height: 100%;
+			min-height: 0;
+		}
+	}
 	.section-picker {
 		display: none;
 	}

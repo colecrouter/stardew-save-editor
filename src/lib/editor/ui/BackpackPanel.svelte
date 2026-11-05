@@ -56,6 +56,8 @@
 	let removing = $state(false);
 	let moving = $state(false);
 	let inventory = $state<HTMLDivElement>();
+	let inspector = $state<HTMLDivElement>();
+	let possessions = $state<HTMLDivElement>();
 	const dragToken = $props.id();
 	const inspectorId = `${dragToken}-details`;
 	// Effects/events connect these peers after initialization. Cross-controller
@@ -71,6 +73,9 @@
 			void model.commands.selectFarmer(id);
 		},
 		onChoose: () => {
+			// A newly selected slot starts at the beginning of its own detail pane.
+			// Leave the possessions pane and outer page exactly where they were.
+			if (inspector) inspector.scrollTop = 0;
 			drag.clearHighlight();
 			operationError = "";
 		},
@@ -80,6 +85,7 @@
 		owners: () => owners,
 		visibleOwners: () => [backpack, selection.chest],
 		root: () => inventory,
+		scrollRoot: () => possessions,
 		movePending: () => moving,
 		selectedEntity: () => selection.entityId,
 		ownerOf: selection.ownerOf,
@@ -243,182 +249,246 @@
 	</button>
 {/snippet}
 
-<div class="inventory-heading">
-	<div>
-		<h1>Inventory</h1>
+<div class="inventory-workbench">
+	<div class="inventory-heading">
+		<div>
+			<h1>Inventory</h1>
 
-		<a class="detail-link" href={`#${inspectorId}`}>Selected item</a>
+			<a class="detail-link" href={`#${inspectorId}`}>Selected item</a>
+		</div>
+		<FarmerSelector field={farmerField} />
 	</div>
-	<FarmerSelector field={farmerField} />
-</div>
-{#if (!backpack || !backpack.supported) && chests.length === 0}
-	<p role="status">
-		{backpack?.reason ?? "No supported backpack is available."} Other save settings
-		remain available.
-	</p>
-{:else}
-	<!-- The same workbench geometry serves occupied, empty and equipped slots.
+	{#if (!backpack || !backpack.supported) && chests.length === 0}
+		<p role="status">
+			{backpack?.reason ?? "No supported backpack is available."} Other save settings
+			remain available.
+		</p>
+	{:else}
+		<!-- The same workbench geometry serves occupied, empty and equipped slots.
 	     Only the detail content changes; the grids remain stable drag targets. -->
-	<div class="inventory-layout" bind:this={inventory}>
-		<div class="possessions">
-			{#if backpack?.supported}
-				<section aria-label={`${backpack.name}'s equipment`} class="equipment">
-					<h2>Equipment</h2>
-					<div class="equipment-slots">
-						{#each equipment as item (item.entityId)}
-							<div class="equipment-entry">
-								<span class="equipment-label">{item.label}</span>
-								{@render slot(item)}
-							</div>
-						{/each}
-					</div>
-				</section>
-				<section aria-label={`${backpack.name}'s backpack`} class="backpack">
-					<div class="backpack-heading">
-						<h2>Backpack</h2>
-						<span>{backpack.slots.length} slots</span>
-						<button
-							class="study-button"
-							type="button"
-							disabled={organizing || moving}
-							onclick={() => void organize(backpack.ownerId)}
-						>
-							Organize backpack
-						</button>
-					</div>
-					<div class="slots">
-						{#each backpack.slots as item (item.entityId)}
-							{@render slot(item)}
-						{/each}
-					</div>
-				</section>
-			{:else}
-				<p role="status">
-					{backpack?.reason ?? "No supported backpack is available."} Chest inventories
-					remain available below.
-				</p>
-			{/if}
-
-			<section class="chest" aria-label="Chest inventory">
-				<div class="backpack-heading">
-					<h2>Chests</h2>
-					{#if chest}
-						<span>{chest.slots.length} slots</span>
-						<button
-							class="study-button"
-							type="button"
-							disabled={!chest.supported || organizing || moving}
-							onclick={() => void organize(chest.ownerId)}
-						>
-							Organize chest
-						</button>
-					{/if}
-				</div>
-				{#if chests.length}
-					<div class="chest-controls">
-						<label>
-							Find a chest
-							<input
-								type="search"
-								placeholder="Name or location"
-								bind:value={
-									() => selection.query, (value) => selection.search(value)
-								}
-							/>
-						</label>
-						{#if matchingChests.length}
-							<label>
-								Chest
-								<select
-									bind:value={
-										() => chest?.ownerId,
-										(value) => selection.selectChest(value)
-									}
-								>
-									{#each matchingChests as owner (owner.ownerId)}
-										<option value={owner.ownerId}>{owner.name}</option>
-									{/each}
-								</select>
-							</label>
-						{/if}
-					</div>
-					{#if chest}
-						<p class="chest-location">{chest.location}</p>
-						{#if chest.supported}
-							<div class="slots" aria-label={chest.name}>
-								{#each chest.slots as item (item.entityId)}
+		<div class="inventory-layout" bind:this={inventory}>
+			<div class="possessions" bind:this={possessions}>
+				{#if backpack?.supported}
+					<section
+						aria-label={`${backpack.name}'s equipment`}
+						class="equipment"
+					>
+						<h2>Equipment</h2>
+						<div class="equipment-slots">
+							{#each equipment as item (item.entityId)}
+								<div class="equipment-entry">
+									<span class="equipment-label">{item.label}</span>
 									{@render slot(item)}
-								{/each}
-							</div>
-						{:else}
-							<p role="status">{chest.reason}</p>
-						{/if}
-					{:else}
-						<p role="status">No chests match. Try another name or location.</p>
-					{/if}
+								</div>
+							{/each}
+						</div>
+					</section>
+					<section aria-label={`${backpack.name}'s backpack`} class="backpack">
+						<div class="backpack-heading">
+							<h2>Backpack</h2>
+							<span>{backpack.slots.length} slots</span>
+							<button
+								class="study-button"
+								type="button"
+								disabled={organizing || moving}
+								onclick={() => void organize(backpack.ownerId)}
+							>
+								Organize backpack
+							</button>
+						</div>
+						<div class="slots">
+							{#each backpack.slots as item (item.entityId)}
+								{@render slot(item)}
+							{/each}
+						</div>
+					</section>
 				{:else}
-					<p class="chest-location">
-						No placed chests were found in this save.
+					<p role="status">
+						{backpack?.reason ?? "No supported backpack is available."} Chest inventories
+						remain available below.
 					</p>
 				{/if}
-			</section>
-		</div>
-		<div
-			class="inspector"
-			id={inspectorId}
-			role="group"
-			aria-label="Selected slot details"
-			tabindex="-1"
-		>
-			<div class="inspector-heading">Selected slot</div>
-			{#if selectedOwner && selected && !selected.empty}
-				{#key JSON.stringify([selectedOwner?.ownerId, selected.entityId])}
-					<BackpackItemEditor
-						{model}
-						ownerId={selectedOwner.ownerId}
-						inventoryKind={selectedOwner.kind === "chest"
+
+				<section class="chest" aria-label="Chest inventory">
+					<div class="backpack-heading">
+						<h2>Chests</h2>
+						{#if chest}
+							<span>{chest.slots.length} slots</span>
+							<button
+								class="study-button"
+								type="button"
+								disabled={!chest.supported || organizing || moving}
+								onclick={() => void organize(chest.ownerId)}
+							>
+								Organize chest
+							</button>
+						{/if}
+					</div>
+					{#if chests.length}
+						<div class="chest-controls">
+							<label>
+								Find a chest
+								<input
+									type="search"
+									placeholder="Name or location"
+									bind:value={
+										() => selection.query, (value) => selection.search(value)
+									}
+								/>
+							</label>
+							{#if matchingChests.length}
+								<label>
+									Chest
+									<select
+										bind:value={
+											() => chest?.ownerId,
+											(value) => selection.selectChest(value)
+										}
+									>
+										{#each matchingChests as owner (owner.ownerId)}
+											<option value={owner.ownerId}>{owner.name}</option>
+										{/each}
+									</select>
+								</label>
+							{/if}
+						</div>
+						{#if chest}
+							<p class="chest-location">{chest.location}</p>
+							{#if chest.supported}
+								<div class="slots" aria-label={chest.name}>
+									{#each chest.slots as item (item.entityId)}
+										{@render slot(item)}
+									{/each}
+								</div>
+							{:else}
+								<p role="status">{chest.reason}</p>
+							{/if}
+						{:else}
+							<p role="status">
+								No chests match. Try another name or location.
+							</p>
+						{/if}
+					{:else}
+						<p class="chest-location">
+							No placed chests were found in this save.
+						</p>
+					{/if}
+				</section>
+			</div>
+			<div
+				class="inspector"
+				bind:this={inspector}
+				id={inspectorId}
+				role="group"
+				aria-label="Selected slot details"
+				tabindex="-1"
+			>
+				<div class="inspector-heading">Selected slot</div>
+				{#if selectedOwner && selected && !selected.empty}
+					{#key JSON.stringify([selectedOwner?.ownerId, selected.entityId])}
+						<BackpackItemEditor
+							{model}
+							ownerId={selectedOwner.ownerId}
+							inventoryKind={selectedOwner.kind === "chest"
+								? "chest"
+								: "backpack"}
+							item={selected}
+							locationLabel={isEquipment(selected)
+								? selected.label
+								: selectedOwner?.kind === "chest"
+									? `${selectedOwner.name} · Slot ${selected.slot + 1}`
+									: undefined}
+							onremove={isEquipment(selected) ? undefined : removeSelected}
+							{removing}
+						/>
+					{/key}
+				{:else if selected && isEquipment(selected)}
+					<section class="empty-detail" aria-label="Empty equipment slot">
+						<h2>{selected.label}</h2>
+						<p>
+							{selected.locked
+								? "This slot is locked in this save."
+								: "Drag a compatible item here from the backpack."}
+						</p>
+					</section>
+				{:else if selected?.empty}
+					<BackpackItemPicker
+						slot={selected.slot}
+						inventoryKind={selectedOwner?.kind === "chest"
 							? "chest"
 							: "backpack"}
-						item={selected}
-						locationLabel={isEquipment(selected)
-							? selected.label
-							: selectedOwner?.kind === "chest"
-								? `${selectedOwner.name} · Slot ${selected.slot + 1}`
-								: undefined}
-						onremove={isEquipment(selected) ? undefined : removeSelected}
-						{removing}
+						entries={catalogChoices}
+						error={operationError}
+						onadd={(id) => changeSlot({ kind: "add", catalogId: id })}
 					/>
-				{/key}
-			{:else if selected && isEquipment(selected)}
-				<section class="empty-detail" aria-label="Empty equipment slot">
-					<h2>{selected.label}</h2>
-					<p>
-						{selected.locked
-							? "This slot is locked in this save."
-							: "Drag a compatible item here from the backpack."}
+				{:else}
+					<p role="status">
+						The selected item is no longer available. Select another slot.
 					</p>
-				</section>
-			{:else if selected?.empty}
-				<BackpackItemPicker
-					slot={selected.slot}
-					inventoryKind={selectedOwner?.kind === "chest" ? "chest" : "backpack"}
-					entries={catalogChoices}
-					error={operationError}
-					onadd={(id) => changeSlot({ kind: "add", catalogId: id })}
-				/>
-			{:else}
-				<p role="status">
-					The selected item is no longer available. Select another slot.
-				</p>
-			{/if}
-			{#if operationError && !browsing}
-				<p role="status" class="operation-error">{operationError}</p>
-			{/if}
+				{/if}
+				{#if operationError && !browsing}
+					<p role="status" class="operation-error">{operationError}</p>
+				{/if}
+			</div>
 		</div>
-	</div>
-{/if}
+	{/if}
+</div>
 
 <style>
+	.inventory-workbench {
+		min-width: 0;
+	}
+	/* Only side-by-side layouts share a fixed viewport budget. A taller picker,
+       property editor or backpack changes its own pane, never the peer targets. */
+	@media (min-width: 1151px) {
+		.inventory-workbench {
+			height: 100%;
+			min-height: 0;
+			display: flex;
+			flex-direction: column;
+		}
+		.inventory-heading {
+			flex: none;
+		}
+		.inventory-workbench .inventory-layout {
+			flex: 1;
+			min-height: 0;
+			align-items: stretch;
+		}
+		.possessions,
+		.inventory-layout > .inspector {
+			min-height: 0;
+			height: 100%;
+			overflow: auto;
+			scrollbar-gutter: stable;
+			scrollbar-color: #a57542 #fff0d0;
+		}
+		/* Leave room for slot focus rings and drag outlines inside the viewport. */
+		.possessions {
+			padding: 4px 8px 4px 4px;
+		}
+		@supports not (scrollbar-gutter: stable) {
+			.possessions,
+			.inventory-layout > .inspector {
+				overflow-y: scroll;
+			}
+		}
+		.possessions::-webkit-scrollbar,
+		.inventory-layout > .inspector::-webkit-scrollbar {
+			width: 12px;
+			height: 12px;
+		}
+		.possessions::-webkit-scrollbar-track,
+		.inventory-layout > .inspector::-webkit-scrollbar-track {
+			background: #fff0d0;
+		}
+		.possessions::-webkit-scrollbar-thumb,
+		.inventory-layout > .inspector::-webkit-scrollbar-thumb {
+			background: #a57542;
+			border: 3px solid #fff0d0;
+			border-radius: 6px;
+		}
+	}
 	.detail-link {
 		display: none;
 		color: #694621;

@@ -54,7 +54,7 @@
 							<code>FarmName_123456789</code>
 							(not
 							<code>SaveGameInfo</code>
-							 or a ZIP). Supports Stardew Valley 1.6.x saves; older versions cannot
+							or a ZIP). Supports Stardew Valley 1.6.x saves; older versions cannot
 							be opened.
 						</p>
 					</div>

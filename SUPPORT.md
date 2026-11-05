@@ -61,6 +61,18 @@ not a promise that a browser can access them; see the
    before making further edits. If changes disappear, check whether cloud sync
    restored a different copy.
 
+### Keyboard Undo and Redo
+
+On macOS, use **⌘Z** to Undo and **⇧⌘Z** to Redo. On Windows/Linux, use
+**Ctrl+Z** to Undo and **Ctrl+Y** or **Ctrl+Shift+Z** to Redo. Hover the history
+buttons for the shortcuts; their accessible shortcut hints follow your platform.
+
+While a text/number field or another editable control has focus, these shortcuts
+belong to the browser’s native editing history. Leave the field to use save-history
+shortcuts, or click the editor’s Undo/Redo buttons. Save-history shortcuts are
+suspended while a dialog or help popover is open, and holding a key does not
+repeat save-history actions.
+
 Export writes XML, even when the imported save was compressed; it does not preserve
 compression or byte-for-byte formatting. A successful import can archive the exact
 original bytes, including compressed data. Changing a filename alone does not

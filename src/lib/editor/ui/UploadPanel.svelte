@@ -50,14 +50,11 @@
 							}}
 						/>
 						<p id="save-file-help">
-							Choose the main save from your farm’s folder, usually named like <span
-								class="filename"
-							>
-								FarmName_123456789
-							</span>
-							. Not
-							<span class="filename">SaveGameInfo</span>
-							or a ZIP. Supports Stardew Valley 1.6.x saves; older versions cannot
+							Choose the main save from your farm’s folder, usually named like
+							<code>FarmName_123456789</code>
+							(not
+							<code>SaveGameInfo</code>
+							 or a ZIP). Supports Stardew Valley 1.6.x saves; older versions cannot
 							be opened.
 						</p>
 					</div>
@@ -199,11 +196,6 @@
 		color: #735436;
 		font-size: 19px;
 		line-height: 1.35;
-	}
-	.filename {
-		white-space: normal;
-		overflow-wrap: anywhere;
-		color: #492c15;
 	}
 	.guide {
 		padding-left: 28px;

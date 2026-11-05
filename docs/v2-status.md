@@ -76,6 +76,14 @@ Character/Appearance (#238/#239) and Farmhands/Relationships (#240) are merged
 and owner-accepted. The compact farmer roster keeps native dragging, keyboard
 moves and full-body previews; relationship records keep explicit membership
 actions and farmer-owned gestures. Recipes (#244) and Storage (#245) are also merged and owner-accepted. Farm
-settings is the current visual pass, retaining the shared immediate fields and
-using the common panel/callout kit. Entrypoint/backups, background/overscroll and
-history shortcuts remain.
+settings (#246), entrypoint/original backups and document-canvas wallpaper (#249),
+history shortcuts (#250), and Inventory stability (#251) are merged and owner-accepted.
+The [Inventory validation](v2-inventory-layout-validation.md) records measured
+selection/scroll behavior and its narrow-layout scope.
+
+The active work is final foundation reconciliation and the concrete #219 checks,
+not another round of UI porting. Events needs an explicit final visual disposition;
+native screen-reader/select-menu behavior and macOS rubber-band confirmation remain
+qualification gaps. The [final foundation checkpoint](v2-foundation-validation.md) records the current
+page dispositions, native keyboard evidence, export failure fix and remaining checks. #218 owns visual acceptance, #219 owns interaction/failure qualification,
+#201 owns agreed performance criteria, and #220 owns default-route cutover.

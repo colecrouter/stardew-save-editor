@@ -20,8 +20,8 @@ Center/Joja, farmhand reassignment, inventory/storage parity and original backup
 management. The [independent porting audit](v2-porting-audit.md) records core fixes
 and nonblocking P3 follow-ups. Stack splitting/merging remain intentionally
 deferred. General non-Qi special orders, pets/children, location editing and the
-planned parser replacement are separate feature work. Visual/device release
-validation and the deliberate application cutover still remain.
+planned parser replacement are separate feature work. Foundation visual/device validation is owner-accepted; the deliberate application
+cutover remains separate.
 
 ## Extension contract
 
@@ -50,18 +50,21 @@ records immutable internal sharing and cached review comparisons; feature-view
 invalidation and browser budgets were its follow-ups.
 The [domain projection boundary](v2-domain-projections.md) now removes raw item data
 from components and shares immutable chest views across unrelated revisions;
-browser budgets and remaining copying costs are still outstanding. Grouping Undo does not eliminate the
+the [final browser qualification](v2-performance-qualification.md) records the agreed
+budgets and their qualified disposition. Grouping Undo does not eliminate the
 cost of each immediate write.
 
 - [#201: measured editing latency and performance budgets](https://github.com/colecrouter/stardew-save-editor/issues/201)
-  owns remaining whole-save work and active-gesture memory accounting.
+  records completed browser edit/navigation and lifecycle qualification, including
+  accepted synthetic navigation exceptions and a retained cold-navigation outlier.
 - [#202: inventory controllers and legacy metadata adapters](https://github.com/colecrouter/stardew-save-editor/issues/202)
   is covered by centralized metadata adaptation, feature-local interaction
   controllers, and the [inventory API vocabulary](v2-inventory-interactions.md).
   Shared containers use owner keys; request, resolved action, staged metadata and
   committed completion types have distinct names.
 
-#201 remains open for budget agreement and broader workflow/device validation.
+#201 qualification is complete; see the [final browser report](v2-performance-qualification.md)
+for raw evidence and limits.
 The #202 cleanup is complete through #215. The
 owner's planned XML/parser/raw-type replacement is separate; avoid broadening
 these tasks into a replacement type system.
@@ -81,9 +84,9 @@ history shortcuts (#250), and Inventory stability (#251) are merged and owner-ac
 The [Inventory validation](v2-inventory-layout-validation.md) records measured
 selection/scroll behavior and its narrow-layout scope.
 
-The active work is final foundation reconciliation and the concrete #219 checks,
-not another round of UI porting. Events needs an explicit final visual disposition;
-native screen-reader/select-menu behavior and macOS rubber-band confirmation remain
-qualification gaps. The [final foundation checkpoint](v2-foundation-validation.md) records the current
-page dispositions, native keyboard evidence, export failure fix and remaining checks. #218 owns visual acceptance, #219 owns interaction/failure qualification,
-#201 owns agreed performance criteria, and #220 owns default-route cutover.
+The owner accepted the final foundation pass, including Events, and explicitly
+confirmed VoiceOver, the native section menu and macOS rubber-band scrolling.
+#218 and #219 are closed; those checks are no longer qualification gaps. The [final foundation checkpoint](v2-foundation-validation.md) records the current
+page dispositions, native keyboard evidence, export failure fix and the automated scope. #218 records visual acceptance, #219
+records interaction/failure qualification, #201 records performance qualification,
+and #220 owns the remaining default-route cutover decision.

@@ -1,0 +1,1845 @@
+{
+	"measuredAt": "2026-11-05T20:15:56.998Z",
+	"mode": "lab",
+	"source": {
+		"commit": "b8b5186f02cc4e2a7da1316c1f56eb5fe0de318f",
+		"before": "e6c49f1e0cd7f6e03c79e02cc84416cbb0fe47640f3a5cdedc2bb0d203b9790b",
+		"harness": "61621091aebd7a21b3667a7c310b3e7b57f7c4100c2a7e1d595edf842297492c",
+		"after": "e6c49f1e0cd7f6e03c79e02cc84416cbb0fe47640f3a5cdedc2bb0d203b9790b",
+		"stable": true
+	},
+	"runtime": {
+		"node": "v24.22.2",
+		"platform": "darwin",
+		"os": "27.2.0",
+		"cpu": "Apple M4 Pro",
+		"loadAtStart": [1.47119140625, 1.97119140625, 2.37744140625],
+		"browser": "156.0.8078.4"
+	},
+	"fixtures": {
+		"public": {
+			"sha256": "16f6dfe6a94d84f7a3c36e26850b0efc9bfb72ddd1261857d1bab57a0529aae9",
+			"bytes": 6652242
+		},
+		"large": {
+			"sha256": "4a2e22fa6e3e004d09b224ecc7710facfc9d63b389accb5bdf0c2c603e7a825a",
+			"bytes": 7063901,
+			"slots": 9012
+		}
+	},
+	"configuration": {
+		"url": "http://127.0.0.1:4269/stardew-save-editor/v2",
+		"samples": 8,
+		"warmups": 2,
+		"pacedNominalGapMs": 50,
+		"eventTimingDurationThresholdMs": 16
+	},
+	"cases": [
+		{
+			"id": "narrow4x-large-all-open",
+			"fixture": "large",
+			"viewport": {
+				"width": 390,
+				"height": 900
+			},
+			"cpu": 4,
+			"allOpen": true,
+			"firstInventoryMs": 110.29999995231628,
+			"farm": {
+				"settled": {
+					"inputs": [
+						{
+							"phase": "settled",
+							"value": "Warm1a",
+							"started": 11787.600000023842,
+							"trusted": true,
+							"sequence": 0
+						},
+						{
+							"phase": "settled",
+							"value": "Warm1ab",
+							"started": 11957,
+							"trusted": true,
+							"sequence": 1
+						},
+						{
+							"phase": "settled",
+							"value": "Warm1abc",
+							"started": 12115.200000047684,
+							"trusted": true,
+							"sequence": 2
+						},
+						{
+							"phase": "settled",
+							"value": "Warm1abcd",
+							"started": 12271.300000071526,
+							"trusted": true,
+							"sequence": 3
+						},
+						{
+							"phase": "settled",
+							"value": "Warm1abcde",
+							"started": 12429.700000047684,
+							"trusted": true,
+							"sequence": 4
+						},
+						{
+							"phase": "settled",
+							"value": "Warm1abcdef",
+							"started": 12588.300000071526,
+							"trusted": true,
+							"sequence": 5
+						},
+						{
+							"phase": "settled",
+							"value": "Warm1abcdefg",
+							"started": 12751.100000023842,
+							"trusted": true,
+							"sequence": 6
+						},
+						{
+							"phase": "settled",
+							"value": "Warm1abcdefgh",
+							"started": 12915.800000071526,
+							"trusted": true,
+							"sequence": 7
+						}
+					],
+					"commits": [
+						{
+							"phase": "settled",
+							"value": "Warm1a",
+							"started": 11787.600000023842,
+							"trusted": true,
+							"sequence": 0,
+							"committed": 11852.600000023842,
+							"commitMs": 65,
+							"frameMs": 66.89999997615814
+						},
+						{
+							"phase": "settled",
+							"value": "Warm1ab",
+							"started": 11957,
+							"trusted": true,
+							"sequence": 1,
+							"committed": 12017.100000023842,
+							"commitMs": 60.10000002384186,
+							"frameMs": 61.40000009536743
+						},
+						{
+							"phase": "settled",
+							"value": "Warm1abc",
+							"started": 12115.200000047684,
+							"trusted": true,
+							"sequence": 2,
+							"committed": 12174.300000071526,
+							"commitMs": 59.10000002384186,
+							"frameMs": 60.89999997615814
+						},
+						{
+							"phase": "settled",
+							"value": "Warm1abcd",
+							"started": 12271.300000071526,
+							"trusted": true,
+							"sequence": 3,
+							"committed": 12331.5,
+							"commitMs": 60.199999928474426,
+							"frameMs": 62.10000002384186
+						},
+						{
+							"phase": "settled",
+							"value": "Warm1abcde",
+							"started": 12429.700000047684,
+							"trusted": true,
+							"sequence": 4,
+							"committed": 12489.200000047684,
+							"commitMs": 59.5,
+							"frameMs": 61.10000002384186
+						},
+						{
+							"phase": "settled",
+							"value": "Warm1abcdef",
+							"started": 12588.300000071526,
+							"trusted": true,
+							"sequence": 5,
+							"committed": 12646.800000071526,
+							"commitMs": 58.5,
+							"frameMs": 60.39999997615814
+						},
+						{
+							"phase": "settled",
+							"value": "Warm1abcdefg",
+							"started": 12751.100000023842,
+							"trusted": true,
+							"sequence": 6,
+							"committed": 12813.5,
+							"commitMs": 62.39999997615814,
+							"frameMs": 64.89999997615814
+						},
+						{
+							"phase": "settled",
+							"value": "Warm1abcdefgh",
+							"started": 12915.800000071526,
+							"trusted": true,
+							"sequence": 7,
+							"committed": 12980.900000095367,
+							"commitMs": 65.10000002384186,
+							"frameMs": 67
+						}
+					],
+					"mismatches": [],
+					"value": "Warm1abcdefgh",
+					"baseline": "Warm1",
+					"groupedUndoRedoExact": true,
+					"latency": {
+						"samples": [
+							65, 60.10000002384186, 59.10000002384186, 60.199999928474426,
+							59.5, 58.5, 62.39999997615814, 65.10000002384186
+						],
+						"medianMs": 60.14999997615814,
+						"maxMs": 65.10000002384186
+					},
+					"drainMs": 1193.3000000715256
+				},
+				"paced": {
+					"inputs": [
+						{
+							"phase": "paced",
+							"value": "Warm1abcdefghi",
+							"started": 13848.300000071526,
+							"trusted": true,
+							"sequence": 0
+						},
+						{
+							"phase": "paced",
+							"value": "Warm1abcdefghij",
+							"started": 14053.5,
+							"trusted": true,
+							"sequence": 1
+						},
+						{
+							"phase": "paced",
+							"value": "Warm1abcdefghijk",
+							"started": 14263.300000071526,
+							"trusted": true,
+							"sequence": 2
+						},
+						{
+							"phase": "paced",
+							"value": "Warm1abcdefghijkl",
+							"started": 14469.5,
+							"trusted": true,
+							"sequence": 3
+						},
+						{
+							"phase": "paced",
+							"value": "Warm1abcdefghijklm",
+							"started": 14676.400000095367,
+							"trusted": true,
+							"sequence": 4
+						},
+						{
+							"phase": "paced",
+							"value": "Warm1abcdefghijklmn",
+							"started": 14883.200000047684,
+							"trusted": true,
+							"sequence": 5
+						},
+						{
+							"phase": "paced",
+							"value": "Warm1abcdefghijklmno",
+							"started": 15088.600000023842,
+							"trusted": true,
+							"sequence": 6
+						},
+						{
+							"phase": "paced",
+							"value": "Warm1abcdefghijklmnop",
+							"started": 15305.600000023842,
+							"trusted": true,
+							"sequence": 7
+						}
+					],
+					"commits": [
+						{
+							"phase": "paced",
+							"value": "Warm1abcdefghi",
+							"started": 13848.300000071526,
+							"trusted": true,
+							"sequence": 0,
+							"committed": 13907.400000095367,
+							"commitMs": 59.10000002384186,
+							"frameMs": 60.60000002384186
+						},
+						{
+							"phase": "paced",
+							"value": "Warm1abcdefghij",
+							"started": 14053.5,
+							"trusted": true,
+							"sequence": 1,
+							"committed": 14116.800000071526,
+							"commitMs": 63.300000071525574,
+							"frameMs": 65.10000002384186
+						},
+						{
+							"phase": "paced",
+							"value": "Warm1abcdefghijk",
+							"started": 14263.300000071526,
+							"trusted": true,
+							"sequence": 2,
+							"committed": 14321.900000095367,
+							"commitMs": 58.60000002384186,
+							"frameMs": 59.89999997615814
+						},
+						{
+							"phase": "paced",
+							"value": "Warm1abcdefghijkl",
+							"started": 14469.5,
+							"trusted": true,
+							"sequence": 3,
+							"committed": 14527.100000023842,
+							"commitMs": 57.60000002384186,
+							"frameMs": 59.40000009536743
+						},
+						{
+							"phase": "paced",
+							"value": "Warm1abcdefghijklm",
+							"started": 14676.400000095367,
+							"trusted": true,
+							"sequence": 4,
+							"committed": 14733.300000071526,
+							"commitMs": 56.89999997615814,
+							"frameMs": 58.299999952316284
+						},
+						{
+							"phase": "paced",
+							"value": "Warm1abcdefghijklmn",
+							"started": 14883.200000047684,
+							"trusted": true,
+							"sequence": 5,
+							"committed": 14940.400000095367,
+							"commitMs": 57.200000047683716,
+							"frameMs": 59.60000002384186
+						},
+						{
+							"phase": "paced",
+							"value": "Warm1abcdefghijklmno",
+							"started": 15088.600000023842,
+							"trusted": true,
+							"sequence": 6,
+							"committed": 15155.700000047684,
+							"commitMs": 67.10000002384186,
+							"frameMs": 69.10000002384186
+						},
+						{
+							"phase": "paced",
+							"value": "Warm1abcdefghijklmnop",
+							"started": 15305.600000023842,
+							"trusted": true,
+							"sequence": 7,
+							"committed": 15362.100000023842,
+							"commitMs": 56.5,
+							"frameMs": 58.800000071525574
+						}
+					],
+					"mismatches": [],
+					"value": "Warm1abcdefghijklmnop",
+					"baseline": "Warm1abcdefgh",
+					"groupedUndoRedoExact": true,
+					"latency": {
+						"samples": [
+							59.10000002384186, 63.300000071525574, 58.60000002384186,
+							57.60000002384186, 56.89999997615814, 57.200000047683716,
+							67.10000002384186, 56.5
+						],
+						"medianMs": 58.10000002384186,
+						"maxMs": 67.10000002384186
+					},
+					"drainMs": 1513.7999999523163
+				},
+				"burst": {
+					"inputs": [
+						{
+							"phase": "burst",
+							"value": "QueuedFarm0",
+							"started": 16165.400000095367,
+							"trusted": false,
+							"sequence": 0
+						},
+						{
+							"phase": "burst",
+							"value": "QueuedFarm1",
+							"started": 16166.200000047684,
+							"trusted": false,
+							"sequence": 1
+						},
+						{
+							"phase": "burst",
+							"value": "QueuedFarm2",
+							"started": 16166.200000047684,
+							"trusted": false,
+							"sequence": 2
+						},
+						{
+							"phase": "burst",
+							"value": "QueuedFarm3",
+							"started": 16166.900000095367,
+							"trusted": false,
+							"sequence": 3
+						},
+						{
+							"phase": "burst",
+							"value": "QueuedFarm4",
+							"started": 16166.900000095367,
+							"trusted": false,
+							"sequence": 4
+						},
+						{
+							"phase": "burst",
+							"value": "QueuedFarm5",
+							"started": 16166.900000095367,
+							"trusted": false,
+							"sequence": 5
+						},
+						{
+							"phase": "burst",
+							"value": "QueuedFarm6",
+							"started": 16166.900000095367,
+							"trusted": false,
+							"sequence": 6
+						},
+						{
+							"phase": "burst",
+							"value": "QueuedFarm7",
+							"started": 16166.900000095367,
+							"trusted": false,
+							"sequence": 7
+						}
+					],
+					"commits": [
+						{
+							"phase": "burst",
+							"value": "QueuedFarm0",
+							"started": 16165.400000095367,
+							"trusted": false,
+							"sequence": 0,
+							"committed": 16224.200000047684,
+							"commitMs": 58.799999952316284,
+							"frameMs": 60.39999997615814
+						},
+						{
+							"phase": "burst",
+							"value": "QueuedFarm1",
+							"started": 16166.200000047684,
+							"trusted": false,
+							"sequence": 1,
+							"committed": 16272.700000047684,
+							"commitMs": 106.5,
+							"frameMs": 108.29999995231628
+						},
+						{
+							"phase": "burst",
+							"value": "QueuedFarm2",
+							"started": 16166.200000047684,
+							"trusted": false,
+							"sequence": 2,
+							"committed": 16321,
+							"commitMs": 154.79999995231628,
+							"frameMs": 156.10000002384186
+						},
+						{
+							"phase": "burst",
+							"value": "QueuedFarm3",
+							"started": 16166.900000095367,
+							"trusted": false,
+							"sequence": 3,
+							"committed": 16369.800000071526,
+							"commitMs": 202.89999997615814,
+							"frameMs": 204.5
+						},
+						{
+							"phase": "burst",
+							"value": "QueuedFarm4",
+							"started": 16166.900000095367,
+							"trusted": false,
+							"sequence": 4,
+							"committed": 16420.800000071526,
+							"commitMs": 253.89999997615814,
+							"frameMs": 255.19999992847443
+						},
+						{
+							"phase": "burst",
+							"value": "QueuedFarm5",
+							"started": 16166.900000095367,
+							"trusted": false,
+							"sequence": 5,
+							"committed": 16467.300000071526,
+							"commitMs": 300.39999997615814,
+							"frameMs": 301.89999997615814
+						},
+						{
+							"phase": "burst",
+							"value": "QueuedFarm6",
+							"started": 16166.900000095367,
+							"trusted": false,
+							"sequence": 6,
+							"committed": 16514.900000095367,
+							"commitMs": 348,
+							"frameMs": 349
+						},
+						{
+							"phase": "burst",
+							"value": "QueuedFarm7",
+							"started": 16166.900000095367,
+							"trusted": false,
+							"sequence": 7,
+							"committed": 16561.900000095367,
+							"commitMs": 395,
+							"frameMs": 397.1999999284744
+						}
+					],
+					"mismatches": [],
+					"value": "QueuedFarm7",
+					"baseline": "Warm1abcdefghijklmnop",
+					"groupedUndoRedoExact": true,
+					"latency": {
+						"samples": [
+							58.799999952316284, 106.5, 154.79999995231628, 202.89999997615814,
+							253.89999997615814, 300.39999997615814, 348, 395
+						],
+						"medianMs": 228.39999997615814,
+						"maxMs": 395
+					},
+					"drainMs": 396.5
+				},
+				"events": [
+					{
+						"phase": "settled",
+						"type": "keydown",
+						"key": "a",
+						"timestamp": 11783.900000095367,
+						"captureBoundMs": 0.8999999761581421,
+						"eventTiming": null
+					},
+					{
+						"phase": "settled",
+						"type": "keypress",
+						"key": "a",
+						"timestamp": 11783.900000095367,
+						"captureBoundMs": 2.1999999284744263,
+						"eventTiming": null
+					},
+					{
+						"phase": "settled",
+						"type": "keyup",
+						"key": "a",
+						"timestamp": 11788.900000095367,
+						"captureBoundMs": 2.299999952316284,
+						"eventTiming": null
+					},
+					{
+						"phase": "settled",
+						"type": "keydown",
+						"key": "b",
+						"timestamp": 11954.800000071526,
+						"captureBoundMs": 0.19999992847442627,
+						"eventTiming": null
+					},
+					{
+						"phase": "settled",
+						"type": "keypress",
+						"key": "b",
+						"timestamp": 11954.800000071526,
+						"captureBoundMs": 0.5,
+						"eventTiming": null
+					},
+					{
+						"phase": "settled",
+						"type": "keyup",
+						"key": "b",
+						"timestamp": 11958.200000047684,
+						"captureBoundMs": 2.100000023841858,
+						"eventTiming": null
+					},
+					{
+						"phase": "settled",
+						"type": "keydown",
+						"key": "c",
+						"timestamp": 12113.100000023842,
+						"captureBoundMs": 0.6000000238418579,
+						"eventTiming": null
+					},
+					{
+						"phase": "settled",
+						"type": "keypress",
+						"key": "c",
+						"timestamp": 12113.100000023842,
+						"captureBoundMs": 1.100000023841858,
+						"eventTiming": null
+					},
+					{
+						"phase": "settled",
+						"type": "keyup",
+						"key": "c",
+						"timestamp": 12116.400000095367,
+						"captureBoundMs": 0.5,
+						"eventTiming": null
+					},
+					{
+						"phase": "settled",
+						"type": "keydown",
+						"key": "d",
+						"timestamp": 12268.800000071526,
+						"captureBoundMs": 0.3999999761581421,
+						"eventTiming": null
+					},
+					{
+						"phase": "settled",
+						"type": "keypress",
+						"key": "d",
+						"timestamp": 12268.800000071526,
+						"captureBoundMs": 0.8999999761581421,
+						"eventTiming": null
+					},
+					{
+						"phase": "settled",
+						"type": "keyup",
+						"key": "d",
+						"timestamp": 12272.600000023842,
+						"captureBoundMs": 2.200000047683716,
+						"eventTiming": null
+					},
+					{
+						"phase": "settled",
+						"type": "keydown",
+						"key": "e",
+						"timestamp": 12427.5,
+						"captureBoundMs": 0.6000000238418579,
+						"eventTiming": null
+					},
+					{
+						"phase": "settled",
+						"type": "keypress",
+						"key": "e",
+						"timestamp": 12427.5,
+						"captureBoundMs": 0.7000000476837158,
+						"eventTiming": null
+					},
+					{
+						"phase": "settled",
+						"type": "keyup",
+						"key": "e",
+						"timestamp": 12431.700000047684,
+						"captureBoundMs": 2.299999952316284,
+						"eventTiming": null
+					},
+					{
+						"phase": "settled",
+						"type": "keydown",
+						"key": "f",
+						"timestamp": 12585.600000023842,
+						"captureBoundMs": 1.100000023841858,
+						"eventTiming": null
+					},
+					{
+						"phase": "settled",
+						"type": "keypress",
+						"key": "f",
+						"timestamp": 12585.600000023842,
+						"captureBoundMs": 1.3000000715255737,
+						"eventTiming": null
+					},
+					{
+						"phase": "settled",
+						"type": "keyup",
+						"key": "f",
+						"timestamp": 12589.700000047684,
+						"captureBoundMs": 2.299999952316284,
+						"eventTiming": null
+					},
+					{
+						"phase": "settled",
+						"type": "keydown",
+						"key": "g",
+						"timestamp": 12748.800000071526,
+						"captureBoundMs": 0.6999999284744263,
+						"eventTiming": null
+					},
+					{
+						"phase": "settled",
+						"type": "keypress",
+						"key": "g",
+						"timestamp": 12748.800000071526,
+						"captureBoundMs": 0.7999999523162842,
+						"eventTiming": null
+					},
+					{
+						"phase": "settled",
+						"type": "keyup",
+						"key": "g",
+						"timestamp": 12753,
+						"captureBoundMs": 1.7000000476837158,
+						"eventTiming": null
+					},
+					{
+						"phase": "settled",
+						"type": "keydown",
+						"key": "h",
+						"timestamp": 12914,
+						"captureBoundMs": 0.7000000476837158,
+						"eventTiming": null
+					},
+					{
+						"phase": "settled",
+						"type": "keypress",
+						"key": "h",
+						"timestamp": 12914,
+						"captureBoundMs": 1,
+						"eventTiming": null
+					},
+					{
+						"phase": "settled",
+						"type": "keyup",
+						"key": "h",
+						"timestamp": 12917.900000095367,
+						"captureBoundMs": 2,
+						"eventTiming": null
+					},
+					{
+						"phase": "paced",
+						"type": "keydown",
+						"key": "i",
+						"timestamp": 13845.100000023842,
+						"captureBoundMs": 0.7000000476837158,
+						"eventTiming": null
+					},
+					{
+						"phase": "paced",
+						"type": "keypress",
+						"key": "i",
+						"timestamp": 13845.100000023842,
+						"captureBoundMs": 1.8000000715255737,
+						"eventTiming": null
+					},
+					{
+						"phase": "paced",
+						"type": "keyup",
+						"key": "i",
+						"timestamp": 13849.800000071526,
+						"captureBoundMs": 1.899999976158142,
+						"eventTiming": null
+					},
+					{
+						"phase": "paced",
+						"type": "keydown",
+						"key": "j",
+						"timestamp": 14050.900000095367,
+						"captureBoundMs": 0.5999999046325684,
+						"eventTiming": null
+					},
+					{
+						"phase": "paced",
+						"type": "keypress",
+						"key": "j",
+						"timestamp": 14050.900000095367,
+						"captureBoundMs": 0.6999999284744263,
+						"eventTiming": null
+					},
+					{
+						"phase": "paced",
+						"type": "keyup",
+						"key": "j",
+						"timestamp": 14054.800000071526,
+						"captureBoundMs": 2.100000023841858,
+						"eventTiming": null
+					},
+					{
+						"phase": "paced",
+						"type": "keydown",
+						"key": "k",
+						"timestamp": 14261.200000047684,
+						"captureBoundMs": 0.3999999761581421,
+						"eventTiming": null
+					},
+					{
+						"phase": "paced",
+						"type": "keypress",
+						"key": "k",
+						"timestamp": 14261.200000047684,
+						"captureBoundMs": 0.3999999761581421,
+						"eventTiming": null
+					},
+					{
+						"phase": "paced",
+						"type": "keyup",
+						"key": "k",
+						"timestamp": 14264.800000071526,
+						"captureBoundMs": 1.899999976158142,
+						"eventTiming": null
+					},
+					{
+						"phase": "paced",
+						"type": "keydown",
+						"key": "l",
+						"timestamp": 14467.5,
+						"captureBoundMs": 0.40000009536743164,
+						"eventTiming": null
+					},
+					{
+						"phase": "paced",
+						"type": "keypress",
+						"key": "l",
+						"timestamp": 14467.5,
+						"captureBoundMs": 0.9000000953674316,
+						"eventTiming": null
+					},
+					{
+						"phase": "paced",
+						"type": "keyup",
+						"key": "l",
+						"timestamp": 14471.100000023842,
+						"captureBoundMs": 2.200000047683716,
+						"eventTiming": null
+					},
+					{
+						"phase": "paced",
+						"type": "keydown",
+						"key": "m",
+						"timestamp": 14674.200000047684,
+						"captureBoundMs": 0.3999999761581421,
+						"eventTiming": null
+					},
+					{
+						"phase": "paced",
+						"type": "keypress",
+						"key": "m",
+						"timestamp": 14674.200000047684,
+						"captureBoundMs": 1,
+						"eventTiming": null
+					},
+					{
+						"phase": "paced",
+						"type": "keyup",
+						"key": "m",
+						"timestamp": 14677.400000095367,
+						"captureBoundMs": 2.0999999046325684,
+						"eventTiming": null
+					},
+					{
+						"phase": "paced",
+						"type": "keydown",
+						"key": "n",
+						"timestamp": 14881.300000071526,
+						"captureBoundMs": 0.10000002384185791,
+						"eventTiming": null
+					},
+					{
+						"phase": "paced",
+						"type": "keypress",
+						"key": "n",
+						"timestamp": 14881.300000071526,
+						"captureBoundMs": 1,
+						"eventTiming": null
+					},
+					{
+						"phase": "paced",
+						"type": "keyup",
+						"key": "n",
+						"timestamp": 14885.100000023842,
+						"captureBoundMs": 0.20000004768371582,
+						"eventTiming": null
+					},
+					{
+						"phase": "paced",
+						"type": "keydown",
+						"key": "o",
+						"timestamp": 15086.100000023842,
+						"captureBoundMs": 0.6000000238418579,
+						"eventTiming": null
+					},
+					{
+						"phase": "paced",
+						"type": "keypress",
+						"key": "o",
+						"timestamp": 15086.100000023842,
+						"captureBoundMs": 0.8999999761581421,
+						"eventTiming": null
+					},
+					{
+						"phase": "paced",
+						"type": "keyup",
+						"key": "o",
+						"timestamp": 15090.200000047684,
+						"captureBoundMs": 0.2999999523162842,
+						"eventTiming": null
+					},
+					{
+						"phase": "paced",
+						"type": "keydown",
+						"key": "p",
+						"timestamp": 15303.200000047684,
+						"captureBoundMs": 0.7000000476837158,
+						"eventTiming": null
+					},
+					{
+						"phase": "paced",
+						"type": "keypress",
+						"key": "p",
+						"timestamp": 15303.200000047684,
+						"captureBoundMs": 1.2000000476837158,
+						"eventTiming": null
+					},
+					{
+						"phase": "paced",
+						"type": "keyup",
+						"key": "p",
+						"timestamp": 15307.400000095367,
+						"captureBoundMs": 0,
+						"eventTiming": null
+					}
+				],
+				"limits": {
+					"inputDelayMaxMs": 2.299999952316284,
+					"eventTimingMatches": 0,
+					"eventTimingUnavailable": 48
+				},
+				"final": "QueuedFarm7"
+			},
+			"quantity": {
+				"settled": {
+					"inputs": [
+						{
+							"phase": "settled",
+							"value": "2",
+							"started": 18868,
+							"trusted": true,
+							"sequence": 0
+						},
+						{
+							"phase": "settled",
+							"value": "3",
+							"started": 19207.700000047684,
+							"trusted": true,
+							"sequence": 1
+						},
+						{
+							"phase": "settled",
+							"value": "4",
+							"started": 19515.800000071526,
+							"trusted": true,
+							"sequence": 2
+						},
+						{
+							"phase": "settled",
+							"value": "5",
+							"started": 19822.200000047684,
+							"trusted": true,
+							"sequence": 3
+						},
+						{
+							"phase": "settled",
+							"value": "6",
+							"started": 20129.600000023842,
+							"trusted": true,
+							"sequence": 4
+						},
+						{
+							"phase": "settled",
+							"value": "7",
+							"started": 20449.700000047684,
+							"trusted": true,
+							"sequence": 5
+						},
+						{
+							"phase": "settled",
+							"value": "8",
+							"started": 20750.700000047684,
+							"trusted": true,
+							"sequence": 6
+						},
+						{
+							"phase": "settled",
+							"value": "9",
+							"started": 21055.600000023842,
+							"trusted": true,
+							"sequence": 7
+						}
+					],
+					"commits": [
+						{
+							"phase": "settled",
+							"value": "2",
+							"started": 18868,
+							"trusted": true,
+							"sequence": 0,
+							"committed": 18978.100000023842,
+							"commitMs": 110.10000002384186,
+							"frameMs": 112.40000009536743
+						},
+						{
+							"phase": "settled",
+							"value": "3",
+							"started": 19207.700000047684,
+							"trusted": true,
+							"sequence": 1,
+							"committed": 19311.200000047684,
+							"commitMs": 103.5,
+							"frameMs": 106.29999995231628
+						},
+						{
+							"phase": "settled",
+							"value": "4",
+							"started": 19515.800000071526,
+							"trusted": true,
+							"sequence": 2,
+							"committed": 19617.300000071526,
+							"commitMs": 101.5,
+							"frameMs": 104.29999995231628
+						},
+						{
+							"phase": "settled",
+							"value": "5",
+							"started": 19822.200000047684,
+							"trusted": true,
+							"sequence": 3,
+							"committed": 19922.200000047684,
+							"commitMs": 100,
+							"frameMs": 102.5
+						},
+						{
+							"phase": "settled",
+							"value": "6",
+							"started": 20129.600000023842,
+							"trusted": true,
+							"sequence": 4,
+							"committed": 20229.800000071526,
+							"commitMs": 100.20000004768372,
+							"frameMs": 103.70000004768372
+						},
+						{
+							"phase": "settled",
+							"value": "7",
+							"started": 20449.700000047684,
+							"trusted": true,
+							"sequence": 5,
+							"committed": 20549.300000071526,
+							"commitMs": 99.60000002384186,
+							"frameMs": 102.60000002384186
+						},
+						{
+							"phase": "settled",
+							"value": "8",
+							"started": 20750.700000047684,
+							"trusted": true,
+							"sequence": 6,
+							"committed": 20851.600000023842,
+							"commitMs": 100.89999997615814,
+							"frameMs": 103.79999995231628
+						},
+						{
+							"phase": "settled",
+							"value": "9",
+							"started": 21055.600000023842,
+							"trusted": true,
+							"sequence": 7,
+							"committed": 21165.400000095367,
+							"commitMs": 109.80000007152557,
+							"frameMs": 112.80000007152557
+						}
+					],
+					"mismatches": [],
+					"value": "9",
+					"baseline": "11",
+					"groupedUndoRedoExact": true,
+					"latency": {
+						"samples": [
+							110.10000002384186, 103.5, 101.5, 100, 100.20000004768372,
+							99.60000002384186, 100.89999997615814, 109.80000007152557
+						],
+						"medianMs": 101.19999998807907,
+						"maxMs": 110.10000002384186
+					},
+					"drainMs": 2297.4000000953674
+				},
+				"paced": {
+					"inputs": [
+						{
+							"phase": "paced",
+							"value": "8",
+							"started": 22203.400000095367,
+							"trusted": true,
+							"sequence": 0
+						},
+						{
+							"phase": "paced",
+							"value": "7",
+							"started": 22523.200000047684,
+							"trusted": true,
+							"sequence": 1
+						},
+						{
+							"phase": "paced",
+							"value": "6",
+							"started": 22829.600000023842,
+							"trusted": true,
+							"sequence": 2
+						},
+						{
+							"phase": "paced",
+							"value": "5",
+							"started": 23170.700000047684,
+							"trusted": true,
+							"sequence": 3
+						},
+						{
+							"phase": "paced",
+							"value": "4",
+							"started": 23526.300000071526,
+							"trusted": true,
+							"sequence": 4
+						},
+						{
+							"phase": "paced",
+							"value": "3",
+							"started": 23853.5,
+							"trusted": true,
+							"sequence": 5
+						},
+						{
+							"phase": "paced",
+							"value": "2",
+							"started": 24191.800000071526,
+							"trusted": true,
+							"sequence": 6
+						},
+						{
+							"phase": "paced",
+							"value": "6",
+							"started": 24534.900000095367,
+							"trusted": true,
+							"sequence": 7
+						}
+					],
+					"commits": [
+						{
+							"phase": "paced",
+							"value": "8",
+							"started": 22203.400000095367,
+							"trusted": true,
+							"sequence": 0,
+							"committed": 22311.200000047684,
+							"commitMs": 107.79999995231628,
+							"frameMs": 110
+						},
+						{
+							"phase": "paced",
+							"value": "7",
+							"started": 22523.200000047684,
+							"trusted": true,
+							"sequence": 1,
+							"committed": 22624.200000047684,
+							"commitMs": 101,
+							"frameMs": 103.20000004768372
+						},
+						{
+							"phase": "paced",
+							"value": "6",
+							"started": 22829.600000023842,
+							"trusted": true,
+							"sequence": 2,
+							"committed": 22932,
+							"commitMs": 102.39999997615814,
+							"frameMs": 104.89999997615814
+						},
+						{
+							"phase": "paced",
+							"value": "5",
+							"started": 23170.700000047684,
+							"trusted": true,
+							"sequence": 3,
+							"committed": 23286.900000095367,
+							"commitMs": 116.20000004768372,
+							"frameMs": 120
+						},
+						{
+							"phase": "paced",
+							"value": "4",
+							"started": 23526.300000071526,
+							"trusted": true,
+							"sequence": 4,
+							"committed": 23636.400000095367,
+							"commitMs": 110.10000002384186,
+							"frameMs": 112.39999997615814
+						},
+						{
+							"phase": "paced",
+							"value": "3",
+							"started": 23853.5,
+							"trusted": true,
+							"sequence": 5,
+							"committed": 23959.800000071526,
+							"commitMs": 106.30000007152557,
+							"frameMs": 108.70000004768372
+						},
+						{
+							"phase": "paced",
+							"value": "2",
+							"started": 24191.800000071526,
+							"trusted": true,
+							"sequence": 6,
+							"committed": 24304.100000023842,
+							"commitMs": 112.29999995231628,
+							"frameMs": 115
+						},
+						{
+							"phase": "paced",
+							"value": "6",
+							"started": 24534.900000095367,
+							"trusted": true,
+							"sequence": 7,
+							"committed": 24648.600000023842,
+							"commitMs": 113.69999992847443,
+							"frameMs": 116
+						}
+					],
+					"mismatches": [],
+					"value": "6",
+					"baseline": "9",
+					"groupedUndoRedoExact": true,
+					"latency": {
+						"samples": [
+							107.79999995231628, 101, 102.39999997615814, 116.20000004768372,
+							110.10000002384186, 106.30000007152557, 112.29999995231628,
+							113.69999992847443
+						],
+						"medianMs": 108.94999998807907,
+						"maxMs": 116.20000004768372
+					},
+					"drainMs": 2445.1999999284744
+				},
+				"burst": {
+					"inputs": [
+						{
+							"phase": "burst",
+							"value": "101",
+							"started": 25454.200000047684,
+							"trusted": false,
+							"sequence": 0
+						},
+						{
+							"phase": "burst",
+							"value": "102",
+							"started": 25454.300000071526,
+							"trusted": false,
+							"sequence": 1
+						},
+						{
+							"phase": "burst",
+							"value": "103",
+							"started": 25454.300000071526,
+							"trusted": false,
+							"sequence": 2
+						},
+						{
+							"phase": "burst",
+							"value": "104",
+							"started": 25455,
+							"trusted": false,
+							"sequence": 3
+						},
+						{
+							"phase": "burst",
+							"value": "105",
+							"started": 25455.100000023842,
+							"trusted": false,
+							"sequence": 4
+						},
+						{
+							"phase": "burst",
+							"value": "106",
+							"started": 25455.100000023842,
+							"trusted": false,
+							"sequence": 5
+						},
+						{
+							"phase": "burst",
+							"value": "107",
+							"started": 25455.100000023842,
+							"trusted": false,
+							"sequence": 6
+						},
+						{
+							"phase": "burst",
+							"value": "108",
+							"started": 25455.100000023842,
+							"trusted": false,
+							"sequence": 7
+						}
+					],
+					"commits": [
+						{
+							"phase": "burst",
+							"value": "101",
+							"started": 25454.200000047684,
+							"trusted": false,
+							"sequence": 0,
+							"committed": 25569.800000071526,
+							"commitMs": 115.60000002384186,
+							"frameMs": 117.39999997615814
+						},
+						{
+							"phase": "burst",
+							"value": "102",
+							"started": 25454.300000071526,
+							"trusted": false,
+							"sequence": 1,
+							"committed": 25668.700000047684,
+							"commitMs": 214.39999997615814,
+							"frameMs": 215.69999992847443
+						},
+						{
+							"phase": "burst",
+							"value": "103",
+							"started": 25454.300000071526,
+							"trusted": false,
+							"sequence": 2,
+							"committed": 25763,
+							"commitMs": 308.6999999284744,
+							"frameMs": 311.1999999284744
+						},
+						{
+							"phase": "burst",
+							"value": "104",
+							"started": 25455,
+							"trusted": false,
+							"sequence": 3,
+							"committed": 25866.700000047684,
+							"commitMs": 411.7000000476837,
+							"frameMs": 413.7000000476837
+						},
+						{
+							"phase": "burst",
+							"value": "105",
+							"started": 25455.100000023842,
+							"trusted": false,
+							"sequence": 4,
+							"committed": 25969.100000023842,
+							"commitMs": 514,
+							"frameMs": 516
+						},
+						{
+							"phase": "burst",
+							"value": "106",
+							"started": 25455.100000023842,
+							"trusted": false,
+							"sequence": 5,
+							"committed": 26068.300000071526,
+							"commitMs": 613.2000000476837,
+							"frameMs": 615.3000000715256
+						},
+						{
+							"phase": "burst",
+							"value": "107",
+							"started": 25455.100000023842,
+							"trusted": false,
+							"sequence": 6,
+							"committed": 26163.600000023842,
+							"commitMs": 708.5,
+							"frameMs": 710.3999999761581
+						},
+						{
+							"phase": "burst",
+							"value": "108",
+							"started": 25455.100000023842,
+							"trusted": false,
+							"sequence": 7,
+							"committed": 26255.400000095367,
+							"commitMs": 800.3000000715256,
+							"frameMs": 803.2000000476837
+						}
+					],
+					"mismatches": [],
+					"value": "108",
+					"baseline": "6",
+					"groupedUndoRedoExact": true,
+					"latency": {
+						"samples": [
+							115.60000002384186, 214.39999997615814, 308.6999999284744,
+							411.7000000476837, 514, 613.2000000476837, 708.5,
+							800.3000000715256
+						],
+						"medianMs": 462.85000002384186,
+						"maxMs": 800.3000000715256
+					},
+					"drainMs": 801.2000000476837
+				},
+				"events": [
+					{
+						"phase": "settled",
+						"type": "keydown",
+						"key": "2",
+						"timestamp": 18864.700000047684,
+						"captureBoundMs": 1,
+						"eventTiming": null
+					},
+					{
+						"phase": "settled",
+						"type": "keypress",
+						"key": "2",
+						"timestamp": 18864.700000047684,
+						"captureBoundMs": 1.7999999523162842,
+						"eventTiming": null
+					},
+					{
+						"phase": "settled",
+						"type": "keyup",
+						"key": "2",
+						"timestamp": 18869,
+						"captureBoundMs": 3.200000047683716,
+						"eventTiming": null
+					},
+					{
+						"phase": "settled",
+						"type": "keydown",
+						"key": "3",
+						"timestamp": 19205.200000047684,
+						"captureBoundMs": 0.7000000476837158,
+						"eventTiming": null
+					},
+					{
+						"phase": "settled",
+						"type": "keypress",
+						"key": "3",
+						"timestamp": 19205.200000047684,
+						"captureBoundMs": 1.2999999523162842,
+						"eventTiming": null
+					},
+					{
+						"phase": "settled",
+						"type": "keyup",
+						"key": "3",
+						"timestamp": 19209.800000071526,
+						"captureBoundMs": 2.600000023841858,
+						"eventTiming": null
+					},
+					{
+						"phase": "settled",
+						"type": "keydown",
+						"key": "4",
+						"timestamp": 19513.700000047684,
+						"captureBoundMs": 0.7000000476837158,
+						"eventTiming": null
+					},
+					{
+						"phase": "settled",
+						"type": "keypress",
+						"key": "4",
+						"timestamp": 19513.700000047684,
+						"captureBoundMs": 1.100000023841858,
+						"eventTiming": null
+					},
+					{
+						"phase": "settled",
+						"type": "keyup",
+						"key": "4",
+						"timestamp": 19517.800000071526,
+						"captureBoundMs": 2.5,
+						"eventTiming": null
+					},
+					{
+						"phase": "settled",
+						"type": "keydown",
+						"key": "5",
+						"timestamp": 19819.600000023842,
+						"captureBoundMs": 0.8000000715255737,
+						"eventTiming": null
+					},
+					{
+						"phase": "settled",
+						"type": "keypress",
+						"key": "5",
+						"timestamp": 19819.600000023842,
+						"captureBoundMs": 1.3000000715255737,
+						"eventTiming": null
+					},
+					{
+						"phase": "settled",
+						"type": "keyup",
+						"key": "5",
+						"timestamp": 19823.300000071526,
+						"captureBoundMs": 3.1999999284744263,
+						"eventTiming": null
+					},
+					{
+						"phase": "settled",
+						"type": "keydown",
+						"key": "6",
+						"timestamp": 20126.900000095367,
+						"captureBoundMs": 0.5,
+						"eventTiming": null
+					},
+					{
+						"phase": "settled",
+						"type": "keypress",
+						"key": "6",
+						"timestamp": 20126.900000095367,
+						"captureBoundMs": 1,
+						"eventTiming": null
+					},
+					{
+						"phase": "settled",
+						"type": "keyup",
+						"key": "6",
+						"timestamp": 20131.100000023842,
+						"captureBoundMs": 2.700000047683716,
+						"eventTiming": null
+					},
+					{
+						"phase": "settled",
+						"type": "keydown",
+						"key": "7",
+						"timestamp": 20447.800000071526,
+						"captureBoundMs": 0.2999999523162842,
+						"eventTiming": null
+					},
+					{
+						"phase": "settled",
+						"type": "keypress",
+						"key": "7",
+						"timestamp": 20447.800000071526,
+						"captureBoundMs": 0.6000000238418579,
+						"eventTiming": null
+					},
+					{
+						"phase": "settled",
+						"type": "keyup",
+						"key": "7",
+						"timestamp": 20451.5,
+						"captureBoundMs": 2.100000023841858,
+						"eventTiming": null
+					},
+					{
+						"phase": "settled",
+						"type": "keydown",
+						"key": "8",
+						"timestamp": 20749,
+						"captureBoundMs": 0.30000007152557373,
+						"eventTiming": null
+					},
+					{
+						"phase": "settled",
+						"type": "keypress",
+						"key": "8",
+						"timestamp": 20749,
+						"captureBoundMs": 0.7000000476837158,
+						"eventTiming": null
+					},
+					{
+						"phase": "settled",
+						"type": "keyup",
+						"key": "8",
+						"timestamp": 20752.300000071526,
+						"captureBoundMs": 0.2999999523162842,
+						"eventTiming": null
+					},
+					{
+						"phase": "settled",
+						"type": "keydown",
+						"key": "9",
+						"timestamp": 21053,
+						"captureBoundMs": 1,
+						"eventTiming": null
+					},
+					{
+						"phase": "settled",
+						"type": "keypress",
+						"key": "9",
+						"timestamp": 21053,
+						"captureBoundMs": 1.100000023841858,
+						"eventTiming": null
+					},
+					{
+						"phase": "settled",
+						"type": "keyup",
+						"key": "9",
+						"timestamp": 21057.100000023842,
+						"captureBoundMs": 2.100000023841858,
+						"eventTiming": null
+					},
+					{
+						"phase": "paced",
+						"type": "keydown",
+						"key": "8",
+						"timestamp": 22200.800000071526,
+						"captureBoundMs": 0.6999999284744263,
+						"eventTiming": null
+					},
+					{
+						"phase": "paced",
+						"type": "keypress",
+						"key": "8",
+						"timestamp": 22200.800000071526,
+						"captureBoundMs": 1.6999999284744263,
+						"eventTiming": null
+					},
+					{
+						"phase": "paced",
+						"type": "keyup",
+						"key": "8",
+						"timestamp": 22205.200000047684,
+						"captureBoundMs": 3,
+						"eventTiming": null
+					},
+					{
+						"phase": "paced",
+						"type": "keydown",
+						"key": "7",
+						"timestamp": 22520.700000047684,
+						"captureBoundMs": 0.6000000238418579,
+						"eventTiming": null
+					},
+					{
+						"phase": "paced",
+						"type": "keypress",
+						"key": "7",
+						"timestamp": 22520.700000047684,
+						"captureBoundMs": 0.7000000476837158,
+						"eventTiming": null
+					},
+					{
+						"phase": "paced",
+						"type": "keyup",
+						"key": "7",
+						"timestamp": 22524.5,
+						"captureBoundMs": 3,
+						"eventTiming": null
+					},
+					{
+						"phase": "paced",
+						"type": "keydown",
+						"key": "6",
+						"timestamp": 22827.100000023842,
+						"captureBoundMs": 0.8999999761581421,
+						"eventTiming": null
+					},
+					{
+						"phase": "paced",
+						"type": "keypress",
+						"key": "6",
+						"timestamp": 22827.100000023842,
+						"captureBoundMs": 1.3000000715255737,
+						"eventTiming": null
+					},
+					{
+						"phase": "paced",
+						"type": "keyup",
+						"key": "6",
+						"timestamp": 22831,
+						"captureBoundMs": 2.5,
+						"eventTiming": null
+					},
+					{
+						"phase": "paced",
+						"type": "keydown",
+						"key": "5",
+						"timestamp": 23168.800000071526,
+						"captureBoundMs": 0.3999999761581421,
+						"eventTiming": null
+					},
+					{
+						"phase": "paced",
+						"type": "keypress",
+						"key": "5",
+						"timestamp": 23168.800000071526,
+						"captureBoundMs": 0.8999999761581421,
+						"eventTiming": null
+					},
+					{
+						"phase": "paced",
+						"type": "keyup",
+						"key": "5",
+						"timestamp": 23172.5,
+						"captureBoundMs": 2.4000000953674316,
+						"eventTiming": null
+					},
+					{
+						"phase": "paced",
+						"type": "keydown",
+						"key": "4",
+						"timestamp": 23524,
+						"captureBoundMs": 1,
+						"eventTiming": null
+					},
+					{
+						"phase": "paced",
+						"type": "keypress",
+						"key": "4",
+						"timestamp": 23524,
+						"captureBoundMs": 1.100000023841858,
+						"eventTiming": null
+					},
+					{
+						"phase": "paced",
+						"type": "keyup",
+						"key": "4",
+						"timestamp": 23528.400000095367,
+						"captureBoundMs": 3.0999999046325684,
+						"eventTiming": null
+					},
+					{
+						"phase": "paced",
+						"type": "keydown",
+						"key": "3",
+						"timestamp": 23851.100000023842,
+						"captureBoundMs": 0.5,
+						"eventTiming": null
+					},
+					{
+						"phase": "paced",
+						"type": "keypress",
+						"key": "3",
+						"timestamp": 23851.100000023842,
+						"captureBoundMs": 0.6000000238418579,
+						"eventTiming": null
+					},
+					{
+						"phase": "paced",
+						"type": "keyup",
+						"key": "3",
+						"timestamp": 23854.800000071526,
+						"captureBoundMs": 3.100000023841858,
+						"eventTiming": null
+					},
+					{
+						"phase": "paced",
+						"type": "keydown",
+						"key": "2",
+						"timestamp": 24189.700000047684,
+						"captureBoundMs": 0.2999999523162842,
+						"eventTiming": null
+					},
+					{
+						"phase": "paced",
+						"type": "keypress",
+						"key": "2",
+						"timestamp": 24189.700000047684,
+						"captureBoundMs": 0.3999999761581421,
+						"eventTiming": null
+					},
+					{
+						"phase": "paced",
+						"type": "keyup",
+						"key": "2",
+						"timestamp": 24193.5,
+						"captureBoundMs": 3,
+						"eventTiming": null
+					},
+					{
+						"phase": "paced",
+						"type": "keydown",
+						"key": "6",
+						"timestamp": 24532.600000023842,
+						"captureBoundMs": 0.5,
+						"eventTiming": null
+					},
+					{
+						"phase": "paced",
+						"type": "keypress",
+						"key": "6",
+						"timestamp": 24532.600000023842,
+						"captureBoundMs": 0.8999999761581421,
+						"eventTiming": null
+					},
+					{
+						"phase": "paced",
+						"type": "keyup",
+						"key": "6",
+						"timestamp": 24536.200000047684,
+						"captureBoundMs": 3.600000023841858,
+						"eventTiming": null
+					}
+				],
+				"limits": {
+					"inputDelayMaxMs": 3.600000023841858,
+					"eventTimingMatches": 0,
+					"eventTimingUnavailable": 48
+				},
+				"final": "108"
+			},
+			"navigation": {
+				"firstMount": {
+					"inventory": 3.899999976158142,
+					"buildings": 37.200000047683716,
+					"community": 21.600000023841858,
+					"farmers": 16.300000071525574,
+					"storage": 560,
+					"character": 110,
+					"relationships": 45.10000002384186,
+					"quests": 28.699999928474426,
+					"qi": 24.100000023841858,
+					"events": 17.899999976158142,
+					"recipes": 29.600000023841858,
+					"farm": 28.399999976158142,
+					"calendar": 25.899999976158142,
+					"review": 27.600000023841858
+				},
+				"warm": [
+					{
+						"inventory": 404.5,
+						"buildings": 25.300000071525574,
+						"community": 21.899999976158142,
+						"farmers": 16.899999976158142,
+						"storage": 555.8999999761581,
+						"character": 126.20000004768372,
+						"relationships": 47.799999952316284,
+						"quests": 29.5,
+						"qi": 27.5,
+						"events": 19.399999976158142,
+						"recipes": 32.200000047683716,
+						"farm": 28.40000009536743,
+						"calendar": 27.899999976158142,
+						"review": 27.09999990463257
+					},
+					{
+						"inventory": 398.60000002384186,
+						"buildings": 25.5,
+						"community": 20.600000023841858,
+						"farmers": 17.299999952316284,
+						"storage": 579,
+						"character": 119.5,
+						"relationships": 57.10000002384186,
+						"quests": 32.60000002384186,
+						"qi": 27,
+						"events": 19.799999952316284,
+						"recipes": 32.39999997615814,
+						"farm": 26.600000023841858,
+						"calendar": 29.899999976158142,
+						"review": 26.5
+					},
+					{
+						"inventory": 436.39999997615814,
+						"buildings": 26.300000071525574,
+						"community": 21.5,
+						"farmers": 18.800000071525574,
+						"storage": 589.6999999284744,
+						"character": 128.80000007152557,
+						"relationships": 45.90000009536743,
+						"quests": 28.600000023841858,
+						"qi": 26.5,
+						"events": 18.600000023841858,
+						"recipes": 32.10000002384186,
+						"farm": 25.899999976158142,
+						"calendar": 27,
+						"review": 27.200000047683716
+					}
+				]
+			},
+			"preservation": {
+				"exactDocument": true,
+				"filename": "PerfLarge_123"
+			},
+			"pageErrors": [],
+			"overflow": false
+		}
+	]
+}

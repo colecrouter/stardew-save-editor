@@ -43,7 +43,7 @@ describe("catalog guidance in the editor", () => {
 		const page = render(RelationshipGifts, { name: "Abigail" });
 		expect(page.getByText("Loves:")).toBeTruthy();
 		expect(page.getByText("Universal loves:")).toBeTruthy();
-		const amethyst = page.getByRole("button", {
+		const amethyst = page.getByRole("img", {
 			name: "Amethyst",
 		});
 		amethyst.focus();

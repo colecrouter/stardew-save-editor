@@ -37,13 +37,14 @@
 			<div class="controls">
 				<CheckboxField field={pregnancy.expectingField} />
 
-				{#if pregnancy.expecting}
-					<NumberField field={pregnancy.daysField} />
-
-					{#if pregnancy.dueDate}
-						<p>Due {pregnancy.dueDate}</p>
-					{/if}
-				{/if}
+				<!-- Reserve the due-date controls while off. The domain disables the
+				     field, so toggling pregnancy does not shift the surrounding layout. -->
+				<NumberField field={pregnancy.daysField} />
+				<p class="due-date">
+					{pregnancy.expecting && pregnancy.dueDate
+						? `Due ${pregnancy.dueDate}`
+						: "No due date set"}
+				</p>
 			</div>
 
 			<h3>Baby-question requirements</h3>
@@ -88,6 +89,7 @@
 	}
 	summary {
 		cursor: pointer;
+		color: var(--study-muted, #694621);
 		padding-block: 0.35rem;
 		overflow-wrap: anywhere;
 	}
@@ -96,7 +98,7 @@
 		outline-offset: 2px;
 	}
 	.status {
-		color: var(--study-muted, #815327);
+		color: inherit;
 		margin-left: 0.75rem;
 	}
 	.content {
@@ -118,6 +120,11 @@
 	}
 	.controls p {
 		margin: 0;
+		min-height: 1.3em;
+	}
+	.due-date {
+		min-width: min(100%, 22rem);
+		color: var(--study-muted, #694621);
 	}
 	ul {
 		padding-inline-start: 1.25rem;
@@ -130,6 +137,9 @@
 		color: var(--study-muted, #815327);
 	}
 	@media (max-width: 480px) {
+		.controls .due-date {
+			min-height: 2.6em;
+		}
 		.status {
 			display: block;
 			margin: 0.25rem 0 0 1rem;

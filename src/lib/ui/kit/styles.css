@@ -236,6 +236,10 @@
 	padding: 20px;
 	image-rendering: pixelated;
 }
+/* Wider coordinated editors retain the same viewport margin and scrolling owner. */
+.study-dialog.study-dialog--wide {
+	width: min(800px, calc(100vw - 32px));
+}
 .study-dialog-heading {
 	display: flex;
 	align-items: start;

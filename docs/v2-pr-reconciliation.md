@@ -9,10 +9,10 @@ source actually measured.
 
 ## Open legacy PR dispositions
 
-All six target `main`. Their intent is carried into the v2 owners below rather
-than importing a competing proxy-based workflow. Close the legacy PRs only after
-this reconciliation is merged, with the replacement linked and contributor credit
-preserved. Until then, these rows describe the implementation awaiting merge.
+All six targeted `main` and were closed after #254 merged into v2 as
+`1e8fe3ff38ce4ff05aca693c27ab2564708b4229`, with all checks passing. Each closure
+links the replacement and explains preserved behavior or the owner-approved
+interaction choice. The merge commit co-authors adam110th and Frank Nielson.
 
 | PR                                                                                       | Before this pass                                                                                                                                                        | V2 baseline disposition                                                                                                                                                                                                                           |
 | ---------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -153,3 +153,20 @@ One blob worker remains throughout, as in the earlier qualification. These are
 finite renderer-JS observations, not peak/process/worker limits or leak freedom.
 Existing synthetic large Storage and marginal Character navigation qualifications
 remain visible in the recorded navigation samples.
+
+## Follow-up visual review
+
+The owner requested a compact visible gift strip sharing a row with Add/Remove,
+with About kept separate; gifts are not collapsed. Informational gift/material
+tooltips use keyboard-focusable graphics rather than fake action buttons.
+Family planning retains the birth-days field while off and disables it, reserving
+layout space; its summary uses the same muted palette as About. Building resource
+guidance remains bordered but flat, and its reference note is a muted subtitle.
+The accepted green tier disclosure is retained.
+
+Bundle requirements now show plain item names with icons. Drag handles and
+keyboard Arrow Up/Down reorder complete rows with donation identities intact;
+adding/removing is explicit, and no per-row item-name picker is shown. Save paths
+span the frame below the split upload/instruction section, with aligned desktop
+rows and a responsive phone layout. These refinements retain the approved editing
+and file/transaction policies.

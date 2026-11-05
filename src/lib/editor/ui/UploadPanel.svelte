@@ -149,37 +149,42 @@
 					>
 						Save locations &amp; replacement guide ↗
 					</a>
-					<details class="locations">
-						<summary>Default save locations</summary>
-						<p>
-							Copy a path, then use the Save file picker above. Platform access
-							restrictions can vary; see the guide for details.
-						</p>
-						<ul>
-							{#each locations as location (location.os)}
-								<li>
-									<strong>{location.os}</strong>
-									<code>{location.path}</code>
-									<StudyButton
-										disabled={opening || copying}
-										aria-label={`Copy ${location.os} save location`}
-										onclick={() => void copyPath(location.os, location.path)}
-									>
-										Copy path
-									</StudyButton>
-								</li>
-							{/each}
-							<li>
-								<strong>iOS / iPadOS</strong>
-								<span>Files → On My iPhone/iPad → Stardew Valley</span>
-							</li>
-						</ul>
-						<p role={copyFailed ? "alert" : "status"} class="copy-feedback">
-							{copyFeedback}
-						</p>
-					</details>
 				</aside>
 			</div>
+
+			<!-- Paths need the full frame width: keep system, selectable path and Copy
+                 together without stretching the instruction column vertically. -->
+			<details class="locations">
+				<summary>Default save locations</summary>
+				<p>
+					Copy a path, then use the Save file picker above. Platform access
+					restrictions can vary; see the guide for details.
+				</p>
+				<ul>
+					{#each locations as location (location.os)}
+						<li>
+							<strong>{location.os}</strong>
+							<code>{location.path}</code>
+							<StudyButton
+								disabled={opening || copying}
+								aria-label={`Copy ${location.os} save location`}
+								onclick={() => void copyPath(location.os, location.path)}
+							>
+								Copy path
+							</StudyButton>
+						</li>
+					{/each}
+					<li>
+						<strong>iOS / iPadOS</strong>
+						<span class="platform-note">
+							Files → On My iPhone/iPad → Stardew Valley
+						</span>
+					</li>
+				</ul>
+				<p role={copyFailed ? "alert" : "status"} class="copy-feedback">
+					{copyFeedback}
+				</p>
+			</details>
 
 			<!-- Load the browser archive only when requested. Archived originals
                  reopen through the same import path without creating another copy. -->
@@ -204,29 +209,66 @@
 
 <style>
 	.locations {
-		margin-top: 1rem;
+		border-top: 2px solid #c5a16d;
+		padding-block: 20px;
 	}
 	.locations summary {
-		cursor: pointer;
+		color: #285f30;
+	}
+	.locations p {
+		color: #735436;
+		font-size: 19px;
+		line-height: 1.35;
 	}
 	.locations ul {
 		list-style: none;
 		padding: 0;
+		margin: 16px 0;
 		display: grid;
-		gap: 1rem;
+		gap: 10px;
 	}
 	.locations li {
 		display: grid;
-		gap: 0.35rem;
-		justify-items: start;
+		grid-template-columns: 112px minmax(0, 1fr) max-content;
+		align-items: center;
+		gap: 16px;
+		padding: 0;
 	}
 	.locations code {
+		min-width: 0;
 		max-width: 100%;
 		overflow-wrap: anywhere;
 		user-select: text;
 	}
+	.locations :global(button) {
+		font-size: 17px;
+		padding: 6px 10px;
+	}
+	.locations .platform-note {
+		grid-column: 2 / -1;
+		margin: 0;
+	}
 	.copy-feedback {
 		min-height: 1.5em;
+	}
+	@media (max-width: 600px) {
+		.locations li {
+			grid-template-columns: minmax(0, 1fr) max-content;
+			gap: 6px 12px;
+		}
+		.locations strong {
+			grid-column: 1;
+			grid-row: 1;
+		}
+		.locations :global(button) {
+			grid-column: 2;
+			grid-row: 1;
+		}
+		.locations code,
+		.locations .platform-note {
+			grid-column: 1 / -1;
+			grid-row: 2;
+		}
 	}
 
 	.entry {

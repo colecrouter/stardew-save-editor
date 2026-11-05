@@ -3,7 +3,7 @@ import { expect, it, vi } from "vitest";
 import { fireEvent, render, waitFor, within } from "@testing-library/svelte";
 import { openEditor } from "../../src/lib/editor/editor-model";
 import { calendarEventsForMonth } from "../../src/lib/editor/calendar-events";
-import CharacterHarness from "./CharacterHarness.svelte";
+import WorkspaceHarness from "./WorkspaceHarness.svelte";
 import { CalendarSeason } from "../../src/lib/calendarSeason";
 import { fixtureXml } from "./fixtures";
 
@@ -12,7 +12,7 @@ it(
 	{ timeout: 20000 },
 	async () => {
 		const opened = await openEditor(new TextEncoder().encode(fixtureXml));
-		const page = render(CharacterHarness, { model: opened.model });
+		const page = render(WorkspaceHarness, { model: opened.model });
 		try {
 			await fireEvent.click(
 				page.getByRole("link", { name: "Date and weather" }),
@@ -98,7 +98,7 @@ it.each(["failure", "noncompletion"] as const)(
 	"restores committed weather after %s",
 	async (outcome) => {
 		const opened = await openEditor(new TextEncoder().encode(fixtureXml));
-		const page = render(CharacterHarness, { model: opened.model });
+		const page = render(WorkspaceHarness, { model: opened.model });
 		try {
 			await fireEvent.click(
 				page.getByRole("link", { name: "Date and weather" }),

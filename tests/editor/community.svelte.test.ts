@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
 import { render, fireEvent, within, waitFor } from "@testing-library/svelte";
 import { openEditor } from "../../src/lib/editor/editor-model";
-import CharacterHarness from "./CharacterHarness.svelte";
+import WorkspaceHarness from "./WorkspaceHarness.svelte";
 import { fixtureXml } from "./fixtures";
 import { readCommunity } from "../../src/lib/editor/community-data";
 
@@ -10,7 +10,7 @@ it(
 	{ timeout: 30000 },
 	async () => {
 		const opened = await openEditor(new TextEncoder().encode(fixtureXml));
-		const page = render(CharacterHarness, { model: opened.model });
+		const page = render(WorkspaceHarness, { model: opened.model });
 		try {
 			await fireEvent.click(
 				page.getByRole("link", { name: "Community Center & Joja" }),

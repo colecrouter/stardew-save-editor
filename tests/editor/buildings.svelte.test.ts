@@ -8,7 +8,7 @@ import {
 	COOP_ANIMALS,
 	COOP_ID,
 } from "../helpers/animalBuildings";
-import CharacterHarness from "./CharacterHarness.svelte";
+import WorkspaceHarness from "./WorkspaceHarness.svelte";
 
 // Exercise real field lifetimes and discrete transactions through the workspace,
 // rather than reproducing the domain implementation in a component mock.
@@ -19,7 +19,7 @@ it(
 		const opened = await openEditor(
 			new TextEncoder().encode(withAnimalBuildings(fixtureXml)),
 		);
-		const page = render(CharacterHarness, { model: opened.model });
+		const page = render(WorkspaceHarness, { model: opened.model });
 		try {
 			await fireEvent.click(
 				page.getByRole("link", { name: "Buildings & animals" }),

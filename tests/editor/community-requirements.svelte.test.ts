@@ -2,7 +2,7 @@ import { expect, it } from "vitest";
 import { fireEvent, render, waitFor, within } from "@testing-library/svelte";
 import { openEditor } from "../../src/lib/editor/editor-model";
 import { readCommunity } from "../../src/lib/editor/community-data";
-import CharacterHarness from "./CharacterHarness.svelte";
+import WorkspaceHarness from "./WorkspaceHarness.svelte";
 import { fixtureXml } from "./fixtures";
 import { setCommunityProgress } from "../../src/lib/editor/community-operations";
 import { ingredientName } from "../../src/lib/editor/community-ingredients";
@@ -12,7 +12,7 @@ it(
 	{ timeout: 30000 },
 	async () => {
 		const opened = await openEditor(new TextEncoder().encode(fixtureXml));
-		const page = render(CharacterHarness, { model: opened.model });
+		const page = render(WorkspaceHarness, { model: opened.model });
 		try {
 			await fireEvent.click(
 				page.getByRole("link", { name: "Community Center & Joja" }),
@@ -116,7 +116,7 @@ it(
 			(row) => row.id === 13,
 		);
 		if (!original) throw new Error("Missing donated bundle");
-		const page = render(CharacterHarness, { model: opened.model });
+		const page = render(WorkspaceHarness, { model: opened.model });
 		try {
 			await fireEvent.click(
 				page.getByRole("link", { name: "Community Center & Joja" }),

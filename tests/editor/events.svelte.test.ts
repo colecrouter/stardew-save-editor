@@ -3,7 +3,7 @@ import { expect, it } from "vitest";
 import { openEditor } from "../../src/lib/editor/editor-model.ts";
 import { readEvents } from "../../src/lib/editor/event-operations.ts";
 import { VanillaEvents } from "../../src/lib/Events.ts";
-import CharacterHarness from "./CharacterHarness.svelte";
+import WorkspaceHarness from "./WorkspaceHarness.svelte";
 import { parser, fixtureXml, exportDocument } from "./fixtures.ts";
 
 async function openEvents() {
@@ -20,7 +20,7 @@ async function openEvents() {
 	const opened = await openEditor(
 		new TextEncoder().encode(exportDocument(document)),
 	);
-	const page = render(CharacterHarness, { model: opened.model });
+	const page = render(WorkspaceHarness, { model: opened.model });
 	await fireEvent.click(page.getByRole("link", { name: "Events" }));
 	return {
 		...opened,

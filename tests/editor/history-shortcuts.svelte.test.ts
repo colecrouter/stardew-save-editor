@@ -1,7 +1,7 @@
 import { fireEvent, render, waitFor } from "@testing-library/svelte";
 import { expect, it, vi } from "vitest";
 import { openEditor } from "../../src/lib/editor/editor-model";
-import CharacterHarness from "./CharacterHarness.svelte";
+import WorkspaceHarness from "./WorkspaceHarness.svelte";
 import { fixtureXml } from "./fixtures";
 
 // Exercise real fields and commands: shortcuts must restore the actual save,
@@ -14,7 +14,7 @@ it.each([false, true])(
 			.spyOn(navigator, "platform", "get")
 			.mockReturnValue(apple ? "MacIntel" : "Win32");
 		const opened = await openEditor(new TextEncoder().encode(fixtureXml));
-		const page = render(CharacterHarness, { model: opened.model });
+		const page = render(WorkspaceHarness, { model: opened.model });
 		const chord = {
 			key: "z",
 			ctrlKey: !apple,

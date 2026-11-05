@@ -1,31 +1,24 @@
-import { fireEvent, render, waitFor } from "@testing-library/svelte";
+import { fireEvent, waitFor } from "@testing-library/svelte";
 import { describe, expect, it, vi } from "vitest";
-import { openEditor } from "../../src/lib/editor/editor-model";
+import { renderTestWorkspace } from "./workspace.ts";
 import type { SaveDocument } from "../../src/lib/editor/domain";
-import CharacterHarness from "./CharacterHarness.svelte";
-import { parser, fixtureXml, exportDocument } from "./fixtures";
+import { parser, fixtureXml } from "./fixtures";
 
 const committed = (check: () => Promise<void>) =>
 	waitFor(check, { timeout: 5000 });
 async function open(mutate: (document: SaveDocument) => void = () => {}) {
 	const document = parser.parse(fixtureXml);
 	mutate(document);
-	const opened = await openEditor(
-		new TextEncoder().encode(exportDocument(document)),
-	);
-	const page = render(CharacterHarness, { model: opened.model });
-	await fireEvent.click(page.getByRole("link", { name: "Character" }));
-	await fireEvent.click(
-		page.getByRole("tab", { name: "Skills & progression" }),
-	);
-	return {
-		...opened,
-		page,
-		dispose: async () => {
-			page.unmount();
-			await opened.close();
-		},
-	};
+	const opened = await renderTestWorkspace(document, "Character");
+	try {
+		await fireEvent.click(
+			opened.page.getByRole("tab", { name: "Skills & progression" }),
+		);
+		return opened;
+	} catch (cause) {
+		await opened.dispose();
+		throw cause;
+	}
 }
 const rawFarmer = (document: SaveDocument) =>
 	document.SaveGame.player as unknown as Record<string, unknown>;

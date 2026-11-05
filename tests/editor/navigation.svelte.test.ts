@@ -1,7 +1,7 @@
 import { fireEvent, render, waitFor } from "@testing-library/svelte";
 import { expect, it } from "vitest";
 import { openEditor } from "../../src/lib/editor/editor-model";
-import CharacterHarness from "./CharacterHarness.svelte";
+import WorkspaceHarness from "./WorkspaceHarness.svelte";
 import { fixtureXml } from "./fixtures";
 
 // A select does not dispatch the sidebar's click handler. Exercise lazy mounting
@@ -11,7 +11,7 @@ it(
 	{ timeout: 20000 },
 	async () => {
 		const opened = await openEditor(new TextEncoder().encode(fixtureXml));
-		const page = render(CharacterHarness, { model: opened.model });
+		const page = render(WorkspaceHarness, { model: opened.model });
 		try {
 			const picker = page.getByLabelText("Section", { exact: true });
 			await fireEvent.change(picker, { target: { value: "inventory" } });

@@ -1,7 +1,7 @@
 import { expect, it, vi } from "vitest";
 import { fireEvent, render, within, waitFor } from "@testing-library/svelte";
 import { openEditor } from "../../src/lib/editor/editor-model";
-import CharacterHarness from "./CharacterHarness.svelte";
+import WorkspaceHarness from "./WorkspaceHarness.svelte";
 import { fixtureXml } from "./fixtures";
 
 it(
@@ -10,7 +10,7 @@ it(
 	async () => {
 		const opened = await openEditor(new TextEncoder().encode(fixtureXml));
 		const review = vi.spyOn(opened.model.commands, "review");
-		const page = render(CharacterHarness, { model: opened.model });
+		const page = render(WorkspaceHarness, { model: opened.model });
 		try {
 			const initial = await opened.model.snapshot();
 			await opened.model.commands.execute([
@@ -81,7 +81,7 @@ it(
 		const { TransactionDraft } =
 			await import("../../src/lib/editor/transaction-draft");
 		const opened = await openEditor(new TextEncoder().encode(fixtureXml));
-		const page = render(CharacterHarness, { model: opened.model });
+		const page = render(WorkspaceHarness, { model: opened.model });
 		try {
 			await opened.model.commands.transact(
 				Effect.gen(function* () {
@@ -128,7 +128,7 @@ it(
 						release = () => resolve(earlier);
 					}),
 			);
-		const page = render(CharacterHarness, { model: opened.model });
+		const page = render(WorkspaceHarness, { model: opened.model });
 		try {
 			await fireEvent.click(page.getByRole("link", { name: "Review changes" }));
 			await waitFor(() => expect(read).toHaveBeenCalledOnce());

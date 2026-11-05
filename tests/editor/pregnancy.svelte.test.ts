@@ -2,7 +2,7 @@ import { fireEvent, render, waitFor } from "@testing-library/svelte";
 import { expect, it } from "vitest";
 import { openEditor } from "../../src/lib/editor/editor-model.ts";
 import { readPregnancy } from "../../src/lib/editor/pregnancy-data.ts";
-import CharacterHarness from "./CharacterHarness.svelte";
+import WorkspaceHarness from "./WorkspaceHarness.svelte";
 import { parser, fixtureXml, exportDocument } from "./fixtures.ts";
 
 // Exercise the real field controllers and transaction queue, not a callback mock.
@@ -33,7 +33,7 @@ it(
 		const opened = await openEditor(
 			new TextEncoder().encode(exportDocument(document)),
 		);
-		const page = render(CharacterHarness, { model: opened.model });
+		const page = render(WorkspaceHarness, { model: opened.model });
 		try {
 			await fireEvent.click(page.getByRole("link", { name: "Relationships" }));
 			// Family planning adds only a compact spouse-row summary until requested.

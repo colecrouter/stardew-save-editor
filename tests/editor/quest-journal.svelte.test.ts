@@ -1,9 +1,8 @@
-import { fireEvent, render, waitFor, within } from "@testing-library/svelte";
+import { fireEvent, waitFor, within } from "@testing-library/svelte";
 import { expect, it } from "vitest";
-import { openEditor } from "../../src/lib/editor/editor-model.ts";
+import { renderTestWorkspace } from "./workspace.ts";
 import { readQuestJournals } from "../../src/lib/editor/quest-operations.ts";
-import CharacterHarness from "./CharacterHarness.svelte";
-import { parser, fixtureXml, exportDocument } from "./fixtures.ts";
+import { parser, fixtureXml } from "./fixtures.ts";
 const quest = (extra: Record<string, unknown> = {}) => ({
 	_questTitle: "Delivery",
 	_questDescription: "A journal quest",
@@ -28,20 +27,8 @@ async function open(quests = [quest()], extra: Record<string, unknown> = {}) {
 	guest.name = "Guest";
 	Object.assign(guest, { questLog: { Quest: [quest({ moneyReward: 700 })] } });
 	document.SaveGame.farmhands = { Farmer: [guest] };
-	const opened = await openEditor(
-		new TextEncoder().encode(exportDocument(document)),
-	);
-	const page = render(CharacterHarness, { model: opened.model });
-	await fireEvent.click(page.getByRole("link", { name: "Quest journal" }));
-	return {
-		...opened,
-		page,
-		hostId: String(host.UniqueMultiplayerID),
-		async dispose() {
-			page.unmount();
-			await opened.close();
-		},
-	};
+	const opened = await renderTestWorkspace(document, "Quest journal");
+	return { ...opened, hostId: String(host.UniqueMultiplayerID) };
 }
 // Continuous values publish immediately, but one gesture belongs to its captured
 // quest/farmer even when the next selection is submitted before it completes.

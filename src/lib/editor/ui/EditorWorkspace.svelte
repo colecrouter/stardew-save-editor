@@ -3,7 +3,8 @@
 	// component has been loaded in this session. Theme rules refine these tokens.
 	import "../../ui/controls.css";
 	import { Result } from "effect";
-	import { untrack } from "svelte";
+	import { onMount, untrack } from "svelte";
+	import { historyShortcut, usesAppleShortcuts } from "../history-shortcuts.ts";
 	import { formatDate } from "../../calendar.ts";
 	import type { CommandResult } from "../command-result.ts";
 	import CommandToasts from "./CommandToasts.svelte";
@@ -133,7 +134,30 @@
 		const result = await action();
 		if (result && Result.isFailure(result)) error = result.failure.message;
 	}
+	// Resolve platform hints after hydration, without browser globals during SSR.
+	let appleShortcuts = $state(false);
+	onMount(() => {
+		appleShortcuts = usesAppleShortcuts(navigator.platform);
+	});
+	const undoKeys = $derived(appleShortcuts ? "Meta+Z" : "Control+Z");
+	const redoKeys = $derived(
+		appleShortcuts ? "Meta+Shift+Z" : "Control+Y Control+Shift+Z",
+	);
+	function onHistoryKey(event: KeyboardEvent) {
+		const action = historyShortcut(event, appleShortcuts, document);
+		if (
+			!action ||
+			!(action === "undo" ? view.current?.canUndo : view.current?.canRedo)
+		)
+			return;
+		// Consume only an available save-history command. The existing command
+		// boundary serializes it with edits and reports expected errors/defects.
+		event.preventDefault();
+		void perform(action === "undo" ? model.commands.undo : model.commands.redo);
+	}
 </script>
+
+<svelte:window onkeydown={onHistoryKey} />
 
 <div class="editor study-theme">
 	<CommandToasts {model} />
@@ -221,6 +245,8 @@
 						<button
 							type="button"
 							class="study-button"
+							title={appleShortcuts ? "Undo (⌘Z)" : "Undo (Ctrl+Z)"}
+							aria-keyshortcuts={undoKeys}
 							disabled={!view.current?.canUndo}
 							onclick={() => void perform(model.commands.undo)}
 						>
@@ -232,6 +258,10 @@
 						<button
 							type="button"
 							class="study-button"
+							title={appleShortcuts
+								? "Redo (⇧⌘Z)"
+								: "Redo (Ctrl+Y or Ctrl+Shift+Z)"}
+							aria-keyshortcuts={redoKeys}
 							disabled={!view.current?.canRedo}
 							onclick={() => void perform(model.commands.redo)}
 						>

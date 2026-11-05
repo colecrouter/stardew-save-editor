@@ -151,3 +151,36 @@ it("filters by real item type, explains empty results, and preserves the preview
 		page.unmount();
 	}
 });
+
+it("starts a new preview's reading areas at the top while retaining the result list position", async () => {
+	const page = render(BackpackItemPicker, {
+		slot: 3,
+		entries,
+		onadd: async () => true,
+	});
+	try {
+		const preview = page.getByRole("region", { name: "Item preview" });
+		const firstDescription = within(preview).getByRole("region", {
+			name: /description$/,
+		});
+		const firstTitle = within(preview).getByRole("heading");
+		const list = page.container.querySelector(".item-list");
+		if (!(list instanceof HTMLElement)) throw new Error("Missing item list");
+		firstDescription.scrollTop = 90;
+		firstTitle.scrollTop = 20;
+		list.scrollTop = 100;
+		await fireEvent.click(
+			page.getByRole("button", { name: "Preview Wood ((O)388)" }),
+		);
+		expect(
+			within(preview).getByRole("region", { name: "Wood description" })
+				.scrollTop,
+		).toBe(0);
+		expect(
+			within(preview).getByRole("heading", { name: "Wood" }).scrollTop,
+		).toBe(0);
+		expect(list.scrollTop).toBe(100);
+	} finally {
+		page.unmount();
+	}
+});

@@ -224,36 +224,49 @@
 
 		<section aria-label="Item preview" class="preview">
 			{#if selected}
-				<div class="preview-header">
-					<div class="preview-icon">
-						<BackpackItemVisual visual={selected.visual} />
+				<!-- Recreate the preview for a new catalog identity.
+                     Their scroll resets without disturbing the list or inspector. -->
+				{#key selected.id}
+					<div class="preview-header">
+						<div class="preview-icon">
+							<BackpackItemVisual visual={selected.visual} />
+						</div>
+						<div>
+							<!-- svelte-ignore a11y_no_noninteractive_tabindex (Long catalog names remain keyboard-readable within the reserved header.) -->
+							<h3 tabindex="0">{selected.name}</h3>
+							<p class="preview-id">{selected.qualifiedId}</p>
+						</div>
 					</div>
-					<div>
-						<h3>{selected.name}</h3>
-						<p class="preview-id">{selected.qualifiedId}</p>
+
+					<p class="kind">{kindLabels[selected.kind] ?? selected.kind}</p>
+
+					<!-- An empty description keeps the same reading area, so browsing
+                     a terse item cannot pull Add out from under the pointer. -->
+					<!-- svelte-ignore a11y_no_noninteractive_tabindex (The fixed reading area needs keyboard scrolling.) -->
+					<div
+						class="description"
+						role="region"
+						aria-label={`${selected.name} description`}
+						tabindex={selected.description ? 0 : undefined}
+					>
+						{selected.description ?? ""}
 					</div>
-				</div>
 
-				<p class="kind">{kindLabels[selected.kind] ?? selected.kind}</p>
+					<p class="addition-note">New items start with quantity 1.</p>
 
-				{#if selected.description}
-					<p class="description">{selected.description}</p>
-				{/if}
+					<button
+						type="button"
+						class="study-button study-button--constructive study-button--filled add"
+						onclick={() => void add()}
+						disabled={saving}
+					>
+						{saving ? "Adding…" : `Add to slot ${slot + 1}`}
+					</button>
 
-				<p class="addition-note">New items start with quantity 1.</p>
-
-				<button
-					type="button"
-					class="study-button study-button--constructive study-button--filled add"
-					onclick={() => void add()}
-					disabled={saving}
-				>
-					{saving ? "Adding…" : `Add to slot ${slot + 1}`}
-				</button>
-
-				<p class="feedback" role="status">
-					{error ?? ""}
-				</p>
+					<p class="feedback" role="status">
+						{error ?? ""}
+					</p>
+				{/key}
 			{:else}
 				<p class="no-results">
 					No item selected. Search for an item to preview it here.
@@ -354,6 +367,7 @@
 		overflow-y: auto;
 		overscroll-behavior: contain;
 		scrollbar-color: #b98b52 #f7d7a4;
+		scrollbar-gutter: stable;
 		padding: 3px;
 		margin: -3px;
 	}
@@ -402,6 +416,24 @@
 	.pagination span {
 		text-align: center;
 	}
+	/* Keep row widths stable on platforms with traditional scrollbars, including
+       engines predating scrollbar-gutter. Colours cover older WebKit as well. */
+	@supports not (scrollbar-gutter: stable) {
+		.item-list {
+			overflow-y: scroll;
+		}
+	}
+	.item-list::-webkit-scrollbar {
+		width: 12px;
+	}
+	.item-list::-webkit-scrollbar-track {
+		background: #f7d7a4;
+	}
+	.item-list::-webkit-scrollbar-thumb {
+		background: #b98b52;
+		border: 3px solid #f7d7a4;
+		border-radius: 6px;
+	}
 	.preview {
 		border-top: 1px solid #be8d4d;
 		padding-top: 20px;
@@ -411,6 +443,10 @@
 		display: flex;
 		align-items: center;
 		gap: 16px;
+		height: 104px;
+	}
+	.preview-header > div:last-child {
+		min-width: 0;
 	}
 	.preview-icon {
 		display: grid;
@@ -425,6 +461,9 @@
 	h3 {
 		margin: 0 0 8px;
 		font-size: 26px;
+		line-height: 1.25;
+		max-height: 2.5em;
+		overflow: auto;
 		overflow-wrap: anywhere;
 	}
 	.preview-id {
@@ -435,9 +474,17 @@
 		font-size: 18px;
 		color: #694621;
 	}
+	.description:focus-visible,
+	h3:focus-visible {
+		outline: 2px solid #311304;
+		outline-offset: 2px;
+	}
 	.description {
 		white-space: pre-line;
 		line-height: 1.45;
+		height: 5.8em;
+		overflow: auto;
+		scrollbar-gutter: stable;
 		margin: 0 0 24px;
 	}
 	.addition-note,

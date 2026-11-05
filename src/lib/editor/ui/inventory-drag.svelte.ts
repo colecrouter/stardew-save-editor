@@ -17,6 +17,9 @@ interface DragInput {
 	readonly owners: () => readonly InventoryView[];
 	readonly visibleOwners: () => readonly (InventoryView | undefined)[];
 	readonly root: () => HTMLElement | undefined;
+	// Hit testing may span several panes; edge scrolling begins at the actual
+	// slot viewport, then retains the established ancestor/page fallback.
+	readonly scrollRoot?: () => HTMLElement | undefined;
 	readonly movePending: () => boolean;
 	readonly selectedEntity: () => string | undefined;
 	readonly ownerOf: (item: InventorySlot) => InventoryView | undefined;
@@ -67,7 +70,8 @@ export function createInventoryDrag(input: DragInput) {
 			};
 			// Try each scrollable ancestor at its own visible edge. A saturated chest
 			// pane must not move the outer page unless the finger is near that edge too.
-			let container: HTMLElement | null | undefined = input.root();
+			let container: HTMLElement | null | undefined =
+				input.scrollRoot?.() ?? input.root();
 			let scrolled = false;
 			while (container && container !== document.body) {
 				if (/(auto|scroll)/.test(getComputedStyle(container).overflowY)) {

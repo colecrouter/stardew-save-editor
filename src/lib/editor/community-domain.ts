@@ -6,6 +6,10 @@ import type {
 } from "./community-data.ts";
 import type { DomainEditPort } from "./field-binding.ts";
 import type { ImmutableView } from "./immutable-view.ts";
+import {
+	setCommunityRequirements,
+	type CommunityIngredientEdit,
+} from "./community-requirements.ts";
 import { setCommunityProgress } from "./community-operations.ts";
 import { inventoryQualities } from "./inventory-policy.ts";
 import {
@@ -119,6 +123,30 @@ export function createCommunityBundle(
 	return {
 		...bundle,
 		seal: bundleSeal(bundle),
+		// Capture the opening requirements and donation state; the command rejects
+		// intervening edits rather than applying a stale coordinated draft.
+		editRequirements: (
+			requirements: readonly CommunityIngredientEdit[],
+			needed: number,
+		) =>
+			port.commands.transact(
+				setCommunityRequirements({
+					bundleKey: bundle.key,
+					expected: {
+						needed: bundle.needed,
+						requirements: bundle.requirements.map(
+							({ itemId, quantity, quality, submitted }) => ({
+								itemId,
+								quantity,
+								quality,
+								submitted,
+							}),
+						),
+					},
+					requirements,
+					needed,
+				}),
+			),
 		requirements: bundle.requirements.map((requirement) => ({
 			...requirement,
 			qualityLabel:
@@ -161,6 +189,10 @@ export function createCommunityDomain(
 			port.commands.transact(
 				setCommunityProgress({ type: "membership", value }),
 				revision,
+			),
+		roomProgress: (room: number, value: boolean) =>
+			port.commands.transact(
+				setCommunityProgress({ type: "room", room, value }),
 			),
 		project: (room: number, value: boolean) =>
 			port.commands.transact(

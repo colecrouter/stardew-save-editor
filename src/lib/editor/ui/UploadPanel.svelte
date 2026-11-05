@@ -1,4 +1,7 @@
 <script lang="ts">
+	import { onDestroy } from "svelte";
+	import { Result } from "effect";
+	import { copySaveLocation, runEntryCommand } from "../entry-operations.ts";
 	import StudyFrame from "../../ui/StudyFrame.svelte";
 	import ParchmentPane from "../../ui/frame/ParchmentPane.svelte";
 	import StudyButton from "../../ui/kit/StudyButton.svelte";
@@ -16,6 +19,49 @@
 	let { opening, error, legacyHref, onfile, onoriginal, oncancel }: Props =
 		$props();
 	let backupsOpen = $state(false);
+	let copying = $state(false);
+	let copyFeedback = $state("");
+	let copyFailed = $state(false);
+	let mounted = true;
+	const locations = [
+		{ os: "Windows", path: String.raw`%appdata%\StardewValley\Saves` },
+		{ os: "macOS", path: "~/Library/Application Support/StardewValley/Saves" },
+		{ os: "Linux", path: "~/.config/StardewValley/Saves" },
+		{
+			os: "Android",
+			path: "/Android/data/com.chucklefish.stardewvalley/files/Saves",
+		},
+	] as const;
+	async function copyPath(os: string, path: string) {
+		if (copying) return;
+		copying = true;
+		copyFeedback = "";
+		copyFailed = false;
+		const result = await runEntryCommand(
+			copySaveLocation(path),
+			(message) => {
+				if (mounted) {
+					copyFeedback = message;
+					copyFailed = true;
+				}
+			},
+			{
+				context: "clipboard",
+				message: "The path could not be copied. Please try again.",
+			},
+		);
+		// Clipboard promises cannot be canceled. A departed upload screen must not
+		// install feedback into a later screen or acquire another browser action.
+		if (!mounted) return;
+		if (result && Result.isFailure(result)) {
+			copyFeedback = result.failure.message;
+			copyFailed = true;
+		} else if (result) copyFeedback = `Copied ${os} save location.`;
+		copying = false;
+	}
+	onDestroy(() => {
+		mounted = false;
+	});
 </script>
 
 <!-- This is presentation for the existing file lifecycle. EditorApp continues
@@ -82,8 +128,8 @@
 						<li>
 							<strong>Keep your original.</strong>
 							<span>
-								The five latest successful imports are backed up in this
-								browser. Keep a separate copy too.
+								Up to five distinct originals are backed up in this browser.
+								Keep a separate copy too.
 							</span>
 						</li>
 						<li>
@@ -103,6 +149,35 @@
 					>
 						Save locations &amp; replacement guide ↗
 					</a>
+					<details class="locations">
+						<summary>Default save locations</summary>
+						<p>
+							Copy a path, then use the Save file picker above. Platform access
+							restrictions can vary; see the guide for details.
+						</p>
+						<ul>
+							{#each locations as location (location.os)}
+								<li>
+									<strong>{location.os}</strong>
+									<code>{location.path}</code>
+									<StudyButton
+										disabled={opening || copying}
+										aria-label={`Copy ${location.os} save location`}
+										onclick={() => void copyPath(location.os, location.path)}
+									>
+										Copy path
+									</StudyButton>
+								</li>
+							{/each}
+							<li>
+								<strong>iOS / iPadOS</strong>
+								<span>Files → On My iPhone/iPad → Stardew Valley</span>
+							</li>
+						</ul>
+						<p role={copyFailed ? "alert" : "status"} class="copy-feedback">
+							{copyFeedback}
+						</p>
+					</details>
 				</aside>
 			</div>
 
@@ -128,6 +203,32 @@
 </div>
 
 <style>
+	.locations {
+		margin-top: 1rem;
+	}
+	.locations summary {
+		cursor: pointer;
+	}
+	.locations ul {
+		list-style: none;
+		padding: 0;
+		display: grid;
+		gap: 1rem;
+	}
+	.locations li {
+		display: grid;
+		gap: 0.35rem;
+		justify-items: start;
+	}
+	.locations code {
+		max-width: 100%;
+		overflow-wrap: anywhere;
+		user-select: text;
+	}
+	.copy-feedback {
+		min-height: 1.5em;
+	}
+
 	.entry {
 		max-width: 1100px;
 		margin: 36px auto 24px;

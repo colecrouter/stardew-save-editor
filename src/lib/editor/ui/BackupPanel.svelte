@@ -80,7 +80,7 @@
 			<h2>Original save backups</h2>
 
 			<p>
-				The five latest successful imports, kept in this browser. Originals
+				The five latest distinct originals, kept in this browser. Originals
 				contain the file as it was opened, before any edits.
 			</p>
 		</div>

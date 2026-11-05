@@ -46,6 +46,27 @@
 	let membershipRevision: number | undefined;
 	let membershipBusy = $state(false);
 	let membershipError = $state("");
+	let roomBusy = $state(false);
+	let roomFeedback = $state<{ roomId: number; message: string }>();
+	async function changeRoom(value: boolean) {
+		const target = domain;
+		const targetRoom = room;
+		if (!target || !targetRoom || roomBusy) return;
+		roomBusy = true;
+		roomFeedback = undefined;
+		try {
+			const result = await target.roomProgress(targetRoom.id, value);
+			// Room browsing may change while the queued action completes; feedback
+			// remains attached to its original room, while history owns the data.
+			if (result && Result.isFailure(result))
+				roomFeedback = {
+					roomId: targetRoom.id,
+					message: result.failure.message,
+				};
+		} finally {
+			roomBusy = false;
+		}
+	}
 	function showMembership(open: boolean) {
 		if (open) {
 			// Capture the opening membership and revision; the desired route remains
@@ -241,6 +262,37 @@
 					<StudyIcon name={room?.restored ? "check" : "community"} size={32} />
 				</header>
 
+				<div class="room-actions">
+					<StudyButton
+						intent="constructive"
+						disabled={roomBusy ||
+							room?.completed === undefined ||
+							domain.membership === undefined}
+						onclick={() => void changeRoom(true)}
+					>
+						Complete room
+					</StudyButton>
+
+					<StudyButton
+						disabled={roomBusy ||
+							room?.completed === undefined ||
+							domain.membership === undefined}
+						onclick={() => void changeRoom(false)}
+					>
+						Reopen room
+					</StudyButton>
+				</div>
+
+				{#if roomFeedback && roomFeedback.roomId === room?.id}
+					<StudyAlert
+						title="Room could not be changed"
+						tone="danger"
+						live="assertive"
+					>
+						<p>{roomFeedback.message}</p>
+					</StudyAlert>
+				{/if}
+
 				{#if room?.note}
 					<p class="room-note">{room.note}</p>
 				{/if}
@@ -273,6 +325,12 @@
 {/snippet}
 
 <style>
+	.room-actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px;
+		margin-bottom: 16px;
+	}
 	.community-heading {
 		display: flex;
 		flex-wrap: wrap;

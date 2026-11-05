@@ -1,5 +1,7 @@
 <script lang="ts">
 	import BuildingSprite from "../../ui/BuildingSprite.svelte";
+	import StudyTooltip from "../../ui/kit/StudyTooltip.svelte";
+	import BackpackItemVisual from "./BackpackItemVisual.svelte";
 	import { Result } from "effect";
 	import StudyButton from "../../ui/kit/StudyButton.svelte";
 	import StudyAlert from "../../ui/kit/StudyAlert.svelte";
@@ -103,6 +105,34 @@
 			</div>
 		</div>
 	</header>
+	{#if building.description}
+		<p class="description">{building.description}</p>
+	{/if}
+
+	{#if building.constructionCost && (building.constructionCost.gold || building.constructionCost.materials.length)}
+		<aside class="construction-cost" aria-label="In-game construction cost">
+			<p>In-game construction cost</p>
+
+			<div class="materials">
+				{#if building.constructionCost.gold}
+					<span>{building.constructionCost.gold.toLocaleString()}g</span>
+				{/if}
+
+				{#each building.constructionCost.materials as material (material.name)}
+					<StudyTooltip
+						text={material.name}
+						aria-label={`${material.amount.toLocaleString()} ${material.name}`}
+						class="material"
+					>
+						<BackpackItemVisual visual={material.visual} />
+						<span>{material.amount.toLocaleString()}</span>
+					</StudyTooltip>
+				{/each}
+			</div>
+
+			<small>Reference only. Editing does not spend gold or materials.</small>
+		</aside>
+	{/if}
 	{#if building.reason}
 		<StudyAlert title="Read-only building" tone="warning">
 			<p>{building.reason}</p>
@@ -256,6 +286,28 @@
 </section>
 
 <style>
+	.construction-cost {
+		margin: 0.7rem 0;
+	}
+	.construction-cost p {
+		margin: 0 0 0.3rem;
+	}
+	.materials {
+		display: flex;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+	}
+	.materials :global(.material) {
+		display: flex;
+		align-items: center;
+		gap: 0.3rem;
+		padding: 0.15rem 0.3rem;
+	}
+	.construction-cost small {
+		display: block;
+		margin-top: 0.3rem;
+	}
 	section {
 		min-width: 0;
 	}

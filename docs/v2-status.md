@@ -90,3 +90,13 @@ confirmed VoiceOver, the native section menu and macOS rubber-band scrolling.
 page dispositions, native keyboard evidence, export failure fix and the automated scope. #218 records visual acceptance, #219
 records interaction/failure qualification, #201 records performance qualification,
 and #220 owns the remaining default-route cutover decision.
+
+## Final contribution reconciliation
+
+The [PR reconciliation](v2-pr-reconciliation.md) carries loved gifts/search, archive
+deduplication, custom bundle requirements/whole-room actions, thank-you mail,
+building descriptions/costs, pregnancy controls and copyable save paths into the
+baseline. The owner accepted compact informational presentation and a spouse-row
+Family planning disclosure. Export retains lightweight guidance; path copying
+leaves file selection explicit. Legacy PR closure follows the validated replacement
+merge and preserves contributor attribution. Default-route cutover remains #220.

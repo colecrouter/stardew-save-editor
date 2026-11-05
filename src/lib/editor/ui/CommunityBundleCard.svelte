@@ -3,6 +3,7 @@
 	import type { CommunityBundleDomain } from "../community-domain.ts";
 	import type { CommandResult } from "../command-result.ts";
 	import BackpackItemVisual from "./BackpackItemVisual.svelte";
+	import CommunityRequirementsEditor from "./CommunityRequirementsEditor.svelte";
 	import QualityBadge from "./QualityBadge.svelte";
 	import StudyButton from "../../ui/kit/StudyButton.svelte";
 	import StudyAlert from "../../ui/kit/StudyAlert.svelte";
@@ -75,6 +76,10 @@
 			{bundle.completed ? "Reopen bundle" : "Complete bundle"}
 		</StudyButton>
 	</header>
+
+	<div class="edit-requirements">
+		<CommunityRequirementsEditor {bundle} {disabled} />
+	</div>
 
 	{#if bundle.reason}
 		<p role="status" class="bundle-note">{bundle.reason}</p>
@@ -167,6 +172,9 @@
 		background: #fff0d0;
 		padding: 20px;
 		min-width: 0;
+	}
+	.edit-requirements {
+		margin-bottom: 16px;
 	}
 	article.complete {
 		border-color: #648045;

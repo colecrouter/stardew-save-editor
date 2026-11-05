@@ -12,7 +12,22 @@
 		},
 		"maxOccupants": 20,
 		"hayCapacity": 0,
-		"description": "Junimos will harvest crops around the hut for you."
+		"description": "Junimos will harvest crops around the hut for you.",
+		"buildCost": 20000,
+		"buildMaterials": [
+			{
+				"item": "Stone",
+				"amount": 200
+			},
+			{
+				"item": "Starfruit",
+				"amount": 9
+			},
+			{
+				"item": "Fiber",
+				"amount": 100
+			}
+		]
 	},
 	{
 		"name": "Earth Obelisk",
@@ -27,7 +42,18 @@
 		},
 		"maxOccupants": 20,
 		"hayCapacity": 0,
-		"description": "Warps you to the mountains."
+		"description": "Warps you to the mountains.",
+		"buildCost": 500000,
+		"buildMaterials": [
+			{
+				"item": "Iridium Bar",
+				"amount": 10
+			},
+			{
+				"item": "Earth Crystal",
+				"amount": 10
+			}
+		]
 	},
 	{
 		"name": "Water Obelisk",
@@ -42,7 +68,22 @@
 		},
 		"maxOccupants": 20,
 		"hayCapacity": 0,
-		"description": "Warps you to the beach."
+		"description": "Warps you to the beach.",
+		"buildCost": 500000,
+		"buildMaterials": [
+			{
+				"item": "Iridium Bar",
+				"amount": 5
+			},
+			{
+				"item": "Clam",
+				"amount": 10
+			},
+			{
+				"item": "Coral",
+				"amount": 10
+			}
+		]
 	},
 	{
 		"name": "Desert Obelisk",
@@ -57,7 +98,22 @@
 		},
 		"maxOccupants": 20,
 		"hayCapacity": 0,
-		"description": "Warps you to the desert."
+		"description": "Warps you to the desert.",
+		"buildCost": 1000000,
+		"buildMaterials": [
+			{
+				"item": "Iridium Bar",
+				"amount": 20
+			},
+			{
+				"item": "Coconut",
+				"amount": 10
+			},
+			{
+				"item": "Cactus Fruit",
+				"amount": 10
+			}
+		]
 	},
 	{
 		"name": "Island Obelisk",
@@ -72,7 +128,22 @@
 		},
 		"maxOccupants": 20,
 		"hayCapacity": 0,
-		"description": "Warps you to Ginger Island."
+		"description": "Warps you to Ginger Island.",
+		"buildCost": 1000000,
+		"buildMaterials": [
+			{
+				"item": "Iridium Bar",
+				"amount": 10
+			},
+			{
+				"item": "Dragon Tooth",
+				"amount": 10
+			},
+			{
+				"item": "Banana",
+				"amount": 10
+			}
+		]
 	},
 	{
 		"name": "Gold Clock",
@@ -87,7 +158,9 @@
 		},
 		"maxOccupants": 20,
 		"hayCapacity": 0,
-		"description": "Prevents debris from appearing on your farm. Keeps fences from decaying."
+		"description": "Prevents debris from appearing on your farm. Keeps fences from decaying.",
+		"buildCost": 10000000,
+		"buildMaterials": []
 	},
 	{
 		"name": "Coop",
@@ -109,7 +182,9 @@
 		"maxOccupants": 4,
 		"hayCapacity": 0,
 		"description": "Houses 4 coop-dwelling animals.",
-		"validOccupantTypes": ["Coop"],
+		"validOccupantTypes": [
+			"Coop"
+		],
 		"humanDoor": {
 			"X": 1,
 			"Y": 2
@@ -127,6 +202,17 @@
 					"Y": 3
 				},
 				"indestructible": true
+			}
+		],
+		"buildCost": 4000,
+		"buildMaterials": [
+			{
+				"item": "Wood",
+				"amount": 300
+			},
+			{
+				"item": "Stone",
+				"amount": 100
 			}
 		]
 	},
@@ -150,7 +236,9 @@
 		"maxOccupants": 4,
 		"hayCapacity": 0,
 		"description": "Houses 4 barn-dwelling animals.",
-		"validOccupantTypes": ["Barn"],
+		"validOccupantTypes": [
+			"Barn"
+		],
 		"humanDoor": {
 			"X": 1,
 			"Y": 3
@@ -169,6 +257,17 @@
 				},
 				"indestructible": true
 			}
+		],
+		"buildCost": 6000,
+		"buildMaterials": [
+			{
+				"item": "Wood",
+				"amount": 350
+			},
+			{
+				"item": "Stone",
+				"amount": 150
+			}
 		]
 	},
 	{
@@ -184,7 +283,14 @@
 		},
 		"maxOccupants": 20,
 		"hayCapacity": 0,
-		"description": "Provides a place for you to refill your watering can."
+		"description": "Provides a place for you to refill your watering can.",
+		"buildCost": 1000,
+		"buildMaterials": [
+			{
+				"item": "Stone",
+				"amount": 75
+			}
+		]
 	},
 	{
 		"name": "Silo",
@@ -199,7 +305,22 @@
 		},
 		"maxOccupants": 20,
 		"hayCapacity": 240,
-		"description": "Allows you to cut and store grass for feed."
+		"description": "Allows you to cut and store grass for feed.",
+		"buildCost": 100,
+		"buildMaterials": [
+			{
+				"item": "Stone",
+				"amount": 100
+			},
+			{
+				"item": "Clay",
+				"amount": 10
+			},
+			{
+				"item": "Copper Bar",
+				"amount": 5
+			}
+		]
 	},
 	{
 		"name": "Mill",
@@ -220,7 +341,22 @@
 		},
 		"maxOccupants": 20,
 		"hayCapacity": 0,
-		"description": "Allows you to mill wheat, beets and rice."
+		"description": "Allows you to mill wheat, beets and rice.",
+		"buildCost": 2500,
+		"buildMaterials": [
+			{
+				"item": "Wood",
+				"amount": 150
+			},
+			{
+				"item": "Stone",
+				"amount": 50
+			},
+			{
+				"item": "Cloth",
+				"amount": 4
+			}
+		]
 	},
 	{
 		"name": "Shed",
@@ -239,7 +375,14 @@
 		"humanDoor": {
 			"X": 3,
 			"Y": 2
-		}
+		},
+		"buildCost": 15000,
+		"buildMaterials": [
+			{
+				"item": "Wood",
+				"amount": 300
+			}
+		]
 	},
 	{
 		"name": "Fish Pond",
@@ -254,7 +397,22 @@
 		},
 		"maxOccupants": -1,
 		"hayCapacity": 0,
-		"description": "Raise fish and harvest their produce. Fish multiply over time."
+		"description": "Raise fish and harvest their produce. Fish multiply over time.",
+		"buildCost": 5000,
+		"buildMaterials": [
+			{
+				"item": "Stone",
+				"amount": 200
+			},
+			{
+				"item": "Seaweed",
+				"amount": 5
+			},
+			{
+				"item": "Green Algae",
+				"amount": 5
+			}
+		]
 	},
 	{
 		"name": "Cabin",
@@ -279,7 +437,9 @@
 		"humanDoor": {
 			"X": 2,
 			"Y": 1
-		}
+		},
+		"buildCost": 100,
+		"buildMaterials": []
 	},
 	{
 		"name": "Pet Bowl",
@@ -300,7 +460,14 @@
 		},
 		"maxOccupants": 20,
 		"hayCapacity": 0,
-		"description": "Provides a dedicated home for one pet."
+		"description": "Provides a dedicated home for one pet.",
+		"buildCost": 5000,
+		"buildMaterials": [
+			{
+				"item": "Hardwood",
+				"amount": 25
+			}
+		]
 	},
 	{
 		"name": "Stable",
@@ -315,7 +482,18 @@
 		},
 		"maxOccupants": 20,
 		"hayCapacity": 0,
-		"description": "Allows you to keep and ride a horse. Horse included."
+		"description": "Allows you to keep and ride a horse. Horse included.",
+		"buildCost": 10000,
+		"buildMaterials": [
+			{
+				"item": "Hardwood",
+				"amount": 100
+			},
+			{
+				"item": "Iron Bar",
+				"amount": 5
+			}
+		]
 	},
 	{
 		"name": "Slime Hutch",
@@ -337,7 +515,9 @@
 		"maxOccupants": 20,
 		"hayCapacity": 0,
 		"description": "Raise up to 20 slimes. Fill water troughs and slimes will create slime balls.",
-		"validOccupantTypes": ["Slime"],
+		"validOccupantTypes": [
+			"Slime"
+		],
 		"humanDoor": {
 			"X": 3,
 			"Y": 3
@@ -350,6 +530,21 @@
 					"X": 1,
 					"Y": 4
 				}
+			}
+		],
+		"buildCost": 10000,
+		"buildMaterials": [
+			{
+				"item": "Stone",
+				"amount": 500
+			},
+			{
+				"item": "Refined Quartz",
+				"amount": 10
+			},
+			{
+				"item": "Iridium Bar",
+				"amount": 1
 			}
 		]
 	},
@@ -374,7 +569,9 @@
 		"hayCapacity": 0,
 		"description": "Houses 8 coop-dwelling animals. Comes with an incubator. Unlocks ducks.",
 		"buildingToUpgrade": "Coop",
-		"validOccupantTypes": ["Coop"],
+		"validOccupantTypes": [
+			"Coop"
+		],
 		"humanDoor": {
 			"X": 1,
 			"Y": 2
@@ -436,7 +633,20 @@
 				}
 			}
 		],
-		"addMailOnBuild": ["incubator"]
+		"addMailOnBuild": [
+			"incubator"
+		],
+		"buildCost": 10000,
+		"buildMaterials": [
+			{
+				"item": "Wood",
+				"amount": 400
+			},
+			{
+				"item": "Stone",
+				"amount": 150
+			}
+		]
 	},
 	{
 		"name": "Deluxe Coop",
@@ -459,7 +669,9 @@
 		"hayCapacity": 0,
 		"description": "Houses 12 coop-dwelling animals. Comes with an auto-feed system. Unlocks rabbits.",
 		"buildingToUpgrade": "Big Coop",
-		"validOccupantTypes": ["Coop"],
+		"validOccupantTypes": [
+			"Coop"
+		],
 		"humanDoor": {
 			"X": 1,
 			"Y": 2
@@ -520,7 +732,20 @@
 				}
 			}
 		],
-		"addMailOnBuild": ["incubator"]
+		"addMailOnBuild": [
+			"incubator"
+		],
+		"buildCost": 20000,
+		"buildMaterials": [
+			{
+				"item": "Wood",
+				"amount": 500
+			},
+			{
+				"item": "Stone",
+				"amount": 200
+			}
+		]
 	},
 	{
 		"name": "Big Barn",
@@ -543,7 +768,9 @@
 		"hayCapacity": 0,
 		"description": "Houses 8 barn-dwelling animals. Allows animals to give birth. Unlocks goats.",
 		"buildingToUpgrade": "Barn",
-		"validOccupantTypes": ["Barn"],
+		"validOccupantTypes": [
+			"Barn"
+		],
 		"humanDoor": {
 			"X": 1,
 			"Y": 3
@@ -608,6 +835,17 @@
 					"Y": 9
 				}
 			}
+		],
+		"buildCost": 12000,
+		"buildMaterials": [
+			{
+				"item": "Wood",
+				"amount": 450
+			},
+			{
+				"item": "Stone",
+				"amount": 200
+			}
 		]
 	},
 	{
@@ -631,7 +869,9 @@
 		"hayCapacity": 0,
 		"description": "Houses 12 barn-dwelling animals. Comes with an auto-feed system. Unlocks sheep and pigs.",
 		"buildingToUpgrade": "Big Barn",
-		"validOccupantTypes": ["Barn"],
+		"validOccupantTypes": [
+			"Barn"
+		],
 		"humanDoor": {
 			"X": 1,
 			"Y": 3
@@ -706,6 +946,17 @@
 					"Y": 13
 				}
 			}
+		],
+		"buildCost": 25000,
+		"buildMaterials": [
+			{
+				"item": "Wood",
+				"amount": 550
+			},
+			{
+				"item": "Stone",
+				"amount": 300
+			}
 		]
 	},
 	{
@@ -726,7 +977,18 @@
 		"humanDoor": {
 			"X": 3,
 			"Y": 2
-		}
+		},
+		"buildCost": 20000,
+		"buildMaterials": [
+			{
+				"item": "Wood",
+				"amount": 550
+			},
+			{
+				"item": "Stone",
+				"amount": 300
+			}
+		]
 	},
 	{
 		"name": "Shipping Bin",
@@ -741,7 +1003,14 @@
 		},
 		"maxOccupants": 20,
 		"hayCapacity": 0,
-		"description": "Throw items inside to sell them overnight."
+		"description": "Throw items inside to sell them overnight.",
+		"buildCost": 250,
+		"buildMaterials": [
+			{
+				"item": "Wood",
+				"amount": 150
+			}
+		]
 	},
 	{
 		"name": "Farmhouse",
@@ -766,7 +1035,8 @@
 		"humanDoor": {
 			"X": 5,
 			"Y": 2
-		}
+		},
+		"buildMaterials": []
 	},
 	{
 		"name": "Greenhouse",
@@ -791,6 +1061,7 @@
 		"humanDoor": {
 			"X": 3,
 			"Y": 5
-		}
+		},
+		"buildMaterials": []
 	}
 ]

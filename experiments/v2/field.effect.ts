@@ -1,5 +1,6 @@
 import { expect, it } from "@effect/vitest";
 import { Effect } from "effect";
+import { vi } from "vitest";
 import { get, writable } from "svelte/store";
 import { createDraft, parseStack, type FieldValue } from "./field.ts";
 import { makeAtomInventory } from "./inventory-atoms.ts";
@@ -113,12 +114,22 @@ it.effect(
 			expect(get(draft).pending).toBe(true);
 			draft.input("10");
 			expect(get(draft).text).toBe("9");
-			reject(new Error("failed commit"));
-			await pending;
-			expect(get(draft).text).toBe("9");
-			expect(get(draft).pending).toBe(false);
-			expect(get(draft).error).toContain("failed commit");
-			stop();
+			// A rejected comparator Promise is a defect, not text validation. The
+			// shared draft boundary reports it once while retaining retryable input.
+			const log = vi.spyOn(console, "error").mockImplementation(() => {});
+			try {
+				reject(new Error("failed commit"));
+				await pending;
+				expect(get(draft).text).toBe("9");
+				expect(get(draft).pending).toBe(false);
+				expect(get(draft).error).toBe(
+					"The edit could not be completed. Please try again.",
+				);
+				expect(log).toHaveBeenCalledOnce();
+			} finally {
+				log.mockRestore();
+				stop();
+			}
 			expect(live).toBe(0);
 		}),
 );

@@ -100,3 +100,9 @@ baseline. The owner accepted compact informational presentation and a spouse-row
 Family planning disclosure. Export retains lightweight guidance; path copying
 leaves file selection explicit. Legacy PR closure follows the validated replacement
 merge and preserves contributor attribution. Default-route cutover remains #220.
+
+The [final cutover audit](v2-cutover-audit.md) records three independent whole-V2
+quality reviews, the resolved preservation/native-control/error-boundary findings,
+and the remaining P3 consolidation opportunities. The final viewport/search/ribbon
+pass is qualified there. Default-route changes and rollback remain #220; release
+stretch features do not block the foundation.

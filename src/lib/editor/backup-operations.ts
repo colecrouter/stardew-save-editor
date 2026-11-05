@@ -38,6 +38,17 @@ const expectedBrowserFailure = (message: string) =>
 const request = <A>(message: string, run: () => Promise<A>) =>
 	Effect.promise(run).pipe(expectedBrowserFailure(message));
 
+/** Automatic import backup uses the same browser-failure classification as archive actions.
+ * The injected writer preserves the caller's exact File and existing retention policy. */
+export const writeOriginalBackup = (
+	file: File,
+	write: (file: File) => Promise<void>,
+) =>
+	request(
+		"The original file could not be backed up. Keep a separate copy before exporting.",
+		() => write(file),
+	);
+
 /** Read keys and values in one transaction; invalid entries remain visible without clearing the archive. */
 export const readOriginalBackups = Effect.fn("Backups.readOriginals")(
 	function* () {

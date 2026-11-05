@@ -303,7 +303,12 @@
 				<section class="picker" aria-label="Add a bundle requirement">
 					<label>
 						Search items or categories
-						<input class="study-input" type="search" bind:value={search} />
+						<input
+							class="study-input"
+							type="search"
+							placeholder="Item name, ID or category"
+							bind:value={search}
+						/>
 					</label>
 
 					<div class="choices">

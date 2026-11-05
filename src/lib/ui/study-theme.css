@@ -88,10 +88,6 @@
 	min-height: 38px;
 }
 
-main:has(> .study-theme) {
-	padding: 8px 8px 24px;
-	min-height: 0;
-}
 .study-theme .select-wrapper::before {
 	content: "";
 	position: absolute;
@@ -136,31 +132,6 @@ main:has(> .study-theme) {
 		min-height: 44px;
 		font-size: 21px;
 	}
-	main:has(> .study-theme) {
-		padding: 8px 8px 32px;
-	}
-}
-
-/* Keep the global repository shortcut clear of the raised close control. */
-body:has(.study-theme) a[aria-label="GitHub repository link"] {
-	position: absolute;
-	top: auto;
-	bottom: 0;
-	right: 8px;
-	padding: 2px;
-	z-index: 1;
-}
-body:has(.study-theme) a[aria-label="GitHub repository link"]::before {
-	display: none;
-}
-body:has(.study-theme) a[aria-label="GitHub repository link"] > img {
-	width: 18px;
-	height: 18px;
-}
-
-main:has(> .study-theme) ~ small {
-	max-width: calc(100% - 32px);
-	font-size: 12px;
 }
 
 /* Technical identifiers need a distinct, readable treatment on parchment.

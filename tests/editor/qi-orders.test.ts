@@ -38,6 +38,14 @@ const inProgress = (key: string, rule: string, applied = true) => ({
 	objectives: [{ currentCount: 3, opaque: "keep" }],
 });
 describe("Qi order transactions", () => {
+	it("preserves opaque order keys without coercing them during projection", () => {
+		const document = fixture({
+			SpecialOrder: { orderType: "Town", questKey: { toString: "opaque" } },
+		});
+		const before = structuredClone(document);
+		expect(readQiOrders(document).offeredCount).toBe(0);
+		expect(document).toEqual(before);
+	});
 	it("does not normalize empty/singleton containers while viewing", () => {
 		for (const board of [
 			"",

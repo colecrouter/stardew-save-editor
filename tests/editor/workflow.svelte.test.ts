@@ -107,7 +107,7 @@ describe("full-save application workflow", { timeout: 15_000 }, () => {
 		const page = render(EditorApp, {
 			props: {
 				backupOriginal: async () => {
-					throw Error("Backup unavailable");
+					throw new DOMException("Backup unavailable", "QuotaExceededError");
 				},
 			},
 		});

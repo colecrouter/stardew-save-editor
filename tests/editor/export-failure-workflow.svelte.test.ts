@@ -36,7 +36,7 @@ it.each(["write", "close"] as const)(
 		});
 		const page = render(EditorApp, {
 			backupOriginal: async () => {
-				throw new Error("Archive unavailable");
+				throw new DOMException("Archive unavailable", "QuotaExceededError");
 			},
 		});
 		try {

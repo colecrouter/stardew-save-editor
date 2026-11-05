@@ -39,6 +39,7 @@
 
 <!-- GITHUB LOGO -->
 <a
+	class:v2-repository={page.route.id === "/v2"}
 	href="https://github.com/colecrouter/stardew-save-editor"
 	aria-label="GitHub repository link"
 	target="_blank"
@@ -54,7 +55,7 @@
 <Toasts />
 
 <!-- FOOTER -->
-<small>
+<small class:v2-credits={page.route.id === "/v2"}>
 	Some assets utilized belong to ConcernedApe. Used under Fair Use and not
 	affiliated with ConcernedApe or Stardew Valley
 </small>
@@ -109,8 +110,42 @@
 	}
 
 	.calendar-workspace {
-		padding: 8px 0 32px;
+		padding: 0;
+		flex: 1;
+		min-height: 0;
 		width: 100%;
+	}
+
+	/* Let the actual credit text reserve its own height, including wrapping.
+	   Desktop gives the remaining space to the workbench; phones keep document scrolling. */
+	:global(body:has(main.calendar-workspace)) {
+		display: flex;
+		flex-direction: column;
+		min-height: 100dvh;
+	}
+	@media (min-width: 901px) {
+		:global(body:has(.editor-application.has-session)) {
+			height: 100dvh;
+		}
+	}
+	.v2-credits {
+		position: static;
+		flex: none;
+		z-index: auto;
+		font-size: 12px;
+		line-height: 1.3;
+		padding: 4px 8px;
+	}
+	/* The original ribbon remains visible in the opposite corner from Close. */
+	.v2-repository {
+		left: 0;
+		right: auto;
+		z-index: 10;
+	}
+	.v2-repository::before {
+		left: 0;
+		right: auto;
+		clip-path: polygon(0 0, 100% 0, 0 100%);
 	}
 
 	/* GitHub logo */

@@ -91,3 +91,90 @@ it("save-picker cancellation returns noncompletion without writing bytes", async
 		Reflect.deleteProperty(window, "showSaveFilePicker");
 	}
 });
+
+// A browser AbortError means cancellation only while the picker is open. Once
+// we own a stream, failures must release it and reach the application's retry UI.
+it.each(["write", "close"] as const)(
+	"aborts an acquired stream after %s fails and preserves the original failure",
+	async (stage) => {
+		const failure = new DOMException(
+			"Destination became unavailable",
+			"AbortError",
+		);
+		const write = vi.fn(async () => {
+			if (stage === "write") throw failure;
+		});
+		const close = vi.fn(async () => {
+			if (stage === "close") throw failure;
+		});
+		// Some browsers already error the stream; a second cleanup failure must not
+		// replace the write/close reason that the caller needs to report.
+		const abort =
+			stage === "close"
+				? vi.fn(async () => {
+						throw new TypeError("Already closed");
+					})
+				: vi.fn(async () => {});
+		Object.defineProperty(window, "showSaveFilePicker", {
+			configurable: true,
+			value: async () => ({
+				createWritable: async () => ({ write, close, abort }),
+			}),
+		});
+		try {
+			await expect(downloadSave(new Blob(["save"]), "Farm_123")).rejects.toBe(
+				failure,
+			);
+			expect(abort).toHaveBeenCalledExactlyOnceWith(failure);
+			expect(close).toHaveBeenCalledTimes(stage === "close" ? 1 : 0);
+		} finally {
+			Reflect.deleteProperty(window, "showSaveFilePicker");
+		}
+	},
+);
+
+it("reports stream acquisition failure rather than treating it as picker cancellation", async () => {
+	const failure = new DOMException("Cannot acquire stream", "AbortError");
+	Object.defineProperty(window, "showSaveFilePicker", {
+		configurable: true,
+		value: async () => ({
+			createWritable: async () => {
+				throw failure;
+			},
+		}),
+	});
+	try {
+		await expect(downloadSave(new Blob(["save"]), "Farm_123")).rejects.toBe(
+			failure,
+		);
+	} finally {
+		Reflect.deleteProperty(window, "showSaveFilePicker");
+	}
+});
+
+it("reports cleanup rejection for a late unused stream when there is no earlier write failure", async () => {
+	const controller = new AbortController();
+	const failure = new Error("Cannot release unused stream");
+	const write = vi.fn(async () => {});
+	const abort = vi.fn(async () => {
+		throw failure;
+	});
+	Object.defineProperty(window, "showSaveFilePicker", {
+		configurable: true,
+		value: async () => ({
+			createWritable: async () => {
+				controller.abort();
+				return { write, abort };
+			},
+		}),
+	});
+	try {
+		await expect(
+			downloadSave(new Blob(["save"]), "Farm_123", controller.signal),
+		).rejects.toBe(failure);
+		expect(write).not.toHaveBeenCalled();
+		expect(abort).toHaveBeenCalledOnce();
+	} finally {
+		Reflect.deleteProperty(window, "showSaveFilePicker");
+	}
+});

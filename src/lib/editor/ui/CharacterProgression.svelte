@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { useAtomValue } from "effect-atom-svelte";
-	import type { EditorModel } from "../editor-model.ts";
-	import { createCharacterDomain } from "../character-domain.ts";
-	import CharacterDetails from "./CharacterDetails.svelte";
-	import NumberField from "./fields/NumberField.svelte";
-	import CheckboxField from "./fields/CheckboxField.svelte";
 	import StudyAlert from "../../ui/kit/StudyAlert.svelte";
+	import { createCharacterDomain } from "../character-domain.ts";
+	import type { EditorModel } from "../editor-model.ts";
+	import CharacterDetails from "./CharacterDetails.svelte";
+	import CheckboxField from "./fields/CheckboxField.svelte";
+	import NumberField from "./fields/NumberField.svelte";
 
 	let { model }: { model: EditorModel } = $props();
 	const view = useAtomValue(() => model.atomBindings.view);
@@ -153,13 +153,15 @@
 	.level-blocks span {
 		flex: none;
 		box-sizing: content-box;
-		width: 4px;
-		height: 14px;
+		width: 6px;
+		height: 16px;
 		background: #c87c1e;
-		border: 4px solid;
-		border-radius: 1px;
-		border-color: #b26922 #b26922 #c98426 #c98426;
-		box-shadow: 0 0 0 1px #8c5721;
+		border: 2px solid;
+		border-radius: 2px;
+		border-color: #cb912e;
+		box-shadow:
+			0 0 0 2px #8c5721,
+			inset -2px 2px 0 0 #ad611a;
 	}
 	.level-blocks span:nth-child(5n) {
 		width: 24px;
@@ -167,7 +169,7 @@
 	.level-blocks span.filled {
 		background: #dd003b;
 		border-color: #ff6948 #ff6948 #bc004a #bc004a;
-		box-shadow: 0 0 0 1px #960027;
+		box-shadow: 0 0 0 2px #960027;
 	}
 	.level-blocks span.filled:nth-child(5n) {
 		background: #ffa400;

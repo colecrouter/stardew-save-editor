@@ -23,7 +23,6 @@
 <div class="entry study-theme">
 	<header class="brand">
 		<h1>Stardew Save Editor</h1>
-		<p>A fresh start for your farm.</p>
 	</header>
 
 	<StudyFrame>
@@ -58,7 +57,8 @@
 							</span>
 							. Not
 							<span class="filename">SaveGameInfo</span>
-							or a ZIP.
+							or a ZIP. Supports Stardew Valley 1.6.x saves; older versions cannot
+							be opened.
 						</p>
 					</div>
 
@@ -91,10 +91,7 @@
 						</li>
 						<li>
 							<strong>Make it yours.</strong>
-							<span>
-								For Stardew Valley 1.6 saves. Review your changes and use Undo
-								as you edit.
-							</span>
+							<span>Review your changes and use Undo as you edit.</span>
 						</li>
 						<li>
 							<strong>Take it back to the farm.</strong>
@@ -124,12 +121,11 @@
 					<BackupPanel disabled={opening} onopen={onoriginal} />
 				{/if}
 			</details>
-			<footer class="entry-footer">
-				<span>Stardew Valley 1.6</span>
-				{#if legacyHref}
+			{#if legacyHref}
+				<footer class="entry-footer">
 					<a href={legacyHref}>Open the legacy editor</a>
-				{/if}
-			</footer>
+				</footer>
+			{/if}
 		</ParchmentPane>
 	</StudyFrame>
 </div>
@@ -147,10 +143,6 @@
 	}
 	.brand h1 {
 		font-size: clamp(32px, 5vw, 48px);
-	}
-	.brand p {
-		margin: 8px 0 0;
-		font-size: 24px;
 	}
 	.welcome {
 		display: grid;
@@ -269,7 +261,7 @@
 	}
 	.entry-footer {
 		display: flex;
-		justify-content: space-between;
+		justify-content: flex-end;
 		flex-wrap: wrap;
 		gap: 12px;
 		padding: 20px 0 4px;

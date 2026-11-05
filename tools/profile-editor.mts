@@ -2,11 +2,10 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { performance } from "node:perf_hooks";
+import { makeLargeProfileFixture } from "./profile-fixtures.mts";
 import { cpus, platform, release } from "node:os";
 import { JsonPatch, Result, Schema } from "effect";
 import { openEditor } from "../src/lib/editor/editor-model.ts";
-import { XMLCodec } from "../src/lib/xmlCodec.ts";
-import type { SaveDocument } from "../src/lib/editor/domain.ts";
 import {
 	setFarmSettings,
 	readFarmSettings,
@@ -95,51 +94,11 @@ const check = <A, E>(
 	if (!result || Result.isFailure(result))
 		throw new Error("A benchmark command did not commit");
 };
-const codec = new XMLCodec();
 const fixtureBytes = readFileSync(
 	new URL("../tests/TestSave", import.meta.url),
 );
-function enlarged() {
-	const document = codec.parse<SaveDocument>(fixtureBytes);
-	const farm = document.SaveGame.locations.GameLocation.find(
-		(location) => location.name === "Farm",
-	);
-	if (!farm) throw new Error("Fixture has no Farm");
-	// Objects are a dictionary list in the production fixture. The generated
-	// coordinates are unique and fixed; every chest has36 ordinary item records.
-	const items =
-		typeof farm.objects === "object" && farm.objects
-			? farm.objects.item
-			: undefined;
-	if (!Array.isArray(items))
-		throw new Error("Fixture farm objects are unsupported");
-	for (let chest = 0; chest < extraChests; chest++)
-		items.push({
-			key: { Vector2: { X: 2000 + chest, Y: 2000 } },
-			value: {
-				Object: {
-					"@_xsi:type": "Chest",
-					name: "Chest",
-					items: {
-						Item: Array.from({ length: 36 }, (_, slot) => ({
-							"@_xsi:type": "Object",
-							itemId: "390",
-							name: "Stone",
-							stack: 20,
-							quality: 0,
-							bigCraftable: false,
-							modData: {
-								fixture: "synthetic",
-								slot: String(slot),
-								payload: "x".repeat(256),
-							},
-						})),
-					},
-				},
-			},
-		});
-	return codec.stringify(document);
-}
+const enlarged = () => makeLargeProfileFixture(fixtureBytes, extraChests);
+
 async function scenario(name: string, bytes: Uint8Array) {
 	const importStart = performance.now();
 	const opened = await openEditor(bytes);
@@ -261,6 +220,7 @@ async function scenario(name: string, bytes: Uint8Array) {
 // Record the exact source inputs because concurrent cleanup edits can land while
 // collecting samples. Matching hashes show the measured core stayed stable.
 const sourcePaths = [
+	"tools/profile-fixtures.mts",
 	"src/app.html",
 	"src/lib/editor/plain-data.ts",
 	"src/lib/editor/draft-state.ts",

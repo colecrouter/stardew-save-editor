@@ -47,6 +47,10 @@ it(
 			const expecting = page.getByRole("checkbox", {
 				name: "Expecting a baby",
 			});
+			const reservedDays = page.getByRole("spinbutton", {
+				name: "Days until birth",
+			});
+			expect(reservedDays.hasAttribute("disabled")).toBe(true);
 			await fireEvent.click(expecting);
 			// The queue barrier checks committed behavior rather than requiring a
 			// full-save projection to finish within Testing Library's default second.
@@ -57,6 +61,8 @@ it(
 				).toHaveProperty("value", "14"),
 			);
 			const days = page.getByRole("spinbutton", { name: "Days until birth" });
+			expect(days).toBe(reservedDays);
+			expect(days.hasAttribute("disabled")).toBe(false);
 			await fireEvent.input(days, { target: { value: "12" } });
 			await fireEvent.input(days, { target: { value: "10" } });
 			await fireEvent.blur(days);

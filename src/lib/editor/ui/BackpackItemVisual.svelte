@@ -4,12 +4,17 @@
 	import UnknownItemVisual from "./UnknownItemVisual.svelte";
 	import QualityBadge from "./QualityBadge.svelte";
 
-	let { visual: drawing }: { visual?: ItemVisual } = $props();
+	interface Props {
+		visual?: ItemVisual;
+		/** Maximum drawing dimension; preserve the sprite's aspect ratio. */
+		size?: number;
+	}
+	let { visual: drawing, size = 32 }: Props = $props();
 	const id = $props.id();
 	// Domain drawing instructions already include instance-specific colors and
 	// quality. Rendering only scales the projected rectangle and applies layers.
 	const zoom = $derived(
-		32 /
+		size /
 			Math.max(
 				drawing?.sourceRect.width ?? 16,
 				drawing?.sourceRect.height ?? 16,
@@ -60,10 +65,20 @@
 		</span>
 	</div>
 {:else}
-	<UnknownItemVisual />
+	<span class="fallback" style:width={`${size}px`} style:height={`${size}px`}>
+		<UnknownItemVisual />
+	</span>
 {/if}
 
 <style>
+	.fallback {
+		display: inline-block;
+		flex: none;
+	}
+	.fallback :global(svg) {
+		width: 100%;
+		height: 100%;
+	}
 	.visual {
 		position: relative;
 		flex: none;

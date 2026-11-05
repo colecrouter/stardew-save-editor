@@ -143,16 +143,6 @@
 						{:else}
 							<p class="missing-label">Not in this farmer's save</p>
 						{/if}
-
-						<RelationshipGifts name={row.name} />
-
-						{#if Villagers.get(row.name)?.description}
-							<details class="about">
-								<summary>About {row.name}</summary>
-
-								<p>{Villagers.get(row.name)?.description}</p>
-							</details>
-						{/if}
 					</div>
 
 					<div class="editor">
@@ -185,6 +175,12 @@
 								aria-label={row.fields.gifts.label}
 							/>
 						</div>
+					</div>
+
+					<!-- Gifts share the action row rather than stretching the narrow
+					     identity column. About remains a separate disclosure below. -->
+					<div class="row-details">
+						<RelationshipGifts name={row.name} />
 
 						<div class="membership">
 							{#if row.present}
@@ -206,6 +202,13 @@
 							{/if}
 						</div>
 					</div>
+
+					{#if Villagers.get(row.name)?.description}
+						<details class="about">
+							<summary>About {row.name}</summary>
+							<p>{Villagers.get(row.name)?.description}</p>
+						</details>
+					{/if}
 
 					{#if domain.pregnancy.kind === "villager" && domain.pregnancy.spouse === row.name}
 						<div class="family-planning">
@@ -284,7 +287,8 @@
 	section {
 		display: grid;
 		grid-template-columns: 68px minmax(200px, 1fr) minmax(300px, 1.5fr);
-		gap: 20px;
+		column-gap: 20px;
+		row-gap: 8px;
 		align-items: start;
 		padding: 18px;
 		border: 2px solid #b98b52;
@@ -309,6 +313,14 @@
 		color: #795a36;
 		margin: 8px 0 0;
 	}
+	.row-details {
+		grid-column: 2 / -1;
+		display: flex;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: 6px 20px;
+		min-width: 0;
+	}
 	.family-planning {
 		grid-column: 2 / -1;
 		min-width: 0;
@@ -324,15 +336,17 @@
 	.membership {
 		display: flex;
 		justify-content: end;
-		margin-top: 12px;
+		margin-left: auto;
+		flex: none;
 	}
 	.membership :global(button) {
 		font-size: 17px;
 	}
 	.about {
+		grid-column: 2 / -1;
 		font-size: 16px;
-		color: #694621;
-		margin-top: 10px;
+		color: var(--study-muted, #694621);
+		margin: 0;
 	}
 	summary {
 		cursor: pointer;
@@ -357,6 +371,8 @@
 			grid-template-columns: 68px minmax(0, 1fr);
 		}
 		.editor,
+		.row-details,
+		.about,
 		.family-planning {
 			grid-column: 1 / -1;
 		}

@@ -120,6 +120,7 @@
 
 				{#each building.constructionCost.materials as material (material.name)}
 					<StudyTooltip
+						informative
 						text={material.name}
 						aria-label={`${material.amount.toLocaleString()} ${material.name}`}
 						class="material"
@@ -130,7 +131,9 @@
 				{/each}
 			</div>
 
-			<small>Reference only. Editing does not spend gold or materials.</small>
+			<p class="reference-note">
+				Reference only. Editing does not spend gold or materials.
+			</p>
 		</aside>
 	{/if}
 	{#if building.reason}
@@ -303,10 +306,16 @@
 		align-items: center;
 		gap: 0.3rem;
 		padding: 0.15rem 0.3rem;
+		border: 2px solid var(--study-rule, #b98b52);
+		background: var(--study-paper-light, #fff2cf);
 	}
-	.construction-cost small {
-		display: block;
-		margin-top: 0.3rem;
+	.construction-cost .reference-note {
+		font-size: 17px;
+		line-height: 1.35;
+		color: var(--study-muted, #795a36);
+		border-left: 3px solid var(--study-rule, #b98b52);
+		padding: 0.3rem 0.6rem;
+		margin: 0.6rem 0 0;
 	}
 	section {
 		min-width: 0;

@@ -21,11 +21,12 @@
 					<div class="icons">
 						{#each group.items as gift (gift.name)}
 							<StudyTooltip
+								informative
 								text={gift.tooltip}
 								aria-label={gift.tooltip}
 								class="gift-icon"
 							>
-								<BackpackItemVisual visual={gift.visual} />
+								<BackpackItemVisual visual={gift.visual} size={24} />
 							</StudyTooltip>
 						{/each}
 					</div>
@@ -37,37 +38,33 @@
 
 <style>
 	.gift-guidance {
-		display: grid;
-		gap: 0.3rem;
-		margin-top: 0.5rem;
+		display: flex;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: 4px 14px;
+		min-width: 0;
+		font-size: 16px;
 	}
 	.gift-group {
 		display: flex;
 		align-items: center;
 		flex-wrap: wrap;
-		gap: 0.4rem;
+		gap: 4px;
+		min-width: 0;
 	}
 	.label {
 		color: var(--study-muted, #815327);
-		font-size: 0.85rem;
+		white-space: nowrap;
 	}
 	.icons {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 0.15rem;
+		gap: 1px;
 	}
 	.icons :global(.gift-icon) {
-		padding: 0.15rem;
+		padding: 0;
 		min-width: 0;
-		border: 1px solid transparent;
-		box-shadow: none;
-		background: transparent;
 		display: grid;
 		place-items: center;
-	}
-	.icons :global(.gift-icon:hover),
-	.icons :global(.gift-icon:focus-visible) {
-		border-color: var(--study-border, #b88b50);
-		background: var(--study-surface, #fff2cf);
 	}
 </style>

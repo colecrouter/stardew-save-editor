@@ -2,6 +2,18 @@
 	import "./styles.css";
 	import { Dialog } from "bits-ui";
 	import type { Snippet } from "svelte";
+	interface Props {
+		trigger: string;
+		title: string;
+		description?: string;
+		children?: Snippet;
+		actions?: Snippet<[() => void]>;
+		open?: boolean;
+		dismissible?: boolean;
+		disabled?: boolean;
+		/** Coordinated row editors need room for names and labelled controls. */
+		size?: "default" | "wide";
+	}
 	let {
 		trigger,
 		title,
@@ -11,16 +23,8 @@
 		open = $bindable(false),
 		dismissible = true,
 		disabled = false,
-	}: {
-		trigger: string;
-		title: string;
-		description?: string;
-		children?: Snippet;
-		actions?: Snippet<[() => void]>;
-		open?: boolean;
-		dismissible?: boolean;
-		disabled?: boolean;
-	} = $props();
+		size = "default",
+	}: Props = $props();
 	// One dismissal policy covers Escape, outside interaction and close controls.
 	// Domain owners may lock it during a coordinated commit and keep errors inside.
 	const close = () => {
@@ -37,7 +41,7 @@
 		<Dialog.Overlay class="study-overlay" />
 
 		<Dialog.Content
-			class="study-kit study-dialog"
+			class={`study-kit study-dialog${size === "wide" ? " study-dialog--wide" : ""}`}
 			onEscapeKeydown={(event) => {
 				if (!dismissible) event.preventDefault();
 			}}

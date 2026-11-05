@@ -11,15 +11,15 @@ non-Qi special orders or the separately planned XML/parser replacement.
 | Inventory          | Inventory                              | Farmer selection, equipment validation, item catalog/properties, actual backpack sizes, transfers and Organize                                          |
 | Chests             | Storage and Inventory                  | Content search across locations, multi-selection, transfers, bulk quality, Organize one/all, supported chest conversions and guarded mini-bin expansion |
 | Character          | Character                              | Skills, professions, mastery, stats, currency and existing character unlocks                                                                            |
-| Appearance         | Appearance                             | Appearance fields, colors and player preview                                                                                                            |
-| Relationships      | Relationships                          | Friendship/gifts and explicit villager membership edits                                                                                                 |
+| Appearance         | Character                              | Appearance fields, colors and player preview                                                                                                            |
+| Relationships      | Relationships                          | Friendship/gift counters, loved-gift guidance/search, explicit villager membership and pregnancy controls                                               |
 | Events             | Events                                 | Known/imported event IDs, filtering/grouping and seen-state edits                                                                                       |
 | Cooking / crafting | Recipes                                | Known/imported recipes, learned state and supported production counts                                                                                   |
 | Quests             | Quest journal                          | Existing journal fields, completion, follow-ups and bounded reward consequences                                                                         |
 | Qi quests          | Qi orders                              | Existing Qi special-order workflows                                                                                                                     |
 | Farm               | Farm settings                          | Existing independent farm settings, plus the v2 calendar/weather workflow                                                                               |
-| Buildings          | Buildings & animals                    | Animal fields, outside residents, adoption, building tiers and progression with paired chest movement                                                   |
-| Bundles / Joja     | Community Center & Joja                | Saved/remixed requirements, donation progress, reward availability, original-room restoration, membership/projects and separate theater progression     |
+| Buildings          | Buildings & animals                    | Animal fields, outside residents, adoption, building tiers/progression with paired chest movement, descriptions and reference costs                     |
+| Bundles / Joja     | Community Center & Joja                | Saved/remixed requirement editing, donation progress, rewards, room completion/restoration, membership/projects and separate theater progression        |
 | Farmhands          | Farmhands                              | Native drag and accessible slot moves, preserving farmer identities, belongings, physical homes, cabins and existing cellar identities                  |
 
 ## Preserved boundaries
@@ -77,3 +77,10 @@ gesture against its original quest/farmer. Removing a selected notice returns
 focus to the remaining list; search retains focus in its own input. The journal
 still owns completion receipts and preserves all existing reward, follow-up and
 removal warnings. Qi offer/activation/cancellation rules remain unchanged.
+
+The [final PR reconciliation](v2-pr-reconciliation.md) records baseline additions
+from open legacy contributions and recent main merges, including pregnancy and
+copyable save paths. Its deliberate reminder/picker choices preserve lightweight
+guidance and explicit user actions. Historical remaining-work wording above
+describes the original port checkpoint; the current cutover disposition is in
+[v2 status](v2-status.md).

@@ -1,4 +1,5 @@
 import { Data, Effect, Result, Schema } from "effect";
+import { readPregnancy, type PregnancyView } from "./pregnancy-data.ts";
 import { characters, dateableCharacters } from "../NPCs.ts";
 import { farmers, type SaveDocument } from "./domain.ts";
 import { TransactionDraft } from "./transaction-draft.ts";
@@ -81,6 +82,7 @@ export interface RelationshipFarmerView {
 	supported: boolean;
 	reason?: string;
 	relationships: RelationshipView[];
+	pregnancy: PregnancyView;
 }
 function dictionary(farmer: Record<string, unknown>) {
 	const raw = farmer.friendshipData;
@@ -118,7 +120,7 @@ function friendship(entry: unknown) {
 function project(
 	farmer: Record<string, unknown>,
 	unique: boolean,
-): RelationshipFarmerView {
+): Omit<RelationshipFarmerView, "pregnancy"> {
 	const data = dictionary(farmer);
 	const names = data.entries.map(entryName);
 	// Duplicate names cannot be safely addressed through the game's dictionary key.
@@ -204,11 +206,14 @@ export function readRelationships(
 	const all = owners(document);
 	return all.map((owner) => {
 		const id = farmerId(owner);
-		return project(
-			owner,
-			id !== undefined &&
-				all.filter((other) => farmerId(other) === id).length === 1,
-		);
+		return {
+			...project(
+				owner,
+				id !== undefined &&
+					all.filter((other) => farmerId(other) === id).length === 1,
+			),
+			pregnancy: readPregnancy(document, id ?? ""),
+		};
 	});
 }
 

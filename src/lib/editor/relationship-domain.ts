@@ -1,3 +1,4 @@
+import { createPregnancyDomain } from "./pregnancy-domain.ts";
 import type { ImmutableView } from "./immutable-view.ts";
 import { bindImmediateField, type DomainEditPort } from "./field-binding.ts";
 import type { ImmediateField } from "./immediate-field.ts";
@@ -14,6 +15,7 @@ export function createRelationshipDomain(
 ) {
 	return {
 		...view,
+		pregnancy: createPregnancyDomain(view.pregnancy, model),
 		relationships: view.relationships.map((row) => {
 			function field(
 				kind: "points" | "gifts" | "hearts",

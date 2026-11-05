@@ -22,6 +22,8 @@ import tools from "../content/Data/Tools.json" with { type: "json" };
 import trinkets from "../content/Data/Trinkets.json" with { type: "json" };
 import weapons from "../content/Data/Weapons.json" with { type: "json" };
 import { characters } from "../src/lib/NPCs.js";
+import { type ItemInfo, villagerGifts } from "./giftTastes.js";
+import { getBuildMaterials } from "./buildingCost.js";
 import {
 	type BuildingUpgradeSource,
 	getBuildingUpgradeData,
@@ -313,6 +315,23 @@ await rm("./generated", { recursive: true, force: true });
 await mkdir("./generated");
 await writeFile("./generated/iteminfo.json", writeToFile);
 
+// **Gift tastes**
+
+// Each villager's loved gifts, worked out from Data/NPCGiftTastes the way the
+// game does (see giftTastes.ts) for every giftable item written above
+const giftTastes = JSON.parse(
+	await readFile("./content/Data/NPCGiftTastes.json", "utf-8"),
+) as Record<string, string>;
+const { villagers: lovedGifts, unmatched } = villagerGifts(
+	giftTastes,
+	JSON.parse(writeToFile) as [string, ItemInfo][],
+	characters,
+);
+if (unmatched.length > 0) {
+	console.warn(`No giftable item for loved gifts: ${unmatched.join(", ")}`);
+}
+await writeFile("./generated/gifttastes.json", JSON.stringify(lovedGifts));
+
 // **Recipes**
 
 const cookingRecipes = JSON.parse(
@@ -579,6 +598,10 @@ async function getBuildingTextureSize(texture: string | undefined) {
 	}
 }
 
+// Construction prices are catalog information, not a charge applied by the editor.
+const objectNames = new Map(
+	objectsArray.map((obj) => [String(obj._key), String(obj.name)]),
+);
 const buildingsArray = await Promise.all(
 	Object.entries(buildings).map(async ([key, obj]) => {
 		const texture = getBuildingTexture(obj.Texture);
@@ -598,6 +621,8 @@ const buildingsArray = await Promise.all(
 			maxOccupants: obj.MaxOccupants,
 			hayCapacity: obj.HayCapacity,
 			description: resolveDescription(obj.Description) || undefined,
+			buildCost: obj.BuildCost || undefined,
+			buildMaterials: getBuildMaterials(obj.BuildMaterials, objectNames),
 
 			...getBuildingUpgradeData(obj as BuildingUpgradeSource),
 		};

@@ -238,8 +238,8 @@ const definitions = {
 		records: (document) =>
 			readRelationships(document)
 				.filter((owner) => owner.supported)
-				.flatMap((owner) =>
-					owner.relationships
+				.flatMap((owner) => [
+					...owner.relationships
 						.filter((row) => row.present)
 						.map((row) => ({
 							key: JSON.stringify([owner.farmerId, row.name]),
@@ -250,7 +250,26 @@ const definitions = {
 								"Gifts this week": row.gifts,
 							},
 						})),
-				),
+					// Due dates are absolute facts. Do not include relative days here:
+					// moving the calendar alone must not imply a pregnancy edit.
+					...(owner.pregnancy.kind === "none"
+						? []
+						: [
+								{
+									key: JSON.stringify([
+										owner.farmerId,
+										"pregnancy",
+										owner.pregnancy.targetKey,
+									]),
+									subject: owner.name,
+									label: `Family planning with ${owner.pregnancy.spouse}`,
+									fields: {
+										"Expecting a baby": owner.pregnancy.expecting,
+										"Baby due date": owner.pregnancy.dueDate ?? null,
+									},
+								},
+							]),
+				]),
 	},
 	quests: {
 		label: "Quest journal",
@@ -320,6 +339,8 @@ const definitions = {
 						label: bundle.name,
 						fields: {
 							Completed: bundle.completed,
+							"Donations needed": bundle.needed,
+							Requirements: bundle.requirements.map(donationLabel).join(", "),
 							"Reward available": bundle.rewardSupported
 								? bundle.rewardAvailable
 								: undefined,

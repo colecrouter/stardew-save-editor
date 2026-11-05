@@ -230,3 +230,77 @@ it("reports unexpected download implementation failures as defects rather than s
 		log.mockRestore();
 	}
 });
+
+it("does not let duplicate uploads evict distinct originals, while changed revisions retain the same filename", async () => {
+	// Metadata can change when a browser reconstructs a File; protection is about
+	// the exact bytes and export filename, not lastModified or MIME labels.
+	const bytes = new Uint8Array([120, 156, 255, 0, 128]);
+	await saveOriginalBackup(new File([bytes], "Farm_123", { lastModified: 1 }));
+	for (let index = 0; index < 4; index++)
+		await saveOriginalBackup(new File([`other-${index}`], `Other_${index}`));
+	const db = await openOriginalBackupStore();
+	try {
+		const before = await db.getAll("files");
+		await Promise.all(
+			Array.from({ length: 3 }, (_, index) =>
+				saveOriginalBackup(
+					new File([bytes], "Farm_123", {
+						lastModified: 100 + index,
+						type: "application/octet-stream",
+					}),
+				),
+			),
+		);
+		expect(await db.getAll("files")).toEqual(before);
+		// A newer saved revision must not be mistaken for the protected original.
+		await saveOriginalBackup(
+			new File([new Uint8Array([...bytes, 42])], "Farm_123"),
+		);
+		const after = await db.getAll("files");
+		expect(after).toHaveLength(5);
+		expect(after[0].name).toBe("Other_0");
+		const latest = (await Effect.runPromise(readOriginalBackups()))[0]?.file;
+		if (!latest) throw new Error("Missing updated original");
+		expect(new Uint8Array(await latest.arrayBuffer())).toEqual(
+			new Uint8Array([...bytes, 42]),
+		);
+	} finally {
+		db.close();
+	}
+});
+
+it("deduplicates legacy UTF-8 originals and canonicalizes valid binary entries without rewriting their wrappers", async () => {
+	const db = await openOriginalBackupStore();
+	const legacy = {
+		name: "OldFarm",
+		data: "<SaveGame>é🌻</SaveGame>",
+		lastModified: 1,
+		size: 1,
+		type: "text/plain",
+		opaque: "kept",
+	};
+	const binary = {
+		name: "BinaryFarm",
+		data: " /wA ",
+		encoding: "base64",
+		lastModified: 2,
+		size: 2,
+		type: "",
+		opaque: "also kept",
+	};
+	const malformed = { ...binary, name: "BrokenFarm", data: "%%%" };
+	try {
+		await db.add("files", legacy);
+		await db.add("files", binary);
+		await db.add("files", malformed);
+		await saveOriginalBackup(new File([legacy.data], legacy.name));
+		await saveOriginalBackup(new File([new Uint8Array([255, 0])], binary.name));
+		expect(await db.getAll("files")).toEqual([legacy, binary, malformed]);
+		await saveOriginalBackup(new File(["valid"], malformed.name));
+		const rows = await db.getAll("files");
+		expect(rows).toHaveLength(4);
+		expect(rows[2]).toEqual(malformed);
+	} finally {
+		db.close();
+	}
+});

@@ -45,6 +45,11 @@ const requestSchema = Schema.Union([
 		room: integer,
 		value: Schema.Boolean,
 	}),
+	Schema.Struct({
+		type: Schema.Literal("room"),
+		room: integer,
+		value: Schema.Boolean,
+	}),
 	Schema.Struct({ type: Schema.Literal("membership"), value: Schema.Boolean }),
 	Schema.Struct({ type: Schema.Literal("theater"), value: Schema.Boolean }),
 ]);
@@ -69,7 +74,13 @@ const editMail = Effect.fn("Community.mail")(function* (
 		next.every((value, index) => value === data.entries[index])
 	)
 		return;
-	farmer.mailReceived = { ...(record(data.raw) ? data.raw : {}), string: next };
+	const nextMail: Record<string, unknown> = {
+		...(record(data.raw) ? data.raw : {}),
+		string: next,
+	};
+	// Adding progression flags turns a nullable XML list into a populated list.
+	if (next.length) delete nextMail["@_xsi:nil"];
+	farmer.mailReceived = nextMail;
 });
 function flags(
 	mail: string[],
@@ -80,6 +91,58 @@ function flags(
 	for (const flag of additions) if (!next.includes(flag)) next.push(flag);
 	return next;
 }
+/** Bulletin Board restoration delivers the letter; the game awards friendship
+ * on reading it, then queues ccBulletinThankYouReceived. Never grant that reward
+ * ourselves or erase the receipt when reopening the room. Adapted from PR #160. */
+const editThankYouLetter = Effect.fn("Community.thankYouLetter")(function* (
+	farmer: unknown,
+	completed: boolean,
+) {
+	if (!record(farmer))
+		return yield* invalid("A saved farmer record is unsupported.");
+	const fields = ["mailReceived", "mailbox", "mailForTomorrow"] as const;
+	const lists = fields.map((field) => ({
+		field,
+		...mailStrings(farmer[field]),
+	}));
+	if (lists.some((row) => !row.supported))
+		return yield* invalid("A farmer's pending mail is unsupported.");
+	const isLetter = (value: string, id: string) =>
+		value === id || value === `${id}%&NL&%`;
+	const thankYou = "ccBulletinThankYou";
+	if (completed) {
+		// Both delivered/pending letters and a pending reward receipt suppress replay.
+		if (
+			lists.some((row) =>
+				row.entries.some(
+					(value) =>
+						isLetter(value, thankYou) ||
+						isLetter(value, "ccBulletinThankYouReceived"),
+				),
+			)
+		)
+			return;
+		const mailbox = lists.find((row) => row.field === "mailbox");
+		const nextMailbox: Record<string, unknown> = {
+			...(record(mailbox?.raw) ? mailbox.raw : {}),
+			string: [...(mailbox?.entries ?? []), thankYou],
+		};
+		// A populated mailbox must no longer serialize as an XML null container.
+		delete nextMailbox["@_xsi:nil"];
+		farmer.mailbox = nextMailbox;
+	} else {
+		for (const row of lists.filter((row) => row.field !== "mailReceived")) {
+			const remaining = row.entries.filter(
+				(value) => !isLetter(value, thankYou),
+			);
+			if (remaining.length !== row.entries.length)
+				farmer[row.field] = {
+					...(record(row.raw) ? row.raw : {}),
+					string: remaining,
+				};
+		}
+	}
+});
 /** Unknown original rooms cannot be silently treated as complete by an empty every(). */
 function overall(view: CommunityView): boolean | undefined {
 	const required = view.rooms.filter(
@@ -161,6 +224,9 @@ export const setCommunityProgress = Effect.fn("Community.setProgress")(
 								: [],
 					);
 				});
+			if (roomId === 5)
+				for (const farmer of recipients)
+					yield* editThankYouLetter(farmer, completed);
 		});
 		const setReward = Effect.fn("Community.reward")(function* (
 			bundleKey: string,
@@ -265,20 +331,25 @@ export const setCommunityProgress = Effect.fn("Community.setProgress")(
 			label = change.value
 				? "Enable Joja membership"
 				: "Disable Joja membership";
-		} else if (change.type === "project") {
-			const room = before.rooms.find(
-				(row) => row.id === change.room && row.project,
-			);
-			if (!before.membership || !room || room.completed === undefined)
-				return yield* invalid("Choose a supported Joja project.");
+		} else if (change.type === "project" || change.type === "room") {
+			const room = before.rooms.find((row) => row.id === change.room);
+			if (
+				!room ||
+				room.completed === undefined ||
+				(change.type === "project" && (!before.membership || !room.project))
+			)
+				return yield* invalid("Choose a supported room or Joja project.");
 			for (const bundle of before.bundles.filter(
 				(row) => row.room === change.room,
 			))
 				yield* editBundle(bundle.key, change.value);
-			// A bought project can have world flags even with no corresponding donations.
-			// Explicitly changing that project owns its flags, regardless of the prior mismatch.
+			// Explicit room/project actions own restoration flags even when an import
+			// disagrees with its donations. The entire room still publishes atomically.
 			yield* applyRoom(change.room, change.value);
-			label = `${change.value ? "Complete" : "Reopen"} Joja ${room.project} project`;
+			label =
+				change.type === "project"
+					? `${change.value ? "Complete" : "Reopen"} Joja ${room.project} project`
+					: `${change.value ? "Complete" : "Reopen"} ${room.name} room`;
 		} else if (change.type === "theater") {
 			if (
 				!before.membership ||
@@ -350,17 +421,12 @@ export const setCommunityProgress = Effect.fn("Community.setProgress")(
 						return flags(
 							mail,
 							[],
-							[
-								"ccIsComplete",
-								"ccBulletinThankYou",
-								"abandonedJojaMartAccessible",
-							],
+							["ccIsComplete", "abandonedJojaMartAccessible"],
 						);
 					return flags(
 						mail,
 						[
 							"ccIsComplete",
-							"ccBulletinThankYou",
 							"seenJunimoNote",
 							...(!mail.includes("JojaMember")
 								? ["abandonedJojaMartAccessible"]

@@ -10,6 +10,9 @@
 	import { Villagers } from "../../Villagers.ts";
 	import VillagerPortrait from "./VillagerPortrait.svelte";
 	import RelationshipHearts from "./RelationshipHearts.svelte";
+	import RelationshipGifts from "./RelationshipGifts.svelte";
+	import PregnancyPanel from "./PregnancyPanel.svelte";
+	import { relationshipMatches } from "../relationship-gifts.ts";
 	import StudyButton from "../../ui/kit/StudyButton.svelte";
 	import StudyAlert from "../../ui/kit/StudyAlert.svelte";
 	import StudyField from "../../ui/kit/StudyField.svelte";
@@ -41,9 +44,7 @@
 	// under the same pointer/focus matters more than continuously ranking friendship.
 	const shown = $derived(
 		(domain?.relationships ?? [])
-			.filter((row) =>
-				row.name.toLowerCase().includes(search.trim().toLowerCase()),
-			)
+			.filter((row) => relationshipMatches(row.name, search))
 			.toSorted((a, b) => a.name.localeCompare(b.name)),
 	);
 	async function addVillager(name: string) {
@@ -88,7 +89,7 @@
 		</p>
 
 		<div class="search">
-			<StudyField label="Search villagers">
+			<StudyField label="Search villagers or gifts">
 				{#snippet children(attributes)}
 					<input
 						{...attributes}
@@ -116,6 +117,10 @@
 	{/if}
 
 	{#key domain.farmerId}
+		{#if domain.pregnancy.kind === "player"}
+			<PregnancyPanel pregnancy={domain.pregnancy} />
+		{/if}
+
 		<div class="relationships">
 			{#each shown as row (row.name)}
 				<section
@@ -138,6 +143,8 @@
 						{:else}
 							<p class="missing-label">Not in this farmer's save</p>
 						{/if}
+
+						<RelationshipGifts name={row.name} />
 
 						{#if Villagers.get(row.name)?.description}
 							<details class="about">
@@ -199,6 +206,12 @@
 							{/if}
 						</div>
 					</div>
+
+					{#if domain.pregnancy.kind === "villager" && domain.pregnancy.spouse === row.name}
+						<div class="family-planning">
+							<PregnancyPanel pregnancy={domain.pregnancy} />
+						</div>
+					{/if}
 				</section>
 			{:else}
 				<StudyAlert title="No villagers match your search">
@@ -296,6 +309,10 @@
 		color: #795a36;
 		margin: 8px 0 0;
 	}
+	.family-planning {
+		grid-column: 2 / -1;
+		min-width: 0;
+	}
 	.fields {
 		display: grid;
 		grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -339,7 +356,8 @@
 		section {
 			grid-template-columns: 68px minmax(0, 1fr);
 		}
-		.editor {
+		.editor,
+		.family-planning {
 			grid-column: 1 / -1;
 		}
 	}

@@ -1,4 +1,5 @@
 import animalData from "$generated/farmanimals.json";
+import { buildingConstructionCost } from "./building-costs.ts";
 import {
 	animalOptions,
 	buildingTierBlocker,
@@ -169,6 +170,8 @@ export interface AnimalView {
 export interface BuildingView {
 	id: string;
 	name: string;
+	description?: string;
+	constructionCost?: ReturnType<typeof buildingConstructionCost>;
 	location: string;
 	supported: boolean;
 	reason?: string;
@@ -312,6 +315,13 @@ export function readBuildings(document: SaveDocument): BuildingsView {
 					typeof raw.buildingType === "string"
 						? raw.buildingType
 						: "Unknown building",
+				// Descriptive game metadata belongs in the domain view alongside prices,
+				// without exposing the generated building DTO to the component.
+				description: tiers.find((tier) => tier.name === raw.buildingType)
+					?.description,
+				constructionCost: buildingConstructionCost(
+					typeof raw.buildingType === "string" ? raw.buildingType : "",
+				),
 				location: building.location,
 				supported,
 				reason: supported

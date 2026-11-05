@@ -1,27 +1,18 @@
-import { Cause, Data, Effect, Exit, Result, Schema } from "effect";
-import { openOriginalBackupStore, restoreOriginal } from "../saveBackups.ts";
+import { Data, Effect, Result, Schema } from "effect";
+import {
+	openOriginalBackupStore,
+	restoreOriginal,
+	storedOriginalSchema,
+} from "../saveBackups.ts";
 import { downloadSave } from "../downloadSave.ts";
 import type { CommandResult } from "./command-result.ts";
+import { runEntryCommand } from "./entry-operations.ts";
 
 /** Archive/browser failures leave both the stored originals and editor sessions intact. */
 export class BackupUnavailable extends Data.TaggedError("BackupUnavailable")<{
 	readonly message: string;
 }> {}
-const storedSchema = Schema.Struct({
-	name: Schema.String,
-	data: Schema.String,
-	lastModified: Schema.Number.check(
-		Schema.isFinite(),
-		Schema.isGreaterThanOrEqualTo(0),
-	),
-	size: Schema.Number.check(
-		Schema.isFinite(),
-		Schema.isGreaterThanOrEqualTo(0),
-	),
-	type: Schema.String,
-	encoding: Schema.optionalKey(Schema.Literal("base64")),
-});
-const decodeStored = Schema.decodeUnknownResult(storedSchema);
+const decodeStored = Schema.decodeUnknownResult(storedOriginalSchema);
 export interface OriginalBackup {
 	/** Existing shared archives use auto-incremented numeric keys. Unknown keys remain read-only. */
 	readonly key?: number;
@@ -152,15 +143,8 @@ export async function runBackupCommand<A, E>(
 	program: Effect.Effect<A, E>,
 	reportDefect: (message: string) => void,
 ): Promise<CommandResult<A, E>> {
-	const exit = await Effect.runPromiseExit(program);
-	if (Exit.isSuccess(exit)) return Result.succeed(exit.value);
-	if (!Cause.hasDies(exit.cause) && !Cause.hasInterrupts(exit.cause)) {
-		const failure = Cause.findError(exit.cause);
-		if (Result.isSuccess(failure)) return Result.fail(failure.success);
-	}
-	if (!Cause.hasInterruptsOnly(exit.cause)) {
-		console.error("V2 backup command defect", Cause.pretty(exit.cause));
-		reportDefect("The backup action could not be completed. Please try again.");
-	}
-	return null;
+	return runEntryCommand(program, reportDefect, {
+		context: "backup",
+		message: "The backup action could not be completed. Please try again.",
+	});
 }

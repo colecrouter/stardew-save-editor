@@ -25,7 +25,7 @@ export interface CatalogChoice extends Omit<CatalogEntry, "raw"> {
 	readonly visual?: ItemVisual;
 }
 
-const prefixes: Record<ItemInformation["_type"], string> = {
+const prefixes = {
 	Object: "O",
 	BigCraftable: "BC",
 	Boots: "B",
@@ -37,7 +37,7 @@ const prefixes: Record<ItemInformation["_type"], string> = {
 	Tool: "T",
 	Trinket: "TR",
 	Weapon: "W",
-};
+} satisfies Record<ItemInformation["_type"], string>;
 const categories: Partial<Record<ItemInformation["_type"], number>> = {
 	BigCraftable: -9,
 	Boots: -97,

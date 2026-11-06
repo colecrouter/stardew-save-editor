@@ -8,13 +8,13 @@ export type ChestGroupId =
 	| "island-chests"
 	| "island-fridges";
 
-export const ChestGroups: { id: ChestGroupId; name: string }[] = [
+export const ChestGroups = [
 	{ id: "chests", name: "Chests" },
 	{ id: "farm-fridges", name: "Farm / Cabin Fridges" },
 	{ id: "farmhouse-fridges", name: "Farm House Fridges" },
 	{ id: "island-chests", name: "Island Chests" },
 	{ id: "island-fridges", name: "Island Fridges" },
-];
+] satisfies { id: ChestGroupId; name: string }[];
 
 /** Kitchen fridges, and Mini-Fridges placed anywhere */
 export const isFridge = (chest: ChestProxy) =>

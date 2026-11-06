@@ -1,6 +1,6 @@
 import type { Color } from "$types/save";
 
-export const PrimarySkinColors: Array<Color> = [
+export const PrimarySkinColors = [
 	{ R: 249, G: 174, B: 137, A: 255, PackedValue: 0 },
 	{ R: 225, G: 140, B: 102, A: 255, PackedValue: 0 },
 	{ R: 240, G: 160, B: 130, A: 255, PackedValue: 0 },
@@ -25,9 +25,9 @@ export const PrimarySkinColors: Array<Color> = [
 	{ R: 221, G: 210, B: 211, A: 255, PackedValue: 0 },
 	{ R: 255, G: 205, B: 158, A: 255, PackedValue: 0 },
 	{ R: 255, G: 211, B: 181, A: 255, PackedValue: 0 },
-];
+] satisfies Array<Color>;
 
-export const SecondarySkinColors: Array<Color> = [
+export const SecondarySkinColors = [
 	{ R: 224, G: 107, B: 101, A: 255, PackedValue: 0 },
 	{ R: 168, G: 67, B: 61, A: 255, PackedValue: 0 },
 	{ R: 209, G: 110, B: 72, A: 255, PackedValue: 0 },
@@ -52,9 +52,9 @@ export const SecondarySkinColors: Array<Color> = [
 	{ R: 136, G: 124, B: 129, A: 255, PackedValue: 0 },
 	{ R: 250, G: 130, B: 117, A: 255, PackedValue: 0 },
 	{ R: 255, G: 155, B: 135, A: 255, PackedValue: 0 },
-];
+] satisfies Array<Color>;
 
-export const TertiarySkinColors: Array<Color> = [
+export const TertiarySkinColors = [
 	{ R: 107, G: 0, B: 58, A: 255, PackedValue: 0 },
 	{ R: 85, G: 36, B: 53, A: 255, PackedValue: 0 },
 	{ R: 85, G: 36, B: 53, A: 255, PackedValue: 0 },
@@ -79,9 +79,9 @@ export const TertiarySkinColors: Array<Color> = [
 	{ R: 66, G: 60, B: 67, A: 255, PackedValue: 0 },
 	{ R: 121, G: 12, B: 62, A: 255, PackedValue: 0 },
 	{ R: 114, G: 47, B: 50, A: 255, PackedValue: 0 },
-];
+] satisfies Array<Color>;
 
-export const PrimaryBootColors: Array<Color> = [
+export const PrimaryBootColors = [
 	{ R: 212, G: 0, B: 0, A: 255, PackedValue: 0 },
 	{ R: 136, G: 178, B: 77, A: 255, PackedValue: 0 },
 	{ R: 179, G: 85, B: 0, A: 255, PackedValue: 0 },
@@ -101,9 +101,9 @@ export const PrimaryBootColors: Array<Color> = [
 	{ R: 9, G: 101, B: 130, A: 255, PackedValue: 0 },
 	{ R: 170, G: 129, B: 196, A: 255, PackedValue: 0 },
 	{ R: 242, G: 242, B: 242, A: 255, PackedValue: 0 },
-];
+] satisfies Array<Color>;
 
-export const SecondaryBootColors: Array<Color> = [
+export const SecondaryBootColors = [
 	{ R: 170, G: 0, B: 0, A: 255, PackedValue: 0 },
 	{ R: 95, G: 124, B: 50, A: 255, PackedValue: 0 },
 	{ R: 142, G: 66, B: 0, A: 255, PackedValue: 0 },
@@ -123,9 +123,9 @@ export const SecondaryBootColors: Array<Color> = [
 	{ R: 0, G: 56, B: 145, A: 255, PackedValue: 0 },
 	{ R: 92, G: 74, B: 147, A: 255, PackedValue: 0 },
 	{ R: 219, G: 215, B: 206, A: 255, PackedValue: 0 },
-];
+] satisfies Array<Color>;
 
-export const TertiaryBootColors: Array<Color> = [
+export const TertiaryBootColors = [
 	{ R: 125, G: 0, B: 0, A: 255, PackedValue: 0 },
 	{ R: 67, G: 89, B: 37, A: 255, PackedValue: 0 },
 	{ R: 105, G: 44, B: 0, A: 255, PackedValue: 0 },
@@ -145,9 +145,9 @@ export const TertiaryBootColors: Array<Color> = [
 	{ R: 30, G: 38, B: 104, A: 255, PackedValue: 0 },
 	{ R: 40, G: 37, B: 107, A: 255, PackedValue: 0 },
 	{ R: 145, G: 140, B: 127, A: 255, PackedValue: 0 },
-];
+] satisfies Array<Color>;
 
-export const QuaternaryBootColors: Array<Color> = [
+export const QuaternaryBootColors = [
 	{ R: 85, G: 0, B: 0, A: 255, PackedValue: 0 },
 	{ R: 3, G: 50, B: 43, A: 255, PackedValue: 0 },
 	{ R: 67, G: 22, B: 0, A: 255, PackedValue: 0 },
@@ -167,6 +167,6 @@ export const QuaternaryBootColors: Array<Color> = [
 	{ R: 14, G: 14, B: 51, A: 255, PackedValue: 0 },
 	{ R: 30, G: 38, B: 104, A: 255, PackedValue: 0 },
 	{ R: 33, G: 33, B: 33, A: 255, PackedValue: 0 },
-];
+] satisfies Array<Color>;
 
 export const AccessoryIsTinted = (index: number) => index >= 0 && index <= 5;

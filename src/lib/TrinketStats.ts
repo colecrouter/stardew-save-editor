@@ -108,7 +108,7 @@ export interface QuiverRange {
 	delayStep: number;
 }
 
-export const QUIVER_TYPES: Record<QuiverType, QuiverRange> = {
+export const QUIVER_TYPES = {
 	normal: {
 		label: "Normal",
 		minDamage: [13, 28],
@@ -133,7 +133,7 @@ export const QUIVER_TYPES: Record<QuiverType, QuiverRange> = {
 		delay: [0.9, 0.9],
 		delayStep: 0.1,
 	},
-};
+} satisfies Record<QuiverType, QuiverRange>;
 
 export interface MagicQuiverStats {
 	type: QuiverType;
@@ -351,12 +351,12 @@ export function statSaveFields(stats: TrinketStats): TrinketSaveFields {
 		case "IridiumSpur":
 			return { templates: [stats.duration] };
 		case "MagicQuiver": {
-			const names: Record<QuiverType, string | null> = {
+			const names = {
 				normal: null,
 				rapid: localized("RapidMagicQuiver"),
 				heavy: localized("HeavyMagicQuiver"),
 				perfect: localized("PerfectMagicQuiver"),
-			};
+			} satisfies Record<QuiverType, string | null>;
 			return {
 				templates: [stats.delay, stats.minDamage, stats.maxDamage],
 				displayName: names[stats.type],

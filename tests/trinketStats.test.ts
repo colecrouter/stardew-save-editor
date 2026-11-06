@@ -22,7 +22,7 @@ import {
 	(`useLegacyRandom` false). If these fail, the RNG port doesn't match the game.
 */
 
-const fairyBoxes: [number, number][] = [
+const fairyBoxes = [
 	[751922, 5],
 	[1031938, 3],
 	[1335573, 4],
@@ -37,10 +37,10 @@ const fairyBoxes: [number, number][] = [
 	[8242372, 3],
 	[9192970, 2],
 	[9517698, 3],
-];
+] satisfies [number, number][];
 
 // Rolled with totalMoneyEarned >= 2,250,000 (max level 4)
-const parrotEggs: [number, number][] = [
+const parrotEggs = [
 	[325479, 1],
 	[650028, 2],
 	[1176629, 3],
@@ -55,12 +55,9 @@ const parrotEggs: [number, number][] = [
 	[8321130, 4],
 	[8473951, 4],
 	[8980989, 4],
-];
+] satisfies [number, number][];
 
-const iceRods: [
-	number,
-	{ interval: number; freeze: number; perfect: boolean },
-][] = [
+const iceRods = [
 	[816755, { interval: 3.4, freeze: 3, perfect: false }],
 	[2851205, { interval: 4.7, freeze: 2.2, perfect: false }],
 	[2928630, { interval: 3.9, freeze: 3.2, perfect: false }],
@@ -73,9 +70,9 @@ const iceRods: [
 	[8273830, { interval: 3, freeze: 4, perfect: true }],
 	[8751388, { interval: 4.4, freeze: 2.5, perfect: false }],
 	[9453582, { interval: 3, freeze: 4, perfect: true }],
-];
+] satisfies [number, { interval: number; freeze: number; perfect: boolean }][];
 
-const iridiumSpurs: [number, number][] = [
+const iridiumSpurs = [
 	[1333383, 6],
 	[1988518, 7],
 	[3865134, 9],
@@ -88,9 +85,9 @@ const iridiumSpurs: [number, number][] = [
 	[8311519, 10],
 	[9500885, 9],
 	[9755688, 8],
-];
+] satisfies [number, number][];
 
-const magicQuivers: [number, MagicQuiverStats][] = [
+const magicQuivers = [
 	[1447691, { type: "normal", minDamage: 17, maxDamage: 22, delay: 1.5 }],
 	[3373721, { type: "normal", minDamage: 21, maxDamage: 26, delay: 1.9 }],
 	[4235273, { type: "normal", minDamage: 21, maxDamage: 26, delay: 1.1 }],
@@ -101,10 +98,10 @@ const magicQuivers: [number, MagicQuiverStats][] = [
 	[733774, { type: "normal", minDamage: 19, maxDamage: 24, delay: 1.2 }],
 	[7573726, { type: "normal", minDamage: 27, maxDamage: 32, delay: 2 }],
 	[8402112, { type: "normal", minDamage: 26, maxDamage: 31, delay: 1.6 }],
-];
+] satisfies [number, MagicQuiverStats][];
 
 // One Frog Egg in the source save is left out: its saved name doesn't match its seed
-const frogEggs: [number, number][] = [
+const frogEggs = [
 	[1575895, 6],
 	[1700869, 4],
 	[1899211, 1],
@@ -122,11 +119,11 @@ const frogEggs: [number, number][] = [
 	[7443697, 3],
 	[8843719, 1],
 	[9901043, 0],
-];
+] satisfies [number, number][];
 
 // First six NextDouble() values from .NET's `new Random(seed)`. These seeds hit
 // C# int overflow inside the generator, which wraps rather than growing.
-const dotNetRandomSamples: [number, number[]][] = [
+const dotNetRandomSamples = [
 	[
 		2147483647,
 		[
@@ -183,7 +180,7 @@ const dotNetRandomSamples: [number, number[]][] = [
 			0.818071570628356, 0.36896419262930946, 0.4863648831315175,
 		],
 	],
-];
+] satisfies [number, number[]][];
 
 describe("TrinketStats", () => {
 	it.each(dotNetRandomSamples)(

@@ -76,6 +76,28 @@ compression or byte-for-byte formatting. A successful import can archive the exa
 original bytes, including compressed data. Changing a filename alone does not
 convert a console save or change its format.
 
+## Existing pets
+
+The **Pets** section lists pets found in saved locations, including building
+interiors. Names and friendship points are shared across farmers; there is no
+separate friendship score to edit for each player. Friendship edits accept whole
+numbers from 0 to 1,000 and do not count as petting or watering a bowl. The game
+handles love messages and adoption unlocks when it processes friendship; the editor
+does not add or remove those progression flags.
+
+**Appearance** selects the pet type and breed together. Five cat breeds, five dog
+breeds and two turtle breeds are available, with a vanilla icon preview. Changing
+type also changes the game's sounds, behavior and possible gifts. Farmer pet
+preferences, existing hats and bowl assignments are preserved.
+
+Renaming keeps the pet’s identity and bowl assignment. Missing or duplicate
+identities, custom pet classes and unreadable fields remain read-only. Custom
+type/breed pairs stay selected until you explicitly replace them with a supported
+appearance. The preview does not depict modded textures or hats.
+
+Adoption, removal and bowl reassignment remain separate work. Use the game's
+adoption and removal workflows for those actions.
+
 ## iPhone and iPad
 
 Use Files to copy the original folder to a separate backup location. In the editor's

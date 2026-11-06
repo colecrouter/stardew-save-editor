@@ -3,6 +3,7 @@ import { formatDate, weatherLabel } from "../calendar.ts";
 import { readCalendarView } from "../calendarDocument.ts";
 import { VanillaEventsById } from "../Events.ts";
 import { readAppearances } from "./appearance-operations.ts";
+import { inspectPets, readPets } from "./pet-data.ts";
 import { readBuildings } from "./building-data.ts";
 import { professionDefinitions } from "./character-data.ts";
 import { readCharacters } from "./character-operations.ts";
@@ -358,6 +359,38 @@ const definitions = {
 					fields: { Restored: room.restored },
 				})),
 			];
+		},
+	},
+	pets: {
+		label: "Pets",
+		records: (document) => {
+			// Claim only editable leaves. Bowl, mail and unknown pet data
+			// must remain visible as raw changes if another operation touches them.
+			const graph = inspectPets(document);
+			return readPets(document)
+				.filter((pet) => pet.supported)
+				.map((pet) => {
+					const path = graph.pets.find((row) => row.id === pet.id)?.path;
+					return {
+						key: pet.key,
+						subject: "Pet",
+						label: pet.name,
+						fields: {
+							Name: pet.nameEditable ? pet.name : undefined,
+							Friendship: pet.friendship,
+							Type: pet.appearance.value ? pet.type : undefined,
+							Breed: pet.appearance.value ? pet.breed : undefined,
+						},
+						paths: path
+							? {
+									Name: [`${path}/name`],
+									Friendship: [`${path}/friendshipTowardFarmer`],
+									Type: [`${path}/petType`],
+									Breed: [`${path}/whichBreed`],
+								}
+							: undefined,
+					};
+				});
 		},
 	},
 	buildings: {

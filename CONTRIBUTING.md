@@ -31,6 +31,13 @@ and map-level `LocationContext` properties. Unpack maps as TMX files under
 that script runs directly on Node 24. The normal dump includes it as well. App
 checks and tests use the committed lookup and do not require unpacked maps.
 
+`npm run dump:pets` extracts supported type/breed pairs and 16px icon rectangles
+from `content/Data/Pets.json`, then copies the `Cursors` and `Cursors_1_6` sheets
+from `content/LooseSprites`. The full dump includes this step. See the
+[pet data provenance](generated/README.md) for the initial snapshot. Appearance
+editing follows `DebugCommands.ChangePet`: it changes the selected pet's pair,
+not the farmer's preferred type/breed, and preserves all other saved state.
+
 If you need assets that aren't copied from that command, you can modify it in `codegen/dump.ts`.
 
 `generated/buildings.json` includes what the editor needs to upgrade buildings (each building's

@@ -26,20 +26,20 @@ import {
 	setToastManagerContext,
 	ToastManager,
 } from "../src/lib/ToastManager.svelte";
-import buildingsPage from "../src/routes/(edit)/(list)/buildings/+page.svelte";
-import cookingPage from "../src/routes/(edit)/(list)/cooking/+page.svelte";
-import craftingPage from "../src/routes/(edit)/(list)/crafting/+page.svelte";
-import appearancePage from "../src/routes/(edit)/appearance/+page.svelte";
-import bundlesPage from "../src/routes/(edit)/bundles/+page.svelte";
-import characterPage from "../src/routes/(edit)/character/+page.svelte";
-import chestsPage from "../src/routes/(edit)/chests/+page.svelte";
+import buildingsPage from "../src/routes/(legacy)/(edit)/(list)/buildings/+page.svelte";
+import cookingPage from "../src/routes/(legacy)/(edit)/(list)/cooking/+page.svelte";
+import craftingPage from "../src/routes/(legacy)/(edit)/(list)/crafting/+page.svelte";
+import appearancePage from "../src/routes/(legacy)/(edit)/appearance/+page.svelte";
+import bundlesPage from "../src/routes/(legacy)/(edit)/bundles/+page.svelte";
+import characterPage from "../src/routes/(legacy)/(edit)/character/+page.svelte";
+import chestsPage from "../src/routes/(legacy)/(edit)/chests/+page.svelte";
 
-import eventsPage from "../src/routes/(edit)/events/+page.svelte";
-import farmPage from "../src/routes/(edit)/farm/+page.svelte";
-import editorPage from "../src/routes/(edit)/inventory/+page.svelte";
-import BuildingSprite from "../src/routes/(edit)/inventory/BuildingSprite.svelte";
-import questsPage from "../src/routes/(edit)/quests/+page.svelte";
-import relationshipsPage from "../src/routes/(edit)/relationships/+page.svelte";
+import eventsPage from "../src/routes/(legacy)/(edit)/events/+page.svelte";
+import farmPage from "../src/routes/(legacy)/(edit)/farm/+page.svelte";
+import editorPage from "../src/routes/(legacy)/(edit)/inventory/+page.svelte";
+import BuildingSprite from "../src/lib/ui/BuildingSprite.svelte";
+import questsPage from "../src/routes/(legacy)/(edit)/quests/+page.svelte";
+import relationshipsPage from "../src/routes/(legacy)/(edit)/relationships/+page.svelte";
 import {
 	BARN_ID,
 	barnXml,
@@ -86,7 +86,7 @@ const createPageHarness = async (
 	const file = edit ? edit(fixture.toString("utf8")) : fixture;
 
 	let saveManager!: SaveManager;
-	let importPromise!: Promise<void>;
+	let importPromise!: Promise<void | boolean>;
 	const saveManagerCleanup = $effect.root(() => {
 		saveManager = new SaveManager();
 		importPromise = saveManager.import(new File([file], "TestSave"));
@@ -410,9 +410,9 @@ describe("Save Manager Integration Tests", () => {
 			const context = setToastManagerContext(new ToastManager());
 			const page = harness.render(editorPage, { context });
 			// Headed like the chests page, with the sort button beside the title
-			expect(page.getByRole("heading", { level: 3 }).textContent).toBe(
-				"Inventory",
-			);
+			expect(
+				page.getByRole("heading", { level: 3, name: "Inventory" }).textContent,
+			).toBe("Inventory");
 
 			await fireEvent.click(page.getByTestId("sort-inventory"));
 			const used = [...Array(inventory.slotCount).keys()].filter(
@@ -558,10 +558,30 @@ describe("Save Manager Integration Tests", () => {
 				expect(saveManager.save?.player.inventory.get(9)?.[Raw]?.stack).toBe(5);
 			}
 
-			// Delete button (trash emoji)
-			const deleteBtn = page.getByRole("button", { name: "🗑️" });
-			await fireEvent.click(deleteBtn);
+			// Removal is a separate, reversible choice until explicitly confirmed.
+			await fireEvent.click(page.getByRole("button", { name: "Remove item…" }));
 			await tick();
+			expect(saveManager.save?.player.inventory.get(9)).toBeDefined();
+			expect(document.activeElement).toBe(
+				page.getByRole("button", { name: "Keep item" }),
+			);
+			await fireEvent.click(page.getByRole("button", { name: "Keep item" }));
+			await tick();
+			expect(document.activeElement).toBe(
+				page.getByRole("button", { name: "Remove item…" }),
+			);
+
+			// Leaving and returning to a slot cancels its earlier confirmation.
+			await fireEvent.click(page.getByRole("button", { name: "Remove item…" }));
+			await fireEvent.click(page.getByTestId("item-0"));
+			await tick();
+			await fireEvent.click(page.getByTestId("item-9"));
+			await tick();
+			expect(page.queryByRole("button", { name: "Keep item" })).toBeNull();
+			await fireEvent.click(page.getByRole("button", { name: "Remove item…" }));
+			await fireEvent.click(page.getByRole("button", { name: "Remove item" }));
+			await tick();
+			expect(document.activeElement).toBe(page.getByTestId("item-name"));
 			expect(saveManager.save?.player.inventory.get(9)).toBeUndefined();
 
 			// Validate raw slot is xsi:nil sentinel

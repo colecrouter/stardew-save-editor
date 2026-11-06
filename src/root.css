@@ -2,16 +2,19 @@
 	box-sizing: border-box;
 }
 
+/* Paint the document canvas itself: macOS rubber-band scrolling exposes this
+   surface beyond the body. Vite resolves the image under the deployment base. */
+html {
+	background: #285e70 url("../static/img/wallpaper.jpg") center / cover fixed;
+	min-height: 100%;
+}
+
 body {
 	margin: 0;
 	padding: 0;
 	font-family: sans-serif;
 	position: relative;
 	font-size: 16px;
-	background-image: url(/img/wallpaper.jpg);
-	background-size: cover;
-	background-position: center;
-	background-attachment: fixed;
 	image-rendering: pixelated;
 	text-shadow: -0.05em 0.05em 0 rgba(0, 0, 0, 0.2);
 	min-height: 100dvh;

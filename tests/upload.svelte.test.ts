@@ -1,5 +1,5 @@
 import { fireEvent, render, waitFor } from "@testing-library/svelte";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { setup as mockIDB } from "vitest-indexeddb";
 import {
 	SaveManager,
@@ -9,7 +9,7 @@ import {
 	setToastManagerContext,
 	ToastManager,
 } from "../src/lib/ToastManager.svelte";
-import uploadPage from "../src/routes/(home)/(upload)/+page.svelte";
+import uploadPage from "../src/routes/(legacy)/(home)/(upload)/legacy/+page.svelte";
 
 const renderUploadPage = () => {
 	let saveManager!: SaveManager;
@@ -57,4 +57,29 @@ describe("Upload page", () => {
 		);
 		cleanup();
 	});
+});
+
+it("retains selectable legacy save paths with keyboard copying beside current save guidance", async () => {
+	const clipboard = Object.getOwnPropertyDescriptor(navigator, "clipboard");
+	const writeText = vi.fn(async () => {});
+	Object.defineProperty(navigator, "clipboard", {
+		configurable: true,
+		value: { writeText },
+	});
+	const { page, cleanup } = renderUploadPage();
+	try {
+		const path = "~/.config/StardewValley/Saves";
+		const control = page.getByRole("button", { name: path });
+		await fireEvent.keyDown(control, { key: "Enter" });
+		await waitFor(() => expect(writeText).toHaveBeenCalledWith(path));
+		expect(
+			page.getByRole("link", { name: "save guide" }).getAttribute("href"),
+		).toContain("/blob/main/SUPPORT.md");
+	} finally {
+		page.unmount();
+		cleanup();
+		// The real browser boundary is shared across tests; restore its descriptor.
+		if (clipboard) Object.defineProperty(navigator, "clipboard", clipboard);
+		else Reflect.deleteProperty(navigator, "clipboard");
+	}
 });

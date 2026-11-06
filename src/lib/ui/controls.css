@@ -1,0 +1,113 @@
+/* Shared native-control appearance; feature screens supply layout and content. */
+:root {
+	--ui-control-bg: #f9bb65;
+	--ui-control-selected: #de9a3c;
+	--ui-control-text: #3f2117;
+	--ui-border-light: #9c613b;
+	--ui-border-dark: #6f3b31;
+	--ui-focus: #5b2b29;
+	--ui-error: #b8312f;
+}
+
+.ui-control {
+	box-sizing: border-box;
+	min-height: 40px;
+	max-width: 100%;
+	border: 2px solid;
+	border-color: var(--ui-border-dark) var(--ui-border-dark)
+		var(--ui-border-light) var(--ui-border-light);
+	border-radius: 4px;
+	background: var(--ui-control-bg);
+	color: var(--ui-control-text);
+	font: inherit;
+}
+
+.ui-control:focus-visible,
+.ui-button:focus-visible,
+.study-button:focus-visible {
+	outline: 3px solid var(--ui-focus);
+	outline-offset: 3px;
+}
+
+.ui-control:disabled,
+.ui-button:disabled,
+.ui-button[aria-disabled="true"],
+.study-button:disabled,
+.study-button[aria-disabled="true"] {
+	opacity: 0.65;
+	cursor: default;
+}
+
+.ui-control[aria-invalid="true"] {
+	border-color: var(--ui-error);
+}
+
+/* Intent and emphasis are independent. Plain actions retain the paper surface;
+   filled actions use their intent colour. State changes keep the same geometry. */
+.study-button {
+	--button-ink: var(--study-ink, #311304);
+	--button-border: var(--study-rule, #987746);
+	--button-surface: var(--study-paper-light, #fdedd7);
+	--button-hover: #fff6df;
+	--button-top: #fff8e8;
+	--button-bottom: #ddbd8b;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	min-height: 44px;
+	max-width: 100%;
+	padding: 6px 12px;
+	border: 2px solid var(--button-border);
+	border-radius: 2px;
+	font: inherit;
+	line-height: 1.2;
+	color: var(--button-ink);
+	background: var(--button-surface);
+	box-shadow:
+		inset 0 2px var(--button-top),
+		inset 0 -2px var(--button-bottom);
+	cursor: pointer;
+}
+.study-button:hover:not(:disabled) {
+	background: var(--button-hover);
+}
+.study-button:active:not(:disabled) {
+	box-shadow: inset 0 2px var(--button-bottom);
+}
+.study-button--constructive {
+	--button-ink: var(--study-success, #285f30);
+	--button-border: var(--study-success, #285f30);
+}
+.study-button--destructive {
+	--button-ink: var(--study-danger, #8a281c);
+	--button-border: var(--study-danger, #8a281c);
+}
+.study-button--filled {
+	--button-ink: #fff8e8;
+	--button-surface: var(--study-wood, #70401d);
+	--button-border: #4f2d17;
+	--button-hover: #5b3019;
+	--button-top: #98643b;
+	--button-bottom: #4f2d17;
+}
+.study-button--constructive.study-button--filled {
+	--button-surface: var(--study-action, #35763a);
+	--button-border: #234e28;
+	--button-hover: #2c6832;
+	--button-top: #6b9d50;
+	--button-bottom: #285d2d;
+}
+.study-button--destructive.study-button--filled {
+	--button-surface: var(--study-destructive-action, #9c3b28);
+	--button-border: #65291c;
+	--button-hover: #842d20;
+	--button-top: #bc6243;
+	--button-bottom: #7a2a1b;
+}
+.study-button--icon {
+	flex: none;
+	width: 44px;
+	height: 44px;
+	padding: 0;
+}

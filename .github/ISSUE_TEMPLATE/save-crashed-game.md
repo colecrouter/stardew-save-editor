@@ -1,10 +1,9 @@
 ---
 name: Game Crashed
 about: After editing your save, the game no longer loads
-title: ''
+title: ""
 labels: invalid save bug
-assignees: ''
-
+assignees: ""
 ---
 
 **Describe the changes you made**

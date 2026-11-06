@@ -6,7 +6,7 @@ This project is built in NodeJS, with [Svelte 5](https://svelte.dev/) and [Svelt
 
 ### Quick Start
 
-Make sure to have [NodeJS 20, 22, or later](https://nodejs.org/en/download/) installed.
+Use [NodeJS 24](https://nodejs.org/en/download/). CI uses the same major version.
 
 ```bash
 # Clone repository
@@ -24,6 +24,12 @@ npm run dev
 Follow [these instructions from the SDV Wiki](https://stardewvalleywiki.com/Modding:Editing_XNB_files#Unpack_game_files) to unpack the game files. Put them in a `content` folder at the root of the project (eg. `content/Characters/Abigail.png`).
 
 Then run `npm run dump`.
+
+`generated/location-weather.json` joins `Data/Locations`, `Data/LocationContexts`
+and map-level `LocationContext` properties. Unpack maps as TMX files under
+`content/Maps`. To regenerate only this lookup, run `npm run dump:location-weather`;
+that script runs directly on Node 24. The normal dump includes it as well. App
+checks and tests use the committed lookup and do not require unpacked maps.
 
 If you need assets that aren't copied from that command, you can modify it in `codegen/dump.ts`.
 
@@ -48,35 +54,89 @@ If you want to make a contribution, just make a pull request.
 
 ### Code Style
 
-This project uses BiomeJS for linting, and for formatting JS/TS files. Prettier is used for formatting markup files. You can run `npm run check` to check for linting errors, and `npm run format` to format the files.
+Follow the explanatory-comment and readability requirements in [AGENTS.md](AGENTS.md).
+Comments should describe the intended progression and assumptions so reviewers can
+compare the implementation against that intent. Prefer expanded Svelte markup.
+The v2 application editor and comparison UI use whitespace-insensitive HTML
+formatting to keep tag delimiters readable. Keep Svelte control-flow blocks
+and their elements on separate lines; use explicit spaces where inline whitespace
+is meaningful.
 
-## General Conventions
+Oxfmt formats TypeScript, Svelte, styles, and documentation. Run `npm run format`
+to write formatting and `npm run format:check` to verify it. Generated game data
+and assets are excluded. Biome remains the linter while we assess replacement
+lint coverage; it no longer formats files.
 
-The code is broken up into a few sections.
+`npm run check` runs linting, native TypeScript 7 checks for the app,
+and `svelte-check`. Run `npm run check:codegen` after unpacking the game assets;
+codegen imports those untracked files, so this check cannot run on a clean CI
+checkout. Svelte still uses the JavaScript TypeScript 6 SDK because it
+needs the compiler API; the native compiler is installed as `@typescript/native`.
+Scripts use an explicit compiler path to avoid ambiguous `tsc` executable names.
 
-- `src/lib`: Contains the core code.
-  - `src/lib/proxies`: Contains reactive proxy classes for interacting with save data.
-  - `src/lib/ui`: Contains reusable Svelte components used throughout the app.
-  - `src/lib/worker`: Contains web worker scripts for offloading heavy computations.
-- `src/routes`: Contains routes & page components for the SvelteKit app.
-- `codegen`: Contains code/asset generation scripts and utilities.
-- `generated`: Output from code generation scripts.
-- `tests`: Contains unit and integration tests for the application.
-- `static`: Contains static assets such as images, fonts, and other files served directly by the app.
+Dependency installation patches both compiler integrations with Effect language
+service support. Use the workspace TypeScript SDK in your editor. When changing
+Effect code, also inspect the complete diagnostic stream:
 
-### Proxies
+```bash
+npm run effect:diagnostics -- --project tests/engine/tsconfig.json
+npm run check --prefix tests/engine
+npm test --prefix tests/engine
+```
 
-The current model uses Svelte's reactivity system to create "wrappers" around existing save data. They serve 2 purposes:
+Warnings and suggestions need contextual review: application boundaries may
+legitimately run Effects, and the experiment deliberately evaluates unstable Atom
+APIs. Errors fail checks; suggestions are shown by the diagnostic command without
+turning every stylistic preference into a compiler failure.
 
-1. Abstract away gross-or-weird requirements for interacting with the save data.
-1. Provide reactivity, so that the Svelte app automatically updates when the underlying save data changes.
+The editor lives in `src/lib/editor`. Domain views separate saved representations
+from UI components. Independent edits publish valid changes immediately and group
+text/number gestures into one Undo entry ending on blur; explicit drafts coordinate
+consequences. Fallible work uses Effect; expected failures remain typed and defects
+reach the shared reporting boundary. Keep projections pure and preserve unknown
+saved data. Use existing field/controller and transaction helpers.
 
-Proxies can contain getters and setters to sanitize/validate data before it is written to the save file. However, this should be limited to simple checks (e.g. limiting string lengths, ensuring numbers are within a certain range, etc.). **Precedence should be given to implementing these limitations in UI components rather than in the proxies themselves.**
+See [test commands and ownership](tests/README.md).
 
-> Our goal isn't to create a 100%-safe, standalone API; it's to provide fallbacks in cases where we might forget/overlook validations in UI.
+### Svelte checker compatibility
 
-### Game Assets
+`svelte-check` is pinned to 4.3.3 with a small `patch-package` backport in
+`patches/svelte-check+4.3.3.patch`. Its base language-service host must pass
+TypeScript's resolution iterators to the symlink cache, as its existing wrapper
+already does. Without that change, some inferred component types trigger an
+internal exception and can suppress real Svelte diagnostics. Installation fails
+if the reviewed patch no longer applies; review it when updating the checker.
+The application uses native TypeScript 7 checks and the TypeScript 6 SDK for Svelte.
 
-As it stands, all game-derived content exists inside either `generated` or `static/assets` directories.
+### Native structured cloning
 
-While ConcernedApe isn't known to DMCA fan content, we should at least avoid committing any unchanged assets (as they exist within the game's files) to this repository. If things get dire in the future, we should be able to remove these assets without too much hassle. Of course, that will impede ease of development.
+The browser baseline includes Safari/iOS 15.4 and native `structuredClone`.
+`npm ci`/`npm install` runs `patch-package --error-on-fail` to apply
+`patches/core-js+3.46.0.patch`, adjusting core-js 3.46.0's
+replacement policy: lack of proposed AggregateError serialization alone must not
+replace native cloning. Loss of core-js-added DOMException stacks is also accepted.
+Ordinary Error stacks, DOMException types/shared references, and the missing-native
+fallback remain checked. Automatic polyfill selection stays enabled.
+Core-js is pinned to the reviewed version. Patch application failures fail installation;
+review and regenerate the patch when upgrading core-js. Regression tests exercise
+both the direct copy and the copy Vite resolves, so a future nested installation
+cannot silently bypass the policy. Do not remove the patch without checking the
+generated production polyfills.
+
+## Source layout
+
+- `src/lib/editor`: file-owned engine, domain views/commands and application UI.
+- `src/lib/ui`: reusable controls and frame artwork.
+- `src/lib/proxies`: temporary legacy editor compatibility, not the default engine.
+- `codegen` and `generated`: game-data extraction and committed output.
+
+Use UI-friendly immutable domain views rather than exposing raw save records to
+components. Preserve unfamiliar imported data and validate each supported mutation
+without normalizing unrelated records. File scopes own subscriptions and queued
+commands; unmount consumers before releasing their registry.
+
+## Game assets
+
+Game-derived output belongs in `generated` or `static/assets`. Avoid committing
+unchanged source game assets so they can be removed if required. Attribution and
+use constraints belong with the maintained assets, not migration reports.

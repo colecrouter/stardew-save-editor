@@ -1,0 +1,180 @@
+@import "./study-pane.css";
+.study-theme,
+.study-theme *,
+.study-theme *::before,
+.study-theme *::after {
+	box-sizing: border-box;
+}
+@font-face {
+	font-family: "VT323";
+	src: url("./fonts/VT323-Regular.ttf") format("truetype");
+	font-display: swap;
+}
+@font-face {
+	font-family: "Pixelify Sans";
+	src: url("./fonts/PixelifySans.ttf") format("truetype");
+	font-weight: 400 700;
+	font-display: swap;
+}
+
+.study-theme {
+	--ui-control-bg: #fdedd7;
+	--ui-control-selected: #8dccf5;
+	--ui-control-text: #311304;
+	--ui-border-light: #c3a276;
+	--ui-border-dark: #987746;
+	--ui-focus: #176fb4;
+	--ui-error: #9c2922;
+	--study-paper: #fddda8;
+	--study-rule: #be8d4d;
+	--ui-panel-bg: transparent;
+	--ui-panel-padding: 0px;
+	--ui-panel-shadow: none;
+	--ui-panel-width: 100%;
+	--ui-panel-inset: 0px;
+	font-family: "VT323", "Trebuchet MS", sans-serif;
+	font-size: 21px;
+	line-height: 1.25;
+	color: #311304;
+	text-shadow: none;
+}
+
+.study-theme h1,
+.study-theme h2,
+.study-theme h3 {
+	padding: 0;
+	border: 0;
+	font-family: "Pixelify Sans", sans-serif;
+	line-height: 1.1;
+}
+.study-theme h1 {
+	font-size: 36px;
+}
+.study-theme h2 {
+	font-size: 25px;
+}
+.study-theme h3 {
+	font-size: 21px;
+}
+.study-theme small {
+	font-size: 19px;
+	line-height: 1.25;
+}
+.study-theme .ui-control {
+	padding: 5px 9px;
+	border-radius: 2px;
+	border-width: 2px;
+	/* Feature palettes must also reach the bevel, rather than leaving warm
+	   highlights inside otherwise themed controls. */
+	box-shadow:
+		inset 1px 2px var(--ui-control-inset, #d8c3a1),
+		0 1px var(--ui-control-highlight, #fff4d9);
+	font-size: 21px;
+	min-height: 38px;
+}
+.study-theme .ui-control[type="number"] {
+	width: 8rem;
+}
+.study-theme .ui-button {
+	font: inherit;
+	text-shadow: none;
+}
+.study-theme :is(button, a, summary, input, select):focus-visible {
+	outline: 3px solid var(--ui-focus);
+	outline-offset: 3px;
+}
+.study-theme details > summary {
+	cursor: pointer;
+	min-height: 38px;
+}
+
+.study-theme .select-wrapper::before {
+	content: "";
+	position: absolute;
+	right: 2px;
+	top: 2px;
+	bottom: 2px;
+	width: 29px;
+	border-left: 1px solid #b99769;
+	background: #fff4df;
+	pointer-events: none;
+}
+.study-theme .select-wrapper.select-wrapper::after {
+	right: 11px;
+	width: 0;
+	height: 0;
+	border: 6px solid transparent;
+	border-top-color: #563621;
+	transform: translateY(-20%);
+}
+.study-theme .select-wrapper select {
+	padding-right: 36px;
+}
+.study-theme input.ui-control[type="number"] {
+	text-align: left;
+	padding-right: 3px;
+}
+.study-theme input.ui-control[type="number"]::-webkit-inner-spin-button {
+	appearance: auto;
+	opacity: 1;
+	height: 32px;
+	margin-left: 8px;
+	cursor: pointer;
+}
+@media (max-width: 900px) {
+	.study-theme {
+		font-size: 21px;
+	}
+	.study-theme h1 {
+		font-size: 30px;
+	}
+	.study-theme .ui-control {
+		min-height: 44px;
+		font-size: 21px;
+	}
+}
+
+/* Technical identifiers need a distinct, readable treatment on parchment.
+   Inline values may wrap; blocks retain whitespace and scroll within their owner. */
+.study-theme code,
+.study-kit code,
+.study-theme pre,
+.study-kit pre {
+	font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+	font-size: 0.78em;
+	line-height: 1.5;
+	color: var(--study-ink, #311304);
+	background: var(--study-code-surface, #f1dcba);
+	border: 1px solid var(--study-code-rule, #c8a574);
+	border-radius: 2px;
+	text-shadow: none;
+}
+.study-theme code,
+.study-kit code {
+	padding: 0.1em 0.3em;
+	overflow-wrap: anywhere;
+	box-decoration-break: clone;
+	-webkit-box-decoration-break: clone;
+}
+.study-theme pre,
+.study-kit pre {
+	min-width: 0;
+	max-width: 100%;
+	overflow: auto;
+	padding: 12px;
+	margin: 12px 0;
+	scrollbar-color: #a57542 #f1dcba;
+}
+/* Nested code inherits the block's type size; do not draw a second paper box
+   or repeatedly shrink text when a renderer emits the usual pre/code pair. */
+.study-theme pre code,
+.study-kit pre code {
+	font-size: inherit;
+	line-height: inherit;
+	color: inherit;
+	background: transparent;
+	border: 0;
+	border-radius: 0;
+	padding: 0;
+	overflow-wrap: normal;
+}

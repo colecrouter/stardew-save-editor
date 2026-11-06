@@ -52,9 +52,9 @@ function reportUnexpectedSymbol(context: string, raw: Item) {
 	});
 }
 
-export class BaseItemProxy<RawModel extends Item = Item>
-	implements DataProxy<RawModel>
-{
+export class BaseItemProxy<
+	RawModel extends Item = Item,
+> implements DataProxy<RawModel> {
 	public [Raw]: RawModel;
 	public [Dispose]?: () => void;
 

@@ -8,9 +8,7 @@ import {
 	writeFile,
 } from "node:fs/promises";
 import { imageDimensionsFromData } from "image-dimensions";
-import bigCraftables from "../content/Data/BigCraftables.json" with {
-	type: "json",
-};
+import bigCraftables from "../content/Data/BigCraftables.json" with { type: "json" };
 import boots from "../content/Data/Boots.json" with { type: "json" };
 import buildings from "../content/Data/Buildings.json" with { type: "json" };
 import animals from "../content/Data/FarmAnimals.json" with { type: "json" };
@@ -24,6 +22,8 @@ import tools from "../content/Data/Tools.json" with { type: "json" };
 import trinkets from "../content/Data/Trinkets.json" with { type: "json" };
 import weapons from "../content/Data/Weapons.json" with { type: "json" };
 import { characters } from "../src/lib/NPCs.js";
+import { type ItemInfo, villagerGifts } from "./giftTastes.js";
+import { getBuildMaterials } from "./buildingCost.js";
 import {
 	type BuildingUpgradeSource,
 	getBuildingUpgradeData,
@@ -301,13 +301,36 @@ const writeToFile = JSON.stringify(
 		.filter(notUndefined)
 		.map((item) => [
 			item.name,
-			{ ...item, description: resolveDescription(item.description) },
+			{
+				...item,
+				// Some item families have no description in the source data.
+				description: resolveDescription(
+					"description" in item ? item.description : undefined,
+				),
+			},
 		]),
 );
 
 await rm("./generated", { recursive: true, force: true });
 await mkdir("./generated");
 await writeFile("./generated/iteminfo.json", writeToFile);
+
+// **Gift tastes**
+
+// Each villager's loved gifts, worked out from Data/NPCGiftTastes the way the
+// game does (see giftTastes.ts) for every giftable item written above
+const giftTastes = JSON.parse(
+	await readFile("./content/Data/NPCGiftTastes.json", "utf-8"),
+) as Record<string, string>;
+const { villagers: lovedGifts, unmatched } = villagerGifts(
+	giftTastes,
+	JSON.parse(writeToFile) as [string, ItemInfo][],
+	characters,
+);
+if (unmatched.length > 0) {
+	console.warn(`No giftable item for loved gifts: ${unmatched.join(", ")}`);
+}
+await writeFile("./generated/gifttastes.json", JSON.stringify(lovedGifts));
 
 // **Recipes**
 
@@ -318,6 +341,24 @@ const cookingRecipesArray = Object.entries(cookingRecipes).map(([key]) => key);
 await writeFile(
 	"./generated/cookingrecipes.json",
 	JSON.stringify(cookingRecipesArray),
+);
+
+// Cooking progress uses output item IDs, independently of recipe knowledge.
+// Keep this compact lookup separate from the inventory catalog so core editor
+// projections do not eagerly import the full item metadata on every app entry.
+const cookingRecipeOutputs = Object.fromEntries(
+	Object.entries(cookingRecipes).map(([name, definition]) => {
+		// The game reads output ID/quantity pairs from slash field 2. Vanilla cooking
+		// has one output; reject ambiguous definitions instead of guessing progress IDs.
+		const outputs = definition.split("/")[2]?.trim().split(/\s+/);
+		if (!outputs || outputs.length !== 2 || !outputs[0])
+			throw new Error(`Unsupported cooking output for ${name}`);
+		return [name, outputs[0].replace(/^\(O\)/, "")];
+	}),
+);
+await writeFile(
+	"./generated/cookingrecipeoutputs.json",
+	JSON.stringify(cookingRecipeOutputs),
 );
 
 const craftingRecipes = JSON.parse(
@@ -473,6 +514,7 @@ const filesToCopy = [
 	"LooseSprites/JunimoNote.png",
 	"LooseSprites/font_colored.png",
 	"LooseSprites/Cursors.png",
+	"Maps/MenuTiles.png",
 	// Add any additional files you need to copy here
 ] as string[];
 
@@ -556,6 +598,10 @@ async function getBuildingTextureSize(texture: string | undefined) {
 	}
 }
 
+// Construction prices are catalog information, not a charge applied by the editor.
+const objectNames = new Map(
+	objectsArray.map((obj) => [String(obj._key), String(obj.name)]),
+);
 const buildingsArray = await Promise.all(
 	Object.entries(buildings).map(async ([key, obj]) => {
 		const texture = getBuildingTexture(obj.Texture);
@@ -575,9 +621,13 @@ const buildingsArray = await Promise.all(
 			maxOccupants: obj.MaxOccupants,
 			hayCapacity: obj.HayCapacity,
 			description: resolveDescription(obj.Description) || undefined,
+			buildCost: obj.BuildCost || undefined,
+			buildMaterials: getBuildMaterials(obj.BuildMaterials, objectNames),
 
 			...getBuildingUpgradeData(obj as BuildingUpgradeSource),
 		};
 	}),
 );
 await writeFile("./generated/buildings.json", JSON.stringify(buildingsArray));
+
+await import("./dumpLocationWeather.ts");

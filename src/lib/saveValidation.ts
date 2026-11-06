@@ -7,7 +7,7 @@
  * `errors` are definite problems; `warnings` are unusual but loadable.
  */
 
-import type { ToastType } from "$lib/ToastManager.svelte";
+import type { ToastType } from "./ToastManager.svelte";
 
 export interface SaveValidation {
 	/** No errors were found (there may still be warnings) */

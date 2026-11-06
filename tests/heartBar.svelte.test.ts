@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { Dispose } from "$lib/proxies";
 import { Friendship } from "$lib/proxies/Friendship.svelte";
 import { Season } from "../codegen/save";
-import HeartBar from "../src/routes/(edit)/relationships/HeartBar.svelte";
+import HeartBar from "../src/routes/(legacy)/(edit)/relationships/HeartBar.svelte";
 
 const today = { year: 1, season: Season.Spring, day: 1 };
 

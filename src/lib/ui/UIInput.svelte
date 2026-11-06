@@ -1,4 +1,5 @@
 <script lang="ts">
+	import "./controls.css";
 	import * as Sentry from "@sentry/sveltekit";
 	import type { HTMLInputAttributes } from "svelte/elements";
 
@@ -6,7 +7,7 @@
 		value: string | number;
 	};
 
-	let { value = $bindable(), ...props }: Props = $props();
+	let { value = $bindable(), class: className, ...props }: Props = $props();
 	let defaultValue = $derived(
 		props.defaultValue ?? (props.type === "number" ? (props.min ?? 0) : ""),
 	);
@@ -93,48 +94,18 @@
 	}
 </script>
 
-<input bind:this={input} bind:value={getter, setter} {onblur} {...props} />
+<input
+	bind:this={input}
+	bind:value={getter, setter}
+	{onblur}
+	{...props}
+	class={["ui-control", className]}
+/>
 
 <style>
-	/* Text-like inputs share the text box look */
-	input[type="text"],
-	input[type="search"],
-	input[type="email"],
-	input[type="url"],
-	input[type="tel"],
-	input[type="password"],
-	input[type="number"] {
-		border-radius: 4px;
-		border: solid 2px;
-		border-bottom-color: #9c613b;
-		border-left-color: #9c613b;
-		border-right-color: #6f3b31;
-		border-top-color: #6f3b31;
-		background-color: #f9bb65;
-		box-shadow:
-			inset -2px 2px 0 #e38813,
-			-2px 2px 1px rgba(0, 0, 0, 0.2);
-	}
-
-	input[type="text"]:disabled,
-	input[type="search"]:disabled,
-	input[type="email"]:disabled,
-	input[type="url"]:disabled,
-	input[type="tel"]:disabled,
-	input[type="password"]:disabled,
-	input[type="number"]:disabled {
-		background-color: #de9a3c;
-		color: #000;
-	}
-
-	input[type="text"]:focus,
-	input[type="search"]:focus,
-	input[type="email"]:focus,
-	input[type="url"]:focus,
-	input[type="tel"]:focus,
-	input[type="password"]:focus,
-	input[type="number"]:focus {
-		outline: none;
+	input:focus-visible {
+		outline: 3px solid var(--ui-focus);
+		outline-offset: 3px;
 	}
 
 	/* Safari otherwise draws search boxes with its own rounded style */

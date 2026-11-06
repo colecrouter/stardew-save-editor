@@ -159,7 +159,7 @@ describe("coops and barns", () => {
 			await readFile("tests/TestSave", "utf-8"),
 			buildings,
 		);
-		let promise: Promise<void> = Promise.resolve();
+		let promise: Promise<void | boolean> = Promise.resolve();
 		const cleanup = $effect.root(() => {
 			saveManager = new SaveManager();
 			promise = saveManager.import(new File([xml], "TestSave"));

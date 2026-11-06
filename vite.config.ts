@@ -21,12 +21,13 @@ export default defineConfig(({ mode }) => ({
 			: undefined,
 		sveltekit(),
 		legacy({
+			// Native structuredClone is part of the supported browser baseline.
 			modernTargets: [
 				"chrome >= 100",
 				"edge >= 100",
 				"firefox >= 100",
-				"safari >= 15",
-				"ios >= 15",
+				"safari >= 15.4",
+				"ios >= 15.4",
 			],
 		}),
 		svelteTesting(),
@@ -48,6 +49,7 @@ export default defineConfig(({ mode }) => ({
 		],
 	},
 	test: {
+		css: true,
 		environment: "happy-dom",
 		setupFiles: ["@vitest/web-worker", "./tests/helpers/setup.ts"],
 		// Required for SvelteKit with Vite 7+

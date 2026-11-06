@@ -20,8 +20,8 @@ import {
 	setToastManagerContext,
 	ToastManager,
 } from "../src/lib/ToastManager.svelte";
-import editLayout from "../src/routes/(edit)/+layout.svelte";
-import uploadPage from "../src/routes/(home)/(upload)/+page.svelte";
+import editLayout from "../src/routes/(legacy)/(edit)/+layout.svelte";
+import uploadPage from "../src/routes/(legacy)/(home)/(upload)/legacy/+page.svelte";
 
 // The pages navigate after uploading, which isn't possible here
 vi.mock("$app/navigation", () => ({ goto: vi.fn() }));
@@ -279,20 +279,19 @@ describe("validateSave", () => {
 		});
 	});
 
-	it.each([
-		-102,
-		1.5,
-		2 ** 32,
-		"",
-	])("rejects a stat of %j, which the game can't read back", (value) => {
-		const parsed = loadParsed();
-		daysPlayedStat(parsed.SaveGame.player).value.unsignedInt = value as number;
-		const result = validateSave(parsed);
-		expect(result.valid).toBe(false);
-		expect(result.errors).toEqual([
-			`Test's daysPlayed stat (${value}) is out of range`,
-		]);
-	});
+	it.each([-102, 1.5, 2 ** 32, ""])(
+		"rejects a stat of %j, which the game can't read back",
+		(value) => {
+			const parsed = loadParsed();
+			daysPlayedStat(parsed.SaveGame.player).value.unsignedInt =
+				value as number;
+			const result = validateSave(parsed);
+			expect(result.valid).toBe(false);
+			expect(result.errors).toEqual([
+				`Test's daysPlayed stat (${value}) is out of range`,
+			]);
+		},
+	);
 
 	it("accepts the biggest stat the game can hold", () => {
 		const parsed = loadParsed();
@@ -304,20 +303,18 @@ describe("validateSave", () => {
 		});
 	});
 
-	it.each([
-		"Summer",
-		" FALL ",
-		2,
-		"3",
-	])("reads the season %j by name in any case, or by number", (season) => {
-		const parsed = loadParsed();
-		Object.assign(parsed.SaveGame, { currentSeason: season });
-		expect(validateSave(parsed)).toEqual({
-			valid: true,
-			errors: [],
-			warnings: [],
-		});
-	});
+	it.each(["Summer", " FALL ", 2, "3"])(
+		"reads the season %j by name in any case, or by number",
+		(season) => {
+			const parsed = loadParsed();
+			Object.assign(parsed.SaveGame, { currentSeason: season });
+			expect(validateSave(parsed)).toEqual({
+				valid: true,
+				errors: [],
+				warnings: [],
+			});
+		},
+	);
 
 	it("accepts snow in winter", () => {
 		const parsed = loadParsed();
@@ -403,7 +400,7 @@ describe("describeResult", () => {
 
 async function importSave(xml: string): Promise<SaveManager> {
 	let saveManager!: SaveManager;
-	let promise: Promise<void> = Promise.resolve();
+	let promise: Promise<void | boolean> = Promise.resolve();
 	const cleanup = $effect.root(() => {
 		saveManager = new SaveManager();
 		promise = saveManager.import(new File([xml], "TestSave"));
@@ -458,7 +455,7 @@ describe("SaveManager validation", () => {
 
 		const validation = await saveManager.download();
 		expect(click).toHaveBeenCalledOnce();
-		expect(validation.warnings).toEqual(["Test's money (-5) is negative"]);
+		expect(validation?.warnings).toEqual(["Test's money (-5) is negative"]);
 		click.mockRestore();
 	});
 });

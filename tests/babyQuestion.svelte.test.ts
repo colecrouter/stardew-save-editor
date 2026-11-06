@@ -18,8 +18,8 @@ import {
 } from "../src/lib/babyQuestion";
 import { Raw } from "../src/lib/proxies";
 import { Friendship } from "../src/lib/proxies/Friendship.svelte";
-import BabyQuestion from "../src/routes/(edit)/relationships/BabyQuestion.svelte";
-import HeartBar from "../src/routes/(edit)/relationships/HeartBar.svelte";
+import BabyQuestion from "../src/routes/(legacy)/(edit)/relationships/BabyQuestion.svelte";
+import HeartBar from "../src/routes/(legacy)/(edit)/relationships/HeartBar.svelte";
 
 const today = { year: 2, season: Season.Spring, day: 10 };
 const home = { upgradeLevel: 2, cribStyle: 1, children: 0, toddlers: 0 };

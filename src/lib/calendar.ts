@@ -9,13 +9,15 @@
     Data/PassiveFestivals), so check it when a game update changes festivals
     or weather.
 */
-import { Season } from "$types/save";
+import type { Season } from "$types/save";
+import { CalendarSeason } from "./calendarSeason.ts";
+import { createGameRandom } from "./game-random.ts";
 
 export const SEASONS = [
-	Season.Spring,
-	Season.Summer,
-	Season.Fall,
-	Season.Winter,
+	CalendarSeason.Spring,
+	CalendarSeason.Summer,
+	CalendarSeason.Fall,
+	CalendarSeason.Winter,
 ] as const;
 
 export const DAYS_PER_SEASON = 28;
@@ -63,7 +65,7 @@ export function dateInRange({ year, season, day }: GameDate): GameDate {
 	const whole = (n: number) => (Number.isFinite(n) ? Math.trunc(n) : 1);
 	return {
 		year: Math.max(whole(year), 1),
-		season: SEASONS.includes(season) ? season : Season.Spring,
+		season: SEASONS.includes(season) ? season : CalendarSeason.Spring,
 		day: Math.min(Math.max(whole(day), 1), DAYS_PER_SEASON),
 	};
 }
@@ -75,7 +77,8 @@ export function addDays(date: GameDate, days: number): GameDate {
 	return {
 		year: Math.floor(total / perYear) + 1,
 		season:
-			SEASONS[Math.floor((total % perYear) / DAYS_PER_SEASON)] ?? Season.Spring,
+			SEASONS[Math.floor((total % perYear) / DAYS_PER_SEASON)] ??
+			CalendarSeason.Spring,
 		day: (total % DAYS_PER_SEASON) + 1,
 	};
 }
@@ -86,7 +89,7 @@ export function nextDay({ year, season, day }: GameDate): GameDate {
 	const next = (seasonIndex(season) + 1) % SEASONS.length;
 	return {
 		year: next === 0 ? year + 1 : year,
-		season: SEASONS[next] ?? Season.Spring,
+		season: SEASONS[next] ?? CalendarSeason.Spring,
 		day: 1,
 	};
 }
@@ -113,42 +116,47 @@ export interface Festival {
     weather.
 */
 export const FESTIVALS: readonly Festival[] = [
-	{ name: "Egg Festival", season: Season.Spring, start: 13, end: 13 },
-	{ name: "Flower Dance", season: Season.Spring, start: 24, end: 24 },
-	{ name: "Luau", season: Season.Summer, start: 11, end: 11 },
+	{ name: "Egg Festival", season: CalendarSeason.Spring, start: 13, end: 13 },
+	{ name: "Flower Dance", season: CalendarSeason.Spring, start: 24, end: 24 },
+	{ name: "Luau", season: CalendarSeason.Summer, start: 11, end: 11 },
 	{
 		name: "Trout Derby",
-		season: Season.Summer,
+		season: CalendarSeason.Summer,
 		start: 20,
 		end: 21,
 		passive: true,
 	},
 	{
 		name: "Dance of the Moonlight Jellies",
-		season: Season.Summer,
+		season: CalendarSeason.Summer,
 		start: 28,
 		end: 28,
 	},
-	{ name: "Stardew Valley Fair", season: Season.Fall, start: 16, end: 16 },
-	{ name: "Spirit's Eve", season: Season.Fall, start: 27, end: 27 },
-	{ name: "Festival of Ice", season: Season.Winter, start: 8, end: 8 },
+	{
+		name: "Stardew Valley Fair",
+		season: CalendarSeason.Fall,
+		start: 16,
+		end: 16,
+	},
+	{ name: "Spirit's Eve", season: CalendarSeason.Fall, start: 27, end: 27 },
+	{ name: "Festival of Ice", season: CalendarSeason.Winter, start: 8, end: 8 },
 	{
 		name: "SquidFest",
-		season: Season.Winter,
+		season: CalendarSeason.Winter,
 		start: 12,
 		end: 13,
 		passive: true,
 	},
 	{
 		name: "Night Market",
-		season: Season.Winter,
+		season: CalendarSeason.Winter,
 		start: 15,
 		end: 17,
 		passive: true,
 	},
 	{
 		name: "Feast of the Winter Star",
-		season: Season.Winter,
+		season: CalendarSeason.Winter,
 		start: 25,
 		end: 25,
 	},
@@ -158,7 +166,7 @@ export const FESTIVALS: readonly Festival[] = [
 export const OTHER_FESTIVALS: readonly Festival[] = [
 	{
 		name: "Desert Festival",
-		season: Season.Spring,
+		season: CalendarSeason.Spring,
 		start: 15,
 		end: 17,
 		passive: true,
@@ -258,9 +266,9 @@ export function weatherFromFlags(f: Partial<WeatherFlags>): WeatherId {
 */
 export function seasonWeathers(season: Season): WeatherId[] {
 	switch (season) {
-		case Season.Summer:
+		case CalendarSeason.Summer:
 			return ["Sun", "Rain", "Storm", "GreenRain"];
-		case Season.Winter:
+		case CalendarSeason.Winter:
 			return ["Sun", "Rain", "Snow"];
 		default:
 			return ["Sun", "Rain", "Storm", "Wind"];
@@ -295,12 +303,12 @@ export function forcedWeather(
 			weather: "Festival",
 			reason: `The ${festival.name} always has festival weather`,
 		};
-	if (date.season === Season.Summer && date.day % 13 === 0)
+	if (date.season === CalendarSeason.Summer && date.day % 13 === 0)
 		return {
 			weather: "Storm",
 			reason: "There's always a storm on Summer 13 and 26",
 		};
-	if (date.season === Season.Summer && date.day === greenRainDay)
+	if (date.season === CalendarSeason.Summer && date.day === greenRainDay)
 		return {
 			weather: "GreenRain",
 			reason: `Green rain falls on Summer ${date.day} in Year ${date.year}`,
@@ -320,108 +328,58 @@ export function forcedWeather(
 	return undefined;
 }
 
-// The game's random numbers, for the green rain day
+/** Session state: ordinary choices survive dates with fixed or incompatible weather. */
+export interface CalendarWeatherChoices {
+	readonly today?: string;
+	readonly tomorrow?: string;
+}
 
-/** xxHash32 with seed 0, the hash behind the game's HashUtility */
-function xxHash32(bytes: Uint8Array): number {
-	const PRIME1 = 0x9e3779b1;
-	const PRIME2 = 0x85ebca77;
-	const PRIME3 = 0xc2b2ae3d;
-	const PRIME4 = 0x27d4eb2f;
-	const PRIME5 = 0x165667b1;
-	const rotl = (x: number, r: number) => (x << r) | (x >>> (32 - r));
-	const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-	const round = (acc: number, lane: number) =>
-		Math.imul(rotl((acc + Math.imul(lane, PRIME2)) | 0, 13), PRIME1);
-
-	let i = 0;
-	let hash: number;
-	if (bytes.length >= 16) {
-		let v1 = (PRIME1 + PRIME2) | 0;
-		let v2 = PRIME2;
-		let v3 = 0;
-		let v4 = -PRIME1 | 0;
-		for (; i + 16 <= bytes.length; i += 16) {
-			v1 = round(v1, view.getUint32(i, true));
-			v2 = round(v2, view.getUint32(i + 4, true));
-			v3 = round(v3, view.getUint32(i + 8, true));
-			v4 = round(v4, view.getUint32(i + 12, true));
-		}
-		hash = (rotl(v1, 1) + rotl(v2, 7) + rotl(v3, 12) + rotl(v4, 18)) | 0;
-	} else {
-		hash = PRIME5;
-	}
-	hash = (hash + bytes.length) | 0;
-	for (; i + 4 <= bytes.length; i += 4)
-		hash = Math.imul(
-			rotl((hash + Math.imul(view.getUint32(i, true), PRIME3)) | 0, 17),
-			PRIME4,
+/** Prepare weather for a date without mutating the save or its remembered choices. */
+export function planCalendarWeather({
+	date,
+	daysPlayed,
+	gameId,
+	legacyRandom,
+	choices,
+}: {
+	date: GameDate;
+	daysPlayed: number;
+	gameId: number;
+	legacyRandom: boolean;
+	choices: CalendarWeatherChoices;
+}): { today: string; tomorrow: string } {
+	const select = (
+		day: GameDate,
+		played: number,
+		chosen: string | undefined,
+		forecast: boolean,
+	) => {
+		const fixed = forcedWeather(
+			day,
+			played,
+			greenRainDay(day.year, gameId, legacyRandom),
 		);
-	for (; i < bytes.length; i++)
-		hash = Math.imul(
-			rotl((hash + Math.imul(bytes[i] ?? 0, PRIME5)) | 0, 11),
-			PRIME1,
+		if (fixed) return fixed.weather;
+		const allowed = seasonWeathers(day.season).filter(
+			(weather) => forecast || weather !== "GreenRain",
 		);
-	hash = Math.imul(hash ^ (hash >>> 15), PRIME2);
-	hash = Math.imul(hash ^ (hash >>> 13), PRIME3);
-	return (hash ^ (hash >>> 16)) >>> 0;
+		return chosen !== undefined &&
+			(!isWeatherId(chosen) || allowed.includes(chosen))
+			? chosen
+			: "Sun";
+	};
+	return {
+		today: select(date, daysPlayed, choices.today, false),
+		tomorrow: select(nextDay(date), daysPlayed + 1, choices.tomorrow, true),
+	};
 }
 
-const INT_MAX = 2147483647;
-
-/** Utility.CreateRandomSeed */
-export function createRandomSeed(legacyRandom: boolean, ...seeds: number[]) {
-	const parts = [0, 0, 0, 0, 0].map((_, i) => (seeds[i] ?? 0) % INT_MAX);
-	if (legacyRandom)
-		return Math.trunc(parts.reduce((sum, part) => sum + part, 0) % INT_MAX);
-	// HashUtility.GetDeterministicHashCode(params int[]): the ints' bytes, hashed
-	const ints = Int32Array.from(parts, (part) => Math.trunc(part));
-	return xxHash32(new Uint8Array(ints.buffer)) | 0;
-}
-
-/** .NET's System.Random with a seed, which the game's random numbers come from */
-export class CSharpRandom {
-	#seeds = new Array<number>(56).fill(0);
-	#next = 0;
-	#nextP = 21;
-
-	constructor(seed: number) {
-		const seeds = this.#seeds;
-		let mj = 161803398 - (seed === -2147483648 ? INT_MAX : Math.abs(seed));
-		seeds[55] = mj;
-		let mk = 1;
-		for (let i = 1; i < 55; i++) {
-			const ii = (21 * i) % 55;
-			seeds[ii] = mk;
-			mk = (mj - mk) | 0;
-			if (mk < 0) mk += INT_MAX;
-			mj = seeds[ii] ?? 0;
-		}
-		for (let k = 1; k < 5; k++)
-			for (let i = 1; i < 56; i++) {
-				let value = ((seeds[i] ?? 0) - (seeds[1 + ((i + 30) % 55)] ?? 0)) | 0;
-				if (value < 0) value += INT_MAX;
-				seeds[i] = value;
-			}
-	}
-
-	/** Random.Next(): 0 to int.MaxValue - 1 */
-	nextInt(): number {
-		const seeds = this.#seeds;
-		if (++this.#next >= 56) this.#next = 1;
-		if (++this.#nextP >= 56) this.#nextP = 1;
-		let value = (seeds[this.#next] ?? 0) - (seeds[this.#nextP] ?? 0);
-		if (value === INT_MAX) value--;
-		if (value < 0) value += INT_MAX;
-		seeds[this.#next] = value;
-		return value;
-	}
-
-	/** Random.Next(max): 0 to max - 1 */
-	next(max: number): number {
-		return Math.trunc(this.nextInt() * (1 / INT_MAX) * max);
-	}
-}
+// Existing consumers retain these names; the generator and seed policy now have
+// one implementation shared with trinket rolls and calendar event predictions.
+export {
+	DotNetRandom as CSharpRandom,
+	createRandomSeed,
+} from "./game-random.ts";
 
 const GREEN_RAIN_DAYS = [5, 6, 7, 14, 15, 16, 18, 23];
 
@@ -436,8 +394,6 @@ export function greenRainDay(
 	gameId: number,
 	legacyRandom: boolean,
 ): number {
-	const random = new CSharpRandom(
-		createRandomSeed(legacyRandom, year * 777, gameId),
-	);
+	const random = createGameRandom(legacyRandom, year * 777, gameId);
 	return GREEN_RAIN_DAYS[random.next(GREEN_RAIN_DAYS.length)] ?? 5;
 }

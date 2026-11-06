@@ -1,10 +1,9 @@
 ---
 name: Website Issue
 about: Something on the website is unresponsive or not working as expected
-title: ''
+title: ""
 labels: interface bug
-assignees: ''
-
+assignees: ""
 ---
 
 **Describe what happened**

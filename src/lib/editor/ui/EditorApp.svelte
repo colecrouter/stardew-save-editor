@@ -1,0 +1,200 @@
+<script lang="ts">
+	import { Result } from "effect";
+	import {
+		runBackupCommand,
+		writeOriginalBackup,
+	} from "../backup-operations.ts";
+	import { downloadSave } from "../../downloadSave.ts";
+	import { onDestroy, tick } from "svelte";
+	import { RegistryProvider } from "effect-atom-svelte";
+	import { SaveReadError, describeImportError } from "../save-service.ts";
+	import { openEditor } from "../editor-model.ts";
+	import EditorWorkspace from "./EditorWorkspace.svelte";
+	import UploadPanel from "./UploadPanel.svelte";
+	import "../../ui/study-theme.css";
+	interface Props {
+		includeProofs?: boolean;
+		legacyHref?: string;
+		backupOriginal?: (file: File) => Promise<void>;
+	}
+	let { includeProofs = false, legacyHref, backupOriginal }: Props = $props();
+	let active = $state.raw<Awaited<ReturnType<typeof openEditor>>>();
+	let filename = $state("");
+	let opening = $state(false);
+	let error = $state("");
+	let downloadError = $state("");
+	let downloading = $state(false);
+	// File reads cannot be canceled reliably. A generation token prevents an older
+	// import from installing its session after replacement, cancellation or unmount.
+	let generation = 0;
+	// A closing screen cancels a pending picker/export. Download URLs have their
+	// own bounded timer so a just-started Safari stream is not revoked on close.
+	let downloadController = new AbortController();
+	// All release paths detach consumers before disposing their borrowed registry.
+	// Keeping this ordering in one helper avoids drift between close/replacement.
+	async function detach() {
+		const previous = active;
+		active = undefined;
+		downloadController.abort();
+		downloadController = new AbortController();
+		await tick();
+		await previous?.close();
+	}
+	async function close() {
+		generation++;
+		opening = false;
+		downloading = false;
+		error = "";
+		downloadError = "";
+		await detach();
+	}
+	// Replacement releases the previous file before acquiring the next one.
+	// If the result is stale, close the newly acquired session immediately.
+	async function load(file: File, saveBackup = true) {
+		const token = ++generation;
+		opening = true;
+		error = "";
+		downloadError = "";
+		await detach();
+		try {
+			const bytes = new Uint8Array(await file.arrayBuffer());
+			if (token !== generation) return;
+			const opened = await openEditor(bytes, {}, { includeProofs });
+			if (token !== generation) {
+				await opened.close();
+				return;
+			}
+			active = opened;
+			filename = file.name;
+			// Back up only a successfully decoded import. Failure must not block
+			// editing; retain the original selected file and surface the warning.
+			if (saveBackup && backupOriginal) {
+				const result = await runBackupCommand(
+					writeOriginalBackup(file, backupOriginal),
+					(message) => {
+						if (token === generation) error = message;
+					},
+				);
+				if (token === generation && result && Result.isFailure(result))
+					error = result.failure.message;
+			}
+		} catch (cause) {
+			if (token === generation) {
+				if (cause instanceof SaveReadError) error = describeImportError(cause);
+				else {
+					console.error("Save import failed", cause);
+					error = "The save could not be opened. Please try again.";
+				}
+			}
+		} finally {
+			if (token === generation) opening = false;
+		}
+	}
+	// Export is queued with edits by the model. A file closed/replaced while that
+	// work runs must not trigger a download for the wrong active workspace.
+	async function download() {
+		const current = active;
+		if (!current || downloading) return;
+		downloading = true;
+		// A retry clears only download feedback, leaving backup warnings intact.
+		downloadError = "";
+		try {
+			const result = await current.model.commands.export();
+			if (!result || active !== current) return;
+			if (Result.isFailure(result)) return result;
+			await downloadSave(
+				new Blob([Uint8Array.from(result.success)], {
+					type: "application/octet-stream",
+				}),
+				filename,
+				downloadController.signal,
+			);
+		} catch (cause) {
+			// Browser file writes live at the application boundary. A failure
+			// leaves the session/draft intact and permits an explicit retry.
+			console.error("Save download failed", cause);
+			if (active === current)
+				downloadError = "The save could not be downloaded. Please try again.";
+		} finally {
+			// A previous session must not clear a replacement's pending state.
+			if (active === current) downloading = false;
+		}
+	}
+
+	onDestroy(() => {
+		generation++;
+		void detach();
+	});
+</script>
+
+<div class="editor-application" class:has-session={!!active}>
+	{#if active}
+		{#if error}
+			<p role="alert">{error}</p>
+		{/if}
+		{#if downloadError}
+			<p role="alert">{downloadError}</p>
+		{/if}
+		{#if active.model.loadValidation.errors.length || active.model.loadValidation.warnings.length}
+			<details class="validation">
+				<summary>Imported save has existing problems</summary>
+				<ul>
+					{#each [...active.model.loadValidation.errors, ...active.model.loadValidation.warnings] as problem}
+						<li>
+							{problem}
+						</li>
+					{/each}
+				</ul>
+				<p>
+					Viewing does not change these fields. Export is blocked if definite
+					errors remain.
+				</p>
+			</details>
+		{/if}
+		{#key active}
+			<!-- A file replacement remounts the provider: it reads its registry
+                 once. Passing our registry leaves disposal with the file scope. -->
+			<RegistryProvider registry={active.model.atomBindings.registry}>
+				<EditorWorkspace
+					model={active.model}
+					{includeProofs}
+					{downloading}
+					{filename}
+					onclose={() => void close()}
+					ondownload={download}
+				/>
+			</RegistryProvider>
+		{/key}
+	{:else}
+		<UploadPanel
+			{opening}
+			{error}
+			{legacyHref}
+			onfile={(file) => load(file)}
+			onoriginal={(file) => load(file, false)}
+			oncancel={() => void close()}
+		/>
+	{/if}
+</div>
+
+<style>
+	.editor-application {
+		/* The flex parent's centered children otherwise shrink to intrinsic content.
+		   Opening a catalog must not resize the frame or move every slot. */
+		width: 100%;
+		min-width: 0;
+		padding: 8px;
+	}
+	@media (min-width: 901px) {
+		/* Alerts and validation keep their natural height; the frame takes the rest. */
+		.has-session {
+			display: flex;
+			flex-direction: column;
+			flex: 1;
+			min-height: 0;
+		}
+	}
+	[role="alert"] {
+		color: #8a1c19;
+	}
+</style>

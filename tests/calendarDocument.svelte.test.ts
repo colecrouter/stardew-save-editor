@@ -27,7 +27,7 @@ it("the pure adapter and production calendar agree through date, weather and fes
 		if (!save) throw new Error("No save");
 		let game: Save = $state.snapshot(save.raw.SaveGame);
 		let state = initializeCalendarDocument(game);
-		const actions: CalendarEdit[] = [
+		const actions = [
 			{ type: "calendar-date", change: { year: 2 } },
 			{ type: "calendar-date", change: { day: 8 } },
 			{ type: "calendar-weather", day: "today", value: "Sun" },
@@ -36,7 +36,7 @@ it("the pure adapter and production calendar agree through date, weather and fes
 			{ type: "calendar-date", change: { day: 14 } },
 			{ type: "calendar-weather", day: "tomorrow", value: "Wind" },
 			{ type: "calendar-date", change: { season: CalendarSeason.Winter } },
-		];
+		] satisfies CalendarEdit[];
 		for (const action of actions) {
 			if (action.type === "calendar-date") {
 				if (action.change.year !== undefined)

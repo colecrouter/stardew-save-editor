@@ -14,10 +14,10 @@ it.effect("undo and redo restore a compound action as one entry", () =>
 	Effect.gen(function* () {
 		const baseline = tinyFixture();
 		const session = yield* makeHistorySession(baseline);
-		const actions: MutationRequest[] = [
+		const actions = [
 			money(99),
 			{ type: "farm-name", value: "New farm" },
-		];
+		] satisfies MutationRequest[];
 		const after = yield* session.execute(actions, "Restore progress");
 		expect(after.entries.length).toBe(1);
 		expect(after.entries[0].actions).toEqual(actions);

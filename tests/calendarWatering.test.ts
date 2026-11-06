@@ -103,10 +103,10 @@ describe("reversible rain preparation", () => {
 	});
 
 	it("preserves other contexts' provenance and does nothing between rainy weather choices", () => {
-		const marks: WateringMark[] = [
+		const marks = [
 			{ id: "valley", context: "Default", kind: "soil", before: 0 },
 			{ id: "island", context: "Island", kind: "soil", before: 0 },
-		];
+		] satisfies WateringMark[];
 		const targets = [soil("valley", 1), soil("island", 1, "Island")];
 		expect(plan(targets, marks, true, true)).toEqual({
 			writes: [],

@@ -33,6 +33,27 @@ const required = <A>(value: A | undefined): A => {
 };
 
 describe("placed chest storage", () => {
+	it.each([true, "true"])(
+		"recognizes a nested nil global ID as local storage without rewriting it (%s)",
+		(nil) => {
+			const document = fixture({
+				name: "Farm",
+				objects: {
+					item: placed(
+						chest({
+							globalInventoryId: { string: { "@_xsi:nil": nil } },
+							items: { Item: item() },
+						}),
+					),
+				},
+			});
+			const before = structuredClone(document);
+			const found = required(discoverPlacedChests(document)[0]);
+			expect(found.supported).toBe(true);
+			expect(found.slots[0]).toEqual(item());
+			expect(document).toEqual(before);
+		},
+	);
 	it("projects singleton locations and objects without materializing virtual empty slots", () => {
 		const document = fixture({
 			name: "Farm",
@@ -99,6 +120,14 @@ describe("placed chest storage", () => {
 		{ specialChestType: "JunimoChest" },
 		{ globalInventoryId: { string: "shared" } },
 		{ globalInventoryId: 123 },
+		{ globalInventoryId: { string: { "@_xsi:nil": false } } },
+		{ globalInventoryId: { string: { "@_xsi:nil": "false" } } },
+		{ globalInventoryId: { string: { "@_xsi:nil": "true", opaque: "keep" } } },
+		{ globalInventoryId: { string: { "@_xsi:nil": "true" }, opaque: "keep" } },
+		{
+			specialChestType: "JunimoChest",
+			globalInventoryId: { string: { "@_xsi:nil": "true" } },
+		},
 		{ specialChestType: "mod.unknown" },
 		{ items: { Item: "opaque" } },
 		{ items: { Item: [{ "@_xsi:nil": "true", opaque: "keep" }] } },

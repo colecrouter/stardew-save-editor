@@ -48,6 +48,21 @@ function opaqueNil(value: unknown): boolean {
 		Object.keys(value).some((key) => key !== "@_xsi:nil")
 	);
 }
+// NetRef<string> writes an absent global ID as a nested XML nil. That is local
+// storage, not a shared inventory. Accept only known empty shapes; additional
+// fields on either wrapper remain opaque rather than gaining writable handles.
+function emptyGlobalInventoryId(value: unknown): boolean {
+	if (value === undefined || value === "") return true;
+	if (!record(value) || Object.keys(value).some((key) => key !== "string"))
+		return false;
+	const id = value.string;
+	return (
+		id === undefined ||
+		id === "" ||
+		(record(id) && emptyChestSlot(id) && !opaqueNil(id))
+	);
+}
+
 function describe(
 	raw: Record<string, unknown>,
 	id: string,
@@ -82,16 +97,7 @@ function describe(
 		special !== "MiniShippingBin"
 	)
 		reason = "This special chest inventory is not supported.";
-	const global = raw.globalInventoryId;
-	if (
-		global !== undefined &&
-		global !== "" &&
-		!(
-			record(global) &&
-			(global.string === "" || global.string === undefined) &&
-			Object.keys(global).every((key) => key === "string")
-		)
-	)
+	if (!emptyGlobalInventoryId(raw.globalInventoryId))
 		reason = "This chest uses a shared or unsupported global inventory.";
 
 	const container = raw.items;

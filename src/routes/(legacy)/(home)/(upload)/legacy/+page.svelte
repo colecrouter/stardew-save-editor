@@ -15,6 +15,29 @@
 
 	let uploading = $state(false);
 
+	const locations = [
+		{ os: "Windows", path: String.raw`%appdata%\StardewValley\Saves` },
+		{ os: "Mac", path: "~/Library/Application Support/StardewValley/Saves" },
+		{ os: "Linux", path: "~/.config/StardewValley/Saves" },
+		{
+			os: "*Android",
+			path: "/Android/data/com.chucklefish.stardewvalley/files/Saves",
+		},
+	];
+
+	const copyPath = async (os: string, path: string) => {
+		// The user is highlighting the text to copy it by hand; don't interfere
+		if (getSelection()?.toString()) return;
+		try {
+			await navigator.clipboard.writeText(path);
+			toastManager.add(
+				new Toast(`Copied ${os.replace("*", "")} path`, "success"),
+			);
+		} catch {
+			toastManager.add(new Toast("Couldn't copy to the clipboard", "failure"));
+		}
+	};
+
 	const handle = async () => {
 		// We have to instantiate the filelist here because it's not available in node
 		if (!files) files = new FileList();
@@ -75,6 +98,35 @@
 			</div>
 			<input type="submit" value="Upload" bind:this={submit} hidden />
 			<small>
+				Default save locations:
+				<ul>
+					{#each locations as { os, path } (os)}
+						<li>
+							<span class="noselect">{os}:</span>
+							<!-- Not a <button>: Firefox and Safari don't let you select a button's text -->
+							<span
+								class="copy"
+								role="button"
+								tabindex="0"
+								title="Copy path to clipboard"
+								onclick={() => copyPath(os, path)}
+								onkeydown={(e) => {
+									if (e.key === "Enter" || e.key === " ") {
+										e.preventDefault();
+										copyPath(os, path);
+									}
+								}}
+							>
+								<code>{path}</code>
+							</span>
+						</li>
+					{/each}
+					<li>
+						<span class="noselect">iOS:</span>
+						<code> Locations -> On My iPhone/iPad -> Stardew Valley </code>
+					</li>
+				</ul>
+
 				<p>
 					For desktop and mobile save locations, file access limits and
 					replacement steps, see the
@@ -169,6 +221,39 @@
 		pointer-events: none;
 		touch-action: none;
 		backdrop-filter: brightness(0.75);
+	}
+
+	ul {
+		list-style: none;
+		padding: 0;
+	}
+
+	li {
+		margin-top: 0.3em;
+		white-space: nowrap;
+	}
+
+	li span {
+		margin-right: 0.5em;
+	}
+
+	li .copy {
+		user-select: text;
+		cursor: pointer;
+		outline: none;
+	}
+
+	li .copy code {
+		border: 1px solid #d3d3d3;
+	}
+
+	li .copy:hover code,
+	li .copy:focus-visible code {
+		border-color: #999;
+	}
+
+	.noselect {
+		user-select: none;
 	}
 
 	.warning {

@@ -70,6 +70,19 @@ export function dateInRange({ year, season, day }: GameDate): GameDate {
 	};
 }
 
+/** The date `days` days from this one (negative goes back), never before Spring 1, Year 1 */
+export function addDays(date: GameDate, days: number): GameDate {
+	const total = Math.max(totalDays(date) + Math.trunc(days), 0);
+	const perYear = SEASONS.length * DAYS_PER_SEASON;
+	return {
+		year: Math.floor(total / perYear) + 1,
+		season:
+			SEASONS[Math.floor((total % perYear) / DAYS_PER_SEASON)] ??
+			CalendarSeason.Spring,
+		day: (total % DAYS_PER_SEASON) + 1,
+	};
+}
+
 /** The next day, as the game moves to it overnight */
 export function nextDay({ year, season, day }: GameDate): GameDate {
 	if (day < DAYS_PER_SEASON) return { year, season, day: day + 1 };

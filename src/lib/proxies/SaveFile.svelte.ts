@@ -6,6 +6,7 @@ import { Farmer } from "$lib/proxies/Farmer.svelte";
 import { GameLocation } from "$lib/proxies/GameLocation.svelte";
 import type { MailFlag } from "$lib/proxies/Mail.svelte";
 import { QiQuests } from "$lib/proxies/QiQuests.svelte";
+import type { GameLocation as GameLocationRaw } from "$types/save";
 import { type DataProxy, Dispose, Raw } from ".";
 
 export class SaveProxy implements DataProxy<SaveFile> {
@@ -201,6 +202,17 @@ export class SaveProxy implements DataProxy<SaveFile> {
 				cabin.indoors.farmhandReference = player[Raw].UniqueMultiplayerID;
 			}
 		}
+	}
+
+	/** A player's home as the save has it: the farmhouse, or the inside of their cabin */
+	homeOf(player: Farmer): GameLocationRaw | undefined {
+		const home = player[Raw].homeLocation;
+		if (!home || home === "FarmHouse") {
+			return this[Raw].SaveGame.locations.GameLocation.find(
+				(l) => l.name === "FarmHouse",
+			);
+		}
+		return this.findCabinByHomeLocation(home)?.indoors;
 	}
 
 	private findCabinByHomeLocation(homeLocation: string) {

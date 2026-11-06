@@ -59,13 +59,22 @@
 		draft.input(JSON.stringify({ ...parts, [part]: value }));
 	// Weather is an immediate explicit command, unlike the staged date form.
 	// Capture the displayed revision so an intervening commit cannot be overwritten.
-	async function weather(day: "today" | "tomorrow", value: string) {
+	async function weather(
+		day: "today" | "tomorrow",
+		element: HTMLSelectElement,
+	) {
+		const value = element.value;
 		error = "";
 		const result = await model.commands.transact(
 			setCalendarWeather(day, value),
 			view.current?.revision,
 		);
-		if (result && Result.isFailure(result)) error = result.failure.message;
+		if (!result || Result.isFailure(result)) {
+			if (result) error = result.failure.message;
+			// Native selection precedes the command. A refused edit publishes no view,
+			// so restore the latest committed value explicitly rather than leaving a lie.
+			element.value = view.current?.calendar[day] ?? value;
+		}
 	}
 </script>
 
@@ -202,7 +211,7 @@
 							options.every(
 								(option) => !option.allowed || option.id === current,
 							)}
-						onchange={(event) => void weather(day, event.currentTarget.value)}
+						onchange={(event) => void weather(day, event.currentTarget)}
 					>
 						{#each options as option (option.id)}
 							<option value={option.id} disabled={!option.allowed}>

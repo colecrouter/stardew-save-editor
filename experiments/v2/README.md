@@ -6,8 +6,9 @@ harness, not another application runtime. Workflow/draft/UI tests now run in
 `tests/editor` through `npm run test:editor` at the root. See
 [the migration](../../docs/v2-calendar-migration.md).
 
-Runnable comparisons of plain TypeScript mutations and an Effect 4.0.6 application
-layer. Effect remains outside the production app's dependency graph. The production
+Historical comparisons of plain TypeScript mutations and an Effect application
+layer remain here alongside authoritative engine regression suites. Effect is now
+part of the production application; the comparison implementations are not its runtime. The production
 XML codec is extracted from worker transport so these experiments use the actual
 save-format implementation. Browser Comlink behavior and codec rules are unchanged.
 
@@ -28,8 +29,8 @@ npm run lab --prefix experiments/v2
 ```
 
 Use `npm.cmd` if PowerShell blocks `npm.ps1`. The root install supplies dependencies
-for the shared production codec and esbuild for bundle measurement. A separate Node
-24 CI job runs the experimental checks, tests and platform demo. Native execution
+for the shared production codec and esbuild for bundle measurement. The root CI tests job owns `tests/editor`; a separate Node
+24 job runs the distinct engine checks, tests, lab build and platform demo. Native execution
 requires explicit `.ts` imports, type-only imports and erasable syntax. No tsx is
 installed here; root codegen and the Svelte compiler retain their existing tooling.
 
@@ -305,3 +306,11 @@ for the Svelte-compiled cases in addition to the native/domain suite.
 The compiled UI test command runs root SvelteKit sync before Vitest, just like
 the lab/domain commands. Without that generated configuration a clean checkout
 fails during dependency optimization, even though a warm local checkout passes.
+
+## Retirement boundary
+
+See [the test map](../../tests/README.md) for current test ownership and
+[cutover cleanup](../../docs/v2-cutover-cleanup.md) for retention/removal policy.
+Move authoritative engine and Node-import tests before removing this package,
+its lockfile or forwarding modules. The inventory comparison UI and old proof
+launchers are development artifacts, not a supported production fallback.

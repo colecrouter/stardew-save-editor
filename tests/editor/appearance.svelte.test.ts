@@ -2,7 +2,7 @@ import { readAppearances } from "../../src/lib/editor/appearance-operations.ts";
 import { fireEvent, render, waitFor } from "@testing-library/svelte";
 import { expect, it } from "vitest";
 import { openEditor } from "../../src/lib/editor/editor-model.ts";
-import CharacterHarness from "./CharacterHarness.svelte";
+import WorkspaceHarness from "./WorkspaceHarness.svelte";
 import { parser, fixtureXml, exportDocument } from "./fixtures.ts";
 
 it(
@@ -23,7 +23,7 @@ it(
 		const opened = await openEditor(
 			new TextEncoder().encode(exportDocument(document)),
 		);
-		const page = render(CharacterHarness, { model: opened.model });
+		const page = render(WorkspaceHarness, { model: opened.model });
 		try {
 			// Unvisited editors must not mount their controls or subscriptions.
 			expect(
@@ -114,7 +114,7 @@ it(
 	{ timeout: 25000 },
 	async () => {
 		const opened = await openEditor(new TextEncoder().encode(fixtureXml));
-		const page = render(CharacterHarness, { model: opened.model });
+		const page = render(WorkspaceHarness, { model: opened.model });
 		try {
 			await fireEvent.click(page.getByRole("link", { name: "Character" }));
 			expect(page.queryByRole("link", { name: "Appearance" })).toBeNull();

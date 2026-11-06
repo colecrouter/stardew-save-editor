@@ -1,8 +1,9 @@
-import { expect, it } from "vitest";
+import { Result } from "effect";
+import { expect, it, vi } from "vitest";
 import { fireEvent, render, waitFor, within } from "@testing-library/svelte";
 import { openEditor } from "../../src/lib/editor/editor-model";
 import { calendarEventsForMonth } from "../../src/lib/editor/calendar-events";
-import CharacterHarness from "./CharacterHarness.svelte";
+import WorkspaceHarness from "./WorkspaceHarness.svelte";
 import { CalendarSeason } from "../../src/lib/calendarSeason";
 import { fixtureXml } from "./fixtures";
 
@@ -11,7 +12,7 @@ it(
 	{ timeout: 20000 },
 	async () => {
 		const opened = await openEditor(new TextEncoder().encode(fixtureXml));
-		const page = render(CharacterHarness, { model: opened.model });
+		const page = render(WorkspaceHarness, { model: opened.model });
 		try {
 			await fireEvent.click(
 				page.getByRole("link", { name: "Date and weather" }),
@@ -86,6 +87,47 @@ it(
 					before.document,
 				),
 			);
+		} finally {
+			page.unmount();
+			await opened.close();
+		}
+	},
+);
+
+it.each(["failure", "noncompletion"] as const)(
+	"restores committed weather after %s",
+	async (outcome) => {
+		const opened = await openEditor(new TextEncoder().encode(fixtureXml));
+		const page = render(WorkspaceHarness, { model: opened.model });
+		try {
+			await fireEvent.click(
+				page.getByRole("link", { name: "Date and weather" }),
+			);
+			const select = page.getByRole("combobox", {
+				name: "Today",
+			}) as HTMLSelectElement;
+			const before = select.value;
+			const alternative = [...select.options].find(
+				(option) => !option.disabled && option.value !== before,
+			);
+			if (!alternative) throw new Error("Expected another allowed weather");
+			// No publication follows a refused command, so this exercises the native
+			// DOM value that Svelte's unchanged projection cannot repair by itself.
+			const refused = vi
+				.spyOn(opened.model.commands, "transact")
+				.mockResolvedValue(
+					outcome === "failure"
+						? Result.fail({
+								_tag: "CalendarRuleViolation",
+								message: "Refused weather",
+							})
+						: null,
+				);
+			await fireEvent.change(select, { target: { value: alternative.value } });
+			await waitFor(() => expect(select.value).toBe(before));
+			if (outcome === "failure")
+				expect(page.getByText("Refused weather")).toBeTruthy();
+			refused.mockRestore();
 		} finally {
 			page.unmount();
 			await opened.close();

@@ -199,10 +199,12 @@ export function readQiOrders(document: SaveDocument): QiOrdersView {
 	const unknownBoard = board.entries.some(
 		(entry) => !record(entry) || typeof entry.orderType !== "string",
 	);
+	// Keys can contain opaque imported XML. Only checked string keys identify a
+	// known challenge; coercion could execute a malformed saved toString member.
 	const offeredCount = board.entries.filter(
 		(entry) =>
 			record(entry) &&
-			(entry.orderType === "Qi" || definitions.has(String(entry.questKey))),
+			(entry.orderType === "Qi" || definitions.has(keyOf(entry) ?? "")),
 	).length;
 	const keys = [
 		...definitions.keys(),

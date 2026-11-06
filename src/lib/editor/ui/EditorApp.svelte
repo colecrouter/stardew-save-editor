@@ -1,5 +1,9 @@
 <script lang="ts">
 	import { Result } from "effect";
+	import {
+		runBackupCommand,
+		writeOriginalBackup,
+	} from "../backup-operations.ts";
 	import { downloadSave } from "../../downloadSave.ts";
 	import { onDestroy, tick } from "svelte";
 	import { RegistryProvider } from "effect-atom-svelte";
@@ -64,12 +68,15 @@
 			filename = file.name;
 			// Back up only a successfully decoded import. Failure must not block
 			// editing; retain the original selected file and surface the warning.
-			try {
-				if (saveBackup) await backupOriginal?.(file);
-			} catch {
-				if (token === generation)
-					error =
-						"The original file could not be backed up. Keep a separate copy before exporting.";
+			if (saveBackup && backupOriginal) {
+				const result = await runBackupCommand(
+					writeOriginalBackup(file, backupOriginal),
+					(message) => {
+						if (token === generation) error = message;
+					},
+				);
+				if (token === generation && result && Result.isFailure(result))
+					error = result.failure.message;
 			}
 		} catch (cause) {
 			if (token === generation) {
@@ -120,7 +127,7 @@
 	});
 </script>
 
-<div class="editor-application">
+<div class="editor-application" class:has-session={!!active}>
 	{#if active}
 		{#if error}
 			<p role="alert">{error}</p>
@@ -177,6 +184,15 @@
 		width: 100%;
 		min-width: 0;
 		padding: 8px;
+	}
+	@media (min-width: 901px) {
+		/* Alerts and validation keep their natural height; the frame takes the rest. */
+		.has-session {
+			display: flex;
+			flex-direction: column;
+			flex: 1;
+			min-height: 0;
+		}
 	}
 	[role="alert"] {
 		color: #8a1c19;

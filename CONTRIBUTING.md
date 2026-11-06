@@ -152,3 +152,10 @@ Proxies can contain getters and setters to sanitize/validate data before it is w
 As it stands, all game-derived content exists inside either `generated` or `static/assets` directories.
 
 While ConcernedApe isn't known to DMCA fan content, we should at least avoid committing any unchanged assets (as they exist within the game's files) to this repository. If things get dire in the future, we should be able to remove these assets without too much hassle. Of course, that will impede ease of development.
+
+### Test ownership and cutover artifacts
+
+See the [test map](tests/README.md) for suite ownership, shared fixture/workspace
+helpers and the production-browser smoke command. The [cutover cleanup plan](docs/v2-cutover-cleanup.md)
+distinguishes authoritative engine tests from retiring lab/comparison artifacts
+and historical documentation.

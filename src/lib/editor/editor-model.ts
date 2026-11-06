@@ -1,3 +1,4 @@
+import { FieldValidationError } from "./field.ts";
 import { projectReview } from "./review-projection.ts";
 import {
 	readCalendarEventContext,
@@ -259,32 +260,43 @@ function project(
 
 // Draft fields intentionally retain strings, including blank/invalid input. Only
 // submission converts them to a complete validated game date.
-export function parseDateDraft(text: string): GameDate {
-	const input: unknown = JSON.parse(text);
+export const parseDateDraft = Effect.fn("Draft.parseDate")(function* (
+	text: string,
+) {
+	// Malformed JSON is invalid input; unrelated parser defects retain their cause.
+	const input: unknown = yield* Effect.sync(() => JSON.parse(text)).pipe(
+		Effect.catchDefect((cause) =>
+			cause instanceof SyntaxError
+				? Effect.fail(
+						new FieldValidationError({ message: "Enter a valid date." }),
+					)
+				: Effect.die(cause),
+		),
+	);
 	if (!input || typeof input !== "object")
-		throw new Error("Enter a valid date.");
+		return yield* new FieldValidationError({ message: "Enter a valid date." });
 	const raw = input as Record<string, unknown>;
 	const integer = (value: unknown) =>
 		typeof value === "string" && /^\d+$/.test(value)
 			? Number(value)
 			: Number.NaN;
-	const date = {
-		year: integer(raw.year),
-		day: integer(raw.day),
-		season: raw.season,
-	} as GameDate;
+	const year = integer(raw.year),
+		day = integer(raw.day);
+	const season = SEASONS.find((candidate) => candidate === raw.season);
 	if (
-		!Number.isSafeInteger(date.year) ||
-		date.year < 1 ||
-		date.year > MAX_YEAR ||
-		!Number.isInteger(date.day) ||
-		date.day < 1 ||
-		date.day > 28 ||
-		!SEASONS.includes(date.season)
+		!Number.isSafeInteger(year) ||
+		year < 1 ||
+		year > MAX_YEAR ||
+		!Number.isInteger(day) ||
+		day < 1 ||
+		day > 28 ||
+		!season
 	)
-		throw new Error(`Choose Year 1–${MAX_YEAR}, a season, and Day 1–28.`);
-	return date;
-}
+		return yield* new FieldValidationError({
+			message: `Choose Year 1–${MAX_YEAR}, a season, and Day 1–28.`,
+		});
+	return { year, day, season };
+});
 export const formatDateDraft = (date: GameDate) =>
 	JSON.stringify({
 		year: String(date.year),
@@ -360,6 +372,16 @@ export const makeEditorModel = (
 			undefined,
 		).pipe(Atom.keepAlive);
 		let noticeId = 0;
+		// Commands and the file-owned observer share one defect reporter. A failed
+		// observer cannot safely retry arbitrary projection code; tell the owner to
+		// reopen rather than silently leaving a permanently stale screen.
+		const reportCause = (cause: Cause.Cause<unknown>, message: string) => {
+			if (Cause.hasInterruptsOnly(cause)) return;
+			console.error("V2 command defect", Cause.pretty(cause));
+			if (!closed && registry)
+				registry.set(noticeAtom, { id: ++noticeId, message });
+		};
+
 		// Serialize commands and export together: an export requested after Apply
 		// must include that commit. A rejected command must not poison later work.
 		let queue: Promise<void> = Promise.resolve();
@@ -475,7 +497,18 @@ export const makeEditorModel = (
 			}),
 		);
 		yield* Effect.forkScoped(
-			Stream.runForEach(stream, (state) => Effect.sync(() => publish(state))),
+			Stream.runForEach(stream, (state) =>
+				Effect.sync(() => publish(state)),
+			).pipe(
+				Effect.catchCause((cause) =>
+					Effect.sync(() =>
+						reportCause(
+							cause,
+							"The save view couldn’t be refreshed. Please reopen the save.",
+						),
+					),
+				),
+			),
 		);
 		const view: Readable<EditorView | undefined> = {
 			subscribe: (notify) => {
@@ -553,14 +586,10 @@ export const makeEditorModel = (
 					const failure = Cause.findError(exit.cause);
 					if (Result.isSuccess(failure)) return Result.fail(failure.success);
 				}
-				if (!Cause.hasInterruptsOnly(exit.cause)) {
-					console.error("V2 command defect", Cause.pretty(exit.cause));
-					if (!closed && registry)
-						registry.set(noticeAtom, {
-							id: ++noticeId,
-							message: "The action couldn’t be completed. Please try again.",
-						});
-				}
+				reportCause(
+					exit.cause,
+					"The action couldn’t be completed. Please try again.",
+				);
 				return null;
 			});
 		};

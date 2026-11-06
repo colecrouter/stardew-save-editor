@@ -5,7 +5,7 @@ import { openEditor } from "../../src/lib/editor/editor-model";
 import { readCommunity } from "../../src/lib/editor/community-data";
 import { setCommunityProgress } from "../../src/lib/editor/community-operations";
 import { MutationError } from "../../src/lib/editor/mutation-error";
-import CharacterHarness from "./CharacterHarness.svelte";
+import WorkspaceHarness from "./WorkspaceHarness.svelte";
 import { fixtureXml, parser, exportDocument } from "./fixtures";
 
 it(
@@ -13,7 +13,7 @@ it(
 	{ timeout: 30000 },
 	async () => {
 		const opened = await openEditor(new TextEncoder().encode(fixtureXml));
-		const page = render(CharacterHarness, { model: opened.model });
+		const page = render(WorkspaceHarness, { model: opened.model });
 		try {
 			const spring = readCommunity(
 				(await opened.model.snapshot()).document,
@@ -122,7 +122,7 @@ it(
 	{ timeout: 20000 },
 	async () => {
 		const opened = await openEditor(new TextEncoder().encode(fixtureXml));
-		const page = render(CharacterHarness, { model: opened.model });
+		const page = render(WorkspaceHarness, { model: opened.model });
 		try {
 			await fireEvent.click(
 				page.getByRole("link", { name: "Community Center & Joja" }),
@@ -171,7 +171,7 @@ it(
 		const opened = await openEditor(
 			new TextEncoder().encode(exportDocument(document)),
 		);
-		const page = render(CharacterHarness, { model: opened.model });
+		const page = render(WorkspaceHarness, { model: opened.model });
 		try {
 			const before = await opened.model.snapshot();
 			expect(readCommunity(before.document).membership).toBeUndefined();
@@ -209,7 +209,7 @@ it.each(["failure", "noncompletion"] as const)(
 	{ timeout: 20000 },
 	async (outcome) => {
 		const opened = await openEditor(new TextEncoder().encode(fixtureXml));
-		const page = render(CharacterHarness, { model: opened.model });
+		const page = render(WorkspaceHarness, { model: opened.model });
 		const transact = vi
 			.spyOn(opened.model.commands, "transact")
 			.mockImplementation(async () =>
@@ -252,7 +252,7 @@ it.each(["failure", "noncompletion"] as const)(
 
 it("keeps membership confirmation open while its command is pending", async () => {
 	const opened = await openEditor(new TextEncoder().encode(fixtureXml));
-	const page = render(CharacterHarness, { model: opened.model });
+	const page = render(WorkspaceHarness, { model: opened.model });
 	let finish: (() => void) | undefined;
 	const transact = vi
 		.spyOn(opened.model.commands, "transact")
@@ -316,7 +316,7 @@ it.each(["failure", "noncompletion"] as const)(
 		await opened.model.commands.transact(
 			setCommunityProgress({ type: "membership", value: true }),
 		);
-		const page = render(CharacterHarness, { model: opened.model });
+		const page = render(WorkspaceHarness, { model: opened.model });
 		const transact = vi
 			.spyOn(opened.model.commands, "transact")
 			.mockImplementation(async () =>
@@ -368,7 +368,7 @@ it.each(["failure", "noncompletion"] as const)(
 		const opened = await openEditor(
 			new TextEncoder().encode(exportDocument(document)),
 		);
-		const page = render(CharacterHarness, { model: opened.model });
+		const page = render(WorkspaceHarness, { model: opened.model });
 		const transact = vi
 			.spyOn(opened.model.commands, "transact")
 			.mockImplementation(async () =>

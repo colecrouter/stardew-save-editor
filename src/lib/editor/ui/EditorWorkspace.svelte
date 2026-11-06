@@ -414,7 +414,12 @@
 	.editor {
 		width: min(1440px, 100%);
 		margin: auto;
-		--study-frame-height: calc(100dvh - 16px);
+		/* The app has already reserved outer spacing and credits. Fill only its remainder. */
+		--study-frame-height: 100%;
+		display: flex;
+		flex-direction: column;
+		flex: 1;
+		min-height: 0;
 	}
 	.toolbar {
 		display: flex;

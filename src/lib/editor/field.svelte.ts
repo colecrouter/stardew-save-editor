@@ -1,7 +1,6 @@
-import { Result } from "effect";
 import { untrack } from "svelte";
 import { get } from "svelte/store";
-import type { Field, FieldValue } from "./field.ts";
+import { submitDraftValue, type Field, type FieldValue } from "./field.ts";
 
 /**
  * Create a component-owned editing draft; typing does not mutate the save.
@@ -72,26 +71,21 @@ export function createRuneDraft<T>(getField: () => Field<T>) {
 				};
 				return;
 			}
-			try {
-				const value = draft.field.parse(draft.text);
-				state = { ...state, pending: true, error: "" };
-				const result = await draft.base.commit(value);
-				// Defects/cancellation are already handled by the application. Keep
-				// the draft for retry without presenting them as validation errors.
-				if (result === null || (result && Result.isFailure(result))) {
-					state = {
-						...state,
-						pending: false,
-						error: result ? String(result.failure) : "",
-					};
-					return;
-				}
-				// A replacement during the await must not silently discard the old draft.
-				if (getField() !== draft.field)
-					state = { ...state, pending: false, conflict: true };
-				else state = clean(draft.field, get(draft.field.value));
-			} catch (error) {
-				state = { ...state, pending: false, error: String(error) };
+			state = { ...state, pending: true, error: "" };
+			const result = await submitDraftValue(
+				draft.field,
+				draft.base,
+				draft.text,
+				() => {
+					// A replacement during the await must not silently discard the old draft.
+					if (getField() !== draft.field)
+						state = { ...state, pending: false, conflict: true };
+					else state = clean(draft.field, get(draft.field.value));
+				},
+			);
+			if (!result.committed) {
+				state = { ...state, pending: false, error: result.error };
+				return;
 			}
 		},
 	};

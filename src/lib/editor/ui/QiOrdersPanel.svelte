@@ -61,7 +61,12 @@
 <div class="toolbar">
 	<label>
 		Search Qi orders
-		<input class="study-input" type="search" bind:value={search} />
+		<input
+			class="study-input"
+			type="search"
+			placeholder="Name, description or ID"
+			bind:value={search}
+		/>
 	</label>
 
 	<p>Choose a notice to inspect its challenge.</p>

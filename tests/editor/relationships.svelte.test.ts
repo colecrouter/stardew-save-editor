@@ -1,7 +1,7 @@
 import { fireEvent, render, waitFor } from "@testing-library/svelte";
 import { expect, it } from "vitest";
 import { openEditor } from "../../src/lib/editor/editor-model";
-import CharacterHarness from "./CharacterHarness.svelte";
+import WorkspaceHarness from "./WorkspaceHarness.svelte";
 import { parser, fixtureXml, exportDocument } from "./fixtures";
 
 // Exercise real full-save projections, the shared farmer selector, and grouped
@@ -43,7 +43,7 @@ it(
 		const opened = await openEditor(
 			new TextEncoder().encode(exportDocument(document)),
 		);
-		const page = render(CharacterHarness, { model: opened.model });
+		const page = render(WorkspaceHarness, { model: opened.model });
 		try {
 			await fireEvent.click(page.getByRole("link", { name: "Relationships" }));
 			const points = page.getByRole("spinbutton", {
@@ -122,7 +122,7 @@ it(
 		const opened = await openEditor(
 			new TextEncoder().encode(exportDocument(document)),
 		);
-		const page = render(CharacterHarness, { model: opened.model });
+		const page = render(WorkspaceHarness, { model: opened.model });
 		try {
 			await fireEvent.click(page.getByRole("link", { name: "Relationships" }));
 			const points = () =>

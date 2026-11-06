@@ -100,3 +100,15 @@ baseline. The owner accepted compact informational presentation and a spouse-row
 Family planning disclosure. Export retains lightweight guidance; path copying
 leaves file selection explicit. Legacy PR closure follows the validated replacement
 merge and preserves contributor attribution. Default-route cutover remains #220.
+
+The [final cutover audit](v2-cutover-audit.md) records three independent whole-V2
+quality reviews, the resolved preservation/native-control/error-boundary findings,
+and the remaining P3 consolidation opportunities. The final viewport/search/ribbon
+pass is qualified there. Default-route changes and rollback remain #220; release
+stretch features do not block the foundation.
+
+Test housekeeping now shares fixture construction across Vite/Node loaders, names
+the full-workspace harness explicitly, and runs V2 application tests once in CI.
+See the [test map](../tests/README.md) and [cutover cleanup plan](v2-cutover-cleanup.md).
+The retained production-browser smoke checks edit/history/export/reimport and
+viewport behavior; it complements rather than replaces native-device acceptance.

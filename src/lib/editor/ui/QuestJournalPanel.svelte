@@ -88,6 +88,7 @@
 		Search quests <input
 			class="study-input"
 			type="search"
+			placeholder="Title, description or objective"
 			bind:value={search}
 		/>
 	</label>

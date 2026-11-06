@@ -90,7 +90,8 @@ function dictionary(farmer: Record<string, unknown>) {
 	// read-only; opening the screen never normalizes their representation.
 	if (raw === "")
 		return { supported: true, entries: [] as unknown[], raw, singleton: false };
-	if (!record(raw))
+	// XML nil is not an empty dictionary: writing children would contradict its marker.
+	if (!record(raw) || raw["@_xsi:nil"] === true || raw["@_xsi:nil"] === "true")
 		return {
 			supported: false,
 			entries: [] as unknown[],

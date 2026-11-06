@@ -1,8 +1,10 @@
-import { expect, it } from "vitest";
+import { expect, it, vi } from "vitest";
+import { Effect } from "effect";
 import { flushSync } from "svelte";
-import { writable } from "svelte/store";
+import { get, writable } from "svelte/store";
 import { createRuneDraft } from "../../src/lib/editor/field.svelte.ts";
 import {
+	createDraft,
 	parseStack,
 	type Field,
 	type FieldValue,
@@ -97,3 +99,57 @@ it("an application-handled noncompletion leaves the rune draft editable for retr
 		dispose();
 	}
 });
+
+it.each(["parse", "commit", "refresh"] as const)(
+	"reports a %s defect once and leaves the draft retryable",
+	async (stage) => {
+		let broken = true;
+		const format = (value: number) => {
+			if (broken && stage === "refresh" && value === 8)
+				throw new TypeError("formatter bug");
+			return String(value);
+		};
+		const source = writable<FieldValue<number>>({
+			key: "x",
+			revision: 0,
+			value: 2,
+			available: true,
+			commit: async (value) => {
+				if (broken && stage === "commit") throw new TypeError("commit bug");
+				source.update((current) => ({ ...current, value }));
+			},
+		});
+		const field: Field<number> = {
+			label: "Stack",
+			description: "",
+			format,
+			value: source,
+			parse: (text) =>
+				broken && stage === "parse"
+					? Effect.die(new TypeError("parser bug"))
+					: parseStack(text),
+		};
+		const draft = createDraft(field),
+			stop = draft.subscribe(() => {});
+		const log = vi.spyOn(console, "error").mockImplementation(() => {});
+		try {
+			draft.input("8");
+			await draft.submit();
+			expect(log).toHaveBeenCalledOnce();
+			expect(get(draft)).toMatchObject({
+				pending: false,
+				dirty: true,
+				text: "8",
+				error: "The edit could not be completed. Please try again.",
+			});
+			broken = false;
+			await draft.submit();
+			expect(get(draft).pending).toBe(false);
+			expect(get(draft).dirty).toBe(false);
+			expect(log).toHaveBeenCalledOnce();
+		} finally {
+			stop();
+			log.mockRestore();
+		}
+	},
+);

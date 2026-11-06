@@ -1,4 +1,5 @@
-import { Result } from "effect";
+import { Data, Effect, Result } from "effect";
+import { runEntryCommand } from "./entry-operations.ts";
 import type { CommandResult } from "./command-result.ts";
 import { get, writable, type Readable } from "svelte/store";
 
@@ -15,12 +16,64 @@ export interface Field<T> {
 	label: string;
 	description: string;
 	value: Readable<FieldValue<T>>;
-	parse: (text: string) => T;
+	parse: (text: string) => Effect.Effect<T, FieldValidationError>;
 	format: (value: T) => string;
 }
 export interface NumericField extends Field<number> {
 	constraints: { min: number; max: number; step: number };
 	actionLabel: string;
+}
+
+/** Invalid user text is expected feedback; parser and commit defects are not. */
+export class FieldValidationError extends Data.TaggedError(
+	"FieldValidationError",
+)<{
+	readonly message: string;
+}> {}
+
+/** Both draft adapters share one error boundary. Parsing is pure, while the
+ * captured commit retains its existing file scope, revision and command queue.
+ * Comparator commits may return void; the application returns Result or null. */
+export async function submitDraftValue<T>(
+	field: Field<T>,
+	source: FieldValue<T>,
+	text: string,
+	onCommitted: () => void,
+) {
+	let defectMessage = "";
+	const result = await runEntryCommand(
+		Effect.suspend(() => field.parse(text)).pipe(
+			Effect.flatMap((value) => Effect.promise(() => source.commit(value))),
+			// Refreshing the draft can invoke a formatter/store callback. Keep that
+			// completion inside the same defect boundary as parsing and committing.
+			Effect.tap((completion) =>
+				Effect.sync(() => {
+					if (
+						completion !== null &&
+						(!completion || Result.isSuccess(completion))
+					)
+						onCommitted();
+				}),
+			),
+		),
+		(message) => {
+			defectMessage = message;
+		},
+		{
+			context: "draft",
+			message: "The edit could not be completed. Please try again.",
+		},
+	);
+	if (!result) return { committed: false, error: defectMessage };
+	if (Result.isFailure(result))
+		return { committed: false, error: result.failure.message };
+	const completion = result.success;
+	if (completion === null || (completion && Result.isFailure(completion)))
+		return {
+			committed: false,
+			error: completion ? String(completion.failure) : "",
+		};
+	return { committed: true, error: "" };
 }
 
 export function createDraft<T>(field: Field<T>) {
@@ -75,38 +128,27 @@ export function createDraft<T>(field: Field<T>) {
 				}));
 				return;
 			}
-			try {
-				const value = field.parse(draft.text);
-				state.update((current) => ({ ...current, pending: true, error: "" }));
-				const result = await draft.base.commit(value);
-				// Legacy comparator commits return void; editor commands return a
-				// typed Result or null when the application handled noncompletion.
-				if (result === null || (result && Result.isFailure(result))) {
-					state.update((current) => ({
-						...current,
-						pending: false,
-						error: result ? String(result.failure) : "",
-					}));
-					return;
-				}
-				state.update((current) => clean(current.current));
-			} catch (error) {
-				// Failed validation or a stale operation leaves the user's input intact.
+			state.update((current) => ({ ...current, pending: true, error: "" }));
+			const result = await submitDraftValue(field, draft.base, draft.text, () =>
+				state.update((current) => clean(current.current)),
+			);
+			if (!result.committed)
 				state.update((current) => ({
 					...current,
 					pending: false,
-					error: String(error),
+					error: result.error,
 				}));
-			}
 		},
 	};
 }
 
-export function parseStack(text: string): number {
-	if (!/^\d+$/.test(text.trim()))
-		throw new Error("Enter a whole number from 1 to 999.");
-	const value = Number(text);
+export const parseStack = Effect.fn("Draft.parseStack")(function* (
+	text: string,
+) {
+	const value = /^\d+$/.test(text.trim()) ? Number(text) : Number.NaN;
 	if (!Number.isSafeInteger(value) || value < 1 || value > 999)
-		throw new Error("Enter a whole number from 1 to 999.");
+		return yield* new FieldValidationError({
+			message: "Enter a whole number from 1 to 999.",
+		});
 	return value;
-}
+});

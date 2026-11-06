@@ -2,7 +2,7 @@ import { fireEvent, render, waitFor } from "@testing-library/svelte";
 import { expect, it } from "vitest";
 import { openEditor } from "../../src/lib/editor/editor-model.ts";
 import { readQiOrders } from "../../src/lib/editor/qi-order-operations.ts";
-import CharacterHarness from "./CharacterHarness.svelte";
+import WorkspaceHarness from "./WorkspaceHarness.svelte";
 import { parser, fixtureXml, exportDocument } from "./fixtures.ts";
 
 // The real workspace exercises discrete offer fields, coordinated dialogs and
@@ -19,7 +19,7 @@ it(
 		const opened = await openEditor(
 			new TextEncoder().encode(exportDocument(document)),
 		);
-		const page = render(CharacterHarness, { model: opened.model });
+		const page = render(WorkspaceHarness, { model: opened.model });
 		try {
 			await fireEvent.click(page.getByRole("link", { name: "Qi orders" }));
 			await fireEvent.click(
@@ -156,7 +156,7 @@ it(
 			new TextEncoder().encode(exportDocument(document)),
 		);
 		const before = await opened.model.snapshot();
-		const page = render(CharacterHarness, { model: opened.model });
+		const page = render(WorkspaceHarness, { model: opened.model });
 		try {
 			await fireEvent.click(page.getByRole("link", { name: "Qi orders" }));
 			await fireEvent.click(
@@ -198,7 +198,7 @@ it(
 	{ timeout: 20000 },
 	async () => {
 		const opened = await openEditor(new TextEncoder().encode(fixtureXml));
-		const page = render(CharacterHarness, { model: opened.model });
+		const page = render(WorkspaceHarness, { model: opened.model });
 		try {
 			await fireEvent.click(page.getByRole("link", { name: "Qi orders" }));
 			const notice = await page.findByRole(

@@ -95,6 +95,7 @@
 						{...attributes}
 						class="study-input"
 						type="search"
+						placeholder="Villager or loved gift"
 						bind:value={search}
 					/>
 				{/snippet}

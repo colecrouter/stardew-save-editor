@@ -2,7 +2,7 @@ import { fireEvent, render, waitFor } from "@testing-library/svelte";
 import { expect, it } from "vitest";
 import { openEditor } from "../../src/lib/editor/editor-model";
 import { parser, fixtureXml, exportDocument } from "./fixtures";
-import CharacterHarness from "./CharacterHarness.svelte";
+import WorkspaceHarness from "./WorkspaceHarness.svelte";
 
 // Reassignment must publish through the workspace's queue and preserve the
 // identity selected by other panels, even when that farmer becomes the host.
@@ -26,7 +26,7 @@ it(
 			new TextEncoder().encode(exportDocument(document)),
 		);
 		await opened.model.commands.selectFarmer("123456789");
-		const page = render(CharacterHarness, { model: opened.model });
+		const page = render(WorkspaceHarness, { model: opened.model });
 		try {
 			await fireEvent.click(page.getByRole("link", { name: "Farmhands" }));
 			const up = await page.findByRole("button", { name: "Move Guest up" });

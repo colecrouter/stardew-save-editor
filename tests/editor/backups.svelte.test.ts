@@ -304,3 +304,37 @@ it("deduplicates legacy UTF-8 originals and canonicalizes valid binary entries w
 		db.close();
 	}
 });
+
+it.each(["browser", "defect"] as const)(
+	"classifies automatic backup %s without blocking the opened save",
+	async (kind) => {
+		const log = vi.spyOn(console, "error").mockImplementation(() => {});
+		const page = render(EditorApp, {
+			backupOriginal: async () => {
+				if (kind === "browser")
+					throw new DOMException("No space", "QuotaExceededError");
+				throw new TypeError("writer bug");
+			},
+		});
+		try {
+			await fireEvent.change(page.getByLabelText("Save file"), {
+				target: { files: [new File([fixtureXml], "Farm_123")] },
+			});
+			await page.findByRole("button", { name: "Export save" });
+			await page.findByText(
+				kind === "browser"
+					? /The original file could not be backed up/
+					: "The backup action could not be completed. Please try again.",
+			);
+			expect(log).toHaveBeenCalledTimes(kind === "browser" ? 0 : 1);
+			expect(
+				page
+					.getByRole("button", { name: "Export save" })
+					.hasAttribute("disabled"),
+			).toBe(false);
+		} finally {
+			page.unmount();
+			log.mockRestore();
+		}
+	},
+);

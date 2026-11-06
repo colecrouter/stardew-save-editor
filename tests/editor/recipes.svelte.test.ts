@@ -1,9 +1,8 @@
-import { fireEvent, render, waitFor } from "@testing-library/svelte";
+import { fireEvent, waitFor } from "@testing-library/svelte";
 import { expect, it } from "vitest";
-import { openEditor } from "../../src/lib/editor/editor-model.ts";
+import { renderTestWorkspace } from "./workspace.ts";
 import { readRecipes } from "../../src/lib/editor/recipe-operations.ts";
-import CharacterHarness from "./CharacterHarness.svelte";
-import { parser, fixtureXml, exportDocument } from "./fixtures.ts";
+import { parser, fixtureXml } from "./fixtures.ts";
 
 async function openRecipes() {
 	const document = parser.parse(fixtureXml);
@@ -24,20 +23,8 @@ async function openRecipes() {
 		recipesCooked: { item: [{ key: { string: "194" }, value: { int: 17 } }] },
 	});
 	document.SaveGame.farmhands = { Farmer: [guest] };
-	const opened = await openEditor(
-		new TextEncoder().encode(exportDocument(document)),
-	);
-	const page = render(CharacterHarness, { model: opened.model });
-	await fireEvent.click(page.getByRole("link", { name: /^Recipes$/ }));
-	return {
-		...opened,
-		page,
-		hostId: String(host.UniqueMultiplayerID),
-		dispose: async () => {
-			page.unmount();
-			await opened.close();
-		},
-	};
+	const opened = await renderTestWorkspace(document, "Recipes");
+	return { ...opened, hostId: String(host.UniqueMultiplayerID) };
 }
 
 // Submit both keystrokes and selection before draining: queued edits must keep

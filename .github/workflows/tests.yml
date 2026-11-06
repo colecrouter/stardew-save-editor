@@ -36,7 +36,8 @@ jobs:
       - run: npm run check --prefix experiments/v2
       - run: npm run effect:diagnostics --prefix experiments/v2
       - run: npm run check:ui --prefix experiments/v2
-      - run: npm run test:ui --prefix experiments/v2
+      # The tests job already runs tests/editor with the root runner/dependencies.
+      # This job retains distinct native Node/Effect and lab build qualification.
       - run: npm run lab:build --prefix experiments/v2
       - run: npm test --prefix experiments/v2
       - run: npm run demo:platform --prefix experiments/v2

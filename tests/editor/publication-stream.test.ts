@@ -146,3 +146,47 @@ it("keeps separate model cursors and publishes lower-level writes without droppi
 			}),
 		).pipe(Effect.provide(SaveCodecLive)),
 	));
+
+it("reports a terminal observer defect once instead of silently abandoning the view", async () => {
+	const log = vi.spyOn(console, "error").mockImplementation(() => {});
+	try {
+		await Effect.runPromise(
+			Effect.scoped(
+				Effect.gen(function* () {
+					const session = yield* makeHistorySession(parser.parse(fixtureXml));
+					const model = yield* makeEditorModel(session, yield* SaveCodec);
+					const registry = model.atomBindings.registry;
+					const set = registry.set.bind(registry);
+					// Only the observer publishes this lower-level write. Fail its next Atom
+					// update while leaving the independent notice atom able to report it.
+					const publication = vi
+						.spyOn(registry, "set")
+						.mockImplementation((atom, value) => {
+							if (atom === model.atomBindings.view)
+								throw new TypeError("observer publication bug");
+							return set(atom, value);
+						});
+					try {
+						yield* session.execute([
+							{ type: "farm-name", value: "Lower level" },
+						]);
+						yield* Effect.promise(() =>
+							vi.waitFor(() =>
+								expect(registry.get(model.atomBindings.notice)?.message).toBe(
+									"The save view couldn’t be refreshed. Please reopen the save.",
+								),
+							),
+						);
+						expect(log).toHaveBeenCalledOnce();
+					} finally {
+						publication.mockRestore();
+					}
+				}),
+			).pipe(Effect.provide(SaveCodecLive)),
+		);
+		// Scope interruption/teardown is ordinary ownership, never a second defect.
+		expect(log).toHaveBeenCalledOnce();
+	} finally {
+		log.mockRestore();
+	}
+});

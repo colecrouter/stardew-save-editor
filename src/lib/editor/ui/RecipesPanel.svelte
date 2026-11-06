@@ -120,6 +120,7 @@
 			<input
 				{...attributes}
 				type="search"
+				placeholder="Recipe name"
 				class="study-input"
 				bind:value={search}
 			/>

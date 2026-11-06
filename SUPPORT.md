@@ -1,8 +1,6 @@
 # Save guide
 
-This guide describes the v2 editor on the `v2` branch. Its default-editor cutover
-is pending; the hosted site may still show the legacy editor. Review and Undo
-instructions below refer to v2.
+This guide describes the default editor. The temporary `/legacy` fallback opens a separate editing session.
 
 ## Choose the right file
 

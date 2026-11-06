@@ -12,6 +12,8 @@
 		// Only load browser-specific @types packages (excludes @types/node to avoid polluting browser globals)
 		"types": ["wicg-file-system-access"]
 	},
+	// The standalone engine runner owns its Vitest 5 types and native Node checks.
+	"exclude": ["tests/engine/**"],
 	"include": [
 		".svelte-kit/ambient.d.ts",
 		".svelte-kit/non-ambient.d.ts",

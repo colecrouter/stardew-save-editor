@@ -1,9 +1,11 @@
 <script lang="ts">
 	import { resolve } from "$app/paths";
-	import { saveOriginalBackup } from "$lib/saveBackups";
-	import EditorApp from "$lib/editor/ui/EditorApp.svelte";
+	import { goto } from "$app/navigation";
+	import { onMount } from "svelte";
+	// Existing bookmarks reach the default editor without opening a second session.
+	onMount(() => {
+		void goto(resolve("/"), { replaceState: true });
+	});
 </script>
 
-<svelte:head><title>V2 editor – Stardew Save Editor</title></svelte:head>
-
-<EditorApp legacyHref={resolve("/")} backupOriginal={saveOriginalBackup} />
+<a href={resolve("/")}>Open the editor</a>

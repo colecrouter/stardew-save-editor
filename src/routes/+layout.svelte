@@ -22,24 +22,18 @@
 	     existing zoom while their wider layouts are still in use. -->
 	<meta
 		name="viewport"
-		content={page.route.id === "/v2"
+		content={page.route.id === "/"
 			? "width=device-width, initial-scale=1"
 			: "width=device-width, initial-scale=0.58"}
 	/>
 	<meta property="og:image" content={asset("/img/summary.png")} />
 	<link rel="icon" type="image/png" href={asset("/img/favicon.png")} />
-	<link rel="canonical" href={resolve("/backups")} />
-	<link rel="canonical" href={resolve("/inventory")} />
-	<link rel="canonical" href={resolve("/character")} />
-	<link rel="canonical" href={resolve("/appearance")} />
-	<link rel="canonical" href={resolve("/relationships")} />
-	<link rel="canonical" href={resolve("/crafting")} />
-	<link rel="canonical" href={resolve("/cooking")} />
+	<link rel="canonical" href={resolve("/")} />
 </svelte:head>
 
 <!-- GITHUB LOGO -->
 <a
-	class:v2-repository={page.route.id === "/v2"}
+	class:v2-repository={page.route.id === "/"}
 	href="https://github.com/colecrouter/stardew-save-editor"
 	aria-label="GitHub repository link"
 	target="_blank"
@@ -48,53 +42,17 @@
 	<img src={asset("/img/github.svg")} alt="GitHub Logo" />
 </a>
 
-<main class:calendar-workspace={page.route.id === "/v2"}>
+<main class:calendar-workspace={page.route.id === "/"}>
 	{@render children?.()}
 </main>
 
 <Toasts />
 
 <!-- FOOTER -->
-<small class:v2-credits={page.route.id === "/v2"}>
+<small class:v2-credits={page.route.id === "/"}>
 	Some assets utilized belong to ConcernedApe. Used under Fair Use and not
 	affiliated with ConcernedApe or Stardew Valley
 </small>
-
-<!-- SEO data -->
-<footer hidden>
-	<h1>Stardew Valley Save Editor</h1>
-
-	<p>
-		This is an online editor for the hit game <a
-			href="https://stardewvalley.net/">Stardew Valley</a
-		>. Upload your save file here, modify your it, then download your edited
-		save file. Make sure to make a backup of your save file! With this too, you
-		can change your appearance, inventory, skills, crafting recipes, and more.
-		More features will be added in the future. If you find a problem, please
-		report it
-		<a href="https://github.com/colecrouter/stardew-save-editor/issues"
-			>on GitHub</a
-		>. PRs are welcome!
-	</p>
-
-	<nav>
-		<h2><a href={resolve("/")}>Upload</a></h2>
-		<h2><a href={resolve("/backups")}>Backups</a></h2>
-
-		<h2><a href={resolve("/inventory")}>Inventory</a></h2>
-		<h2><a href={resolve("/character")}>Character</a></h2>
-		<h2><a href={resolve("/appearance")}>Appearance</a></h2>
-		<h2><a href={resolve("/relationships")}>Relationships</a></h2>
-		<h2><a href={resolve("/crafting")}>Crafting</a></h2>
-		<h2><a href={resolve("/cooking")}>Cooking</a></h2>
-	</nav>
-
-	<h3>
-		<a href="https://github.com/colecrouter/stardew-save-editor"
-			>Link to the GitHub project</a
-		>
-	</h3>
-</footer>
 
 <style>
 	@import "../root.css";

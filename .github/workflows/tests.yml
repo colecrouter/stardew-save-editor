@@ -20,24 +20,20 @@ jobs:
       - run: npm ci
       - run: npm run test
 
-  v2-experiments:
+  # Standalone engine/native-Node checks survive retirement of the lab package.
+  engine:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-          cache: "npm"
+          cache: npm
           cache-dependency-path: |
             package-lock.json
-            experiments/v2/package-lock.json
+            tests/engine/package-lock.json
       - run: npm ci
-      - run: npm ci --prefix experiments/v2
-      - run: npm run check --prefix experiments/v2
-      - run: npm run effect:diagnostics --prefix experiments/v2
-      - run: npm run check:ui --prefix experiments/v2
-      # The tests job already runs tests/editor with the root runner/dependencies.
-      # This job retains distinct native Node/Effect and lab build qualification.
-      - run: npm run lab:build --prefix experiments/v2
-      - run: npm test --prefix experiments/v2
-      - run: npm run demo:platform --prefix experiments/v2
+      - run: npm ci --prefix tests/engine
+      - run: npm run check --prefix tests/engine
+      - run: npm run effect:diagnostics --prefix tests/engine
+      - run: npm test --prefix tests/engine

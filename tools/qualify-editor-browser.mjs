@@ -13,7 +13,7 @@ const arg = (key, fallback) => {
 	const at = process.argv.indexOf(key);
 	return at < 0 ? fallback : process.argv[at + 1];
 };
-const url = arg("--url", "http://127.0.0.1:4269/stardew-save-editor/v2");
+const url = arg("--url", "http://127.0.0.1:4269/stardew-save-editor/");
 const output = arg("--output", "/tmp/v2-browser-qualification.json");
 const mode = arg("--mode", "lab");
 const selectedCase = arg("--case", "all");

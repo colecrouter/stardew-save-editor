@@ -65,7 +65,7 @@
 
 	$effect(() => {
 		if (!saveManager.save) {
-			goto(resolve("/"));
+			goto(resolve("/legacy"));
 		}
 	});
 </script>

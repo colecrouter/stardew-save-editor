@@ -21,7 +21,7 @@ import {
 	ToastManager,
 } from "../src/lib/ToastManager.svelte";
 import editLayout from "../src/routes/(legacy)/(edit)/+layout.svelte";
-import uploadPage from "../src/routes/(legacy)/(home)/(upload)/+page.svelte";
+import uploadPage from "../src/routes/(legacy)/(home)/(upload)/legacy/+page.svelte";
 
 // The pages navigate after uploading, which isn't possible here
 vi.mock("$app/navigation", () => ({ goto: vi.fn() }));

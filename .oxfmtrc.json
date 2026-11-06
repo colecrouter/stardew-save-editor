@@ -15,7 +15,6 @@
 	"overrides": [
 		{
 			"files": [
-				"experiments/v2/ui/**/*.svelte",
 				"src/lib/editor/ui/**/*.svelte",
 				"src/lib/ui/kit/**/*.svelte",
 				"tests/ui/**/*.svelte"

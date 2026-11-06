@@ -145,7 +145,7 @@
 						</li>
 					</ol>
 					<a
-						href="https://github.com/colecrouter/stardew-save-editor/blob/v2/SUPPORT.md"
+						href="https://github.com/colecrouter/stardew-save-editor/blob/main/SUPPORT.md"
 					>
 						Save locations &amp; replacement guide ↗
 					</a>

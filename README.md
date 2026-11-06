@@ -2,17 +2,7 @@
 
 A browser-based editor for Stardew Valley saves. [Open the hosted editor](https://colecrouter.github.io/stardew-save-editor/).
 
-## V2 status
-
-This branch contains the v2 editor at `/v2` in the development server. The default-editor
-cutover is still pending; the hosted site may differ from this branch. V2 and the
-legacy editor open separate editing sessions.
-
-Core v1 UI porting is complete. Visual/device validation, documentation and
-cutover belong to the **V2 editor foundation** milestone. Additional features in
-**V2 release** are stretch goals, not prerequisites for that baseline.
-
-## Features in v2
+## Features
 
 - Character details, money, skills, professions, mastery and appearance preview.
 - Relationships, events, cooking/crafting recipes, quest journals and Qi orders.
@@ -26,7 +16,6 @@ cutover belong to the **V2 editor foundation** milestone. Additional features in
 
 Pet/child editing, general location editing, lost-progress restoration, non-Qi
 special-order editing and the planned parser replacement remain separate work.
-See [current engineering status](docs/v2-status.md) for scope and validation evidence.
 
 ## Using the editor
 

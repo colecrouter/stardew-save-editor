@@ -9,7 +9,7 @@ const argument = (name, fallback) => {
 	const index = process.argv.indexOf(name);
 	return index < 0 ? fallback : process.argv[index + 1];
 };
-const url = argument("--url", "http://127.0.0.1:4269/stardew-save-editor/v2");
+const url = argument("--url", "http://127.0.0.1:4269/stardew-save-editor/");
 const output = argument("--output", "/tmp/v2-browser-smoke.json");
 const browser = await chromium.launch({
 	headless: true,

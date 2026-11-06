@@ -1,0 +1,25 @@
+{
+	"name": "editor-engine-tests",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"test": "npm run sync --prefix ../.. && node --test mutation.node.ts calendar.node.ts && vitest run --config vitest.config.ts",
+		"test:node": "node --test mutation.node.ts calendar.node.ts",
+		"check": "node ../../node_modules/@typescript/native/bin/tsc --noEmit -p tsconfig.json",
+		"effect:diagnostics": "effect-tsgo diagnostics --project tsconfig.json"
+	},
+	"engines": {
+		"node": ">=24"
+	},
+	"dependencies": {
+		"effect": "4.0.6"
+	},
+	"devDependencies": {
+		"@effect/platform-node": "4.0.6",
+		"@effect/vitest": "4.0.6",
+		"vitest": "5.0.5"
+	},
+	"overrides": {
+		"@effect/platform-node-shared": "4.0.6"
+	}
+}

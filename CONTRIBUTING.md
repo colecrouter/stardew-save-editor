@@ -79,9 +79,9 @@ service support. Use the workspace TypeScript SDK in your editor. When changing
 Effect code, also inspect the complete diagnostic stream:
 
 ```bash
-npm run effect:diagnostics -- --project experiments/v2/tsconfig.json
-npm run check --prefix experiments/v2
-npm test --prefix experiments/v2
+npm run effect:diagnostics -- --project tests/engine/tsconfig.json
+npm run check --prefix tests/engine
+npm test --prefix tests/engine
 ```
 
 Warnings and suggestions need contextual review: application boundaries may
@@ -89,13 +89,14 @@ legitimately run Effects, and the experiment deliberately evaluates unstable Ato
 APIs. Errors fail checks; suggestions are shown by the diagnostic command without
 turning every stylistic preference into a compiler failure.
 
-Start with the [current V2 status and conventions](docs/v2-status.md).
-The [V2 implementation requirements](docs/v2-implementation.md) and
-[editor blueprint](docs/v2-editor-blueprint.md) describe the active migration.
-The calendar workflow now lives in `src/lib/editor` and the `/v2` application route.
-Run `npm run test:editor` for its migrated tests, or `npm test` for the full suite.
-The lab forwards to the application-owned implementation. See the
-[calendar migration](docs/v2-calendar-migration.md) for legacy isolation and retirement gates.
+The editor lives in `src/lib/editor`. Domain views separate saved representations
+from UI components. Independent edits publish valid changes immediately and group
+text/number gestures into one Undo entry ending on blur; explicit drafts coordinate
+consequences. Fallible work uses Effect; expected failures remain typed and defects
+reach the shared reporting boundary. Keep projections pure and preserve unknown
+saved data. Use existing field/controller and transaction helpers.
+
+See [test commands and ownership](tests/README.md).
 
 ### Svelte checker compatibility
 
@@ -122,40 +123,20 @@ both the direct copy and the copy Vite resolves, so a future nested installation
 cannot silently bypass the policy. Do not remove the patch without checking the
 generated production polyfills.
 
-## General Conventions
+## Source layout
 
-The code is broken up into a few sections.
+- `src/lib/editor`: file-owned engine, domain views/commands and application UI.
+- `src/lib/ui`: reusable controls and frame artwork.
+- `src/lib/proxies`: temporary legacy editor compatibility, not the default engine.
+- `codegen` and `generated`: game-data extraction and committed output.
 
-- `src/lib`: Contains the core code.
-  - `src/lib/proxies`: Contains reactive proxy classes for interacting with save data.
-  - `src/lib/ui`: Contains reusable Svelte components used throughout the app.
-  - `src/lib/worker`: Contains web worker scripts for offloading heavy computations.
-- `src/routes`: Contains routes & page components for the SvelteKit app.
-- `codegen`: Contains code/asset generation scripts and utilities.
-- `generated`: Output from code generation scripts.
-- `tests`: Contains unit and integration tests for the application.
-- `static`: Contains static assets such as images, fonts, and other files served directly by the app.
+Use UI-friendly immutable domain views rather than exposing raw save records to
+components. Preserve unfamiliar imported data and validate each supported mutation
+without normalizing unrelated records. File scopes own subscriptions and queued
+commands; unmount consumers before releasing their registry.
 
-### Proxies
+## Game assets
 
-The current model uses Svelte's reactivity system to create "wrappers" around existing save data. They serve 2 purposes:
-
-1. Abstract away gross-or-weird requirements for interacting with the save data.
-1. Provide reactivity, so that the Svelte app automatically updates when the underlying save data changes.
-
-Proxies can contain getters and setters to sanitize/validate data before it is written to the save file. However, this should be limited to simple checks (e.g. limiting string lengths, ensuring numbers are within a certain range, etc.). **Precedence should be given to implementing these limitations in UI components rather than in the proxies themselves.**
-
-> Our goal isn't to create a 100%-safe, standalone API; it's to provide fallbacks in cases where we might forget/overlook validations in UI.
-
-### Game Assets
-
-As it stands, all game-derived content exists inside either `generated` or `static/assets` directories.
-
-While ConcernedApe isn't known to DMCA fan content, we should at least avoid committing any unchanged assets (as they exist within the game's files) to this repository. If things get dire in the future, we should be able to remove these assets without too much hassle. Of course, that will impede ease of development.
-
-### Test ownership and cutover artifacts
-
-See the [test map](tests/README.md) for suite ownership, shared fixture/workspace
-helpers and the production-browser smoke command. The [cutover cleanup plan](docs/v2-cutover-cleanup.md)
-distinguishes authoritative engine tests from retiring lab/comparison artifacts
-and historical documentation.
+Game-derived output belongs in `generated` or `static/assets`. Avoid committing
+unchanged source game assets so they can be removed if required. Attribution and
+use constraints belong with the maintained assets, not migration reports.

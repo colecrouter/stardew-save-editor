@@ -10,12 +10,14 @@ A browser-based editor for Stardew Valley saves. [Open the hosted editor](https:
 - Storage search, multiple-item transfers, bulk quality, Organize and supported
   chest conversions. Organize keeps stacks separate.
 - Farm settings, date/weather editing, buildings, animal editing and adoption.
+- Existing pets’ names, shared friendship points and cat/dog/turtle appearances.
 - Community Center/remixed bundles, Joja projects and explicit theater progression.
 - Farmhand reassignment, change review, grouped Undo/Redo, import/export and original
   save backups.
 
-Pet/child editing, general location editing, lost-progress restoration, non-Qi
-special-order editing and the planned parser replacement remain separate work.
+Pet adoption/removal, child editing, general location editing, lost-progress
+restoration, non-Qi special-order editing and the planned parser replacement
+remain separate work.
 
 ## Using the editor
 

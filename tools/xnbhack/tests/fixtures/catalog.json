@@ -2181,5 +2181,279 @@
 				"type": "Farm"
 			}
 		}
+	},
+	{
+		"name": "all species include opaque unavailable breeds",
+		"op": "petAppearances",
+		"args": [
+			{
+				"Cat": {
+					"Breeds": [
+						{
+							"Id": "opaque.breed",
+							"IconTexture": "LooseSprites\\Cursors_1_6",
+							"IconSourceRect": {
+								"X": 256,
+								"Y": 365,
+								"Width": 16,
+								"Height": 16
+							},
+							"CanBeChosenAtStart": false,
+							"CanBeAdoptedFromMarnie": false
+						}
+					]
+				},
+				"Dog": {
+					"Breeds": [
+						{
+							"Id": "opaque.breed",
+							"IconTexture": "LooseSprites\\Cursors_1_6",
+							"IconSourceRect": {
+								"X": 256,
+								"Y": 365,
+								"Width": 16,
+								"Height": 16
+							},
+							"CanBeChosenAtStart": false,
+							"CanBeAdoptedFromMarnie": false
+						}
+					]
+				},
+				"Turtle": {
+					"Breeds": [
+						{
+							"Id": "opaque.breed",
+							"IconTexture": "LooseSprites\\Cursors_1_6",
+							"IconSourceRect": {
+								"X": 256,
+								"Y": 365,
+								"Width": 16,
+								"Height": 16
+							},
+							"CanBeChosenAtStart": false,
+							"CanBeAdoptedFromMarnie": false
+						}
+					]
+				}
+			}
+		],
+		"expected": [
+			{
+				"petType": "Cat",
+				"breedId": "opaque.breed",
+				"icon": {
+					"sheet": "/assets/Cursors_1_6.png",
+					"x": 256,
+					"y": 365
+				}
+			},
+			{
+				"petType": "Dog",
+				"breedId": "opaque.breed",
+				"icon": {
+					"sheet": "/assets/Cursors_1_6.png",
+					"x": 256,
+					"y": 365
+				}
+			},
+			{
+				"petType": "Turtle",
+				"breedId": "opaque.breed",
+				"icon": {
+					"sheet": "/assets/Cursors_1_6.png",
+					"x": 256,
+					"y": 365
+				}
+			}
+		]
+	},
+	{
+		"name": "duplicate pet breeds rejected",
+		"op": "petAppearances",
+		"args": [
+			{
+				"Cat": {
+					"Breeds": [
+						{
+							"Id": "opaque.breed",
+							"IconTexture": "LooseSprites\\Cursors_1_6",
+							"IconSourceRect": {
+								"X": 256,
+								"Y": 365,
+								"Width": 16,
+								"Height": 16
+							},
+							"CanBeChosenAtStart": false,
+							"CanBeAdoptedFromMarnie": false
+						},
+						{
+							"Id": "opaque.breed",
+							"IconTexture": "LooseSprites\\Cursors_1_6",
+							"IconSourceRect": {
+								"X": 256,
+								"Y": 365,
+								"Width": 16,
+								"Height": 16
+							},
+							"CanBeChosenAtStart": false,
+							"CanBeAdoptedFromMarnie": false
+						}
+					]
+				},
+				"Dog": {
+					"Breeds": [
+						{
+							"Id": "opaque.breed",
+							"IconTexture": "LooseSprites\\Cursors_1_6",
+							"IconSourceRect": {
+								"X": 256,
+								"Y": 365,
+								"Width": 16,
+								"Height": 16
+							},
+							"CanBeChosenAtStart": false,
+							"CanBeAdoptedFromMarnie": false
+						}
+					]
+				},
+				"Turtle": {
+					"Breeds": [
+						{
+							"Id": "opaque.breed",
+							"IconTexture": "LooseSprites\\Cursors_1_6",
+							"IconSourceRect": {
+								"X": 256,
+								"Y": 365,
+								"Width": 16,
+								"Height": 16
+							},
+							"CanBeChosenAtStart": false,
+							"CanBeAdoptedFromMarnie": false
+						}
+					]
+				}
+			}
+		],
+		"error": "Invalid or duplicate Cat breed ID."
+	},
+	{
+		"name": "missing pet species rejected",
+		"op": "petAppearances",
+		"args": [{}],
+		"error": "Missing breeds for Cat."
+	},
+	{
+		"name": "unknown pet sheet rejected",
+		"op": "petAppearances",
+		"args": [
+			{
+				"Cat": {
+					"Breeds": [
+						{
+							"Id": "opaque.breed",
+							"IconTexture": "LooseSprites\\Cursors_1_6",
+							"IconSourceRect": {
+								"X": 256,
+								"Y": 365,
+								"Width": 16,
+								"Height": 16
+							},
+							"CanBeChosenAtStart": false,
+							"CanBeAdoptedFromMarnie": false
+						}
+					]
+				},
+				"Dog": {
+					"Breeds": [
+						{
+							"Id": "opaque.breed",
+							"IconTexture": "Mods/unknown",
+							"IconSourceRect": {
+								"X": 256,
+								"Y": 365,
+								"Width": 16,
+								"Height": 16
+							},
+							"CanBeChosenAtStart": false,
+							"CanBeAdoptedFromMarnie": false
+						}
+					]
+				},
+				"Turtle": {
+					"Breeds": [
+						{
+							"Id": "opaque.breed",
+							"IconTexture": "LooseSprites\\Cursors_1_6",
+							"IconSourceRect": {
+								"X": 256,
+								"Y": 365,
+								"Width": 16,
+								"Height": 16
+							},
+							"CanBeChosenAtStart": false,
+							"CanBeAdoptedFromMarnie": false
+						}
+					]
+				}
+			}
+		],
+		"error": "Unsupported icon sheet for Dog/opaque.breed."
+	},
+	{
+		"name": "changed pet icon size rejected",
+		"op": "petAppearances",
+		"args": [
+			{
+				"Cat": {
+					"Breeds": [
+						{
+							"Id": "opaque.breed",
+							"IconTexture": "LooseSprites\\Cursors_1_6",
+							"IconSourceRect": {
+								"X": 256,
+								"Y": 365,
+								"Width": 32,
+								"Height": 16
+							},
+							"CanBeChosenAtStart": false,
+							"CanBeAdoptedFromMarnie": false
+						}
+					]
+				},
+				"Dog": {
+					"Breeds": [
+						{
+							"Id": "opaque.breed",
+							"IconTexture": "LooseSprites\\Cursors_1_6",
+							"IconSourceRect": {
+								"X": 256,
+								"Y": 365,
+								"Width": 16,
+								"Height": 16
+							},
+							"CanBeChosenAtStart": false,
+							"CanBeAdoptedFromMarnie": false
+						}
+					]
+				},
+				"Turtle": {
+					"Breeds": [
+						{
+							"Id": "opaque.breed",
+							"IconTexture": "LooseSprites\\Cursors_1_6",
+							"IconSourceRect": {
+								"X": 256,
+								"Y": 365,
+								"Width": 16,
+								"Height": 16
+							},
+							"CanBeChosenAtStart": false,
+							"CanBeAdoptedFromMarnie": false
+						}
+					]
+				}
+			}
+		],
+		"error": "Unsupported icon rectangle for Cat/opaque.breed."
 	}
 ]

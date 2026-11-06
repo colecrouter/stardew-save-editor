@@ -7,6 +7,7 @@
 		"build": "vp build",
 		"preview": "vp preview",
 		"check:watch": "svelte-kit sync && svelte-check --tsgo --tsconfig ./tsconfig.app.json --watch",
+		"dump:pets": "node codegen/dumpPets.ts",
 		"dump": "dotnet run --project tools/xnbhack/AssetDump.csproj",
 		"test:asset-dump": "dotnet run --project tools/xnbhack/tests/WorkspaceTests.csproj",
 		"check": "npm run lint && npm run check:types && npm run check:tests && npm run check:tooling && svelte-check --tsgo --tsconfig ./tsconfig.app.json",

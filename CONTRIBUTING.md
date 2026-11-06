@@ -57,6 +57,12 @@ and map-level `LocationContext` properties. XnbHack writes maps as TMX files und
 `content/Maps`. The normal dump regenerates this lookup as well. App
 checks and tests use the committed lookup and do not require unpacked maps.
 
+The normal dump also extracts the supported pet appearances from `Data/Pets`
+and copies both cursor sheets. `npm run dump:pets` regenerates just that lookup
+and its sheets from an existing unpack. See [pet data provenance](generated/README.md).
+Appearance editing changes the selected pet's type/breed pair while preserving
+farmer preferences and other saved state.
+
 If you need assets that aren't copied from that command, you can modify it in `tools/xnbhack/WorldCatalog.cs`.
 
 `generated/buildings.json` includes what the editor needs to upgrade buildings (each building's

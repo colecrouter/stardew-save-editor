@@ -38,6 +38,7 @@
 		qi: "qi",
 		community: "community",
 		buildings: "buildings",
+		pets: "relationships",
 		farmhands: "farmhands",
 		recipes: "cooking",
 		events: "events",

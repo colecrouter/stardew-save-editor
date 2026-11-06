@@ -630,4 +630,8 @@ const buildingsArray = await Promise.all(
 );
 await writeFile("./generated/buildings.json", JSON.stringify(buildingsArray));
 
+// Extract appearance pairs and their icons after the full dump has recreated
+// static/assets; doing this earlier would delete the new cursor sheet again.
+await import("./dumpPets.ts");
+
 await import("./dumpLocationWeather.ts");

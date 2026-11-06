@@ -9,6 +9,7 @@
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"dump": "tsx --no-warnings codegen/dump.ts",
 		"dump:location-weather": "node codegen/dumpLocationWeather.ts",
+		"dump:pets": "node codegen/dumpPets.ts",
 		"check": "biome lint . && npm run check:types && svelte-check --tsconfig ./tsconfig.json",
 		"format": "oxfmt --write .",
 		"format:check": "oxfmt --check .",

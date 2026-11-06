@@ -12,6 +12,7 @@ export const reviewFeatures = [
 	"qi",
 	"community",
 	"buildings",
+	"pets",
 	"farmhands",
 	"recipes",
 	"events",

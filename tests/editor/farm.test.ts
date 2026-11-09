@@ -9,6 +9,7 @@ import {
 } from "../../src/lib/editor/farm-operations";
 import { setCalendarDate } from "../../src/lib/editor/calendar-operations";
 import { fixtureXml, parser, exportDocument } from "./fixtures";
+import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
 
 const bytes = (text: string) => new TextEncoder().encode(text);
 
@@ -29,7 +30,10 @@ describe("full-save farm operations", { timeout: 15_000 }, () => {
 		Object.assign(game.player, { modData: { opaque: "007" } });
 		Object.assign(guest, { modData: { opaque: ["guest", "0007"] } });
 		game.farmhands = { Farmer: [guest] };
-		const opened = await openEditor(bytes(exportDocument(document)));
+		const opened = await openEditor(
+			SaveProcessingSync,
+			bytes(exportDocument(document)),
+		);
 		try {
 			const before = await opened.model.snapshot();
 			const result = await opened.model.commands.transact(
@@ -74,7 +78,7 @@ describe("full-save farm operations", { timeout: 15_000 }, () => {
 			expect(output && Result.isSuccess(output)).toBe(true);
 			if (!output || Result.isFailure(output))
 				throw Error("Expected a valid exported farm save");
-			const reloaded = await openEditor(output.success);
+			const reloaded = await openEditor(SaveProcessingSync, output.success);
 			try {
 				expect(get(reloaded.model.view)?.farm).toMatchObject({
 					name: "New Farm",
@@ -92,7 +96,7 @@ describe("full-save farm operations", { timeout: 15_000 }, () => {
 	});
 
 	it("a failed grouped farm edit leaves the document, calendar state and redo branch unchanged", async () => {
-		const opened = await openEditor(bytes(fixtureXml));
+		const opened = await openEditor(SaveProcessingSync, bytes(fixtureXml));
 		try {
 			await opened.model.commands.transact(
 				setFarmSettings({ name: "Redo Farm" }),
@@ -131,7 +135,10 @@ describe("full-save farm operations", { timeout: 15_000 }, () => {
 		expect(initial.profitPercent).toBe(100);
 		expect(initial.monsters).toBe(false);
 		expect(initial.mineRewards).toBe("ModdedRewardMode");
-		const opened = await openEditor(bytes(exportDocument(document)));
+		const opened = await openEditor(
+			SaveProcessingSync,
+			bytes(exportDocument(document)),
+		);
 		try {
 			await opened.model.commands.transact(
 				setFarmSettings({ name: "Only Name" }),
@@ -157,7 +164,10 @@ describe("full-save farm operations", { timeout: 15_000 }, () => {
 		// Request validation governs deliberate edits, not normalization of an
 		// imported modded baseline that the user has not chosen to replace.
 		game.player.difficultyModifier = 12.345;
-		const opened = await openEditor(bytes(exportDocument(document)));
+		const opened = await openEditor(
+			SaveProcessingSync,
+			bytes(exportDocument(document)),
+		);
 		try {
 			const before = await opened.model.snapshot();
 			const result = await opened.model.commands.transact(
@@ -180,7 +190,7 @@ describe("full-save farm operations", { timeout: 15_000 }, () => {
 	});
 
 	it("farm no-ops retain no action and an explicit stale revision cannot overwrite newer calendar edits", async () => {
-		const opened = await openEditor(bytes(fixtureXml));
+		const opened = await openEditor(SaveProcessingSync, bytes(fixtureXml));
 		try {
 			const initial = await opened.model.snapshot();
 			await opened.model.commands.transact(setFarmSettings({}));
@@ -212,7 +222,10 @@ describe("full-save farm operations", { timeout: 15_000 }, () => {
 		// Force a baseline opposite the prototype value so a leaked inherited edit
 		// cannot pass simply because the fixture already had monsters enabled.
 		(document.SaveGame as unknown as Save).shouldSpawnMonsters = false;
-		const opened = await openEditor(bytes(exportDocument(document)));
+		const opened = await openEditor(
+			SaveProcessingSync,
+			bytes(exportDocument(document)),
+		);
 		try {
 			const before = await opened.model.snapshot();
 			const request = Object.assign(
@@ -254,7 +267,7 @@ describe("full-save farm operations", { timeout: 15_000 }, () => {
 	])(
 		"invalid farm request %j preserves all committed state",
 		async (change) => {
-			const opened = await openEditor(bytes(fixtureXml));
+			const opened = await openEditor(SaveProcessingSync, bytes(fixtureXml));
 			try {
 				const before = await opened.model.snapshot();
 				const result = await opened.model.commands.transact(

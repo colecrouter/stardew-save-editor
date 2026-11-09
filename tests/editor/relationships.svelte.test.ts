@@ -3,6 +3,7 @@ import { expect, it } from "vitest";
 import { openEditor } from "../../src/lib/editor/editor-model";
 import WorkspaceHarness from "./WorkspaceHarness.svelte";
 import { parser, fixtureXml, exportDocument } from "./fixtures";
+import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
 
 // Exercise real full-save projections, the shared farmer selector, and grouped
 // field edits together: pending work must never migrate to the next farmer.
@@ -41,6 +42,7 @@ it(
 		});
 		document.SaveGame.farmhands = { Farmer: [guest] };
 		const opened = await openEditor(
+			SaveProcessingSync,
 			new TextEncoder().encode(exportDocument(document)),
 		);
 		const page = render(WorkspaceHarness, { model: opened.model });
@@ -120,6 +122,7 @@ it(
 		const document = parser.parse(fixtureXml);
 		Object.assign(document.SaveGame.player, { friendshipData: "" });
 		const opened = await openEditor(
+			SaveProcessingSync,
 			new TextEncoder().encode(exportDocument(document)),
 		);
 		const page = render(WorkspaceHarness, { model: opened.model });

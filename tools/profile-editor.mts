@@ -21,6 +21,7 @@ import { readRecipes } from "../src/lib/editor/recipe-operations.ts";
 import { readEvents } from "../src/lib/editor/event-operations.ts";
 import { readQuestJournals } from "../src/lib/editor/quest-operations.ts";
 import { readQiOrders } from "../src/lib/editor/qi-order-operations.ts";
+import { SaveProcessingSync } from "../src/lib/editor/save-processing.ts";
 
 // This harness uses only the committed public fixture. Larger scenarios append
 // deterministic synthetic chest data; no local player save is read or printed.
@@ -101,7 +102,7 @@ const enlarged = () => makeLargeProfileFixture(fixtureBytes, extraChests);
 
 async function scenario(name: string, bytes: Uint8Array) {
 	const importStart = performance.now();
-	const opened = await openEditor(bytes);
+	const opened = await openEditor(SaveProcessingSync, bytes);
 	const model = opened.model;
 	const importMs = performance.now() - importStart;
 	let sequence = 0;

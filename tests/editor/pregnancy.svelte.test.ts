@@ -4,6 +4,7 @@ import { openEditor } from "../../src/lib/editor/editor-model.ts";
 import { readPregnancy } from "../../src/lib/editor/pregnancy-data.ts";
 import WorkspaceHarness from "./WorkspaceHarness.svelte";
 import { parser, fixtureXml, exportDocument } from "./fixtures.ts";
+import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
 
 // Exercise the real field controllers and transaction queue, not a callback mock.
 // The selected couple owns both the discrete toggle and grouped due-date typing.
@@ -31,6 +32,7 @@ it(
 			},
 		});
 		const opened = await openEditor(
+			SaveProcessingSync,
 			new TextEncoder().encode(exportDocument(document)),
 		);
 		const page = render(WorkspaceHarness, { model: opened.model });

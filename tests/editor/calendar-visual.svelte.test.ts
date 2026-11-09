@@ -6,12 +6,16 @@ import { calendarEventsForMonth } from "../../src/lib/editor/calendar-events";
 import WorkspaceHarness from "./WorkspaceHarness.svelte";
 import { CalendarSeason } from "../../src/lib/calendarSeason";
 import { fixtureXml } from "./fixtures";
+import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
 
 it(
 	"previews calendar events without writing until Apply and restores the saved date with Undo",
 	{ timeout: 20000 },
 	async () => {
-		const opened = await openEditor(new TextEncoder().encode(fixtureXml));
+		const opened = await openEditor(
+			SaveProcessingSync,
+			new TextEncoder().encode(fixtureXml),
+		);
 		const page = render(WorkspaceHarness, { model: opened.model });
 		try {
 			await fireEvent.click(
@@ -97,7 +101,10 @@ it(
 it.each(["failure", "noncompletion"] as const)(
 	"restores committed weather after %s",
 	async (outcome) => {
-		const opened = await openEditor(new TextEncoder().encode(fixtureXml));
+		const opened = await openEditor(
+			SaveProcessingSync,
+			new TextEncoder().encode(fixtureXml),
+		);
 		const page = render(WorkspaceHarness, { model: opened.model });
 		try {
 			await fireEvent.click(

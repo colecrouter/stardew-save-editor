@@ -3,6 +3,7 @@ import type { SaveDocument } from "../../src/lib/editor/domain.ts";
 import { openEditor } from "../../src/lib/editor/editor-model.ts";
 import WorkspaceHarness from "./WorkspaceHarness.svelte";
 import { exportDocument } from "./fixtures.ts";
+import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
 
 /** Mount the production workspace with one file owner. Feature fixtures and
  * assertions stay in their suites; only shared acquisition/navigation/release live here. */
@@ -11,6 +12,7 @@ export async function renderTestWorkspace(
 	section?: string,
 ) {
 	const opened = await openEditor(
+		SaveProcessingSync,
 		new TextEncoder().encode(exportDocument(document)),
 	);
 	let unmount: (() => void) | undefined;

@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { Result } from "effect";
+	import { Result, type Layer } from "effect";
+	import type { SaveProcessor } from "../save-processing.ts";
 	import {
 		runBackupCommand,
 		writeOriginalBackup,
@@ -16,14 +17,23 @@
 		includeProofs?: boolean;
 		legacyHref?: string;
 		backupOriginal?: (file: File) => Promise<void>;
+		processingLayer: Layer.Layer<SaveProcessor>;
 	}
-	let { includeProofs = false, legacyHref, backupOriginal }: Props = $props();
+	let {
+		includeProofs = false,
+		legacyHref,
+		backupOriginal,
+		processingLayer,
+	}: Props = $props();
 	let active = $state.raw<Awaited<ReturnType<typeof openEditor>>>();
 	let filename = $state("");
 	let opening = $state(false);
+	let openingStatus = $state("Opening save…");
+	let importController: AbortController | undefined;
 	let error = $state("");
 	let downloadError = $state("");
 	let downloading = $state(false);
+	let downloadStatus = $state("");
 	// File reads cannot be canceled reliably. A generation token prevents an older
 	// import from installing its session after replacement, cancellation or unmount.
 	let generation = 0;
@@ -33,6 +43,10 @@
 	// All release paths detach consumers before disposing their borrowed registry.
 	// Keeping this ordering in one helper avoids drift between close/replacement.
 	async function detach() {
+		// Import owns a worker before active exists. Cancel that acquisition too;
+		// its rejected openEditor promise closes the not-yet-installed file scope.
+		importController?.abort();
+		importController = undefined;
 		const previous = active;
 		active = undefined;
 		downloadController.abort();
@@ -53,13 +67,23 @@
 	async function load(file: File, saveBackup = true) {
 		const token = ++generation;
 		opening = true;
+		openingStatus = "Reading save…";
 		error = "";
 		downloadError = "";
 		await detach();
+		if (token !== generation) return;
+		const controller = new AbortController();
+		importController = controller;
 		try {
 			const bytes = new Uint8Array(await file.arrayBuffer());
 			if (token !== generation) return;
-			const opened = await openEditor(bytes, {}, { includeProofs });
+			openingStatus = "Opening save…";
+			const opened = await openEditor(
+				processingLayer,
+				bytes,
+				{},
+				{ includeProofs, signal: controller.signal },
+			);
 			if (token !== generation) {
 				await opened.close();
 				return;
@@ -69,6 +93,7 @@
 			// Back up only a successfully decoded import. Failure must not block
 			// editing; retain the original selected file and surface the warning.
 			if (saveBackup && backupOriginal) {
+				openingStatus = "Backing up original save…";
 				const result = await runBackupCommand(
 					writeOriginalBackup(file, backupOriginal),
 					(message) => {
@@ -87,6 +112,7 @@
 				}
 			}
 		} finally {
+			if (importController === controller) importController = undefined;
 			if (token === generation) opening = false;
 		}
 	}
@@ -96,6 +122,7 @@
 		const current = active;
 		if (!current || downloading) return;
 		downloading = true;
+		downloadStatus = "Choose where to save…";
 		// A retry clears only download feedback, leaving backup warnings intact.
 		downloadError = "";
 		try {
@@ -104,11 +131,15 @@
 			const signal = downloadController.signal;
 			const destination = await chooseSaveDestination(filename, signal);
 			if (!destination || active !== current) return;
+			downloadStatus = "Preparing save…";
 			const result = await current.model.commands.export();
 			if (!result || active !== current) return;
 			if (Result.isFailure(result)) return result;
+			downloadStatus = "Writing save…";
+			// The exporter returns ArrayBuffer-backed bytes. Pass them directly to
+			// Blob rather than allocating another Uint8Array on the main thread.
 			await destination.write(
-				new Blob([Uint8Array.from(result.success)], {
+				new Blob([result.success], {
 					type: "application/octet-stream",
 				}),
 				signal,
@@ -133,6 +164,9 @@
 
 <div class="editor-application" class:has-session={!!active}>
 	{#if active}
+		{#if opening}
+			<p role="status">{openingStatus}</p>
+		{/if}
 		{#if error}
 			<p role="alert">{error}</p>
 		{/if}
@@ -163,6 +197,7 @@
 					model={active.model}
 					{includeProofs}
 					{downloading}
+					{downloadStatus}
 					{filename}
 					onclose={() => void close()}
 					ondownload={download}
@@ -172,6 +207,7 @@
 	{:else}
 		<UploadPanel
 			{opening}
+			status={openingStatus}
 			{error}
 			{legacyHref}
 			onfile={(file) => load(file)}

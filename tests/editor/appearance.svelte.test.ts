@@ -4,6 +4,7 @@ import { expect, it } from "vitest";
 import { openEditor } from "../../src/lib/editor/editor-model.ts";
 import WorkspaceHarness from "./WorkspaceHarness.svelte";
 import { parser, fixtureXml, exportDocument } from "./fixtures.ts";
+import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
 
 it(
 	"groups appearance input and preserves the captured farmer when selection changes",
@@ -21,6 +22,7 @@ it(
 		Object.assign(guest, { favoriteThing: "Guest favorite" });
 		document.SaveGame.farmhands = { Farmer: [guest] };
 		const opened = await openEditor(
+			SaveProcessingSync,
 			new TextEncoder().encode(exportDocument(document)),
 		);
 		const page = render(WorkspaceHarness, { model: opened.model });
@@ -113,7 +115,10 @@ it(
 	"keeps profile edits across internal tabs and links clothing to Inventory",
 	{ timeout: 25000 },
 	async () => {
-		const opened = await openEditor(new TextEncoder().encode(fixtureXml));
+		const opened = await openEditor(
+			SaveProcessingSync,
+			new TextEncoder().encode(fixtureXml),
+		);
 		const page = render(WorkspaceHarness, { model: opened.model });
 		try {
 			await fireEvent.click(page.getByRole("link", { name: "Character" }));

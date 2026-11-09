@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { render, fireEvent, waitFor } from "@testing-library/svelte";
 import EditorApp from "../../src/lib/editor/ui/EditorApp.svelte";
 import { fixtureXml, parser } from "./fixtures";
+import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
 
 // Each scenario imports the complete save and performs real history operations.
 // Keep a bounded integration budget without changing ordinary unit-test timeouts.
@@ -17,7 +18,7 @@ describe("full-save farm workflow", { timeout: 15_000 }, () => {
 				loaded = await load(...args);
 				return loaded;
 			});
-		const page = render(EditorApp);
+		const page = render(EditorApp, { processingLayer: SaveProcessingSync });
 		try {
 			await fireEvent.change(page.getByLabelText("Save file"), {
 				target: { files: [new File([fixtureXml], "Farm_123")] },

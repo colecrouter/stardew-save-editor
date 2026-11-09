@@ -4,6 +4,7 @@ import { openEditor } from "../../src/lib/editor/editor-model";
 import { createCatalogItem } from "../../src/lib/editor/item-catalog";
 import BackpackHarness from "./BackpackHarness.svelte";
 import { exportDocument, fixtureXml, parser } from "./fixtures";
+import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
 
 function dragData() {
 	const values = new Map<string, string>();
@@ -29,7 +30,10 @@ async function drag(source: HTMLElement, target: HTMLElement) {
 // Full-save copies and export projections need a bounded CI integration budget.
 describe("inventory drag and equipment controls", { timeout: 25_000 }, () => {
 	it("shows equipment beside the backpack and moves/swaps through dragging without Move mode", async () => {
-		const opened = await openEditor(new TextEncoder().encode(fixtureXml));
+		const opened = await openEditor(
+			SaveProcessingSync,
+			new TextEncoder().encode(fixtureXml),
+		);
 		const page = render(BackpackHarness, { model: opened.model });
 		try {
 			const before = await opened.model.snapshot();
@@ -99,6 +103,7 @@ describe("inventory drag and equipment controls", { timeout: 25_000 }, () => {
 		if (!boots) throw Error("Expected catalog boots");
 		document.SaveGame.player.items.Item[3] = boots;
 		const opened = await openEditor(
+			SaveProcessingSync,
 			new TextEncoder().encode(exportDocument(document)),
 		);
 		const page = render(BackpackHarness, { model: opened.model });
@@ -175,7 +180,10 @@ describe("inventory drag and equipment controls", { timeout: 25_000 }, () => {
 		}
 	});
 	it("uses touch pointer dragging without Move mode and cancels interrupted gestures without writes", async () => {
-		const opened = await openEditor(new TextEncoder().encode(fixtureXml));
+		const opened = await openEditor(
+			SaveProcessingSync,
+			new TextEncoder().encode(fixtureXml),
+		);
 		const page = render(BackpackHarness, { model: opened.model });
 		const hit = vi.spyOn(document, "elementFromPoint");
 		try {
@@ -246,7 +254,10 @@ describe("inventory drag and equipment controls", { timeout: 25_000 }, () => {
 	});
 
 	it("ignores outside drops and preserves add/remove selection lineage through drag Undo", async () => {
-		const opened = await openEditor(new TextEncoder().encode(fixtureXml));
+		const opened = await openEditor(
+			SaveProcessingSync,
+			new TextEncoder().encode(fixtureXml),
+		);
 		const page = render(BackpackHarness, { model: opened.model });
 		try {
 			const before = (await opened.model.snapshot()).document;

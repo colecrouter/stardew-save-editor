@@ -5,13 +5,15 @@ import { XMLCodec } from "../xmlCodec.ts";
 import type { SaveDocument } from "./domain.ts";
 
 export class SaveReadError extends Data.TaggedError("SaveReadError")<{
-	stage: "decompress" | "xml" | "shape" | "version";
+	stage: "decompress" | "xml" | "shape" | "version" | "worker";
 	cause: unknown;
 }> {}
 // Import errors describe the recovery action without printing parser internals or
 // uploaded data. Unsupported inputs remain retryable in the same file picker.
 export function describeImportError(error: SaveReadError): string {
 	switch (error.stage) {
+		case "worker":
+			return "The save could not be processed. Please try opening it again.";
 		case "version":
 			return "This editor supports Stardew Valley 1.6 saves.";
 		case "shape":
@@ -49,7 +51,7 @@ export class SaveCodec extends Context.Service<
 		decode: (bytes: Uint8Array) => Effect.Effect<SaveDocument, SaveReadError>;
 		encode: (
 			document: SaveDocument,
-		) => Effect.Effect<Uint8Array, SaveWriteError>;
+		) => Effect.Effect<Uint8Array<ArrayBuffer>, SaveWriteError>;
 	}
 >()("editor/SaveCodec") {}
 

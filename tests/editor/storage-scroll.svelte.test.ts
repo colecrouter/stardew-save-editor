@@ -4,6 +4,7 @@ import { openEditor } from "../../src/lib/editor/editor-model";
 import { createCatalogItem } from "../../src/lib/editor/item-catalog";
 import { exportDocument, fixtureXml, parser } from "./fixtures";
 import StorageHarness from "./StorageHarness.svelte";
+import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
 
 it(
 	"scrolls a held Storage drag at pane edges and cancels without editing the save",
@@ -41,6 +42,7 @@ it(
 			},
 		});
 		const opened = await openEditor(
+			SaveProcessingSync,
 			new TextEncoder().encode(exportDocument(document)),
 		);
 		const page = render(StorageHarness, { model: opened.model });

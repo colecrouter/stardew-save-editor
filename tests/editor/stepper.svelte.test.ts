@@ -4,6 +4,7 @@ import { openEditor } from "../../src/lib/editor/editor-model.ts";
 import { parser, fixtureXml, exportDocument } from "./fixtures.ts";
 import { readAppearances } from "../../src/lib/editor/appearance-operations.ts";
 import StepperHarness from "./StepperHarness.svelte";
+import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
 
 it(
 	"makes browsing discrete while preserving native typing and bounded imported values",
@@ -12,6 +13,7 @@ it(
 		const document = parser.parse(fixtureXml);
 		Object.assign(document.SaveGame.player, { skin: 0 });
 		const opened = await openEditor(
+			SaveProcessingSync,
 			new TextEncoder().encode(exportDocument(document)),
 		);
 		const page = render(StepperHarness, { model: opened.model });
@@ -67,6 +69,7 @@ it(
 		const document = parser.parse(fixtureXml);
 		Object.assign(document.SaveGame.player, { skin: 22 });
 		const opened = await openEditor(
+			SaveProcessingSync,
 			new TextEncoder().encode(exportDocument(document)),
 		);
 		const realEdit = opened.model.commands.edit;
@@ -112,6 +115,7 @@ it(
 		const document = parser.parse(fixtureXml);
 		Object.assign(document.SaveGame.player, { skin: 99 });
 		const opened = await openEditor(
+			SaveProcessingSync,
 			new TextEncoder().encode(exportDocument(document)),
 		);
 		const page = render(StepperHarness, { model: opened.model });
@@ -140,6 +144,7 @@ it(
 		const document = parser.parse(fixtureXml);
 		Object.assign(document.SaveGame.player, { skin: 10 });
 		const opened = await openEditor(
+			SaveProcessingSync,
 			new TextEncoder().encode(exportDocument(document)),
 		);
 		const realEdit = opened.model.commands.edit;

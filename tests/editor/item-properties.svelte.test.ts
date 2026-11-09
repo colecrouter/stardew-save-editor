@@ -7,6 +7,7 @@ import { createRandom, rollTrinket } from "../../src/lib/TrinketStats";
 import BackpackHarness from "./BackpackHarness.svelte";
 import { fixtureXml, parser, exportDocument } from "./fixtures";
 import type { SaveDocument } from "../../src/lib/editor/domain";
+import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
 
 function catalog(id: string) {
 	const item = createCatalogItem(id);
@@ -17,6 +18,7 @@ async function open(mutate: (document: SaveDocument) => void) {
 	const document = parser.parse(fixtureXml);
 	mutate(document);
 	const opened = await openEditor(
+		SaveProcessingSync,
 		new TextEncoder().encode(exportDocument(document)),
 	);
 	const page = render(BackpackHarness, { model: opened.model });

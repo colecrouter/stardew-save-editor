@@ -11,6 +11,7 @@ import { openEditor } from "../../src/lib/editor/editor-model";
 import { setInventoryItem } from "../../src/lib/editor/inventory-operations";
 import { XMLCodec } from "../../src/lib/xmlCodec";
 import { fixtureXml, parser, tinyFixture } from "./fixtures";
+import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
 
 const chest = (name = "Chest") => ({
 	"@_xsi:type": "Chest",
@@ -151,7 +152,10 @@ it("reuses sibling views from the first item edit through Undo/Redo in the model
 			state([chest(), chest("Neighbor")]).document.SaveGame.locations,
 		),
 	});
-	const opened = await openEditor(new XMLCodec().stringify(document));
+	const opened = await openEditor(
+		SaveProcessingSync,
+		new XMLCodec().stringify(document),
+	);
 	try {
 		const original = required(get(opened.model.view)).chests;
 		const selected = required(original[0]),

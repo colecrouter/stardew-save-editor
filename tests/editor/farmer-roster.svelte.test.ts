@@ -3,6 +3,7 @@ import { expect, it } from "vitest";
 import { openEditor } from "../../src/lib/editor/editor-model";
 import { parser, fixtureXml, exportDocument } from "./fixtures";
 import WorkspaceHarness from "./WorkspaceHarness.svelte";
+import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
 
 // Reassignment must publish through the workspace's queue and preserve the
 // identity selected by other panels, even when that farmer becomes the host.
@@ -23,6 +24,7 @@ it(
 		});
 		document.SaveGame.farmhands = { Farmer: [guest] };
 		const opened = await openEditor(
+			SaveProcessingSync,
 			new TextEncoder().encode(exportDocument(document)),
 		);
 		await opened.model.commands.selectFarmer("123456789");

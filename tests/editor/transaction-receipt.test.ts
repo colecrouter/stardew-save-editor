@@ -4,6 +4,7 @@ import { openEditor } from "../../src/lib/editor/editor-model.ts";
 import { MutationError } from "../../src/lib/editor/domain.ts";
 import { TransactionDraft } from "../../src/lib/editor/transaction-draft.ts";
 import { fixtureXml, parser } from "./fixtures.ts";
+import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
 
 // A receipt describes its own committed action, even if a queued Undo has already
 // restored the document before its caller next reads the editor projection.
@@ -11,7 +12,10 @@ it(
 	"returns the committed domain receipt and never exposes one from a rejected transaction",
 	{ timeout: 25000 },
 	async () => {
-		const opened = await openEditor(new TextEncoder().encode(fixtureXml));
+		const opened = await openEditor(
+			SaveProcessingSync,
+			new TextEncoder().encode(fixtureXml),
+		);
 		try {
 			const before = parser.parse(fixtureXml);
 			const program = Effect.gen(function* () {

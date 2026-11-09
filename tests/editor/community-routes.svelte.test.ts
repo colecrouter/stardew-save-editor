@@ -7,12 +7,16 @@ import { setCommunityProgress } from "../../src/lib/editor/community-operations"
 import { MutationError } from "../../src/lib/editor/mutation-error";
 import WorkspaceHarness from "./WorkspaceHarness.svelte";
 import { fixtureXml, parser, exportDocument } from "./fixtures";
+import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
 
 it(
 	"shows only the saved route and preserves donations, rewards and room across membership history",
 	{ timeout: 30000 },
 	async () => {
-		const opened = await openEditor(new TextEncoder().encode(fixtureXml));
+		const opened = await openEditor(
+			SaveProcessingSync,
+			new TextEncoder().encode(fixtureXml),
+		);
 		const page = render(WorkspaceHarness, { model: opened.model });
 		try {
 			const spring = readCommunity(
@@ -121,7 +125,10 @@ it(
 	"keeps a stale membership confirmation open without reversing a newer route",
 	{ timeout: 20000 },
 	async () => {
-		const opened = await openEditor(new TextEncoder().encode(fixtureXml));
+		const opened = await openEditor(
+			SaveProcessingSync,
+			new TextEncoder().encode(fixtureXml),
+		);
 		const page = render(WorkspaceHarness, { model: opened.model });
 		try {
 			await fireEvent.click(
@@ -169,6 +176,7 @@ it(
 		const document = parser.parse(fixtureXml);
 		Object.assign(document.SaveGame.player, { mailReceived: true });
 		const opened = await openEditor(
+			SaveProcessingSync,
 			new TextEncoder().encode(exportDocument(document)),
 		);
 		const page = render(WorkspaceHarness, { model: opened.model });
@@ -208,7 +216,10 @@ it.each(["failure", "noncompletion"] as const)(
 	"restores a native donation toggle after %s",
 	{ timeout: 20000 },
 	async (outcome) => {
-		const opened = await openEditor(new TextEncoder().encode(fixtureXml));
+		const opened = await openEditor(
+			SaveProcessingSync,
+			new TextEncoder().encode(fixtureXml),
+		);
 		const page = render(WorkspaceHarness, { model: opened.model });
 		const transact = vi
 			.spyOn(opened.model.commands, "transact")
@@ -251,7 +262,10 @@ it.each(["failure", "noncompletion"] as const)(
 );
 
 it("keeps membership confirmation open while its command is pending", async () => {
-	const opened = await openEditor(new TextEncoder().encode(fixtureXml));
+	const opened = await openEditor(
+		SaveProcessingSync,
+		new TextEncoder().encode(fixtureXml),
+	);
 	const page = render(WorkspaceHarness, { model: opened.model });
 	let finish: (() => void) | undefined;
 	const transact = vi
@@ -312,7 +326,10 @@ it.each(["failure", "noncompletion"] as const)(
 	"restores a native Joja project toggle after %s",
 	{ timeout: 20000 },
 	async (outcome) => {
-		const opened = await openEditor(new TextEncoder().encode(fixtureXml));
+		const opened = await openEditor(
+			SaveProcessingSync,
+			new TextEncoder().encode(fixtureXml),
+		);
 		await opened.model.commands.transact(
 			setCommunityProgress({ type: "membership", value: true }),
 		);
@@ -366,6 +383,7 @@ it.each(["failure", "noncompletion"] as const)(
 			},
 		});
 		const opened = await openEditor(
+			SaveProcessingSync,
 			new TextEncoder().encode(exportDocument(document)),
 		);
 		const page = render(WorkspaceHarness, { model: opened.model });

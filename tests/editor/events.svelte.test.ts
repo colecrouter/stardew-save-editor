@@ -5,6 +5,7 @@ import { readEvents } from "../../src/lib/editor/event-operations.ts";
 import { VanillaEvents } from "../../src/lib/Events.ts";
 import WorkspaceHarness from "./WorkspaceHarness.svelte";
 import { parser, fixtureXml, exportDocument } from "./fixtures.ts";
+import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
 
 async function openEvents() {
 	const document = parser.parse(fixtureXml);
@@ -18,6 +19,7 @@ async function openEvents() {
 	Object.assign(guest, { eventsSeen: { int: [2], opaque: "guest" } });
 	document.SaveGame.farmhands = { Farmer: [guest] };
 	const opened = await openEditor(
+		SaveProcessingSync,
 		new TextEncoder().encode(exportDocument(document)),
 	);
 	const page = render(WorkspaceHarness, { model: opened.model });

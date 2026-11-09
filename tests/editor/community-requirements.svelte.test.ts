@@ -6,12 +6,16 @@ import WorkspaceHarness from "./WorkspaceHarness.svelte";
 import { fixtureXml } from "./fixtures";
 import { setCommunityProgress } from "../../src/lib/editor/community-operations";
 import { ingredientName } from "../../src/lib/editor/community-ingredients";
+import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
 
 it(
 	"keeps requirement drafts cancellable and commits one undoable transaction",
 	{ timeout: 30000 },
 	async () => {
-		const opened = await openEditor(new TextEncoder().encode(fixtureXml));
+		const opened = await openEditor(
+			SaveProcessingSync,
+			new TextEncoder().encode(fixtureXml),
+		);
 		const page = render(WorkspaceHarness, { model: opened.model });
 		try {
 			await fireEvent.click(
@@ -94,7 +98,10 @@ it(
 	"reorders whole draft requirements by keyboard and dragging, then adds/removes without losing donation ownership",
 	{ timeout: 30000 },
 	async () => {
-		const opened = await openEditor(new TextEncoder().encode(fixtureXml));
+		const opened = await openEditor(
+			SaveProcessingSync,
+			new TextEncoder().encode(fixtureXml),
+		);
 		const initial = readCommunity(
 			(await opened.model.snapshot()).document,
 		).bundles.find((row) => row.id === 13);

@@ -28,6 +28,7 @@
 	interface Props {
 		includeProofs?: boolean;
 		downloading?: boolean;
+		downloadStatus?: string;
 		model: EditorModel;
 		filename: string;
 		onclose: () => void;
@@ -42,6 +43,7 @@
 		ondownload,
 		includeProofs = false,
 		downloading = false,
+		downloadStatus = "Preparing save…",
 	}: Props = $props();
 
 	// Hooks subscribe through the nearest file provider. Keep the accessor object:
@@ -195,6 +197,11 @@
 
 					{downloading ? "Exporting…" : "Export save"}
 				</button>
+				<!-- Announce the active phase without changing the button's stable name.
+				     The pending button prevents duplicate exports; Exit stays usable. -->
+				{#if downloading}
+					<span role="status">{downloadStatus}</span>
+				{/if}
 			</header>
 		{/snippet}
 		{#snippet navigation()}

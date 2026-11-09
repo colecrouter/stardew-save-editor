@@ -9,6 +9,7 @@ import {
 import { openEditor } from "../../src/lib/editor/editor-model";
 import type { InventorySlotRequest } from "../../src/lib/editor/inventory-lifecycle.ts";
 import { tinyFixture, parser, exportDocument, fixtureXml } from "./fixtures";
+import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
 
 const run = <A, E>(
 	program: Effect.Effect<A, E, import("effect").Scope.Scope>,
@@ -402,6 +403,7 @@ it("returns exact replacement lineage before a queued Undo and preserves raw ins
 	);
 	if (slot < 0) throw Error("Expected empty full-save slot");
 	const opened = await openEditor(
+		SaveProcessingSync,
 		new TextEncoder().encode(exportDocument(original)),
 		{},
 		{ validateExport: false },

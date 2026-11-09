@@ -4,6 +4,7 @@ import { openEditor } from "../../src/lib/editor/editor-model";
 import { createCatalogItem } from "../../src/lib/editor/item-catalog";
 import BackpackHarness from "./BackpackHarness.svelte";
 import { exportDocument, fixtureXml, parser } from "./fixtures";
+import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
 
 // Use production XML and actual app subscriptions: chest slots are session views
 // over compact lists, so assertions exercise publication rather than local grids.
@@ -74,7 +75,10 @@ async function drag(source: HTMLElement, target: HTMLElement) {
 
 describe("placed chest inventory controls", { timeout: 25_000 }, () => {
 	it("edits and drags between a chest and backpack while selection follows Undo", async () => {
-		const opened = await openEditor(new TextEncoder().encode(chestFixture()));
+		const opened = await openEditor(
+			SaveProcessingSync,
+			new TextEncoder().encode(chestFixture()),
+		);
 		const page = render(BackpackHarness, { model: opened.model });
 		try {
 			expect(
@@ -152,7 +156,10 @@ describe("placed chest inventory controls", { timeout: 25_000 }, () => {
 	});
 
 	it("finds chests by location and reuses the catalog/removal inspector for virtual slots", async () => {
-		const opened = await openEditor(new TextEncoder().encode(chestFixture()));
+		const opened = await openEditor(
+			SaveProcessingSync,
+			new TextEncoder().encode(chestFixture()),
+		);
 		const page = render(BackpackHarness, { model: opened.model });
 		try {
 			await fireEvent.input(
@@ -218,7 +225,10 @@ describe("placed chest inventory controls", { timeout: 25_000 }, () => {
 		}
 	});
 	it("scrolls held touch drags at the viewport edge and cancels the frame without writes", async () => {
-		const opened = await openEditor(new TextEncoder().encode(chestFixture()));
+		const opened = await openEditor(
+			SaveProcessingSync,
+			new TextEncoder().encode(chestFixture()),
+		);
 		const page = render(BackpackHarness, { model: opened.model });
 		let frame: FrameRequestCallback | undefined;
 		const schedule = vi

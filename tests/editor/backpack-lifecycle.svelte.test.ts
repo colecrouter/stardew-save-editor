@@ -5,11 +5,15 @@ import { openEditor } from "../../src/lib/editor/editor-model";
 import { catalogEntries } from "../../src/lib/editor/item-catalog";
 import BackpackHarness from "./BackpackHarness.svelte";
 import { fixtureXml, parser, exportDocument } from "./fixtures";
+import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
 
 // Real full-save copies and export parsing need a bounded integration budget on CI.
 describe("backpack catalog workflow", { timeout: 25_000 }, () => {
 	it("browses without writes, adds to the chosen empty slot, and follows add/remove through undo and redo", async () => {
-		const opened = await openEditor(new TextEncoder().encode(fixtureXml));
+		const opened = await openEditor(
+			SaveProcessingSync,
+			new TextEncoder().encode(fixtureXml),
+		);
 		const page = render(BackpackHarness, { model: opened.model });
 		try {
 			const original = parser.parse(fixtureXml);
@@ -105,6 +109,7 @@ describe("backpack catalog workflow", { timeout: 25_000 }, () => {
 			custom: { "@_version": "2", nested: [{ value: 0 }, { value: false }] },
 		} as never;
 		const opened = await openEditor(
+			SaveProcessingSync,
 			new TextEncoder().encode(exportDocument(original)),
 		);
 		const page = render(BackpackHarness, { model: opened.model });

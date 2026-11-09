@@ -17,6 +17,7 @@ import * as downloads from "../../src/lib/downloadSave";
 import BackupPanel from "../../src/lib/editor/ui/BackupPanel.svelte";
 import EditorApp from "../../src/lib/editor/ui/EditorApp.svelte";
 import { fixtureXml } from "./fixtures";
+import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
 
 mockIDB();
 beforeEach(async () => {
@@ -167,7 +168,10 @@ it(
 			new File([fixtureXml], "ArchivedFarm", { lastModified: 12 }),
 		);
 		const backup = vi.fn(saveOriginalBackup);
-		const page = render(EditorApp, { backupOriginal: backup });
+		const page = render(EditorApp, {
+			processingLayer: SaveProcessingSync,
+			backupOriginal: backup,
+		});
 		try {
 			await fireEvent.click(
 				page.getByText("Original save backups", { selector: "summary" }),
@@ -310,6 +314,7 @@ it.each(["browser", "defect"] as const)(
 	async (kind) => {
 		const log = vi.spyOn(console, "error").mockImplementation(() => {});
 		const page = render(EditorApp, {
+			processingLayer: SaveProcessingSync,
 			backupOriginal: async () => {
 				if (kind === "browser")
 					throw new DOMException("No space", "QuotaExceededError");

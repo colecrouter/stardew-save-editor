@@ -3,6 +3,7 @@ import { expect, it } from "vitest";
 import { openEditor } from "../../src/lib/editor/editor-model";
 import WorkspaceHarness from "./WorkspaceHarness.svelte";
 import { fixtureXml } from "./fixtures";
+import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
 
 // A select does not dispatch the sidebar's click handler. Exercise lazy mounting
 // and field-gesture closure through that alternative route with a real session.
@@ -10,7 +11,10 @@ it(
 	"navigates with the section picker and retains one Undo entry for a completed field gesture",
 	{ timeout: 20000 },
 	async () => {
-		const opened = await openEditor(new TextEncoder().encode(fixtureXml));
+		const opened = await openEditor(
+			SaveProcessingSync,
+			new TextEncoder().encode(fixtureXml),
+		);
 		const page = render(WorkspaceHarness, { model: opened.model });
 		try {
 			const picker = page.getByLabelText("Section", { exact: true });

@@ -11,6 +11,7 @@ import {
 	withReviewMetadata,
 } from "../../src/lib/editor/transaction-annotations";
 import { fixtureXml, parser, tinyFixture } from "./fixtures";
+import { makeSaveProcessor } from "../../src/lib/editor/save-processing.ts";
 
 const fullHistoryCopies = (calls: unknown[][]) =>
 	calls.filter(
@@ -26,7 +27,10 @@ it("publishes detached immutable review data without copying full History for th
 		Effect.scoped(
 			Effect.gen(function* () {
 				const session = yield* makeHistorySession(parser.parse(fixtureXml));
-				const model = yield* makeEditorModel(session, yield* SaveCodec);
+				const model = yield* makeEditorModel(
+					session,
+					makeSaveProcessor(yield* SaveCodec),
+				);
 				const spy = vi.spyOn(globalThis, "structuredClone");
 				try {
 					const result = yield* Effect.promise(() =>
@@ -108,7 +112,10 @@ it("publishes only successful retry results and preserves the competing revision
 		Effect.scoped(
 			Effect.gen(function* () {
 				const session = yield* makeHistorySession(parser.parse(fixtureXml));
-				const model = yield* makeEditorModel(session, yield* SaveCodec);
+				const model = yield* makeEditorModel(
+					session,
+					makeSaveProcessor(yield* SaveCodec),
+				);
 				const initial = get(model.view)?.farm.name;
 				const seen: { revision: number; name: string }[] = [];
 				const stop = model.view.subscribe((view) => {

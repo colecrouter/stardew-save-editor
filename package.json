@@ -14,6 +14,7 @@
 		"format:check": "oxfmt --check .",
 		"test": "vitest run",
 		"test:editor": "npm run sync && vitest run tests/editor",
+		"test:browser:save-processing": "node --import tsx tools/verify-save-processing-browser.mjs",
 		"emulate:webkit": "node tests/webkit.js",
 		"prepare": "effect-language-service patch && effect-tsgo patch --typescript",
 		"check:types": "npm run sync && node node_modules/@typescript/native/bin/tsc --noEmit -p tsconfig.json",
@@ -25,6 +26,7 @@
 	"devDependencies": {
 		"@biomejs/biome": "^2.4.4",
 		"@effect/language-service": "0.87.5",
+		"@effect/platform-node": "4.0.6",
 		"@effect/tsgo": "0.56.1",
 		"@sentry/sveltekit": "^10.53.1",
 		"@sveltejs/adapter-static": "^3.0.10",
@@ -67,9 +69,13 @@
 		"node": ">=24 <25"
 	},
 	"dependencies": {
+		"@effect/platform-browser": "4.0.6",
 		"bits-ui": "2.20.3",
 		"effect": "4.0.6",
 		"effect-atom-svelte": "0.4.1",
 		"mutative": "2.0.1"
+	},
+	"overrides": {
+		"@effect/platform-node-shared": "4.0.6"
 	}
 }

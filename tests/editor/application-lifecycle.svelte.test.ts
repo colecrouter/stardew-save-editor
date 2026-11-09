@@ -5,6 +5,7 @@ import EditorApp from "../../src/lib/editor/ui/EditorApp.svelte";
 import * as editor from "../../src/lib/editor/editor-model";
 import { editorResources } from "../../src/lib/editor/editor-model";
 import { fixtureXml } from "./fixtures";
+import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
 
 const released = () =>
 	expect(editorResources()).toEqual({ models: 0, registries: 0, streams: 0 });
@@ -19,7 +20,7 @@ it("waits for a destination before exporting and skips export on picker cancella
 		value: picker,
 	});
 	const open = vi.spyOn(editor, "openEditor");
-	const page = render(EditorApp);
+	const page = render(EditorApp, { processingLayer: SaveProcessingSync });
 	try {
 		await fireEvent.change(page.getByLabelText("Save file"), {
 			target: { files: [new File([fixtureXml], "Farm_123")] },
@@ -51,7 +52,10 @@ it("ignores a file read that finishes after application teardown", async () => {
 	const read = vi.spyOn(file, "arrayBuffer").mockReturnValue(pending.promise);
 	const open = vi.spyOn(editor, "openEditor");
 	const backup = vi.fn(async () => {});
-	const page = render(EditorApp, { backupOriginal: backup });
+	const page = render(EditorApp, {
+		processingLayer: SaveProcessingSync,
+		backupOriginal: backup,
+	});
 	try {
 		await fireEvent.change(page.getByLabelText("Save file"), {
 			target: { files: [file] },
@@ -96,7 +100,7 @@ it.each(["picker", "stream"] as const)(
 			configurable: true,
 			value: picker,
 		});
-		const page = render(EditorApp);
+		const page = render(EditorApp, { processingLayer: SaveProcessingSync });
 		try {
 			await fireEvent.change(page.getByLabelText("Save file"), {
 				target: { files: [new File([fixtureXml], "FirstFarm")] },
@@ -158,7 +162,7 @@ it(
 				await delivery.promise;
 				return session;
 			});
-		const page = render(EditorApp);
+		const page = render(EditorApp, { processingLayer: SaveProcessingSync });
 		let session: Awaited<ReturnType<typeof acquire>> | undefined;
 		try {
 			await fireEvent.change(page.getByLabelText("Save file"), {

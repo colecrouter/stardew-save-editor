@@ -9,12 +9,13 @@ import {
 } from "../../src/lib/editor/editor-model.ts";
 import { exportDocument, parser, tinyFixture } from "./fixtures";
 import type { Save } from "../../codegen/save.ts";
+import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
 
 const openEditor = (
 	bytes: Uint8Array,
 	limits: import("../../src/lib/editor/history.ts").HistoryLimits = {},
 ) =>
-	openApplicationEditor(bytes, limits, {
+	openApplicationEditor(SaveProcessingSync, bytes, limits, {
 		includeProofs: true,
 		validateExport: false,
 	});

@@ -8,6 +8,7 @@ import {
 } from "../../src/lib/editor/calendar-operations";
 import { fixtureXml, parser, exportDocument } from "./fixtures";
 import type { Save } from "../../codegen/save";
+import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
 
 const bytes = (xml: string) => new TextEncoder().encode(xml);
 
@@ -24,7 +25,10 @@ describe("full-save application calendar", { timeout: 15_000 }, () => {
 			items: { moddedInventory: "007" },
 		};
 		raw.modData = { untouched: ["0007", { nested: "opaque" }] };
-		const opened = await openEditor(bytes(exportDocument(document)));
+		const opened = await openEditor(
+			SaveProcessingSync,
+			bytes(exportDocument(document)),
+		);
 		try {
 			expect(get(opened.model.view)?.net).toEqual([]);
 			expect(get(opened.model.view)?.bundle.supported).toBe(false);
@@ -50,7 +54,10 @@ describe("full-save application calendar", { timeout: 15_000 }, () => {
 	it("the application validates exact exported bytes and blocks existing definite errors without mutating the baseline", async () => {
 		const document = parser.parse(fixtureXml);
 		document.SaveGame.player.money = 3_000_000_000;
-		const opened = await openEditor(bytes(exportDocument(document)));
+		const opened = await openEditor(
+			SaveProcessingSync,
+			bytes(exportDocument(document)),
+		);
 		try {
 			expect(opened.model.loadValidation.valid).toBe(false);
 			const before = await opened.model.snapshot();
@@ -78,7 +85,10 @@ describe("full-save application calendar", { timeout: 15_000 }, () => {
 			],
 		};
 		Object.assign(game, { modData: { untouched: "007" } });
-		const opened = await openEditor(bytes(exportDocument(document)));
+		const opened = await openEditor(
+			SaveProcessingSync,
+			bytes(exportDocument(document)),
+		);
 		try {
 			const result = await opened.model.commands.transact(
 				Effect.gen(function* () {
@@ -91,7 +101,7 @@ describe("full-save application calendar", { timeout: 15_000 }, () => {
 			expect(exported && Result.isSuccess(exported)).toBe(true);
 			if (!exported || Result.isFailure(exported))
 				throw Error("Expected valid exported save");
-			const reloaded = await openEditor(exported.success);
+			const reloaded = await openEditor(SaveProcessingSync, exported.success);
 			try {
 				expect(get(reloaded.model.view)?.calendar.date).toMatchObject({
 					year: 3,

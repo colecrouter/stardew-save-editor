@@ -32,6 +32,13 @@ try {
 		try {
 			const page = await context.newPage(),
 				errors = [];
+			// Fail a stalled UI assertion instead of leaving browser validation
+			// running indefinitely when an expected state never arrives.
+			page.setDefaultTimeout(30_000);
+			console.log(`Checking ${viewport.width}x${viewport.height}`);
+			// Production preview uses the real SDK configuration; keep synthetic QA
+			// sessions out of production telemetry while exercising the built app.
+			await page.route(/sentry\.io/, (route) => route.abort());
 			page.on("pageerror", (error) => errors.push(error.message));
 			// Use the bounded anchor-download fallback rather than an OS picker.
 			await page.addInitScript(() =>

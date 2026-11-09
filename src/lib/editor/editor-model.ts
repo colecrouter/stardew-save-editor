@@ -37,11 +37,7 @@ import {
 	type InventoryView,
 } from "./inventory-views.ts";
 import { readFarmSettings, type FarmView } from "./farm-operations.ts";
-import {
-	validateSave,
-	describeProblems,
-	type SaveValidation,
-} from "../saveValidation.ts";
+import { validateSave, type SaveValidation } from "../saveValidation.ts";
 import type { CommandResult } from "./command-result.ts";
 import type { TransactionDraft } from "./transaction-draft.ts";
 import type { ReviewJournal } from "./transaction-annotations.ts";
@@ -49,11 +45,11 @@ import { setCalendarDate } from "./calendar-operations.ts";
 import { springBundleView } from "./bundle-operations.ts";
 import {
 	Cause,
-	Data,
 	Effect,
 	Exit,
 	Fiber,
 	JsonPatch,
+	Layer,
 	Option,
 	Result,
 	Scope,
@@ -81,12 +77,8 @@ import type { Field } from "./field.ts";
 import { MutationError, type MutationRequest } from "./domain.ts";
 import { makeHistorySession, type HistoryLimits } from "./history.ts";
 import type { HistorySession, HistoryState } from "./history.ts";
-import { SaveCodec, SaveCodecLive } from "./save-service.ts";
-
-export class SaveExportRejected extends Data.TaggedError("SaveExportRejected")<{
-	readonly message: string;
-	readonly validation: SaveValidation;
-}> {}
+import { SaveProcessor } from "./save-processing.ts";
+export { SaveExportRejected } from "./save-processing.ts";
 
 const resources = { models: 0, registries: 0, streams: 0 };
 export const editorResources = () => ({ ...resources });
@@ -308,8 +300,9 @@ export const formatDateDraft = (date: GameDate) =>
 // exported to views. Closing the scope clears both the engine and registry.
 export const makeEditorModel = (
 	session: HistorySession,
-	codec: SaveCodec["Service"],
+	processor: SaveProcessor["Service"],
 	options: { includeProofs?: boolean; validateExport?: boolean } = {},
+	importValidation?: SaveValidation,
 ) =>
 	Effect.gen(function* () {
 		// Capture the session scope and services once at the application boundary.
@@ -470,10 +463,12 @@ export const makeEditorModel = (
 					registry.set(selectedFarmerAtom, choices[0]?.farmerId);
 			}
 		};
-		const imported = yield* session.snapshot;
-		const loadValidation = validateSave(imported.document);
-		// Validation keeps a detached import document. Seed cache keys from owned
-		// committed branches, rather than from that unrelated preservation copy.
+		// Browser imports already checked the original in the worker. Direct model
+		// fixtures retain the same check without requiring a processing transport.
+		const loadValidation =
+			importValidation ?? validateSave((yield* session.snapshot).document);
+		// Seed cache keys from owned committed branches, rather than from a
+		// detached import/validation document with unrelated object identities.
 		publish(yield* session.forProjection(projectPublication).snapshot);
 		// Own the observer fiber with the file, not with an individual screen. Panel
 		// navigation should neither fork additional streams nor lose committed state.
@@ -772,17 +767,12 @@ export const makeEditorModel = (
 				submit(() =>
 					Effect.gen(function* () {
 						const state = yield* live().snapshot;
-						const bytes = yield* codec.encode(state.document);
-						const reparsed = yield* codec.decode(bytes);
-						// Validate the exact bytes to be downloaded without normalizing
-						// the imported baseline or hiding unsupported/modded fields.
-						const validation = validateSave(reparsed);
-						if (options.validateExport !== false && !validation.valid)
-							return yield* new SaveExportRejected({
-								message: `Save file not downloaded: ${describeProblems(validation.errors)}`,
-								validation,
-							});
-						return bytes;
+						// The queue fixes the export revision before transport detaches it.
+						// Browser exports encode and validate in the file-owned worker.
+						return yield* processor.export(
+							state.document,
+							options.validateExport !== false,
+						);
 					}),
 				),
 		};
@@ -862,9 +852,7 @@ export const makeEditorModel = (
 				command(async () => {
 					await run(live().endEdit());
 					const state = await run(live().snapshot);
-					const bytes = await run(codec.encode(state.document));
-					await run(codec.decode(bytes));
-					return bytes;
+					return await run(processor.export(state.document, false));
 				}),
 			snapshot: () => command(() => run(live().snapshot)),
 		};
@@ -877,28 +865,48 @@ export type EditorModel = Effect.Success<ReturnType<typeof makeEditorModel>>;
  * Decode an import and acquire its calendar session, read models and registry.
  * The caller owns `close()`: unmount registry consumers before awaiting it.
  * Failed acquisition releases resources before rejecting.
+ * The caller must select a processing layer; there is no implicit execution mode.
  *
  * The production projections and export validation are enabled by default;
  * `includeProofs` and `validateExport: false` support the comparison lab.
  * @returns The application model and the function that closes its file scope.
  */
 export async function openEditor(
+	processingLayer: Layer.Layer<SaveProcessor>,
 	bytes: Uint8Array,
 	limits: HistoryLimits = {},
-	options: { includeProofs?: boolean; validateExport?: boolean } = {},
+	options: {
+		includeProofs?: boolean;
+		validateExport?: boolean;
+		signal?: AbortSignal;
+	} = {},
 ) {
 	const scope = Scope.makeUnsafe();
 	try {
+		// Choose implementations at the composition boundary. Build them into the
+		// file's explicit scope so returning the model does not close its worker.
+		const services = await Effect.runPromise(
+			Layer.buildWithScope(processingLayer, scope),
+			{ signal: options.signal },
+		);
 		const model = await Effect.runPromise(
 			Effect.gen(function* () {
-				const codec = yield* SaveCodec;
-				const document = yield* codec.decode(bytes);
-				const session = yield* makeHistorySession(document, limits);
-				return yield* makeEditorModel(session, codec, options);
+				const processor = yield* SaveProcessor;
+				// The worker exists before decode so Cancel can interrupt import and
+				// close its scope even before there is an installed editor session.
+				const imported = yield* processor.import(bytes);
+				const session = yield* makeHistorySession(imported.document, limits);
+				return yield* makeEditorModel(
+					session,
+					processor,
+					options,
+					imported.validation,
+				);
 			}).pipe(
-				Effect.provide(SaveCodecLive),
+				Effect.provideContext(services),
 				Effect.provideService(Scope.Scope, scope),
 			),
+			{ signal: options.signal },
 		);
 		return {
 			model,

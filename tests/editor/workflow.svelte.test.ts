@@ -3,6 +3,7 @@ import { render, fireEvent, waitFor } from "@testing-library/svelte";
 import { editorResources } from "../../src/lib/editor/editor-model";
 import EditorApp from "../../src/lib/editor/ui/EditorApp.svelte";
 import { fixtureXml } from "./fixtures";
+import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
 
 // These integration scenarios repeatedly parse or export the 6.6 MB save fixture.
 // Match the calendar suites’ CI budget: assertions verify preservation and workflow,
@@ -11,7 +12,11 @@ describe("full-save application workflow", { timeout: 15_000 }, () => {
 	it("the migrated UI imports, stages one date action, reviews, undoes and closes its session", async () => {
 		const backupOriginal = vi.fn(async () => {});
 		const page = render(EditorApp, {
-			props: { legacyHref: "/", backupOriginal },
+			props: {
+				processingLayer: SaveProcessingSync,
+				legacyHref: "/",
+				backupOriginal,
+			},
 		});
 		try {
 			const input = page.getByLabelText("Save file") as HTMLInputElement;
@@ -66,7 +71,7 @@ describe("full-save application workflow", { timeout: 15_000 }, () => {
 	});
 
 	it("an unreadable compressed file leaves the upload usable for another attempt", async () => {
-		const page = render(EditorApp);
+		const page = render(EditorApp, { processingLayer: SaveProcessingSync });
 		try {
 			await fireEvent.change(page.getByLabelText("Save file"), {
 				target: { files: [new File(["xyz"], "BadFarm")] },
@@ -106,6 +111,7 @@ describe("full-save application workflow", { timeout: 15_000 }, () => {
 		});
 		const page = render(EditorApp, {
 			props: {
+				processingLayer: SaveProcessingSync,
 				backupOriginal: async () => {
 					throw new DOMException("Backup unavailable", "QuotaExceededError");
 				},

@@ -12,6 +12,7 @@ import { setInventoryItem } from "../../src/lib/editor/inventory-operations";
 import { readChests } from "../../src/lib/editor/inventory-views";
 import { XMLCodec } from "../../src/lib/xmlCodec";
 import { fixtureXml, parser, tinyFixture } from "./fixtures";
+import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
 
 const locations = () => ({
 	GameLocation: [
@@ -58,7 +59,10 @@ it(
 	async () => {
 		const document = parser.parse(fixtureXml);
 		Object.assign(document.SaveGame, { locations: locations() });
-		const opened = await openEditor(new XMLCodec().stringify(document));
+		const opened = await openEditor(
+			SaveProcessingSync,
+			new XMLCodec().stringify(document),
+		);
 		try {
 			const model = opened.model;
 			const original = required(get(model.view));

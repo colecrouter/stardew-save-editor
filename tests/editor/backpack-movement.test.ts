@@ -4,6 +4,7 @@ import { makeHistorySession } from "../../src/lib/editor/history";
 import { openEditor } from "../../src/lib/editor/editor-model";
 import type { InventoryMoveRequest } from "../../src/lib/editor/inventory-movement.ts";
 import { tinyFixture, fixtureXml, parser } from "./fixtures";
+import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
 
 const run = <A, E>(
 	program: Effect.Effect<A, E, import("effect").Scope.Scope>,
@@ -266,7 +267,10 @@ it(
 	"returns the committed destination owner before queued Undo changes the current view",
 	{ timeout: 15_000 },
 	async () => {
-		const opened = await openEditor(new TextEncoder().encode(fixtureXml));
+		const opened = await openEditor(
+			SaveProcessingSync,
+			new TextEncoder().encode(fixtureXml),
+		);
 		try {
 			const initial = await opened.model.snapshot();
 			const farmerId = String(

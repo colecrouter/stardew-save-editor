@@ -16,6 +16,15 @@ workspace setup and unmount-before-file-close cleanup. Keep feature assertions a
 special cancellation/lifetime setup explicit. Use small fixtures for rule tests;
 retain full-save cases for preservation. Never commit private user saves.
 
+`openEditor(processingLayer, bytes, ...)` requires an explicit execution choice.
+The app supplies `SaveProcessingBrowser`. Component/unit fixtures and CPU-only
+profiling select `SaveProcessingSync`; tests that only need a failure or pending
+operation can supply a mock layer. Engine application integration tests select
+`SaveProcessingNode` from `tests/helpers/save-processing-node.ts`, exercising real
+worker threads with the same RPC client and handlers as the browser. Keep the Node
+adapter beside these shared helpers so it resolves the app's Effect installation,
+rather than mixing the engine test package's separate runtime into the transport.
+
 Engine comparison executors and store/Atom harnesses are test-only reference
 fixtures, not alternate application runtimes. Their assertions remain until
 superseded deliberately. Native Node tests run without Vite and catch browser-only
@@ -64,3 +73,27 @@ main-thread clone timings, picker latency and heartbeat stalls. Use `--url` for 
 slash. The 1× result compares ordinary wall time; the 6× result diagnoses where
 work runs. Chrome's renderer CPU throttle leaves the legacy XML worker unthrottled,
 so the latter is **not** an equal-speed comparison of slower devices.
+
+To exercise V2's actual import/export Effect worker transport against production preview:
+
+```sh
+npx playwright install chromium
+npm run test:browser:save-processing -- --output /tmp/save-worker.json
+```
+
+This uses Playwright Chromium and the public fixture; pass `--channel chrome` to
+use installed Chrome instead. CI runs this command against a production build and
+retains JSON and screenshot evidence. It checks worker constructor/module-load
+failures and successful retry, compressed import,
+import cancellation and error recovery, loading phases and disabled duplicate
+actions, full parsed-save preservation, sender buffer detachment after transfer,
+typed validation failures, termination while a response is pending, and retry
+after an injected worker error. Input transfer leaves the caller's bytes intact.
+The destination is simulated without writing to disk; Sentry traffic is blocked.
+Use `--url` to override the default preview URL. With `--output`, loading screenshots
+are saved alongside the JSON evidence. The ordinary browser smoke also
+checks the anchor fallback, editing/history and reimport at four viewport sizes.
+
+Component coverage in `tests/editor/import-loading.svelte.test.ts` also cancels
+while the processing layer is still acquiring, verifies resource release, and
+opens the same file again successfully.

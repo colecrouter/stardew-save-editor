@@ -9,6 +9,7 @@ import { makeEditorModel } from "../../src/lib/editor/editor-model";
 import { SaveCodec, SaveCodecLive } from "../../src/lib/editor/save-service";
 import { setFarmSettings } from "../../src/lib/editor/farm-operations";
 import { fixtureXml, parser, tinyFixture } from "./fixtures";
+import { makeSaveProcessor } from "../../src/lib/editor/save-processing.ts";
 
 it("skips acknowledged snapshots before cloning while ordinary subscribers retain detached changes", () =>
 	Effect.runPromise(
@@ -102,8 +103,11 @@ it("keeps separate model cursors and publishes lower-level writes without droppi
 			Effect.gen(function* () {
 				const session = yield* makeHistorySession(parser.parse(fixtureXml));
 				const codec = yield* SaveCodec;
-				const first = yield* makeEditorModel(session, codec);
-				const second = yield* makeEditorModel(session, codec);
+				const first = yield* makeEditorModel(session, makeSaveProcessor(codec));
+				const second = yield* makeEditorModel(
+					session,
+					makeSaveProcessor(codec),
+				);
 				const seen: number[] = [];
 				const stop = first.view.subscribe((value) => {
 					if (value) seen.push(value.revision);
@@ -154,7 +158,10 @@ it("reports a terminal observer defect once instead of silently abandoning the v
 			Effect.scoped(
 				Effect.gen(function* () {
 					const session = yield* makeHistorySession(parser.parse(fixtureXml));
-					const model = yield* makeEditorModel(session, yield* SaveCodec);
+					const model = yield* makeEditorModel(
+						session,
+						makeSaveProcessor(yield* SaveCodec),
+					);
 					const registry = model.atomBindings.registry;
 					const set = registry.set.bind(registry);
 					// Only the observer publishes this lower-level write. Fail its next Atom

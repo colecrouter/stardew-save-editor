@@ -4,6 +4,7 @@ import { makeHistorySession } from "../../src/lib/editor/history.ts";
 import { TransactionDraft } from "../../src/lib/editor/transaction-draft.ts";
 import { MutationError } from "../../src/lib/editor/domain.ts";
 import { tinyFixture } from "./fixtures.ts";
+import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
 import {
 	coreOperations,
 	EditorOperations,
@@ -186,6 +187,7 @@ it("groups field commands while shared farmer selection and export create explic
 	guest.name = "Gesture guest";
 	document.SaveGame.farmhands = { Farmer: [guest] };
 	const opened = await openEditor(
+		SaveProcessingSync,
 		new TextEncoder().encode(exportDocument(document)),
 		{},
 		{ validateExport: false },

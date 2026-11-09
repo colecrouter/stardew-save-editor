@@ -8,12 +8,16 @@ import BackpackItemVisual from "../../src/lib/editor/ui/BackpackItemVisual.svelt
 import { openEditor } from "../../src/lib/editor/editor-model";
 import BackpackHarness from "./BackpackHarness.svelte";
 import { exportDocument, fixtureXml, parser } from "./fixtures";
+import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
 
 // Exercise the app-owned lazy panel with real full-save commands and export.
 // The complete fixture needs the same bounded CI budget as other workflow suites.
 describe("full-save backpack workflow", { timeout: 15_000 }, () => {
 	it("initial and explicit selections follow their entity through reorder and undo", async () => {
-		const opened = await openEditor(new TextEncoder().encode(fixtureXml));
+		const opened = await openEditor(
+			SaveProcessingSync,
+			new TextEncoder().encode(fixtureXml),
+		);
 		const page = render(BackpackHarness, { model: opened.model });
 		try {
 			const document = parser.parse(fixtureXml);
@@ -92,7 +96,7 @@ describe("full-save backpack workflow", { timeout: 15_000 }, () => {
 				loaded = await load(...args);
 				return loaded;
 			});
-		const page = render(EditorApp);
+		const page = render(EditorApp, { processingLayer: SaveProcessingSync });
 		try {
 			await fireEvent.change(page.getByLabelText("Save file"), {
 				target: { files: [new File([xml], "Farm_123")] },
@@ -212,7 +216,10 @@ describe("full-save backpack workflow", { timeout: 15_000 }, () => {
 	});
 
 	it("clearing and rapid valid input preserve focus and commit the latest quantity without blur", async () => {
-		const opened = await openEditor(new TextEncoder().encode(fixtureXml));
+		const opened = await openEditor(
+			SaveProcessingSync,
+			new TextEncoder().encode(fixtureXml),
+		);
 		const page = render(BackpackHarness, { model: opened.model });
 		try {
 			await fireEvent.click(

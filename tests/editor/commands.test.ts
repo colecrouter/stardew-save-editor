@@ -8,12 +8,13 @@ import {
 	setCalendarDate,
 	setCalendarWeather,
 } from "../../src/lib/editor/calendar-operations.ts";
+import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
 
 const input = async () => new TextEncoder().encode(fixtureXml);
 
 it("command results retain expected errors without reporting defects", async () => {
 	const report = vi.spyOn(console, "error").mockImplementation(() => {});
-	const opened = await openEditor(await input());
+	const opened = await openEditor(SaveProcessingSync, await input());
 	try {
 		const before = await opened.model.snapshot();
 		const result = await opened.model.commands.transact(
@@ -32,7 +33,7 @@ it("command results retain expected errors without reporting defects", async () 
 
 it("a defect after staged writes reports once, clears pending and preserves redo; later edits work", async () => {
 	const report = vi.spyOn(console, "error").mockImplementation(() => {});
-	const opened = await openEditor(await input());
+	const opened = await openEditor(SaveProcessingSync, await input());
 	try {
 		await opened.model.commands.transact(setCalendarDate({ year: 3 }));
 		await opened.model.commands.undo();
@@ -63,7 +64,7 @@ it("a defect after staged writes reports once, clears pending and preserves redo
 
 it("closing a session cancels running and queued UI commands without toasts or rejections", async () => {
 	const report = vi.spyOn(console, "error").mockImplementation(() => {});
-	const opened = await openEditor(await input());
+	const opened = await openEditor(SaveProcessingSync, await input());
 	try {
 		const pending = opened.model.commands.transact(Effect.never);
 		const queued = opened.model.commands.transact(setCalendarDate({ year: 5 }));

@@ -3,6 +3,7 @@ import { expect, it, vi } from "vitest";
 import { openEditor } from "../../src/lib/editor/editor-model";
 import WorkspaceHarness from "./WorkspaceHarness.svelte";
 import { fixtureXml } from "./fixtures";
+import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
 
 // Exercise real fields and commands: shortcuts must restore the actual save,
 // preserve the typing gesture and disappear when the file workspace unmounts.
@@ -13,7 +14,10 @@ it.each([false, true])(
 		const platform = vi
 			.spyOn(navigator, "platform", "get")
 			.mockReturnValue(apple ? "MacIntel" : "Win32");
-		const opened = await openEditor(new TextEncoder().encode(fixtureXml));
+		const opened = await openEditor(
+			SaveProcessingSync,
+			new TextEncoder().encode(fixtureXml),
+		);
 		const page = render(WorkspaceHarness, { model: opened.model });
 		const chord = {
 			key: "z",

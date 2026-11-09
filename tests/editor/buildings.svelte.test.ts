@@ -9,6 +9,7 @@ import {
 	COOP_ID,
 } from "../helpers/animalBuildings";
 import WorkspaceHarness from "./WorkspaceHarness.svelte";
+import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
 
 // Exercise real field lifetimes and discrete transactions through the workspace,
 // rather than reproducing the domain implementation in a component mock.
@@ -17,6 +18,7 @@ it(
 	{ timeout: 30000 },
 	async () => {
 		const opened = await openEditor(
+			SaveProcessingSync,
 			new TextEncoder().encode(withAnimalBuildings(fixtureXml)),
 		);
 		const page = render(WorkspaceHarness, { model: opened.model });

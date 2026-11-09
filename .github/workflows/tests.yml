@@ -37,3 +37,36 @@ jobs:
       - run: npm run check --prefix tests/engine
       - run: npm run effect:diagnostics --prefix tests/engine
       - run: npm test --prefix tests/engine
+
+  # Exercise native worker messaging and transfer semantics outside the DOM shim.
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run build
+      - name: Verify save processing in a real browser
+        shell: bash
+        run: |
+          # Own Vite directly so the cleanup trap terminates the server itself.
+          node node_modules/vite/bin/vite.js preview --host 127.0.0.1 --port 4269 --strictPort > "$RUNNER_TEMP/preview.log" 2>&1 &
+          preview_pid=$!
+          trap 'kill "$preview_pid" 2>/dev/null || true' EXIT
+          curl --retry 30 --retry-delay 1 --retry-connrefused --retry-max-time 30 --max-time 2 --fail --silent --output /dev/null http://127.0.0.1:4269/stardew-save-editor/
+          npm run test:browser:save-processing -- --output "$RUNNER_TEMP/save-processing.json"
+      - name: Preserve browser regression evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: save-processing-browser
+          path: |
+            ${{ runner.temp }}/save-processing.json*
+            ${{ runner.temp }}/preview.log
+          if-no-files-found: ignore
+          retention-days: 7

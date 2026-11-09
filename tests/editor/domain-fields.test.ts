@@ -6,6 +6,7 @@ import { createFarmFields } from "../../src/lib/editor/farm-domain.ts";
 import { readCharacters } from "../../src/lib/editor/character-operations.ts";
 import { readFarmSettings } from "../../src/lib/editor/farm-operations.ts";
 import { exportDocument, fixtureXml, parser } from "./fixtures.ts";
+import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
 
 function required<T>(value: T | undefined): T {
 	if (value === undefined) throw new Error("Expected fixture value");
@@ -16,7 +17,10 @@ function required<T>(value: T | undefined): T {
 // ordinary fields while those fields own coordinated game writes and grouping.
 describe("domain-owned field adapters", { timeout: 25000 }, () => {
 	it("groups repeated skill edits and restores the original full save with one Undo", async () => {
-		const opened = await openEditor(new TextEncoder().encode(fixtureXml));
+		const opened = await openEditor(
+			SaveProcessingSync,
+			new TextEncoder().encode(fixtureXml),
+		);
 		try {
 			const before = await opened.model.snapshot();
 			const character = createCharacterDomain(
@@ -55,6 +59,7 @@ describe("domain-owned field adapters", { timeout: 25000 }, () => {
 		guest.name = "Guest";
 		document.SaveGame.farmhands = { Farmer: [guest] };
 		const opened = await openEditor(
+			SaveProcessingSync,
 			new TextEncoder().encode(exportDocument(document)),
 		);
 		try {
@@ -81,7 +86,10 @@ describe("domain-owned field adapters", { timeout: 25000 }, () => {
 	});
 
 	it("groups farm text changes and removes the net Undo entry when the original value returns", async () => {
-		const opened = await openEditor(new TextEncoder().encode(fixtureXml));
+		const opened = await openEditor(
+			SaveProcessingSync,
+			new TextEncoder().encode(fixtureXml),
+		);
 		try {
 			const before = await opened.model.snapshot();
 			const field = createFarmFields(

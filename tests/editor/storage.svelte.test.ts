@@ -5,6 +5,7 @@ import { readChests } from "../../src/lib/editor/inventory-views";
 import { createCatalogItem } from "../../src/lib/editor/item-catalog";
 import { fixtureXml, parser, exportDocument } from "./fixtures";
 import StorageHarness from "./StorageHarness.svelte";
+import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
 
 it(
 	"searches across chests, picks eligible items and changes quality with one Undo",
@@ -55,6 +56,7 @@ it(
 			},
 		});
 		const opened = await openEditor(
+				SaveProcessingSync,
 				new TextEncoder().encode(exportDocument(document)),
 			),
 			page = render(StorageHarness, { model: opened.model });

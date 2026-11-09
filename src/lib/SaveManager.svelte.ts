@@ -1,4 +1,4 @@
-import { downloadSave } from "./downloadSave";
+import { chooseSaveDestination, type SaveDestination } from "./downloadSave";
 import { error } from "@sveltejs/kit";
 import * as Comlink from "comlink";
 import pako from "pako";
@@ -223,15 +223,19 @@ export class SaveManager {
 	}
 
 	/** Download the save if it passes validation; throws SaveValidationError if not */
-	async download() {
+	async download(destination?: SaveDestination) {
 		const generation = this.generation;
 		const filename = this.filename;
 		const signal = this.downloads.signal;
 		try {
+			// Direct callers also reserve the destination before validation work.
+			const target =
+				destination ?? (await chooseSaveDestination(filename, signal));
+			if (!target || generation !== this.generation) return;
 			const { blob, validation } = await this.validatedExport();
 			if (generation !== this.generation) return;
 			if (!validation.valid) throw new SaveValidationError(validation);
-			if (!(await downloadSave(blob, filename, signal))) return;
+			if (!(await target.write(blob, signal))) return;
 			if (generation !== this.generation) return;
 			return validation;
 		} catch (cause) {

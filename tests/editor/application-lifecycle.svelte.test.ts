@@ -9,6 +9,40 @@ import { fixtureXml } from "./fixtures";
 const released = () =>
 	expect(editorResources()).toEqual({ models: 0, registries: 0, streams: 0 });
 
+// Picker ownership must precede all export work, even when it stays open for a
+// long time. Dismissing it must not serialize or write the document at all.
+it("waits for a destination before exporting and skips export on picker cancellation", async () => {
+	const acquisition = Promise.withResolvers<FileSystemFileHandle>();
+	const picker = vi.fn(() => acquisition.promise);
+	Object.defineProperty(window, "showSaveFilePicker", {
+		configurable: true,
+		value: picker,
+	});
+	const open = vi.spyOn(editor, "openEditor");
+	const page = render(EditorApp);
+	try {
+		await fireEvent.change(page.getByLabelText("Save file"), {
+			target: { files: [new File([fixtureXml], "Farm_123")] },
+		});
+		const button = await page.findByRole("button", { name: "Export save" });
+		const session = await open.mock.results[0]?.value;
+		if (!session) throw new Error("Missing editor session");
+		const exporting = vi.spyOn(session.model.commands, "export");
+		await fireEvent.click(button);
+		expect(picker).toHaveBeenCalledOnce();
+		expect(exporting).not.toHaveBeenCalled();
+		acquisition.reject(new DOMException("Canceled", "AbortError"));
+		await waitFor(() => expect(button.hasAttribute("disabled")).toBe(false));
+		expect(exporting).not.toHaveBeenCalled();
+		expect(page.queryByRole("alert")).toBeNull();
+	} finally {
+		page.unmount();
+		open.mockRestore();
+		Reflect.deleteProperty(window, "showSaveFilePicker");
+		await waitFor(released);
+	}
+});
+
 // File reads cannot be interrupted by closing a component. Completing an old
 // read must not create a session after its application owner has disappeared.
 it("ignores a file read that finishes after application teardown", async () => {

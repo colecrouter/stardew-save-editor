@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { tick } from "svelte";
+	import { chooseSaveDestination } from "$lib/downloadSave";
 	import { goto } from "$app/navigation";
 	import { asset, resolve } from "$app/paths";
 	import "$lib/ui/study-theme.css";
@@ -30,13 +31,18 @@
 	const download = async () => {
 		if (isDownloading) return;
 		isDownloading = true;
-		// Let a field that's mid-edit commit or fall back to a valid value before exporting
-		if (document.activeElement instanceof HTMLElement) {
-			document.activeElement.blur();
-		}
-		await tick();
-		return saveManager
-			.download()
+		const prepare = async () => {
+			// Open the picker before field commits or export work can expire activation.
+			const generationSave = saveManager.save;
+			const destination = await chooseSaveDestination(saveManager.filename);
+			if (!destination || saveManager.save !== generationSave) return;
+			// Let a field that's mid-edit commit or fall back to a valid value before exporting.
+			if (document.activeElement instanceof HTMLElement)
+				document.activeElement.blur();
+			await tick();
+			return saveManager.download(destination);
+		};
+		return prepare()
 			.then((validation) => {
 				// A dismissed save picker did not download a file.
 				if (!validation) return;

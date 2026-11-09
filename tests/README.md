@@ -32,3 +32,35 @@ and `--output` for evidence (default `/tmp/v2-browser-smoke.json`). It checks fo
 viewport sizes, edit/history, desktop native drag and exact export/reimport. It
 starts no server and installs no browser. Restart preview after rebuilding.
 Native devices, VoiceOver and performance budgets remain separate qualifications.
+
+To investigate native save-picker activation, run an existing dev server and then:
+
+```sh
+node tools/probe-save-picker-browser.mjs --output /tmp/save-picker-probe.json
+```
+
+This uses installed Chrome and the public `TestSave` fixture at
+1×, 6× and 20× CPU throttling. It records activation at the trusted click and
+picker call, picker acquisition latency, and Chrome's native rejection. Headless
+`AbortError` means the picker request was canceled; `SecurityError` with inactive
+activation reproduces the production failure. It adds no synthetic export delay.
+Use `--url` for a production preview or deployed build and `--channel` for another
+installed Chromium channel. Sentry requests are blocked to avoid recording probe
+errors in production. The probe observes behavior rather than asserting a timing
+budget, since execution time depends on the machine and browser. It asserts that
+activation is still present at the picker; cancellation then skips export.
+
+To compare export preparation in the current V2 and legacy editors, build and
+start production preview, then run:
+
+```sh
+node tools/benchmark-export-browser.mjs --output /tmp/export-benchmark.json
+```
+
+The benchmark imports the same public fixture into each editor, accepts a fake
+destination without writing to disk, and reports the median of five warmed exports after a separate
+first sample. OS picker interaction and disk writes are excluded. It also records
+main-thread clone timings, picker latency and heartbeat stalls. Use `--url` for another base URL, including its trailing
+slash. The 1× result compares ordinary wall time; the 6× result diagnoses where
+work runs. Chrome's renderer CPU throttle leaves the legacy XML worker unthrottled,
+so the latter is **not** an equal-speed comparison of slower devices.

@@ -65,7 +65,7 @@ it("an import waiting on file bytes cannot recreate a session after legacy teard
 	expect(manager.save).toBeUndefined();
 });
 
-it("a legacy export finishing after teardown cannot open a picker with a stale filename", async () => {
+it("a legacy export finishing after teardown cannot write its reserved destination", async () => {
 	let manager: SaveManager | undefined;
 	const page = render(Harness, {
 		props: {
@@ -85,20 +85,23 @@ it("a legacy export finishing after teardown cannot open a picker with a stale f
 				release = resolve;
 			}),
 	);
-	const picker = vi.fn();
+	const createWritable = vi.fn();
+	const picker = vi.fn(async () => ({ createWritable }));
 	Object.defineProperty(window, "showSaveFilePicker", {
 		configurable: true,
 		value: picker,
 	});
 	try {
 		const downloading = manager.download();
+		await waitFor(() => expect(exporting).toHaveBeenCalledOnce());
 		page.unmount();
 		release({
 			blob: new Blob(["save"]),
 			validation: { valid: true, errors: [], warnings: [] },
 		});
 		expect(await downloading).toBeUndefined();
-		expect(picker).not.toHaveBeenCalled();
+		expect(picker).toHaveBeenCalledOnce();
+		expect(createWritable).not.toHaveBeenCalled();
 	} finally {
 		exporting.mockRestore();
 		Reflect.deleteProperty(window, "showSaveFilePicker");

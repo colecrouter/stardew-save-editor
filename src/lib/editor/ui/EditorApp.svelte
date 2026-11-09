@@ -4,7 +4,7 @@
 		runBackupCommand,
 		writeOriginalBackup,
 	} from "../backup-operations.ts";
-	import { downloadSave } from "../../downloadSave.ts";
+	import { chooseSaveDestination } from "../../downloadSave.ts";
 	import { onDestroy, tick } from "svelte";
 	import { RegistryProvider } from "effect-atom-svelte";
 	import { SaveReadError, describeImportError } from "../save-service.ts";
@@ -99,15 +99,19 @@
 		// A retry clears only download feedback, leaving backup warnings intact.
 		downloadError = "";
 		try {
+			// Reserve the destination while the click still grants user activation.
+			// No file is opened for writing until export and validation succeed.
+			const signal = downloadController.signal;
+			const destination = await chooseSaveDestination(filename, signal);
+			if (!destination || active !== current) return;
 			const result = await current.model.commands.export();
 			if (!result || active !== current) return;
 			if (Result.isFailure(result)) return result;
-			await downloadSave(
+			await destination.write(
 				new Blob([Uint8Array.from(result.success)], {
 					type: "application/octet-stream",
 				}),
-				filename,
-				downloadController.signal,
+				signal,
 			);
 		} catch (cause) {
 			// Browser file writes live at the application boundary. A failure

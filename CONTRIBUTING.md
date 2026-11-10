@@ -44,6 +44,13 @@ Event names aren't in the game files: they're kept by hand in `src/lib/wiki/even
 `generated/quests.json` is `Data/Quests`, parsed by `codegen/quests.ts` the way the game reads it
 (`Quest.getQuestFromId`), so completing a story quest in the editor can start the next one.
 
+### Inspecting game assemblies
+
+The standalone .NET CLI under `tools/game-data/extractor` inspects XML serialization
+metadata, compares catalogs with saves, and wraps StardewXnbHack for asset exports.
+See [game data tooling](tools/game-data/README.md) for setup, commands, input storage,
+and validation limits. It does not change the existing `content/` codegen workflow.
+
 ### Reading the Save File
 
 The save format is somewhat inconsistent (in structure and consistency). My recommendation is to use a website/tool to format the save file into something more readable, then use a text editor to search for the data you need. [Here is a tool for that](https://jsonformatter.org/xml-parser).

@@ -1,0 +1,4 @@
+# Match the repository's tab indentation in the standalone C# tooling too.
+[*.cs]
+indent_style = tab
+tab_width = 4

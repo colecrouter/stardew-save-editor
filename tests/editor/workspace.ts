@@ -1,8 +1,7 @@
 import { fireEvent, render } from "@testing-library/svelte";
 import type { SaveDocument } from "../../src/lib/editor/domain.ts";
-import { openEditor } from "../../src/lib/editor/editor-model.ts";
+import { openTestDocument } from "../helpers/open-editor.ts";
 import WorkspaceHarness from "./WorkspaceHarness.svelte";
-import { exportDocument } from "./fixtures.ts";
 
 /** Mount the production workspace with one file owner. Feature fixtures and
  * assertions stay in their suites; only shared acquisition/navigation/release live here. */
@@ -10,9 +9,7 @@ export async function renderTestWorkspace(
 	document: SaveDocument,
 	section?: string,
 ) {
-	const opened = await openEditor(
-		new TextEncoder().encode(exportDocument(document)),
-	);
+	const opened = await openTestDocument(document);
 	let unmount: (() => void) | undefined;
 	const dispose = async () => {
 		// Consumers must release borrowed registry subscriptions before the file closes.

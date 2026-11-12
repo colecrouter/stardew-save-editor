@@ -11,4 +11,4 @@ it("releases the workspace and file when initial section setup fails", async () 
 	).rejects.toThrow();
 	expect(editorResources()).toEqual({ models: 0, registries: 0, streams: 0 });
 	expect(document.querySelector(".editor")).toBeNull();
-});
+}, 30_000);

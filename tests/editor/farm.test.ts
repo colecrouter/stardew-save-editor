@@ -1,7 +1,9 @@
+import { openTestDocument } from "../helpers/open-editor.ts";
 import { describe, expect, it } from "vitest";
 import { Effect, Result } from "effect";
 import { get } from "svelte/store";
-import type { Save } from "../../codegen/save";
+import type { Value as GeneratedSave } from "../../generated/save-format/save.ts";
+type Save = GeneratedSave & { player: NonNullable<GeneratedSave["player"]> };
 import { openEditor } from "../../src/lib/editor/editor-model";
 import {
 	setFarmSettings,
@@ -15,7 +17,7 @@ const bytes = (text: string) => new TextEncoder().encode(text);
 // These integration scenarios repeatedly parse or export the 6.6 MB save fixture.
 // Match the calendar suites’ CI budget: assertions verify preservation and workflow,
 // while the default unit-test timeout remains unchanged.
-describe("full-save farm operations", { timeout: 15_000 }, () => {
+describe("full-save farm operations", { timeout: 45_000 }, () => {
 	it("farm settings update multiplayer copies atomically and preserve opaque records through undo/export", async () => {
 		const document = parser.parse(fixtureXml);
 		const game = document.SaveGame as unknown as Save;
@@ -24,11 +26,11 @@ describe("full-save farm operations", { timeout: 15_000 }, () => {
 		const guest = {
 			...structuredClone(game.player),
 			name: "",
-			UniqueMultiplayerID: 123456789,
+			UniqueMultiplayerID: 123456789n,
 		};
-		Object.assign(game.player, { modData: { opaque: "007" } });
-		Object.assign(guest, { modData: { opaque: ["guest", "0007"] } });
-		game.farmhands = { Farmer: [guest] };
+		Object.assign(game.player, { customModData: { opaque: "007" } });
+		Object.assign(guest, { customModData: { opaque: ["2", "0007"] } });
+		game.farmhands = [guest];
 		const opened = await openEditor(bytes(exportDocument(document)));
 		try {
 			const before = await opened.model.snapshot();
@@ -46,8 +48,8 @@ describe("full-save farm operations", { timeout: 15_000 }, () => {
 			expect(edited.player.farmName).toBe("New Farm");
 			expect(edited.player.difficultyModifier).toBe(0.75);
 			if (!edited.farmhands) throw Error("Expected the edited farmhand copy");
-			expect(edited.farmhands.Farmer[0]?.farmName).toBe("New Farm");
-			expect(edited.farmhands.Farmer[0]?.difficultyModifier).toBe(0.75);
+			expect(edited.farmhands[0]?.farmName).toBe("New Farm");
+			expect(edited.farmhands[0]?.difficultyModifier).toBe(0.75);
 			expect(edited.shouldSpawnMonsters).toBe(true);
 			expect(edited.shuffleMineChests).toBe("Remixed");
 			expect(after.domainState).toEqual(before.domainState);
@@ -57,9 +59,9 @@ describe("full-save farm operations", { timeout: 15_000 }, () => {
 			const expectedGame = expected.SaveGame as unknown as Save;
 			expectedGame.player.farmName = "New Farm";
 			expectedGame.player.difficultyModifier = 0.75;
-			if (expectedGame.farmhands === "")
+			if (!Array.isArray(expectedGame.farmhands))
 				throw Error("Expected the fixture farmhand container");
-			const expectedGuest = expectedGame.farmhands.Farmer[0];
+			const expectedGuest = expectedGame.farmhands[0];
 			if (!expectedGuest) throw Error("Expected the fixture farmhand copy");
 			expectedGuest.farmName = "New Farm";
 			expectedGuest.difficultyModifier = 0.75;
@@ -89,7 +91,7 @@ describe("full-save farm operations", { timeout: 15_000 }, () => {
 		} finally {
 			await opened.close();
 		}
-	});
+	}, 60_000);
 
 	it("a failed grouped farm edit leaves the document, calendar state and redo branch unchanged", async () => {
 		const opened = await openEditor(bytes(fixtureXml));
@@ -127,11 +129,13 @@ describe("full-save farm operations", { timeout: 15_000 }, () => {
 		delete game.shouldSpawnMonsters;
 		game.shuffleMineChests = "ModdedRewardMode";
 		game.whichFarm = "ModdedMap";
+		// These deliberately unsupported known-field values cannot pass XML decoding.
+		// Exercise the defensive projection directly, retaining export coverage above.
 		const initial = readFarmSettings(document);
 		expect(initial.profitPercent).toBe(100);
 		expect(initial.monsters).toBe(false);
 		expect(initial.mineRewards).toBe("ModdedRewardMode");
-		const opened = await openEditor(bytes(exportDocument(document)));
+		const opened = await openTestDocument(document);
 		try {
 			await opened.model.commands.transact(
 				setFarmSettings({ name: "Only Name" }),
@@ -149,7 +153,7 @@ describe("full-save farm operations", { timeout: 15_000 }, () => {
 		} finally {
 			await opened.close();
 		}
-	});
+	}, 60_000);
 
 	it("an imported out-of-range multiplier survives edits to other fields", async () => {
 		const document = parser.parse(fixtureXml);
@@ -169,7 +173,7 @@ describe("full-save farm operations", { timeout: 15_000 }, () => {
 			const after = await opened.model.snapshot();
 			expect(
 				(after.document.SaveGame as unknown as Save).player.difficultyModifier,
-			).toBe(12.345);
+			).toBe(Math.fround(12.345));
 			const expected = structuredClone(before.document);
 			(expected.SaveGame as unknown as Save).shouldSpawnMonsters =
 				!readFarmSettings(before.document).monsters;
@@ -177,7 +181,7 @@ describe("full-save farm operations", { timeout: 15_000 }, () => {
 		} finally {
 			await opened.close();
 		}
-	});
+	}, 60_000);
 
 	it("farm no-ops retain no action and an explicit stale revision cannot overwrite newer calendar edits", async () => {
 		const opened = await openEditor(bytes(fixtureXml));
@@ -234,7 +238,7 @@ describe("full-save farm operations", { timeout: 15_000 }, () => {
 		} finally {
 			await opened.close();
 		}
-	});
+	}, 60_000);
 
 	it.each([
 		{ name: "   " },

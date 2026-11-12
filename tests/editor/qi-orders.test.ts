@@ -1,6 +1,10 @@
 import { Effect, type Scope } from "effect";
 import { describe, expect, it } from "vitest";
-import { tinyFixture, parser, exportDocument } from "./fixtures.ts";
+import {
+	tinyFixture,
+	parser,
+	exportDocument,
+} from "../helpers/editor-document.ts";
 import { makeHistorySession } from "../../src/lib/editor/history.ts";
 import {
 	readQiOrders,
@@ -9,7 +13,7 @@ import {
 import templates from "../../generated/qiquests.json";
 const run = <E>(effect: Effect.Effect<void, E, Scope.Scope>) =>
 	Effect.runPromise(Effect.scoped(effect));
-function fixture(board: unknown = "", active: unknown = "") {
+function fixture(board: unknown = [], active: unknown = []) {
 	const document = tinyFixture();
 	Object.assign(document.SaveGame, {
 		year: 2,
@@ -34,24 +38,20 @@ const inProgress = (key: string, rule: string, applied = true) => ({
 	specialRule: rule,
 	appliedSpecialRules: applied,
 	dueDate: 155,
-	participantsIDs: { long: [44] },
+	participantsIDs: [44n],
 	objectives: [{ currentCount: 3, opaque: "keep" }],
 });
 describe("Qi order transactions", () => {
 	it("preserves opaque order keys without coercing them during projection", () => {
-		const document = fixture({
-			SpecialOrder: { orderType: "Town", questKey: { toString: "opaque" } },
-		});
+		const document = fixture([
+			{ orderType: "Town", questKey: { toString: "opaque" } },
+		]);
 		const before = structuredClone(document);
 		expect(readQiOrders(document).offeredCount).toBe(0);
 		expect(document).toEqual(before);
 	});
-	it("does not normalize empty/singleton containers while viewing", () => {
-		for (const board of [
-			"",
-			{},
-			{ meta: "keep", SpecialOrder: offered("QiChallenge3") },
-		]) {
+	it("does not normalize empty, singleton or malformed lists while viewing", () => {
+		for (const board of ["", {}, [offered("QiChallenge3")]]) {
 			const document = fixture(board);
 			const before = structuredClone(document);
 			readQiOrders(document);
@@ -61,7 +61,7 @@ describe("Qi order transactions", () => {
 	it("offers two challenges, rejects a third, and restores exact board containers with Undo/Redo", () =>
 		run(
 			Effect.gen(function* () {
-				const document = fixture({ meta: "keep" }, "");
+				const document = fixture();
 				const session = yield* makeHistorySession(document);
 				yield* session.transact(
 					setQiOrder({ kind: "offer", key: "QiChallenge3", value: true }),
@@ -88,15 +88,13 @@ describe("Qi order transactions", () => {
 	it("accepts atomically with legacy board eviction, preserving unrelated orders and exact Undo", () =>
 		run(
 			Effect.gen(function* () {
-				const board = {
-					meta: "keep",
-					SpecialOrder: [
-						offered("QiChallenge3"),
-						offered("QiChallenge4"),
-						{ questKey: "TownOrder", orderType: "" },
-					],
-				};
-				const document = fixture(board, { opaque: "keep" });
+				const board = [
+					offered("QiChallenge3"),
+					offered("QiChallenge4"),
+					{ questKey: "TownOrder", orderType: "" },
+				];
+				const document = fixture(board);
+				Object.assign(document.SaveGame, { boardMetadata: { opaque: "keep" } });
 				const session = yield* makeHistorySession(document);
 				yield* session.transact(
 					setQiOrder({ kind: "accept", key: "QiChallenge5" }),
@@ -108,69 +106,77 @@ describe("Qi order transactions", () => {
 					)?.state,
 				).toBe("InProgress");
 				expect(after.document.SaveGame).toMatchObject({
-					availableSpecialOrders: {
-						meta: "keep",
-						SpecialOrder: [
-							offered("QiChallenge4"),
-							{ questKey: "TownOrder", orderType: "" },
-						],
-					},
-					specialOrders: {
-						opaque: "keep",
-						SpecialOrder: {
+					availableSpecialOrders: [
+						offered("QiChallenge4"),
+						{ questKey: "TownOrder", orderType: "" },
+					],
+					boardMetadata: { opaque: "keep" },
+					specialOrders: [
+						{
 							questKey: "QiChallenge5",
 							appliedSpecialRules: false,
-							seenParticipantsIDs: "",
-							unclaimedRewardsIDs: "",
+							seenParticipantsIDs: [],
+							unclaimedRewardsIDs: [],
 						},
-					},
+					],
 				});
 				yield* session.undo;
 				expect((yield* session.snapshot).document).toEqual(document);
 			}),
 		));
-	it("uses game-aligned weekly/monthly deadlines and serializes every supported template", () =>
-		run(
-			Effect.gen(function* () {
-				for (const template of templates) {
-					const document = fixture();
-					const session = yield* makeHistorySession(document);
-					yield* session.transact(
-						setQiOrder({ kind: "accept", key: template.questKey }),
-					);
-					const after = yield* session.snapshot;
-					// Summer 12 year2 is total day151. Current week starts147, season140.
-					const due =
-						template.duration === "Month"
-							? 168
-							: template.duration === "Week"
-								? 154
-								: template.duration === "TwoWeeks"
-									? 161
-									: 151 + template.durationDays;
-					expect(
-						readQiOrders(after.document).rows.find(
+	it(
+		"uses game-aligned weekly/monthly deadlines and serializes every supported template",
+		() =>
+			run(
+				Effect.gen(function* () {
+					for (const template of templates) {
+						const document = fixture();
+						const row = readQiOrders(document).rows.find(
 							(row) => row.key === template.questKey,
-						)?.dueDate,
-					).toBe(due);
-					const parsed = parser.parse(exportDocument(after.document));
-					expect(
-						readQiOrders(parsed).rows.find(
-							(row) => row.key === template.questKey,
-						)?.state,
-					).toBe("InProgress");
-				}
-			}),
-		));
+						);
+						if (!row?.acceptAvailable) {
+							// Unimplemented game objectives must never become invalid new XML.
+							expect(row?.reason).toBe(
+								"This challenge cannot be created by this editor.",
+							);
+							continue;
+						}
+						const session = yield* makeHistorySession(document);
+						yield* session.transact(
+							setQiOrder({ kind: "accept", key: template.questKey }),
+						);
+						const after = yield* session.snapshot;
+						// Summer 12 year2 is total day151. Current week starts147, season140.
+						const due =
+							template.duration === "Month"
+								? 168
+								: template.duration === "Week"
+									? 154
+									: template.duration === "TwoWeeks"
+										? 161
+										: 151 + template.durationDays;
+						expect(
+							readQiOrders(after.document).rows.find(
+								(row) => row.key === template.questKey,
+							)?.dueDate,
+						).toBe(due);
+						const parsed = parser.parse(exportDocument(after.document));
+						expect(
+							readQiOrders(parsed).rows.find(
+								(row) => row.key === template.questKey,
+							)?.state,
+						).toBe("InProgress");
+					}
+				}),
+			),
+		30_000,
+	);
 	it("cancels difficulty contributions once and retains other rule/shrine sources with exact Undo", () =>
 		run(
 			Effect.gen(function* () {
 				const current = inProgress("QiChallenge9", "MINE_HARD");
 				const town = inProgress("TownOrder", "OTHER");
-				const document = fixture("", {
-					meta: "keep",
-					SpecialOrder: [current, town],
-				});
+				const document = fixture([], [current, town]);
 				const session = yield* makeHistorySession(document);
 				yield* session.transact(
 					setQiOrder({ kind: "cancel", key: "QiChallenge9" }),
@@ -178,13 +184,14 @@ describe("Qi order transactions", () => {
 				expect((yield* session.snapshot).document.SaveGame).toMatchObject({
 					minesDifficulty: 1,
 					mine_lowestLevelReachedForOrder: -1,
-					specialOrders: { meta: "keep", SpecialOrder: [town] },
+					specialOrders: [town],
 				});
 				yield* session.undo;
 				expect((yield* session.snapshot).document).toEqual(document);
-				const shared = fixture("", {
-					SpecialOrder: [current, inProgress("OtherModdedQi", "MINE_HARD")],
-				});
+				const shared = fixture(
+					[],
+					[current, inProgress("OtherModdedQi", "MINE_HARD")],
+				);
 				const second = yield* makeHistorySession(shared);
 				yield* second.transact(
 					setQiOrder({ kind: "cancel", key: "QiChallenge9" }),
@@ -199,26 +206,30 @@ describe("Qi order transactions", () => {
 		run(
 			Effect.gen(function* () {
 				for (const document of [
-					fixture("", {
-						SpecialOrder: {
-							...inProgress("QiChallenge3", ""),
-							questState: "Complete",
-						},
-					}),
-					fixture("", {
-						SpecialOrder: [
-							inProgress("QiChallenge3", ""),
-							inProgress("QiChallenge3", ""),
+					fixture(
+						[],
+						[
+							{
+								...inProgress("QiChallenge3", ""),
+								questState: "Complete",
+							},
 						],
-					}),
-					fixture("", { SpecialOrder: inProgress("UnknownMod", "") }),
-					fixture({ "@_xsi:nil": "true" }, ""),
-					fixture("", {
-						SpecialOrder: {
-							...inProgress("QiChallenge3", "MINE_HARD"),
-							appliedSpecialRules: "true",
-						},
-					}),
+					),
+					fixture(
+						[],
+						[inProgress("QiChallenge3", ""), inProgress("QiChallenge3", "")],
+					),
+					fixture([], [inProgress("UnknownMod", "")]),
+					fixture(null, []),
+					fixture(
+						[],
+						[
+							{
+								...inProgress("QiChallenge3", "MINE_HARD"),
+								appliedSpecialRules: "true",
+							},
+						],
+					),
 				]) {
 					const session = yield* makeHistorySession(document);
 					const key =
@@ -242,7 +253,7 @@ describe("Qi order transactions", () => {
 						offered("QiChallenge3"),
 					],
 				]) {
-					const document = fixture({ SpecialOrder: entries }, "");
+					const document = fixture(entries);
 					const session = yield* makeHistorySession(document);
 					const result = yield* Effect.result(
 						session.transact(
@@ -252,6 +263,25 @@ describe("Qi order transactions", () => {
 					expect(result._tag).toBe("Failure");
 					expect((yield* session.snapshot).document).toEqual(document);
 				}
+			}),
+		));
+	it("does not construct catalog challenges whose objective class is unavailable", () =>
+		run(
+			Effect.gen(function* () {
+				const document = fixture();
+				expect(
+					readQiOrders(document).rows.find(
+						(row) => row.key === "QiChallenge11",
+					),
+				).toMatchObject({ offerAvailable: false, acceptAvailable: false });
+				const session = yield* makeHistorySession(document);
+				const result = yield* Effect.result(
+					session.transact(
+						setQiOrder({ kind: "accept", key: "QiChallenge11" }),
+					),
+				);
+				expect(result._tag).toBe("Failure");
+				expect((yield* session.snapshot).document).toEqual(document);
 			}),
 		));
 	it("rejects malformed requests and invalid dates without creating entries", () =>

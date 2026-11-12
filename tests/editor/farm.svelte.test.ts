@@ -1,3 +1,4 @@
+import { openTestEditor } from "../helpers/open-editor.ts";
 import * as editorModel from "../../src/lib/editor/editor-model";
 import { describe, expect, it, vi } from "vitest";
 import { render, fireEvent, waitFor } from "@testing-library/svelte";
@@ -6,10 +7,10 @@ import { fixtureXml, parser } from "./fixtures";
 
 // Each scenario imports the complete save and performs real history operations.
 // Keep a bounded integration budget without changing ordinary unit-test timeouts.
-describe("full-save farm workflow", { timeout: 15_000 }, () => {
+describe("full-save farm workflow", { timeout: 45_000 }, () => {
 	const openFarm = async () => {
 		// Observe the real imported session; history is now collapsed/lazy in the UI.
-		const load = editorModel.openEditor;
+		const load = openTestEditor;
 		let loaded: Awaited<ReturnType<typeof load>> | undefined;
 		const opening = vi
 			.spyOn(editorModel, "openEditor")
@@ -254,7 +255,7 @@ describe("full-save farm workflow", { timeout: 15_000 }, () => {
 			name.focus();
 			await fireEvent.input(name, { target: { value: "Export Farm" } });
 			await fireEvent.click(page.getByRole("button", { name: "Export save" }));
-			await waitFor(() => expect(written).toBeTruthy(), { timeout: 5000 });
+			await waitFor(() => expect(written).toBeTruthy(), { timeout: 30_000 });
 			if (!written)
 				throw Error("Expected the browser file writer to receive a save");
 			expect(parser.parse(await written.text()).SaveGame.player.farmName).toBe(

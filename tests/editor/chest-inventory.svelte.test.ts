@@ -1,6 +1,6 @@
 import { fireEvent, render, waitFor } from "@testing-library/svelte";
 import { describe, expect, it, vi } from "vitest";
-import { openEditor } from "../../src/lib/editor/editor-model";
+import { openTestEditor } from "../helpers/open-editor.ts";
 import { createCatalogItem } from "../../src/lib/editor/item-catalog";
 import BackpackHarness from "./BackpackHarness.svelte";
 import { exportDocument, fixtureXml, parser } from "./fixtures";
@@ -10,49 +10,41 @@ import { exportDocument, fixtureXml, parser } from "./fixtures";
 function chestFixture() {
 	const document = parser.parse(fixtureXml);
 	const game = document.SaveGame as unknown as Record<string, unknown>;
-	game.locations = {
-		GameLocation: [
-			{
-				name: "Farm",
-				objects: {
-					item: [
-						{
-							key: { Vector2: { X: 4, Y: 8 } },
-							value: {
-								Object: {
-									"@_xsi:type": "Chest",
-									name: "Chest",
-									itemId: "130",
-									playerChest: true,
-									items: { Item: [createCatalogItem("Wood")] },
-								},
-							},
-						},
-					],
+	game.locations = [
+		{
+			$type: "StardewValley.GameLocation",
+			name: "Farm",
+			objects: [
+				{
+					key: { X: 4, Y: 8 },
+					value: {
+						$type: "StardewValley.Objects.Chest",
+						name: "Chest",
+						itemId: "130",
+						playerChest: true,
+						items: [createCatalogItem("Wood")],
+					},
 				},
-			},
-			{
-				name: "Town",
-				objects: {
-					item: [
-						{
-							key: { Vector2: { X: 10, Y: 12 } },
-							value: {
-								Object: {
-									"@_xsi:type": "Chest",
-									name: "Big Chest",
-									itemId: "BigChest",
-									playerChest: true,
-									specialChestType: "BigChest",
-									items: "",
-								},
-							},
-						},
-					],
+			],
+		},
+		{
+			$type: "StardewValley.GameLocation",
+			name: "Town",
+			objects: [
+				{
+					key: { X: 10, Y: 12 },
+					value: {
+						$type: "StardewValley.Objects.Chest",
+						name: "Big Chest",
+						itemId: "BigChest",
+						playerChest: true,
+						specialChestType: "BigChest",
+						items: [],
+					},
 				},
-			},
-		],
-	};
+			],
+		},
+	];
 	return exportDocument(document);
 }
 function dragData() {
@@ -74,7 +66,9 @@ async function drag(source: HTMLElement, target: HTMLElement) {
 
 describe("placed chest inventory controls", { timeout: 25_000 }, () => {
 	it("edits and drags between a chest and backpack while selection follows Undo", async () => {
-		const opened = await openEditor(new TextEncoder().encode(chestFixture()));
+		const opened = await openTestEditor(
+			new TextEncoder().encode(chestFixture()),
+		);
 		const page = render(BackpackHarness, { model: opened.model });
 		try {
 			expect(
@@ -152,7 +146,9 @@ describe("placed chest inventory controls", { timeout: 25_000 }, () => {
 	});
 
 	it("finds chests by location and reuses the catalog/removal inspector for virtual slots", async () => {
-		const opened = await openEditor(new TextEncoder().encode(chestFixture()));
+		const opened = await openTestEditor(
+			new TextEncoder().encode(chestFixture()),
+		);
 		const page = render(BackpackHarness, { model: opened.model });
 		try {
 			await fireEvent.input(
@@ -218,7 +214,9 @@ describe("placed chest inventory controls", { timeout: 25_000 }, () => {
 		}
 	});
 	it("scrolls held touch drags at the viewport edge and cancels the frame without writes", async () => {
-		const opened = await openEditor(new TextEncoder().encode(chestFixture()));
+		const opened = await openTestEditor(
+			new TextEncoder().encode(chestFixture()),
+		);
 		const page = render(BackpackHarness, { model: opened.model });
 		let frame: FrameRequestCallback | undefined;
 		const schedule = vi

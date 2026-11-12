@@ -1,3 +1,4 @@
+import { stringifySavedData } from "../../src/lib/editor/saved-data.ts";
 import { describe, expect, it } from "vitest";
 import { Effect, Result } from "effect";
 import { makeHistorySession } from "../../src/lib/editor/history";
@@ -21,63 +22,61 @@ function fixture() {
 	const document = tinyFixture(),
 		host = document.SaveGame.player;
 	const hands = document.SaveGame.farmhands;
-	if (hands === "") throw new Error("Missing guest");
-	const guest = required(hands.Farmer[0]),
+	if (!Array.isArray(hands)) throw new Error("Missing guest");
+	const guest = required(hands[0]),
 		ghost = structuredClone(guest);
 	Object.assign(host, {
 		homeLocation: "FarmHouse",
-		modData: { owner: "host" },
+		customModData: { owner: "1" },
 	});
 	Object.assign(guest, {
 		homeLocation: "CabinGuest",
-		modData: { owner: "guest" },
+		customModData: { owner: "2" },
 	});
 	Object.assign(ghost, {
 		name: "",
 		UniqueMultiplayerID: "ghost",
 		homeLocation: "Unclaimed",
-		modData: { ghost: "007" },
+		customModData: { ghost: "007" },
 	});
-	hands.Farmer = [ghost, guest];
-	Object.assign(hands, { modWrapper: "keep" });
+	document.SaveGame.farmhands = [ghost, guest];
+	Object.assign(document.SaveGame, { testMetadatafarmhands: "keep" });
 	Object.assign(document.SaveGame, {
-		cellarAssignments: {
-			item: [
-				{
-					key: { int: 1, opaque: "host-key" },
-					value: { long: "host", opaque: "host-value" },
-				},
-				{ key: { int: 2 }, value: { long: "guest" } },
-			],
-			opaque: "cellar-wrapper",
-		},
-	});
-	document.SaveGame.locations = {
-		GameLocation: [
+		cellarAssignments: [
 			{
-				name: "Farm",
-				buildings: {
-					Building: [
-						{
-							id: "cabin",
-							buildingType: "Cabin",
-							indoors: {
-								"@_xsi:type": "Cabin",
-								name: "Cabin",
-								uniqueName: "CabinGuest",
-								farmhandReference: "guest",
-								modData: { keep: "007" },
-							},
-						},
-					],
-				},
+				key: 1,
+				value: 1n,
+				opaqueKey: "host-key",
+				opaqueValue: "host-value",
 			},
+			{ key: 2, value: 2n },
 		],
-	};
+		testMetadatacellarAssignments: { opaque: "cellar-wrapper" },
+	});
+	document.SaveGame.locations = [
+		{
+			$type: "StardewValley.Farm",
+			name: "Farm",
+			buildings: [
+				{
+					$type: "StardewValley.Buildings.Building",
+					id: "cabin",
+					buildingType: "Cabin",
+					indoors: {
+						$type: "StardewValley.Locations.Cabin",
+						name: "Cabin",
+						uniqueName: "CabinGuest",
+						farmhandReference: 2n,
+						customModData: { keep: "007" },
+					},
+				},
+			],
+		},
+	];
 	return document;
 }
 const rawGame = (
-	document: ReturnType<typeof fixture>,
+	document: import("../../src/lib/editor/domain.ts").SaveDocument,
 ): Record<string, unknown> => document.SaveGame;
 
 describe("farmer slot reassignment", () => {
@@ -89,8 +88,8 @@ describe("farmer slot reassignment", () => {
 			supported: true,
 			placeholders: 1,
 			players: [
-				{ farmerId: "host", host: true, home: "FarmHouse" },
-				{ farmerId: "guest", host: false, home: "CabinGuest" },
+				{ farmerId: "1", host: true, home: "FarmHouse" },
+				{ farmerId: "2", host: false, home: "CabinGuest" },
 			],
 		});
 		expect(document).toEqual(before);
@@ -100,41 +99,38 @@ describe("farmer slot reassignment", () => {
 			Effect.gen(function* () {
 				const session = yield* makeHistorySession(fixture()),
 					before = yield* session.snapshot;
-				yield* session.transact(swapFarmers("host", "guest"));
+				yield* session.transact(swapFarmers("1", "2"));
 				const after = yield* session.snapshot,
 					hands = after.document.SaveGame.farmhands;
 				expect(after.document.SaveGame.player).toMatchObject({
-					UniqueMultiplayerID: "guest",
+					UniqueMultiplayerID: 2n,
 					homeLocation: "FarmHouse",
-					modData: { owner: "guest" },
+					customModData: { owner: "2" },
 				});
-				expect(hands).toMatchObject({
-					modWrapper: "keep",
-					Farmer: [
-						{
-							name: "",
-							UniqueMultiplayerID: "ghost",
-							modData: { ghost: "007" },
-						},
-						{
-							UniqueMultiplayerID: "host",
-							homeLocation: "CabinGuest",
-							modData: { owner: "host" },
-						},
-					],
-				});
-				expect(rawGame(after.document).cellarAssignments).toEqual({
-					opaque: "cellar-wrapper",
-					item: [
-						{
-							key: { int: 1, opaque: "host-key" },
-							value: { long: "guest", opaque: "host-value" },
-						},
-						{ key: { int: 2 }, value: { long: "host" } },
-					],
-				});
-				expect(JSON.stringify(after.document.SaveGame.locations)).toContain(
-					'"farmhandReference":"host"',
+				expect(hands).toMatchObject([
+					{
+						name: "",
+						UniqueMultiplayerID: "ghost",
+						customModData: { ghost: "007" },
+					},
+					{
+						UniqueMultiplayerID: 1n,
+						homeLocation: "CabinGuest",
+						customModData: { owner: "1" },
+					},
+				]);
+				expect(rawGame(after.document).testMetadatafarmhands).toBe("keep");
+				expect(rawGame(after.document).cellarAssignments).toEqual([
+					{
+						key: 1,
+						value: 2n,
+						opaqueKey: "host-key",
+						opaqueValue: "host-value",
+					},
+					{ key: 2, value: 1n },
+				]);
+				expect(stringifySavedData(after.document.SaveGame.locations)).toContain(
+					'"farmhandReference":"1n"',
 				);
 				expect(after.identities).toEqual(before.identities);
 				expect(after.equipmentIdentities).toEqual(before.equipmentIdentities);
@@ -148,9 +144,9 @@ describe("farmer slot reassignment", () => {
 		run(
 			Effect.gen(function* () {
 				const document = fixture();
-				document.SaveGame.player.items.Item = [
+				document.SaveGame.player.items = [
 					{
-						"@_xsi:type": "Object",
+						$type: "StardewValley.Object",
 						itemId: "388",
 						name: "Wood",
 						stack: 3,
@@ -160,18 +156,18 @@ describe("farmer slot reassignment", () => {
 				];
 				const session = yield* makeHistorySession(document),
 					before = yield* session.snapshot,
-					entityId = required(before.identities.host?.[0]);
+					entityId = required(before.identities["1"]?.[0]);
 				yield* session.transact(
 					Effect.gen(function* () {
 						yield* setInventoryItem({
-							ownerId: "host",
+							ownerId: "1",
 							entityId,
 							property: "stack",
 							value: 5,
 						});
-						yield* swapFarmers("host", "guest");
+						yield* swapFarmers("1", "2");
 						yield* setInventoryItem({
-							ownerId: "host",
+							ownerId: "1",
 							entityId,
 							property: "stack",
 							value: 7,
@@ -180,13 +176,13 @@ describe("farmer slot reassignment", () => {
 				);
 				const after = yield* session.snapshot,
 					hands = after.document.SaveGame.farmhands;
-				if (hands === "") throw new Error("Missing farmhands");
+				if (!Array.isArray(hands)) throw new Error("Missing farmhands");
 				expect(
-					hands.Farmer.find((farmer) => farmer.UniqueMultiplayerID === "host")
-						?.items.Item[0],
+					hands.find((farmer) => String(farmer?.UniqueMultiplayerID) === "1")
+						?.items?.[0],
 				).toMatchObject({ stack: 7 });
 				expect(after.entries).toHaveLength(1);
-				expect(after.identities.host?.[0]).toBe(entityId);
+				expect(after.identities["1"]?.[0]).toBe(entityId);
 			}),
 		));
 	it("rejects ambiguous identities, stale targets and raw inventory writes atomically", () =>
@@ -194,16 +190,14 @@ describe("farmer slot reassignment", () => {
 			Effect.gen(function* () {
 				const document = fixture(),
 					hands = document.SaveGame.farmhands;
-				if (hands === "") throw new Error("Missing farmhands");
-				required(hands.Farmer[0]).UniqueMultiplayerID = "host";
+				if (!Array.isArray(hands)) throw new Error("Missing farmhands");
+				required(hands[0]).UniqueMultiplayerID = 1n;
 				const ambiguous = yield* makeHistorySession(document),
 					original = yield* ambiguous.snapshot;
 				expect(readFarmerRoster(document).supported).toBe(false);
 				expect(
 					Result.isFailure(
-						yield* Effect.result(
-							ambiguous.transact(swapFarmers("host", "guest")),
-						),
+						yield* Effect.result(ambiguous.transact(swapFarmers("1", "2"))),
 					),
 				).toBe(true);
 				expect(yield* ambiguous.snapshot).toEqual(original);
@@ -211,18 +205,17 @@ describe("farmer slot reassignment", () => {
 					before = yield* session.snapshot;
 				expect(
 					Result.isFailure(
-						yield* Effect.result(
-							session.transact(swapFarmers("missing", "guest")),
-						),
+						yield* Effect.result(session.transact(swapFarmers("missing", "2"))),
 					),
 				).toBe(true);
 				const result = yield* Effect.result(
 					session.transact(
 						Effect.gen(function* () {
-							yield* swapFarmers("host", "guest");
+							yield* swapFarmers("1", "2");
 							const draft = yield* TransactionDraft,
 								snapshot = yield* draft.read;
-							snapshot.state.document.SaveGame.player.items.Item.push({
+							snapshot.state.document.SaveGame.player.items.push({
+								$type: "StardewValley.Object",
 								itemId: "388",
 								stack: 999,
 							});
@@ -236,7 +229,7 @@ describe("farmer slot reassignment", () => {
 		));
 	it(
 		"preserves the selected farmer identity and exports a promoted host on a full save",
-		{ timeout: 20000 },
+		{ timeout: 60_000 },
 		async () => {
 			const document = parser.parse(fixtureXml),
 				host = document.SaveGame.player,
@@ -244,11 +237,11 @@ describe("farmer slot reassignment", () => {
 			const hostId = String(host.UniqueMultiplayerID);
 			Object.assign(host, { homeLocation: "FarmHouse" });
 			Object.assign(guest, {
-				UniqueMultiplayerID: "123456789",
+				UniqueMultiplayerID: 123456789n,
 				name: "Guest",
 				homeLocation: "CabinGuest",
 			});
-			document.SaveGame.farmhands = { Farmer: [guest] };
+			document.SaveGame.farmhands = [guest];
 			const opened = await openEditor(
 				new TextEncoder().encode(exportDocument(document)),
 			);
@@ -269,7 +262,7 @@ describe("farmer slot reassignment", () => {
 				expect(
 					parser.parse(new TextDecoder().decode(exported.success)).SaveGame
 						.player.UniqueMultiplayerID,
-				).toBe(123456789);
+				).toBe(123456789n);
 			} finally {
 				await opened.close();
 			}
@@ -284,10 +277,11 @@ it.each(["duplicate-home", "opaque-reference"] as const)(
 			Effect.gen(function* () {
 				const document = fixture(),
 					hands = document.SaveGame.farmhands;
-				if (hands === "") throw new Error("Missing fixture farmhands");
-				const guest = required(hands.Farmer.find((row) => row.name.trim()));
+				if (!Array.isArray(hands)) throw new Error("Missing fixture farmhands");
+				const guest = required(hands.find((row) => row?.name?.trim()));
+				if (!guest) throw Error("Missing named fixture guest");
 				if (mode === "duplicate-home")
-					Object.assign(guest, { homeLocation: "FarmHouse" });
+					Object.assign(required(guest), { homeLocation: "FarmHouse" });
 				else {
 					const cabin = required(inspectFarmerRoster(document).cabins[0]);
 					cabin.farmhandReference = { opaque: "retain" };
@@ -297,9 +291,7 @@ it.each(["duplicate-home", "opaque-reference"] as const)(
 				expect(readFarmerRoster(document).supported).toBe(false);
 				expect(
 					Result.isFailure(
-						yield* Effect.result(
-							session.transact(swapFarmers("host", "guest")),
-						),
+						yield* Effect.result(session.transact(swapFarmers("1", "2"))),
 					),
 				).toBe(true);
 				expect(yield* session.snapshot).toEqual(before);
@@ -313,23 +305,21 @@ it("keeps sparse cellar identities paired to the physical homes through host pro
 			const document = fixture(),
 				roster = inspectFarmerRoster(document),
 				guestCellar = required(
-					roster.cellars.find((entry) => entry.value.long === "guest"),
+					roster.cellars.find((entry) => String(entry.value) === "2"),
 				);
-			guestCellar.key.int = 9;
+			guestCellar.key = 9;
 			const session = yield* makeHistorySession(document),
 				before = yield* session.snapshot;
-			yield* session.transact(swapFarmers("host", "guest"));
+			yield* session.transact(swapFarmers("1", "2"));
 			const after = yield* session.snapshot,
 				result = inspectFarmerRoster(after.document);
 			expect(after.document.SaveGame.player).toMatchObject({
-				UniqueMultiplayerID: "guest",
+				UniqueMultiplayerID: 2n,
 				homeLocation: "FarmHouse",
 			});
-			expect(
-				result.cellars.map((entry) => [entry.key.int, entry.value.long]),
-			).toEqual([
-				[1, "guest"],
-				[9, "host"],
+			expect(result.cellars.map((entry) => [entry.key, entry.value])).toEqual([
+				[1, 2n],
+				[9, 1n],
 			]);
 			expect(result.supported).toBe(true);
 			yield* session.undo;

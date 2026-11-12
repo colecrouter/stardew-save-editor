@@ -1,3 +1,4 @@
+import { readEquipmentSlot } from "./equipment.ts";
 import { resolveInventoryContainer } from "./inventory-containers.ts";
 import { equipmentSlots, type EquipmentIdentities } from "./equipment.ts";
 import { Effect, Result, Schema, SchemaIssue } from "effect";
@@ -76,7 +77,7 @@ export const resolveInventoryMove = Effect.fn("Backpack.resolveMove")(
 					typeof slot === "number"
 						? items[slot]
 						: owner.farmer
-							? owner.farmer[slot]
+							? readEquipmentSlot(owner.farmer, slot)
 							: undefined,
 			};
 		}
@@ -104,7 +105,7 @@ export const resolveInventoryMove = Effect.fn("Backpack.resolveMove")(
 			return yield* invalid(
 				"Choose an item to move; the source slot is empty.",
 			);
-		// A swap also handles empty destinations: their exact nil representation moves
+		// A swap also handles empty destinations: their null value moves
 		// back to the source. Opaque item records need no metadata or normalization.
 		if (typeof source.slot === "number" && typeof destination.slot === "number")
 			return {

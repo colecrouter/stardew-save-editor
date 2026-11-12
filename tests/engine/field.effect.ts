@@ -44,7 +44,7 @@ for (const [name, factory] of [
 				expect(get(draft).text).toBe("7");
 
 				draft.input("8");
-				opened.model.chooseFarmer("guest");
+				opened.model.chooseFarmer("2");
 				yield* Effect.promise(settle);
 				expect(get(draft).text).toBe("8");
 				expect(get(draft).conflict).toBe(true);

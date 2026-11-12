@@ -1,3 +1,4 @@
+import { stringifySavedData } from "../../src/lib/editor/saved-data.ts";
 import { describe, expect, it } from "vitest";
 import { fixtureXml } from "./fixtures";
 import { get } from "svelte/store";
@@ -7,8 +8,12 @@ import {
 	formatDateDraft,
 	openEditor as openApplicationEditor,
 } from "../../src/lib/editor/editor-model.ts";
-import { exportDocument, parser, tinyFixture } from "./fixtures";
-import type { Save } from "../../codegen/save.ts";
+import {
+	exportDocument,
+	parser,
+	tinyFixture,
+} from "../helpers/editor-document.ts";
+import type { FixtureSave as Save } from "../helpers/editor-document.ts";
 
 const openEditor = (
 	bytes: Uint8Array,
@@ -26,7 +31,7 @@ const parseBytes = (bytes: Uint8Array) =>
 // TestSave is a 6.6 MB preservation fixture. Encoding/reparsing it several times
 // verifies data integrity, not latency; retain the experiment's integration budget
 // on shared CI runners without changing the default timeout for unit tests.
-describe("full-save calendar session", { timeout: 15_000 }, () => {
+describe("full-save calendar session", { timeout: 60_000 }, () => {
 	it("calendar import/view/export preserves the full document before any edit", async () => {
 		const bytes = await input();
 		const opened = await openEditor(bytes);
@@ -88,7 +93,7 @@ describe("full-save calendar session", { timeout: 15_000 }, () => {
 			]);
 			await opened.model.undo();
 			const before = await opened.model.snapshot();
-			draft.input(JSON.stringify({ year: "", season: "spring", day: "8" }));
+			draft.input(stringifySavedData({ year: "", season: "spring", day: "8" }));
 			await draft.submit();
 			expect(get(draft).dirty).toBe(true);
 			expect(get(draft).error).not.toBe("");

@@ -14,10 +14,10 @@ import {
 	setCalendarDate,
 	setCalendarWeather,
 } from "../../src/lib/editor/calendar-operations.ts";
-import { editorResources, openEditor } from "./editor-model.ts";
+import { editorResources, openEditor, openDocument } from "./editor-model.ts";
 import { inventoryFixture } from "./inventory-model.ts";
-import { parser, exportDocument } from "./fixture.ts";
-import type { Save } from "../../codegen/save.ts";
+import { parser } from "./fixture.ts";
+import type { FixtureSave as Save } from "../helpers/editor-document.ts";
 
 const fixtureBytes = () =>
 	readFile(new URL("../../tests/TestSave", import.meta.url));
@@ -120,15 +120,13 @@ it.effect(
 it("bundle domain failures retain unsupported-data and late-mail tags", async () => {
 	const document = parser.parse(new TextDecoder().decode(await fixtureBytes()));
 	const game = document.SaveGame as unknown as Save;
-	const definition = game.bundleData.item.find(
-		(entry) => entry.key.string === "Crafts Room/13",
+	const definition = game.bundleData?.find(
+		(entry) => entry.key === "Crafts Room/13",
 	);
 	if (!definition) throw new Error("Missing fixture bundle definition");
-	const vanilla = definition.value.string;
-	definition.value.string = "modded";
-	const unsupported = await openEditor(
-		new TextEncoder().encode(exportDocument(document)),
-	);
+	const vanilla = definition.value;
+	definition.value = "modded";
+	const unsupported = await openDocument(document);
 	try {
 		await expect(
 			unsupported.model.transact(completeSpringForaging()),
@@ -137,20 +135,18 @@ it("bundle domain failures retain unsupported-data and late-mail tags", async ()
 	} finally {
 		await unsupported.close();
 	}
-	definition.value.string = vanilla;
-	const cc = game.locations.GameLocation.find(
-		(location) => location.name === "CommunityCenter",
+	definition.value = vanilla;
+	const cc = game.locations.find(
+		(location) => location?.name === "CommunityCenter",
 	);
-	if (!cc?.bundles) throw new Error("Missing fixture Community Center");
-	for (const entry of cc.bundles.item)
-		if ([14, 15, 16, 17, 19].includes(entry.key.int))
-			entry.value.ArrayOfBoolean.boolean.fill(true);
+	if (cc?.$type !== "StardewValley.Locations.CommunityCenter" || !cc.bundles)
+		throw new Error("Missing fixture Community Center");
+	for (const entry of cc.bundles)
+		if ([14, 15, 16, 17, 19].includes(entry.key)) entry.value.fill(true);
 	Object.assign(game.player, {
 		mailReceived: { unsupported: "invalid mail container" },
 	});
-	const invalidMail = await openEditor(
-		new TextEncoder().encode(exportDocument(document)),
-	);
+	const invalidMail = await openDocument(document);
 	try {
 		const before = await invalidMail.model.snapshot();
 		await expect(
@@ -160,7 +156,7 @@ it("bundle domain failures retain unsupported-data and late-mail tags", async ()
 	} finally {
 		await invalidMail.close();
 	}
-});
+}, 60_000);
 
 // This test-only feature is intentionally absent from MutationRequest. It proves that
 // typed local functions and annotations can extend history without a central case.
@@ -338,7 +334,7 @@ it.effect(
 					Effect.gen(function* () {
 						const draft = yield* TransactionDraft;
 						const snapshot = yield* draft.read;
-						snapshot.state.document.SaveGame.player.items.Item.reverse();
+						snapshot.state.document.SaveGame.player.items.reverse();
 						yield* draft.replace(snapshot);
 					}),
 				),
@@ -385,7 +381,7 @@ it("calendar and bundle domain programs commit and export as one annotated group
 		await opened.close();
 	}
 	expect(editorResources()).toEqual({ models: 0, registries: 0, streams: 0 });
-});
+}, 60_000);
 
 it("a typed calendar failure after staged bundle writes rolls back the entire group", async () => {
 	const opened = await openEditor(await fixtureBytes());
@@ -403,4 +399,4 @@ it("a typed calendar failure after staged bundle writes rolls back the entire gr
 	} finally {
 		await opened.close();
 	}
-});
+}, 60_000);

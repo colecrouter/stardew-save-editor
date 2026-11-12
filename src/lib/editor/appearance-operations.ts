@@ -1,34 +1,20 @@
+import { samePlainData } from "./plain-data.ts";
 import {
 	appearanceLayers,
 	type AppearancePreviewView,
 } from "./appearance-preview.ts";
 import { Data, Effect, Result, Schema } from "effect";
 import { colorHex, itemColorPatch } from "../color.ts";
-import { farmers, type SaveDocument } from "./domain.ts";
+import { farmers, type Farmer, type SaveDocument } from "./domain.ts";
 import { TransactionDraft } from "./transaction-draft.ts";
 import {
 	recordAnnotatedOperation,
 	withReviewMetadata,
 } from "./transaction-annotations.ts";
 
-const record = (value: unknown): value is Record<string, unknown> =>
-	value !== null && typeof value === "object" && !Array.isArray(value);
-const integer = (value: unknown): value is number =>
-	typeof value === "number" && Number.isSafeInteger(value);
-const idOf = (owner: Record<string, unknown>) =>
-	typeof owner.UniqueMultiplayerID === "string" &&
-	owner.UniqueMultiplayerID.length > 0
-		? owner.UniqueMultiplayerID
-		: typeof owner.UniqueMultiplayerID === "number" &&
-			  Number.isFinite(owner.UniqueMultiplayerID)
-			? String(owner.UniqueMultiplayerID)
-			: undefined;
-// Treat generated records as unknown at this adapter boundary; checked fields below
-// are independent so a malformed color never disables an otherwise valid name.
-const owners = (document: SaveDocument): Record<string, unknown>[] => {
-	const candidates: unknown[] = farmers(document);
-	return candidates.filter(record);
-};
+// The codec decodes Int64 IDs as bigint. Missing IDs cannot identify an owner;
+// present IDs become strings only for the editor's selection keys.
+const idOf = (owner: Farmer) => owner.UniqueMultiplayerID?.toString();
 export const appearanceNumbers = [
 	{ key: "skin", label: "Skin", raw: "skin", min: 0, max: 23 },
 	{ key: "hair", label: "Hairstyle", raw: "hair", min: 0, max: 73 },
@@ -130,7 +116,7 @@ function checked<T>(
 }
 /** Inspection never constructs reactive proxies or repairs imported values. */
 export function readAppearances(document: SaveDocument): AppearanceView[] {
-	const all = owners(document);
+	const all = farmers(document);
 	return all.map((owner) => {
 		const id = idOf(owner);
 		const supported =
@@ -164,12 +150,14 @@ export function readAppearances(document: SaveDocument): AppearanceView[] {
 			),
 			numbers: appearanceNumbers.map((def) => {
 				const raw = owner[def.raw];
+				// The codec guarantees an integer when this optional field is present.
 				// The second hair sheet starts at save ID100 but follows ID55 in the picker.
-				const value = integer(raw)
-					? def.key === "hair" && raw >= 100
-						? raw - 44
-						: raw
-					: undefined;
+				const value =
+					raw !== undefined
+						? def.key === "hair" && raw >= 100
+							? raw - 44
+							: raw
+						: undefined;
 				return {
 					key: def.key,
 					label: def.label,
@@ -206,7 +194,9 @@ export function readAppearances(document: SaveDocument): AppearanceView[] {
 export const setAppearance = Effect.fn("Appearance.set")(function* (
 	input: AppearanceChange,
 ) {
-	const result = decode(record(input) ? { ...input } : input);
+	// Decode only the request's own fields; the schema rejects unsupported
+	// shapes and values without a separate object-shape predicate.
+	const result = decode({ ...input });
 	if (Result.isFailure(result))
 		return yield* new AppearanceInvalid({
 			message: "Choose a valid appearance value.",
@@ -214,7 +204,7 @@ export const setAppearance = Effect.fn("Appearance.set")(function* (
 	const request = result.success;
 	const draft = yield* TransactionDraft;
 	const snapshot = yield* draft.read;
-	const all = owners(snapshot.state.document),
+	const all = farmers(snapshot.state.document),
 		matching = all.filter((owner) => idOf(owner) === request.farmerId);
 	const owner = matching[0];
 	if (matching.length !== 1 || !owner)
@@ -272,11 +262,7 @@ export const setAppearance = Effect.fn("Appearance.set")(function* (
 				? request.value + 44
 				: request.value;
 	}
-	if (
-		JSON.stringify(owner[raw]) === JSON.stringify(value) &&
-		request.kind !== "gender"
-	)
-		return;
+	if (samePlainData(owner[raw], value) && request.kind !== "gender") return;
 	owner[raw] = value;
 	yield* recordAnnotatedOperation(draft.replace(snapshot)).pipe(
 		withReviewMetadata({

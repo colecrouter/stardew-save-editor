@@ -1,9 +1,9 @@
 import { fireEvent, render, waitFor } from "@testing-library/svelte";
 import { expect, it } from "vitest";
-import { openEditor } from "../../src/lib/editor/editor-model.ts";
+import { openTestEditor, openTestDocument } from "../helpers/open-editor.ts";
 import { readQiOrders } from "../../src/lib/editor/qi-order-operations.ts";
 import WorkspaceHarness from "./WorkspaceHarness.svelte";
-import { parser, fixtureXml, exportDocument } from "./fixtures.ts";
+import { parser, fixtureXml } from "./fixtures.ts";
 
 // The real workspace exercises discrete offer fields, coordinated dialogs and
 // global Undo through one file queue; no domain transaction is stubbed out.
@@ -13,12 +13,10 @@ it(
 	async () => {
 		const document = parser.parse(fixtureXml);
 		Object.assign(document.SaveGame, {
-			availableSpecialOrders: "",
-			specialOrders: "",
+			availableSpecialOrders: [],
+			specialOrders: [],
 		});
-		const opened = await openEditor(
-			new TextEncoder().encode(exportDocument(document)),
-		);
+		const opened = await openTestDocument(document);
 		const page = render(WorkspaceHarness, { model: opened.model });
 		try {
 			await fireEvent.click(page.getByRole("link", { name: "Qi orders" }));
@@ -133,28 +131,24 @@ it(
 	async () => {
 		const document = parser.parse(fixtureXml);
 		Object.assign(document.SaveGame, {
-			availableSpecialOrders: "",
-			specialOrders: {
-				SpecialOrder: [
-					{
-						questKey: "QiChallenge3",
-						orderType: "Qi",
-						questState: "Complete",
-						unclaimedRewardsIDs: { long: [44] },
-						opaque: "keep",
-					},
-					{
-						questKey: "Mod.Unknown",
-						orderType: "Qi",
-						questState: "InProgress",
-						opaque: "preserve",
-					},
-				],
-			},
+			availableSpecialOrders: [],
+			specialOrders: [
+				{
+					questKey: "QiChallenge3",
+					orderType: "Qi",
+					questState: "Complete",
+					unclaimedRewardsIDs: [44],
+					opaque: "keep",
+				},
+				{
+					questKey: "Mod.Unknown",
+					orderType: "Qi",
+					questState: "InProgress",
+					opaque: "preserve",
+				},
+			],
 		});
-		const opened = await openEditor(
-			new TextEncoder().encode(exportDocument(document)),
-		);
+		const opened = await openTestDocument(document);
 		const before = await opened.model.snapshot();
 		const page = render(WorkspaceHarness, { model: opened.model });
 		try {
@@ -197,7 +191,7 @@ it(
 	"browses and filters Qi notices without changing offers, progress or history",
 	{ timeout: 20000 },
 	async () => {
-		const opened = await openEditor(new TextEncoder().encode(fixtureXml));
+		const opened = await openTestEditor(new TextEncoder().encode(fixtureXml));
 		const page = render(WorkspaceHarness, { model: opened.model });
 		try {
 			await fireEvent.click(page.getByRole("link", { name: "Qi orders" }));

@@ -139,6 +139,10 @@ internal static class CatalogExtractor
 
 	private static int? MaxItems(Type type)
 	{
+		// NetEnum has its own string enumerator over one enum value rather than
+		// deriving from NetField<T>. It has the same single-value XML contract.
+		if (type.IsGenericType && type.GetGenericTypeDefinition().FullName == "Netcode.NetEnum`1")
+			return 1;
 		// NetField exposes a single value through IEnumerable for XmlSerializer.
 		// Its Add method rejects a second value; this includes inherited NetRef
 		// implementations, without restricting ordinary NetCollection instances.

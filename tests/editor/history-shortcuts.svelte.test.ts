@@ -1,6 +1,6 @@
 import { fireEvent, render, waitFor } from "@testing-library/svelte";
 import { expect, it, vi } from "vitest";
-import { openEditor } from "../../src/lib/editor/editor-model";
+import { openTestEditor } from "../helpers/open-editor.ts";
 import WorkspaceHarness from "./WorkspaceHarness.svelte";
 import { fixtureXml } from "./fixtures";
 
@@ -13,7 +13,7 @@ it.each([false, true])(
 		const platform = vi
 			.spyOn(navigator, "platform", "get")
 			.mockReturnValue(apple ? "MacIntel" : "Win32");
-		const opened = await openEditor(new TextEncoder().encode(fixtureXml));
+		const opened = await openTestEditor(new TextEncoder().encode(fixtureXml));
 		const page = render(WorkspaceHarness, { model: opened.model });
 		const chord = {
 			key: "z",

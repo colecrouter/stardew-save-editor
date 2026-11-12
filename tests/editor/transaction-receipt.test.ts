@@ -49,7 +49,7 @@ it(
 				Effect.gen(function* () {
 					const draft = yield* TransactionDraft;
 					const snapshot = yield* draft.read;
-					const first = snapshot.state.document.SaveGame.player.items.Item[0];
+					const first = snapshot.state.document.SaveGame.player.items[0];
 					if (!first) throw new Error("Missing fixture item");
 					Object.assign(first, { stack: 999 });
 					yield* draft.replace(snapshot);

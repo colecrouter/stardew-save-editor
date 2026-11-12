@@ -11,7 +11,7 @@ import {
 	type CharacterChange,
 } from "../../src/lib/editor/character-operations.ts";
 import { makeHistorySession } from "../../src/lib/editor/history.ts";
-import { tinyFixture } from "./fixtures.ts";
+import { tinyFixture } from "../helpers/editor-document.ts";
 
 const run = <A, E>(
 	program: Effect.Effect<A, E, import("effect").Scope.Scope>,
@@ -19,26 +19,26 @@ const run = <A, E>(
 function fixture() {
 	const document = tinyFixture();
 	Object.assign(document.SaveGame.player, {
-		experiencePoints: { int: [0, 101, 777, 1300, 15000, 12345], opaque: "007" },
+		experiencePoints: [0, 101, 777, 1300, 15000, 12345],
+		testMetadataexperiencePoints: { opaque: "007" },
 		farmingLevel: 0,
 		fishingLevel: 1,
 		foragingLevel: 3,
 		miningLevel: 4,
 		combatLevel: 10,
-		professions: { int: [0, 0, 1, 4, 999], opaque: [false, "0007"] },
+		professions: [0, 0, 1, 4, 999],
+		testMetadataprofessions: { opaque: [false, "0007"] },
 		stats: {
-			Values: {
-				item: [
-					{
-						key: { string: "MasteryExp" },
-						value: { unsignedInt: 25000 },
-						opaque: "keep",
-					},
-					{ key: { string: "MasteryLevelsSpent" }, value: { unsignedInt: 2 } },
-					{ key: { string: "irrelevant" }, value: { unsignedInt: 123 } },
-				],
-				opaque: "007",
-			},
+			Values: [
+				{
+					key: "MasteryExp",
+					value: 25000,
+					opaque: "keep",
+				},
+				{ key: "MasteryLevelsSpent", value: 2 },
+				{ key: "irrelevant", value: 123 },
+			],
+			testMetadataValues: { opaque: "007" },
 			opaque: "stats",
 		},
 		maxHealth: 140,
@@ -53,11 +53,11 @@ function required<A>(value: A | undefined): A {
 	if (value === undefined) throw Error("Missing fixture value");
 	return value;
 }
-const raw = (document: ReturnType<typeof fixture>) =>
+const raw = (document: import("../../src/lib/editor/domain.ts").SaveDocument) =>
 	document.SaveGame.player as unknown as Record<string, unknown>;
 const change = (
 	value: Omit<Extract<CharacterChange, { kind: "skill-xp" }>, "farmerId">,
-): CharacterChange => ({ farmerId: "host", ...value });
+): CharacterChange => ({ farmerId: "1", ...value });
 
 describe("character save operations", () => {
 	it("uses the game's skill and mastery threshold tables including unsigned mastery read semantics", () => {
@@ -73,21 +73,21 @@ describe("character save operations", () => {
 	});
 	it("validates requests independently and rejects inherited/excess/invalid fields", () => {
 		for (const input of [
-			{ farmerId: "host", kind: "skill-xp", skill: "farming", value: -1 },
-			{ farmerId: "host", kind: "skill-xp", skill: "farming", value: 100000 },
-			{ farmerId: "host", kind: "skill-level", skill: "farming", value: 11 },
-			{ farmerId: "host", kind: "mastery-xp", value: 2147483648 },
-			{ farmerId: "host", kind: "profession", profession: 30, enabled: true },
-			{ farmerId: "host", kind: "profession", profession: 1, enabled: "yes" },
-			{ farmerId: "host", kind: "mastery-xp", value: NaN },
-			Object.create({ farmerId: "host", kind: "mastery-xp", value: 10000 }),
-			{ farmerId: "host", kind: "mastery-xp", value: 10000, other: 1 },
+			{ farmerId: "1", kind: "skill-xp", skill: "farming", value: -1 },
+			{ farmerId: "1", kind: "skill-xp", skill: "farming", value: 100000 },
+			{ farmerId: "1", kind: "skill-level", skill: "farming", value: 11 },
+			{ farmerId: "1", kind: "mastery-xp", value: 2147483648 },
+			{ farmerId: "1", kind: "profession", profession: 30, enabled: true },
+			{ farmerId: "1", kind: "profession", profession: 1, enabled: "yes" },
+			{ farmerId: "1", kind: "mastery-xp", value: NaN },
+			Object.create({ farmerId: "1", kind: "mastery-xp", value: 10000 }),
+			{ farmerId: "1", kind: "mastery-xp", value: 10000, other: 1 },
 		])
 			expect(Result.isFailure(decodeCharacterChange(input))).toBe(true);
 		expect(
 			Result.isSuccess(
 				decodeCharacterChange({
-					farmerId: "host",
+					farmerId: "1",
 					kind: "mastery-xp",
 					value: 2147483647,
 				}),
@@ -123,7 +123,7 @@ describe("character save operations", () => {
 				const after = yield* session.snapshot;
 				const expected = structuredClone(document);
 				const owner = raw(expected);
-				(owner.experiencePoints as { int: number[] }).int[0] = 2150;
+				(owner.experiencePoints as number[])[0] = 2150;
 				owner.farmingLevel = 5;
 				expect(after.document).toEqual(expected);
 				expect(after.entries[0]?.annotations[0]?.tags).toContain(
@@ -143,16 +143,16 @@ describe("character save operations", () => {
 				const session = yield* makeHistorySession(document);
 				yield* session.transact(
 					setCharacter({
-						farmerId: "host",
+						farmerId: "1",
 						kind: "skill-level",
 						skill: "fishing",
 						value: 10,
 					}),
 				);
 				let after = yield* session.snapshot;
-				expect(
-					(raw(after.document).experiencePoints as { int: number[] }).int[1],
-				).toBe(15000);
+				expect((raw(after.document).experiencePoints as number[])[1]).toBe(
+					15000,
+				);
 				expect(raw(after.document).fishingLevel).toBe(10);
 				yield* session.undo;
 				const before = yield* session.snapshot;
@@ -163,7 +163,7 @@ describe("character save operations", () => {
 				);
 				yield* session.transact(
 					setCharacter({
-						farmerId: "host",
+						farmerId: "1",
 						kind: "skill-level",
 						skill: "fishing",
 						value: 1,
@@ -180,31 +180,31 @@ describe("character save operations", () => {
 				const session = yield* makeHistorySession(document);
 				yield* session.transact(
 					setCharacter({
-						farmerId: "host",
+						farmerId: "1",
 						kind: "profession",
 						profession: 27,
 						enabled: true,
 					}),
 				);
 				let after = yield* session.snapshot;
-				expect(
-					(raw(after.document).professions as { int: number[] }).int,
-				).toEqual([0, 0, 1, 4, 999, 24, 27]);
+				expect(raw(after.document).professions as number[]).toEqual([
+					0, 0, 1, 4, 999, 24, 27,
+				]);
 				// Profession editing never simulates gameplay's health refill/perk hooks.
 				expect(raw(after.document).maxHealth).toBe(140);
 				expect(raw(after.document).health).toBe(120);
 				yield* session.transact(
 					setCharacter({
-						farmerId: "host",
+						farmerId: "1",
 						kind: "profession",
 						profession: 0,
 						enabled: false,
 					}),
 				);
 				after = yield* session.snapshot;
-				expect(
-					(raw(after.document).professions as { int: number[] }).int,
-				).toEqual([1, 4, 999, 24, 27]);
+				expect(raw(after.document).professions as number[]).toEqual([
+					1, 4, 999, 24, 27,
+				]);
 				yield* session.undo;
 				yield* session.undo;
 				expect((yield* session.snapshot).document).toEqual(document);
@@ -213,32 +213,32 @@ describe("character save operations", () => {
 	it("keeps imported orphan/duplicate professions until an explicit affected edit and supports empty/singleton containers", () =>
 		run(
 			Effect.gen(function* () {
-				for (const professions of ["", { int: 999, opaque: "007" }]) {
+				for (const professions of [[], [999]]) {
 					const document = fixture();
 					raw(document).professions = professions;
 					const session = yield* makeHistorySession(document);
 					yield* session.transact(
 						setCharacter({
-							farmerId: "host",
+							farmerId: "1",
 							kind: "profession",
 							profession: 5,
 							enabled: true,
 						}),
 					);
 					const after = yield* session.snapshot;
-					expect(
-						(raw(after.document).professions as { int: number[] }).int,
-					).toEqual(professions === "" ? [1, 5] : [999, 1, 5]);
+					expect(raw(after.document).professions as number[]).toEqual(
+						professions.length === 0 ? [1, 5] : [999, 1, 5],
+					);
 					yield* session.undo;
 					expect((yield* session.snapshot).document).toEqual(document);
 				}
 				const document = fixture();
-				raw(document).professions = { int: [5, 5, 999] };
+				raw(document).professions = [5, 5, 999];
 				const session = yield* makeHistorySession(document);
 				const before = yield* session.snapshot;
 				yield* session.transact(
 					setCharacter({
-						farmerId: "host",
+						farmerId: "1",
 						kind: "profession",
 						profession: 5,
 						enabled: true,
@@ -252,24 +252,24 @@ describe("character save operations", () => {
 			Effect.gen(function* () {
 				const document = fixture();
 				raw(document).stats = {
-					Values: {
-						item: [
-							{
-								key: { string: "masteryexp", opaque: "007" },
-								value: { unsignedInt: 45000, other: false },
-								extra: "keep",
-							},
-							{
-								key: { string: "MasteryLevelsSpent" },
-								value: { unsignedInt: 1 },
-							},
-							...[0, 1, 4].map((i) => ({
-								key: { string: `mastery_${i}` },
-								value: { unsignedInt: 1 },
-							})),
-						],
-						opaque: "007",
-					},
+					Values: [
+						{
+							key: "masteryexp",
+							keyMetadata: "007",
+							value: 45000,
+							valueMetadata: false,
+							extra: "keep",
+						},
+						{
+							key: "MasteryLevelsSpent",
+							value: 1,
+						},
+						...[0, 1, 4].map((i) => ({
+							key: `mastery_${i}`,
+							value: 1,
+						})),
+					],
+					testMetadataValues: { opaque: "007" },
 					other: "keep",
 				};
 				const session = yield* makeHistorySession(document);
@@ -278,7 +278,7 @@ describe("character save operations", () => {
 				const failed = yield* Effect.result(
 					session.transact(
 						setCharacter({
-							farmerId: "host",
+							farmerId: "1",
 							kind: "mastery-xp",
 							value: 44999,
 						}),
@@ -287,16 +287,16 @@ describe("character save operations", () => {
 				expect(Result.isFailure(failed)).toBe(true);
 				expect(yield* session.snapshot).toEqual(before);
 				yield* session.transact(
-					setCharacter({ farmerId: "host", kind: "mastery-xp", value: 70000 }),
+					setCharacter({ farmerId: "1", kind: "mastery-xp", value: 70000 }),
 				);
 				const expected = structuredClone(document);
 				required(
 					(
 						raw(expected).stats as {
-							Values: { item: { value: { unsignedInt: number } }[] };
+							Values: { value: number }[];
 						}
-					).Values.item[0],
-				).value.unsignedInt = 70000;
+					).Values[0],
+				).value = 70000;
 				expect((yield* session.snapshot).document).toEqual(expected);
 				yield* session.undo;
 				expect((yield* session.snapshot).document).toEqual(document);
@@ -307,12 +307,10 @@ describe("character save operations", () => {
 			Effect.gen(function* () {
 				for (const stats of [
 					{ opaque: "007" },
-					{ Values: "", opaque: "007" },
+					{ Values: [], opaque: "007" },
 					{
-						Values: {
-							item: { key: { string: "other" }, value: { unsignedInt: 7 } },
-							opaque: "007",
-						},
+						Values: [{ key: "other", value: 7 }],
+						testMetadataValues: { opaque: "007" },
 					},
 				]) {
 					const document = fixture();
@@ -323,7 +321,7 @@ describe("character save operations", () => {
 					const session = yield* makeHistorySession(document);
 					yield* session.transact(
 						setCharacter({
-							farmerId: "host",
+							farmerId: "1",
 							kind: "mastery-xp",
 							value: 10000,
 						}),
@@ -341,15 +339,13 @@ describe("character save operations", () => {
 		run(
 			Effect.gen(function* () {
 				const document = fixture();
-				raw(document).experiencePoints = { int: ["bad", 100] };
-				raw(document).professions = { int: [0, "mod"] };
+				raw(document).experiencePoints = ["bad", 100];
+				raw(document).professions = [0, "mod"];
 				raw(document).stats = {
-					Values: {
-						item: [
-							{ key: { string: "masteryExp" }, value: { unsignedInt: 1 } },
-							{ key: { string: "MasteryExp" }, value: { unsignedInt: 2 } },
-						],
-					},
+					Values: [
+						{ key: "masteryExp", value: 1 },
+						{ key: "MasteryExp", value: 2 },
+					],
 				};
 				const view = readCharacters(document)[0];
 				expect(view?.skills[0]?.supported).toBe(false);
@@ -361,12 +357,12 @@ describe("character save operations", () => {
 				for (const request of [
 					change({ kind: "skill-xp", skill: "farming", value: 100 }),
 					{
-						farmerId: "host",
+						farmerId: "1",
 						kind: "profession",
 						profession: 2,
 						enabled: true,
 					} as const,
-					{ farmerId: "host", kind: "mastery-xp", value: 10000 } as const,
+					{ farmerId: "1", kind: "mastery-xp", value: 10000 } as const,
 				])
 					expect(
 						Result.isFailure(
@@ -375,9 +371,9 @@ describe("character save operations", () => {
 					).toBe(true);
 				expect(yield* session.snapshot).toEqual(before);
 				const duplicate = fixture();
-				duplicate.SaveGame.farmhands = {
-					Farmer: [structuredClone(duplicate.SaveGame.player)],
-				};
+				duplicate.SaveGame.farmhands = [
+					structuredClone(duplicate.SaveGame.player),
+				];
 				expect(
 					readCharacters(duplicate).every((owner) => !owner.supported),
 				).toBe(true);
@@ -400,22 +396,22 @@ describe("character save operations", () => {
 			Effect.gen(function* () {
 				const document = fixture();
 				const guest = structuredClone(document.SaveGame.player);
-				guest.UniqueMultiplayerID = "guest";
+				guest.UniqueMultiplayerID = 2n;
 				guest.name = "Guest";
-				document.SaveGame.farmhands = { Farmer: [guest] };
+				document.SaveGame.farmhands = [guest];
 				const session = yield* makeHistorySession(document);
 				const before = yield* session.snapshot;
 				const failed = yield* Effect.result(
 					session.transact(
 						Effect.gen(function* () {
 							yield* setCharacter({
-								farmerId: "guest",
+								farmerId: "2",
 								kind: "skill-xp",
 								skill: "mining",
 								value: 99999,
 							});
 							yield* setCharacter({
-								farmerId: "guest",
+								farmerId: "2",
 								kind: "mastery-xp",
 								value: 1,
 							});
@@ -426,7 +422,7 @@ describe("character save operations", () => {
 				expect(yield* session.snapshot).toEqual(before);
 				yield* session.transact(
 					setCharacter({
-						farmerId: "guest",
+						farmerId: "2",
 						kind: "skill-xp",
 						skill: "mining",
 						value: 99999,
@@ -438,7 +434,7 @@ describe("character save operations", () => {
 				);
 				expect(
 					readCharacters(after.document)
-						.find((owner) => owner.farmerId === "guest")
+						.find((owner) => owner.farmerId === "2")
 						?.skills.find((skill) => skill.key === "mining")?.level,
 				).toBe(10);
 			}),
@@ -447,11 +443,7 @@ describe("character save operations", () => {
 		for (const value of [-1, 1.5, "10", null, { opaque: true }]) {
 			const document = fixture();
 			raw(document).stats = {
-				Values: {
-					item: [
-						{ key: { string: "mastery_2" }, value: { unsignedInt: value } },
-					],
-				},
+				Values: [{ key: "mastery_2", value: value }],
 			};
 			expect(readCharacters(document)[0]?.mastery.supported).toBe(false);
 		}

@@ -1,3 +1,5 @@
+import { readEquipmentSlot, writeEquipmentSlot } from "./equipment.ts";
+import { savedType } from "./saved-types.ts";
 import { compareInventoryItems, isInventoryTool } from "../inventory-order.ts";
 import { storageCapabilities, storageTypes } from "./storage-policy.ts";
 import { Result } from "effect";
@@ -61,10 +63,7 @@ export function isInventoryMutation(
 }
 const record = (value: unknown): value is Record<string, unknown> =>
 	value !== null && typeof value === "object" && !Array.isArray(value);
-const empty = (value: unknown) =>
-	value == null ||
-	(record(value) &&
-		(value["@_xsi:nil"] === true || value["@_xsi:nil"] === "true"));
+const empty = (value: unknown) => value == null;
 const invalid = (message: string) => Result.fail(new MutationError(message));
 /** Metadata and paired handles staged on the caller's detached draft; publication is still pending. */
 type PreparedInventoryTransition = {
@@ -140,7 +139,7 @@ export function applyInventoryMutation(
 		typeof location === "number"
 			? (pairsFor(container)[location] ?? { value: undefined })
 			: {
-					value: container.farmer?.[location],
+					value: readEquipmentSlot(container.farmer, location),
 					id: inventory?.equipmentIdentities[container.id]?.[location],
 				};
 	const identitiesAvailable = (pair: Pair) =>
@@ -159,10 +158,9 @@ export function applyInventoryMutation(
 		location: InventoryLocation,
 		pair: Pair,
 	) => {
-		// Missing equipment moves into a numbered slot as a canonical nil. Retain its
+		// Missing equipment moves into a numbered slot as null. Retain its
 		// identity nevertheless: the empty location is a session-owned lifetime too.
-		const value =
-			pair.value === undefined ? { "@_xsi:nil": "true" } : pair.value;
+		const value = pair.value === undefined ? null : pair.value;
 		if (typeof location === "number")
 			pairsFor(container)[location] = { ...pair, value };
 		else
@@ -175,18 +173,12 @@ export function applyInventoryMutation(
 		label: string,
 		review: OperationChange["review"],
 	): Result.Result<PreparedInventoryTransition, MutationError> => {
-		// Validate every affected chest before either endpoint is written. A nil with
-		// extra members cannot be compacted without discarding imported opaque data.
+		// Validate every affected chest before either endpoint is written. Only null
+		// slots can be compacted; malformed scalar entries must never be discarded.
 		for (const { owner: container, pairs } of opened.values()) {
 			if (container.kind !== "chest") continue;
 			if (
-				pairs.some(
-					(pair) =>
-						(emptyChestSlot(pair.value) &&
-							record(pair.value) &&
-							Object.keys(pair.value).some((key) => key !== "@_xsi:nil")) ||
-						(!emptyChestSlot(pair.value) && !record(pair.value)),
-				)
+				pairs.some((pair) => !emptyChestSlot(pair.value) && !record(pair.value))
 			)
 				return invalid("Unsupported chest inventory");
 		}
@@ -229,7 +221,7 @@ export function applyInventoryMutation(
 			for (const key of equipmentSlots) {
 				const pair = writes[key];
 				if (!pair) continue;
-				container.farmer[key] = pair.value;
+				writeEquipmentSlot(container.farmer, key, pair.value);
 				if (working && pair.id !== undefined) {
 					const previous = working.equipmentIdentities[id];
 					if (!previous) return invalid("Equipment identities are unavailable");
@@ -424,7 +416,7 @@ export function applyInventoryMutation(
 			!record(item) ||
 			String(item.itemId) !== action.itemId ||
 			typeof item.stack !== "number" ||
-			item["@_xsi:type"] !== "Object" ||
+			savedType(item) !== "Object" ||
 			item.bigCraftable === true
 		)
 			return invalid(
@@ -457,7 +449,7 @@ export function applyInventoryMutation(
 	}
 	if (empty(source.value)) return invalid("Source slot is empty");
 	if (action.type === "item-remove") {
-		put(owner, action.slot, { value: { "@_xsi:nil": "true" }, id: fresh() });
+		put(owner, action.slot, { value: null, id: fresh() });
 		return finish(
 			`Remove item from ${owner.name} (slot ${action.slot + 1})`,
 			"standalone",
@@ -551,7 +543,7 @@ export function resizeInventorySlots(
 	const ids = previous.slice(0, size);
 	let nextIdentity = inventory.nextIdentity;
 	owner.slots.length = Math.min(size, owner.slots.length);
-	while (owner.slots.length < size) owner.slots.push({ "@_xsi:nil": "true" });
+	while (owner.slots.length < size) owner.slots.push(null);
 	while (ids.length < size) ids.push(`item:${++nextIdentity}`);
 	// Stardew stores capacity separately from the array; both describe this accepted edit.
 	Object.assign(owner.farmer, { maxItems: size });

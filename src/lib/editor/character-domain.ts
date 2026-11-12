@@ -71,9 +71,6 @@ export function createCharacterDomain(
 			view.professions.reason,
 		),
 	}));
-	const professionFields = Object.fromEntries(
-		professions.map((profession) => [profession.id, profession.field]),
-	);
 	const masteryXp = field(
 		"mastery:xp",
 		"Mastery XP",

@@ -23,15 +23,25 @@ internal sealed class TypeScriptEmitter
 	}
 	private static string Q(string value) => JsonSerializer.Serialize(value, Cli.Json);
 	private string Name(string id) => names[id];
+	// Save-facing property names keep domain code independent of CLR backing-field
+	// names (for example modDataForSerialization). Attributes retain member names
+	// so an attribute and an element with the same XML name remain distinct fields.
+	private static string Property(FieldContract field) => field.Placement == "attribute" ? field.MemberName : field.XmlName;
 	private string Type(ValueContract value) => value.Kind switch
 	{
-		"scalar" => $"ReturnType<typeof Xml.scalar<{Q(value.Type!)}>>[\"Type\"]",
+		"scalar" => value.Type switch
+		{
+			"System.String" or "System.Guid" => "string",
+			"System.Boolean" => "boolean",
+			"System.Int64" or "System.UInt64" => "bigint",
+			_ => "number"
+		},
 		"enum" => string.Join(" | ", value.Labels!.Select(Q)) + (value.NullableText ? " | null" : ""),
 		"object" => Name(value.Type!),
 		"nullable" => $"({Type(value.Value!)}) | null",
-		"array" => $"ReadonlyArray<{Type(value.Item!)}>",
-		"inventory" => $"ReadonlyArray<({Type(value.Item!)}) | null>",
-		"dictionary" => $"ReadonlyArray<{{ readonly key: {Type(value.Key!)}; readonly value: {Type(value.Value!)}; readonly [extra: string]: unknown }}>",
+		"array" => $"Array<{Type(value.Item!)}>",
+		"inventory" => $"Array<({Type(value.Item!)}) | null>",
+		"dictionary" => $"Array<{{ key: {Type(value.Key!)}; value: {Type(value.Value!)}; [extra: string]: unknown }}>",
 		_ => throw new InvalidDataException("Unknown value contract " + value.Kind)
 	};
 	private string Codec(ValueContract value) => value.Kind switch
@@ -48,6 +58,10 @@ internal sealed class TypeScriptEmitter
 	private string FieldCodec(FieldContract field)
 	{
 		var codec = Codec(field.Value);
+		// NetField exposes one logical value through its XML enumerable contract.
+		// The editor works with that value, not a one-element implementation list.
+		if (field.MaxItems == 1)
+			return field.Placement == "collection" ? $"Xml.single({codec}, {Q(field.ItemName!)})" : field.Value.Kind == "object" ? $"Xml.optionalReference({codec})" : codec;
 		return field.Placement switch
 		{
 			"repeated" => $"Xml.sequence({codec}, {field.MaxItems?.ToString() ?? "undefined"})",
@@ -63,16 +77,22 @@ internal sealed class TypeScriptEmitter
 		{
 			var name = Name(obj.Id);
 			output.AppendLine($"type {name}Payload = {{");
+			// Literals may omit optional XML members, including empty repeated fields.
+			// Decoding initializes repeated fields; creation need not spell out every list.
 			foreach (var field in obj.Fields)
-				output.AppendLine($"\treadonly {Q(field.MemberName)}{(field.Repeated ? "" : "?")}: {(field.Multiple ? $"ReadonlyArray<{Type(field.Value)}>" : Type(field.Value))};");
-			output.AppendLine("\treadonly [extra: string]: unknown;\n};");
+				output.AppendLine($"\t{Q(Property(field))}?: {(field.Multiple && field.MaxItems != 1 ? $"Array<{Type(field.Value)}>" : Type(field.Value))}{(field.MaxItems == 1 && (field.Placement == "collection" || field.Value.Kind == "object") ? " | null" : "")};");
+			output.AppendLine("\t[extra: string]: unknown;\n};");
 			var variants = obj.Variants.Select(id => $"({Name(id)}Payload & {{ readonly $type: {Q(id)} }})").ToList();
 			var simple = obj.Variants.Count == 1 && obj.Variants[0] == obj.Id;
+			// A concrete field (such as Farmer.boots) still carries item identity in
+			// the editor, just like the same instance in an Item inventory slot.
+			var exposeType = contract.Objects.Any(parent => parent.Id != "System.Object" && parent.Variants.Count > 1 && parent.Variants.Contains(obj.Id));
 			if (obj.Id == "System.Object") variants.Add("Xml.ScalarObject");
-			output.AppendLine($"export type {name} = {(simple && obj.Id != "System.Object" ? name + "Payload" : string.Join(" | ", variants))};\n");
+			if (!simple || obj.Id == "System.Object") variants.Add("Xml.UnknownObject");
+			output.AppendLine($"export type {name} = {(simple && obj.Id != "System.Object" ? name + "Payload" + (exposeType ? $" & {{ readonly $type?: {Q(obj.Id)} }}" : "") : string.Join(" | ", variants))};\n");
 			output.AppendLine($"const {name}PayloadSchema = Xml.object({{");
 			foreach (var field in obj.Fields)
-				output.AppendLine($"\t{Q(field.MemberName)}: {{ xmlName: {Q((field.Placement == "attribute" ? "@_" : "") + field.XmlName)}, codec: {FieldCodec(field)}{(field.Repeated ? ", repeated: true" : ", optional: true")} }},");
+				output.AppendLine($"\t[{Q(Property(field))}]: {{ xmlName: {Q((field.Placement == "attribute" ? "@_" : "") + field.XmlName)}, codec: {FieldCodec(field)}{(field.Repeated && field.MaxItems != 1 ? ", repeated: true, optional: true" : ", optional: true")} }},");
 			output.AppendLine("});");
 			var cases = obj.Variants.Select(id =>
 			{
@@ -81,11 +101,17 @@ internal sealed class TypeScriptEmitter
 			});
 			// Every reference is deferred, including dispatch construction. Recursion
 			// and inheritance therefore need no source factoring or initialization order.
-			output.AppendLine($"const {name}Schema: Xml.Codec<{name}> = Xml.lazy(() => Xml.polymorphic({Q(obj.Id)}, [{string.Join(", ", cases)}])) as Xml.Codec<{name}>;\n");
+			output.AppendLine($"const {name}Schema: Xml.Codec<{name}> = Xml.lazy(() => Xml.polymorphic({Q(obj.Id)}, [{string.Join(", ", cases)}]{(exposeType ? ", true" : "")})) as Xml.Codec<{name}>;\n");
 		}
 		output.AppendLine($"export const ValueSchema = {Name(contract.Root.Id)}Schema;");
 		output.AppendLine($"export const XmlSchema = Xml.document({Q(contract.Root.RootName)}, ValueSchema);");
 		output.AppendLine("export type Value = typeof ValueSchema.Type;");
+		// Constructors select a reviewed runtime type without embedding CLR namespace
+		// guesses throughout editor operations. Ambiguous XML names are not exported.
+		var ids = contract.Objects.Where(o => o.TypeNamespace.Length == 0)
+			.GroupBy(o => o.TypeName).Where(group => group.Count() == 1)
+			.ToDictionary(group => group.Key, group => group.Single().Id);
+		output.AppendLine($"export const TypeIds = {JsonSerializer.Serialize(ids, Cli.Json)} as const;");
 		return output.ToString();
 	}
 }

@@ -1,7 +1,7 @@
 import { fireEvent, render, waitFor } from "@testing-library/svelte";
 import { expect, it } from "vitest";
-import { openEditor } from "../../src/lib/editor/editor-model";
-import { parser, fixtureXml, exportDocument } from "./fixtures";
+import { openTestDocument } from "../helpers/open-editor.ts";
+import { parser, fixtureXml } from "./fixtures";
 import WorkspaceHarness from "./WorkspaceHarness.svelte";
 
 // Reassignment must publish through the workspace's queue and preserve the
@@ -17,14 +17,12 @@ it(
 			hostName = host.name;
 		Object.assign(host, { homeLocation: "FarmHouse" });
 		Object.assign(guest, {
-			UniqueMultiplayerID: "123456789",
+			UniqueMultiplayerID: 123456789n,
 			name: "Guest",
 			homeLocation: "CabinGuest",
 		});
-		document.SaveGame.farmhands = { Farmer: [guest] };
-		const opened = await openEditor(
-			new TextEncoder().encode(exportDocument(document)),
-		);
+		document.SaveGame.farmhands = [guest];
+		const opened = await openTestDocument(document);
 		await opened.model.commands.selectFarmer("123456789");
 		const page = render(WorkspaceHarness, { model: opened.model });
 		try {
@@ -35,7 +33,7 @@ it(
 				expect(
 					(await opened.model.snapshot()).document.SaveGame.player
 						.UniqueMultiplayerID,
-				).toBe(123456789),
+				).toBe(123456789n),
 			);
 			expect(
 				opened.model.atomBindings.registry.get(
@@ -72,7 +70,7 @@ it(
 				expect(
 					(await opened.model.snapshot()).document.SaveGame.player
 						.UniqueMultiplayerID,
-				).toBe(123456789),
+				).toBe(123456789n),
 			);
 			await fireEvent.click(page.getByRole("button", { name: "Redo" }));
 			await waitFor(async () =>

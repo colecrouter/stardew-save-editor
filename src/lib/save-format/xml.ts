@@ -7,7 +7,7 @@ import {
 } from "effect";
 import { Xml } from "effect/encoding";
 import type { Codec, Frame, Header } from "./events.ts";
-import { invalid, namespaceAttribute } from "./events.ts";
+import { invalid, namespaceAttribute, whitespace } from "./events.ts";
 
 export function decodeChunks<A>(
 	rootName: string,
@@ -17,6 +17,7 @@ export function decodeChunks<A>(
 	return Effect.gen(function* () {
 		const stack: Array<{ header: Header; frame: Frame }> = [];
 		let result: unknown;
+		let rootSeen = false;
 		function* boundedChunks() {
 			// The XML channel batches events produced by an input chunk. Bound that
 			// chunk even for a caller supplying one complete save string, so the
@@ -30,10 +31,15 @@ export function decodeChunks<A>(
 		yield* Stream.fromIterable(boundedChunks()).pipe(
 			Stream.pipeThroughChannel(Xml.decodeString({ maxDepth: 128 })),
 			Stream.runForEach((event) => {
-				// Capture the location before the handler changes the stack. Add paths
-				// only to expected failures; a defect must retain its original cause.
-				const path = stack.map((frame) => frame.header.name);
-				if (event._tag === "StartElement") path.push(event.name);
+				// Structural whitespace does not change a frame. String codecs have
+				// their own text handler, so whitespace-only saved strings still survive.
+				if (
+					event._tag === "Text" &&
+					stack.at(-1)?.frame.text === whitespace &&
+					!event.text.trim()
+				)
+					return Effect.void;
+				let ended: Header | undefined;
 				return Effect.gen(function* () {
 					if (event._tag === "Doctype")
 						return yield* invalid("DOCTYPE is unsupported");
@@ -48,13 +54,20 @@ export function decodeChunks<A>(
 						const header = {
 							name: event.name,
 							attributes: event.attributes,
-							namespaces: Object.fromEntries([
-								...Object.entries(parent?.header.namespaces ?? {}),
-								...declarations,
-							]),
+							namespaces:
+								declarations.length === 0
+									? (parent?.header.namespaces ?? {})
+									: {
+											...parent?.header.namespaces,
+											...Object.fromEntries(declarations),
+										},
 						};
-						if (!parent && event.name !== rootName)
-							return yield* invalid(`Expected document root ${rootName}`);
+						if (!parent) {
+							if (rootSeen) return yield* invalid("Expected one document root");
+							if (event.name !== rootName)
+								return yield* invalid(`Expected document root ${rootName}`);
+							rootSeen = true;
+						}
 						const opening = parent
 							? parent.frame.child(header)
 							: codec.open(header);
@@ -63,8 +76,11 @@ export function decodeChunks<A>(
 					} else if (event._tag === "Text") {
 						const current = stack.at(-1);
 						if (current) yield* current.frame.text(event.text);
+						else if (event.text.trim())
+							return yield* invalid("Text outside document root");
 					} else if (event._tag === "EndElement") {
 						const finished = stack.pop();
+						ended = finished?.header;
 						// The XML parser guarantees balanced events. A violation here is
 						// an implementation defect, not an invalid user value.
 						if (!finished || finished.header.name !== event.name)
@@ -77,7 +93,14 @@ export function decodeChunks<A>(
 					// Declarations, comments and processing instructions do not enter
 					// the saved-value model and require no reader operation.
 				}).pipe(
-					Effect.mapError((issue) => new SchemaIssue.Pointer(path, issue)),
+					Effect.mapError((issue) => {
+						// Compute paths only for failures; building one for every successful
+						// event dominates allocation on large, deeply nested saves.
+						const path = stack.map((frame) => frame.header.name);
+						if (ended) path.push(ended.name);
+						else if (event._tag === "StartElement") path.push(event.name);
+						return new SchemaIssue.Pointer(path, issue);
+					}),
 				);
 			}),
 		);

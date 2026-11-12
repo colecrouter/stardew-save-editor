@@ -1,6 +1,5 @@
 import { communityRooms } from "../communityCenterData.ts";
 import type { SaveDocument } from "./domain.ts";
-import { record, collection, list } from "./saved-collections.ts";
 
 export interface CommunityRequirementView {
 	index: number;
@@ -48,14 +47,10 @@ const nonnegative = (text: string | undefined) =>
 	text !== undefined && /^\d+$/.test(text) && Number.isSafeInteger(Number(text))
 		? Number(text)
 		: undefined;
-const intKey = (entry: unknown) =>
-	record(entry) && record(entry.key) && Number.isSafeInteger(entry.key.int)
-		? Number(entry.key.int)
-		: undefined;
 export function mailStrings(raw: unknown) {
-	const entries = record(raw) ? list(raw.string) : [];
+	const entries = Array.isArray(raw) ? raw : [];
 	const supported =
-		(raw === undefined || raw === null || raw === "" || record(raw)) &&
+		(raw === undefined || raw === null || Array.isArray(raw)) &&
 		entries.every((value) => typeof value === "string");
 	return {
 		raw,
@@ -164,77 +159,53 @@ function definition(key: string, value: string) {
 }
 /** Engine-only lens: references belong to the provided detached/owned save, never an Atom view. */
 export function inspectCommunity(document: SaveDocument) {
-	const locations = collection(document.SaveGame.locations, "GameLocation");
-	const centers = locations.entries.filter(
-		(row) => record(row) && row.name === "CommunityCenter",
-	);
+	const locations = document.SaveGame.locations ?? [];
+	const centers = locations.filter((row) => row?.name === "CommunityCenter");
+	// A matching name alone does not authorize writes into an opaque location.
 	const center =
-		centers.length === 1 && record(centers[0]) ? centers[0] : undefined;
+		centers.length === 1 &&
+		centers[0]?.$type === "StardewValley.Locations.CommunityCenter"
+			? centers[0]
+			: undefined;
 	return {
 		center,
-		definitions: collection(
-			(document.SaveGame as unknown as Record<string, unknown>).bundleData,
-			"item",
-		),
-		progress: collection(center?.bundles, "item"),
-		rewards: collection(center?.bundleRewards, "item"),
-		supported: locations.supported && !!center,
+		definitions: { entries: document.SaveGame.bundleData ?? [] },
+		progress: { entries: center?.bundles ?? [] },
+		rewards: { entries: center?.bundleRewards ?? [] },
+		supported: !!center,
 	};
 }
-export function progressId(entry: unknown) {
-	return intKey(entry);
+// These helpers accept decoded dictionary entries; only a failed lookup can
+// omit an entry. The codec already validates numeric keys and boolean arrays.
+export function progressId(entry: { key: number } | undefined) {
+	return entry?.key;
 }
-export function submissionFlags(entry: unknown): boolean[] | undefined {
-	const flags =
-		record(entry) && record(entry.value) && record(entry.value.ArrayOfBoolean)
-			? entry.value.ArrayOfBoolean.boolean
-			: undefined;
-	return Array.isArray(flags) &&
-		flags.every((value) => typeof value === "boolean")
-		? flags
-		: undefined;
+export function submissionFlags(
+	entry: { value: boolean[] } | undefined,
+): boolean[] | undefined {
+	return entry?.value;
 }
 /** Loading does not repair rewards, normalize bundle strings or recompute world unlocks. */
 export function readCommunity(document: SaveDocument): CommunityView {
 	const data = inspectCommunity(document),
-		hostMail = mailStrings(
-			(document.SaveGame.player as unknown as Record<string, unknown>)
-				.mailReceived,
-		);
+		hostMail = mailStrings(document.SaveGame.player.mailReceived);
 	const bundles: CommunityBundleView[] = [];
 	const definitions = data.definitions.entries;
-	for (const [index, entry] of definitions.entries()) {
-		const key =
-			record(entry) && record(entry.key) && typeof entry.key.string === "string"
-				? entry.key.string
-				: `unsupported:${index}`;
+	for (const entry of definitions) {
+		const key = entry.key;
 		// One disabled ambiguity row avoids duplicate keyed elements without dropping any saved entries.
 		if (bundles.some((row) => row.key === key)) continue;
-		const value =
-			record(entry) &&
-			record(entry.value) &&
-			typeof entry.value.string === "string"
-				? entry.value.string
-				: undefined;
-		const parsed = value === undefined ? undefined : definition(key, value);
+		const parsed = definition(key, entry.value);
 		const peers = data.progress.entries.filter(
 			(row) => progressId(row) === parsed?.id,
 		);
 		const flags = peers.length === 1 ? submissionFlags(peers[0]) : undefined;
 		const duplicate =
 			definitions.filter((row) => {
-				if (
-					!record(row) ||
-					!record(row.key) ||
-					typeof row.key.string !== "string"
-				)
-					return false;
-				return nonnegative(row.key.string.split("/")[1]) === parsed?.id;
+				return nonnegative(row.key.split("/")[1]) === parsed?.id;
 			}).length !== 1;
 		const supported =
 			data.supported &&
-			data.definitions.supported &&
-			data.progress.supported &&
 			!!parsed?.supported &&
 			!duplicate &&
 			!!flags &&
@@ -249,10 +220,7 @@ export function readCommunity(document: SaveDocument): CommunityView {
 			(row) => progressId(row) === parsed?.id,
 		);
 		const reward = rewards[0],
-			pending =
-				record(reward) && record(reward.value)
-					? reward.value.boolean
-					: undefined;
+			pending = reward?.value;
 		bundles.push({
 			key,
 			id: parsed?.id,
@@ -270,7 +238,6 @@ export function readCommunity(document: SaveDocument): CommunityView {
 			reward: parsed?.reward,
 			rewardAvailable: pending === true,
 			rewardSupported:
-				data.rewards.supported &&
 				!parsed?.rewardMalformed &&
 				rewards.length <= 1 &&
 				(rewards.length === 0 || typeof pending === "boolean"),
@@ -311,8 +278,7 @@ export function readCommunity(document: SaveDocument): CommunityView {
 		};
 	});
 	return {
-		supported:
-			data.supported && data.definitions.supported && data.progress.supported,
+		supported: data.supported,
 		reason: data.supported
 			? undefined
 			: "A unique supported Community Center location is required.",

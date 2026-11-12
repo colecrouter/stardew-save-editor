@@ -1,3 +1,4 @@
+import { readEquipmentSlot } from "./equipment.ts";
 import {
 	storageCapabilities,
 	type StorageCapabilities,
@@ -33,8 +34,29 @@ import type { HistoryState } from "./history.ts";
 // usable by native Node consumers without browser asset aliases.
 const record = (value: unknown): value is Record<string, unknown> =>
 	value !== null && typeof value === "object" && !Array.isArray(value);
-const numeric = (value: unknown): value is number =>
-	typeof value === "number" && Number.isFinite(value);
+// Unknown classes retain XML scalar text. Interpret only safe integer text for
+// these read-only labels; editing eligibility still requires a known typed item.
+function itemCounts(raw: Record<string, unknown> | undefined) {
+	const count = (key: string) => {
+		const value = raw?.[key];
+		if (typeof value === "number" && Number.isFinite(value)) return value;
+		if (
+			raw?.$type === "$unknown" &&
+			typeof value === "string" &&
+			/^[+-]?\d+$/.test(value)
+		) {
+			const parsed = Number(value);
+			if (Number.isSafeInteger(parsed)) return parsed;
+		}
+		return undefined;
+	};
+	const quantity = count("stack"),
+		quality = count("quality");
+	return {
+		...(quantity === undefined ? {} : { quantity }),
+		...(quality === undefined ? {} : { quality }),
+	};
+}
 
 /** A detached numbered inventory slot, identified independently of its current position. */
 export interface InventorySlotView extends ItemPresentation {
@@ -100,7 +122,7 @@ export function readBackpacks(
 					hasBackpackFarmerId(other) &&
 					String(other.UniqueMultiplayerID) === ownerId,
 			).length === 1;
-		const items = record(farmer.items) ? farmer.items.Item : undefined;
+		const items = Array.isArray(farmer.items) ? farmer.items : undefined;
 		const ids = Object.hasOwn(state.identities, ownerId)
 			? state.identities[ownerId]
 			: undefined;
@@ -117,7 +139,7 @@ export function readBackpacks(
 			equipment: equipmentSlots.flatMap((key) => {
 				const entityId = state.equipmentIdentities?.[ownerId]?.[key];
 				if (!entityId) return [];
-				const value = farmer[key];
+				const value = readEquipmentSlot(farmer, key);
 				const raw = record(value) ? value : undefined;
 				return [
 					{
@@ -133,8 +155,7 @@ export function readBackpacks(
 						...readItemPresentation(raw, context),
 						canStack: false,
 						canQuality: false,
-						...(numeric(raw?.stack) ? { quantity: raw.stack } : {}),
-						...(numeric(raw?.quality) ? { quality: raw.quality } : {}),
+						...itemCounts(raw),
 					},
 				];
 			}),
@@ -167,8 +188,7 @@ export function readBackpacks(
 									typeof raw?.itemId === "number"
 										? String(raw.itemId)
 										: "",
-								...(numeric(raw?.stack) ? { quantity: raw.stack } : {}),
-								...(numeric(raw?.quality) ? { quality: raw.quality } : {}),
+								...itemCounts(raw),
 								...projectInventoryItem(raw, context),
 								...(empty ? { name: "Empty slot" } : {}),
 							};
@@ -241,8 +261,7 @@ function projectChestView({
 									: "",
 							...projectInventoryItem(raw),
 							...(empty ? { name: "Empty slot" } : {}),
-							...(numeric(raw?.stack) ? { quantity: raw.stack } : {}),
-							...(numeric(raw?.quality) ? { quality: raw.quality } : {}),
+							...itemCounts(raw),
 						};
 					})
 				: [],

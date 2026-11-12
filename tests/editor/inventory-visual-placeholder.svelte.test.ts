@@ -5,7 +5,11 @@ import BackpackItemVisual from "../../src/lib/editor/ui/BackpackItemVisual.svelt
 
 it.each([
 	undefined,
-	Object.freeze({ itemId: "mod.unknown", "@_xsi:type": "ModdedItem" }),
+	Object.freeze({
+		itemId: "mod.unknown",
+		$type: "$unknown",
+		$xmlType: { name: "ModdedItem", namespace: "" },
+	}),
 ])(
 	"distinguishes unreadable item pictures from empty slots without changing saved data",
 	(raw) => {

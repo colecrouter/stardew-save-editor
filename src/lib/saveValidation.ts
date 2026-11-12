@@ -111,7 +111,10 @@ export const validateSave = (parsed: unknown): SaveValidation => {
 	if (!SUPPORTED_VERSIONS.some((v) => version.startsWith(v)))
 		errors.push(`Unsupported game version "${version || "missing"}"`);
 
-	const id = toInteger(game.uniqueIDForThisGame);
+	// The typed codec keeps UInt64 IDs as bigint; the legacy parser exposes a
+	// number or string. Check bigint directly so validation never loses precision.
+	const rawId = game.uniqueIDForThisGame;
+	const id = typeof rawId === "bigint" ? rawId : toInteger(rawId);
 	if (id === undefined || id < 0)
 		errors.push("Missing or invalid unique ID (uniqueIDForThisGame)");
 
@@ -151,9 +154,9 @@ export const validateSave = (parsed: unknown): SaveValidation => {
 			warnings.push("The farm has no name");
 
 		// Unclaimed cabins have a farmhand with no name, which is normal
-		const farmhands = isObject(game.farmhands)
-			? asArray(game.farmhands.Farmer).filter(isObject)
-			: [];
+		const farmhands = asArray(
+			isObject(game.farmhands) ? game.farmhands.Farmer : game.farmhands,
+		).filter(isObject);
 		for (const [i, farmer] of [player, ...farmhands].entries()) {
 			const label =
 				String(farmer.name ?? "").trim() ||
@@ -167,14 +170,19 @@ export const validateSave = (parsed: unknown): SaveValidation => {
 			}
 
 			// A stat that doesn't fit in a `uint` can't be read back
-			const stats =
-				isObject(farmer.stats) && isObject(farmer.stats.Values)
-					? asArray(farmer.stats.Values.item).filter(isObject)
-					: [];
+			const stats = isObject(farmer.stats)
+				? asArray(
+						isObject(farmer.stats.Values)
+							? farmer.stats.Values.item
+							: farmer.stats.Values,
+					).filter(isObject)
+				: [];
 			for (const stat of stats) {
-				const value = isObject(stat.value) ? stat.value.unsignedInt : undefined;
+				const value = isObject(stat.value)
+					? stat.value.unsignedInt
+					: stat.value;
 				if (value === undefined) continue;
-				const name = isObject(stat.key) ? stat.key.string : undefined;
+				const name = isObject(stat.key) ? stat.key.string : stat.key;
 				const number = toInteger(value);
 				if (number === undefined || number < 0 || number > UINT32_MAX)
 					errors.push(
@@ -185,9 +193,9 @@ export const validateSave = (parsed: unknown): SaveValidation => {
 	}
 
 	// Locations
-	const locations = isObject(game.locations)
-		? asArray(game.locations.GameLocation).filter(isObject)
-		: [];
+	const locations = asArray(
+		isObject(game.locations) ? game.locations.GameLocation : game.locations,
+	).filter(isObject);
 	if (locations.length === 0) {
 		errors.push("The save has no locations");
 	} else {
@@ -200,20 +208,22 @@ export const validateSave = (parsed: unknown): SaveValidation => {
 	const cc = locations.find((l) => l.name === "CommunityCenter");
 	if (cc) {
 		// Six rooms, plus a seventh once the Abandoned Joja Mart is restored
-		const areas = isObject(cc.areasComplete)
-			? asArray(cc.areasComplete.boolean)
-			: [];
+		const areas = asArray(
+			isObject(cc.areasComplete) ? cc.areasComplete.boolean : cc.areasComplete,
+		);
 		if (areas.length !== 6 && areas.length !== 7)
 			errors.push(
 				`The Community Center has ${areas.length} rooms recorded; the game expects 6 or 7`,
 			);
 
-		const rewards = isObject(cc.bundleRewards)
-			? asArray(cc.bundleRewards.item).filter(isObject)
-			: [];
+		const rewards = asArray(
+			isObject(cc.bundleRewards) ? cc.bundleRewards.item : cc.bundleRewards,
+		).filter(isObject);
 		for (const reward of rewards) {
-			const key = isObject(reward.key) ? toInteger(reward.key.int) : undefined;
-			const value = isObject(reward.value) ? reward.value.boolean : undefined;
+			const key = toInteger(isObject(reward.key) ? reward.key.int : reward.key);
+			const value = isObject(reward.value)
+				? reward.value.boolean
+				: reward.value;
 			if (key === MISSING_BUNDLE && isTrue(value))
 				errors.push(
 					"The Missing Bundle has a reward waiting, which crashes the game",

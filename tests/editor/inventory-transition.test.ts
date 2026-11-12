@@ -1,3 +1,4 @@
+import { malformedFixture } from "../helpers/editor-document.ts";
 import * as itemCatalog from "../../src/lib/ItemData";
 import { describe, expect, it, vi } from "vitest";
 import { Cause, Effect, Exit, Result } from "effect";
@@ -11,7 +12,7 @@ import {
 	readBackpacks,
 	readChests,
 } from "../../src/lib/editor/inventory-views";
-import { tinyFixture } from "./fixtures";
+import { tinyFixture } from "../helpers/editor-document.ts";
 
 const run = <A, E>(
 	program: Effect.Effect<A, E, import("effect").Scope.Scope>,
@@ -42,13 +43,13 @@ describe("prepared inventory transitions", () => {
 				);
 				const before = yield* session.snapshot;
 				const after = yield* session.execute([
-					{ type: "reorder", ownerId: "host", order: [1, 0, 2] },
+					{ type: "reorder", ownerId: "1", order: [1, 0, 2] },
 				]);
-				expect(after.document.SaveGame.player.items.Item).toEqual(
-					[...before.document.SaveGame.player.items.Item].reverse(),
+				expect(after.document.SaveGame.player.items).toEqual(
+					[...before.document.SaveGame.player.items].reverse(),
 				);
-				expect(after.identities.host).toEqual(
-					[...required(before.identities.host)].reverse(),
+				expect(after.identities["1"]).toEqual(
+					[...required(before.identities["1"])].reverse(),
 				);
 				yield* session.undo;
 				const undone = yield* session.snapshot;
@@ -61,20 +62,17 @@ describe("prepared inventory transitions", () => {
 		run(
 			Effect.gen(function* () {
 				const document = tinyFixture();
-				document.SaveGame.player.items.Item = [
-					{ "@_xsi:nil": "true" },
-					{ "@_xsi:nil": "true" },
-				];
+				document.SaveGame.player.items = [null, null];
 				const session = yield* makeHistorySession(document);
 				const before = yield* session.snapshot;
 				const after = yield* session.execute([
-					{ type: "reorder", ownerId: "host", order: [1, 0] },
+					{ type: "reorder", ownerId: "1", order: [1, 0] },
 				]);
 				// Empty handles are future drop targets, so this permutation is observable
 				// even though its XML patch is empty. Undo must restore their original roles.
 				expect(after.document).toEqual(before.document);
-				expect(after.identities.host).toEqual(
-					[...required(before.identities.host)].reverse(),
+				expect(after.identities["1"]).toEqual(
+					[...required(before.identities["1"])].reverse(),
 				);
 				expect(after.entries).toHaveLength(1);
 				yield* session.undo;
@@ -96,7 +94,7 @@ describe("prepared inventory transitions", () => {
 				const before = yield* session.snapshot;
 				const result = yield* Effect.result(
 					session.execute([
-						{ type: "reorder", ownerId: "host", order: [2, 1, 0] },
+						{ type: "reorder", ownerId: "1", order: [2, 1, 0] },
 					]),
 				);
 				expect(Result.isFailure(result)).toBe(true);
@@ -107,7 +105,7 @@ describe("prepared inventory transitions", () => {
 	it("treats malformed imported metadata as unavailable while preserving catalog defects", async () => {
 		const document = tinyFixture();
 		const importedItem: Record<string, unknown> = {
-			"@_xsi:type": "Object",
+			$type: "StardewValley.Object",
 			itemId: { malformed: true },
 			bigCraftable: false,
 			name: "Parsnip",
@@ -115,7 +113,7 @@ describe("prepared inventory transitions", () => {
 			stack: 3,
 			quality: 0,
 		};
-		document.SaveGame.player.items.Item[0] = importedItem;
+		document.SaveGame.player.items[0] = malformedFixture(importedItem);
 		await run(
 			Effect.gen(function* () {
 				const session = yield* makeHistorySession(document);
@@ -123,8 +121,8 @@ describe("prepared inventory transitions", () => {
 				const result = yield* Effect.result(
 					session.transact(
 						setInventoryItem({
-							ownerId: "host",
-							entityId: required(before.identities.host?.[0]),
+							ownerId: "1",
+							entityId: required(before.identities["1"]?.[0]),
 							property: "stack",
 							value: 4,
 						}),
@@ -150,8 +148,8 @@ describe("prepared inventory transitions", () => {
 					const exit = yield* Effect.exit(
 						session.transact(
 							setInventoryItem({
-								ownerId: "host",
-								entityId: required(before.identities.host?.[0]),
+								ownerId: "1",
+								entityId: required(before.identities["1"]?.[0]),
 								property: "stack",
 								value: 4,
 							}),
@@ -170,29 +168,28 @@ describe("prepared inventory transitions", () => {
 		run(
 			Effect.gen(function* () {
 				const document = tinyFixture();
-				document.SaveGame.locations = {
-					GameLocation: [
-						{
-							name: "Farm",
-							objects: {
-								item: [
-									{
-										key: { Vector2: { X: 3, Y: 7 } },
-										value: {
-											Object: {
-												"@_xsi:type": "Chest",
-												name: "Chest",
-												items: {
-													Item: [{ itemId: "388", modData: { opaque: "007" } }],
-												},
-											},
+				document.SaveGame.locations = [
+					{
+						$type: "StardewValley.Farm",
+						name: "Farm",
+						objects: [
+							{
+								key: { X: 3, Y: 7 },
+								value: {
+									$type: "StardewValley.Objects.Chest",
+									name: "Chest",
+									items: [
+										{
+											$type: "StardewValley.Object",
+											itemId: "388",
+											customModData: { opaque: "007" },
 										},
-									},
-								],
+									],
+								},
 							},
-						},
-					],
-				};
+						],
+					},
+				];
 				const session = yield* makeHistorySession(document);
 				const state = yield* session.snapshot;
 				const original = structuredClone(state.document);

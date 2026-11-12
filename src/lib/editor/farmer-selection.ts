@@ -14,21 +14,11 @@ export interface FarmerChoice {
 export function readFarmerChoices(
 	document: SaveDocument,
 ): (FarmerChoice & { readonly supported: boolean })[] {
-	// Imported IDs may be numeric or textual. Other shapes remain visible as
-	// unavailable choices rather than coupling selection to a feature decoder.
-	const values = farmers(document).map((farmer) => {
-		const key = farmer?.UniqueMultiplayerID;
-		const farmerId =
-			typeof key === "string"
-				? key
-				: typeof key === "number" && Number.isFinite(key)
-					? String(key)
-					: "";
-		return {
-			farmerId,
-			name: typeof farmer?.name === "string" ? farmer.name : "Unnamed farmer",
-		};
-	});
+	// Decoded Int64 IDs become UI keys; missing IDs stay unavailable.
+	const values = farmers(document).map((farmer) => ({
+		farmerId: farmer.UniqueMultiplayerID?.toString() ?? "",
+		name: farmer.name ?? "Unnamed farmer",
+	}));
 	// A command must resolve exactly one owner; duplicate IDs cannot be selected.
 	const counts = new Map<string, number>();
 	for (const value of values)

@@ -1,7 +1,7 @@
 import { Data, Effect, Result, Schema } from "effect";
 import { communityRooms } from "../communityCenterData.ts";
 import { progressionFarmers } from "./progression-farmers.ts";
-import { record } from "./saved-collections.ts";
+import type { Farmer } from "./domain.ts";
 import {
 	inspectCommunity,
 	readCommunity,
@@ -60,11 +60,9 @@ const decode = Schema.decodeUnknownResult(requestSchema, {
 
 /** Mail variants follow each farmer's membership. Preserve duplicates and unrelated flags as loaded. */
 const editMail = Effect.fn("Community.mail")(function* (
-	farmer: unknown,
+	farmer: Farmer,
 	transform: (mail: string[]) => string[],
 ) {
-	if (!record(farmer))
-		return yield* invalid("A saved farmer record is unsupported.");
 	const data = mailStrings(farmer.mailReceived);
 	if (!data.supported)
 		return yield* invalid("A farmer's received mail list is unsupported.");
@@ -74,13 +72,7 @@ const editMail = Effect.fn("Community.mail")(function* (
 		next.every((value, index) => value === data.entries[index])
 	)
 		return;
-	const nextMail: Record<string, unknown> = {
-		...(record(data.raw) ? data.raw : {}),
-		string: next,
-	};
-	// Adding progression flags turns a nullable XML list into a populated list.
-	if (next.length) delete nextMail["@_xsi:nil"];
-	farmer.mailReceived = nextMail;
+	farmer.mailReceived = next;
 });
 function flags(
 	mail: string[],
@@ -95,11 +87,9 @@ function flags(
  * on reading it, then queues ccBulletinThankYouReceived. Never grant that reward
  * ourselves or erase the receipt when reopening the room. Adapted from PR #160. */
 const editThankYouLetter = Effect.fn("Community.thankYouLetter")(function* (
-	farmer: unknown,
+	farmer: Farmer,
 	completed: boolean,
 ) {
-	if (!record(farmer))
-		return yield* invalid("A saved farmer record is unsupported.");
 	const fields = ["mailReceived", "mailbox", "mailForTomorrow"] as const;
 	const lists = fields.map((field) => ({
 		field,
@@ -123,23 +113,14 @@ const editThankYouLetter = Effect.fn("Community.thankYouLetter")(function* (
 		)
 			return;
 		const mailbox = lists.find((row) => row.field === "mailbox");
-		const nextMailbox: Record<string, unknown> = {
-			...(record(mailbox?.raw) ? mailbox.raw : {}),
-			string: [...(mailbox?.entries ?? []), thankYou],
-		};
-		// A populated mailbox must no longer serialize as an XML null container.
-		delete nextMailbox["@_xsi:nil"];
-		farmer.mailbox = nextMailbox;
+		farmer.mailbox = [...(mailbox?.entries ?? []), thankYou];
 	} else {
 		for (const row of lists.filter((row) => row.field !== "mailReceived")) {
 			const remaining = row.entries.filter(
 				(value) => !isLetter(value, thankYou),
 			);
 			if (remaining.length !== row.entries.length)
-				farmer[row.field] = {
-					...(record(row.raw) ? row.raw : {}),
-					string: remaining,
-				};
+				farmer[row.field] = remaining;
 		}
 	}
 });
@@ -187,25 +168,16 @@ export const setCommunityProgress = Effect.fn("Community.setProgress")(
 			const room = communityRooms.find((row) => row.id === roomId);
 			if (!room)
 				return yield* invalid("This room's progression is unsupported.");
-			const raw = center.areasComplete;
-			const existing = record(raw) ? raw.boolean : undefined;
-			if (
-				raw !== undefined &&
-				raw !== null &&
-				raw !== "" &&
-				(!Array.isArray(existing) ||
-					existing.some((value) => typeof value !== "boolean"))
-			)
-				return yield* invalid("Community Center room flags are unsupported.");
-			const areas = Array.isArray(existing)
-				? [...existing]
+			// Decoding establishes the boolean array; absence alone needs defaults.
+			const areas = center.areasComplete
+				? [...center.areasComplete]
 				: Array<boolean>(6).fill(false);
 			while (areas.length <= roomId || areas.length < 6) areas.push(false);
 			areas[roomId] = completed;
 			// The game uses the optional seventh note only when the Missing Bundle is
 			// complete. Preserve modded trailing entries rather than truncating them.
 			if (areas.length === 7 && areas[6] === false) areas.pop();
-			center.areasComplete = { ...(record(raw) ? raw : {}), boolean: areas };
+			center.areasComplete = areas;
 			for (const farmer of recipients)
 				yield* editMail(farmer, (mail) => {
 					const variant = "jojaFlag" in room ? room.jojaFlag : undefined;
@@ -249,15 +221,12 @@ export const setCommunityProgress = Effect.fn("Community.setProgress")(
 				(row) => progressId(row) === bundle.id,
 			);
 			const entry = entries[0];
-			if (record(entry) && record(entry.value)) entry.value.boolean = value;
+			if (entry) entry.value = value;
 			else if (value)
-				center.bundleRewards = {
-					...(record(center.bundleRewards) ? center.bundleRewards : {}),
-					item: [
-						...data.rewards.entries,
-						{ key: { int: bundle.id }, value: { boolean: value } },
-					],
-				};
+				center.bundleRewards = [
+					...data.rewards.entries,
+					{ key: bundle.id, value },
+				];
 		});
 		// Use fresh reward collections for repeated children: insertion must not replace
 		// an earlier child's newly staged pending reward in the same room transaction.
@@ -268,7 +237,7 @@ export const setCommunityProgress = Effect.fn("Community.setProgress")(
 			const after = readCommunity(document).bundles.find(
 				(row) => row.key === key,
 			);
-			if (!after?.supported)
+			if (!after?.supported || after.id === undefined)
 				return yield* invalid("This bundle no longer has supported progress.");
 			if (wasComplete === after.completed) return;
 			// Rewards are availability flags, never items inserted into a farmer's bag.
@@ -278,15 +247,12 @@ export const setCommunityProgress = Effect.fn("Community.setProgress")(
 			if (!after.rewardSupported)
 				return yield* invalid("This bundle's reward flags are unsupported.");
 			const pending = after.completed && after.id !== 36 && !!after.reward;
-			if (record(entry) && record(entry.value)) entry.value.boolean = pending;
+			if (entry) entry.value = pending;
 			else if (pending)
-				center.bundleRewards = {
-					...(record(center.bundleRewards) ? center.bundleRewards : {}),
-					item: [
-						...current.entries,
-						{ key: { int: after.id }, value: { boolean: pending } },
-					],
-				};
+				center.bundleRewards = [
+					...current.entries,
+					{ key: after.id, value: pending },
+				];
 		});
 		const editBundle = Effect.fn("Community.bundle")(function* (
 			key: string,
@@ -446,8 +412,7 @@ export const setCommunityProgress = Effect.fn("Community.setProgress")(
 				"The Missing Bundle reward has duplicate saved keys.",
 			);
 		const unsafe = missing[0];
-		if (record(unsafe) && record(unsafe.value) && unsafe.value.boolean === true)
-			unsafe.value.boolean = false;
+		if (unsafe?.value === true) unsafe.value = false;
 		yield* recordAnnotatedOperation(draft.replace(snapshot)).pipe(
 			withReviewMetadata({
 				label,

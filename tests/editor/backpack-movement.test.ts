@@ -1,3 +1,4 @@
+import { malformedFixture } from "../helpers/editor-document.ts";
 import { describe, expect, it } from "vitest";
 import { Effect, Result } from "effect";
 import { makeHistorySession } from "../../src/lib/editor/history";
@@ -14,27 +15,30 @@ const required = <A>(value: A | undefined): A => {
 };
 function fixture(hostSlots = 12, guestSlots = 24) {
 	const document = tinyFixture();
-	const nil = (index: number) => ({ "@_xsi:nil": "true", opaqueSlot: index });
+	const nil = (_index: number) => null;
 	// Imported/modded arrays define the actual addressable slots; maxItems is
 	// preserved metadata rather than authority to invent or truncate records.
 	(document.SaveGame.player as unknown as Record<string, unknown>).maxItems =
 		36;
-	document.SaveGame.player.items.Item = Array.from(
+	document.SaveGame.player.items = Array.from(
 		{ length: hostSlots },
 		(_, index) => nil(index),
 	);
-	document.SaveGame.player.items.Item[0] = {
+	document.SaveGame.player.items[0] = {
+		$type: "StardewValley.Object",
 		itemId: "mod.opaque",
 		name: "Keepsake",
 		stack: 4,
 		custom: { flags: [0, false, "007"] },
 	};
-	if (document.SaveGame.farmhands === "") throw Error("Expected farmhand");
-	document.SaveGame.farmhands.Farmer[0]!.items.Item = Array.from(
+	if (!Array.isArray(document.SaveGame.farmhands))
+		throw Error("Expected farmhand");
+	document.SaveGame.farmhands[0]!.items = Array.from(
 		{ length: guestSlots },
 		(_, index) => nil(index),
 	);
-	document.SaveGame.farmhands.Farmer[0]!.items.Item[guestSlots - 1] = {
+	document.SaveGame.farmhands[0]!.items[guestSlots - 1] = {
+		$type: "StardewValley.Object",
 		itemId: "target",
 		name: "Other",
 		custom: { field: "untouched" },
@@ -45,12 +49,12 @@ function request(
 	ids: Record<string, string[]>,
 	source = 0,
 	destination = 1,
-	toOwnerId = "host",
+	toOwnerId = "1",
 ): InventoryMoveRequest {
 	return {
 		type: "backpack-move",
-		ownerId: "host",
-		entityId: required(ids.host?.[source]),
+		ownerId: "1",
+		entityId: required(ids["1"]?.[source]),
 		toOwnerId: toOwnerId,
 		toEntityId: required(ids[toOwnerId]?.[destination]),
 	};
@@ -70,23 +74,20 @@ describe("backpack moving and swapping", () => {
 					const original = fixture(hostSlots, guestSlots);
 					const session = yield* makeHistorySession(original);
 					const before = yield* session.snapshot;
-					const move = request(before.identities, 0, guestSlots - 2, "guest");
+					const move = request(before.identities, 0, guestSlots - 2, "2");
 					yield* session.execute([move]);
 					const moved = yield* session.snapshot;
 					const expected = structuredClone(original);
-					if (expected.SaveGame.farmhands === "")
+					if (!Array.isArray(expected.SaveGame.farmhands))
 						throw Error("Expected farmhand");
-					const guest = expected.SaveGame.farmhands.Farmer[0]!;
-					[
-						expected.SaveGame.player.items.Item[0],
-						guest.items.Item[guestSlots - 2],
-					] = [
-						guest.items.Item[guestSlots - 2],
-						expected.SaveGame.player.items.Item[0],
+					const guest = expected.SaveGame.farmhands[0]!;
+					[expected.SaveGame.player.items[0], guest.items[guestSlots - 2]] = [
+						guest.items[guestSlots - 2]!,
+						expected.SaveGame.player.items[0]!,
 					];
 					expect(moved.document).toEqual(expected);
-					expect(moved.identities.guest?.[guestSlots - 2]).toBe(move.entityId);
-					expect(moved.identities.host?.[0]).toBe(move.toEntityId);
+					expect(moved.identities["2"]?.[guestSlots - 2]).toBe(move.entityId);
+					expect(moved.identities["1"]?.[0]).toBe(move.toEntityId);
 					expect(moved.nextIdentity).toBe(before.nextIdentity);
 					yield* session.undo;
 					expect((yield* session.snapshot).document).toEqual(original);
@@ -99,24 +100,22 @@ describe("backpack moving and swapping", () => {
 					// an item-type merge or a replacement of the destination record.
 					yield* session.undo;
 					yield* session.execute([
-						request(before.identities, 0, guestSlots - 1, "guest"),
+						request(before.identities, 0, guestSlots - 1, "2"),
 					]);
 					const swapped = yield* session.snapshot;
-					if (swapped.document.SaveGame.farmhands === "")
+					if (!Array.isArray(swapped.document.SaveGame.farmhands))
 						throw Error("Expected farmhand");
-					expect(swapped.document.SaveGame.player.items.Item[0]).toEqual(
-						guest.items.Item[guestSlots - 1],
+					expect(swapped.document.SaveGame.player.items[0]).toEqual(
+						guest.items[guestSlots - 1],
 					);
 					expect(
-						swapped.document.SaveGame.farmhands.Farmer[0]?.items.Item[
-							guestSlots - 1
-						],
-					).toEqual(original.SaveGame.player.items.Item[0]);
-					expect(swapped.identities.host?.[0]).toBe(
-						before.identities.guest?.[guestSlots - 1],
+						swapped.document.SaveGame.farmhands[0]?.items?.[guestSlots - 1],
+					).toEqual(original.SaveGame.player.items[0]);
+					expect(swapped.identities["1"]?.[0]).toBe(
+						before.identities["2"]?.[guestSlots - 1],
 					);
-					expect(swapped.identities.guest?.[guestSlots - 1]).toBe(
-						before.identities.host?.[0],
+					expect(swapped.identities["2"]?.[guestSlots - 1]).toBe(
+						before.identities["1"]?.[0],
 					);
 				}),
 			),
@@ -126,16 +125,16 @@ describe("backpack moving and swapping", () => {
 		run(
 			Effect.gen(function* () {
 				const document = fixture();
-				document.SaveGame.player.items.Item[1] = structuredClone(
-					document.SaveGame.player.items.Item[0],
+				document.SaveGame.player.items[1] = structuredClone(
+					document.SaveGame.player.items[0]!,
 				);
 				const session = yield* makeHistorySession(document);
 				const before = yield* session.snapshot;
 				yield* session.execute([request(before.identities)]);
 				const swapped = yield* session.snapshot;
 				expect(swapped.document).toEqual(document);
-				expect(swapped.identities.host?.slice(0, 2)).toEqual(
-					before.identities.host?.slice(0, 2).reverse(),
+				expect(swapped.identities["1"]?.slice(0, 2)).toEqual(
+					before.identities["1"]?.slice(0, 2).reverse(),
 				);
 				expect(swapped.entries).toHaveLength(1);
 				yield* session.undo;
@@ -158,17 +157,14 @@ describe("backpack moving and swapping", () => {
 				yield* session.execute([
 					{
 						type: "backpack-add",
-						ownerId: "host",
+						ownerId: "1",
 						entityId: stale.toEntityId,
 						catalogId: "Wood",
 					},
 				]);
 				const before = yield* session.snapshot;
 				const failed = yield* Effect.result(
-					session.execute([
-						{ type: "money", farmerId: "host", value: 99 },
-						stale,
-					]),
+					session.execute([{ type: "money", farmerId: "1", value: 99 }, stale]),
 				);
 				expect(Result.isFailure(failed)).toBe(true);
 				expect(yield* session.snapshot).toEqual(before);
@@ -176,7 +172,7 @@ describe("backpack moving and swapping", () => {
 				yield* session.execute([
 					{
 						type: "backpack-remove",
-						ownerId: "host",
+						ownerId: "1",
 						entityId: sourceRemoved.entityId,
 					},
 				]);
@@ -194,30 +190,30 @@ describe("backpack moving and swapping", () => {
 		run(
 			Effect.gen(function* () {
 				const document = fixture();
-				if (document.SaveGame.farmhands === "")
+				if (!Array.isArray(document.SaveGame.farmhands))
 					throw Error("Expected farmhand");
-				document.SaveGame.farmhands.Farmer.push(
+				document.SaveGame.farmhands.push(
 					null as never,
 					{ UniqueMultiplayerID: { toString: 0 }, items: "opaque" } as never,
 				);
 				const session = yield* makeHistorySession(document);
 				const before = yield* session.snapshot;
-				const action = request(before.identities, 0, 23, "guest");
+				const action = request(before.identities, 0, 23, "2");
 				yield* session.execute([
 					{
 						type: "reorder",
-						ownerId: "host",
+						ownerId: "1",
 						order: Array.from({ length: 12 }, (_, index) => 11 - index),
 					},
 				]);
 				yield* session.execute([action]);
 				const after = yield* session.snapshot;
-				expect(after.identities.host?.[11]).toBe(action.toEntityId);
-				expect(after.identities.guest?.[23]).toBe(action.entityId);
-				if (after.document.SaveGame.farmhands === "")
+				expect(after.identities["1"]?.[11]).toBe(action.toEntityId);
+				expect(after.identities["2"]?.[23]).toBe(action.entityId);
+				if (!Array.isArray(after.document.SaveGame.farmhands))
 					throw Error("Expected farmhand");
-				expect(after.document.SaveGame.farmhands.Farmer.slice(1)).toEqual(
-					document.SaveGame.farmhands.Farmer.slice(1),
+				expect(after.document.SaveGame.farmhands.slice(1)).toEqual(
+					document.SaveGame.farmhands.slice(1),
 				);
 			}),
 		));
@@ -226,16 +222,16 @@ describe("backpack moving and swapping", () => {
 		run(
 			Effect.gen(function* () {
 				const document = fixture();
-				if (document.SaveGame.farmhands === "")
+				if (!Array.isArray(document.SaveGame.farmhands))
 					throw Error("Expected farmhand");
-				document.SaveGame.farmhands.Farmer.push(
+				document.SaveGame.farmhands.push(
 					{
-						...structuredClone(document.SaveGame.farmhands.Farmer[0]!),
-						UniqueMultiplayerID: "ambiguous",
+						...structuredClone(document.SaveGame.farmhands[0]!),
+						UniqueMultiplayerID: malformedFixture("ambiguous"),
 					},
 					{
-						...structuredClone(document.SaveGame.farmhands.Farmer[0]!),
-						UniqueMultiplayerID: "ambiguous",
+						...structuredClone(document.SaveGame.farmhands[0]!),
+						UniqueMultiplayerID: malformedFixture("ambiguous"),
 					},
 				);
 				const session = yield* makeHistorySession(document);

@@ -3,7 +3,7 @@ import { Effect, Result } from "effect";
 import { vi } from "vitest";
 import { fixtureXml } from "./fixtures";
 import { get } from "svelte/store";
-import { openEditor } from "../../src/lib/editor/editor-model.ts";
+import { openTestEditor as openEditor } from "../helpers/open-editor.ts";
 import {
 	setCalendarDate,
 	setCalendarWeather,

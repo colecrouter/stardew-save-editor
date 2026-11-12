@@ -64,8 +64,8 @@ export const makeAtomInventory = (session: HistorySession) =>
 			return (
 				[
 					current.player,
-					...(current.farmhands === "" ? [] : current.farmhands.Farmer),
-				].find((player) => String(player.UniqueMultiplayerID) === get(farmer))
+					...(!Array.isArray(current.farmhands) ? [] : current.farmhands),
+				].find((player) => String(player?.UniqueMultiplayerID) === get(farmer))
 					?.money ?? 0
 			);
 		});

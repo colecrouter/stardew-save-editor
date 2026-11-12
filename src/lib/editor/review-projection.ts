@@ -1,6 +1,6 @@
-import type { Save } from "../../../codegen/save.ts";
+import { savedTypeId } from "./saved-types.ts";
 import { formatDate, weatherLabel } from "../calendar.ts";
-import { readCalendarView } from "../calendarDocument.ts";
+import { readCalendarView } from "./calendar-document.ts";
 import { VanillaEventsById } from "../Events.ts";
 import { readAppearances } from "./appearance-operations.ts";
 import { readBuildings } from "./building-data.ts";
@@ -29,7 +29,7 @@ import {
 	type ReviewValue,
 	type ReviewView,
 } from "./review-contract.ts";
-import { record } from "./saved-collections.ts";
+import { record } from "./plain-data.ts";
 
 interface ReviewRecord {
 	readonly key: string;
@@ -71,6 +71,7 @@ function ownerIdentity(owner: unknown): string | undefined {
 	if (!record(owner)) return undefined;
 	const id = owner.UniqueMultiplayerID;
 	return typeof id === "string" ||
+		typeof id === "bigint" ||
 		(typeof id === "number" && Number.isFinite(id))
 		? String(id)
 		: undefined;
@@ -87,9 +88,7 @@ function ownerPaths(document: SaveDocument): Map<string, string> {
 		if (paths.has(key)) duplicates.add(key);
 		paths.set(
 			key,
-			index === 0
-				? "/SaveGame/player"
-				: `/SaveGame/farmhands/Farmer/${index - 1}`,
+			index === 0 ? "/SaveGame/player" : `/SaveGame/farmhands/${index - 1}`,
 		);
 	}
 	for (const id of duplicates) paths.delete(id);
@@ -101,8 +100,10 @@ function donationLabel(item: CommunityRequirementView): string {
 	if (item.currency) return `${item.quantity.toLocaleString()}g`;
 	const name = /^-\d+$/.test(item.itemId)
 		? `Any item in category ${item.itemId}`
-		: (resolveItemMetadata({ itemId: item.itemId, "@_xsi:type": "Object" })
-				?.name ?? `Item ${item.itemId}`);
+		: (resolveItemMetadata({
+				itemId: item.itemId,
+				$type: savedTypeId("Object"),
+			})?.name ?? `Item ${item.itemId}`);
 	const quality = item.quality
 		? ` (${inventoryQualities.find((row) => row.value === item.quality)?.label ?? `quality ${item.quality}`})`
 		: "";
@@ -139,7 +140,7 @@ const definitions = {
 		label: "Date and weather",
 		records: (document) => {
 			// The existing calendar adapter owns saved enum/weather representations.
-			const view = readCalendarView(document.SaveGame as unknown as Save);
+			const view = readCalendarView(document.SaveGame);
 			return [
 				{
 					key: "calendar",

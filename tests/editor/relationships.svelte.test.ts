@@ -1,48 +1,38 @@
 import { fireEvent, render, waitFor } from "@testing-library/svelte";
 import { expect, it } from "vitest";
-import { openEditor } from "../../src/lib/editor/editor-model";
+import { openTestDocument } from "../helpers/open-editor.ts";
 import WorkspaceHarness from "./WorkspaceHarness.svelte";
-import { parser, fixtureXml, exportDocument } from "./fixtures";
+import { parser, fixtureXml } from "./fixtures";
 
 // Exercise real full-save projections, the shared farmer selector, and grouped
 // field edits together: pending work must never migrate to the next farmer.
 it(
 	"groups relationship typing and shares selection with Character without retargeting edits",
-	{ timeout: 25000 },
+	{ timeout: 60_000 },
 	async () => {
 		const document = parser.parse(fixtureXml);
 		const host = document.SaveGame.player;
 		Object.assign(host, {
-			friendshipData: {
-				item: [
-					{
-						key: { string: "Abigail" },
-						value: {
-							Friendship: { Points: 100, Status: "Friendly", GiftsThisWeek: 0 },
-						},
-					},
-				],
-			},
+			friendshipData: [
+				{
+					key: "Abigail",
+					value: { Points: 100, Status: "Friendly", GiftsThisWeek: 0 },
+				},
+			],
 		});
 		const guest = structuredClone(host);
-		guest.UniqueMultiplayerID = "guest";
+		guest.UniqueMultiplayerID = 2n;
 		guest.name = "Guest";
 		Object.assign(guest, {
-			friendshipData: {
-				item: [
-					{
-						key: { string: "Abigail" },
-						value: {
-							Friendship: { Points: 700, Status: "Dating", GiftsThisWeek: 2 },
-						},
-					},
-				],
-			},
+			friendshipData: [
+				{
+					key: "Abigail",
+					value: { Points: 700, Status: "Dating", GiftsThisWeek: 2 },
+				},
+			],
 		});
-		document.SaveGame.farmhands = { Farmer: [guest] };
-		const opened = await openEditor(
-			new TextEncoder().encode(exportDocument(document)),
-		);
+		document.SaveGame.farmhands = [guest];
+		const opened = await openTestDocument(document);
 		const page = render(WorkspaceHarness, { model: opened.model });
 		try {
 			await fireEvent.click(page.getByRole("link", { name: "Relationships" }));
@@ -53,7 +43,7 @@ it(
 			await fireEvent.input(points, { target: { value: "200" } });
 			await fireEvent.input(points, { target: { value: "500" } });
 			await fireEvent.change(page.getByRole("combobox", { name: "Farmer" }), {
-				target: { value: "guest" },
+				target: { value: "2" },
 			});
 			// Submit the farmer switch while both keystrokes may still be queued.
 			// A queued snapshot is our completion barrier, so this assertion checks
@@ -63,7 +53,7 @@ it(
 				opened.model.atomBindings.registry.get(
 					opened.model.atomBindings.selectedFarmerId,
 				),
-			).toBe("guest");
+			).toBe("2");
 			await waitFor(
 				() =>
 					expect(
@@ -87,7 +77,7 @@ it(
 			expect(
 				(page.getByRole("combobox", { name: "Farmer" }) as HTMLSelectElement)
 					.value,
-			).toBe("guest");
+			).toBe("2");
 			await opened.model.commands.undo();
 			await fireEvent.click(page.getByRole("link", { name: "Relationships" }));
 			await fireEvent.change(page.getByRole("combobox", { name: "Farmer" }), {
@@ -115,13 +105,11 @@ it(
 // Missing rows are an explicit editor choice, never opening-time save defaults.
 it(
 	"keeps absent villagers disabled until added and confirms individual removal",
-	{ timeout: 25000 },
+	{ timeout: 60_000 },
 	async () => {
 		const document = parser.parse(fixtureXml);
-		Object.assign(document.SaveGame.player, { friendshipData: "" });
-		const opened = await openEditor(
-			new TextEncoder().encode(exportDocument(document)),
-		);
+		Object.assign(document.SaveGame.player, { friendshipData: [] });
+		const opened = await openTestDocument(document);
 		const page = render(WorkspaceHarness, { model: opened.model });
 		try {
 			await fireEvent.click(page.getByRole("link", { name: "Relationships" }));

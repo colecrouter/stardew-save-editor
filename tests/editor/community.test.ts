@@ -1,4 +1,5 @@
-import { record } from "../../src/lib/editor/saved-collections";
+import { stringifySavedData } from "../../src/lib/editor/saved-data.ts";
+import { record } from "../../src/lib/editor/plain-data";
 import { expect, it } from "vitest";
 import { Effect, Result } from "effect";
 import { makeHistorySession } from "../../src/lib/editor/history";
@@ -31,69 +32,73 @@ it("projects every saved bundle without import writes and retains string IDs/tai
 	expect(view.bundles.every((row) => row.supported)).toBe(true);
 	expect(document).toEqual(before);
 });
-it("completes a room with rewards and mail once, preserves unrelated imports, and round-trips Undo/Redo/XML", () =>
-	run(
-		Effect.gen(function* () {
-			const document = fixture();
-			const definition = required(
-				inspectCommunity(document).definitions.entries.find((row) =>
-					JSON.stringify(row).includes("Crafts Room/13"),
-				),
-			);
-			if (!record(definition)) throw new Error("Missing definition record");
-			Object.assign(definition, { modData: { opaque: "007" } });
-			const session = yield* makeHistorySession(document),
-				before = yield* session.snapshot;
-			const room = readCommunity(document).bundles.filter(
-				(row) => row.room === 1,
-			);
-			yield* session.transact(
-				Effect.gen(function* () {
-					for (const bundle of room)
-						yield* setCommunityProgress({
-							type: "bundle",
-							bundleKey: bundle.key,
-							value: true,
-						});
-				}),
-			);
-			const after = yield* session.snapshot,
-				view = readCommunity(after.document);
-			expect(view.rooms.find((row) => row.id === 1)).toMatchObject({
-				completed: true,
-				restored: true,
-			});
-			expect(
-				view.bundles
-					.filter((row) => row.room === 1)
-					.every((row) => row.rewardAvailable),
-			).toBe(true);
-			expect(after.document.SaveGame.player).toMatchObject({
-				mailReceived: { string: expect.arrayContaining(["ccCraftsRoom"]) },
-			});
-			expect(inspectCommunity(after.document).definitions.entries).toEqual(
-				inspectCommunity(before.document).definitions.entries,
-			);
-			expect(
-				readCommunity(parser.parse(exportDocument(after.document))).rooms.find(
-					(row) => row.id === 1,
-				)?.completed,
-			).toBe(true);
-			yield* session.undo;
-			expect((yield* session.snapshot).document).toEqual(before.document);
-			yield* session.redo;
-			expect((yield* session.snapshot).document).toEqual(after.document);
-			const count = after.entries.length;
-			yield* session.transact(
-				setCommunityProgress({
-					type: "bundle",
-					bundleKey: required(room[0]).key,
-					value: true,
-				}),
-			);
-			expect((yield* session.snapshot).entries).toHaveLength(count);
-		}),
-	));
+it(
+	"completes a room with rewards and mail once, preserves unrelated imports, and round-trips Undo/Redo/XML",
+	() =>
+		run(
+			Effect.gen(function* () {
+				const document = fixture();
+				const definition = required(
+					inspectCommunity(document).definitions.entries.find((row) =>
+						stringifySavedData(row).includes("Crafts Room/13"),
+					),
+				);
+				if (!record(definition)) throw new Error("Missing definition record");
+				Object.assign(definition, { customModData: { opaque: "007" } });
+				const session = yield* makeHistorySession(document),
+					before = yield* session.snapshot;
+				const room = readCommunity(document).bundles.filter(
+					(row) => row.room === 1,
+				);
+				yield* session.transact(
+					Effect.gen(function* () {
+						for (const bundle of room)
+							yield* setCommunityProgress({
+								type: "bundle",
+								bundleKey: bundle.key,
+								value: true,
+							});
+					}),
+				);
+				const after = yield* session.snapshot,
+					view = readCommunity(after.document);
+				expect(view.rooms.find((row) => row.id === 1)).toMatchObject({
+					completed: true,
+					restored: true,
+				});
+				expect(
+					view.bundles
+						.filter((row) => row.room === 1)
+						.every((row) => row.rewardAvailable),
+				).toBe(true);
+				expect(after.document.SaveGame.player).toMatchObject({
+					mailReceived: expect.arrayContaining(["ccCraftsRoom"]),
+				});
+				expect(inspectCommunity(after.document).definitions.entries).toEqual(
+					inspectCommunity(before.document).definitions.entries,
+				);
+				expect(
+					readCommunity(
+						parser.parse(exportDocument(after.document)),
+					).rooms.find((row) => row.id === 1)?.completed,
+				).toBe(true);
+				yield* session.undo;
+				expect((yield* session.snapshot).document).toEqual(before.document);
+				yield* session.redo;
+				expect((yield* session.snapshot).document).toEqual(after.document);
+				const count = after.entries.length;
+				yield* session.transact(
+					setCommunityProgress({
+						type: "bundle",
+						bundleKey: required(room[0]).key,
+						value: true,
+					}),
+				);
+				expect((yield* session.snapshot).entries).toHaveLength(count);
+			}),
+		),
+	30_000,
+);
 // Completing every original bundle exercises repeated progression edits against
 // a full save. Allow CI headroom for that integration workload without relaxing
 // the default timeout for the smaller Community tests.
@@ -119,13 +124,11 @@ it(
 				);
 				const complete = yield* session.snapshot;
 				expect(complete.document.SaveGame.player).toMatchObject({
-					mailReceived: {
-						string: expect.arrayContaining([
-							"ccIsComplete",
-							"seenJunimoNote",
-							"abandonedJojaMartAccessible",
-						]),
-					},
+					mailReceived: expect.arrayContaining([
+						"ccIsComplete",
+						"seenJunimoNote",
+						"abandonedJojaMartAccessible",
+					]),
 				});
 				expect(readCommunity(complete.document).theater).toBe(false);
 				const missing = required(
@@ -148,12 +151,10 @@ it(
 				expect(
 					(yield* session.snapshot).document.SaveGame.player,
 				).toMatchObject({
-					mailReceived: {
-						string: expect.arrayContaining([
-							"ccIsComplete",
-							"abandonedJojaMartAccessible",
-						]),
-					},
+					mailReceived: expect.arrayContaining([
+						"ccIsComplete",
+						"abandonedJojaMartAccessible",
+					]),
 				});
 			}),
 		),
@@ -163,7 +164,7 @@ it("keeps bought Joja projects and does not buy the theater when the fifth proje
 		Effect.gen(function* () {
 			const document = fixture();
 			Object.assign(document.SaveGame.player, {
-				mailReceived: { string: ["JojaMember", "ccVault", "jojaVault"] },
+				mailReceived: ["JojaMember", "ccVault", "jojaVault"],
 			});
 			const session = yield* makeHistorySession(document);
 			const other = required(
@@ -177,9 +178,7 @@ it("keeps bought Joja projects and does not buy the theater when the fifth proje
 				}),
 			);
 			expect((yield* session.snapshot).document.SaveGame.player).toMatchObject({
-				mailReceived: {
-					string: expect.arrayContaining(["ccVault", "jojaVault"]),
-				},
+				mailReceived: expect.arrayContaining(["ccVault", "jojaVault"]),
 			});
 			yield* session.transact(
 				Effect.gen(function* () {
@@ -194,7 +193,7 @@ it("keeps bought Joja projects and does not buy the theater when the fifth proje
 			const projects = yield* session.snapshot;
 			expect(readCommunity(projects.document).theater).toBe(false);
 			expect(projects.document.SaveGame.player).toMatchObject({
-				mailReceived: { string: expect.arrayContaining(["ccIsComplete"]) },
+				mailReceived: expect.arrayContaining(["ccIsComplete"]),
 			});
 			yield* session.transact(
 				setCommunityProgress({ type: "theater", value: true }),
@@ -204,7 +203,7 @@ it("keeps bought Joja projects and does not buy the theater when the fifth proje
 			const reward = inspectCommunity(theater.document).rewards.entries.find(
 				(row) => progressId(row) === 36,
 			);
-			expect(JSON.stringify(reward)).not.toContain('"boolean":true');
+			expect(stringifySavedData(reward)).not.toContain('"boolean":true');
 			yield* session.undo;
 			expect((yield* session.snapshot).document).toEqual(projects.document);
 		}),
@@ -239,7 +238,7 @@ it("rejects stale requirement identities and late malformed mail without partial
 			expect(yield* session.snapshot).toEqual(before);
 			const broken = fixture();
 			Object.assign(broken.SaveGame.player, {
-				mailReceived: { string: [{ opaque: true }] },
+				mailReceived: [{ opaque: true }],
 			});
 			const invalid = yield* makeHistorySession(broken),
 				original = yield* invalid.snapshot;
@@ -317,20 +316,17 @@ it.each(["BAD 388 1", "O 388 2147483648"])(
 				const document = fixture(),
 					data = inspectCommunity(document);
 				const entry = data.definitions.entries.find(
-					(row) =>
-						record(row) &&
-						record(row.key) &&
-						row.key.string === "Crafts Room/13",
+					(row) => record(row) && row.key === "Crafts Room/13",
 				);
 				if (
 					!record(entry) ||
-					!record(entry.value) ||
-					typeof entry.value.string !== "string"
+					typeof entry.value !== "string" ||
+					typeof entry.value !== "string"
 				)
 					throw new Error("Missing Spring bundle definition");
-				const parts = entry.value.string.split("/");
+				const parts = entry.value.split("/");
 				parts[1] = reward;
-				entry.value.string = parts.join("/");
+				entry.value = parts.join("/");
 				const session = yield* makeHistorySession(document),
 					before = yield* session.snapshot;
 				expect(
@@ -361,11 +357,11 @@ it("keeps unclaimed cabin placeholders byte-equivalent through membership and pr
 				ghost = structuredClone(document.SaveGame.player);
 			Object.assign(ghost, {
 				name: "",
-				UniqueMultiplayerID: "0",
+				UniqueMultiplayerID: 0n,
 				mailReceived: { unknown: "retain" },
 				previousActiveDialogueEvents: { opaque: true },
 			});
-			document.SaveGame.farmhands = { Farmer: [ghost] };
+			document.SaveGame.farmhands = [ghost];
 			const session = yield* makeHistorySession(document);
 			yield* session.transact(
 				setCommunityProgress({ type: "membership", value: true }),
@@ -374,19 +370,18 @@ it("keeps unclaimed cabin placeholders byte-equivalent through membership and pr
 				setCommunityProgress({ type: "project", room: 1, value: true }),
 			);
 			const after = yield* session.snapshot;
-			expect(after.document.SaveGame.farmhands).toEqual({ Farmer: [ghost] });
+			expect(after.document.SaveGame.farmhands).toEqual([ghost]);
 		}),
 	));
 it("uses internal names without a localized tail and distinguishes category requirements from Vault gold", () => {
 	const document = fixture(),
 		data = inspectCommunity(document);
 	const entry = data.definitions.entries.find(
-		(row) =>
-			record(row) && record(row.key) && row.key.string === "Crafts Room/13",
+		(row) => record(row) && row.key === "Crafts Room/13",
 	);
-	if (!record(entry) || !record(entry.value))
+	if (!record(entry) || typeof entry.value !== "string")
 		throw new Error("Missing Spring bundle definition");
-	entry.value.string = "Remixed Eggs/O 388 1/-5 1 0 18 1 0 20 1 0 22 1 0/0/4";
+	entry.value = "Remixed Eggs/O 388 1/-5 1 0 18 1 0 20 1 0 22 1 0/0/4";
 	const view = readCommunity(document),
 		bundle = required(view.bundles.find((row) => row.id === 13));
 	expect(bundle.name).toBe("Remixed Eggs");
@@ -411,12 +406,11 @@ it.each([
 	({ appearance, color }) => {
 		const document = fixture();
 		const entry = inspectCommunity(document).definitions.entries.find(
-			(row) =>
-				record(row) && record(row.key) && row.key.string === "Crafts Room/13",
+			(row) => record(row) && row.key === "Crafts Room/13",
 		);
-		if (!record(entry) || !record(entry.value))
+		if (!record(entry) || typeof entry.value !== "string")
 			throw new Error("Missing Spring bundle definition");
-		entry.value.string = `Spring Foraging/O 495 30/16 1 0 18 1 0 20 1 0 22 1 0/${appearance}`;
+		entry.value = `Spring Foraging/O 495 30/16 1 0 18 1 0 20 1 0 22 1 0/${appearance}`;
 		const before = structuredClone(document);
 		const bundle = required(
 			readCommunity(document).bundles.find((row) => row.id === 13),

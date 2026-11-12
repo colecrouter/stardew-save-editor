@@ -4,7 +4,6 @@ import {
 	type FarmSettingsChange,
 } from "./farm-settings.ts";
 export { FarmSettingsInvalid } from "./farm-settings.ts";
-import type { Save } from "../../../codegen/save.ts";
 import { farmers, type SaveDocument } from "./domain.ts";
 import { TransactionDraft } from "./transaction-draft.ts";
 import {
@@ -39,8 +38,8 @@ export interface FarmView extends FarmSettings {
  * removes floating-point display noise without changing the stored multiplier.
  */
 export function readFarmSettings(document: SaveDocument): FarmView {
-	const game = document.SaveGame as unknown as Save;
-	const multiplier = game.player.difficultyModifier;
+	const game = document.SaveGame;
+	const multiplier = game.player?.difficultyModifier;
 	const layouts = [
 		"Standard",
 		"Riverland",
@@ -57,7 +56,8 @@ export function readFarmSettings(document: SaveDocument): FarmView {
 				? "Meadowlands"
 				: `Custom (${game.whichFarm ?? "not recorded"})`;
 	return {
-		name: typeof game.player.farmName === "string" ? game.player.farmName : "",
+		name:
+			typeof game.player?.farmName === "string" ? game.player?.farmName : "",
 		profitPercent:
 			typeof multiplier === "number" && Number.isFinite(multiplier)
 				? Number((multiplier * 100).toPrecision(12))
@@ -82,13 +82,16 @@ export function readFarmSettings(document: SaveDocument): FarmView {
 			},
 			{
 				label: "Guarantee Year 1 completable",
-				value: game.visitsUntilY1Guarantee >= 0 ? "On" : "Off, or already used",
+				value:
+					(game.visitsUntilY1Guarantee ?? -1) >= 0
+						? "On"
+						: "Off, or already used",
 				reason:
 					"The save keeps a Traveling Cart visit countdown; the game stops it after the guaranteed seed visit.",
 			},
 			{
 				label: "Money",
-				value: game.player.useSeparateWallets ? "Separate wallets" : "Shared",
+				value: game.player?.useSeparateWallets ? "Separate wallets" : "Shared",
 				reason:
 					"Change wallet mode with the ledger in the Mayor’s Manor so the game can split or merge the gold overnight.",
 			},
@@ -126,7 +129,7 @@ export const setFarmSettings = Effect.fn("Farm.setSettings")(function* (
 	const transaction = yield* TransactionDraft;
 	let changed = false;
 	yield* transaction.mutate((state) => {
-		const game = state.document.SaveGame as unknown as Save;
+		const game = state.document.SaveGame;
 		// Name and sale-price multiplier are mirrored on each serialized farmer. Keep
 		// unclaimed cabin records and their opaque fields rather than rebuilding them.
 		for (const farmer of farmers(state.document)) {
@@ -134,7 +137,7 @@ export const setFarmSettings = Effect.fn("Farm.setSettings")(function* (
 				farmer.farmName = change.name;
 				changed = true;
 			}
-			const player = farmer as unknown as Save["player"];
+			const player = farmer;
 			if (
 				change.profitPercent !== undefined &&
 				player.difficultyModifier !== change.profitPercent / 100

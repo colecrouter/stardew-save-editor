@@ -3,7 +3,7 @@ import { Deferred, Effect, Fiber, Result } from "effect";
 import { makeHistorySession } from "../../src/lib/editor/history.ts";
 import { TransactionDraft } from "../../src/lib/editor/transaction-draft.ts";
 import { MutationError } from "../../src/lib/editor/domain.ts";
-import { tinyFixture } from "./fixtures.ts";
+import { tinyFixture } from "../helpers/editor-document.ts";
 import {
 	coreOperations,
 	EditorOperations,
@@ -182,9 +182,9 @@ it("groups field commands while shared farmer selection and export create explic
 	const document = parser.parse(fixtureXml);
 	const hostId = String(document.SaveGame.player.UniqueMultiplayerID);
 	const guest = structuredClone(document.SaveGame.player);
-	guest.UniqueMultiplayerID = "gesture-guest";
+	guest.UniqueMultiplayerID = 2n;
 	guest.name = "Gesture guest";
-	document.SaveGame.farmhands = { Farmer: [guest] };
+	document.SaveGame.farmhands = [guest];
 	const opened = await openEditor(
 		new TextEncoder().encode(exportDocument(document)),
 		{},
@@ -205,8 +205,8 @@ it("groups field commands while shared farmer selection and export create explic
 		await model.commands.edit(xp(380), gesture);
 		await model.commands.edit(xp(770), gesture);
 		expect((await model.snapshot()).entries).toHaveLength(1);
-		await model.commands.selectFarmer("gesture-guest");
-		expect(get(model.selectedFarmerId)).toBe("gesture-guest");
+		await model.commands.selectFarmer("2");
+		expect(get(model.selectedFarmerId)).toBe("2");
 		await model.commands.edit(xp(1300), gesture);
 		expect((await model.snapshot()).entries).toHaveLength(2);
 		await model.commands.export();
@@ -216,10 +216,10 @@ it("groups field commands while shared farmer selection and export create explic
 		await model.commands.undo();
 		await model.commands.undo();
 		expect((await model.snapshot()).document).toEqual(original.document);
-		expect(get(model.selectedFarmerId)).toBe("gesture-guest");
+		expect(get(model.selectedFarmerId)).toBe("2");
 		const invalid = await model.commands.selectFarmer("missing-farmer");
 		expect(invalid && Result.isFailure(invalid)).toBe(true);
-		expect(get(model.selectedFarmerId)).toBe("gesture-guest");
+		expect(get(model.selectedFarmerId)).toBe("2");
 		const forged = await model.commands.edit(xp(380), {
 			fieldKey: gesture.fieldKey,
 		});
@@ -230,7 +230,7 @@ it("groups field commands while shared farmer selection and export create explic
 	// Teardown is normal even if a mounted field outlives its file provider briefly.
 	expect(await model.edits.end(gesture)).toBeNull();
 	expect(get(model.selectedFarmerId)).toBeUndefined();
-}, 25_000);
+}, 60_000);
 
 it("closes a concurrently restored gesture when a lower-level standalone transaction retries", () =>
 	run(
@@ -251,7 +251,7 @@ it("closes a concurrently restored gesture when a lower-level standalone transac
 			);
 			yield* session.transact(money(11), undefined, "A");
 			const standalone = yield* Effect.forkScoped(
-				session.execute([{ type: "money", farmerId: "host", value: 20 }]),
+				session.execute([{ type: "money", farmerId: "1", value: 20 }]),
 			);
 			yield* Deferred.await(entered);
 			yield* session.transact(money(12), undefined, "A");

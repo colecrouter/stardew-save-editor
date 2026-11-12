@@ -17,7 +17,14 @@ Shared fixture builders live in `tests/helpers/editor-document.ts`; Vite and Nod
 retain separate public-save loaders. `tests/editor/workspace.ts` owns common
 workspace setup and unmount-before-file-close cleanup. Keep feature assertions and
 special cancellation/lifetime setup explicit. Use small fixtures for rule tests;
-retain full-save cases for preservation. Never commit private user saves.
+retain full-save cases for preservation. Full import/export assertions have explicit
+budgets for the event-based codec; pure rule tests keep the default budget.
+UI interaction suites can open decoded fixtures through
+`tests/helpers/open-editor.ts`. This uses the production model, history and export
+service while avoiding a full XML import for each interaction. Application/engine
+codec tests retain the real byte import boundary; malformed in-memory domain tests
+do not first serialize values that the codec is expected to reject.
+Never commit private user saves.
 
 Engine comparison executors and store/Atom harnesses are test-only reference
 fixtures, not alternate application runtimes. Their assertions remain until

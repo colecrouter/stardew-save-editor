@@ -6,7 +6,6 @@ import {
 	progressId,
 	submissionFlags,
 } from "./community-data.ts";
-import { record } from "./saved-collections.ts";
 import { samePlainData } from "./plain-data.ts";
 import { TransactionDraft } from "./transaction-draft.ts";
 import {
@@ -188,21 +187,15 @@ export const setCommunityRequirements = Effect.fn("Community.setRequirements")(
 			);
 		const data = inspectCommunity(document);
 		const definition = data.definitions.entries.find(
-			(row) => record(row) && record(row.key) && row.key.string === bundle.key,
+			(row) => row.key === bundle.key,
 		);
 		const progress = data.progress.entries.find(
 			(row) => progressId(row) === bundle.id,
 		);
-		if (
-			!record(definition) ||
-			!record(definition.value) ||
-			typeof definition.value.string !== "string" ||
-			!record(progress) ||
-			!record(progress.value) ||
-			!record(progress.value.ArrayOfBoolean)
-		)
+		// Entries have decoded shapes; a stale target can still be missing.
+		if (!definition || !progress)
 			return yield* invalid("The saved bundle representation is unsupported.");
-		const parts = definition.value.string.split("/");
+		const parts = definition.value.split("/");
 		const originalFlags = submissionFlags(progress);
 		if (!originalFlags)
 			return yield* invalid("The saved donation slots are unsupported.");
@@ -241,7 +234,7 @@ export const setCommunityRequirements = Effect.fn("Community.setRequirements")(
 				if (parts[6] === before) parts[6] = after;
 			}
 		}
-		definition.value.string = parts.join("/");
+		definition.value = parts.join("/");
 		// Scalar edits preserve the imported surplus slot layout. Structural changes
 		// need the game's three-slots-per-item allocation; first N slots hold donations.
 		const structureChanged =
@@ -256,7 +249,7 @@ export const setCommunityRequirements = Effect.fn("Community.setRequirements")(
 				"The saved donation slot layout cannot be resized safely.",
 			);
 		if (structureChanged)
-			progress.value.ArrayOfBoolean.boolean = Array.from(
+			progress.value = Array.from(
 				{ length: change.requirements.length * 3 },
 				(_, index) => nextDonations[index] ?? nowCompleted,
 			);

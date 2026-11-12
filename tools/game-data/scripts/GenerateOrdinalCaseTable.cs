@@ -4,7 +4,7 @@ using System.Text;
 
 // Run with the .NET 10 SDK from the repository root:
 // dotnet run --file tools/game-data/scripts/GenerateOrdinalCaseTable.cs
-// Redirect stdout to tools/game-data/runtime/ordinal-case-table.ts, then run Oxfmt on that file.
+// Redirect stdout to src/lib/save-format/ordinal-case-table.ts, then run Oxfmt on that file.
 // Keep the captured table checked in: JavaScript and the host .NET runtime may
 // use different Unicode versions, so JS casing is not a stable substitute.
 var mappings = new List<(int CodePoint, int Delta)>();

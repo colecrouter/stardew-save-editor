@@ -1,3 +1,4 @@
+import { savedType } from "./saved-types.ts";
 import { colorHex } from "../color.ts";
 export { colorHex, itemColorPatch } from "../color.ts";
 import { Data, Result, Schema, SchemaIssue } from "effect";
@@ -155,7 +156,7 @@ export function getItemPropertyFields(
 	context?: TrinketRollContext,
 ): ItemPropertyField[] {
 	if (!record(raw) || !metadata) return [];
-	const type = raw["@_xsi:type"];
+	const type = savedType(raw);
 	const fields: ItemPropertyField[] = [];
 	const number = (
 		property: BaseItemPropertyChange["property"],

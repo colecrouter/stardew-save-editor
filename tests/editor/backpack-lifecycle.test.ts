@@ -44,30 +44,30 @@ describe("proxy-free item catalog", () => {
 		for (const entry of catalogEntries) {
 			const item = required(createCatalogItem(entry.id));
 			expect(Schema.is(Schema.Json)(item)).toBe(true);
-			expect(item["@_xsi:type"]).toBeTruthy();
+			expect(item.$type).toBeTruthy();
 			expect(item.stack).toBe(1);
 			expect(item).not.toBe(entry.raw);
 		}
 		const wood = required(catalogEntries.find((entry) => entry.id === "Wood"));
-		wood.raw.modData = { injected: "no" };
+		Object.assign(wood.raw, { customModData: { injected: "no" } });
 		expect(createCatalogItem("Wood")).not.toHaveProperty("modData");
-		delete wood.raw.modData;
+		Reflect.deleteProperty(wood.raw, "customModData");
 	});
 	it("retains game-specific object, tool, boots and preserved-product construction fields", () => {
 		expect(createCatalogItem("Parsnip")).toMatchObject({
-			"@_xsi:type": "Object",
+			$type: "StardewValley.Object",
 			itemId: "24",
 			bigCraftable: false,
 			category: -75,
 			quality: 0,
 		});
 		expect(createCatalogItem("Sneakers")).toMatchObject({
-			"@_xsi:type": "Boots",
+			$type: "StardewValley.Objects.Boots",
 			defenseBonus: 1,
 			immunityBonus: 0,
 		});
 		expect(createCatalogItem("Iridium Watering Can")).toMatchObject({
-			"@_xsi:type": "WateringCan",
+			$type: "StardewValley.Tools.WateringCan",
 			upgradeLevel: 4,
 			isBottomless: false,
 			IsBottomless: false,
@@ -85,7 +85,7 @@ describe("proxy-free item catalog", () => {
 		});
 		const colored = required(
 			catalogEntries.find(
-				(entry) => entry.raw["@_xsi:type"] === "ColoredObject",
+				(entry) => entry.raw.$type === "StardewValley.Objects.ColoredObject",
 			),
 		);
 		expect(createCatalogItem(colored.id)).toMatchObject({
@@ -109,17 +109,11 @@ describe("proxy-free item catalog", () => {
 		])
 			expect(createCatalogItem(name)).toBeUndefined();
 		expect(createCatalogItem("Advanced Iridium Rod")).toMatchObject({
-			"@_xsi:type": "FishingRod",
+			$type: "StardewValley.Tools.FishingRod",
 			upgradeLevel: 4,
 			initialParentTileIndex: 17,
 			numAttachmentSlots: 3,
-			attachments: {
-				Object: [
-					{ "@_xsi:nil": "true" },
-					{ "@_xsi:nil": "true" },
-					{ "@_xsi:nil": "true" },
-				],
-			},
+			attachments: [null, null, null],
 		});
 		expect(createCatalogItem("Small Crystal")).toMatchObject({
 			furniture_type: 8,
@@ -127,7 +121,7 @@ describe("proxy-free item catalog", () => {
 			defaultBoundingBox: { Width: 64, Height: 64 },
 		});
 		expect(createCatalogItem("Iridium Pan")).toMatchObject({
-			"@_xsi:type": "Pan",
+			$type: "StardewValley.Tools.Pan",
 			upgradeLevel: 4,
 		});
 		expect(createCatalogItem("Smoked Goby")).toMatchObject({
@@ -162,69 +156,73 @@ describe("proxy-free item catalog", () => {
 });
 
 describe("backpack creation and removal", () => {
-	it("adds only into the selected empty entity, exports exact defaults and restores original nil representation on Undo", () =>
-		run(
-			Effect.gen(function* () {
-				const document = tinyFixture();
-				document.SaveGame.player.items.Item[1] = {
-					"@_xsi:nil": "true",
-					modSlot: "0007",
-				};
-				const session = yield* makeHistorySession(document);
-				const before = yield* session.snapshot;
-				const empty = required(before.identities.host?.[1]);
-				yield* session.execute([
-					{
-						type: "backpack-add",
-						ownerId: "host",
-						entityId: empty,
-						catalogId: "Parsnip",
-					},
-				]);
-				const added = yield* session.snapshot;
-				expect(added.document.SaveGame.player.items.Item[1]).toEqual(
-					createCatalogItem("Parsnip"),
-				);
-				expect(added.identities.host?.[1]).not.toBe(empty);
-				const expected = structuredClone(document);
-				expected.SaveGame.player.items.Item[1] = required(
-					createCatalogItem("Parsnip"),
-				);
-				expect(added.document).toEqual(expected);
-				expect(parser.parse(exportDocument(added.document))).toEqual(
-					parser.parse(exportDocument(expected)),
-				);
-				yield* session.undo;
-				expect((yield* session.snapshot).document).toEqual(document);
-				expect((yield* session.snapshot).identities).toEqual(before.identities);
-				yield* session.redo;
-				expect((yield* session.snapshot).document).toEqual(added.document);
-				expect((yield* session.snapshot).identities).toEqual(added.identities);
-			}),
-		));
+	it(
+		"adds only into the selected empty entity, exports exact defaults and restores original nil representation on Undo",
+		() =>
+			run(
+				Effect.gen(function* () {
+					const document = tinyFixture();
+					document.SaveGame.player.items[1] = null;
+					const session = yield* makeHistorySession(document);
+					const before = yield* session.snapshot;
+					const empty = required(before.identities["1"]?.[1]);
+					yield* session.execute([
+						{
+							type: "backpack-add",
+							ownerId: "1",
+							entityId: empty,
+							catalogId: "Parsnip",
+						},
+					]);
+					const added = yield* session.snapshot;
+					expect(added.document.SaveGame.player.items[1]).toEqual(
+						createCatalogItem("Parsnip"),
+					);
+					expect(added.identities["1"]?.[1]).not.toBe(empty);
+					const expected = structuredClone(document);
+					expected.SaveGame.player.items[1] = required(
+						createCatalogItem("Parsnip"),
+					);
+					expect(added.document).toEqual(expected);
+					expect(parser.parse(exportDocument(added.document))).toEqual(
+						parser.parse(exportDocument(expected)),
+					);
+					yield* session.undo;
+					expect((yield* session.snapshot).document).toEqual(document);
+					expect((yield* session.snapshot).identities).toEqual(
+						before.identities,
+					);
+					yield* session.redo;
+					expect((yield* session.snapshot).document).toEqual(added.document);
+					expect((yield* session.snapshot).identities).toEqual(
+						added.identities,
+					);
+				}),
+			),
+		30_000,
+	);
 	it("removes opaque items as a whole and Undo restores every field and identity", () =>
 		run(
 			Effect.gen(function* () {
 				const document = tinyFixture();
-				document.SaveGame.player.items.Item[0] = {
-					"@_xsi:type": "ModdedItem",
+				document.SaveGame.player.items[0] = {
+					$type: "$unknown",
+					$xmlType: { name: "ModdedItem", namespace: "" },
 					itemId: "mystery",
 					payload: { nested: ["0007", 7] },
 					quality: 3,
 				};
 				const session = yield* makeHistorySession(document);
 				const before = yield* session.snapshot;
-				const entityId = required(before.identities.host?.[0]);
+				const entityId = required(before.identities["1"]?.[0]);
 				yield* session.execute([
-					{ type: "backpack-remove", ownerId: "host", entityId },
+					{ type: "backpack-remove", ownerId: "1", entityId },
 				]);
 				const removed = yield* session.snapshot;
-				expect(removed.document.SaveGame.player.items.Item[0]).toEqual({
-					"@_xsi:nil": "true",
-				});
-				expect(removed.identities.host?.[0]).not.toBe(entityId);
-				expect(removed.document.SaveGame.player.items.Item.slice(1)).toEqual(
-					document.SaveGame.player.items.Item.slice(1),
+				expect(removed.document.SaveGame.player.items[0]).toEqual(null);
+				expect(removed.identities["1"]?.[0]).not.toBe(entityId);
+				expect(removed.document.SaveGame.player.items.slice(1)).toEqual(
+					document.SaveGame.player.items.slice(1),
 				);
 				yield* session.undo;
 				expect((yield* session.snapshot).document).toEqual(document);
@@ -236,29 +234,29 @@ describe("backpack creation and removal", () => {
 			Effect.gen(function* () {
 				const session = yield* makeHistorySession(tinyFixture());
 				const before = yield* session.snapshot;
-				const empty = required(before.identities.host?.[1]);
-				const occupied = required(before.identities.host?.[0]);
+				const empty = required(before.identities["1"]?.[1]);
+				const occupied = required(before.identities["1"]?.[0]);
 				for (const request of [
 					{
 						type: "backpack-add",
-						ownerId: "host",
+						ownerId: "1",
 						entityId: occupied,
 						catalogId: "Wood",
 					},
 					{
 						type: "backpack-add",
-						ownerId: "host",
+						ownerId: "1",
 						entityId: empty,
 						catalogId: "unknown",
 					},
 					{
 						type: "backpack-add",
-						ownerId: "guest",
+						ownerId: "2",
 						entityId: empty,
 						catalogId: "Wood",
 					},
-					{ type: "backpack-remove", ownerId: "host", entityId: empty },
-					{ type: "backpack-remove", ownerId: "host", entityId: "item:stale" },
+					{ type: "backpack-remove", ownerId: "1", entityId: empty },
+					{ type: "backpack-remove", ownerId: "1", entityId: "item:stale" },
 				] satisfies InventorySlotRequest[]) {
 					expect(
 						Result.isFailure(yield* Effect.result(session.execute([request]))),
@@ -268,7 +266,7 @@ describe("backpack creation and removal", () => {
 				yield* session.execute([
 					{
 						type: "backpack-add",
-						ownerId: "host",
+						ownerId: "1",
 						entityId: empty,
 						catalogId: "Wood",
 					},
@@ -280,7 +278,7 @@ describe("backpack creation and removal", () => {
 							session.execute([
 								{
 									type: "backpack-add",
-									ownerId: "host",
+									ownerId: "1",
 									entityId: empty,
 									catalogId: "Parsnip",
 								},
@@ -297,8 +295,8 @@ describe("backpack creation and removal", () => {
 							session.execute([
 								{
 									type: "backpack-remove",
-									ownerId: "host",
-									entityId: required(added.identities.host?.[1]),
+									ownerId: "1",
+									entityId: required(added.identities["1"]?.[1]),
 								},
 							]),
 						),
@@ -313,28 +311,28 @@ describe("backpack creation and removal", () => {
 		run(
 			Effect.gen(function* () {
 				const document = tinyFixture();
-				document.SaveGame.farmhands = {
-					Farmer: [
+				document.SaveGame.farmhands = [
+					[
 						null,
 						{ UniqueMultiplayerID: { toString: 0 }, items: "opaque" },
 					] as never,
-				};
+				];
 				const session = yield* makeHistorySession(document);
 				const before = yield* session.snapshot;
-				const empty = required(before.identities.host?.[1]);
+				const empty = required(before.identities["1"]?.[1]);
 				yield* session.execute([
-					{ type: "reorder", ownerId: "host", order: [1, 2, 0] },
+					{ type: "reorder", ownerId: "1", order: [1, 2, 0] },
 				]);
 				yield* session.execute([
 					{
 						type: "backpack-add",
-						ownerId: "host",
+						ownerId: "1",
 						entityId: empty,
 						catalogId: "Parsnip",
 					},
 				]);
 				const added = yield* session.snapshot;
-				expect(added.document.SaveGame.player.items.Item[0]).toMatchObject({
+				expect(added.document.SaveGame.player.items[0]).toMatchObject({
 					name: "Parsnip",
 				});
 				expect(added.document.SaveGame.farmhands).toEqual(
@@ -343,13 +341,13 @@ describe("backpack creation and removal", () => {
 				yield* session.execute([
 					{
 						type: "backpack-remove",
-						ownerId: "host",
-						entityId: required(added.identities.host?.[0]),
+						ownerId: "1",
+						entityId: required(added.identities["1"]?.[0]),
 					},
 				]);
 				expect(
-					(yield* session.snapshot).document.SaveGame.player.items.Item[0],
-				).toEqual({ "@_xsi:nil": "true" });
+					(yield* session.snapshot).document.SaveGame.player.items[0],
+				).toEqual(null);
 			}),
 		));
 	it("validates own schema fields and rolls back a compound request if a later slot operation fails", () =>
@@ -357,9 +355,9 @@ describe("backpack creation and removal", () => {
 			Effect.gen(function* () {
 				const session = yield* makeHistorySession(tinyFixture());
 				const before = yield* session.snapshot;
-				const empty = required(before.identities.host?.[1]);
+				const empty = required(before.identities["1"]?.[1]);
 				const inherited = Object.create({
-					ownerId: "host",
+					ownerId: "1",
 					entityId: empty,
 					catalogId: "Wood",
 				});
@@ -368,13 +366,13 @@ describe("backpack creation and removal", () => {
 					session.execute([
 						{
 							type: "backpack-add",
-							ownerId: "host",
+							ownerId: "1",
 							entityId: empty,
 							catalogId: "Wood",
 						},
 						{
 							type: "backpack-add",
-							ownerId: "host",
+							ownerId: "1",
 							entityId: empty,
 							catalogId: "Parsnip",
 						},
@@ -397,8 +395,8 @@ describe("backpack creation and removal", () => {
 it("returns exact replacement lineage before a queued Undo and preserves raw instances", async () => {
 	const original = parser.parse(fixtureXml);
 	const farmerId = String(original.SaveGame.player.UniqueMultiplayerID);
-	const slot = original.SaveGame.player.items.Item.findIndex(
-		(item) => item && typeof item === "object" && "@_xsi:nil" in item,
+	const slot = original.SaveGame.player.items.findIndex(
+		(item) => item === null,
 	);
 	if (slot < 0) throw Error("Expected empty full-save slot");
 	const opened = await openEditor(

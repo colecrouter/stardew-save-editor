@@ -8,7 +8,7 @@ import {
 	progressId,
 } from "../../src/lib/editor/community-data";
 import { setCommunityProgress } from "../../src/lib/editor/community-operations";
-import { record } from "../../src/lib/editor/saved-collections";
+import { record } from "../../src/lib/editor/plain-data";
 import { parser, fixtureXml, exportDocument } from "./fixtures";
 
 const run = <A, E>(
@@ -22,20 +22,18 @@ function fixture() {
 	);
 	const ids = new Set(bulletin.map((row) => row.id));
 	for (const entry of inspectCommunity(document).progress.entries) {
-		if (
-			ids.has(progressId(entry)) &&
-			record(entry) &&
-			record(entry.value) &&
-			record(entry.value.ArrayOfBoolean)
-		)
-			entry.value.ArrayOfBoolean.boolean = bulletin
-				.find((row) => row.id === progressId(entry))
-				?.requirements.map(() => false);
+		// Reset only Bulletin rows in the decoded plain boolean arrays.
+		if (ids.has(progressId(entry))) {
+			const bundle = bulletin.find((row) => row.id === progressId(entry));
+			if (!bundle) throw Error("Missing Bulletin fixture bundle");
+			entry.value = bundle.requirements.map(() => false);
+		}
 	}
 	Object.assign(document.SaveGame.player, {
-		mailReceived: { string: [] },
-		mailbox: { string: ["unrelated"], opaque: "retain" },
-		mailForTomorrow: { string: [] },
+		mailReceived: [],
+		mailbox: ["unrelated"],
+		testMetadatamailbox: { opaque: "retain" },
+		mailForTomorrow: [],
 	});
 	return document;
 }
@@ -51,65 +49,70 @@ const complete = (document: ReturnType<typeof fixture>) =>
 			});
 	});
 
-it("delivers the Bulletin letter to named farmers, leaves friendship to the game, and round-trips Undo/Redo/XML", () =>
-	run(
-		Effect.gen(function* () {
-			const document = fixture();
-			const guest = structuredClone(document.SaveGame.player);
-			guest.name = "Guest";
-			guest.UniqueMultiplayerID = "Guest";
-			const empty = structuredClone(document.SaveGame.player);
-			empty.name = "";
-			empty.UniqueMultiplayerID = "Empty";
-			document.SaveGame.farmhands = { Farmer: [guest, empty] };
-			const session = yield* makeHistorySession(document);
-			const before = yield* session.snapshot;
-			yield* session.transact(complete(document));
-			const after = yield* session.snapshot;
-			for (const farmer of farmers(after.document).filter((row) => row.name)) {
-				expect(farmer).toMatchObject({
-					mailbox: {
-						string: ["unrelated", "ccBulletinThankYou"],
-						opaque: "retain",
-					},
-					mailReceived: {
-						string: expect.not.arrayContaining([
+it(
+	"delivers the Bulletin letter to named farmers, leaves friendship to the game, and round-trips Undo/Redo/XML",
+	() =>
+		run(
+			Effect.gen(function* () {
+				const document = fixture();
+				const guest = structuredClone(document.SaveGame.player);
+				guest.name = "Guest";
+				guest.UniqueMultiplayerID = 2n;
+				const empty = structuredClone(document.SaveGame.player);
+				empty.name = "";
+				empty.UniqueMultiplayerID = 3n;
+				document.SaveGame.farmhands = [guest, empty];
+				const session = yield* makeHistorySession(document);
+				const before = yield* session.snapshot;
+				yield* session.transact(complete(document));
+				const after = yield* session.snapshot;
+				for (const farmer of farmers(after.document).filter(
+					(row) => row.name,
+				)) {
+					expect(farmer).toMatchObject({
+						mailbox: ["unrelated", "ccBulletinThankYou"],
+						testMetadatamailbox: { opaque: "retain" },
+						mailReceived: expect.not.arrayContaining([
 							"ccBulletinThankYou",
 							"ccBulletinThankYouReceived",
 						]),
-					},
+					});
+				}
+				expect(after.document.SaveGame.farmhands).toMatchObject([
+					expect.anything(),
+					empty,
+				]);
+				const reloaded = parser.parse(exportDocument(after.document));
+				expect(reloaded.SaveGame.player).toMatchObject({
+					mailbox: ["unrelated", "ccBulletinThankYou"],
 				});
-			}
-			expect(after.document.SaveGame.farmhands).toMatchObject({
-				Farmer: [expect.anything(), empty],
-			});
-			const reloaded = parser.parse(exportDocument(after.document));
-			expect(reloaded.SaveGame.player).toMatchObject({
-				mailbox: { string: ["unrelated", "ccBulletinThankYou"] },
-			});
-			expect(
-				readCommunity(reloaded).rooms.find((row) => row.id === 5)?.completed,
-			).toBe(true);
-			yield* session.undo;
-			expect((yield* session.snapshot).document).toEqual(before.document);
-			yield* session.redo;
-			expect((yield* session.snapshot).document).toEqual(after.document);
-			const bundle = readCommunity(after.document).bundles.find(
-				(row) => row.room === 5,
-			);
-			if (!bundle) throw new Error("Missing bundle");
-			yield* session.transact(
-				setCommunityProgress({
-					type: "bundle",
-					bundleKey: bundle.key,
-					value: false,
-				}),
-			);
-			expect((yield* session.snapshot).document.SaveGame.player).toMatchObject({
-				mailbox: { string: ["unrelated"] },
-			});
-		}),
-	));
+				expect(
+					readCommunity(reloaded).rooms.find((row) => row.id === 5)?.completed,
+				).toBe(true);
+				yield* session.undo;
+				expect((yield* session.snapshot).document).toEqual(before.document);
+				yield* session.redo;
+				expect((yield* session.snapshot).document).toEqual(after.document);
+				const bundle = readCommunity(after.document).bundles.find(
+					(row) => row.room === 5,
+				);
+				if (!bundle) throw new Error("Missing bundle");
+				yield* session.transact(
+					setCommunityProgress({
+						type: "bundle",
+						bundleKey: bundle.key,
+						value: false,
+					}),
+				);
+				expect(
+					(yield* session.snapshot).document.SaveGame.player,
+				).toMatchObject({
+					mailbox: ["unrelated"],
+				});
+			}),
+		),
+	30_000,
+);
 
 it.each([
 	["mailReceived", "ccBulletinThankYou"],
@@ -121,15 +124,15 @@ it.each([
 	run(
 		Effect.gen(function* () {
 			const document = fixture();
-			Object.assign(document.SaveGame.player, { [field]: { string: [flag] } });
+			Object.assign(document.SaveGame.player, { [field]: [flag] });
 			const session = yield* makeHistorySession(document);
 			yield* session.transact(complete(document));
 			const player = (yield* session.snapshot).document.SaveGame.player;
 			expect(player).toMatchObject({
-				[field]: { string: expect.arrayContaining([flag]) },
+				[field]: expect.arrayContaining([flag]),
 			});
 			if (field !== "mailbox")
-				expect(player).toMatchObject({ mailbox: { string: ["unrelated"] } });
+				expect(player).toMatchObject({ mailbox: ["unrelated"] });
 		}),
 	),
 );
@@ -139,7 +142,7 @@ it("rejects unsupported pending mail without partial room or reward changes", ()
 		Effect.gen(function* () {
 			const document = fixture();
 			Object.assign(document.SaveGame.player, {
-				mailbox: { string: [{ opaque: true }] },
+				mailbox: [{ opaque: true }],
 			});
 			const session = yield* makeHistorySession(document);
 			const before = yield* session.snapshot;
@@ -152,30 +155,36 @@ it("rejects unsupported pending mail without partial room or reward changes", ()
 		}),
 	));
 
-it("populates an explicitly nil mailbox with a decodable letter container", () =>
-	run(
-		Effect.gen(function* () {
-			const document = fixture();
-			Object.assign(document.SaveGame.player, {
-				mailbox: { "@_xsi:nil": true, opaque: "retain" },
-				mailReceived: { "@_xsi:nil": true },
-			});
-			const session = yield* makeHistorySession(document);
-			yield* session.transact(
-				setCommunityProgress({ type: "room", room: 5, value: true }),
-			);
-			const after = yield* session.snapshot;
-			expect(after.document.SaveGame.player).toMatchObject({
-				mailbox: { string: ["ccBulletinThankYou"], opaque: "retain" },
-			});
-			const reloaded = parser.parse(exportDocument(after.document));
-			expect(reloaded.SaveGame.player).toMatchObject({
-				mailbox: { string: ["ccBulletinThankYou"] },
-				mailReceived: { string: ["ccBulletin"] },
-			});
-			const mailbox = record(after.document.SaveGame.player)
-				? after.document.SaveGame.player.mailbox
-				: undefined;
-			expect(mailbox).not.toHaveProperty("@_xsi:nil");
-		}),
-	));
+it(
+	"populates an empty mailbox with a decodable letter list",
+	() =>
+		run(
+			Effect.gen(function* () {
+				const document = fixture();
+				Object.assign(document.SaveGame.player, {
+					mailbox: [],
+					testMetadatamailbox: { opaque: "retain" },
+					mailReceived: [],
+				});
+				const session = yield* makeHistorySession(document);
+				yield* session.transact(
+					setCommunityProgress({ type: "room", room: 5, value: true }),
+				);
+				const after = yield* session.snapshot;
+				expect(after.document.SaveGame.player).toMatchObject({
+					mailbox: ["ccBulletinThankYou"],
+					testMetadatamailbox: { opaque: "retain" },
+				});
+				const reloaded = parser.parse(exportDocument(after.document));
+				expect(reloaded.SaveGame.player).toMatchObject({
+					mailbox: ["ccBulletinThankYou"],
+					mailReceived: ["ccBulletin"],
+				});
+				const mailbox = record(after.document.SaveGame.player)
+					? after.document.SaveGame.player.mailbox
+					: undefined;
+				expect(mailbox).not.toHaveProperty("@_xsi:nil");
+			}),
+		),
+	30_000,
+);

@@ -1,25 +1,27 @@
 import { fireEvent, render, waitFor } from "@testing-library/svelte";
 import { expect, it } from "vitest";
-import { openEditor } from "../../src/lib/editor/editor-model.ts";
+import { openTestDocument } from "../helpers/open-editor.ts";
 import { readEvents } from "../../src/lib/editor/event-operations.ts";
 import { VanillaEvents } from "../../src/lib/Events.ts";
 import WorkspaceHarness from "./WorkspaceHarness.svelte";
-import { parser, fixtureXml, exportDocument } from "./fixtures.ts";
+import { parser, fixtureXml } from "./fixtures.ts";
 
 async function openEvents() {
 	const document = parser.parse(fixtureXml);
 	const host = document.SaveGame.player;
 	Object.assign(host, {
-		eventsSeen: { int: [1, "Mod.Host_Event"], opaque: "keep" },
+		eventsSeen: [1, "Mod.Host_Event"],
+		testMetadataeventsSeen: { opaque: "keep" },
 	});
 	const guest = structuredClone(host);
-	guest.UniqueMultiplayerID = "guest";
+	guest.UniqueMultiplayerID = 2n;
 	guest.name = "Guest";
-	Object.assign(guest, { eventsSeen: { int: [2], opaque: "guest" } });
-	document.SaveGame.farmhands = { Farmer: [guest] };
-	const opened = await openEditor(
-		new TextEncoder().encode(exportDocument(document)),
-	);
+	Object.assign(guest, {
+		eventsSeen: [2],
+		testMetadataeventsSeen: { opaque: "2" },
+	});
+	document.SaveGame.farmhands = [guest];
+	const opened = await openTestDocument(document);
 	const page = render(WorkspaceHarness, { model: opened.model });
 	await fireEvent.click(page.getByRole("link", { name: "Events" }));
 	return {
@@ -52,7 +54,7 @@ it(
 			await fireEvent.click(first);
 			await fireEvent.click(second);
 			await fireEvent.change(page.getByRole("combobox", { name: "Farmer" }), {
-				target: { value: "guest" },
+				target: { value: "2" },
 			});
 			const snapshot = await model.snapshot();
 			await waitFor(() =>
@@ -71,7 +73,7 @@ it(
 			).toEqual(["Mod.Host_Event", "2"]);
 			expect(
 				readEvents(snapshot.document)
-					.find((owner) => owner.farmerId === "guest")
+					.find((owner) => owner.farmerId === "2")
 					?.seen.map((event) => event.id),
 			).toEqual(["2"]);
 			expect(snapshot.entries).toHaveLength(2);
@@ -86,7 +88,7 @@ it(
 			expect(
 				(page.getByRole("combobox", { name: "Farmer" }) as HTMLSelectElement)
 					.value,
-			).toBe("guest");
+			).toBe("2");
 		} finally {
 			await opened.dispose();
 		}
@@ -112,7 +114,7 @@ it(
 			).toBeTruthy();
 			await fireEvent.submit(add.closest("form")!);
 			await fireEvent.change(page.getByRole("combobox", { name: "Farmer" }), {
-				target: { value: "guest" },
+				target: { value: "2" },
 			});
 			const snapshot = await model.snapshot();
 			expect(
@@ -122,7 +124,7 @@ it(
 			).toBe(true);
 			expect(
 				readEvents(snapshot.document)
-					.find((owner) => owner.farmerId === "guest")
+					.find((owner) => owner.farmerId === "2")
 					?.seen.some((event) => event.id === "42"),
 			).toBe(false);
 			await waitFor(() =>

@@ -1,6 +1,6 @@
 import { fireEvent, render, waitFor, within } from "@testing-library/svelte";
 import { expect, it } from "vitest";
-import { openEditor } from "../../src/lib/editor/editor-model";
+import { openTestEditor } from "../helpers/open-editor.ts";
 import { inspectBuildings } from "../../src/lib/editor/building-data";
 import { fixtureXml } from "./fixtures";
 import {
@@ -16,7 +16,7 @@ it(
 	"groups animal typing, edits outside residents and applies upgrade/adoption with Undo",
 	{ timeout: 30000 },
 	async () => {
-		const opened = await openEditor(
+		const opened = await openTestEditor(
 			new TextEncoder().encode(withAnimalBuildings(fixtureXml)),
 		);
 		const page = render(WorkspaceHarness, { model: opened.model });

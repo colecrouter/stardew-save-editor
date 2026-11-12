@@ -118,6 +118,10 @@ internal sealed class ContractResolver(Catalog catalog)
 			var items = member.Attributes.Where(a => a.Type == Metadata.Xml + "XmlArrayItemAttribute").ToArray();
 			if (items.Length > 1 || record.ElementType is null)
 				throw new InvalidDataException($"{path}: ambiguous collection item mapping");
+			// Network dictionaries enumerate their one serializable dictionary snapshot,
+			// not individual entries. Likewise NetFarmerRef exposes one nullable ID.
+			// Keep that XML wrapper in the codec without exposing an extra editor array.
+			var maxItems = MaximumItems(record);
 			ValueContract value;
 			if (record.GenericDefinition == "Netcode.NetNullableEnum`1")
 			{
@@ -135,12 +139,12 @@ internal sealed class ContractResolver(Catalog catalog)
 			{
 				if (items.Length != 0)
 					throw new InvalidDataException($"{path}: XmlArrayItem requires a wrapped collection");
-				return new(member.Name, name, "repeated", value, MaxItems: record.MaxItems);
+				return new(member.Name, name, "repeated", value, MaxItems: maxItems);
 			}
 			var itemName = Metadata.Name(items.FirstOrDefault(), "ElementName", metadata.ItemName(record.ElementType));
 			Metadata.PlainName(itemName);
 			value = CollectionItem(record.ElementType, value, Metadata.Named(items.FirstOrDefault(), "IsNullable") is not false);
-			return new(member.Name, name, "collection", value, itemName, record.MaxItems);
+			return new(member.Name, name, "collection", value, itemName, maxItems);
 		}
 		if (member.Attributes.Any(a => a.Type is Metadata.Xml + "XmlArrayAttribute" or Metadata.Xml + "XmlArrayItemAttribute"))
 			throw new InvalidDataException($"{path}: array annotation on non-collection");
@@ -148,6 +152,23 @@ internal sealed class ContractResolver(Catalog catalog)
 		if (attribute && result.Kind is not ("scalar" or "enum"))
 			throw new InvalidDataException($"{path}: element values cannot be XML attributes");
 		return new(member.Name, name, attribute ? "attribute" : "element", result);
+	}
+	private int? MaximumItems(TypeRecord type)
+	{
+		// Older catalogs predate the explicit bound for NetEnum's one string value.
+		var maximum = type.GenericDefinition == "Netcode.NetEnum`1" ? 1 : type.MaxItems;
+		var seen = new HashSet<string>();
+		for (var current = type; current is not null; current = current.BaseType is { } parent ? metadata.Types.GetValueOrDefault(parent) : null)
+		{
+			if (!seen.Add(current.Id)) throw new InvalidDataException($"{type.Id}: cyclic collection inheritance");
+			// Catalogs need not contain the Netcode assembly's unexposed base types.
+			// Recognize the reviewed snapshot contract from that base ID as well.
+			if (current.GenericDefinition is "Netcode.NetDictionary`5" or "Netcode.NetFieldDictionary`5"
+				|| current.BaseType?.StartsWith("Netcode.NetDictionary`5[", StringComparison.Ordinal) == true
+				|| current.BaseType?.StartsWith("Netcode.NetFieldDictionary`5[", StringComparison.Ordinal) == true)
+				maximum = 1;
+		}
+		return type.Id is "StardewValley.Network.NetFarmerRef" or "StardewValley.Network.OverlaidDictionary" ? 1 : maximum;
 	}
 	private ValueContract CollectionItem(string id, ValueContract value, bool allowNil = true)
 	{

@@ -1,3 +1,5 @@
+import { malformedFixture } from "../helpers/editor-document.ts";
+import { stringifySavedData } from "../../src/lib/editor/saved-data.ts";
 import { describe, expect, it } from "vitest";
 import { Effect, Result } from "effect";
 import { makeHistorySession } from "../../src/lib/editor/history";
@@ -32,13 +34,14 @@ import {
 const run = <A, E>(
 	program: Effect.Effect<A, E, import("effect").Scope.Scope>,
 ) => Effect.runPromise(Effect.scoped(program));
-const fixture = () => parser.parse(withAnimalBuildings(fixtureXml));
+const baseline = parser.parse(withAnimalBuildings(fixtureXml));
+const fixture = () => structuredClone(baseline);
 const required = <T>(value: T | undefined): T => {
 	if (value === undefined) throw new Error("Missing fixture value");
 	return value;
 };
 
-describe("v2 buildings and animals", () => {
+describe("v2 buildings and animals", { timeout: 30_000 }, () => {
 	it("projects outside residents and virtual age/default fields without changing the import", () => {
 		const document = fixture(),
 			before = structuredClone(document);
@@ -64,7 +67,8 @@ describe("v2 buildings and animals", () => {
 							(row) => row.id === COOP_ANIMALS.clucky,
 						),
 					);
-				for (const mirror of raw.mirrors) mirror.modData = { opaque: "007" };
+				for (const mirror of raw.mirrors)
+					mirror.customModData = { opaque: "007" };
 				const session = yield* makeHistorySession(document),
 					before = yield* session.snapshot;
 				yield* session.transact(
@@ -94,7 +98,7 @@ describe("v2 buildings and animals", () => {
 						displayName: "Poppy",
 						daysOwned: 50,
 						age: 50,
-						modData: { opaque: "007" },
+						customModData: { opaque: "007" },
 					});
 				yield* session.undo;
 				yield* session.undo;
@@ -104,76 +108,83 @@ describe("v2 buildings and animals", () => {
 				expect((yield* session.snapshot).document).toEqual(after.document);
 			}),
 		));
-	it("upgrades through intermediate tiers with progression, then atomically adopts and round-trips XML", () =>
-		run(
-			Effect.gen(function* () {
-				const session = yield* makeHistorySession(fixture()),
-					initial = yield* session.snapshot;
-				yield* session.transact(upgradeBuilding(COOP_ID, "Deluxe Coop"));
-				const upgraded = yield* session.snapshot;
-				expect(
-					readBuildings(upgraded.document).buildings.find(
-						(row) => row.id === COOP_ID,
-					),
-				).toMatchObject({ name: "Deluxe Coop", capacity: 12 });
-				expect(upgraded.document.SaveGame).toMatchObject({
-					constructedBuildings: {
-						string: expect.arrayContaining(["Big Coop", "Deluxe Coop"]),
-					},
-				});
-				yield* session.transact(
-					adoptAnimal(COOP_ID, "Duck", "  Waddles  ", PLAYER_ID),
-				);
-				const adopted = yield* session.snapshot;
-				const receipt = {
-					animalId: required(
+	it(
+		"upgrades through intermediate tiers with progression, then atomically adopts and round-trips XML",
+		() =>
+			run(
+				Effect.gen(function* () {
+					const session = yield* makeHistorySession(fixture()),
+						initial = yield* session.snapshot;
+					yield* session.transact(upgradeBuilding(COOP_ID, "Deluxe Coop"));
+					const upgraded = yield* session.snapshot;
+					expect(
+						readBuildings(upgraded.document).buildings.find(
+							(row) => row.id === COOP_ID,
+						),
+					).toMatchObject({ name: "Deluxe Coop", capacity: 12 });
+					expect(upgraded.document.SaveGame).toMatchObject({
+						constructedBuildings: expect.arrayContaining([
+							"Big Coop",
+							"Deluxe Coop",
+						]),
+					});
+					yield* session.transact(
+						adoptAnimal(COOP_ID, "Duck", "  Waddles  ", PLAYER_ID),
+					);
+					const adopted = yield* session.snapshot;
+					const receipt = {
+						animalId: required(
+							inspectBuildings(adopted.document).animals.find(
+								(row) => row.raw?.name === "Waddles",
+							)?.id,
+						),
+					};
+					const coop = required(
+						inspectBuildings(adopted.document).buildings.find(
+							(row) => row.id === COOP_ID,
+						),
+					);
+					expect(coop.raw.currentOccupants).toBe(4);
+					expect(
+						readBuildings(adopted.document).buildings.find(
+							(row) => row.id === COOP_ID,
+						),
+					).toMatchObject({ residents: 5, outside: 1 });
+					expect(required(coop.interior).animalsThatLiveHere).toEqual(
+						expect.arrayContaining([BigInt(receipt.animalId)]),
+					);
+					const animal = required(
 						inspectBuildings(adopted.document).animals.find(
-							(row) => row.raw?.name === "Waddles",
-						)?.id,
-					),
-				};
-				const coop = required(
-					inspectBuildings(adopted.document).buildings.find(
-						(row) => row.id === COOP_ID,
-					),
-				);
-				expect(coop.raw.currentOccupants).toBe(4);
-				expect(
-					readBuildings(adopted.document).buildings.find(
-						(row) => row.id === COOP_ID,
-					),
-				).toMatchObject({ residents: 5, outside: 1 });
-				expect(required(coop.interior).animalsThatLiveHere).toMatchObject({
-					long: expect.arrayContaining([receipt.animalId]),
-				});
-				const animal = required(
-					inspectBuildings(adopted.document).animals.find(
-						(row) => row.id === receipt.animalId,
-					),
-				);
-				expect(animal.raw).toMatchObject({
-					name: "Waddles",
-					ownerID: PLAYER_ID,
-					happiness: 255,
-					fullness: 255,
-					age: 0,
-				});
-				expect(animalDictionary(required(coop.interior)).supported).toBe(true);
-				expect(JSON.stringify(adopted.document.SaveGame.player)).toContain(
-					"purchasedAnimal_Duck",
-				);
-				const reparsed = parser.parse(exportDocument(adopted.document));
-				expect(
-					readBuildings(reparsed)
-						.buildings.find((row) => row.id === COOP_ID)
-						?.animals.some((row) => row.id === receipt.animalId),
-				).toBe(true);
-				yield* session.undo;
-				expect((yield* session.snapshot).document).toEqual(upgraded.document);
-				yield* session.undo;
-				expect((yield* session.snapshot).document).toEqual(initial.document);
-			}),
-		));
+							(row) => row.id === receipt.animalId,
+						),
+					);
+					expect(animal.raw).toMatchObject({
+						name: "Waddles",
+						ownerID: BigInt(PLAYER_ID),
+						happiness: 255,
+						fullness: 255,
+						age: 0,
+					});
+					expect(animalDictionary(required(coop.interior)).supported).toBe(
+						true,
+					);
+					expect(
+						stringifySavedData(adopted.document.SaveGame.player),
+					).toContain("purchasedAnimal_Duck");
+					const reparsed = parser.parse(exportDocument(adopted.document));
+					expect(
+						readBuildings(reparsed)
+							.buildings.find((row) => row.id === COOP_ID)
+							?.animals.some((row) => row.id === receipt.animalId),
+					).toBe(true);
+					yield* session.undo;
+					expect((yield* session.snapshot).document).toEqual(upgraded.document);
+					yield* session.undo;
+					expect((yield* session.snapshot).document).toEqual(initial.document);
+				}),
+			),
+		30_000,
+	);
 	it("rejects full, incompatible and duplicate-name adoption without writes or history", () =>
 		run(
 			Effect.gen(function* () {
@@ -214,13 +225,9 @@ describe("v2 buildings and animals", () => {
 				const mirror = required(
 					animalDictionary(required(building.interior)).upper.entries[0],
 				);
-				if (
-					!record(mirror) ||
-					!record(mirror.value) ||
-					!record(mirror.value.FarmAnimal)
-				)
+				if (!record(mirror) || !record(mirror.value) || !record(mirror.value))
 					throw new Error("Missing animal mirror");
-				mirror.value.FarmAnimal.happiness = 1;
+				mirror.value.happiness = 1;
 				const session = yield* makeHistorySession(document),
 					before = yield* session.snapshot;
 				expect(
@@ -284,7 +291,7 @@ describe("v2 buildings and animals", () => {
 						(row) => row.id === BARN_ID,
 					),
 				);
-				built.raw.daysOfConstructionLeft = 2;
+				Object.assign(built.raw, { daysOfConstructionLeft: 2 });
 				const construction = yield* makeHistorySession(document);
 				expect(
 					Result.isFailure(
@@ -309,32 +316,26 @@ describe("v2 buildings and animals", () => {
 				const interior = required(shed.interior);
 				// A chest inside a Shed receives the new building location label; property
 				// writes on both sides of the transition must replay in their original order.
-				interior.objects = {
-					item: [
-						{
-							key: { Vector2: { X: 1, Y: 1 } },
-							value: {
-								Object: {
-									"@_xsi:type": "Chest",
-									itemId: "130",
-									name: "Chest",
-									items: {
-										Item: [
-											{
-												"@_xsi:type": "Object",
-												itemId: "388",
-												name: "Wood",
-												bigCraftable: false,
-												stack: 3,
-												quality: 0,
-											},
-										],
-									},
+				interior.objects = [
+					{
+						key: { X: 1, Y: 1 },
+						value: {
+							$type: "StardewValley.Objects.Chest",
+							itemId: "130",
+							name: "Chest",
+							items: [
+								{
+									$type: "StardewValley.Object",
+									itemId: "388",
+									name: "Wood",
+									bigCraftable: false,
+									stack: 3,
+									quality: 0,
 								},
-							},
+							],
 						},
-					],
-				};
+					},
+				];
 				const session = yield* makeHistorySession(document),
 					before = yield* session.snapshot;
 				const chest = required(
@@ -386,7 +387,8 @@ describe("v2 buildings and animals", () => {
 							yield* upgradeBuilding(COOP_ID, "Big Coop");
 							const draft = yield* TransactionDraft,
 								snapshot = yield* draft.read;
-							snapshot.state.document.SaveGame.player.items.Item.push({
+							snapshot.state.document.SaveGame.player.items.push({
+								$type: "StardewValley.Object",
 								itemId: "388",
 								stack: 999,
 							});
@@ -435,21 +437,21 @@ describe("v2 buildings and animals", () => {
 						),
 					);
 					const interior = required(building.interior);
-					if (
-						!record(interior.objects) ||
-						!Array.isArray(interior.objects.item)
-					)
+					if (!Array.isArray(interior.objects))
 						throw new Error("Missing objects");
-					const entry = interior.objects.item[direction === "upgrade" ? 0 : 1];
-					if (
-						!record(entry) ||
-						!record(entry.value) ||
-						!record(entry.value.Object)
-					)
+					const entry = interior.objects[direction === "upgrade" ? 0 : 1];
+					if (!record(entry) || !record(entry.value))
 						throw new Error("Missing chest");
-					Object.assign(entry.value.Object, {
-						"@_xsi:type": "Chest",
-						items: { Item: [{ itemId: "388", stack: 3, name: "Wood" }] },
+					Object.assign(entry.value, {
+						$type: "StardewValley.Objects.Chest",
+						items: [
+							{
+								$type: "StardewValley.Object",
+								itemId: "388",
+								stack: 3,
+								name: "Wood",
+							},
+						],
 					});
 					const session = yield* makeHistorySession(document),
 						before = yield* session.snapshot;
@@ -510,7 +512,7 @@ describe("v2 buildings and animals", () => {
 						),
 					);
 				for (const mirror of animal.mirrors)
-					mirror.name = { modName: "opaque" };
+					mirror.name = malformedFixture({ modName: "opaque" });
 				const session = yield* makeHistorySession(single),
 					before = yield* session.snapshot;
 				expect(

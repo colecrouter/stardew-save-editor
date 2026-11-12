@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { Result } from "effect";
-import { openEditor } from "../../src/lib/editor/editor-model.ts";
+import {
+	openTestEditor as openEditor,
+	openTestDocument,
+} from "../helpers/open-editor.ts";
 import { createCharacterDomain } from "../../src/lib/editor/character-domain.ts";
 import { createFarmFields } from "../../src/lib/editor/farm-domain.ts";
 import { readCharacters } from "../../src/lib/editor/character-operations.ts";
@@ -36,7 +39,7 @@ describe("domain-owned field adapters", { timeout: 25000 }, () => {
 			const after = await opened.model.snapshot();
 			expect(after.entries).toHaveLength(1);
 			expect(after.document.SaveGame.player).toMatchObject({
-				experiencePoints: { int: expect.arrayContaining([770]) },
+				experiencePoints: expect.arrayContaining([770]),
 				farmingLevel: 3,
 			});
 			await opened.model.commands.undo();
@@ -51,12 +54,10 @@ describe("domain-owned field adapters", { timeout: 25000 }, () => {
 	it("keeps an existing field bound to its farmer after the shared selection changes", async () => {
 		const document = parser.parse(fixtureXml);
 		const guest = structuredClone(document.SaveGame.player);
-		guest.UniqueMultiplayerID = "guest";
+		guest.UniqueMultiplayerID = 2n;
 		guest.name = "Guest";
-		document.SaveGame.farmhands = { Farmer: [guest] };
-		const opened = await openEditor(
-			new TextEncoder().encode(exportDocument(document)),
-		);
+		document.SaveGame.farmhands = [guest];
+		const opened = await openTestDocument(document);
 		try {
 			const before = await opened.model.snapshot();
 			const host = createCharacterDomain(
@@ -66,7 +67,7 @@ describe("domain-owned field adapters", { timeout: 25000 }, () => {
 			const field = required(
 				host.skills.find((skill) => skill.key === "farming"),
 			).fields.xp;
-			await opened.model.commands.selectFarmer("guest");
+			await opened.model.commands.selectFarmer("2");
 			const gesture = field.begin();
 			await field.commit(10000, gesture);
 			await field.end(gesture);
@@ -78,7 +79,7 @@ describe("domain-owned field adapters", { timeout: 25000 }, () => {
 		} finally {
 			await opened.close();
 		}
-	});
+	}, 30_000);
 
 	it("groups farm text changes and removes the net Undo entry when the original value returns", async () => {
 		const opened = await openEditor(new TextEncoder().encode(fixtureXml));

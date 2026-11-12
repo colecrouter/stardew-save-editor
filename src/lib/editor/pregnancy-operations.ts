@@ -1,3 +1,5 @@
+import type { KnownFields } from "./domain.ts";
+import type { T_StardewValley_WorldDate as WorldDate } from "../../../generated/save-format/save.ts";
 import { Data, Effect, Result, Schema } from "effect";
 import { MAX_YEAR, SEASONS, totalDays } from "../calendar.ts";
 import { inspectPregnancy } from "./pregnancy-data.ts";
@@ -76,7 +78,7 @@ export const setPregnancy = Effect.fn("Relationships.setPregnancy")(function* (
 		// XML stores a WorldDate with PascalCase fields. Keep any opaque members
 		// on an existing date while changing only its three calendar coordinates.
 		const existing = saved.NextBirthingDate;
-		const due: Record<string, unknown> = {
+		const due: KnownFields<WorldDate> = {
 			...(existing !== null &&
 			typeof existing === "object" &&
 			!Array.isArray(existing)
@@ -86,9 +88,7 @@ export const setPregnancy = Effect.fn("Relationships.setPregnancy")(function* (
 			Season: season,
 			DayOfMonth: (absolute % 28) + 1,
 		};
-		// An imported xsi:nil date must become an ordinary WorldDate when enabled.
-		// Keeping the nil marker would make the game's XML decoder ignore the values.
-		delete due["@_xsi:nil"];
+		// Assigning the date creates the value; the codec owns any xsi:nil transition.
 		saved.NextBirthingDate = due;
 	}
 	yield* recordAnnotatedOperation(draft.replace(snapshot)).pipe(

@@ -78,7 +78,7 @@ export function nullable<A>(codec: Codec<A>): Codec<A | null> {
 			}),
 		function* (name, value, attributes) {
 			if (value !== null) {
-				yield* codec.events(name, value, attributes);
+				yield* codec.write(name, value, attributes);
 				return;
 			}
 			yield {
@@ -107,8 +107,7 @@ export function sequence<A>(
 			arraySchema(codec, maxItems),
 			rejectContent,
 			function* (name, values, attributes) {
-				for (const value of values)
-					yield* codec.events(name, value, attributes);
+				for (const value of values) yield* codec.write(name, value, attributes);
 			},
 		),
 		{ item: codec },
@@ -129,6 +128,10 @@ export function wrapped<A>(
 					text: whitespace,
 					child: (child) =>
 						Effect.gen(function* () {
+							if (maxItems !== undefined && values.length >= maxItems)
+								return yield* invalid(
+									`Collection allows at most ${maxItems} items`,
+								);
 							if (child.name !== itemName)
 								return yield* invalid(
 									`Unsupported collection item ${child.name}; expected ${itemName}`,
@@ -142,8 +145,46 @@ export function wrapped<A>(
 			}),
 		function* (name, values, attributes) {
 			yield { _tag: "StartElement", name, attributes };
-			for (const value of values) yield* codec.events(itemName, value);
+			for (const value of values) yield* codec.write(itemName, value);
 			yield { _tag: "EndElement", name };
 		},
+	);
+}
+
+// CLR NetField wrappers serialize zero or one child, but represent one logical
+// value. Empty reference wrappers decode to null; present values need no array.
+export function single<A>(codec: Codec<A>, itemName: string): Codec<A | null> {
+	const sequence = wrapped(codec, itemName, 1);
+	return attach(
+		Schema.NullOr(Schema.toType(codec)),
+		(header) =>
+			Effect.gen(function* () {
+				const frame = yield* sequence.open(header);
+				return {
+					...frame,
+					finish: () =>
+						Effect.map(
+							frame.finish(),
+							(value) => (value as readonly A[])[0] ?? null,
+						),
+				};
+			}),
+		(name, value, attributes) =>
+			sequence.write(name, value === null ? [] : [value], attributes),
+	);
+}
+
+/** An empty NetRef is represented by an omitted element, as XmlSerializer writes it. */
+export function optionalReference<A>(codec: Codec<A>): Codec<A | null> {
+	const value = nullable(codec);
+	return Object.assign(
+		attach(
+			Schema.toType(value),
+			value.open,
+			function* (name, item, attributes) {
+				if (item !== null) yield* codec.write(name, item, attributes);
+			},
+		),
+		{ missingValue: null },
 	);
 }

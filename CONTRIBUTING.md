@@ -52,6 +52,12 @@ StardewXnbHack for asset exports.
 See [game data tooling](tools/game-data/README.md) for setup, commands, input storage,
 and validation limits. It does not change the existing `content/` codegen workflow.
 
+The production editor imports the committed codec in `generated/save-format/save.ts`.
+Regenerate it with `npm run game-data:generate -- --output generated/save-format/save.ts`.
+Its browser runtime lives in `src/lib/save-format`; game assemblies are needed only
+for regeneration, not ordinary builds. Editor models use plain arrays, dictionary
+entries, null slots, and exact 64-bit integer values rather than XML wrappers.
+
 ### Reading the Save File
 
 The save format is somewhat inconsistent (in structure and consistency). My recommendation is to use a website/tool to format the save file into something more readable, then use a text editor to search for the data you need. [Here is a tool for that](https://jsonformatter.org/xml-parser).

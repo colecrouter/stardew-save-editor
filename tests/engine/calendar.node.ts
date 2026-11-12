@@ -2,13 +2,13 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { Effect } from "effect";
 import { makeHistorySession } from "../../src/lib/editor/history.ts";
-import type { Save } from "../../codegen/save.ts";
+import type { FixtureSave as Save } from "../helpers/editor-document.ts";
 import {
 	initializeCalendarDocument,
 	prepareCalendarDocument,
-} from "../../src/lib/calendarDocument.ts";
+} from "../../src/lib/editor/calendar-document.ts";
 import { CalendarSeason } from "../../src/lib/calendarSeason.ts";
-import { getStatValue } from "../../src/lib/playerStats.ts";
+import { getStatValue } from "../../src/lib/editor/player-stats.ts";
 import { loadFixture } from "./fixture.ts";
 
 test("the complete Effect calendar history graph runs under native Node", async () => {
@@ -42,12 +42,12 @@ test("calendar preparation runs on native Node and stages every farmer's date wi
 	assert.deepEqual(source, before);
 	assert.equal(prepared.game.year, 2);
 	assert.equal(prepared.game.dayOfMonth, 8);
-	assert.equal(getStatValue(prepared.game.player, "daysPlayed"), 120);
+	assert.equal(getStatValue(prepared.game.player!, "daysPlayed"), 120);
 	for (const player of [
-		prepared.game.player,
-		...(prepared.game.farmhands === "" ? [] : prepared.game.farmhands.Farmer),
+		prepared.game.player!,
+		...(!Array.isArray(prepared.game.farmhands) ? [] : prepared.game.farmhands),
 	])
-		assert.equal(player.yearForSaveGame, 2);
+		assert.equal(player?.yearForSaveGame, 2);
 });
 
 test("native calendar preparation retains target bindings across document cloning and array reordering", async () => {
@@ -59,35 +59,38 @@ test("native calendar preparation retains target bindings across document clonin
 		day: "today",
 		value: "Sun",
 	});
-	const farm = sunny.game.locations.GameLocation.find(
-		(location) => location.name === "Farm",
+	const sunnyGame = sunny.game as Save;
+	const farm = sunnyGame.locations?.find(
+		(location) => location?.name === "Farm",
 	);
-	const soil = farm?.terrainFeatures?.item.find(
-		(entry) => entry.value.TerrainFeature["@_xsi:type"] === "HoeDirt",
+	const soil = farm?.terrainFeatures?.find(
+		(entry) => entry.value.$type === "StardewValley.TerrainFeatures.HoeDirt",
 	);
 	assert.ok(soil);
-	soil.value.TerrainFeature.state = 0;
+	assert.equal(soil.value.$type, "StardewValley.TerrainFeatures.HoeDirt");
+	if (soil.value.$type !== "StardewValley.TerrainFeatures.HoeDirt")
+		throw new Error("Missing soil fixture");
+	soil.value.state = 0;
 	const rainy = prepareCalendarDocument(sunny.game, sunny.state, {
 		type: "calendar-weather",
 		day: "today",
 		value: "Rain",
 	});
-	rainy.game.locations.GameLocation.reverse();
-	for (const location of rainy.game.locations.GameLocation) {
-		location.terrainFeatures?.item?.reverse();
-		location.buildings?.Building?.reverse();
+	const rainyGame = rainy.game as Save;
+	rainyGame.locations.reverse();
+	for (const location of rainyGame.locations) {
+		location?.terrainFeatures?.reverse();
+		location?.buildings?.reverse();
 	}
 	const dried = prepareCalendarDocument(rainy.game, rainy.state, {
 		type: "calendar-weather",
 		day: "today",
 		value: "Sun",
 	});
-	const result = dried.game.locations.GameLocation.find(
-		(location) => location.name === "Farm",
-	)?.terrainFeatures?.item.find(
-		(entry) =>
-			entry.key.Vector2.X === soil.key.Vector2.X &&
-			entry.key.Vector2.Y === soil.key.Vector2.Y,
-	);
-	assert.equal(result?.value.TerrainFeature.state, 0);
+	const result = (dried.game as Save).locations
+		?.find((location) => location?.name === "Farm")
+		?.terrainFeatures?.find(
+			(entry) => entry.key.X === soil.key.X && entry.key.Y === soil.key.Y,
+		);
+	assert.equal(result?.value.state, 0);
 });

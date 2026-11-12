@@ -6,7 +6,7 @@ import {
 	coreOperations,
 } from "../../src/lib/editor/operations";
 import type { SessionState } from "../../src/lib/editor/domain";
-import { tinyFixture } from "./fixtures";
+import { tinyFixture } from "../helpers/editor-document.ts";
 
 it("isolates retained adapter drafts and public patches while preserving exact nested Undo/Redo", () =>
 	Effect.runPromise(
@@ -37,7 +37,7 @@ it("isolates retained adapter drafts and public patches while preserving exact n
 				const expected = structuredClone(committed.document);
 				if (!retained) throw new Error("Adapter did not run");
 				inserted.children[0] = "leaked";
-				retained.document.SaveGame.player.items.Item.length = 0;
+				retained.document.SaveGame.player.items.length = 0;
 				// Public documents, history entries and net-review payloads are detached
 				// from the engine, even where those values share branches internally.
 				committed.document.SaveGame.player.farmName = "Public mutation";

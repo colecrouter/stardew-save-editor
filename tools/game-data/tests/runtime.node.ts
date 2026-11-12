@@ -2,9 +2,9 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";
 import { Cause, Effect, Exit, Schema } from "effect";
-import * as Xml from "../runtime/index.ts";
-import { attach } from "../runtime/events.ts";
-import type { Frame } from "../runtime/events.ts";
+import * as Xml from "../../../src/lib/save-format/index.ts";
+import { attach } from "../../../src/lib/save-format/events.ts";
+import type { Frame } from "../../../src/lib/save-format/events.ts";
 import { XmlSchema, type Value } from "./generated/inventory.ts";
 
 const decode = Schema.decodeUnknownSync(XmlSchema);
@@ -193,9 +193,9 @@ test("plain codecs reject invalid known values and unsupported loss of metadata"
 	assert.throws(
 		() =>
 			decode(
-				'<Container><Pet xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="Unknown"/></Container>',
+				'<Container><Pet xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="missing:Unknown"/></Container>',
 			),
-		/Unresolved/,
+		/Unbound/,
 	);
 });
 
@@ -245,4 +245,83 @@ test("generated recursive contracts initialize and round-trip without envelopes"
 	const decoded = Schema.decodeSync(XmlSchema)(source);
 	const output = Schema.encodeSync(XmlSchema)(decoded);
 	assert.deepEqual(Schema.decodeSync(XmlSchema)(output), decoded);
+});
+
+test("concrete equipment and inventory references share semantic type identity", () => {
+	const payload = Xml.object({
+		name: { xmlName: "name", codec: Xml.scalar("System.String") },
+	});
+	const variants = [
+		{ id: "Item", name: "Item", namespace: "", codec: payload },
+		{ id: "Boots", name: "Boots", namespace: "", codec: payload },
+	];
+	const schema = Xml.document(
+		"Root",
+		Xml.object({
+			equipped: {
+				xmlName: "equipped",
+				codec: Xml.nullable(Xml.polymorphic("Boots", [variants[1]!], true)),
+			},
+			items: {
+				xmlName: "items",
+				codec: Xml.wrapped(Xml.polymorphic("Item", variants), "Item"),
+			},
+		}),
+	);
+	const decoded = Schema.decodeSync(schema)(
+		"<Root><equipped><name>Sneakers</name></equipped><items/></Root>",
+	);
+	assert.deepEqual(decoded.equipped, { name: "Sneakers", $type: "Boots" });
+	const moved = { equipped: null, items: [decoded.equipped] };
+	const xml = Schema.encodeSync(schema)(moved);
+	assert.match(xml, /xsi:nil="true"/);
+	assert.match(xml, /xsi:type="Boots"/);
+	assert.deepEqual(Schema.decodeSync(schema)(xml), moved);
+});
+
+test("unrecognized subclasses retain opaque fields and namespace identity", () => {
+	const schema = Xml.document(
+		"Root",
+		Xml.polymorphic("Base", [
+			{ id: "Base", name: "Base", namespace: "", codec: Xml.object({}) },
+			{ id: "Known", name: "Known", namespace: "", codec: Xml.object({}) },
+		]),
+	);
+	const value = Schema.decodeSync(schema)(
+		'<Root xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:mod="urn:mod" xsi:type="mod:Custom"><name>0007</name><extra flag="true">value</extra></Root>',
+	);
+	assert.deepEqual(value, {
+		$type: "$unknown",
+		$xmlType: { name: "Custom", namespace: "urn:mod" },
+		name: "0007",
+		extra: { "@_flag": "true", "#text": "value" },
+	});
+	assert.deepEqual(
+		Schema.decodeSync(schema)(Schema.encodeSync(schema)(value)),
+		value,
+	);
+	// Opaque custom serializers can also be text-only or empty objects.
+	for (const text of ["0007", ""]) {
+		const opaque = Schema.decodeSync(schema)(
+			`<Root xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="Custom">${text}</Root>`,
+		);
+		assert.ok(
+			opaque !== null && typeof opaque === "object" && "#text" in opaque,
+		);
+		assert.equal(opaque["#text"], text);
+		assert.deepEqual(
+			Schema.decodeSync(schema)(Schema.encodeSync(schema)(opaque)),
+			opaque,
+		);
+	}
+});
+
+test("document codecs reject extra roots and surrounding non-XML text", () => {
+	const read = Schema.decodeSync(Xml.document("Root", Xml.object({})));
+	assert.throws(() => read("<Root/><Root/>"));
+	assert.throws(() => read("text<Root/>"));
+	assert.deepEqual(
+		read('<?xml version="1.0"?><!-- note --><Root/><!-- end -->'),
+		{},
+	);
 });

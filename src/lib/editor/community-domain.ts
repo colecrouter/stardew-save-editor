@@ -1,3 +1,4 @@
+import { savedTypeId } from "./saved-types.ts";
 import { ObjectCategory } from "$types/items";
 import type {
 	CommunityView,
@@ -54,7 +55,7 @@ function presentItem(
 	}
 
 	const item = {
-		"@_xsi:type": itemTypes[type] ?? "Object",
+		$type: savedTypeId(itemTypes[type] ?? "Object"),
 		bigCraftable: type === "BO" || type === "BBL",
 		isRecipe: type === "BL" || type === "BBL",
 		itemId,

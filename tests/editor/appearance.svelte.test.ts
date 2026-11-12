@@ -1,9 +1,9 @@
 import { readAppearances } from "../../src/lib/editor/appearance-operations.ts";
 import { fireEvent, render, waitFor } from "@testing-library/svelte";
-import { expect, it } from "vitest";
-import { openEditor } from "../../src/lib/editor/editor-model.ts";
+import { expect, it, vi } from "vitest";
+import { openTestEditor, openTestDocument } from "../helpers/open-editor.ts";
 import WorkspaceHarness from "./WorkspaceHarness.svelte";
-import { parser, fixtureXml, exportDocument } from "./fixtures.ts";
+import { parser, fixtureXml } from "./fixtures.ts";
 
 it(
 	"groups appearance input and preserves the captured farmer when selection changes",
@@ -16,13 +16,11 @@ it(
 			hairstyleColor: { R: 10, G: 20, B: 30, A: 255 },
 		});
 		const guest = structuredClone(host);
-		guest.UniqueMultiplayerID = "guest";
+		guest.UniqueMultiplayerID = 2n;
 		guest.name = "Guest";
 		Object.assign(guest, { favoriteThing: "Guest favorite" });
-		document.SaveGame.farmhands = { Farmer: [guest] };
-		const opened = await openEditor(
-			new TextEncoder().encode(exportDocument(document)),
-		);
+		document.SaveGame.farmhands = [guest];
+		const opened = await openTestDocument(document);
 		const page = render(WorkspaceHarness, { model: opened.model });
 		try {
 			// Unvisited editors must not mount their controls or subscriptions.
@@ -78,7 +76,7 @@ it(
 			});
 			const visible = selectors.find((element) => !element.closest("[hidden]"));
 			if (!visible) throw new Error("Missing visible farmer selector");
-			await fireEvent.change(visible, { target: { value: "guest" } });
+			await fireEvent.change(visible, { target: { value: "2" } });
 			// Drain only after submitting both edits and selection, retaining the race
 			// while separating command completion from DOM publication assertions.
 			await opened.model.snapshot();
@@ -98,9 +96,8 @@ it(
 				favoriteThing: "Moon",
 			});
 			expect(
-				readAppearances(snapshot.document).find(
-					(view) => view.farmerId === "guest",
-				)?.texts.favorite.value,
+				readAppearances(snapshot.document).find((view) => view.farmerId === "2")
+					?.texts.favorite.value,
 			).toBe("Guest favorite");
 		} finally {
 			page.unmount();
@@ -113,7 +110,7 @@ it(
 	"keeps profile edits across internal tabs and links clothing to Inventory",
 	{ timeout: 25000 },
 	async () => {
-		const opened = await openEditor(new TextEncoder().encode(fixtureXml));
+		const opened = await openTestEditor(new TextEncoder().encode(fixtureXml));
 		const page = render(WorkspaceHarness, { model: opened.model });
 		try {
 			await fireEvent.click(page.getByRole("link", { name: "Character" }));
@@ -150,6 +147,8 @@ it(
 			await fireEvent.click(
 				page.getByRole("button", { name: "Edit clothing in Inventory" }),
 			);
+			// Navigation loads this panel lazily; await module preparation separately.
+			await vi.dynamicImportSettled();
 			await page.findByRole("heading", { name: "Inventory" });
 			await fireEvent.click(page.getByRole("link", { name: "Character" }));
 			expect(

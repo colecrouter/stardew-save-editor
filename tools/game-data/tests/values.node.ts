@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { Schema } from "effect";
-import * as Xml from "../runtime/index.ts";
-import { scalarTypes } from "../runtime/scalars.ts";
-import type { ScalarType } from "../runtime/scalars.ts";
-import { ordinalIgnoreCaseKey } from "../runtime/ordinal-ignore-case.ts";
+import * as Xml from "../../../src/lib/save-format/index.ts";
+import { scalarTypes } from "../../../src/lib/save-format/scalars.ts";
+import type { ScalarType } from "../../../src/lib/save-format/scalars.ts";
+import { ordinalIgnoreCaseKey } from "../../../src/lib/save-format/ordinal-ignore-case.ts";
 import { XmlSchema as ObjectSchema } from "./generated/any-object.ts";
 import { XmlSchema as NullableEnumSchema } from "./generated/nullable-enum.ts";
 
@@ -101,10 +101,10 @@ test("nullable enum wrappers distinguish missing, empty and named text", () => {
 	const missing = Schema.decodeSync(schema)("<Preserve/>");
 	const encoded = Schema.encodeSync(schema)(missing);
 	assert.deepEqual(Schema.decodeSync(schema)(encoded), missing);
-	assert.deepEqual(missing.preserve, []);
+	assert.equal(missing.preserve, undefined);
 	assert.deepEqual(
 		Schema.decodeSync(schema)("<Preserve><preserve/></Preserve>").preserve,
-		[null],
+		null,
 	);
 });
 

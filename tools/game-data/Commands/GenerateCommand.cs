@@ -9,7 +9,7 @@ internal sealed class GenerateCommand : Command
 		var catalog = new Option<string?>("--catalog") { Description = "Use a saved inspection catalog instead of inspecting the installed game." };
 		var root = new Option<string>("--type") { DefaultValueFactory = _ => "StardewValley.SaveGame", Description = "Root CLR type to compile." };
 		var output = new Option<string>("--output", "-o") { Required = true, Description = "Destination TypeScript module." };
-		var runtime = new Option<string?>("--runtime") { Description = "Runtime TypeScript file; defaults to tools/game-data/runtime/index.ts from the repository root." };
+		var runtime = new Option<string?>("--runtime") { Description = "Runtime TypeScript file; defaults to src/lib/save-format/index.ts from the repository root." };
 		Options.Add(game);
 		Options.Add(catalog);
 		Options.Add(root);
@@ -34,7 +34,7 @@ internal sealed class GenerateCommand : Command
 				?? throw new InvalidDataException("Empty catalog.");
 			var contract = new ContractResolver(data).Resolve(type);
 
-			var runtimeFile = Path.GetFullPath(result.GetValue(runtime) ?? "tools/game-data/runtime/index.ts");
+			var runtimeFile = Path.GetFullPath(result.GetValue(runtime) ?? "src/lib/save-format/index.ts");
 			if (!File.Exists(runtimeFile)) throw new FileNotFoundException("Runtime not found; run from the repository root or supply --runtime.", runtimeFile);
 
 			var import = Path.GetRelativePath(Path.GetDirectoryName(target)!, runtimeFile).Replace('\\', '/');

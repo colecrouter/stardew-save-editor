@@ -1,3 +1,4 @@
+import { malformedFixture } from "../helpers/editor-document.ts";
 import { expect, it } from "vitest";
 import { Effect, Result } from "effect";
 import { makeHistorySession } from "../../src/lib/editor/history";
@@ -13,7 +14,7 @@ import {
 	type CommunityRequirementsEdit,
 } from "../../src/lib/editor/community-requirements";
 import { setCommunityProgress } from "../../src/lib/editor/community-operations";
-import { record } from "../../src/lib/editor/saved-collections";
+import { record } from "../../src/lib/editor/plain-data";
 import { parser, fixtureXml, exportDocument } from "./fixtures";
 
 const run = <A, E>(
@@ -49,72 +50,76 @@ function edit(bundle: CommunityBundleView) {
 	} satisfies CommunityRequirementsEdit;
 }
 
-it("edits a coordinated definition preserving donation credit, reward, opaque tail and exact Undo/Redo/XML", () =>
-	run(
-		Effect.gen(function* () {
-			const document = parser.parse(fixtureXml);
-			const bundle = required(
-				readCommunity(document).bundles.find((row) => row.id === 13),
-			);
-			const definition = required(
-				inspectCommunity(document).definitions.entries.find(
-					(row) =>
-						record(row) && record(row.key) && row.key.string === bundle.key,
-				),
-			);
-			if (!record(definition) || !record(definition.value))
-				throw new Error("Missing definition");
-			definition.value.string += "/opaque-tail";
-			definition.opaque = { keep: "007" };
-			const session = yield* makeHistorySession(document);
-			const before = yield* session.snapshot;
-			const request = edit(
-				required(
-					readCommunity(before.document).bundles.find((row) => row.id === 13),
-				),
-			);
-			required(request.requirements[0]).itemId = "(O)24";
-			required(request.requirements[0]).quantity = 3;
-			required(request.requirements[0]).quality = 2;
-			yield* session.transact(setCommunityRequirements(request));
-			const after = yield* session.snapshot;
-			expect(
-				readCommunity(after.document).bundles.find((row) => row.id === 13)
-					?.requirements[0],
-			).toMatchObject({
-				itemId: "(O)24",
-				quantity: 3,
-				quality: 2,
-				submitted: required(bundle.requirements[0]).submitted,
-			});
-			const changed = inspectCommunity(after.document).definitions.entries.find(
-				(row) =>
-					record(row) && record(row.key) && row.key.string === bundle.key,
-			);
-			expect(changed).toMatchObject({
-				opaque: { keep: "007" },
-				value: { string: expect.stringContaining("/opaque-tail") },
-			});
-			expect(inspectCommunity(after.document).rewards.entries).toEqual(
-				inspectCommunity(before.document).rewards.entries,
-			);
-			expect(inspectCommunity(after.document).progress.entries).toEqual(
-				inspectCommunity(before.document).progress.entries,
-			);
-			expect(
-				readCommunity(
-					parser.parse(exportDocument(after.document)),
-				).bundles.find((row) => row.id === 13)?.requirements,
-			).toEqual(
-				readCommunity(after.document).bundles.find((row) => row.id === 13)
-					?.requirements,
-			);
-			yield* session.undo;
-			expect((yield* session.snapshot).document).toEqual(before.document);
-			yield* session.redo;
-			expect((yield* session.snapshot).document).toEqual(after.document);
-		}),
-	));
+it(
+	"edits a coordinated definition preserving donation credit, reward, opaque tail and exact Undo/Redo/XML",
+	() =>
+		run(
+			Effect.gen(function* () {
+				const document = parser.parse(fixtureXml);
+				const bundle = required(
+					readCommunity(document).bundles.find((row) => row.id === 13),
+				);
+				const definition = required(
+					inspectCommunity(document).definitions.entries.find(
+						(row) => record(row) && row.key === bundle.key,
+					),
+				);
+				if (!record(definition) || typeof definition.value !== "string")
+					throw new Error("Missing definition");
+				definition.value += "/opaque-tail";
+				definition.opaque = { keep: "007" };
+				const session = yield* makeHistorySession(document);
+				const before = yield* session.snapshot;
+				const request = edit(
+					required(
+						readCommunity(before.document).bundles.find((row) => row.id === 13),
+					),
+				);
+				required(request.requirements[0]).itemId = "(O)24";
+				required(request.requirements[0]).quantity = 3;
+				required(request.requirements[0]).quality = 2;
+				yield* session.transact(setCommunityRequirements(request));
+				const after = yield* session.snapshot;
+				expect(
+					readCommunity(after.document).bundles.find((row) => row.id === 13)
+						?.requirements[0],
+				).toMatchObject({
+					itemId: "(O)24",
+					quantity: 3,
+					quality: 2,
+					submitted: required(bundle.requirements[0]).submitted,
+				});
+				const changed = inspectCommunity(
+					after.document,
+				).definitions.entries.find(
+					(row) => record(row) && row.key === bundle.key,
+				);
+				expect(changed).toMatchObject({
+					opaque: { keep: "007" },
+					value: expect.stringContaining("/opaque-tail"),
+				});
+				expect(inspectCommunity(after.document).rewards.entries).toEqual(
+					inspectCommunity(before.document).rewards.entries,
+				);
+				expect(inspectCommunity(after.document).progress.entries).toEqual(
+					inspectCommunity(before.document).progress.entries,
+				);
+				expect(
+					readCommunity(
+						parser.parse(exportDocument(after.document)),
+					).bundles.find((row) => row.id === 13)?.requirements,
+				).toEqual(
+					readCommunity(after.document).bundles.find((row) => row.id === 13)
+						?.requirements,
+				);
+				yield* session.undo;
+				expect((yield* session.snapshot).document).toEqual(before.document);
+				yield* session.redo;
+				expect((yield* session.snapshot).document).toEqual(after.document);
+			}),
+		),
+	30_000,
+);
 
 it("keeps source-row donations when removing requirements and sizes structural slots to the game layout", () =>
 	run(
@@ -125,19 +130,9 @@ it("keeps source-row donations when removing requirements and sizes structural s
 					(row) => progressId(row) === 13,
 				),
 			);
-			if (
-				!record(progress) ||
-				!record(progress.value) ||
-				!record(progress.value.ArrayOfBoolean)
-			)
+			if (!record(progress) || !Array.isArray(progress.value))
 				throw new Error("Missing progress");
-			progress.value.ArrayOfBoolean.boolean = [
-				true,
-				false,
-				false,
-				false,
-				...Array(8).fill(false),
-			];
+			progress.value = [true, false, false, false, ...Array(8).fill(false)];
 			const session = yield* makeHistorySession(document);
 			const request = edit(
 				required(
@@ -217,24 +212,21 @@ it("retains unknown imported IDs but rejects new unknown IDs and impossible qual
 			const document = parser.parse(fixtureXml);
 			const definition = required(
 				inspectCommunity(document).definitions.entries.find(
-					(row) =>
-						record(row) &&
-						record(row.key) &&
-						row.key.string === "Crafts Room/13",
+					(row) => record(row) && row.key === "Crafts Room/13",
 				),
 			);
 			if (
 				!record(definition) ||
-				!record(definition.value) ||
-				typeof definition.value.string !== "string"
+				typeof definition.value !== "string" ||
+				typeof definition.value !== "string"
 			)
 				throw new Error("Missing definition");
-			const parts = definition.value.string.split("/");
+			const parts = definition.value.split("/");
 			const tokens = required(parts[2]).split(" ");
 			tokens[0] = "ModdedSeed";
 			tokens[1] = "1001";
 			parts[2] = tokens.join(" ");
-			definition.value.string = parts.join("/");
+			definition.value = parts.join("/");
 			const session = yield* makeHistorySession(document);
 			const retained = edit(
 				required(
@@ -367,13 +359,9 @@ it("does not truncate unfamiliar surplus donation slots during a structural edit
 			const progress = inspectCommunity(document).progress.entries.find(
 				(row) => progressId(row) === 13,
 			);
-			if (
-				!record(progress) ||
-				!record(progress.value) ||
-				!record(progress.value.ArrayOfBoolean)
-			)
+			if (!record(progress) || !Array.isArray(progress.value))
 				throw new Error("Missing progress");
-			progress.value.ArrayOfBoolean.boolean = Array(13).fill(false);
+			progress.value = Array(13).fill(false);
 			const session = yield* makeHistorySession(document);
 			const before = yield* session.snapshot;
 			const bundle = required(
@@ -397,53 +385,56 @@ it("does not truncate unfamiliar surplus donation slots during a structural edit
 		}),
 	));
 
-it("retains an implicit donation count after adding a requirement and exporting", () =>
-	run(
-		Effect.gen(function* () {
-			const document = parser.parse(fixtureXml);
-			const definition = inspectCommunity(document).definitions.entries.find(
-				(row) =>
-					record(row) && record(row.key) && row.key.string === "Crafts Room/13",
-			);
-			if (
-				!record(definition) ||
-				!record(definition.value) ||
-				typeof definition.value.string !== "string"
-			)
-				throw new Error("Missing definition");
-			const parts = definition.value.string.split("/");
-			parts[4] = "";
-			definition.value.string = parts.join("/");
-			const session = yield* makeHistorySession(document);
-			const bundle = required(
-				readCommunity((yield* session.snapshot).document).bundles.find(
-					(row) => row.id === 13,
-				),
-			);
-			const request: CommunityRequirementsEdit = {
-				...edit(bundle),
-				requirements: [
-					...edit(bundle).requirements,
-					{ itemId: "390", quantity: 1, quality: 0 },
-				],
-			};
-			yield* session.transact(setCommunityRequirements(request));
-			const after = yield* session.snapshot;
-			for (const version of [
-				after.document,
-				parser.parse(exportDocument(after.document)),
-			]) {
-				const changed = required(
-					readCommunity(version).bundles.find((row) => row.id === 13),
+it(
+	"retains an implicit donation count after adding a requirement and exporting",
+	() =>
+		run(
+			Effect.gen(function* () {
+				const document = parser.parse(fixtureXml);
+				const definition = inspectCommunity(document).definitions.entries.find(
+					(row) => record(row) && row.key === "Crafts Room/13",
 				);
-				expect(changed.requirements.length).toBe(
-					bundle.requirements.length + 1,
+				if (
+					!record(definition) ||
+					typeof definition.value !== "string" ||
+					typeof definition.value !== "string"
+				)
+					throw new Error("Missing definition");
+				const parts = definition.value.split("/");
+				parts[4] = "";
+				definition.value = parts.join("/");
+				const session = yield* makeHistorySession(document);
+				const bundle = required(
+					readCommunity((yield* session.snapshot).document).bundles.find(
+						(row) => row.id === 13,
+					),
 				);
-				expect(changed.needed).toBe(bundle.needed);
-				expect(changed.completed).toBe(bundle.completed);
-			}
-		}),
-	));
+				const request: CommunityRequirementsEdit = {
+					...edit(bundle),
+					requirements: [
+						...edit(bundle).requirements,
+						{ itemId: "390", quantity: 1, quality: 0 },
+					],
+				};
+				yield* session.transact(setCommunityRequirements(request));
+				const after = yield* session.snapshot;
+				for (const version of [
+					after.document,
+					parser.parse(exportDocument(after.document)),
+				]) {
+					const changed = required(
+						readCommunity(version).bundles.find((row) => row.id === 13),
+					);
+					expect(changed.requirements.length).toBe(
+						bundle.requirements.length + 1,
+					);
+					expect(changed.needed).toBe(bundle.needed);
+					expect(changed.completed).toBe(bundle.completed);
+				}
+			}),
+		),
+	30_000,
+);
 
 it("completes/reopens a whole room in one history entry and rolls back unsupported rows", () =>
 	run(
@@ -485,9 +476,8 @@ it("completes/reopens a whole room in one history entry and rolls back unsupport
 			const progress = inspectCommunity(malformed).progress.entries.find(
 				(row) => progressId(row) === 13,
 			);
-			if (!record(progress) || !record(progress.value))
-				throw new Error("Missing progress");
-			progress.value.ArrayOfBoolean = { boolean: ["unsupported"] };
+			if (!record(progress)) throw new Error("Missing progress");
+			progress.value = malformedFixture(["unsupported"]);
 			const invalidSession = yield* makeHistorySession(malformed);
 			const unchanged = yield* invalidSession.snapshot;
 			expect(

@@ -1,4 +1,8 @@
-import type { Farmer, SaveDocument } from "./domain.ts";
+import {
+	farmers as savedFarmers,
+	type Farmer,
+	type SaveDocument,
+} from "./domain.ts";
 import {
 	discoverPlacedChests,
 	writeChestSlots,
@@ -16,26 +20,19 @@ export interface InventoryContainer {
 	storage?: PlacedChest;
 	write: (slots: unknown[]) => void;
 }
-const record = (value: unknown): value is Record<string, unknown> =>
-	value !== null && typeof value === "object" && !Array.isArray(value);
 /** Resolve owner IDs without coercing opaque imported identifiers or choosing between collisions. */
 export function inventoryContainers(
 	document: SaveDocument,
 	ownerId?: string,
 ): InventoryContainer[] {
-	const game = document.SaveGame;
-	const farmers = [
-		game.player,
-		...(game.farmhands === "" ? [] : game.farmhands.Farmer),
-	];
-	const scalarIds = farmers.flatMap((farmer) => {
-		if (!record(farmer)) return [];
-		const key = farmer.UniqueMultiplayerID;
-		return typeof key === "string" ||
-			(typeof key === "number" && Number.isFinite(key))
-			? [String(key)]
-			: [];
-	});
+	const farmers = savedFarmers(document);
+	// Count every present decoded identity, including farmers without backpacks,
+	// so an incomplete farmer cannot hide a collision with a storage owner.
+	const scalarIds = farmers.flatMap((farmer) =>
+		farmer.UniqueMultiplayerID === undefined
+			? []
+			: [farmer.UniqueMultiplayerID.toString()],
+	);
 	// Restrict expensive slot normalization during a targeted lookup. Keep all
 	// farmer IDs in collision accounting: a chest can share a modded farmer ID.
 	const chests = discoverPlacedChests(document, ownerId);
@@ -43,23 +40,21 @@ export function inventoryContainers(
 	for (const id of [...scalarIds, ...chests.map((chest) => chest.id)])
 		counts.set(id, (counts.get(id) ?? 0) + 1);
 	const result: InventoryContainer[] = farmers.flatMap((farmer) => {
-		if (!record(farmer)) return [];
 		const key = farmer.UniqueMultiplayerID;
-		if (
-			!(typeof key === "string" && key.length > 0) &&
-			!(typeof key === "number" && Number.isFinite(key))
-		)
-			return [];
-		if (!record(farmer.items) || !Array.isArray(farmer.items.Item)) return [];
+		const slots = farmer.items;
+		if (key === undefined || !Array.isArray(slots)) return [];
 		return [
 			{
 				id: String(key),
-				name: farmer.name,
+				name: farmer.name ?? "Unnamed farmer",
 				kind: "farmer" as const,
-				slots: farmer.items.Item,
+				slots,
 				farmer,
 				write: (slots: unknown[]) => {
-					farmer.items.Item = slots;
+					// The generic transition layer permutes decoded slots or inserts
+					// codec-backed catalog items. Rejoin that typed representation
+					// without decoding unrelated slots again or changing references.
+					farmer.items = slots as NonNullable<Farmer["items"]>;
 				},
 			},
 		];
@@ -72,8 +67,7 @@ export function inventoryContainers(
 			kind: "chest",
 			storage: chest,
 			slots: chest.slots,
-			// The writer rejects opaque nil markers rather than erasing their mod data
-			// when a backpack/chest exchange would compact them out of the save.
+			// The writer compacts only null slots and preserves all stored item records.
 			write: (slots) => writeChestSlots(chest, slots),
 		});
 	}

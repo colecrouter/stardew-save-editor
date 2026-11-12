@@ -4,7 +4,7 @@ import { makeHistorySession } from "../../src/lib/editor/history";
 import { setInventoryItem } from "../../src/lib/editor/inventory-operations";
 import { MutationError } from "../../src/lib/editor/domain";
 import { TransactionDraft } from "../../src/lib/editor/transaction-draft";
-import { tinyFixture } from "./fixtures";
+import { tinyFixture } from "../helpers/editor-document.ts";
 
 const run = <A, E>(
 	program: Effect.Effect<A, E, import("effect").Scope.Scope>,
@@ -12,28 +12,28 @@ const run = <A, E>(
 function fixture() {
 	const document = tinyFixture();
 	const item = {
-		"@_xsi:type": "Object",
+		$type: "StardewValley.Object" as const,
 		itemId: "24",
 		name: "Parsnip",
 		bigCraftable: false,
 		category: -75,
 		stack: 3,
 		quality: 0,
-		modData: { opaque: "007" },
+		customModData: { opaque: "007" },
 	};
-	document.SaveGame.player.items.Item = [item];
+	document.SaveGame.player.items = [item];
 	return { document, item };
 }
 function change(entityId: string, value = 8) {
 	return setInventoryItem({
-		ownerId: "host",
+		ownerId: "1",
 		entityId,
 		property: "stack",
 		value,
 	});
 }
 function handle(state: { identities: Record<string, string[]> }) {
-	const id = state.identities.host?.[0];
+	const id = state.identities["1"]?.[0];
 	if (!id) throw new Error("Missing fixture item identity");
 	return id;
 }
@@ -50,11 +50,11 @@ it.each(["before", "after"] as const)(
 					const draft = yield* TransactionDraft;
 					const snapshot = yield* draft.read;
 					const hands = snapshot.state.document.SaveGame.farmhands;
-					if (hands === "" || !hands.Farmer[0])
+					if (!Array.isArray(hands) || !hands[0])
 						throw new Error("Missing guest");
 					// The authorized host edit cannot approve changes to another owner,
 					// even when that owner's inventory has no editable item handles.
-					hands.Farmer[0].items.Item.push({ "@_xsi:nil": "true" });
+					hands[0].items!.push(null);
 					yield* draft.replace(snapshot);
 				});
 				const result = yield* Effect.result(
@@ -77,16 +77,16 @@ it("preserves alias-driven writes across owners and unrelated saved data", () =>
 		Effect.gen(function* () {
 			const { document, item } = fixture();
 			const hands = document.SaveGame.farmhands;
-			if (hands === "" || !hands.Farmer[0]) throw new Error("Missing guest");
+			if (!Array.isArray(hands) || !hands[0]) throw new Error("Missing guest");
 			// Valid JSON-shaped graphs can share imported objects. Replay must follow
 			// the same aliases as detached draft mutation, including outside inventory.
-			hands.Farmer[0].items.Item = [item];
+			hands[0].items = [item];
 			Object.assign(document.SaveGame, { opaqueAlias: item });
 			const session = yield* makeHistorySession(document);
 			const before = yield* session.snapshot;
 			const after = yield* session.transact(change(handle(before)));
 			const expected = structuredClone(before.document);
-			Object.assign(expected.SaveGame.player.items.Item[0] as object, {
+			Object.assign(expected.SaveGame.player.items[0] as object, {
 				stack: 8,
 			});
 			expect(after.document).toEqual(expected);
@@ -141,18 +141,18 @@ it("discards failed/interrupted authorization and retries against a fresh baseli
 				),
 			);
 			yield* Deferred.await(entered);
-			yield* session.execute([{ type: "money", farmerId: "host", value: 99 }]);
+			yield* session.execute([{ type: "money", farmerId: "1", value: 99 }]);
 			yield* Deferred.succeed(release, undefined);
 			yield* Fiber.join(retrying);
 			const after = yield* session.snapshot;
 			expect(attempts).toBeGreaterThanOrEqual(2);
-			expect(after.document.SaveGame.player.items.Item[0]).toMatchObject({
+			expect(after.document.SaveGame.player.items[0]).toMatchObject({
 				stack: 8,
 			});
 			expect(after.document.SaveGame.player.money).toBe(99);
 			expect(after.entries).toHaveLength(2);
 			const undo = yield* session.undo;
-			expect(undo.document.SaveGame.player.items.Item[0]).toMatchObject({
+			expect(undo.document.SaveGame.player.items[0]).toMatchObject({
 				stack: 3,
 			});
 			expect(undo.document.SaveGame.player.money).toBe(99);

@@ -1,3 +1,4 @@
+import { savedType } from "./saved-types.ts";
 import { Data, Effect, Result, Schema, SchemaIssue } from "effect";
 import {
 	clampStats,
@@ -101,7 +102,7 @@ function currentStats(
 ): TrinketStats | undefined {
 	if (
 		!record(raw) ||
-		raw["@_xsi:type"] !== "Trinket" ||
+		savedType(raw) !== "Trinket" ||
 		typeof raw.itemId !== "string" ||
 		!Number.isInteger(raw.generationSeed) ||
 		typeof raw.generationSeed !== "number" ||
@@ -369,14 +370,11 @@ export const prepareTrinketPropertyChange = Effect.fn(
 	const patch: Record<string, unknown> = { generationSeed: selected.seed };
 	const fields = statSaveFields(selected.stats);
 	if (fields.templates)
-		patch.descriptionSubstitutionTemplates = {
-			string:
-				fields.templates.length === 1 ? fields.templates[0] : fields.templates,
-		};
+		patch.descriptionSubstitutionTemplates = [
+			fields.templates.length === 1 ? fields.templates[0] : fields.templates,
+		];
 	if (fields.displayName !== undefined)
 		patch.displayNameOverrideTemplate =
-			fields.displayName === null
-				? { string: { "@_xsi:nil": "true" } }
-				: { string: fields.displayName };
+			fields.displayName === null ? [null] : [fields.displayName];
 	return patch;
 });

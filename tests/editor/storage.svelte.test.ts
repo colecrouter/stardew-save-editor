@@ -1,9 +1,9 @@
 import { fireEvent, render, waitFor } from "@testing-library/svelte";
 import { expect, it } from "vitest";
-import { openEditor } from "../../src/lib/editor/editor-model";
+import { openTestDocument } from "../helpers/open-editor.ts";
 import { readChests } from "../../src/lib/editor/inventory-views";
 import { createCatalogItem } from "../../src/lib/editor/item-catalog";
-import { fixtureXml, parser, exportDocument } from "./fixtures";
+import { fixtureXml, parser } from "./fixtures";
 import StorageHarness from "./StorageHarness.svelte";
 
 it(
@@ -19,22 +19,16 @@ it(
 		// Add deterministic placed storage without relying on the public fixture's
 		// ordinary chest contents or on raw references after the editor takes ownership.
 		const chest = (name: string, items: unknown[]) => ({
-			"@_xsi:type": "Chest",
+			$type: "StardewValley.Objects.Chest",
 			playerChest: true,
 			name,
 			itemId: "130",
 			specialChestType: "None",
-			items: { Item: items },
+			items: items,
 		});
 		const locations = document.SaveGame.locations;
-		if (
-			!locations ||
-			typeof locations !== "object" ||
-			!("GameLocation" in locations) ||
-			!Array.isArray(locations.GameLocation)
-		)
-			throw new Error("Missing fixture locations");
-		const farm = locations.GameLocation.find(
+		if (!Array.isArray(locations)) throw new Error("Missing fixture locations");
+		const farm = locations.find(
 			(value: unknown) =>
 				value &&
 				typeof value === "object" &&
@@ -44,19 +38,15 @@ it(
 		if (!farm || typeof farm !== "object")
 			throw new Error("Missing fixture farm");
 		Object.assign(farm, {
-			objects: {
-				item: [
-					chest("Apple Storage", [item("Parsnip"), item("Wood")]),
-					chest("Berry Storage", [item("Parsnip")]),
-				].map((raw, index) => ({
-					key: { Vector2: { X: index, Y: 0 } },
-					value: { Object: raw },
-				})),
-			},
+			objects: [
+				chest("Apple Storage", [item("Parsnip"), item("Wood")]),
+				chest("Berry Storage", [item("Parsnip")]),
+			].map((raw, index) => ({
+				key: { X: index, Y: 0 },
+				value: raw,
+			})),
 		});
-		const opened = await openEditor(
-				new TextEncoder().encode(exportDocument(document)),
-			),
+		const opened = await openTestDocument(document),
 			page = render(StorageHarness, { model: opened.model });
 		try {
 			await fireEvent.input(

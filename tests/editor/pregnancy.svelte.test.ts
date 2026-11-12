@@ -1,9 +1,9 @@
 import { fireEvent, render, waitFor } from "@testing-library/svelte";
 import { expect, it } from "vitest";
-import { openEditor } from "../../src/lib/editor/editor-model.ts";
+import { openTestDocument } from "../helpers/open-editor.ts";
 import { readPregnancy } from "../../src/lib/editor/pregnancy-data.ts";
 import WorkspaceHarness from "./WorkspaceHarness.svelte";
-import { parser, fixtureXml, exportDocument } from "./fixtures.ts";
+import { parser, fixtureXml } from "./fixtures.ts";
 
 // Exercise the real field controllers and transaction queue, not a callback mock.
 // The selected couple owns both the discrete toggle and grouped due-date typing.
@@ -14,25 +14,19 @@ it(
 		const document = parser.parse(fixtureXml);
 		const host = document.SaveGame.player;
 		Object.assign(host, {
-			friendshipData: {
-				item: [
-					{
-						key: { string: "Abigail" },
-						value: {
-							Friendship: {
-								Status: "Married",
-								Points: 2500,
-								RoommateMarriage: false,
-								WeddingDate: { Year: 1, Season: "spring", DayOfMonth: 1 },
-							},
-						},
+			friendshipData: [
+				{
+					key: "Abigail",
+					value: {
+						Status: "Married",
+						Points: 2500,
+						RoommateMarriage: false,
+						WeddingDate: { Year: 1, Season: "spring", DayOfMonth: 1 },
 					},
-				],
-			},
+				},
+			],
 		});
-		const opened = await openEditor(
-			new TextEncoder().encode(exportDocument(document)),
-		);
+		const opened = await openTestDocument(document);
 		const page = render(WorkspaceHarness, { model: opened.model });
 		try {
 			await fireEvent.click(page.getByRole("link", { name: "Relationships" }));

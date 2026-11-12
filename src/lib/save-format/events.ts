@@ -28,12 +28,18 @@ export const decodeValue = <A, I>(
 // structure; neither direction has a parser-object or original-tree intermediate.
 export type Codec<A = unknown> = Schema.Codec<A> & {
 	readonly open: (header: Header) => Reading<Frame>;
+	readonly write: (
+		name: string,
+		value: unknown,
+		attributes?: Readonly<Record<string, string>>,
+	) => Iterable<Xml.Event>;
 	readonly events: (
 		name: string,
 		value: unknown,
 		attributes?: Readonly<Record<string, string>>,
 	) => Iterable<Xml.Event>;
 	readonly item?: Codec;
+	readonly missingValue?: null;
 	readonly text?: Schema.Codec<A, string>;
 };
 export function record(input: unknown): Record<string, unknown> {
@@ -90,19 +96,14 @@ export function attach<A>(
 ): Codec<A> {
 	const validate = Schema.decodeUnknownSync(schema);
 	return Object.assign(schema.annotate({}), {
-		open(header: Header): Reading<Frame> {
-			// Validation happens when this element completes, so collection bounds and
-			// key equality are checked without retaining its source events.
-			return open(header).pipe(
-				Effect.map((frame) => ({
-					...frame,
-					finish: () =>
-						frame
-							.finish()
-							.pipe(Effect.flatMap((value) => decodeValue(schema, value))),
-				})),
-			);
-		},
+		// Frames check local XML structure and scalar conversions. The document
+		// validates the completed value once, instead of revalidating every ancestor.
+		open,
+		write: (
+			name: string,
+			value: unknown,
+			attributes: Readonly<Record<string, string>> = {},
+		) => write(name, value as A, attributes),
 		events: (
 			name: string,
 			value: unknown,
@@ -111,11 +112,14 @@ export function attach<A>(
 	});
 }
 export function lazy<A>(get: () => Codec<A>): Codec<A> {
-	// Defer both schema and event-handler lookup to close recursive definitions.
+	// Resolve recursive definitions on first use, then reuse the codec and schema.
+	// A fresh dispatch/schema per element makes whole-save validation needlessly expensive.
+	let resolved: Codec<A> | undefined;
+	const resolve = () => (resolved ??= get());
 	return attach(
-		Schema.suspend(() => Schema.toType(get())),
-		(header) => Effect.suspend(() => get().open(header)),
-		(name, value, attributes) => get().events(name, value, attributes),
+		Schema.suspend(() => Schema.toType(resolve())),
+		(header) => Effect.suspend(() => resolve().open(header)),
+		(name, value, attributes) => resolve().write(name, value, attributes),
 	);
 }
 export function accepted(

@@ -2,7 +2,7 @@ import { ItemData } from "../../src/lib/ItemData.ts";
 import { Sprite } from "../../src/lib/Sprite.svelte.ts";
 import { describe, expect, it } from "vitest";
 import { Effect } from "effect";
-import { tinyFixture } from "./fixtures.ts";
+import { tinyFixture } from "../helpers/editor-document.ts";
 import { makeHistorySession } from "../../src/lib/editor/history.ts";
 import {
 	readAppearances,
@@ -41,8 +41,8 @@ function fixture() {
 			A: 255,
 			PackedValue: packRgba(1, 2, 3, 255),
 		},
-		shirtItem: { "@_xsi:nil": "true" },
-		pantsItem: { "@_xsi:nil": "true" },
+		shirtItem: null,
+		pantsItem: null,
 	});
 	return document;
 }
@@ -85,7 +85,7 @@ describe("appearance operations", () => {
 		const document = fixture();
 		Object.assign(document.SaveGame.player, {
 			shirtItem: {
-				"@_xsi:type": "Clothing",
+				$type: "StardewValley.Objects.Clothing",
 				itemId: { opaque: "keep" },
 				name: "Unknown shirt",
 			},
@@ -100,7 +100,7 @@ describe("appearance operations", () => {
 			Effect.gen(function* () {
 				const session = yield* makeHistorySession(fixture());
 				yield* session.transact(
-					setAppearance({ farmerId: "host", kind: "favorite", value: "" }),
+					setAppearance({ farmerId: "1", kind: "favorite", value: "" }),
 				);
 				expect(
 					readAppearances((yield* session.snapshot).document)[0]?.texts.favorite
@@ -117,11 +117,11 @@ describe("appearance operations", () => {
 				yield* session.transact(
 					Effect.gen(function* () {
 						yield* setAppearance({
-							farmerId: "host",
+							farmerId: "1",
 							kind: "gender",
 							value: "Male",
 						});
-						yield* setAppearance({ farmerId: "host", kind: "hair", value: 73 });
+						yield* setAppearance({ farmerId: "1", kind: "hair", value: 73 });
 					}),
 				);
 				const after = yield* session.snapshot;
@@ -145,7 +145,7 @@ describe("appearance operations", () => {
 					session = yield* makeHistorySession(document);
 				yield* session.transact(
 					setAppearance({
-						farmerId: "host",
+						farmerId: "1",
 						kind: "hair-color",
 						value: "#ff0080",
 					}),
@@ -174,11 +174,11 @@ describe("appearance operations", () => {
 					session = yield* makeHistorySession(document);
 				// Runtime boundaries receive unknown JavaScript inputs despite typed callers.
 				const requests: unknown[] = [
-					{ farmerId: "host", kind: "gender", value: "bad" },
-					{ farmerId: "host", kind: "hair", value: 74 },
-					{ farmerId: "host", kind: "skin", value: NaN },
-					{ farmerId: "host", kind: "name", value: "" },
-					Object.create({ farmerId: "host", kind: "name", value: "Other" }),
+					{ farmerId: "1", kind: "gender", value: "bad" },
+					{ farmerId: "1", kind: "hair", value: 74 },
+					{ farmerId: "1", kind: "skin", value: NaN },
+					{ farmerId: "1", kind: "name", value: "" },
+					Object.create({ farmerId: "1", kind: "name", value: "Other" }),
 				];
 				for (const request of requests) {
 					const outcome = yield* Effect.result(
@@ -208,7 +208,7 @@ describe("appearance operations", () => {
 				).toBe(false);
 				const session = yield* makeHistorySession(document);
 				yield* session.transact(
-					setAppearance({ farmerId: "host", kind: "favorite", value: "Moon" }),
+					setAppearance({ farmerId: "1", kind: "favorite", value: "Moon" }),
 				);
 				expect(
 					(yield* session.snapshot).document.SaveGame.player,
@@ -220,7 +220,7 @@ describe("appearance operations", () => {
 				const failure = yield* Effect.result(
 					session.transact(
 						setAppearance({
-							farmerId: "host",
+							farmerId: "1",
 							kind: "eye-color",
 							value: "#ffffff",
 						}),
@@ -233,28 +233,26 @@ describe("appearance operations", () => {
 		run(
 			Effect.gen(function* () {
 				const document = fixture(),
-					guest =
-						document.SaveGame.farmhands &&
-						document.SaveGame.farmhands.Farmer[0];
+					guest = document.SaveGame.farmhands && document.SaveGame.farmhands[0];
 				if (!guest) throw new Error("Missing guest");
 				Object.assign(guest, { favoriteThing: "Guest favorite" });
 				const session = yield* makeHistorySession(document);
 				yield* session.transact(
-					setAppearance({ farmerId: "guest", kind: "favorite", value: "Rain" }),
+					setAppearance({ farmerId: "2", kind: "favorite", value: "Rain" }),
 				);
 				expect(
 					(yield* session.snapshot).document.SaveGame.player,
 				).toMatchObject({ favoriteThing: "Stars" });
 				expect(
 					readAppearances((yield* session.snapshot).document).find(
-						(view) => view.farmerId === "guest",
+						(view) => view.farmerId === "2",
 					)?.texts.favorite.value,
 				).toBe("Rain");
-				guest.UniqueMultiplayerID = "host";
+				guest.UniqueMultiplayerID = 1n;
 				const ambiguous = yield* makeHistorySession(document);
 				const result = yield* Effect.result(
 					ambiguous.transact(
-						setAppearance({ farmerId: "host", kind: "name", value: "Changed" }),
+						setAppearance({ farmerId: "1", kind: "name", value: "Changed" }),
 					),
 				);
 				expect(result._tag).toBe("Failure");
@@ -288,7 +286,7 @@ it("previews standing pants frames for both body types instead of inventory icon
 // preserve footwear geometry without constructing or writing a replacement item.
 it("keeps complete feet for omitted and nil boots on both body types", () => {
 	for (const gender of ["Male", "Female"] as const) {
-		for (const boots of [undefined, { "@_xsi:nil": "true" }]) {
+		for (const boots of [undefined, null]) {
 			const raw = {
 				gender,
 				skin: 0,
@@ -341,7 +339,7 @@ it("uses default feet without a supported saved palette and preserves equipped b
 		...base,
 		shoes: 2,
 		boots: {
-			"@_xsi:type": "Boots",
+			$type: "StardewValley.Objects.Boots",
 			name: "Sneakers",
 			itemId: "504",
 			indexInColorSheet: 7,

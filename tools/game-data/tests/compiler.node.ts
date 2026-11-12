@@ -6,7 +6,7 @@ import { join, resolve } from "node:path";
 import { test } from "node:test";
 import { Effect, Schema } from "effect";
 import { XmlSchema, ValueSchema } from "./generated/fixture.ts";
-import { decodeChunks } from "../runtime/index.ts";
+import { decodeChunks } from "../../../src/lib/save-format/index.ts";
 
 const cli = resolve("tools/game-data/bin/Debug/net10.0/GameData.dll");
 const generated = resolve("tools/game-data/tests/generated");
@@ -39,12 +39,16 @@ test("inspection and generated codecs agree with .NET XmlSerializer after creati
 	assert.equal(original.FarmerId, 9007199254740993n);
 	assert.equal(original.Name, "007");
 	assert.equal(original.Day, null);
+	assert.equal(original.Status, "Ready");
+	assert.equal(original.Equipped?.$type, "StardewValley.Tool");
 	assert.throws(() =>
 		Schema.decodeUnknownSync(ValueSchema)({ ...original, Money: "invalid" }),
 	);
 	const edited = {
 		...structuredClone(original),
 		Money: 42,
+		Status: "Done",
+		Equipped: null,
 		Day: 19,
 		Items: [
 			null,
@@ -62,6 +66,10 @@ test("inspection and generated codecs agree with .NET XmlSerializer after creati
 	const data = JSON.parse(result.stdout);
 	assert.equal(data.Money, 42);
 	assert.equal(data.Day, 19);
+	assert.equal(data.Status, "Done");
+	assert.equal(data.Equipped, null);
+	assert.doesNotMatch(xml, /<Equipped/);
+	assert.equal(Schema.decodeSync(XmlSchema)(xml).Equipped, null);
 	assert.equal(data.Name, "007");
 	assert.deepEqual(data.Items, [
 		null,

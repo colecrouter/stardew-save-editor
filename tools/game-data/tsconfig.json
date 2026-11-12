@@ -8,5 +8,5 @@
 		"noEmit": true,
 		"types": ["node"]
 	},
-	"include": ["runtime/**/*.ts", "tests/**/*.ts"]
+	"include": ["../../src/lib/save-format/**/*.ts", "tests/**/*.ts"]
 }

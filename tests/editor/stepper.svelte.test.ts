@@ -1,7 +1,7 @@
 import { fireEvent, render, waitFor } from "@testing-library/svelte";
 import { expect, it, vi } from "vitest";
-import { openEditor } from "../../src/lib/editor/editor-model.ts";
-import { parser, fixtureXml, exportDocument } from "./fixtures.ts";
+import { openTestDocument } from "../helpers/open-editor.ts";
+import { parser, fixtureXml } from "./fixtures.ts";
 import { readAppearances } from "../../src/lib/editor/appearance-operations.ts";
 import StepperHarness from "./StepperHarness.svelte";
 
@@ -11,9 +11,7 @@ it(
 	async () => {
 		const document = parser.parse(fixtureXml);
 		Object.assign(document.SaveGame.player, { skin: 0 });
-		const opened = await openEditor(
-			new TextEncoder().encode(exportDocument(document)),
-		);
+		const opened = await openTestDocument(document);
 		const page = render(StepperHarness, { model: opened.model });
 		try {
 			const input = page.getByRole("spinbutton", {
@@ -66,9 +64,7 @@ it(
 	async () => {
 		const document = parser.parse(fixtureXml);
 		Object.assign(document.SaveGame.player, { skin: 22 });
-		const opened = await openEditor(
-			new TextEncoder().encode(exportDocument(document)),
-		);
+		const opened = await openTestDocument(document);
 		const realEdit = opened.model.commands.edit;
 		let release!: () => void;
 		const gate = new Promise<void>((resolve) => {
@@ -111,9 +107,7 @@ it(
 	async () => {
 		const document = parser.parse(fixtureXml);
 		Object.assign(document.SaveGame.player, { skin: 99 });
-		const opened = await openEditor(
-			new TextEncoder().encode(exportDocument(document)),
-		);
+		const opened = await openTestDocument(document);
 		const page = render(StepperHarness, { model: opened.model });
 		try {
 			const input = page.getByRole("spinbutton", {
@@ -139,9 +133,7 @@ it(
 	async () => {
 		const document = parser.parse(fixtureXml);
 		Object.assign(document.SaveGame.player, { skin: 10 });
-		const opened = await openEditor(
-			new TextEncoder().encode(exportDocument(document)),
-		);
+		const opened = await openTestDocument(document);
 		const realEdit = opened.model.commands.edit;
 		let release!: () => void;
 		const gate = new Promise<void>((resolve) => {

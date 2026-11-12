@@ -1,3 +1,5 @@
+import { readEquipmentSlot } from "./equipment.ts";
+import { record, samePlainData } from "./plain-data.ts";
 import type { HistoryState } from "./history.ts";
 import type {
 	ItemPropertyChange,
@@ -9,7 +11,6 @@ import {
 	type InventoryView,
 } from "./inventory-views.ts";
 import { inventoryContainers } from "./inventory-containers.ts";
-import { record } from "./saved-collections.ts";
 
 /** Reuse the write contract's field/value relationship rather than a second edit vocabulary. */
 type RequestedValue<Property, Change = ItemPropertyChange> = Change extends {
@@ -228,7 +229,7 @@ function observe(
 			});
 		}
 		for (const equipment of owner.equipment) {
-			const raw = rawOwner.farmer?.[equipment.key];
+			const raw = readEquipmentSlot(rawOwner.farmer, equipment.key);
 			if (equipment.empty || !equipment.entityId || !record(raw)) continue;
 			result.push({
 				id: equipment.entityId,
@@ -245,8 +246,7 @@ function observe(
 	attachPaths(state.document, result);
 	return result;
 }
-const same = (a: unknown, b: unknown) =>
-	JSON.stringify(a) === JSON.stringify(b);
+const same = samePlainData;
 const identityMap = (items: ObservedItem[]) =>
 	new Map(items.map((item) => [item.id, item]));
 

@@ -5,26 +5,33 @@ import { fireEvent, render, waitFor, within } from "@testing-library/svelte";
 import { flushSync } from "svelte";
 import EditorApp from "../../src/lib/editor/ui/EditorApp.svelte";
 import BackpackItemVisual from "../../src/lib/editor/ui/BackpackItemVisual.svelte";
-import { openEditor } from "../../src/lib/editor/editor-model";
+import { openTestEditor } from "../helpers/open-editor.ts";
 import BackpackHarness from "./BackpackHarness.svelte";
 import { exportDocument, fixtureXml, parser } from "./fixtures";
 
+// Rendering tests need only these two records. Retain them during setup so an
+// evicted full-save parse cache cannot turn a small color assertion into an import test.
+const clothingFixture = (() => {
+	const { shirtItem, pantsItem } = parser.parse(fixtureXml).SaveGame.player;
+	return { shirtItem, pantsItem };
+})();
+
 // Exercise the app-owned lazy panel with real full-save commands and export.
 // The complete fixture needs the same bounded CI budget as other workflow suites.
-describe("full-save backpack workflow", { timeout: 15_000 }, () => {
+describe("full-save backpack workflow", { timeout: 45_000 }, () => {
 	it("initial and explicit selections follow their entity through reorder and undo", async () => {
-		const opened = await openEditor(new TextEncoder().encode(fixtureXml));
+		const opened = await openTestEditor(new TextEncoder().encode(fixtureXml));
 		const page = render(BackpackHarness, { model: opened.model });
 		try {
 			const document = parser.parse(fixtureXml);
 			const farmer = document.SaveGame.player;
-			const count = farmer.items.Item.length;
+			const count = farmer.items.length;
 			const reorder = () =>
 				opened.model.commands.execute([
 					{
 						type: "reorder",
 						ownerId: String(farmer.UniqueMultiplayerID),
-						order: farmer.items.Item.map((_, index) => count - 1 - index),
+						order: farmer.items.map((_, index) => count - 1 - index),
 					},
 				]);
 			const selected = () =>
@@ -57,7 +64,7 @@ describe("full-save backpack workflow", { timeout: 15_000 }, () => {
 			await fireEvent.input(quantity, { target: { value: "18" } });
 			await waitFor(async () => {
 				expect(
-					(await opened.model.snapshot()).document.SaveGame.player.items.Item[
+					(await opened.model.snapshot()).document.SaveGame.player.items[
 						count - 5
 					],
 				).toMatchObject({ stack: 18 });
@@ -65,12 +72,14 @@ describe("full-save backpack workflow", { timeout: 15_000 }, () => {
 			// Inspect the committed save, not only optimistic input text: the edit
 			// must reach Parsnip's moved slot while the sword remains untouched.
 			const snapshot = await opened.model.snapshot();
-			expect(
-				snapshot.document.SaveGame.player.items.Item[count - 5],
-			).toMatchObject({ name: "Parsnip", stack: 18 });
-			expect(
-				snapshot.document.SaveGame.player.items.Item[count - 1],
-			).toMatchObject({ name: "Rusty Sword", stack: 1 });
+			expect(snapshot.document.SaveGame.player.items[count - 5]).toMatchObject({
+				name: "Parsnip",
+				stack: 18,
+			});
+			expect(snapshot.document.SaveGame.player.items[count - 1]).toMatchObject({
+				name: "Rusty Sword",
+				stack: 1,
+			});
 			await opened.model.commands.undo();
 			await opened.model.commands.undo();
 			await waitFor(() => expect(selected().getByText("Slot 5")).toBeTruthy());
@@ -84,7 +93,7 @@ describe("full-save backpack workflow", { timeout: 15_000 }, () => {
 	});
 	async function openBackpack(xml = fixtureXml) {
 		// Observe the real imported session; history is now collapsed/lazy in the UI.
-		const load = editorModel.openEditor;
+		const load = openTestEditor;
 		let loaded: Awaited<ReturnType<typeof load>> | undefined;
 		const opening = vi
 			.spyOn(editorModel, "openEditor")
@@ -191,11 +200,11 @@ describe("full-save backpack workflow", { timeout: 15_000 }, () => {
 			await fireEvent.click(page.getByRole("button", { name: "Redo" }));
 			await waitFor(() => expect(quality("Iridium").checked).toBe(true));
 			await fireEvent.click(page.getByRole("button", { name: "Export save" }));
-			await waitFor(() => expect(written).toBeTruthy(), { timeout: 5000 });
+			await waitFor(() => expect(written).toBeTruthy(), { timeout: 30_000 });
 			if (!written)
 				throw Error("Expected the browser writer to receive the save");
 			const expected = parser.parse(fixtureXml);
-			const item = expected.SaveGame.player.items.Item[4] as
+			const item = expected.SaveGame.player.items[4] as
 				| Record<string, unknown>
 				| undefined;
 			if (!item) throw Error("Expected the fixture Parsnip");
@@ -212,7 +221,7 @@ describe("full-save backpack workflow", { timeout: 15_000 }, () => {
 	});
 
 	it("clearing and rapid valid input preserve focus and commit the latest quantity without blur", async () => {
-		const opened = await openEditor(new TextEncoder().encode(fixtureXml));
+		const opened = await openTestEditor(new TextEncoder().encode(fixtureXml));
 		const page = render(BackpackHarness, { model: opened.model });
 		try {
 			await fireEvent.click(
@@ -227,8 +236,7 @@ describe("full-save backpack workflow", { timeout: 15_000 }, () => {
 			await fireEvent.input(quantity, { target: { value: "" } });
 			await waitFor(async () =>
 				expect(
-					(await opened.model.snapshot()).document.SaveGame.player.items
-						.Item[4],
+					(await opened.model.snapshot()).document.SaveGame.player.items[4],
 				).toMatchObject({ stack: 12 }),
 			);
 			expect(quantity.value).toBe("");
@@ -241,8 +249,7 @@ describe("full-save backpack workflow", { timeout: 15_000 }, () => {
 			await waitFor(
 				async () =>
 					expect(
-						(await opened.model.snapshot()).document.SaveGame.player.items
-							.Item[4],
+						(await opened.model.snapshot()).document.SaveGame.player.items[4],
 					).toMatchObject({ stack: 250 }),
 				// Three serialized full-save copies can exceed Testing Library’s default
 				// one-second wait on CI; still require the final committed document.
@@ -270,7 +277,7 @@ describe("full-save backpack workflow", { timeout: 15_000 }, () => {
 
 	it("custom quality stays unselected until an explicit radio choice and Undo restores it", async () => {
 		const document = parser.parse(fixtureXml);
-		const parsnip = document.SaveGame.player.items.Item[4] as Record<
+		const parsnip = document.SaveGame.player.items[4] as Record<
 			string,
 			unknown
 		>;
@@ -305,14 +312,15 @@ describe("full-save backpack workflow", { timeout: 15_000 }, () => {
 		} finally {
 			page.unmount();
 		}
-	});
+	}, 30_000);
 
 	it("invalid quantity restores the committed value, selection survives navigation, and tools/unknown items stay read-only", async () => {
 		const document = parser.parse(fixtureXml);
 		// Keep an unresolved mod item in a real slot to check the fallback without
 		// requiring catalog metadata or constructing a legacy item proxy.
-		document.SaveGame.player.items.Item[3] = {
-			"@_xsi:type": "ModdedItem",
+		document.SaveGame.player.items[3] = {
+			$type: "$unknown",
+			$xmlType: { name: "ModdedItem", namespace: "" },
 			name: "Unknown custom item",
 			itemId: "example.custom",
 			stack: 7,
@@ -365,12 +373,12 @@ describe("full-save backpack workflow", { timeout: 15_000 }, () => {
 		} finally {
 			page.unmount();
 		}
-	});
+	}, 30_000);
 });
 
 it("projected backpack visuals resolve missing display names without adding or normalizing saved fields", () => {
 	const raw = Object.freeze({
-		"@_xsi:type": "Object",
+		$type: "StardewValley.Object",
 		itemId: "388",
 		quality: 3,
 	});
@@ -392,7 +400,7 @@ it.each([0, 1, 2, 3, 4])(
 	"shows a quality badge only for recognized star tier %s",
 	(quality) => {
 		const raw = Object.freeze({
-			"@_xsi:type": "Object",
+			$type: "StardewValley.Object",
 			itemId: "24",
 			quality,
 		});
@@ -413,9 +421,8 @@ it.each([0, 1, 2, 3, 4])(
 it.each(["shirtItem", "pantsItem"] as const)(
 	"previews saved %s color without normalizing the record",
 	(key) => {
-		const document = parser.parse(fixtureXml);
 		const raw = Object.freeze({
-			...(document.SaveGame.player[key] as Record<string, unknown>),
+			...(clothingFixture[key] as Record<string, unknown>),
 			clothesColor: Object.freeze({
 				R: 18,
 				G: 32,

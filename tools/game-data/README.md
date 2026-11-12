@@ -11,8 +11,7 @@ of the web application and never requires game files for normal app builds.
 - `Compilation/`: effective serialization contracts and TypeScript emission.
 - `Coverage/`: observed save coverage against those contracts.
 - `Assets/`: unpacker execution, asset selection, copying, and manifests.
-- `runtime/`: browser-side codecs used by generated modules. They stay here until
-  the application adopts them, then belong under `src/lib/save-format`.
+- `src/lib/save-format/` (repository root): browser-side codecs used by generated modules.
 - `tests/`: compiler/runtime tests, catalog fixtures, and the synthetic game assembly.
 - `scripts/`: maintenance generators such as the ordinal case table.
 
@@ -203,8 +202,9 @@ The compiler resolves effective serialization rules once; both generation and sa
 coverage use that contract. Generated TypeScript targets a small browser runtime
 with ordinary typed objects/arrays, automatic null/type serialization, and unknown
 object-property retention. It does not retain original XML trees or lexical spelling.
-See [typed XML codecs](runtime/README.md) for the representation, supported contracts,
-and boundaries. The application's production import path remains independent.
+See [typed XML codecs](../../src/lib/save-format/README.md) for the representation, supported contracts,
+and boundaries. The production editor imports the committed generated codec;
+ordinary builds and save loading do not run the extractor.
 
 Inspection records generic definitions and arguments for reviewed serializers:
 SerializableDictionary, its case-insensitive string-key subclass, Inventory, and

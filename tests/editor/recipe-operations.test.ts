@@ -1,6 +1,10 @@
 import { Effect, type Scope } from "effect";
 import { describe, it, expect } from "vitest";
-import { tinyFixture, parser, exportDocument } from "./fixtures.ts";
+import {
+	tinyFixture,
+	parser,
+	exportDocument,
+} from "../helpers/editor-document.ts";
 import { makeHistorySession } from "../../src/lib/editor/history.ts";
 import {
 	readRecipes,
@@ -11,15 +15,15 @@ import { recipeDefinitions } from "../../src/lib/editor/recipe-data.ts";
 const run = <E>(program: Effect.Effect<void, E, Scope.Scope>) =>
 	Effect.runPromise(Effect.scoped(program));
 const entry = (name: string | number, count: number) => ({
-	key: { string: name },
-	value: { int: count },
+	key: name,
+	value: count,
 });
 function fixture() {
 	const doc = tinyFixture();
 	Object.assign(doc.SaveGame.player, {
-		cookingRecipes: { item: [entry("Fried Egg", 17)] },
-		craftingRecipes: { item: [entry("Wood Fence", 4)] },
-		recipesCooked: "",
+		cookingRecipes: [entry("Fried Egg", 17)],
+		craftingRecipes: [entry("Wood Fence", 4)],
+		recipesCooked: [],
 	});
 	return doc;
 }
@@ -30,7 +34,7 @@ const change = (
 		| { kind: "known"; value: boolean }
 		| { kind: "count"; value: number }
 		| { kind: "reset" },
-): RecipeChange => ({ farmerId: "host", recipeKind: kind, name, ...action });
+): RecipeChange => ({ farmerId: "1", recipeKind: kind, name, ...action });
 const cookedId = recipeDefinitions("cooking").find(
 	(row) => row.name === "Fried Egg",
 )?.outputId;
@@ -39,7 +43,7 @@ describe("recipe save operations", () => {
 	it("reads real cooked counts independently of knowledge without modifying input", () => {
 		const doc = fixture();
 		Object.assign(doc.SaveGame.player, {
-			recipesCooked: { item: [entry(Number(cookedId), 9)] },
+			recipesCooked: [entry(Number(cookedId), 9)],
 		});
 		const before = structuredClone(doc);
 		const view = readRecipes(doc)[0];
@@ -56,14 +60,16 @@ describe("recipe save operations", () => {
 			Effect.gen(function* () {
 				const doc = fixture();
 				Object.assign(doc.SaveGame.player, {
-					recipesCooked: {
-						opaque: "007",
-						item: {
-							key: { string: Number(cookedId), mod: "key" },
-							value: { int: 9, mod: "value" },
+					recipesCooked: [
+						{
+							key: cookedId,
+							keyMetadata: "key",
+							value: 9,
+							valueMetadata: "value",
 							mod: "entry",
 						},
-					},
+					],
+					testMetadatarecipesCooked: { opaque: "007" },
 				});
 				const session = yield* makeHistorySession(doc);
 				const before = yield* session.snapshot;
@@ -74,15 +80,17 @@ describe("recipe save operations", () => {
 				);
 				const after = yield* session.snapshot;
 				expect(after.document.SaveGame.player).toMatchObject({
-					cookingRecipes: { item: [entry("Fried Egg", 17)] },
-					recipesCooked: {
-						opaque: "007",
-						item: {
-							key: { string: Number(cookedId), mod: "key" },
-							value: { int: 15, mod: "value" },
+					cookingRecipes: [entry("Fried Egg", 17)],
+					recipesCooked: [
+						{
+							key: cookedId,
+							keyMetadata: "key",
+							value: 15,
+							valueMetadata: "value",
 							mod: "entry",
 						},
-					},
+					],
+					testMetadatarecipesCooked: { opaque: "007" },
 				});
 				yield* session.undo;
 				expect((yield* session.snapshot).document).toEqual(before.document);
@@ -103,7 +111,7 @@ describe("recipe save operations", () => {
 			Effect.gen(function* () {
 				const doc = fixture();
 				Object.assign(doc.SaveGame.player, {
-					recipesCooked: { item: [entry(cookedId, 6)] },
+					recipesCooked: [entry(cookedId, 6)],
 				});
 				const session = yield* makeHistorySession(doc);
 				yield* session.transact(
@@ -124,8 +132,8 @@ describe("recipe save operations", () => {
 				expect(
 					(yield* session.snapshot).document.SaveGame.player,
 				).toMatchObject({
-					cookingRecipes: { item: [entry("Fried Egg", 0)] },
-					recipesCooked: { item: [entry(cookedId, 6)] },
+					cookingRecipes: [entry("Fried Egg", 0)],
+					recipesCooked: [entry(cookedId, 6)],
 				});
 			}),
 		));
@@ -134,10 +142,10 @@ describe("recipe save operations", () => {
 			Effect.gen(function* () {
 				const doc = fixture();
 				Object.assign(doc.SaveGame.player, {
-					craftingRecipes: {
-						opaque: "keep",
-						item: { ...entry("Mod Recipe", 45), modData: "keep" },
-					},
+					craftingRecipes: [
+						{ ...entry("Mod Recipe", 45), customModData: "keep" },
+					],
+					testMetadatacraftingRecipes: { opaque: "keep" },
 				});
 				const session = yield* makeHistorySession(doc);
 				const before = yield* session.snapshot;
@@ -164,15 +172,15 @@ describe("recipe save operations", () => {
 				);
 				const forgotten = yield* session.snapshot;
 				expect(forgotten.document.SaveGame.player).toMatchObject({
-					craftingRecipes: {
-						opaque: "keep",
-						item: [{ ...entry("Mod Recipe", 45), modData: "keep" }],
-					},
+					craftingRecipes: [
+						{ ...entry("Mod Recipe", 45), customModData: "keep" },
+					],
+					testMetadatacraftingRecipes: { opaque: "keep" },
 				});
 				yield* session.undo;
 				expect((yield* session.snapshot).document).toEqual(learned.document);
 				expect(before.document.SaveGame.player).toMatchObject({
-					craftingRecipes: { item: { modData: "keep" } },
+					craftingRecipes: [{ customModData: "keep" }],
 				});
 			}),
 		));
@@ -181,9 +189,7 @@ describe("recipe save operations", () => {
 			Effect.gen(function* () {
 				const doc = fixture();
 				Object.assign(doc.SaveGame.player, {
-					recipesCooked: {
-						item: [entry(cookedId, 4), entry(Number(cookedId), 7)],
-					},
+					recipesCooked: [entry(cookedId, 4), entry(Number(cookedId), 7)],
 				});
 				const session = yield* makeHistorySession(doc);
 				const before = yield* session.snapshot;
@@ -207,9 +213,7 @@ describe("recipe save operations", () => {
 				expect(
 					(yield* session.snapshot).document.SaveGame.player,
 				).toMatchObject({
-					recipesCooked: {
-						item: [entry(cookedId, 4), entry(Number(cookedId), 7)],
-					},
+					recipesCooked: [entry(cookedId, 4), entry(Number(cookedId), 7)],
 				});
 			}),
 		));
@@ -218,13 +222,11 @@ describe("recipe save operations", () => {
 			Effect.gen(function* () {
 				const doc = fixture();
 				Object.assign(doc.SaveGame.player, {
-					cookingRecipes: {
-						item: [
-							entry("Mod Soup", 5),
-							{ opaque: "unaddressable" },
-							entry("Fried Egg", 17),
-						],
-					},
+					cookingRecipes: [
+						entry("Mod Soup", 5),
+						{ opaque: "unaddressable" },
+						entry("Fried Egg", 17),
+					],
 				});
 				const session = yield* makeHistorySession(doc);
 				expect(
@@ -247,16 +249,14 @@ describe("recipe save operations", () => {
 				expect(
 					(yield* session.snapshot).document.SaveGame.player,
 				).toMatchObject({
-					cookingRecipes: {
-						item: [entry("Mod Soup", 5), { opaque: "unaddressable" }],
-					},
+					cookingRecipes: [entry("Mod Soup", 5), { opaque: "unaddressable" }],
 				});
 			}),
 		));
 	it("leaves malformed/missing dictionaries and duplicate knowledge read-only", () => {
 		const doc = fixture();
 		Object.assign(doc.SaveGame.player, {
-			cookingRecipes: { item: [entry("Fried Egg", 0), entry("Fried Egg", 2)] },
+			cookingRecipes: [entry("Fried Egg", 0), entry("Fried Egg", 2)],
 			craftingRecipes: undefined,
 		});
 		const view = readRecipes(doc)[0];
@@ -298,26 +298,26 @@ describe("recipe save operations", () => {
 			Effect.gen(function* () {
 				const doc = fixture();
 				const farmhands = doc.SaveGame.farmhands;
-				const guest = farmhands && farmhands.Farmer[0];
+				const guest = farmhands && farmhands[0];
 				if (!guest) throw Error("Missing guest");
 				Object.assign(guest, {
-					craftingRecipes: { item: [entry("Wood Fence", 3)] },
-					cookingRecipes: "",
-					recipesCooked: "",
+					craftingRecipes: [entry("Wood Fence", 3)],
+					cookingRecipes: [],
+					recipesCooked: [],
 				});
 				const session = yield* makeHistorySession(doc);
 				yield* session.transact(
 					setRecipe({
 						...change("crafting", "Wood Fence", { kind: "count", value: 8 }),
-						farmerId: "guest",
+						farmerId: "2",
 					}),
 				);
 				expect(
 					readRecipes((yield* session.snapshot).document)
-						.find((owner) => owner.farmerId === "host")
+						.find((owner) => owner.farmerId === "1")
 						?.crafting.find((row) => row.name === "Wood Fence")?.count,
 				).toBe(4);
-				guest.UniqueMultiplayerID = "host";
+				guest.UniqueMultiplayerID = 1n;
 				const ambiguous = yield* makeHistorySession(doc);
 				expect(
 					(yield* Effect.result(
@@ -335,10 +335,8 @@ it("distinguishes an existing zero cooked entry from no history and reset remove
 		Effect.gen(function* () {
 			const doc = fixture();
 			Object.assign(doc.SaveGame.player, {
-				recipesCooked: {
-					opaque: "keep",
-					item: { ...entry(cookedId, 0), opaque: "saved" },
-				},
+				recipesCooked: [{ ...entry(cookedId, 0), opaque: "saved" }],
+				testMetadatarecipesCooked: { opaque: "keep" },
 			});
 			const session = yield* makeHistorySession(doc);
 			const before = yield* session.snapshot;
@@ -356,7 +354,8 @@ it("distinguishes an existing zero cooked entry from no history and reset remove
 			);
 			const after = yield* session.snapshot;
 			expect(after.document.SaveGame.player).toMatchObject({
-				recipesCooked: { opaque: "keep" },
+				recipesCooked: [],
+				testMetadatarecipesCooked: { opaque: "keep" },
 			});
 			expect(
 				readRecipes(after.document)[0]?.cooking.find(
@@ -371,8 +370,8 @@ it("distinguishes an existing zero cooked entry from no history and reset remove
 	));
 it("does not interpret nil or legacy integer-key counters as an empty cooked history", () => {
 	for (const recipesCooked of [
-		{ "@_xsi:nil": true },
-		{ item: { key: { int: Number(cookedId) }, value: { int: 4 } } },
+		null,
+		{ item: { key: Number(cookedId), value: 4 } },
 	]) {
 		const doc = fixture();
 		Object.assign(doc.SaveGame.player, { recipesCooked });
@@ -382,7 +381,7 @@ it("does not interpret nil or legacy integer-key counters as an empty cooked his
 	}
 	const doc = fixture();
 	Object.assign(doc.SaveGame.player, {
-		cookingRecipes: { "@_xsi:nil": "true" },
+		cookingRecipes: null,
 	});
 	expect(readRecipes(doc)[0]?.cooking.every((row) => !row.supported)).toBe(
 		true,
@@ -392,11 +391,11 @@ it("does not interpret nil or legacy integer-key counters as an empty cooked his
 it("reads production counters after the real XML codec roundtrip", () => {
 	const doc = fixture();
 	Object.assign(doc.SaveGame.player, {
-		recipesCooked: { item: [entry("194", 5)] },
+		recipesCooked: [entry("194", 5)],
 	});
 	const parsed = parser.parse(exportDocument(doc));
 
 	expect(
 		readRecipes(parsed)[0]?.cooking.find((row) => row.name === "Fried Egg"),
 	).toMatchObject({ count: 5, countSupported: true, hasCookedEntry: true });
-});
+}, 30_000);

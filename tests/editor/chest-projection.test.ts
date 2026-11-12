@@ -1,3 +1,4 @@
+import { malformedFixture } from "../helpers/editor-document.ts";
 import { expect, it } from "vitest";
 import { get } from "svelte/store";
 import { Result } from "effect";
@@ -7,49 +8,44 @@ import {
 } from "../../src/lib/editor/inventory-views";
 import { discoverPlacedChests } from "../../src/lib/editor/chest-storage";
 import { freezeDraftState } from "../../src/lib/editor/draft-state";
-import { openEditor } from "../../src/lib/editor/editor-model";
+import { openTestDocument } from "../helpers/open-editor.ts";
 import { setInventoryItem } from "../../src/lib/editor/inventory-operations";
-import { XMLCodec } from "../../src/lib/xmlCodec";
 import { fixtureXml, parser, tinyFixture } from "./fixtures";
 
 const chest = (name = "Chest") => ({
-	"@_xsi:type": "Chest",
+	$type: "StardewValley.Objects.Chest",
 	name,
-	items: {
-		Item: [
-			{
-				"@_xsi:type": "Object",
-				itemId: "24",
-				name: "Parsnip",
-				bigCraftable: false,
-				category: -75,
-				stack: 20,
-				quality: 0,
-				modData: { opaque: "007" },
-			},
-		],
-	},
+	items: [
+		{
+			$type: "StardewValley.Object",
+			itemId: "24",
+			name: "Parsnip",
+			bigCraftable: false,
+			category: -75,
+			stack: 20,
+			quality: 0,
+			customModData: { opaque: "007" },
+		},
+	],
 });
 function state(
 	raws: object[],
 	options: { name?: string; x?: number; farmerId?: string } = {},
 ) {
 	const document = tinyFixture();
-	document.SaveGame.player.UniqueMultiplayerID = options.farmerId ?? "host";
+	document.SaveGame.player.UniqueMultiplayerID = malformedFixture(
+		options.farmerId ?? "1",
+	);
 	Object.assign(document.SaveGame, {
-		locations: {
-			GameLocation: [
-				{
-					name: options.name ?? "Farm",
-					objects: {
-						item: raws.map((raw, index) => ({
-							key: { Vector2: { X: (options.x ?? 1) + index, Y: 2 } },
-							value: { Object: raw },
-						})),
-					},
-				},
-			],
-		},
+		locations: [
+			{
+				name: options.name ?? "Farm",
+				objects: raws.map((raw, index) => ({
+					key: { X: (options.x ?? 1) + index, Y: 2 },
+					value: raw,
+				})),
+			},
+		],
 	});
 	const identities = Object.fromEntries(
 		discoverPlacedChests(document).map((chest) => [
@@ -151,7 +147,7 @@ it("reuses sibling views from the first item edit through Undo/Redo in the model
 			state([chest(), chest("Neighbor")]).document.SaveGame.locations,
 		),
 	});
-	const opened = await openEditor(new XMLCodec().stringify(document));
+	const opened = await openTestDocument(document);
 	try {
 		const original = required(get(opened.model.view)).chests;
 		const selected = required(original[0]),

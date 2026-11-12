@@ -1,9 +1,9 @@
 import { fireEvent, render, waitFor } from "@testing-library/svelte";
 import { describe, expect, it, vi } from "vitest";
-import { openEditor } from "../../src/lib/editor/editor-model";
+import { openTestEditor, openTestDocument } from "../helpers/open-editor.ts";
 import { createCatalogItem } from "../../src/lib/editor/item-catalog";
 import BackpackHarness from "./BackpackHarness.svelte";
-import { exportDocument, fixtureXml, parser } from "./fixtures";
+import { fixtureXml, parser } from "./fixtures";
 
 function dragData() {
 	const values = new Map<string, string>();
@@ -29,7 +29,7 @@ async function drag(source: HTMLElement, target: HTMLElement) {
 // Full-save copies and export projections need a bounded CI integration budget.
 describe("inventory drag and equipment controls", { timeout: 25_000 }, () => {
 	it("shows equipment beside the backpack and moves/swaps through dragging without Move mode", async () => {
-		const opened = await openEditor(new TextEncoder().encode(fixtureXml));
+		const opened = await openTestEditor(new TextEncoder().encode(fixtureXml));
 		const page = render(BackpackHarness, { model: opened.model });
 		try {
 			const before = await opened.model.snapshot();
@@ -84,8 +84,8 @@ describe("inventory drag and equipment controls", { timeout: 25_000 }, () => {
 				{ timeout: 5000 },
 			);
 			expect(
-				(await opened.model.snapshot()).document.SaveGame.player.items.Item[4],
-			).toEqual(before.document.SaveGame.player.items.Item[1]);
+				(await opened.model.snapshot()).document.SaveGame.player.items[4],
+			).toEqual(before.document.SaveGame.player.items[1]);
 			await opened.model.commands.undo();
 			expect((await opened.model.snapshot()).document).toEqual(before.document);
 		} finally {
@@ -97,10 +97,8 @@ describe("inventory drag and equipment controls", { timeout: 25_000 }, () => {
 		const document = parser.parse(fixtureXml);
 		const boots = createCatalogItem("Sneakers");
 		if (!boots) throw Error("Expected catalog boots");
-		document.SaveGame.player.items.Item[3] = boots;
-		const opened = await openEditor(
-			new TextEncoder().encode(exportDocument(document)),
-		);
+		document.SaveGame.player.items[3] = boots;
+		const opened = await openTestDocument(document);
 		const page = render(BackpackHarness, { model: opened.model });
 		try {
 			const before = await opened.model.snapshot();
@@ -173,9 +171,9 @@ describe("inventory drag and equipment controls", { timeout: 25_000 }, () => {
 			page.unmount();
 			await opened.close();
 		}
-	});
+	}, 30_000);
 	it("uses touch pointer dragging without Move mode and cancels interrupted gestures without writes", async () => {
-		const opened = await openEditor(new TextEncoder().encode(fixtureXml));
+		const opened = await openTestEditor(new TextEncoder().encode(fixtureXml));
 		const page = render(BackpackHarness, { model: opened.model });
 		const hit = vi.spyOn(document, "elementFromPoint");
 		try {
@@ -246,7 +244,7 @@ describe("inventory drag and equipment controls", { timeout: 25_000 }, () => {
 	});
 
 	it("ignores outside drops and preserves add/remove selection lineage through drag Undo", async () => {
-		const opened = await openEditor(new TextEncoder().encode(fixtureXml));
+		const opened = await openTestEditor(new TextEncoder().encode(fixtureXml));
 		const page = render(BackpackHarness, { model: opened.model });
 		try {
 			const before = (await opened.model.snapshot()).document;

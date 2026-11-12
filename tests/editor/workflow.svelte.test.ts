@@ -7,7 +7,7 @@ import { fixtureXml } from "./fixtures";
 // These integration scenarios repeatedly parse or export the 6.6 MB save fixture.
 // Match the calendar suites’ CI budget: assertions verify preservation and workflow,
 // while the default unit-test timeout remains unchanged.
-describe("full-save application workflow", { timeout: 15_000 }, () => {
+describe("full-save application workflow", { timeout: 60_000 }, () => {
 	it("the migrated UI imports, stages one date action, reviews, undoes and closes its session", async () => {
 		const backupOriginal = vi.fn(async () => {});
 		const page = render(EditorApp, {
@@ -20,7 +20,7 @@ describe("full-save application workflow", { timeout: 15_000 }, () => {
 			await waitFor(
 				() =>
 					expect(page.getByRole("spinbutton", { name: "Year" })).toBeTruthy(),
-				{ timeout: 5000 },
+				{ timeout: 30_000 },
 			);
 			await waitFor(() => expect(backupOriginal).toHaveBeenCalledWith(file));
 			expect(page.queryByRole("link", { name: "Bundles" })).toBeNull();
@@ -36,7 +36,7 @@ describe("full-save application workflow", { timeout: 15_000 }, () => {
 			await fireEvent.click(page.getByRole("button", { name: "Apply date" }));
 			await waitFor(
 				() => expect(page.getByText(/Current save:.*Year 3/)).toBeTruthy(),
-				{ timeout: 5000 },
+				{ timeout: 30_000 },
 			);
 			await fireEvent.click(page.getByRole("link", { name: "Review changes" }));
 			expect(page.getByText("Edit history")).toBeTruthy();
@@ -49,7 +49,7 @@ describe("full-save application workflow", { timeout: 15_000 }, () => {
 					expect(
 						page.getByText("No exported changes from the imported save."),
 					).toBeTruthy(),
-				{ timeout: 5000 },
+				{ timeout: 30_000 },
 			);
 			await fireEvent.click(page.getByRole("button", { name: "Exit" }));
 			await waitFor(() =>
@@ -120,7 +120,7 @@ describe("full-save application workflow", { timeout: 15_000 }, () => {
 					expect(
 						page.getByRole("button", { name: "Export save" }),
 					).toBeTruthy(),
-				{ timeout: 5000 },
+				{ timeout: 30_000 },
 			);
 			await fireEvent.click(page.getByRole("button", { name: "Export save" }));
 			await waitFor(
@@ -130,7 +130,7 @@ describe("full-save application workflow", { timeout: 15_000 }, () => {
 							"The save could not be downloaded. Please try again.",
 						),
 					).toBeTruthy(),
-				{ timeout: 5000 },
+				{ timeout: 30_000 },
 			);
 			await fireEvent.click(page.getByRole("button", { name: "Export save" }));
 			await waitFor(() => expect(picker).toHaveBeenCalledTimes(2), {

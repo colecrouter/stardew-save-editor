@@ -56,7 +56,7 @@ function boxed(
 			}),
 		function* (wrapper, value, attributes) {
 			yield { _tag: "StartElement", name: wrapper, attributes };
-			yield* codec.events(name, value);
+			yield* codec.write(name, value);
 			yield { _tag: "EndElement", name: wrapper };
 		},
 	);
@@ -119,6 +119,6 @@ export function dictionary(
 		}),
 	);
 	return attach(target, entries.open, (name, value, attributes) =>
-		entries.events(name, value, attributes),
+		entries.write(name, value, attributes),
 	);
 }

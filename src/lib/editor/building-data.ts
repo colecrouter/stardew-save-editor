@@ -1,86 +1,101 @@
 import animalData from "$generated/farmanimals.json";
-import { buildingConstructionCost } from "./building-costs.ts";
+import type {
+	T_StardewValley_FarmAnimal as FarmAnimal,
+	T_StardewValley_Buildings_Building as SavedBuilding,
+} from "../../../generated/save-format/save.ts";
 import {
 	animalOptions,
 	buildingTierBlocker,
 	upgradeTiers,
 } from "../animalBuildingData.ts";
-import type { Building } from "$types/save";
-import type { SaveDocument } from "./domain.ts";
-import { samePlainData } from "./plain-data.ts";
+import type { Building } from "./animal-buildings.ts";
+import { buildingConstructionCost } from "./building-costs.ts";
+import type { Location, SaveDocument } from "./domain.ts";
+import { savedType } from "./saved-types.ts";
 
-import { record, list, collection } from "./saved-collections.ts";
-export { record, list, collection, append } from "./saved-collections.ts";
+// Known locations share the game's base collections. Opaque mod classes remain
+// visible at the boundary, but their unvalidated fields never become edit targets.
+export type KnownLocation = Exclude<Location, { readonly $type: "$unknown" }>;
+export function isKnownLocation(
+	value: Location | null | undefined,
+): value is KnownLocation {
+	return value != null && value.$type !== "$unknown";
+}
+
+import { record, samePlainData } from "./plain-data.ts";
+
+export { record } from "./plain-data.ts";
+
 const empty = (value: unknown) =>
 	value === undefined || value === null || value === "";
 export const long = (value: unknown): string | undefined =>
 	typeof value === "string" && /^-?\d+$/.test(value)
 		? value
-		: typeof value === "number" && Number.isSafeInteger(value)
+		: typeof value === "bigint" ||
+			  (typeof value === "number" && Number.isSafeInteger(value))
 			? String(value)
 			: undefined;
 export const integer = (value: unknown): value is number =>
 	typeof value === "number" && Number.isSafeInteger(value);
 
-export function residents(interior: Record<string, unknown> | undefined) {
+export function residents(interior: KnownLocation | undefined) {
 	const raw = interior?.animalsThatLiveHere;
-	const values = record(raw) ? list(raw.long) : [];
+	// Other known location classes can carry this animal-house field only as
+	// extension data, so its array shape still needs checking at this boundary.
+	const values = Array.isArray(raw) ? raw : [];
 	const ids = values.flatMap((value) =>
 		long(value) === undefined ? [] : [String(value)],
 	);
 	return {
 		ids,
 		supported:
-			(empty(raw) || (record(raw) && values.length === ids.length)) &&
+			(empty(raw) || (Array.isArray(raw) && values.length === ids.length)) &&
 			new Set(ids).size === ids.length,
 	};
 }
 /** Keep the mirror as a second serialization of the same dictionary, never a second animal. */
-export function animalDictionary(location: Record<string, unknown>) {
-	const lower = collection(location.animals, "item");
+export function animalDictionary(location: KnownLocation) {
+	const lower = { entries: location.animals ?? [] };
 	const wrapper = location.Animals;
-	const upper = collection(
-		record(wrapper)
-			? wrapper.SerializableDictionaryOfInt64FarmAnimal
-			: undefined,
-		"item",
-	);
+	const upper = { entries: wrapper ?? [] };
 	const hasLower = Object.hasOwn(location, "animals");
-	const hasUpper =
-		record(wrapper) &&
-		Object.hasOwn(wrapper, "SerializableDictionaryOfInt64FarmAnimal");
+	const hasUpper = Object.hasOwn(location, "Animals");
 	const entries = hasLower ? lower.entries : upper.entries;
+	// A nil mirror is not an editable dictionary; conflicting populated mirrors
+	// must likewise remain read-only rather than choosing one arbitrarily.
 	const supported =
-		lower.supported &&
-		upper.supported &&
-		(empty(wrapper) || record(wrapper)) &&
+		wrapper !== null &&
 		(!hasLower || !hasUpper || samePlainData(lower.entries, upper.entries));
 	return { entries, lower, upper, hasLower, hasUpper, supported };
 }
 export interface LocatedAnimal {
 	id?: string;
-	container: Record<string, unknown>;
+	container: KnownLocation;
 	location: string;
-	raw?: Record<string, unknown>;
-	mirrors: Record<string, unknown>[];
+	raw?: FarmAnimal;
+	mirrors: FarmAnimal[];
 	supported: boolean;
 }
 export interface LocatedBuilding {
 	id: string;
-	raw: Record<string, unknown>;
+	raw: SavedBuilding;
 	location: string;
-	interior?: Record<string, unknown>;
+	interior?: KnownLocation;
 	supported: boolean;
 }
 /** Private DTO lens. Raw references live only as long as the supplied engine snapshot. */
 export function inspectBuildings(document: SaveDocument) {
 	const buildings: LocatedBuilding[] = [],
 		animals: LocatedAnimal[] = [];
-	const locations = collection(document.SaveGame.locations, "GameLocation");
-	let supported = locations.supported;
+	const locations = document.SaveGame.locations ?? [];
+	let supported = true;
 	const seen = new WeakSet<object>();
-	function visit(value: unknown, path: string, label: string) {
-		if (!record(value) || seen.has(value)) {
+	function visit(
+		value: Location | null | undefined,
+		path: string,
+		label: string,
+	) {
+		if (!isKnownLocation(value) || seen.has(value)) {
 			supported = false;
 			return;
 		}
@@ -91,20 +106,12 @@ export function inspectBuildings(document: SaveDocument) {
 		const dictionary = animalDictionary(value);
 		supported &&= dictionary.supported;
 		for (const [index, entry] of dictionary.entries.entries()) {
-			const raw =
-				record(entry) && record(entry.value) && record(entry.value.FarmAnimal)
-					? entry.value.FarmAnimal
-					: undefined;
-			const id =
-				record(entry) && record(entry.key) ? long(entry.key.long) : undefined;
+			const raw = entry.value;
+			const id = entry.key.toString();
 			const other = dictionary.upper.entries[index];
 			const mirror =
-				dictionary.hasLower &&
-				dictionary.hasUpper &&
-				record(other) &&
-				record(other.value) &&
-				record(other.value.FarmAnimal)
-					? other.value.FarmAnimal
+				dictionary.hasLower && dictionary.hasUpper && other !== undefined
+					? other.value
 					: undefined;
 			animals.push({
 				id,
@@ -116,15 +123,16 @@ export function inspectBuildings(document: SaveDocument) {
 					dictionary.supported && !!id && !!raw && long(raw.myID) === id,
 			});
 		}
-		const rows = collection(value.buildings, "Building");
-		supported &&= rows.supported;
-		for (const [index, raw] of rows.entries.entries()) {
-			if (!record(raw)) {
+		for (const [index, raw] of (value.buildings ?? []).entries()) {
+			if (!raw) {
 				supported = false;
 				continue;
 			}
 			const id = typeof raw.id === "string" && raw.id ? raw.id : undefined;
-			const interior = record(raw.indoors) ? raw.indoors : undefined;
+			const interior =
+				raw.$type !== "$unknown" && isKnownLocation(raw.indoors)
+					? raw.indoors
+					: undefined;
 			buildings.push({
 				id: id ?? `building-path:${path}:${index}`,
 				raw,
@@ -135,7 +143,7 @@ export function inspectBuildings(document: SaveDocument) {
 			if (interior) visit(interior, `${path}/building:${index}`, location);
 		}
 	}
-	locations.entries.forEach((value, index) => {
+	locations.forEach((value, index) => {
 		visit(value, `location:${index}`, "Unknown location");
 	});
 	// Real serialized IDs survive list reordering. Ambiguity is visible but never writable.
@@ -249,18 +257,58 @@ function projectAnimal(
 		canEatCracker: data?.canEatGoldenCrackers ?? false,
 	};
 }
+/** Helpers move only checked object/furniture collections; opaque shapes must not be silently erased. */
+export function safeInterior(raw: KnownLocation | null | undefined): boolean {
+	if (!raw) return true;
+	const vector = (
+		value: unknown,
+	): value is { X: number; Y: number } & Record<string, unknown> =>
+		record(value) &&
+		typeof value.X === "number" &&
+		Number.isFinite(value.X) &&
+		typeof value.Y === "number" &&
+		Number.isFinite(value.Y);
+	const item = (value: unknown) =>
+		record(value) &&
+		(value.tileLocation === undefined || vector(value.tileLocation)) &&
+		[value.boundingBox, value.defaultBoundingBox].every(
+			(box) =>
+				box === undefined ||
+				(vector(box) &&
+					typeof box.Width === "number" &&
+					typeof box.Height === "number"),
+		);
+	const objects = raw.objects ?? [],
+		furniture = raw.furniture ?? [];
+	// Collection shapes are decoded already. Placement still needs complete
+	// coordinates on every object and furniture record before it can move them.
+	return (
+		objects.every((entry) => vector(entry.key) && item(entry.value)) &&
+		furniture.every(item)
+	);
+}
+/** The placement helper needs complete coordinates, not merely decoded optional members.
+ * Check those algorithm preconditions once before exposing its mutable view. */
+function safeTierRecord(raw: SavedBuilding): raw is SavedBuilding & Building {
+	return (
+		raw.$type !== "$unknown" &&
+		typeof raw.buildingType === "string" &&
+		(raw.indoors == null ||
+			(isKnownLocation(raw.indoors) && safeInterior(raw.indoors)))
+	);
+}
 /** The legacy tier helper consumes only these checked fields and the private interior. */
 export function tierRecord(building: LocatedBuilding): Building | undefined {
 	const raw = building.raw;
 	if (
 		!building.supported ||
+		!safeTierRecord(raw) ||
 		typeof raw.buildingType !== "string" ||
 		!integer(raw.daysOfConstructionLeft) ||
 		!integer(raw.daysUntilUpgrade)
 	)
 		return;
-	// This is the compatibility boundary to the existing helper, not a complete raw-save schema.
-	return raw as unknown as Building;
+	return raw;
 }
 export function readBuildings(document: SaveDocument): BuildingsView {
 	const graph = inspectBuildings(document);
@@ -277,7 +325,7 @@ export function readBuildings(document: SaveDocument): BuildingsView {
 				interior = building.interior,
 				home = residents(interior),
 				checked = tierRecord(building);
-			const animalHouse = interior?.["@_xsi:type"] === "AnimalHouse";
+			const animalHouse = savedType(interior) === "AnimalHouse";
 			// Prefer the saved animal-house limit; older saves may rely on the
 			// generated building default, as the legacy editor does.
 			const capacity =
@@ -375,13 +423,13 @@ export function readBuildings(document: SaveDocument): BuildingsView {
 }
 /** A greenhouse building toggles the farm's unlock flag, never its local record. */
 export function greenhouseFlag(document: SaveDocument): boolean | undefined {
-	const farms = collection(
-		document.SaveGame.locations,
-		"GameLocation",
-	).entries.filter((row) => record(row) && row.name === "Farm");
-	return farms.length === 1 &&
-		record(farms[0]) &&
-		typeof farms[0].greenhouseUnlocked === "boolean"
-		? farms[0].greenhouseUnlocked
+	const farms = (document.SaveGame.locations ?? []).filter(
+		(row) => row?.name === "Farm",
+	);
+	const farm = farms.length === 1 ? farms[0] : undefined;
+	// Unknown location subclasses can expose an opaque flag, so its scalar
+	// type still needs checking before the view treats it as a boolean.
+	return typeof farm?.greenhouseUnlocked === "boolean"
+		? farm.greenhouseUnlocked
 		: undefined;
 }

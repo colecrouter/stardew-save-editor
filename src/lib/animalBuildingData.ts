@@ -2,7 +2,6 @@
 import buildings from "$generated/buildings.json";
 import farmAnimals from "$generated/farmanimals.json";
 import type { BuildingUpgradeData } from "$types/buildingUpgrade";
-import type { Building } from "$types/save";
 export type BuildingInfo = (typeof buildings)[number] & BuildingUpgradeData;
 const allBuildings = buildings as BuildingInfo[];
 
@@ -82,7 +81,11 @@ export function purchasedAnimalTopic(type: string) {
 
 /** Why a family-tier transition cannot proceed. Outside residents count toward capacity. */
 export function buildingTierBlocker(
-	raw: Building,
+	raw: {
+		buildingType: string;
+		daysOfConstructionLeft?: number;
+		daysUntilUpgrade?: number;
+	},
 	target: BuildingInfo,
 	residents: number,
 ): string | undefined {
@@ -91,9 +94,9 @@ export function buildingTierBlocker(
 	const to = tiers.findIndex((t) => t.name === target.name);
 	if (from === -1 || to === -1)
 		return `A ${raw.buildingType} can't become a ${target.name}`;
-	if (raw.daysOfConstructionLeft > 0)
+	if ((raw.daysOfConstructionLeft ?? 0) > 0)
 		return `The ${raw.buildingType} is still being built`;
-	if (raw.daysUntilUpgrade > 0)
+	if ((raw.daysUntilUpgrade ?? 0) > 0)
 		return `Robin is already upgrading the ${raw.buildingType}`;
 	const limit = target.maxOccupants;
 	if (to < from && residents > limit)

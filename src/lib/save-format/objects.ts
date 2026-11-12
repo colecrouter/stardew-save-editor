@@ -86,6 +86,11 @@ export function object(
 				}
 				for (const [name, field] of entries)
 					if (field.repeated) add(output, name, []);
+					else if (field.codec.missingValue === null) {
+						// An absent NetRef and an explicitly cleared one are the same
+						// game value. Use null consistently after loading either XML form.
+						add(output, name, null);
+					}
 				return {
 					text: whitespace,
 					child: (child) =>
@@ -151,7 +156,7 @@ export function object(
 			yield { _tag: "StartElement", name, attributes };
 			for (const [member, field] of entries)
 				if (!field.xmlName.startsWith("@_") && Object.hasOwn(value, member))
-					yield* field.codec.events(field.xmlName, value[member]);
+					yield* field.codec.write(field.xmlName, value[member]);
 			for (const [key, extra] of Object.entries(value))
 				if (
 					!Object.hasOwn(fields, key) &&
@@ -162,6 +167,13 @@ export function object(
 			yield { _tag: "EndElement", name };
 		},
 	);
+}
+// Unknown subclasses retain generic fields and the semantic QName needed to
+// write their type again. They never masquerade as a validated known subtype.
+export interface UnknownObject {
+	readonly $type: "$unknown";
+	readonly $xmlType: { readonly name: string; readonly namespace: string };
+	readonly [field: string]: unknown;
 }
 export interface Variant {
 	readonly id: string;
@@ -215,6 +227,7 @@ function typeAttributes(
 export function polymorphic(
 	declared: string,
 	variants: readonly Variant[],
+	exposeType = false,
 ): Codec {
 	const needsTag =
 		declared === "System.Object" ||
@@ -226,25 +239,57 @@ export function polymorphic(
 			throw new Error(`Unknown concrete type ${String(id)} for ${declared}`);
 		return variant;
 	};
+	// Compile each selected payload validator once. Rebuilding Schema.toType for
+	// every nested object creates large duplicate schema graphs on full saves.
+	const validators = new Map<string, (value: unknown) => unknown>();
+	const validate = (id: string, codec: Codec, value: unknown) => {
+		let decode = validators.get(id);
+		if (!decode) {
+			decode = Schema.decodeUnknownSync(Schema.toType(codec));
+			validators.set(id, decode);
+		}
+		decode(value);
+	};
 	// Validate the declared discriminator as well as the selected payload when
 	// callers use ValueSchema directly, outside the XML event entry point.
 	const target = Schema.Record(Schema.String, Schema.Unknown).check(
 		Schema.makeFilter((value) => {
+			if (needsTag && value.$type === "$unknown") {
+				const type = value.$xmlType;
+				if (
+					!type ||
+					typeof type !== "object" ||
+					!("name" in type) ||
+					!("namespace" in type) ||
+					typeof type.name !== "string" ||
+					typeof type.namespace !== "string" ||
+					!/^[A-Za-z_][A-Za-z0-9_.-]*$/.test(type.name)
+				)
+					return "Invalid unknown XML type";
+				return variants.some(
+					(variant) =>
+						variant.name === type.name && variant.namespace === type.namespace,
+				)
+					? "A known XML type requires its typed representation"
+					: undefined;
+			}
+			// A concrete field may omit its tag, but an explicit conflicting tag
+			// must not be silently rewritten as the declared XML type.
+			if (!needsTag && value.$type !== undefined && value.$type !== declared)
+				return `Expected concrete type ${declared}`;
 			try {
 				if (
 					declared === "System.Object" &&
 					typeof value.$type === "string" &&
 					Object.hasOwn(scalarTypes, value.$type)
 				) {
-					Schema.decodeUnknownSync(
-						Schema.toType(scalar(value.$type as ScalarType)),
-					)(value.value);
+					validate(value.$type, scalar(value.$type as ScalarType), value.value);
 				} else {
 					const id = needsTag ? value.$type : declared;
 					const variant = variants.find((candidate) => candidate.id === id);
 					if (!variant)
 						return `Unknown concrete type ${String(id)} for ${declared}`;
-					Schema.decodeSync(Schema.toType(variant.codec))(value);
+					validate(variant.id, variant.codec, value);
 				}
 				return undefined;
 			} catch (error) {
@@ -286,10 +331,37 @@ export function polymorphic(
 						)
 					: variants.filter((variant) => variant.id === declared);
 				const variant = matches[0];
-				if (matches.length !== 1 || !variant)
-					return yield* invalid(
-						`Unresolved xsi:type ${type?.name ?? declared}`,
-					);
+				if (matches.length !== 1 || !variant) {
+					if (!needsTag || !type)
+						return yield* invalid(
+							`Unresolved xsi:type ${type?.name ?? declared}`,
+						);
+					// Unknown subclass fields stay opaque instead of being decoded as the
+					// base class and accidentally losing their subtype-specific data.
+					// Keep required bindings via namespace context, while the type's own
+					// QName lives in $xmlType rather than duplicated prefix declarations.
+					const frame = yield* unknownFrame({
+						...clean,
+						attributes: Object.fromEntries(
+							Object.entries(clean.attributes).filter(
+								([name]) => !namespaceAttribute(name),
+							),
+						),
+					});
+					return {
+						...frame,
+						finish: () =>
+							Effect.map(frame.finish(), (value) => ({
+								// Unknown custom serializers may emit text without child fields.
+								// Keep that content in the generic text slot alongside type identity.
+								...(typeof value === "string"
+									? { "#text": value }
+									: record(value)),
+								$type: "$unknown",
+								$xmlType: type,
+							})),
+					} satisfies Frame;
+				}
 				const frame = yield* variant.codec.open(clean);
 				return {
 					...frame,
@@ -298,11 +370,27 @@ export function polymorphic(
 							const value = record(yield* frame.finish());
 							if (Object.hasOwn(value, "$type"))
 								return yield* invalid("$type is reserved");
-							return { ...value, ...(needsTag ? { $type: variant.id } : {}) };
+							return {
+								...value,
+								...(needsTag || exposeType ? { $type: variant.id } : {}),
+							};
 						}),
 				} satisfies Frame;
 			}),
 		function* (name, value, attributes) {
+			if (needsTag && value.$type === "$unknown") {
+				const { $type: _, $xmlType, ...fields } = value;
+				const type = $xmlType as UnknownObject["$xmlType"];
+				yield* unknownEvents(name, {
+					...fields,
+					...Object.fromEntries(
+						Object.entries(
+							typeAttributes(fields, type.name, type.namespace),
+						).map(([key, value]) => [`@_${key}`, value]),
+					),
+				});
+				return;
+			}
 			if (
 				declared === "System.Object" &&
 				typeof value.$type === "string" &&
@@ -310,7 +398,7 @@ export function polymorphic(
 			) {
 				const id = value.$type as ScalarType,
 					type = scalarXmlType(id);
-				yield* scalar(id).events(name, value.value, {
+				yield* scalar(id).write(name, value.value, {
 					...attributes,
 					...typeAttributes(value, type.name, type.namespace),
 				});
@@ -318,7 +406,7 @@ export function polymorphic(
 			}
 			const variant = choose(needsTag ? value.$type : declared);
 			const { $type: _, ...payload } = value;
-			yield* variant.codec.events(
+			yield* variant.codec.write(
 				name,
 				payload,
 				variant.id === declared

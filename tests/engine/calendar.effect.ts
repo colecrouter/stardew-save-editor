@@ -1,13 +1,13 @@
 import { expect, it } from "@effect/vitest";
 import { Effect, Exit } from "effect";
-import type { Save } from "../../codegen/save.ts";
+import type { FixtureSave as Save } from "../helpers/editor-document.ts";
 import {
 	type CalendarDocumentState,
 	valleyWeather,
 	initializeCalendarDocument,
-} from "../../src/lib/calendarDocument.ts";
+} from "../../src/lib/editor/calendar-document.ts";
 import { CalendarSeason } from "../../src/lib/calendarSeason.ts";
-import { getStatValue } from "../../src/lib/playerStats.ts";
+import { getStatValue } from "../../src/lib/editor/player-stats.ts";
 import { loadFixture, parser, exportDocument, tinyFixture } from "./fixture.ts";
 import { makeHistorySession } from "../../src/lib/editor/history.ts";
 import {
@@ -35,15 +35,13 @@ it.effect(
 		Effect.gen(function* () {
 			const original = yield* Effect.promise(loadFixture);
 			const game = gameOf(original);
-			game.farmhands = {
-				Farmer: [
-					{
-						...structuredClone(game.player),
-						UniqueMultiplayerID: 123456789,
-						name: "Calendar guest",
-					},
-				],
-			};
+			game.farmhands = [
+				{
+					...structuredClone(game.player),
+					UniqueMultiplayerID: 123456789n,
+					name: "Calendar guest",
+				},
+			];
 			const before = structuredClone(original);
 			const session = yield* makeHistorySession(original);
 			const after = yield* session.execute([
@@ -57,7 +55,7 @@ it.effect(
 			expect(getStatValue(result.player, "daysPlayed")).toBe(120);
 			for (const player of [
 				result.player,
-				...(result.farmhands === "" ? [] : result.farmhands.Farmer),
+				...(!Array.isArray(result.farmhands) ? [] : result.farmhands),
 			]) {
 				expect(player.yearForSaveGame).toBe(2);
 				expect(player.dayOfMonthForSaveGame).toBe(8);
@@ -72,7 +70,7 @@ it.effect(
 				"/SaveGame/player/dayOfMonthForSaveGame",
 				"/SaveGame/player/seasonForSaveGame",
 				"/SaveGame/player/yearForSaveGame",
-				"/SaveGame/farmhands/Farmer",
+				"/SaveGame/farmhands",
 			];
 			expect(
 				after.entries[0].forward.every((change) =>
@@ -92,6 +90,7 @@ it.effect(
 			expect(redone.document).toEqual(after.document);
 			expect(redone.domainState).toEqual(after.domainState);
 		}),
+	60_000,
 );
 
 it.effect(
@@ -99,23 +98,30 @@ it.effect(
 	() =>
 		Effect.gen(function* () {
 			const original = yield* Effect.promise(loadFixture);
-			const farm = gameOf(original).locations.GameLocation.find(
-				(location) => location.name === "Farm",
+			const farm = gameOf(original).locations.find(
+				(location) => location?.name === "Farm",
 			);
 			const soils =
-				farm?.terrainFeatures?.item.filter(
-					(entry) => entry.value.TerrainFeature["@_xsi:type"] === "HoeDirt",
+				farm?.terrainFeatures?.filter(
+					(entry) =>
+						entry.value.$type === "StardewValley.TerrainFeatures.HoeDirt",
 				) ?? [];
 			const [dry, wet] = soils;
-			if (!dry || !wet) throw new Error("Missing soil fixture");
-			dry.value.TerrainFeature.state = 0;
-			wet.value.TerrainFeature.state = 1;
+			if (
+				!dry ||
+				!wet ||
+				dry.value.$type !== "StardewValley.TerrainFeatures.HoeDirt" ||
+				wet.value.$type !== "StardewValley.TerrainFeatures.HoeDirt"
+			)
+				throw new Error("Missing soil fixture");
+			dry.value.state = 0;
+			wet.value.state = 1;
 			for (const name of ["Forest", "IslandWest"]) {
-				const location = gameOf(original).locations.GameLocation.find(
-					(location) => location.name === name,
+				const location = gameOf(original).locations.find(
+					(location) => location?.name === name,
 				);
 				if (!location) throw new Error(`Missing ${name}`);
-				location.terrainFeatures = { item: [structuredClone(dry)] };
+				location.terrainFeatures = [structuredClone(dry)];
 			}
 			const stateOf = (
 				document: SaveDocument,
@@ -123,14 +129,11 @@ it.effect(
 				locationName = "Farm",
 			) =>
 				gameOf(document)
-					.locations.GameLocation.find(
-						(location) => location.name === locationName,
-					)
-					?.terrainFeatures?.item.find(
+					.locations.find((location) => location?.name === locationName)
+					?.terrainFeatures?.find(
 						(entry) =>
-							entry.key.Vector2.X === target.key.Vector2.X &&
-							entry.key.Vector2.Y === target.key.Vector2.Y,
-					)?.value.TerrainFeature.state;
+							entry.key.X === target.key.X && entry.key.Y === target.key.Y,
+					)?.value.state;
 			const session = yield* makeHistorySession(original);
 			yield* session.execute([today("Sun")]);
 			const rainy = yield* session.execute([today("Rain")]);
@@ -157,6 +160,7 @@ it.effect(
 				restored.document,
 			);
 		}),
+	60_000,
 );
 
 it.effect(
@@ -177,6 +181,7 @@ it.effect(
 			expect(yield* session.snapshot).toEqual(before);
 			expect(gameOf((yield* session.redo).document).isRaining).toBe(false);
 		}),
+	60_000,
 );
 
 it.effect(
@@ -187,18 +192,16 @@ it.effect(
 				coreOperations.prepare(state, action).pipe(
 					Effect.map((prepared) => {
 						if (action.type === "farm-name") {
-							const farm = gameOf(
-								prepared.document,
-							).locations.GameLocation.find(
-								(location) => location.name === "Farm",
+							const farm = gameOf(prepared.document).locations.find(
+								(location) => location?.name === "Farm",
 							);
-							const entry = farm?.terrainFeatures?.item.find(
+							const entry = farm?.terrainFeatures?.find(
 								(entry) =>
-									entry.value.TerrainFeature["@_xsi:type"] === "HoeDirt",
+									entry.value.$type === "StardewValley.TerrainFeatures.HoeDirt",
 							);
 							if (!entry) throw new Error("Missing soil fixture");
-							entry.value.TerrainFeature = {
-								...entry.value.TerrainFeature,
+							entry.value = {
+								...entry.value,
 								health: 999,
 							};
 						}
@@ -223,6 +226,7 @@ it.effect(
 			).toBe(true);
 		}).pipe(Effect.provideService(EditorOperations, adapter));
 	},
+	60_000,
 );
 
 it.effect(
@@ -233,7 +237,7 @@ it.effect(
 			const weather = valleyWeather(gameOf(original));
 			if (!weather) throw new Error("Missing valley weather");
 			weather.Weather = "Mod.Meteors";
-			weather.weather = { string: "Mod.Meteors" };
+			weather.weather = "Mod.Meteors";
 			const session = yield* makeHistorySession(original);
 			yield* session.execute([day(13)]);
 			const restored = yield* session.execute([day(14)]);
@@ -243,6 +247,7 @@ it.effect(
 				"Mod.Meteors",
 			);
 		}),
+	60_000,
 );
 
 it.effect(
@@ -267,7 +272,11 @@ it.effect(
 			);
 			expect(yield* tiny.snapshot).toEqual(tinyBefore);
 			const malformed = structuredClone(fixture);
-			Object.assign(gameOf(malformed).player.stats, { Values: [] });
+			// Empty arrays are valid dictionaries in the plain model; use an object
+			// to retain this regression test's deliberately malformed container.
+			Object.assign(gameOf(malformed).player.stats!, {
+				Values: { unsupported: true },
+			});
 			const badStats = yield* makeHistorySession(malformed);
 			const badStatsBefore = yield* badStats.snapshot;
 			expect(
@@ -275,17 +284,21 @@ it.effect(
 			).toBe(true);
 			expect(yield* badStats.snapshot).toEqual(badStatsBefore);
 		}),
+	60_000,
 );
 
-it.effect("calendar no-ops don't initialize hidden history or metadata", () =>
-	Effect.gen(function* () {
-		const session = yield* makeHistorySession(
-			yield* Effect.promise(loadFixture),
-		);
-		const before = yield* session.snapshot;
-		const after = yield* session.execute([today("Rain")]);
-		expect(after).toEqual(before);
-	}),
+it.effect(
+	"calendar no-ops don't initialize hidden history or metadata",
+	() =>
+		Effect.gen(function* () {
+			const session = yield* makeHistorySession(
+				yield* Effect.promise(loadFixture),
+			);
+			const before = yield* session.snapshot;
+			const after = yield* session.execute([today("Rain")]);
+			expect(after).toEqual(before);
+		}),
+	60_000,
 );
 
 it.effect(
@@ -318,6 +331,7 @@ it.effect(
 			expect((yield* session.undo).domainState).toEqual(before.domainState);
 			expect((yield* session.redo).domainState).toEqual(forecast.domainState);
 		}),
+	60_000,
 );
 
 it.effect(
@@ -354,6 +368,7 @@ it.effect(
 				expect(yield* session.snapshot).toEqual(before);
 			}
 		}),
+	60_000,
 );
 
 it.effect(
@@ -385,4 +400,5 @@ it.effect(
 			expect(undone.domainState).toEqual(initial);
 			expect((yield* session.redo).domainState).toEqual(after.domainState);
 		}),
+	60_000,
 );

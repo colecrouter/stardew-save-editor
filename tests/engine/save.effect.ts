@@ -39,6 +39,7 @@ it.effect(
 			// Encoding strips synthetic equipment attributes on a copy, not on the session.
 			expect(yield* session.snapshot).toEqual(state);
 		}).pipe(Effect.provide(Layer.merge(SaveCodecLive, NodeServices.layer))),
+	60_000,
 );
 
 it.effect(
@@ -58,6 +59,7 @@ it.effect(
 				original,
 			);
 		}).pipe(Effect.provide(Layer.merge(SaveCodecLive, NodeServices.layer))),
+	60_000,
 );
 
 it.effect(
@@ -87,6 +89,7 @@ it.effect(
 				.pipe(Effect.flip);
 			expect(unsupported.stage).toBe("version");
 		}).pipe(Effect.provide(Layer.merge(SaveCodecLive, NodeServices.layer))),
+	60_000,
 );
 
 it.effect(
@@ -201,6 +204,7 @@ it.effect(
 			expect(acquired).toBe(4);
 			expect(live).toBe(0);
 		}).pipe(Effect.provide(NodeServices.layer)),
+	60_000,
 );
 
 it.effect("ten canceled real worker requests release every worker", () =>

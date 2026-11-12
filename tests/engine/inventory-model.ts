@@ -1,3 +1,4 @@
+import { stringifySavedData } from "../../src/lib/editor/saved-data.ts";
 import { Effect, Exit, Scope, type Context } from "effect";
 import { derived, type Readable } from "svelte/store";
 import { parseStack, type NumericField } from "../../src/lib/editor/field.ts";
@@ -5,6 +6,7 @@ import {
 	farmers,
 	type MutationRequest,
 	type SaveDocument,
+	type HostFarmer,
 } from "../../src/lib/editor/domain.ts";
 import { makeHistorySession } from "../../src/lib/editor/history.ts";
 
@@ -59,7 +61,7 @@ export function makeStackField(
 		value: derived([state, farmer, slot], ([state, farmerId, slot]) => {
 			const item = inventory(state, farmerId)[slot];
 			return {
-				key: JSON.stringify([farmerId, item?.entityId]),
+				key: stringifySavedData([farmerId, item?.entityId])!,
 				value: item?.stack ?? 0,
 				revision: state.revision,
 				available: item?.editable ?? false,
@@ -81,7 +83,7 @@ export function inventory(state: HistoryState, farmerId: string): ItemView[] {
 	const farmer = farmers(state.document).find(
 		(farmer) => String(farmer.UniqueMultiplayerID) === farmerId,
 	);
-	return (farmer?.items.Item ?? []).map((raw, slot) => {
+	return (farmer?.items ?? []).map((raw, slot) => {
 		const item =
 			raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
 		return {
@@ -91,14 +93,14 @@ export function inventory(state: HistoryState, farmerId: string): ItemView[] {
 			name: String(item.name ?? "Empty"),
 			stack: typeof item.stack === "number" ? item.stack : 0,
 			editable:
-				item["@_xsi:type"] === "Object" &&
+				item.$type === "StardewValley.Object" &&
 				item.bigCraftable !== true &&
 				typeof item.stack === "number",
 		};
 	});
 }
 export const sameView = <A>(left: A, right: A) =>
-	JSON.stringify(left) === JSON.stringify(right);
+	stringifySavedData(left) === stringifySavedData(right);
 export const stackAction = (
 	farmerId: string,
 	item: ItemView | undefined,
@@ -112,41 +114,37 @@ export const stackAction = (
 	value,
 });
 
-export function inventoryFixture(): SaveDocument {
+export function inventoryFixture(): SaveDocument & {
+	SaveGame: { farmhands: HostFarmer[] };
+} {
 	const item = (itemId: string, name: string, stack: number) => ({
-		"@_xsi:type": "Object",
+		$type: "StardewValley.Object" as const,
 		itemId,
 		name,
 		stack,
 		quality: 0,
-		modData: { keep: "007" },
+		customModData: { keep: "007" },
 	});
 	return {
 		SaveGame: {
 			player: {
-				UniqueMultiplayerID: "host",
+				UniqueMultiplayerID: 1n,
+				$type: "StardewValley.Farmer",
 				name: "Host",
 				farmName: "Farm",
 				money: 10,
-				items: {
-					Item: [
-						item("72", "Diamond", 2),
-						item("388", "Wood", 50),
-						{ "@_xsi:nil": "true" },
-					],
+				items: [item("72", "Diamond", 2), item("388", "Wood", 50), null],
+			},
+			farmhands: [
+				{
+					UniqueMultiplayerID: 2n,
+					$type: "StardewValley.Farmer",
+					name: "Guest",
+					farmName: "Farm",
+					money: 20,
+					items: [item("390", "Stone", 12)],
 				},
-			},
-			farmhands: {
-				Farmer: [
-					{
-						UniqueMultiplayerID: "guest",
-						name: "Guest",
-						farmName: "Farm",
-						money: 20,
-						items: { Item: [item("390", "Stone", 12)] },
-					},
-				],
-			},
+			],
 		},
 	};
 }
@@ -157,7 +155,7 @@ export async function openInventory(
 	create: (
 		session: HistorySession,
 	) => Effect.Effect<InventoryModel, never, Scope.Scope>,
-	document = inventoryFixture(),
+	document: SaveDocument = inventoryFixture(),
 ) {
 	const scope = Scope.makeUnsafe();
 	try {

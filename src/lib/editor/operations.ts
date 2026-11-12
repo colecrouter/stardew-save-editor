@@ -1,5 +1,5 @@
 import { prepareBundleOperation } from "./bundle-operations.ts";
-import { Context, Effect } from "effect";
+import { Context, type Effect } from "effect";
 import { prepareCalendarOperation } from "./calendar-operations.ts";
 import {
 	type MutationError,

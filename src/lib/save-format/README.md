@@ -2,7 +2,7 @@
 
 The .NET tool inspects the game, resolves serialization rules, and emits static
 TypeScript codecs for the browser. This directory contains their browser runtime; integration and behavior tests
-live in `../tests`. There is no TypeScript catalog compiler or original-XML patching layer.
+live in `tools/game-data/tests` at the repository root. There is no TypeScript catalog compiler or original-XML patching layer.
 
 ## Generate
 
@@ -11,12 +11,12 @@ From the repository root:
 ```bash
 # One step: inspect the selected installation and generate a root codec.
 npm run game-data:generate -- --game-path "/path/to/Stardew Valley" \
-  --output tools/game-data/workspace/save.generated.ts
+  --output generated/save-format/save.ts
 
 # Or compile a reproducible catalog snapshot.
 npm run game-data:generate -- --catalog tools/game-data/workspace/catalog.json \
   --type StardewValley.SaveGame \
-  --output tools/game-data/workspace/save.generated.ts
+  --output generated/save-format/save.ts
 ```
 
 The default root is `StardewValley.SaveGame`. `--runtime` selects the runtime file
@@ -42,10 +42,12 @@ const output = Schema.encodeSync(XmlSchema)(edited);
 
 There are no `.value`/`.original` object envelopes, hidden symbols, identity maps,
 or XML templates. Ordinary objects expose their fields directly. Polymorphic
-references use `$type` with a CLR type ID; concrete references need no discriminator.
+references use `$type` with a CLR type ID; concrete references accept an omitted discriminator. References that also occur
+in polymorphic collections expose a consistent tag after decoding.
 Boxed scalars under `System.Object` use `{ $type: "System.Int32", value: 7 }`, since
 an untagged JavaScript number cannot distinguish CLR integer and floating types.
-The encoder generates `xsi:type`, `xsi:nil`, and their namespace declarations.
+NetEnum network fields expose their single enum-name string instead of an
+enumeration wrapper. The encoder generates `xsi:type`, `xsi:nil`, and their namespace declarations.
 
 New objects can be literals satisfying the generated type. The schemas enforce
 serialization constraints, not every gameplay invariant or constructor default.
@@ -61,7 +63,9 @@ may require more fields than deserializing a partial XML object.
 - Known fields convert in both directions. Unknown object properties remain ordinary
   cloneable data through an explicit rest record. A renamed known field owns its XML
   slot; ambiguous collisions fail rather than overwrite an unknown property.
-- Missing optional members, empty wrappers and null values remain distinct. Arrays
+- Missing optional members, empty wrappers and null values remain distinct where
+  the game distinguishes them. Absent NetRef values normalize to null and cleared
+  NetRefs serialize as omitted elements. Arrays
   retain null slot positions. Dictionaries are arrays of `{ key, value }` entries,
   retaining non-string keys and enforcing the registered CLR key comparer.
 - Numeric limits, Int64/UInt64 bigint precision, binary32 rounding, float special
@@ -79,15 +83,15 @@ may require more fields than deserializing a partial XML object.
   are supported. Generation never substitutes an unknown codec for an unsupported
   known type.
 
-The production application's import/export service still uses its existing codec.
-These generated codecs are the migrated game-data tool's output; switching the
-application's saved representation is a separate application migration.
+The production editor imports the committed generated codec directly. Its domain
+models use these plain values; the retained legacy editor continues to use its
+older parser independently.
 
 ## Structure
 
-- `../Compilation/Metadata.cs`: attribute interpretation and XML names.
-- `../Compilation/ContractResolver.cs`: effective values, fields and variants.
-- `../Compilation/TypeScriptEmitter.cs`: static declarations and lazy references.
+- `../../../tools/game-data/Compilation/Metadata.cs`: attribute interpretation and XML names.
+- `../../../tools/game-data/Compilation/ContractResolver.cs`: effective values, fields and variants.
+- `../../../tools/game-data/Compilation/TypeScriptEmitter.cs`: static declarations and lazy references.
 - `events.ts`, `xml.ts`: event readers/writers and the document boundary.
 - `objects.ts`, `values.ts`, `dictionary.ts`: object and collection codecs.
 - `scalars.ts`, `key-identities.ts`, `ordinal-ignore-case.ts`: scalar conversions
@@ -113,7 +117,7 @@ dotnet format tools/game-data --verify-no-changes --no-restore
 ```
 
 Preparation builds the CLI, regenerates the catalog fixture corpus under ignored
-`../tests/generated/`, and builds a small synthetic game assembly. Generated files are
+`tools/game-data/tests/generated/`, and builds a small synthetic game assembly. Generated files are
 type-checked rather than committed as snapshots. Behavior tests cover conversion,
 unknown data, creation/reordering, nullable slots, recursive contracts, boxed scalars,
 and key equality. An end-to-end test inspects the synthetic assembly, generates its
@@ -127,3 +131,22 @@ chunks and returns an Effect. It consumes each event as it arrives and retains
 only open reader frames and decoded data. It never calls the XML element-tree
 collector. The generated codecs must be regenerated after this runtime change
 so recursive references use `Xml.lazy`, which defers both schema and event handlers.
+
+## Production editor
+
+`generated/save-format/save.ts` is committed output used by the editor's save
+service. Normal application builds need neither game files nor .NET. The editor
+uses arrays for collections, `{ key, value }` dictionary entries, `null` for empty
+inventory slots, and exact `bigint` values for CLR 64-bit integers. Network field
+wrappers are handled by the codec; they do not appear as one-element arrays in the
+editor. Concrete equipment references expose the same `$type` as inventory items.
+
+The codec writes canonical XML, including necessary nil/type attributes. It does
+not preserve whitespace, comments, numeric spelling, or attribute order. Unknown
+object fields retain their generic XML representation. Unsupported known values
+fail decoding instead of entering a partially typed editor model.
+
+Unrecognized types at polymorphic boundaries use an explicit `$unknown` tag plus
+`$xmlType` (name and namespace). Their fields remain generic and opaque to typed
+editing; serialization retains the unknown type instead of substituting a base
+class. This is semantic type information, not an original-document sidecar.

@@ -1,3 +1,4 @@
+import { savedType } from "./saved-types.ts";
 const record = (value: unknown): value is Record<string, unknown> =>
 	value !== null && typeof value === "object" && !Array.isArray(value);
 /** Read-only destination policy shared by quest previews and reward authorization.
@@ -8,7 +9,7 @@ export function prizeTicketDestination(
 	const stackSlot = slots.findIndex(
 		(item) =>
 			record(item) &&
-			item["@_xsi:type"] === "Object" &&
+			savedType(item) === "Object" &&
 			(item.quality === undefined || item.quality === 0) &&
 			(item.orderData === undefined || item.orderData === "") &&
 			(item.name === undefined || item.name === "Prize Ticket") &&
@@ -21,11 +22,6 @@ export function prizeTicketDestination(
 			item.stack < 999,
 	);
 	if (stackSlot >= 0) return { kind: "stack", slot: stackSlot };
-	const slot = slots.findIndex(
-		(item) =>
-			record(item) &&
-			Object.keys(item).length === 1 &&
-			String(item["@_xsi:nil"]) === "true",
-	);
+	const slot = slots.indexOf(null);
 	return slot < 0 ? undefined : { kind: "empty", slot };
 }

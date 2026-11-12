@@ -1,3 +1,7 @@
+import {
+	catalogFixture,
+	malformedFixture,
+} from "../helpers/editor-document.ts";
 import { describe, expect, it } from "vitest";
 import { Effect, Result } from "effect";
 import {
@@ -13,6 +17,8 @@ import {
 } from "../../src/lib/editor/inventory-operations";
 import { makeHistorySession } from "../../src/lib/editor/history";
 import { TransactionDraft } from "../../src/lib/editor/transaction-draft";
+import { canEquipItem } from "../../src/lib/editor/equipment";
+import { getInventoryItemCapabilities } from "../../src/lib/editor/inventory-operations";
 import { createCatalogItem } from "../../src/lib/editor/item-catalog";
 import { tinyFixture, fixtureXml, parser } from "./fixtures";
 
@@ -28,16 +34,16 @@ function item(name: string) {
 }
 function fixture() {
 	const document = tinyFixture();
-	document.SaveGame.player.items.Item = [
-		item("Sneakers"),
+	document.SaveGame.player.items = [
+		catalogFixture(item("Sneakers"), "StardewValley.Objects.Boots"),
 		item("Rusty Sword"),
 		item("Parsnip"),
 		item("Watering Can"),
-		{ "@_xsi:nil": "true", modEmpty: "007" },
+		malformedFixture({ "@_xsi:nil": "true", modEmpty: "007" }),
 	];
 	document.SaveGame.player.boots = {
-		...item("Sneakers"),
-		modData: { tailored: "007" },
+		...catalogFixture(item("Sneakers"), "StardewValley.Objects.Boots"),
+		customModData: { tailored: "007" },
 		immunityBonus: 777,
 	};
 	document.SaveGame.player.shirtItem = structuredClone(
@@ -49,7 +55,7 @@ const change = (
 	entityId: string,
 	property: ItemPropertyChange["property"],
 	value: unknown,
-	ownerId = "host",
+	ownerId = "1",
 ) => {
 	const decoded = decodeItemPropertyChange({
 		ownerId,
@@ -68,7 +74,7 @@ describe("bounded inventory property edits", () => {
 				const original = fixture();
 				const session = yield* makeHistorySession(original);
 				const before = yield* session.snapshot;
-				const id = required(before.equipmentIdentities.host?.boots);
+				const id = required(before.equipmentIdentities["1"]?.boots);
 				yield* session.transact(
 					setInventoryItemProperty(change(id, "defenseBonus", 7)),
 				);
@@ -92,16 +98,16 @@ describe("bounded inventory property edits", () => {
 		run(
 			Effect.gen(function* () {
 				const original = fixture();
-				const can = original.SaveGame.player.items.Item[3] as Record<
+				const can = original.SaveGame.player.items[3] as Record<
 					string,
 					unknown
 				>;
 				can.IsBottomless = false;
 				const session = yield* makeHistorySession(original);
 				const before = yield* session.snapshot;
-				const sword = required(before.identities.host?.[1]),
-					parsnip = required(before.identities.host?.[2]),
-					watering = required(before.identities.host?.[3]);
+				const sword = required(before.identities["1"]?.[1]),
+					parsnip = required(before.identities["1"]?.[2]),
+					watering = required(before.identities["1"]?.[3]);
 				const requests = [
 					change(sword, "minDamage", 8),
 					change(sword, "addedPrecision", 4),
@@ -114,17 +120,17 @@ describe("bounded inventory property edits", () => {
 				for (const request of requests)
 					yield* session.transact(setInventoryItemProperty(request));
 				const expected = structuredClone(original);
-				Object.assign(expected.SaveGame.player.items.Item[1]!, {
+				Object.assign(expected.SaveGame.player.items[1]!, {
 					minDamage: 8,
 					addedPrecision: 4,
 					critChance: 0.25,
 					knockback: 1.5,
 				});
-				Object.assign(expected.SaveGame.player.items.Item[2]!, {
+				Object.assign(expected.SaveGame.player.items[2]!, {
 					price: 999,
 					edibility: -7,
 				});
-				Object.assign(expected.SaveGame.player.items.Item[3]!, {
+				Object.assign(expected.SaveGame.player.items[3]!, {
 					isBottomless: true,
 					IsBottomless: true,
 				});
@@ -155,7 +161,7 @@ describe("bounded inventory property edits", () => {
 				yield* session.transact(
 					setInventoryItemProperty(
 						change(
-							required(before.equipmentIdentities.host?.shirtItem),
+							required(before.equipmentIdentities["1"]?.shirtItem),
 							"clothesColor",
 							"#aabbcc",
 						),
@@ -185,7 +191,7 @@ describe("bounded inventory property edits", () => {
 		));
 	it("does not advertise or initialize missing, malformed, unsupported or prismatic properties", () => {
 		const boots = {
-			...item("Sneakers"),
+			...catalogFixture(item("Sneakers"), "StardewValley.Objects.Boots"),
 			defenseBonus: undefined,
 			immunityBonus: "custom",
 		};
@@ -193,7 +199,7 @@ describe("bounded inventory property edits", () => {
 		expect(
 			getItemPropertyFields(
 				{
-					"@_xsi:type": "Clothing",
+					$type: "StardewValley.Objects.Clothing",
 					isPrismatic: true,
 					clothesColor: { R: 0, G: 0, B: 0, A: 255 },
 				},
@@ -202,35 +208,45 @@ describe("bounded inventory property edits", () => {
 		).toEqual([]);
 		expect(
 			getItemPropertyFields(
-				{ "@_xsi:type": "ColoredObject", color: { R: 1, G: 2, B: 3 } },
+				{
+					$type: "StardewValley.Objects.ColoredObject",
+					color: { R: 1, G: 2, B: 3 },
+				},
 				{ _type: "Object" },
 			),
 		).toEqual([]);
 		expect(
-			getItemPropertyFields(item("Sneakers"), { _type: "Object" }),
+			getItemPropertyFields(
+				catalogFixture(item("Sneakers"), "StardewValley.Objects.Boots"),
+				{ _type: "Object" },
+			),
 		).toEqual([]);
-		expect(getItemPropertyFields(item("Sneakers"))).toEqual([]);
+		expect(
+			getItemPropertyFields(
+				catalogFixture(item("Sneakers"), "StardewValley.Objects.Boots"),
+			),
+		).toEqual([]);
 	});
 	it("validates own request values and rejects cross-family, missing-field and stale-owner writes without publication", () =>
 		run(
 			Effect.gen(function* () {
 				for (const input of [
 					{
-						ownerId: "host",
+						ownerId: "1",
 						entityId: "id",
 						property: "defenseBonus",
 						value: 100,
 					},
-					{ ownerId: "host", entityId: "id", property: "price", value: -1 },
+					{ ownerId: "1", entityId: "id", property: "price", value: -1 },
 					{
-						ownerId: "host",
+						ownerId: "1",
 						entityId: "id",
 						property: "minDamage",
 						value: 0.5,
 					},
-					{ ownerId: "host", entityId: "id", property: "color", value: "bad" },
+					{ ownerId: "1", entityId: "id", property: "color", value: "bad" },
 					Object.create({
-						ownerId: "host",
+						ownerId: "1",
 						entityId: "id",
 						property: "defenseBonus",
 						value: 1,
@@ -240,8 +256,8 @@ describe("bounded inventory property edits", () => {
 				const session = yield* makeHistorySession(fixture());
 				const before = yield* session.snapshot;
 				for (const request of [
-					change(required(before.identities.host?.[1]), "defenseBonus", 2),
-					change(required(before.identities.host?.[0]), "price", 2),
+					change(required(before.identities["1"]?.[1]), "defenseBonus", 2),
+					change(required(before.identities["1"]?.[0]), "price", 2),
 					change("missing", "defenseBonus", 2),
 				]) {
 					expect(
@@ -260,21 +276,20 @@ describe("bounded inventory property edits", () => {
 			Effect.gen(function* () {
 				const original = fixture();
 				const guest = required(
-					(original.SaveGame.farmhands &&
-						original.SaveGame.farmhands.Farmer[0]) ||
+					(original.SaveGame.farmhands && original.SaveGame.farmhands[0]) ||
 						undefined,
 				);
-				guest.items.Item = [{ "@_xsi:nil": "true" }];
+				guest.items = [null];
 				const session = yield* makeHistorySession(original);
 				const before = yield* session.snapshot;
-				const bootsId = required(before.equipmentIdentities.host?.boots);
+				const bootsId = required(before.equipmentIdentities["1"]?.boots);
 				yield* session.execute([
 					{
 						type: "backpack-move",
-						ownerId: "host",
+						ownerId: "1",
 						entityId: bootsId,
-						toOwnerId: "guest",
-						toEntityId: required(before.identities.guest?.[0]),
+						toOwnerId: "2",
+						toEntityId: required(before.identities["2"]?.[0]),
 					},
 				]);
 				const moved = yield* session.snapshot;
@@ -289,15 +304,11 @@ describe("bounded inventory property edits", () => {
 				).toBe(true);
 				expect(yield* session.snapshot).toEqual(moved);
 				yield* session.transact(
-					setInventoryItemProperty(change(bootsId, "defenseBonus", 6, "guest")),
+					setInventoryItemProperty(change(bootsId, "defenseBonus", 6, "2")),
 				);
 				expect(
 					(yield* session.snapshot).document.SaveGame.farmhands,
-				).toMatchObject({
-					Farmer: [
-						{ items: { Item: [{ defenseBonus: 6, immunityBonus: 777 }] } },
-					],
-				});
+				).toMatchObject([{ items: [{ defenseBonus: 6, immunityBonus: 777 }] }]);
 				yield* session.undo;
 				yield* session.undo;
 				expect((yield* session.snapshot).document).toEqual(original);
@@ -312,14 +323,14 @@ describe("bounded inventory property edits", () => {
 					const draft = yield* TransactionDraft;
 					const snapshot = yield* draft.read;
 					(
-						snapshot.state.document.SaveGame.player.items.Item[1] as Record<
+						snapshot.state.document.SaveGame.player.items[1] as Record<
 							string,
 							unknown
 						>
-					)["@_xsi:type"] = "Boots";
+					).$type = "StardewValley.Objects.Boots";
 					yield* draft.replace(snapshot);
 					yield* setInventoryItemProperty(
-						change(required(before.identities.host?.[1]), "defenseBonus", 3),
+						change(required(before.identities["1"]?.[1]), "defenseBonus", 3),
 					);
 				});
 				expect(
@@ -332,15 +343,20 @@ describe("bounded inventory property edits", () => {
 		run(
 			Effect.gen(function* () {
 				const original = fixture();
-				original.SaveGame.player.trinketItem = {
-					...item("FairyBox"),
-					generationSeed: 1,
-				};
+				original.SaveGame.player.trinketItem = [
+					{
+						...catalogFixture(
+							item("FairyBox"),
+							"StardewValley.Objects.Trinket",
+						),
+						generationSeed: 1,
+					},
+				];
 				original.SaveGame.useLegacyRandom = false;
 				original.SaveGame.player.totalMoneyEarned = 1000;
 				const session = yield* makeHistorySession(original);
 				const before = yield* session.snapshot;
-				const id = required(before.equipmentIdentities.host?.trinketItem);
+				const id = required(before.equipmentIdentities["1"]?.trinketItem);
 				for (const first of [true, false]) {
 					const attempt = Effect.gen(function* () {
 						const draft = yield* TransactionDraft;
@@ -367,10 +383,7 @@ it("reads the game's effective Bottomless alias and edits only existing mirrors"
 	run(
 		Effect.gen(function* () {
 			const original = fixture();
-			const can = original.SaveGame.player.items.Item[3] as Record<
-				string,
-				unknown
-			>;
+			const can = original.SaveGame.player.items[3] as Record<string, unknown>;
 			can.isBottomless = false;
 			can.IsBottomless = true;
 			expect(
@@ -382,11 +395,11 @@ it("reads the game's effective Bottomless alias and edits only existing mirrors"
 			const before = yield* session.snapshot;
 			yield* session.transact(
 				setInventoryItemProperty(
-					change(required(before.identities.host?.[3]), "isBottomless", false),
+					change(required(before.identities["1"]?.[3]), "isBottomless", false),
 				),
 			);
 			expect(
-				(yield* session.snapshot).document.SaveGame.player.items.Item[3],
+				(yield* session.snapshot).document.SaveGame.player.items[3],
 			).toMatchObject({ isBottomless: false, IsBottomless: false });
 			yield* session.undo;
 			expect((yield* session.snapshot).document).toEqual(original);
@@ -396,14 +409,14 @@ it("reads the game's effective Bottomless alias and edits only existing mirrors"
 			yield* upperOnly.transact(
 				setInventoryItemProperty(
 					change(
-						required(upperBefore.identities.host?.[3]),
+						required(upperBefore.identities["1"]?.[3]),
 						"isBottomless",
 						false,
 					),
 				),
 			);
 			const upperAfter = (yield* upperOnly.snapshot).document.SaveGame.player
-				.items.Item[3] as Record<string, unknown>;
+				.items[3] as Record<string, unknown>;
 			expect(upperAfter.IsBottomless).toBe(false);
 			expect(Object.hasOwn(upperAfter, "isBottomless")).toBe(false);
 			can.IsBottomless = "custom";
@@ -418,7 +431,7 @@ it("rolls back a compound property attempt and closes escaped property authority
 			const before = yield* session.snapshot;
 			let captured: typeof InventoryEdits.Service | undefined;
 			const request = change(
-				required(before.equipmentIdentities.host?.boots),
+				required(before.equipmentIdentities["1"]?.boots),
 				"defenseBonus",
 				9,
 			);
@@ -444,14 +457,16 @@ it("guards owner income as trinket authorization context before and after an edi
 	run(
 		Effect.gen(function* () {
 			const original = fixture();
-			original.SaveGame.player.trinketItem = {
-				...item("ParrotEgg"),
-				generationSeed: 1,
-			};
+			original.SaveGame.player.trinketItem = [
+				{
+					...catalogFixture(item("ParrotEgg"), "StardewValley.Objects.Trinket"),
+					generationSeed: 1,
+				},
+			];
 			original.SaveGame.player.totalMoneyEarned = 0;
 			const session = yield* makeHistorySession(original);
 			const before = yield* session.snapshot;
-			const id = required(before.equipmentIdentities.host?.trinketItem);
+			const id = required(before.equipmentIdentities["1"]?.trinketItem);
 			for (const mutateBefore of [true, false]) {
 				const attempt = Effect.gen(function* () {
 					const draft = yield* TransactionDraft;
@@ -480,18 +495,18 @@ it("edits colored-object stack and quality without touching color or opaque meta
 	run(
 		Effect.gen(function* () {
 			const original = fixture();
-			original.SaveGame.player.items.Item[2] = {
-				...item("Parsnip"),
-				"@_xsi:type": "ColoredObject",
+			original.SaveGame.player.items[2] = {
+				...catalogFixture(item("Parsnip"), "StardewValley.Object"),
+				$type: "StardewValley.Objects.ColoredObject",
 				color: { R: 1, G: 2, B: 3, A: 77, opaque: "007" },
-				modData: { custom: false },
+				customModData: { custom: false },
 			};
 			const session = yield* makeHistorySession(original);
 			const before = yield* session.snapshot;
-			const entityId = required(before.identities.host?.[2]);
+			const entityId = required(before.identities["1"]?.[2]);
 			yield* session.transact(
 				setInventoryItem({
-					ownerId: "host",
+					ownerId: "1",
 					entityId,
 					property: "stack",
 					value: 18,
@@ -499,14 +514,14 @@ it("edits colored-object stack and quality without touching color or opaque meta
 			);
 			yield* session.transact(
 				setInventoryItem({
-					ownerId: "host",
+					ownerId: "1",
 					entityId,
 					property: "quality",
 					value: 4,
 				}),
 			);
 			const expected = structuredClone(original);
-			Object.assign(expected.SaveGame.player.items.Item[2]!, {
+			Object.assign(expected.SaveGame.player.items[2]!, {
 				stack: 18,
 				quality: 4,
 			});
@@ -528,9 +543,30 @@ it("uses missing game defaults but refuses malformed trinket context without rep
 		readItemPropertyContext(document, document.SaveGame.player),
 	).toBeUndefined();
 	document.SaveGame.player.totalMoneyEarned = 0;
-	document.SaveGame.useLegacyRandom = "false";
+	document.SaveGame.useLegacyRandom = malformedFixture("false");
 	expect(
 		readItemPropertyContext(document, document.SaveGame.player),
 	).toBeUndefined();
 	expect(document.SaveGame.useLegacyRandom).toBe("false");
+});
+
+// A mod can reuse a built-in XML name in a different namespace. Its opaque
+// payload must not gain editing capabilities from that familiar name.
+it("keeps unknown namespaced item classes opaque", () => {
+	const boots = {
+		...catalogFixture(item("Sneakers"), "StardewValley.Objects.Boots"),
+		$type: "$unknown",
+		$xmlType: { name: "Boots", namespace: "urn:mod" },
+	};
+	expect(getItemPropertyFields(boots, { _type: "Boots" })).toEqual([]);
+	expect(canEquipItem(boots, "boots")).toBe(false);
+	const object = {
+		...catalogFixture(item("Parsnip"), "StardewValley.Object"),
+		$type: "$unknown",
+		$xmlType: { name: "Object", namespace: "urn:mod" },
+	};
+	expect(getInventoryItemCapabilities(object, true, true)).toEqual({
+		canStack: false,
+		canQuality: false,
+	});
 });

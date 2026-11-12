@@ -87,8 +87,8 @@ test("compound success updates all farmers once and duplicate IDs are rejected",
 		),
 	);
 	const duplicate = tinyFixture();
-	farmers(duplicate)[1].UniqueMultiplayerID = "host";
-	const invalid = { type: "money", farmerId: "host", value: 100 } as const;
+	farmers(duplicate)[1].UniqueMultiplayerID = 1n;
+	const invalid = { type: "money", farmerId: "1", value: 100 } as const;
 	assert.throws(
 		() => new PlainSession(duplicate).execute(invalid),
 		MutationError,
@@ -114,8 +114,8 @@ test("invalid IDs, money, and permutations fail without changes in both implemen
 	const document = tinyFixture();
 	const actions = [
 		{ type: "money", farmerId: "missing", value: 100 } as const,
-		{ type: "money", farmerId: "host", value: Number.NaN } as const,
-		{ type: "reorder", ownerId: "host", order: [0, 0, 2] } as const,
+		{ type: "money", farmerId: "1", value: Number.NaN } as const,
+		{ type: "reorder", ownerId: "1", order: [0, 0, 2] } as const,
 	];
 	const plain = new PlainSession(document);
 	await Effect.runPromise(
@@ -138,16 +138,16 @@ test("invalid IDs, money, and permutations fail without changes in both implemen
 test("reorder preserves opaque, empty, and hidden entries; no-op creates no history", async () => {
 	const document = tinyFixture();
 	const plain = new PlainSession(document);
-	plain.execute({ type: "money", farmerId: "host", value: 10 });
+	plain.execute({ type: "money", farmerId: "1", value: 10 });
 	assert.equal(plain.snapshot().history.length, 0);
 	const result = plain.execute({
 		type: "reorder",
-		ownerId: "host",
+		ownerId: "1",
 		order: [2, 1, 0],
 	});
 	assert.deepEqual(
-		result.document.SaveGame.player.items.Item,
-		[...document.SaveGame.player.items.Item].reverse(),
+		result.document.SaveGame.player.items,
+		[...document.SaveGame.player.items].reverse(),
 	);
 	result.document.SaveGame.player.money = 999;
 	assert.equal(plain.snapshot().document.SaveGame.player.money, 10);
@@ -176,7 +176,7 @@ test("concurrent submissions serialize and closing a scope rejects future edits"
 					Array.from({ length: 20 }, (_, i) =>
 						session.execute({
 							type: "money",
-							farmerId: "host",
+							farmerId: "1",
 							value: 100 + i,
 						}),
 					),
@@ -190,7 +190,7 @@ test("concurrent submissions serialize and closing a scope rejects future edits"
 	assert.equal(
 		Exit.isFailure(
 			await Effect.runPromiseExit(
-				escaped.execute({ type: "money", farmerId: "host", value: 5 }),
+				escaped.execute({ type: "money", farmerId: "1", value: 5 }),
 			),
 		),
 		true,
@@ -198,7 +198,7 @@ test("concurrent submissions serialize and closing a scope rejects future edits"
 	const plain = new PlainSession(document);
 	plain.close();
 	assert.throws(
-		() => plain.execute({ type: "money", farmerId: "host", value: 5 }),
+		() => plain.execute({ type: "money", farmerId: "1", value: 5 }),
 		MutationError,
 	);
 });
@@ -206,11 +206,11 @@ test("concurrent submissions serialize and closing a scope rejects future edits"
 test("changes outside the targeted farmer are absent, including farmhand money", () => {
 	const document = tinyFixture();
 	const plain = new PlainSession(document);
-	const state = plain.execute({ type: "money", farmerId: "guest", value: 40 });
+	const state = plain.execute({ type: "money", farmerId: "2", value: 40 });
 	assert.equal(state.document.SaveGame.player.money, 10);
 	assert.deepEqual(
 		diff(document, state.document).map((c) => c.path),
-		["/SaveGame/farmhands/Farmer"],
+		["/SaveGame/farmhands"],
 	);
 });
 
@@ -229,7 +229,7 @@ test("store contract emits synchronously, observes commits, and cleans up with s
 					value.document.SaveGame.player.name = "View only";
 				});
 				assert.ok(notifications >= 1);
-				yield* session.execute({ type: "money", farmerId: "host", value: 25 });
+				yield* session.execute({ type: "money", farmerId: "1", value: 25 });
 				yield* Deferred.await(changed);
 				assert.equal(
 					(yield* session.snapshot).document.SaveGame.player.name,

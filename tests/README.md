@@ -3,6 +3,9 @@
 - `npm test`: application/domain/component and retained legacy regressions (Vitest,
   happy-dom). Files named `e2e` here are integration tests, not real-browser tests.
 - `npm run test:editor`: the narrower application editor suite.
+- `npm run test:game-data`: .NET 10 inspection/generation, generated-module
+  type checks, XML codec behavior, and synthetic XmlSerializer interoperability.
+  It rebuilds ignored test output; no game installation is required.
 - `npm ci --prefix tests/engine`, then `npm test --prefix tests/engine`: engine
   contracts plus native Node import/codec checks. This package uses Vitest 5 because
   the Effect test adapter requires it; the application runner remains Vitest 3. The Node platform shared package is pinned

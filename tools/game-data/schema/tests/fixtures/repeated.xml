@@ -1,5 +1,0 @@
-<Container xmlns:i="http://www.w3.org/2001/XMLSchema-instance" xmlns:p="urn:pets">
-<Pet i:type="p:Hound" mod="keep"><Name>Rex</Name><BarkCount>0003</BarkCount><!-- keep --><future>unknown</future></Pet>
-<animal i:type="Kitten"><Name>Miso</Name><Lives>9</Lives></animal><future-list>keep</future-list><animal><Name>Base</Name></animal>
-<score flag="keep">0007</score><!-- between scores --><future-score>keep</future-score><score>8</score><Holder><Note>known types declared elsewhere</Note></Holder>
-</Container>

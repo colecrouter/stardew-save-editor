@@ -46,8 +46,9 @@ Event names aren't in the game files: they're kept by hand in `src/lib/wiki/even
 
 ### Inspecting game assemblies
 
-The standalone .NET CLI under `tools/game-data/extractor` inspects XML serialization
-metadata, compares catalogs with saves, and wraps StardewXnbHack for asset exports.
+The standalone .NET CLI under `tools/game-data` inspects XML serialization
+metadata, compares catalogs with saves, generates typed TypeScript XML codecs, and wraps
+StardewXnbHack for asset exports.
 See [game data tooling](tools/game-data/README.md) for setup, commands, input storage,
 and validation limits. It does not change the existing `content/` codegen workflow.
 

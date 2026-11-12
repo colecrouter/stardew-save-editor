@@ -21,14 +21,13 @@
 		"sync": "svelte-kit sync",
 		"check:codegen": "node node_modules/@typescript/native/bin/tsc --noEmit -p codegen/tsconfig.json",
 		"postinstall": "patch-package --error-on-fail",
-		"game-data:schema": "node tools/game-data/schema/cli.ts",
-		"test:game-data:schema": "node --test tools/game-data/schema/*.test.ts",
-		"check:game-data:schema": "node node_modules/@typescript/native/bin/tsc --noEmit -p tools/game-data/schema/tsconfig.json"
+		"game-data:generate": "dotnet run --project tools/game-data -- generate",
+		"test:game-data": "node tools/game-data/tests/prepare.mjs && node node_modules/@typescript/native/bin/tsc --noEmit -p tools/game-data/tsconfig.json && node --test tools/game-data/tests/*.node.ts",
+		"check:game-data": "node tools/game-data/tests/prepare.mjs && node node_modules/@typescript/native/bin/tsc --noEmit -p tools/game-data/tsconfig.json"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.4.4",
 		"@effect/language-service": "0.87.5",
-		"@effect/platform-node": "4.0.6",
 		"@effect/tsgo": "0.56.1",
 		"@sentry/sveltekit": "^10.53.1",
 		"@sveltejs/adapter-static": "^3.0.10",
@@ -75,9 +74,6 @@
 		"effect": "4.0.6",
 		"effect-atom-svelte": "0.4.1",
 		"mutative": "2.0.1"
-	},
-	"overrides": {
-		"@effect/platform-node-shared": "4.0.6"
 	},
 	"allowScripts": {
 		"@sentry/cli@2.58.5": true,

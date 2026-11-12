@@ -1,5 +1,0 @@
-<Container xmlns:i="http://www.w3.org/2001/XMLSchema-instance" xmlns:p="urn:pets">
-<Pet i:type="p:Hound" mod="keep"><Name>Rex</Name><BarkCount>0003</BarkCount><!-- keep --><future>unknown</future></Pet>
-<Pets><Animal i:type="Kitten"><Name>Miso</Name><Lives>9</Lives></Animal><future-list>keep</future-list><Animal i:type="Kitten"><Name>Other</Name><Lives>8</Lives></Animal></Pets>
-<Holder><Note>known types declared elsewhere</Note></Holder>
-<Items mod="inventory"><Item i:type="p:Hound" mod="dog"><Name>Rex</Name><BarkCount>0003</BarkCount><unknown-item>keep</unknown-item></Item><Item i:nil="1" mod="empty"><!-- empty note --></Item><future-inventory>keep</future-inventory><Item i:type="Kitten" i:nil="0"><Name>Miso</Name><Lives>9</Lives></Item></Items><Wallets><SerializableDictionaryOfInt64Inventory mod="wallet"><item><key><long>00042</long></key><value><items><Item i:nil="true" mod="slot"/></items></value><future-entry>keep</future-entry></item><future-dictionary>keep</future-dictionary></SerializableDictionaryOfInt64Inventory><future-wallet>keep</future-wallet></Wallets></Container>

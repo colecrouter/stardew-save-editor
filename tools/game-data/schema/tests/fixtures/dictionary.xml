@@ -1,6 +1,0 @@
-<Container xmlns:i="http://www.w3.org/2001/XMLSchema-instance" xmlns:p="urn:pets">
-<Pet i:type="p:Hound" mod="keep"><Name>Rex</Name><BarkCount>0003</BarkCount><!-- keep --><future>unknown</future></Pet>
-<Pets><Animal i:type="Kitten"><Name>Miso</Name><Lives>9</Lives></Animal><future-list>keep</future-list><Animal><Name>Base</Name></Animal></Pets>
-<Holder><Note>known types declared elsewhere</Note></Holder>
-<Labels flag="dictionary"><item mod="entry"><key flag="key"><string>SomeMod/Setting</string><!-- key note --></key><value flag="value"><string>enabled</string><future-payload>keep</future-payload></value><!-- entry note --><future-entry>keep</future-entry></item><future-dictionary>keep</future-dictionary></Labels>
-<Animals><item><key><string>pet</string></key><value><Animal i:type="p:Hound"><Name>Rex</Name><BarkCount>0003</BarkCount><future-dog>keep</future-dog></Animal></value></item></Animals></Container>

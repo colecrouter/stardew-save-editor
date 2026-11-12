@@ -4,3 +4,6 @@
 
 # Local game inspection/export artifacts; never commit binary-derived work inputs.
 /workspace/
+
+# Rebuilt by the game-data test preparation command.
+/tests/generated/

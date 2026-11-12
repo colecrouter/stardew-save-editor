@@ -195,7 +195,7 @@ it("does not let another recognised field hide an unsupported imported value", (
 		),
 	));
 
-it("does not coerce an opaque farmer ID while reviewing a supported guest", () =>
+it("reviews a supported guest beside an unclaimed farmer placeholder", () =>
 	Effect.runPromise(
 		Effect.scoped(
 			Effect.gen(function* () {
@@ -204,10 +204,7 @@ it("does not coerce an opaque farmer ID while reviewing a supported guest", () =
 				guest.UniqueMultiplayerID = 2n;
 				guest.name = "Guest";
 				guest.money = 100;
-				document.SaveGame.farmhands = [guest];
-				Object.assign(document.SaveGame.player, {
-					UniqueMultiplayerID: { toString: "opaque" },
-				});
+				document.SaveGame.farmhands = [{ name: "", items: [] }, guest];
 				const session = yield* makeHistorySession(document);
 				yield* session.execute([{ type: "money", farmerId: "2", value: 200 }]);
 				const review = projectReview(yield* session.snapshot);

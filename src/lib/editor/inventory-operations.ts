@@ -1,4 +1,3 @@
-import { readCatalogItem } from "../ItemData.ts";
 import { readEquipmentSlot } from "./equipment.ts";
 import { savedType } from "./saved-types.ts";
 import { create as createCopyOnWrite } from "mutative";
@@ -640,7 +639,7 @@ export function makeInventoryEdits(
 			scalarKey(item.preservedParentSheetIndex) &&
 			(item.name == null || typeof item.name === "string");
 		const info = supported
-			? catalog.ResolveItemData(readCatalogItem(item) ?? {})
+			? catalog.ResolveItemData(catalog.readCatalogItem(item) ?? {})
 			: undefined;
 		return { catalog, info };
 	};

@@ -1,5 +1,6 @@
 import { isHostFarmer } from "../../src/lib/editor/domain.ts";
 import { Schema } from "effect";
+import { getFixtureBaseline } from "./fixture-context.ts";
 import {
 	XmlSchema,
 	type Value,
@@ -15,12 +16,15 @@ import type {
 
 // Use the production codec, including equipment types and XML normalization.
 
-// Most editor tests reuse the same public save. Decode that baseline once per
-// worker and clone it for each scenario; codec tests exercise fresh parsing.
+// Vitest provides the public baseline decoded once for the run. Standalone Node
+// callers and modified XML use a small local cache; every caller gets a clone.
 const parsedFixtures = new Map<string, SaveDocument>();
 export const parser = {
 	parse(xml: string): SaveDocument {
-		const cached = parsedFixtures.get(xml);
+		// Vite's raw loader retains the BOM while TextDecoder removes it. Both
+		// entry paths must address the same prepared baseline and codec input.
+		if (xml.charCodeAt(0) === 0xfeff) xml = xml.slice(1);
+		const cached = getFixtureBaseline(xml) ?? parsedFixtures.get(xml);
 		if (cached) return structuredClone(cached);
 		const saved = Schema.decodeSync(XmlSchema)(xml);
 		const { player, farmhands } = saved;
@@ -32,8 +36,10 @@ export const parser = {
 		};
 		// Bound fixture retention while keeping each test's mutable document isolated.
 		parsedFixtures.set(xml, structuredClone(document));
-		if (parsedFixtures.size > 4)
-			parsedFixtures.delete(parsedFixtures.keys().next().value!);
+		if (parsedFixtures.size > 4) {
+			const oldest = parsedFixtures.keys().next().value;
+			if (oldest !== undefined) parsedFixtures.delete(oldest);
+		}
 		return document;
 	},
 };
@@ -71,6 +77,26 @@ export function tinyFixture(): TinyDocument {
 			],
 		},
 	};
+}
+
+/** Minimal model fixture: the full editor also projects a calendar and world seed.
+ * Domain-only tests can keep using tinyFixture without unrelated world defaults. */
+export function tinyEditorFixture(): TinyDocument {
+	const document = tinyFixture();
+	Object.assign(document.SaveGame, {
+		gameVersion: "1.6.8",
+		year: 1,
+		currentSeason: "spring",
+		dayOfMonth: 1,
+		uniqueIDForThisGame: 1n,
+	});
+	// Export validation requires both base locations even when a UI scenario
+	// does not edit the world. Keep their contents empty and explicit.
+	document.SaveGame.locations = [
+		{ $type: "StardewValley.Farm", name: "Farm" },
+		{ $type: "StardewValley.Locations.FarmHouse", name: "FarmHouse" },
+	];
+	return document;
 }
 export function scenarios(document: SaveDocument): ResolvedMutation[] {
 	const farmer = document.SaveGame.player;

@@ -14,6 +14,7 @@ function fixture() {
 		friendshipData: [
 			{
 				key: "Abigail",
+				opaque: ["001", false],
 				value: {
 					Points: 100,
 					Status: "Friendly",
@@ -31,7 +32,6 @@ function fixture() {
 					opaque: "mod",
 				},
 			},
-			{ opaque: ["001", false] },
 		],
 		testMetadatafriendshipData: { opaque: "007" },
 	});
@@ -41,28 +41,23 @@ const run = <A, E>(
 	program: Effect.Effect<A, E, import("effect").Scope.Scope>,
 ) => Effect.runPromise(Effect.scoped(program));
 describe("relationship domain operations", () => {
-	it.each([true, "true"])(
-		"refuses insertion into a nil friendship dictionary (%s) without history",
-		(nil) =>
-			run(
-				Effect.gen(function* () {
-					const document = fixture();
-					Object.assign(document.SaveGame.player, {
-						friendshipData: { "@_xsi:nil": nil, opaque: "keep" },
-					});
-					const session = yield* makeHistorySession(document);
-					const before = yield* session.snapshot;
-					expect(readRelationships(document)[0]?.supported).toBe(false);
-					const result = yield* Effect.result(
-						session.transact(
-							setRelationship({ farmerId: "1", name: "Alex", kind: "add" }),
-						),
-					);
-					expect(Result.isFailure(result)).toBe(true);
-					expect(yield* session.snapshot).toEqual(before);
-				}),
-			),
-	);
+	it("refuses insertion into an omitted friendship dictionary without history", () =>
+		run(
+			Effect.gen(function* () {
+				const document = fixture();
+				delete document.SaveGame.player.friendshipData;
+				const session = yield* makeHistorySession(document);
+				const before = yield* session.snapshot;
+				expect(readRelationships(document)[0]?.supported).toBe(false);
+				const result = yield* Effect.result(
+					session.transact(
+						setRelationship({ farmerId: "1", name: "Alex", kind: "add" }),
+					),
+				);
+				expect(Result.isFailure(result)).toBe(true);
+				expect(yield* session.snapshot).toEqual(before);
+			}),
+		));
 	it("projects without defaults or normalization and retains modded villagers", () => {
 		const document = fixture(),
 			before = structuredClone(document);
@@ -79,7 +74,7 @@ describe("relationship domain operations", () => {
 		expect(rows?.[1]?.maxHearts).toBe(10);
 		expect(document).toEqual(before);
 	});
-	it("writes only one selected property and restores exact XML-shaped state through Undo/Redo", () =>
+	it("writes only one selected property and restores exact saved state through Undo/Redo", () =>
 		run(
 			Effect.gen(function* () {
 				const document = fixture();

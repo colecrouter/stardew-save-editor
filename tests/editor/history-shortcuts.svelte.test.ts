@@ -1,8 +1,8 @@
 import { fireEvent, render, waitFor } from "@testing-library/svelte";
 import { expect, it, vi } from "vitest";
-import { openTestEditor } from "../helpers/open-editor.ts";
+import { openTestDocument } from "../helpers/open-editor.ts";
 import WorkspaceHarness from "./WorkspaceHarness.svelte";
-import { fixtureXml } from "./fixtures";
+import { tinyEditorFixture } from "../helpers/editor-document.ts";
 
 // Exercise real fields and commands: shortcuts must restore the actual save,
 // preserve the typing gesture and disappear when the file workspace unmounts.
@@ -13,7 +13,8 @@ it.each([false, true])(
 		const platform = vi
 			.spyOn(navigator, "platform", "get")
 			.mockReturnValue(apple ? "MacIntel" : "Win32");
-		const opened = await openTestEditor(new TextEncoder().encode(fixtureXml));
+		// Keyboard routing needs the real workspace, but no populated world.
+		const opened = await openTestDocument(tinyEditorFixture());
 		const page = render(WorkspaceHarness, { model: opened.model });
 		const chord = {
 			key: "z",
@@ -34,6 +35,8 @@ it.each([false, true])(
 			expect(unavailable.defaultPrevented).toBe(false);
 			field.focus();
 			await fireEvent.input(field, { target: { value: "Keyboard Farm" } });
+			// Wait for the queued edit itself before checking its rendered toolbar state.
+			await opened.model.snapshot();
 			await waitFor(() =>
 				expect(
 					page.getByRole("button", { name: "Undo" }).hasAttribute("disabled"),

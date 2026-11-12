@@ -1,18 +1,30 @@
 import { expect, it, vi } from "vitest";
 import { Result } from "effect";
 import { render, fireEvent, within, waitFor } from "@testing-library/svelte";
-import { openTestEditor, openTestDocument } from "../helpers/open-editor.ts";
+import { openTestDocument } from "../helpers/open-editor.ts";
 import { readCommunity } from "../../src/lib/editor/community-data";
 import { setCommunityProgress } from "../../src/lib/editor/community-operations";
 import { MutationError } from "../../src/lib/editor/mutation-error";
 import WorkspaceHarness from "./WorkspaceHarness.svelte";
 import { fixtureXml, parser, exportDocument } from "./fixtures";
+import { tinyEditorFixture } from "../helpers/editor-document.ts";
+
+// Preserve the real Center and bundle definitions while removing unrelated world
+// entities; these scenarios own route state and dialog lifecycle, not world I/O.
+function communityFixture() {
+	const document = parser.parse(fixtureXml);
+	document.SaveGame.locations = (document.SaveGame.locations ?? []).filter(
+		(location) => location?.name === "CommunityCenter",
+	);
+	return document;
+}
+const openCommunity = () => openTestDocument(communityFixture());
 
 it(
 	"shows only the saved route and preserves donations, rewards and room across membership history",
 	{ timeout: 30000 },
 	async () => {
-		const opened = await openTestEditor(new TextEncoder().encode(fixtureXml));
+		const opened = await openCommunity();
 		const page = render(WorkspaceHarness, { model: opened.model });
 		try {
 			const spring = readCommunity(
@@ -121,7 +133,7 @@ it(
 	"keeps a stale membership confirmation open without reversing a newer route",
 	{ timeout: 45000 },
 	async () => {
-		const opened = await openTestEditor(new TextEncoder().encode(fixtureXml));
+		const opened = await openCommunity();
 		const page = render(WorkspaceHarness, { model: opened.model });
 		try {
 			await fireEvent.click(
@@ -163,7 +175,7 @@ it(
 );
 
 it("rejects a malformed membership list at the typed import boundary", () => {
-	const document = parser.parse(fixtureXml);
+	const document = tinyEditorFixture();
 	Object.assign(document.SaveGame.player, { mailReceived: true });
 	expect(() => exportDocument(document)).toThrow();
 });
@@ -172,7 +184,7 @@ it.each(["failure", "noncompletion"] as const)(
 	"restores a native donation toggle after %s",
 	{ timeout: 45000 },
 	async (outcome) => {
-		const opened = await openTestEditor(new TextEncoder().encode(fixtureXml));
+		const opened = await openCommunity();
 		const page = render(WorkspaceHarness, { model: opened.model });
 		const transact = vi
 			.spyOn(opened.model.commands, "transact")
@@ -215,7 +227,7 @@ it.each(["failure", "noncompletion"] as const)(
 );
 
 it("keeps membership confirmation open while its command is pending", async () => {
-	const opened = await openTestEditor(new TextEncoder().encode(fixtureXml));
+	const opened = await openCommunity();
 	const page = render(WorkspaceHarness, { model: opened.model });
 	let finish: (() => void) | undefined;
 	const transact = vi
@@ -276,7 +288,7 @@ it.each(["failure", "noncompletion"] as const)(
 	"restores a native Joja project toggle after %s",
 	{ timeout: 45000 },
 	async (outcome) => {
-		const opened = await openTestEditor(new TextEncoder().encode(fixtureXml));
+		const opened = await openCommunity();
 		await opened.model.commands.transact(
 			setCommunityProgress({ type: "membership", value: true }),
 		);
@@ -323,7 +335,7 @@ it.each(["failure", "noncompletion"] as const)(
 	async (outcome) => {
 		// Start with an already built Joja theater so reopening is available without
 		// manufacturing five unrelated project transactions in this rejection test.
-		const document = parser.parse(fixtureXml);
+		const document = communityFixture();
 		Object.assign(document.SaveGame.player, {
 			mailReceived: ["JojaMember", "ccMovieTheater", "ccMovieTheaterJoja"],
 		});

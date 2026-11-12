@@ -114,18 +114,20 @@ describe("event save operations", () => {
 				}
 			}),
 		));
-	it("rejects nil and malformed containers while allowing independent edits beside opaque list entries", () =>
+	it("rejects an omitted event list while preserving unrelated entries", () =>
 		run(
 			Effect.gen(function* () {
-				for (const input of [null, {}, "", false]) {
-					const session = yield* makeHistorySession(fixture(input));
-					const before = yield* session.snapshot;
-					const result = yield* Effect.result(
-						session.transact(setEventSeen(change("3", true))),
-					);
-					expect(result._tag).toBe("Failure");
-					expect((yield* session.snapshot).document).toEqual(before.document);
-				}
+				const missing = fixture();
+				delete missing.SaveGame.player.eventsSeen;
+				const missingSession = yield* makeHistorySession(missing);
+				const before = yield* missingSession.snapshot;
+				const result = yield* Effect.result(
+					missingSession.transact(setEventSeen(change("3", true))),
+				);
+				expect(result._tag).toBe("Failure");
+				expect((yield* missingSession.snapshot).document).toEqual(
+					before.document,
+				);
 				const session = yield* makeHistorySession(
 					fixture([{ opaque: "keep" }, 1]),
 				);

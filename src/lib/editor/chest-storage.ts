@@ -1,6 +1,5 @@
-import { savedType } from "./saved-types.ts";
+import { savedType, isKnownLocation } from "./saved-types.ts";
 import type { Location, SaveDocument } from "./domain.ts";
-import { isKnownLocation } from "./building-data.ts";
 import type { T_StardewValley_Objects_Chest as Chest } from "../../../generated/save-format/save.ts";
 
 const record = (value: unknown): value is Record<string, unknown> =>

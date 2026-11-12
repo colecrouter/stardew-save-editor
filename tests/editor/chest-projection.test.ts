@@ -10,7 +10,7 @@ import { discoverPlacedChests } from "../../src/lib/editor/chest-storage";
 import { freezeDraftState } from "../../src/lib/editor/draft-state";
 import { openTestDocument } from "../helpers/open-editor.ts";
 import { setInventoryItem } from "../../src/lib/editor/inventory-operations";
-import { fixtureXml, parser, tinyFixture } from "./fixtures";
+import { tinyFixture, tinyEditorFixture } from "../helpers/editor-document.ts";
 
 const chest = (name = "Chest") => ({
 	$type: "StardewValley.Objects.Chest",
@@ -141,7 +141,8 @@ it("keeps aliased raw chests distinct by placed owner path", () => {
 });
 
 it("reuses sibling views from the first item edit through Undo/Redo in the model", async () => {
-	const document = parser.parse(fixtureXml);
+	// Two placed chests are sufficient to exercise sibling cache identity.
+	const document = tinyEditorFixture();
 	Object.assign(document.SaveGame, {
 		locations: structuredClone(
 			state([chest(), chest("Neighbor")]).document.SaveGame.locations,

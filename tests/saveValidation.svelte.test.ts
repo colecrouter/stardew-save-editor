@@ -427,7 +427,8 @@ async function importSave(xml: string): Promise<SaveManager> {
 	return saveManager;
 }
 
-describe("SaveManager validation", () => {
+// Full-file worker import/export needs an integration budget under parallel load.
+describe("SaveManager validation", { timeout: 30_000 }, () => {
 	mockIDB();
 	let saveManager: SaveManager;
 
@@ -476,7 +477,7 @@ describe("SaveManager validation", () => {
 	});
 });
 
-describe("Validation toasts", () => {
+describe("Validation toasts", { timeout: 30_000 }, () => {
 	mockIDB();
 	const negativeMoneySave = async () =>
 		(await readFile("tests/TestSave", "utf-8")).replace(

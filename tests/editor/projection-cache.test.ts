@@ -12,10 +12,11 @@ import {
 import { setFarmSettings } from "../../src/lib/editor/farm-operations";
 import { setInventoryItem } from "../../src/lib/editor/inventory-operations";
 import { readChests } from "../../src/lib/editor/inventory-views";
-import { fixtureXml, parser, tinyFixture } from "./fixtures";
+import { tinyFixture, tinyEditorFixture } from "../helpers/editor-document.ts";
 
 const locations = () => [
 	{
+		$type: "StardewValley.GameLocation",
 		name: "Cache island",
 		objects: [
 			{
@@ -49,7 +50,8 @@ it(
 	"shares immutable chest views across unrelated edits and invalidates item edits and Undo/Redo",
 	{ timeout: 15000 },
 	async () => {
-		const document = parser.parse(fixtureXml);
+		// Cache identity depends on relevant edits, not the size of the imported save.
+		const document = tinyEditorFixture();
 		Object.assign(document.SaveGame, { locations: locations() });
 		const opened = await openTestDocument(document);
 		try {

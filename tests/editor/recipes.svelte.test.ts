@@ -2,10 +2,11 @@ import { fireEvent, waitFor } from "@testing-library/svelte";
 import { expect, it } from "vitest";
 import { renderTestWorkspace } from "./workspace.ts";
 import { readRecipes } from "../../src/lib/editor/recipe-operations.ts";
-import { parser, fixtureXml } from "./fixtures.ts";
+import { tinyEditorFixture } from "../helpers/editor-document.ts";
 
 async function openRecipes() {
-	const document = parser.parse(fixtureXml);
+	// Recipe controls need two farmers and their dictionaries, not a full world.
+	const document = tinyEditorFixture();
 	const host = document.SaveGame.player;
 	Object.assign(host, {
 		cookingRecipes: [{ key: "Fried Egg", value: 77 }],

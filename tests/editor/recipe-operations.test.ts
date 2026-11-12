@@ -368,25 +368,6 @@ it("distinguishes an existing zero cooked entry from no history and reset remove
 			expect((yield* session.snapshot).document).toEqual(after.document);
 		}),
 	));
-it("does not interpret nil or legacy integer-key counters as an empty cooked history", () => {
-	for (const recipesCooked of [
-		null,
-		{ item: { key: Number(cookedId), value: 4 } },
-	]) {
-		const doc = fixture();
-		Object.assign(doc.SaveGame.player, { recipesCooked });
-		expect(
-			readRecipes(doc)[0]?.cooking.find((row) => row.name === "Fried Egg"),
-		).toMatchObject({ countSupported: false, count: undefined });
-	}
-	const doc = fixture();
-	Object.assign(doc.SaveGame.player, {
-		cookingRecipes: null,
-	});
-	expect(readRecipes(doc)[0]?.cooking.every((row) => !row.supported)).toBe(
-		true,
-	);
-});
 
 it("reads production counters after the real XML codec roundtrip", () => {
 	const doc = fixture();

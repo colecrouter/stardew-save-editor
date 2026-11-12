@@ -16,7 +16,13 @@ import {
 import * as downloads from "../../src/lib/downloadSave";
 import BackupPanel from "../../src/lib/editor/ui/BackupPanel.svelte";
 import EditorApp from "../../src/lib/editor/ui/EditorApp.svelte";
-import { fixtureXml } from "./fixtures";
+import {
+	exportDocument,
+	tinyEditorFixture,
+} from "../helpers/editor-document.ts";
+
+// Backup ownership depends on original bytes, not on the size of the farm.
+const fixtureXml = exportDocument(tinyEditorFixture());
 
 mockIDB();
 beforeEach(async () => {

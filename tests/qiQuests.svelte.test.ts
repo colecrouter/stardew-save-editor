@@ -58,7 +58,9 @@ async function importSave(xml: string): Promise<SaveManager> {
 	return saveManager;
 }
 
-describe("QiQuests", () => {
+// These retained legacy integration cases import/export the full public save.
+// Their I/O budget is separate from ordinary domain-rule test timeouts.
+describe("QiQuests", { timeout: 30_000 }, () => {
 	mockIDB();
 	let saveManager: SaveManager;
 	let fixture: string;

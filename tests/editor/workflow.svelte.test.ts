@@ -3,6 +3,10 @@ import { render, fireEvent, waitFor } from "@testing-library/svelte";
 import { editorResources } from "../../src/lib/editor/editor-model";
 import EditorApp from "../../src/lib/editor/ui/EditorApp.svelte";
 import { fixtureXml } from "./fixtures";
+import {
+	exportDocument,
+	tinyEditorFixture,
+} from "../helpers/editor-document.ts";
 
 // These integration scenarios repeatedly parse or export the 6.6 MB save fixture.
 // Match the calendar suites’ CI budget: assertions verify preservation and workflow,
@@ -90,6 +94,7 @@ describe("full-save application workflow", { timeout: 60_000 }, () => {
 	});
 
 	it("a failed browser write can be retried without clearing an independent backup warning", async () => {
+		// Retry ownership needs real export I/O, not a full-size farm.
 		const report = vi.spyOn(console, "error").mockImplementation(() => {});
 		const picker = vi
 			.fn()
@@ -113,7 +118,9 @@ describe("full-save application workflow", { timeout: 60_000 }, () => {
 		});
 		try {
 			await fireEvent.change(page.getByLabelText("Save file"), {
-				target: { files: [new File([fixtureXml], "Farm_123")] },
+				target: {
+					files: [new File([exportDocument(tinyEditorFixture())], "Farm_123")],
+				},
 			});
 			await waitFor(
 				() =>

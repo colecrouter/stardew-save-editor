@@ -1,14 +1,18 @@
 import { describe, expect, it } from "vitest";
 import { Result } from "effect";
-import {
-	openTestEditor as openEditor,
-	openTestDocument,
-} from "../helpers/open-editor.ts";
+import { openTestDocument } from "../helpers/open-editor.ts";
 import { createCharacterDomain } from "../../src/lib/editor/character-domain.ts";
 import { createFarmFields } from "../../src/lib/editor/farm-domain.ts";
 import { readCharacters } from "../../src/lib/editor/character-operations.ts";
 import { readFarmSettings } from "../../src/lib/editor/farm-operations.ts";
-import { exportDocument, fixtureXml, parser } from "./fixtures.ts";
+import { tinyEditorFixture } from "../helpers/editor-document.ts";
+
+// Field grouping needs populated skill counters, not a complete imported farm.
+function fixture() {
+	const document = tinyEditorFixture();
+	document.SaveGame.player.experiencePoints = [0, 0, 0, 0, 0, 0];
+	return document;
+}
 
 function required<T>(value: T | undefined): T {
 	if (value === undefined) throw new Error("Expected fixture value");
@@ -18,8 +22,8 @@ function required<T>(value: T | undefined): T {
 // Exercise domain field adapters against a real file session: controls receive
 // ordinary fields while those fields own coordinated game writes and grouping.
 describe("domain-owned field adapters", { timeout: 25000 }, () => {
-	it("groups repeated skill edits and restores the original full save with one Undo", async () => {
-		const opened = await openEditor(new TextEncoder().encode(fixtureXml));
+	it("groups repeated skill edits and restores the original document with one Undo", async () => {
+		const opened = await openTestDocument(fixture());
 		try {
 			const before = await opened.model.snapshot();
 			const character = createCharacterDomain(
@@ -52,7 +56,7 @@ describe("domain-owned field adapters", { timeout: 25000 }, () => {
 	});
 
 	it("keeps an existing field bound to its farmer after the shared selection changes", async () => {
-		const document = parser.parse(fixtureXml);
+		const document = fixture();
 		const guest = structuredClone(document.SaveGame.player);
 		guest.UniqueMultiplayerID = 2n;
 		guest.name = "Guest";
@@ -82,7 +86,7 @@ describe("domain-owned field adapters", { timeout: 25000 }, () => {
 	}, 30_000);
 
 	it("groups farm text changes and removes the net Undo entry when the original value returns", async () => {
-		const opened = await openEditor(new TextEncoder().encode(fixtureXml));
+		const opened = await openTestDocument(fixture());
 		try {
 			const before = await opened.model.snapshot();
 			const field = createFarmFields(

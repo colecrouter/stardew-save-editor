@@ -4,7 +4,13 @@ import { tick } from "svelte";
 import EditorApp from "../../src/lib/editor/ui/EditorApp.svelte";
 import * as editor from "../../src/lib/editor/editor-model";
 import { editorResources } from "../../src/lib/editor/editor-model";
-import { fixtureXml } from "./fixtures";
+import {
+	exportDocument,
+	tinyEditorFixture,
+} from "../helpers/editor-document.ts";
+
+// These races require real sessions and export I/O, but no populated farm.
+const fixtureXml = exportDocument(tinyEditorFixture());
 
 // These assertions wait on full-save import/export as well as browser promises.
 const waitForIO = <T>(assertion: () => T) =>

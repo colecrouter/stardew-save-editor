@@ -1,10 +1,9 @@
-import { malformedFixture } from "../helpers/editor-document.ts";
 import { describe, expect, it } from "vitest";
 import { Effect, Result } from "effect";
 import { makeHistorySession } from "../../src/lib/editor/history";
-import { openEditor } from "../../src/lib/editor/editor-model";
+import { openTestDocument } from "../helpers/open-editor.ts";
 import type { InventoryMoveRequest } from "../../src/lib/editor/inventory-movement.ts";
-import { tinyFixture, fixtureXml, parser } from "./fixtures";
+import { tinyFixture, tinyEditorFixture } from "../helpers/editor-document.ts";
 
 const run = <A, E>(
 	program: Effect.Effect<A, E, import("effect").Scope.Scope>,
@@ -186,16 +185,16 @@ describe("backpack moving and swapping", () => {
 			}),
 		));
 
-	it("resolves handles after reorder and ignores opaque unrelated farmer identifiers", () =>
+	it("resolves handles after reorder and ignores unrelated farmers without identifiers", () =>
 		run(
 			Effect.gen(function* () {
 				const document = fixture();
 				if (!Array.isArray(document.SaveGame.farmhands))
 					throw Error("Expected farmhand");
-				document.SaveGame.farmhands.push(
-					null as never,
-					{ UniqueMultiplayerID: { toString: 0 }, items: "opaque" } as never,
-				);
+				document.SaveGame.farmhands.push(null as never, {
+					name: "Placeholder",
+					items: [],
+				});
 				const session = yield* makeHistorySession(document);
 				const before = yield* session.snapshot;
 				const action = request(before.identities, 0, 23, "2");
@@ -227,11 +226,11 @@ describe("backpack moving and swapping", () => {
 				document.SaveGame.farmhands.push(
 					{
 						...structuredClone(document.SaveGame.farmhands[0]!),
-						UniqueMultiplayerID: malformedFixture("ambiguous"),
+						UniqueMultiplayerID: 3n,
 					},
 					{
 						...structuredClone(document.SaveGame.farmhands[0]!),
-						UniqueMultiplayerID: malformedFixture("ambiguous"),
+						UniqueMultiplayerID: 3n,
 					},
 				);
 				const session = yield* makeHistorySession(document);
@@ -241,7 +240,7 @@ describe("backpack moving and swapping", () => {
 					Object.create(valid),
 					{ ...valid, extra: true },
 					{ ...valid, toEntityId: "missing" },
-					{ ...valid, toOwnerId: "ambiguous" },
+					{ ...valid, toOwnerId: "3" },
 					{ ...valid, entityId: valid.toEntityId },
 					{ ...valid, toOwnerId: "constructor" },
 				]) {
@@ -262,7 +261,9 @@ it(
 	"returns the committed destination owner before queued Undo changes the current view",
 	{ timeout: 15_000 },
 	async () => {
-		const opened = await openEditor(new TextEncoder().encode(fixtureXml));
+		// Queue ordering is independent of XML and full-farm projection costs.
+		const document = tinyEditorFixture();
+		const opened = await openTestDocument(document);
 		try {
 			const initial = await opened.model.snapshot();
 			const farmerId = String(
@@ -285,7 +286,7 @@ it(
 			});
 			await undo;
 			const after = await opened.model.snapshot();
-			expect(after.document).toEqual(parser.parse(fixtureXml));
+			expect(after.document).toEqual(document);
 			expect(after.identities).toEqual(initial.identities);
 		} finally {
 			await opened.close();

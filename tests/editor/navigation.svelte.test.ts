@@ -1,8 +1,8 @@
 import { fireEvent, render, waitFor } from "@testing-library/svelte";
 import { expect, it } from "vitest";
-import { openTestEditor } from "../helpers/open-editor.ts";
+import { openTestDocument } from "../helpers/open-editor.ts";
 import WorkspaceHarness from "./WorkspaceHarness.svelte";
-import { fixtureXml } from "./fixtures";
+import { tinyEditorFixture } from "../helpers/editor-document.ts";
 
 // A select does not dispatch the sidebar's click handler. Exercise lazy mounting
 // and field-gesture closure through that alternative route with a real session.
@@ -10,13 +10,17 @@ it(
 	"navigates with the section picker and retains one Undo entry for a completed field gesture",
 	{ timeout: 20000 },
 	async () => {
-		const opened = await openTestEditor(new TextEncoder().encode(fixtureXml));
+		// Navigation and gesture closure do not depend on a populated farm.
+		const opened = await openTestDocument(tinyEditorFixture());
 		const page = render(WorkspaceHarness, { model: opened.model });
 		try {
 			const picker = page.getByLabelText("Section", { exact: true });
 			await fireEvent.change(picker, { target: { value: "inventory" } });
-			await waitFor(() =>
-				expect(page.getByRole("heading", { name: "Inventory" })).toBeTruthy(),
+			// Inventory is lazy-loaded; allow its module to mount under parallel CI work.
+			await page.findByRole(
+				"heading",
+				{ name: "Inventory" },
+				{ timeout: 5000 },
 			);
 			await fireEvent.change(picker, { target: { value: "farm" } });
 			const name = page.getByRole("textbox", {

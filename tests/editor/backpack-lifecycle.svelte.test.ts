@@ -1,12 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { fireEvent, render, waitFor, within } from "@testing-library/svelte";
-import { Result } from "effect";
 import { openTestEditor, openTestDocument } from "../helpers/open-editor.ts";
 import { catalogEntries } from "../../src/lib/editor/item-catalog";
 import BackpackHarness from "./BackpackHarness.svelte";
 import { fixtureXml, parser } from "./fixtures";
 
-// Real full-save copies and export parsing need a bounded integration budget on CI.
+// Real full-save UI projections need a bounded integration budget on CI.
 describe("backpack catalog workflow", { timeout: 60_000 }, () => {
 	it("browses without writes, adds to the chosen empty slot, and follows add/remove through undo and redo", async () => {
 		const opened = await openTestEditor(new TextEncoder().encode(fixtureXml));
@@ -70,15 +69,8 @@ describe("backpack catalog workflow", { timeout: 60_000 }, () => {
 				expect(page.getByRole("heading", { name: "Wood" })).toBeTruthy(),
 			);
 			expect((await opened.model.snapshot()).document).toEqual(expected);
-			// Validate the actual encoded/reparsed document, including all untouched fields.
-			const exported = await opened.model.commands.export();
-			if (!exported || Result.isFailure(exported))
-				throw Error("Expected successful export");
-			// The item ID remains text. New records may gain empty repeated fields
-			// on decode, but every supplied and previously imported field must survive.
-			expect(
-				parser.parse(new TextDecoder().decode(exported.success)),
-			).toMatchObject(expected);
+			// Codec roundtrips for added items live in backpack-lifecycle.test.ts.
+			// This interaction owns selection lineage and exact Undo/Redo snapshots.
 		} finally {
 			page.unmount();
 			await opened.close();

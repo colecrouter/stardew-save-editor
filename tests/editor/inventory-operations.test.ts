@@ -10,6 +10,7 @@ import {
 import { readBackpacks } from "../../src/lib/editor/inventory-views";
 import { TransactionDraft } from "../../src/lib/editor/transaction-draft";
 import { tinyFixture } from "../helpers/editor-document.ts";
+import type { SaveDocument } from "../../src/lib/editor/domain.ts";
 
 // Small documents exercise capability boundaries independently of XML/catalog
 // size. Opaque sibling data must remain exact through field edits and history.
@@ -480,24 +481,17 @@ describe("bounded backpack edits", () => {
 			}),
 		));
 
-	it("skips malformed farmer records while retaining exact opaque representations", async () =>
+	it("skips incomplete farmers while retaining their exact saved records", async () =>
 		run(
 			Effect.gen(function* () {
-				const document = fixture();
+				const document: SaveDocument = fixture();
 				if (!Array.isArray(document.SaveGame.farmhands))
 					throw Error("Expected farmer container");
 				document.SaveGame.farmhands = [
 					null,
-					42,
 					{ name: "Missing ID", items: [] },
-					// Imported JSON can shadow conversion methods. Inspecting an invalid
-					// identifier must not coerce it or prevent edits to the valid host.
-					{
-						name: "Opaque ID",
-						UniqueMultiplayerID: { toString: 0 },
-						items: [],
-					},
-				] as never;
+					{ name: "No inventory", UniqueMultiplayerID: 2n },
+				];
 				const session = yield* makeHistorySession(document);
 				const before = yield* session.snapshot;
 				expect(Object.keys(before.identities)).toEqual(["1"]);

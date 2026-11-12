@@ -14,10 +14,17 @@
   standalone engine typing and Effect diagnostics.
 
 Shared fixture builders live in `tests/helpers/editor-document.ts`; Vite and Node
-retain separate public-save loaders. `tests/editor/workspace.ts` owns common
-workspace setup and unmount-before-file-close cleanup. Keep feature assertions and
-special cancellation/lifetime setup explicit. Use small fixtures for rule tests;
-retain full-save cases for preservation. Full import/export assertions have explicit
+retain separate public-save loaders. The application runner decodes the public save
+once in global setup, writes a temporary V8 snapshot (preserving bigint), and gives
+each isolated file its own baseline. Every fixture request returns a fresh
+`structuredClone`; edited XML still goes through the real decoder. The snapshot
+is removed at teardown and is never committed. The runner uses at most two workers (one on single-core hosts) to leave memory
+for Vite, isolated schema graphs, and full-save DOM tests.
+
+`tests/editor/workspace.ts` owns common workspace setup and unmount-before-file-close cleanup. Keep feature assertions and
+special cancellation/lifetime setup explicit. Use `tinyFixture` for rule tests and
+`tinyEditorFixture` when a model also needs a calendar projection. Retain full-save
+cases for preservation. Full import/export assertions have explicit
 budgets for the event-based codec; pure rule tests keep the default budget.
 UI interaction suites can open decoded fixtures through
 `tests/helpers/open-editor.ts`. This uses the production model, history and export

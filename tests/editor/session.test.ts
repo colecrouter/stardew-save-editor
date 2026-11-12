@@ -12,6 +12,7 @@ import {
 	exportDocument,
 	parser,
 	tinyFixture,
+	tinyEditorFixture,
 } from "../helpers/editor-document.ts";
 import type { FixtureSave as Save } from "../helpers/editor-document.ts";
 
@@ -205,7 +206,11 @@ describe("full-save calendar session", { timeout: 60_000 }, () => {
 			openEditor(new TextEncoder().encode(exportDocument(malformed))),
 		).rejects.toThrow();
 		expect(editorResources()).toEqual({ models: 0, registries: 0, streams: 0 });
-		const bytes = await input();
+		// Repeated acquisition/closure needs the real codec and registry lifecycle,
+		// but unrelated world records only make leak detection more expensive.
+		const valid = tinyEditorFixture();
+		valid.SaveGame.player.stats = { Values: [] };
+		const bytes = new TextEncoder().encode(exportDocument(valid));
 		for (let i = 0; i < 4; i++) {
 			const opened = await openEditor(bytes);
 			const stop = opened.model.view.subscribe(() => {});

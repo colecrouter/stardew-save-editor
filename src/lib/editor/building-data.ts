@@ -11,16 +11,13 @@ import {
 import type { Building } from "./animal-buildings.ts";
 import { buildingConstructionCost } from "./building-costs.ts";
 import type { Location, SaveDocument } from "./domain.ts";
-import { savedType } from "./saved-types.ts";
+import {
+	savedType,
+	isKnownLocation,
+	type KnownLocation,
+} from "./saved-types.ts";
 
-// Known locations share the game's base collections. Opaque mod classes remain
-// visible at the boundary, but their unvalidated fields never become edit targets.
-export type KnownLocation = Exclude<Location, { readonly $type: "$unknown" }>;
-export function isKnownLocation(
-	value: Location | null | undefined,
-): value is KnownLocation {
-	return value != null && value.$type !== "$unknown";
-}
+export { isKnownLocation, type KnownLocation } from "./saved-types.ts";
 
 import { record, samePlainData } from "./plain-data.ts";
 

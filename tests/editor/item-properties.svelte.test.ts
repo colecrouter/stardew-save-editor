@@ -1,6 +1,8 @@
 import {
 	catalogFixture,
 	malformedFixture,
+	tinyEditorFixture,
+	exportDocument,
 } from "../helpers/editor-document.ts";
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, waitFor } from "@testing-library/svelte";
@@ -15,10 +17,19 @@ import type { SaveDocument } from "../../src/lib/editor/domain";
 function catalog(id: string) {
 	const item = createCatalogItem(id);
 	if (!item) throw Error(`Missing catalog fixture: ${id}`);
-	return item;
+	// Property controls edit saved instances. Decode a small catalog seed once so
+	// extension fields have their XML text representation before the edit begins.
+	const document = tinyEditorFixture();
+	document.SaveGame.player.items = [item];
+	const saved = parser.parse(exportDocument(document)).SaveGame.player.items[0];
+	if (!saved) throw Error(`Missing decoded catalog fixture: ${id}`);
+	return saved;
 }
 async function open(mutate: (document: SaveDocument) => void) {
-	const document = parser.parse(fixtureXml);
+	// Keep the real inventory records while omitting unrelated world entities.
+	const document = tinyEditorFixture();
+	document.SaveGame.player = parser.parse(fixtureXml).SaveGame.player;
+	document.SaveGame.farmhands = [];
 	mutate(document);
 	const opened = await openTestDocument(document);
 	const page = render(BackpackHarness, { model: opened.model });
@@ -34,8 +45,8 @@ async function open(mutate: (document: SaveDocument) => void) {
 const waitCommitted = async (assertion: () => Promise<void>) =>
 	waitFor(assertion, { timeout: 5000 });
 
-// Real commands and whole-document exports protect opaque saved fields. The full
-// fixture and queued edits need a bounded integration budget on slower CI runners.
+// Real commands and exports protect opaque inventory fields. World data is not
+// needed to verify these controls and their queued edits.
 describe("item property controls", { timeout: 25_000 }, () => {
 	it.each(["equipment", "backpack"] as const)(
 		"edits %s boots immediately, retains focus through rapid input, and exports only the intended fields",

@@ -335,12 +335,12 @@ describe("character save operations", () => {
 				}
 			}),
 		));
-	it("keeps missing/malformed/ambiguous fields and duplicate owners read-only without affecting other character fields", () =>
+	it("keeps missing fields, invalid game values and ambiguous identities read-only", () =>
 		run(
 			Effect.gen(function* () {
 				const document = fixture();
-				raw(document).experiencePoints = ["bad", 100];
-				raw(document).professions = [0, "mod"];
+				raw(document).experiencePoints = [-1, 100];
+				delete raw(document).professions;
 				raw(document).stats = {
 					Values: [
 						{ key: "masteryExp", value: 1 },

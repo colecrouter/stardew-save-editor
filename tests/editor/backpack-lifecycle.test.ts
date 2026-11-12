@@ -6,9 +6,14 @@ import {
 	createCatalogItem,
 	searchCatalog,
 } from "../../src/lib/editor/item-catalog";
-import { openEditor } from "../../src/lib/editor/editor-model";
+import { openTestDocument } from "../helpers/open-editor.ts";
 import type { InventorySlotRequest } from "../../src/lib/editor/inventory-lifecycle.ts";
-import { tinyFixture, parser, exportDocument, fixtureXml } from "./fixtures";
+import {
+	tinyFixture,
+	tinyEditorFixture,
+	parser,
+	exportDocument,
+} from "../helpers/editor-document.ts";
 
 const run = <A, E>(
 	program: Effect.Effect<A, E, import("effect").Scope.Scope>,
@@ -390,17 +395,16 @@ describe("backpack creation and removal", () => {
 
 // The command returns its own committed handle pair even when Undo is already
 // queued behind it. UI selection can follow that lineage without a racy reread.
-// Full-save import, projection and several queued history revisions need the same
-// bounded CI budget as the other application integration tests (25 seconds).
+// A minimal projected document isolates queue ordering from XML import costs.
 it("returns exact replacement lineage before a queued Undo and preserves raw instances", async () => {
-	const original = parser.parse(fixtureXml);
+	const original = tinyEditorFixture();
 	const farmerId = String(original.SaveGame.player.UniqueMultiplayerID);
 	const slot = original.SaveGame.player.items.findIndex(
 		(item) => item === null,
 	);
-	if (slot < 0) throw Error("Expected empty full-save slot");
-	const opened = await openEditor(
-		new TextEncoder().encode(exportDocument(original)),
+	if (slot < 0) throw Error("Expected empty fixture slot");
+	const opened = await openTestDocument(
+		original,
 		{},
 		{ validateExport: false },
 	);

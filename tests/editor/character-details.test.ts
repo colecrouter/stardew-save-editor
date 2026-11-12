@@ -7,11 +7,12 @@ import {
 	setCharacterDetails,
 } from "../../src/lib/editor/character-details.ts";
 import { makeHistorySession } from "../../src/lib/editor/history.ts";
-import { tinyFixture } from "./fixtures.ts";
+import { exportDocument, parser, tinyFixture } from "./fixtures.ts";
 
 function fixture() {
 	const document = tinyFixture();
 	Object.assign(document.SaveGame.player, {
+		totalMoneyEarned: 1125,
 		maxHealth: 140,
 		health: 90,
 		maxStamina: 270,
@@ -35,6 +36,61 @@ const run = <A, E>(
 ) => Effect.runPromise(Effect.scoped(program));
 
 describe("character detail edits", () => {
+	// Exercise both saved integer representations through the same transaction
+	// path used by the controls, including preservation and export/reimport.
+	it.each([
+		{ key: "money", raw: "money", label: "Current funds", max: 2147483647 },
+		{
+			key: "earnings",
+			raw: "totalMoneyEarned",
+			label: "Lifetime earnings",
+			max: 4294967295,
+		},
+	] as const)(
+		"restores $label with validation, export and Undo/Redo",
+		({ key, raw, label, max }) =>
+			run(
+				Effect.gen(function* () {
+					const document = fixture();
+					const baseline = structuredClone(document);
+					expect(
+						readCharacterDetails(document, "host").numbers.find(
+							(entry) => entry.key === key,
+						),
+					).toMatchObject({ label, available: true, min: 0, max });
+					const session = yield* makeHistorySession(document);
+					// Rejected edits must leave the complete save and history untouched.
+					for (const value of [-1, 0.5, max + 1]) {
+						const result = yield* Effect.result(
+							session.transact(
+								setCharacterDetails({ farmerId: "host", key, value }),
+							),
+						);
+						expect(result._tag).toBe("Failure");
+					}
+					expect((yield* session.snapshot).document).toEqual(baseline);
+					expect((yield* session.snapshot).entries).toHaveLength(0);
+					for (const value of [0, max]) {
+						yield* session.transact(
+							setCharacterDetails({ farmerId: "host", key, value }),
+						);
+						const expected = structuredClone(baseline);
+						Object.assign(expected.SaveGame.player, { [raw]: value });
+						const edited = (yield* session.snapshot).document;
+						expect(edited).toEqual(expected);
+						expect(
+							parser.parse(exportDocument(edited)).SaveGame.player[raw],
+						).toBe(value);
+						yield* session.undo;
+						expect((yield* session.snapshot).document).toEqual(baseline);
+						yield* session.redo;
+						expect((yield* session.snapshot).document).toEqual(expected);
+						yield* session.undo;
+					}
+				}),
+			),
+	);
+
 	it("projects without mutation and keeps Clint's trash can locked", () => {
 		const document = fixture(),
 			baseline = structuredClone(document);

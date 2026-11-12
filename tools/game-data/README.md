@@ -202,6 +202,10 @@ The catalog also records generic definitions and arguments. For the reviewed
 its key/value types without inspecting dictionary implementation members. Other
 custom serializers remain opaque. Reinspect existing catalogs to add this metadata.
 
+`SerializableDictionaryWithCaseInsensitiveKeys<TValue>` inherits that XML contract
+with fixed string keys. Inspection follows its value argument; the schema compiler
+uses ordinal case-insensitive duplicate detection while preserving saved key casing.
+
 Types inheriting `Netcode.NetField<,>` also record `maxItems: 1`: their XML-facing
 enumeration exposes one value, and Add rejects a second. This constrains NetRef
 fields without limiting ordinary NetCollection lists. Refresh older catalogs to

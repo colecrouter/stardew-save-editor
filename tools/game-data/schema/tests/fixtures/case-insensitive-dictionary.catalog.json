@@ -1,0 +1,34 @@
+{
+	"formatVersion": 3,
+	"diagnostics": [],
+	"types": [
+		{
+			"id": "Example.Stats",
+			"kind": "object",
+			"members": [
+				{
+					"name": "specificMonstersKilled",
+					"type": "StardewValley.SerializableDictionaryWithCaseInsensitiveKeys`1[System.Int32]"
+				},
+				{
+					"name": "Values",
+					"type": "StardewValley.SerializableDictionaryWithCaseInsensitiveKeys`1[System.UInt32]"
+				}
+			]
+		},
+		{
+			"id": "StardewValley.SerializableDictionaryWithCaseInsensitiveKeys`1[System.Int32]",
+			"kind": "collection",
+			"customXml": true,
+			"genericDefinition": "StardewValley.SerializableDictionaryWithCaseInsensitiveKeys`1",
+			"genericArguments": ["System.Int32"]
+		},
+		{
+			"id": "StardewValley.SerializableDictionaryWithCaseInsensitiveKeys`1[System.UInt32]",
+			"kind": "collection",
+			"customXml": true,
+			"genericDefinition": "StardewValley.SerializableDictionaryWithCaseInsensitiveKeys`1",
+			"genericArguments": ["System.UInt32"]
+		}
+	]
+}

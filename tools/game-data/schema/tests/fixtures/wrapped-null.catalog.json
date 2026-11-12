@@ -1,0 +1,61 @@
+{
+	"formatVersion": 3,
+	"diagnostics": [],
+	"types": [
+		{
+			"id": "Example.Paint",
+			"kind": "object",
+			"members": [
+				{ "name": "ColorName", "type": "Netcode.NetString" },
+				{
+					"name": "DirectName",
+					"type": "Netcode.NetString",
+					"attributes": [
+						{
+							"type": "System.Xml.Serialization.XmlElementAttribute",
+							"constructorArguments": [
+								{ "type": "System.String", "value": "name" }
+							]
+						}
+					]
+				},
+				{
+					"name": "NonNullableName",
+					"type": "Netcode.NetString",
+					"attributes": [
+						{
+							"type": "System.Xml.Serialization.XmlArrayItemAttribute",
+							"namedArguments": {
+								"IsNullable": { "type": "System.Boolean", "value": false }
+							}
+						}
+					]
+				},
+				{ "name": "Targets", "type": "ListNode" },
+				{ "name": "Numbers", "type": "ListInt" },
+				{ "name": "Points", "type": "ListPoint" }
+			]
+		},
+		{
+			"id": "Netcode.NetString",
+			"kind": "collection",
+			"elementType": "System.String",
+			"maxItems": 1
+		},
+		{ "id": "ListNode", "kind": "collection", "elementType": "Example.Node" },
+		{ "id": "ListInt", "kind": "collection", "elementType": "System.Int32" },
+		{ "id": "ListPoint", "kind": "collection", "elementType": "Example.Point" },
+		{
+			"id": "Example.Node",
+			"kind": "object",
+			"baseType": "System.Object",
+			"members": [{ "name": "Name", "type": "System.String" }]
+		},
+		{
+			"id": "Example.Point",
+			"kind": "object",
+			"baseType": "System.ValueType",
+			"members": [{ "name": "X", "type": "System.Int32" }]
+		}
+	]
+}

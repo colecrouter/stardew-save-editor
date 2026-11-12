@@ -1,0 +1,38 @@
+{
+	"formatVersion": 3,
+	"gameVersion": "1.6.8",
+	"diagnostics": [],
+	"types": [
+		{
+			"id": "StardewValley.WorldDate",
+			"assembly": "Stardew Valley",
+			"kind": "object",
+			"baseType": "System.Object",
+			"members": [
+				{
+					"name": "DayOfMonth",
+					"type": "System.Int32"
+				},
+				{
+					"name": "SeasonKey",
+					"type": "System.String",
+					"attributes": [
+						{
+							"type": "System.Xml.Serialization.XmlElementAttribute",
+							"constructorArguments": [
+								{
+									"type": "System.String",
+									"value": "Season"
+								}
+							]
+						}
+					]
+				},
+				{
+					"name": "Year",
+					"type": "System.Int32"
+				}
+			]
+		}
+	]
+}

@@ -1,3 +1,6 @@
 **/bin/
 **/obj/
 **/net10.0/
+
+# Local game inspection/export artifacts; never commit binary-derived work inputs.
+/workspace/

@@ -1,0 +1,195 @@
+{
+	"formatVersion": 3,
+	"diagnostics": [],
+	"types": [
+		{
+			"id": "Example.Container",
+			"kind": "object",
+			"members": [
+				{
+					"name": "Pet",
+					"type": "StardewValley.Item"
+				},
+				{
+					"name": "Pets",
+					"type": "ListOfAnimals"
+				},
+				{
+					"name": "Holder",
+					"type": "Example.Holder"
+				},
+				{
+					"name": "Items",
+					"type": "StardewValley.Inventories.Inventory"
+				}
+			],
+			"attributes": [
+				{
+					"type": "System.Xml.Serialization.XmlIncludeAttribute",
+					"constructorArguments": [
+						{
+							"type": "System.Type",
+							"value": "Example.Dog"
+						}
+					]
+				},
+				{
+					"type": "System.Xml.Serialization.XmlIncludeAttribute",
+					"constructorArguments": [
+						{
+							"type": "System.Type",
+							"value": "Example.Bird"
+						}
+					]
+				}
+			]
+		},
+		{
+			"id": "Example.Holder",
+			"kind": "object",
+			"members": [
+				{
+					"name": "Note",
+					"type": "System.String"
+				}
+			],
+			"attributes": [
+				{
+					"type": "System.Xml.Serialization.XmlIncludeAttribute",
+					"constructorArguments": [
+						{
+							"type": "System.Type",
+							"value": "Example.Cat"
+						}
+					]
+				}
+			]
+		},
+		{
+			"id": "StardewValley.Item",
+			"kind": "object",
+			"members": [
+				{
+					"name": "Name",
+					"type": "System.String"
+				}
+			],
+			"baseType": "System.Object",
+			"attributes": [
+				{
+					"type": "System.Xml.Serialization.XmlTypeAttribute",
+					"constructorArguments": [
+						{
+							"type": "System.String",
+							"value": "Animal"
+						}
+					],
+					"namedArguments": {
+						"Namespace": {
+							"type": "System.String",
+							"value": ""
+						}
+					}
+				}
+			],
+			"isAbstract": true
+		},
+		{
+			"id": "Example.Dog",
+			"kind": "object",
+			"members": [
+				{
+					"name": "Name",
+					"type": "System.String"
+				},
+				{
+					"name": "BarkCount",
+					"type": "System.Int32"
+				}
+			],
+			"baseType": "StardewValley.Item",
+			"attributes": [
+				{
+					"type": "System.Xml.Serialization.XmlTypeAttribute",
+					"constructorArguments": [
+						{
+							"type": "System.String",
+							"value": "Hound"
+						}
+					],
+					"namedArguments": {
+						"Namespace": {
+							"type": "System.String",
+							"value": "urn:pets"
+						}
+					}
+				}
+			]
+		},
+		{
+			"id": "Example.Cat",
+			"kind": "object",
+			"members": [
+				{
+					"name": "Name",
+					"type": "System.String"
+				},
+				{
+					"name": "Lives",
+					"type": "System.Int32"
+				}
+			],
+			"baseType": "StardewValley.Item",
+			"attributes": [
+				{
+					"type": "System.Xml.Serialization.XmlTypeAttribute",
+					"constructorArguments": [
+						{
+							"type": "System.String",
+							"value": "Kitten"
+						}
+					],
+					"namedArguments": {
+						"Namespace": {
+							"type": "System.String",
+							"value": ""
+						}
+					}
+				}
+			]
+		},
+		{
+			"id": "Example.Bird",
+			"kind": "object",
+			"members": [
+				{
+					"name": "Wings",
+					"type": "System.Int32"
+				}
+			],
+			"baseType": "System.Object"
+		},
+		{
+			"id": "ListOfAnimals",
+			"kind": "collection",
+			"elementType": "StardewValley.Item"
+		},
+		{
+			"id": "StardewValley.Inventories.Inventory",
+			"kind": "collection",
+			"customXml": true,
+			"elementType": "StardewValley.Item",
+			"attributes": [
+				{
+					"type": "System.Xml.Serialization.XmlRootAttribute",
+					"constructorArguments": [
+						{
+							"type": "System.String",
+							"value": "items"
+						}
+					]
+				}
+			]
+		}
+	]
+}

@@ -1,0 +1,56 @@
+{
+	"formatVersion": 3,
+	"diagnostics": [],
+	"types": [
+		{
+			"id": "Example.Save",
+			"kind": "object",
+			"members": [
+				{ "name": "gameVersionLabel", "type": "System.String" },
+				{ "name": "Number", "type": "System.Int32" },
+				{ "name": "count", "type": "System.Nullable`1[System.Int32]" },
+				{ "name": "Child", "type": "Example.Node" },
+				{ "name": "values", "type": "ListInt" },
+				{
+					"name": "version",
+					"type": "System.Int32",
+					"attributes": [
+						{ "type": "System.Xml.Serialization.XmlAttributeAttribute" }
+					]
+				},
+				{
+					"name": "tags",
+					"type": "ListString",
+					"attributes": [
+						{
+							"type": "System.Xml.Serialization.XmlElementAttribute",
+							"constructorArguments": [
+								{ "type": "System.String", "value": "tag" }
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"id": "Example.Node",
+			"kind": "object",
+			"members": [
+				{ "name": "Name", "type": "System.String" },
+				{ "name": "Child", "type": "Example.Node" }
+			]
+		},
+		{ "id": "ListInt", "kind": "collection", "elementType": "System.Int32" },
+		{
+			"id": "ListString",
+			"kind": "collection",
+			"elementType": "System.String"
+		},
+		{
+			"id": "System.Nullable`1[System.Int32]",
+			"kind": "nullable",
+			"genericDefinition": "System.Nullable`1",
+			"genericArguments": ["System.Int32"]
+		}
+	]
+}

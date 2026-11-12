@@ -1,0 +1,98 @@
+{
+	"formatVersion": 3,
+	"diagnostics": [],
+	"types": [
+		{
+			"id": "Example.Order",
+			"kind": "object",
+			"members": [
+				{
+					"name": "Shipping",
+					"type": "Example.Address"
+				},
+				{
+					"name": "Billing",
+					"type": "Example.Address"
+				},
+				{
+					"name": "Lines",
+					"type": "ListOfLines"
+				},
+				{
+					"name": "OrderId",
+					"type": "System.Int64"
+				}
+			]
+		},
+		{
+			"id": "Example.Address",
+			"kind": "object",
+			"attributes": [
+				{
+					"type": "System.Xml.Serialization.XmlRootAttribute",
+					"constructorArguments": [
+						{
+							"type": "System.String",
+							"value": "AddressRoot"
+						}
+					]
+				}
+			],
+			"members": [
+				{
+					"name": "City",
+					"type": "System.String"
+				},
+				{
+					"name": "Zip",
+					"type": "System.Int32"
+				}
+			]
+		},
+		{
+			"id": "Example.Line",
+			"kind": "object",
+			"attributes": [
+				{
+					"type": "System.Xml.Serialization.XmlTypeAttribute",
+					"constructorArguments": [
+						{
+							"type": "System.String",
+							"value": "entry"
+						}
+					]
+				}
+			],
+			"members": [
+				{
+					"name": "Sku",
+					"type": "System.String",
+					"attributes": [
+						{
+							"type": "System.Xml.Serialization.XmlAttributeAttribute",
+							"constructorArguments": [
+								{
+									"type": "System.String",
+									"value": "sku"
+								}
+							]
+						}
+					]
+				},
+				{
+					"name": "Quantity",
+					"type": "System.Int32"
+				},
+				{
+					"name": "Destination",
+					"type": "Example.Address"
+				}
+			]
+		},
+		{
+			"id": "ListOfLines",
+			"kind": "collection",
+			"elementType": "Example.Line"
+		}
+	]
+}

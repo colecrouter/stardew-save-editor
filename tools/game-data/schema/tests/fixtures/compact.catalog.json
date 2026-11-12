@@ -1,0 +1,317 @@
+{
+	"formatVersion": 3,
+	"diagnostics": [],
+	"types": [
+		{
+			"id": "Example.Root",
+			"kind": "object",
+			"members": [
+				{
+					"name": "Animal",
+					"type": "Example.Base"
+				},
+				{
+					"name": "Changed",
+					"type": "Example.Changed"
+				},
+				{
+					"name": "Removed",
+					"type": "Example.Removed"
+				},
+				{
+					"name": "Left",
+					"type": "Example.Node"
+				},
+				{
+					"name": "Right",
+					"type": "Other.Node"
+				},
+				{
+					"name": "Position",
+					"type": "Example.Point"
+				},
+				{
+					"name": "Labels",
+					"type": "StardewValley.SerializableDictionary`2[System.String,System.String]"
+				},
+				{
+					"name": "OtherLabels",
+					"type": "StardewValley.SerializableDictionary`2[System.String,System.String]"
+				},
+				{
+					"name": "Children",
+					"type": "ListNode"
+				},
+				{
+					"name": "Other",
+					"type": "Example.Derived"
+				},
+				{
+					"name": "Last",
+					"type": "Example.Grandchild"
+				},
+				{
+					"name": "Marker",
+					"type": "Example.Marker"
+				},
+				{
+					"name": "CaseLabels",
+					"type": "StardewValley.SerializableDictionaryWithCaseInsensitiveKeys`1[System.String]"
+				},
+				{
+					"name": "OtherCaseLabels",
+					"type": "StardewValley.SerializableDictionaryWithCaseInsensitiveKeys`1[System.String]"
+				}
+			]
+		},
+		{
+			"id": "Example.Base",
+			"kind": "object",
+			"isAbstract": true,
+			"members": [
+				{
+					"name": "Name",
+					"type": "System.String"
+				},
+				{
+					"name": "Mode",
+					"type": "Example.Mode"
+				}
+			],
+			"attributes": [
+				{
+					"type": "System.Xml.Serialization.XmlIncludeAttribute",
+					"constructorArguments": [
+						{
+							"type": "System.Type",
+							"value": "Example.Derived"
+						}
+					]
+				},
+				{
+					"type": "System.Xml.Serialization.XmlIncludeAttribute",
+					"constructorArguments": [
+						{
+							"type": "System.Type",
+							"value": "Example.Changed"
+						}
+					]
+				},
+				{
+					"type": "System.Xml.Serialization.XmlIncludeAttribute",
+					"constructorArguments": [
+						{
+							"type": "System.Type",
+							"value": "Example.Removed"
+						}
+					]
+				}
+			]
+		},
+		{
+			"id": "Example.Derived",
+			"kind": "object",
+			"baseType": "Example.Base",
+			"members": [
+				{
+					"name": "Name",
+					"type": "System.String"
+				},
+				{
+					"name": "Mode",
+					"type": "Example.Mode"
+				},
+				{
+					"name": "Count",
+					"type": "System.Int32"
+				},
+				{
+					"name": "Next",
+					"type": "Example.Derived"
+				}
+			],
+			"attributes": [
+				{
+					"type": "System.Xml.Serialization.XmlIncludeAttribute",
+					"constructorArguments": [
+						{
+							"type": "System.Type",
+							"value": "Example.Grandchild"
+						}
+					]
+				}
+			]
+		},
+		{
+			"id": "Example.Changed",
+			"kind": "object",
+			"baseType": "Example.Base",
+			"members": [
+				{
+					"name": "Name",
+					"type": "System.Int32",
+					"attributes": [
+						{
+							"type": "System.Xml.Serialization.XmlElementAttribute",
+							"constructorArguments": [
+								{
+									"type": "System.String",
+									"value": "caption"
+								}
+							]
+						}
+					]
+				},
+				{
+					"name": "Mode",
+					"type": "Example.Mode"
+				},
+				{
+					"name": "Next",
+					"type": "Example.Changed"
+				}
+			]
+		},
+		{
+			"id": "Example.Removed",
+			"kind": "object",
+			"baseType": "Example.Base",
+			"members": [
+				{
+					"name": "Name",
+					"type": "System.String"
+				}
+			]
+		},
+		{
+			"id": "Example.Node",
+			"kind": "object",
+			"members": [
+				{
+					"name": "Name",
+					"type": "System.String"
+				},
+				{
+					"name": "Mode",
+					"type": "Example.Mode"
+				},
+				{
+					"name": "Next",
+					"type": "Example.Node"
+				},
+				{
+					"name": "Children",
+					"type": "ListNode"
+				}
+			]
+		},
+		{
+			"id": "Other.Node",
+			"kind": "object",
+			"members": [
+				{
+					"name": "Name",
+					"type": "System.String"
+				}
+			]
+		},
+		{
+			"id": "Example.Point",
+			"kind": "object",
+			"baseType": "System.ValueType",
+			"members": [
+				{
+					"name": "X",
+					"type": "System.Int32"
+				},
+				{
+					"name": "Y",
+					"type": "System.Int32"
+				}
+			]
+		},
+		{
+			"id": "ListNode",
+			"kind": "collection",
+			"elementType": "Example.Node"
+		},
+		{
+			"id": "Example.Mode",
+			"kind": "enum",
+			"members": [
+				{
+					"name": "Quiet",
+					"type": "Example.Mode"
+				},
+				{
+					"name": "Loud",
+					"type": "Example.Mode"
+				}
+			]
+		},
+		{
+			"id": "StardewValley.SerializableDictionary`2[System.String,System.String]",
+			"kind": "collection",
+			"customXml": true,
+			"genericDefinition": "StardewValley.SerializableDictionary`2",
+			"genericArguments": ["System.String", "System.String"]
+		},
+		{
+			"id": "Example.Grandchild",
+			"kind": "object",
+			"baseType": "Example.Derived",
+			"members": [
+				{
+					"name": "Name",
+					"type": "System.String"
+				},
+				{
+					"name": "Mode",
+					"type": "Example.Mode"
+				},
+				{
+					"name": "Count",
+					"type": "System.Int32"
+				},
+				{
+					"name": "Next",
+					"type": "Example.Derived"
+				},
+				{
+					"name": "Extra",
+					"type": "System.Boolean"
+				}
+			]
+		},
+		{
+			"id": "Example.Marker",
+			"kind": "object",
+			"baseType": "Example.Derived",
+			"members": [
+				{
+					"name": "Name",
+					"type": "System.String"
+				},
+				{
+					"name": "Mode",
+					"type": "Example.Mode"
+				},
+				{
+					"name": "Count",
+					"type": "System.Int32"
+				},
+				{
+					"name": "Next",
+					"type": "Example.Derived"
+				}
+			]
+		},
+		{
+			"id": "StardewValley.SerializableDictionaryWithCaseInsensitiveKeys`1[System.String]",
+			"kind": "collection",
+			"customXml": true,
+			"genericDefinition": "StardewValley.SerializableDictionaryWithCaseInsensitiveKeys`1",
+			"genericArguments": ["System.String"]
+		}
+	]
+}

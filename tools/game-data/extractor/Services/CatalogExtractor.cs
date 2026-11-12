@@ -52,9 +52,12 @@ internal static class CatalogExtractor
 				// dictionaries delegate key/value serialization, while NetNullableEnum
 				// writes strings whose valid names come from its enum argument. Arbitrary
 				// custom serializers still do not expose a generic XML contract.
+				// The case-insensitive subclass fixes string keys and declares only TValue.
 				var genericDefinition = type.IsGenericType ? type.GetGenericTypeDefinition().FullName : null;
 				var genericArguments = type.IsGenericType ? type.GetGenericArguments() : [];
-				if (genericDefinition is "StardewValley.SerializableDictionary`2" or "Netcode.NetNullableEnum`1")
+				if (genericDefinition is "StardewValley.SerializableDictionary`2"
+					or "StardewValley.SerializableDictionaryWithCaseInsensitiveKeys`1"
+					or "Netcode.NetNullableEnum`1")
 					foreach (var argument in genericArguments) queue.Enqueue(argument);
 
 				// Inventory delegates each slot, including null slots, to the Item

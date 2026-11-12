@@ -1,0 +1,5 @@
+<Container xmlns:i="http://www.w3.org/2001/XMLSchema-instance" xmlns:p="urn:pets">
+<Pet i:type="p:Hound" mod="keep"><Name>Rex</Name><BarkCount>0003</BarkCount><!-- keep --><future>unknown</future></Pet>
+<Pets><Animal i:type="Kitten"><Name>Miso</Name><Lives>9</Lives></Animal><future-list>keep</future-list><Animal><Name>Base</Name></Animal></Pets>
+<Holder><Note>known types declared elsewhere</Note></Holder>
+</Container>

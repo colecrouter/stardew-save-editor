@@ -1,0 +1,12 @@
+<Order mod="keep">
+	<OrderId>9007199254740993</OrderId>
+	<Shipping flag="ship"><City>Town</City><Zip>0007</Zip><!-- shipping note --><future>keep</future></Shipping>
+	<Billing flag="bill"><City>Farm</City><Zip>8</Zip></Billing>
+	<Lines>
+		<entry sku="hoe" mod="line"><Quantity>0002</Quantity><Destination flag="dest"><City>Town</City><Zip>0007</Zip><mod>keep</mod></Destination><unknown>line data</unknown></entry>
+		<!-- between items -->
+		<future-wrapper>keep</future-wrapper>
+		<entry sku="axe"><Quantity>3</Quantity><Destination><City>Farm</City><Zip>8</Zip></Destination></entry>
+	</Lines>
+	<future-order>keep</future-order>
+</Order>

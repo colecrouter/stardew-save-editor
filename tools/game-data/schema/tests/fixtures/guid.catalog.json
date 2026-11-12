@@ -1,0 +1,29 @@
+{
+	"formatVersion": 3,
+	"diagnostics": [],
+	"types": [
+		{
+			"id": "Example.Building",
+			"kind": "object",
+			"members": [
+				{ "name": "id", "type": "System.Guid" },
+				{
+					"name": "owner",
+					"type": "System.Guid",
+					"attributes": [
+						{ "type": "System.Xml.Serialization.XmlAttributeAttribute" }
+					]
+				},
+				{ "name": "ids", "type": "ListGuid" },
+				{ "name": "optional", "type": "System.Nullable`1[System.Guid]" }
+			]
+		},
+		{ "id": "ListGuid", "kind": "collection", "elementType": "System.Guid" },
+		{
+			"id": "System.Nullable`1[System.Guid]",
+			"kind": "nullable",
+			"genericDefinition": "System.Nullable`1",
+			"genericArguments": ["System.Guid"]
+		}
+	]
+}

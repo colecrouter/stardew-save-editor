@@ -37,7 +37,10 @@ is removed at teardown and is never committed. Vitest chooses worker concurrency
 special cancellation/lifetime setup explicit. Use `tinyFixture` for rule tests and
 `tinyEditorFixture` when a model also needs a calendar projection. Retain full-save
 cases for preservation. Full import/export assertions have explicit
-budgets for the event-based codec; pure rule tests keep the default budget.
+budgets for the event-based codec; pure rule tests keep the default budget. These
+budgets detect stuck correctness tests, not acceptable runtime latency. Use the
+separate full-save probe in `npm run benchmark:toolchain` to compare codec-heavy
+work across revisions; the small inventory probe does not exercise that boundary.
 UI interaction suites can open decoded fixtures through
 `tests/helpers/open-editor.ts`. This uses the production model, history and export
 service while avoiding a full XML import for each interaction. Application/engine

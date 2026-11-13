@@ -168,7 +168,9 @@ compiler SDK intentionally point to different installations.
 
 Run `npm run benchmark:toolchain -- /tmp/stardew-toolchain-benchmark` to record
 sequential wall times and command logs. The test probe uses the same 34 tests and
-two workers on both revisions; regular test runs use Vitest's default concurrency.
+two workers on both revisions. A separate `test-full-save` probe exercises the
+public-save import/export preservation cases with one worker. Fixed worker counts
+control these measurements only; regular test runs use Vitest's default concurrency.
 The native and Svelte probes check both app and test scopes, with Node tooling
 also included in the native probe.
 
@@ -179,7 +181,10 @@ from the repository root. Use clean checkouts without a local
 uploads do not affect build timings. Filesystem caches are not cleared. Each
 command gets one local observation, not a statistical performance claim.
 Committed observations and the compared revisions are in
-[`benchmarks/toolchain.json`](benchmarks/toolchain.json).
+[`benchmarks/toolchain.json`](benchmarks/toolchain.json). Those original observations
+predate the `test-full-save` probe and do not establish codec performance parity.
+New harness results also record the revision, dirty-tree state and CPU/memory
+metadata so later measurements can be compared against the code actually tested.
 
 ### Native structured cloning
 

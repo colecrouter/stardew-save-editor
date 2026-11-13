@@ -1,5 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { availableParallelism, cpus, totalmem } from "node:os";
 import { join, resolve } from "node:path";
 import { performance } from "node:perf_hooks";
 
@@ -32,6 +33,12 @@ const commands = [
 		"test",
 		"npm test -- tests/editor/inventory-operations.test.ts tests/editor/chest-inventory.test.ts --maxWorkers=2",
 	],
+	// Keep codec-heavy preservation work separate from the small inventory probe.
+	// Fixed concurrency is only a measurement control; normal tests remain uncapped.
+	[
+		"test-full-save",
+		"npm test -- tests/e2e.import-export.svelte.test.ts --maxWorkers=1",
+	],
 	["build", "npm run build"],
 ];
 
@@ -39,6 +46,22 @@ const commands = [
 // is a local observation, not a statistical claim; record failures as well as
 // successful runs so a faster failing command cannot masquerade as improvement.
 // Disable authenticated Sentry uploads so network/credentials do not skew builds.
+// Pin the checkout and machine characteristics beside each run. A dirty tree is
+// explicit because an unchanged commit ID alone cannot identify measured code.
+const revision = spawnSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" });
+const status = spawnSync("git", ["status", "--porcelain"], {
+	encoding: "utf8",
+});
+const environment = {
+	node: process.version,
+	platform: process.platform,
+	architecture: process.arch,
+	availableParallelism: availableParallelism(),
+	cpuModel: cpus()[0]?.model,
+	memoryBytes: totalmem(),
+	revision: revision.status === 0 ? revision.stdout.trim() : undefined,
+	dirty: status.status === 0 ? Boolean(status.stdout.trim()) : undefined,
+};
 const results = [];
 for (const [name, command] of commands) {
 	const start = performance.now();
@@ -61,11 +84,7 @@ for (const [name, command] of commands) {
 	});
 	writeFileSync(
 		join(output, "results.json"),
-		JSON.stringify(
-			{ node: process.version, platform: process.platform, migrated, results },
-			null,
-			2,
-		) + "\n",
+		JSON.stringify({ ...environment, migrated, results }, null, 2) + "\n",
 	);
 	console.log(results.at(-1));
 }

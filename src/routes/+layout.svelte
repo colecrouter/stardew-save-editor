@@ -9,9 +9,11 @@
 
 	setToastManager();
 
-	// Should fix random import errors due to version mismatches
+	// A newer deployment can remove chunks referenced by this tab. Reload before
+	// client-side navigation so its route manifest and modules come from one version.
+	// Navigations already leaving the document need no intervention.
 	beforeNavigate(({ to, willUnload }) => {
-		if (updated && willUnload && to?.url) {
+		if (updated.current && !willUnload && to?.url) {
 			location.href = to.url.href;
 		}
 	});

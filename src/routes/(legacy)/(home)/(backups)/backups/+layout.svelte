@@ -17,8 +17,13 @@
 	// Preserve the navigation workaround: https://github.com/sveltejs/kit/issues/5434
 	// Follow reactive page state after navigation; Kit 3 no longer exposes page stores.
 	// Keep the legacy redirect limited to the home path with an already loaded save.
+	// Resolve that path through Kit so deployments below a URL base behave like dev.
+	// Treat the base with or without its final slash as home; hosts and Kit can
+	// canonicalize that slash differently, while neither form is another page.
 	$effect(() => {
-		if (browser && page.url.pathname === "/" && saveManager.save?.raw) {
+		const atHome =
+			page.url.pathname.replace(/\/$/, "") === resolve("").replace(/\/$/, "");
+		if (browser && atHome && saveManager.save?.raw) {
 			void goto(resolve("inventory"));
 		}
 	});

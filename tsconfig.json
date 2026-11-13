@@ -15,8 +15,7 @@
 		".svelte-kit/types/**/$types.d.ts",
 		"src/**/*.js",
 		"src/**/*.ts",
-		"src/**/*.svelte",
-		"codegen/**/*.d.ts"
+		"src/**/*.svelte"
 	],
 	"exclude": [
 		"src/service-worker.js",

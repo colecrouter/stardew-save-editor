@@ -17,13 +17,13 @@ const commands = [
 	[
 		"types",
 		migrated
-			? "npm run check:types && node node_modules/@typescript/native/bin/tsc --noEmit -p tests/tsconfig.json"
+			? "npm run check:types && node node_modules/@typescript/native/bin/tsc --noEmit -p tsconfig.tests.json"
 			: "npm run check:types",
 	],
 	[
 		"svelte",
 		migrated
-			? "npx --no-install svelte-check --tsgo --tsconfig ./tsconfig.json && npx --no-install svelte-check --tsgo --tsconfig ./tests/tsconfig.json"
+			? "npx --no-install svelte-check --tsgo --tsconfig ./tsconfig.json && npx --no-install svelte-check --tsgo --tsconfig ./tsconfig.tests.json"
 			: "npx --no-install svelte-check --tsconfig ./tsconfig.json",
 	],
 	[

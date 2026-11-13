@@ -19,7 +19,7 @@
   standalone engine typing and Effect diagnostics.
 
 The app and its shared tests use one npm installation with separate TypeScript
-scopes. `tsconfig.json` checks browser application code; `tests/tsconfig.json`
+scopes. `tsconfig.json` checks browser application code; `tsconfig.tests.json`
 adds the test environment without introducing Node globals into the app scope.
 `tsconfig.node.json` covers build and development tooling. The independent engine
 runner keeps `tests/engine/tsconfig.json`.

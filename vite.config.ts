@@ -149,7 +149,6 @@ export default defineConfig(({ mode }) => ({
 		// Full-save workers retain large schema/DOM graphs. A two-worker cap avoids
 		// memory pressure and reporter stalls; single-core CI still uses one worker.
 		maxWorkers: Math.min(2, availableParallelism()),
-		minWorkers: 1,
 		globalSetup: ["./tests/helpers/global-setup.ts"],
 		setupFiles: ["@vitest/web-worker", "./tests/helpers/setup.ts"],
 		// Required for SvelteKit with Vite 7+

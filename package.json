@@ -26,9 +26,9 @@
 		"check:game-data": "node tools/game-data/tests/prepare.mjs && node node_modules/@typescript/native/bin/tsc --noEmit -p tools/game-data/tsconfig.json",
 		"test:browser:save-processing": "node --import tsx tools/verify-save-processing-browser.mjs",
 		"lint": "vp lint",
-		"check:tests": "node node_modules/@typescript/native/bin/tsc --noEmit -p tests/tsconfig.json && svelte-check --tsgo --tsconfig ./tests/tsconfig.json",
+		"check:tests": "node node_modules/@typescript/native/bin/tsc --noEmit -p tsconfig.tests.json && svelte-check --tsgo --tsconfig ./tsconfig.tests.json",
 		"check:tooling": "node node_modules/@typescript/native/bin/tsc --noEmit -p tsconfig.node.json",
-		"effect:diagnostics:tests": "effect-tsgo diagnostics --project tests/tsconfig.json"
+		"effect:diagnostics:tests": "effect-tsgo diagnostics --project tsconfig.tests.json"
 	},
 	"devDependencies": {
 		"@effect/language-service": "0.87.5",

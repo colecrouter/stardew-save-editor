@@ -117,7 +117,7 @@ describe("Equipment omission (no xsi:nil for equipment) on Inventory serializati
 
 		const xml = xmlFromSave(wrapSave(player));
 		// At least one Item entry should be rendered with xsi:nil="true"
-		// fast-xml-parser outputs ' />' due to our post-processing in XMLManager
+		// The shared codec keeps the game's spaced self-closing element spelling.
 		expect(xml.includes('<Item xsi:nil="true" />')).toBe(true);
 	});
 

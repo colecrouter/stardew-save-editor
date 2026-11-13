@@ -1,4 +1,4 @@
-import { Effect, Schema } from "effect";
+import { Effect, Schema, SchemaParser } from "effect";
 import { scalarTypes } from "./scalars.ts";
 import type { ScalarType } from "./scalars.ts";
 import {
@@ -11,13 +11,17 @@ import {
 	without,
 	xsi,
 	invalid,
-	decodeValue,
 } from "./events.ts";
 import type { Codec, Frame } from "./events.ts";
 export { record, xsi } from "./events.ts";
 export type { Codec } from "./events.ts";
 
 export function text<A>(codec: Schema.Codec<A, string>): Codec<A> {
+	// Each text codec owns one lexical conversion pair, reused by all its frames.
+	// The reader already reports SchemaIssue.Issue, so use the public parser API
+	// directly instead of wrapping each failure as SchemaError and unwrapping it.
+	const decodeText = SchemaParser.decodeUnknownEffect(codec);
+	const encodeText = Schema.encodeSync(codec);
 	return Object.assign(
 		attach(
 			Schema.toType(codec),
@@ -31,12 +35,12 @@ export function text<A>(codec: Schema.Codec<A, string>): Codec<A> {
 								text += value;
 							}),
 						child: rejectContent,
-						finish: () => decodeValue(codec, text),
+						finish: () => decodeText(text),
 					} satisfies Frame;
 				}),
 			function* (name, value, attributes) {
 				yield { _tag: "StartElement", name, attributes };
-				yield { _tag: "Text", text: Schema.encodeSync(codec)(value) };
+				yield { _tag: "Text", text: encodeText(value) };
 				yield { _tag: "EndElement", name };
 			},
 		),

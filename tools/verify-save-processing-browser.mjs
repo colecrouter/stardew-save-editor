@@ -37,17 +37,17 @@ try {
 		window.writes = [];
 		window.holdImport = true;
 		window.heldImports = [];
-		window.importTransfers = [];
+		window.importSources = [];
 		window.workerLifetimes = [];
 		window.startupAttempts = [];
-		// Capture the original before replacing it; every invocation below restores
-		// the actual File receiver with .call(this), as the native method requires.
+		// Track reads per original File. Import must post the Blob before any
+		// main-thread arrayBuffer read; optional backup reads happen separately later.
+		window.fileReads = new WeakMap();
 		// oxlint-disable-next-line typescript/unbound-method
 		const read = File.prototype.arrayBuffer;
-		File.prototype.arrayBuffer = async function () {
-			const buffer = await read.call(this);
-			window.lastFileBuffer = buffer;
-			return buffer;
+		File.prototype.arrayBuffer = function () {
+			window.fileReads.set(this, (window.fileReads.get(this) ?? 0) + 1);
+			return read.call(this);
 		};
 		// Hold requests at the real transport boundary to make pending phases
 		// deterministic, then delegate to native postMessage for transfer proof.
@@ -84,7 +84,7 @@ try {
 			}
 			postMessage(message, options) {
 				const request = message?.[0] === 0 ? message[1] : undefined;
-				if (request?.tag === "importSave" && window.holdImport) {
+				if (request?.tag === "importBlob" && window.holdImport) {
 					window.heldImports.push({ worker: this, message, options });
 					return;
 				}
@@ -97,11 +97,12 @@ try {
 				).filter((value) => value instanceof ArrayBuffer);
 				const before = buffers.map((value) => value.byteLength);
 				super.postMessage(message, options);
-				if (request?.tag === "importSave")
-					window.importTransfers.push({
+				if (request?.tag === "importBlob")
+					window.importSources.push({
 						before,
 						after: buffers.map((value) => value.byteLength),
-						callerAfter: window.lastFileBuffer?.byteLength,
+						blobSize: request.payload.blob.size,
+						mainReads: window.fileReads.get(request.payload.blob) ?? 0,
 					});
 			}
 		};
@@ -245,16 +246,19 @@ try {
 	assert(await page.getByLabel("Save file", { exact: true }).isEnabled());
 	evidence.importFailureRecovered = true;
 	// Exercise decompression as well as XML decode, then reuse this file's worker
-	// for export. Input transfers must detach only the dedicated transport copy.
+	// for export. Import must clone the original Blob without eagerly reading it.
 	await load(deflateSync(bytes));
 	const importedWorker = page
 		.workers()
 		.find((worker) => worker.url().includes("save-processing"));
-	evidence.importTransfers = await page.evaluate(() => window.importTransfers);
+	evidence.importSources = await page.evaluate(() => window.importSources);
 	assert(
-		evidence.importTransfers.some(
+		evidence.importSources.some(
 			(item) =>
-				item.before[0] > 0 && item.after[0] === 0 && item.callerAfter > 0,
+				item.before.length === 0 &&
+				item.after.length === 0 &&
+				item.blobSize > 0 &&
+				item.mainReads === 0,
 		),
 	);
 	await page.evaluate(() => {

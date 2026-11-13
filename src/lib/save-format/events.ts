@@ -128,12 +128,17 @@ export function accepted(
 ): Frame {
 	return {
 		...frame,
+		// Defer both child completion and parent mutation until execution. Reusing
+		// this Effect must finish the child again, rather than reuse a stale value.
 		finish: () =>
-			Effect.gen(function* () {
-				const value = yield* frame.finish();
-				accept(value);
-				return value;
-			}),
+			Effect.suspend(() =>
+				// Most scalar finishes already return an Exit. Map that directly;
+				// pending child Effects retain normal sequencing and failure behavior.
+				Effect.mapEager(frame.finish(), (value) => {
+					accept(value);
+					return value;
+				}),
+			),
 	};
 }
 export function add(

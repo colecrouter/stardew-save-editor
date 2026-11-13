@@ -22,6 +22,13 @@ const StructuredCloneValue = Transferable.schema(
 	() => [],
 );
 
+// Blob is structured-cloned as an immutable file; the worker reads its
+// stream locally. It must not pass through a JSON object projection.
+const BlobValue = Transferable.schema(
+	Schema.declare((value): value is Blob => value instanceof Blob),
+	() => [],
+);
+
 // Parser causes may contain uploaded XML. Send only the recovery category back
 // to the browser, where the normal import boundary supplies user-facing wording.
 export class SaveImportRejected extends Schema.TaggedError<
@@ -38,6 +45,18 @@ export class SaveImportRejected extends Schema.TaggedError<
 export const SaveProcessingRpc = RpcGroup.make(
 	Rpc.make("importSave", {
 		payload: { bytes: Transferable.Uint8Array },
+		success: Schema.Struct({
+			document: StructuredCloneValue,
+			validation: Schema.Struct({
+				valid: Schema.Boolean,
+				errors: Schema.mutable(Schema.Array(Schema.String)),
+				warnings: Schema.mutable(Schema.Array(Schema.String)),
+			}),
+		}),
+		error: SaveImportRejected,
+	}),
+	Rpc.make("importBlob", {
+		payload: { blob: BlobValue },
 		success: Schema.Struct({
 			document: StructuredCloneValue,
 			validation: Schema.Struct({
@@ -67,6 +86,25 @@ export const SaveProcessingClient = Layer.effect(SaveProcessor)(
 				Effect.suspend(() =>
 					client.importSave({ bytes: Uint8Array.from(bytes) }),
 				).pipe(
+					Effect.map((result) => ({
+						...result,
+						document: result.document as SaveDocument,
+					})),
+					Effect.catchTags({
+						SaveImportRejected: (error) =>
+							Effect.fail(
+								new SaveReadError({ stage: error.stage, cause: undefined }),
+							),
+						RpcClientError: (error) =>
+							error.reason._tag === "RpcClientDefect"
+								? Effect.die(error.reason)
+								: Effect.fail(
+										new SaveReadError({ stage: "worker", cause: error.reason }),
+									),
+					}),
+				),
+			importBlob: (blob) =>
+				Effect.suspend(() => client.importBlob({ blob })).pipe(
 					Effect.map((result) => ({
 						...result,
 						document: result.document as SaveDocument,
@@ -117,6 +155,17 @@ const handlers = SaveProcessingRpc.toLayer(
 							(error) => new SaveImportRejected({ stage: error.stage }),
 						),
 					),
+			importBlob: ({ blob }) => {
+				if (!processor.importBlob)
+					return Effect.die(new Error("Worker blob processing unavailable"));
+				return processor
+					.importBlob(blob)
+					.pipe(
+						Effect.mapError(
+							(error) => new SaveImportRejected({ stage: error.stage }),
+						),
+					);
+			},
 			exportSave: ({ document, validate }) =>
 				processor.export(document as SaveDocument, validate),
 		};

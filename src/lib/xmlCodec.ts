@@ -1,8 +1,7 @@
-// Shared synchronous codec. Browser callers run it through workers/xml.ts;
-// Node tools and tests can reuse the exact save-format logic without Comlink.
+// Legacy save representation codec, wrapped in workers/xml.ts for the old UI.
+// The current editor uses its generated typed codec in save-format instead.
 
-import { XMLBuilder, XMLParser } from "fast-xml-parser";
-import { arrayTags, nestedArrayTags } from "./workers/jank.ts";
+import { parseXmlObject, buildXmlObject } from "./xmlObject.ts";
 
 // Equipment slots in the Stardew Valley save file don't include xsi:type because the
 // C# deserializer knows the type from the field declaration. We inject the correct
@@ -18,10 +17,14 @@ const EQUIPMENT_SLOT_TYPES: Record<string, string> = {
 	trinketItem: "Trinket",
 };
 
+// Reuse the slot table across every visited record. Most save records have no
+// equipment, so rebuilding seven entry pairs per node only adds traversal cost.
+const equipmentSlotTypes = Object.entries(EQUIPMENT_SLOT_TYPES);
+
 function injectEquipmentXsiTypes(node: unknown): void {
 	if (typeof node !== "object" || node === null) return;
 	const record = node as Record<string, unknown>;
-	for (const [slot, xsiType] of Object.entries(EQUIPMENT_SLOT_TYPES)) {
+	for (const [slot, xsiType] of equipmentSlotTypes) {
 		const item = record[slot];
 		if (
 			item &&
@@ -49,7 +52,7 @@ function injectEquipmentXsiTypes(node: unknown): void {
 function stripEquipmentXsiTypes(node: unknown): void {
 	if (typeof node !== "object" || node === null) return;
 	const record = node as Record<string, unknown>;
-	for (const [slot, defaultXsiType] of Object.entries(EQUIPMENT_SLOT_TYPES)) {
+	for (const [slot, defaultXsiType] of equipmentSlotTypes) {
 		const item = record[slot];
 		if (item && typeof item === "object") {
 			const itemRecord = item as Record<string, unknown>;
@@ -101,37 +104,8 @@ const pruneFormattingWhitespace = (node: unknown): unknown => {
 };
 
 export class XMLCodec {
-	private parser = new XMLParser({
-		ignoreAttributes: false,
-		allowBooleanAttributes: true,
-		// Defaults to `true`, but we want to preserve whitespace for user-generated strings
-		trimValues: false,
-		// Keep text like "007", "0x1F" or "1e3" (a farm or animal name) as written:
-		// parsing it as a number would change it on export
-		numberParseOptions: { hex: false, leadingZeros: false, eNotation: false },
-		isArray: (tagName, jPath) => {
-			if (arrayTags.has(tagName)) return true;
-
-			// Check if the tag is a nested array tag
-			const nestedTags = nestedArrayTags.get(tagName);
-			if (!nestedTags) return false;
-
-			// Check if the jPath ends with any of the nested tags
-			for (const nestedTag of nestedTags) {
-				if (jPath.toString().endsWith(`.${nestedTag}.${tagName}`)) {
-					// console.debug(
-					// 	`Converted "${tagName}" to an array because it is nested under "${nestedTag}"`,
-					// );
-					return true;
-				}
-			}
-
-			return false;
-		},
-	});
-
 	public parse<T>(xml: string) {
-		const parsed = this.parser.parse(xml) as T;
+		const parsed = parseXmlObject(xml) as T;
 		const pruned = pruneFormattingWhitespace(parsed) as T;
 		injectEquipmentXsiTypes(pruned);
 		return pruned;
@@ -146,17 +120,8 @@ export class XMLCodec {
 		// since the game's save format doesn't include them on dedicated slots.
 		stripEquipmentXsiTypes(obj);
 
-		const builder = new XMLBuilder({
-			attributeNamePrefix: "@_",
-			ignoreAttributes: false,
-			suppressUnpairedNode: false,
-			suppressEmptyNode: true,
-			suppressBooleanAttributes: false,
-			format: pretty,
-			indentBy: "    ",
-		});
-		const raw = builder.build(obj) as string;
-		const xml = raw.trim().replaceAll("&apos;", "'").replaceAll("/>", " />");
+		const raw = buildXmlObject(obj, pretty);
+		const xml = raw.trim().replaceAll("&apos;", "'");
 		if (!xml) throw new Error("Failed to generate XML");
 
 		// Create UTF-8 BOM bytes

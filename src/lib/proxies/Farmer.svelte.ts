@@ -522,7 +522,8 @@ export class Farmer implements DataProxy<Player> {
 		// Undo type safety enhancements
 		// 1. Inventory, switch undefined into <string xsi:nil="true" /> (for farmhands, too) (flags too)
 		// To be honest this is all kind of a hack. Realistically, we need something to parse through each node and convert
-		// undefined to the appropriate xsi:nil attribute, but I couldn't find such a feature in fast-xml-parser
+		// undefined to the appropriate xsi:nil attribute. The legacy codec omits undefined fields,
+		// so inventory slots need explicit nil sentinels to preserve their positions.
 
 		// @ts-expect-error - Need to widen type to assign nil sentinels
 		this.raw.items.Item = this.raw.items.Item.map((item) =>

@@ -35,6 +35,9 @@ export class SaveProcessor extends Context.Service<
 		readonly import: (
 			bytes: Uint8Array,
 		) => Effect.Effect<ImportedSave, SaveReadError>;
+		readonly importBlob?: (
+			blob: Blob,
+		) => Effect.Effect<ImportedSave, SaveReadError>;
 		readonly export: (
 			document: SaveDocument,
 			validate: boolean,
@@ -99,11 +102,23 @@ export const exportSave = (
 // composition root provides the same implementation as a named service layer.
 export const makeSaveProcessor = (
 	codec: SaveCodec["Service"],
-): SaveProcessor["Service"] =>
-	SaveProcessor.of({
+): SaveProcessor["Service"] => {
+	const decodeBlob = codec.decodeBlob;
+	return SaveProcessor.of({
 		import: (bytes) => importSave(codec, bytes),
+		// Optional on injected test codecs; production always offers the streaming reader.
+		...(decodeBlob
+			? {
+					importBlob: (blob: Blob) =>
+						Effect.map(decodeBlob(blob), (document): ImportedSave => ({
+							document,
+							validation: validateSave(document),
+						})),
+				}
+			: {}),
 		export: (document, validate) => exportSave(codec, document, validate),
 	});
+};
 
 // Unit tests and CPU-only profiling opt into synchronous processing explicitly.
 // Application and worker integration callers supply their platform's worker layer.

@@ -14,9 +14,10 @@ describe("full-save farm workflow", { timeout: 45_000 }, () => {
 		const load = openTestEditor;
 		let loaded: Awaited<ReturnType<typeof load>> | undefined;
 		const opening = vi
-			.spyOn(editorModel, "openEditor")
-			.mockImplementation(async (_processing, ...args) => {
-				loaded = await load(...args);
+			.spyOn(editorModel, "openEditorBlob")
+			.mockImplementation(async (_processing, blob, ...args) => {
+				// Keep fixture decoding cheap while observing the app's Blob entry point.
+				loaded = await load(new Uint8Array(await blob.arrayBuffer()), ...args);
 				return loaded;
 			});
 		const page = render(EditorApp, { processingLayer: SaveProcessingSync });

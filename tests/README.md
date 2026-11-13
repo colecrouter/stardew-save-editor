@@ -48,7 +48,10 @@ codec tests retain the real byte import boundary; malformed in-memory domain tes
 do not first serialize values that the codec is expected to reject.
 Never commit private user saves.
 
-`openEditor(processingLayer, bytes, ...)` requires an explicit execution choice.
+`openEditorBlob(processingLayer, blob, ...)` is the browser file-import entry:
+its worker opens the Blob stream locally. `openEditor(processingLayer, bytes, ...)`
+retains the byte-based API for existing tools and fixtures. Both require an
+explicit execution choice.
 The app supplies `SaveProcessingBrowser`. Component/unit fixtures and CPU-only
 profiling select `SaveProcessingSync`; tests that only need a failure or pending
 operation can supply a mock layer. Engine application integration tests select

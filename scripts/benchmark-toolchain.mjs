@@ -23,7 +23,7 @@ const commands = [
 	[
 		"svelte",
 		migrated
-			? "npx --no-install svelte-check --tsgo --tsconfig ./tsconfig.json && npx --no-install svelte-check --tsgo --tsconfig ./tsconfig.tests.json"
+			? "npx --no-install svelte-check --tsgo --tsconfig ./tsconfig.app.json && npx --no-install svelte-check --tsgo --tsconfig ./tsconfig.tests.json"
 			: "npx --no-install svelte-check --tsconfig ./tsconfig.json",
 	],
 	[

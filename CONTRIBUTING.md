@@ -113,7 +113,11 @@ configuration live in `vite.config.ts`; Biome is no longer installed.
 tooling, and native Svelte checks for application and test components. Use
 `npm run check:types`, `npm run check:tests`, or `npm run check:tooling` for the
 individual scopes. The separate TypeScript configurations keep browser globals
-from silently acquiring Node declarations from test or build code. Run
+from silently acquiring Node declarations from test or build code. The root
+`tsconfig.json` is an empty solution that lets editors discover the app, tests
+and tooling projects. CLI checks target `tsconfig.app.json`,
+`tsconfig.tests.json` and `tsconfig.node.json` directly; both Svelte configurations
+stay at the repository root so native checking preserves component prop types. Run
 `npm run check:asset-dump` and `npm run test:asset-dump` for the .NET generator;
 these use synthetic fixtures and require no game installation. The native
 TypeScript 7 compiler is installed as `@typescript/native`; the TypeScript 6 SDK

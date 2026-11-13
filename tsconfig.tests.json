@@ -4,7 +4,7 @@
 	// config loses contextual prop types for application components outside it.
 	// Component tests use application aliases and browser types, but also read
 	// fixtures from disk under Node. Opt into those globals only in this scope.
-	"extends": "./tsconfig.json",
+	"extends": "./tsconfig.app.json",
 	"compilerOptions": {
 		"types": ["$app/types", "wicg-file-system-access", "node"]
 	},

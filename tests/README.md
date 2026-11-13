@@ -19,7 +19,9 @@
   standalone engine typing and Effect diagnostics.
 
 The app and its shared tests use one npm installation with separate TypeScript
-scopes. `tsconfig.json` checks browser application code; `tsconfig.tests.json`
+scopes. The root `tsconfig.json` lets editors discover the app, test and tooling
+projects while leaving file ownership to those scopes. `tsconfig.app.json` checks browser
+application code; `tsconfig.tests.json`
 adds the test environment without introducing Node globals into the app scope.
 `tsconfig.node.json` covers build and development tooling. The independent engine
 runner keeps `tests/engine/tsconfig.json`.
@@ -29,8 +31,7 @@ retain separate public-save loaders. The application runner decodes the public s
 once in global setup, writes a temporary V8 snapshot (preserving bigint), and gives
 each isolated file its own baseline. Every fixture request returns a fresh
 `structuredClone`; edited XML still goes through the real decoder. The snapshot
-is removed at teardown and is never committed. The runner uses at most two workers (one on single-core hosts) to leave memory
-for Vite, isolated schema graphs, and full-save DOM tests.
+is removed at teardown and is never committed. Vitest chooses worker concurrency from the available CPUs.
 
 `tests/editor/workspace.ts` owns common workspace setup and unmount-before-file-close cleanup. Keep feature assertions and
 special cancellation/lifetime setup explicit. Use `tinyFixture` for rule tests and

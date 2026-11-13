@@ -8,7 +8,7 @@ import {
 } from "../../src/lib/editor/save-service.ts";
 
 // Fresh worker per request is deliberately simple and expensive. This proves
-// ownership/cancellation, not an optimized worker pool. Production Comlink remains.
+// ownership/cancellation, not the production V2 Effect RPC worker pool.
 export const workerCodecLayer = (
 	observe: (delta: number) => void = () => {},
 ) => {
@@ -84,7 +84,9 @@ export const workerCodecLayer = (
 				),
 			),
 		encode: (document) =>
-			request<Uint8Array>("encode", document).pipe(
+			// The shared codec allocates an ordinary ArrayBuffer for encoded bytes,
+			// matching the browser export contract that permits ownership transfer.
+			request<Uint8Array<ArrayBuffer>>("encode", document).pipe(
 				Effect.mapError((cause) =>
 					cause instanceof SaveWriteError
 						? cause

@@ -4,7 +4,7 @@ import { Effect, Result } from "effect";
 import { get } from "svelte/store";
 import type { Value as GeneratedSave } from "../../generated/save-format/save.ts";
 type Save = GeneratedSave & { player: NonNullable<GeneratedSave["player"]> };
-import { openEditor } from "../../src/lib/editor/editor-model";
+import { openEditor } from "../helpers/open-editor.ts";
 import {
 	setFarmSettings,
 	readFarmSettings,

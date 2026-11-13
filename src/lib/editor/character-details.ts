@@ -14,6 +14,15 @@ const numeric = (value: unknown): value is number =>
 // This catalog owns both presentation and write limits. Raw keys never escape
 // into the UI, and imported values outside these edit limits remain visible.
 const numbers = [
+	// Restore the legacy currency controls for the selected farmer. Funds use
+	// the game's signed int; cumulative earnings use its unsigned int counter.
+	{ key: "money", raw: "money", label: "Current funds", max: 2147483647 },
+	{
+		key: "earnings",
+		raw: "totalMoneyEarned",
+		label: "Lifetime earnings",
+		max: 4294967295,
+	},
 	{ key: "health", raw: "maxHealth", label: "Maximum health", max: 99999 },
 	{ key: "stamina", raw: "maxStamina", label: "Maximum stamina", max: 99999 },
 	{ key: "qi-gems", raw: "qiGems", label: "Qi Gems", max: 99999 },

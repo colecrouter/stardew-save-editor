@@ -174,7 +174,7 @@ it("rejects an oversized extension without losing the last valid grouped edit", 
 	));
 
 it("groups field commands while shared farmer selection and export create explicit boundaries", async () => {
-	const { openEditor } = await import("../../src/lib/editor/editor-model.ts");
+	const { openEditor } = await import("../helpers/open-editor.ts");
 	const { setCharacter } =
 		await import("../../src/lib/editor/character-operations.ts");
 	const { get } = await import("svelte/store");

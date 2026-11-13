@@ -1,3 +1,4 @@
+import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
 import { fireEvent, render, waitFor } from "@testing-library/svelte";
 import { expect, it, vi } from "vitest";
 import { tick } from "svelte";
@@ -27,7 +28,10 @@ it("ignores a file read that finishes after application teardown", async () => {
 	const read = vi.spyOn(file, "arrayBuffer").mockReturnValue(pending.promise);
 	const open = vi.spyOn(editor, "openEditor");
 	const backup = vi.fn(async () => {});
-	const page = render(EditorApp, { backupOriginal: backup });
+	const page = render(EditorApp, {
+		processingLayer: SaveProcessingSync,
+		backupOriginal: backup,
+	});
 	try {
 		await fireEvent.change(page.getByLabelText("Save file"), {
 			target: { files: [file] },
@@ -72,7 +76,7 @@ it.each(["picker", "stream"] as const)(
 			configurable: true,
 			value: picker,
 		});
-		const page = render(EditorApp);
+		const page = render(EditorApp, { processingLayer: SaveProcessingSync });
 		try {
 			await fireEvent.change(page.getByLabelText("Save file"), {
 				target: { files: [new File([fixtureXml], "FirstFarm")] },
@@ -134,7 +138,7 @@ it(
 				await delivery.promise;
 				return session;
 			});
-		const page = render(EditorApp);
+		const page = render(EditorApp, { processingLayer: SaveProcessingSync });
 		let session: Awaited<ReturnType<typeof acquire>> | undefined;
 		try {
 			await fireEvent.change(page.getByLabelText("Save file"), {

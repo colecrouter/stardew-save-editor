@@ -10,15 +10,29 @@
 
 	interface Props {
 		opening: boolean;
+		status?: string;
 		error: string;
 		legacyHref?: string;
 		onfile: (file: File) => Promise<void>;
 		onoriginal: (file: File) => Promise<void>;
 		oncancel: () => void;
 	}
-	let { opening, error, legacyHref, onfile, onoriginal, oncancel }: Props =
-		$props();
+	let {
+		opening,
+		status = "Opening save…",
+		error,
+		legacyHref,
+		onfile,
+		onoriginal,
+		oncancel,
+	}: Props = $props();
 	let backupsOpen = $state(false);
+	let fileInput = $state<HTMLInputElement>();
+	// Retain the chosen filename while loading, then clear the native selection
+	// after cancellation/failure so choosing the same file can trigger change again.
+	$effect(() => {
+		if (!opening && fileInput) fileInput.value = "";
+	});
 	let copying = $state(false);
 	let copyFeedback = $state("");
 	let copyFailed = $state(false);
@@ -81,9 +95,10 @@
 						give the farm a new beginning.
 					</p>
 
-					<div class="file-picker">
+					<div class="file-picker" aria-busy={opening}>
 						<label for="farm-save">Save file</label>
 						<input
+							bind:this={fileInput}
 							id="farm-save"
 							type="file"
 							disabled={opening}
@@ -106,8 +121,13 @@
 					</div>
 
 					{#if opening}
+						<!-- Keep the live status outside the busy controls so assistive
+						     technology can announce it before import has finished. -->
 						<div class="import-status">
-							<p role="status">Opening save…</p>
+							<p role="status">
+								<span class="loading-mark" aria-hidden="true"></span>
+								{status}
+							</p>
 							<StudyButton onclick={oncancel}>Cancel import</StudyButton>
 						</div>
 					{/if}
@@ -208,6 +228,29 @@
 </div>
 
 <style>
+	/* Indeterminate feedback stays honest: worker work has no reliable percent.
+	   Reduced-motion users retain the text and a static visual marker. */
+	.loading-mark {
+		display: inline-block;
+		width: 1em;
+		height: 1em;
+		margin-right: 0.5em;
+		border: 3px solid #c5a16d;
+		border-top-color: #285f30;
+		border-radius: 50%;
+		animation: loading-turn 1s linear infinite;
+		vertical-align: middle;
+	}
+	@keyframes loading-turn {
+		to {
+			transform: rotate(360deg);
+		}
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.loading-mark {
+			animation: none;
+		}
+	}
 	.locations {
 		border-top: 2px solid #c5a16d;
 		padding-block: 20px;

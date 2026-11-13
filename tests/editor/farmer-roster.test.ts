@@ -11,6 +11,7 @@ import { swapFarmers } from "../../src/lib/editor/farmer-roster-operations";
 import { setInventoryItem } from "../../src/lib/editor/inventory-operations";
 import { TransactionDraft } from "../../src/lib/editor/transaction-draft";
 import { tinyFixture, fixtureXml, parser, exportDocument } from "./fixtures";
+import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
 const run = <A, E>(
 	program: Effect.Effect<A, E, import("effect").Scope.Scope>,
 ) => Effect.runPromise(Effect.scoped(program));
@@ -243,6 +244,7 @@ describe("farmer slot reassignment", () => {
 			});
 			document.SaveGame.farmhands = [guest];
 			const opened = await openEditor(
+				SaveProcessingSync,
 				new TextEncoder().encode(exportDocument(document)),
 			);
 			try {

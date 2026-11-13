@@ -1,3 +1,4 @@
+import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
 import { describe, expect, it, vi } from "vitest";
 import { render, fireEvent, waitFor } from "@testing-library/svelte";
 import { editorResources } from "../../src/lib/editor/editor-model";
@@ -15,7 +16,11 @@ describe("full-save application workflow", { timeout: 60_000 }, () => {
 	it("the migrated UI imports, stages one date action, reviews, undoes and closes its session", async () => {
 		const backupOriginal = vi.fn(async () => {});
 		const page = render(EditorApp, {
-			props: { legacyHref: "/", backupOriginal },
+			props: {
+				processingLayer: SaveProcessingSync,
+				legacyHref: "/",
+				backupOriginal,
+			},
 		});
 		try {
 			const input = page.getByLabelText("Save file") as HTMLInputElement;
@@ -70,7 +75,7 @@ describe("full-save application workflow", { timeout: 60_000 }, () => {
 	});
 
 	it("an unreadable compressed file leaves the upload usable for another attempt", async () => {
-		const page = render(EditorApp);
+		const page = render(EditorApp, { processingLayer: SaveProcessingSync });
 		try {
 			await fireEvent.change(page.getByLabelText("Save file"), {
 				target: { files: [new File(["xyz"], "BadFarm")] },
@@ -111,6 +116,7 @@ describe("full-save application workflow", { timeout: 60_000 }, () => {
 		});
 		const page = render(EditorApp, {
 			props: {
+				processingLayer: SaveProcessingSync,
 				backupOriginal: async () => {
 					throw new DOMException("Backup unavailable", "QuotaExceededError");
 				},

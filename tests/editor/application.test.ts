@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { Effect, Result } from "effect";
 import { get } from "svelte/store";
-import { openEditor, editorResources } from "../../src/lib/editor/editor-model";
+import { editorResources } from "../../src/lib/editor/editor-model";
+import { openEditor } from "../helpers/open-editor.ts";
 import {
 	setCalendarDate,
 	setCalendarWeather,

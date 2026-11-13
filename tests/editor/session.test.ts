@@ -6,7 +6,6 @@ import { createDraft } from "../../src/lib/editor/field.ts";
 import {
 	editorResources,
 	formatDateDraft,
-	openEditor as openApplicationEditor,
 } from "../../src/lib/editor/editor-model.ts";
 import {
 	exportDocument,
@@ -14,6 +13,7 @@ import {
 	tinyFixture,
 	tinyEditorFixture,
 } from "../helpers/editor-document.ts";
+import { openEditor as openApplicationEditor } from "../helpers/open-editor.ts";
 import type { FixtureSave as Save } from "../helpers/editor-document.ts";
 
 const openEditor = (

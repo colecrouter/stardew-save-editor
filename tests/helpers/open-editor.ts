@@ -1,10 +1,16 @@
 import { Effect, Exit, Scope } from "effect";
-import { makeEditorModel } from "../../src/lib/editor/editor-model.ts";
+import {
+	openEditor as openApplicationEditor,
+	makeEditorModel,
+} from "../../src/lib/editor/editor-model.ts";
 import {
 	makeHistorySession,
 	type HistoryLimits,
 } from "../../src/lib/editor/history.ts";
-import { SaveCodec, SaveCodecLive } from "../../src/lib/editor/save-service.ts";
+import {
+	SaveProcessor,
+	SaveProcessingSync,
+} from "../../src/lib/editor/save-processing.ts";
 import type { SaveDocument } from "../../src/lib/editor/domain.ts";
 import { parser } from "./editor-document.ts";
 
@@ -19,11 +25,11 @@ export async function openTestDocument(
 	try {
 		const model = await Effect.runPromise(
 			Effect.gen(function* () {
-				const codec = yield* SaveCodec;
+				const processor = yield* SaveProcessor;
 				const session = yield* makeHistorySession(document, limits);
-				return yield* makeEditorModel(session, codec, options);
+				return yield* makeEditorModel(session, processor, options);
 			}).pipe(
-				Effect.provide(SaveCodecLive),
+				Effect.provide(SaveProcessingSync),
 				Effect.provideService(Scope.Scope, scope),
 			),
 		);
@@ -48,3 +54,15 @@ export const openTestEditor = (
 		limits,
 		options,
 	);
+
+/** Import-boundary tests choose synchronous processing explicitly; UI fixtures
+ * can continue opening an already decoded document through openTestDocument. */
+export const openEditor = (
+	bytes: Uint8Array,
+	limits: HistoryLimits = {},
+	options: {
+		includeProofs?: boolean;
+		validateExport?: boolean;
+		signal?: AbortSignal;
+	} = {},
+) => openApplicationEditor(SaveProcessingSync, bytes, limits, options);

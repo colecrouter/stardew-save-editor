@@ -1,3 +1,4 @@
+import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
 import { expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, waitFor, within } from "@testing-library/svelte";
 import { Effect, Result } from "effect";
@@ -173,7 +174,10 @@ it(
 			new File([fixtureXml], "ArchivedFarm", { lastModified: 12 }),
 		);
 		const backup = vi.fn(saveOriginalBackup);
-		const page = render(EditorApp, { backupOriginal: backup });
+		const page = render(EditorApp, {
+			processingLayer: SaveProcessingSync,
+			backupOriginal: backup,
+		});
 		try {
 			await fireEvent.click(
 				page.getByText("Original save backups", { selector: "summary" }),
@@ -321,6 +325,7 @@ it.each(["browser", "defect"] as const)(
 	async (kind) => {
 		const log = vi.spyOn(console, "error").mockImplementation(() => {});
 		const page = render(EditorApp, {
+			processingLayer: SaveProcessingSync,
 			backupOriginal: async () => {
 				if (kind === "browser")
 					throw new DOMException("No space", "QuotaExceededError");

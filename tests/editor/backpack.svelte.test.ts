@@ -1,3 +1,4 @@
+import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
 import * as editorModel from "../../src/lib/editor/editor-model";
 import { readItemVisual } from "../../src/lib/editor/item-presentation.ts";
 import { describe, expect, it, vi } from "vitest";
@@ -97,11 +98,11 @@ describe("full-save backpack workflow", { timeout: 45_000 }, () => {
 		let loaded: Awaited<ReturnType<typeof load>> | undefined;
 		const opening = vi
 			.spyOn(editorModel, "openEditor")
-			.mockImplementation(async (...args) => {
+			.mockImplementation(async (_processing, ...args) => {
 				loaded = await load(...args);
 				return loaded;
 			});
-		const page = render(EditorApp);
+		const page = render(EditorApp, { processingLayer: SaveProcessingSync });
 		try {
 			await fireEvent.change(page.getByLabelText("Save file"), {
 				target: { files: [new File([xml], "Farm_123")] },

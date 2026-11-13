@@ -3,6 +3,7 @@ import { expect, it, vi } from "vitest";
 import { editorResources } from "../../src/lib/editor/editor-model";
 import EditorApp from "../../src/lib/editor/ui/EditorApp.svelte";
 import { fixtureXml, parser } from "./fixtures";
+import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
 
 const waitForIO = <T>(assertion: () => T) =>
 	waitFor(assertion, { timeout: 30_000 });
@@ -38,6 +39,7 @@ it.each(["write", "close"] as const)(
 			value: picker,
 		});
 		const page = render(EditorApp, {
+			processingLayer: SaveProcessingSync,
 			backupOriginal: async () => {
 				throw new DOMException("Archive unavailable", "QuotaExceededError");
 			},

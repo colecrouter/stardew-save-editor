@@ -20,13 +20,29 @@ const waitForIO = <T>(assertion: () => T) =>
 const released = () =>
 	expect(editorResources()).toEqual({ models: 0, registries: 0, streams: 0 });
 
-// File reads cannot be interrupted by closing a component. Completing an old
-// read must not create a session after its application owner has disappeared.
-it("ignores a file read that finishes after application teardown", async () => {
-	const pending = Promise.withResolvers<ArrayBuffer>();
+// Teardown must cancel a pending stream read before any session is installed.
+// A producer that finishes late cannot revive the abandoned import or back it up.
+it("ignores a stream read that finishes after application teardown", async () => {
+	const pending = Promise.withResolvers<void>();
 	const file = new File([fixtureXml], "LateFarm");
-	const read = vi.spyOn(file, "arrayBuffer").mockReturnValue(pending.promise);
-	const open = vi.spyOn(editor, "openEditor");
+	let cancelled = false;
+	const cancel = vi.fn(() => {
+		cancelled = true;
+	});
+	const read = vi.fn(
+		async (
+			controller: ReadableStreamDefaultController<Uint8Array<ArrayBuffer>>,
+		) => {
+			await pending.promise;
+			if (!cancelled) {
+				controller.enqueue(new TextEncoder().encode(fixtureXml));
+				controller.close();
+			}
+		},
+	);
+	const stream = vi
+		.spyOn(file, "stream")
+		.mockReturnValue(new ReadableStream({ pull: read, cancel }));
 	const backup = vi.fn(async () => {});
 	const page = render(EditorApp, {
 		processingLayer: SaveProcessingSync,
@@ -36,20 +52,20 @@ it("ignores a file read that finishes after application teardown", async () => {
 		await fireEvent.change(page.getByLabelText("Save file"), {
 			target: { files: [file] },
 		});
-		await waitForIO(() => expect(read).toHaveBeenCalledOnce());
+		// Wait for the import to acquire this stream, not its automatic prefetch.
+		await waitForIO(() => expect(stream).toHaveBeenCalledOnce());
+		expect(read).toHaveBeenCalledOnce();
 		page.unmount();
-		pending.resolve(new TextEncoder().encode(fixtureXml).buffer);
+		await waitForIO(() => expect(cancel).toHaveBeenCalledOnce());
+		pending.resolve();
 		await pending.promise;
 		await tick();
-		released();
+		await waitForIO(released);
 		expect(backup).not.toHaveBeenCalled();
-		expect(open).not.toHaveBeenCalled();
 	} finally {
 		page.unmount();
-		pending.resolve(new ArrayBuffer(0));
-		read.mockRestore();
-		open.mockRestore();
-		page.unmount();
+		pending.resolve();
+		stream.mockRestore();
 	}
 });
 
@@ -126,12 +142,12 @@ it(
 	"closes an acquired session delivered after application teardown",
 	{ timeout: 60_000 },
 	async () => {
-		const acquire = editor.openEditor;
+		const acquire = editor.openEditorBlob;
 		const acquired =
 			Promise.withResolvers<Awaited<ReturnType<typeof acquire>>>();
 		const delivery = Promise.withResolvers<void>();
 		const open = vi
-			.spyOn(editor, "openEditor")
+			.spyOn(editor, "openEditorBlob")
 			.mockImplementation(async (...args) => {
 				const session = await acquire(...args);
 				acquired.resolve(session);

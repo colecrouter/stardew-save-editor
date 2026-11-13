@@ -12,9 +12,10 @@ import Harness from "./helpers/PixelFrameHarness.svelte";
 
 it("sprite definitions match the shipped atlas dimensions and stay in bounds", () => {
 	for (const spec of Object.values(uiAtlases)) {
-		expect(imageDimensionsFromData(readFileSync(`static${spec.path}`))).toEqual(
-			{ width: spec.width, height: spec.height },
-		);
+		// The image reader also reports its format; this contract checks atlas dimensions.
+		expect(
+			imageDimensionsFromData(readFileSync(`static/${spec.path}`)),
+		).toMatchObject({ width: spec.width, height: spec.height });
 	}
 	for (const [rectangles, atlas] of [
 		[dialogueFrame, uiAtlases.menu],

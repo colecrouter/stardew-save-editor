@@ -9,9 +9,11 @@
 
 	setToastManager();
 
-	// Should fix random import errors due to version mismatches
+	// A newer deployment can remove chunks referenced by this tab. Reload before
+	// client-side navigation so its route manifest and modules come from one version.
+	// Navigations already leaving the document need no intervention.
 	beforeNavigate(({ to, willUnload }) => {
-		if (updated && willUnload && to?.url) {
+		if (updated.current && !willUnload && to?.url) {
 			location.href = to.url.href;
 		}
 	});
@@ -26,9 +28,9 @@
 			? "width=device-width, initial-scale=1"
 			: "width=device-width, initial-scale=0.58"}
 	/>
-	<meta property="og:image" content={asset("/img/summary.png")} />
-	<link rel="icon" type="image/png" href={asset("/img/favicon.png")} />
-	<link rel="canonical" href={resolve("/")} />
+	<meta property="og:image" content={asset("img/summary.png")} />
+	<link rel="icon" type="image/png" href={asset("img/favicon.png")} />
+	<link rel="canonical" href={resolve("")} />
 </svelte:head>
 
 <!-- GITHUB LOGO -->
@@ -39,7 +41,7 @@
 	target="_blank"
 	rel="noreferrer"
 >
-	<img src={asset("/img/github.svg")} alt="GitHub Logo" />
+	<img src={asset("img/github.svg")} alt="GitHub Logo" />
 </a>
 
 <main class:calendar-workspace={page.route.id === "/"}>

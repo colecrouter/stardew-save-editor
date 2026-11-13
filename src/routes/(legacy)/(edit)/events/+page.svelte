@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { asset } from "$app/paths";
+	import { dynamicAsset } from "$lib/ui/dynamicAsset.ts";
 	import {
 		type EventInfo,
 		VanillaEvents,
@@ -196,9 +196,15 @@
 			<section data-testid="event-group">
 				<h4>
 					{#if groupBy === "npc" && portraits.has(group.name)}
-						<span class="portrait">
-							<img src={asset(`/assets/portraits/${group.name}.png`)} alt="" />
-						</span>
+						{@const portrait = dynamicAsset(
+							`assets/portraits/${group.name}.png`,
+						)}
+
+						{#if portrait}
+							<span class="portrait">
+								<img src={portrait} alt="" />
+							</span>
+						{/if}
 					{/if}
 					<span data-testid="event-group-name">{group.name}</span>
 					<small>({group.seenCount}/{group.total})</small>

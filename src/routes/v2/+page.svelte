@@ -4,8 +4,8 @@
 	import { onMount } from "svelte";
 	// Existing bookmarks reach the default editor without opening a second session.
 	onMount(() => {
-		void goto(resolve("/"), { replaceState: true });
+		void goto(resolve(""), { replace: true });
 	});
 </script>
 
-<a href={resolve("/")}>Open the editor</a>
+<a href={resolve("")}>Open the editor</a>

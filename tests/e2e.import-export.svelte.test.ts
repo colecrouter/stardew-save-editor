@@ -3,14 +3,18 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { setup as mockIDB } from "vitest-indexeddb";
 import { SaveManager } from "../src/lib/SaveManager.svelte";
 import { assertXmlEqual } from "./helpers/xmlDiff";
+import { fullSaveTimeout } from "./helpers/full-save-budget";
 
 // helpers moved to tests/helpers/xmlDiff.ts
 
-describe("Import/Export roundtrip", () => {
+// Full public-save fixtures verify codec correctness rather than latency. Allow
+// their integration work at default concurrency without changing unit-suite budgets.
+describe("Import/Export roundtrip", { timeout: 45_000 }, () => {
 	mockIDB();
 	let saveManager: SaveManager;
 	let originalXml: string;
 
+	// Full-file setup has its own deadline, independent of test-body options.
 	beforeEach(async () => {
 		const fileBlob = await readFile("tests/TestSave");
 		originalXml = fileBlob.toString("utf-8");
@@ -21,7 +25,7 @@ describe("Import/Export roundtrip", () => {
 		});
 		await promise;
 		cleanup();
-	});
+	}, fullSaveTimeout);
 
 	it("exports identical XML after immediate re-export", async () => {
 		const blob = await saveManager.export(true);
@@ -33,7 +37,9 @@ describe("Import/Export roundtrip", () => {
 	});
 });
 
-describe("Number-like text roundtrip", () => {
+// Full public-save fixtures verify codec correctness rather than latency. Allow
+// their integration work at default concurrency without changing unit-suite budgets.
+describe("Number-like text roundtrip", { timeout: 45_000 }, () => {
 	mockIDB();
 
 	it("keeps text such as a farm called 007 as written", async () => {

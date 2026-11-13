@@ -57,7 +57,9 @@ export type InventoryReviewChange =
 	  });
 
 function unreachable(value: never): never {
-	throw new Error(`Unhandled inventory review property: ${value}`);
+	// A new field must be handled by the exhaustive switch. Retain unexpected
+	// runtime input as diagnostic data without coercing opaque values to text.
+	throw new Error("Unhandled inventory review property", { cause: value });
 }
 const quiver = (value: unknown): value is RequestedValue<"trinket:type"> =>
 	value === "normal" ||

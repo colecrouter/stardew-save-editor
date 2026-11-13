@@ -53,7 +53,7 @@
 			if (!(await saveManager.import(file))) return;
 			const validation = $state.snapshot(saveManager.loadValidation);
 
-			goto(resolve("/inventory"));
+			goto(resolve("inventory"));
 
 			// Opened even if there are problems, so they can be fixed in the editor
 			const { message, type, duration } = describeResult(
@@ -73,7 +73,7 @@
 
 <section>
 	<p>
-		<a href={resolve("/")}>Try v2 editing with undo and change review</a>
+		<a href={resolve("")}>Try v2 editing with undo and change review</a>
 	</p>
 	<UiContainer>
 		<form onsubmit={preventDefault(handle)} method="POST">

@@ -1,0 +1,28 @@
+{
+	// The application shares strictness with scripts and tests, while Kit supplies
+	// generated route types and aliases from the Vite plugin configuration.
+	"extends": ["./tsconfig.base.json", "$app/tsconfig"],
+	"compilerOptions": {
+		"allowImportingTsExtensions": true,
+		// Keep Kit's generated ambient types when opting into browser APIs.
+		// Node globals belong to the test/tooling scopes rather than the app.
+		"types": ["$app/types", "wicg-file-system-access"]
+	},
+	// Kit 3 leaves file ownership to us. Component fixtures and Node tooling
+	// have separate configs so they cannot silently broaden the app's globals.
+	// Colocated tests belong to that test scope as well, not to browser runtime code.
+	"include": [
+		".svelte-kit/types/**/$types.d.ts",
+		"src/**/*.js",
+		"src/**/*.ts",
+		"src/**/*.svelte"
+	],
+	"exclude": [
+		"src/service-worker.js",
+		"src/service-worker.ts",
+		"src/service-worker.d.ts",
+		"src/service-worker/**",
+		"src/**/*.test.*",
+		"src/**/*.spec.*"
+	]
+}

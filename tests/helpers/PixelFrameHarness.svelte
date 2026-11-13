@@ -3,7 +3,7 @@
 	import UiIcon from "$lib/ui/UIIcon.svelte";
 	import UiInput from "$lib/ui/UIInput.svelte";
 	import { resolveUiAssets, setUiAssets } from "$lib/ui/uiAssets";
-	setUiAssets(resolveUiAssets((_, path) => path));
+	setUiAssets(resolveUiAssets((_, path) => `/${path}`));
 	let enabled = $state(true);
 </script>
 

@@ -66,12 +66,38 @@ const toInt32 = (value: unknown) => {
 
 const isTrue = (value: unknown) => value === true || value === "true";
 
+// XML scalar fields may arrive as parsed primitives. Structured values are not
+// scalar text: coercing an array could turn ["spring"] into a valid season, or
+// invoke a save object's custom coercion instead of validating its representation.
+const scalarText = (value: unknown): string | undefined => {
+	switch (typeof value) {
+		case "string":
+		case "number":
+		case "boolean":
+		case "bigint":
+			return String(value);
+		default:
+			return undefined;
+	}
+};
+
+// Diagnostics retain primitive spellings without trusting object coercion hooks.
+// Describe malformed shapes explicitly so reporting a bad field cannot itself fail.
+export const describeValidationValue = (value: unknown): string => {
+	const text = scalarText(value);
+	if (text !== undefined) return text;
+	if (value === null) return "null";
+	if (value === undefined) return "undefined";
+	if (value instanceof Error) return `${value.name}: ${value.message}`;
+	if (typeof value === "object")
+		return Array.isArray(value) ? "an array" : "an object";
+	return `a ${typeof value}`;
+};
+
 // The season the game reads, if it can: a name in any case, or the season's
 // number (Game1.currentSeason, through Utility.TryParseEnum)
 const toSeason = (value: unknown) => {
-	const text = String(value ?? "")
-		.trim()
-		.toLowerCase();
+	const text = (scalarText(value) ?? "").trim().toLowerCase();
 	const index = toInteger(text);
 	return index === undefined
 		? SEASONS.find((season) => season === text)
@@ -107,7 +133,7 @@ export const validateSave = (parsed: unknown): SaveValidation => {
 		return result();
 	}
 
-	const version = String(game.gameVersion ?? "");
+	const version = scalarText(game.gameVersion) ?? "";
 	if (!SUPPORTED_VERSIONS.some((v) => version.startsWith(v)))
 		errors.push(`Unsupported game version "${version || "missing"}"`);
 
@@ -124,13 +150,13 @@ export const validateSave = (parsed: unknown): SaveValidation => {
 	const season = toSeason(game.currentSeason);
 	if (season === undefined)
 		errors.push(
-			`The season (${game.currentSeason ?? "missing"}) isn't spring, summer, fall or winter`,
+			`The season (${describeValidationValue(game.currentSeason ?? "missing")}) isn't spring, summer, fall or winter`,
 		);
 	// A missing day or year loads as 0
 	const day = toInt32(game.dayOfMonth ?? 0);
 	if (day === undefined)
 		errors.push(
-			`The day of the month (${game.dayOfMonth}) isn't a number the game can read`,
+			`The day of the month (${describeValidationValue(game.dayOfMonth)}) isn't a number the game can read`,
 		);
 	else if (day < 1 || day > DAYS_PER_SEASON)
 		warnings.push(
@@ -138,7 +164,9 @@ export const validateSave = (parsed: unknown): SaveValidation => {
 		);
 	const year = toInt32(game.year ?? 0);
 	if (year === undefined)
-		errors.push(`The year (${game.year}) isn't a number the game can read`);
+		errors.push(
+			`The year (${describeValidationValue(game.year)}) isn't a number the game can read`,
+		);
 	else if (year < 1) warnings.push(`The year (${year}) is less than 1`);
 	if (isTrue(game.isSnowing) && season !== undefined && season !== "winter")
 		warnings.push(`It's snowing in ${season}, and only snows in winter`);
@@ -148,9 +176,9 @@ export const validateSave = (parsed: unknown): SaveValidation => {
 	if (!isObject(player)) {
 		errors.push("Missing the main player");
 	} else {
-		if (!String(player.name ?? "").trim())
+		if (!(scalarText(player.name) ?? "").trim())
 			warnings.push("The main player has no name");
-		if (!String(player.farmName ?? "").trim())
+		if (!(scalarText(player.farmName) ?? "").trim())
 			warnings.push("The farm has no name");
 
 		// Unclaimed cabins have a farmhand with no name, which is normal
@@ -159,12 +187,14 @@ export const validateSave = (parsed: unknown): SaveValidation => {
 		).filter(isObject);
 		for (const [i, farmer] of [player, ...farmhands].entries()) {
 			const label =
-				String(farmer.name ?? "").trim() ||
+				(scalarText(farmer.name) ?? "").trim() ||
 				(i === 0 ? "The main player" : `Farmhand ${i}`);
 			if ("money" in farmer) {
 				const money = toInt32(farmer.money);
 				if (money === undefined)
-					errors.push(`${label}'s money (${farmer.money}) is out of range`);
+					errors.push(
+						`${label}'s money (${describeValidationValue(farmer.money)}) is out of range`,
+					);
 				else if (money < 0)
 					warnings.push(`${label}'s money (${money}) is negative`);
 			}
@@ -186,7 +216,7 @@ export const validateSave = (parsed: unknown): SaveValidation => {
 				const number = toInteger(value);
 				if (number === undefined || number < 0 || number > UINT32_MAX)
 					errors.push(
-						`${label}'s ${name ?? "unnamed"} stat (${value}) is out of range`,
+						`${label}'s ${describeValidationValue(name ?? "unnamed")} stat (${describeValidationValue(value)}) is out of range`,
 					);
 			}
 		}

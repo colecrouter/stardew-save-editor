@@ -6,7 +6,9 @@ import { SaveManager } from "../src/lib/SaveManager.svelte";
 const removeStatValues = (xml: string) =>
 	xml.replace(/<Values>[\s\S]*?<\/Values>/, "<Values />");
 
-describe("Farmer stats", () => {
+// Full public-save fixtures verify codec correctness rather than latency. Allow
+// their integration work at default concurrency without changing unit-suite budgets.
+describe("Farmer stats", { timeout: 30_000 }, () => {
 	mockIDB();
 
 	it("treats missing stat values as zero", async () => {

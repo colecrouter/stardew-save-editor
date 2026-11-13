@@ -23,5 +23,6 @@
 	},
 	"js/ts.experimental.useTsgo": true,
 	"typescript.native-preview.tsdk": "./node_modules/@typescript/native/bin",
-	"js/ts.tsdk.promptToUseWorkspaceVersion": true
+	"js/ts.tsdk.promptToUseWorkspaceVersion": true,
+	"npm.scriptRunner": "vp"
 }

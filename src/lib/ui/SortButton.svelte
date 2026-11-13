@@ -13,7 +13,7 @@
 	let { label, nativeTooltip = false, ...rest }: Props = $props();
 
 	// The game's Organize button: Cursors.png (162, 440), 16x16
-	const sheet = `url(${asset("/assets/Cursors.png")})`;
+	const sheet = `url(${asset("assets/Cursors.png")})`;
 </script>
 
 {#snippet button()}

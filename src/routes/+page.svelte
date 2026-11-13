@@ -8,7 +8,7 @@
 <svelte:head><title>Stardew Save Editor</title></svelte:head>
 
 <EditorApp
-	legacyHref={resolve("/legacy")}
+	legacyHref={resolve("legacy")}
 	backupOriginal={saveOriginalBackup}
 	processingLayer={SaveProcessingBrowser}
 />

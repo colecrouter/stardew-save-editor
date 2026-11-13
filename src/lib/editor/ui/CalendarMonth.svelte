@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { asset } from "$app/paths";
+	import { dynamicAsset } from "$lib/ui/dynamicAsset.ts";
 	import { seasonName, type GameDate } from "../../calendar.ts";
 	import type { CalendarEvent } from "../calendar-events.ts";
 	let {
@@ -57,10 +57,14 @@
 
 				<span class="markers" aria-hidden="true">
 					{#each occasions as occasion}
-						{#if occasion.portrait}
+						{@const portrait = occasion.portrait
+							? dynamicAsset(`assets/portraits/${occasion.portrait}.png`)
+							: undefined}
+
+						{#if portrait}
 							<span
 								class="portrait"
-								style:background-image={`url('${asset(`/assets/portraits/${occasion.portrait}.png`)}')`}
+								style:background-image={`url('${portrait}')`}
 							></span>
 						{:else}
 							<svg

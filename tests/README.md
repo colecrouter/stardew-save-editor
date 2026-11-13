@@ -2,32 +2,45 @@
 
 - `npm run test:asset-dump`: catalog extraction regressions and filesystem publication/rollback
   for the .NET generator; no game installation or graphics device required.
-- `npm test`: application/domain/component and retained legacy regressions (Vitest,
+- `npm test`: application/domain/component and retained legacy regressions (Vite+ Vitest 5,
   happy-dom). Files named `e2e` here are integration tests, not real-browser tests.
 - `npm run test:editor`: the narrower application editor suite.
 - `npm run test:game-data`: .NET 10 inspection/generation, generated-module
   type checks, XML codec behavior, and synthetic XmlSerializer interoperability.
   It rebuilds ignored test output; no game installation is required.
+- `npm run check:tests`: native TypeScript and Svelte checks for application test
+  files and component harnesses.
 - `npm ci --prefix tests/engine`, then `npm test --prefix tests/engine`: engine
-  contracts plus native Node import/codec checks. This package uses Vitest 5 because
-  the Effect test adapter requires it; the application runner remains Vitest 3. The Node platform shared package is pinned
-  to the tested 4.0.6 API alongside Effect.
+  contracts plus native Node import/codec checks. Both runners use Vitest 5; this
+  package remains independently installed so native engine checks retain their
+  own dependency boundary. The Node platform shared package is pinned to the
+  tested 4.0.6 API alongside Effect.
 - `npm run check --prefix tests/engine` and `npm run effect:diagnostics --prefix tests/engine`:
   standalone engine typing and Effect diagnostics.
+
+The app and its shared tests use one npm installation with separate TypeScript
+scopes. The root `tsconfig.json` lets editors discover the app, test and tooling
+projects while leaving file ownership to those scopes. `tsconfig.app.json` checks browser
+application code; `tsconfig.tests.json`
+adds the test environment without introducing Node globals into the app scope.
+`tsconfig.node.json` covers build and development tooling. The independent engine
+runner keeps `tests/engine/tsconfig.json`.
 
 Shared fixture builders live in `tests/helpers/editor-document.ts`; Vite and Node
 retain separate public-save loaders. The application runner decodes the public save
 once in global setup, writes a temporary V8 snapshot (preserving bigint), and gives
 each isolated file its own baseline. Every fixture request returns a fresh
 `structuredClone`; edited XML still goes through the real decoder. The snapshot
-is removed at teardown and is never committed. The runner uses at most two workers (one on single-core hosts) to leave memory
-for Vite, isolated schema graphs, and full-save DOM tests.
+is removed at teardown and is never committed. Vitest chooses worker concurrency from the available CPUs.
 
 `tests/editor/workspace.ts` owns common workspace setup and unmount-before-file-close cleanup. Keep feature assertions and
 special cancellation/lifetime setup explicit. Use `tinyFixture` for rule tests and
 `tinyEditorFixture` when a model also needs a calendar projection. Retain full-save
 cases for preservation. Full import/export assertions have explicit
-budgets for the event-based codec; pure rule tests keep the default budget.
+budgets for the event-based codec; pure rule tests keep the default budget. These
+budgets detect stuck correctness tests, not acceptable runtime latency. Use the
+separate full-save probe in `npm run benchmark:toolchain` to compare codec-heavy
+work across revisions; the small inventory probe does not exercise that boundary.
 UI interaction suites can open decoded fixtures through
 `tests/helpers/open-editor.ts`. This uses the production model, history and export
 service while avoiding a full XML import for each interaction. Application/engine
@@ -100,8 +113,8 @@ npx playwright install chromium
 npm run test:browser:save-processing -- --output /tmp/save-worker.json
 ```
 
-This uses Playwright Chromium and the public fixture; pass `--channel chrome` to
-use installed Chrome instead. CI runs this command against a production build and
+This uses Playwright Chromium and the public fixture; pass `--channel chrome` or
+`--chromium /path/to/chromium` to use an installed browser instead. CI runs this command against a production build and
 retains JSON and screenshot evidence. It checks worker constructor/module-load
 failures and successful retry, compressed import,
 import cancellation and error recovery, loading phases and disabled duplicate

@@ -72,10 +72,12 @@ it(
 		});
 		const edit = vi
 			.spyOn(opened.model.commands, "edit")
-			.mockImplementationOnce(async (program, gesture) => {
-				await gate;
-				return realEdit(program, gesture);
-			});
+			.mockImplementationOnce(
+				async <E>(...args: Parameters<typeof realEdit<E>>) => {
+					await gate;
+					return realEdit(...args);
+				},
+			);
 		const page = render(StepperHarness, { model: opened.model });
 		try {
 			const input = page.getByRole("spinbutton", {
@@ -143,11 +145,13 @@ it(
 		// This recreates a visible11 with a captured field descriptor still at10.
 		const edit = vi
 			.spyOn(opened.model.commands, "edit")
-			.mockImplementationOnce(async (program, gesture) => {
-				const result = await realEdit(program, gesture);
-				await gate;
-				return result;
-			});
+			.mockImplementationOnce(
+				async <E>(...args: Parameters<typeof realEdit<E>>) => {
+					const result = await realEdit(...args);
+					await gate;
+					return result;
+				},
+			);
 		const page = render(StepperHarness, {
 			model: opened.model,
 			holdPublication: true,

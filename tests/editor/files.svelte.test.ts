@@ -48,12 +48,11 @@ it("existing plain-text backups remain readable", async () => {
 
 it("browser downloads keep the original filename and release their attached anchor after the stream starts", async () => {
 	vi.useFakeTimers();
-	const create = vi.fn(() => "blob:save-download");
-	const revoke = vi.fn();
-	const originalCreate = URL.createObjectURL,
-		originalRevoke = URL.revokeObjectURL;
-	URL.createObjectURL = create;
-	URL.revokeObjectURL = revoke;
+	// Spies restore the exact browser methods after the download assertion.
+	const create = vi
+		.spyOn(URL, "createObjectURL")
+		.mockReturnValue("blob:save-download");
+	const revoke = vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {});
 	const click = vi
 		.spyOn(HTMLAnchorElement.prototype, "click")
 		.mockImplementation(function (this: HTMLAnchorElement) {
@@ -69,8 +68,8 @@ it("browser downloads keep the original filename and release their attached anch
 		expect(revoke).toHaveBeenCalledWith("blob:save-download");
 		expect(document.querySelector('a[download="Farm_123"]')).toBeNull();
 	} finally {
-		URL.createObjectURL = originalCreate;
-		URL.revokeObjectURL = originalRevoke;
+		create.mockRestore();
+		revoke.mockRestore();
 		click.mockRestore();
 		vi.useRealTimers();
 	}

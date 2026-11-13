@@ -1,0 +1,15 @@
+{
+	// Vite and maintenance scripts run in Node rather than in the browser. Keep them out
+	// of the app scope and do not supply DOM globals to configuration code.
+	"extends": "./tsconfig.base.json",
+	"compilerOptions": {
+		"noEmit": true,
+		"allowImportingTsExtensions": true,
+		"types": ["node"],
+		"lib": ["ESNext"],
+		"module": "ESNext",
+		"moduleResolution": "Bundler",
+		"target": "ESNext"
+	},
+	"include": ["vite.config.ts", "scripts/*.mjs"]
+}

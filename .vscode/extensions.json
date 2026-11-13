@@ -1,8 +1,7 @@
 {
 	"recommendations": [
 		"svelte.svelte-vscode",
-		"oxc.oxc-vscode",
-		"biomejs.biome",
+		"voidzero.vite-plus-extension-pack",
 		"typescriptteam.native-preview"
 	]
 }

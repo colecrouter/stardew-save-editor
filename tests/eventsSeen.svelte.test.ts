@@ -26,6 +26,9 @@ const importWithoutEvents = async () => {
 	return { saveManager, cleanup };
 };
 
+// Only full-save imports below receive the integration budget. Small parser and
+// ID-normalization cases retain Vitest's default timeout.
+const fullSave = { timeout: 30_000 };
 describe("events seen", () => {
 	mockIDB();
 
@@ -46,7 +49,7 @@ describe("events seen", () => {
 		cleanup();
 	});
 
-	it("adds events to a save that hasn't seen any", async () => {
+	it("adds events to a save that hasn't seen any", fullSave, async () => {
 		const { saveManager, cleanup } = await importWithoutEvents();
 
 		const player = saveManager.save?.player;
@@ -66,7 +69,7 @@ describe("events seen", () => {
 		cleanup();
 	});
 
-	it("keeps an empty list empty", async () => {
+	it("keeps an empty list empty", fullSave, async () => {
 		const { saveManager, cleanup } = await importWithoutEvents();
 
 		const exported = await (await saveManager.export(true)).text();
@@ -101,7 +104,7 @@ describe("events seen", () => {
 			expect(toEventId(id), id).toBeUndefined();
 	});
 
-	it("saves typed IDs so they read back the same", async () => {
+	it("saves typed IDs so they read back the same", fullSave, async () => {
 		const { saveManager, cleanup } = await importWithoutEvents();
 		const typed = ["01", "007", "-1", "1.5", "123abc", "1e400", "Mod.Id_1"];
 		const ids = typed.map(toEventId);

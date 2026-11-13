@@ -23,6 +23,7 @@
 
 	const toastManager = getToastManager();
 	const saveManager = getSaveManager();
+	// Literal atlas paths remain statically checked against the shipped files.
 	setUiAssets(resolveUiAssets((_name, path) => asset(path)));
 
 	let isDownloading = $state(false);
@@ -71,7 +72,7 @@
 
 	$effect(() => {
 		if (!saveManager.save) {
-			goto(resolve("/legacy"));
+			goto(resolve("legacy"));
 		}
 	});
 </script>

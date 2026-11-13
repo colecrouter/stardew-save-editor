@@ -59,7 +59,7 @@ export const makeStoreInventory = (session: HistorySession) =>
 				)?.money ?? 0,
 		);
 		const error = writable("");
-		const run = <A>(action: Effect.Effect<A, unknown>) => {
+		const run = <A, E>(action: Effect.Effect<A, E>) => {
 			error.set("");
 			Effect.runForkWith(services)(
 				Effect.forkIn(

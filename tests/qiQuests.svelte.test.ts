@@ -8,6 +8,7 @@ import qiQuestTemplates from "../generated/qiquests.json";
 import { SaveManager } from "../src/lib/SaveManager.svelte";
 import { XMLManager } from "../src/lib/workers/xml";
 import QuestList from "../src/routes/(legacy)/(edit)/(list)/qi-quests/QuestList.svelte";
+import { fullSaveTimeout } from "./helpers/full-save-budget";
 
 // A structurally realistic `<SpecialOrder>` block (shape borrowed from the
 // fixture's own QiChallenge2 entry) for building an accepted order under
@@ -65,10 +66,11 @@ describe("QiQuests", { timeout: 30_000 }, () => {
 	let saveManager: SaveManager;
 	let fixture: string;
 
+	// Full-file setup has its own deadline, independent of test-body options.
 	beforeEach(async () => {
 		fixture = (await readFile("tests/TestSave")).toString("utf-8");
 		saveManager = await importSave(fixture);
-	});
+	}, fullSaveTimeout);
 
 	it("doesn't accept or cancel a quest when its text is clicked", async () => {
 		const quests = saveManager.save?.qiQuests;

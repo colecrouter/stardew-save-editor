@@ -1,5 +1,5 @@
 diff --git a/node_modules/core-js/modules/web.structured-clone.js b/node_modules/core-js/modules/web.structured-clone.js
-index b274d34..235d622 100644
+index ea23d94..f9f4123 100644
 --- a/node_modules/core-js/modules/web.structured-clone.js
 +++ b/node_modules/core-js/modules/web.structured-clone.js
 @@ -64,7 +64,9 @@ var checkErrorsCloning = function (structuredCloneImplementation, $Error) {

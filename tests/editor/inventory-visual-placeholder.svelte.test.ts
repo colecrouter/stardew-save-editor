@@ -24,3 +24,19 @@ it.each([
 		}
 	},
 );
+
+it("keeps known quality when a catalog references an unshipped sprite sheet", () => {
+	const rect = { x: 0, y: 0, width: 16, height: 16 };
+	const { container } = render(BackpackItemVisual, {
+		visual: {
+			sheet: "UnshippedModdedSheet.png",
+			sheetSize: { width: 16, height: 16 },
+			sourceRect: rect,
+			layers: [{ rect }],
+			quality: 4,
+		},
+	});
+	expect(container.querySelector("svg.unknown-item")).toBeTruthy();
+	expect(container.querySelector("svg.quality-badge")).toBeTruthy();
+	expect(container.querySelector("image")).toBeNull();
+});

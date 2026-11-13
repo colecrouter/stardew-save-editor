@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { asset } from "$app/paths";
+	import { dynamicAsset } from "$lib/ui/dynamicAsset.ts";
 	import { Result } from "effect";
 	import { useAtomValue } from "effect-atom-svelte";
 	import {
@@ -272,12 +272,15 @@
 				<section aria-label={`${group.name} events`}>
 					<h2>
 						{#if grouping === "npc" && portraits.has(group.name)}
-							<span class="portrait">
-								<img
-									src={asset(`/assets/portraits/${group.name}.png`)}
-									alt=""
-								/>
-							</span>
+							{@const portrait = dynamicAsset(
+								`assets/portraits/${group.name}.png`,
+							)}
+
+							{#if portrait}
+								<span class="portrait">
+									<img src={portrait} alt="" />
+								</span>
+							{/if}
 						{/if}
 						{group.name}
 						<small>{group.seenCount}/{group.total} seen</small>

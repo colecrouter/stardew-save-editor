@@ -13,6 +13,9 @@ const prop = (value: unknown, key: string) => asRecord(value)[key];
 const hasArrayProp = (value: unknown, key: string) =>
 	Array.isArray(prop(value, key));
 
+// Only full-save imports below receive the integration budget. Small XML parser
+// cases retain Vitest's default timeout.
+const fullSave = { timeout: 30_000 };
 describe("SaveProxy", () => {
 	mockIDB();
 
@@ -245,132 +248,146 @@ describe("SaveProxy", () => {
 		return raw;
 	};
 
-	it("names the farmers the previous and next buttons switch to", async () => {
-		const raw = await importedRaw();
-		const host = raw.SaveGame.player;
-		const farmhands = ["Ann", "Bob"].map((name, i) => ({
-			...clone(host),
-			name,
-			UniqueMultiplayerID: 1000 + i,
-		}));
-		raw.SaveGame.farmhands = { Farmer: farmhands as Player[] };
+	it(
+		"names the farmers the previous and next buttons switch to",
+		fullSave,
+		async () => {
+			const raw = await importedRaw();
+			const host = raw.SaveGame.player;
+			const farmhands = ["Ann", "Bob"].map((name, i) => ({
+				...clone(host),
+				name,
+				UniqueMultiplayerID: 1000 + i,
+			}));
+			raw.SaveGame.farmhands = { Farmer: farmhands as Player[] };
 
-		let save!: SaveProxy;
-		const cleanup = $effect.root(() => {
-			save = new SaveProxy(raw);
-		});
-		flushSync();
+			let save!: SaveProxy;
+			const cleanup = $effect.root(() => {
+				save = new SaveProxy(raw);
+			});
+			flushSync();
 
-		const names = () => [
-			save.previousPlayer?.name,
-			save.player.name,
-			save.nextPlayer?.name,
-		];
-		expect(names()).toEqual(["Bob", host.name, "Ann"]);
-		save.nextFarmer();
-		expect(names()).toEqual([host.name, "Ann", "Bob"]);
-		save.prevFarmer();
-		save.prevFarmer();
-		expect(names()).toEqual(["Ann", "Bob", host.name]);
-		cleanup();
-	});
+			const names = () => [
+				save.previousPlayer?.name,
+				save.player.name,
+				save.nextPlayer?.name,
+			];
+			expect(names()).toEqual(["Bob", host.name, "Ann"]);
+			save.nextFarmer();
+			expect(names()).toEqual([host.name, "Ann", "Bob"]);
+			save.prevFarmer();
+			save.prevFarmer();
+			expect(names()).toEqual(["Ann", "Bob", host.name]);
+			cleanup();
+		},
+	);
 
-	it("points both ways at the only farmer in a single-player save", async () => {
-		const raw = await importedRaw();
-		let save!: SaveProxy;
-		const cleanup = $effect.root(() => {
-			save = new SaveProxy(raw);
-		});
-		flushSync();
-		expect(save.previousPlayer).toBe(save.player);
-		expect(save.nextPlayer).toBe(save.player);
-		cleanup();
-	});
+	it(
+		"points both ways at the only farmer in a single-player save",
+		fullSave,
+		async () => {
+			const raw = await importedRaw();
+			let save!: SaveProxy;
+			const cleanup = $effect.root(() => {
+				save = new SaveProxy(raw);
+			});
+			flushSync();
+			expect(save.previousPlayer).toBe(save.player);
+			expect(save.nextPlayer).toBe(save.player);
+			cleanup();
+		},
+	);
 
-	it("keeps cellar assignments aligned when promoting a farmhand to host", async () => {
-		const xml = await readFile("tests/TestSave", "utf-8");
-		let importTask: Promise<void | boolean> = Promise.resolve();
-		let saveManager!: SaveManager;
-		const managerCleanup = $effect.root(() => {
-			saveManager = new SaveManager();
-			importTask = saveManager.import(
-				new File([xml], "TestSave", { type: "text/xml" }),
+	it(
+		"keeps cellar assignments aligned when promoting a farmhand to host",
+		fullSave,
+		async () => {
+			const xml = await readFile("tests/TestSave", "utf-8");
+			let importTask: Promise<void | boolean> = Promise.resolve();
+			let saveManager!: SaveManager;
+			const managerCleanup = $effect.root(() => {
+				saveManager = new SaveManager();
+				importTask = saveManager.import(
+					new File([xml], "TestSave", { type: "text/xml" }),
+				);
+			});
+			await importTask;
+			flushSync();
+
+			const raw = saveManager.save?.raw;
+			if (!raw) throw new Error("Expected imported save");
+
+			const host = raw.SaveGame.player;
+			const farmhand = clone(host);
+			const hostId = host.UniqueMultiplayerID;
+			const farmhandId = 123456789;
+
+			farmhand.name = "Farmhand";
+			farmhand.UniqueMultiplayerID = farmhandId;
+			farmhand.homeLocation = "CabinFarmhand";
+			raw.SaveGame.farmhands = { Farmer: [farmhand as Player] };
+			raw.SaveGame.cellarAssignments = {
+				item: [
+					{ key: { int: 1 }, value: { long: hostId } },
+					{ key: { int: 2 }, value: { long: farmhandId } },
+				],
+			} as Save["cellarAssignments"];
+			const farm = raw.SaveGame.locations.GameLocation.find(
+				(location) => location.name === "Farm",
 			);
-		});
-		await importTask;
-		flushSync();
+			if (!farm?.buildings) throw new Error("Expected farm buildings");
+			farm.buildings.Building = [
+				...(farm.buildings.Building ?? []),
+				{
+					buildingType: "Cabin",
+					owner: hostId,
+					indoors: {
+						"@_xsi:type": "Cabin",
+						name: "Cabin",
+						uniqueName: "CabinFarmhand",
+						farmhandReference: farmhandId,
+					},
+				} as Building,
+			];
 
-		const raw = saveManager.save?.raw;
-		if (!raw) throw new Error("Expected imported save");
+			let save!: SaveProxy;
+			const cleanup = $effect.root(() => {
+				save = new SaveProxy(raw);
+			});
+			flushSync();
 
-		const host = raw.SaveGame.player;
-		const farmhand = clone(host);
-		const hostId = host.UniqueMultiplayerID;
-		const farmhandId = 123456789;
+			const promotedFarmhand = save.players[1];
+			const demotedHost = save.players[0];
+			if (!promotedFarmhand || !demotedHost) {
+				throw new Error("Expected host and farmhand");
+			}
+			save.players = [promotedFarmhand, demotedHost];
+			flushSync();
+			cleanup();
+			managerCleanup();
 
-		farmhand.name = "Farmhand";
-		farmhand.UniqueMultiplayerID = farmhandId;
-		farmhand.homeLocation = "CabinFarmhand";
-		raw.SaveGame.farmhands = { Farmer: [farmhand as Player] };
-		raw.SaveGame.cellarAssignments = {
-			item: [
-				{ key: { int: 1 }, value: { long: hostId } },
-				{ key: { int: 2 }, value: { long: farmhandId } },
-			],
-		} as Save["cellarAssignments"];
-		const farm = raw.SaveGame.locations.GameLocation.find(
-			(location) => location.name === "Farm",
-		);
-		if (!farm?.buildings) throw new Error("Expected farm buildings");
-		farm.buildings.Building = [
-			...(farm.buildings.Building ?? []),
-			{
-				buildingType: "Cabin",
-				owner: hostId,
-				indoors: {
-					"@_xsi:type": "Cabin",
-					name: "Cabin",
-					uniqueName: "CabinFarmhand",
-					farmhandReference: farmhandId,
-				},
-			} as Building,
-		];
+			expect(raw.SaveGame.player.UniqueMultiplayerID).toBe(farmhandId);
+			expect(raw.SaveGame.player.homeLocation).toBe("FarmHouse");
+			expect(raw.SaveGame.farmhands.Farmer[0]?.UniqueMultiplayerID).toBe(
+				hostId,
+			);
+			expect(raw.SaveGame.farmhands.Farmer[0]?.homeLocation).toBe(
+				"CabinFarmhand",
+			);
 
-		let save!: SaveProxy;
-		const cleanup = $effect.root(() => {
-			save = new SaveProxy(raw);
-		});
-		flushSync();
+			const assignments = new Map(
+				raw.SaveGame.cellarAssignments.item.map((item) => [
+					item.key.int,
+					item.value.long,
+				]),
+			);
+			expect(assignments.get(1)).toBe(farmhandId);
+			expect(assignments.get(2)).toBe(hostId);
 
-		const promotedFarmhand = save.players[1];
-		const demotedHost = save.players[0];
-		if (!promotedFarmhand || !demotedHost) {
-			throw new Error("Expected host and farmhand");
-		}
-		save.players = [promotedFarmhand, demotedHost];
-		flushSync();
-		cleanup();
-		managerCleanup();
-
-		expect(raw.SaveGame.player.UniqueMultiplayerID).toBe(farmhandId);
-		expect(raw.SaveGame.player.homeLocation).toBe("FarmHouse");
-		expect(raw.SaveGame.farmhands.Farmer[0]?.UniqueMultiplayerID).toBe(hostId);
-		expect(raw.SaveGame.farmhands.Farmer[0]?.homeLocation).toBe(
-			"CabinFarmhand",
-		);
-
-		const assignments = new Map(
-			raw.SaveGame.cellarAssignments.item.map((item) => [
-				item.key.int,
-				item.value.long,
-			]),
-		);
-		expect(assignments.get(1)).toBe(farmhandId);
-		expect(assignments.get(2)).toBe(hostId);
-
-		const reassignedCabin = farm.buildings.Building?.find(
-			(building) => building.indoors?.uniqueName === "CabinFarmhand",
-		);
-		expect(reassignedCabin?.indoors?.farmhandReference).toBe(hostId);
-	});
+			const reassignedCabin = farm.buildings.Building?.find(
+				(building) => building.indoors?.uniqueName === "CabinFarmhand",
+			);
+			expect(reassignedCabin?.indoors?.farmhandReference).toBe(hostId);
+		},
+	);
 });

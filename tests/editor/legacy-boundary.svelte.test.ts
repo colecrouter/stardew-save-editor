@@ -9,35 +9,40 @@ import Harness from "./components/LegacyBoundaryHarness.svelte";
 import { fixtureXml } from "./fixtures";
 
 mockIDB();
-it("leaving the legacy route group releases imported item roots before another editor opens", async () => {
-	let manager: SaveManager | undefined;
-	const page = render(Harness, {
-		props: {
-			onready: (value: SaveManager) => {
-				manager = value;
+// This boundary check imports the full public save before switching editor lifetimes.
+it(
+	"leaving the legacy route group releases imported item roots before another editor opens",
+	{ timeout: 30_000 },
+	async () => {
+		let manager: SaveManager | undefined;
+		const page = render(Harness, {
+			props: {
+				onready: (value: SaveManager) => {
+					manager = value;
+				},
 			},
-		},
-	});
-	await waitFor(() => expect(manager).toBeTruthy());
-	if (!manager) throw Error("Legacy session was not provided");
-	try {
-		await manager.import(new File([fixtureXml], "Farm_123"));
-		if (!manager.save) throw Error("Legacy import failed");
-		const item = Item.fromName("Parsnip");
-		manager.save.player.inventory.set(0, item);
-		flushSync();
-		item.stack = 12;
-		flushSync();
-		expect(item[Raw].stack).toBe(12);
-		page.unmount();
-		item.stack = 20;
-		flushSync();
-		expect(item[Raw].stack).toBe(12);
-		expect(manager.save).toBeUndefined();
-	} finally {
-		page.unmount();
-	}
-});
+		});
+		await waitFor(() => expect(manager).toBeTruthy());
+		if (!manager) throw Error("Legacy session was not provided");
+		try {
+			await manager.import(new File([fixtureXml], "Farm_123"));
+			if (!manager.save) throw Error("Legacy import failed");
+			const item = Item.fromName("Parsnip");
+			manager.save.player.inventory.set(0, item);
+			flushSync();
+			item.stack = 12;
+			flushSync();
+			expect(item[Raw].stack).toBe(12);
+			page.unmount();
+			item.stack = 20;
+			flushSync();
+			expect(item[Raw].stack).toBe(12);
+			expect(manager.save).toBeUndefined();
+		} finally {
+			page.unmount();
+		}
+	},
+);
 
 it("an import waiting on file bytes cannot recreate a session after legacy teardown", async () => {
 	let manager: SaveManager | undefined;

@@ -3,21 +3,23 @@
 	import { page } from "$app/state";
 	import SectionLink from "$lib/ui/frame/SectionLink.svelte";
 	import type { StudyIconName } from "$lib/ui/studyIcons";
+	// These are public pathnames, not route IDs containing SvelteKit layout groups.
+	// Kit 3 distinguishes them by omitting the initial slash.
 	const routes = [
-		["/inventory", "Inventory", "inventory"],
-		["/chests", "Chests", "chests"],
-		["/character", "Character", "character"],
-		["/appearance", "Appearance", "appearance"],
-		["/relationships", "Relationships", "relationships"],
-		["/events", "Events", "events"],
-		["/crafting", "Crafting", "crafting"],
-		["/cooking", "Cooking", "cooking"],
-		["/farmhands", "Farmhands", "farmhands"],
-		["/farm", "Farm", "farm"],
-		["/buildings", "Buildings", "buildings"],
-		["/bundles", "Community Center", "community"],
-		["/quests", "Quests", "quests"],
-		["/qi-quests", "Qi's Quests", "qi"],
+		["inventory", "Inventory", "inventory"],
+		["chests", "Chests", "chests"],
+		["character", "Character", "character"],
+		["appearance", "Appearance", "appearance"],
+		["relationships", "Relationships", "relationships"],
+		["events", "Events", "events"],
+		["crafting", "Crafting", "crafting"],
+		["cooking", "Cooking", "cooking"],
+		["farmhands", "Farmhands", "farmhands"],
+		["farm", "Farm", "farm"],
+		["buildings", "Buildings", "buildings"],
+		["bundles", "Community Center", "community"],
+		["quests", "Quests", "quests"],
+		["qi-quests", "Qi's Quests", "qi"],
 	] as const satisfies readonly (readonly [string, string, StudyIconName])[];
 	let expanded = $state(false);
 	const current = $derived(

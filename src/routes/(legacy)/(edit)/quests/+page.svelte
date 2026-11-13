@@ -53,7 +53,7 @@
 	</p>
 	<p class="hint" data-testid="quests-qi-link">
 		Special Orders also show in the in-game journal; Mr. Qi's are on the
-		<a href={resolve("/qi-quests")}>Qi's Quests</a> page.
+		<a href={resolve("qi-quests")}>Qi's Quests</a> page.
 	</p>
 
 	<div class="wrapper">

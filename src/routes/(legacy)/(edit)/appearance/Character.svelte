@@ -27,21 +27,21 @@
 
 	// Map to a known value: the raw string comes from the save and ends up in a CSS
 	// url(). Like the game, anything but Male uses the female sprites
-	let gender = $derived(player.gender === Gender.Male ? "male" : "female");
+	const gender = $derived(player.gender === Gender.Male ? "male" : "female");
 
 	// Spritesheets
-	let baseSheet = $derived(asset(`/img/${gender}_farmer.png`));
-	let otherSheet = $derived(asset(`/img/${gender}_farmer_other.png`));
-	let armsSheet = $derived(asset(`/img/${gender}_farmer_arms.png`));
-	let bootsSheet = $derived(asset(`/img/${gender}_farmer_boots.png`));
+	let baseSheet = $derived(asset(`img/${gender}_farmer.png`));
+	let otherSheet = $derived(asset(`img/${gender}_farmer_other.png`));
+	let armsSheet = $derived(asset(`img/${gender}_farmer_arms.png`));
+	let bootsSheet = $derived(asset(`img/${gender}_farmer_boots.png`));
 	// const hairSheet = `${base}/assets/hairstyles.png`;
 	let hairSheet = $derived(
-		asset(`/assets/hairstyles${player.hairstyle >= 56 ? "2" : ""}.png`),
+		asset(`assets/hairstyles${player.hairstyle >= 56 ? "2" : ""}.png`),
 	);
-	const pantsSheet = asset("/assets/pants.png");
-	const shirtSheet = asset("/assets/shirts.png");
-	const accessoriesSheet = asset("/assets/accessories.png");
-	const hatSheet = asset("/assets/hats.png");
+	const pantsSheet = asset("assets/pants.png");
+	const shirtSheet = asset("assets/shirts.png");
+	const accessoriesSheet = asset("assets/accessories.png");
+	const hatSheet = asset("assets/hats.png");
 
 	const underwear = Item.fromName("Polka Dot Shorts") as ClothingProxy;
 	const undershirt = $derived(

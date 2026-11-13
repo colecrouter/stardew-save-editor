@@ -12,7 +12,9 @@ import {
 } from "./fixture.ts";
 import { PlainSession } from "./plain.ts";
 
-test("both executors produce identical state and receipts on a full real save", async () => {
+// Node owns completion and failure reporting for registered tests. Let module
+// initialization finish rather than awaiting a case before later helpers exist.
+void test("both executors produce identical state and receipts on a full real save", async () => {
 	const original = await loadFixture();
 	const before = structuredClone(original);
 	const plain = new PlainSession(original);
@@ -44,7 +46,7 @@ test("both executors produce identical state and receipts on a full real save", 
 	);
 });
 
-test("compound failure after writes publishes neither partial state nor history", async () => {
+void test("compound failure after writes publishes neither partial state nor history", async () => {
 	const document = tinyFixture();
 	const plain = new PlainSession(document);
 	const action = { type: "farm-name", value: "New" } as const;
@@ -67,7 +69,7 @@ test("compound failure after writes publishes neither partial state nor history"
 	);
 });
 
-test("compound success updates all farmers once and duplicate IDs are rejected", async () => {
+void test("compound success updates all farmers once and duplicate IDs are rejected", async () => {
 	const document = tinyFixture();
 	const plain = new PlainSession(document);
 	const action = { type: "farm-name", value: "Together" } as const;
@@ -110,7 +112,7 @@ test("compound success updates all farmers once and duplicate IDs are rejected",
 	);
 });
 
-test("invalid IDs, money, and permutations fail without changes in both implementations", async () => {
+void test("invalid IDs, money, and permutations fail without changes in both implementations", async () => {
 	const document = tinyFixture();
 	const actions = [
 		{ type: "money", farmerId: "missing", value: 100 } as const,
@@ -135,7 +137,7 @@ test("invalid IDs, money, and permutations fail without changes in both implemen
 	);
 });
 
-test("reorder preserves opaque, empty, and hidden entries; no-op creates no history", async () => {
+void test("reorder preserves opaque, empty, and hidden entries; no-op creates no history", async () => {
 	const document = tinyFixture();
 	const plain = new PlainSession(document);
 	plain.execute({ type: "money", farmerId: "1", value: 10 });
@@ -166,7 +168,7 @@ test("reorder preserves opaque, empty, and hidden entries; no-op creates no hist
 	);
 });
 
-test("concurrent submissions serialize and closing a scope rejects future edits", async () => {
+void test("concurrent submissions serialize and closing a scope rejects future edits", async () => {
 	const document = tinyFixture();
 	const escaped = await Effect.runPromise(
 		Effect.scoped(
@@ -203,7 +205,7 @@ test("concurrent submissions serialize and closing a scope rejects future edits"
 	);
 });
 
-test("changes outside the targeted farmer are absent, including farmhand money", () => {
+void test("changes outside the targeted farmer are absent, including farmhand money", () => {
 	const document = tinyFixture();
 	const plain = new PlainSession(document);
 	const state = plain.execute({ type: "money", farmerId: "2", value: 40 });
@@ -214,7 +216,7 @@ test("changes outside the targeted farmer are absent, including farmhand money",
 	);
 });
 
-test("store contract emits synchronously, observes commits, and cleans up with session", async () => {
+void test("store contract emits synchronously, observes commits, and cleans up with session", async () => {
 	let notifications = 0;
 	const session = await Effect.runPromise(
 		Effect.scoped(

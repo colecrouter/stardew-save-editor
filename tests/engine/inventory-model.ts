@@ -1,4 +1,5 @@
 import { stringifySavedData } from "../../src/lib/editor/saved-data.ts";
+import { record } from "../../src/lib/editor/plain-data.ts";
 import { Effect, Exit, Scope, type Context } from "effect";
 import { derived, type Readable } from "svelte/store";
 import { parseStack, type NumericField } from "../../src/lib/editor/field.ts";
@@ -84,13 +85,14 @@ export function inventory(state: HistoryState, farmerId: string): ItemView[] {
 		(farmer) => String(farmer.UniqueMultiplayerID) === farmerId,
 	);
 	return (farmer?.items ?? []).map((raw, slot) => {
-		const item =
-			raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+		const item: Record<string, unknown> = record(raw) ? raw : {};
 		return {
 			entityId: state.identities[farmerId]?.[slot] ?? "",
 			slot,
-			id: String(item.itemId ?? ""),
-			name: String(item.name ?? "Empty"),
+			// Match the saved string representation rather than inventing item IDs
+			// or display names by coercing malformed extension values.
+			id: typeof item.itemId === "string" ? item.itemId : "",
+			name: typeof item.name === "string" ? item.name : "Empty",
 			stack: typeof item.stack === "number" ? item.stack : 0,
 			editable:
 				item.$type === "StardewValley.Object" &&

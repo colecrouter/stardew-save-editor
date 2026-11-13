@@ -2,17 +2,26 @@ import { fireEvent, render, waitFor } from "@testing-library/svelte";
 import { expect, it, vi } from "vitest";
 import { editorResources } from "../../src/lib/editor/editor-model";
 import EditorApp from "../../src/lib/editor/ui/EditorApp.svelte";
-import { fixtureXml, parser } from "./fixtures";
+import {
+	exportDocument,
+	parser,
+	tinyEditorFixture,
+} from "../helpers/editor-document.ts";
 import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
 
+// A small valid farm still passes through the real import/export codec and
+// readback validation. These cases exercise browser-stream recovery; full-save
+// preservation belongs to the dedicated application and roundtrip scenarios.
+// Allow asynchronous UI publication the same bounded settling time as nearby
+// lifecycle tests, without tying recovery correctness to large-file throughput.
 const waitForIO = <T>(assertion: () => T) =>
-	waitFor(assertion, { timeout: 30_000 });
+	waitFor(assertion, { timeout: 5_000 });
 
 // Reject the actual stream phase, not just opening the picker. The same session
 // must remain editable and a retry must export its latest state under its filename.
 it.each(["write", "close"] as const)(
 	"recovers from a browser %s failure without losing edits or backup feedback",
-	{ timeout: 60_000 },
+	{ timeout: 15_000 },
 	async (stage) => {
 		const failure = new DOMException("Destination unavailable", "AbortError");
 		const report = vi.spyOn(console, "error").mockImplementation(() => {});
@@ -46,18 +55,20 @@ it.each(["write", "close"] as const)(
 		});
 		try {
 			await fireEvent.change(page.getByLabelText("Save file"), {
-				target: { files: [new File([fixtureXml], "Farm_123")] },
+				target: {
+					files: [new File([exportDocument(tinyEditorFixture())], "Farm_123")],
+				},
 			});
 			const exportButton = await page.findByRole(
 				"button",
 				{ name: "Export save" },
-				{ timeout: 30_000 },
+				{ timeout: 5_000 },
 			);
 			await fireEvent.click(exportButton);
 			await page.findByText(
 				"The save could not be downloaded. Please try again.",
 				{},
-				{ timeout: 30_000 },
+				{ timeout: 5_000 },
 			);
 			expect(abort).toHaveBeenCalledExactlyOnceWith(failure);
 			await fireEvent.click(page.getByRole("link", { name: "Farm settings" }));

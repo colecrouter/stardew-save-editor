@@ -190,8 +190,8 @@ export interface FrogEggStats {
 export function rollFrogEgg(rng: DotNetRandom): FrogEggStats {
 	let variant: number;
 	if (rng.nextBool(0.2)) variant = 0;
+	// oxlint-disable-next-line eslint/no-dupe-else-if -- Each condition draws a fresh random number.
 	else if (rng.nextBool(0.8)) variant = rng.next(0, 3);
-	// biome-ignore lint/suspicious/noDuplicateElseIf: each call draws a new number
 	else if (rng.nextBool(0.8)) variant = rng.next(0, 3) + 3;
 	else variant = rng.next(0, 2) + 6;
 	return { variant };

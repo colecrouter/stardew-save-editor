@@ -35,27 +35,25 @@ const required = <A>(value: A | undefined): A => {
 };
 
 describe("placed chest storage", () => {
-	it.each([true, "true"])(
-		"recognizes a nested nil global ID as local storage without rewriting it (%s)",
-		(nil) => {
-			const document = fixture({
-				name: "Farm",
-				objects: [
-					placed(
-						chest({
-							globalInventoryId: null,
-							items: [item()],
-						}),
-					),
-				],
-			});
-			const before = structuredClone(document);
-			const found = required(discoverPlacedChests(document)[0]);
-			expect(found.supported).toBe(true);
-			expect(found.slots[0]).toEqual(item());
-			expect(document).toEqual(before);
-		},
-	);
+	// The decoded model represents either XML nil spelling as null.
+	it("recognizes a null global ID as local storage without rewriting it", () => {
+		const document = fixture({
+			name: "Farm",
+			objects: [
+				placed(
+					chest({
+						globalInventoryId: null,
+						items: [item()],
+					}),
+				),
+			],
+		});
+		const before = structuredClone(document);
+		const found = required(discoverPlacedChests(document)[0]);
+		expect(found.supported).toBe(true);
+		expect(found.slots[0]).toEqual(item());
+		expect(document).toEqual(before);
+	});
 	it("projects singleton locations and objects without materializing virtual empty slots", () => {
 		const document = fixture({
 			name: "Farm",

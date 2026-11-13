@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 import { setup as mockIDB } from "vitest-indexeddb";
 import { SaveManager } from "../src/lib/SaveManager.svelte";
+import { fullSaveTimeout } from "./helpers/full-save-budget";
 
 const injectInvalidHat = (xml: string) =>
 	xml.replace(
@@ -15,34 +16,38 @@ const injectInvalidHat = (xml: string) =>
 describe("issue #101 malformed hat slot", () => {
 	mockIDB();
 
-	it("imports saves with non-hat items written into the hat slot", async () => {
-		const baseline = await readFile("tests/TestSave", "utf-8");
-		const invalidHatXml = injectInvalidHat(baseline);
+	it(
+		"imports saves with non-hat items written into the hat slot",
+		async () => {
+			const baseline = await readFile("tests/TestSave", "utf-8");
+			const invalidHatXml = injectInvalidHat(baseline);
 
-		let importTask: Promise<void | boolean> = Promise.resolve();
-		let saveManager: SaveManager | undefined;
-		const cleanup = $effect.root(() => {
-			saveManager = new SaveManager();
-			importTask = saveManager.import(
-				new File([invalidHatXml], "Issue101InvalidHat.xml", {
-					type: "text/xml",
-				}),
-			);
-		});
-		await importTask;
-		cleanup();
+			let importTask: Promise<void | boolean> = Promise.resolve();
+			let saveManager: SaveManager | undefined;
+			const cleanup = $effect.root(() => {
+				saveManager = new SaveManager();
+				importTask = saveManager.import(
+					new File([invalidHatXml], "Issue101InvalidHat.xml", {
+						type: "text/xml",
+					}),
+				);
+			});
+			await importTask;
+			cleanup();
 
-		const manager = saveManager;
-		if (!manager) throw new Error("Save manager not initialised");
+			const manager = saveManager;
+			if (!manager) throw new Error("Save manager not initialised");
 
-		const hatSlotItem = manager.save?.player.inventory.get("hat");
-		expect(hatSlotItem).toBeDefined();
-		expect(hatSlotItem?.name).toBe("Iridium Pan");
-		expect(manager.save?.player.hat).toBeDefined();
-		expect(manager.save?.player.hat?.info).toMatchObject({
-			_type: "Hat",
-			_key: "IridiumPanHat",
-			name: "Iridium Pan",
-		});
-	});
+			const hatSlotItem = manager.save?.player.inventory.get("hat");
+			expect(hatSlotItem).toBeDefined();
+			expect(hatSlotItem?.name).toBe("Iridium Pan");
+			expect(manager.save?.player.hat).toBeDefined();
+			expect(manager.save?.player.hat?.info).toMatchObject({
+				_type: "Hat",
+				_key: "IridiumPanHat",
+				name: "Iridium Pan",
+			});
+		},
+		fullSaveTimeout,
+	);
 });

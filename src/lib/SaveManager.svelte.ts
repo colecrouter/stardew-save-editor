@@ -3,12 +3,13 @@ import { error } from "@sveltejs/kit";
 import * as Comlink from "comlink";
 import pako from "pako";
 import { getContext, setContext } from "svelte";
-import { dev } from "$app/environment";
+import { dev } from "$app/env";
 import { BackupManager } from "$lib/BackupManager.svelte";
 import { Dispose } from "$lib/proxies";
 import { SaveProxy } from "$lib/proxies/SaveFile.svelte";
 import {
 	describeProblems,
+	describeValidationValue,
 	type SaveValidation,
 	SUPPORTED_VERSIONS,
 	validateSave,
@@ -192,14 +193,9 @@ export class SaveManager {
 	}
 
 	private async handleBackup(file: File) {
-		if (!this.backups.files) return;
-		for (const backup of this.backups.files) {
-			if (backup.name === file.name) return;
-			const oldData = await backup.text();
-			const newData = await file.text();
-			if (oldData === newData) return;
-		}
-		this.backups.files.unshift(file);
+		// The archive waits for its initial read and compares exact original bytes.
+		// A reused farm filename or lossy text decoding must not suppress a new backup.
+		await this.backups.add(file);
 	}
 
 	/**
@@ -215,7 +211,11 @@ export class SaveManager {
 		} catch (e) {
 			validation = {
 				valid: false,
-				errors: [`The exported file couldn't be read back (${e})`],
+				// A thrown non-Error value must remain reportable without invoking
+				// arbitrary object coercion at the export failure boundary.
+				errors: [
+					`The exported file couldn't be read back (${describeValidationValue(e)})`,
+				],
 				warnings: [],
 			};
 		}

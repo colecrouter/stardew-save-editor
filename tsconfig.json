@@ -1,30 +1,16 @@
 {
-	// Main TypeScript config for the SvelteKit app
-	// - tsconfig.base.json: Base compiler options (strict mode, skipLibCheck, etc.)
-	// - .svelte-kit/tsconfig.json: Auto-generated SvelteKit config (paths, includes/excludes)
-	"extends": ["./tsconfig.base.json", "./.svelte-kit/tsconfig.json"],
-	// Path aliases are handled by https://kit.svelte.dev/docs/configuration#alias
-	//
-	// If you want to overwrite includes/excludes, make sure to copy over the relevant includes/excludes
-	// from the referenced tsconfig.json - TypeScript does not merge them in
-	"compilerOptions": {
-		"allowImportingTsExtensions": true,
-		// Only load browser-specific @types packages (excludes @types/node to avoid polluting browser globals)
-		"types": ["wicg-file-system-access"]
-	},
-	// The standalone engine runner owns its Vitest 5 types and native Node checks.
-	"exclude": ["tests/engine/**"],
-	"include": [
-		".svelte-kit/ambient.d.ts",
-		".svelte-kit/non-ambient.d.ts",
-		".svelte-kit/types/**/$types.d.ts",
-		"vite.config.js",
-		"vite.config.ts",
-		"src/**/*.js",
-		"src/**/*.ts",
-		"src/**/*.svelte",
-		"tests/**/*.js",
-		"tests/**/*.ts",
-		"tests/**/*.svelte"
+	// Editors discover this conventional filename, then follow the referenced
+	// app, test and tooling projects to assign each file its intended globals.
+	// Keep Kit's base explicit for its config validation, then inherit the app
+	// options so this entry point retains the same generated alias metadata.
+	"extends": ["$app/tsconfig", "./tsconfig.app.json"],
+	// This solution owns no inputs: checks target the projects below directly,
+	// without introducing composite builds or declaration output requirements.
+	"files": [],
+	"include": [],
+	"references": [
+		{ "path": "./tsconfig.app.json" },
+		{ "path": "./tsconfig.tests.json" },
+		{ "path": "./tsconfig.node.json" }
 	]
 }

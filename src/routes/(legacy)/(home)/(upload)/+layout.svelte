@@ -13,7 +13,7 @@
 	{@render children()}
 
 	<nav>
-		<UiButton href={resolve(`/backups`)} alt="Backups">💿</UiButton>
+		<UiButton href={resolve(`backups`)} alt="Backups">💿</UiButton>
 	</nav>
 </div>
 

@@ -14,9 +14,10 @@ const argument = (name, fallback) => {
 const url = argument("--url", "http://127.0.0.1:4269/stardew-save-editor/");
 const output = argument("--output", undefined);
 // CI installs Playwright Chromium. Developers can select an installed browser
-// with --channel chrome without changing the regression flow.
+// with --channel chrome or --chromium /path/to/chromium without changing the flow.
 const browser = await chromium.launch({
 	channel: argument("--channel", undefined),
+	executablePath: argument("--chromium", undefined),
 	headless: true,
 });
 const decodeSave = Schema.decodeUnknownSync(XmlSchema);
@@ -39,6 +40,9 @@ try {
 		window.importTransfers = [];
 		window.workerLifetimes = [];
 		window.startupAttempts = [];
+		// Capture the original before replacing it; every invocation below restores
+		// the actual File receiver with .call(this), as the native method requires.
+		// oxlint-disable-next-line typescript/unbound-method
 		const read = File.prototype.arrayBuffer;
 		File.prototype.arrayBuffer = async function () {
 			const buffer = await read.call(this);

@@ -4,9 +4,10 @@ import {
 	handleErrorWithSentry,
 	replayIntegration,
 } from "@sentry/sveltekit";
-import { dev } from "$app/environment";
+import { dev } from "$app/env";
 
-dev ||
+// Production reports errors; local development stays within its own console.
+if (!dev) {
 	Sentry.init({
 		dsn: "https://3567a44e61e1ade55642d2d49277e73a@o4508581503172608.ingest.us.sentry.io/4508581737136128",
 
@@ -40,8 +41,9 @@ dev ||
 			"Importing a module script failed.",
 		],
 
-		enableLogs: true,
+		// Sentry 11 captures explicit logger calls without an enableLogs opt-in.
 	});
+}
 
 // If you have a custom error handler, pass it to `handleErrorWithSentry`
 export const handleError = dev ? undefined : handleErrorWithSentry();

@@ -84,7 +84,13 @@ it.effect("concurrent transaction retries publish each annotation once", () =>
 			after.entries
 				.flatMap((entry) => entry.annotations)
 				.map((annotation) => annotation.label)
-				.sort(),
+				// Retain default sort's code-unit ordering and undefined-last behavior;
+				// a missing annotation must remain visible to the assertion below.
+				.sort((a, b) => {
+					if (a === undefined) return b === undefined ? 0 : 1;
+					if (b === undefined) return -1;
+					return a < b ? -1 : a > b ? 1 : 0;
+				}),
 		).toEqual(["One", "Two"]);
 	}),
 );

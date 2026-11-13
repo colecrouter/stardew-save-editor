@@ -41,13 +41,15 @@ const fingerprint = () => {
 		.split("\0")
 		.filter(Boolean);
 	const digest = createHash("sha256");
+	// The fingerprint must be identical across locales. Preserve JavaScript's
+	// code-unit ordering rather than introducing locale-dependent collation.
 	const measuredPaths = [
 		...new Set([
 			...paths,
 			"tools/profile-fixtures.mts",
 			"tools/qualify-editor-browser.mjs",
 		]),
-	].sort();
+	].sort((left, right) => (left < right ? -1 : left > right ? 1 : 0));
 	for (const path of measuredPaths)
 		digest.update(path).update(readFileSync(path));
 	return digest.digest("hex");
@@ -414,12 +416,16 @@ async function phase(page, field, kind, name, values) {
 		// typing. Mutation delivery must expose all eight committed values in order.
 		await page.evaluate((values) => {
 			const input = window.__editorProbe.field;
-			const setter = Object.getOwnPropertyDescriptor(
+			const descriptor = Object.getOwnPropertyDescriptor(
 				HTMLInputElement.prototype,
 				"value",
-			).set;
+			);
+			// Bypass framework-installed instance setters while preserving the native
+			// input receiver. A missing browser setter invalidates this stress probe.
+			if (!descriptor?.set)
+				throw new Error("Missing native input value setter");
 			for (const value of values) {
-				setter.call(input, value);
+				descriptor.set.call(input, value);
 				input.dispatchEvent(
 					new InputEvent("input", {
 						bubbles: true,
@@ -496,14 +502,20 @@ async function phase(page, field, kind, name, values) {
 async function feature(page, kind) {
 	const field = await arm(page, kind);
 	const initial = await page.evaluate(() => window.__editorProbe.read());
+	// These fixed ASCII prefixes model eight successive keystrokes; generating
+	// step indexes avoids suggesting this fixture segments arbitrary user text.
 	const settledValues =
 		kind === "farm"
-			? [..."abcdefgh"].map((_, i) => initial + "abcdefgh".slice(0, i + 1))
+			? Array.from(
+					{ length: 8 },
+					(_, i) => initial + "abcdefgh".slice(0, i + 1),
+				)
 			: [2, 3, 4, 5, 6, 7, 8, 9].map(String);
 	const settled = await phase(page, field, kind, "settled", settledValues);
 	const pacedValues =
 		kind === "farm"
-			? [..."ijklmnop"].map(
+			? Array.from(
+					{ length: 8 },
 					(_, i) => settled.value + "ijklmnop".slice(0, i + 1),
 				)
 			: [8, 7, 6, 5, 4, 3, 2, 6].map(String);

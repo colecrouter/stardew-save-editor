@@ -17,7 +17,7 @@
 	"devDependencies": {
 		"@effect/platform-node": "4.0.6",
 		"@effect/vitest": "4.0.6",
-		"vitest": "5.0.5"
+		"vitest": "5.1.0"
 	},
 	"overrides": {
 		"@effect/platform-node-shared": "4.0.6"

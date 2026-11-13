@@ -62,7 +62,7 @@ describe("Inventory.swap", () => {
 			itemId: "79",
 			stack: 1,
 		};
-		// biome-ignore lint/suspicious/noExplicitAny: poking at raw parsed save data
+		// Raw parsed fixtures deliberately allow unrecognized save fields.
 		(player.items.Item as any[])[0] = note;
 		const parsnip = Item.fromName("Parsnip");
 		inventory.set(1, parsnip);

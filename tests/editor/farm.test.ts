@@ -11,8 +11,45 @@ import {
 } from "../../src/lib/editor/farm-operations";
 import { setCalendarDate } from "../../src/lib/editor/calendar-operations";
 import { fixtureXml, parser, exportDocument } from "./fixtures";
+import { tinyFixture } from "../helpers/editor-document.ts";
 
 const bytes = (text: string) => new TextEncoder().encode(text);
+
+// Known-field decoding rejects malformed layout values on import. The defensive
+// read model must still distinguish opaque values from named modded maps without
+// rewriting either representation when used against an existing document.
+it.each([
+	{ value: "0", label: "Standard" },
+	{ value: "1", label: "Riverland" },
+	{ value: "2", label: "Forest" },
+	{ value: "3", label: "Hill-top" },
+	{ value: "4", label: "Wilderness" },
+	{ value: "5", label: "Four Corners" },
+	{ value: "6", label: "Beach" },
+	{ value: "ModdedMap", label: "Custom (ModdedMap)" },
+	{ value: "MeadowlandsFarm", label: "Meadowlands" },
+	{ value: undefined, label: "Custom (not recorded)" },
+	{ value: null, label: "Custom (not recorded)" },
+	{ value: { map: "ModdedMap" }, label: "Custom (unsupported saved value)" },
+	{ value: ["ModdedMap"], label: "Custom (unsupported saved value)" },
+	{ value: false, label: "Custom (unsupported saved value)" },
+	// The editor's decoded contract requires strings, even for numeric-looking IDs.
+	// A legacy numeric representation is malformed here and is not silently normalized.
+	{ value: 3, label: "Custom (unsupported saved value)" },
+])(
+	"projects layout $value as $label without mutating it",
+	({ value, label }) => {
+		const document = tinyFixture();
+		Object.assign(document.SaveGame, { whichFarm: value });
+		const baseline = structuredClone(document);
+		expect(
+			readFarmSettings(document).creation.find(
+				(setting) => setting.label === "Farm type",
+			)?.value,
+		).toBe(label);
+		expect(document).toEqual(baseline);
+	},
+);
 
 // These integration scenarios repeatedly parse or export the 6.6 MB save fixture.
 // Match the calendar suites’ CI budget: assertions verify preservation and workflow,

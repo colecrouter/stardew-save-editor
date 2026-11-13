@@ -1,7 +1,10 @@
 <script lang="ts">
-	import { asset } from "$app/paths";
+	import { dynamicAsset } from "$lib/ui/dynamicAsset.ts";
 	let { name }: { name: string } = $props();
 	let failedName = $state<string>();
+	const portrait = $derived(
+		dynamicAsset(`assets/portraits/${encodeURIComponent(name)}.png`),
+	);
 </script>
 
 <!-- Portrait sheets use 64px frames. Crop the first expression at its native
@@ -11,18 +14,21 @@
 	<span>{name.slice(0, 1)}</span>
 
 	{#key name}
-		<img
-			src={asset(`/assets/portraits/${encodeURIComponent(name)}.png`)}
-			alt=""
-			loading="lazy"
-			decoding="async"
-			data-name={name}
-			hidden={failedName === name}
-			onerror={(event) => {
-				// A late failure for a previous image must not hide a new villager.
-				failedName = event.currentTarget.getAttribute("data-name") ?? undefined;
-			}}
-		/>
+		{#if portrait}
+			<img
+				src={portrait}
+				alt=""
+				loading="lazy"
+				decoding="async"
+				data-name={name}
+				hidden={failedName === name}
+				onerror={(event) => {
+					// A late failure for a previous image must not hide a new villager.
+					failedName =
+						event.currentTarget.getAttribute("data-name") ?? undefined;
+				}}
+			/>
+		{/if}
 	{/key}
 </div>
 

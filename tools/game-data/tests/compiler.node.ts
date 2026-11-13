@@ -13,7 +13,9 @@ const generated = resolve("tools/game-data/tests/generated");
 const run = (...args: string[]) =>
 	spawnSync("dotnet", [cli, ...args], { encoding: "utf8" });
 
-test("event codecs consume arbitrarily split text without collecting a source tree", async () => {
+// Node owns completion and failure reporting for registered tests. Let module
+// initialization finish rather than awaiting a case before later helpers exist.
+void test("event codecs consume arbitrarily split text without collecting a source tree", async () => {
 	const xml = await readFile(join(generated, "fixture.xml"), "utf8");
 	const chunks = function* () {
 		// Split names, entities and attribute values too; transport chunk boundaries
@@ -32,7 +34,7 @@ test("event codecs consume arbitrarily split text without collecting a source tr
 	);
 });
 
-test("inspection and generated codecs agree with .NET XmlSerializer after creation and reordering", async () => {
+void test("inspection and generated codecs agree with .NET XmlSerializer after creation and reordering", async () => {
 	const original = Schema.decodeSync(XmlSchema)(
 		await readFile(join(generated, "fixture.xml"), "utf8"),
 	);
@@ -78,7 +80,7 @@ test("inspection and generated codecs agree with .NET XmlSerializer after creati
 	]);
 });
 
-test("coverage consumes the same resolved contract as generation", () => {
+void test("coverage consumes the same resolved contract as generation", () => {
 	// The descriptive command name and its compatibility alias must report the
 	// same coverage, so existing automation can migrate without a behavior change.
 	for (const command of ["coverage", "validate"]) {
@@ -97,7 +99,7 @@ test("coverage consumes the same resolved contract as generation", () => {
 	}
 });
 
-test("generation reports invalid contracts without replacing an existing module", async () => {
+void test("generation reports invalid contracts without replacing an existing module", async () => {
 	const directory = await mkdtemp(join(tmpdir(), "game-data-"));
 	try {
 		const input = join(directory, "catalog.json"),

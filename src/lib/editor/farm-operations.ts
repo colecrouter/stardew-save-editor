@@ -40,21 +40,30 @@ export interface FarmView extends FarmSettings {
 export function readFarmSettings(document: SaveDocument): FarmView {
 	const game = document.SaveGame;
 	const multiplier = game.player?.difficultyModifier;
-	const layouts = [
-		"Standard",
-		"Riverland",
-		"Forest",
-		"Hill-top",
-		"Wilderness",
-		"Four Corners",
-		"Beach",
-	];
+	// The typed XML codec preserves whichFarm as System.String, including vanilla
+	// numeric-looking IDs. Match that representation instead of coercing modded IDs.
+	const layouts = new Map([
+		["0", "Standard"],
+		["1", "Riverland"],
+		["2", "Forest"],
+		["3", "Hill-top"],
+		["4", "Wilderness"],
+		["5", "Four Corners"],
+		["6", "Beach"],
+		["MeadowlandsFarm", "Meadowlands"],
+	]);
+	// Modded layout IDs are strings. Keep their names visible, but do not turn
+	// malformed records into misleading map names such as "[object Object]".
+	const customLayout =
+		typeof game.whichFarm === "string"
+			? game.whichFarm
+			: game.whichFarm == null
+				? "not recorded"
+				: "unsupported saved value";
 	const layout =
-		typeof game.whichFarm === "number"
-			? (layouts[game.whichFarm] ?? `Unknown (${game.whichFarm})`)
-			: game.whichFarm === "MeadowlandsFarm"
-				? "Meadowlands"
-				: `Custom (${game.whichFarm ?? "not recorded"})`;
+		typeof game.whichFarm === "string"
+			? (layouts.get(game.whichFarm) ?? `Custom (${customLayout})`)
+			: `Custom (${customLayout})`;
 	return {
 		name:
 			typeof game.player?.farmName === "string" ? game.player?.farmName : "",

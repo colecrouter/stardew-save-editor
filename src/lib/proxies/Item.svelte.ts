@@ -65,7 +65,9 @@ function normalizePreserveType(
 		case "Bait":
 			return Preserve.Bait;
 		default:
-			throw new Error(`Unknown preserve type: ${label}`);
+			// The union is exhaustive for known catalog data. Retain an unexpected
+			// runtime value as the cause without coercing it into a display string.
+			throw new Error("Unknown preserve type", { cause: label });
 	}
 }
 

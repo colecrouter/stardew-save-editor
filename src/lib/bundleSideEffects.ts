@@ -27,7 +27,7 @@ const updateRoom = (cc: GameLocation, room: CCRoom, completed: boolean) => {
 	// Initialize with the vanilla baseline of 6 rooms (Pantry..Bulletin).
 	// Only expand to 7 when explicitly touching AbandonedJojaMart.
 	if (!cc[Raw].areasComplete) {
-		cc[Raw].areasComplete = { boolean: new Array(6).fill(false) };
+		cc[Raw].areasComplete = { boolean: Array.from({ length: 6 }, () => false) };
 	}
 
 	const arr = cc[Raw].areasComplete.boolean;
@@ -36,7 +36,7 @@ const updateRoom = (cc: GameLocation, room: CCRoom, completed: boolean) => {
 	const targetLength =
 		room === CCRoom.AbandonedJojaMart ? 7 : Math.max(6, arr.length);
 	if (arr.length < targetLength) {
-		arr.push(...new Array(targetLength - arr.length).fill(false));
+		arr.push(...Array.from({ length: targetLength - arr.length }, () => false));
 	}
 
 	// Defensive guard: ignore invalid indices (shouldn't happen)

@@ -38,7 +38,10 @@ function encodeBytes(bytes: Uint8Array): string {
 }
 
 /** Same farm filename and exact bytes mean the original is already protected. */
-function matchesOriginal(value: unknown, incoming: StoredOriginal): boolean {
+export function matchesOriginal(
+	value: unknown,
+	incoming: StoredOriginal,
+): boolean {
 	const decoded = decodeStored(value);
 	if (Result.isFailure(decoded) || decoded.success.name !== incoming.name)
 		return false;
@@ -69,14 +72,29 @@ function matchesOriginal(value: unknown, incoming: StoredOriginal): boolean {
 // Existing backups store XML text. New binary originals carry an explicit encoding
 // so compressed saves round-trip intact while older entries remain readable.
 export function restoreOriginal(file: StoredOriginal): File {
-	const data =
-		file.encoding === "base64"
-			? Uint8Array.from(atob(file.data), (char) => char.charCodeAt(0))
-			: file.data;
+	let data: string | Uint8Array<ArrayBuffer> = file.data;
+	if (file.encoding === "base64") {
+		// atob returns one byte per code unit. Fill the final buffer directly so
+		// multi-megabyte originals avoid string iteration and an intermediate array.
+		const binary = atob(file.data);
+		const bytes = new Uint8Array(binary.length);
+		for (let index = 0; index < binary.length; index++)
+			bytes[index] = binary.charCodeAt(index);
+		data = bytes;
+	}
 	return new File([data], file.name, {
 		lastModified: file.lastModified,
 		type: file.type,
 	});
+}
+
+/** Canonical bytes of a restored record, without reading the reconstructed File again. */
+export function storedOriginalBase64(stored: StoredOriginal): string {
+	// File's default string-part encoding matches TextEncoder, including replacement
+	// of unpaired surrogates. Existing base64 can contain whitespace or omit padding.
+	return stored.encoding === "base64"
+		? btoa(atob(stored.data))
+		: encodeBytes(new TextEncoder().encode(stored.data));
 }
 
 /** Encode exact source bytes for IndexedDB, preserving compressed saves and file metadata. */

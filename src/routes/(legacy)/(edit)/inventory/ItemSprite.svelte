@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { dynamicAsset } from "$lib/ui/dynamicAsset.ts";
 	import { asset } from "$app/paths";
 	import { getItemSprite, prismaticColors, tintMatrix } from "$lib/ItemSprite";
 	import type { ItemProxy } from "$lib/proxies/items";
@@ -12,6 +13,9 @@
 		.map(tintMatrix)
 		.join(";");
 	let drawing = $derived(getItemSprite(item));
+	const sheetUrl = $derived(
+		drawing ? dynamicAsset(`assets/${drawing.sprite.sheet}`) : undefined,
+	);
 	let zoom = $derived(
 		32 /
 			Math.max(
@@ -23,7 +27,7 @@
 </script>
 
 {#if item}
-	{#if drawing}
+	{#if drawing && sheetUrl}
 		<div
 			class="item"
 			aria-hidden="true"
@@ -60,7 +64,7 @@
 						</defs>
 					{/if}
 					<image
-						href={asset(`/assets/${drawing.sprite.sheet}`)}
+						href={sheetUrl}
 						width={drawing.sprite.sheetSize.width}
 						height={drawing.sprite.sheetSize.height}
 						filter={layer.tint || layer.prismatic
@@ -74,7 +78,7 @@
 					<div
 						class="smoke"
 						style:--particle={particle}
-						style:background-image={`url(${asset("/assets/Cursors.png")})`}
+						style:background-image={`url(${asset("assets/Cursors.png")})`}
 					></div>
 				{/each}
 			{/if}

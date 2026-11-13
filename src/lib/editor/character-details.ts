@@ -217,7 +217,10 @@ export function readCharacterDetails(
 				((!record(tool) && tool !== undefined) ||
 					(hasTool &&
 						record(tool) &&
-						/TrashCan$/.test(String(tool.itemId ?? ""))))
+						// Item IDs are saved strings. Opaque values must not manufacture
+						// a supported tool identity through JavaScript string coercion.
+						typeof tool.itemId === "string" &&
+						tool.itemId.endsWith("TrashCan")))
 			) {
 				available = false;
 				reason = "Collect the trash can from Clint before changing its level.";

@@ -1,12 +1,14 @@
 # Contributing
 
-This project is built in NodeJS, with [Svelte 5](https://svelte.dev/) and [SvelteKit](https://svelte.dev/docs/kit/introduction).
+This project is built in NodeJS, with [Svelte 5](https://svelte.dev/) and [SvelteKit 3](https://svelte.dev/docs/kit/introduction).
 
 ## Development
 
 ### Quick Start
 
-Use [NodeJS 24](https://nodejs.org/en/download/). CI uses the same major version.
+Use [NodeJS 24](https://nodejs.org/en/download/) (24.11 or later). CI uses the same
+major version. npm installs the local [Vite+](https://viteplus.dev/) toolchain; a
+global Vite+ installation is not required.
 
 ```bash
 # Clone repository
@@ -100,20 +102,32 @@ formatting to keep tag delimiters readable. Keep Svelte control-flow blocks
 and their elements on separate lines; use explicit spaces where inline whitespace
 is meaningful.
 
-Oxfmt formats TypeScript, Svelte, styles, and documentation. Run `npm run format`
-to write formatting and `npm run format:check` to verify it. Generated game data
-and assets are excluded. Biome remains the linter while we assess replacement
-lint coverage; it no longer formats files.
+Vite+ supplies the development server, production build, Vitest, Oxlint, and
+Oxfmt through its local `vp` command. Keep using the npm scripts: `npm run dev`,
+`npm run build`, `npm test`, and `npm run lint`. Run `npm run format` to format
+TypeScript, Svelte, styles, and documentation, or `npm run format:check` to verify
+formatting. Generated game data and assets are excluded. Linting and formatting
+configuration live in `vite.config.ts`; Biome is no longer installed.
 
-`npm run check` runs linting, native TypeScript 7 checks for the app,
-and `svelte-check`. Run `npm run check:asset-dump` and `npm run test:asset-dump`
-for the .NET generator; these use synthetic fixtures and require no game
-installation. Svelte still uses the JavaScript TypeScript 6 SDK because it
-needs the compiler API; the native compiler is installed as `@typescript/native`.
-Scripts use an explicit compiler path to avoid ambiguous `tsc` executable names.
+`npm run check` runs linting, native TypeScript checks for the app, tests, and
+tooling, and native Svelte checks for application and test components. Use
+`npm run check:types`, `npm run check:tests`, or `npm run check:tooling` for the
+individual scopes. The separate TypeScript configurations keep browser globals
+from silently acquiring Node declarations from test or build code. The root
+`tsconfig.json` is an empty solution that lets editors discover the app, tests
+and tooling projects. CLI checks target `tsconfig.app.json`,
+`tsconfig.tests.json` and `tsconfig.node.json` directly; both Svelte configurations
+stay at the repository root so native checking preserves component prop types. Run
+`npm run check:asset-dump` and `npm run test:asset-dump` for the .NET generator;
+these use synthetic fixtures and require no game installation. The native
+TypeScript 7 compiler is installed as `@typescript/native`; the TypeScript 6 SDK
+remains installed for integrations that need its JavaScript compiler API. Scripts
+use an explicit native compiler path to avoid ambiguous `tsc` executable names.
 
-Dependency installation patches both compiler integrations with Effect language
-service support. Use the workspace TypeScript SDK in your editor. When changing
+Dependency installation configures Vite+ and patches the compiler integrations
+with Effect language service support. Install the recommended VS Code extensions
+and use the workspace TypeScript SDK; native TypeScript checking uses the separate
+`@typescript/native` installation. When changing
 Effect code, also inspect the complete diagnostic stream:
 
 ```bash
@@ -136,21 +150,57 @@ saved data. Use existing field/controller and transaction helpers.
 
 See [test commands and ownership](tests/README.md).
 
+The app and its component tests share one npm installation because they use the
+same application aliases and runtime dependencies. Separate tsconfigs provide
+the required type boundaries without introducing packages solely for checking.
+`tests/engine` retains its own package and lockfile to verify the engine through
+native Node imports as well as its Effect test adapter.
+
 ### Svelte checker compatibility
 
-`svelte-check` is pinned to 4.3.3 with a small `patch-package` backport in
-`patches/svelte-check+4.3.3.patch`. Its base language-service host must pass
-TypeScript's resolution iterators to the symlink cache, as its existing wrapper
-already does. Without that change, some inferred component types trigger an
-internal exception and can suppress real Svelte diagnostics. Installation fails
-if the reviewed patch no longer applies; review it when updating the checker.
-The application uses native TypeScript 7 checks and the TypeScript 6 SDK for Svelte.
+`svelte-check --tsgo` checks application and test components with native
+TypeScript 7. The previous JavaScript-host symlink-cache backport is no longer
+needed on this path. Keep the TypeScript 6 SDK installed: SvelteKit and editor
+integrations still use its compiler API. The regular editor SDK and native
+compiler SDK intentionally point to different installations.
+
+### Toolchain timings
+
+Run `npm run benchmark:toolchain -- /tmp/stardew-toolchain-benchmark` to record
+sequential wall times and command logs. The test probe uses the same 34 tests and
+two workers on both revisions. A separate `test-full-save` probe exercises the
+public-save import/export preservation cases with one worker. Fixed worker counts
+control these measurements only; regular test runs use Vitest's default concurrency.
+The native and Svelte probes check both app and test scopes, with Node tooling
+also included in the native probe.
+
+For a revision without the harness, copy `scripts/benchmark-toolchain.mjs` outside
+the checkout, install that revision with `npm ci`, and invoke the copy with Node
+from the repository root. Use clean checkouts without a local
+`.env.sentry-build-plugin`; the harness clears `SENTRY_AUTH_TOKEN` so authenticated
+uploads do not affect build timings. Filesystem caches are not cleared. Each
+command gets one local observation, not a statistical performance claim.
+Committed observations and the compared revisions are in
+[`benchmarks/toolchain.json`](benchmarks/toolchain.json). Those original observations
+predate the `test-full-save` probe and do not establish codec performance parity.
+The original artifact's `environment.node` records only the harness launcher's
+version; child runtimes were not captured, so it does not establish that both
+revisions ran every command on the same Node version. Vite+ can select a managed
+Node independently of the launcher.
+
+New harness results record `launcherNode`, actual per-command `nodeProcesses`,
+and deduplicated `selectedNodes`, alongside revision, dirty-tree state and
+CPU/memory metadata. A small Node startup preload writes each command's
+`*.nodes.jsonl` journal; timings include that instrumentation overhead, while
+journal parsing and log publication occur afterward. Existing `NODE_OPTIONS` are
+preserved. Missing or unreadable provenance is reported and makes the harness
+exit unsuccessfully; it never substitutes the launcher's version for a child.
 
 ### Native structured cloning
 
 The browser baseline includes Safari/iOS 15.4 and native `structuredClone`.
 `npm ci`/`npm install` runs `patch-package --error-on-fail` to apply
-`patches/core-js+3.46.0.patch`, adjusting core-js 3.46.0's
+`patches/core-js+3.51.0.patch`, adjusting core-js 3.51.0's
 replacement policy: lack of proposed AggregateError serialization alone must not
 replace native cloning. Loss of core-js-added DOMException stacks is also accepted.
 Ordinary Error stacks, DOMException types/shared references, and the missing-native

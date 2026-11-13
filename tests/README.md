@@ -110,8 +110,8 @@ npx playwright install chromium
 npm run test:browser:save-processing -- --output /tmp/save-worker.json
 ```
 
-This uses Playwright Chromium and the public fixture; pass `--channel chrome` to
-use installed Chrome instead. CI runs this command against a production build and
+This uses Playwright Chromium and the public fixture; pass `--channel chrome` or
+`--chromium /path/to/chromium` to use an installed browser instead. CI runs this command against a production build and
 retains JSON and screenshot evidence. It checks worker constructor/module-load
 failures and successful retry, compressed import,
 import cancellation and error recovery, loading phases and disabled duplicate

@@ -1,0 +1,106 @@
+{
+	"method": {
+		"samplesPerCommand": 1,
+		"execution": "sequential wall-clock time on a shared Linux host",
+		"filesystemCaches": "not cleared",
+		"testProbe": {
+			"tests": 34,
+			"files": [
+				"tests/editor/inventory-operations.test.ts",
+				"tests/editor/chest-inventory.test.ts"
+			],
+			"workers": 2
+		},
+		"authenticatedSentryUploads": false,
+		"localSentryDotenv": "absent for both runs",
+		"coverageNote": "Before checks app/tests/tooling in one TypeScript project; after checks separate scopes. Lint after adds type-aware Effect diagnostics. Full suites are validated separately."
+	},
+	"environment": {
+		"node": "v24.18.0",
+		"platform": "linux",
+		"architecture": "x86_64",
+		"model": "Intel(R) Core(TM) i7-2600K CPU @ 3.40GHz",
+		"cpus": 8,
+		"memoryBytes": 16188186624
+	},
+	"before": {
+		"revision": "7e55450b5ae7fff28c31cfaafd46ca67b35a197a",
+		"results": [
+			{
+				"name": "lint",
+				"command": "npx --no-install biome lint .",
+				"seconds": 2.125,
+				"exitCode": 0
+			},
+			{
+				"name": "types",
+				"command": "npm run check:types",
+				"seconds": 9.492,
+				"exitCode": 0
+			},
+			{
+				"name": "svelte",
+				"command": "npx --no-install svelte-check --tsconfig ./tsconfig.json",
+				"seconds": 169.369,
+				"exitCode": 0
+			},
+			{
+				"name": "test",
+				"command": "npm test -- tests/editor/inventory-operations.test.ts tests/editor/chest-inventory.test.ts --maxWorkers=2",
+				"seconds": 15.094,
+				"exitCode": 0
+			},
+			{
+				"name": "build",
+				"command": "npm run build",
+				"seconds": 63.199,
+				"exitCode": 0
+			}
+		],
+		"deployedJavaScript": {
+			"files": 95,
+			"bytes": 4359192,
+			"gzipBytes": 923317
+		}
+	},
+	"after": {
+		"revision": "01fa073550ec34e94965db8848f860c18a9be2ea",
+		"results": [
+			{
+				"name": "lint",
+				"command": "npm run lint",
+				"seconds": 13.26,
+				"exitCode": 0
+			},
+			{
+				"name": "types",
+				"command": "npm run check:types && node node_modules/@typescript/native/bin/tsc --noEmit -p tsconfig.tests.json && npm run check:tooling",
+				"seconds": 17.685,
+				"exitCode": 0
+			},
+			{
+				"name": "svelte",
+				"command": "npx --no-install svelte-check --tsgo --tsconfig ./tsconfig.app.json && npx --no-install svelte-check --tsgo --tsconfig ./tsconfig.tests.json",
+				"seconds": 28.878,
+				"exitCode": 0
+			},
+			{
+				"name": "test",
+				"command": "npm test -- tests/editor/inventory-operations.test.ts tests/editor/chest-inventory.test.ts --maxWorkers=2",
+				"seconds": 14.539,
+				"exitCode": 0
+			},
+			{
+				"name": "build",
+				"command": "npm run build",
+				"seconds": 44.736,
+				"exitCode": 0
+			}
+		],
+		"deployedJavaScript": {
+			"files": 103,
+			"bytes": 4451001,
+			"gzipBytes": 936609
+		}
+	}
+}

@@ -12,6 +12,8 @@ const output = resolve(process.argv[2] ?? "/tmp/stardew-toolchain-benchmark");
 mkdirSync(output, { recursive: true });
 // Each benchmark entry pairs a stable log name with its shell command.
 /** @type {Array<[string, string]>} */
+// The old combined project and new scopes must both cover app, test and tooling
+// inputs; separate Svelte passes preserve each scope's intended ambient globals.
 const commands = [
 	["lint", migrated ? "npm run lint" : "npx --no-install biome lint ."],
 	[

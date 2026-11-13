@@ -10,6 +10,8 @@ export default defineConfig(({ mode }) => ({
 		mode === "production"
 			? sentrySvelteKit({
 					sourceMapsUploadOptions: {
+						// Explicit CI/benchmark credentials take precedence over a local dotenv file.
+						authToken: process.env.SENTRY_AUTH_TOKEN,
 						org: "cole-crouter",
 						project: "stardew-save-editor",
 					},

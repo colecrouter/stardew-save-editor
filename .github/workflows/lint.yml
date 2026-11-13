@@ -25,3 +25,5 @@ jobs:
 
       - name: Check application Effect diagnostics
         run: npm run effect:diagnostics
+      - name: Check component-test Effect diagnostics
+        run: npm run effect:diagnostics:tests

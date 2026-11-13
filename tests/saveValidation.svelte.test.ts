@@ -456,7 +456,8 @@ describe("SaveManager validation", { timeout: 30_000 }, () => {
 		save[Raw].SaveGame.player.money = 2 ** 31;
 
 		const error = await saveManager.download().catch((e) => e);
-		expect(error).toBeInstanceOf(SaveValidationError);
+		// Vitest 5 requires an assertion signature to narrow the caught error.
+		expect.assert(error instanceof SaveValidationError);
 		expect(error.message).toBe(
 			"Save file not downloaded: Test's money (2147483648) is out of range",
 		);

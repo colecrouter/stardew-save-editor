@@ -2,18 +2,27 @@
 
 - `npm run test:asset-dump`: catalog extraction regressions and filesystem publication/rollback
   for the .NET generator; no game installation or graphics device required.
-- `npm test`: application/domain/component and retained legacy regressions (Vitest,
+- `npm test`: application/domain/component and retained legacy regressions (Vite+ Vitest 5,
   happy-dom). Files named `e2e` here are integration tests, not real-browser tests.
 - `npm run test:editor`: the narrower application editor suite.
 - `npm run test:game-data`: .NET 10 inspection/generation, generated-module
   type checks, XML codec behavior, and synthetic XmlSerializer interoperability.
   It rebuilds ignored test output; no game installation is required.
+- `npm run check:tests`: native TypeScript and Svelte checks for application test
+  files and component harnesses.
 - `npm ci --prefix tests/engine`, then `npm test --prefix tests/engine`: engine
-  contracts plus native Node import/codec checks. This package uses Vitest 5 because
-  the Effect test adapter requires it; the application runner remains Vitest 3. The Node platform shared package is pinned
-  to the tested 4.0.6 API alongside Effect.
+  contracts plus native Node import/codec checks. Both runners use Vitest 5; this
+  package remains independently installed so native engine checks retain their
+  own dependency boundary. The Node platform shared package is pinned to the
+  tested 4.0.6 API alongside Effect.
 - `npm run check --prefix tests/engine` and `npm run effect:diagnostics --prefix tests/engine`:
   standalone engine typing and Effect diagnostics.
+
+The app and its shared tests use one npm installation with separate TypeScript
+scopes. `tsconfig.json` checks browser application code; `tests/tsconfig.json`
+adds the test environment without introducing Node globals into the app scope.
+`tsconfig.node.json` covers build and development tooling. The independent engine
+runner keeps `tests/engine/tsconfig.json`.
 
 Shared fixture builders live in `tests/helpers/editor-document.ts`; Vite and Node
 retain separate public-save loaders. The application runner decodes the public save

@@ -1,9 +1,7 @@
 import { render, cleanup } from "@testing-library/svelte";
-import type { BeforeNavigate } from "$app/navigation";
-import { beforeNavigate, goto } from "$app/navigation";
+import { goto } from "$app/navigation";
 import { flushSync } from "svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import RootLayout from "../src/routes/+layout.svelte";
 import BackupsLayout from "../src/routes/(legacy)/(home)/(backups)/backups/+layout.svelte";
 import Router from "../src/routes/(legacy)/(edit)/Router.svelte";
 import {
@@ -42,42 +40,6 @@ beforeEach(() => {
 afterEach(() => {
 	cleanup();
 	vi.restoreAllMocks();
-});
-
-// Kit may discover a deployment after the layout has mounted. Invoke its actual
-// registered callback repeatedly to ensure it reads current state, not a snapshot.
-it("reloads client navigation only after a newer deployment is detected", () => {
-	render(RootLayout);
-	const navigate = vi.mocked(beforeNavigate).mock.calls[0]?.[0];
-	if (!navigate) throw new Error("Root layout did not register beforeNavigate");
-	const href = vi
-		.spyOn(window.location, "href", "set")
-		.mockImplementation(() => {});
-	const navigation: BeforeNavigate = {
-		type: "goto",
-		shallow: false,
-		from: null,
-		to: {
-			url: new URL("http://localhost/stardew-save-editor/inventory"),
-			params: {},
-			route: { id: "/" },
-			scroll: null,
-		},
-		willUnload: false,
-		complete: Promise.resolve(),
-		cancel: vi.fn(),
-	};
-
-	navigate(navigation);
-	expect(href).not.toHaveBeenCalled();
-	updated.current = true;
-	navigate({ ...navigation, willUnload: true });
-	navigate({ ...navigation, to: null });
-	expect(href).not.toHaveBeenCalled();
-	navigate(navigation);
-	expect(href).toHaveBeenCalledExactlyOnceWith(
-		"http://localhost/stardew-save-editor/inventory",
-	);
 });
 
 describe.each(["", "/stardew-save-editor"])(

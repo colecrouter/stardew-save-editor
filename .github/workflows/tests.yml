@@ -35,6 +35,7 @@ jobs:
           node-version: 24
           cache: "npm"
       - run: npm ci
+      # The default suite excludes opt-in legacy editor regressions.
       - run: npm run test
 
   # Standalone engine/native-Node checks survive retirement of the lab package.

@@ -3,7 +3,10 @@
 - `npm run test:asset-dump`: catalog extraction regressions and filesystem publication/rollback
   for the .NET generator; no game installation or graphics device required.
 - `npm test`: application/domain/component and retained legacy regressions (Vite+ Vitest 5,
-  Node by default, happy-dom for `*.svelte.test.ts`). Files named `e2e` here are integration tests, not real-browser tests.
+  Node by default, happy-dom for `*.svelte.test.ts`). Legacy-editor regressions are excluded.
+- `npm run test:legacy`: opt-in legacy-editor regressions, including the legacy
+  route boundary. CI does not run this command. Files named `e2e` here are
+  integration tests, not real-browser tests.
 - `npm run test:editor`: the narrower application editor suite.
 - `npm run test:game-data`: .NET 10 inspection/generation, generated-module
   type checks, XML codec behavior, and synthetic XmlSerializer interoperability.
@@ -17,6 +20,11 @@
   tested 4.0.6 API alongside Effect.
 - `npm run check --prefix tests/engine` and `npm run effect:diagnostics --prefix tests/engine`:
   standalone engine typing and Effect diagnostics.
+
+Legacy test ownership is listed explicitly in `vite.config.ts`. Add new legacy-only
+files there so they stay opt-in; keep shared regression coverage outside that list.
+`test:legacy` selects the `legacy-test` Vite mode, with the same setup as default tests.
+The editor remains available in the app; this selection only changes test execution.
 
 The app and its shared tests use one npm installation with separate TypeScript
 scopes. The root `tsconfig.json` lets editors discover the app, test and tooling

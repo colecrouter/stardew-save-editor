@@ -13,6 +13,7 @@
 		"format": "vp fmt --write .",
 		"format:check": "vp fmt --check .",
 		"test": "vp test run",
+		"test:legacy": "vp test run --mode legacy-test",
 		"test:editor": "npm run sync && vp test run tests/editor",
 		"emulate:webkit": "node tests/webkit.js",
 		"prepare": "vp config && effect-language-service patch && effect-tsgo patch --typescript --oxlint && npm run sync",

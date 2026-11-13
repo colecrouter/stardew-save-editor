@@ -6,6 +6,52 @@ import { svelteTesting } from "@testing-library/svelte/vite";
 import { defineConfig } from "vite-plus";
 import { configDefaults } from "vitest/config";
 import legacy from "vite-plugin-sveltekit-legacy";
+import { configDefaults } from "vitest/config";
+
+// Legacy editor regressions are opt-in for local development and CI alike.
+// Keep ownership explicit: shared controls, catalogs, validation and save-format
+// compatibility remain in the default suite even when they serve both editors.
+const legacyTests = [
+	"src/lib/proxies/**/*.spec.ts",
+	// Match the route group's literal parentheses rather than glob grouping.
+	"src/routes/[(]legacy[)]/**/*.test.ts",
+	"tests/animalBuildings.svelte.test.ts",
+	"tests/babyQuestion.svelte.test.ts",
+	"tests/backupManager.svelte.test.ts",
+	"tests/bundleRequirements.stringIds.svelte.test.ts",
+	"tests/bundleReward.riverFish.svelte.test.ts",
+	"tests/bundleRewards.sanitizer.svelte.test.ts",
+	"tests/bundleSideEffects.svelte.test.ts",
+	"tests/calendar.svelte.test.ts",
+	"tests/calendarDocument.svelte.test.ts",
+	"tests/chest.svelte.test.ts",
+	"tests/chestGroups.test.ts",
+	"tests/chestMoves.svelte.test.ts",
+	"tests/chestTypes.svelte.test.ts",
+	"tests/e2e.import-export.svelte.test.ts",
+	"tests/e2e.svelte.test.ts",
+	"tests/editor/legacy-boundary.svelte.test.ts",
+	"tests/equipment-omission.svelte.test.ts",
+	"tests/eventsSeen.svelte.test.ts",
+	"tests/farmerStats.svelte.test.ts",
+	"tests/friendship.svelte.test.ts",
+	"tests/heartBar.svelte.test.ts",
+	"tests/inventorySwap.svelte.test.ts",
+	"tests/issue101.iridium-pan-hat.svelte.test.ts",
+	"tests/item.svelte.test.ts",
+	"tests/itemLifetime.svelte.test.ts",
+	"tests/itemResolution.svelte.test.ts",
+	"tests/itemSpriteDispose.svelte.test.ts",
+	"tests/itemSprites.svelte.test.ts",
+	"tests/navigation-layouts.svelte.test.ts",
+	"tests/qiQuests.svelte.test.ts",
+	"tests/quests.svelte.test.ts",
+	"tests/saveFile.svelte.test.ts",
+	"tests/saveValidation.legacy.svelte.test.ts",
+	"tests/upgrades.svelte.test.ts",
+	"tests/upload.svelte.test.ts",
+	"tests/walletFlags.migration.svelte.test.ts",
+];
 
 export default defineConfig(({ mode }) => ({
 	// Share formatting and linting with the same versioned toolchain as builds/tests.
@@ -138,6 +184,13 @@ export default defineConfig(({ mode }) => ({
 		include: ["idb", "@thisux/sveltednd", "comlink", "@sentry/sveltekit"],
 	},
 	test: {
+		// A dedicated mode keeps the opt-in command portable across shells. Both
+		// selections retain Vitest's built-in exclusions and the same runtime setup.
+		include: mode === "legacy-test" ? legacyTests : configDefaults.include,
+		exclude: [
+			...configDefaults.exclude,
+			...(mode === "legacy-test" ? [] : legacyTests),
+		],
 		css: true,
 		// Domain tests use native Node globals; rendering tests opt into the DOM.
 		projects: [

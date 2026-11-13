@@ -10,6 +10,11 @@ import { pathToFileURL } from "node:url";
 // when copied outside the checkout. Logs stay separate from timing metadata.
 const manifest = JSON.parse(readFileSync("package.json", "utf8"));
 const migrated = Boolean(manifest.devDependencies["vite-plus"]);
+// The full-save probe deliberately measures the retained legacy codec. Opt in
+// when this checkout separates legacy tests, while supporting older revisions.
+const legacyTestCommand = manifest.scripts["test:legacy"]
+	? "npm run test:legacy"
+	: "npm test";
 const output = resolve(process.argv[2] ?? "/tmp/stardew-toolchain-benchmark");
 mkdirSync(output, { recursive: true });
 // npm/npx and Vite+ can select different Node executables. Capture each actual
@@ -117,7 +122,7 @@ const commands = [
 	// Fixed concurrency is only a measurement control; normal tests remain uncapped.
 	[
 		"test-full-save",
-		"npm test -- tests/e2e.import-export.svelte.test.ts --maxWorkers=1",
+		`${legacyTestCommand} -- tests/e2e.import-export.svelte.test.ts --maxWorkers=1`,
 	],
 	["build", "npm run build"],
 ];

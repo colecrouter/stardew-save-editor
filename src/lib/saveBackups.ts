@@ -88,6 +88,15 @@ export function restoreOriginal(file: StoredOriginal): File {
 	});
 }
 
+/** Canonical bytes of a restored record, without reading the reconstructed File again. */
+export function storedOriginalBase64(stored: StoredOriginal): string {
+	// File's default string-part encoding matches TextEncoder, including replacement
+	// of unpaired surrogates. Existing base64 can contain whitespace or omit padding.
+	return stored.encoding === "base64"
+		? btoa(atob(stored.data))
+		: encodeBytes(new TextEncoder().encode(stored.data));
+}
+
 /** Encode exact source bytes for IndexedDB, preserving compressed saves and file metadata. */
 export async function serializeOriginal(file: File): Promise<StoredOriginal> {
 	const bytes = new Uint8Array(await file.arrayBuffer());

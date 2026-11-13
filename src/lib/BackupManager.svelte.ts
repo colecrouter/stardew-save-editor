@@ -2,7 +2,7 @@ import {
 	restoreOriginal,
 	serializeOriginal,
 	storedOriginalSchema,
-	matchesOriginal,
+	storedOriginalBase64,
 	type StoredOriginal,
 } from "./saveBackups";
 import { openDB } from "idb";
@@ -35,6 +35,9 @@ export class BackupManager {
 	private pendingAdd = Promise.resolve();
 	private readonly loading: Promise<void>;
 	private persisted = new Map<File, IDBValidKey>();
+	private loadedOriginals = new WeakMap<File, StoredOriginal>();
+	private serialized = new WeakMap<File, StoredOriginal>();
+	private pendingSerializations = new WeakMap<File, Promise<StoredOriginal>>();
 
 	constructor(limit = BACKUP_LIMIT) {
 		this.files = $state([]);
@@ -67,17 +70,25 @@ export class BackupManager {
 		this.loading = this.load();
 	}
 
-	/** Keep each distinct original, including changed bytes under the same farm filename. */
+	/** Admit distinct originals to the list; the persistence effect reports write failures. */
 	add(file: File): Promise<void> {
 		const added = this.pendingAdd.then(async () => {
 			await this.loading;
-			const incoming = await serializeOriginal(file);
-			// Compare exact source bytes, not decoded text: compressed originals may
-			// contain different bytes that decode to the same replacement characters.
-			for (const existing of this.files) {
-				if (existing.name !== file.name) continue;
-				const stored = await serializeOriginal(existing);
-				if (this.files.includes(existing) && matchesOriginal(stored, incoming))
+			const candidates = this.files.filter(
+				(existing) => existing.name === file.name,
+			);
+			// Different filenames cannot be duplicates. Let persistence read this File
+			// once instead of encoding a multi-megabyte original just to admit it.
+			if (candidates.length === 0) {
+				this.files.unshift(file);
+				return;
+			}
+			const incoming = await this.serialize(file);
+			// Compare exact canonical bytes, not decoded text: compressed originals
+			// can differ even when both texts contain the same replacement characters.
+			for (const existing of candidates) {
+				const stored = await this.serialize(existing);
+				if (this.files.includes(existing) && stored.data === incoming.data)
 					return;
 			}
 			this.files.unshift(file);
@@ -86,6 +97,49 @@ export class BackupManager {
 		// failed read from poisoning the queue for subsequent import attempts.
 		this.pendingAdd = added.catch(() => {});
 		return added;
+	}
+
+	private serializeLoaded(file: File): StoredOriginal | undefined {
+		const cached = this.serialized.get(file);
+		if (cached) return cached;
+		const original = this.loadedOriginals.get(file);
+		if (!original) return undefined;
+		// The loaded record already supplied these bytes to restoreOriginal. Only
+		// canonicalize when compared, retaining File-normalized metadata.
+		const stored: StoredOriginal = {
+			name: file.name,
+			data: storedOriginalBase64(original),
+			encoding: "base64",
+			lastModified: file.lastModified,
+			size: file.size,
+			type: file.type,
+		};
+		this.serialized.set(file, stored);
+		return stored;
+	}
+
+	private serialize(file: File): Promise<StoredOriginal> {
+		const cached = this.serializeLoaded(file);
+		if (cached) return Promise.resolve(cached);
+		const pending = this.pendingSerializations.get(file);
+		if (pending) return pending;
+		// Files are immutable. Share pending work and retain a successful encoding
+		// while its File lives, so deduplication and persistence cannot read it twice.
+		const read = serializeOriginal(file).then(
+			(stored) => {
+				this.serialized.set(file, stored);
+				this.pendingSerializations.delete(file);
+				return stored;
+			},
+			(error: unknown) => {
+				// A failed read is not cached. Retry may succeed for the same File, and
+				// the original rejection still reaches its current caller.
+				this.pendingSerializations.delete(file);
+				throw error;
+			},
+		);
+		this.pendingSerializations.set(file, read);
+		return read;
 	}
 
 	/**
@@ -117,6 +171,7 @@ export class BackupManager {
 				const key = keys[index];
 				if (key === undefined) throw new Error("Backup record has no key");
 				this.persisted.set(file, key);
+				this.loadedOriginals.set(file, stored);
 			}
 			// Older callers can still append directly while storage opens. Resolve
 			// those bytes before retention, so a duplicate cannot evict a distinct
@@ -127,7 +182,7 @@ export class BackupManager {
 					this.files
 						.filter((file) => !incoming.has(file))
 						.map(async (file) => {
-							incoming.set(file, await serializeOriginal(file));
+							incoming.set(file, await this.serialize(file));
 						}),
 				);
 			}
@@ -135,7 +190,11 @@ export class BackupManager {
 				const stored = incoming.get(file);
 				return (
 					stored !== undefined &&
-					!backupFiles.some((previous) => matchesOriginal(previous, stored))
+					!newFiles.some(
+						(previous) =>
+							previous.name === file.name &&
+							this.serializeLoaded(previous)?.data === stored.data,
+					)
 				);
 			});
 			this.files = [...distinct, ...newFiles];
@@ -187,7 +246,7 @@ export class BackupManager {
 			const serialized = await Promise.all(
 				added.map(async (file) => ({
 					file,
-					stored: await serializeOriginal(file),
+					stored: await this.serialize(file),
 				})),
 			);
 			db = await openDB("backups", 1);

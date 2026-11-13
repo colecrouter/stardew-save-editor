@@ -128,6 +128,89 @@ describe("legacy backup persistence", () => {
 		db.close();
 	});
 
+	it("shares one successful file read across concurrent admission, deduplication and persistence", async () => {
+		const db = await archive();
+		const backups = manager();
+		const file = new File(["original"], "Farm");
+		const read = vi.spyOn(file, "arrayBuffer");
+		await Promise.all([backups.add(file), backups.add(file)]);
+		flushSync();
+		await waitFor(async () => expect(await db.getAll("files")).toHaveLength(1));
+		expect(read).toHaveBeenCalledTimes(1);
+		expect(backups.files).toHaveLength(1);
+		db.close();
+	});
+
+	it("compares restored originals from their known bytes without reading their Files again", async () => {
+		const db = await archive();
+		await db.add("files", await serializeOriginal(new File(["old"], "Farm")));
+		const backups = manager();
+		await waitFor(() => expect(backups.files).toHaveLength(1));
+		const previous = backups.files[0];
+		expect.assert(previous !== undefined);
+		const previousRead = vi
+			.spyOn(previous, "arrayBuffer")
+			.mockRejectedValue(new Error("Must use known bytes"));
+		const incoming = new File(["new"], "Farm");
+		const incomingRead = vi.spyOn(incoming, "arrayBuffer");
+		await backups.add(incoming);
+		flushSync();
+		await waitFor(async () => expect(await db.getAll("files")).toHaveLength(2));
+		await backups.add(new File(["new"], "Farm"));
+		expect(backups.files).toHaveLength(2);
+		expect(previousRead).not.toHaveBeenCalled();
+		expect(incomingRead).toHaveBeenCalledTimes(1);
+		db.close();
+	});
+
+	it.each([{ data: "a" }, { data: " YQ \n", encoding: "base64" }])(
+		"canonicalizes loaded bytes lazily for duplicate comparison (%j)",
+		async (source) => {
+			const db = await archive();
+			const stored = {
+				name: "Farm",
+				lastModified: 1,
+				size: 1,
+				type: "",
+				...source,
+			};
+			await db.add("files", stored);
+			const backups = manager();
+			await waitFor(() => expect(backups.files).toHaveLength(1));
+			const previous = backups.files[0];
+			expect.assert(previous !== undefined);
+			const read = vi
+				.spyOn(previous, "arrayBuffer")
+				.mockRejectedValue(new Error("Must use stored bytes"));
+			await backups.add(new File(["a"], "Farm"));
+			flushSync();
+			expect(backups.files).toHaveLength(1);
+			expect(read).not.toHaveBeenCalled();
+			expect(await db.getAll("files")).toEqual([stored]);
+			db.close();
+		},
+	);
+
+	it("does not retain rejected reads when the same File is retried", async () => {
+		const db = await archive();
+		await db.add("files", await serializeOriginal(new File(["old"], "Farm")));
+		const backups = manager();
+		await waitFor(() => expect(backups.files).toHaveLength(1));
+		const incoming = new File(["new"], "Farm");
+		const read = vi
+			.spyOn(incoming, "arrayBuffer")
+			.mockRejectedValueOnce(new Error("Temporary read failure"))
+			.mockResolvedValue(new TextEncoder().encode("new").buffer);
+		await expect(backups.add(incoming)).rejects.toThrow(
+			"Temporary read failure",
+		);
+		await backups.add(incoming);
+		flushSync();
+		await waitFor(async () => expect(await db.getAll("files")).toHaveLength(2));
+		expect(read).toHaveBeenCalledTimes(2);
+		db.close();
+	});
+
 	it("preserves an unreadable archive and disables replacement writes", async () => {
 		const db = await archive();
 		await db.add("files", { name: "invalid", data: 123 });
@@ -199,8 +282,12 @@ describe("legacy backup persistence", () => {
 			new DOMException("Unavailable", "AbortError"),
 		);
 		const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-		manager();
+		const backups = manager();
 		await waitFor(() => expect(warn).toHaveBeenCalled());
+		const file = new File(["new"], "new");
+		const read = vi.spyOn(file, "arrayBuffer");
+		await backups.add(file);
+		expect(read).not.toHaveBeenCalled();
 	});
 
 	it("rolls back a revision when creating an IndexedDB write request fails", async () => {

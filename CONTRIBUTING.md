@@ -25,6 +25,7 @@ Install the .NET 8 SDK (or a newer SDK plus the .NET 8 runtime) and a
 vanilla PC copy of Stardew Valley. Then run:
 
 ```bash
+git submodule update --init --recursive tools/xnbhack/upstream
 export STARDEW_GAME_PATH="/path/to/Stardew Valley"
 npm run dump
 ```
@@ -45,7 +46,9 @@ Unpacked inputs, generated catalogs and selected textures are staged together.
 They replace `content`, `generated` and `static/assets` only after extraction and
 transformation succeed, with rollback if publication fails. Temporary exports use
 `.cache/xnbhack`; build outputs stay under `tools/xnbhack/bin` and `obj`.
-The upstream sources and license are pinned under `tools/xnbhack/vendor`.
+The upstream source is pinned as the `tools/xnbhack/upstream` Git submodule; its
+MIT license is included there. Only running the asset dump requires initializing
+this submodule. Normal app builds and the fixture-based asset tests do not.
 
 `generated/location-weather.json` joins `Data/Locations`, `Data/LocationContexts`
 and map-level `LocationContext` properties. XnbHack writes maps as TMX files under

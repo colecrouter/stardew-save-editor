@@ -1,0 +1,3 @@
+[submodule "tools/xnbhack/upstream"]
+	path = tools/xnbhack/upstream
+	url = https://github.com/Pathoschild/StardewXnbHack.git

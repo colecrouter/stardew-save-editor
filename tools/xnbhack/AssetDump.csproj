@@ -12,7 +12,12 @@
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Remove="tests/**/*.cs" />
+    <!-- Compile only the pinned unpacker sources. Do not pick up upstream test
+         programs or build outputs, or import its SMAPI-dependent project file. -->
+    <Compile Remove="tests/**/*.cs;upstream/**/*.cs" />
+    <Compile Include="upstream/StardewXnbHack/Program.cs" />
+    <Compile Include="upstream/StardewXnbHack/Framework/**/*.cs" />
+    <Compile Include="upstream/StardewXnbHack/ProgressHandling/**/*.cs" />
     <!-- Only use the toolkit shipped in the package. Importing its build targets
          would require SMAPI to be installed alongside the game. -->
     <PackageReference Include="Pathoschild.Stardew.ModBuildConfig" Version="4.3.1" GeneratePathProperty="true" ExcludeAssets="all" />
@@ -27,7 +32,8 @@
     <Reference Include="xTile" HintPath="$(GamePath)/xTile.dll" Private="false" />
     <Reference Include="BmFont" HintPath="$(GamePath)/BmFont.dll" Private="false" />
   </ItemGroup>
-  <Target Name="ValidateGamePath" BeforeTargets="ResolveReferences">
+  <Target Name="ValidateInputs" BeforeTargets="ResolveReferences">
+    <Error Condition="!Exists('$(MSBuildProjectDirectory)/upstream/StardewXnbHack/Program.cs')" Text="Initialize XnbHack with: git submodule update --init --recursive tools/xnbhack/upstream" />
     <Error Condition="!Exists('$(GamePath)/Stardew Valley.dll')" Text="Set STARDEW_GAME_PATH to a Stardew Valley installation containing Stardew Valley.dll." />
   </Target>
 </Project>

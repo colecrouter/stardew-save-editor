@@ -1,5 +1,11 @@
 # Asset extraction
 
+Initialize the pinned source dependency from the repository root:
+
+```bash
+git submodule update --init --recursive tools/xnbhack/upstream
+```
+
 Set `STARDEW_GAME_PATH` to a vanilla installation containing `Stardew Valley.dll`,
 then run `npm run dump`. The tool calls XnbHack directly and performs all catalog
 transformations in C#. There is no Node launcher or second generation process.
@@ -26,7 +32,17 @@ rollback if publication fails. Existing sibling output such as the typed save
 codec under `generated/save-format` is preserved. The temporary `Content` link in
 the host's build output is removed afterward; no files are installed into the game.
 
-See [vendor/README.md](vendor/README.md) for the pinned upstream source and license.
+The [upstream submodule](https://github.com/Pathoschild/StardewXnbHack) is pinned to
+`e0b5d500bb8cb058c05325d1c6994765f7571256` (1.1.2). Its MIT license is in
+`upstream/LICENSE`. We compile the unpacker sources in our project rather than
+building its SMAPI-dependent project. App builds and fixture-based asset tests
+do not require the submodule, so their CI checkouts can remain unchanged.
+
+To update, check out the reviewed upstream commit in `upstream`, then commit the
+changed Git submodule pointer in this repository. Verify the host build and the
+JSON, PNG and TMX outputs before accepting an update; our output redirection also
+uses upstream's internal `UnpackContext`. Formatting and linting exclude the
+submodule so our tooling does not modify upstream source.
 
 The generator is split by domain: `CatalogGenerator` coordinates item catalogs,
 `ArtisanCatalog` derives preserved goods, `GiftCatalog` applies gift precedence,

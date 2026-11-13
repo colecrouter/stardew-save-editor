@@ -8,6 +8,7 @@
 	"sortPackageJson": false,
 	"ignorePatterns": [
 		"content/**",
+		"tools/xnbhack/upstream/**",
 		"generated/**",
 		"static/**",
 		"**/package-lock.json"

@@ -4,6 +4,7 @@ import adapter from "@sveltejs/adapter-static";
 import { sveltekit } from "@sveltejs/kit/vite";
 import { svelteTesting } from "@testing-library/svelte/vite";
 import { defineConfig } from "vite-plus";
+import { configDefaults } from "vitest/config";
 import legacy from "vite-plugin-sveltekit-legacy";
 
 export default defineConfig(({ mode }) => ({
@@ -123,7 +124,8 @@ export default defineConfig(({ mode }) => ({
 				"ios >= 15.4",
 			],
 		}),
-		svelteTesting(),
+		// Install cleanup in the rendering project so Node tests avoid DOM setup.
+		svelteTesting({ autoCleanup: false }),
 	],
 	server: {
 		fs: {
@@ -137,9 +139,35 @@ export default defineConfig(({ mode }) => ({
 	},
 	test: {
 		css: true,
-		environment: "happy-dom",
+		// Domain tests use native Node globals; rendering tests opt into the DOM.
+		projects: [
+			{
+				extends: true,
+				test: {
+					name: "node",
+					environment: "node",
+					include: configDefaults.include,
+					// Preserve runner exclusions, including the independent engine installation.
+					exclude: [...configDefaults.exclude, "**/*.svelte.test.ts"],
+				},
+			},
+			{
+				extends: true,
+				test: {
+					name: "svelte",
+					environment: "happy-dom",
+					include: ["**/*.svelte.test.ts"],
+					// DOM cleanup and simulated browser workers belong only to rendering tests.
+					setupFiles: [
+						"@vitest/web-worker",
+						"@testing-library/svelte/vitest",
+						"./tests/helpers/setup.ts",
+					],
+				},
+			},
+		],
 		globalSetup: ["./tests/helpers/global-setup.ts"],
-		setupFiles: ["@vitest/web-worker", "./tests/helpers/setup.ts"],
+		setupFiles: ["./tests/helpers/fixture-setup.ts"],
 		// Required for SvelteKit with Vite 7+
 		// Ensures that SvelteKit's virtual modules ($app, __sveltekit) are properly resolved
 		server: {

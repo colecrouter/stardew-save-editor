@@ -250,7 +250,7 @@ export class Farmer implements DataProxy<Player> {
 
 	/** Whether the tool at Clint's is a trash can (CopperTrashCan to IridiumTrashCan) */
 	get trashCanAtClint() {
-		return /TrashCan$/.test(String(this.toolBeingUpgraded?.itemId ?? ""));
+		return String(this.toolBeingUpgraded?.itemId ?? "").endsWith("TrashCan");
 	}
 
 	/**

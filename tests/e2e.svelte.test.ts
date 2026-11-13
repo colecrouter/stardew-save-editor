@@ -100,7 +100,7 @@ const createPageHarness = async (
 
 	const renderWithContext = ((component, options, renderOptions) => {
 		const opts = {
-			...(options ?? {}),
+			...options,
 		} as Record<string, unknown> & {
 			context?: Map<unknown, unknown>;
 		};
@@ -492,7 +492,7 @@ describe("Save Manager Integration Tests", { timeout: 30_000 }, () => {
 	});
 
 	describe("Character Customization", () => {
-		it("should modify character appearance", () => {
+		it("should modify character appearance", async () => {
 			const page = harness.render(appearancePage);
 			const changes = [
 				["name", "Test2"],
@@ -507,7 +507,7 @@ describe("Save Manager Integration Tests", { timeout: 30_000 }, () => {
 				const input = page.getByTestId(
 					`appearance-${name}`,
 				) as HTMLInputElement;
-				fireEvent.input(input, { target: { value } });
+				await fireEvent.input(input, { target: { value } });
 
 				const raw: Player | undefined = saveManager.save?.player[Raw];
 				if (!raw) continue;
@@ -535,7 +535,7 @@ describe("Save Manager Integration Tests", { timeout: 30_000 }, () => {
 						expect(raw.accessory).toBe(value);
 						break;
 					default:
-						throw new Error(`Unhandled appearance field: ${name}`);
+						throw new Error("Unhandled appearance field");
 				}
 			}
 		});

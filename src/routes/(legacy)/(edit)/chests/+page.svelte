@@ -134,7 +134,7 @@
 
 	// Start the list from the top whenever the search changes what it shows
 	$effect(() => {
-		search;
+		void search;
 		if (chestList) chestList.scrollTop = 0;
 	});
 

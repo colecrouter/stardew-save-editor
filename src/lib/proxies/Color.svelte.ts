@@ -15,10 +15,7 @@ export class Color implements ColorType {
 	public PackedValue: number;
 
 	constructor(
-		color:
-			| `#${string}`
-			| string
-			| OptionalPick<Omit<ColorType, "PackedValue">, "A">,
+		color: string | OptionalPick<Omit<ColorType, "PackedValue">, "A">,
 	) {
 		this.A = $state(0);
 		this.R = $state(0);

@@ -61,8 +61,8 @@
 	}
 	$effect(() => {
 		// Selection changes cancel the prompt even when a moved item keeps its identity.
-		selectedItem;
-		selectedIndex;
+		void selectedItem;
+		void selectedIndex;
 		removalTarget = undefined;
 	});
 	let confirmingRemoval = $derived(

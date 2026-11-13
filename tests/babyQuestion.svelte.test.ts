@@ -297,7 +297,7 @@ describe("making a couple pregnant", () => {
 		expect(onchange).toHaveBeenCalledWith(true);
 		expect(screen.queryByTestId("baby-player-days-until-birth")).toBeNull();
 
-		view.rerender({
+		await view.rerender({
 			status,
 			pregnancy: { pregnant: true, daysUntilBirth: 14, onchange },
 		});

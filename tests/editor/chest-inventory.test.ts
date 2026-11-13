@@ -80,43 +80,41 @@ function move(
 }
 
 describe("placed chest inventory boundary", () => {
-	it.each([true, "true"])(
-		"edits a local chest with a nested nil global ID and restores it through Undo/Redo/XML (%s)",
-		(nil) =>
-			run(
-				Effect.gen(function* () {
-					const original = fixture();
-					chest(original).raw.globalInventoryId = null;
-					const id = ownerId(original),
-						session = yield* makeHistorySession(original),
-						before = yield* session.snapshot;
-					expect(required(readChests(before)[0]).supported).toBe(true);
-					expect(before.document).toEqual(original);
-					expect(before.entries).toHaveLength(0);
-					yield* session.transact(
-						setInventoryItem({
-							ownerId: id,
-							entityId: handle(before, id, 0),
-							property: "stack",
-							value: 3,
-						}),
-					);
-					const after = yield* session.snapshot;
-					expect(chest(after.document).slots[0]).toMatchObject({ stack: 3 });
-					expect(chest(after.document).raw.globalInventoryId).toEqual(
-						chest(original).raw.globalInventoryId,
-					);
-					expect(after.entries).toHaveLength(1);
-					yield* session.undo;
-					expect((yield* session.snapshot).document).toEqual(original);
-					expect(
-						parser.parse(exportDocument((yield* session.snapshot).document)),
-					).toEqual(parser.parse(exportDocument(original)));
-					yield* session.redo;
-					expect((yield* session.snapshot).document).toEqual(after.document);
-				}),
-			),
-	);
+	// The decoded model represents either XML nil spelling as null.
+	it("edits a local chest with a null global ID and restores it through Undo/Redo/XML", () =>
+		run(
+			Effect.gen(function* () {
+				const original = fixture();
+				chest(original).raw.globalInventoryId = null;
+				const id = ownerId(original),
+					session = yield* makeHistorySession(original),
+					before = yield* session.snapshot;
+				expect(required(readChests(before)[0]).supported).toBe(true);
+				expect(before.document).toEqual(original);
+				expect(before.entries).toHaveLength(0);
+				yield* session.transact(
+					setInventoryItem({
+						ownerId: id,
+						entityId: handle(before, id, 0),
+						property: "stack",
+						value: 3,
+					}),
+				);
+				const after = yield* session.snapshot;
+				expect(chest(after.document).slots[0]).toMatchObject({ stack: 3 });
+				expect(chest(after.document).raw.globalInventoryId).toEqual(
+					chest(original).raw.globalInventoryId,
+				);
+				expect(after.entries).toHaveLength(1);
+				yield* session.undo;
+				expect((yield* session.snapshot).document).toEqual(original);
+				expect(
+					parser.parse(exportDocument((yield* session.snapshot).document)),
+				).toEqual(parser.parse(exportDocument(original)));
+				yield* session.redo;
+				expect((yield* session.snapshot).document).toEqual(after.document);
+			}),
+		));
 	it("projects detached slots without initializing empty/singleton save structures", () =>
 		run(
 			Effect.gen(function* () {

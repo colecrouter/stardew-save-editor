@@ -141,15 +141,15 @@ const checkedStrings = Effect.fn("Buildings.strings")(function* (
 		entries: entries.filter((value): value is string => value !== null),
 	};
 });
-const topic = Effect.fn("Buildings.topic")(function* (
-	farmer: Farmer,
-	id: string,
-) {
-	const active = farmer.activeDialogueEvents ?? [];
-	const previous = farmer.previousActiveDialogueEvents ?? [];
-	if ([...active, ...previous].some((entry) => entry.key === id)) return;
-	farmer.activeDialogueEvents = [...active, { key: id, value: 4 }];
-});
+// Dialogue mutation stays lazy so merely preparing a command cannot alter a draft.
+const topic = Effect.fn("Buildings.topic")((farmer: Farmer, id: string) =>
+	Effect.sync(() => {
+		const active = farmer.activeDialogueEvents ?? [];
+		const previous = farmer.previousActiveDialogueEvents ?? [];
+		if ([...active, ...previous].some((entry) => entry.key === id)) return;
+		farmer.activeDialogueEvents = [...active, { key: id, value: 4 }];
+	}),
+);
 const addString = Effect.fn("Buildings.addString")(function* <K extends string>(
 	owner: { [P in K]?: (string | null)[] },
 	property: K,

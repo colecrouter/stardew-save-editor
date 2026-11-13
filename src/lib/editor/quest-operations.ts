@@ -82,13 +82,13 @@ function keyOf(raw: Quest) {
 	// Help Wanted quests have no story ID. Capture their immutable generated identity,
 	// excluding fields edited by this screen so a valid input never retargets itself.
 	const {
-		moneyReward,
-		reward,
-		daysLeft,
-		completed,
-		destroy,
-		showNew,
-		parts,
+		moneyReward: _moneyReward,
+		reward: _reward,
+		daysLeft: _daysLeft,
+		completed: _completed,
+		destroy: _destroy,
+		showNew: _showNew,
+		parts: _parts,
 		...identity
 	} = raw;
 	return `generated:${JSON.stringify(identity)}`;

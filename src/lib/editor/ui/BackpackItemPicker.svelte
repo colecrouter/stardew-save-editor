@@ -70,9 +70,9 @@
 	$effect(() => {
 		// A fresh result page starts with its selected first item visible, rather
 		// than inheriting a previous page's scrolled position and hiding that item.
-		query;
-		kind;
-		currentPage;
+		void query;
+		void kind;
+		void currentPage;
 		if (itemList) itemList.scrollTop = 0;
 	});
 	function resetResults() {

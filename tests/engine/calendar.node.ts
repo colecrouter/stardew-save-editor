@@ -11,7 +11,8 @@ import { CalendarSeason } from "../../src/lib/calendarSeason.ts";
 import { getStatValue } from "../../src/lib/editor/player-stats.ts";
 import { loadFixture } from "./fixture.ts";
 
-test("the complete Effect calendar history graph runs under native Node", async () => {
+// Run Node cases in declaration order and observe completion through the module promise.
+await test("the complete Effect calendar history graph runs under native Node", async () => {
 	const original = await loadFixture();
 	await Effect.runPromise(
 		Effect.scoped(
@@ -30,7 +31,7 @@ test("the complete Effect calendar history graph runs under native Node", async 
 
 const gameOf = (document: { SaveGame: unknown }) => document.SaveGame as Save;
 
-test("calendar preparation runs on native Node and stages every farmer's date without changing its source", async () => {
+await test("calendar preparation runs on native Node and stages every farmer's date without changing its source", async () => {
 	const source = await loadFixture();
 	const before = structuredClone(source);
 	const game = source.SaveGame as unknown as Save;
@@ -50,7 +51,7 @@ test("calendar preparation runs on native Node and stages every farmer's date wi
 		assert.equal(player?.yearForSaveGame, 2);
 });
 
-test("native calendar preparation retains target bindings across document cloning and array reordering", async () => {
+await test("native calendar preparation retains target bindings across document cloning and array reordering", async () => {
 	const source = await loadFixture();
 	const game = source.SaveGame as unknown as Save;
 	const initial = initializeCalendarDocument(game);

@@ -1,6 +1,7 @@
 import { webkit } from "playwright";
 
-(async () => {
+// Surface automation failures through the script exit status.
+await (async () => {
 	const browser = await webkit.launch({ headless: false });
 	const context = await browser.newContext();
 

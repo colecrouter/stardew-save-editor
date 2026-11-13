@@ -10,7 +10,8 @@ import { XmlSchema, type Value } from "./generated/inventory.ts";
 const decode = Schema.decodeUnknownSync(XmlSchema);
 const encode = Schema.encodeSync(XmlSchema);
 
-test("expected XML failures remain typed and retain their field path", async () => {
+// Run Node cases in declaration order and observe completion through the module promise.
+await test("expected XML failures remain typed and retain their field path", async () => {
 	const codec = Xml.object({
 		count: { xmlName: "Count", codec: Xml.scalar("System.Int32") },
 	});
@@ -35,7 +36,7 @@ test("expected XML failures remain typed and retain their field path", async () 
 	);
 });
 
-test("reader bugs stay defects through every frame operation and the document codec", async () => {
+await test("reader bugs stay defects through every frame operation and the document codec", async () => {
 	for (const operation of ["open", "child", "text", "finish"] as const) {
 		const bug = new TypeError(`bug in ${operation}`);
 		const crash = Effect.sync(() => {
@@ -68,9 +69,9 @@ test("reader bugs stay defects through every frame operation and the document co
 					: "<Root/>";
 		// The low-level reader and the public Schema boundary must both preserve
 		// the actual exception, without relabeling it as malformed uploaded XML.
-		const reads: readonly Effect.Effect<unknown, unknown>[] = [
+		const reads = [
 			Xml.decodeChunks("Root", codec, [source]),
-			Schema.decodeUnknownEffect(Xml.document("Root", codec))(source),
+			Schema.decodeEffect(Xml.document("Root", codec))(source),
 		];
 		for (const read of reads) {
 			const result = await Effect.runPromiseExit(read);
@@ -85,7 +86,7 @@ test("reader bugs stay defects through every frame operation and the document co
 	}
 });
 
-test("plain generated values support creation, cloning, reordering and automatic nil/type output", () => {
+await test("plain generated values support creation, cloning, reordering and automatic nil/type output", () => {
 	const imported =
 		decode(`<?xml version="1.0"?><Container xmlns:i="http://www.w3.org/2001/XMLSchema-instance" xmlns:p="urn:pets">
 		<Items><Item i:type="p:Hound"><Name>007</Name><BarkCount>0007</BarkCount><Mod flag="yes"><entry>A</entry><entry>B</entry></Mod></Item><Item i:nil="true"/></Items>
@@ -121,7 +122,7 @@ test("plain generated values support creation, cloning, reordering and automatic
 	assert.deepEqual(decode(encode({ Items: [] })).Items, []);
 });
 
-test("plain fields retain unknown properties while owning renamed values and presence", () => {
+await test("plain fields retain unknown properties while owning renamed values and presence", () => {
 	const schema = Xml.document(
 		"Root",
 		Xml.object({
@@ -164,7 +165,7 @@ test("plain fields retain unknown properties while owning renamed values and pre
 	);
 });
 
-test("plain codecs reject invalid known values and unsupported loss of metadata", () => {
+await test("plain codecs reject invalid known values and unsupported loss of metadata", () => {
 	assert.throws(
 		() =>
 			decode(
@@ -199,7 +200,7 @@ test("plain codecs reject invalid known values and unsupported loss of metadata"
 	);
 });
 
-test("plain sequences handle singleton arrays, bounds and absent repetitions", () => {
+await test("plain sequences handle singleton arrays, bounds and absent repetitions", () => {
 	const schema = Xml.document(
 		"Root",
 		Xml.object({
@@ -218,7 +219,7 @@ test("plain sequences handle singleton arrays, bounds and absent repetitions", (
 	assert.throws(() => read("<Root><Value>1</Value><Value>2</Value></Root>"));
 });
 
-test("plain dictionary entries support creation and enforce reviewed key equality", () => {
+await test("plain dictionary entries support creation and enforce reviewed key equality", () => {
 	const schema = Xml.document(
 		"Dictionary",
 		Xml.dictionary(
@@ -236,7 +237,7 @@ test("plain dictionary entries support creation and enforce reviewed key equalit
 	assert.throws(() => write([...value, { key: "KEY", value: 6 }]), /Duplicate/);
 });
 
-test("generated recursive contracts initialize and round-trip without envelopes", async () => {
+await test("generated recursive contracts initialize and round-trip without envelopes", async () => {
 	const { XmlSchema } = await import("./generated/recursive.ts");
 	const source = await readFile(
 		new URL("./fixtures/recursive.xml", import.meta.url),
@@ -247,7 +248,7 @@ test("generated recursive contracts initialize and round-trip without envelopes"
 	assert.deepEqual(Schema.decodeSync(XmlSchema)(output), decoded);
 });
 
-test("concrete equipment and inventory references share semantic type identity", () => {
+await test("concrete equipment and inventory references share semantic type identity", () => {
 	const payload = Xml.object({
 		name: { xmlName: "name", codec: Xml.scalar("System.String") },
 	});
@@ -279,7 +280,7 @@ test("concrete equipment and inventory references share semantic type identity",
 	assert.deepEqual(Schema.decodeSync(schema)(xml), moved);
 });
 
-test("unrecognized subclasses retain opaque fields and namespace identity", () => {
+await test("unrecognized subclasses retain opaque fields and namespace identity", () => {
 	const schema = Xml.document(
 		"Root",
 		Xml.polymorphic("Base", [
@@ -316,7 +317,7 @@ test("unrecognized subclasses retain opaque fields and namespace identity", () =
 	}
 });
 
-test("document codecs reject extra roots and surrounding non-XML text", () => {
+await test("document codecs reject extra roots and surrounding non-XML text", () => {
 	const read = Schema.decodeSync(Xml.document("Root", Xml.object({})));
 	assert.throws(() => read("<Root/><Root/>"));
 	assert.throws(() => read("text<Root/>"));

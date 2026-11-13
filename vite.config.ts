@@ -41,13 +41,12 @@ export default defineConfig(({ mode }) => ({
 		// Keep Effect diagnostics available in Oxlint as well as native compiler checks.
 		extends: [effectRules],
 		options: { typeAware: true },
-		// Surface the newly adopted correctness rules without bundling unrelated
-		// application cleanups into the toolchain migration. Effect errors stay errors.
-		categories: { correctness: "warn" },
+		// Correctness findings block CI; intentional exceptions belong beside their
+		// implementation so a future change cannot silently inherit a downgrade.
+		categories: { correctness: "error" },
 		rules: {
+			// Atom APIs are an explicitly adopted foundation, matching tsconfig.base.json.
 			"effecttsgo/unstable-api-usage": "off",
-			// Unknown channels in legacy test adapters remain visible for contextual review.
-			"effecttsgo/any-unknown-in-error-context": "warn",
 		},
 		// Game assets, generated output and vendored extraction sources are not maintained app code.
 		ignorePatterns: [

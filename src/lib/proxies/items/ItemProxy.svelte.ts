@@ -175,7 +175,7 @@ function ensureItemName(raw: Item) {
 
 	try {
 		raw.name = KeyToName(lookupKey, raw._type);
-	} catch (_error) {
+	} catch {
 		if (raw._type === "Trinket" && typeof raw.itemId === "string") {
 			const trinketKey = stripParenthesizedNumber(raw.itemId);
 			if (trinketKey) {

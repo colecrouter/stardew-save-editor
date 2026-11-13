@@ -61,7 +61,7 @@
 	const homeOf = (farmer: typeof player) =>
 		readHome(save.homeOf(farmer), farmer.houseUpgradeLevel);
 	const babyQuestion = $derived.by(() => {
-		pregnancyChanges;
+		void pregnancyChanges;
 		if (marriage) {
 			return playerBabyQuestionStatus(
 				{ name: player.name, home: homeOf(player) },
@@ -72,7 +72,7 @@
 		return babyQuestionStatus(spouse, save.calendar.date, homeOf(player));
 	});
 	const couplePregnancy = $derived.by(() => {
-		pregnancyChanges;
+		void pregnancyChanges;
 		if (!marriage || !partner) return undefined;
 		const due = playerDueDate(marriage);
 		return {

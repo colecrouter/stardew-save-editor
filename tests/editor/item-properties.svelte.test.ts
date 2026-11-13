@@ -1,6 +1,5 @@
 import {
 	catalogFixture,
-	malformedFixture,
 	tinyEditorFixture,
 	exportDocument,
 } from "../helpers/editor-document.ts";

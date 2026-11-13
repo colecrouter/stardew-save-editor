@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
 import { readFileSync, writeFileSync } from "node:fs";
 import { deflateSync } from "node:zlib";
+import { isDeepStrictEqual } from "node:util";
 import { chromium } from "playwright";
-import { XMLCodec } from "../src/lib/xmlCodec.ts";
+import { Schema } from "effect";
+import { XmlSchema } from "../generated/save-format/save.ts";
 // Drive import and export against production preview with real browser workers. Keep this
 // separate from happy-dom tests: worker transfer and termination need a browser.
 const argument = (name, fallback) => {
@@ -17,7 +19,8 @@ const browser = await chromium.launch({
 	channel: argument("--channel", undefined),
 	headless: true,
 });
-const codec = new XMLCodec();
+const decodeSave = Schema.decodeUnknownSync(XmlSchema);
+const encodeSave = Schema.encodeSync(XmlSchema);
 const bytes = readFileSync(new URL("../tests/TestSave", import.meta.url));
 const evidence = {};
 let page;
@@ -311,11 +314,15 @@ try {
 	});
 	await page.waitForFunction(() => window.writes.length === 1);
 	evidence.loadingPhases = true;
-	// Blob.text and the import TextDecoder both consume the UTF-8 BOM; decode the
-	// fixture the same way before comparing its complete parsed representation.
-	assert.deepEqual(
-		codec.parse(await page.evaluate(() => window.writes[0])),
-		codec.parse(new TextDecoder().decode(bytes)),
+	// Compare every decoded value, including bigint IDs and unknown fields. XML
+	// declarations, formatting and namespace placement are intentionally canonical.
+	// Keep assertion failures compact instead of dumping the complete save into CI.
+	assert.ok(
+		isDeepStrictEqual(
+			decodeSave(await page.evaluate(() => window.writes[0])),
+			decodeSave(new TextDecoder().decode(bytes)),
+		),
+		"Worker export changed the decoded save",
 	);
 	evidence.transfer = await worker.evaluate(() => self.transferChecks);
 	assert(evidence.transfer.some((x) => x.before[0] > 0 && x.after[0] === 0));
@@ -325,9 +332,13 @@ try {
 	await worker.evaluate(() => {
 		const original = self.postMessage.bind(self);
 		self.heldResponses = 0;
+		self.responseHeld = new Promise((resolve) => {
+			self.resolveHeldResponse = resolve;
+		});
 		self.postMessage = (message, options) => {
 			if (options?.transfer?.some((x) => x instanceof ArrayBuffer)) {
 				self.heldResponses++;
+				self.resolveHeldResponse();
 				return;
 			}
 			original(message, options);
@@ -337,10 +348,21 @@ try {
 	await page.waitForFunction(
 		() => document.querySelector('button[aria-label="Export save"]')?.disabled,
 	);
-	for (let i = 0; i < 50; i++) {
-		if (await worker.evaluate(() => self.heldResponses)) break;
-		await new Promise((r) => setTimeout(r, 100));
-	}
+	// Wait for the response we deliberately intercepted, rather than assuming a
+	// full typed XML export finishes within a fixed five-second polling window.
+	await worker.evaluate(
+		() =>
+			new Promise((resolve, reject) => {
+				const timer = setTimeout(
+					() => reject(new Error("Export did not reach the held response")),
+					30_000,
+				);
+				self.responseHeld.then(() => {
+					clearTimeout(timer);
+					resolve();
+				});
+			}),
+	);
 	assert((await worker.evaluate(() => self.heldResponses)) > 0);
 	const closed = new Promise((resolve, reject) => {
 		const timer = setTimeout(
@@ -357,9 +379,13 @@ try {
 	assert.equal(await page.evaluate(() => window.writes.length), 1);
 	evidence.pendingExportTerminated = true;
 	// A declared validation error must cross RPC and reach the UI without writing.
-	const invalid = codec.parse(new TextDecoder().decode(bytes));
-	invalid.SaveGame.player.money = 3000000000;
-	await load(Buffer.from(codec.stringify(invalid)));
+	const invalid = decodeSave(new TextDecoder().decode(bytes));
+	// An out-of-range integer is rejected by the typed XML import itself. Missing
+	// a required game location remains representable and exercises export validation.
+	invalid.locations = invalid.locations.filter(
+		(location) => location?.name !== "Farm",
+	);
+	await load(Buffer.from(encodeSave(invalid)));
 	await page.getByRole("button", { name: "Export save", exact: true }).click();
 	await page.getByText(/Save file not downloaded:/).waitFor();
 	assert.equal(await page.evaluate(() => window.writes.length), 1);

@@ -400,7 +400,9 @@ it.each([
 	{ appearance: "0/4", color: 0 },
 	{ appearance: "6/4", color: 6 },
 	{ appearance: "7/4", color: undefined },
-	{ appearance: "0/4/Mods/CustomSeal", color: undefined },
+	{ appearance: "0/4/LooseSprites\\BundleSprites:9", color: 0 },
+	{ appearance: "6/4/LooseSprites\\BundleSprites:3", color: 6 },
+	{ appearance: "0/4/Mods/CustomSeal:2", color: 0 },
 ])(
 	"does not treat optional seal appearance $appearance as editable progress",
 	({ appearance, color }) => {
@@ -415,7 +417,8 @@ it.each([
 		const bundle = required(
 			readCommunity(document).bundles.find((row) => row.id === 13),
 		);
-		// Unsupported artwork falls back visually while valid donations stay editable.
+		// Detail-page illustration overrides must not suppress the normal seal;
+		// only unknown seal colours fall back, and neither affects editable progress.
 		expect(bundle.supported).toBe(true);
 		expect(bundle.color).toBe(color);
 		expect(document).toEqual(before);

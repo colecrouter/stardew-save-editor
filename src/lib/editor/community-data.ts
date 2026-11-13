@@ -14,7 +14,7 @@ export interface CommunityBundleView {
 	id?: number;
 	room?: number;
 	name: string;
-	/** Known vanilla seal colour; custom appearances remain unclaimed. */
+	/** Known vanilla seal colour; unknown colours use the UI fallback. */
 	color?: number;
 	supported: boolean;
 	reason?: string;
@@ -121,13 +121,12 @@ function definition(key: string, value: string) {
 		});
 	}
 	// Seal appearance is optional presentation, independent of editable progress.
-	// Bundle's vanilla atlas has seven known colours; a texture override or unknown
-	// colour must not be shown as if it were the default game artwork.
+	// Bundle's vanilla seal atlas has seven known colours. The optional texture
+	// override selects the detail-page illustration, not this seal, so remixed
+	// and custom illustrations still retain their normal completion frames.
 	const savedColor = nonnegative(parts[3]);
 	const color =
-		savedColor !== undefined && savedColor <= 6 && !parts[5]?.trim()
-			? savedColor
-			: undefined;
+		savedColor !== undefined && savedColor <= 6 ? savedColor : undefined;
 	const needed = parts[4] ? nonnegative(parts[4]) : requirements.length;
 	supported &&=
 		needed !== undefined && needed > 0 && needed <= requirements.length;

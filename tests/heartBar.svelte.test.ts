@@ -76,18 +76,20 @@ describe("Villager portrait", () => {
 		dwarf.cleanup();
 	});
 
-	it("keeps a villager's name from the save inside its portrait's url()", async () => {
+	it("keeps an unshipped villager name out of CSS and image requests", async () => {
 		const requested = stubPortraits(128);
 		const name = 'Lewis.png#"),url("https://attacker.example/b';
-		const { portrait, cleanup } = await renderRow(name);
+		const npc = Friendship.fromName(name);
+		const view = render(HeartBar, { props: { name, npc, today } });
+		const portrait = screen.getByRole("img", { name: `${name} portrait` });
+		await tick();
 
-		// Encoded, so a quote in the name can't end the url("...") string early
-		expect(portrait.getAttribute("style")).not.toContain(
-			'url("https://attacker.example',
-		);
-		expect(requested).toEqual([
-			`/assets/portraits/${encodeURIComponent(name)}.png`,
-		]);
-		cleanup();
+		// The generated manifest has no such portrait. Keep the initial and issue
+		// no request at all, rather than relying on URL encoding of guessed paths.
+		expect(portrait.style.backgroundImage).toBe("");
+		expect(portrait.querySelector("strong")?.textContent).toBe("L");
+		expect(requested).toEqual([]);
+		view.unmount();
+		npc[Dispose]?.();
 	});
 });

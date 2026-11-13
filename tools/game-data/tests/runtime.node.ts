@@ -10,8 +10,9 @@ import { XmlSchema, type Value } from "./generated/inventory.ts";
 const decode = Schema.decodeUnknownSync(XmlSchema);
 const encode = Schema.encodeSync(XmlSchema);
 
-// Run Node cases in declaration order and observe completion through the module promise.
-await test("expected XML failures remain typed and retain their field path", async () => {
+// Node owns completion and failure reporting for registered tests. Let module
+// initialization finish rather than awaiting a case before later helpers exist.
+void test("expected XML failures remain typed and retain their field path", async () => {
 	const codec = Xml.object({
 		count: { xmlName: "Count", codec: Xml.scalar("System.Int32") },
 	});
@@ -36,7 +37,7 @@ await test("expected XML failures remain typed and retain their field path", asy
 	);
 });
 
-await test("reader bugs stay defects through every frame operation and the document codec", async () => {
+void test("reader bugs stay defects through every frame operation and the document codec", async () => {
 	for (const operation of ["open", "child", "text", "finish"] as const) {
 		const bug = new TypeError(`bug in ${operation}`);
 		const crash = Effect.sync(() => {
@@ -69,11 +70,9 @@ await test("reader bugs stay defects through every frame operation and the docum
 					: "<Root/>";
 		// The low-level reader and the public Schema boundary must both preserve
 		// the actual exception, without relabeling it as malformed uploaded XML.
-		const reads = [
-			Xml.decodeChunks("Root", codec, [source]),
-			Schema.decodeEffect(Xml.document("Root", codec))(source),
-		];
-		for (const read of reads) {
+		// Keep each API's own typed failure channel through the shared assertion;
+		// neither boundary may convert this programming bug into a typed XML failure.
+		const assertDefect = async <E>(read: Effect.Effect<unknown, E>) => {
 			const result = await Effect.runPromiseExit(read);
 			assert.ok(Exit.isFailure(result));
 			assert.equal(Cause.hasFails(result.cause), false);
@@ -82,11 +81,15 @@ await test("reader bugs stay defects through every frame operation and the docum
 					(reason) => Cause.isDieReason(reason) && reason.defect === bug,
 				),
 			);
-		}
+		};
+		await assertDefect(Xml.decodeChunks("Root", codec, [source]));
+		await assertDefect(
+			Schema.decodeEffect(Xml.document("Root", codec))(source),
+		);
 	}
 });
 
-await test("plain generated values support creation, cloning, reordering and automatic nil/type output", () => {
+void test("plain generated values support creation, cloning, reordering and automatic nil/type output", () => {
 	const imported =
 		decode(`<?xml version="1.0"?><Container xmlns:i="http://www.w3.org/2001/XMLSchema-instance" xmlns:p="urn:pets">
 		<Items><Item i:type="p:Hound"><Name>007</Name><BarkCount>0007</BarkCount><Mod flag="yes"><entry>A</entry><entry>B</entry></Mod></Item><Item i:nil="true"/></Items>
@@ -122,7 +125,7 @@ await test("plain generated values support creation, cloning, reordering and aut
 	assert.deepEqual(decode(encode({ Items: [] })).Items, []);
 });
 
-await test("plain fields retain unknown properties while owning renamed values and presence", () => {
+void test("plain fields retain unknown properties while owning renamed values and presence", () => {
 	const schema = Xml.document(
 		"Root",
 		Xml.object({
@@ -165,7 +168,7 @@ await test("plain fields retain unknown properties while owning renamed values a
 	);
 });
 
-await test("plain codecs reject invalid known values and unsupported loss of metadata", () => {
+void test("plain codecs reject invalid known values and unsupported loss of metadata", () => {
 	assert.throws(
 		() =>
 			decode(
@@ -200,7 +203,7 @@ await test("plain codecs reject invalid known values and unsupported loss of met
 	);
 });
 
-await test("plain sequences handle singleton arrays, bounds and absent repetitions", () => {
+void test("plain sequences handle singleton arrays, bounds and absent repetitions", () => {
 	const schema = Xml.document(
 		"Root",
 		Xml.object({
@@ -219,7 +222,7 @@ await test("plain sequences handle singleton arrays, bounds and absent repetitio
 	assert.throws(() => read("<Root><Value>1</Value><Value>2</Value></Root>"));
 });
 
-await test("plain dictionary entries support creation and enforce reviewed key equality", () => {
+void test("plain dictionary entries support creation and enforce reviewed key equality", () => {
 	const schema = Xml.document(
 		"Dictionary",
 		Xml.dictionary(
@@ -237,7 +240,7 @@ await test("plain dictionary entries support creation and enforce reviewed key e
 	assert.throws(() => write([...value, { key: "KEY", value: 6 }]), /Duplicate/);
 });
 
-await test("generated recursive contracts initialize and round-trip without envelopes", async () => {
+void test("generated recursive contracts initialize and round-trip without envelopes", async () => {
 	const { XmlSchema } = await import("./generated/recursive.ts");
 	const source = await readFile(
 		new URL("./fixtures/recursive.xml", import.meta.url),
@@ -248,7 +251,7 @@ await test("generated recursive contracts initialize and round-trip without enve
 	assert.deepEqual(Schema.decodeSync(XmlSchema)(output), decoded);
 });
 
-await test("concrete equipment and inventory references share semantic type identity", () => {
+void test("concrete equipment and inventory references share semantic type identity", () => {
 	const payload = Xml.object({
 		name: { xmlName: "name", codec: Xml.scalar("System.String") },
 	});
@@ -280,7 +283,7 @@ await test("concrete equipment and inventory references share semantic type iden
 	assert.deepEqual(Schema.decodeSync(schema)(xml), moved);
 });
 
-await test("unrecognized subclasses retain opaque fields and namespace identity", () => {
+void test("unrecognized subclasses retain opaque fields and namespace identity", () => {
 	const schema = Xml.document(
 		"Root",
 		Xml.polymorphic("Base", [
@@ -317,7 +320,7 @@ await test("unrecognized subclasses retain opaque fields and namespace identity"
 	}
 });
 
-await test("document codecs reject extra roots and surrounding non-XML text", () => {
+void test("document codecs reject extra roots and surrounding non-XML text", () => {
 	const read = Schema.decodeSync(Xml.document("Root", Xml.object({})));
 	assert.throws(() => read("<Root/><Root/>"));
 	assert.throws(() => read("text<Root/>"));

@@ -8,8 +8,9 @@ import { ordinalIgnoreCaseKey } from "../../../src/lib/save-format/ordinal-ignor
 import { XmlSchema as ObjectSchema } from "./generated/any-object.ts";
 import { XmlSchema as NullableEnumSchema } from "./generated/nullable-enum.ts";
 
-// Run Node cases in declaration order and observe completion through the module promise.
-await test("scalar conversions retain CLR bounds and precision in both directions", () => {
+// Node owns completion and failure reporting for registered tests. Let module
+// initialization finish rather than awaiting a case before later helpers exist.
+void test("scalar conversions retain CLR bounds and precision in both directions", () => {
 	const cases: Array<[ScalarType, string, unknown, string[]]> = [
 		["System.String", "007", "007", []],
 		["System.Boolean", "1", true, ["yes", "2"]],
@@ -61,7 +62,7 @@ await test("scalar conversions retain CLR bounds and precision in both direction
 	);
 });
 
-await test("floating point special values, signed zero and underflow follow the CLR value domain", () => {
+void test("floating point special values, signed zero and underflow follow the CLR value domain", () => {
 	for (const id of ["System.Single", "System.Double"] as const) {
 		const codec = scalarTypes[id].codec;
 		for (const value of [Infinity, -Infinity, NaN, -0])
@@ -78,7 +79,7 @@ await test("floating point special values, signed zero and underflow follow the 
 	);
 });
 
-await test("System.Object dispatch handles boxed scalars and nested objects without source envelopes", () => {
+void test("System.Object dispatch handles boxed scalars and nested objects without source envelopes", () => {
 	const value = Schema.decodeSync(ObjectSchema)(
 		'<DescriptionElement xmlns:i="http://www.w3.org/2001/XMLSchema-instance" xmlns:x="http://www.w3.org/2001/XMLSchema"><xmlKey>hello</xmlKey><param i:type="x:int">7</param></DescriptionElement>',
 	);
@@ -96,7 +97,7 @@ await test("System.Object dispatch handles boxed scalars and nested objects with
 	assert.deepEqual(decoded.param, changed.param);
 });
 
-await test("nullable enum wrappers distinguish missing, empty and named text", () => {
+void test("nullable enum wrappers distinguish missing, empty and named text", () => {
 	const schema = NullableEnumSchema;
 	// Use the generated root/member names from this fixture's actual contract.
 	const missing = Schema.decodeSync(schema)("<Preserve/>");
@@ -109,7 +110,7 @@ await test("nullable enum wrappers distinguish missing, empty and named text", (
 	);
 });
 
-await test("case-insensitive keys use ordinal folding, and structured keys use CLR field equality", () => {
+void test("case-insensitive keys use ordinal folding, and structured keys use CLR field equality", () => {
 	assert.equal(ordinalIgnoreCaseKey("Hello"), ordinalIgnoreCaseKey("HELLO"));
 	const point = Xml.object({
 		X: { xmlName: "X", codec: Xml.scalar("System.Single") },

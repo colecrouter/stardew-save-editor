@@ -13,8 +13,9 @@ const generated = resolve("tools/game-data/tests/generated");
 const run = (...args: string[]) =>
 	spawnSync("dotnet", [cli, ...args], { encoding: "utf8" });
 
-// Run Node cases in declaration order and observe completion through the module promise.
-await test("event codecs consume arbitrarily split text without collecting a source tree", async () => {
+// Node owns completion and failure reporting for registered tests. Let module
+// initialization finish rather than awaiting a case before later helpers exist.
+void test("event codecs consume arbitrarily split text without collecting a source tree", async () => {
 	const xml = await readFile(join(generated, "fixture.xml"), "utf8");
 	const chunks = function* () {
 		// Split names, entities and attribute values too; transport chunk boundaries
@@ -33,7 +34,7 @@ await test("event codecs consume arbitrarily split text without collecting a sou
 	);
 });
 
-await test("inspection and generated codecs agree with .NET XmlSerializer after creation and reordering", async () => {
+void test("inspection and generated codecs agree with .NET XmlSerializer after creation and reordering", async () => {
 	const original = Schema.decodeSync(XmlSchema)(
 		await readFile(join(generated, "fixture.xml"), "utf8"),
 	);
@@ -79,7 +80,7 @@ await test("inspection and generated codecs agree with .NET XmlSerializer after 
 	]);
 });
 
-await test("coverage consumes the same resolved contract as generation", () => {
+void test("coverage consumes the same resolved contract as generation", () => {
 	// The descriptive command name and its compatibility alias must report the
 	// same coverage, so existing automation can migrate without a behavior change.
 	for (const command of ["coverage", "validate"]) {
@@ -98,7 +99,7 @@ await test("coverage consumes the same resolved contract as generation", () => {
 	}
 });
 
-await test("generation reports invalid contracts without replacing an existing module", async () => {
+void test("generation reports invalid contracts without replacing an existing module", async () => {
 	const directory = await mkdtemp(join(tmpdir(), "game-data-"));
 	try {
 		const input = join(directory, "catalog.json"),

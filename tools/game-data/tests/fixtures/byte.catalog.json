@@ -1,0 +1,24 @@
+{
+	"formatVersion": 3,
+	"diagnostics": [],
+	"types": [
+		{
+			"id": "Example.Color",
+			"kind": "object",
+			"members": [
+				{ "name": "A", "type": "System.Byte" },
+				{ "name": "R", "type": "System.Byte" },
+				{ "name": "G", "type": "System.Byte" },
+				{
+					"name": "B",
+					"type": "System.Byte",
+					"attributes": [
+						{ "type": "System.Xml.Serialization.XmlAttributeAttribute" }
+					]
+				},
+				{ "name": "Palette", "type": "ListByte" }
+			]
+		},
+		{ "id": "ListByte", "kind": "collection", "elementType": "System.Byte" }
+	]
+}

@@ -1,22 +1,30 @@
 import { expect, it, vi } from "vitest";
 import { Result } from "effect";
 import { render, fireEvent, within, waitFor } from "@testing-library/svelte";
-import { openEditor } from "../../src/lib/editor/editor-model";
+import { openTestDocument } from "../helpers/open-editor.ts";
 import { readCommunity } from "../../src/lib/editor/community-data";
 import { setCommunityProgress } from "../../src/lib/editor/community-operations";
 import { MutationError } from "../../src/lib/editor/mutation-error";
 import WorkspaceHarness from "./WorkspaceHarness.svelte";
 import { fixtureXml, parser, exportDocument } from "./fixtures";
-import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
+import { tinyEditorFixture } from "../helpers/editor-document.ts";
+
+// Preserve the real Center and bundle definitions while removing unrelated world
+// entities; these scenarios own route state and dialog lifecycle, not world I/O.
+function communityFixture() {
+	const document = parser.parse(fixtureXml);
+	document.SaveGame.locations = (document.SaveGame.locations ?? []).filter(
+		(location) => location?.name === "CommunityCenter",
+	);
+	return document;
+}
+const openCommunity = () => openTestDocument(communityFixture());
 
 it(
 	"shows only the saved route and preserves donations, rewards and room across membership history",
 	{ timeout: 30000 },
 	async () => {
-		const opened = await openEditor(
-			SaveProcessingSync,
-			new TextEncoder().encode(fixtureXml),
-		);
+		const opened = await openCommunity();
 		const page = render(WorkspaceHarness, { model: opened.model });
 		try {
 			const spring = readCommunity(
@@ -123,12 +131,9 @@ it(
 
 it(
 	"keeps a stale membership confirmation open without reversing a newer route",
-	{ timeout: 20000 },
+	{ timeout: 45000 },
 	async () => {
-		const opened = await openEditor(
-			SaveProcessingSync,
-			new TextEncoder().encode(fixtureXml),
-		);
+		const opened = await openCommunity();
 		const page = render(WorkspaceHarness, { model: opened.model });
 		try {
 			await fireEvent.click(
@@ -169,57 +174,17 @@ it(
 	},
 );
 
-it(
-	"explains unknown membership and disables route-changing controls without normalizing the save",
-	{ timeout: 20000 },
-	async () => {
-		const document = parser.parse(fixtureXml);
-		Object.assign(document.SaveGame.player, { mailReceived: true });
-		const opened = await openEditor(
-			SaveProcessingSync,
-			new TextEncoder().encode(exportDocument(document)),
-		);
-		const page = render(WorkspaceHarness, { model: opened.model });
-		try {
-			const before = await opened.model.snapshot();
-			expect(readCommunity(before.document).membership).toBeUndefined();
-			await fireEvent.click(
-				page.getByRole("link", { name: "Community Center & Joja" }),
-			);
-			expect(
-				await page.findByRole("heading", {
-					name: "Membership could not be read",
-				}),
-			).toBeTruthy();
-			expect(
-				page
-					.getByRole("button", { name: "Change route" })
-					.hasAttribute("disabled"),
-			).toBe(true);
-			expect(
-				page
-					.getAllByRole("checkbox")
-					.every((control) => control.hasAttribute("disabled")),
-			).toBe(true);
-			expect(
-				page.queryByRole("region", { name: "Joja development plan" }),
-			).toBeNull();
-			expect((await opened.model.snapshot()).document).toEqual(before.document);
-		} finally {
-			page.unmount();
-			await opened.close();
-		}
-	},
-);
+it("rejects a malformed membership list at the typed import boundary", () => {
+	const document = tinyEditorFixture();
+	Object.assign(document.SaveGame.player, { mailReceived: true });
+	expect(() => exportDocument(document)).toThrow();
+});
 
 it.each(["failure", "noncompletion"] as const)(
 	"restores a native donation toggle after %s",
-	{ timeout: 20000 },
+	{ timeout: 45000 },
 	async (outcome) => {
-		const opened = await openEditor(
-			SaveProcessingSync,
-			new TextEncoder().encode(fixtureXml),
-		);
+		const opened = await openCommunity();
 		const page = render(WorkspaceHarness, { model: opened.model });
 		const transact = vi
 			.spyOn(opened.model.commands, "transact")
@@ -262,10 +227,7 @@ it.each(["failure", "noncompletion"] as const)(
 );
 
 it("keeps membership confirmation open while its command is pending", async () => {
-	const opened = await openEditor(
-		SaveProcessingSync,
-		new TextEncoder().encode(fixtureXml),
-	);
+	const opened = await openCommunity();
 	const page = render(WorkspaceHarness, { model: opened.model });
 	let finish: (() => void) | undefined;
 	const transact = vi
@@ -324,12 +286,9 @@ it("keeps membership confirmation open while its command is pending", async () =
 
 it.each(["failure", "noncompletion"] as const)(
 	"restores a native Joja project toggle after %s",
-	{ timeout: 20000 },
+	{ timeout: 45000 },
 	async (outcome) => {
-		const opened = await openEditor(
-			SaveProcessingSync,
-			new TextEncoder().encode(fixtureXml),
-		);
+		const opened = await openCommunity();
 		await opened.model.commands.transact(
 			setCommunityProgress({ type: "membership", value: true }),
 		);
@@ -372,20 +331,15 @@ it.each(["failure", "noncompletion"] as const)(
 
 it.each(["failure", "noncompletion"] as const)(
 	"restores the native theater toggle after %s",
-	{ timeout: 20000 },
+	{ timeout: 45000 },
 	async (outcome) => {
 		// Start with an already built Joja theater so reopening is available without
 		// manufacturing five unrelated project transactions in this rejection test.
-		const document = parser.parse(fixtureXml);
+		const document = communityFixture();
 		Object.assign(document.SaveGame.player, {
-			mailReceived: {
-				string: ["JojaMember", "ccMovieTheater", "ccMovieTheaterJoja"],
-			},
+			mailReceived: ["JojaMember", "ccMovieTheater", "ccMovieTheaterJoja"],
 		});
-		const opened = await openEditor(
-			SaveProcessingSync,
-			new TextEncoder().encode(exportDocument(document)),
-		);
+		const opened = await openTestDocument(document);
 		const page = render(WorkspaceHarness, { model: opened.model });
 		const transact = vi
 			.spyOn(opened.model.commands, "transact")

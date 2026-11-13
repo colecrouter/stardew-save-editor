@@ -1,6 +1,6 @@
 import { fireEvent, render, waitFor, within } from "@testing-library/svelte";
 import { expect, it } from "vitest";
-import { openEditor } from "../../src/lib/editor/editor-model";
+import { openTestEditor } from "../helpers/open-editor.ts";
 import { inspectBuildings } from "../../src/lib/editor/building-data";
 import { fixtureXml } from "./fixtures";
 import {
@@ -9,7 +9,6 @@ import {
 	COOP_ID,
 } from "../helpers/animalBuildings";
 import WorkspaceHarness from "./WorkspaceHarness.svelte";
-import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
 
 // Exercise real field lifetimes and discrete transactions through the workspace,
 // rather than reproducing the domain implementation in a component mock.
@@ -17,8 +16,7 @@ it(
 	"groups animal typing, edits outside residents and applies upgrade/adoption with Undo",
 	{ timeout: 30000 },
 	async () => {
-		const opened = await openEditor(
-			SaveProcessingSync,
+		const opened = await openTestEditor(
 			new TextEncoder().encode(withAnimalBuildings(fixtureXml)),
 		);
 		const page = render(WorkspaceHarness, { model: opened.model });

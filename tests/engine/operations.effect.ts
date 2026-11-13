@@ -24,7 +24,7 @@ it.effect(
 			const session = yield* makeHistorySession(inventoryFixture());
 			const before = yield* session.snapshot;
 			const after = yield* session.execute([
-				{ type: "money", farmerId: "host", value: 78 },
+				{ type: "money", farmerId: "1", value: 78 },
 			]);
 			expect(after.entries[0].intent).toMatchObject({
 				label: "Unlabelled changes",
@@ -57,7 +57,7 @@ it.effect(
 			const before = yield* session.snapshot;
 			const result = yield* Effect.exit(
 				session.execute([
-					{ type: "money", farmerId: "host", value: 50 },
+					{ type: "money", farmerId: "1", value: 50 },
 					{ type: "farm-name", value: "Rejected group" },
 				]),
 			);

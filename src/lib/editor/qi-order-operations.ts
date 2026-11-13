@@ -1,7 +1,12 @@
+import {
+	type T_StardewValley_SpecialOrders_SpecialOrder as SpecialOrder,
+	type T_StardewValley_SpecialOrders_Objectives_OrderObjective as OrderObjective,
+	TypeIds,
+} from "../../../generated/save-format/save.ts";
 import { Data, Effect, Random, Result, Schema } from "effect";
 import templates from "../../../generated/qiquests.json";
 import { MAX_YEAR, SEASONS, totalDays } from "../calendar.ts";
-import type { SaveDocument } from "./domain.ts";
+import type { EditorGame, KnownFields, SaveDocument } from "./domain.ts";
 import { TransactionDraft } from "./transaction-draft.ts";
 import {
 	recordAnnotatedOperation,
@@ -34,47 +39,29 @@ const integer = (value: unknown): value is number =>
 const definitions = new Map(
 	templates.map((template) => [template.questKey, template]),
 );
-function list(raw: unknown) {
-	// An empty XML container is a deliberate insertion target; omitted or nil
-	// containers are unavailable rather than silently repaired while viewing.
-	if (raw === "")
-		return { supported: true, raw, entries: [] as unknown[], array: false };
-	if (!record(raw) || raw["@_xsi:nil"] === true || raw["@_xsi:nil"] === "true")
-		return { supported: false, raw, entries: [] as unknown[], array: false };
-	const values = raw.SpecialOrder;
+// Orders have one stable array representation at every cardinality.
+function list(raw: SpecialOrder[] | (SpecialOrder | null)[] | undefined) {
 	return {
-		supported: values === undefined || Array.isArray(values) || record(values),
+		supported: Array.isArray(raw),
 		raw,
-		entries:
-			values === undefined ? [] : Array.isArray(values) ? values : [values],
-		array: Array.isArray(values),
+		entries: Array.isArray(raw) ? raw : [],
 	};
 }
 function replace(
-	game: Record<string, unknown>,
-	property: string,
-	data: ReturnType<typeof list>,
-	entries: unknown[],
+	game: EditorGame,
+	property: "availableSpecialOrders" | "specialOrders",
+	_data: ReturnType<typeof list>,
+	entries: (SpecialOrder | null)[],
 ) {
-	// Preserve dictionary metadata and singleton representation unless insertion
-	// requires multiple records. Undo restores the original container exactly.
-	const next = record(data.raw) ? { ...data.raw } : {};
-	if (!data.array && entries.length === 0) delete next.SpecialOrder;
-	else
-		next.SpecialOrder =
-			!data.array && entries.length === 1 ? entries[0] : entries;
-	game[property] = next;
+	game[property] = entries;
 }
-const keyOf = (entry: unknown) =>
-	record(entry) && typeof entry.questKey === "string"
-		? entry.questKey
-		: undefined;
-const rules = (entry: Record<string, unknown>) =>
+const keyOf = (entry: SpecialOrder | null) => entry?.questKey;
+const rules = (entry: SpecialOrder) =>
 	typeof entry.specialRule === "string"
 		? entry.specialRule.split(",").map((rule) => rule.trim())
 		: [];
 function date(document: SaveDocument) {
-	const game: unknown = document.SaveGame;
+	const game = document.SaveGame;
 	if (!record(game)) return undefined;
 	const { year, currentSeason, dayOfMonth } = game;
 	const season = SEASONS.find((candidate) => candidate === currentSeason);
@@ -114,19 +101,19 @@ function evictionCandidate(
 		);
 		return (
 			offered.length === 1 &&
-			record(offered[0]) &&
+			offered[0] != null &&
 			offered[0].orderType === "Qi" &&
 			!active.entries.some((entry) => keyOf(entry) === template.questKey)
 		);
 	});
 }
 function cancellationSafe(
-	current: unknown,
+	current: SpecialOrder | null | undefined,
 	active: ReturnType<typeof list>,
-	game: Record<string, unknown>,
+	game: EditorGame,
 ) {
 	if (
-		!record(current) ||
+		!current ||
 		typeof current.appliedSpecialRules !== "boolean" ||
 		typeof current.specialRule !== "string"
 	)
@@ -138,7 +125,7 @@ function cancellationSafe(
 	if (
 		!active.entries.every(
 			(entry) =>
-				record(entry) &&
+				entry != null &&
 				typeof entry.questState === "string" &&
 				typeof entry.appliedSpecialRules === "boolean" &&
 				typeof entry.specialRule === "string",
@@ -183,7 +170,7 @@ export interface QiOrdersView {
 }
 /** Read shared board/active state without synthesizing records or normalizing XML. */
 export function readQiOrders(document: SaveDocument): QiOrdersView {
-	const game: unknown = document.SaveGame;
+	const game = document.SaveGame;
 	if (!record(game))
 		return {
 			supported: false,
@@ -197,13 +184,13 @@ export function readQiOrders(document: SaveDocument): QiOrdersView {
 	// prevents additions because we cannot prove a free slot, but targeted removal
 	// of an unambiguous known offer remains safe.
 	const unknownBoard = board.entries.some(
-		(entry) => !record(entry) || typeof entry.orderType !== "string",
+		(entry) => !entry || typeof entry.orderType !== "string",
 	);
 	// Keys can contain opaque imported XML. Only checked string keys identify a
 	// known challenge; coercion could execute a malformed saved toString member.
 	const offeredCount = board.entries.filter(
 		(entry) =>
-			record(entry) &&
+			entry != null &&
 			(entry.orderType === "Qi" || definitions.has(keyOf(entry) ?? "")),
 	).length;
 	const keys = [
@@ -223,7 +210,7 @@ export function readQiOrders(document: SaveDocument): QiOrdersView {
 		const accepted = active.entries.filter((entry) => keyOf(entry) === key);
 		const current = accepted[0];
 		const state =
-			record(current) && typeof current.questState === "string"
+			current != null && typeof current.questState === "string"
 				? current.questState
 				: accepted.length
 					? "Unsupported"
@@ -234,11 +221,19 @@ export function readQiOrders(document: SaveDocument): QiOrdersView {
 			accepted.length <= 1 &&
 			!(offered.length && accepted.length);
 		const qiShape = [...offered, ...accepted].every(
-			(entry) => record(entry) && entry.orderType === "Qi",
+			(entry) => entry != null && entry.orderType === "Qi",
 		);
 		const target = supported && known && unique && qiShape;
+		// A catalog entry can describe an unused or version-specific objective.
+		// Only offer creation when the inspected game has every required class;
+		// existing offers and active records can still be removed safely below.
+		const constructible =
+			template?.objectives.every((objective) =>
+				Object.hasOwn(TypeIds, `${objective.type}Objective`),
+			) ?? false;
 		const canCreate =
 			target &&
+			constructible &&
 			state === undefined &&
 			date(document) !== undefined &&
 			!unknownBoard;
@@ -257,16 +252,18 @@ export function readQiOrders(document: SaveDocument): QiOrdersView {
 				? "The shared order containers are unsupported."
 				: !unique || !qiShape
 					? "This order has ambiguous or unsupported saved records."
-					: state && state !== "InProgress"
-						? "Claim or dismiss this order in the in-game journal."
-						: state === "InProgress" && !difficultySafe
-							? "This order's rule state cannot be cancelled safely."
-							: !date(document)
-								? "A valid world date is required to create an order."
-								: !offered.length &&
-									  (unknownBoard || offeredCount >= MAX_QI_OFFERS)
-									? "The board has no safely available offer slot."
-									: undefined;
+					: !constructible && state === undefined && !offered.length
+						? "This challenge cannot be created by this editor."
+						: state && state !== "InProgress"
+							? "Claim or dismiss this order in the in-game journal."
+							: state === "InProgress" && !difficultySafe
+								? "This order's rule state cannot be cancelled safely."
+								: !date(document)
+									? "A valid world date is required to create an order."
+									: !offered.length &&
+										  (unknownBoard || offeredCount >= MAX_QI_OFFERS)
+										? "The board has no safely available offer slot."
+										: undefined;
 		return {
 			key,
 			name: template?.name ?? key,
@@ -277,10 +274,10 @@ export function readQiOrders(document: SaveDocument): QiOrdersView {
 			state,
 			known,
 			dueDate:
-				record(current) && integer(current.dueDate)
+				current != null && integer(current.dueDate)
 					? current.dueDate
 					: undefined,
-			deadline: record(current) ? deadlineLabel(current.dueDate) : undefined,
+			deadline: current != null ? deadlineLabel(current.dueDate) : undefined,
 			offerAvailable:
 				target &&
 				state === undefined &&
@@ -312,22 +309,50 @@ function templateTile(raw: unknown) {
 		throw new Error("Invalid generated Qi dropbox tile");
 	return { X, Y };
 }
+// Resolve only objective classes supported by the generated model. Keeping the
+// return union literal makes each new objective satisfy its codec representation.
+function objectiveType(type: string) {
+	switch (type) {
+		case "Collect":
+			return TypeIds.CollectObjective;
+		case "Deliver":
+			return TypeIds.DeliverObjective;
+		case "Donate":
+			return TypeIds.DonateObjective;
+		case "Fish":
+			return TypeIds.FishObjective;
+		case "Gift":
+			return TypeIds.GiftObjective;
+		case "JKScore":
+			return TypeIds.JKScoreObjective;
+		case "ReachMineFloor":
+			return TypeIds.ReachMineFloorObjective;
+		case "Ship":
+			return TypeIds.ShipObjective;
+		case "Slay":
+			return TypeIds.SlayObjective;
+		default:
+			throw new Error(`Unsupported generated Qi objective ${type}`);
+	}
+}
 function buildEntry(
 	template: (typeof templates)[number],
 	today: number,
 	day: number,
 	seed: number,
-) {
+): KnownFields<SpecialOrder> {
 	return {
-		preSelectedItems: "",
-		selectedRandomElements: "",
-		objectives: template.objectives.map((objective) => ({
-			"@_xsi:type": `${objective.type}Objective`,
+		preSelectedItems: [],
+		selectedRandomElements: [],
+		objectives: template.objectives.map((objective): OrderObjective => ({
+			$type: objectiveType(objective.type),
 			currentCount: 0,
 			maxCount: objective.maxCount,
 			description: objective.description,
 			failOnCompletion: false,
-			acceptableContextTagSets: objective.acceptableContextTagSets,
+			// Each template supplies one tag-set expression; the save stores a list
+			// of expressions, even when it contains only this one entry.
+			acceptableContextTagSets: [objective.acceptableContextTagSets],
 			...("dropBox" in objective
 				? {
 						dropBox: objective.dropBox,
@@ -345,13 +370,11 @@ function buildEntry(
 			...("skullCave" in objective ? { skullCave: objective.skullCave } : {}),
 		})),
 		generationSeed: seed,
-		seenParticipantsIDs: "",
-		participantsIDs: "",
-		unclaimedRewardsIDs: "",
+		seenParticipantsIDs: [],
+		participantsIDs: [],
+		unclaimedRewardsIDs: [],
 		appliedSpecialRules: false,
-		rewards: [
-			{ "@_xsi:type": "GemsReward", amount: { int: template.rewardGems } },
-		],
+		rewards: [{ $type: TypeIds.GemsReward, amount: template.rewardGems }],
 		questKey: template.questKey,
 		questName: template.nameToken,
 		questDescription: template.descriptionToken,
@@ -359,7 +382,8 @@ function buildEntry(
 		orderType: "Qi",
 		specialRule: template.specialRule,
 		readyForRemoval: false,
-		itemToRemoveOnEnd: -1,
+		// The game saves this item identifier as text, including its sentinel.
+		itemToRemoveOnEnd: "-1",
 		dueDate: deadline(today, day, template.duration, template.durationDays),
 		duration: template.duration,
 		questState: "InProgress",
@@ -377,7 +401,7 @@ export const setQiOrder = Effect.fn("QiOrders.set")(function* (
 	const request = decoded.success;
 	const transaction = yield* TransactionDraft;
 	const snapshot = yield* transaction.read;
-	const game: unknown = snapshot.state.document.SaveGame;
+	const game = snapshot.state.document.SaveGame;
 	if (!record(game))
 		return yield* new QiOrderInvalid({
 			message: "This save has no supported world state.",
@@ -463,14 +487,14 @@ export const setQiOrder = Effect.fn("QiOrders.set")(function* (
 		const current = active.entries.find(
 			(entry) => keyOf(entry) === request.key,
 		);
-		if (!record(current))
+		if (!current)
 			return yield* new QiOrderInvalid({
 				message: "This active order is unavailable.",
 			});
 		const retained = active.entries.filter((entry) => entry !== current);
 		const retainedRules = new Set(
 			retained.flatMap((entry) =>
-				record(entry) &&
+				entry != null &&
 				entry.questState === "InProgress" &&
 				entry.appliedSpecialRules === true
 					? rules(entry)

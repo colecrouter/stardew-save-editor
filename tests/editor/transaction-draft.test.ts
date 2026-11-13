@@ -5,7 +5,7 @@ import {
 	makeTransactionDraftFromCommitted,
 } from "../../src/lib/editor/transaction-draft";
 import type { SessionState } from "../../src/lib/editor/domain";
-import { tinyFixture } from "./fixtures";
+import { tinyFixture } from "../helpers/editor-document.ts";
 
 it("borrows committed branches privately while isolating reads and submitted patch values", async () => {
 	const initial: SessionState = {
@@ -34,7 +34,7 @@ it("borrows committed branches privately while isolating reads and submitted pat
 	expect(prepared.document.SaveGame.player.farmName).toBe("Changed");
 	expect(initial).toEqual(original);
 	inserted.values[0] = "mutated after replace";
-	snapshot.state.document.SaveGame.player.items.Item.length = 0;
+	snapshot.state.document.SaveGame.player.items.length = 0;
 	expect(prepared.document.SaveGame).toMatchObject({
 		custom: { values: ["kept"] },
 	});
@@ -42,7 +42,7 @@ it("borrows committed branches privately while isolating reads and submitted pat
 		original.document.SaveGame.player.items,
 	);
 	const anotherRead = await Effect.runPromise(draft.service.read);
-	anotherRead.state.document.SaveGame.player.items.Item.length = 0;
+	anotherRead.state.document.SaveGame.player.items.length = 0;
 	expect(prepared.document.SaveGame.player.items).toEqual(
 		original.document.SaveGame.player.items,
 	);
@@ -69,7 +69,7 @@ it("keeps the general constructor detached and preserves conflict/no-op version 
 	expect(Result.isFailure(stale)).toBe(true);
 	const current = await Effect.runPromise(draft.service.read);
 	expect(current.version).toBe(first.version + 1);
-	// Invalid JSON is rejected before staging; the prior accepted state survives.
+	// Invalid saved values is rejected before staging; the prior accepted state survives.
 	Object.assign(current.state.document.SaveGame, { invalid: undefined });
 	expect(
 		Result.isFailure(

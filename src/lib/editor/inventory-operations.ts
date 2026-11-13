@@ -1,8 +1,9 @@
+import { readEquipmentSlot } from "./equipment.ts";
+import { savedType } from "./saved-types.ts";
 import { create as createCopyOnWrite } from "mutative";
 import { freezeDraftState } from "./draft-state.ts";
 import { samePlainData } from "./plain-data.ts";
 import { inventoryQuantity, inventoryQualities } from "./inventory-policy.ts";
-import type { Item } from "$types/save";
 import {
 	replaceInventorySlot,
 	resizeInventorySlots,
@@ -135,8 +136,7 @@ function editable(item: unknown) {
 	return (
 		record(item) &&
 		!emptySlot(item) &&
-		(item["@_xsi:type"] === "Object" ||
-			item["@_xsi:type"] === "ColoredObject") &&
+		(savedType(item) === "Object" || savedType(item) === "ColoredObject") &&
 		item.bigCraftable === false
 	);
 }
@@ -170,7 +170,7 @@ export function hasBackpackFarmerId(farmer: unknown): boolean {
 	const id = farmer.UniqueMultiplayerID;
 	return typeof id === "string"
 		? id.length > 0
-		: typeof id === "number" && Number.isFinite(id);
+		: typeof id === "bigint" || (typeof id === "number" && Number.isFinite(id));
 }
 
 /** Domain-owned cache dependencies. Compare committed immutable branches before
@@ -183,16 +183,14 @@ export function sameChestProjectionInputs(
 ): boolean {
 	return (
 		before.document.SaveGame.locations === after.document.SaveGame.locations &&
-		JSON.stringify(
+		samePlainData(
 			backpackFarmers(before.document).map(
 				(farmer) => farmer.UniqueMultiplayerID,
 			),
-		) ===
-			JSON.stringify(
-				backpackFarmers(after.document).map(
-					(farmer) => farmer.UniqueMultiplayerID,
-				),
-			) &&
+			backpackFarmers(after.document).map(
+				(farmer) => farmer.UniqueMultiplayerID,
+			),
+		) &&
 		// Ordinary domain edits retain the authoritative identity map. Only an
 		// adapter supplying another map needs a structural equality check.
 		(before.identities === after.identities ||
@@ -219,7 +217,7 @@ export class InventoryEdits extends Context.Service<
 			buildingId: string,
 			target: string,
 		) => Effect.Effect<
-			import("../animalBuildings.ts").UnplacedItem[],
+			import("./animal-buildings.ts").UnplacedItem[],
 			| import("./building-operations.ts").BuildingInvalid
 			| import("./domain.ts").MutationError
 		>;
@@ -405,7 +403,7 @@ export function makeInventoryEdits(
 						const item =
 							typeof write.location === "number"
 								? owner?.slots[write.location]
-								: owner?.farmer?.[write.location];
+								: readEquipmentSlot(owner?.farmer, write.location);
 						if (!record(item))
 							throw new Error(
 								"Approved quality batch item disappeared during replay",
@@ -418,7 +416,7 @@ export function makeInventoryEdits(
 					const item =
 						typeof write.location === "number"
 							? owner?.slots[write.location]
-							: owner?.farmer?.[write.location];
+							: readEquipmentSlot(owner?.farmer, write.location);
 					if (write.replacement && owner && typeof write.location === "number")
 						owner.slots[write.location] = structuredClone(write.replacement);
 					else if (record(item))
@@ -429,8 +427,7 @@ export function makeInventoryEdits(
 					// Capacity replay follows its original place in the transaction journal.
 					if (owner?.farmer && record(owner.farmer)) {
 						owner.slots.length = Math.min(owner.slots.length, resize.size);
-						while (owner.slots.length < resize.size)
-							owner.slots.push({ "@_xsi:nil": "true" });
+						while (owner.slots.length < resize.size) owner.slots.push(null);
 						owner.farmer.maxItems = resize.size;
 					}
 				}
@@ -529,7 +526,7 @@ export function makeInventoryEdits(
 				? undefined
 				: typeof location === "number"
 					? items[location]
-					: owner.farmer?.[location];
+					: readEquipmentSlot(owner.farmer, location);
 		if (location === undefined || !record(item) || emptySlot(item))
 			return Result.fail(
 				new ItemPropertyInvalid({
@@ -642,7 +639,7 @@ export function makeInventoryEdits(
 			scalarKey(item.preservedParentSheetIndex) &&
 			(item.name == null || typeof item.name === "string");
 		const info = supported
-			? catalog.ResolveItemData(item as unknown as Item)
+			? catalog.ResolveItemData(catalog.readCatalogItem(item) ?? {})
 			: undefined;
 		return { catalog, info };
 	};
@@ -679,18 +676,18 @@ export function makeInventoryEdits(
 		// A no-op still validates its checkout version, but produces no patch or
 		// history entry. A concurrent edit must never be hidden by the no-op path.
 		const changed = Object.entries(patch).some(
-			([key, value]) =>
-				JSON.stringify(resolved.item[key]) !== JSON.stringify(value),
+			([key, value]) => !samePlainData(resolved.item[key], value),
 		);
 		yield* draft.mutate((state) => {
 			if (!changed) return;
 			// The version guard runs before this callback. Re-resolving the fixed
 			// location therefore addresses the exact item checked before metadata.
+			// Equipment access also unwraps the single trinket from its saved list.
 			const currentOwner = ownerIn(state.document, ownerId);
 			const item =
 				typeof resolved.location === "number"
 					? currentOwner?.slots[resolved.location]
-					: currentOwner?.farmer?.[resolved.location];
+					: readEquipmentSlot(currentOwner?.farmer, resolved.location);
 			if (!record(item))
 				throw new Error("Authorized inventory item disappeared");
 			Object.assign(item, patch);
@@ -891,18 +888,9 @@ export function makeInventoryEdits(
 					message:
 						"Choose a supported backpack with matching saved capacity and slots.",
 				});
-			// Even a nil marker can carry mod data. Shrinking discards only the exact
-			// canonical empty record, never a broadly 'empty' item with opaque members.
-			if (
-				owner.slots
-					.slice(size)
-					.some(
-						(slot) =>
-							!record(slot) ||
-							Object.keys(slot).length !== 1 ||
-							String(slot["@_xsi:nil"]) !== "true",
-					)
-			)
+			// Only null slots can be discarded. Every object, including an unfamiliar
+			// item, retains its position until the user explicitly moves or removes it.
+			if (owner.slots.slice(size).some((slot) => slot !== null))
 				return yield* new BackpackItemInvalid({
 					message:
 						"Empty the backpack's last slots before shrinking it; slots with extra saved data must be preserved.",

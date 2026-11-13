@@ -7,28 +7,28 @@ import {
 } from "../../src/lib/editor/inventory-operations";
 import { setStorageQuality } from "../../src/lib/editor/storage-operations";
 import { TransactionDraft } from "../../src/lib/editor/transaction-draft";
-import { tinyFixture } from "./fixtures";
+import { tinyFixture } from "../helpers/editor-document.ts";
 const run = <A, E>(
 	program: Effect.Effect<A, E, import("effect").Scope.Scope>,
 ) => Effect.runPromise(Effect.scoped(program));
 const item = () => ({
-	"@_xsi:type": "Object",
+	$type: "StardewValley.Object" as const,
 	itemId: "24",
 	name: "Parsnip",
 	category: -75,
 	bigCraftable: false,
 	stack: 3,
 	quality: 0,
-	modData: { opaque: "007" },
+	customModData: { opaque: "007" },
 });
 function fixture(count = 2) {
 	const document = tinyFixture();
-	document.SaveGame.player.items.Item = Array.from({ length: count }, item);
+	document.SaveGame.player.items = Array.from({ length: count }, item);
 	return document;
 }
 function selected(state: { identities: Record<string, string[]> }) {
-	return (state.identities.host ?? []).map((entityId) => ({
-		ownerId: "host",
+	return (state.identities["1"] ?? []).map((entityId) => ({
+		ownerId: "1",
 		entityId,
 	}));
 }
@@ -37,10 +37,10 @@ it("validates every batch target before mutation even when a caller catches a la
 	run(
 		Effect.gen(function* () {
 			const document = fixture(),
-				other = document.SaveGame.player.items.Item[1];
+				other = document.SaveGame.player.items[1];
 			if (!other || typeof other !== "object")
 				throw new Error("Missing fixture item");
-			Object.assign(other, { "@_xsi:type": "Tool" });
+			Object.assign(other, { $type: "StardewValley.Tool" });
 			const session = yield* makeHistorySession(document),
 				before = yield* session.snapshot;
 			const after = yield* session.transact(
@@ -55,8 +55,8 @@ it("validates every batch target before mutation even when a caller catches a la
 					});
 				}),
 			);
-			expect(after.document.SaveGame.player.items.Item).toEqual(
-				before.document.SaveGame.player.items.Item,
+			expect(after.document.SaveGame.player.items).toEqual(
+				before.document.SaveGame.player.items,
 			);
 			expect(after.document.SaveGame.player.money).toBe(99);
 		}),
@@ -87,7 +87,7 @@ it("rejects duplicate selections at the capability boundary and keeps no-op redo
 			expect(yield* session.snapshot).toEqual(before);
 			yield* session.redo;
 			expect(
-				(yield* session.snapshot).document.SaveGame.player.items.Item[0],
+				(yield* session.snapshot).document.SaveGame.player.items[0],
 			).toMatchObject({ quality: 4 });
 		}),
 	));
@@ -113,10 +113,10 @@ it.each(["batch-first", "single-first"] as const)(
 					}),
 				);
 				const after = yield* session.snapshot;
-				expect(after.document.SaveGame.player.items.Item[0]).toMatchObject({
+				expect(after.document.SaveGame.player.items[0]).toMatchObject({
 					quality: order === "batch-first" ? 1 : 4,
 				});
-				expect(after.document.SaveGame.player.items.Item[1]).toMatchObject({
+				expect(after.document.SaveGame.player.items[1]).toMatchObject({
 					quality: 4,
 				});
 				yield* session.undo;
@@ -130,26 +130,26 @@ it("retains alias-driven property behavior across owners and unrelated saved bra
 	run(
 		Effect.gen(function* () {
 			const document = fixture(1),
-				raw = document.SaveGame.player.items.Item[0],
+				raw = document.SaveGame.player.items[0],
 				hands = document.SaveGame.farmhands;
-			if (hands === "" || !hands.Farmer[0])
+			if (!Array.isArray(hands) || !hands[0])
 				throw new Error("Missing fixture farmer");
-			hands.Farmer[0].items.Item = [raw];
+			hands[0].items = [raw!];
 			Object.assign(document.SaveGame, { opaqueAlias: raw });
 			const session = yield* makeHistorySession(document),
 				before = yield* session.snapshot;
-			const guest = before.identities.guest?.[0];
+			const guest = before.identities["2"]?.[0];
 			if (!guest) throw new Error("Missing guest handle");
 			yield* session.transact(
 				setStorageQuality(
-					[...selected(before), { ownerId: "guest", entityId: guest }],
+					[...selected(before), { ownerId: "2", entityId: guest }],
 					4,
 				),
 			);
 			const after = yield* session.snapshot;
-			expect(after.document.SaveGame.player.items.Item[0]).toMatchObject({
+			expect(after.document.SaveGame.player.items[0]).toMatchObject({
 				quality: 4,
-				modData: { opaque: "007" },
+				customModData: { opaque: "007" },
 			});
 			expect(after.document.SaveGame).toMatchObject({
 				opaqueAlias: { quality: 4 },
@@ -169,9 +169,9 @@ it(
 					before = yield* session.snapshot;
 				yield* session.transact(setStorageQuality(selected(before), 4));
 				const after = yield* session.snapshot;
-				expect(after.document.SaveGame.player.items.Item).toHaveLength(1000);
+				expect(after.document.SaveGame.player.items).toHaveLength(1000);
 				expect(
-					after.document.SaveGame.player.items.Item.every(
+					after.document.SaveGame.player.items.every(
 						(raw) =>
 							raw !== null &&
 							typeof raw === "object" &&
@@ -179,9 +179,9 @@ it(
 							raw.quality === 4,
 					),
 				).toBe(true);
-				expect(after.document.SaveGame.player.items.Item[999]).toMatchObject({
+				expect(after.document.SaveGame.player.items[999]).toMatchObject({
 					stack: 3,
-					modData: { opaque: "007" },
+					customModData: { opaque: "007" },
 				});
 				expect(after.identities).toEqual(before.identities);
 				expect(after.entries).toHaveLength(1);

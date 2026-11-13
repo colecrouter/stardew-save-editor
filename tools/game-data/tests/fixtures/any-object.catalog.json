@@ -1,0 +1,62 @@
+{
+	"formatVersion": 3,
+	"diagnostics": [],
+	"types": [
+		{
+			"id": "Example.DescriptionElement",
+			"kind": "object",
+			"members": [
+				{
+					"name": "xmlKey",
+					"type": "System.String"
+				},
+				{
+					"name": "param",
+					"type": "ListObject",
+					"attributes": [
+						{
+							"type": "System.Xml.Serialization.XmlElementAttribute",
+							"constructorArguments": [
+								{
+									"type": "System.String",
+									"value": "param"
+								}
+							]
+						}
+					]
+				}
+			],
+			"attributes": [
+				{
+					"type": "System.Xml.Serialization.XmlIncludeAttribute",
+					"constructorArguments": [
+						{
+							"type": "System.Type",
+							"value": "Example.Object"
+						}
+					]
+				}
+			]
+		},
+		{
+			"id": "ListObject",
+			"kind": "collection",
+			"elementType": "System.Object"
+		},
+		{
+			"id": "System.Object",
+			"kind": "object"
+		},
+		{
+			"id": "Example.Object",
+			"kind": "object",
+			"baseType": "System.Object",
+			"members": [
+				{
+					"name": "Name",
+					"type": "System.String"
+				}
+			]
+		}
+	]
+}

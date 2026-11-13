@@ -8,7 +8,7 @@ import { makeHistorySession } from "../../src/lib/editor/history";
 import { setFarmSettings } from "../../src/lib/editor/farm-operations";
 import { MutationError } from "../../src/lib/editor/domain";
 import type { SessionState } from "../../src/lib/editor/domain";
-import { tinyFixture } from "./fixtures";
+import { tinyFixture } from "../helpers/editor-document.ts";
 
 const initial = (): SessionState => ({
 	document: tinyFixture(),
@@ -77,7 +77,7 @@ it("preserves shared-reference behavior through the detached fallback, including
 	await Effect.runPromise(draft.close);
 });
 
-it("rejects invalid JSON and preserves signed zero, escaped keys and array edits", async () => {
+it("rejects invalid saved values and preserves signed zero, escaped keys and array edits", async () => {
 	const draft = makeTransactionDraft(initial());
 	await Effect.runPromise(
 		draft.service.mutate((writer) => {
@@ -118,7 +118,7 @@ it("rejects invalid JSON and preserves signed zero, escaped keys and array edits
 					if (invalid === "undefined")
 						Object.assign(writer.document.SaveGame, { invalid: undefined });
 					if (invalid === "sparse")
-						writer.document.SaveGame.player.items.Item.length += 2;
+						writer.document.SaveGame.player.items.length += 2;
 					if (invalid === "class")
 						Object.assign(writer.document.SaveGame, { opaque: new Date() });
 				}),
@@ -243,9 +243,7 @@ it("rolls back valid farm mutations on failure/interruption and retries against 
 					),
 				);
 				yield* Deferred.await(entered);
-				yield* session.execute([
-					{ type: "money", farmerId: "host", value: 99 },
-				]);
+				yield* session.execute([{ type: "money", farmerId: "1", value: 99 }]);
 				yield* Deferred.succeed(release, undefined);
 				yield* Fiber.join(retrying);
 				const after = yield* session.snapshot;

@@ -14,7 +14,7 @@ import {
 
 import { createCatalogItem } from "../../src/lib/editor/item-catalog";
 import { discoverPlacedChests } from "../../src/lib/editor/chest-storage";
-import { tinyFixture } from "./fixtures";
+import { tinyFixture } from "../helpers/editor-document.ts";
 
 // These assertions are checked by the application compiler, independently of
 // runtime examples. Weakening field/value correlation makes this tuple invalid.
@@ -81,21 +81,19 @@ function item(name = "Parsnip") {
 function fixture() {
 	const document = tinyFixture();
 	document.SaveGame.player.name = "Host";
-	document.SaveGame.player.items.Item = [
-		{ ...item(), stack: 3, quality: 0, modData: { opaque: "007" } },
-		{ "@_xsi:nil": "true" },
+	document.SaveGame.player.items = [
+		{ ...item(), stack: 3, quality: 0, customModData: { opaque: "007" } },
+		null,
 		item("Sneakers"),
 	];
-	document.SaveGame.farmhands = {
-		Farmer: [
-			{
-				...structuredClone(document.SaveGame.player),
-				UniqueMultiplayerID: "guest",
-				name: "Guest",
-				items: { Item: [{ "@_xsi:nil": "true" }] },
-			},
-		],
-	};
+	document.SaveGame.farmhands = [
+		{
+			...structuredClone(document.SaveGame.player),
+			UniqueMultiplayerID: 2n,
+			name: "Guest",
+			items: [null],
+		},
+	];
 	return document;
 }
 
@@ -104,11 +102,11 @@ it("compares repeated quantity edits with import and disappears after restoratio
 		Effect.gen(function* () {
 			const session = yield* makeHistorySession(fixture());
 			const initial = yield* session.snapshot;
-			const entityId = required(initial.identities.host?.[0]);
+			const entityId = required(initial.identities["1"]?.[0]);
 			for (const value of [8, 9])
 				yield* session.transact(
 					setInventoryItem({
-						ownerId: "host",
+						ownerId: "1",
 						entityId,
 						property: "stack",
 						value,
@@ -127,7 +125,7 @@ it("compares repeated quantity edits with import and disappears after restoratio
 			expect(current).toEqual(beforeProjection);
 			yield* session.transact(
 				setInventoryItem({
-					ownerId: "host",
+					ownerId: "1",
 					entityId,
 					property: "stack",
 					value: 3,
@@ -148,13 +146,13 @@ it("retains original instance identities after history eviction and distinguishe
 		Effect.gen(function* () {
 			const session = yield* makeHistorySession(fixture(), { entries: 1 });
 			const initial = yield* session.snapshot;
-			const entityId = required(initial.identities.host?.[0]);
+			const entityId = required(initial.identities["1"]?.[0]);
 			yield* session.execute([
 				{
 					type: "item-move",
-					ownerId: "host",
+					ownerId: "1",
 					slot: 0,
-					toOwnerId: "guest",
+					toOwnerId: "2",
 					toSlot: 0,
 				},
 			]);
@@ -178,12 +176,12 @@ it("shows new and removed instances without matching equal item type IDs", () =>
 		Effect.gen(function* () {
 			const session = yield* makeHistorySession(fixture());
 			const initial = yield* session.snapshot,
-				entityId = required(initial.identities.host?.[0]);
+				entityId = required(initial.identities["1"]?.[0]);
 			yield* session.execute([
-				{ type: "item-remove", ownerId: "host", slot: 0, entityId },
+				{ type: "item-remove", ownerId: "1", slot: 0, entityId },
 				{
 					type: "item-place",
-					ownerId: "host",
+					ownerId: "1",
 					slot: 1,
 					item: { ...item(), stack: 7 },
 				},
@@ -214,14 +212,14 @@ it("recognizes equipment moves by the original instance rather than a slot name"
 		Effect.gen(function* () {
 			const session = yield* makeHistorySession(fixture());
 			const initial = yield* session.snapshot,
-				entityId = required(initial.identities.host?.[2]);
+				entityId = required(initial.identities["1"]?.[2]);
 			yield* session.execute([
 				{
 					type: "backpack-move",
-					ownerId: "host",
+					ownerId: "1",
 					entityId,
-					toOwnerId: "host",
-					toEntityId: required(initial.equipmentIdentities.host).boots,
+					toOwnerId: "1",
+					toEntityId: required(initial.equipmentIdentities["1"]).boots,
 					toLocation: "boots",
 				},
 			]);
@@ -239,28 +237,23 @@ it("recognizes placed-chest transfers while preserving opaque chest and item met
 	run(
 		Effect.gen(function* () {
 			const document = fixture();
-			document.SaveGame.locations = {
-				GameLocation: [
-					{
-						name: "Farm",
-						objects: {
-							item: [
-								{
-									key: { Vector2: { X: 3, Y: 7 } },
-									value: {
-										Object: {
-											"@_xsi:type": "Chest",
-											name: "Chest",
-											items: { Item: [item("Wood")] },
-											modData: { opaque: "007" },
-										},
-									},
-								},
-							],
+			document.SaveGame.locations = [
+				{
+					$type: "StardewValley.Farm",
+					name: "Farm",
+					objects: [
+						{
+							key: { X: 3, Y: 7 },
+							value: {
+								$type: "StardewValley.Objects.Chest",
+								name: "Chest",
+								items: [item("Wood")],
+								customModData: { opaque: "007" },
+							},
 						},
-					},
-				],
-			};
+					],
+				},
+			];
 			const chest = required(discoverPlacedChests(document)[0]);
 			const session = yield* makeHistorySession(document),
 				initial = yield* session.snapshot;
@@ -270,7 +263,7 @@ it("recognizes placed-chest transfers while preserving opaque chest and item met
 					type: "item-move",
 					ownerId: chest.id,
 					slot: 0,
-					toOwnerId: "host",
+					toOwnerId: "1",
 					toSlot: 1,
 					entityId: id,
 				},
@@ -291,10 +284,10 @@ it("uses editable item property labels and leaves unrecognized metadata changes 
 		Effect.gen(function* () {
 			const session = yield* makeHistorySession(fixture()),
 				initial = yield* session.snapshot;
-			const entityId = required(initial.identities.host?.[2]);
+			const entityId = required(initial.identities["1"]?.[2]);
 			yield* session.transact(
 				setInventoryItemProperty({
-					ownerId: "host",
+					ownerId: "1",
 					entityId,
 					property: "defenseBonus",
 					value: 7,
@@ -304,14 +297,14 @@ it("uses editable item property labels and leaves unrecognized metadata changes 
 			const state = yield* session.snapshot;
 			// This detached import-like state exercises unknown-field fallback without
 			// asking a supported inventory command to authorize a mod-data write.
-			const boots = state.document.SaveGame.player.items.Item[2];
+			const boots = state.document.SaveGame.player.items[2];
 			if (!boots || typeof boots !== "object") throw new Error("Missing boots");
-			Object.assign(boots, { modData: { newOpaque: "changed" } });
+			Object.assign(boots, { customModData: { newOpaque: "changed" } });
 			state.net = [
 				...state.net,
 				{
 					op: "add",
-					path: "/SaveGame/player/items/Item/2/modData",
+					path: "/SaveGame/player/items/2/customModData",
 					value: { newOpaque: "changed" },
 				},
 			];
@@ -326,7 +319,7 @@ it("uses editable item property labels and leaves unrecognized metadata changes 
 				}),
 			);
 			expect(review.coveredPaths).toContain(
-				"/SaveGame/player/items/Item/2/defenseBonus",
+				"/SaveGame/player/items/2/defenseBonus",
 			);
 			expect(review.coveredPaths.some((path) => path.includes("modData"))).toBe(
 				false,
@@ -339,20 +332,20 @@ it("does not show handle-only swaps or equal-value replacement as exported inven
 		Effect.gen(function* () {
 			const document = fixture();
 			const copy = { ...item(), stack: 3, quality: 0 };
-			document.SaveGame.player.items.Item = [copy, structuredClone(copy)];
+			document.SaveGame.player.items = [copy, structuredClone(copy)];
 			const session = yield* makeHistorySession(document);
 			yield* session.execute([
-				{ type: "reorder", ownerId: "host", order: [1, 0] },
+				{ type: "reorder", ownerId: "1", order: [1, 0] },
 				{ type: "farm-name", value: "Changed" },
 			]);
 			expect(projectInventoryReview(yield* session.snapshot).changes).toEqual(
 				[],
 			);
 			yield* session.execute([
-				{ type: "item-remove", ownerId: "host", slot: 0 },
+				{ type: "item-remove", ownerId: "1", slot: 0 },
 				{
 					type: "item-place",
-					ownerId: "host",
+					ownerId: "1",
 					slot: 0,
 					item: structuredClone(copy),
 				},
@@ -371,22 +364,24 @@ it("never lets an unchanged swapped item cover unknown edits on the displaced it
 			yield* session.execute([
 				{
 					type: "backpack-move",
-					ownerId: "host",
-					entityId: required(initial.identities.host?.[0]),
-					toOwnerId: "host",
-					toEntityId: required(initial.identities.host?.[2]),
+					ownerId: "1",
+					entityId: required(initial.identities["1"]?.[0]),
+					toOwnerId: "1",
+					toEntityId: required(initial.identities["1"]?.[2]),
 				},
 			]);
 			const state = yield* session.snapshot;
-			const displaced = state.document.SaveGame.player.items.Item[0];
+			const displaced = state.document.SaveGame.player.items[0];
 			if (!displaced || typeof displaced !== "object")
 				throw new Error("Missing displaced item");
-			Object.assign(displaced, { modData: { opaque: "changed after swap" } });
+			Object.assign(displaced, {
+				customModData: { opaque: "changed after swap" },
+			});
 			state.net = [
 				...state.net,
 				{
 					op: "add",
-					path: "/SaveGame/player/items/Item/0/modData",
+					path: "/SaveGame/player/items/0/customModData",
 					value: { opaque: "changed after swap" },
 				},
 			];
@@ -394,7 +389,7 @@ it("never lets an unchanged swapped item cover unknown edits on the displaced it
 			expect(
 				review.changes.filter((change) => change._tag === "ItemMoved"),
 			).toHaveLength(2);
-			const opaquePath = "/SaveGame/player/items/Item/0/modData";
+			const opaquePath = "/SaveGame/player/items/0/customModData";
 			expect(
 				review.coveredPaths.some(
 					(path) => opaquePath === path || opaquePath.startsWith(`${path}/`),
@@ -408,25 +403,27 @@ it("does not cover a removed slot when a moved survivor acquires unknown metadat
 		Effect.gen(function* () {
 			const session = yield* makeHistorySession(fixture());
 			yield* session.execute([
-				{ type: "item-remove", ownerId: "host", slot: 0 },
+				{ type: "item-remove", ownerId: "1", slot: 0 },
 				{
 					type: "item-move",
-					ownerId: "host",
+					ownerId: "1",
 					slot: 2,
-					toOwnerId: "host",
+					toOwnerId: "1",
 					toSlot: 0,
 				},
 			]);
 			const state = yield* session.snapshot;
-			const survivor = state.document.SaveGame.player.items.Item[0];
+			const survivor = state.document.SaveGame.player.items[0];
 			if (!survivor || typeof survivor !== "object")
 				throw new Error("Missing moved survivor");
-			Object.assign(survivor, { modData: { opaque: "changed after removal" } });
+			Object.assign(survivor, {
+				customModData: { opaque: "changed after removal" },
+			});
 			state.net = [
 				...state.net,
 				{
 					op: "add",
-					path: "/SaveGame/player/items/Item/0/modData",
+					path: "/SaveGame/player/items/0/customModData",
 					value: { opaque: "changed after removal" },
 				},
 			];
@@ -443,7 +440,7 @@ it("does not cover a removed slot when a moved survivor acquires unknown metadat
 					item: expect.objectContaining({ name: "Sneakers" }),
 				}),
 			);
-			const opaquePath = "/SaveGame/player/items/Item/0/modData";
+			const opaquePath = "/SaveGame/player/items/0/customModData";
 			expect(
 				review.coveredPaths.some(
 					(path) => opaquePath === path || opaquePath.startsWith(`${path}/`),
@@ -457,23 +454,23 @@ it("does not claim an unsupported scalar hidden by an unavailable property value
 		Effect.gen(function* () {
 			const session = yield* makeHistorySession(fixture());
 			const initial = yield* session.snapshot;
-			const entityId = required(initial.identities.host?.[2]);
+			const entityId = required(initial.identities["1"]?.[2]);
 			yield* session.transact(
 				setInventoryItemProperty({
-					ownerId: "host",
+					ownerId: "1",
 					entityId,
 					property: "defenseBonus",
 					value: 7,
 				}),
 			);
 			const state = yield* session.snapshot;
-			const boots = state.baseline.SaveGame.player.items.Item[2];
+			const boots = state.baseline.SaveGame.player.items[2];
 			if (!boots || typeof boots !== "object") throw new Error("Missing boots");
 			// Simulate an imported unknown scalar without authorizing a malformed write.
 			Object.assign(boots, { defenseBonus: "modded" });
 			const review = projectInventoryReview(state);
 			expect(review.coveredPaths).not.toContain(
-				"/SaveGame/player/items/Item/2/defenseBonus",
+				"/SaveGame/player/items/2/defenseBonus",
 			);
 		}),
 	));

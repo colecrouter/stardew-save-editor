@@ -4,7 +4,7 @@ import { Effect, Result } from "effect";
 import { makeHistorySession } from "../../src/lib/editor/history";
 import { setInventoryItem } from "../../src/lib/editor/inventory-operations";
 import { TransactionDraft } from "../../src/lib/editor/transaction-draft";
-import { tinyFixture } from "./fixtures";
+import { tinyFixture } from "../helpers/editor-document.ts";
 
 // Catalog resolution happens after checkout and can yield on module loading.
 // Intercept that boundary to exercise interleaved writes deterministically.
@@ -29,16 +29,16 @@ const run = <A, E>(
 ) => Effect.runPromise(Effect.scoped(program));
 function fixture() {
 	const document = tinyFixture();
-	document.SaveGame.player.items.Item = [
+	document.SaveGame.player.items = [
 		{
-			"@_xsi:type": "Object",
+			$type: "StardewValley.Object",
 			itemId: "24",
 			name: "Parsnip",
 			bigCraftable: false,
 			category: -75,
 			stack: 3,
 			quality: 0,
-			modData: { opaque: "007" },
+			customModData: { opaque: "007" },
 		},
 	];
 	return document;
@@ -51,7 +51,7 @@ it.each([8, 3])(
 			Effect.gen(function* () {
 				const session = yield* makeHistorySession(fixture());
 				const before = yield* session.snapshot;
-				const entityId = before.identities.host?.[0];
+				const entityId = before.identities["1"]?.[0];
 				if (!entityId) throw new Error("Missing fixture identity");
 				const after = yield* session.transact(
 					Effect.gen(function* () {
@@ -68,7 +68,7 @@ it.each([8, 3])(
 						};
 						const result = yield* Effect.result(
 							setInventoryItem({
-								ownerId: "host",
+								ownerId: "1",
 								entityId,
 								property: "stack",
 								value,
@@ -80,7 +80,7 @@ it.each([8, 3])(
 					}),
 				);
 				expect(after.document.SaveGame.player.money).toBe(99);
-				expect(after.document.SaveGame.player.items.Item[0]).toMatchObject({
+				expect(after.document.SaveGame.player.items[0]).toMatchObject({
 					stack: 3,
 				});
 				expect(after.entries).toHaveLength(1);
@@ -95,26 +95,28 @@ it("detaches checkout data before metadata handling can modify it", () =>
 		Effect.gen(function* () {
 			const session = yield* makeHistorySession(fixture());
 			const before = yield* session.snapshot;
-			const entityId = before.identities.host?.[0];
+			const entityId = before.identities["1"]?.[0];
 			if (!entityId) throw new Error("Missing fixture identity");
 			catalogHook.run = (item) => {
 				if (!item || typeof item !== "object")
 					throw new Error("Missing checkout item");
 				// A metadata consumer accidentally modifying its input must affect only
 				// that detached checkout, never the baseline or fields outside its patch.
-				Object.assign(item, { modData: { opaque: "changed detached input" } });
+				Object.assign(item, {
+					customModData: { opaque: "changed detached input" },
+				});
 			};
 			const after = yield* session.transact(
 				setInventoryItem({
-					ownerId: "host",
+					ownerId: "1",
 					entityId,
 					property: "stack",
 					value: 8,
 				}),
 			);
-			expect(after.document.SaveGame.player.items.Item[0]).toMatchObject({
+			expect(after.document.SaveGame.player.items[0]).toMatchObject({
 				stack: 8,
-				modData: { opaque: "007" },
+				customModData: { opaque: "007" },
 			});
 			expect((yield* session.undo).document).toEqual(before.document);
 		}),
@@ -143,7 +145,7 @@ it.each([0, 4])(
 							);
 						};
 						const result = yield* Effect.result(
-							setStorageQuality([{ ownerId: "host", entityId }], value),
+							setStorageQuality([{ ownerId: "1", entityId }], value),
 						);
 						expect(Result.isFailure(result)).toBe(true);
 						if (Result.isFailure(result))
@@ -151,7 +153,7 @@ it.each([0, 4])(
 					}),
 				);
 				expect(after.document.SaveGame.player.money).toBe(99);
-				expect(after.document.SaveGame.player.items.Item[0]).toMatchObject({
+				expect(after.document.SaveGame.player.items[0]).toMatchObject({
 					quality: 0,
 				});
 				expect((yield* session.undo).document).toEqual(before.document);
@@ -159,7 +161,7 @@ it.each([0, 4])(
 		),
 );
 function handleFor(state: { identities: Record<string, string[]> }) {
-	const id = state.identities.host?.[0];
+	const id = state.identities["1"]?.[0];
 	if (!id) throw new Error("Missing fixture identity");
 	return id;
 }

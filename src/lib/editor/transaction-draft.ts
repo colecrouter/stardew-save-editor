@@ -1,4 +1,5 @@
-import { Context, Effect, Schema, JsonPatch } from "effect";
+import { isSavedData, patchValue } from "./saved-data.ts";
+import { Context, Effect, JsonPatch } from "effect";
 import { create as createCopyOnWrite } from "mutative";
 import { freezeDraftState } from "./draft-state.ts";
 import { MutationError, type SessionState } from "./domain.ts";
@@ -16,7 +17,7 @@ export class TransactionDraft extends Context.Service<
 		read: Effect.Effect<DraftSnapshot, MutationError>;
 		/** Synchronously edit private staging. Do not retain the writer or run effects
 		 * inside it. Expected failures belong in the surrounding Effect program.
-		 * Use ordinary JSON writes: cycles and frozen containers holding writers
+		 * Use ordinary saved-value writes: cycles and frozen containers holding writers
 		 * are recipe defects, not supported snapshot construction patterns.
 		 * An expectedVersion ties a prepared edit to its earlier inspection; a
 		 * mismatch rejects before the recipe runs, including no-op recipes. */
@@ -105,9 +106,9 @@ function stageTransactionDraft(initial: SessionState) {
 					);
 					// Validate assigned values even if a structural diff would treat
 					// an incompatible replacement as equal. Never walk the proxy graph.
-					if (!Schema.is(Schema.Json)(assignments))
+					if (!isSavedData(assignments))
 						return yield* new MutationError(
-							"Transaction drafts require plain JSON state",
+							"Transaction drafts require plain saved state",
 						);
 					next = prepared as SessionState;
 				} else {
@@ -115,9 +116,9 @@ function stageTransactionDraft(initial: SessionState) {
 					// mutation behavior for valid JSON DAGs through the detached path.
 					next = structuredClone(before);
 					run(next);
-					if (!Schema.is(Schema.Json)(next))
+					if (!isSavedData(next))
 						return yield* new MutationError(
-							"Transaction drafts require plain JSON state",
+							"Transaction drafts require plain saved state",
 						);
 				}
 				// A recipe normally cannot yield. This guard also rejects reentrant
@@ -128,20 +129,17 @@ function stageTransactionDraft(initial: SessionState) {
 					);
 				// Effect owns patch semantics, including sparse-array rejection and
 				// signed zero. Library patches are validation evidence, not replay data.
-				const patch = JsonPatch.get(
-					before as unknown as Schema.Json,
-					next as unknown as Schema.Json,
-				);
-				if (!Schema.is(Schema.Json)(patch))
+				const patch = JsonPatch.get(patchValue(before), patchValue(next));
+				if (!isSavedData(patch))
 					return yield* new MutationError(
-						"Transaction drafts require plain JSON state",
+						"Transaction drafts require plain saved state",
 					);
 				if (patch.length === 0) return;
 				// Foreign inserted values must be detached before any become owned;
 				// unchanged branches remain shared inside the stable staging boundary.
 				state = JsonPatch.apply(
 					structuredClone(patch),
-					before as unknown as Schema.Json,
+					patchValue(before),
 				) as unknown as SessionState;
 				version++;
 			}),
@@ -154,25 +152,22 @@ function stageTransactionDraft(initial: SessionState) {
 					return yield* new MutationError(
 						"Another operation changed this transaction draft",
 					);
-				if (!Schema.is(Schema.Json)(next.state))
+				if (!isSavedData(next.state))
 					return yield* new MutationError(
-						"Transaction drafts require plain JSON state",
+						"Transaction drafts require plain saved state",
 					);
 				// A program may retain and mutate its submitted snapshot later. Copy
 				// changed values, then replay them onto the stable staged baseline.
 				// Unchanged branches stay owned internally; no submitted reference
 				// becomes authoritative. This also preserves sharing for history diffs.
 				const patch = structuredClone(
-					JsonPatch.get(
-						state as unknown as Schema.Json,
-						next.state as unknown as Schema.Json,
-					),
+					JsonPatch.get(patchValue(state), patchValue(next.state)),
 				);
 				// The patch was derived from validated SessionState values, so replay
 				// preserves that envelope even though JsonPatch forgets its root type.
 				state = JsonPatch.apply(
 					patch,
-					state as unknown as Schema.Json,
+					patchValue(state),
 				) as unknown as SessionState;
 				version++;
 			}),

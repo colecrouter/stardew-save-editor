@@ -1,3 +1,5 @@
+import { readCatalogItem } from "../ItemData.ts";
+import { savedType } from "./saved-types.ts";
 import type { ImmutableView } from "./immutable-view.ts";
 import {
 	ItemDescription,
@@ -7,7 +9,6 @@ import {
 } from "../ItemData.ts";
 import { Sprite } from "../Sprite.svelte.ts";
 import { readRgba } from "../color.ts";
-import type { Item } from "../../../codegen/save.ts";
 import type { ItemInformation } from "$types/items";
 import type { TrinketRollContext } from "../TrinketStats.ts";
 import { canEquipItem, equipmentSlots } from "./equipment.ts";
@@ -47,9 +48,8 @@ export function resolveItemMetadata(raw: unknown): ItemInformation | undefined {
 		(raw.name != null && typeof raw.name !== "string")
 	)
 		return undefined;
-	// The legacy lookup accepts generated save types; no generated type escapes
-	// this adapter and no default-filling proxy is constructed to inspect a record.
-	return ResolveItemData(raw as unknown as Item);
+	// The catalog consumes semantic identity fields and never fills saved defaults.
+	return ResolveItemData(readCatalogItem(raw) ?? {});
 }
 
 /** Resolve instance-specific sprite layers without retaining or normalizing saved fields. */
@@ -84,7 +84,7 @@ function projectItemVisual(
 	if (smoked) {
 		layers.push({ rect: { ...sprite.sourceRect }, tint: [80, 30, 10, 153] });
 	} else if (
-		raw["@_xsi:type"] === "Clothing" &&
+		savedType(raw) === "Clothing" &&
 		(info._type === "Shirt" || info._type === "Pants")
 	) {
 		const tint = readRgba(raw.clothesColor);
@@ -98,7 +98,7 @@ function projectItemVisual(
 				tint,
 			});
 		else layers.splice(0, 1, { rect: { ...sprite.sourceRect }, tint });
-	} else if (raw["@_xsi:type"] === "ColoredObject") {
+	} else if (savedType(raw) === "ColoredObject") {
 		const tint = readRgba(raw.color);
 		// Some saved colors multiply the base; others use an adjacent overlay cell.
 		if (raw.colorSameIndexAsParentSheetIndex === true)
@@ -130,7 +130,7 @@ export function readItemPresentation(
 	// malformed-name guard used by metadata resolution, even for unknown catalog IDs.
 	const readableName =
 		saved && (saved.name == null || typeof saved.name === "string")
-			? ItemNameHelper(saved as unknown as Item)
+			? ItemNameHelper(readCatalogItem(saved) ?? {})
 			: undefined;
 	return {
 		name: readableName ?? "Unknown item",

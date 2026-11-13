@@ -3,6 +3,9 @@
 - `npm test`: application/domain/component and retained legacy regressions (Vitest,
   happy-dom). Files named `e2e` here are integration tests, not real-browser tests.
 - `npm run test:editor`: the narrower application editor suite.
+- `npm run test:game-data`: .NET 10 inspection/generation, generated-module
+  type checks, XML codec behavior, and synthetic XmlSerializer interoperability.
+  It rebuilds ignored test output; no game installation is required.
 - `npm ci --prefix tests/engine`, then `npm test --prefix tests/engine`: engine
   contracts plus native Node import/codec checks. This package uses Vitest 5 because
   the Effect test adapter requires it; the application runner remains Vitest 3. The Node platform shared package is pinned
@@ -11,10 +14,24 @@
   standalone engine typing and Effect diagnostics.
 
 Shared fixture builders live in `tests/helpers/editor-document.ts`; Vite and Node
-retain separate public-save loaders. `tests/editor/workspace.ts` owns common
-workspace setup and unmount-before-file-close cleanup. Keep feature assertions and
-special cancellation/lifetime setup explicit. Use small fixtures for rule tests;
-retain full-save cases for preservation. Never commit private user saves.
+retain separate public-save loaders. The application runner decodes the public save
+once in global setup, writes a temporary V8 snapshot (preserving bigint), and gives
+each isolated file its own baseline. Every fixture request returns a fresh
+`structuredClone`; edited XML still goes through the real decoder. The snapshot
+is removed at teardown and is never committed. The runner uses at most two workers (one on single-core hosts) to leave memory
+for Vite, isolated schema graphs, and full-save DOM tests.
+
+`tests/editor/workspace.ts` owns common workspace setup and unmount-before-file-close cleanup. Keep feature assertions and
+special cancellation/lifetime setup explicit. Use `tinyFixture` for rule tests and
+`tinyEditorFixture` when a model also needs a calendar projection. Retain full-save
+cases for preservation. Full import/export assertions have explicit
+budgets for the event-based codec; pure rule tests keep the default budget.
+UI interaction suites can open decoded fixtures through
+`tests/helpers/open-editor.ts`. This uses the production model, history and export
+service while avoiding a full XML import for each interaction. Application/engine
+codec tests retain the real byte import boundary; malformed in-memory domain tests
+do not first serialize values that the codec is expected to reject.
+Never commit private user saves.
 
 `openEditor(processingLayer, bytes, ...)` requires an explicit execution choice.
 The app supplies `SaveProcessingBrowser`. Component/unit fixtures and CPU-only

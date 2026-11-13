@@ -1,26 +1,37 @@
+import {
+	catalogFixture,
+	malformedFixture,
+	tinyEditorFixture,
+	exportDocument,
+} from "../helpers/editor-document.ts";
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, waitFor } from "@testing-library/svelte";
 import { Result } from "effect";
-import { openEditor } from "../../src/lib/editor/editor-model";
+import { openTestDocument } from "../helpers/open-editor.ts";
 import { createCatalogItem } from "../../src/lib/editor/item-catalog";
 import { createRandom, rollTrinket } from "../../src/lib/TrinketStats";
 import BackpackHarness from "./BackpackHarness.svelte";
-import { fixtureXml, parser, exportDocument } from "./fixtures";
+import { fixtureXml, parser } from "./fixtures";
 import type { SaveDocument } from "../../src/lib/editor/domain";
-import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
 
 function catalog(id: string) {
 	const item = createCatalogItem(id);
 	if (!item) throw Error(`Missing catalog fixture: ${id}`);
-	return item;
+	// Property controls edit saved instances. Decode a small catalog seed once so
+	// extension fields have their XML text representation before the edit begins.
+	const document = tinyEditorFixture();
+	document.SaveGame.player.items = [item];
+	const saved = parser.parse(exportDocument(document)).SaveGame.player.items[0];
+	if (!saved) throw Error(`Missing decoded catalog fixture: ${id}`);
+	return saved;
 }
 async function open(mutate: (document: SaveDocument) => void) {
-	const document = parser.parse(fixtureXml);
+	// Keep the real inventory records while omitting unrelated world entities.
+	const document = tinyEditorFixture();
+	document.SaveGame.player = parser.parse(fixtureXml).SaveGame.player;
+	document.SaveGame.farmhands = [];
 	mutate(document);
-	const opened = await openEditor(
-		SaveProcessingSync,
-		new TextEncoder().encode(exportDocument(document)),
-	);
+	const opened = await openTestDocument(document);
 	const page = render(BackpackHarness, { model: opened.model });
 	return {
 		...opened,
@@ -34,16 +45,19 @@ async function open(mutate: (document: SaveDocument) => void) {
 const waitCommitted = async (assertion: () => Promise<void>) =>
 	waitFor(assertion, { timeout: 5000 });
 
-// Real commands and whole-document exports protect opaque saved fields. The full
-// fixture and queued edits need a bounded integration budget on slower CI runners.
+// Real commands and exports protect opaque inventory fields. World data is not
+// needed to verify these controls and their queued edits.
 describe("item property controls", { timeout: 25_000 }, () => {
 	it.each(["equipment", "backpack"] as const)(
 		"edits %s boots immediately, retains focus through rapid input, and exports only the intended fields",
 		async (location) => {
 			const opened = await open((document) => {
-				const boots = { ...catalog("Sneakers"), modData: { opaque: "007" } };
+				const boots = {
+					...catalogFixture(catalog("Sneakers"), "StardewValley.Objects.Boots"),
+					customModData: { opaque: "007" },
+				};
 				if (location === "equipment") document.SaveGame.player.boots = boots;
-				else document.SaveGame.player.items.Item[3] = boots;
+				else document.SaveGame.player.items[3] = boots;
 			});
 			try {
 				const before = (await opened.model.snapshot()).document;
@@ -66,7 +80,7 @@ describe("item property controls", { timeout: 25_000 }, () => {
 					const farmer = (await opened.model.snapshot()).document.SaveGame
 						.player;
 					return (
-						location === "equipment" ? farmer.boots : farmer.items.Item[3]
+						location === "equipment" ? farmer.boots : farmer.items[3]
 					) as Record<string, unknown>;
 				};
 				await waitCommitted(async () =>
@@ -109,16 +123,18 @@ describe("item property controls", { timeout: 25_000 }, () => {
 				const changed = (
 					location === "equipment"
 						? expected.SaveGame.player.boots
-						: expected.SaveGame.player.items.Item[3]
+						: expected.SaveGame.player.items[3]
 				) as Record<string, unknown>;
 				changed.defenseBonus = 78;
 				changed.immunityBonus = 4;
 				const exported = await opened.model.commands.export();
 				if (!exported || Result.isFailure(exported))
 					throw Error("Expected successful export");
+				// Newly created items gain empty repeated fields when decoded. Match all
+				// supplied fields while allowing those canonical collection defaults.
 				expect(
 					parser.parse(new TextDecoder().decode(exported.success)),
-				).toEqual(expected);
+				).toMatchObject(expected);
 			} finally {
 				await opened.dispose();
 			}
@@ -127,10 +143,7 @@ describe("item property controls", { timeout: 25_000 }, () => {
 
 	it("edits weapon decimals, object base values, and the bottomless flag as independent actions", async () => {
 		const opened = await open((document) => {
-			const can = document.SaveGame.player.items.Item[2] as Record<
-				string,
-				unknown
-			>;
+			const can = document.SaveGame.player.items[2] as Record<string, unknown>;
 			can.isBottomless = false;
 			can.IsBottomless = false;
 		});
@@ -142,8 +155,7 @@ describe("item property controls", { timeout: 25_000 }, () => {
 			await fireEvent.input(chance, { target: { value: "0.25" } });
 			await waitCommitted(async () =>
 				expect(
-					(await opened.model.snapshot()).document.SaveGame.player.items
-						.Item[0],
+					(await opened.model.snapshot()).document.SaveGame.player.items[0],
 				).toMatchObject({ critChance: 0.25 }),
 			);
 			await fireEvent.click(
@@ -159,8 +171,7 @@ describe("item property controls", { timeout: 25_000 }, () => {
 			);
 			await waitCommitted(async () =>
 				expect(
-					(await opened.model.snapshot()).document.SaveGame.player.items
-						.Item[4],
+					(await opened.model.snapshot()).document.SaveGame.player.items[4],
 				).toMatchObject({ price: 123, edibility: 42 }),
 			);
 			await fireEvent.click(
@@ -171,16 +182,15 @@ describe("item property controls", { timeout: 25_000 }, () => {
 			);
 			await waitCommitted(async () =>
 				expect(
-					(await opened.model.snapshot()).document.SaveGame.player.items
-						.Item[2],
+					(await opened.model.snapshot()).document.SaveGame.player.items[2],
 				).toMatchObject({ isBottomless: true, IsBottomless: true }),
 			);
 			await opened.model.commands.undo();
 			expect(
-				(await opened.model.snapshot()).document.SaveGame.player.items.Item[2],
-			).toEqual(before.SaveGame.player.items.Item[2]);
+				(await opened.model.snapshot()).document.SaveGame.player.items[2],
+			).toEqual(before.SaveGame.player.items[2]);
 			expect(
-				(await opened.model.snapshot()).document.SaveGame.player.items.Item[4],
+				(await opened.model.snapshot()).document.SaveGame.player.items[4],
 			).toMatchObject({ price: 123, edibility: 42 });
 		} finally {
 			await opened.dispose();
@@ -201,9 +211,9 @@ describe("item property controls", { timeout: 25_000 }, () => {
 				PackedValue: 2147680769,
 				custom: "keep",
 			};
-			document.SaveGame.player.items.Item[3] = {
-				...catalog("Parsnip"),
-				"@_xsi:type": "ColoredObject",
+			document.SaveGame.player.items[3] = {
+				...catalogFixture(catalog("Parsnip"), "StardewValley.Object"),
+				$type: "StardewValley.Objects.ColoredObject",
 				color: { R: 10, G: 20, B: 30, A: 77, custom: { opaque: true } },
 			};
 		});
@@ -236,15 +246,14 @@ describe("item property controls", { timeout: 25_000 }, () => {
 			});
 			await waitCommitted(async () =>
 				expect(
-					(await opened.model.snapshot()).document.SaveGame.player.items
-						.Item[3],
+					(await opened.model.snapshot()).document.SaveGame.player.items[3],
 				).toMatchObject({
 					color: { R: 171, G: 205, B: 239, A: 77, custom: { opaque: true } },
 				}),
 			);
 			await opened.model.commands.undo();
 			expect(
-				(await opened.model.snapshot()).document.SaveGame.player.items.Item[3],
+				(await opened.model.snapshot()).document.SaveGame.player.items[3],
 			).toMatchObject({
 				color: { R: 10, G: 20, B: 30, A: 77, custom: { opaque: true } },
 			});
@@ -255,11 +264,16 @@ describe("item property controls", { timeout: 25_000 }, () => {
 
 	it("edits a trinket's derived level through its seed and restores it with Undo", async () => {
 		const opened = await open((document) => {
-			document.SaveGame.player.trinketItem = {
-				...catalog("FairyBox"),
-				generationSeed: 0,
-				modData: { opaque: "keep" },
-			};
+			document.SaveGame.player.trinketItem = [
+				{
+					...catalogFixture(
+						catalog("FairyBox"),
+						"StardewValley.Objects.Trinket",
+					),
+					generationSeed: 0,
+					customModData: { opaque: "keep" },
+				},
+			];
 		});
 		try {
 			const before = (await opened.model.snapshot()).document;
@@ -273,7 +287,7 @@ describe("item property controls", { timeout: 25_000 }, () => {
 			await fireEvent.input(level, { target: { value: String(target) } });
 			await waitCommitted(async () => {
 				const document = (await opened.model.snapshot()).document;
-				const item = document.SaveGame.player.trinketItem as Record<
+				const item = document.SaveGame.player.trinketItem?.[0] as Record<
 					string,
 					unknown
 				>;
@@ -289,7 +303,7 @@ describe("item property controls", { timeout: 25_000 }, () => {
 					context,
 				);
 				expect(stats).toMatchObject({ kind: "FairyBox", level: target });
-				expect(item.modData).toEqual({ opaque: "keep" });
+				expect(item.customModData).toEqual({ opaque: "keep" });
 			});
 			await opened.model.commands.undo();
 			await waitFor(() => expect(level.value).not.toBe(String(target)));
@@ -300,13 +314,21 @@ describe("item property controls", { timeout: 25_000 }, () => {
 	});
 	it("selects Frog Egg colors through derived stats and leaves seedless trinkets read-only", async () => {
 		const opened = await open((document) => {
-			document.SaveGame.player.trinketItem = {
-				...catalog("FrogEgg"),
-				generationSeed: 0,
-			};
-			const seedless = catalog("FairyBox");
+			document.SaveGame.player.trinketItem = [
+				{
+					...catalogFixture(
+						catalog("FrogEgg"),
+						"StardewValley.Objects.Trinket",
+					),
+					generationSeed: 0,
+				},
+			];
+			const seedless = catalogFixture(
+				catalog("FairyBox"),
+				"StardewValley.Objects.Trinket",
+			);
 			delete seedless.generationSeed;
-			document.SaveGame.player.items.Item[3] = seedless;
+			document.SaveGame.player.items[3] = seedless;
 		});
 		try {
 			await fireEvent.click(
@@ -337,7 +359,7 @@ describe("item property controls", { timeout: 25_000 }, () => {
 			}
 			await waitCommitted(async () => {
 				const document = (await opened.model.snapshot()).document;
-				const item = document.SaveGame.player.trinketItem as Record<
+				const item = document.SaveGame.player.trinketItem?.[0] as Record<
 					string,
 					unknown
 				>;

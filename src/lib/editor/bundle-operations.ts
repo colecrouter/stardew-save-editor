@@ -28,25 +28,6 @@ export class BundleMailInvalid extends Data.TaggedError("BundleMailInvalid")<{
 
 // Bounded second-domain proof: vanilla Spring Foraging only. Unsupported saves
 // remain editable elsewhere; this adapter never normalizes their bundle data.
-interface BundleRecord {
-	key: { int: number };
-	value: { ArrayOfBoolean: { boolean: boolean[] } };
-}
-interface BundleGame {
-	bundleData: {
-		item: { key: { string: string }; value: { string: string } }[];
-	};
-	locations: {
-		GameLocation: {
-			name: string;
-			bundles: { item: BundleRecord[] };
-			bundleRewards: {
-				item: { key: { int: number }; value: { boolean: boolean } }[];
-			};
-			areasComplete: { boolean: boolean[] };
-		}[];
-	};
-}
 // The encoded definition is deliberately an exact compatibility gate. A modded
 // reward/requirement/localization layout must not receive guessed vanilla writes.
 const vanilla =
@@ -56,24 +37,30 @@ const vanilla =
 const inspect = Effect.fn("Bundles.inspect")(function* (
 	document: SaveDocument,
 ) {
-	const game = document.SaveGame as unknown as BundleGame;
-	const centers = game.locations.GameLocation.filter(
-		(location) => location.name === "CommunityCenter",
+	const game = document.SaveGame;
+	const centers = (game.locations ?? []).filter(
+		(location) =>
+			location?.$type === "StardewValley.Locations.CommunityCenter" &&
+			location.name === "CommunityCenter",
 	);
 	const cc = centers[0];
-	if (!cc || centers.length !== 1)
+	if (
+		!cc ||
+		cc.$type !== "StardewValley.Locations.CommunityCenter" ||
+		centers.length !== 1 ||
+		!cc.bundles ||
+		!cc.bundleRewards
+	)
 		return yield* new BundleProgressInvalid({
 			message: "A single Community Center is required.",
 		});
-	const definitions = game.bundleData.item;
-	const targets = definitions.filter(
-		(entry) => entry.key.string === "Crafts Room/13",
-	);
-	if (targets.length !== 1 || targets[0]?.value.string !== vanilla)
+	const definitions = game.bundleData ?? [];
+	const targets = definitions.filter((entry) => entry.key === "Crafts Room/13");
+	if (targets.length !== 1 || targets[0]?.value !== vanilla)
 		return yield* new BundleUnavailable({
 			message: "This sample supports the vanilla Spring Foraging bundle only.",
 		});
-	const records = cc.bundles.item.filter((entry) => entry.key.int === 13);
+	const records = cc.bundles.filter((entry) => entry.key === 13);
 	const record = records[0];
 	if (!record || records.length !== 1)
 		return yield* new BundleProgressInvalid({
@@ -81,7 +68,7 @@ const inspect = Effect.fn("Bundles.inspect")(function* (
 		});
 	// Vanilla reserves more donation flags than this bundle consumes. Validate the
 	// representation, but preserve those unused flags when completing four slots.
-	const submitted = record.value.ArrayOfBoolean.boolean;
+	const submitted = record.value;
 	if (
 		!Array.isArray(submitted) ||
 		submitted.length < 4 ||
@@ -90,15 +77,24 @@ const inspect = Effect.fn("Bundles.inspect")(function* (
 		return yield* new BundleProgressInvalid({
 			message: "Spring Foraging progress is malformed.",
 		});
-	const rewards = cc.bundleRewards.item.filter((entry) => entry.key.int === 13);
+	const rewards = cc.bundleRewards.filter((entry) => entry.key === 13);
 	if (
 		rewards.length > 1 ||
-		(rewards.length === 1 && typeof rewards[0]?.value.boolean !== "boolean")
+		(rewards.length === 1 && typeof rewards[0]?.value !== "boolean")
 	)
 		return yield* new BundleProgressInvalid({
 			message: "Spring Foraging reward is malformed or duplicated.",
 		});
-	return { cc, definitions, submitted, reward: rewards[0] };
+	// Carry validated collections alongside their owner so downstream edits do
+	// not have to reassert optional generated fields.
+	return {
+		cc,
+		bundles: cc.bundles,
+		bundleRewards: cc.bundleRewards,
+		definitions,
+		submitted,
+		reward: rewards[0],
+	};
 });
 // Unsupported bundle data disables only this sample. Other features can still
 // edit the full preservation document, including opaque mod data.
@@ -117,7 +113,7 @@ export function springBundleView(document: SaveDocument) {
 	return {
 		supported: true,
 		completed: submitted.slice(0, 4).every(Boolean),
-		rewardAvailable: reward?.value.boolean === true,
+		rewardAvailable: reward?.value === true,
 		reason: "",
 	};
 }
@@ -126,18 +122,17 @@ export function springBundleView(document: SaveDocument) {
 const complete = Effect.fn("Bundles.prepareSpringForaging")(function* (
 	document: SaveDocument,
 ) {
-	const { cc, definitions, submitted, reward } = yield* inspect(document);
+	const { cc, bundles, bundleRewards, definitions, submitted, reward } =
+		yield* inspect(document);
 	// Completion is idempotent: an already-completed bundle may have had its reward
 	// claimed. Repeating this command must never issue that reward again.
 	if (submitted.slice(0, 4).every(Boolean)) return false; // Never reissue a claimed reward.
 	// A room repair depends on every bundle in that room, not just this donation.
 	// Bound the proof to the vanilla room membership before deriving that result.
 	const roomDefinitions = definitions.filter((entry) =>
-		entry.key.string.startsWith("Crafts Room/"),
+		entry.key.startsWith("Crafts Room/"),
 	);
-	const ids = roomDefinitions.map((entry) =>
-		Number(entry.key.string.split("/")[1]),
-	);
+	const ids = roomDefinitions.map((entry) => Number(entry.key.split("/")[1]));
 	if (
 		ids.length !== 6 ||
 		new Set(ids).size !== 6 ||
@@ -146,7 +141,7 @@ const complete = Effect.fn("Bundles.prepareSpringForaging")(function* (
 		return yield* new BundleProgressInvalid({
 			message: "The sample requires the six vanilla Crafts Room bundle IDs.",
 		});
-	const areas = cc.areasComplete.boolean;
+	const areas = cc.areasComplete;
 	if (
 		!Array.isArray(areas) ||
 		areas.length < 6 ||
@@ -161,11 +156,11 @@ const complete = Effect.fn("Bundles.prepareSpringForaging")(function* (
 	// Validate each member explicitly so expected failures use the error channel.
 	let roomComplete = true;
 	for (const definition of roomDefinitions) {
-		const id = Number(definition.key.string.split("/")[1]);
-		const parts = definition.value.string.split("/");
+		const id = Number(definition.key.split("/")[1]);
+		const parts = definition.value.split("/");
 		const tokens = parts[2]?.trim().split(/\s+/) ?? [];
 		const required = parts[4] ? Number(parts[4]) : tokens.length / 3;
-		const records = cc.bundles.item.filter((entry) => entry.key.int === id);
+		const records = bundles.filter((entry) => entry.key === id);
 		if (
 			tokens.length === 0 ||
 			tokens.length % 3 ||
@@ -177,7 +172,7 @@ const complete = Effect.fn("Bundles.prepareSpringForaging")(function* (
 			return yield* new BundleProgressInvalid({
 				message: "A Crafts Room bundle definition is unsupported.",
 			});
-		const flags = records[0]?.value.ArrayOfBoolean.boolean;
+		const flags = records[0]?.value;
 		if (
 			!Array.isArray(flags) ||
 			flags.length < tokens.length / 3 ||
@@ -197,9 +192,8 @@ const complete = Effect.fn("Bundles.prepareSpringForaging")(function* (
 	// validation failure must discard all donations, reward and room changes.
 	const previouslyComplete = areas.slice(0, 6).every(Boolean);
 	for (let index = 0; index < 4; index++) submitted[index] = true;
-	if (reward) reward.value.boolean = true;
-	else
-		cc.bundleRewards.item.push({ key: { int: 13 }, value: { boolean: true } });
+	if (reward) reward.value = true;
+	else bundleRewards.push({ key: 13, value: true });
 	if (!roomComplete) return true;
 	// Apply repair/mail side effects only on a completion transition. Existing
 	// completed rooms may contain game-established flags we must not recompute.
@@ -210,21 +204,17 @@ const complete = Effect.fn("Bundles.prepareSpringForaging")(function* (
 	// Room unlocks affect all farmers. Preserve unrelated mail and duplicates; only
 	// the editor-owned flags below have set-like insertion/removal semantics.
 	for (const farmer of farmers(document)) {
-		const player = farmer as unknown as {
-			mailReceived: "" | { string: string[] };
-		};
+		const player = farmer;
 		if (
-			player.mailReceived !== "" &&
-			(!player.mailReceived ||
-				!Array.isArray(player.mailReceived.string) ||
-				player.mailReceived.string.some((flag) => typeof flag !== "string"))
+			!player.mailReceived ||
+			!Array.isArray(player.mailReceived) ||
+			player.mailReceived.some((flag) => typeof flag !== "string")
 		)
 			return yield* new BundleMailInvalid({
 				message: "Farmer mail flags are unsupported.",
 				farmerId: String(farmer.UniqueMultiplayerID),
 			});
-		let mail =
-			player.mailReceived === "" ? [] : [...player.mailReceived.string];
+		let mail = [...player.mailReceived];
 		const add = (flag: string) => {
 			if (!mail.includes(flag)) mail.push(flag);
 		};
@@ -248,8 +238,7 @@ const complete = Effect.fn("Bundles.prepareSpringForaging")(function* (
 			if (mail.includes("JojaMember")) remove("abandonedJojaMartAccessible");
 			else add("abandonedJojaMartAccessible");
 		}
-		if (player.mailReceived === "") player.mailReceived = { string: mail };
-		else player.mailReceived.string = mail;
+		player.mailReceived = mail;
 	}
 	return true;
 });

@@ -1,3 +1,4 @@
+import { isSavedData, savedBytes, patchValue } from "./saved-data.ts";
 import { isInventoryMutation } from "./inventory-transition.ts";
 import { inventoryContainers } from "./inventory-containers.ts";
 import { equipmentSlots, type EquipmentIdentities } from "./equipment.ts";
@@ -13,7 +14,6 @@ import {
 import {
 	Effect,
 	JsonPatch,
-	Schema,
 	Stream,
 	TxSubscriptionRef,
 	Option,
@@ -88,11 +88,11 @@ interface History {
 	dropped: number;
 }
 
-// Only parsed XML/JSON documents are supported, not live Svelte proxies, class
-// instances, undefined fields, BigInts or cyclic graphs. Do not normalize such
-// values with JSON.stringify: that would silently discard data.
-const json = (value: SaveDocument | DomainState) =>
-	value as unknown as Schema.Json;
+// Saved values are cloneable records, arrays and scalar values, including exact
+// 64-bit integers. Validation excludes class instances and cyclic graphs;
+// structuredClone establishes ownership at the session and draft boundaries.
+// Effect's patch implementation compares leaves directly and does not stringify.
+const json = patchValue;
 // These patches are generated from validated SaveDocuments (or their exact
 // inverses), not external patch requests. Keep the JSON/SaveDocument assertion
 // at this one representation boundary; Effect's patch API forgets the root type.
@@ -104,7 +104,7 @@ const isDomainState = (value: unknown): value is DomainState =>
 	value !== null &&
 	typeof value === "object" &&
 	!Array.isArray(value) &&
-	Schema.is(Schema.Json)(value);
+	isSavedData(value);
 
 /** Bounds retained undo entries and serialized payload bytes, not total heap use. */
 export interface HistoryLimits {
@@ -115,7 +115,7 @@ export interface HistoryLimits {
 // Bound serialized entry payloads (including identities and intent), not JS heap
 // overhead or the baseline/current document. Count the size field itself too.
 function entryBytes(payload: Omit<Entry, "bytes">): number {
-	const base = new TextEncoder().encode(JSON.stringify(payload)).byteLength;
+	const base = savedBytes(payload);
 	const prefix = ',"bytes":'.length;
 	let size = base + prefix + 1;
 	while (size !== base + prefix + String(size).length)
@@ -155,11 +155,11 @@ export const makeHistorySession = (
 			return yield* new MutationError(
 				"History byte budget must be a positive safe integer",
 			);
-		if (!Schema.is(Schema.Json)(document))
-			return yield* new MutationError("History requires plain JSON save data");
+		if (!isSavedData(document))
+			return yield* new MutationError("History requires plain saved data");
 		const baseline = structuredClone(document);
 		if (!isDomainState(initialDomainState))
-			return yield* new MutationError("Domain state requires plain JSON data");
+			return yield* new MutationError("Domain state requires plain saved data");
 		// Item IDs describe types, not instances. Allocate session-only handles,
 		// including opaque/empty slots, without adding fields to the exported save.
 		let nextIdentity = 0;
@@ -181,10 +181,10 @@ export const makeHistorySession = (
 						String(other.UniqueMultiplayerID) === id,
 				).length !== 1 ||
 				!farmer.items ||
-				!Array.isArray(farmer.items.Item)
+				!Array.isArray(farmer.items)
 			)
 				continue;
-			identities[id] = farmer.items.Item.map(() => `item:${++nextIdentity}`);
+			identities[id] = farmer.items.map(() => `item:${++nextIdentity}`);
 			// Equipment has stable field locations, including absent fields. Its handles
 			// remain session-only; allocating them must not materialize empty XML nodes.
 			equipmentIdentities[id] = Object.fromEntries(
@@ -625,7 +625,7 @@ export const makeHistorySession = (
 										inventory: result.inventory ?? previousInventory,
 									};
 									if (
-										!Schema.is(Schema.Json)(prepared.document) ||
+										!isSavedData(prepared.document) ||
 										!isDomainState(prepared.domainState)
 									)
 										return yield* new MutationError(

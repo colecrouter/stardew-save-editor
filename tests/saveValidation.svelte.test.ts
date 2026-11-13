@@ -72,6 +72,22 @@ describe("validateSave", () => {
 		});
 	});
 
+	it.each([0n, 9_007_199_254_740_993n])(
+		"accepts the exact UInt64 game ID %s",
+		(id) => {
+			const parsed = loadParsed();
+			Object.assign(parsed.SaveGame, { uniqueIDForThisGame: id });
+			expect(validateSave(parsed).valid).toBe(true);
+		},
+	);
+	it("rejects a negative bigint game ID", () => {
+		const parsed = loadParsed();
+		Object.assign(parsed.SaveGame, { uniqueIDForThisGame: -1n });
+		expect(validateSave(parsed).errors).toContain(
+			"Missing or invalid unique ID (uniqueIDForThisGame)",
+		);
+	});
+
 	it("rejects something that isn't a save", () => {
 		const result = validateSave({ notASave: true });
 		expect(result.valid).toBe(false);
@@ -411,7 +427,8 @@ async function importSave(xml: string): Promise<SaveManager> {
 	return saveManager;
 }
 
-describe("SaveManager validation", () => {
+// Full-file worker import/export needs an integration budget under parallel load.
+describe("SaveManager validation", { timeout: 30_000 }, () => {
 	mockIDB();
 	let saveManager: SaveManager;
 
@@ -460,7 +477,7 @@ describe("SaveManager validation", () => {
 	});
 });
 
-describe("Validation toasts", () => {
+describe("Validation toasts", { timeout: 30_000 }, () => {
 	mockIDB();
 	const negativeMoneySave = async () =>
 		(await readFile("tests/TestSave", "utf-8")).replace(

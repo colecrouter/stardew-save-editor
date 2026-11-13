@@ -14,19 +14,21 @@
 		"format:check": "oxfmt --check .",
 		"test": "vitest run",
 		"test:editor": "npm run sync && vitest run tests/editor",
-		"test:browser:save-processing": "node --import tsx tools/verify-save-processing-browser.mjs",
 		"emulate:webkit": "node tests/webkit.js",
 		"prepare": "effect-language-service patch && effect-tsgo patch --typescript",
 		"check:types": "npm run sync && node node_modules/@typescript/native/bin/tsc --noEmit -p tsconfig.json",
 		"effect:diagnostics": "effect-tsgo diagnostics --project tsconfig.json",
 		"sync": "svelte-kit sync",
 		"check:codegen": "node node_modules/@typescript/native/bin/tsc --noEmit -p codegen/tsconfig.json",
-		"postinstall": "patch-package --error-on-fail"
+		"postinstall": "patch-package --error-on-fail",
+		"game-data:generate": "dotnet run --project tools/game-data -- generate",
+		"test:game-data": "node tools/game-data/tests/prepare.mjs && node node_modules/@typescript/native/bin/tsc --noEmit -p tools/game-data/tsconfig.json && node --test tools/game-data/tests/*.node.ts",
+		"check:game-data": "node tools/game-data/tests/prepare.mjs && node node_modules/@typescript/native/bin/tsc --noEmit -p tools/game-data/tsconfig.json",
+		"test:browser:save-processing": "node --import tsx tools/verify-save-processing-browser.mjs"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.4.4",
 		"@effect/language-service": "0.87.5",
-		"@effect/platform-node": "4.0.6",
 		"@effect/tsgo": "0.56.1",
 		"@sentry/sveltekit": "^10.53.1",
 		"@sveltejs/adapter-static": "^3.0.10",
@@ -59,7 +61,8 @@
 		"vite": "^7.3.2",
 		"vite-plugin-sveltekit-legacy": "^0.1.0",
 		"vitest": "3.2.7",
-		"vitest-indexeddb": "^0.0.0"
+		"vitest-indexeddb": "^0.0.0",
+		"@effect/platform-node": "4.0.6"
 	},
 	"optionalDependencies": {
 		"playwright": "^1.49.1"
@@ -69,11 +72,17 @@
 		"node": ">=24 <25"
 	},
 	"dependencies": {
-		"@effect/platform-browser": "4.0.6",
 		"bits-ui": "2.20.3",
 		"effect": "4.0.6",
 		"effect-atom-svelte": "0.4.1",
-		"mutative": "2.0.1"
+		"mutative": "2.0.1",
+		"@effect/platform-browser": "4.0.6"
+	},
+	"allowScripts": {
+		"@sentry/cli@2.58.5": true,
+		"core-js@3.46.0": true,
+		"esbuild@0.25.11": true,
+		"esbuild@0.27.7": true
 	},
 	"overrides": {
 		"@effect/platform-node-shared": "4.0.6"

@@ -2,27 +2,24 @@ import { fireEvent, waitFor } from "@testing-library/svelte";
 import { expect, it } from "vitest";
 import { renderTestWorkspace } from "./workspace.ts";
 import { readRecipes } from "../../src/lib/editor/recipe-operations.ts";
-import { parser, fixtureXml } from "./fixtures.ts";
+import { tinyEditorFixture } from "../helpers/editor-document.ts";
 
 async function openRecipes() {
-	const document = parser.parse(fixtureXml);
+	// Recipe controls need two farmers and their dictionaries, not a full world.
+	const document = tinyEditorFixture();
 	const host = document.SaveGame.player;
 	Object.assign(host, {
-		cookingRecipes: {
-			item: [{ key: { string: "Fried Egg" }, value: { int: 77 } }],
-		},
-		recipesCooked: { item: [{ key: { string: "194" }, value: { int: 5 } }] },
-		craftingRecipes: {
-			item: [{ key: { string: "Torch" }, value: { int: 7 } }],
-		},
+		cookingRecipes: [{ key: "Fried Egg", value: 77 }],
+		recipesCooked: [{ key: "194", value: 5 }],
+		craftingRecipes: [{ key: "Torch", value: 7 }],
 	});
 	const guest = structuredClone(host);
-	guest.UniqueMultiplayerID = "guest";
+	guest.UniqueMultiplayerID = 2n;
 	guest.name = "Guest";
 	Object.assign(guest, {
-		recipesCooked: { item: [{ key: { string: "194" }, value: { int: 17 } }] },
+		recipesCooked: [{ key: "194", value: 17 }],
 	});
-	document.SaveGame.farmhands = { Farmer: [guest] };
+	document.SaveGame.farmhands = [guest];
 	const opened = await renderTestWorkspace(document, "Recipes");
 	return { ...opened, hostId: String(host.UniqueMultiplayerID) };
 }
@@ -42,7 +39,7 @@ it(
 			await fireEvent.input(count, { target: { value: "6" } });
 			await fireEvent.input(count, { target: { value: "66" } });
 			await fireEvent.change(page.getByRole("combobox", { name: "Farmer" }), {
-				target: { value: "guest" },
+				target: { value: "2" },
 			});
 			const snapshot = await model.snapshot();
 			await waitFor(() =>
@@ -69,7 +66,7 @@ it(
 			).toBe(5);
 			expect(
 				after
-					.find((owner) => owner.farmerId === "guest")
+					.find((owner) => owner.farmerId === "2")
 					?.cooking.find((row) => row.name === "Fried Egg")?.count,
 			).toBe(17);
 		} finally {

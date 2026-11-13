@@ -1,9 +1,9 @@
 import { progressionFarmers } from "./progression-farmers.ts";
 import { Data, Effect, Schema, Result } from "effect";
-import { createFarmAnimal, newAnimalId } from "../farmAnimalData.ts";
-import { changeBuildingTier } from "../animalBuildings.ts";
+import { createFarmAnimal, newAnimalId } from "./farm-animal-data.ts";
+import { changeBuildingTier } from "./animal-buildings.ts";
 import { upgradeTiers, purchasedAnimalTopic } from "../animalBuildingData.ts";
-import { type SaveDocument } from "./domain.ts";
+import type { Farmer, SaveDocument } from "./domain.ts";
 import { TransactionDraft } from "./transaction-draft.ts";
 import { InventoryEdits } from "./inventory-operations.ts";
 import {
@@ -11,16 +11,14 @@ import {
 	withReviewMetadata,
 } from "./transaction-annotations.ts";
 import {
-	record,
-	integer,
 	long,
-	collection,
-	append,
 	residents,
 	animalDictionary,
 	inspectBuildings,
 	readBuildings,
 	tierRecord,
+	safeInterior,
+	isKnownLocation,
 } from "./building-data.ts";
 
 export class BuildingInvalid extends Data.TaggedError("BuildingInvalid")<{
@@ -130,63 +128,35 @@ export const setAnimal = Effect.fn("Buildings.setAnimal")(function* (
 	);
 });
 
-// Progression effects are validated as XML collections before adding entries.
-// Unknown members and singleton representations survive unless insertion is needed.
-const checkedStrings = Effect.fn("Buildings.strings")(function* (raw: unknown) {
-	const values = collection(raw, "string");
-	const entries = record(raw)
-		? raw.string === undefined || raw.string === ""
-			? []
-			: Array.isArray(raw.string)
-				? raw.string
-				: [raw.string]
-		: [];
-	if (
-		!(raw === undefined || raw === null || raw === "" || record(raw)) ||
-		entries.some((value) => typeof value !== "string")
-	)
+// Progression collections expose decoded string values, with absence allowed for new fields.
+const checkedStrings = Effect.fn("Buildings.strings")(function* (
+	raw: (string | null)[] | undefined,
+) {
+	const entries = raw ?? [];
+	// Nullable strings are decoded faithfully; progression edits require every
+	// entry to name a flag, rather than silently dropping null slots.
+	if (entries.some((value) => value === null))
 		return yield* invalid("A progression mail/building list is unsupported.");
-	return { ...values, entries };
+	return {
+		entries: entries.filter((value): value is string => value !== null),
+	};
 });
 const topic = Effect.fn("Buildings.topic")(function* (
-	farmer: Record<string, unknown>,
+	farmer: Farmer,
 	id: string,
 ) {
-	const active = collection(farmer.activeDialogueEvents, "item"),
-		previous = collection(farmer.previousActiveDialogueEvents, "item");
-	if (
-		!active.supported ||
-		!previous.supported ||
-		[...active.entries, ...previous.entries].some(
-			(entry) =>
-				!record(entry) ||
-				!record(entry.key) ||
-				typeof entry.key.string !== "string",
-		)
-	)
-		return yield* invalid("A farmer's conversation topics are unsupported.");
-	if (
-		[...active.entries, ...previous.entries].some(
-			(entry) => record(entry) && record(entry.key) && entry.key.string === id,
-		)
-	)
-		return;
-	farmer.activeDialogueEvents = append(farmer.activeDialogueEvents, "item", {
-		key: { string: id },
-		value: { int: 4 },
-	});
+	const active = farmer.activeDialogueEvents ?? [];
+	const previous = farmer.previousActiveDialogueEvents ?? [];
+	if ([...active, ...previous].some((entry) => entry.key === id)) return;
+	farmer.activeDialogueEvents = [...active, { key: id, value: 4 }];
 });
-const addString = Effect.fn("Buildings.addString")(function* (
-	owner: Record<string, unknown>,
-	property: string,
+const addString = Effect.fn("Buildings.addString")(function* <K extends string>(
+	owner: { [P in K]?: (string | null)[] },
+	property: K,
 	value: string,
 ) {
 	const data = yield* checkedStrings(owner[property]);
-	if (!data.entries.includes(value))
-		owner[property] = {
-			...(record(data.raw) ? data.raw : {}),
-			string: [...data.entries, value],
-		};
+	if (!data.entries.includes(value)) owner[property] = [...data.entries, value];
 });
 const sendMail = Effect.fn("Buildings.mail")(function* (
 	document: SaveDocument,
@@ -194,8 +164,6 @@ const sendMail = Effect.fn("Buildings.mail")(function* (
 ) {
 	yield* addString(document.SaveGame, "broadcastedMail", `%&SM&%${key}`);
 	for (const farmer of yield* progressionFarmers(document)) {
-		if (!record(farmer))
-			return yield* invalid("A farmer record is unsupported.");
 		const received = yield* checkedStrings(farmer.mailReceived),
 			mailbox = yield* checkedStrings(farmer.mailbox),
 			tomorrow = yield* checkedStrings(farmer.mailForTomorrow);
@@ -208,50 +176,6 @@ const sendMail = Effect.fn("Buildings.mail")(function* (
 	}
 });
 
-/** Helpers move only checked object/furniture collections; opaque shapes must not be silently erased. */
-function safeInterior(raw: Record<string, unknown> | undefined): boolean {
-	if (!raw) return true;
-	const vector = (value: unknown) =>
-		record(value) &&
-		typeof value.X === "number" &&
-		Number.isFinite(value.X) &&
-		typeof value.Y === "number" &&
-		Number.isFinite(value.Y);
-	const item = (value: unknown) =>
-		record(value) &&
-		(value.tileLocation === undefined || vector(value.tileLocation)) &&
-		[value.boundingBox, value.defaultBoundingBox].every(
-			(box) =>
-				box === undefined ||
-				(vector(box) &&
-					record(box) &&
-					typeof box.Width === "number" &&
-					typeof box.Height === "number"),
-		);
-	const objects = collection(raw.objects, "item"),
-		furniture = collection(raw.furniture, "Furniture");
-	// Existing helpers expect arrays for nonempty collections. Conservatively leave
-	// alternate imported shapes read-only instead of letting the helper drop them.
-	return (
-		objects.supported &&
-		furniture.supported &&
-		(!record(raw.objects) ||
-			raw.objects.item === undefined ||
-			Array.isArray(raw.objects.item)) &&
-		(!record(raw.furniture) ||
-			raw.furniture.Furniture === undefined ||
-			Array.isArray(raw.furniture.Furniture)) &&
-		objects.entries.every(
-			(entry) =>
-				record(entry) &&
-				record(entry.key) &&
-				vector(entry.key.Vector2) &&
-				record(entry.value) &&
-				item(entry.value.Object),
-		) &&
-		furniture.entries.every(item)
-	);
-}
 /** Inventory's private replay repeats only the checked structural transition; progression is outside its authority. */
 export function replayBuildingUpgrade(
 	document: SaveDocument,
@@ -317,8 +241,6 @@ export const prepareBuildingUpgrade = Effect.fn("Buildings.prepareUpgrade")(
 			yield* addString(document.SaveGame, "constructedBuildings", name);
 		for (const key of mail) yield* sendMail(document, key);
 		for (const farmer of yield* progressionFarmers(document)) {
-			if (!record(farmer))
-				return yield* invalid("A farmer record is unsupported.");
 			for (const id of topics) yield* topic(farmer, id);
 		}
 		return warnings;
@@ -367,6 +289,7 @@ export const adoptAnimal = Effect.fn("Buildings.adopt")(function* (
 		!graph.supported ||
 		graph.animals.some((row) => !row.supported) ||
 		!building?.supported ||
+		building.raw.$type === "$unknown" ||
 		!building.interior ||
 		!view ||
 		view.adoptionReason ||
@@ -385,7 +308,7 @@ export const adoptAnimal = Effect.fn("Buildings.adopt")(function* (
 				: "The animal needs a name.",
 		);
 	const owners = (yield* progressionFarmers(document)).filter(
-		(owner) => record(owner) && long(owner.UniqueMultiplayerID) === farmerId,
+		(owner) => owner.UniqueMultiplayerID?.toString() === farmerId,
 	);
 	const owner = owners.length === 1 ? owners[0] : undefined;
 	if (!owner || long(owner.UniqueMultiplayerID) === undefined)
@@ -399,39 +322,23 @@ export const adoptAnimal = Effect.fn("Buildings.adopt")(function* (
 	);
 	for (const row of graph.buildings)
 		for (const id of residents(row.interior).ids) taken.add(id);
-	const game: Record<string, unknown> = document.SaveGame;
+	const game = document.SaveGame;
 	if (game.latestID !== undefined && long(game.latestID) === undefined)
 		return yield* invalid("The saved animal ID sequence is unsupported.");
 	const id = newAnimalId(farmerId, { latestId: long(game.latestID), taken });
 	const raw = createFarmAnimal(type, trimmed, farmerId, id),
 		interior = building.interior;
-	// Deliberate insertion creates both game serializations while preserving
-	// dictionary wrapper members; existing field edits never create missing mirrors.
+	// Deliberate insertion updates both saved dictionaries; ordinary property edits
+	// still leave a missing mirror absent.
 	const dictionary = animalDictionary(interior);
 	// If only the uppercase dictionary existed, retain those animals as well.
-	interior.animals = {
-		...(record(dictionary.lower.raw) ? dictionary.lower.raw : {}),
-		item: [...dictionary.entries, raw],
-	};
-	interior.Animals = {
-		...(record(interior.Animals) ? interior.Animals : {}),
-		SerializableDictionaryOfInt64FarmAnimal: {
-			...(record(dictionary.upper.raw) ? dictionary.upper.raw : {}),
-			item: structuredClone([...dictionary.entries, raw]),
-		},
-	};
+	interior.animals = [...dictionary.entries, raw];
+	interior.Animals = structuredClone(interior.animals);
 	const home = residents(interior);
-	interior.animalsThatLiveHere = {
-		...(record(interior.animalsThatLiveHere)
-			? interior.animalsThatLiveHere
-			: {}),
-		long: [...home.ids, id],
-	};
+	interior.animalsThatLiveHere = [...home.ids.map(BigInt), BigInt(id)];
 	building.raw.currentOccupants = dictionary.entries.length + 1;
-	game.latestID = id;
+	game.latestID = BigInt(id);
 	for (const farmer of yield* progressionFarmers(document)) {
-		if (!record(farmer))
-			return yield* invalid("A farmer record is unsupported.");
 		yield* topic(farmer, purchasedAnimalTopic(type));
 	}
 	yield* recordAnnotatedOperation(draft.replace(snapshot)).pipe(
@@ -450,16 +357,15 @@ export const setGreenhouseRepaired = Effect.fn("Buildings.greenhouse")(
 		const view = readBuildings(snapshot.state.document).buildings.find(
 			(row) => row.id === buildingId,
 		);
-		const farms = collection(
-			snapshot.state.document.SaveGame.locations,
-			"GameLocation",
-		).entries.filter((row) => record(row) && row.name === "Farm");
+		const farms = (snapshot.state.document.SaveGame.locations ?? []).filter(
+			(row) => row?.name === "Farm",
+		);
 		if (
 			typeof value !== "boolean" ||
 			!view?.supported ||
 			view.repaired === undefined ||
 			farms.length !== 1 ||
-			!record(farms[0])
+			!isKnownLocation(farms[0])
 		)
 			return yield* invalid("The saved Greenhouse flag is unsupported.");
 		farms[0].greenhouseUnlocked = value;

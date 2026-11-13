@@ -1,3 +1,4 @@
+import { savedType } from "./saved-types.ts";
 import {
 	formatDate,
 	MAX_YEAR,
@@ -5,8 +6,8 @@ import {
 	totalDays,
 	type GameDate,
 } from "../calendar.ts";
-import { farmers, type SaveDocument } from "./domain.ts";
-import { record } from "./saved-collections.ts";
+import { farmers, type Farmer, type SaveDocument } from "./domain.ts";
+import { record } from "./plain-data.ts";
 
 /** Saved eligibility facts, adapted from PR #241's baby-question presentation.
  * Game references: NPC.canGetPregnant, Utility.playersCanGetPregnantHere and
@@ -38,12 +39,8 @@ const list = (raw: unknown): unknown[] =>
 			: [raw];
 const whole = (raw: unknown): raw is number =>
 	typeof raw === "number" && Number.isSafeInteger(raw);
-const identity = (raw: unknown) =>
-	typeof raw === "string" && raw.length > 0
-		? raw
-		: whole(raw)
-			? String(raw)
-			: undefined;
+// All saved player identities are decoded Int64s; only absence needs handling.
+const identity = (raw: bigint | undefined) => raw?.toString();
 
 /** Reject malformed dates rather than silently normalizing a saved pregnancy. */
 export function pregnancyDate(
@@ -65,11 +62,8 @@ export function pregnancyDate(
 export function todayForPregnancy(
 	document: SaveDocument,
 ): GameDate | undefined {
-	const game: Record<string, unknown> = document.SaveGame;
-	const season = whole(game.currentSeason)
-		? SEASONS[game.currentSeason]
-		: game.currentSeason;
-	return pregnancyDate(game.year, season, game.dayOfMonth);
+	const game = document.SaveGame;
+	return pregnancyDate(game.year, game.currentSeason, game.dayOfMonth);
 }
 
 interface HomeFacts {
@@ -78,27 +72,17 @@ interface HomeFacts {
 	readonly children?: number;
 	readonly toddlers?: number;
 }
-function homeFacts(
-	document: SaveDocument,
-	owner: Record<string, unknown>,
-): HomeFacts {
+function homeFacts(document: SaveDocument, owner: Farmer): HomeFacts {
 	const locations: Record<string, unknown>[] = [];
 	// Cabins live inside placed buildings, while the host house is a top-level
 	// location. Search both without choosing a winner when identities collide.
 	function visit(raw: unknown) {
 		if (!record(raw)) return;
 		locations.push(raw);
-		for (const building of list(
-			record(raw.buildings) ? raw.buildings.Building : undefined,
-		))
+		for (const building of list(raw.buildings))
 			if (record(building)) visit(building.indoors);
 	}
-	for (const location of list(
-		record(document.SaveGame.locations)
-			? document.SaveGame.locations.GameLocation
-			: undefined,
-	))
-		visit(location);
+	for (const location of list(document.SaveGame.locations)) visit(location);
 	const homeName =
 		typeof owner.homeLocation === "string" ? owner.homeLocation : undefined;
 	const homes = locations.filter(
@@ -111,15 +95,15 @@ function homeFacts(
 		: undefined;
 	if (!home) return { level };
 	const characters = home.characters;
-	if (characters !== undefined && characters !== "" && !record(characters))
-		return { level };
-	const npcs = list(record(characters) ? characters.NPC : undefined);
-	if (npcs.some((npc) => !record(npc))) return { level };
-	const children = npcs.filter(
-		(npc) => record(npc) && npc["@_xsi:type"] === "Child",
-	);
+	if (characters !== undefined && !Array.isArray(characters)) return { level };
+	const npcs = list(characters);
+	// A home can come from opaque location data. Check its residents once, then
+	// keep the narrowed records through child selection and age inspection.
+	const residents = npcs.filter(record);
+	if (residents.length !== npcs.length) return { level };
+	const children = residents.filter((npc) => savedType(npc) === "Child");
 	const ages = children.map((child) =>
-		record(child) && whole(child.daysOld) ? child.daysOld : undefined,
+		whole(child.daysOld) ? child.daysOld : undefined,
 	);
 	return {
 		level,
@@ -175,9 +159,7 @@ function homeRequirements(homes: HomeFacts[]): PregnancyRequirement[] {
 /** Engine-only target resolution. The mutable saved record stays behind the
  * projection boundary; queued writes must resolve and compare this key again. */
 export function inspectPregnancy(document: SaveDocument, farmerId: string) {
-	const all: Record<string, unknown>[] = farmers(document).flatMap((owner) =>
-		record(owner) ? [owner] : [],
-	);
+	const all = farmers(document);
 	const matches = all.filter(
 		(owner) => identity(owner.UniqueMultiplayerID) === farmerId,
 	);
@@ -196,38 +178,25 @@ export function inspectPregnancy(document: SaveDocument, farmerId: string) {
 	};
 	if (!owner) return { view: empty };
 	const dictionary = owner.friendshipData;
-	const friendships = list(record(dictionary) ? dictionary.item : undefined);
+	const friendships = dictionary ?? [];
+	// Friendship dictionaries are decoded; marriage state and duplicate identities
+	// remain domain checks rather than object-shape checks.
 	const spouses = friendships.flatMap((entry) =>
-		record(entry) &&
-		record(entry.key) &&
-		typeof entry.key.string === "string" &&
-		record(entry.value) &&
-		record(entry.value.Friendship) &&
-		entry.value.Friendship.Status === "Married"
-			? [{ name: entry.key.string, saved: entry.value.Friendship }]
+		entry.value.Status === "Married"
+			? [{ name: entry.key, saved: entry.value }]
 			: [],
 	);
-	const game: Record<string, unknown> = document.SaveGame;
-	const pairs = list(
-		record(game.farmerFriendships) ? game.farmerFriendships.item : undefined,
-	);
+	const game = document.SaveGame;
+	const pairs = game.farmerFriendships ?? [];
 	const playerSpouses = pairs.flatMap((entry) => {
-		if (
-			!record(entry) ||
-			!record(entry.key) ||
-			!record(entry.key.FarmerPair) ||
-			!record(entry.value) ||
-			!record(entry.value.Friendship) ||
-			entry.value.Friendship.Status !== "Married"
-		)
-			return [];
-		const pair = entry.key.FarmerPair;
+		if (entry.value.Status !== "Married") return [];
+		const pair = entry.key;
 		const first = identity(pair.Farmer1),
 			second = identity(pair.Farmer2);
 		const partner =
 			first === farmerId ? second : second === farmerId ? first : undefined;
 		return partner && partner !== farmerId
-			? [{ partner, saved: entry.value.Friendship }]
+			? [{ partner, saved: entry.value }]
 			: [];
 	});
 	if (spouses.length + playerSpouses.length !== 1) return { view: empty };
@@ -235,22 +204,14 @@ export function inspectPregnancy(document: SaveDocument, farmerId: string) {
 		pair = playerSpouses[0];
 	// A dictionary with the same villager key twice is ambiguous even when only
 	// one duplicate claims marriage. Never use its status to pick a writable winner.
-	if (
-		npc &&
-		friendships.filter(
-			(entry) =>
-				record(entry) && record(entry.key) && entry.key.string === npc.name,
-		).length !== 1
-	)
+	if (npc && friendships.filter((entry) => entry.key === npc.name).length !== 1)
 		return { view: empty };
 	// Player-pair dictionary keys are unordered identities. Duplicates with a
 	// different status are still ambiguous and cannot authorize a pregnancy write.
 	if (
 		pair &&
 		pairs.filter((entry) => {
-			if (!record(entry) || !record(entry.key) || !record(entry.key.FarmerPair))
-				return false;
-			const key = entry.key.FarmerPair;
+			const key = entry.key;
 			const first = identity(key.Farmer1),
 				second = identity(key.Farmer2);
 			return (
@@ -274,17 +235,11 @@ export function inspectPregnancy(document: SaveDocument, farmerId: string) {
 		(typeof partner?.name === "string" ? partner.name : "Other farmer");
 	const targetKey = JSON.stringify([kind, npc?.name ?? pair?.partner]);
 	const rawDate = saved.NextBirthingDate;
-	const absent =
-		rawDate === undefined ||
-		rawDate === null ||
-		rawDate === "" ||
-		(record(rawDate) &&
-			(rawDate["@_xsi:nil"] === true || rawDate["@_xsi:nil"] === "true"));
-	// Nil marks an absent WorldDate even if stale coordinates remain attached.
-	const due =
-		!absent && record(rawDate)
-			? pregnancyDate(rawDate.Year, rawDate.Season, rawDate.DayOfMonth)
-			: undefined;
+	const absent = rawDate === undefined || rawDate === null;
+	// A null date means no pregnancy; a present date must have usable coordinates.
+	const due = !absent
+		? pregnancyDate(rawDate.Year, rawDate.Season, rawDate.DayOfMonth)
+		: undefined;
 	const supported = today !== undefined && (absent || due !== undefined);
 	const requirements: PregnancyRequirement[] = [
 		{
@@ -298,13 +253,14 @@ export function inspectPregnancy(document: SaveDocument, farmerId: string) {
 		]),
 	];
 	if (npc) {
-		const wedding = record(saved.WeddingDate)
-			? pregnancyDate(
-					saved.WeddingDate.Year,
-					saved.WeddingDate.Season,
-					saved.WeddingDate.DayOfMonth,
-				)
-			: undefined;
+		const wedding =
+			saved.WeddingDate != null
+				? pregnancyDate(
+						saved.WeddingDate.Year,
+						saved.WeddingDate.Season,
+						saved.WeddingDate.DayOfMonth,
+					)
+				: undefined;
 		const marriedDays =
 			today && wedding ? totalDays(today) - totalDays(wedding) : undefined;
 		requirements.splice(

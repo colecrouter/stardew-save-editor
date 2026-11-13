@@ -1,19 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { fireEvent, render, waitFor, within } from "@testing-library/svelte";
-import { Result } from "effect";
-import { openEditor } from "../../src/lib/editor/editor-model";
+import { openTestEditor, openTestDocument } from "../helpers/open-editor.ts";
 import { catalogEntries } from "../../src/lib/editor/item-catalog";
 import BackpackHarness from "./BackpackHarness.svelte";
-import { fixtureXml, parser, exportDocument } from "./fixtures";
-import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
+import { fixtureXml, parser } from "./fixtures";
 
-// Real full-save copies and export parsing need a bounded integration budget on CI.
-describe("backpack catalog workflow", { timeout: 25_000 }, () => {
+// Real full-save UI projections need a bounded integration budget on CI.
+describe("backpack catalog workflow", { timeout: 60_000 }, () => {
 	it("browses without writes, adds to the chosen empty slot, and follows add/remove through undo and redo", async () => {
-		const opened = await openEditor(
-			SaveProcessingSync,
-			new TextEncoder().encode(fixtureXml),
-		);
+		const opened = await openTestEditor(new TextEncoder().encode(fixtureXml));
 		const page = render(BackpackHarness, { model: opened.model });
 		try {
 			const original = parser.parse(fixtureXml);
@@ -43,9 +38,7 @@ describe("backpack catalog workflow", { timeout: 25_000 }, () => {
 			const expected = structuredClone(original);
 			const wood = catalogEntries.find((entry) => entry.id === "Wood");
 			if (!wood) throw Error("Expected the Wood catalog entry");
-			expected.SaveGame.player.items.Item[3] = structuredClone(
-				wood.raw,
-			) as never;
+			expected.SaveGame.player.items[3] = structuredClone(wood.raw) as never;
 			expect((await opened.model.snapshot()).document).toEqual(expected);
 			expect(
 				page
@@ -76,23 +69,8 @@ describe("backpack catalog workflow", { timeout: 25_000 }, () => {
 				expect(page.getByRole("heading", { name: "Wood" })).toBeTruthy(),
 			);
 			expect((await opened.model.snapshot()).document).toEqual(expected);
-			// Validate the actual encoded/reparsed document, including all untouched fields.
-			const exported = await opened.model.commands.export();
-			if (!exported || Result.isFailure(exported))
-				throw Error("Expected successful export");
-			// XML has no primitive string/number distinction for a numeric item ID.
-			// Account for that new-record representation without relaxing equality
-			// for any imported part of the document.
-			const serializedExpected = structuredClone(expected);
-			(
-				serializedExpected.SaveGame.player.items.Item[3] as Record<
-					string,
-					unknown
-				>
-			).itemId = 388;
-			expect(parser.parse(new TextDecoder().decode(exported.success))).toEqual(
-				serializedExpected,
-			);
+			// Codec roundtrips for added items live in backpack-lifecycle.test.ts.
+			// This interaction owns selection lineage and exact Undo/Redo snapshots.
 		} finally {
 			page.unmount();
 			await opened.close();
@@ -101,17 +79,15 @@ describe("backpack catalog workflow", { timeout: 25_000 }, () => {
 
 	it("removes an opaque imported item and restores its complete data on undo", async () => {
 		const original = parser.parse(fixtureXml);
-		original.SaveGame.player.items.Item[3] = {
-			"@_xsi:type": "ModdedItem",
+		original.SaveGame.player.items[3] = {
+			$type: "$unknown",
+			$xmlType: { name: "ModdedItem", namespace: "" },
 			itemId: "mod.example",
 			name: "Opaque keepsake",
 			stack: 7,
 			custom: { "@_version": "2", nested: [{ value: 0 }, { value: false }] },
 		} as never;
-		const opened = await openEditor(
-			SaveProcessingSync,
-			new TextEncoder().encode(exportDocument(original)),
-		);
+		const opened = await openTestDocument(original);
 		const page = render(BackpackHarness, { model: opened.model });
 		try {
 			const before = (await opened.model.snapshot()).document;
@@ -143,5 +119,5 @@ describe("backpack catalog workflow", { timeout: 25_000 }, () => {
 			page.unmount();
 			await opened.close();
 		}
-	});
+	}, 30_000);
 });

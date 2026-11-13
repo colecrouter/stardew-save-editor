@@ -4,7 +4,7 @@ import {
 	readCharacterDetails,
 	type CharacterDetailsView,
 } from "./character-details.ts";
-import { farmers, type SaveDocument } from "./domain.ts";
+import { farmers, type Farmer, type SaveDocument } from "./domain.ts";
 import { TransactionDraft } from "./transaction-draft.ts";
 import {
 	recordAnnotatedOperation,
@@ -97,18 +97,9 @@ const uint = (value: unknown): value is number =>
 	Number.isInteger(value) &&
 	value >= 0 &&
 	value <= 4294967295;
-// The narrow core Farmer interface intentionally omits character data. Inspect a
-// checked plain-record lens rather than asserting the entire generated save type.
-const characterFarmers = (document: SaveDocument): Record<string, unknown>[] =>
-	farmers(document).flatMap((value) => (record(value) ? [value] : []));
-const scalarId = (farmer: Record<string, unknown>) => {
-	const value = farmer.UniqueMultiplayerID;
-	return typeof value === "string" && value.length > 0
-		? value
-		: typeof value === "number" && Number.isFinite(value)
-			? String(value)
-			: undefined;
-};
+// The codec owns record and Int64 validation; optional identities still need
+// to be present before an editor command can address a farmer.
+const scalarId = (farmer: Farmer) => farmer.UniqueMultiplayerID?.toString();
 /** Level projections do not repair differing saved mirrors just because a page was opened. */
 export const skillLevel = (xp: number) =>
 	skillXpForLevel.filter((threshold) => xp >= threshold).length - 1;
@@ -148,57 +139,30 @@ export interface CharacterView {
 		reason?: string;
 	};
 }
-function readProfessionList(farmer: Record<string, unknown>) {
-	const raw = farmer.professions;
-	const saved = record(raw) ? raw.int : undefined;
-	const values =
-		saved === undefined ? [] : Array.isArray(saved) ? saved : [saved];
-	const supported =
-		(raw === "" || record(raw)) &&
-		values.every(
-			(value) => typeof value === "number" && Number.isInteger(value),
-		);
-	return { supported, values: supported ? (values as number[]) : [] };
+function readProfessionList(farmer: Farmer) {
+	const values = farmer.professions;
+	const supported = values !== undefined;
+	return { supported, values: supported ? (values ?? []) : [] };
 }
 interface StatDictionary {
 	supported: boolean;
-	entries: unknown[];
-	singleton: boolean;
+	entries: NonNullable<NonNullable<Farmer["stats"]>["Values"]>;
 }
-function statDictionary(farmer: Record<string, unknown>): StatDictionary {
-	const stats = farmer.stats;
-	if (!record(stats))
-		return { supported: false, entries: [], singleton: false };
-	const values = stats.Values;
-	if (values === undefined || values === "")
-		return { supported: true, entries: [], singleton: false };
-	if (!record(values))
-		return { supported: false, entries: [], singleton: false };
-	const items = values.item;
-	if (items === undefined)
-		return { supported: true, entries: [], singleton: false };
+function statDictionary(farmer: Farmer): StatDictionary {
+	// Stats may be absent, but a decoded Values field is already a typed dictionary.
 	return {
-		supported: Array.isArray(items) || record(items),
-		entries: Array.isArray(items) ? items : [items],
-		singleton: record(items),
+		supported: farmer.stats !== undefined,
+		entries: farmer.stats?.Values ?? [],
 	};
 }
 function statValue(dictionary: StatDictionary, key: string) {
-	// Ignore opaque unrelated entries, but never select an arbitrary duplicate of
-	// a relevant case-insensitive game key. Its meaning would be ambiguous on load.
+	// Dictionary entry shapes are decoded already. Duplicate case-insensitive
+	// game keys still have ambiguous meaning and must not select a write target.
 	const matches = dictionary.entries.flatMap((entry, index) =>
-		record(entry) &&
-		record(entry.key) &&
-		typeof entry.key.string === "string" &&
-		entry.key.string.toLowerCase() === key.toLowerCase()
-			? [{ entry, index }]
-			: [],
+		entry.key.toLowerCase() === key.toLowerCase() ? [{ entry, index }] : [],
 	);
 	const match = matches[0];
-	const value =
-		match && record(match.entry.value)
-			? match.entry.value.unsignedInt
-			: undefined;
+	const value = match?.entry.value;
 	return {
 		supported:
 			dictionary.supported && matches.length <= 1 && (!match || uint(value)),
@@ -206,7 +170,7 @@ function statValue(dictionary: StatDictionary, key: string) {
 		index: match?.index,
 	};
 }
-function readMastery(farmer: Record<string, unknown>) {
+function readMastery(farmer: Farmer) {
 	const dictionary = statDictionary(farmer),
 		xp = statValue(dictionary, "MasteryExp"),
 		spent = statValue(dictionary, "MasteryLevelsSpent");
@@ -232,15 +196,13 @@ function readMastery(farmer: Record<string, unknown>) {
 }
 /** Project only unambiguous farmers; opaque fields and inconsistent imported mirrors stay intact. */
 export function readCharacters(document: SaveDocument): CharacterView[] {
-	const all = characterFarmers(document);
+	const all = farmers(document);
 	return all.map((farmer) => {
 		const id = scalarId(farmer),
 			supported =
 				id !== undefined &&
 				all.filter((other) => scalarId(other) === id).length === 1;
-		const experience = record(farmer.experiencePoints)
-			? farmer.experiencePoints.int
-			: undefined;
+		const experience = farmer.experiencePoints;
 		const professions = readProfessionList(farmer),
 			mastery = readMastery(farmer);
 		return {
@@ -308,7 +270,7 @@ export const setCharacter = Effect.fn("Character.set")(function* (
 	const request = decoded.success;
 	const transaction = yield* TransactionDraft;
 	const snapshot = yield* transaction.read;
-	const matches = characterFarmers(snapshot.state.document).filter(
+	const matches = farmers(snapshot.state.document).filter(
 		(farmer) => scalarId(farmer) === request.farmerId,
 	);
 	const farmer = matches[0];
@@ -326,7 +288,7 @@ export const setCharacter = Effect.fn("Character.set")(function* (
 				message: "Choose a supported skill.",
 			});
 		const container = farmer.experiencePoints;
-		const values = record(container) ? container.int : undefined;
+		const values = container;
 		const previous = Array.isArray(values)
 			? values[definition.index]
 			: undefined;
@@ -388,15 +350,7 @@ export const setCharacter = Effect.fn("Character.set")(function* (
 			]);
 			values = values.filter((value) => !removed.has(value));
 		}
-		const raw = farmer.professions;
-		const previous = record(raw) ? raw.int : undefined;
-		farmer.professions = {
-			...(record(raw) ? raw : {}),
-			int:
-				values.length === 1 && typeof previous === "number"
-					? values[0]
-					: values,
-		};
+		farmer.professions = values;
 		label = `${request.enabled ? "Enable" : "Remove"} ${definition.name}`;
 	} else {
 		const mastery = readMastery(farmer);
@@ -412,30 +366,26 @@ export const setCharacter = Effect.fn("Character.set")(function* (
 		const dictionary = statDictionary(farmer),
 			current = statValue(dictionary, "MasteryExp");
 		const stats = farmer.stats;
-		if (!record(stats))
+		if (stats === undefined)
 			return yield* new CharacterInvalid({
 				message: "This farmer's mastery stats are unavailable.",
 			});
-		const container = record(stats.Values) ? stats.Values : {};
 		const entries = [...dictionary.entries];
 		if (current.index !== undefined) {
 			// Update the existing key/value in place, retaining its spelling and all opaque
 			// members. Zero may remain explicit instead of discarding that entry's data.
 			const entry = entries[current.index];
-			if (!record(entry) || !record(entry.value))
+			if (!record(entry))
 				return yield* new CharacterInvalid({
 					message: "This mastery stat is malformed.",
 				});
-			entry.value.unsignedInt = request.value;
+			entry.value = request.value;
 		} else
 			entries.push({
-				key: { string: "MasteryExp" },
-				value: { unsignedInt: request.value },
+				key: "MasteryExp",
+				value: request.value,
 			});
-		stats.Values = {
-			...container,
-			item: dictionary.singleton && entries.length === 1 ? entries[0] : entries,
-		};
+		stats.Values = entries;
 		// Mastery XP changes available levels only; rewards/claimed flags are never
 		// synthesized and ordinary skill edits never earn mastery XP as a side effect.
 		label = "Update mastery experience";

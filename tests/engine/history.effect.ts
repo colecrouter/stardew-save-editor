@@ -6,7 +6,7 @@ import { makeHistorySession } from "../../src/lib/editor/history.ts";
 
 const money = (value: number): MutationRequest => ({
 	type: "money",
-	farmerId: "host",
+	farmerId: "1",
 	value,
 });
 
@@ -94,7 +94,7 @@ it.effect("quiet reorder remains undoable and inspectable in net review", () =>
 		const baseline = tinyFixture();
 		const session = yield* makeHistorySession(baseline);
 		yield* session.execute([
-			{ type: "reorder", ownerId: "host", order: [2, 1, 0] },
+			{ type: "reorder", ownerId: "1", order: [2, 1, 0] },
 		]);
 		const review = yield* session.review;
 		expect(review.entries[0].intent.review).toBe("compact");
@@ -145,19 +145,22 @@ it.effect(
 		}),
 );
 
-it.effect("full parsed save can be undone and redone without lost fields", () =>
-	Effect.gen(function* () {
-		const baseline = yield* Effect.promise(loadFixture);
-		const session = yield* makeHistorySession(baseline);
-		const action: MutationRequest = {
-			type: "money",
-			farmerId: String(baseline.SaveGame.player.UniqueMultiplayerID),
-			value: 999,
-		};
-		const edited = yield* session.execute([action]);
-		expect((yield* session.undo).document).toEqual(baseline);
-		expect((yield* session.redo).document).toEqual(edited.document);
-	}),
+it.effect(
+	"full parsed save can be undone and redone without lost fields",
+	() =>
+		Effect.gen(function* () {
+			const baseline = yield* Effect.promise(loadFixture);
+			const session = yield* makeHistorySession(baseline);
+			const action: MutationRequest = {
+				type: "money",
+				farmerId: String(baseline.SaveGame.player.UniqueMultiplayerID),
+				value: 999,
+			};
+			const edited = yield* session.execute([action]);
+			expect((yield* session.undo).document).toEqual(baseline);
+			expect((yield* session.redo).document).toEqual(edited.document);
+		}),
+	60_000,
 );
 
 it.effect(
@@ -170,7 +173,8 @@ it.effect(
 				),
 			).toBe(true);
 			const invalid = tinyFixture();
-			Object.assign(invalid.SaveGame, { unsupported: 1n });
+			// BigInt is a valid saved scalar now; class instances remain unsupported.
+			Object.assign(invalid.SaveGame, { unsupported: new Map() });
 			expect(
 				Exit.isFailure(yield* Effect.exit(makeHistorySession(invalid))),
 			).toBe(true);

@@ -14,6 +14,10 @@ import {
 } from "../../src/lib/editor/save-service.ts";
 import { editorResources } from "../../src/lib/editor/editor-model.ts";
 import { fixtureXml, parser } from "./fixtures.ts";
+import {
+	exportDocument,
+	tinyEditorFixture,
+} from "../helpers/editor-document.ts";
 
 // Cancellation can happen while the processing layer itself is still being
 // acquired, before import() exists. Release acquired resources and permit retry.
@@ -40,7 +44,8 @@ it(
 		const page = render(EditorApp, { processingLayer });
 		try {
 			const input = page.getByLabelText("Save file") as HTMLInputElement;
-			const file = new File([fixtureXml], "Farm_123");
+			// Layer acquisition/retry owns a real codec, but needs no populated world.
+			const file = new File([exportDocument(tinyEditorFixture())], "Farm_123");
 			await fireEvent.change(input, { target: { files: [file] } });
 			await waitFor(() => expect(acquiring).toHaveBeenCalledOnce());
 			expect(page.getByText("Opening save…")).toBeTruthy();

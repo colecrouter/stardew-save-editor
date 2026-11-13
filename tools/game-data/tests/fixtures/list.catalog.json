@@ -1,0 +1,194 @@
+{
+	"formatVersion": 3,
+	"diagnostics": [],
+	"types": [
+		{
+			"id": "Example.Lists",
+			"kind": "object",
+			"members": [
+				{
+					"name": "stats",
+					"type": "StardewValley.SerializableDictionary`2[System.String,System.Collections.Generic.List`1[System.Int32]]"
+				},
+				{
+					"name": "matrix",
+					"type": "StardewValley.SerializableDictionary`2[System.String,System.Collections.Generic.List`1[System.Collections.Generic.List`1[System.Int32]]]"
+				},
+				{
+					"name": "nodes",
+					"type": "StardewValley.SerializableDictionary`2[System.String,System.Collections.Generic.List`1[Example.Node]]"
+				},
+				{
+					"name": "bytes",
+					"type": "StardewValley.SerializableDictionary`2[System.String,System.Collections.Generic.List`1[System.Byte]]"
+				},
+				{
+					"name": "words",
+					"type": "StardewValley.SerializableDictionary`2[System.String,System.Collections.Generic.List`1[System.String]]"
+				}
+			]
+		},
+		{
+			"id": "Example.Node",
+			"kind": "object",
+			"members": [
+				{
+					"name": "Name",
+					"type": "System.String"
+				},
+				{
+					"name": "Nodes",
+					"type": "StardewValley.SerializableDictionary`2[System.String,System.Collections.Generic.List`1[Example.Node]]"
+				}
+			],
+			"attributes": [
+				{
+					"type": "System.Xml.Serialization.XmlIncludeAttribute",
+					"constructorArguments": [
+						{
+							"type": "System.Type",
+							"value": "Example.SpecialNode"
+						}
+					]
+				}
+			]
+		},
+		{
+			"id": "System.Collections.Generic.List`1[System.Int32]",
+			"kind": "collection",
+			"elementType": "System.Int32",
+			"genericDefinition": "System.Collections.Generic.List`1",
+			"genericArguments": ["System.Int32"]
+		},
+		{
+			"id": "System.Collections.Generic.List`1[System.Collections.Generic.List`1[System.Int32]]",
+			"kind": "collection",
+			"elementType": "System.Collections.Generic.List`1[System.Int32]",
+			"genericDefinition": "System.Collections.Generic.List`1",
+			"genericArguments": ["System.Collections.Generic.List`1[System.Int32]"]
+		},
+		{
+			"id": "System.Collections.Generic.List`1[Example.Node]",
+			"kind": "collection",
+			"elementType": "Example.Node",
+			"genericDefinition": "System.Collections.Generic.List`1",
+			"genericArguments": ["Example.Node"]
+		},
+		{
+			"id": "StardewValley.SerializableDictionary`2[System.String,System.Collections.Generic.List`1[System.Int32]]",
+			"kind": "collection",
+			"customXml": true,
+			"genericDefinition": "StardewValley.SerializableDictionary`2",
+			"genericArguments": [
+				"System.String",
+				"System.Collections.Generic.List`1[System.Int32]"
+			],
+			"attributes": [
+				{
+					"type": "System.Xml.Serialization.XmlRootAttribute",
+					"constructorArguments": [
+						{
+							"type": "System.String",
+							"value": "dictionary"
+						}
+					]
+				}
+			]
+		},
+		{
+			"id": "StardewValley.SerializableDictionary`2[System.String,System.Collections.Generic.List`1[System.Collections.Generic.List`1[System.Int32]]]",
+			"kind": "collection",
+			"customXml": true,
+			"genericDefinition": "StardewValley.SerializableDictionary`2",
+			"genericArguments": [
+				"System.String",
+				"System.Collections.Generic.List`1[System.Collections.Generic.List`1[System.Int32]]"
+			],
+			"attributes": [
+				{
+					"type": "System.Xml.Serialization.XmlRootAttribute",
+					"constructorArguments": [
+						{
+							"type": "System.String",
+							"value": "dictionary"
+						}
+					]
+				}
+			]
+		},
+		{
+			"id": "StardewValley.SerializableDictionary`2[System.String,System.Collections.Generic.List`1[Example.Node]]",
+			"kind": "collection",
+			"customXml": true,
+			"genericDefinition": "StardewValley.SerializableDictionary`2",
+			"genericArguments": [
+				"System.String",
+				"System.Collections.Generic.List`1[Example.Node]"
+			],
+			"attributes": [
+				{
+					"type": "System.Xml.Serialization.XmlRootAttribute",
+					"constructorArguments": [
+						{
+							"type": "System.String",
+							"value": "dictionary"
+						}
+					]
+				}
+			]
+		},
+		{
+			"id": "Example.SpecialNode",
+			"kind": "object",
+			"baseType": "Example.Node",
+			"members": [
+				{
+					"name": "Name",
+					"type": "System.String"
+				},
+				{
+					"name": "Nodes",
+					"type": "StardewValley.SerializableDictionary`2[System.String,System.Collections.Generic.List`1[Example.Node]]"
+				},
+				{
+					"name": "Count",
+					"type": "System.Int32"
+				}
+			]
+		},
+		{
+			"id": "System.Collections.Generic.List`1[System.Byte]",
+			"kind": "collection",
+			"elementType": "System.Byte",
+			"genericDefinition": "System.Collections.Generic.List`1",
+			"genericArguments": ["System.Byte"]
+		},
+		{
+			"id": "StardewValley.SerializableDictionary`2[System.String,System.Collections.Generic.List`1[System.Byte]]",
+			"kind": "collection",
+			"customXml": true,
+			"genericDefinition": "StardewValley.SerializableDictionary`2",
+			"genericArguments": [
+				"System.String",
+				"System.Collections.Generic.List`1[System.Byte]"
+			]
+		},
+		{
+			"id": "System.Collections.Generic.List`1[System.String]",
+			"kind": "collection",
+			"elementType": "System.String",
+			"genericDefinition": "System.Collections.Generic.List`1",
+			"genericArguments": ["System.String"]
+		},
+		{
+			"id": "StardewValley.SerializableDictionary`2[System.String,System.Collections.Generic.List`1[System.String]]",
+			"kind": "collection",
+			"customXml": true,
+			"genericDefinition": "StardewValley.SerializableDictionary`2",
+			"genericArguments": [
+				"System.String",
+				"System.Collections.Generic.List`1[System.String]"
+			]
+		}
+	]
+}

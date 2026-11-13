@@ -1,26 +1,23 @@
-import { CalendarDocumentError } from "../calendarErrors.ts";
 import { Data, Effect, Schema } from "effect";
-import type { Save } from "../../../codegen/save.ts";
+import { formatDate, SEASONS, weatherLabel } from "../calendar.ts";
+import { CalendarDocumentError } from "../calendarErrors.ts";
 import {
-	initializeCalendarDocument,
-	prepareCalendarDocument,
 	type CalendarDocumentState,
 	type CalendarEdit,
-} from "../calendarDocument.ts";
-import { formatDate, weatherLabel } from "../calendar.ts";
+	initializeCalendarDocument,
+	prepareCalendarDocument,
+} from "./calendar-document.ts";
 import {
+	type DomainValue,
 	diff,
 	MutationError,
-	type DomainValue,
-	type SaveDocument,
 	type SessionState,
 } from "./domain.ts";
-
-import { TransactionDraft } from "./transaction-draft.ts";
 import {
 	recordAnnotatedOperation,
 	withReviewMetadata,
 } from "./transaction-annotations.ts";
+import { TransactionDraft } from "./transaction-draft.ts";
 
 // Domain failures remain distinguishable through the generic history runner.
 // Portable calendar arithmetic/planners stay shared with the legacy application.
@@ -38,7 +35,7 @@ const stateSchema = Schema.Struct({
 	version: Schema.Literal(1),
 	date: Schema.Struct({
 		year: Schema.Finite,
-		season: Schema.String,
+		season: Schema.Literals(SEASONS),
 		day: Schema.Finite,
 	}),
 	daysPlayed: Schema.Finite,
@@ -87,7 +84,7 @@ export const prepareCalendarState = Effect.fn("Calendar.prepare")(function* (
 	state: SessionState,
 	action: CalendarEdit,
 ) {
-	const game = state.document.SaveGame as unknown as Save;
+	const game = state.document.SaveGame;
 	const current = yield* Effect.try({
 		try: () =>
 			state.domainState && Object.hasOwn(state.domainState, "calendar")
@@ -108,7 +105,9 @@ export const prepareCalendarState = Effect.fn("Calendar.prepare")(function* (
 		try: () =>
 			prepareCalendarDocument(
 				game,
-				current as unknown as CalendarDocumentState,
+				// The validated schema exposes readonly collections; the planner
+				// clones them before editing, so this boundary preserves the data.
+				current as CalendarDocumentState,
 				action,
 			),
 		catch: (cause) => {
@@ -122,14 +121,14 @@ export const prepareCalendarState = Effect.fn("Calendar.prepare")(function* (
 	const document = {
 		...state.document,
 		SaveGame: prepared.game,
-	} as unknown as SaveDocument;
+	};
 	const changes = diff(state.document, document);
 	if (
 		changes.length === 0 &&
 		JSON.stringify(prepared.state) === JSON.stringify(current)
 	)
 		return state;
-	const metadata = prepared.state as unknown as DomainValue;
+	const metadata: unknown = prepared.state;
 	if (!Schema.is(Schema.Json)(metadata))
 		return yield* new CalendarStateInvalid({
 			message: "Calendar state requires plain JSON data",
@@ -141,7 +140,7 @@ export const prepareCalendarState = Effect.fn("Calendar.prepare")(function* (
 	return {
 		...state,
 		document,
-		domainState: { ...state.domainState, calendar: metadata },
+		domainState: { ...state.domainState, calendar: metadata as DomainValue },
 		history: [
 			...state.history,
 			{

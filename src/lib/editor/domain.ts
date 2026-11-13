@@ -2,7 +2,7 @@ import { samePlainData } from "./plain-data.ts";
 import { Effect, Result } from "effect";
 import { MutationError } from "./mutation-error.ts";
 export { MutationError } from "./mutation-error.ts";
-import type { InventoryLocation, EquipmentSlot } from "./equipment.ts";
+import type { InventoryLocation } from "./equipment.ts";
 import {
 	applyInventoryMutation,
 	isInventoryMutation,
@@ -10,30 +10,52 @@ import {
 } from "./inventory-transition.ts";
 import type { InventoryMoveRequest } from "./inventory-movement.ts";
 import type { InventorySlotRequest } from "./inventory-lifecycle.ts";
-import type { CalendarEdit } from "../calendarDocument.ts";
+import type { CalendarEdit } from "./calendar-document.ts";
 
-// Deliberately narrow lens over a full parsed save. Unknown fields stay attached.
-// Equipment fields may be absent or contain opaque imported records. Describing
-// their actual keys permits typed access without asserting that their values are valid.
-export interface Farmer extends Partial<Record<EquipmentSlot, unknown>> {
-	UniqueMultiplayerID: string | number;
+// Authored records have no extension payload. Removing the generated extension
+// index here lets constructors catch misspelled fields without restricting imports.
+export type KnownFields<T> = {
+	[
+		K in keyof T as string extends K ? never : number extends K ? never : K
+	]: T[K];
+};
+// The generated model owns saved fields, including optional fields and opaque
+// subclasses. Only the host envelope is refined by SaveCodec on import; cabin
+// placeholders and farmhands need not have a complete playable inventory.
+export type {
+	T_StardewValley_Item as Item,
+	T_StardewValley_GameLocation as Location,
+} from "../../../generated/save-format/save.ts";
+import type {
+	Value as SavedGame,
+	T_StardewValley_Farmer,
+} from "../../../generated/save-format/save.ts";
+export type Farmer = T_StardewValley_Farmer;
+export type HostFarmer = Farmer & {
 	name: string;
 	farmName: string;
 	money: number;
-	// Parrot Egg stat rolls depend on the owning farmer's lifetime earnings.
-	totalMoneyEarned?: unknown;
-	items: { Item: unknown[] };
+	UniqueMultiplayerID: bigint;
+	items: NonNullable<Farmer["items"]>;
+};
+/** A decoded cabin placeholder becomes eligible for the host slot only when
+ * it carries the same required fields checked by the import envelope. */
+export function isHostFarmer(farmer: Farmer): farmer is HostFarmer {
+	return (
+		typeof farmer.name === "string" &&
+		typeof farmer.farmName === "string" &&
+		typeof farmer.money === "number" &&
+		Number.isFinite(farmer.money) &&
+		typeof farmer.UniqueMultiplayerID === "bigint" &&
+		Array.isArray(farmer.items)
+	);
 }
+export type EditorGame = SavedGame & {
+	player: HostFarmer;
+	farmhands: NonNullable<SavedGame["farmhands"]>;
+};
 export interface SaveDocument {
-	SaveGame: {
-		player: Farmer;
-		// World storage is traversed conservatively without asserting a complete game schema.
-		locations?: unknown;
-		// Trinket seed interpretation follows the save's selected game RNG algorithm.
-		// Keep raw context unknown until validated; inspection must not normalize it.
-		useLegacyRandom?: unknown;
-		farmhands: "" | { Farmer: Farmer[] };
-	};
+	SaveGame: EditorGame;
 }
 /** Positional/core actions ready for the operation adapter; handle requests resolve in the queue first. */
 export type ResolvedMutation =
@@ -112,23 +134,17 @@ export type DomainValue =
 	| null
 	| boolean
 	| number
+	| bigint
 	| string
 	| DomainValue[]
 	| { [key: string]: DomainValue };
 export type DomainState = Record<string, DomainValue>;
-export const farmers = (document: SaveDocument) => [
-	document.SaveGame.player,
-	...(document.SaveGame.farmhands === ""
-		? []
-		: document.SaveGame.farmhands.Farmer),
-];
+export const farmers = (document: SaveDocument) =>
+	[document.SaveGame.player, ...document.SaveGame.farmhands].filter(
+		(farmer): farmer is Farmer => farmer !== null,
+	);
 
-export const emptySlot = (item: unknown) =>
-	item === null ||
-	item === undefined ||
-	(typeof item === "object" &&
-		"@_xsi:nil" in item &&
-		String(item["@_xsi:nil"]) === "true");
+export const emptySlot = (item: unknown) => item === null || item === undefined;
 
 /** Prepare expected rejections as values; unexpected exceptions remain defects
  * when this planner is lifted into the Effect operation boundary. */
@@ -171,6 +187,7 @@ export function applyResult(
 		const id = farmer.UniqueMultiplayerID;
 		return (
 			(typeof id === "string" ||
+				typeof id === "bigint" ||
 				(typeof id === "number" && Number.isFinite(id))) &&
 			String(id) === mutation.farmerId
 		);

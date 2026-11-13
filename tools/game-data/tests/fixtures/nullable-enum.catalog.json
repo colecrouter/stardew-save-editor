@@ -1,0 +1,115 @@
+{
+	"formatVersion": 3,
+	"diagnostics": [],
+	"types": [
+		{
+			"id": "Example.Preserve",
+			"kind": "object",
+			"members": [
+				{
+					"name": "preserve",
+					"type": "Netcode.NetNullableEnum`1[StardewValley.Object+PreserveType]",
+					"attributes": [
+						{
+							"type": "System.Xml.Serialization.XmlElementAttribute"
+						}
+					]
+				}
+			]
+		},
+		{
+			"id": "Example.Item",
+			"kind": "object",
+			"members": [
+				{
+					"name": "preserve",
+					"type": "Netcode.NetNullableEnum`1[StardewValley.Object+PreserveType]",
+					"attributes": [
+						{
+							"type": "System.Xml.Serialization.XmlElementAttribute"
+						}
+					]
+				},
+				{
+					"name": "name",
+					"type": "System.String"
+				},
+				{
+					"name": "next",
+					"type": "NetRefItem",
+					"attributes": [
+						{
+							"type": "System.Xml.Serialization.XmlElementAttribute"
+						}
+					]
+				}
+			]
+		},
+		{
+			"id": "Netcode.NetNullableEnum`1[StardewValley.Object+PreserveType]",
+			"kind": "collection",
+			"elementType": "System.String",
+			"maxItems": 1,
+			"genericDefinition": "Netcode.NetNullableEnum`1",
+			"genericArguments": ["StardewValley.Object+PreserveType"]
+		},
+		{
+			"id": "StardewValley.Object+PreserveType",
+			"assembly": "Stardew Valley",
+			"kind": "enum",
+			"baseType": "System.Enum",
+			"members": [
+				{
+					"name": "AgedRoe",
+					"type": "StardewValley.Object+PreserveType"
+				},
+				{
+					"name": "Bait",
+					"type": "StardewValley.Object+PreserveType"
+				},
+				{
+					"name": "DriedFruit",
+					"type": "StardewValley.Object+PreserveType"
+				},
+				{
+					"name": "DriedMushroom",
+					"type": "StardewValley.Object+PreserveType"
+				},
+				{
+					"name": "Honey",
+					"type": "StardewValley.Object+PreserveType"
+				},
+				{
+					"name": "Jelly",
+					"type": "StardewValley.Object+PreserveType"
+				},
+				{
+					"name": "Juice",
+					"type": "StardewValley.Object+PreserveType"
+				},
+				{
+					"name": "Pickle",
+					"type": "StardewValley.Object+PreserveType"
+				},
+				{
+					"name": "Roe",
+					"type": "StardewValley.Object+PreserveType"
+				},
+				{
+					"name": "SmokedFish",
+					"type": "StardewValley.Object+PreserveType"
+				},
+				{
+					"name": "Wine",
+					"type": "StardewValley.Object+PreserveType"
+				}
+			]
+		},
+		{
+			"id": "NetRefItem",
+			"kind": "collection",
+			"elementType": "Example.Item",
+			"maxItems": 1
+		}
+	]
+}

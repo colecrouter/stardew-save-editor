@@ -1,10 +1,8 @@
+import { Schema } from "effect";
+import { ValueSchema } from "../../../generated/save-format/save.ts";
+import { savedType } from "./saved-types.ts";
 import type { ItemPresentation } from "./item-presentation.ts";
-import {
-	emptySlot,
-	farmers,
-	type Farmer,
-	type SaveDocument,
-} from "./domain.ts";
+import { emptySlot, type Farmer } from "./domain.ts";
 
 /** Serialized farmer fields, kept separate from positional backpack capacity. */
 export const equipmentSlots = [
@@ -17,6 +15,57 @@ export const equipmentSlots = [
 	"trinketItem",
 ] as const;
 export type EquipmentSlot = (typeof equipmentSlots)[number];
+// The game saves trinkets as a list even though this editor exposes one slot.
+// Preserve multi-trinket imports as opaque values instead of selecting an arbitrary item.
+export function readEquipmentSlot(
+	farmer: unknown,
+	slot: EquipmentSlot,
+): unknown {
+	if (!record(farmer)) return undefined;
+	const value = farmer[slot];
+	return slot === "trinketItem" && Array.isArray(value) && value.length <= 1
+		? (value[0] ?? null)
+		: value;
+}
+export function writeEquipmentSlot(
+	farmer: Farmer,
+	slot: EquipmentSlot,
+	value: unknown,
+): void {
+	// Equipment writes arrive from generic inventory transitions. Validate the
+	// generated field here so an opaque value cannot become a known equipment type.
+	const candidate =
+		slot === "trinketItem"
+			? { trinketItem: value == null ? [] : [value] }
+			: { [slot]: value };
+	const checked = Schema.decodeUnknownSync(ValueSchema)({
+		player: candidate,
+	}).player;
+	if (!checked) throw new Error("Equipment validation lost its owner");
+	switch (slot) {
+		case "trinketItem":
+			farmer.trinketItem = checked.trinketItem;
+			break;
+		case "hat":
+			farmer.hat = checked.hat;
+			break;
+		case "boots":
+			farmer.boots = checked.boots;
+			break;
+		case "leftRing":
+			farmer.leftRing = checked.leftRing;
+			break;
+		case "rightRing":
+			farmer.rightRing = checked.rightRing;
+			break;
+		case "shirtItem":
+			farmer.shirtItem = checked.shirtItem;
+			break;
+		case "pantsItem":
+			farmer.pantsItem = checked.pantsItem;
+			break;
+	}
+}
 export type EquipmentIdentities = Record<string, Record<EquipmentSlot, string>>;
 export type InventoryLocation = number | EquipmentSlot;
 export const equipmentLabels = {
@@ -47,7 +96,7 @@ const record = (value: unknown): value is Record<string, unknown> =>
 export function canEquipItem(raw: unknown, key: EquipmentSlot): boolean {
 	if (emptySlot(raw)) return true;
 	if (!record(raw)) return false;
-	const type = raw["@_xsi:type"];
+	const type = savedType(raw);
 	switch (key) {
 		case "hat":
 			return type === "Hat";
@@ -69,36 +118,19 @@ export function canEquipItem(raw: unknown, key: EquipmentSlot): boolean {
 /** Unlock state is read without repairing malformed stats or imported equipment. */
 export function trinketAvailable(farmer: unknown): boolean {
 	if (!record(farmer)) return false;
-	if (!emptySlot(farmer.trinketItem)) return true;
+	if (!emptySlot(readEquipmentSlot(farmer, "trinketItem"))) return true;
 	const stats = record(farmer.stats) ? farmer.stats : undefined;
-	const values = record(stats?.Values) ? stats.Values : undefined;
+	const values = stats?.Values;
 	return (
-		Array.isArray(values?.item) &&
-		values.item.some((entry: unknown) => {
-			if (!record(entry) || !record(entry.key) || !record(entry.value))
-				return false;
+		Array.isArray(values) &&
+		values.some((entry: unknown) => {
+			if (!record(entry)) return false;
 			return (
-				typeof entry.key.string === "string" &&
-				entry.key.string.toLowerCase() === "trinketslots" &&
-				typeof entry.value.unsignedInt === "number" &&
-				entry.value.unsignedInt > 0
+				typeof entry.key === "string" &&
+				entry.key.toLowerCase() === "trinketslots" &&
+				typeof entry.value === "number" &&
+				entry.value > 0
 			);
 		})
 	);
-}
-/** Resolve only unambiguous scalar owners; opaque unrelated farmers remain untouched. */
-export function inventoryOwner(
-	document: SaveDocument,
-	id: string,
-): Farmer | undefined {
-	const matches = farmers(document).filter((farmer) => {
-		if (!record(farmer)) return false;
-		const value = farmer.UniqueMultiplayerID;
-		return (
-			(typeof value === "string" ||
-				(typeof value === "number" && Number.isFinite(value))) &&
-			String(value) === id
-		);
-	});
-	return matches.length === 1 ? matches[0] : undefined;
 }

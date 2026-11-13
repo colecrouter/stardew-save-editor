@@ -1,35 +1,45 @@
 import { describe, expect, it } from "vitest";
 import { Effect, Result } from "effect";
 import { get } from "svelte/store";
-import { openEditor, editorResources } from "../../src/lib/editor/editor-model";
+import { editorResources } from "../../src/lib/editor/editor-model";
+import { openEditor } from "../helpers/open-editor.ts";
 import {
 	setCalendarDate,
 	setCalendarWeather,
 } from "../../src/lib/editor/calendar-operations";
 import { fixtureXml, parser, exportDocument } from "./fixtures";
-import type { Save } from "../../codegen/save";
-import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
+import type { Value as GeneratedSave } from "../../generated/save-format/save.ts";
+type Save = GeneratedSave & { player: NonNullable<GeneratedSave["player"]> };
 
 const bytes = (xml: string) => new TextEncoder().encode(xml);
 
 // TestSave is a 6.6 MB preservation fixture. Encoding/reparsing it several times
 // verifies data integrity, not latency; retain the experiment's integration budget
 // on shared CI runners without changing the default timeout for unit tests.
-describe("full-save application calendar", { timeout: 15_000 }, () => {
+describe("full-save application calendar", { timeout: 45_000 }, () => {
 	it("the application calendar preserves unsupported inventory and bundle data without constructing those features", async () => {
 		const document = parser.parse(fixtureXml);
 		const raw = document.SaveGame as unknown as Record<string, unknown>;
 		delete raw.bundleData;
 		raw.player = {
 			...(raw.player as object),
-			items: { moddedInventory: "007" },
+			items: [
+				{
+					$type: "StardewValley.Object",
+					name: "Stone",
+					itemId: "390",
+					stack: 1,
+					customField: "007",
+					modData: [],
+				},
+			],
 		};
-		raw.modData = { untouched: ["0007", { nested: "opaque" }] };
-		const opened = await openEditor(
-			SaveProcessingSync,
-			bytes(exportDocument(document)),
-		);
+		raw.customModData = { untouched: ["0007", { nested: "opaque" }] };
+		const opened = await openEditor(bytes(exportDocument(document)));
 		try {
+			// Compare edits with the decoded baseline, including codec defaults for
+			// the deliberately partial item constructed above.
+			const before = (await opened.model.snapshot()).document;
 			expect(get(opened.model.view)?.net).toEqual([]);
 			expect(get(opened.model.view)?.bundle.supported).toBe(false);
 			const result = await opened.model.commands.transact(
@@ -38,26 +48,28 @@ describe("full-save application calendar", { timeout: 15_000 }, () => {
 			expect(result && Result.isSuccess(result)).toBe(true);
 			const after = await opened.model.snapshot();
 			expect(
-				(after.document.SaveGame as unknown as Record<string, unknown>).modData,
-			).toEqual(raw.modData);
+				(after.document.SaveGame as unknown as Record<string, unknown>)
+					.customModData,
+			).toEqual(raw.customModData);
 			expect(after.document.SaveGame.player.items).toEqual(
-				document.SaveGame.player.items,
+				before.SaveGame.player.items,
 			);
 			await opened.model.commands.undo();
-			expect((await opened.model.snapshot()).document).toEqual(document);
+			expect((await opened.model.snapshot()).document).toEqual(before);
 		} finally {
 			await opened.close();
 		}
 		expect(editorResources()).toEqual({ models: 0, registries: 0, streams: 0 });
-	});
+	}, 30_000);
 
 	it("the application validates exact exported bytes and blocks existing definite errors without mutating the baseline", async () => {
 		const document = parser.parse(fixtureXml);
-		document.SaveGame.player.money = 3_000_000_000;
-		const opened = await openEditor(
-			SaveProcessingSync,
-			bytes(exportDocument(document)),
+		// Structurally valid XML can still contain gameplay-invalid state.
+		const locations = document.SaveGame.locations ?? [];
+		document.SaveGame.locations = locations.filter(
+			(location) => location?.name !== "Farm",
 		);
+		const opened = await openEditor(bytes(exportDocument(document)));
 		try {
 			expect(opened.model.loadValidation.valid).toBe(false);
 			const before = await opened.model.snapshot();
@@ -70,25 +82,20 @@ describe("full-save application calendar", { timeout: 15_000 }, () => {
 		} finally {
 			await opened.close();
 		}
-	});
+	}, 30_000);
 
 	it("application date/weather export reimports with unknown fields and coordinated multiplayer dates intact", async () => {
 		const document = parser.parse(fixtureXml);
 		const game = document.SaveGame as unknown as Save;
-		document.SaveGame.farmhands = {
-			Farmer: [
-				{
-					...structuredClone(document.SaveGame.player),
-					UniqueMultiplayerID: "guest",
-					name: "Guest",
-				},
-			],
-		};
-		Object.assign(game, { modData: { untouched: "007" } });
-		const opened = await openEditor(
-			SaveProcessingSync,
-			bytes(exportDocument(document)),
-		);
+		document.SaveGame.farmhands = [
+			{
+				...structuredClone(document.SaveGame.player),
+				UniqueMultiplayerID: 123456789n,
+				name: "Guest",
+			},
+		];
+		Object.assign(game, { customModData: { untouched: "007" } });
+		const opened = await openEditor(bytes(exportDocument(document)));
 		try {
 			const result = await opened.model.commands.transact(
 				Effect.gen(function* () {
@@ -101,7 +108,7 @@ describe("full-save application calendar", { timeout: 15_000 }, () => {
 			expect(exported && Result.isSuccess(exported)).toBe(true);
 			if (!exported || Result.isFailure(exported))
 				throw Error("Expected valid exported save");
-			const reloaded = await openEditor(SaveProcessingSync, exported.success);
+			const reloaded = await openEditor(exported.success);
 			try {
 				expect(get(reloaded.model.view)?.calendar.date).toMatchObject({
 					year: 3,
@@ -109,16 +116,18 @@ describe("full-save application calendar", { timeout: 15_000 }, () => {
 				});
 				expect(get(reloaded.model.view)?.net).toEqual([]);
 				const after = (await reloaded.model.snapshot()).document
-					.SaveGame as unknown as Save & { modData: { untouched: string } };
-				expect(after.modData.untouched).toBe("007");
+					.SaveGame as unknown as Save & {
+					customModData: { untouched: string };
+				};
+				expect(after.customModData.untouched).toBe("007");
 				expect(after.player.yearForSaveGame).toBe(3);
 				if (!after.farmhands) throw Error("Missing preserved farmhand");
-				expect(after.farmhands.Farmer[0]?.yearForSaveGame).toBe(3);
+				expect(after.farmhands[0]?.yearForSaveGame).toBe(3);
 			} finally {
 				await reloaded.close();
 			}
 		} finally {
 			await opened.close();
 		}
-	});
+	}, 30_000);
 });

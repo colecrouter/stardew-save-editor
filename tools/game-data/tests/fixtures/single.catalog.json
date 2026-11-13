@@ -1,0 +1,26 @@
+{
+	"formatVersion": 3,
+	"diagnostics": [],
+	"types": [
+		{
+			"id": "Example.Fence",
+			"kind": "object",
+			"members": [
+				{ "name": "Health", "type": "System.Single" },
+				{ "name": "History", "type": "ListOfSingle" },
+				{
+					"name": "Bias",
+					"type": "System.Single",
+					"attributes": [
+						{ "type": "System.Xml.Serialization.XmlAttributeAttribute" }
+					]
+				}
+			]
+		},
+		{
+			"id": "ListOfSingle",
+			"kind": "collection",
+			"elementType": "System.Single"
+		}
+	]
+}

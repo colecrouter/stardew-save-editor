@@ -3,28 +3,30 @@ import {
 	discoverPlacedChests,
 	writeChestSlots,
 } from "../../src/lib/editor/chest-storage";
-import { tinyFixture } from "./fixtures";
+import { tinyFixture } from "../helpers/editor-document.ts";
 
 const item = (name = "Parsnip") => ({
-	"@_xsi:type": "Object",
+	$type: "StardewValley.Object",
 	name,
 	itemId: "24",
 	stack: 2,
 	opaque: "007",
 });
 const chest = (fields: Record<string, unknown> = {}) => ({
-	"@_xsi:type": "Chest",
+	$type: "StardewValley.Objects.Chest",
 	name: "Chest",
-	items: "",
+	items: [],
 	...fields,
 });
 const placed = (raw: unknown, x = 3) => ({
-	key: { Vector2: { X: x, Y: 9 } },
-	value: { Object: raw },
+	key: { X: x, Y: 9 },
+	value: raw,
 });
 function fixture(locations: unknown) {
 	const document = tinyFixture();
-	Object.assign(document.SaveGame, { locations: { GameLocation: locations } });
+	Object.assign(document.SaveGame, {
+		locations: Array.isArray(locations) ? locations : [locations],
+	});
 	return document;
 }
 const required = <A>(value: A | undefined): A => {
@@ -38,14 +40,14 @@ describe("placed chest storage", () => {
 		(nil) => {
 			const document = fixture({
 				name: "Farm",
-				objects: {
-					item: placed(
+				objects: [
+					placed(
 						chest({
-							globalInventoryId: { string: { "@_xsi:nil": nil } },
-							items: { Item: item() },
+							globalInventoryId: null,
+							items: [item()],
 						}),
 					),
-				},
+				],
 			});
 			const before = structuredClone(document);
 			const found = required(discoverPlacedChests(document)[0]);
@@ -57,7 +59,7 @@ describe("placed chest storage", () => {
 	it("projects singleton locations and objects without materializing virtual empty slots", () => {
 		const document = fixture({
 			name: "Farm",
-			objects: { item: placed(chest()) },
+			objects: [placed(chest())],
 		});
 		const original = structuredClone(document);
 		const found = required(discoverPlacedChests(document)[0]);
@@ -77,27 +79,25 @@ describe("placed chest storage", () => {
 			{
 				name: "Farm",
 				fridge: chest(),
-				buildings: {
-					Building: {
+				buildings: [
+					{
 						buildingType: "Shed",
-						buildingChests: { Chest: chest() },
+						buildingChests: [chest()],
 						indoors: {
 							name: "Shed",
-							objects: {
-								item: [
-									placed(
-										chest({ itemId: "BigStoneChest", name: "Big Stone Chest" }),
-									),
-									placed({
-										"@_xsi:type": "Object",
-										heldObject: chest(),
-										Chest: chest(),
-									}),
-								],
-							},
+							objects: [
+								placed(
+									chest({ itemId: "BigStoneChest", name: "Big Stone Chest" }),
+								),
+								placed({
+									$type: "StardewValley.Object",
+									heldObject: chest(),
+									Chest: chest(),
+								}),
+							],
 						},
 					},
-				},
+				],
 			},
 		]);
 		const found = discoverPlacedChests(document);
@@ -118,23 +118,23 @@ describe("placed chest storage", () => {
 
 	it.each([
 		{ specialChestType: "JunimoChest" },
-		{ globalInventoryId: { string: "shared" } },
+		{ globalInventoryId: ["shared"] },
 		{ globalInventoryId: 123 },
-		{ globalInventoryId: { string: { "@_xsi:nil": false } } },
-		{ globalInventoryId: { string: { "@_xsi:nil": "false" } } },
-		{ globalInventoryId: { string: { "@_xsi:nil": "true", opaque: "keep" } } },
-		{ globalInventoryId: { string: { "@_xsi:nil": "true" }, opaque: "keep" } },
+		{ globalInventoryId: [{ "@_xsi:nil": false }] },
+		{ globalInventoryId: [{ "@_xsi:nil": "false" }] },
+		{ globalInventoryId: [{ "@_xsi:nil": "true", opaque: "keep" }] },
+		{ globalInventoryId: { string: null, opaque: "keep" } },
 		{
 			specialChestType: "JunimoChest",
-			globalInventoryId: { string: { "@_xsi:nil": "true" } },
+			globalInventoryId: [null],
 		},
 		{ specialChestType: "mod.unknown" },
-		{ items: { Item: "opaque" } },
-		{ items: { Item: [{ "@_xsi:nil": "true", opaque: "keep" }] } },
+		{ items: ["opaque"] },
+		{ items: [false] },
 	])("keeps unsupported storage visible and read-only: %j", (fields) => {
 		const document = fixture({
 			name: "Farm",
-			objects: { item: placed(chest(fields)) },
+			objects: [placed(chest(fields))],
 		});
 		const original = structuredClone(document);
 		const found = required(discoverPlacedChests(document)[0]);
@@ -151,61 +151,61 @@ describe("placed chest storage", () => {
 		const originalItem = item();
 		const document = fixture({
 			name: "Farm",
-			objects: {
-				item: placed(
-					chest({ items: { Item: originalItem, opaque: { flag: "007" } } }),
+			objects: [
+				placed(
+					chest({
+						items: [originalItem],
+						testMetadataitems: { opaque: { flag: "007" } },
+					}),
 				),
-			},
+			],
 		});
 		const found = required(discoverPlacedChests(document)[0]);
 		expect(found.slots[0]).toBe(originalItem);
 		const slots = [...found.slots];
 		slots[0] = item("Potato");
 		writeChestSlots(found, slots);
-		expect(found.raw.items).toEqual({
-			Item: item("Potato"),
-			opaque: { flag: "007" },
-		});
-		slots[0] = { "@_xsi:nil": "true" };
+		expect(found.raw.items).toEqual([item("Potato")]);
+		expect(found.raw.testMetadataitems).toEqual({ opaque: { flag: "007" } });
+		slots[0] = null;
 		writeChestSlots(found, slots);
-		expect(found.raw.items).toEqual({ opaque: { flag: "007" } });
+		expect(found.raw.items).toEqual([]);
 	});
 
 	it("compacts plain nils on structural writes, retaining every whole nonempty record", () => {
 		const document = fixture({
 			name: "Farm",
-			objects: {
-				item: placed(
+			objects: [
+				placed(
 					chest({
-						items: { Item: [item(), { "@_xsi:nil": "true" }, item("Potato")] },
+						items: [item(), null, item("Potato")],
 					}),
 				),
-			},
+			],
 		});
 		const found = required(discoverPlacedChests(document)[0]);
 		const slots = [...found.slots];
-		slots[0] = { "@_xsi:nil": "true" };
+		slots[0] = null;
 		slots[12] = { opaque: [false, "007"], name: "Modded" };
 		writeChestSlots(found, slots);
-		expect(found.raw.items).toEqual({
-			Item: [item("Potato"), { opaque: [false, "007"], name: "Modded" }],
-		});
+		expect(found.raw.items).toEqual([
+			item("Potato"),
+			{ opaque: [false, "007"], name: "Modded" },
+		]);
 	});
 
 	it("retains imported overflow without reducing addressable slots", () => {
 		const document = fixture({
 			name: "Farm",
-			objects: {
-				item: placed(
+			objects: [
+				placed(
 					chest({
-						items: {
-							Item: Array.from({ length: 41 }, (_, index) =>
-								item(String(index)),
-							),
-						},
+						items: Array.from({ length: 41 }, (_, index) =>
+							item(String(index)),
+						),
 					}),
 				),
-			},
+			],
 		});
 		const found = required(discoverPlacedChests(document)[0]);
 		expect(found.capacity).toBe(41);

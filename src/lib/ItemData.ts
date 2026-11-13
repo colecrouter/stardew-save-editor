@@ -6,7 +6,50 @@ import {
 	type Shirt,
 } from "$types/items";
 
-import type { Item } from "$types/save";
+// Catalog lookups need only semantic item identity, not an entire saved record.
+// The legacy discriminator remains accepted for the older preview path.
+export interface CatalogItem {
+	name?: string;
+	itemId?: string | number | null;
+	preservedParentSheetIndex?: string | number | null;
+	preserve?: string | null;
+	upgradeLevel?: number;
+	bigCraftable?: boolean;
+	$type?: string;
+	"@_xsi:type"?: string;
+}
+
+/** Project opaque saved metadata into the small catalog input contract. Unknown
+ * extension fields stay on the save; only checked identity/display fields cross
+ * into catalog string operations. This boundary also serves the legacy preview. */
+export function readCatalogItem(value: unknown): CatalogItem | undefined {
+	if (value === null || typeof value !== "object" || Array.isArray(value))
+		return undefined;
+	const raw = value as Record<string, unknown>;
+	const scalar = (
+		input: unknown,
+	): input is string | number | null | undefined =>
+		input == null || typeof input === "string" || typeof input === "number";
+	if (
+		!scalar(raw.itemId) ||
+		!scalar(raw.preservedParentSheetIndex) ||
+		(raw.name != null && typeof raw.name !== "string")
+	)
+		return undefined;
+	return {
+		name: typeof raw.name === "string" ? raw.name : undefined,
+		itemId: raw.itemId,
+		preservedParentSheetIndex: raw.preservedParentSheetIndex,
+		preserve: typeof raw.preserve === "string" ? raw.preserve : undefined,
+		upgradeLevel:
+			typeof raw.upgradeLevel === "number" ? raw.upgradeLevel : undefined,
+		bigCraftable:
+			typeof raw.bigCraftable === "boolean" ? raw.bigCraftable : undefined,
+		$type: typeof raw.$type === "string" ? raw.$type : undefined,
+		"@_xsi:type":
+			typeof raw["@_xsi:type"] === "string" ? raw["@_xsi:type"] : undefined,
+	};
+}
 
 export const HatWhichNumber = new Map([
 	["Cowboy Hat", 0],
@@ -238,11 +281,13 @@ export const ItemDescription = (info: ItemInformation | undefined) => {
 	return description;
 };
 
-function hasUpgradeLevel(item: Item): item is Item & { upgradeLevel: number } {
+function hasUpgradeLevel(
+	item: CatalogItem,
+): item is CatalogItem & { upgradeLevel: number } {
 	return "upgradeLevel" in item && typeof item.upgradeLevel === "number";
 }
 
-export const ItemNameHelper = (item: Item) => {
+export const ItemNameHelper = (item: CatalogItem) => {
 	if (item.name === "Fishing Rod") {
 		if (hasUpgradeLevel(item)) {
 			switch (item.upgradeLevel) {
@@ -282,18 +327,26 @@ export const ItemNameHelper = (item: Item) => {
 	return item.name;
 };
 
-function normalizeItemKey(itemId: Item["itemId"]): string | undefined {
+function normalizeItemKey(itemId: CatalogItem["itemId"]): string | undefined {
 	if (itemId == null) return undefined;
 	if (typeof itemId === "number") return itemId.toString();
 	return itemId.replace(/^\([^)]*\)/, "");
 }
 
-function getExpectedMetadataTypes(item: Item): ItemInformation["_type"][] {
+function getExpectedMetadataTypes(
+	item: CatalogItem,
+): ItemInformation["_type"][] {
 	// Big craftables are saved as Objects (or Chests, Casks...) with a flag, and
 	// their IDs overlap with objects' (Chest 130 is also Tuna), so check it first
 	if (item.bigCraftable) return ["BigCraftable"];
 
-	switch (item["@_xsi:type"]) {
+	// The catalog is shared by the plain-value editor and legacy previews. Only
+	// type identity differs; metadata resolution does not transform saved records.
+	const type =
+		"$type" in item && typeof item.$type === "string"
+			? item.$type.split(/[.+]/).at(-1)
+			: item["@_xsi:type"];
+	switch (type) {
 		case "Hat":
 			return ["Hat"];
 		case "Boots":
@@ -332,7 +385,7 @@ function getExpectedMetadataTypes(item: Item): ItemInformation["_type"][] {
 	}
 }
 
-function getDirectMetadataMatch(item: Item) {
+function getDirectMetadataMatch(item: CatalogItem) {
 	const lookupKey = normalizeItemKey(item.itemId);
 	if (!lookupKey) return undefined;
 
@@ -357,7 +410,7 @@ function getDirectMetadataMatch(item: Item) {
 	return undefined;
 }
 
-function getPreservedMetadata(item: Item) {
+function getPreservedMetadata(item: CatalogItem) {
 	const lookupKey = normalizeItemKey(item.itemId);
 	if (!lookupKey || item.preserve === undefined || item.preserve === null) {
 		return undefined;
@@ -368,7 +421,11 @@ function getPreservedMetadata(item: Item) {
 	// base object ID plus preserve flags. Resolve those items from the object ID
 	// first so imported save data doesn't depend on matching every dynamic name
 	// we might see in the wild.
-	return getDirectMetadataMatch({ ...item, "@_xsi:type": "Object" });
+	return getDirectMetadataMatch({
+		...item,
+		$type: "StardewValley.Object",
+		"@_xsi:type": "Object",
+	} as CatalogItem);
 }
 
 export const Shirts = new Map<string, Shirt>(
@@ -377,7 +434,7 @@ export const Shirts = new Map<string, Shirt>(
 		.map(([, item]) => [item._key, item]),
 );
 
-export const ResolveItemData = (item: Item) => {
+export const ResolveItemData = (item: CatalogItem) => {
 	if (item.name === "Shirt") {
 		return Shirts.get((item.itemId ?? "").toString());
 	}

@@ -1,5 +1,7 @@
+import type { T_StardewValley_Quests_Quest as Quest } from "../../../generated/save-format/save.ts";
+import { savedType } from "./saved-types.ts";
 import { Data, Effect, Result, Schema } from "effect";
-import { farmers, type SaveDocument } from "./domain.ts";
+import { farmers, type Farmer, type SaveDocument } from "./domain.ts";
 import { TransactionDraft } from "./transaction-draft.ts";
 import { prizeTicketDestination } from "./quest-ticket.ts";
 import { InventoryEdits } from "./inventory-operations.ts";
@@ -44,44 +46,37 @@ const integer = Schema.is(
 		}),
 	),
 );
-const isScalar = Schema.is(Schema.Union([Schema.String, Schema.Finite]));
-// XML singleton/list adaptation is representation handling, not domain validation.
-const list = (v: unknown): unknown[] =>
-	v === undefined ? [] : Array.isArray(v) ? v : [v];
+const isScalar = Schema.is(
+	Schema.Union([Schema.String, Schema.Finite, Schema.BigInt]),
+);
+// Collections are arrays; omitted fields may be initialized only where explicitly allowed.
+const list = (v: unknown): unknown[] => (Array.isArray(v) ? v : []);
 const scalar = (v: unknown) => (isScalar(v) ? String(v) : undefined);
-const owners = (document: SaveDocument) =>
-	farmers(document).flatMap((owner) => (record(owner) ? [owner] : []));
-// A nil or opaque container has no safe insertion semantics. Empty XML and
-// independently valid entries remain editable without replacing their metadata.
-function dictionary(raw: unknown, field: string, omitted = false) {
-	if (raw === "" || (omitted && raw === undefined))
-		return { raw, entries: [] as unknown[], supported: true, singleton: false };
-	if (!record(raw) || raw["@_xsi:nil"] === true || raw["@_xsi:nil"] === "true")
-		return {
-			raw,
-			entries: [] as unknown[],
-			supported: false,
-			singleton: false,
-		};
-	const value = raw[field];
+const owners = farmers;
+// Unknown subclasses remain visible, but only generated vanilla variants can
+// enter the mutation path; their discriminant establishes writable saved fields.
+type KnownQuest = Exclude<Quest, { readonly $type: "$unknown" }>;
+function dictionary<T>(raw: T[] | undefined, omitted = false) {
 	return {
 		raw,
-		entries: list(value),
-		supported: value === undefined || Array.isArray(value) || record(value),
-		singleton: value !== undefined && !Array.isArray(value),
+		entries: Array.isArray(raw) ? raw : [],
+		supported: Array.isArray(raw) || (omitted && raw === undefined),
 	};
 }
-function journal(owner: Record<string, unknown>) {
-	return dictionary(owner.questLog, "Quest");
-}
-function writeJournal(owner: Record<string, unknown>, entries: unknown[]) {
-	const before = journal(owner);
-	owner.questLog = {
-		...(record(before.raw) ? before.raw : {}),
-		Quest: before.singleton && entries.length === 1 ? entries[0] : entries,
+function journal(owner: Farmer) {
+	const raw = owner.questLog;
+	// Malformed injected journals stay read-only without making projection iterate
+	// a non-array value; decoded journals keep their generated quest types.
+	return {
+		raw,
+		entries: Array.isArray(raw) ? raw : [],
+		supported: Array.isArray(raw),
 	};
 }
-function keyOf(raw: Record<string, unknown>) {
+function writeJournal(owner: Farmer, entries: (Quest | null)[]) {
+	owner.questLog = entries;
+}
+function keyOf(raw: Quest) {
 	const id = scalar(raw.id);
 	if (id !== undefined) return `id:${id}`;
 	// Help Wanted quests have no story ID. Capture their immutable generated identity,
@@ -98,9 +93,9 @@ function keyOf(raw: Record<string, unknown>) {
 	} = raw;
 	return `generated:${JSON.stringify(identity)}`;
 }
-const questType = (raw: Record<string, unknown>) =>
-	typeof raw["@_xsi:type"] === "string" ? raw["@_xsi:type"] : "Quest";
-function paysReward(raw: Record<string, unknown>) {
+const questType = (raw: Quest) =>
+	typeof savedType(raw) === "string" ? savedType(raw) : "Quest";
+function paysReward(raw: Quest) {
 	const type = questType(raw);
 	return (
 		raw.reward !== undefined &&
@@ -111,7 +106,7 @@ function paysReward(raw: Record<string, unknown>) {
 				raw.target !== "null"))
 	);
 }
-function reward(raw: Record<string, unknown>) {
+function reward(raw: Quest) {
 	const value =
 		paysReward(raw) && raw.completed !== true ? raw.reward : raw.moneyReward;
 	return value === undefined
@@ -120,17 +115,17 @@ function reward(raw: Record<string, unknown>) {
 			? Math.max(0, value)
 			: undefined;
 }
-function followIds(raw: Record<string, unknown>) {
+function followIds(raw: Quest) {
 	if (raw.nextQuests === "" || raw.nextQuests === undefined) return [];
-	if (!record(raw.nextQuests)) return undefined;
-	const values = list(raw.nextQuests.int);
+	if (!Array.isArray(raw.nextQuests)) return undefined;
+	const values = list(raw.nextQuests);
 	if (values.some((value) => scalar(value) === undefined)) return undefined;
 	return values.flatMap((value) => {
 		const id = scalar(value);
 		return id && !["0", "-1"].includes(id) ? [id] : [];
 	});
 }
-function rewardText(raw: Record<string, unknown>) {
+function rewardText(raw: Quest) {
 	return typeof raw.rewardDescription === "string" &&
 		raw.rewardDescription.length > 2
 		? raw.rewardDescription
@@ -170,7 +165,7 @@ export interface QuestFarmerView {
 }
 function project(
 	document: SaveDocument,
-	owner: Record<string, unknown>,
+	owner: Farmer,
 	unique: boolean,
 ): QuestFarmerView {
 	const data = journal(owner);
@@ -178,7 +173,7 @@ function project(
 	const all = data.entries.filter(record);
 	const keys = all.map(keyOf);
 	const knownIds = new Set(all.map((raw) => scalar(raw.id)));
-	const game: unknown = document.SaveGame;
+	const game = document.SaveGame;
 	const occurrences = new Map<string, number>();
 	return {
 		farmerId: scalar(owner.UniqueMultiplayerID) ?? "",
@@ -213,9 +208,7 @@ function project(
 				for (const id of ids ?? []) {
 					if (
 						knownIds.has(id) ||
-						(id === "7" &&
-							record(game) &&
-							String(game.whichFarm) === "MeadowlandsFarm")
+						(id === "7" && String(game.whichFarm) === "MeadowlandsFarm")
 					)
 						continue;
 					const definition = questDefinitions.get(id);
@@ -278,8 +271,8 @@ function project(
 					skippedFollowUps: skipped,
 					ticketDue,
 					ticketRoom:
-						ticketDue && record(owner.items) && Array.isArray(owner.items.Item)
-							? prizeTicketDestination(owner.items.Item) !== undefined
+						ticketDue && Array.isArray(owner.items)
+							? prizeTicketDestination(owner.items) !== undefined
 							: undefined,
 				};
 			}),
@@ -302,14 +295,14 @@ export function readQuestJournals(document: SaveDocument): QuestFarmerView[] {
 // Shared checked reading keeps projection and command rejection in agreement.
 // Unsupported imported values remain untouched; mutation helpers lift this Result
 // into the typed Effect error channel instead of throwing during preparation.
-function statDataResult(owner: Record<string, unknown>) {
+function statDataResult(owner: Farmer) {
 	if (!record(owner.stats))
 		return Result.fail(
 			new QuestInvalid({
 				message: "This farmer's completion stats are unsupported.",
 			}),
 		);
-	const values = dictionary(owner.stats.Values, "item", true);
+	const values = dictionary(owner.stats.Values, true);
 	if (!values.supported)
 		return Result.fail(
 			new QuestInvalid({
@@ -321,7 +314,7 @@ function statDataResult(owner: Record<string, unknown>) {
 // Stat keys are case-insensitive in-game. Preserve existing spelling and
 // opaque members, rejecting duplicate relevant keys rather than choosing one.
 function readStatResult(
-	owner: Record<string, unknown>,
+	owner: Farmer,
 	name: string,
 ): Result.Result<number, QuestInvalid> {
 	const checked = statDataResult(owner);
@@ -329,9 +322,8 @@ function readStatResult(
 	const matches = checked.success.entries.filter(
 		(entry) =>
 			record(entry) &&
-			record(entry.key) &&
-			typeof entry.key.string === "string" &&
-			entry.key.string.toLowerCase() === name.toLowerCase(),
+			typeof entry.key === "string" &&
+			entry.key.toLowerCase() === name.toLowerCase(),
 	);
 	if (matches.length > 1)
 		return Result.fail(
@@ -339,8 +331,7 @@ function readStatResult(
 		);
 	const first = matches[0];
 	if (first === undefined) return Result.succeed(0);
-	const value =
-		record(first) && record(first.value) ? first.value.unsignedInt : undefined;
+	const value = record(first) ? first.value : undefined;
 	if (!integer(value) || value < 0 || value >= 4294967295)
 		return Result.fail(
 			new QuestInvalid({
@@ -349,15 +340,15 @@ function readStatResult(
 		);
 	return Result.succeed(value);
 }
-const stats = Effect.fn("Quest.completionStats")(
-	(owner: Record<string, unknown>) => Effect.fromResult(statDataResult(owner)),
+const stats = Effect.fn("Quest.completionStats")((owner: Farmer) =>
+	Effect.fromResult(statDataResult(owner)),
 );
 const readStat = Effect.fn("Quest.readCompletionStat")(
-	(owner: Record<string, unknown>, name: string) =>
+	(owner: Farmer, name: string) =>
 		Effect.fromResult(readStatResult(owner, name)),
 );
 const incrementStat = Effect.fn("Quest.incrementStat")(function* (
-	owner: Record<string, unknown>,
+	owner: Farmer,
 	name: string,
 ) {
 	const value = (yield* readStat(owner, name)) + 1;
@@ -365,95 +356,71 @@ const incrementStat = Effect.fn("Quest.incrementStat")(function* (
 	const existing = data.entries.find(
 		(entry) =>
 			record(entry) &&
-			record(entry.key) &&
-			typeof entry.key.string === "string" &&
-			entry.key.string.toLowerCase() === name.toLowerCase(),
+			typeof entry.key === "string" &&
+			entry.key.toLowerCase() === name.toLowerCase(),
 	);
-	if (record(existing) && record(existing.value))
-		existing.value.unsignedInt = value;
-	else
-		data.root.Values = {
-			...(record(data.raw) ? data.raw : {}),
-			item: [
-				...data.entries,
-				{ key: { string: name }, value: { unsignedInt: value } },
-			],
-		};
+	if (record(existing)) existing.value = value;
+	else data.root.Values = [...data.entries, { key: name, value }];
 	return value;
 });
 // Completion adds only its own flags, leaving unrelated mail and metadata intact.
-const mail = Effect.fn("Quest.mail")(function* (
-	owner: Record<string, unknown>,
-	flag: string,
-) {
+const mail = Effect.fn("Quest.mail")(function* (owner: Farmer, flag: string) {
 	const raw = owner.mailReceived;
-	if (
-		raw !== "" &&
-		(!record(raw) || raw["@_xsi:nil"] === true || raw["@_xsi:nil"] === "true")
-	)
+	if (!Array.isArray(raw))
 		return yield* new QuestInvalid({
 			message: "This farmer's mail flags are unsupported.",
 		});
-	const values = record(raw) ? list(raw.string) : [];
+	const values = raw;
 	if (values.some((value) => typeof value !== "string"))
 		return yield* new QuestInvalid({
 			message: "This farmer's mail flags are unsupported.",
 		});
 	if (values.includes(flag)) return;
-	owner.mailReceived = {
-		...(record(raw) ? raw : {}),
-		string: [...values, flag],
-	};
+	owner.mailReceived = [...values, flag];
 });
 // Villagers should not repeat an already seen conversation topic. Inspect both
 // active and historical dictionaries before deliberately adding a new topic.
 const topic = Effect.fn("Quest.topic")(function* (
-	owner: Record<string, unknown>,
+	owner: Farmer,
 	id: string,
 	duration = 4,
 ) {
-	const active = dictionary(owner.activeDialogueEvents, "item", true);
-	const previous = dictionary(owner.previousActiveDialogueEvents, "item", true);
+	const active = dictionary(owner.activeDialogueEvents, true);
+	const previous = dictionary(owner.previousActiveDialogueEvents, true);
 	if (!active.supported || !previous.supported)
 		return yield* new QuestInvalid({
 			message: "This farmer's dialogue topics are unsupported.",
 		});
 	const values = [...active.entries, ...previous.entries];
-	if (
-		values.some(
-			(entry) =>
-				!record(entry) ||
-				!record(entry.key) ||
-				typeof entry.key.string !== "string",
-		)
-	)
+	if (values.some((entry) => !record(entry) || typeof entry.key !== "string"))
 		return yield* new QuestInvalid({
 			message: "This farmer's dialogue topic keys are unsupported.",
 		});
-	if (
-		values.some(
-			(entry) => record(entry) && record(entry.key) && entry.key.string === id,
-		)
-	)
-		return;
-	owner.activeDialogueEvents = {
-		...(record(active.raw) ? active.raw : {}),
-		item: [
-			...active.entries,
-			{ key: { string: id }, value: { int: duration } },
-		],
-	};
+	if (values.some((entry) => record(entry) && entry.key === id)) return;
+	owner.activeDialogueEvents = [
+		...active.entries,
+		{ key: id, value: duration },
+	];
 });
 const setRewardText = Effect.fn("Quest.setRewardText")(function* (
-	raw: Record<string, unknown>,
+	raw: KnownQuest,
 	gold: number,
 ) {
-	if (raw.parts === undefined || raw.parts === "") return;
-	if (!record(raw.parts))
+	// Only these generated quest variants own serialized reward-description parts.
+	// Extension fields on other variants must remain untouched by reward edits.
+	if (
+		raw.$type !== "StardewValley.Quests.FishingQuest" &&
+		raw.$type !== "StardewValley.Quests.ItemDeliveryQuest" &&
+		raw.$type !== "StardewValley.Quests.ResourceCollectionQuest" &&
+		raw.$type !== "StardewValley.Quests.SlayMonsterQuest"
+	)
+		return;
+	if (raw.parts === undefined) return;
+	if (!Array.isArray(raw.parts))
 		return yield* new QuestInvalid({
 			message: "This quest's reward description is unsupported.",
 		});
-	for (const part of list(raw.parts.DescriptionElement)) {
+	for (const part of raw.parts) {
 		if (!record(part)) continue;
 		const xmlKey = part.xmlKey;
 		if (
@@ -465,12 +432,15 @@ const setRewardText = Effect.fn("Quest.setRewardText")(function* (
 			].some((key) => xmlKey.endsWith(key))
 		)
 			continue;
-		const first = list(part.param)[0];
-		if (!record(first))
+		const params = part.param;
+		const first = params?.[0];
+		if (!params || !record(first) || first.$type !== "System.Int32")
 			return yield* new QuestInvalid({
 				message: "This quest's advertised reward cannot be updated safely.",
 			});
-		first["#text"] = gold;
+		// Boxed scalar values are immutable; replace only the reward parameter
+		// while retaining its discriminator and any imported extension fields.
+		params[0] = { ...first, value: gold };
 	}
 });
 export interface QuestCompletionResult {
@@ -481,8 +451,8 @@ export interface QuestCompletionResult {
 }
 const complete = Effect.fn("Quest.complete")(function* (
 	document: SaveDocument,
-	owner: Record<string, unknown>,
-	initial: Record<string, unknown>,
+	owner: Farmer,
+	initial: KnownQuest,
 ) {
 	const result: QuestCompletionResult = {
 		removed: false,
@@ -491,11 +461,11 @@ const complete = Effect.fn("Quest.complete")(function* (
 		prizeTickets: [],
 	};
 	let tickets = 0;
-	const processed = new Set<Record<string, unknown>>();
+	const processed = new Set<KnownQuest>();
 	const completedIds = new Set<string>();
-	const game: unknown = document.SaveGame;
+	const game = document.SaveGame;
 	const finish = (
-		raw: Record<string, unknown>,
+		raw: KnownQuest,
 		depth = 0,
 	): Effect.Effect<void, QuestInvalid> =>
 		Effect.gen(function* () {
@@ -504,7 +474,7 @@ const complete = Effect.fn("Quest.complete")(function* (
 					message: "The follow-up chain is too deep to complete safely.",
 				});
 			if (raw.completed === true || processed.has(raw)) return;
-			for (const field of ["completed", "dailyQuest", "destroy"]) {
+			for (const field of ["completed", "dailyQuest", "destroy"] as const) {
 				if (raw[field] !== undefined && typeof raw[field] !== "boolean")
 					return yield* new QuestInvalid({
 						message: "This quest has unsupported completion flags.",
@@ -561,11 +531,7 @@ const complete = Effect.fn("Quest.complete")(function* (
 			// Follow-ups append like Farmer.addQuest. Already built buildings may finish
 			// immediately, recursively starting their own supported follow-ups.
 			for (const nextId of ids) {
-				if (
-					nextId === "7" &&
-					record(game) &&
-					String(game.whichFarm) === "MeadowlandsFarm"
-				)
+				if (nextId === "7" && String(game.whichFarm) === "MeadowlandsFarm")
 					continue;
 				if (
 					completedIds.has(nextId) ||
@@ -576,12 +542,9 @@ const complete = Effect.fn("Quest.complete")(function* (
 					continue;
 				const definition = questDefinitions.get(nextId);
 				const next = definition
-					? questFromData(
-							definition,
-							(document.SaveGame.player as unknown) === owner,
-						)
+					? questFromData(definition, document.SaveGame.player === owner)
 					: undefined;
-				if (!next) {
+				if (!next || next.$type === "$unknown") {
 					result.skippedFollowUps.push(questLabel(nextId));
 					continue;
 				}
@@ -592,13 +555,9 @@ const complete = Effect.fn("Quest.complete")(function* (
 						: questLabel(nextId),
 				);
 				if (typeof next.completionString === "string") {
-					const built = record(game) ? game.constructedBuildings : undefined;
+					const built = game.constructedBuildings;
 					const values =
-						built === "" || built === undefined
-							? []
-							: record(built)
-								? list(built.string)
-								: undefined;
+						built === undefined ? [] : Array.isArray(built) ? built : undefined;
 					if (!values || values.some((value) => typeof value !== "string"))
 						return yield* new QuestInvalid({
 							message:
@@ -659,7 +618,7 @@ export const setQuest = Effect.fn("Quest.set")(function* (input: QuestChange) {
 	const raw = journal(owner).entries.find(
 		(candidate) => record(candidate) && keyOf(candidate) === request.questKey,
 	);
-	if (!record(raw))
+	if (!record(raw) || raw.$type === "$unknown")
 		return yield* new QuestInvalid({
 			message: "This quest is no longer available.",
 		});

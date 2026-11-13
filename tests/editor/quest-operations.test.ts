@@ -1,10 +1,13 @@
 import type { TransactionDraft } from "../../src/lib/editor/transaction-draft.ts";
 import type { ReviewJournal } from "../../src/lib/editor/transaction-annotations.ts";
 import type { InventoryEdits } from "../../src/lib/editor/inventory-operations.ts";
-import type { QuestCompletionResult } from "../../src/lib/editor/quest-operations.ts";
 import { Effect, Scope } from "effect";
 import { describe, it, expect } from "vitest";
-import { tinyFixture, exportDocument, parser } from "./fixtures.ts";
+import {
+	tinyFixture,
+	exportDocument,
+	parser,
+} from "../helpers/editor-document.ts";
 import {
 	type HistorySession,
 	makeHistorySession,
@@ -17,6 +20,7 @@ import type { SaveDocument } from "../../src/lib/editor/domain.ts";
 const baseQuest = (extra: Record<string, unknown> = {}) =>
 	Object.fromEntries(
 		Object.entries({
+			$type: "StardewValley.Quests.Quest",
 			_questTitle: "Test quest",
 			_questDescription: "Description",
 			_currentObjective: "Objective",
@@ -28,28 +32,27 @@ const baseQuest = (extra: Record<string, unknown> = {}) =>
 			moneyReward: 100,
 			daysLeft: 0,
 			questType: 1,
-			nextQuests: "",
+			nextQuests: [],
 			...extra,
 		}).filter(([, value]) => value !== undefined),
 	);
 function fixture(quests: unknown[] = [baseQuest()]) {
 	const document = tinyFixture();
 	Object.assign(document.SaveGame.player, {
-		questLog: { Quest: quests, opaque: "journal" },
-		mailReceived: "",
-		activeDialogueEvents: "",
-		previousActiveDialogueEvents: "",
-		stats: { Values: "" },
-		items: {
-			Item: Array.from({ length: 12 }, () => ({ "@_xsi:nil": "true" })),
-		},
+		questLog: quests,
+		testMetadataquestLog: { opaque: "journal" },
+		mailReceived: [],
+		activeDialogueEvents: [],
+		previousActiveDialogueEvents: [],
+		stats: { Values: [] },
+		items: Array.from({ length: 12 }, () => null),
 	});
 	return document;
 }
 const target = (document: SaveDocument) => {
 	const row = readQuestJournals(document)[0]?.quests[0];
 	if (!row) throw new Error("Missing quest");
-	return { farmerId: "host", questKey: row.key };
+	return { farmerId: "1", questKey: row.key };
 };
 const run = <A, E>(program: Effect.Effect<A, E, Scope.Scope>) =>
 	Effect.runPromise(Effect.scoped(program));
@@ -80,23 +83,25 @@ describe("quest journal operations", () => {
 			Effect.gen(function* () {
 				const document = fixture([
 					baseQuest({
-						"@_xsi:type": "FishingQuest",
+						$type: "StardewValley.Quests.FishingQuest",
 						id: undefined,
 						dailyQuest: true,
 						reward: 250,
 						moneyReward: -1,
 						daysLeft: 2,
 						target: "Willy",
-						parts: {
-							DescriptionElement: {
+						parts: [
+							{
 								xmlKey: "Strings:FishingQuest.cs.13274",
-								param: {
-									"@_xsi:type": "xsd:int",
-									"#text": 250,
-									opaque: "keep",
-								},
+								param: [
+									{
+										$type: "System.Int32",
+										value: 250,
+										opaque: "keep",
+									},
+								],
 							},
-						},
+						],
 						opaque: "quest",
 					}),
 				]);
@@ -110,20 +115,18 @@ describe("quest journal operations", () => {
 				);
 				const after = yield* session.snapshot;
 				expect(after.document.SaveGame.player).toMatchObject({
-					questLog: {
-						Quest: [
-							{
-								reward: 500,
-								moneyReward: -1,
-								parts: {
-									DescriptionElement: {
-										param: { "#text": 500, opaque: "keep" },
-									},
+					questLog: [
+						{
+							reward: 500,
+							moneyReward: -1,
+							parts: [
+								{
+									param: [{ value: 500, opaque: "keep" }],
 								},
-								opaque: "quest",
-							},
-						],
-					},
+							],
+							opaque: "quest",
+						},
+					],
 				});
 				yield* session.undo;
 				expect((yield* session.snapshot).document).toEqual(before);
@@ -134,9 +137,7 @@ describe("quest journal operations", () => {
 	it("completes story follow-ups atomically, leaves gold pending and never grants cash", () =>
 		run(
 			Effect.gen(function* () {
-				const document = fixture([
-					baseQuest({ id: "6", nextQuests: { int: ["7"] } }),
-				]);
+				const document = fixture([baseQuest({ id: "6", nextQuests: ["7"] })]);
 				const session = yield* makeHistorySession(document);
 				const before = yield* session.snapshot;
 				const result = yield* transactValue(
@@ -168,7 +169,7 @@ describe("quest journal operations", () => {
 						id: undefined,
 						dailyQuest: true,
 						questType: 7,
-						"@_xsi:type": "FishingQuest",
+						$type: "StardewValley.Quests.FishingQuest",
 						target: "Willy",
 						reward: 300,
 						moneyReward: -1,
@@ -177,14 +178,13 @@ describe("quest journal operations", () => {
 				]);
 				Object.assign(document.SaveGame.player, {
 					stats: {
-						Values: {
-							item: [
-								{
-									key: { string: "billboardQUESTSdone" },
-									value: { unsignedInt: 2, opaque: "stat" },
-								},
-							],
-						},
+						Values: [
+							{
+								key: "billboardQUESTSdone",
+								value: 2,
+								opaque: "stat",
+							},
+						],
 					},
 				});
 				const session = yield* makeHistorySession(document);
@@ -196,24 +196,23 @@ describe("quest journal operations", () => {
 				expect(result?.prizeTickets).toEqual(["added"]);
 				const after = yield* session.snapshot;
 				expect(after.document.SaveGame.player).toMatchObject({
-					questLog: { Quest: [{ completed: true, moneyReward: 300 }] },
-					mailReceived: { string: ["completedFirstBillboardQuest"] },
+					questLog: [{ completed: true, moneyReward: 300 }],
+					mailReceived: ["completedFirstBillboardQuest"],
 					stats: {
-						Values: {
-							item: [
-								{
-									key: { string: "billboardQUESTSdone" },
-									value: { unsignedInt: 3, opaque: "stat" },
-								},
-								{
-									key: { string: "questsCompleted" },
-									value: { unsignedInt: 1 },
-								},
-							],
-						},
+						Values: [
+							{
+								key: "billboardQUESTSdone",
+								value: 3,
+								opaque: "stat",
+							},
+							{
+								key: "questsCompleted",
+								value: 1,
+							},
+						],
 					},
 				});
-				expect(after.document.SaveGame.player.items.Item[0]).toMatchObject({
+				expect(after.document.SaveGame.player.items[0]).toMatchObject({
 					itemId: "PrizeTicket",
 					stack: 1,
 				});
@@ -233,21 +232,17 @@ describe("quest journal operations", () => {
 				]);
 				Object.assign(document.SaveGame.player, {
 					stats: {
-						Values: {
-							item: [
-								{
-									key: { string: "BillboardQuestsDone" },
-									value: { unsignedInt: 2 },
-								},
-							],
-						},
+						Values: [
+							{
+								key: "BillboardQuestsDone",
+								value: 2,
+							},
+						],
 					},
-					items: {
-						Item: Array.from({ length: 12 }, () => ({
-							"@_xsi:nil": "true",
-							opaque: "keep",
-						})),
-					},
+					items: Array.from({ length: 12 }, () => ({
+						"@_xsi:nil": "true",
+						opaque: "keep",
+					})),
 				});
 				const session = yield* makeHistorySession(document);
 				const before = yield* session.snapshot;
@@ -268,7 +263,7 @@ describe("quest journal operations", () => {
 					baseQuest({ id: "old", moneyReward: 100 }),
 					baseQuest({
 						id: "secret",
-						"@_xsi:type": "SecretLostItemQuest",
+						$type: "StardewValley.Quests.SecretLostItemQuest",
 						exclusiveQuestId: "old",
 						friendshipReward: 100,
 						dailyQuest: true,
@@ -283,7 +278,7 @@ describe("quest journal operations", () => {
 				).toEqual([]);
 				expect(
 					(yield* session.snapshot).document.SaveGame.player,
-				).toMatchObject({ stats: { Values: "" }, mailReceived: "" });
+				).toMatchObject({ stats: { Values: [] }, mailReceived: [] });
 				const plain = fixture([baseQuest({ id: undefined, moneyReward: 0 })]);
 				const noReward = yield* makeHistorySession(plain);
 				yield* noReward.transact(
@@ -297,9 +292,7 @@ describe("quest journal operations", () => {
 	it("skips Meadowlands coop follow-up, recursively completes constructed buildings and guards opaque stats/mail", () =>
 		run(
 			Effect.gen(function* () {
-				const document = fixture([
-					baseQuest({ id: "6", nextQuests: { int: [7] } }),
-				]);
+				const document = fixture([baseQuest({ id: "6", nextQuests: ["7"] })]);
 				Object.assign(document.SaveGame, { whichFarm: "MeadowlandsFarm" });
 				const session = yield* makeHistorySession(document);
 				const result = yield* transactValue(
@@ -308,24 +301,22 @@ describe("quest journal operations", () => {
 				);
 				expect(result?.started).toEqual([]);
 				for (const extra of [
-					{ mailReceived: { "@_xsi:nil": "true" } },
+					{ mailReceived: null },
 					{
 						stats: {
-							Values: {
-								item: [
-									{
-										key: { string: "BillboardQuestsDone" },
-										value: { unsignedInt: 1 },
-									},
-									{
-										key: { string: "billboardquestsdone" },
-										value: { unsignedInt: 2 },
-									},
-								],
-							},
+							Values: [
+								{
+									key: "BillboardQuestsDone",
+									value: 1,
+								},
+								{
+									key: "billboardquestsdone",
+									value: 2,
+								},
+							],
 						},
 					},
-					{ questLog: { Quest: [baseQuest({ dailyQuest: "true" })] } },
+					{ questLog: [baseQuest({ dailyQuest: "true" })] },
 				]) {
 					const invalid = fixture([
 						baseQuest({ id: undefined, dailyQuest: true }),
@@ -387,33 +378,34 @@ describe("quest journal operations", () => {
 				).toBe("Failure");
 			}),
 		));
-	it("keeps malformed/singleton journals visible without opening writes and roundtrips supported fields", () =>
-		run(
-			Effect.gen(function* () {
-				const document = fixture();
-				Object.assign(document.SaveGame.player, {
-					questLog: { Quest: baseQuest(), opaque: "keep" },
-				});
-				const session = yield* makeHistorySession(document);
-				yield* session.transact(
-					setQuest({ ...target(document), kind: "reward", value: 123 }),
-				);
-				const after = (yield* session.snapshot).document;
-				expect(
-					readQuestJournals(parser.parse(exportDocument(after)))[0]?.quests[0]
-						?.reward,
-				).toBe(123);
-				for (const log of [
-					null,
-					{ "@_xsi:nil": "true" },
-					{ Quest: "opaque" },
-				]) {
-					const invalid = fixture();
-					Object.assign(invalid.SaveGame.player, { questLog: log });
-					expect(readQuestJournals(invalid)[0]?.supported).toBe(false);
-				}
-			}),
-		));
+	it(
+		"keeps malformed/singleton journals visible without opening writes and roundtrips supported fields",
+		() =>
+			run(
+				Effect.gen(function* () {
+					const document = fixture();
+					Object.assign(document.SaveGame.player, {
+						questLog: [baseQuest()],
+						testMetadataquestLog: { opaque: "keep" },
+					});
+					const session = yield* makeHistorySession(document);
+					yield* session.transact(
+						setQuest({ ...target(document), kind: "reward", value: 123 }),
+					);
+					const after = (yield* session.snapshot).document;
+					expect(
+						readQuestJournals(parser.parse(exportDocument(after)))[0]?.quests[0]
+							?.reward,
+					).toBe(123);
+					for (const log of [null, false, { opaque: "invalid container" }]) {
+						const invalid = fixture();
+						Object.assign(invalid.SaveGame.player, { questLog: log });
+						expect(readQuestJournals(invalid)[0]?.supported).toBe(false);
+					}
+				}),
+			),
+		30_000,
+	);
 });
 
 it("recursively completes constructed-building follow-ups and records Emily's one-time dialogue", () =>
@@ -423,11 +415,11 @@ it("recursively completes constructed-building follow-ups and records Emily's on
 				baseQuest({
 					id: "parent",
 					moneyReward: 0,
-					nextQuests: { int: ["7", "126", "Unsupported.Mod"] },
+					nextQuests: ["7", "126", "Unsupported.Mod"],
 				}),
 			]);
 			Object.assign(document.SaveGame, {
-				constructedBuildings: { string: ["Coop"] },
+				constructedBuildings: ["Coop"],
 			});
 			const session = yield* makeHistorySession(document);
 			const result = yield* transactValue(
@@ -449,13 +441,11 @@ it("recursively completes constructed-building follow-ups and records Emily's on
 			);
 			expect((yield* marriage.snapshot).document.SaveGame.player).toMatchObject(
 				{
-					mailReceived: { string: ["emilyFiber"] },
-					activeDialogueEvents: {
-						item: [
-							{ key: { string: "emilyFiber" }, value: { int: 2 } },
-							{ key: { string: "questComplete_126" }, value: { int: 4 } },
-						],
-					},
+					mailReceived: ["emilyFiber"],
+					activeDialogueEvents: [
+						{ key: "emilyFiber", value: 2 },
+						{ key: "questComplete_126", value: 4 },
+					],
 				},
 			);
 		}),
@@ -465,19 +455,15 @@ it("keeps host-only future follow-ups out of farmhand-created quests", () =>
 	run(
 		Effect.gen(function* () {
 			const document = fixture([
-				baseQuest({ id: "parent", nextQuests: { int: ["6"] } }),
+				baseQuest({ id: "parent", nextQuests: ["6"] }),
 			]);
 			const guest =
-				document.SaveGame.farmhands && document.SaveGame.farmhands.Farmer[0];
+				document.SaveGame.farmhands && document.SaveGame.farmhands[0];
 			if (!guest) throw new Error("Missing guest");
 			Object.assign(guest, {
-				questLog: {
-					Quest: [
-						baseQuest({ id: "guest-parent", nextQuests: { int: ["6"] } }),
-					],
-				},
-				activeDialogueEvents: "",
-				previousActiveDialogueEvents: "",
+				questLog: [baseQuest({ id: "guest-parent", nextQuests: ["6"] })],
+				activeDialogueEvents: [],
+				previousActiveDialogueEvents: [],
 			});
 			const session = yield* makeHistorySession(document);
 			yield* session.transact(
@@ -485,35 +471,31 @@ it("keeps host-only future follow-ups out of farmhand-created quests", () =>
 			);
 			const guestRow = readQuestJournals(
 				(yield* session.snapshot).document,
-			).find((owner) => owner.farmerId === "guest")?.quests[0];
+			).find((owner) => owner.farmerId === "2")?.quests[0];
 			if (!guestRow) throw new Error("Missing guest quest");
 			yield* session.transact(
 				setQuest({
-					farmerId: "guest",
+					farmerId: "2",
 					questKey: guestRow.key,
 					kind: "complete",
 				}),
 			);
 			const after = yield* session.snapshot;
 			expect(after.document.SaveGame.player).toMatchObject({
-				questLog: {
-					Quest: expect.arrayContaining([
-						expect.objectContaining({
-							id: "6",
-							nextQuests: { int: ["7", "8"] },
-						}),
-					]),
-				},
+				questLog: expect.arrayContaining([
+					expect.objectContaining({
+						id: "6",
+						nextQuests: ["7", "8"],
+					}),
+				]),
 			});
 			const saved =
 				after.document.SaveGame.farmhands &&
-				after.document.SaveGame.farmhands.Farmer[0];
+				after.document.SaveGame.farmhands[0];
 			expect(saved).toMatchObject({
-				questLog: {
-					Quest: expect.arrayContaining([
-						expect.objectContaining({ id: "6", nextQuests: { int: ["8"] } }),
-					]),
-				},
+				questLog: expect.arrayContaining([
+					expect.objectContaining({ id: "6", nextQuests: ["8"] }),
+				]),
 			});
 		}),
 	));

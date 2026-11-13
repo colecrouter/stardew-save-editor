@@ -1,0 +1,137 @@
+{
+	"formatVersion": 3,
+	"diagnostics": [],
+	"types": [
+		{
+			"id": "Example.Node",
+			"kind": "object",
+			"members": [
+				{
+					"name": "Name",
+					"type": "System.String"
+				},
+				{
+					"name": "heldObject",
+					"type": "NetRefNode",
+					"attributes": [
+						{
+							"type": "System.Xml.Serialization.XmlElementAttribute"
+						}
+					]
+				},
+				{
+					"name": "Children",
+					"type": "ListNode"
+				},
+				{
+					"name": "Links",
+					"type": "DictionaryNode"
+				},
+				{
+					"name": "Branches",
+					"type": "ListBranch"
+				}
+			],
+			"attributes": [
+				{
+					"type": "System.Xml.Serialization.XmlIncludeAttribute",
+					"constructorArguments": [
+						{
+							"type": "System.Type",
+							"value": "Example.Derived"
+						}
+					]
+				}
+			]
+		},
+		{
+			"id": "Example.Derived",
+			"kind": "object",
+			"baseType": "Example.Node",
+			"members": [
+				{
+					"name": "Name",
+					"type": "System.String"
+				},
+				{
+					"name": "heldObject",
+					"type": "NetRefNode",
+					"attributes": [
+						{
+							"type": "System.Xml.Serialization.XmlElementAttribute"
+						}
+					]
+				},
+				{
+					"name": "Children",
+					"type": "ListNode"
+				},
+				{
+					"name": "Links",
+					"type": "DictionaryNode"
+				},
+				{
+					"name": "Branches",
+					"type": "ListBranch"
+				},
+				{
+					"name": "Depth",
+					"type": "System.Int32"
+				}
+			]
+		},
+		{
+			"id": "Example.Branch",
+			"kind": "object",
+			"members": [
+				{
+					"name": "Label",
+					"type": "System.String"
+				},
+				{
+					"name": "Parent",
+					"type": "NetRefNode",
+					"attributes": [
+						{
+							"type": "System.Xml.Serialization.XmlElementAttribute"
+						}
+					]
+				}
+			]
+		},
+		{
+			"id": "NetRefNode",
+			"kind": "collection",
+			"elementType": "Example.Node",
+			"maxItems": 1
+		},
+		{
+			"id": "ListNode",
+			"kind": "collection",
+			"elementType": "Example.Node"
+		},
+		{
+			"id": "ListBranch",
+			"kind": "collection",
+			"elementType": "Example.Branch"
+		},
+		{
+			"id": "DictionaryNode",
+			"kind": "collection",
+			"customXml": true,
+			"genericDefinition": "StardewValley.SerializableDictionary`2",
+			"genericArguments": ["System.String", "Example.Node"],
+			"attributes": [
+				{
+					"type": "System.Xml.Serialization.XmlRootAttribute",
+					"constructorArguments": [
+						{
+							"type": "System.String",
+							"value": "dictionary"
+						}
+					]
+				}
+			]
+		}
+	]
+}

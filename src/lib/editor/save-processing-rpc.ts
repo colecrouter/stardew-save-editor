@@ -13,6 +13,15 @@ import * as Rpc from "effect/rpc/Rpc";
 import * as RpcGroup from "effect/rpc/RpcGroup";
 import * as Transferable from "effect/workers/Transferable";
 
+// RPC derives JSON codecs even on worker transports. Unknown's JSON codec would
+// reject bigint IDs, so this declaration explicitly preserves structured-clone
+// values. The XML codec validates the document; this boundary neither projects
+// its fields nor detaches buffers belonging to the live editor state.
+const StructuredCloneValue = Transferable.schema(
+	Schema.declare((_value): _value is unknown => true),
+	() => [],
+);
+
 // Parser causes may contain uploaded XML. Send only the recovery category back
 // to the browser, where the normal import boundary supplies user-facing wording.
 export class SaveImportRejected extends Schema.TaggedError<
@@ -30,7 +39,7 @@ export const SaveProcessingRpc = RpcGroup.make(
 	Rpc.make("importSave", {
 		payload: { bytes: Transferable.Uint8Array },
 		success: Schema.Struct({
-			document: Schema.Unknown,
+			document: StructuredCloneValue,
 			validation: Schema.Struct({
 				valid: Schema.Boolean,
 				errors: Schema.mutable(Schema.Array(Schema.String)),
@@ -40,7 +49,7 @@ export const SaveProcessingRpc = RpcGroup.make(
 		error: SaveImportRejected,
 	}),
 	Rpc.make("exportSave", {
-		payload: { document: Schema.Unknown, validate: Schema.Boolean },
+		payload: { document: StructuredCloneValue, validate: Schema.Boolean },
 		success: Transferable.Uint8Array,
 		error: Schema.Union([SaveExportRejected, SaveExportFailed]),
 	}),

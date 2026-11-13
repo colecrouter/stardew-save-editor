@@ -16,6 +16,7 @@ const toolTypes = new Set([
 ]);
 export interface InventorySortFields {
 	readonly "@_xsi:type"?: unknown;
+	readonly $type?: unknown;
 	readonly category?: unknown;
 	readonly name?: unknown;
 	readonly parentSheetIndex?: unknown;
@@ -32,7 +33,11 @@ const number = (value: unknown, fallback = 0) => {
 };
 const text = (value: unknown) => (typeof value === "string" ? value : "");
 export const isInventoryTool = (item: InventorySortFields) =>
-	toolTypes.has(text(item["@_xsi:type"]));
+	toolTypes.has(
+		typeof item.$type === "string"
+			? (item.$type.split(/[.+]/).at(-1) ?? "")
+			: text(item["@_xsi:type"]),
+	);
 const category = (item: InventorySortFields) =>
 	number(item.category) === -100 ? -94 : number(item.category);
 const isObject = (item: InventorySortFields) =>

@@ -1,10 +1,9 @@
 import { fireEvent, render } from "@testing-library/svelte";
 import { expect, it, vi } from "vitest";
-import { openEditor } from "../../src/lib/editor/editor-model";
+import { openTestDocument } from "../helpers/open-editor.ts";
 import { createCatalogItem } from "../../src/lib/editor/item-catalog";
-import { exportDocument, fixtureXml, parser } from "./fixtures";
+import { fixtureXml, parser } from "./fixtures";
 import StorageHarness from "./StorageHarness.svelte";
-import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
 
 it(
 	"scrolls a held Storage drag at pane edges and cancels without editing the save",
@@ -16,35 +15,27 @@ it(
 		// One placed chest gives the actual Storage panel an occupied drag source;
 		// viewport geometry is supplied below because the DOM runner does not lay out CSS.
 		Object.assign(document.SaveGame, {
-			locations: {
-				GameLocation: [
-					{
-						name: "Farm",
-						objects: {
-							item: [
-								{
-									key: { Vector2: { X: 1, Y: 2 } },
-									value: {
-										Object: {
-											"@_xsi:type": "Chest",
-											playerChest: true,
-											name: "Supplies",
-											itemId: "130",
-											specialChestType: "None",
-											items: { Item: [wood] },
-										},
-									},
-								},
-							],
+			locations: [
+				{
+					$type: "StardewValley.GameLocation",
+					name: "Farm",
+					objects: [
+						{
+							key: { X: 1, Y: 2 },
+							value: {
+								$type: "StardewValley.Objects.Chest",
+								playerChest: true,
+								name: "Supplies",
+								itemId: "130",
+								specialChestType: "None",
+								items: [wood],
+							},
 						},
-					},
-				],
-			},
+					],
+				},
+			],
 		});
-		const opened = await openEditor(
-			SaveProcessingSync,
-			new TextEncoder().encode(exportDocument(document)),
-		);
+		const opened = await openTestDocument(document);
 		const page = render(StorageHarness, { model: opened.model });
 		const source = page.getByRole("button", { name: "Slot 1: Wood" });
 		const pane = source.closest<HTMLDivElement>(".containers");

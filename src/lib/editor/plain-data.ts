@@ -1,3 +1,8 @@
+/** Recognize an object-shaped value before inspecting opaque saved extensions or
+ * generic review data. Arrays and null are separate representations. */
+export const record = (value: unknown): value is Record<string, unknown> =>
+	value !== null && typeof value === "object" && !Array.isArray(value);
+
 // Parsed XML consists of plain records, arrays, and primitive values. This
 // comparator intentionally does not support class instances, cycles, Maps or Sets.
 export function samePlainData(left: unknown, right: unknown): boolean {

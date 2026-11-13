@@ -1,0 +1,15 @@
+{
+	"formatVersion": 3,
+	"diagnostics": [],
+	"types": [
+		{
+			"id": "Example.Mine",
+			"kind": "object",
+			"members": [
+				{ "name": "mineRandom", "type": "System.Random" },
+				{ "name": "level", "type": "System.Int32" }
+			]
+		},
+		{ "id": "System.Random", "kind": "object", "baseType": "System.Object" }
+	]
+}

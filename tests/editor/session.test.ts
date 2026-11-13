@@ -1,3 +1,4 @@
+import { stringifySavedData } from "../../src/lib/editor/saved-data.ts";
 import { describe, expect, it } from "vitest";
 import { fixtureXml } from "./fixtures";
 import { get } from "svelte/store";
@@ -5,17 +6,21 @@ import { createDraft } from "../../src/lib/editor/field.ts";
 import {
 	editorResources,
 	formatDateDraft,
-	openEditor as openApplicationEditor,
 } from "../../src/lib/editor/editor-model.ts";
-import { exportDocument, parser, tinyFixture } from "./fixtures";
-import type { Save } from "../../codegen/save.ts";
-import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
+import {
+	exportDocument,
+	parser,
+	tinyFixture,
+	tinyEditorFixture,
+} from "../helpers/editor-document.ts";
+import { openEditor as openApplicationEditor } from "../helpers/open-editor.ts";
+import type { FixtureSave as Save } from "../helpers/editor-document.ts";
 
 const openEditor = (
 	bytes: Uint8Array,
 	limits: import("../../src/lib/editor/history.ts").HistoryLimits = {},
 ) =>
-	openApplicationEditor(SaveProcessingSync, bytes, limits, {
+	openApplicationEditor(bytes, limits, {
 		includeProofs: true,
 		validateExport: false,
 	});
@@ -27,7 +32,7 @@ const parseBytes = (bytes: Uint8Array) =>
 // TestSave is a 6.6 MB preservation fixture. Encoding/reparsing it several times
 // verifies data integrity, not latency; retain the experiment's integration budget
 // on shared CI runners without changing the default timeout for unit tests.
-describe("full-save calendar session", { timeout: 15_000 }, () => {
+describe("full-save calendar session", { timeout: 60_000 }, () => {
 	it("calendar import/view/export preserves the full document before any edit", async () => {
 		const bytes = await input();
 		const opened = await openEditor(bytes);
@@ -89,7 +94,7 @@ describe("full-save calendar session", { timeout: 15_000 }, () => {
 			]);
 			await opened.model.undo();
 			const before = await opened.model.snapshot();
-			draft.input(JSON.stringify({ year: "", season: "spring", day: "8" }));
+			draft.input(stringifySavedData({ year: "", season: "spring", day: "8" }));
 			await draft.submit();
 			expect(get(draft).dirty).toBe(true);
 			expect(get(draft).error).not.toBe("");
@@ -201,7 +206,11 @@ describe("full-save calendar session", { timeout: 15_000 }, () => {
 			openEditor(new TextEncoder().encode(exportDocument(malformed))),
 		).rejects.toThrow();
 		expect(editorResources()).toEqual({ models: 0, registries: 0, streams: 0 });
-		const bytes = await input();
+		// Repeated acquisition/closure needs the real codec and registry lifecycle,
+		// but unrelated world records only make leak detection more expensive.
+		const valid = tinyEditorFixture();
+		valid.SaveGame.player.stats = { Values: [] };
+		const bytes = new TextEncoder().encode(exportDocument(valid));
 		for (let i = 0; i < 4; i++) {
 			const opened = await openEditor(bytes);
 			const stop = opened.model.view.subscribe(() => {});

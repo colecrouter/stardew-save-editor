@@ -5,11 +5,14 @@ import EditorApp from "../../src/lib/editor/ui/EditorApp.svelte";
 import { fixtureXml, parser } from "./fixtures";
 import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
 
+const waitForIO = <T>(assertion: () => T) =>
+	waitFor(assertion, { timeout: 30_000 });
+
 // Reject the actual stream phase, not just opening the picker. The same session
 // must remain editable and a retry must export its latest state under its filename.
 it.each(["write", "close"] as const)(
 	"recovers from a browser %s failure without losing edits or backup feedback",
-	{ timeout: 20000 },
+	{ timeout: 60_000 },
 	async (stage) => {
 		const failure = new DOMException("Destination unavailable", "AbortError");
 		const report = vi.spyOn(console, "error").mockImplementation(() => {});
@@ -45,12 +48,16 @@ it.each(["write", "close"] as const)(
 			await fireEvent.change(page.getByLabelText("Save file"), {
 				target: { files: [new File([fixtureXml], "Farm_123")] },
 			});
-			const exportButton = await page.findByRole("button", {
-				name: "Export save",
-			});
+			const exportButton = await page.findByRole(
+				"button",
+				{ name: "Export save" },
+				{ timeout: 30_000 },
+			);
 			await fireEvent.click(exportButton);
 			await page.findByText(
 				"The save could not be downloaded. Please try again.",
+				{},
+				{ timeout: 30_000 },
 			);
 			expect(abort).toHaveBeenCalledExactlyOnceWith(failure);
 			await fireEvent.click(page.getByRole("link", { name: "Farm settings" }));
@@ -58,7 +65,7 @@ it.each(["write", "close"] as const)(
 				target: { value: "Retry Farm" },
 			});
 			await fireEvent.click(exportButton);
-			await waitFor(() => {
+			await waitForIO(() => {
 				expect(attempt).toBe(2);
 				expect(exportButton.hasAttribute("disabled")).toBe(false);
 			});
@@ -85,7 +92,7 @@ it.each(["write", "close"] as const)(
 			page.unmount();
 			report.mockRestore();
 			Reflect.deleteProperty(window, "showSaveFilePicker");
-			await waitFor(() =>
+			await waitForIO(() =>
 				expect(editorResources()).toEqual({
 					models: 0,
 					registries: 0,

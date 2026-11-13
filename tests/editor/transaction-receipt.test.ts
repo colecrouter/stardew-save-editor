@@ -1,10 +1,9 @@
 import { Effect, Result } from "effect";
 import { expect, it } from "vitest";
-import { openEditor } from "../../src/lib/editor/editor-model.ts";
+import { openTestDocument } from "../helpers/open-editor.ts";
 import { MutationError } from "../../src/lib/editor/domain.ts";
 import { TransactionDraft } from "../../src/lib/editor/transaction-draft.ts";
-import { fixtureXml, parser } from "./fixtures.ts";
-import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
+import { tinyEditorFixture } from "../helpers/editor-document.ts";
 
 // A receipt describes its own committed action, even if a queued Undo has already
 // restored the document before its caller next reads the editor projection.
@@ -12,12 +11,10 @@ it(
 	"returns the committed domain receipt and never exposes one from a rejected transaction",
 	{ timeout: 25000 },
 	async () => {
-		const opened = await openEditor(
-			SaveProcessingSync,
-			new TextEncoder().encode(fixtureXml),
-		);
+		// Receipt ordering and rejection need a real session, but no XML import.
+		const before = tinyEditorFixture();
+		const opened = await openTestDocument(before);
 		try {
-			const before = parser.parse(fixtureXml);
 			const program = Effect.gen(function* () {
 				const draft = yield* TransactionDraft;
 				const snapshot = yield* draft.read;
@@ -53,7 +50,7 @@ it(
 				Effect.gen(function* () {
 					const draft = yield* TransactionDraft;
 					const snapshot = yield* draft.read;
-					const first = snapshot.state.document.SaveGame.player.items.Item[0];
+					const first = snapshot.state.document.SaveGame.player.items[0];
 					if (!first) throw new Error("Missing fixture item");
 					Object.assign(first, { stack: 999 });
 					yield* draft.replace(snapshot);

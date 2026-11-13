@@ -18,16 +18,16 @@ const ctx: TrinketRollContext = {
 	totalMoneyEarned: 3000000,
 };
 const rawItem = (kind: TrinketKind, generationSeed = 0) => ({
-	"@_xsi:type": "Trinket",
+	$type: "StardewValley.Objects.Trinket",
 	itemId: kind,
 	generationSeed,
-	modData: { opaque: "007" },
+	customModData: { opaque: "007" },
 });
 const request = <P extends TrinketPropertyChange["property"]>(
 	property: P,
 	value: Extract<TrinketPropertyChange, { property: P }>["value"],
 ) =>
-	({ ownerId: "host", entityId: "item:1", property, value }) as Extract<
+	({ ownerId: "1", entityId: "item:1", property, value }) as Extract<
 		TrinketPropertyChange,
 		{ property: P }
 	>;
@@ -51,7 +51,7 @@ describe("proxy-free trinket property policy", () => {
 		}
 		for (const raw of [
 			undefined,
-			{ "@_xsi:type": "Trinket", itemId: "FairyBox" },
+			{ $type: "StardewValley.Objects.Trinket", itemId: "FairyBox" },
 			{ ...rawItem("FairyBox"), generationSeed: "4" },
 			{ ...rawItem("FairyBox"), itemId: "ModdedTrinket" },
 		]) {
@@ -84,7 +84,7 @@ describe("proxy-free trinket property policy", () => {
 					context,
 				),
 			).toMatchObject({ level });
-			expect(patch.descriptionSubstitutionTemplates).toEqual({ string: level });
+			expect(patch.descriptionSubstitutionTemplates).toEqual([level]);
 			expect(Object.keys(patch).sort()).toEqual([
 				"descriptionSubstitutionTemplates",
 				"generationSeed",
@@ -158,12 +158,8 @@ describe("proxy-free trinket property policy", () => {
 			delay: 0.9,
 		});
 		const fields = statSaveFields(rolled);
-		expect(patch.descriptionSubstitutionTemplates).toEqual({
-			string: fields.templates,
-		});
-		expect(patch.displayNameOverrideTemplate).toEqual({
-			string: fields.displayName,
-		});
+		expect(patch.descriptionSubstitutionTemplates).toEqual([fields.templates]);
+		expect(patch.displayNameOverrideTemplate).toEqual([fields.displayName]);
 	});
 
 	it("changes Frog color through its seed without adding unrelated description templates", async () => {
@@ -191,9 +187,7 @@ describe("proxy-free trinket property policy", () => {
 			ctx,
 		);
 		expect(rolled).toMatchObject({ interval: 3.3, perfect: false });
-		expect(patch.displayNameOverrideTemplate).toEqual({
-			string: { "@_xsi:nil": "true" },
-		});
+		expect(patch.displayNameOverrideTemplate).toEqual([null]);
 	});
 
 	it("allows a rare seed search to be interrupted between bounded batches", async () => {

@@ -1,3 +1,4 @@
+import { malformedFixture } from "../helpers/editor-document.ts";
 import { describe, expect, it } from "vitest";
 import { Effect, Result } from "effect";
 import { makeHistorySession } from "../../src/lib/editor/history";
@@ -9,7 +10,11 @@ import {
 import { readChests } from "../../src/lib/editor/inventory-views";
 import { createCatalogItem } from "../../src/lib/editor/item-catalog";
 import { TransactionDraft } from "../../src/lib/editor/transaction-draft";
-import { tinyFixture, parser, exportDocument } from "./fixtures";
+import {
+	tinyFixture,
+	parser,
+	exportDocument,
+} from "../helpers/editor-document.ts";
 const run = <A, E>(
 	program: Effect.Effect<A, E, import("effect").Scope.Scope>,
 ) => Effect.runPromise(Effect.scoped(program));
@@ -17,43 +22,40 @@ const required = <A>(value: A | undefined): A => {
 	if (value === undefined) throw Error("Missing fixture value");
 	return value;
 };
-const nil = { "@_xsi:nil": "true" };
+const nil = null;
 const item = (name = "Parsnip") => required(createCatalogItem(name));
 function fixture(
-	contents: unknown = {
-		Item: [item(), { ...item("Sneakers"), opaque: { mod: "007" } }],
-	},
+	contents: unknown = [item(), { ...item("Sneakers"), opaque: { mod: "007" } }],
 ) {
 	const document = tinyFixture();
-	document.SaveGame.player.items.Item = [item("Rusty Sword"), nil, nil];
-	document.SaveGame.locations = {
-		GameLocation: [
-			{
-				name: "Farm",
-				objects: {
-					item: [
-						{
-							key: { Vector2: { X: 3, Y: 7 } },
-							value: {
-								Object: {
-									"@_xsi:type": "Chest",
-									name: "Chest",
-									items: contents,
-									modData: { owner: "007" },
-								},
-							},
-						},
-					],
+	document.SaveGame.player.items = [item("Rusty Sword"), nil, nil];
+	document.SaveGame.locations = [
+		{
+			name: "Farm",
+			$type: "StardewValley.Farm",
+			objects: [
+				{
+					key: { X: 3, Y: 7 },
+					value: {
+						$type: "StardewValley.Objects.Chest",
+						name: "Chest",
+						items: malformedFixture(contents),
+						customModData: { owner: "007" },
+					},
 				},
-			},
-		],
-	};
+			],
+		},
+	];
 	return document;
 }
-function chest(document: ReturnType<typeof fixture>) {
+function chest(
+	document: import("../../src/lib/editor/domain.ts").SaveDocument,
+) {
 	return required(discoverPlacedChests(document)[0]);
 }
-const ownerId = (document: ReturnType<typeof fixture>) => chest(document).id;
+const ownerId = (
+	document: import("../../src/lib/editor/domain.ts").SaveDocument,
+) => chest(document).id;
 const handle = (
 	state: { identities: Record<string, string[]> },
 	owner: string,
@@ -84,9 +86,7 @@ describe("placed chest inventory boundary", () => {
 			run(
 				Effect.gen(function* () {
 					const original = fixture();
-					chest(original).raw.globalInventoryId = {
-						string: { "@_xsi:nil": nil },
-					};
+					chest(original).raw.globalInventoryId = null;
 					const id = ownerId(original),
 						session = yield* makeHistorySession(original),
 						before = yield* session.snapshot;
@@ -120,7 +120,7 @@ describe("placed chest inventory boundary", () => {
 	it("projects detached slots without initializing empty/singleton save structures", () =>
 		run(
 			Effect.gen(function* () {
-				for (const shape of ["", undefined, { Item: item() }]) {
+				for (const shape of [[], undefined, [item()]]) {
 					const document = fixture(shape),
 						original = structuredClone(document),
 						session = yield* makeHistorySession(document),
@@ -144,18 +144,20 @@ describe("placed chest inventory boundary", () => {
 					id = ownerId(original),
 					session = yield* makeHistorySession(original),
 					before = yield* session.snapshot;
-				const request = move(before, id, 0, "host", 1);
+				const request = move(before, id, 0, "1", 1);
 				yield* session.execute([request]);
 				const after = yield* session.snapshot;
-				expect(after.document.SaveGame.player.items.Item[1]).toEqual(
+				expect(after.document.SaveGame.player.items[1]).toEqual(
 					chest(original).slots[0],
 				);
-				expect(chest(after.document).raw.items).toEqual({
-					Item: [chest(original).slots[1]],
-				});
-				expect(after.identities.host?.[1]).toBe(request.entityId);
+				expect(chest(after.document).raw.items).toEqual([
+					chest(original).slots[1],
+				]);
+				expect(after.identities["1"]?.[1]).toBe(request.entityId);
 				expect(after.identities[id]?.[0]).toBe(before.identities[id]?.[1]);
-				expect(chest(after.document).raw.modData).toEqual({ owner: "007" });
+				expect(chest(after.document).raw.customModData).toEqual({
+					owner: "007",
+				});
 				yield* session.undo;
 				expect((yield* session.snapshot).document).toEqual(original);
 				expect((yield* session.snapshot).identities).toEqual(before.identities);
@@ -169,11 +171,11 @@ describe("placed chest inventory boundary", () => {
 			Effect.gen(function* () {
 				const original = fixture(),
 					id = ownerId(original);
-				original.SaveGame.player.items.Item[1] = { ...nil, opaque: "007" };
+				original.SaveGame.player.items[1] = malformedFixture("malformed item");
 				const session = yield* makeHistorySession(original),
 					before = yield* session.snapshot;
 				const result = yield* Effect.result(
-					session.execute([move(before, id, 0, "host", 1)]),
+					session.execute([move(before, id, 0, "1", 1)]),
 				);
 				expect(Result.isFailure(result)).toBe(true);
 				expect((yield* session.snapshot).document).toEqual(original);
@@ -184,14 +186,14 @@ describe("placed chest inventory boundary", () => {
 	it("swaps whole records across owners, rejects the old owner handle, and preserves byte-identical instances", () =>
 		run(
 			Effect.gen(function* () {
-				const original = fixture({ Item: [item(), item()] }),
+				const original = fixture([item(), item()]),
 					id = ownerId(original),
 					session = yield* makeHistorySession(original),
 					before = yield* session.snapshot;
-				yield* session.execute([move(before, id, 0, "host", 0)]);
+				yield* session.execute([move(before, id, 0, "1", 0)]);
 				const after = yield* session.snapshot;
 				expect(chest(after.document).slots[0]).toEqual(
-					original.SaveGame.player.items.Item[0],
+					original.SaveGame.player.items[0],
 				);
 				const stale = yield* Effect.result(
 					session.transact(
@@ -215,7 +217,7 @@ describe("placed chest inventory boundary", () => {
 	it("adds to virtual slots with trusted defaults, compacts, removes, and restores exact singleton/empty shapes", () =>
 		run(
 			Effect.gen(function* () {
-				for (const contents of ["", { Item: item(), opaqueWrapper: "007" }]) {
+				for (const contents of [[], [item()]]) {
 					const original = fixture(contents),
 						id = ownerId(original),
 						session = yield* makeHistorySession(original),
@@ -236,7 +238,7 @@ describe("placed chest inventory boundary", () => {
 							(value) =>
 								value && typeof value === "object" && !("@_xsi:nil" in value),
 						),
-					).toHaveLength(contents === "" ? 1 : 2);
+					).toHaveLength(contents.length === 0 ? 1 : 2);
 					yield* session.execute([
 						{ type: "backpack-remove", ownerId: id, entityId: newId },
 					]);
@@ -250,10 +252,7 @@ describe("placed chest inventory boundary", () => {
 	it("edits properties field-only without rebuilding singleton wrappers, and blocks raw metadata/eligibility changes", () =>
 		run(
 			Effect.gen(function* () {
-				const original = fixture({
-						Item: { ...item("Sneakers"), opaque: "007" },
-						wrapper: "keep",
-					}),
+				const original = fixture([{ ...item("Sneakers"), opaque: "007" }]),
 					id = ownerId(original),
 					session = yield* makeHistorySession(original),
 					before = yield* session.snapshot,
@@ -269,10 +268,7 @@ describe("placed chest inventory boundary", () => {
 				const after = yield* session.snapshot,
 					expected = structuredClone(original);
 				Object.assign(
-					required(
-						(chest(expected).raw.items as { Item: Record<string, unknown> })
-							.Item,
-					),
+					required((chest(expected).raw.items as Record<string, unknown>[])[0]),
 					{ defenseBonus: 8 },
 				);
 				expect(after.document).toEqual(expected);
@@ -300,7 +296,7 @@ describe("placed chest inventory boundary", () => {
 	it("allows existing quantity/quality policy in chests and keeps owner-dependent trinkets read-only", () =>
 		run(
 			Effect.gen(function* () {
-				const original = fixture({ Item: [item(), item("FairyBox")] }),
+				const original = fixture([item(), item("FairyBox")]),
 					id = ownerId(original),
 					session = yield* makeHistorySession(original),
 					before = yield* session.snapshot;
@@ -340,14 +336,14 @@ describe("placed chest inventory boundary", () => {
 					id = ownerId(original),
 					session = yield* makeHistorySession(original),
 					before = yield* session.snapshot,
-					boots = required(before.equipmentIdentities.host?.boots);
+					boots = required(before.equipmentIdentities["1"]?.boots);
 				const invalid = yield* Effect.result(
 					session.execute([
 						{
 							type: "backpack-move",
 							ownerId: id,
 							entityId: handle(before, id, 0),
-							toOwnerId: "host",
+							toOwnerId: "1",
 							toEntityId: boots,
 							toLocation: "boots",
 						},
@@ -359,7 +355,7 @@ describe("placed chest inventory boundary", () => {
 						type: "backpack-move",
 						ownerId: id,
 						entityId: handle(before, id, 1),
-						toOwnerId: "host",
+						toOwnerId: "1",
 						toEntityId: boots,
 						toLocation: "boots",
 					},
@@ -368,7 +364,7 @@ describe("placed chest inventory boundary", () => {
 				expect(after.document.SaveGame.player.boots).toEqual(
 					chest(original).slots[1],
 				);
-				expect(after.equipmentIdentities.host?.boots).toBe(
+				expect(after.equipmentIdentities["1"]?.boots).toBe(
 					before.identities[id]?.[1],
 				);
 				yield* session.undo;
@@ -404,11 +400,11 @@ describe("placed chest inventory boundary", () => {
 	it("does not compact a self-drop or erase redo for an imported plain-nil gap", () =>
 		run(
 			Effect.gen(function* () {
-				const original = fixture({ Item: [nil, item()] }),
+				const original = fixture([nil, item()]),
 					id = ownerId(original),
 					session = yield* makeHistorySession(original),
 					before = yield* session.snapshot;
-				yield* session.execute([move(before, id, 1, "host", 1)]);
+				yield* session.execute([move(before, id, 1, "1", 1)]);
 				yield* session.undo;
 				yield* session.execute([move(before, id, 1, id, 1)]);
 				const after = yield* session.snapshot;
@@ -422,12 +418,12 @@ describe("placed chest inventory boundary", () => {
 	it("preserves imported overflow records and restores their extra identity on Undo", () =>
 		run(
 			Effect.gen(function* () {
-				const original = fixture({
-						Item: Array.from({ length: 71 }, (_, index) => ({
+				const original = fixture(
+						Array.from({ length: 71 }, (_, index) => ({
 							...item(),
 							opaque: index,
 						})),
-					}),
+					),
 					id = ownerId(original),
 					session = yield* makeHistorySession(original),
 					before = yield* session.snapshot;
@@ -452,9 +448,7 @@ describe("placed chest inventory boundary", () => {
 	it("rejects unsupported chest nil shapes and raw writes made after an approved property", () =>
 		run(
 			Effect.gen(function* () {
-				const malformed = fixture({
-					Item: [{ "@_xsi:nil": { toString: "opaque" } }],
-				});
+				const malformed = fixture(["malformed item"]);
 				const closed = yield* makeHistorySession(malformed);
 				expect(required(readChests(yield* closed.snapshot)[0]).supported).toBe(
 					false,
@@ -474,7 +468,9 @@ describe("placed chest inventory boundary", () => {
 							});
 							const draft = yield* TransactionDraft,
 								snapshot = yield* draft.read;
-							chest(snapshot.state.document).raw.modData = { forged: true };
+							chest(snapshot.state.document).raw.customModData = {
+								forged: true,
+							};
 							yield* draft.replace(snapshot);
 						}),
 					),
@@ -489,7 +485,9 @@ describe("placed chest inventory boundary", () => {
 		run(
 			Effect.gen(function* () {
 				const document = fixture();
-				document.SaveGame.player.UniqueMultiplayerID = ownerId(document);
+				document.SaveGame.player.UniqueMultiplayerID = malformedFixture(
+					ownerId(document),
+				);
 				const session = yield* makeHistorySession(document),
 					state = yield* session.snapshot;
 				expect(required(readChests(state)[0]).supported).toBe(false);

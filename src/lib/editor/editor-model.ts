@@ -28,7 +28,7 @@ import type { EditGesture } from "./edit-gesture.ts";
 import { readCharacters, type CharacterView } from "./character-operations.ts";
 import type { InventoryMoveRequest } from "./inventory-movement.ts";
 import type { InventorySlotRequest } from "./inventory-lifecycle.ts";
-import { type InventoryEdits } from "./inventory-operations.ts";
+import type { InventoryEdits } from "./inventory-operations.ts";
 import {
 	readBackpacks,
 	readChests,
@@ -58,7 +58,6 @@ import {
 import * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { derived, type Readable } from "svelte/store";
-import type { Save } from "../../../codegen/save.ts";
 import {
 	forcedWeather,
 	greenRainDay,
@@ -72,7 +71,7 @@ import {
 import {
 	readCalendarView,
 	type CalendarViewState,
-} from "../calendarDocument.ts";
+} from "./calendar-document.ts";
 import type { Field } from "./field.ts";
 import { MutationError, type MutationRequest } from "./domain.ts";
 import { makeHistorySession, type HistoryLimits } from "./history.ts";
@@ -150,7 +149,7 @@ function project(
 	includeProofs = false,
 	chests: readonly InventoryView[] = readChests(state),
 ): EditorView {
-	const game = state.document.SaveGame as unknown as Save;
+	const game = state.document.SaveGame;
 	if (!Number.isFinite(game.year) || !Number.isFinite(game.dayOfMonth))
 		throw new Error("The save has no readable calendar date.");
 	const calendar = readCalendarView(game);
@@ -245,8 +244,10 @@ function project(
 		dropped: state.dropped,
 		entries: review.entries,
 		net: review.net,
-		farmerId: String(game.player.UniqueMultiplayerID),
-		backpackSize: includeProofs ? game.player.items.Item.length : 0,
+		farmerId: String(state.document.SaveGame.player.UniqueMultiplayerID),
+		backpackSize: includeProofs
+			? state.document.SaveGame.player.items.length
+			: 0,
 	};
 }
 

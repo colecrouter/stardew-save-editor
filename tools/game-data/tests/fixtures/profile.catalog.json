@@ -1,0 +1,125 @@
+{
+	"formatVersion": 3,
+	"diagnostics": [],
+	"types": [
+		{
+			"id": "Example.Profile",
+			"kind": "object",
+			"attributes": [
+				{
+					"type": "System.Xml.Serialization.XmlRootAttribute",
+					"constructorArguments": [
+						{
+							"type": "System.String",
+							"value": "Profile"
+						}
+					],
+					"namedArguments": {}
+				}
+			],
+			"members": [
+				{
+					"name": "Version",
+					"type": "System.String",
+					"attributes": [
+						{
+							"type": "System.Xml.Serialization.XmlAttributeAttribute",
+							"constructorArguments": [
+								{
+									"type": "System.String",
+									"value": "version"
+								}
+							],
+							"namedArguments": {}
+						}
+					]
+				},
+				{
+					"name": "Name",
+					"type": "System.String"
+				},
+				{
+					"name": "Count",
+					"type": "System.Int32"
+				},
+				{
+					"name": "Enabled",
+					"type": "System.Boolean"
+				},
+				{
+					"name": "Season",
+					"type": "Example.Season"
+				},
+				{
+					"name": "Tags",
+					"type": "System.Collections.Generic.List`1[System.String]",
+					"attributes": [
+						{
+							"type": "System.Xml.Serialization.XmlArrayAttribute",
+							"constructorArguments": [
+								{
+									"type": "System.String",
+									"value": "Tags"
+								}
+							],
+							"namedArguments": {}
+						},
+						{
+							"type": "System.Xml.Serialization.XmlArrayItemAttribute",
+							"constructorArguments": [
+								{
+									"type": "System.String",
+									"value": "tag"
+								}
+							],
+							"namedArguments": {}
+						}
+					]
+				}
+			]
+		},
+		{
+			"id": "Example.Season",
+			"kind": "enum",
+			"members": [
+				{
+					"name": "Spring",
+					"type": "Example.Season",
+					"attributes": [
+						{
+							"type": "System.Xml.Serialization.XmlEnumAttribute",
+							"constructorArguments": [
+								{
+									"type": "System.String",
+									"value": "spring"
+								}
+							],
+							"namedArguments": {}
+						}
+					]
+				},
+				{
+					"name": "Winter",
+					"type": "Example.Season",
+					"attributes": [
+						{
+							"type": "System.Xml.Serialization.XmlEnumAttribute",
+							"constructorArguments": [
+								{
+									"type": "System.String",
+									"value": "winter"
+								}
+							],
+							"namedArguments": {}
+						}
+					]
+				}
+			]
+		},
+		{
+			"id": "System.Collections.Generic.List`1[System.String]",
+			"kind": "collection",
+			"elementType": "System.String"
+		}
+	]
+}

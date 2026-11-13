@@ -1,5 +1,5 @@
 import { Data, Effect, Result, Schema } from "effect";
-import { farmers, type SaveDocument } from "./domain.ts";
+import { farmers, type Farmer, type SaveDocument } from "./domain.ts";
 import { TransactionDraft } from "./transaction-draft.ts";
 import {
 	recordAnnotatedOperation,
@@ -42,56 +42,39 @@ const integer = (v: unknown): v is number =>
 const id = (v: unknown) =>
 	typeof v === "string" && v.length > 0
 		? v
-		: typeof v === "number" && Number.isFinite(v)
+		: typeof v === "bigint" || (typeof v === "number" && Number.isFinite(v))
 			? String(v)
 			: undefined;
-const owners = (doc: SaveDocument) =>
-	farmers(doc).flatMap((owner) => (record(owner) ? [owner] : []));
-const keyOf = (entry: unknown, numeric = false) =>
-	record(entry) && record(entry.key)
+// Dictionary entries retain their generated shape even when validation rejects
+// a malformed key or counter supplied at an external boundary.
+type RecipeEntry = NonNullable<Farmer["cookingRecipes"]>[number];
+const keyOf = (entry: RecipeEntry | undefined, numeric = false) =>
+	record(entry)
 		? numeric
-			? id(entry.key.string)
-			: typeof entry.key.string === "string"
-				? entry.key.string
+			? id(entry.key)
+			: typeof entry.key === "string"
+				? entry.key
 				: undefined
 		: undefined;
-function savedCount(entry: unknown) {
-	return record(entry) && record(entry.value) && integer(entry.value.int)
-		? entry.value.int
-		: undefined;
+function savedCount(entry: RecipeEntry | undefined) {
+	return record(entry) && integer(entry.value) ? entry.value : undefined;
 }
-function dictionary(raw: unknown) {
-	// Empty XML dictionaries are safe explicit insertion targets. Omitted/opaque
-	// containers remain unsupported; reading never manufactures save structure.
-	if (raw === "") return { supported: true, raw, entries: [] as unknown[] };
-	if (!record(raw) || raw["@_xsi:nil"] === true || raw["@_xsi:nil"] === "true")
-		return { supported: false, raw, entries: [] as unknown[] };
-	const item = raw.item;
+// A dictionary is an ordered entry array; absent or malformed values remain unsupported.
+function dictionary(raw: RecipeEntry[] | undefined) {
 	return {
-		supported: item === undefined || Array.isArray(item) || record(item),
+		supported: raw !== undefined,
 		raw,
-		entries: item === undefined ? [] : Array.isArray(item) ? item : [item],
+		entries: raw ?? [],
 	};
 }
 type Dictionary = ReturnType<typeof dictionary>;
 function replaceEntries(
-	owner: Record<string, unknown>,
-	property: string,
-	data: Dictionary,
-	entries: unknown[],
+	owner: Farmer,
+	property: "cookingRecipes" | "craftingRecipes" | "recipesCooked",
+	_data: Dictionary,
+	entries: RecipeEntry[],
 ) {
-	// Retain singleton form when there is still one entry. Array containers retain
-	// their representation and all wrapper metadata through updates/removals.
-	const raw = record(data.raw) ? data.raw : {};
-	const singleton = record(raw.item);
-	owner[property] = {
-		...raw,
-		...(entries.length === 0 && singleton
-			? {}
-			: { item: singleton && entries.length === 1 ? entries[0] : entries }),
-	};
-	if (entries.length === 0 && singleton && record(owner[property]))
-		delete owner[property].item;
+	owner[property] = entries;
 }
 export interface RecipeRow {
 	name: string;
@@ -115,11 +98,7 @@ export interface RecipeFarmerView {
 }
 const propertyFor = (kind: RecipeKind) =>
 	kind === "cooking" ? "cookingRecipes" : "craftingRecipes";
-function rows(
-	owner: Record<string, unknown>,
-	kind: RecipeKind,
-	unique: boolean,
-): RecipeRow[] {
+function rows(owner: Farmer, kind: RecipeKind, unique: boolean): RecipeRow[] {
 	const knowledge = dictionary(owner[propertyFor(kind)]);
 	const counts =
 		kind === "cooking" ? dictionary(owner.recipesCooked) : knowledge;
@@ -190,12 +169,12 @@ function rows(
 }
 /** Project supported vanilla and imported recipes without adding known recipes or counts. */
 export function readRecipes(document: SaveDocument): RecipeFarmerView[] {
-	const all = owners(document);
+	const all = farmers(document);
 	return all.map((owner) => {
-		const farmerId = id(owner.UniqueMultiplayerID);
+		const farmerId = owner.UniqueMultiplayerID?.toString();
 		const supported =
 			farmerId !== undefined &&
-			all.filter((other) => id(other.UniqueMultiplayerID) === farmerId)
+			all.filter((other) => other.UniqueMultiplayerID?.toString() === farmerId)
 				.length === 1;
 		return {
 			farmerId: farmerId ?? "",
@@ -221,8 +200,8 @@ export const setRecipe = Effect.fn("Recipes.set")(function* (
 	const request = decoded.success;
 	const transaction = yield* TransactionDraft;
 	const snapshot = yield* transaction.read;
-	const matches = owners(snapshot.state.document).filter(
-		(owner) => id(owner.UniqueMultiplayerID) === request.farmerId,
+	const matches = farmers(snapshot.state.document).filter(
+		(owner) => owner.UniqueMultiplayerID?.toString() === request.farmerId,
 	);
 	const owner = matches[0];
 	if (matches.length !== 1 || !owner)
@@ -256,7 +235,7 @@ export const setRecipe = Effect.fn("Recipes.set")(function* (
 				});
 			replaceEntries(owner, property, data, [
 				...data.entries,
-				{ key: { string: request.name }, value: { int: 0 } },
+				{ key: request.name, value: 0 },
 			]);
 		} else
 			replaceEntries(
@@ -306,11 +285,11 @@ export const setRecipe = Effect.fn("Recipes.set")(function* (
 				counts,
 				counts.entries.filter((entry) => keyOf(entry, true) !== counterKey),
 			);
-		else if (record(found) && record(found.value)) found.value.int = value;
+		else if (record(found)) found.value = value;
 		else
 			replaceEntries(owner, countProperty, counts, [
 				...counts.entries,
-				{ key: { string: counterKey }, value: { int: value } },
+				{ key: counterKey, value },
 			]);
 		label = `${request.kind === "reset" ? "Reset" : "Update"} ${request.name} ${request.recipeKind === "cooking" ? "cooked" : "crafted"} count`;
 	}

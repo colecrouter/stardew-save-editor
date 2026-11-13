@@ -1,0 +1,33 @@
+{
+	"formatVersion": 3,
+	"diagnostics": [],
+	"types": [
+		{
+			"id": "Example.Luck",
+			"kind": "object",
+			"members": [
+				{ "name": "dailyLuck", "type": "System.Double" },
+				{ "name": "history", "type": "ListDouble" },
+				{ "name": "optional", "type": "System.Nullable`1[System.Double]" },
+				{
+					"name": "bias",
+					"type": "System.Double",
+					"attributes": [
+						{ "type": "System.Xml.Serialization.XmlAttributeAttribute" }
+					]
+				}
+			]
+		},
+		{
+			"id": "ListDouble",
+			"kind": "collection",
+			"elementType": "System.Double"
+		},
+		{
+			"id": "System.Nullable`1[System.Double]",
+			"kind": "nullable",
+			"genericDefinition": "System.Nullable`1",
+			"genericArguments": ["System.Double"]
+		}
+	]
+}

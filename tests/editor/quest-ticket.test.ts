@@ -1,3 +1,4 @@
+import { malformedFixture } from "../helpers/editor-document.ts";
 import { Effect, Scope } from "effect";
 import { expect, it } from "vitest";
 import {
@@ -6,11 +7,11 @@ import {
 } from "../../src/lib/editor/inventory-operations.ts";
 import { TransactionDraft } from "../../src/lib/editor/transaction-draft.ts";
 import { makeHistorySession } from "../../src/lib/editor/history.ts";
-import { tinyFixture } from "./fixtures.ts";
+import { tinyFixture } from "../helpers/editor-document.ts";
 const run = <E>(program: Effect.Effect<void, E, Scope.Scope>) =>
 	Effect.runPromise(Effect.scoped(program));
 const grant = Effect.gen(function* () {
-	return yield* (yield* InventoryEdits).grantPrizeTicket("host");
+	return yield* (yield* InventoryEdits).grantPrizeTicket("1");
 });
 
 it("awards a fixed ticket with a fresh slot identity and restores exact Undo/Redo snapshots", () =>
@@ -24,12 +25,12 @@ it("awards a fixed ticket with a fresh slot identity and restores exact Undo/Red
 				}),
 			);
 			const after = yield* session.snapshot;
-			expect(after.document.SaveGame.player.items.Item[1]).toMatchObject({
+			expect(after.document.SaveGame.player.items[1]).toMatchObject({
 				itemId: "PrizeTicket",
 				stack: 1,
 			});
-			expect(after.identities.host?.[1]).not.toBe(before.identities.host?.[1]);
-			expect(after.identities.host?.[0]).toBe(before.identities.host?.[0]);
+			expect(after.identities["1"]?.[1]).not.toBe(before.identities["1"]?.[1]);
+			expect(after.identities["1"]?.[0]).toBe(before.identities["1"]?.[0]);
 			yield* session.undo;
 			expect((yield* session.snapshot).document).toEqual(before.document);
 			expect((yield* session.snapshot).identities).toEqual(before.identities);
@@ -37,12 +38,12 @@ it("awards a fixed ticket with a fresh slot identity and restores exact Undo/Red
 			expect((yield* session.snapshot).document).toEqual(after.document);
 			expect((yield* session.snapshot).identities).toEqual(after.identities);
 			// A queued stale empty-slot handle must not mutate the newly awarded item.
-			const stale = before.identities.host?.[1];
+			const stale = before.identities["1"]?.[1];
 			if (!stale) throw new Error("Missing test slot");
 			const result = yield* Effect.result(
 				session.transact(
 					setInventoryItem({
-						ownerId: "host",
+						ownerId: "1",
 						entityId: stale,
 						property: "stack",
 						value: 5,
@@ -58,12 +59,12 @@ it("stacks multiple rewards in order while retaining the existing item's opaque 
 	run(
 		Effect.gen(function* () {
 			const document = tinyFixture();
-			document.SaveGame.player.items.Item = [
+			document.SaveGame.player.items = [
 				{
-					"@_xsi:type": "Object",
+					$type: "StardewValley.Object" as const,
 					itemId: "PrizeTicket",
 					stack: 997,
-					modData: { opaque: "007" },
+					customModData: { opaque: "007" },
 				},
 			];
 			const session = yield* makeHistorySession(document);
@@ -75,9 +76,9 @@ it("stacks multiple rewards in order while retaining the existing item's opaque 
 				}),
 			);
 			const after = yield* session.snapshot;
-			expect(after.document.SaveGame.player.items.Item[0]).toMatchObject({
+			expect(after.document.SaveGame.player.items[0]).toMatchObject({
 				stack: 999,
-				modData: { opaque: "007" },
+				customModData: { opaque: "007" },
 			});
 			expect(after.identities).toEqual(before.identities);
 			expect(after.entries).toHaveLength(1);
@@ -90,9 +91,12 @@ it("preserves opaque empty markers and publishes nothing when no reward fits", (
 	run(
 		Effect.gen(function* () {
 			const document = tinyFixture();
-			document.SaveGame.player.items.Item = [
-				{ "@_xsi:nil": "true", modData: { keep: "me" } },
-				{ itemId: "PrizeTicket", stack: 999 },
+			document.SaveGame.player.items = [
+				malformedFixture({
+					"@_xsi:nil": "true",
+					customModData: { keep: "me" },
+				}),
+				{ $type: "StardewValley.Object", itemId: "PrizeTicket", stack: 999 },
 			];
 			const session = yield* makeHistorySession(document);
 			const before = yield* session.snapshot;
@@ -136,9 +140,7 @@ it("rejects raw inventory tampering before reward authorization", () =>
 					Effect.gen(function* () {
 						const draft = yield* TransactionDraft;
 						const snapshot = yield* draft.read;
-						snapshot.state.document.SaveGame.player.items.Item[0] = {
-							"@_xsi:nil": "true",
-						};
+						snapshot.state.document.SaveGame.player.items[0] = null;
 						yield* draft.replace(snapshot);
 						return yield* grant;
 					}),
@@ -154,26 +156,23 @@ it("does not merge the reward into colored, special-quality or order-bound ticke
 	run(
 		Effect.gen(function* () {
 			for (const extra of [
-				{ "@_xsi:type": "ColoredObject" },
+				{ $type: "StardewValley.Objects.ColoredObject" as const },
 				{ quality: 1 },
 				{ orderData: "QI_COOKING" },
 			]) {
 				const document = tinyFixture();
 				const existing = {
-					"@_xsi:type": "Object",
+					$type: "StardewValley.Object" as const,
 					itemId: "PrizeTicket",
 					stack: 1,
 					...extra,
 				};
-				document.SaveGame.player.items.Item = [
-					existing,
-					{ "@_xsi:nil": "true" },
-				];
+				document.SaveGame.player.items = [existing, null];
 				const session = yield* makeHistorySession(document);
 				yield* session.transact(grant);
 				const after = yield* session.snapshot;
-				expect(after.document.SaveGame.player.items.Item[0]).toEqual(existing);
-				expect(after.document.SaveGame.player.items.Item[1]).toMatchObject({
+				expect(after.document.SaveGame.player.items[0]).toEqual(existing);
+				expect(after.document.SaveGame.player.items[1]).toMatchObject({
 					itemId: "PrizeTicket",
 					stack: 1,
 				});

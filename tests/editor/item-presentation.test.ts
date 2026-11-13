@@ -13,14 +13,14 @@ const metadata = (name: string) => {
 
 it("projects plain rendering and editing descriptions without exposing saved records", () => {
 	const raw = Object.freeze({
-		"@_xsi:type": "Object",
+		$type: "StardewValley.Object",
 		itemId: "390",
 		name: "Stone",
 		quality: 2,
 		stack: 20,
 		category: -8,
 		bigCraftable: false,
-		modData: Object.freeze({ opaque: "kept" }),
+		customModData: Object.freeze({ opaque: "kept" }),
 	});
 	const view = readItemPresentation(raw);
 	expect(view.name).toBe("Stone");
@@ -36,7 +36,7 @@ it("projects plain rendering and editing descriptions without exposing saved rec
 it("keeps clothing dye masks and colored-object overlays in domain drawing instructions", () => {
 	const color = { R: 12, G: 34, B: 56, A: 255 };
 	const shirt = readItemVisual(
-		{ "@_xsi:type": "Clothing", clothesColor: color },
+		{ $type: "StardewValley.Objects.Clothing", clothesColor: color },
 		metadata("Basic Pullover (M)"),
 	);
 	expect(shirt?.layers).toHaveLength(2);
@@ -45,13 +45,13 @@ it("keeps clothing dye masks and colored-object overlays in domain drawing instr
 		(shirt?.sourceRect.x ?? 0) + (shirt?.sheetSize.width ?? 0) / 2,
 	);
 	const pants = readItemVisual(
-		{ "@_xsi:type": "Clothing", clothesColor: color },
+		{ $type: "StardewValley.Objects.Clothing", clothesColor: color },
 		metadata("Polka Dot Shorts"),
 	);
 	expect(pants?.layers).toHaveLength(1);
 	expect(pants?.layers[0]?.tint).toEqual([12, 34, 56, 255]);
 	const colored = readItemVisual({
-		"@_xsi:type": "ColoredObject",
+		$type: "StardewValley.Objects.ColoredObject",
 		itemId: "390",
 		name: "Stone",
 		color,
@@ -62,7 +62,7 @@ it("keeps clothing dye masks and colored-object overlays in domain drawing instr
 
 it("uses the ingredient sprite for smoked fish and preserves an explicit unknown fallback", () => {
 	const raw = {
-		"@_xsi:type": "Object",
+		$type: "StardewValley.Object",
 		itemId: "SmokedFish",
 		name: "Smoked Fish",
 		preservedParentSheetIndex: "128",

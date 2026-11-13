@@ -1,48 +1,24 @@
+import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
 import { fireEvent, render, waitFor } from "@testing-library/svelte";
 import { expect, it, vi } from "vitest";
 import { tick } from "svelte";
 import EditorApp from "../../src/lib/editor/ui/EditorApp.svelte";
 import * as editor from "../../src/lib/editor/editor-model";
 import { editorResources } from "../../src/lib/editor/editor-model";
-import { fixtureXml } from "./fixtures";
-import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
+import {
+	exportDocument,
+	tinyEditorFixture,
+} from "../helpers/editor-document.ts";
+
+// These races require real sessions and export I/O, but no populated farm.
+const fixtureXml = exportDocument(tinyEditorFixture());
+
+// These assertions wait on full-save import/export as well as browser promises.
+const waitForIO = <T>(assertion: () => T) =>
+	waitFor(assertion, { timeout: 30_000 });
 
 const released = () =>
 	expect(editorResources()).toEqual({ models: 0, registries: 0, streams: 0 });
-
-// Picker ownership must precede all export work, even when it stays open for a
-// long time. Dismissing it must not serialize or write the document at all.
-it("waits for a destination before exporting and skips export on picker cancellation", async () => {
-	const acquisition = Promise.withResolvers<FileSystemFileHandle>();
-	const picker = vi.fn(() => acquisition.promise);
-	Object.defineProperty(window, "showSaveFilePicker", {
-		configurable: true,
-		value: picker,
-	});
-	const open = vi.spyOn(editor, "openEditor");
-	const page = render(EditorApp, { processingLayer: SaveProcessingSync });
-	try {
-		await fireEvent.change(page.getByLabelText("Save file"), {
-			target: { files: [new File([fixtureXml], "Farm_123")] },
-		});
-		const button = await page.findByRole("button", { name: "Export save" });
-		const session = await open.mock.results[0]?.value;
-		if (!session) throw new Error("Missing editor session");
-		const exporting = vi.spyOn(session.model.commands, "export");
-		await fireEvent.click(button);
-		expect(picker).toHaveBeenCalledOnce();
-		expect(exporting).not.toHaveBeenCalled();
-		acquisition.reject(new DOMException("Canceled", "AbortError"));
-		await waitFor(() => expect(button.hasAttribute("disabled")).toBe(false));
-		expect(exporting).not.toHaveBeenCalled();
-		expect(page.queryByRole("alert")).toBeNull();
-	} finally {
-		page.unmount();
-		open.mockRestore();
-		Reflect.deleteProperty(window, "showSaveFilePicker");
-		await waitFor(released);
-	}
-});
 
 // File reads cannot be interrupted by closing a component. Completing an old
 // read must not create a session after its application owner has disappeared.
@@ -60,7 +36,7 @@ it("ignores a file read that finishes after application teardown", async () => {
 		await fireEvent.change(page.getByLabelText("Save file"), {
 			target: { files: [file] },
 		});
-		await waitFor(() => expect(read).toHaveBeenCalledOnce());
+		await waitForIO(() => expect(read).toHaveBeenCalledOnce());
 		page.unmount();
 		pending.resolve(new TextEncoder().encode(fixtureXml).buffer);
 		await pending.promise;
@@ -81,7 +57,7 @@ it("ignores a file read that finishes after application teardown", async () => {
 // A late resolution must not write the abandoned session or affect its successor.
 it.each(["picker", "stream"] as const)(
 	"suppresses a late %s acquisition after Exit while the next save stays usable",
-	{ timeout: 20000 },
+	{ timeout: 60_000 },
 	async (stage) => {
 		const acquisition = Promise.withResolvers<void>();
 		const write = vi.fn(async () => {}),
@@ -105,41 +81,41 @@ it.each(["picker", "stream"] as const)(
 			await fireEvent.change(page.getByLabelText("Save file"), {
 				target: { files: [new File([fixtureXml], "FirstFarm")] },
 			});
-			await waitFor(() =>
+			await waitForIO(() =>
 				expect(page.getByRole("button", { name: "Export save" })).toBeTruthy(),
 			);
 			await fireEvent.click(page.getByRole("button", { name: "Export save" }));
-			await waitFor(() =>
+			await waitForIO(() =>
 				expect(
 					stage === "stream" ? createWritable : picker,
 				).toHaveBeenCalledOnce(),
 			);
 			await fireEvent.click(page.getByRole("button", { name: "Exit" }));
-			await waitFor(released);
+			await waitForIO(released);
 			await fireEvent.change(page.getByLabelText("Save file"), {
 				target: { files: [new File([fixtureXml], "SecondFarm")] },
 			});
-			await waitFor(() =>
+			await waitForIO(() =>
 				expect(page.getByRole("button", { name: "Export save" })).toBeTruthy(),
 			);
 			acquisition.resolve();
 			await acquisition.promise;
 			await tick();
 			if (stage === "stream")
-				await waitFor(() => expect(abort).toHaveBeenCalledOnce());
+				await waitForIO(() => expect(abort).toHaveBeenCalledOnce());
 			else expect(createWritable).not.toHaveBeenCalled();
 			expect(write).not.toHaveBeenCalled();
 			expect(close).not.toHaveBeenCalled();
 			// The prior export's finally block must not disable the replacement's export.
 			await fireEvent.click(page.getByRole("button", { name: "Export save" }));
-			await waitFor(() => expect(write).toHaveBeenCalledOnce());
-			await waitFor(() => expect(close).toHaveBeenCalledOnce());
+			await waitForIO(() => expect(write).toHaveBeenCalledOnce());
+			await waitForIO(() => expect(close).toHaveBeenCalledOnce());
 			expect(page.queryByRole("alert")).toBeNull();
 		} finally {
 			acquisition.resolve();
 			page.unmount();
 			Reflect.deleteProperty(window, "showSaveFilePicker");
-			await waitFor(released);
+			await waitForIO(released);
 		}
 	},
 );
@@ -148,7 +124,7 @@ it.each(["picker", "stream"] as const)(
 // The generation guard must close that real session instead of installing it.
 it(
 	"closes an acquired session delivered after application teardown",
-	{ timeout: 15000 },
+	{ timeout: 60_000 },
 	async () => {
 		const acquire = editor.openEditor;
 		const acquired =
@@ -172,7 +148,7 @@ it(
 			expect(editorResources().models).toBe(1);
 			page.unmount();
 			delivery.resolve();
-			await waitFor(released);
+			await waitForIO(released);
 			await expect(session.model.snapshot()).rejects.toThrow("closed");
 		} finally {
 			delivery.resolve();

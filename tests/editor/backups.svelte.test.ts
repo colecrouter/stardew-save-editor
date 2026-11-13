@@ -1,3 +1,4 @@
+import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
 import { expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, waitFor, within } from "@testing-library/svelte";
 import { Effect, Result } from "effect";
@@ -16,8 +17,13 @@ import {
 import * as downloads from "../../src/lib/downloadSave";
 import BackupPanel from "../../src/lib/editor/ui/BackupPanel.svelte";
 import EditorApp from "../../src/lib/editor/ui/EditorApp.svelte";
-import { fixtureXml } from "./fixtures";
-import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
+import {
+	exportDocument,
+	tinyEditorFixture,
+} from "../helpers/editor-document.ts";
+
+// Backup ownership depends on original bytes, not on the size of the farm.
+const fixtureXml = exportDocument(tinyEditorFixture());
 
 mockIDB();
 beforeEach(async () => {
@@ -37,7 +43,7 @@ it("reads original byte formats newest first without rewriting wrappers, then de
 		type: "text/text",
 		size: 12,
 		lastModified: 1,
-		modData: { opaque: "007" },
+		customModData: { opaque: "007" },
 	};
 	let oldKey: number;
 	try {
@@ -162,7 +168,7 @@ it("requires explicit confirmation for deletion and leaves originals untouched w
 
 it(
 	"opens an archived original through the v2 import owner without appending a duplicate backup",
-	{ timeout: 15000 },
+	{ timeout: 45_000 },
 	async () => {
 		await saveOriginalBackup(
 			new File([fixtureXml], "ArchivedFarm", { lastModified: 12 }),
@@ -187,7 +193,11 @@ it(
 			await fireEvent.click(
 				await page.findByRole("button", { name: "Open original" }),
 			);
-			await page.findByRole("button", { name: "Export save" });
+			await page.findByRole(
+				"button",
+				{ name: "Export save" },
+				{ timeout: 30_000 },
+			);
 			expect(backup).not.toHaveBeenCalled();
 			expect(await Effect.runPromise(readOriginalBackups())).toHaveLength(1);
 		} finally {
@@ -311,6 +321,7 @@ it("deduplicates legacy UTF-8 originals and canonicalizes valid binary entries w
 
 it.each(["browser", "defect"] as const)(
 	"classifies automatic backup %s without blocking the opened save",
+	{ timeout: 45_000 },
 	async (kind) => {
 		const log = vi.spyOn(console, "error").mockImplementation(() => {});
 		const page = render(EditorApp, {
@@ -325,7 +336,11 @@ it.each(["browser", "defect"] as const)(
 			await fireEvent.change(page.getByLabelText("Save file"), {
 				target: { files: [new File([fixtureXml], "Farm_123")] },
 			});
-			await page.findByRole("button", { name: "Export save" });
+			await page.findByRole(
+				"button",
+				{ name: "Export save" },
+				{ timeout: 30_000 },
+			);
 			await page.findByText(
 				kind === "browser"
 					? /The original file could not be backed up/

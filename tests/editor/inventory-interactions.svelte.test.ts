@@ -2,11 +2,10 @@ import { fireEvent, render, waitFor, within } from "@testing-library/svelte";
 import { tick } from "svelte";
 import { expect, it, vi } from "vitest";
 import { Result } from "effect";
-import { openEditor } from "../../src/lib/editor/editor-model";
+import { openTestEditor } from "../helpers/open-editor.ts";
 import { MutationError } from "../../src/lib/editor/domain";
 import BackpackHarness from "./BackpackHarness.svelte";
 import { fixtureXml } from "./fixtures";
-import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
 
 async function startAdd(container: HTMLElement) {
 	const page = within(container);
@@ -24,11 +23,9 @@ async function startAdd(container: HTMLElement) {
 
 it.each(["success", "failure"] as const)(
 	"a late add %s cannot replace a newer choice or its focus/error",
+	{ timeout: 20_000 },
 	async (outcome) => {
-		const opened = await openEditor(
-			SaveProcessingSync,
-			new TextEncoder().encode(fixtureXml),
-		);
+		const opened = await openTestEditor(new TextEncoder().encode(fixtureXml));
 		const ready = Promise.withResolvers<void>();
 		const release = Promise.withResolvers<void>();
 		const original = opened.model.commands.changeInventorySlot;
@@ -72,11 +69,9 @@ it.each(["success", "failure"] as const)(
 
 it.each(["hidden", "unmounted"] as const)(
 	"a pending add does not restore focus into a %s panel",
+	{ timeout: 20_000 },
 	async (state) => {
-		const opened = await openEditor(
-			SaveProcessingSync,
-			new TextEncoder().encode(fixtureXml),
-		);
+		const opened = await openTestEditor(new TextEncoder().encode(fixtureXml));
 		const ready = Promise.withResolvers<void>();
 		const release = Promise.withResolvers<void>();
 		const original = opened.model.commands.changeInventorySlot;
@@ -114,10 +109,7 @@ it.each(["hidden", "unmounted"] as const)(
 );
 
 it("accepts a keyboard click after touch drag while suppressing the synthetic pointer click", async () => {
-	const opened = await openEditor(
-		SaveProcessingSync,
-		new TextEncoder().encode(fixtureXml),
-	);
+	const opened = await openTestEditor(new TextEncoder().encode(fixtureXml));
 	const page = render(BackpackHarness, { model: opened.model });
 	const source = page.getByRole("button", { name: "Slot 5: Parsnip" });
 	const destination = page.getByRole("button", { name: "Slot 4: Empty" });
@@ -170,10 +162,7 @@ it("accepts a keyboard click after touch drag while suppressing the synthetic po
 // A finger can still be held when the user leaves the editor. Teardown owns
 // the edge-scroll frame, and even an already-dispatched callback must not rearm it.
 it("releases a held touch drag's animation loop on unmount", async () => {
-	const opened = await openEditor(
-		SaveProcessingSync,
-		new TextEncoder().encode(fixtureXml),
-	);
+	const opened = await openTestEditor(new TextEncoder().encode(fixtureXml));
 	const page = render(BackpackHarness, { model: opened.model });
 	const frames = new Map<number, FrameRequestCallback>();
 	let next = 1;

@@ -1,3 +1,11 @@
+import {
+	TypeIds,
+	type T_StardewValley_Quests_Quest as Quest,
+	type T_StardewValley_Quests_CraftingQuest as CraftingQuest,
+	type T_StardewValley_Quests_ItemHarvestQuest as HarvestQuest,
+	type T_StardewValley_Quests_GoSomewhereQuest as LocationQuest,
+} from "../../../generated/save-format/save.ts";
+import type { KnownFields } from "./domain.ts";
 import questList from "../../../generated/quests.json";
 export type QuestDefinition = (typeof questList)[number];
 /** Static story definitions stay separate from runtime proxies and raw save types. */
@@ -13,13 +21,17 @@ const qualified = (id: string | undefined) =>
 export function questFromData(
 	data: QuestDefinition,
 	host: boolean,
-): Record<string, unknown> | undefined {
+): Quest | undefined {
 	const [first, second] = data.conditions ?? [];
-	let subclass: string | undefined;
+
 	let questType: number;
 	let completionString: string | undefined;
 	// The subclass's own fields, which the game saves after the base ones
-	let fields: Record<string, unknown> = {};
+	let fields:
+		| (KnownFields<CraftingQuest> & { $type: typeof TypeIds.CraftingQuest })
+		| (KnownFields<HarvestQuest> & { $type: typeof TypeIds.ItemHarvestQuest })
+		| (KnownFields<LocationQuest> & { $type: typeof TypeIds.GoSomewhereQuest })
+		| { $type: typeof TypeIds.Quest } = { $type: TypeIds.Quest };
 	switch (data.type) {
 		case "Basic":
 			questType = 1;
@@ -42,10 +54,11 @@ export function questFromData(
 					? `${bigCraftable === "true" ? "(BC)" : "(O)"}${first}`
 					: qualified(first);
 			if (!itemId) return;
-			subclass = "CraftingQuest";
+
 			questType = 2;
 			fields = {
-				isBigCraftable: { "@_xsi:nil": "true" },
+				$type: TypeIds.CraftingQuest,
+				isBigCraftable: null,
 				indexToCraft: itemId,
 			};
 			break;
@@ -54,16 +67,16 @@ export function questFromData(
 			const itemId = qualified(first);
 			const number = second === undefined ? 1 : Number(second);
 			if (!itemId || !Number.isInteger(number)) return;
-			subclass = "ItemHarvestQuest";
+
 			questType = 9;
-			fields = { itemIndex: itemId, number };
+			fields = { $type: TypeIds.ItemHarvestQuest, itemIndex: itemId, number };
 			break;
 		}
 		case "Location":
 			if (!first) return;
-			subclass = "GoSomewhereQuest";
+
 			questType = 6;
-			fields = { whereToGo: first };
+			fields = { $type: TypeIds.GoSomewhereQuest, whereToGo: first };
 			break;
 		default:
 			return;
@@ -72,7 +85,6 @@ export function questFromData(
 		id.startsWith("h") ? (host ? [id.slice(1)] : []) : [id],
 	);
 	return {
-		...(subclass ? { "@_xsi:type": subclass } : {}),
 		_currentObjective: data.objective ?? "",
 		_questDescription: data.description,
 		_questTitle: data.title,
@@ -91,7 +103,7 @@ export function questFromData(
 		questType,
 		daysLeft: 0,
 		dayQuestAccepted: -1,
-		nextQuests: nextQuests.length > 0 ? { int: nextQuests } : "",
+		nextQuests,
 		questTitle: data.title,
 		...fields,
 	};

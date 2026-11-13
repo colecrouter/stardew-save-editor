@@ -1,5 +1,5 @@
 import { Data, Effect, Schema, Result } from "effect";
-import { farmers, type SaveDocument } from "./domain.ts";
+import { farmers, type Farmer, type SaveDocument } from "./domain.ts";
 import { InventoryEdits } from "./inventory-operations.ts";
 import { TransactionDraft } from "./transaction-draft.ts";
 import {
@@ -92,45 +92,65 @@ export interface CharacterDetailsView {
 	houseUpgrading: boolean;
 }
 function owner(document: SaveDocument, farmerId: string) {
-	// Opaque imported identifiers cannot authorize a target or be coerced via
-	// user-shaped toString/valueOf members while projecting another farmer.
-	const matches = farmers(document).filter((farmer) => {
-		const id = farmer.UniqueMultiplayerID;
-		return (
-			(typeof id === "string" ||
-				(typeof id === "number" && Number.isFinite(id))) &&
-			String(id) === farmerId
-		);
-	});
-	return matches.length === 1 && record(matches[0]) ? matches[0] : undefined;
+	// Only a present, unique decoded identity can select an owner.
+	const matches = farmers(document).filter(
+		(farmer) => farmer.UniqueMultiplayerID?.toString() === farmerId,
+	);
+	return matches.length === 1 ? matches[0] : undefined;
 }
-function numberTarget(
-	document: SaveDocument,
-	farmer: Record<string, unknown>,
-	key: string,
-) {
-	const game: unknown = document.SaveGame;
-	if (key === "walnuts") return record(game) ? game : undefined;
+function numberTarget(document: SaveDocument, farmer: Farmer, key: string) {
+	// Bind each editable number to its actual saved owner. Keeping the write
+	// beside the read prevents unrelated fields from entering a dynamic record.
+	const game = document.SaveGame;
+	if (key === "walnuts")
+		return {
+			value: game.goldenWalnuts,
+			write: (value: number) => {
+				game.goldenWalnuts = value;
+			},
+		};
 	if (key === "mine")
-		return record(document.SaveGame.player)
-			? document.SaveGame.player
-			: undefined;
-	if (key !== "hay") return farmer;
-	// A unique named farm is required: choosing the first custom/duplicate location
-	// could silently put shared hay into the wrong storage record.
-	const locations = document.SaveGame.locations;
-	const values = record(locations) ? locations.GameLocation : undefined;
-	const list = Array.isArray(values)
-		? values
-		: values === undefined
-			? []
-			: [values];
-	const matches = list.filter((item) => record(item) && item.name === "Farm");
-	return matches.length === 1 && record(matches[0]) ? matches[0] : undefined;
+		return {
+			value: game.player.deepestMineLevel,
+			write: (value: number) => {
+				game.player.deepestMineLevel = value;
+			},
+		};
+	if (key === "hay") {
+		// Require one known farm; opaque or duplicate locations cannot authorize
+		// changing shared hay merely because they carry the same display name.
+		const matches = (game.locations ?? []).filter(
+			(location) => location?.name === "Farm",
+		);
+		const farm = matches.length === 1 ? matches[0] : undefined;
+		if (!farm || farm.$type === "$unknown") return undefined;
+		return {
+			value: farm.piecesOfHay,
+			write: (value: number) => {
+				farm.piecesOfHay = value;
+			},
+		};
+	}
+	const definition = numbers.find((entry) => entry.key === key);
+	if (
+		!definition ||
+		definition.raw === "goldenWalnuts" ||
+		definition.raw === "piecesOfHay" ||
+		definition.raw === "deepestMineLevel"
+	)
+		return undefined;
+	const field = definition.raw;
+	return {
+		value: farmer[field],
+		write: (value: number) => {
+			farmer[field] = value;
+		},
+	};
 }
-function mailList(farmer: Record<string, unknown>) {
+
+function mailList(farmer: Farmer) {
 	const raw = farmer.mailReceived;
-	const value = record(raw) ? raw.string : undefined;
+	const value = raw;
 	const list =
 		value === undefined ? [] : Array.isArray(value) ? value : [value];
 	return {
@@ -138,8 +158,7 @@ function mailList(farmer: Record<string, unknown>) {
 		value,
 		list,
 		supported:
-			(raw === "" || record(raw)) &&
-			list.every((item) => typeof item === "string"),
+			Array.isArray(raw) && list.every((item) => typeof item === "string"),
 	};
 }
 /** Read-only projection; no opening-time defaults are written into the save. */
@@ -150,8 +169,7 @@ export function readCharacterDetails(
 	const farmer = owner(document, farmerId);
 	const mail = farmer ? mailList(farmer) : undefined;
 	const tool = farmer?.toolBeingUpgraded;
-	const hasTool =
-		record(tool) && tool["@_xsi:nil"] !== true && tool["@_xsi:nil"] !== "true";
+	const hasTool = record(tool);
 	const houseLevel = numeric(farmer?.houseUpgradeLevel)
 		? farmer.houseUpgradeLevel
 		: undefined;
@@ -159,21 +177,18 @@ export function readCharacterDetails(
 		numeric(farmer?.daysUntilHouseUpgrade) && farmer.daysUntilHouseUpgrade > 0;
 	return {
 		backpackSize:
-			record(farmer?.items) && Array.isArray(farmer.items.Item)
-				? farmer.items.Item.length
-				: undefined,
+			farmer && Array.isArray(farmer.items) ? farmer.items.length : undefined,
 		backpackAvailable: Boolean(
 			farmer &&
-			record(farmer.items) &&
-			Array.isArray(farmer.items.Item) &&
-			[12, 24, 36].includes(farmer.items.Item.length) &&
-			farmer.maxItems === farmer.items.Item.length,
+			Array.isArray(farmer.items) &&
+			[12, 24, 36].includes(farmer.items.length) &&
+			farmer.maxItems === farmer.items.length,
 		),
 		houseLevel,
 		houseUpgrading,
 		numbers: numbers.map((definition) => {
 			const target = farmer && numberTarget(document, farmer, definition.key);
-			const raw = target?.[definition.raw];
+			const raw = target?.value;
 			let available = Boolean(target) && numeric(raw);
 			let reason = available
 				? undefined
@@ -317,8 +332,12 @@ export const setCharacterDetails = Effect.fn("CharacterDetails.set")(function* (
 			cancelling || (definition.key === "house-days" && request.value === 0)
 				? -1
 				: request.value;
-		if (target[definition.raw] === value) return;
-		target[definition.raw] = value;
+		if (typeof value !== "number")
+			return yield* new CharacterDetailsInvalid({
+				message: "Choose a numeric value.",
+			});
+		if (target.value === value) return;
+		target.write(value);
 		label = cancelling
 			? "Cancel house upgrade"
 			: `Update ${definition.label.toLowerCase()}`;
@@ -330,13 +349,7 @@ export const setCharacterDetails = Effect.fn("CharacterDetails.set")(function* (
 		const values = request.value
 			? [...mail.list, request.key]
 			: mail.list.filter((value) => value !== request.key);
-		farmer.mailReceived = {
-			...(record(mail.raw) ? mail.raw : {}),
-			string:
-				typeof mail.value === "string" && values.length === 1
-					? values[0]
-					: values,
-		};
+		farmer.mailReceived = values;
 		label = `${request.value ? "Enable" : "Remove"} ${wallet.label}`;
 	} else
 		return yield* new CharacterDetailsInvalid({

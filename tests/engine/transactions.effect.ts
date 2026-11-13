@@ -10,7 +10,10 @@ import { scenarios, tinyFixture } from "./fixture.ts";
 it.effect("Effect transactions commit document and receipt refs together", () =>
 	Effect.gen(function* () {
 		const original = tinyFixture();
-		const document = yield* TxRef.make(original);
+		const document =
+			yield* TxRef.make<import("../../src/lib/editor/domain.ts").SaveDocument>(
+				original,
+			);
 		const receipts = yield* TxRef.make<OperationChange[]>([]);
 		const rename = { type: "farm-name", value: "New farm" } as const;
 		const mutate = (fail: boolean) =>
@@ -42,7 +45,10 @@ it.effect(
 	() =>
 		Effect.gen(function* () {
 			const original = tinyFixture();
-			const ref = yield* TxRef.make(original);
+			const ref =
+				yield* TxRef.make<
+					import("../../src/lib/editor/domain.ts").SaveDocument
+				>(original);
 			yield* Effect.tx(
 				Effect.gen(function* () {
 					const unsafe = yield* TxRef.get(ref);
@@ -62,7 +68,7 @@ it.effect(
 			const initial = tinyFixture();
 			let state: SessionState = { document: initial, history: [] };
 			const json = (value: unknown): Schema.Json =>
-				JSON.parse(JSON.stringify(value));
+				structuredClone(value) as Schema.Json;
 			const steps = [];
 			for (const action of scenarios(initial)) {
 				const next = prepare(state, action);
@@ -92,12 +98,12 @@ it.effect(
 			const initial = tinyFixture();
 			let state: SessionState = { document: initial, history: [] };
 			for (const value of [99, 10])
-				state = prepare(state, { type: "money", farmerId: "host", value });
+				state = prepare(state, { type: "money", farmerId: "1", value });
 			expect(state.history.length).toBe(2);
 			expect(
 				JsonPatch.get(
-					JSON.parse(JSON.stringify(initial)),
-					JSON.parse(JSON.stringify(state.document)),
+					structuredClone(initial) as unknown as Schema.Json,
+					structuredClone(state.document) as unknown as Schema.Json,
 				),
 			).toEqual([]);
 		}),

@@ -15,18 +15,18 @@ const quest = (extra: Record<string, unknown> = {}) => ({
 	moneyReward: 100,
 	daysLeft: 0,
 	questType: 1,
-	nextQuests: "",
+	nextQuests: [],
 	...extra,
 });
 async function open(quests = [quest()], extra: Record<string, unknown> = {}) {
 	const document = parser.parse(fixtureXml);
 	const host = document.SaveGame.player;
-	Object.assign(host, { questLog: { Quest: quests }, ...extra });
+	Object.assign(host, { questLog: quests, ...extra });
 	const guest = structuredClone(host);
-	guest.UniqueMultiplayerID = "guest";
+	guest.UniqueMultiplayerID = 2n;
 	guest.name = "Guest";
-	Object.assign(guest, { questLog: { Quest: [quest({ moneyReward: 700 })] } });
-	document.SaveGame.farmhands = { Farmer: [guest] };
+	Object.assign(guest, { questLog: [quest({ moneyReward: 700 })] });
+	document.SaveGame.farmhands = [guest];
 	const opened = await renderTestWorkspace(document, "Quest journal");
 	return { ...opened, hostId: String(host.UniqueMultiplayerID) };
 }
@@ -46,7 +46,7 @@ it(
 			await fireEvent.input(reward, { target: { value: "200" } });
 			await fireEvent.input(reward, { target: { value: "500" } });
 			await fireEvent.change(page.getByRole("combobox", { name: "Farmer" }), {
-				target: { value: "guest" },
+				target: { value: "2" },
 			});
 			const snapshot = await model.snapshot();
 			expect(snapshot.entries).toHaveLength(1);
@@ -91,24 +91,20 @@ it(
 	async () => {
 		const opened = await open([quest({ dailyQuest: true })], {
 			stats: {
-				Values: {
-					item: [
-						{
-							key: { string: "BillboardQuestsDone" },
-							value: { unsignedInt: 2 },
-						},
-					],
-				},
+				Values: [
+					{
+						key: "BillboardQuestsDone",
+						value: 2,
+					},
+				],
 			},
-			items: {
-				Item: Array.from({ length: 12 }, () => ({
-					"@_xsi:nil": "true",
-					opaque: "keep",
-				})),
-			},
-			mailReceived: "",
-			activeDialogueEvents: "",
-			previousActiveDialogueEvents: "",
+			items: Array.from({ length: 12 }, () => ({
+				"@_xsi:nil": "true",
+				opaque: "keep",
+			})),
+			mailReceived: [],
+			activeDialogueEvents: [],
+			previousActiveDialogueEvents: [],
 		});
 		const { page, model } = opened;
 		try {

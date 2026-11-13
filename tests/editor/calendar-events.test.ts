@@ -1,3 +1,4 @@
+import { stringifySavedData } from "../../src/lib/editor/saved-data.ts";
 import { expect, it } from "vitest";
 import { CalendarSeason } from "../../src/lib/calendarSeason.ts";
 import {
@@ -89,8 +90,8 @@ it("makes Bookseller dates deterministic and independent across month visits and
 	expect(
 		new Set(
 			[1, 2, 3, 4].flatMap((year) => [
-				JSON.stringify(booksellers(year, true)),
-				JSON.stringify(booksellers(year, false)),
+				stringifySavedData(booksellers(year, true)),
+				stringifySavedData(booksellers(year, false)),
 			]),
 		).size,
 	).toBeGreaterThan(1);
@@ -106,31 +107,25 @@ it("deduplicates identical residents, hides secret unmet birthdays and omits con
 	Object.assign(document.SaveGame, {
 		uniqueIDForThisGame: "12345",
 		useLegacyRandom: false,
-		locations: {
-			GameLocation: [
-				{
-					characters: {
-						NPC: [
-							npc("Sam", 17),
-							npc("Sam", 17),
-							npc("Dwarf", 22),
-							npc("Alex", 13),
-							npc("Alex", 14),
-							npc("Custom NPC", 5),
-						],
-					},
-				},
-			],
-		},
+		locations: [
+			{
+				characters: [
+					npc("Sam", 17),
+					npc("Sam", 17),
+					npc("Dwarf", 22),
+					npc("Alex", 13),
+					npc("Alex", 14),
+					npc("Custom NPC", 5),
+				],
+			},
+		],
 	});
 	let saved = readCalendarEventContext(document);
 	expect(saved.birthdays.map((birthday) => birthday.name)).toEqual(["Sam"]);
 	expect(saved.notes.some((note) => note.includes("Alex"))).toBe(true);
 	Object.assign(document.SaveGame.player, {
-		friendshipData: {
-			item: { key: { string: "Dwarf" }, value: { Friendship: { Points: 0 } } },
-		},
-		mailReceived: { string: ["ccVault"] },
+		friendshipData: [{ key: "Dwarf", value: { Points: 0 } }],
+		mailReceived: ["ccVault"],
 	});
 	saved = readCalendarEventContext(document);
 	expect(saved.birthdays.map((birthday) => birthday.name)).toEqual([
@@ -181,3 +176,20 @@ it("matches the reference Bookseller pair for legacy save 0 in Spring year 1", (
 			.map((event) => event.day),
 	).toEqual([21, 25]);
 });
+
+// The production codec emits UInt64 IDs as bigint, but RNG inputs still need an
+// exact JavaScript number. Preserve the unsupported state beyond that boundary.
+it.each([390176213n, 9007199254740993n])(
+	"checks bigint RNG seed precision for %s",
+	(id) => {
+		const document = tinyFixture();
+		Object.assign(document.SaveGame, {
+			uniqueIDForThisGame: id,
+			useLegacyRandom: false,
+		});
+		const context = readCalendarEventContext(document);
+		expect(context.random).toEqual(
+			id === 390176213n ? { seed: 390176213, legacy: false } : undefined,
+		);
+	},
+);

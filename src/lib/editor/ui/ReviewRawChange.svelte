@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { stringifySavedData } from "../saved-data.ts";
 	import type { JsonPatch } from "effect";
 	import type { ImmutableView } from "../immutable-view.ts";
 	let { patch }: { patch: ImmutableView<JsonPatch.JsonPatch[number]> } =
@@ -14,7 +15,7 @@
 	</summary>
 
 	{#if open}
-		<pre>{JSON.stringify(patch, null, 2)}</pre>
+		<pre>{stringifySavedData(patch, 2)}</pre>
 	{/if}
 </details>
 

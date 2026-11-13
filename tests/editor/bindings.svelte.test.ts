@@ -6,7 +6,6 @@ import type {
 	EditorView,
 } from "../../src/lib/editor/editor-model.ts";
 import AdapterLifecycleProbe from "./components/AdapterLifecycleProbe.svelte";
-import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
 
 it("mounted Atom readers follow a model replacement within their provider registry", async () => {
 	const registry = AtomRegistry.make();
@@ -54,16 +53,14 @@ it("a centrally handled defect shows one toast and the mounted UI can keep editi
 	const { fixtureXml } = await import("./fixtures");
 	const { Effect, Result } = await import("effect");
 	const { vi } = await import("vitest");
-	const { openEditor } = await import("../../src/lib/editor/editor-model.ts");
+	const { openTestEditor: openEditor } =
+		await import("../helpers/open-editor.ts");
 	const { setCalendarDate } =
 		await import("../../src/lib/editor/calendar-operations.ts");
 	const { default: Probe } =
 		await import("./components/CommandBoundaryProbe.svelte");
 	const report = vi.spyOn(console, "error").mockImplementation(() => {});
-	const opened = await openEditor(
-		SaveProcessingSync,
-		new TextEncoder().encode(fixtureXml),
-	);
+	const opened = await openEditor(new TextEncoder().encode(fixtureXml));
 	const target = document.createElement("div");
 	document.body.append(target);
 	const component = mount(Probe, { target, props: { model: opened.model } });
@@ -96,4 +93,4 @@ it("a centrally handled defect shows one toast and the mounted UI can keep editi
 		target.remove();
 		report.mockRestore();
 	}
-});
+}, 30_000);

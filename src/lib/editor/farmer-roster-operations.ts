@@ -1,5 +1,5 @@
 import { Data, Effect, Result } from "effect";
-import type { SaveDocument } from "./domain.ts";
+import { isHostFarmer, type SaveDocument } from "./domain.ts";
 import { inspectFarmerRoster } from "./farmer-roster-data.ts";
 import { InventoryEdits } from "./inventory-operations.ts";
 import {
@@ -44,7 +44,7 @@ export function applyFarmerSwap(
 	// Only active farmhand slots receive the new named-farmer ordering.
 	let next = 1;
 	const hands = roster.entries.map((farmer) =>
-		farmer.name.trim() ? (ordered[next++] ?? farmer) : farmer,
+		farmer?.name?.trim() ? (ordered[next++] ?? farmer) : farmer,
 	);
 	const host = ordered[0];
 	if (!host) return invalid("The roster needs a host.");
@@ -58,11 +58,12 @@ export function applyFarmerSwap(
 		);
 		if (cabin) cabin.farmhandReference = farmer.UniqueMultiplayerID;
 	}
+	// Promotion must retain the same playable host envelope enforced on import.
+	// Named cabin records may still lack money or inventory data.
+	if (!isHostFarmer(host))
+		return invalid("The selected farmer cannot become the host.");
 	document.SaveGame.player = host;
-	document.SaveGame.farmhands =
-		document.SaveGame.farmhands === ""
-			? { Farmer: hands }
-			: { ...document.SaveGame.farmhands, Farmer: hands };
+	document.SaveGame.farmhands = hands;
 	// Transfer existing cellar/home pairs with the physical slots. Sparse cellar
 	// IDs remain intact; indexing them as roster positions would duplicate owners.
 	if (roster.rawCellars) {
@@ -74,16 +75,16 @@ export function applyFarmerSwap(
 			]),
 		);
 		for (const entry of assignments) {
-			const nextOwner = nextOwners.get(String(entry.value.long));
-			if (nextOwner !== undefined) entry.value.long = nextOwner;
+			const nextOwner = nextOwners.get(String(entry.value));
+			if (nextOwner !== undefined) entry.value = nextOwner;
 		}
-		if (!assignments.some((entry) => entry.key.int === 1))
+		if (!assignments.some((entry) => entry.key === 1))
 			assignments.push({
-				key: { int: 1 },
-				value: { long: host.UniqueMultiplayerID },
+				key: 1,
+				value: host.UniqueMultiplayerID,
 			});
-		assignments.sort((left, right) => left.key.int - right.key.int);
-		roster.rawCellars.item = assignments;
+		assignments.sort((left, right) => left.key - right.key);
+		document.SaveGame.cellarAssignments = assignments;
 	}
 
 	return Result.succeed(undefined);

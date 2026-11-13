@@ -1,0 +1,62 @@
+{
+	"formatVersion": 3,
+	"diagnostics": [],
+	"types": [
+		{
+			"id": "Example.Relationships",
+			"kind": "object",
+			"members": [
+				{
+					"name": "friendships",
+					"type": "StardewValley.SerializableDictionary`2[StardewValley.FarmerPair,StardewValley.Friendship]"
+				}
+			]
+		},
+		{
+			"id": "StardewValley.FarmerPair",
+			"kind": "object",
+			"baseType": "System.ValueType",
+			"members": [
+				{
+					"name": "Farmer1",
+					"type": "System.Int64"
+				},
+				{
+					"name": "Farmer2",
+					"type": "System.Int64"
+				}
+			]
+		},
+		{
+			"id": "StardewValley.Friendship",
+			"kind": "object",
+			"members": [
+				{
+					"name": "Points",
+					"type": "System.Int32"
+				}
+			]
+		},
+		{
+			"id": "StardewValley.SerializableDictionary`2[StardewValley.FarmerPair,StardewValley.Friendship]",
+			"kind": "collection",
+			"customXml": true,
+			"genericDefinition": "StardewValley.SerializableDictionary`2",
+			"genericArguments": [
+				"StardewValley.FarmerPair",
+				"StardewValley.Friendship"
+			],
+			"attributes": [
+				{
+					"type": "System.Xml.Serialization.XmlRootAttribute",
+					"constructorArguments": [
+						{
+							"type": "System.String",
+							"value": "dictionary"
+						}
+					]
+				}
+			]
+		}
+	]
+}

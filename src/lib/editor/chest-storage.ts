@@ -1,13 +1,9 @@
-import type { SaveDocument } from "./domain.ts";
+import { savedType, isKnownLocation } from "./saved-types.ts";
+import type { Location, SaveDocument } from "./domain.ts";
+import type { T_StardewValley_Objects_Chest as Chest } from "../../../generated/save-format/save.ts";
 
 const record = (value: unknown): value is Record<string, unknown> =>
 	value !== null && typeof value === "object" && !Array.isArray(value);
-const list = (value: unknown): unknown[] =>
-	value === undefined || value === ""
-		? []
-		: Array.isArray(value)
-			? value
-			: [value];
 const text = (value: unknown): string | undefined =>
 	typeof value === "string" || typeof value === "number"
 		? String(value)
@@ -22,49 +18,24 @@ export interface PlacedChest {
 	label: string;
 	location: string;
 	capacity: number;
-	raw: Record<string, unknown>;
+	raw: Chest;
 	supported: boolean;
 	reason?: string;
 	slots: unknown[];
 	serializedLength: number;
 }
 
-/** Chest lists contain records rather than the backpack's persistent empty-slot markers. */
+/** Null slots are vacant; placed chests compact them only on an explicit edit. */
 export function emptyChestSlot(value: unknown): boolean {
-	return (
-		value === null ||
-		value === undefined ||
-		(record(value) &&
-			(value["@_xsi:nil"] === "true" || value["@_xsi:nil"] === true))
-	);
+	return value === null || value === undefined;
 }
-
-// A nil with extra fields may carry mod data. Compacting it would silently erase
-// those fields, so structural editing stays unavailable rather than guessing.
-function opaqueNil(value: unknown): boolean {
-	return (
-		record(value) &&
-		emptyChestSlot(value) &&
-		Object.keys(value).some((key) => key !== "@_xsi:nil")
-	);
-}
-// NetRef<string> writes an absent global ID as a nested XML nil. That is local
-// storage, not a shared inventory. Accept only known empty shapes; additional
-// fields on either wrapper remain opaque rather than gaining writable handles.
+// A nonempty ID addresses shared storage rather than this chest's local inventory.
 function emptyGlobalInventoryId(value: unknown): boolean {
-	if (value === undefined || value === "") return true;
-	if (!record(value) || Object.keys(value).some((key) => key !== "string"))
-		return false;
-	const id = value.string;
-	return (
-		id === undefined ||
-		id === "" ||
-		(record(id) && emptyChestSlot(id) && !opaqueNil(id))
-	);
+	return value === undefined || value === null || value === "";
 }
 
 function describe(
-	raw: Record<string, unknown>,
+	raw: Chest,
 	id: string,
 	location: string,
 	tile: string,
@@ -101,25 +72,10 @@ function describe(
 		reason = "This chest uses a shared or unsupported global inventory.";
 
 	const container = raw.items;
-	const saved = record(container) ? container.Item : undefined;
-	const entries =
-		saved === undefined ? [] : Array.isArray(saved) ? saved : [saved];
-	// Empty XML nodes and singleton Item nodes are legitimate compact lists.
-	// Primitive/non-record members are left untouched and never acquire edit handles.
+	const entries = Array.isArray(container) ? container : [];
 	if (
-		(container !== undefined && container !== "" && !record(container)) ||
-		entries.some((value) => !record(value) && value !== null) ||
-		entries.some(opaqueNil) ||
-		// A malformed nil discriminator cannot be coerced safely or interpreted
-		// as an ordinary stored item. Keep that imported container read-only.
-		entries.some(
-			(value) =>
-				record(value) &&
-				Object.hasOwn(value, "@_xsi:nil") &&
-				![true, false, "true", "false"].includes(
-					value["@_xsi:nil"] as boolean | string,
-				),
-		)
+		(container !== undefined && !Array.isArray(container)) ||
+		entries.some((value) => !record(value) && value !== null)
 	)
 		reason ??= "This chest's saved item list cannot be edited safely.";
 	const supported = reason === undefined;
@@ -139,7 +95,7 @@ function describe(
 		// capacity-sized arrays into a compact chest just because it was inspected.
 		slots: supported
 			? Array.from({ length: slotCount }, (_, index) =>
-					index < entries.length ? entries[index] : { "@_xsi:nil": "true" },
+					index < entries.length ? entries[index] : null,
 				)
 			: [],
 	};
@@ -152,14 +108,13 @@ export function discoverPlacedChests(
 	document: SaveDocument,
 	ownerId?: string,
 ): PlacedChest[] {
-	const game = document.SaveGame as unknown as Record<string, unknown>;
-	const locations = record(game.locations)
-		? game.locations.GameLocation
-		: undefined;
+	const game = document.SaveGame;
+	const locations = game.locations;
 	const result: PlacedChest[] = [];
-	const isChest = (raw: unknown): raw is Record<string, unknown> =>
+	const isChest = (raw: unknown): raw is Chest =>
 		record(raw) &&
-		(raw["@_xsi:type"] === "Chest" ||
+		raw.$type !== "$unknown" &&
+		(savedType(raw) === "Chest" ||
 			(Object.hasOwn(raw, "items") &&
 				["playerChest", "fridge", "specialChestType"].some((key) =>
 					Object.hasOwn(raw, key),
@@ -179,21 +134,21 @@ export function discoverPlacedChests(
 		if (ownerId === undefined || ownerId === id)
 			result.push(describe(raw, id, location, tile, source, labelName));
 	};
-	const visit = (value: unknown, path: string, parent?: string) => {
-		if (!record(value)) return;
+	const visit = (
+		value: Location | null | undefined,
+		path: string,
+		parent?: string,
+	) => {
+		if (!isKnownLocation(value)) return;
 		const ownName =
 			text(value.uniqueName) || text(value.name) || "Unknown location";
 		const location = parent ? `${parent} / ${ownName}` : ownName;
 		add(value.fridge, `${path}.fridge`, location, "fridge", "", "Fridge");
-		const objects = record(value.objects) ? list(value.objects.item) : [];
+		const objects = value.objects ?? [];
 		objects.forEach((entry, index) => {
-			if (!record(entry) || !record(entry.value) || !record(entry.value.Object))
-				return;
-			const raw = entry.value.Object;
-			const vector =
-				record(entry.key) && record(entry.key.Vector2)
-					? entry.key.Vector2
-					: undefined;
+			if (!record(entry) || !record(entry.value)) return;
+			const raw = entry.value;
+			const vector = record(entry.key) ? entry.key : undefined;
 			const x = vector && text(vector.X),
 				y = vector && text(vector.Y);
 			const tile = x !== undefined && y !== undefined ? ` (${x}, ${y})` : "";
@@ -212,16 +167,12 @@ export function discoverPlacedChests(
 				machine,
 			);
 		});
-		const buildings = record(value.buildings)
-			? list(value.buildings.Building)
-			: [];
+		const buildings = value.buildings ?? [];
 		buildings.forEach((building, index) => {
-			if (!record(building)) return;
+			if (!building || building.$type === "$unknown") return;
 			const label = text(building.buildingType) || `Building ${index + 1}`;
 			const buildingPath = `${path}.buildings.${index}`;
-			const chests = record(building.buildingChests)
-				? list(building.buildingChests.Chest)
-				: [];
+			const chests = building.buildingChests ?? [];
 			chests.forEach((chest, chestIndex) => {
 				add(
 					chest,
@@ -241,7 +192,7 @@ export function discoverPlacedChests(
 			);
 		});
 	};
-	list(locations).forEach((location, index) => {
+	(locations ?? []).forEach((location, index) => {
 		visit(location, `locations.${index}`);
 	});
 	return result;
@@ -254,30 +205,16 @@ export function writeChestSlots(
 ): void {
 	if (
 		!chest.supported ||
-		slots.some(opaqueNil) ||
 		slots.some((value) => !emptyChestSlot(value) && !record(value))
 	)
 		throw new Error("Unsupported chest inventory");
-	const entries = slots.filter((value) => !emptyChestSlot(value));
-	const container = record(chest.raw.items) ? chest.raw.items : undefined;
-	// Preserve unknown siblings of Item and the existing singleton shape when
-	// possible. Structural edits may compact plain nils; history restores exact XML.
-	if (entries.length) {
-		chest.raw.items = {
-			...container,
-			Item:
-				entries.length === 1 &&
-				container &&
-				!Array.isArray(container.Item) &&
-				record(container.Item)
-					? entries[0]
-					: entries,
-		};
-	} else if (
-		container &&
-		Object.keys(container).some((key) => key !== "Item")
-	) {
-		const { Item: _items, ...rest } = container;
-		chest.raw.items = rest;
-	} else chest.raw.items = "";
+	// Generic inventory commands carry opaque values until this storage boundary.
+	// A supported chest only receives decoded item records; this predicate retains
+	// their generated item type while removing the view's virtual empty slots.
+	const entries = slots.filter(
+		(value): value is NonNullable<Chest["items"]>[number] =>
+			!emptyChestSlot(value),
+	);
+	// Storage stays compact; the view supplies virtual empty slots up to capacity.
+	chest.raw.items = entries;
 }

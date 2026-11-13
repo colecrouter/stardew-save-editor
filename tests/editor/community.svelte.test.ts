@@ -1,19 +1,15 @@
 import { expect, it } from "vitest";
 import { render, fireEvent, within, waitFor } from "@testing-library/svelte";
-import { openEditor } from "../../src/lib/editor/editor-model";
+import { openTestEditor } from "../helpers/open-editor.ts";
 import WorkspaceHarness from "./WorkspaceHarness.svelte";
 import { fixtureXml } from "./fixtures";
 import { readCommunity } from "../../src/lib/editor/community-data";
-import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
 
 it(
 	"edits donations, changes membership and projects with complete Undo and preserved room selection",
 	{ timeout: 30000 },
 	async () => {
-		const opened = await openEditor(
-			SaveProcessingSync,
-			new TextEncoder().encode(fixtureXml),
-		);
+		const opened = await openTestEditor(new TextEncoder().encode(fixtureXml));
 		const page = render(WorkspaceHarness, { model: opened.model });
 		try {
 			await fireEvent.click(

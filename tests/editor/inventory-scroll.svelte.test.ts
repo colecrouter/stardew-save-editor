@@ -1,9 +1,8 @@
 import { fireEvent, render, waitFor } from "@testing-library/svelte";
 import { expect, it, vi } from "vitest";
-import { openEditor } from "../../src/lib/editor/editor-model";
+import { openTestEditor } from "../helpers/open-editor.ts";
 import BackpackHarness from "./BackpackHarness.svelte";
 import { fixtureXml } from "./fixtures";
-import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
 
 // DOM scroll state tests complement browser geometry measurements: selection
 // resets only its own detail viewport, while revisions preserve reading position.
@@ -11,10 +10,7 @@ it(
 	"starts new slot details at the top without resetting inventory scroll or reading position on edits",
 	{ timeout: 15000 },
 	async () => {
-		const opened = await openEditor(
-			SaveProcessingSync,
-			new TextEncoder().encode(fixtureXml),
-		);
+		const opened = await openTestEditor(new TextEncoder().encode(fixtureXml));
 		const page = render(BackpackHarness, { model: opened.model });
 		try {
 			const inspector = page.getByRole("group", {
@@ -40,8 +36,7 @@ it(
 			);
 			await waitFor(async () =>
 				expect(
-					(await opened.model.snapshot()).document.SaveGame.player.items
-						.Item[4],
+					(await opened.model.snapshot()).document.SaveGame.player.items[4],
 				).toMatchObject({ stack: 18 }),
 			);
 			expect(inspector.scrollTop).toBe(120);
@@ -62,10 +57,7 @@ it(
 	"edge-scrolls the inventory pane inside the drag root and cancels cleanly",
 	{ timeout: 15000 },
 	async () => {
-		const opened = await openEditor(
-			SaveProcessingSync,
-			new TextEncoder().encode(fixtureXml),
-		);
+		const opened = await openTestEditor(new TextEncoder().encode(fixtureXml));
 		const page = render(BackpackHarness, { model: opened.model });
 		let frame: FrameRequestCallback | undefined;
 		const schedule = vi

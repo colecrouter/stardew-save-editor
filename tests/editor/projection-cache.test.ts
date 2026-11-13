@@ -1,7 +1,9 @@
+import { malformedFixture } from "../helpers/editor-document.ts";
+import { stringifySavedData } from "../../src/lib/editor/saved-data.ts";
 import { get } from "svelte/store";
 import { Effect, Result } from "effect";
 import { expect, it } from "vitest";
-import { openEditor } from "../../src/lib/editor/editor-model";
+import { openTestDocument } from "../helpers/open-editor.ts";
 import { makeHistorySession } from "../../src/lib/editor/history";
 import {
 	EditorOperations,
@@ -10,44 +12,35 @@ import {
 import { setFarmSettings } from "../../src/lib/editor/farm-operations";
 import { setInventoryItem } from "../../src/lib/editor/inventory-operations";
 import { readChests } from "../../src/lib/editor/inventory-views";
-import { XMLCodec } from "../../src/lib/xmlCodec";
-import { fixtureXml, parser, tinyFixture } from "./fixtures";
-import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
+import { tinyFixture, tinyEditorFixture } from "../helpers/editor-document.ts";
 
-const locations = () => ({
-	GameLocation: [
-		{
-			name: "Cache island",
-			objects: {
-				item: [
-					{
-						key: { Vector2: { X: 1, Y: 2 } },
-						value: {
-							Object: {
-								"@_xsi:type": "Chest",
-								name: "Chest",
-								items: {
-									Item: [
-										{
-											"@_xsi:type": "Object",
-											itemId: "388",
-											name: "Wood",
-											stack: 20,
-											quality: 0,
-											bigCraftable: false,
-											category: -16,
-											modData: { opaque: "preserved" },
-										},
-									],
-								},
-							},
+const locations = () => [
+	{
+		$type: "StardewValley.GameLocation",
+		name: "Cache island",
+		objects: [
+			{
+				key: { X: 1, Y: 2 },
+				value: {
+					$type: "StardewValley.Objects.Chest",
+					name: "Chest",
+					items: [
+						{
+							$type: "StardewValley.Object",
+							itemId: "388",
+							name: "Wood",
+							stack: 20,
+							quality: 0,
+							bigCraftable: false,
+							category: -16,
+							customModData: { opaque: "preserved" },
 						},
-					},
-				],
+					],
+				},
 			},
-		},
-	],
-});
+		],
+	},
+];
 const required = <T>(value: T | undefined): T => {
 	if (value === undefined) throw new Error("Missing fixture value");
 	return value;
@@ -57,12 +50,10 @@ it(
 	"shares immutable chest views across unrelated edits and invalidates item edits and Undo/Redo",
 	{ timeout: 15000 },
 	async () => {
-		const document = parser.parse(fixtureXml);
+		// Cache identity depends on relevant edits, not the size of the imported save.
+		const document = tinyEditorFixture();
 		Object.assign(document.SaveGame, { locations: locations() });
-		const opened = await openEditor(
-			SaveProcessingSync,
-			new XMLCodec().stringify(document),
-		);
+		const opened = await openTestDocument(document);
 		try {
 			const model = opened.model;
 			const original = required(get(model.view));
@@ -106,7 +97,7 @@ it(
 			await model.commands.redo();
 			expect(required(get(model.view)).chests[0]?.slots[0]?.quantity).toBe(25);
 			// Views never carry mod fields, but exports/snapshots still preserve them.
-			expect(JSON.stringify((await model.snapshot()).document)).toContain(
+			expect(stringifySavedData((await model.snapshot()).document)).toContain(
 				'"opaque":"preserved"',
 			);
 		} finally {
@@ -131,21 +122,22 @@ it("versions actual committed inputs for custom writes, ID collisions and Undo",
 									if (action.type === "farm-name") {
 										const world = locations();
 										if (action.value === "World change")
-											required(
-												required(world.GameLocation[0]).objects.item[0],
-											).value.Object.name = "Renamed chest";
+											required(required(world[0]).objects[0]).value.name =
+												"Renamed chest";
 										Object.assign(prepared.document.SaveGame, {
 											locations: world,
 										});
 									}
 									if (action.type === "money")
 										prepared.document.SaveGame.player.UniqueMultiplayerID =
-											required(
-												readChests({
-													...state,
-													identities: required(state.inventory).identities,
-												})[0],
-											).ownerId;
+											malformedFixture(
+												required(
+													readChests({
+														...state,
+														identities: required(state.inventory).identities,
+													})[0],
+												).ownerId,
+											);
 									return prepared;
 								}),
 							),
@@ -164,7 +156,7 @@ it("versions actual committed inputs for custom writes, ID collisions and Undo",
 				expect(worldChanged.chestRevision).toBeGreaterThan(same.chestRevision);
 				expect(readChests(worldChanged)[0]?.name).toContain("Renamed chest");
 				const collided = yield* session.execute([
-					{ type: "money", farmerId: "host", value: 22 },
+					{ type: "money", farmerId: "1", value: 22 },
 				]);
 				expect(collided.chestRevision).toBeGreaterThan(same.chestRevision);
 				expect(readChests(collided)[0]?.supported).toBe(false);

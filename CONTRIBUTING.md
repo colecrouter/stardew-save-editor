@@ -44,6 +44,20 @@ Event names aren't in the game files: they're kept by hand in `src/lib/wiki/even
 `generated/quests.json` is `Data/Quests`, parsed by `codegen/quests.ts` the way the game reads it
 (`Quest.getQuestFromId`), so completing a story quest in the editor can start the next one.
 
+### Inspecting game assemblies
+
+The standalone .NET CLI under `tools/game-data` inspects XML serialization
+metadata, compares catalogs with saves, generates typed TypeScript XML codecs, and wraps
+StardewXnbHack for asset exports.
+See [game data tooling](tools/game-data/README.md) for setup, commands, input storage,
+and validation limits. It does not change the existing `content/` codegen workflow.
+
+The production editor imports the committed codec in `generated/save-format/save.ts`.
+Regenerate it with `npm run game-data:generate -- --output generated/save-format/save.ts`.
+Its browser runtime lives in `src/lib/save-format`; game assemblies are needed only
+for regeneration, not ordinary builds. Editor models use plain arrays, dictionary
+entries, null slots, and exact 64-bit integer values rather than XML wrappers.
+
 ### Reading the Save File
 
 The save format is somewhat inconsistent (in structure and consistency). My recommendation is to use a website/tool to format the save file into something more readable, then use a text editor to search for the data you need. [Here is a tool for that](https://jsonformatter.org/xml-parser).

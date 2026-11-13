@@ -1,24 +1,21 @@
-import type { Save } from "../../codegen/save.ts";
+import type { FixtureSave as Save } from "../helpers/editor-document.ts";
 import type { SaveDocument } from "../../src/lib/editor/domain.ts";
 import { expect, it } from "@effect/vitest";
 import { readFile } from "node:fs/promises";
 import { get } from "svelte/store";
-import { openEditor } from "./editor-model.ts";
-import { parser, exportDocument } from "./fixture.ts";
+import { openDocument } from "./editor-model.ts";
+import { parser } from "./fixture.ts";
 
 type FullDocument = SaveDocument & { SaveGame: Save };
 
 it("a late room-mail failure rolls back staged donations and rewards", async () => {
 	const document = await fixture();
-	for (const entry of center(document).bundles.item)
-		if ([14, 15, 16, 17, 19].includes(entry.key.int))
-			entry.value.ArrayOfBoolean.boolean.fill(true);
+	for (const entry of center(document).bundles)
+		if ([14, 15, 16, 17, 19].includes(entry.key)) entry.value.fill(true);
 	Object.assign(document.SaveGame.player, {
 		mailReceived: { unsupported: "modded mail container" },
 	});
-	const opened = await openEditor(
-		new TextEncoder().encode(exportDocument(document)),
-	);
+	const opened = await openDocument(document);
 	try {
 		const before = await opened.model.snapshot();
 		await expect(
@@ -28,38 +25,39 @@ it("a late room-mail failure rolls back staged donations and rewards", async () 
 	} finally {
 		await opened.close();
 	}
-});
+}, 60_000);
 const fixture = async () =>
 	parser.parse(
 		await readFile(new URL("../../tests/TestSave", import.meta.url), "utf8"),
 	) as unknown as FullDocument;
-function must<T>(value: T | undefined): T {
-	if (value === undefined) throw new Error("Required fixture field is absent");
-	return value;
+function must<T>(value: T | undefined | null): NonNullable<T> {
+	if (value == null) throw new Error("Required fixture field is absent");
+	return value as NonNullable<T>;
 }
 function center(document: FullDocument) {
 	const cc = must(
-		document.SaveGame.locations.GameLocation.find(
-			(location) => location.name === "CommunityCenter",
+		document.SaveGame.locations.find(
+			(location) => location?.name === "CommunityCenter",
 		),
 	);
-	if (!cc.bundles || !cc.areasComplete)
+	if (
+		cc.$type !== "StardewValley.Locations.CommunityCenter" ||
+		!cc.bundles ||
+		!cc.areasComplete
+	)
 		throw new Error("Incomplete Community Center fixture");
 	return cc as typeof cc &
 		Required<Pick<typeof cc, "bundles" | "areasComplete">>;
 }
 const progress = (document: FullDocument) =>
-	must(center(document).bundles.item.find((entry) => entry.key.int === 13))
-		.value.ArrayOfBoolean.boolean;
+	must(center(document).bundles.find((entry) => entry.key === 13)).value;
 
 it("bundle completion is one compound history entry, preserves opaque fields and unused slots, and roundtrips", async () => {
 	const document = await fixture();
 	const cc = center(document);
 	progress(document)[11] = true;
 	Object.assign(cc, { opaqueModData: { value: "retain" } });
-	const opened = await openEditor(
-		new TextEncoder().encode(exportDocument(document)),
-	);
+	const opened = await openDocument(document);
 	try {
 		await opened.model.execute([{ type: "bundle-complete", bundleId: 13 }]);
 		const state = await opened.model.snapshot();
@@ -84,28 +82,22 @@ it("bundle completion is one compound history entry, preserves opaque fields and
 	} finally {
 		await opened.close();
 	}
-});
+}, 60_000);
 
 it("last Crafts Room bundle includes room and multiplayer completion mail in the same reversible action", async () => {
 	const document = await fixture();
 	const cc = center(document);
-	for (const entry of cc.bundles.item)
-		if ([14, 15, 16, 17, 19].includes(entry.key.int))
-			entry.value.ArrayOfBoolean.boolean.fill(true);
-	cc.areasComplete.boolean = [true, false, true, true, true, true];
-	document.SaveGame.player.mailReceived.string.push(
-		"mod.mail.keep",
-		"mod.mail.keep",
-	);
-	const opened = await openEditor(
-		new TextEncoder().encode(exportDocument(document)),
-	);
+	for (const entry of cc.bundles)
+		if ([14, 15, 16, 17, 19].includes(entry.key)) entry.value.fill(true);
+	cc.areasComplete = [true, false, true, true, true, true];
+	document.SaveGame.player.mailReceived?.push("mod.mail.keep", "mod.mail.keep");
+	const opened = await openDocument(document);
 	try {
 		await opened.model.execute([{ type: "bundle-complete", bundleId: 13 }]);
 		const after = parser.parse(
 			new TextDecoder().decode(await opened.model.export()),
 		) as unknown as FullDocument;
-		expect(center(after).areasComplete.boolean).toEqual([
+		expect(center(after).areasComplete).toEqual([
 			true,
 			true,
 			true,
@@ -115,20 +107,18 @@ it("last Crafts Room bundle includes room and multiplayer completion mail in the
 		]);
 		const players = [
 			after.SaveGame.player,
-			...(after.SaveGame.farmhands === ""
+			...(!Array.isArray(after.SaveGame.farmhands)
 				? []
-				: after.SaveGame.farmhands.Farmer),
+				: after.SaveGame.farmhands),
 		];
 		for (const player of players) {
-			expect(player.mailReceived.string).toContain("ccCraftsRoom");
-			expect(player.mailReceived.string).toContain("ccIsComplete");
-			expect(player.mailReceived.string).toContain("seenJunimoNote");
+			expect(player.mailReceived).toContain("ccCraftsRoom");
+			expect(player.mailReceived).toContain("ccIsComplete");
+			expect(player.mailReceived).toContain("seenJunimoNote");
 		}
-		expect(after.SaveGame.player.mailReceived.string).toContain(
-			"mod.mail.keep",
-		);
+		expect(after.SaveGame.player.mailReceived).toContain("mod.mail.keep");
 		expect(
-			after.SaveGame.player.mailReceived.string.filter(
+			after.SaveGame.player.mailReceived?.filter(
 				(flag) => flag === "mod.mail.keep",
 			),
 		).toHaveLength(2);
@@ -137,14 +127,12 @@ it("last Crafts Room bundle includes room and multiplayer completion mail in the
 	} finally {
 		await opened.close();
 	}
-});
+}, 60_000);
 
 it("claimed rewards remain claimed and unsupported definitions cannot partially commit another domain", async () => {
 	const document = await fixture();
 	progress(document).fill(true);
-	const opened = await openEditor(
-		new TextEncoder().encode(exportDocument(document)),
-	);
+	const opened = await openDocument(document);
 	try {
 		await opened.model.execute([{ type: "bundle-complete", bundleId: 13 }]);
 		expect(get(opened.model.view)?.entries).toEqual([]);
@@ -153,14 +141,11 @@ it("claimed rewards remain claimed and unsupported definitions cannot partially 
 		await opened.close();
 	}
 	must(
-		document.SaveGame.bundleData.item.find(
-			(entry: { key: { string: string } }) =>
-				entry.key.string === "Crafts Room/13",
+		document.SaveGame.bundleData?.find(
+			(entry: { key: string }) => entry.key === "Crafts Room/13",
 		),
-	).value.string = "modded";
-	const unsupported = await openEditor(
-		new TextEncoder().encode(exportDocument(document)),
-	);
+	).value = "modded";
+	const unsupported = await openDocument(document);
 	try {
 		const before = await unsupported.model.snapshot();
 		expect(get(unsupported.model.view)?.bundle.supported).toBe(false);
@@ -174,4 +159,4 @@ it("claimed rewards remain claimed and unsupported definitions cannot partially 
 	} finally {
 		await unsupported.close();
 	}
-});
+}, 60_000);

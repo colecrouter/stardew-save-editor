@@ -1,7 +1,7 @@
 import { Data, Effect, Result, Schema } from "effect";
 import { readPregnancy, type PregnancyView } from "./pregnancy-data.ts";
 import { characters, dateableCharacters } from "../NPCs.ts";
-import { farmers, type SaveDocument } from "./domain.ts";
+import { farmers, type Farmer, type SaveDocument } from "./domain.ts";
 import { TransactionDraft } from "./transaction-draft.ts";
 import {
 	recordAnnotatedOperation,
@@ -52,17 +52,8 @@ const record = (value: unknown): value is Record<string, unknown> =>
 	value !== null && typeof value === "object" && !Array.isArray(value);
 const integerValue = (value: unknown): value is number =>
 	typeof value === "number" && Number.isSafeInteger(value);
-const farmerId = (farmer: Record<string, unknown>) =>
-	typeof farmer.UniqueMultiplayerID === "string" &&
-	farmer.UniqueMultiplayerID.length > 0
-		? farmer.UniqueMultiplayerID
-		: typeof farmer.UniqueMultiplayerID === "number" &&
-			  Number.isFinite(farmer.UniqueMultiplayerID)
-			? String(farmer.UniqueMultiplayerID)
-			: undefined;
-const owners = (document: SaveDocument) =>
-	farmers(document).flatMap((owner) => (record(owner) ? [owner] : []));
-
+// Farmer identities are optional decoded Int64s, represented as text in UI keys.
+const farmerId = (farmer: Farmer) => farmer.UniqueMultiplayerID?.toString();
 /** Presentation retains unknown villagers while exposing only independently checked fields. */
 export interface RelationshipView {
 	name: string;
@@ -84,42 +75,25 @@ export interface RelationshipFarmerView {
 	relationships: RelationshipView[];
 	pregnancy: PregnancyView;
 }
-function dictionary(farmer: Record<string, unknown>) {
+// Dictionaries retain ordered entries, with decoded keys and values directly accessible.
+function dictionary(farmer: Farmer) {
 	const raw = farmer.friendshipData;
-	// Empty XML dictionaries are valid insertion targets. Opaque containers remain
-	// read-only; opening the screen never normalizes their representation.
-	if (raw === "")
-		return { supported: true, entries: [] as unknown[], raw, singleton: false };
-	// XML nil is not an empty dictionary: writing children would contradict its marker.
-	if (!record(raw) || raw["@_xsi:nil"] === true || raw["@_xsi:nil"] === "true")
-		return {
-			supported: false,
-			entries: [] as unknown[],
-			raw,
-			singleton: false,
-		};
-	const item = raw.item;
 	return {
-		supported: item === undefined || Array.isArray(item) || record(item),
-		entries: item === undefined ? [] : Array.isArray(item) ? item : [item],
+		supported: raw !== undefined,
+		entries: raw ?? [],
 		raw,
-		singleton: record(item),
 	};
 }
-function entryName(entry: unknown) {
-	return record(entry) &&
-		record(entry.key) &&
-		typeof entry.key.string === "string"
-		? entry.key.string
-		: undefined;
+function entryName(entry: NonNullable<Farmer["friendshipData"]>[number]) {
+	return entry.key;
 }
-function friendship(entry: unknown) {
-	return record(entry) && record(entry.value) && record(entry.value.Friendship)
-		? entry.value.Friendship
-		: undefined;
+function friendship(
+	entry: NonNullable<Farmer["friendshipData"]>[number] | undefined,
+) {
+	return entry?.value;
 }
 function project(
-	farmer: Record<string, unknown>,
+	farmer: Farmer,
 	unique: boolean,
 ): Omit<RelationshipFarmerView, "pregnancy"> {
 	const data = dictionary(farmer);
@@ -204,7 +178,7 @@ function project(
 export function readRelationships(
 	document: SaveDocument,
 ): RelationshipFarmerView[] {
-	const all = owners(document);
+	const all = farmers(document);
 	return all.map((owner) => {
 		const id = farmerId(owner);
 		return {
@@ -231,7 +205,7 @@ export const setRelationship = Effect.fn("Relationships.set")(function* (
 	const request = decoded.success;
 	const transaction = yield* TransactionDraft;
 	const snapshot = yield* transaction.read;
-	const matching = owners(snapshot.state.document).filter(
+	const matching = farmers(snapshot.state.document).filter(
 		(owner) => farmerId(owner) === request.farmerId,
 	);
 	const owner = matching[0];
@@ -256,27 +230,22 @@ export const setRelationship = Effect.fn("Relationships.set")(function* (
 			return yield* new RelationshipInvalid({
 				message: "This villager is already present or cannot be added.",
 			});
-		owner.friendshipData = {
-			...(record(data.raw) ? data.raw : {}),
-			item: [
-				...data.entries,
-				{
-					key: { string: request.name },
-					value: {
-						Friendship: {
-							Points: 0,
-							GiftsThisWeek: 0,
-							GiftsToday: 0,
-							TalkedToToday: false,
-							ProposalRejected: false,
-							Status: "Friendly",
-							Proposer: 0,
-							RoommateMarriage: false,
-						},
-					},
+		owner.friendshipData = [
+			...data.entries,
+			{
+				key: request.name,
+				value: {
+					Points: 0,
+					GiftsThisWeek: 0,
+					GiftsToday: 0,
+					TalkedToToday: false,
+					ProposalRejected: false,
+					Status: "Friendly",
+					Proposer: 0n,
+					RoommateMarriage: false,
 				},
-			],
-		};
+			},
+		];
 		label = `Add ${request.name} relationship`;
 	} else if (request.kind === "remove") {
 		const row = view.relationships.find((row) => row.name === request.name);
@@ -289,11 +258,7 @@ export const setRelationship = Effect.fn("Relationships.set")(function* (
 		const entries = data.entries.filter(
 			(entry) => entryName(entry) !== request.name,
 		);
-		const raw = { ...(record(data.raw) ? data.raw : {}) };
-		if (entries.length === 0) delete raw.item;
-		else
-			raw.item = data.singleton && entries.length === 1 ? entries[0] : entries;
-		owner.friendshipData = raw;
+		owner.friendshipData = entries;
 		label = `Remove ${request.name} relationship`;
 	} else {
 		const row = view.relationships.find((row) => row.name === request.name);

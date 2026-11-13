@@ -1,3 +1,4 @@
+import { malformedFixture } from "../helpers/editor-document.ts";
 import { fireEvent, waitFor } from "@testing-library/svelte";
 import { describe, expect, it, vi } from "vitest";
 import { renderTestWorkspace } from "./workspace.ts";
@@ -56,9 +57,7 @@ describe("character progression controls", { timeout: 25000 }, () => {
 			await opened.model.commands.undo();
 			await waitFor(() =>
 				expect(xp.value).toBe(
-					String(
-						(rawFarmer(before).experiencePoints as { int: number[] }).int[0],
-					),
+					String((rawFarmer(before).experiencePoints as number[])[0]),
 				),
 			);
 			await opened.model.commands.redo();
@@ -70,9 +69,7 @@ describe("character progression controls", { timeout: 25000 }, () => {
 			await committed(async () => {
 				const farmer = rawFarmer((await opened.model.snapshot()).document);
 				expect(farmer.farmingLevel).toBe(5);
-				expect((farmer.experiencePoints as { int: number[] }).int[0]).toBe(
-					2150,
-				);
+				expect((farmer.experiencePoints as number[])[0]).toBe(2150);
 			});
 			await opened.model.commands.undo();
 			await opened.model.commands.undo();
@@ -84,7 +81,7 @@ describe("character progression controls", { timeout: 25000 }, () => {
 
 	it("shows profession branches and cascades removal while preserving unknown imported choices", async () => {
 		const opened = await open((document) => {
-			rawFarmer(document).professions = { int: [99, 1, 4, 99] };
+			rawFarmer(document).professions = [99, 1, 4, 99];
 		});
 		try {
 			const before = (await opened.model.snapshot()).document;
@@ -110,7 +107,7 @@ describe("character progression controls", { timeout: 25000 }, () => {
 			await committed(async () =>
 				expect(
 					rawFarmer((await opened.model.snapshot()).document).professions,
-				).toEqual({ int: [99, 99] }),
+				).toEqual([99, 99]),
 			);
 			await opened.model.commands.undo();
 			expect((await opened.model.snapshot()).document).toEqual(before);
@@ -131,11 +128,8 @@ describe("character progression controls", { timeout: 25000 }, () => {
 			);
 			await committed(async () =>
 				expect(
-					(
-						rawFarmer((await opened.model.snapshot()).document).professions as {
-							int: number[];
-						}
-					).int,
+					rawFarmer((await opened.model.snapshot()).document)
+						.professions as number[],
 				).toEqual([99, 1, 4, 99, 0, 2]),
 			);
 		} finally {
@@ -147,25 +141,23 @@ describe("character progression controls", { timeout: 25000 }, () => {
 		const opened = await open((document) => {
 			const farmer = rawFarmer(document);
 			farmer.stats = {
-				Values: {
-					item: [
-						{ key: { string: "MasteryExp" }, value: { unsignedInt: 25000 } },
-						{
-							key: { string: "MasteryLevelsSpent" },
-							value: { unsignedInt: 2 },
-						},
-						{
-							key: { string: "opaque" },
-							value: { unsignedInt: 7 },
-							modded: "007",
-						},
-					],
-				},
+				Values: [
+					{ key: "MasteryExp", value: 25000 },
+					{
+						key: "MasteryLevelsSpent",
+						value: 2,
+					},
+					{
+						key: "opaque",
+						value: 7,
+						modded: "007",
+					},
+				],
 			};
 			const guest = structuredClone(document.SaveGame.player);
-			guest.UniqueMultiplayerID = "guest";
+			guest.UniqueMultiplayerID = 2n;
 			guest.name = "Guest";
-			document.SaveGame.farmhands = { Farmer: [guest] };
+			document.SaveGame.farmhands = [guest];
 		});
 		try {
 			const before = (await opened.model.snapshot()).document;
@@ -199,7 +191,7 @@ describe("character progression controls", { timeout: 25000 }, () => {
 			}) as HTMLSelectElement;
 			// The shared selector sends stable farmer identity through the actual change
 			// event, without Svelte's index-bound selected-option DOM query.
-			await fireEvent.change(farmerSelect, { target: { value: "guest" } });
+			await fireEvent.change(farmerSelect, { target: { value: "2" } });
 			// Submit selection immediately after typing, then drain the shared queue
 			// before checking DOM publication instead of timing full-save work.
 			await opened.model.snapshot();
@@ -230,7 +222,7 @@ describe("character progression controls", { timeout: 25000 }, () => {
 			})) as HTMLSelectElement;
 			// Selection is session-owned across feature pages; choosing a farmer in
 			// Inventory also changes Character without retargeting the earlier edit.
-			expect(inventoryFarmer.value).toBe("guest");
+			expect(inventoryFarmer.value).toBe("2");
 			await fireEvent.change(inventoryFarmer, {
 				target: { value: String(before.SaveGame.player.UniqueMultiplayerID) },
 			});
@@ -256,10 +248,10 @@ describe("character progression controls", { timeout: 25000 }, () => {
 	it("filters ambiguous farmer choices and rolls back a rejected stale selection with visible feedback", async () => {
 		const opened = await open((document) => {
 			const guest = structuredClone(document.SaveGame.player);
-			guest.UniqueMultiplayerID = "guest";
+			guest.UniqueMultiplayerID = 2n;
 			guest.name = "Guest";
 			const duplicate = structuredClone(guest);
-			duplicate.UniqueMultiplayerID = "duplicate";
+			duplicate.UniqueMultiplayerID = malformedFixture("duplicate");
 			duplicate.name = "Duplicate A";
 			const secondDuplicate = {
 				...structuredClone(duplicate),
@@ -267,12 +259,15 @@ describe("character progression controls", { timeout: 25000 }, () => {
 			};
 			const missing = {
 				...structuredClone(guest),
-				UniqueMultiplayerID: "",
+				UniqueMultiplayerID: malformedFixture<bigint>(""),
 				name: "Missing identity",
 			};
-			document.SaveGame.farmhands = {
-				Farmer: [guest, duplicate, secondDuplicate, missing],
-			};
+			document.SaveGame.farmhands = [
+				guest,
+				duplicate,
+				secondDuplicate,
+				missing,
+			];
 		});
 		try {
 			const before = await opened.model.snapshot();
@@ -284,7 +279,7 @@ describe("character progression controls", { timeout: 25000 }, () => {
 			);
 			expect([...farmer.options].map((option) => option.value)).toEqual([
 				hostId,
-				"guest",
+				"2",
 			]);
 			expect(
 				opened.page.getAllByText(
@@ -294,7 +289,7 @@ describe("character progression controls", { timeout: 25000 }, () => {
 			// A stale browser option must still pass the domain command's current
 			// identity checks. The portable select shares rejection/rollback behavior.
 			const stale = document.createElement("option");
-			stale.value = "duplicate";
+			stale.value = malformedFixture("duplicate");
 			stale.textContent = "Stale farmer";
 			farmer.append(stale);
 			await fireEvent.change(farmer, { target: { value: "duplicate" } });
@@ -309,7 +304,8 @@ describe("character progression controls", { timeout: 25000 }, () => {
 			).toBeTruthy();
 			expect((await opened.model.snapshot()).document).toEqual(before.document);
 			expect((await opened.model.snapshot()).entries).toHaveLength(0);
-			await fireEvent.change(farmer, { target: { value: "guest" } });
+			await fireEvent.change(farmer, { target: { value: "2" } });
+			await opened.model.snapshot();
 			await waitFor(() =>
 				expect(farmer.getAttribute("aria-invalid")).toBeNull(),
 			);
@@ -328,10 +324,10 @@ describe("character progression controls", { timeout: 25000 }, () => {
 			const inventoryFarmer = (await opened.page.findByRole("combobox", {
 				name: "Farmer",
 			})) as HTMLSelectElement;
-			expect(inventoryFarmer.value).toBe("guest");
+			expect(inventoryFarmer.value).toBe("2");
 			expect(
 				[...inventoryFarmer.options].map((option) => option.value),
-			).toEqual([hostId, "guest"]);
+			).toEqual([hostId, "2"]);
 			expect((await opened.model.snapshot()).entries).toHaveLength(0);
 		} finally {
 			await opened.dispose();

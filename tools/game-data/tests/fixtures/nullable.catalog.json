@@ -1,0 +1,85 @@
+{
+	"formatVersion": 3,
+	"diagnostics": [],
+	"types": [
+		{
+			"id": "Example.Nullable",
+			"kind": "object",
+			"members": [
+				{
+					"name": "which",
+					"type": "System.Nullable`1[System.Int32]"
+				},
+				{
+					"name": "count",
+					"type": "System.Nullable`1[System.UInt32]"
+				},
+				{
+					"name": "state",
+					"type": "System.Nullable`1[Example.State]"
+				},
+				{
+					"name": "history",
+					"type": "ListNullableInt32"
+				},
+				{
+					"name": "version",
+					"type": "System.UInt32",
+					"attributes": [
+						{
+							"type": "System.Xml.Serialization.XmlAttributeAttribute"
+						}
+					]
+				}
+			]
+		},
+		{
+			"id": "System.Nullable`1[System.Int32]",
+			"kind": "nullable",
+			"genericDefinition": "System.Nullable`1",
+			"genericArguments": ["System.Int32"]
+		},
+		{
+			"id": "System.Nullable`1[System.UInt32]",
+			"kind": "nullable",
+			"genericDefinition": "System.Nullable`1",
+			"genericArguments": ["System.UInt32"]
+		},
+		{
+			"id": "System.Nullable`1[Example.State]",
+			"kind": "nullable",
+			"genericDefinition": "System.Nullable`1",
+			"genericArguments": ["Example.State"]
+		},
+		{
+			"id": "Example.State",
+			"kind": "enum",
+			"members": [
+				{
+					"name": "Ready",
+					"type": "Example.State"
+				},
+				{
+					"name": "Old",
+					"type": "Example.State",
+					"attributes": [
+						{
+							"type": "System.Xml.Serialization.XmlEnumAttribute",
+							"constructorArguments": [
+								{
+									"type": "System.String",
+									"value": "saved-old"
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"id": "ListNullableInt32",
+			"kind": "collection",
+			"elementType": "System.Nullable`1[System.Int32]"
+		}
+	]
+}

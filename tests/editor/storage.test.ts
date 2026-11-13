@@ -1,3 +1,4 @@
+import { malformedFixture } from "../helpers/editor-document.ts";
 import { describe, expect, it } from "vitest";
 import { Effect, Result } from "effect";
 import { makeHistorySession } from "../../src/lib/editor/history";
@@ -6,7 +7,7 @@ import { readChests } from "../../src/lib/editor/inventory-views";
 import { discoverPlacedChests } from "../../src/lib/editor/chest-storage";
 import { setStorageQuality } from "../../src/lib/editor/storage-operations";
 import { searchStorage } from "../../src/lib/editor/storage-domain";
-import { tinyFixture } from "./fixtures";
+import { tinyFixture } from "../helpers/editor-document.ts";
 const run = <A, E>(
 	program: Effect.Effect<A, E, import("effect").Scope.Scope>,
 ) => Effect.runPromise(Effect.scoped(program));
@@ -20,27 +21,27 @@ function fixture(
 ) {
 	const document = tinyFixture();
 	const chests = contents.map((items) => ({
-		"@_xsi:type": "Chest",
+		$type: "StardewValley.Objects.Chest" as const,
 		playerChest: true,
 		itemId: "130",
 		name: "Chest",
-		items: { Item: items },
+		items:
+			malformedFixture<
+				(import("../../src/lib/editor/domain.ts").Item | null)[]
+			>(items),
 		specialChestType: "None",
-		modData: { opaque: "007" },
+		customModData: { opaque: "007" },
 	}));
-	document.SaveGame.locations = {
-		GameLocation: [
-			{
-				name: "Farm",
-				objects: {
-					item: chests.map((chest, index) => ({
-						key: { Vector2: { X: index + 3, Y: 7 } },
-						value: { Object: chest },
-					})),
-				},
-			},
-		],
-	};
+	document.SaveGame.locations = [
+		{
+			$type: "StardewValley.Farm",
+			name: "Farm",
+			objects: chests.map((chest, index) => ({
+				key: { X: index + 3, Y: 7 },
+				value: chest,
+			})),
+		},
+	];
 	return { document, chests };
 }
 const handle = (
@@ -54,20 +55,18 @@ describe("storage command boundary", () => {
 		run(
 			Effect.gen(function* () {
 				const { document } = fixture();
-				document.SaveGame.player.items.Item = [
+				document.SaveGame.player.items = [
 					item("Wood"),
-					{ "@_xsi:nil": "true", modData: "keep empty" },
+					null,
 					item("Parsnip"),
 					item("Rusty Sword"),
 					{ ...item("Parsnip"), stack: 7 },
 				];
 				const session = yield* makeHistorySession(document),
 					before = yield* session.snapshot;
-				yield* session.execute([
-					{ type: "inventory-organize", ownerId: "host" },
-				]);
+				yield* session.execute([{ type: "inventory-organize", ownerId: "1" }]);
 				const after = yield* session.snapshot,
-					slots = after.document.SaveGame.player.items.Item;
+					slots = after.document.SaveGame.player.items;
 				expect(slots[0]).toMatchObject({ name: "Rusty Sword" });
 				expect(
 					slots.filter(
@@ -78,16 +77,13 @@ describe("storage command boundary", () => {
 							value.name === "Parsnip",
 					),
 				).toHaveLength(2);
-				expect(slots.at(-1)).toEqual({
-					"@_xsi:nil": "true",
-					modData: "keep empty",
-				});
-				expect(after.identities.host?.at(-1)).toBe(before.identities.host?.[1]);
+				expect(slots.at(-1)).toBeNull();
+				expect(after.identities["1"]?.at(-1)).toBe(before.identities["1"]?.[1]);
 				for (const [index, value] of slots.entries())
 					expect(value).toEqual(
-						before.document.SaveGame.player.items.Item[
+						before.document.SaveGame.player.items[
 							required(
-								before.identities.host?.indexOf(handle(after, "host", index)),
+								before.identities["1"]?.indexOf(handle(after, "1", index)),
 							)
 						],
 					);
@@ -111,7 +107,7 @@ describe("storage command boundary", () => {
 				]);
 				const after = yield* session.snapshot,
 					result = required(discoverPlacedChests(after.document)[0]);
-				expect(result.raw.modData).toEqual({ opaque: "007" });
+				expect(result.raw.customModData).toEqual({ opaque: "007" });
 				expect(result.slots[0]).toMatchObject({ name: "Rusty Sword" });
 				expect(handle(after, chest.id, 0)).toBe(handle(before, chest.id, 2));
 				expect(after.identities[chest.id]).toHaveLength(36);
@@ -243,7 +239,7 @@ describe("storage command boundary", () => {
 				).toMatchObject({
 					itemId: "BigStoneChest",
 					currentLidFrame: 329,
-					modData: { opaque: "007" },
+					customModData: { opaque: "007" },
 				});
 				yield* session.execute([
 					{ type: "chest-type", ownerId: chest.id, itemId: "232" },
@@ -258,7 +254,7 @@ describe("storage command boundary", () => {
 			Effect.gen(function* () {
 				for (const wallet of [
 					undefined,
-					{ item: [{ value: { Item: { itemId: "388", stack: 5 } } }] },
+					[{ value: { itemId: "388", stack: 5 } }],
 				]) {
 					const { document, chests } = fixture([[]]);
 					Object.assign(required(chests[0]), {
@@ -305,48 +301,52 @@ describe("storage command boundary", () => {
 				const { document } = fixture([[item("Wood")]]);
 				const placed = required(discoverPlacedChests(document)[0]);
 				const make = (name: string) => ({
+					$type: "StardewValley.Objects.Chest" as const,
 					name,
 					playerChest: true,
 					itemId: "130",
 					specialChestType: "None",
-					items: { Item: item("Parsnip"), opaque: "keep" },
-					modData: { unknown: "007" },
+					items: [item("Parsnip")],
+					testMetadataitems: { opaque: "keep" },
+					customModData: { unknown: "007" },
 				});
 				const fridge = { ...make("Fridge"), fridge: true },
 					machine = make("Input"),
 					held = make("Output"),
 					building = make("Mill storage");
-				document.SaveGame.locations = {
-					GameLocation: [
-						{
-							name: "Farm",
-							objects: {
-								item: [
-									{
-										key: { Vector2: { X: 3, Y: 7 } },
-										value: { Object: placed.raw },
-									},
-									{
-										key: { Vector2: { X: 4, Y: 7 } },
-										value: {
-											Object: {
-												name: "Machine",
-												Chest: machine,
-												heldObject: held,
-											},
-										},
-									},
-								],
+				document.SaveGame.locations = [
+					{
+						$type: "StardewValley.Farm",
+						name: "Farm",
+						objects: [
+							{
+								key: { X: 3, Y: 7 },
+								value: { ...placed.raw, $type: "StardewValley.Objects.Chest" },
 							},
-							buildings: {
-								Building: [
-									{ buildingType: "Mill", buildingChests: { Chest: building } },
-								],
+							{
+								key: { X: 4, Y: 7 },
+								value: {
+									$type: "StardewValley.Object",
+									name: "Machine",
+									Chest: machine,
+									heldObject: held,
+								},
 							},
-						},
-						{ name: "FarmHouse", fridge },
-					],
-				};
+						],
+						buildings: [
+							{
+								$type: "StardewValley.Buildings.Building",
+								buildingType: "Mill",
+								buildingChests: [building],
+							},
+						],
+					},
+					{
+						$type: "StardewValley.Locations.FarmHouse",
+						name: "FarmHouse",
+						fridge,
+					},
+				];
 				const original = structuredClone(document),
 					session = yield* makeHistorySession(document),
 					before = yield* session.snapshot;
@@ -385,8 +385,9 @@ describe("storage command boundary", () => {
 				for (const chest of discoverPlacedChests(edited.document).slice(1)) {
 					expect(chest.slots[0]).toMatchObject({ quality: 2 });
 					expect(chest.raw).toMatchObject({
-						items: { opaque: "keep", Item: { quality: 2 } },
-						modData: { unknown: "007" },
+						items: [{ quality: 2 }],
+						testMetadataitems: { opaque: "keep" },
+						customModData: { unknown: "007" },
 					});
 				}
 				yield* session.undo;
@@ -409,7 +410,7 @@ describe("storage command boundary", () => {
 							(chest) => chest.id === from.id,
 						),
 					).raw.items,
-				).toEqual({ opaque: "keep" });
+				).toEqual([]);
 				yield* session.undo;
 				expect((yield* session.snapshot).document).toEqual(original);
 				yield* session.redo;
@@ -455,19 +456,16 @@ describe("storage command boundary", () => {
 			Effect.gen(function* () {
 				const { document, chests } = fixture([[item("Parsnip"), item("Wood")]]),
 					raw = required(chests[0]);
-				document.SaveGame.locations = {
-					GameLocation: [
-						{
-							name: "Farm",
-							objects: {
-								item: [0, 1].map((index) => ({
-									key: { Vector2: { X: index, Y: 0 } },
-									value: { Object: raw },
-								})),
-							},
-						},
-					],
-				};
+				document.SaveGame.locations = [
+					{
+						$type: "StardewValley.Farm",
+						name: "Farm",
+						objects: [0, 1].map((index) => ({
+							key: { X: index, Y: 0 },
+							value: raw,
+						})),
+					},
+				];
 				const session = yield* makeHistorySession(document),
 					before = yield* session.snapshot,
 					owners = discoverPlacedChests(before.document),
@@ -517,9 +515,7 @@ it.each(["absent", "array"] as const)(
 					chest = required(chests[0]);
 				if (representation === "absent") Reflect.deleteProperty(chest, "items");
 				const session = yield* makeHistorySession(document);
-				yield* session.execute([
-					{ type: "money", farmerId: "host", value: 99 },
-				]);
+				yield* session.execute([{ type: "money", farmerId: "1", value: 99 }]);
 				yield* session.undo;
 				const before = yield* session.snapshot,
 					ownerId = required(readChests(before)[0]).ownerId;

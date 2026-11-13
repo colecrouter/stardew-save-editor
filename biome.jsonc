@@ -6,7 +6,7 @@
 		"useIgnoreFile": true,
 	},
 	"files": {
-		"includes": ["**", "!content"],
+		"includes": ["**", "!content", "!generated/save-format"],
 	},
 	"formatter": {
 		"enabled": false,

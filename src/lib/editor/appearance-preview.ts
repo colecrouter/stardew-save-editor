@@ -1,3 +1,4 @@
+import { readCatalogItem } from "../ItemData.ts";
 import { ItemData, ResolveItemData } from "../ItemData.ts";
 import { Sprite } from "../Sprite.svelte.ts";
 import { readRgba } from "../color.ts";
@@ -10,7 +11,6 @@ import {
 	TertiaryBootColors,
 	QuaternaryBootColors,
 } from "../CharacterColors.ts";
-import type { Item } from "../../../codegen/save.ts";
 
 const record = (value: unknown): value is Record<string, unknown> =>
 	value !== null && typeof value === "object" && !Array.isArray(value);
@@ -27,11 +27,9 @@ export interface AppearancePreviewView {
 	readonly gender: "male" | "female";
 	readonly notice?: string;
 }
-/** Resolve imported equipment through the existing read-only catalog adapter.
- * The one generated-type cast stays here: no reactive Item/Farmer proxies are created. */
+/** Resolve the small semantic field set needed by the read-only item catalog. */
 function equipment(raw: unknown) {
-	if (!record(raw) || raw["@_xsi:nil"] === true || raw["@_xsi:nil"] === "true")
-		return undefined;
+	if (!record(raw)) return undefined;
 	// Legacy catalog lookups use string methods on these optional identifiers.
 	// Reject malformed imported shapes before invoking them; unexpected catalog
 	// defects remain visible rather than being converted into missing equipment.
@@ -45,7 +43,7 @@ function equipment(raw: unknown) {
 	)
 		return undefined;
 	if (raw.name != null && typeof raw.name !== "string") return undefined;
-	return ResolveItemData(raw as unknown as Item);
+	return ResolveItemData(readCatalogItem(raw) ?? {});
 }
 /** Build ordered sprite layers without holding save references or changing defaults. */
 export function appearanceLayers(
@@ -140,12 +138,7 @@ export function appearanceLayers(
 		);
 	const pants = equipment(raw.pantsItem) ?? ItemData.get("Polka Dot Shorts");
 	let notice: string | undefined;
-	const present = (value: unknown) =>
-		value !== undefined &&
-		!(
-			record(value) &&
-			(value["@_xsi:nil"] === true || value["@_xsi:nil"] === "true")
-		);
+	const present = (value: unknown) => value != null;
 	if (
 		[raw.hat, raw.shirtItem, raw.pantsItem, raw.boots].some(
 			(value) => present(value) && !equipment(value),

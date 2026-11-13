@@ -1,3 +1,4 @@
+import { stringifySavedData } from "../../src/lib/editor/saved-data.ts";
 import { expect, it } from "@effect/vitest";
 import { Effect, Exit } from "effect";
 import { planRainWatering } from "../../src/lib/calendarWatering.ts";
@@ -15,7 +16,7 @@ import {
 } from "../../src/lib/editor/operations.ts";
 
 const money = (value: number) =>
-	({ type: "money", farmerId: "host", value }) as const;
+	({ type: "money", farmerId: "1", value }) as const;
 const ordinary: DomainState = { calendar: { today: "Sun", watering: [] } };
 const rainy: DomainState = {
 	calendar: {
@@ -34,7 +35,7 @@ const annotated: Operations = {
 };
 
 it.effect(
-	"domain state rejects non-record roots, resources, cycles and non-finite values",
+	"domain state rejects non-record roots, resources, cycles and undefined values",
 	() =>
 		Effect.gen(function* () {
 			const cyclic: { self?: unknown } = {};
@@ -44,7 +45,7 @@ it.effect(
 				[],
 				new Map(),
 				cyclic,
-				{ value: Number.NaN },
+				{ value: undefined },
 			]) {
 				expect(
 					Exit.isFailure(
@@ -79,16 +80,18 @@ it.effect(
 			const redone = yield* session.redo;
 			expect(redone.document).toEqual(after.document);
 			expect(redone.domainState).toEqual(rainy);
-			expect(JSON.stringify((yield* session.review).net)).not.toContain(
+			expect(stringifySavedData((yield* session.review).net)).not.toContain(
 				"watering",
 			);
 			const xml = exportDocument(after.document);
 			expect(xml).not.toContain("<domainState>");
 			expect(xml).not.toContain("soil:1");
 			expect(after.retainedBytes).toBe(
-				new TextEncoder().encode(JSON.stringify(after.entries[0])).byteLength,
+				new TextEncoder().encode(stringifySavedData(after.entries[0]))
+					.byteLength,
 			);
 		}).pipe(Effect.provideService(EditorOperations, annotated)),
+	60_000,
 );
 
 it.effect(

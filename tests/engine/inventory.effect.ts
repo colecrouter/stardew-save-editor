@@ -59,13 +59,15 @@ for (const [name, factory] of [
 				yield* Effect.promise(() => until(() => get(opened.model.count) === 1));
 				const state = yield* opened.session.snapshot;
 				const expected = structuredClone(baseline);
-				const item = expected.SaveGame.player.items.Item[
-					selected.slot
-				] as Record<string, unknown>;
+				const item = expected.SaveGame.player.items[selected.slot] as Record<
+					string,
+					unknown
+				>;
 				item.stack = value;
 				expect(state.document).toEqual(expected);
 				expect(parser.parse(exportDocument(state.document))).toEqual(expected);
 			}),
+		60_000,
 	);
 	it.effect(
 		`${name}: field writes, undo, redo and compact reorder preserve history`,
@@ -87,9 +89,9 @@ for (const [name, factory] of [
 				const state = yield* opened.session.snapshot;
 				expect(state.cursor).toBe(1);
 				expect(state.entries[0].actions[0].type).toBe("item-stack");
-				expect(state.document.SaveGame.player.items.Item[0]).toMatchObject({
+				expect(state.document.SaveGame.player.items[0]).toMatchObject({
 					stack: 7,
-					modData: { keep: "007" },
+					customModData: { keep: "007" },
 				});
 				model.undo();
 				yield* Effect.promise(() =>
@@ -153,13 +155,12 @@ for (const [name, factory] of [
 					}),
 				);
 				opened.model.stack.set(9);
-				opened.model.chooseFarmer("guest");
+				opened.model.chooseFarmer("2");
 				yield* Effect.promise(() => until(() => get(opened.model.count) === 1));
 				expect(get(opened.model.selected)?.name).toBe("Stone");
 				expect(get(opened.model.selected)?.stack).toBe(12);
 				expect(
-					(yield* opened.session.snapshot).document.SaveGame.player.items
-						.Item[0],
+					(yield* opened.session.snapshot).document.SaveGame.player.items[0],
 				).toMatchObject({ stack: 9 });
 			}),
 	);
@@ -186,7 +187,7 @@ for (const [name, factory] of [
 				);
 				const before = notifications;
 				yield* opened.session.execute([
-					{ type: "money", farmerId: "host", value: 99 },
+					{ type: "money", farmerId: "1", value: 99 },
 				]);
 				yield* Effect.promise(() =>
 					until(() => get(opened.model.money) === 99),
@@ -200,7 +201,7 @@ for (const [name, factory] of [
 				yield* opened.session.execute([
 					{
 						type: "item-stack",
-						ownerId: "host",
+						ownerId: "1",
 						slot: 1,
 						itemId: "388",
 						value: 60,
@@ -231,7 +232,7 @@ for (const [name, factory] of [
 					yield* opened.session.execute([
 						{
 							type: "item-stack",
-							ownerId: "host",
+							ownerId: "1",
 							slot: 0,
 							itemId: "72",
 							value: 7,

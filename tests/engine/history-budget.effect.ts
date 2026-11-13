@@ -1,10 +1,12 @@
+import { malformedFixture } from "../helpers/editor-document.ts";
+import { stringifySavedData } from "../../src/lib/editor/saved-data.ts";
 import { expect, it } from "@effect/vitest";
 import { Effect, Exit } from "effect";
 import { makeHistorySession } from "../../src/lib/editor/history.ts";
 import { inventoryFixture } from "./inventory-model.ts";
 
 const money = (value: number) =>
-	({ type: "money", farmerId: "host", value }) as const;
+	({ type: "money", farmerId: "1", value }) as const;
 
 it.effect(
 	"byte retention evicts oldest entries while preserving complete baseline review",
@@ -49,9 +51,9 @@ it.effect(
 				session.execute([
 					{
 						type: "item-place",
-						ownerId: "host",
+						ownerId: "1",
 						slot: 2,
-						item: { modData: "x".repeat(budget * 2) },
+						item: { customModData: "x".repeat(budget * 2) },
 					},
 				]),
 			);
@@ -67,13 +69,15 @@ it.effect(
 	() =>
 		Effect.gen(function* () {
 			const fixture = inventoryFixture();
-			fixture.SaveGame.player.UniqueMultiplayerID = "__proto__";
+			fixture.SaveGame.player.UniqueMultiplayerID =
+				malformedFixture("__proto__");
 			const session = yield* makeHistorySession(fixture);
 			yield* session.execute([{ type: "farm-name", value: "🌻農場" }]);
 			const state = yield* session.snapshot;
 			expect(state.identities.__proto__).toHaveLength(3);
 			expect(state.retainedBytes).toBe(
-				new TextEncoder().encode(JSON.stringify(state.entries[0])).byteLength,
+				new TextEncoder().encode(stringifySavedData(state.entries[0]))
+					.byteLength,
 			);
 		}),
 );

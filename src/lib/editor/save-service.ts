@@ -1,8 +1,7 @@
 import { Context, Data, Effect, Layer, Schema } from "effect";
-import { XMLValidator } from "fast-xml-parser";
+import { XmlSchema } from "../../../generated/save-format/save.ts";
 import pako from "pako";
-import { XMLCodec } from "../xmlCodec.ts";
-import type { SaveDocument } from "./domain.ts";
+import type { EditorGame, SaveDocument } from "./domain.ts";
 
 export class SaveReadError extends Data.TaggedError("SaveReadError")<{
 	stage: "decompress" | "xml" | "shape" | "version" | "worker";
@@ -29,20 +28,17 @@ export class SaveWriteError extends Data.TaggedError("SaveWriteError")<{
 	cause: unknown;
 }> {}
 
-// Validate a minimum envelope, not every game/mod field. Ignore the decoded
-// projection: authoritative data stays the complete codec result, unknowns intact.
+// Check the minimum editor envelope after full typed XML decoding. Keep the
+// complete decoded object, including unknown fields, rather than this projection.
 const envelope = Schema.Struct({
-	SaveGame: Schema.Struct({
-		gameVersion: Schema.String,
-		player: Schema.Struct({
-			name: Schema.String,
-			UniqueMultiplayerID: Schema.Union([Schema.String, Schema.Finite]),
-		}),
-		farmhands: Schema.Union([
-			Schema.Literal(""),
-			Schema.Struct({ Farmer: Schema.Array(Schema.Unknown) }),
-		]),
+	player: Schema.Struct({
+		name: Schema.String,
+		farmName: Schema.String,
+		money: Schema.Finite,
+		UniqueMultiplayerID: Schema.BigInt,
+		items: Schema.Array(Schema.Unknown),
 	}),
+	farmhands: Schema.Array(Schema.Unknown),
 });
 
 export class SaveCodec extends Context.Service<
@@ -56,7 +52,6 @@ export class SaveCodec extends Context.Service<
 >()("editor/SaveCodec") {}
 
 export const SaveCodecLive = Layer.sync(SaveCodec, () => {
-	const codec = new XMLCodec();
 	return {
 		decode: (bytes) =>
 			Effect.gen(function* () {
@@ -69,30 +64,35 @@ export const SaveCodecLive = Layer.sync(SaveCodec, () => {
 					},
 					catch: (cause) => new SaveReadError({ stage: "decompress", cause }),
 				});
-				const document = yield* Effect.try({
-					try: () => {
-						const checked = XMLValidator.validate(xml);
-						if (checked !== true) throw checked;
-						return codec.parse<SaveDocument>(xml);
-					},
-					catch: (cause) => new SaveReadError({ stage: "xml", cause }),
-				});
-				yield* Schema.decodeUnknownEffect(envelope)(document).pipe(
+				const saved = yield* Schema.decodeEffect(XmlSchema)(xml).pipe(
+					Effect.mapError(
+						(cause) => new SaveReadError({ stage: "xml", cause }),
+					),
+				);
+				yield* Schema.decodeUnknownEffect(envelope)(saved).pipe(
 					Effect.mapError(
 						(cause) => new SaveReadError({ stage: "shape", cause }),
 					),
 				);
-				const version = (
-					document.SaveGame as unknown as { gameVersion: string }
-				).gameVersion;
+				// The envelope establishes the required editor fields without narrowing away
+				// any other generated or unknown saved fields.
+				const document = { SaveGame: saved as EditorGame };
+				const version = saved.gameVersion ?? "";
 				if (!/^1\.6(?:\.|$)/.test(version))
 					return yield* new SaveReadError({ stage: "version", cause: version });
 				return document;
 			}),
 		encode: (document) =>
-			Effect.try({
-				try: () => codec.stringify(structuredClone(document)),
-				catch: (cause) => new SaveWriteError({ cause }),
-			}),
+			Schema.encodeEffect(XmlSchema)(document.SaveGame).pipe(
+				Effect.mapError((cause) => new SaveWriteError({ cause })),
+				Effect.map((xml) => {
+					// Keep the established UTF-8 BOM and transferable byte-array boundary.
+					const encoded = new TextEncoder().encode(xml);
+					const bytes = new Uint8Array(encoded.length + 3);
+					bytes.set([0xef, 0xbb, 0xbf]);
+					bytes.set(encoded, 3);
+					return bytes;
+				}),
+			),
 	};
 });

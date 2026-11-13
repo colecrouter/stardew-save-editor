@@ -1,18 +1,14 @@
 import { expect, it, vi } from "vitest";
 import { fireEvent, render, within, waitFor } from "@testing-library/svelte";
-import { openEditor } from "../../src/lib/editor/editor-model";
+import { openTestEditor } from "../helpers/open-editor.ts";
 import WorkspaceHarness from "./WorkspaceHarness.svelte";
 import { fixtureXml } from "./fixtures";
-import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
 
 it(
 	"builds review only while visible, shows final values and removes restored edits from export review",
 	{ timeout: 30000 },
 	async () => {
-		const opened = await openEditor(
-			SaveProcessingSync,
-			new TextEncoder().encode(fixtureXml),
-		);
+		const opened = await openTestEditor(new TextEncoder().encode(fixtureXml));
 		const review = vi.spyOn(opened.model.commands, "review");
 		const page = render(WorkspaceHarness, { model: opened.model });
 		try {
@@ -84,10 +80,7 @@ it(
 		const { Effect } = await import("effect");
 		const { TransactionDraft } =
 			await import("../../src/lib/editor/transaction-draft");
-		const opened = await openEditor(
-			SaveProcessingSync,
-			new TextEncoder().encode(fixtureXml),
-		);
+		const opened = await openTestEditor(new TextEncoder().encode(fixtureXml));
 		const page = render(WorkspaceHarness, { model: opened.model });
 		try {
 			await opened.model.commands.transact(
@@ -121,10 +114,7 @@ it(
 	"ignores a late comparison after a newer committed revision is displayed",
 	{ timeout: 25000 },
 	async () => {
-		const opened = await openEditor(
-			SaveProcessingSync,
-			new TextEncoder().encode(fixtureXml),
-		);
+		const opened = await openTestEditor(new TextEncoder().encode(fixtureXml));
 		await opened.model.commands.execute([
 			{ type: "farm-name", value: "Juniper" },
 		]);

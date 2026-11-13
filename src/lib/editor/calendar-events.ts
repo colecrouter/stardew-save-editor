@@ -8,7 +8,7 @@ import {
 import { createGameRandom } from "../game-random.ts";
 import { characters } from "../NPCs.ts";
 import type { SaveDocument } from "./domain.ts";
-import { collection, list, record } from "./saved-collections.ts";
+import { record } from "./plain-data.ts";
 
 export interface CalendarEvent {
 	readonly day: number;
@@ -38,9 +38,11 @@ const vanilla = new Set<string>(characters);
 const safeInteger = (value: unknown): number | undefined => {
 	if (
 		typeof value !== "number" &&
+		typeof value !== "bigint" &&
 		!(typeof value === "string" && /^\d+$/.test(value))
 	)
 		return undefined;
+	// RNG helpers use numbers; only exactly representable saved IDs may cross.
 	const number = Number(value);
 	return Number.isSafeInteger(number) ? number : undefined;
 };
@@ -49,8 +51,8 @@ const safeInteger = (value: unknown): number | undefined => {
 export function readCalendarEventContext(
 	document: SaveDocument,
 ): CalendarEventContext {
-	const game: Record<string, unknown> = document.SaveGame;
-	const host = record(game.player) ? game.player : {};
+	const game = document.SaveGame;
+	const host = game.player;
 	const notes: string[] = [];
 	const seed = safeInteger(game.uniqueIDForThisGame);
 	const random =
@@ -61,27 +63,24 @@ export function readCalendarEventContext(
 		notes.push(
 			"Bookseller dates are unavailable because the saved random seed or randomization mode is unsupported.",
 		);
-	const mail = record(host.mailReceived) ? list(host.mailReceived.string) : [];
+	const mail = host.mailReceived ?? [];
 	const mailSupported =
 		host.mailReceived == null ||
-		host.mailReceived === "" ||
-		(record(host.mailReceived) &&
+		(Array.isArray(host.mailReceived) &&
 			mail.every((entry) => typeof entry === "string"));
 	if (!mailSupported)
 		notes.push(
 			"Desert Festival availability is unknown because saved mail is unsupported.",
 		);
-	const met = new Set(
-		collection(host.friendshipData, "item").entries.flatMap((row) =>
-			record(row) && record(row.key) && typeof row.key.string === "string"
-				? [row.key.string]
-				: [],
-		),
-	);
-	const residents = collection(game.locations, "GameLocation").entries.flatMap(
-		(location) =>
-			record(location) ? collection(location.characters, "NPC").entries : [],
-	);
+	const met = new Set((host.friendshipData ?? []).map((row) => row.key));
+	// Known locations already have decoded arrays. Opaque mod locations can
+	// expose resident extension data, so retain the explicit boundary check there.
+	const residents = (game.locations ?? []).flatMap((location) => {
+		if (!location) return [];
+		if (location.$type === "$unknown")
+			return Array.isArray(location.characters) ? location.characters : [];
+		return location.characters ?? [];
+	});
 	const candidates = new Map<
 		string,
 		{ season: GameDate["season"]; day: number }[]

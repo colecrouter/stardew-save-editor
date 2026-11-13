@@ -7,11 +7,15 @@ const metadata: Readonly<Record<string, { context: string; type: string }>> =
 export function locationWeatherContext(location: {
 	name: string;
 	"@_xsi:type"?: string;
+	$type?: string;
 }): string | undefined {
 	const known = Object.hasOwn(metadata, location.name)
 		? metadata[location.name]
 		: undefined;
-	return known?.type === (location["@_xsi:type"] ?? "GameLocation")
+	return known?.type ===
+		(location.$type?.split(/[.+]/).at(-1) ??
+			location["@_xsi:type"] ??
+			"GameLocation")
 		? known.context
 		: undefined;
 }

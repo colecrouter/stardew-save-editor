@@ -1,5 +1,5 @@
 import { Data, Effect, Result, Schema } from "effect";
-import { farmers, type SaveDocument } from "./domain.ts";
+import { farmers, type Farmer, type SaveDocument } from "./domain.ts";
 import { toEventId } from "../eventId.ts";
 import { TransactionDraft } from "./transaction-draft.ts";
 import {
@@ -22,14 +22,8 @@ const decode = Schema.decodeUnknownResult(changeSchema, {
 });
 const record = (v: unknown): v is Record<string, unknown> =>
 	v !== null && typeof v === "object" && !Array.isArray(v);
-const farmerId = (v: unknown) =>
-	typeof v === "string" && v.length > 0
-		? v
-		: typeof v === "number" && Number.isFinite(v)
-			? String(v)
-			: undefined;
-const owners = (doc: SaveDocument) =>
-	farmers(doc).flatMap((owner) => (record(owner) ? [owner] : []));
+// Saved farmer IDs are Int64s; string conversion belongs to the UI boundary.
+const farmerId = (value: Farmer["UniqueMultiplayerID"]) => value?.toString();
 function eventId(v: unknown) {
 	// Imported scalar spelling remains authoritative. Never normalize an imported
 	// string or accept an unsafe parsed integer as a reliable target identity.
@@ -41,24 +35,13 @@ function eventId(v: unknown) {
 			? String(v)
 			: undefined;
 }
-function container(owner: Record<string, unknown>) {
+// Decoded membership collections are arrays even when XML contains one entry.
+function container(owner: Farmer) {
 	const raw = owner.eventsSeen;
-	if (raw === "")
-		return { supported: true, raw, entries: [] as unknown[], array: false };
-	if (!record(raw) || raw["@_xsi:nil"] === true || raw["@_xsi:nil"] === "true")
-		return { supported: false, raw, entries: [] as unknown[], array: false };
-	const value = raw.int;
-	// A singleton scalar is retained until an explicit insertion needs a list.
-	// Opaque members in a valid array remain preserved during independent edits.
 	return {
-		supported:
-			value === undefined ||
-			Array.isArray(value) ||
-			typeof value === "string" ||
-			typeof value === "number",
+		supported: raw !== undefined,
 		raw,
-		entries: value === undefined ? [] : Array.isArray(value) ? value : [value],
-		array: Array.isArray(value),
+		entries: raw ?? [],
 	};
 }
 export interface EventSeenView {
@@ -75,10 +58,7 @@ export interface EventFarmerView {
 	seenCount: number;
 	unsupportedCount: number;
 }
-function project(
-	owner: Record<string, unknown>,
-	unique: boolean,
-): EventFarmerView {
+function project(owner: Farmer, unique: boolean): EventFarmerView {
 	const data = container(owner);
 	const ids = data.entries.map(eventId);
 	// The game treats membership as a set. Show one row per readable identity,
@@ -115,7 +95,7 @@ function project(
 }
 /** Detached event IDs; merely opening the page never deduplicates or normalizes them. */
 export function readEvents(document: SaveDocument): EventFarmerView[] {
-	const all = owners(document);
+	const all = farmers(document);
 	return all.map((owner) => {
 		const id = farmerId(owner.UniqueMultiplayerID);
 		return project(
@@ -152,7 +132,7 @@ export const setEventSeen = Effect.fn("Events.setSeen")(function* (
 	// than a position or a view that may predate selection/document changes.
 	const transaction = yield* TransactionDraft;
 	const snapshot = yield* transaction.read;
-	const matches = owners(snapshot.state.document).filter(
+	const matches = farmers(snapshot.state.document).filter(
 		(owner) => farmerId(owner.UniqueMultiplayerID) === request.farmerId,
 	);
 	const owner = matches[0];
@@ -177,12 +157,8 @@ export const setEventSeen = Effect.fn("Events.setSeen")(function* (
 	const entries = request.seen
 		? [...data.entries, id]
 		: data.entries.filter((value) => eventId(value) !== id);
-	// Preserve dictionary metadata and singleton form. Empty singleton removal
-	// deletes only its payload; an existing array remains an array for exact Undo.
-	const next = record(data.raw) ? { ...data.raw } : {};
-	if (entries.length === 0 && !data.array) delete next.int;
-	else next.int = !data.array && entries.length === 1 ? entries[0] : entries;
-	owner.eventsSeen = next;
+	owner.eventsSeen = entries;
+
 	yield* recordAnnotatedOperation(transaction.replace(snapshot)).pipe(
 		withReviewMetadata({
 			label: `Mark event ${id} as ${request.seen ? "seen" : "not seen"}`,

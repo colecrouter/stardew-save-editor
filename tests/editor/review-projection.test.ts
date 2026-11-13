@@ -49,7 +49,7 @@ it("keeps unknown export writes visible and detached from the engine", () =>
 			Effect.gen(function* () {
 				const document = fixture();
 				Object.assign(document.SaveGame, {
-					modData: { "name/with~escapes": "before" },
+					customModData: { "name/with~escapes": "before" },
 				});
 				const session = yield* makeHistorySession(document);
 				yield* session.transact(
@@ -57,7 +57,7 @@ it("keeps unknown export writes visible and detached from the engine", () =>
 						const draft = yield* TransactionDraft;
 						yield* draft.mutate((state) => {
 							Object.assign(state.document.SaveGame, {
-								modData: { "name/with~escapes": "after" },
+								customModData: { "name/with~escapes": "after" },
 							});
 						});
 					}),
@@ -68,7 +68,7 @@ it("keeps unknown export writes visible and detached from the engine", () =>
 				expect(review.otherChanges).toEqual([
 					{
 						op: "replace",
-						path: "/SaveGame/modData/name~1with~0escapes",
+						path: "/SaveGame/customModData/name~1with~0escapes",
 						value: "after",
 					},
 				]);
@@ -78,7 +78,7 @@ it("keeps unknown export writes visible and detached from the engine", () =>
 				expect(projectReview(state).otherChanges).toEqual([
 					{
 						op: "replace",
-						path: "/SaveGame/modData/name~1with~0escapes",
+						path: "/SaveGame/customModData/name~1with~0escapes",
 						value: "after",
 					},
 				]);
@@ -91,32 +91,30 @@ it("shows additions as domain entities and retains opaque side effects in techni
 		Effect.scoped(
 			Effect.gen(function* () {
 				const document = fixture();
-				Object.assign(document.SaveGame.player, { questLog: "" });
+				Object.assign(document.SaveGame.player, { questLog: [] });
 				const session = yield* makeHistorySession(document);
 				yield* session.transact(
 					Effect.gen(function* () {
 						const draft = yield* TransactionDraft;
 						yield* draft.mutate((state) => {
 							Object.assign(state.document.SaveGame.player, {
-								questLog: {
-									Quest: [
-										{
-											id: "custom-review",
-											_questTitle: "A new request",
-											_questDescription: "Please help",
-											_currentObjective: "Bring Wood",
-											completed: false,
-											dailyQuest: false,
-											destroy: false,
-											canBeCancelled: true,
-											moneyReward: 100,
-											daysLeft: 0,
-											questType: 1,
-											nextQuests: "",
-											modData: { opaque: "keep" },
-										},
-									],
-								},
+								questLog: [
+									{
+										id: "custom-review",
+										_questTitle: "A new request",
+										_questDescription: "Please help",
+										_currentObjective: "Bring Wood",
+										completed: false,
+										dailyQuest: false,
+										destroy: false,
+										canBeCancelled: true,
+										moneyReward: 100,
+										daysLeft: 0,
+										questType: 1,
+										nextQuests: [],
+										customModData: { opaque: "keep" },
+									},
+								],
 							});
 						});
 					}),
@@ -197,23 +195,18 @@ it("does not let another recognised field hide an unsupported imported value", (
 		),
 	));
 
-it("does not coerce an opaque farmer ID while reviewing a supported guest", () =>
+it("reviews a supported guest beside an unclaimed farmer placeholder", () =>
 	Effect.runPromise(
 		Effect.scoped(
 			Effect.gen(function* () {
 				const document = fixture();
 				const guest = structuredClone(document.SaveGame.player);
-				guest.UniqueMultiplayerID = "guest";
+				guest.UniqueMultiplayerID = 2n;
 				guest.name = "Guest";
 				guest.money = 100;
-				document.SaveGame.farmhands = { Farmer: [guest] };
-				Object.assign(document.SaveGame.player, {
-					UniqueMultiplayerID: { toString: "opaque" },
-				});
+				document.SaveGame.farmhands = [{ name: "", items: [] }, guest];
 				const session = yield* makeHistorySession(document);
-				yield* session.execute([
-					{ type: "money", farmerId: "guest", value: 200 },
-				]);
+				yield* session.execute([{ type: "money", farmerId: "2", value: 200 }]);
 				const review = projectReview(yield* session.snapshot);
 				expect(
 					review.groups.find((group) => group.feature === "character")?.changes,

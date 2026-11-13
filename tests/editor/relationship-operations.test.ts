@@ -1,3 +1,4 @@
+import { stringifySavedData } from "../../src/lib/editor/saved-data.ts";
 import { describe, expect, it } from "vitest";
 import { Effect, Result } from "effect";
 import {
@@ -5,40 +6,34 @@ import {
 	setRelationship,
 } from "../../src/lib/editor/relationship-operations.ts";
 import { makeHistorySession } from "../../src/lib/editor/history.ts";
-import { tinyFixture } from "./fixtures.ts";
+import { tinyFixture } from "../helpers/editor-document.ts";
 
 function fixture() {
 	const document = tinyFixture();
 	Object.assign(document.SaveGame.player, {
-		friendshipData: {
-			opaque: "007",
-			item: [
-				{
-					key: { string: "Abigail" },
-					value: {
-						Friendship: {
-							Points: 100,
-							Status: "Friendly",
-							GiftsToday: 1,
-							opaque: false,
-						},
-						opaque: "keep",
-					},
+		friendshipData: [
+			{
+				key: "Abigail",
+				opaque: ["001", false],
+				value: {
+					Points: 100,
+					Status: "Friendly",
+					GiftsToday: 1,
+					opaque: false,
+					opaqueEntry: "keep",
 				},
-				{
-					key: { string: "Modded" },
-					value: {
-						Friendship: {
-							Points: 10,
-							GiftsThisWeek: 2,
-							Status: "Married",
-							opaque: "mod",
-						},
-					},
+			},
+			{
+				key: "Modded",
+				value: {
+					Points: 10,
+					GiftsThisWeek: 2,
+					Status: "Married",
+					opaque: "mod",
 				},
-				{ opaque: ["001", false] },
-			],
-		},
+			},
+		],
+		testMetadatafriendshipData: { opaque: "007" },
 	});
 	return document;
 }
@@ -46,28 +41,23 @@ const run = <A, E>(
 	program: Effect.Effect<A, E, import("effect").Scope.Scope>,
 ) => Effect.runPromise(Effect.scoped(program));
 describe("relationship domain operations", () => {
-	it.each([true, "true"])(
-		"refuses insertion into a nil friendship dictionary (%s) without history",
-		(nil) =>
-			run(
-				Effect.gen(function* () {
-					const document = fixture();
-					Object.assign(document.SaveGame.player, {
-						friendshipData: { "@_xsi:nil": nil, opaque: "keep" },
-					});
-					const session = yield* makeHistorySession(document);
-					const before = yield* session.snapshot;
-					expect(readRelationships(document)[0]?.supported).toBe(false);
-					const result = yield* Effect.result(
-						session.transact(
-							setRelationship({ farmerId: "host", name: "Alex", kind: "add" }),
-						),
-					);
-					expect(Result.isFailure(result)).toBe(true);
-					expect(yield* session.snapshot).toEqual(before);
-				}),
-			),
-	);
+	it("refuses insertion into an omitted friendship dictionary without history", () =>
+		run(
+			Effect.gen(function* () {
+				const document = fixture();
+				delete document.SaveGame.player.friendshipData;
+				const session = yield* makeHistorySession(document);
+				const before = yield* session.snapshot;
+				expect(readRelationships(document)[0]?.supported).toBe(false);
+				const result = yield* Effect.result(
+					session.transact(
+						setRelationship({ farmerId: "1", name: "Alex", kind: "add" }),
+					),
+				);
+				expect(Result.isFailure(result)).toBe(true);
+				expect(yield* session.snapshot).toEqual(before);
+			}),
+		));
 	it("projects without defaults or normalization and retains modded villagers", () => {
 		const document = fixture(),
 			before = structuredClone(document);
@@ -84,14 +74,14 @@ describe("relationship domain operations", () => {
 		expect(rows?.[1]?.maxHearts).toBe(10);
 		expect(document).toEqual(before);
 	});
-	it("writes only one selected property and restores exact XML-shaped state through Undo/Redo", () =>
+	it("writes only one selected property and restores exact saved state through Undo/Redo", () =>
 		run(
 			Effect.gen(function* () {
 				const document = fixture();
 				const session = yield* makeHistorySession(document);
 				yield* session.transact(
 					setRelationship({
-						farmerId: "host",
+						farmerId: "1",
 						name: "Abigail",
 						kind: "gifts",
 						value: 3,
@@ -100,11 +90,9 @@ describe("relationship domain operations", () => {
 				const after = yield* session.snapshot;
 				const expected = fixture();
 				const raw = expected.SaveGame.player as unknown as {
-					friendshipData: {
-						item: { value?: { Friendship?: Record<string, unknown> } }[];
-					};
+					friendshipData: { value?: Record<string, unknown> }[];
 				};
-				const friendship = raw.friendshipData.item[0]?.value?.Friendship;
+				const friendship = raw.friendshipData[0]?.value;
 				if (!friendship) throw Error("Missing fixture relationship");
 				friendship.GiftsThisWeek = 3;
 				expect(after.document).toEqual(expected);
@@ -121,19 +109,19 @@ describe("relationship domain operations", () => {
 				const before = yield* session.snapshot;
 				for (const input of [
 					{
-						farmerId: "host",
+						farmerId: "1",
 						name: "Abigail",
 						kind: "points" as const,
 						value: 2250,
 					},
 					{
-						farmerId: "host",
+						farmerId: "1",
 						name: "Abigail",
 						kind: "gifts" as const,
 						value: 8,
 					},
 					{
-						farmerId: "host",
+						farmerId: "1",
 						name: "Missing",
 						kind: "points" as const,
 						value: 100,
@@ -159,7 +147,7 @@ describe("relationship domain operations", () => {
 					),
 				).toMatchObject({ present: false, supported: false });
 				yield* session.transact(
-					setRelationship({ farmerId: "host", kind: "add", name: "Alex" }),
+					setRelationship({ farmerId: "1", kind: "add", name: "Alex" }),
 				);
 				const added = yield* session.snapshot;
 				expect(added.entries).toHaveLength(1);
@@ -170,12 +158,12 @@ describe("relationship domain operations", () => {
 				).toMatchObject({ present: true, supported: true, points: 0 });
 				const duplicate = yield* Effect.result(
 					session.transact(
-						setRelationship({ farmerId: "host", kind: "add", name: "Alex" }),
+						setRelationship({ farmerId: "1", kind: "add", name: "Alex" }),
 					),
 				);
 				expect(Result.isFailure(duplicate)).toBe(true);
 				yield* session.transact(
-					setRelationship({ farmerId: "host", kind: "remove", name: "Alex" }),
+					setRelationship({ farmerId: "1", kind: "remove", name: "Alex" }),
 				);
 				expect((yield* session.snapshot).document).toEqual(document);
 				yield* session.undo;
@@ -192,7 +180,7 @@ describe("relationship domain operations", () => {
 				const document = fixture();
 				const session = yield* makeHistorySession(document);
 				yield* session.transact(
-					setRelationship({ farmerId: "host", kind: "remove", name: "Modded" }),
+					setRelationship({ farmerId: "1", kind: "remove", name: "Modded" }),
 				);
 				const after = yield* session.snapshot;
 				expect(
@@ -200,7 +188,7 @@ describe("relationship domain operations", () => {
 						(row) => row.name === "Modded",
 					),
 				).toBe(false);
-				expect(JSON.stringify(after.document)).toContain(
+				expect(stringifySavedData(after.document)).toContain(
 					'"opaque":["001",false]',
 				);
 				yield* session.undo;
@@ -212,18 +200,16 @@ describe("relationship domain operations", () => {
 			Effect.gen(function* () {
 				const document = fixture();
 				Object.assign(document.SaveGame.player, {
-					friendshipData: {
-						item: [
-							{
-								key: { string: "Abigail" },
-								value: { Friendship: { Points: 100, Status: "Friendly" } },
-							},
-							{
-								key: { string: "Abigail" },
-								value: { Friendship: { Points: 200, Status: "Dating" } },
-							},
-						],
-					},
+					friendshipData: [
+						{
+							key: "Abigail",
+							value: { Points: 100, Status: "Friendly" },
+						},
+						{
+							key: "Abigail",
+							value: { Points: 200, Status: "Dating" },
+						},
+					],
 				});
 				expect(
 					readRelationships(document)[0]?.relationships[0]?.supported,
@@ -234,7 +220,7 @@ describe("relationship domain operations", () => {
 						yield* Effect.result(
 							session.transact(
 								setRelationship({
-									farmerId: "host",
+									farmerId: "1",
 									name: "Abigail",
 									kind: "remove",
 								}),

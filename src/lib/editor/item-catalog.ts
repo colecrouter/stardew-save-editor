@@ -1,3 +1,29 @@
+import { Schema } from "effect";
+import {
+	ValueSchema,
+	type T_StardewValley_Object,
+} from "../../../generated/save-format/save.ts";
+import type { Item, KnownFields } from "./domain.ts";
+// Construction selects the class after accumulating shared and family defaults.
+// Retain every known field's generated value type, but exclude extension keys so
+// a misspelled default cannot silently become opaque saved data.
+type KnownItem = Exclude<Item, { $type: "$unknown" }>;
+type ItemKeys<T> = T extends unknown ? keyof KnownFields<T> : never;
+type ItemField<T, K> = T extends unknown
+	? K extends keyof T
+		? T[K]
+		: never
+	: never;
+type ItemDraft = {
+	[K in Exclude<ItemKeys<KnownItem>, "$type">]?: ItemField<KnownItem, K>;
+} & {
+	$type?: string;
+	// Existing new-furniture defaults are retained as extension fields; the
+	// generated serializer does not declare them as persisted Furniture members.
+	sourceIndexOffset?: number;
+	drawPosition?: { X: number; Y: number };
+};
+import { savedType, savedTypeId } from "./saved-types.ts";
 import { immutableView } from "./immutable-view.ts";
 import { readItemVisual, type ItemVisual } from "./item-presentation.ts";
 import {
@@ -16,7 +42,7 @@ export interface CatalogEntry {
 	readonly qualifiedId: string;
 	readonly kind: string;
 	readonly description: string;
-	readonly raw: Record<string, unknown>;
+	readonly raw: Item;
 }
 
 /** Picker-ready catalog metadata. Item construction stays private to the domain;
@@ -62,7 +88,7 @@ const saveTypes: Partial<Record<ItemInformation["_type"], string>> = {
 	Trinket: "Trinket",
 	Mannequin: "Mannequin",
 };
-const preserves: Record<string, string> = {
+const preserves: Record<string, T_StardewValley_Object["preserve"]> = {
 	Pickles: "Pickle",
 	"Aged Roe": "AgedRoe",
 	Smoked: "SmokedFish",
@@ -172,13 +198,11 @@ function supportsConstruction(data: ItemInformation) {
 	return true;
 }
 
-function construct(
-	name: string,
-	data: ItemInformation,
-): Record<string, unknown> | undefined {
+function construct(name: string, data: ItemInformation): Item | undefined {
 	if (!supportsConstruction(data)) return undefined;
-	const item: Record<string, unknown> = {
-		"@_xsi:type": saveTypes[data._type],
+	const type = saveTypes[data._type];
+	const item: ItemDraft = {
+		$type: type ? savedTypeId(type) : undefined,
 		name: data.name,
 		itemId: data._key,
 		stack: 1,
@@ -205,7 +229,7 @@ function construct(
 	if (data._type === "Tool") {
 		// Metadata owns the tool class and level. Name suffixes confuse shop-only
 		// Trash Can upgrades with WateringCan, and old rod maps omit advanced rods.
-		item["@_xsi:type"] = data.class;
+		item.$type = savedTypeId(data.class);
 		item.upgradeLevel = data.upgradeLevel ?? 0;
 		item.numAttachmentSlots = data.attachmentSlots ?? 0;
 		const menuIndex =
@@ -218,12 +242,10 @@ function construct(
 		if (data.class === "FishingRod") {
 			// The game's rod representation retains two empty attachment positions
 			// even for Bamboo; advanced rods extend that list to three positions.
-			item.attachments = {
-				Object: Array.from(
-					{ length: Math.max(2, data.attachmentSlots ?? 0) },
-					() => ({ "@_xsi:nil": "true" }),
-				),
-			};
+			item.attachments = Array.from(
+				{ length: Math.max(2, data.attachmentSlots ?? 0) },
+				() => null,
+			);
 		}
 		if (data.class === "WateringCan") {
 			item.IsBottomless = false;
@@ -243,23 +265,23 @@ function construct(
 			knockback: data.knockback,
 			critChance: data.critChance,
 			critMultiplier: data.critMultiplier,
-		});
+		} satisfies ItemDraft);
 	}
 	// Preview seeds are deterministic. The committed fresh trinket receives a seed
 	// only at creation, so browsing does not generate or mutate an item instance.
 	if (data._type === "Trinket") item.generationSeed = 0;
 	if (data._type === "Object" && data.type === "Ring") {
-		item["@_xsi:type"] = "Ring";
+		item.$type = savedTypeId("Ring");
 		item.uniqueID = RingsUniqueID.get(name);
 	}
 	// Preserve the legacy new-hat representation and its hair-rendering flags;
 	// none of these defaults are applied to existing imported hats.
 	if (data._type === "Hat")
 		Object.assign(item, {
-			which: { "@_xsi:nil": "true" },
+			which: null,
 			skipHairDraw: data.showRealHair,
 			ignoreHairstyleOffset: data.skipHairstyleOffset,
-		});
+		} satisfies ItemDraft);
 	if (data._type === "Furniture") {
 		// Furniture stores a numeric subtype separately from Object.type. New
 		// records materialize tile geometry at the game's 64-pixel world scale.
@@ -293,13 +315,13 @@ function construct(
 		item.clothesColor = color("#FFFFFF");
 	if ("edibility" in data) item.edibility = data.edibility;
 	if (data._type === "Shirt" || data._type === "Pants")
-		item.clothesType = data._type.toUpperCase();
+		item.clothesType = data._type === "Shirt" ? "SHIRT" : "PANTS";
 	if (data._type === "Boots")
 		Object.assign(item, {
 			defenseBonus: data.defense,
 			immunityBonus: data.immunity,
 			indexInColorSheet: data.colorIndex,
-		});
+		} satisfies ItemDraft);
 	if (
 		"unpreservedItemId" in data &&
 		data.unpreservedItemId &&
@@ -307,9 +329,7 @@ function construct(
 	) {
 		// Version 1.6 ingredients also have string IDs such as Goby and Carrot.
 		// Keep numeric legacy IDs numeric while preserving these string IDs.
-		item.preservedParentSheetIndex = /^\d+$/.test(data.unpreservedItemId)
-			? Number(data.unpreservedItemId)
-			: data.unpreservedItemId;
+		item.preservedParentSheetIndex = data.unpreservedItemId;
 		item.preserve =
 			data.preservedItemName === "Dried"
 				? data._key === "DriedMushrooms"
@@ -319,12 +339,19 @@ function construct(
 	}
 	if (data.color) {
 		item.color = color(data.color);
-		if (data._type === "Object") item["@_xsi:type"] = "ColoredObject";
+		if (data._type === "Object") item.$type = savedTypeId("ColoredObject");
 	}
-	if (!item["@_xsi:type"]) return undefined;
+	if (!savedType(item)) return undefined;
 	// Generated metadata has optional fields. Omit those absent defaults deliberately;
 	// unlike imported saves, these new records contain no opaque data to preserve.
-	return JSON.parse(JSON.stringify(item)) as Record<string, unknown>;
+	const clean: unknown = JSON.parse(JSON.stringify(item));
+	// Resolve the selected family against the codec once at construction, rather
+	// than asserting a dynamically selected discriminator matches its payload.
+	const result = Schema.decodeUnknownSync(ValueSchema)({
+		player: { items: [clean] },
+	}).player?.items?.[0];
+	if (!result) throw new Error("Constructed catalog item is missing");
+	return result;
 }
 
 /** Available new item records, loaded with Inventory rather than session startup. */
@@ -367,9 +394,7 @@ export const catalogChoices: readonly CatalogChoice[] = Object.freeze(
 const entriesById = new Map(catalogEntries.map((entry) => [entry.id, entry]));
 
 /** Create a detached item from an exact catalog choice; callers cannot supply raw XML. */
-export function createCatalogItem(
-	id: string,
-): Record<string, unknown> | undefined {
+export function createCatalogItem(id: string): Item | undefined {
 	const entry = entriesById.get(id);
 	if (!entry) return undefined;
 	// Reconstruct from trusted metadata instead of UI-exposed previews: even a caller
@@ -377,7 +402,7 @@ export function createCatalogItem(
 	const data = ItemData.get(id);
 	if (!data) return undefined;
 	const raw = construct(id, data);
-	if (raw && entry.kind === "Trinket")
+	if (raw?.$type === "StardewValley.Objects.Trinket")
 		raw.generationSeed = Math.floor(Math.random() * 9999999);
 	return raw;
 }

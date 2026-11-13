@@ -40,6 +40,9 @@ try {
 		window.importTransfers = [];
 		window.workerLifetimes = [];
 		window.startupAttempts = [];
+		// Capture the original before replacing it; every invocation below restores
+		// the actual File receiver with .call(this), as the native method requires.
+		// oxlint-disable-next-line typescript/unbound-method
 		const read = File.prototype.arrayBuffer;
 		File.prototype.arrayBuffer = async function () {
 			const buffer = await read.call(this);

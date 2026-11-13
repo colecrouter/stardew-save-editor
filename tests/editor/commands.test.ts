@@ -65,13 +65,32 @@ it("closing a session cancels running and queued UI commands without toasts or r
 	const report = vi.spyOn(console, "error").mockImplementation(() => {});
 	const opened = await openEditor(await input());
 	try {
-		const pending = opened.model.commands.transact(Effect.never);
-		const queued = opened.model.commands.transact(setCalendarDate({ year: 5 }));
-		// Give the first command time to acquire its scoped fiber before closing it.
-		await new Promise((resolve) => setTimeout(resolve, 10));
+		// Closing must interrupt a running transaction, not merely reject work
+		// that has not started. Signal entry from inside the transaction itself.
+		const started = Promise.withResolvers<void>();
+		const finished = vi.fn();
+		const pending = opened.model.commands.transact(
+			Effect.sync(() => started.resolve()).pipe(
+				Effect.andThen(Effect.never),
+				Effect.ensuring(Effect.sync(finished)),
+			),
+		);
+		await started.promise;
+		// The second transaction must remain queued behind the blocked first one,
+		// and closing must discard it without ever executing its program.
+		const queuedStarted = vi.fn();
+		const queued = opened.model.commands.transact(
+			Effect.sync(queuedStarted).pipe(
+				Effect.andThen(setCalendarDate({ year: 5 })),
+			),
+		);
+		expect(finished).not.toHaveBeenCalled();
+		expect(queuedStarted).not.toHaveBeenCalled();
 		await opened.close();
 		expect(await pending).toBeNull();
 		expect(await queued).toBeNull();
+		expect(finished).toHaveBeenCalledOnce();
+		expect(queuedStarted).not.toHaveBeenCalled();
 		expect(await opened.model.commands.undo()).toBeNull();
 		expect(report).not.toHaveBeenCalled();
 	} finally {

@@ -180,7 +180,8 @@ describe("full-save calendar session", { timeout: 60_000 }, () => {
 			await opened.model.execute([
 				{ type: "calendar-date", change: { day: 9 } },
 			]);
-			await new Promise((resolve) => setTimeout(resolve, 20));
+			// execute publishes before resolving. A remounted consumer must see
+			// that committed view immediately, without waiting for the observer.
 			expect(get(opened.model.view)?.calendar.date).toEqual({
 				year: 4,
 				season: "spring",

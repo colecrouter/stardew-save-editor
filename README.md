@@ -6,6 +6,8 @@ A browser-based editor for Stardew Valley saves. [Open the hosted editor](https:
 
 - Character details, money, skills, professions, mastery and appearance preview.
 - Relationships, events, cooking/crafting recipes, quest journals and Qi orders.
+- Existing-child names, appearance, hats and age/development stage, with linked
+  friendship and gift-history preservation.
 - Inventory/equipment editing, item selection, actual backpack sizes and transfers.
 - Storage search, multiple-item transfers, bulk quality, Organize and supported
   chest conversions. Organize keeps stacks separate.
@@ -15,9 +17,8 @@ A browser-based editor for Stardew Valley saves. [Open the hosted editor](https:
 - Farmhand reassignment, change review, grouped Undo/Redo, import/export and original
   save backups.
 
-Pet adoption/removal, child editing, general location editing, lost-progress
-restoration, non-Qi special-order editing and the planned parser replacement
-remain separate work.
+Pet adoption/removal, child creation/removal/parenting, general location editing,
+lost-progress restoration and non-Qi special-order editing remain separate work.
 
 ## Using the editor
 

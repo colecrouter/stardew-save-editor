@@ -95,3 +95,53 @@ node --import tsx tools/compare-blob-import.mts blob /tmp/zlib-stream.json --sin
 Repeat in fresh processes for three trials, reversing order in the middle trial.
 Omit `--single` to reproduce the initial warmed-process experiment. Each command
 verifies that the imported document equals the existing byte decoder's result.
+
+## Does the additional subdivision help?
+
+A follow-up changes only the input subdivision: both variants use the same
+Blob, pako's 16 KiB output size, Effect byte decoder, typed interpreter and final
+value validation. `native` passes each incoming chunk whole; `bounded` uses the
+production 64 KiB raw / 1 KiB compressed input limits. Three fresh processes per
+case, reversing order on trial two; every result checks decoded-data parity.
+These are **typed-decode-only** measurements, not the worker/model timings above.
+
+| Input   | Additional bounds | Native chunks | Median peak RSS, bounded / native |
+| ------- | ----------------: | ------------: | --------------------------------: |
+| Raw XML |            4.87 s |        5.04 s |                     492 / 531 MiB |
+| Zlib    |            4.86 s |        4.92 s |                     480 / 481 MiB |
+
+Timing and RSS ranges overlap, and one raw trial was faster without subdivision.
+There is no consistent throughput win from removing the bounds, nor enough
+samples to claim a reliable speed benefit from keeping them.
+
+The deterministic difference is buffering:
+
+- Node delivered the 6,652,242-byte raw Blob as one native chunk. Without the cap,
+  Effect scanned that whole chunk into one event array before interpretation.
+  The bounded path instead supplied 102 chunks of at most 65,536 bytes.
+- In a real Chromium File stream with a 20 ms consumer delay, native raw chunks
+  reached 2 MiB. Progressive arrival therefore does not imply small input batches.
+- For zlib, both variants still supplied the XML decoder with 407 output chunks
+  of at most 16 KiB. The additional input bound was **not needed for parser chunk
+  size** here: it limited pako's pending output queue instead. Its peak fell from
+  the entire 6,652,242-byte expansion to 81,920 bytes (80 KiB). A synchronous pako
+  push emits its output before downstream parsing can drain the queue.
+
+Retain the limits as explicit buffer bounds, rather than claiming they are a
+necessary speed optimization. Raw slices are views: they still retain the native
+input buffer; the raw cap limits downstream text/event batches, not that buffer's
+backing storage. Queue-byte counts are not total process memory. The optional
+reader diagnostics expose only counts and allow native-sized input for this
+experiment; production defaults are unchanged.
+
+[Samples, ranges and native chunk observations](profiles/blob-bounds-comparison.json):
+Node 24.22.3 and the installed Playwright Chromium build. The native-chunk observation used Node zlib compression
+(158,636 bytes); the controlled decode benchmark used pako (159,070 bytes).
+Browser chunk observations demonstrate producer variability, not browser timing
+or RSS benefits.
+
+```sh
+node --import tsx tools/compare-blob-bounds.mts bounded /tmp/bounded.json
+node --import tsx tools/compare-blob-bounds.mts native /tmp/native.json
+# Add --compressed for the zlib cases; repeat in fresh processes for three trials.
+```

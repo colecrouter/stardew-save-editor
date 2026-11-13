@@ -1,0 +1,167 @@
+{
+	"fixtureSha256": "16f6dfe6a94d84f7a3c36e26850b0efc9bfb72ddd1261857d1bab57a0529aae9",
+	"cases": {
+		"raw-bounded": {
+			"runs": [
+				{
+					"mode": "bounded",
+					"compressed": false,
+					"elapsedMs": 4787.214314999999,
+					"peakRssKiB": 512692,
+					"peakBufferedBytes": 65536,
+					"maxXmlInputBytes": 65536,
+					"xmlInputChunks": 102
+				},
+				{
+					"mode": "bounded",
+					"compressed": false,
+					"elapsedMs": 4869.00611,
+					"peakRssKiB": 503760,
+					"peakBufferedBytes": 65536,
+					"maxXmlInputBytes": 65536,
+					"xmlInputChunks": 102
+				},
+				{
+					"mode": "bounded",
+					"compressed": false,
+					"elapsedMs": 4948.223003000001,
+					"peakRssKiB": 502872,
+					"peakBufferedBytes": 65536,
+					"maxXmlInputBytes": 65536,
+					"xmlInputChunks": 102
+				}
+			],
+			"medianMs": 4869.00611,
+			"timeRangeMs": [4787.214314999999, 4948.223003000001],
+			"medianPeakRssMiB": 491.953125,
+			"rssRangeMiB": [491.0859375, 500.67578125]
+		},
+		"raw-native": {
+			"runs": [
+				{
+					"mode": "native",
+					"compressed": false,
+					"elapsedMs": 5101.536075999999,
+					"peakRssKiB": 544028,
+					"peakBufferedBytes": 6652242,
+					"maxXmlInputBytes": 6652242,
+					"xmlInputChunks": 1
+				},
+				{
+					"mode": "native",
+					"compressed": false,
+					"elapsedMs": 5039.407904,
+					"peakRssKiB": 544444,
+					"peakBufferedBytes": 6652242,
+					"maxXmlInputBytes": 6652242,
+					"xmlInputChunks": 1
+				},
+				{
+					"mode": "native",
+					"compressed": false,
+					"elapsedMs": 4676.457341,
+					"peakRssKiB": 507036,
+					"peakBufferedBytes": 6652242,
+					"maxXmlInputBytes": 6652242,
+					"xmlInputChunks": 1
+				}
+			],
+			"medianMs": 5039.407904,
+			"timeRangeMs": [4676.457341, 5101.536075999999],
+			"medianPeakRssMiB": 531.27734375,
+			"rssRangeMiB": [495.15234375, 531.68359375]
+		},
+		"zlib-bounded": {
+			"runs": [
+				{
+					"mode": "bounded",
+					"compressed": true,
+					"elapsedMs": 4869.306157,
+					"peakRssKiB": 491308,
+					"peakBufferedBytes": 81920,
+					"maxXmlInputBytes": 16384,
+					"xmlInputChunks": 407
+				},
+				{
+					"mode": "bounded",
+					"compressed": true,
+					"elapsedMs": 4789.416371,
+					"peakRssKiB": 490428,
+					"peakBufferedBytes": 81920,
+					"maxXmlInputBytes": 16384,
+					"xmlInputChunks": 407
+				},
+				{
+					"mode": "bounded",
+					"compressed": true,
+					"elapsedMs": 4860.646889000001,
+					"peakRssKiB": 491776,
+					"peakBufferedBytes": 81920,
+					"maxXmlInputBytes": 16384,
+					"xmlInputChunks": 407
+				}
+			],
+			"medianMs": 4860.646889000001,
+			"timeRangeMs": [4789.416371, 4869.306157],
+			"medianPeakRssMiB": 479.79296875,
+			"rssRangeMiB": [478.93359375, 480.25]
+		},
+		"zlib-native": {
+			"runs": [
+				{
+					"mode": "native",
+					"compressed": true,
+					"elapsedMs": 4924.398472,
+					"peakRssKiB": 490156,
+					"peakBufferedBytes": 6652242,
+					"maxXmlInputBytes": 16384,
+					"xmlInputChunks": 407
+				},
+				{
+					"mode": "native",
+					"compressed": true,
+					"elapsedMs": 5264.1608559999995,
+					"peakRssKiB": 492164,
+					"peakBufferedBytes": 6652242,
+					"maxXmlInputBytes": 16384,
+					"xmlInputChunks": 407
+				},
+				{
+					"mode": "native",
+					"compressed": true,
+					"elapsedMs": 4903.160558,
+					"peakRssKiB": 493556,
+					"peakBufferedBytes": 6652242,
+					"maxXmlInputBytes": 16384,
+					"xmlInputChunks": 407
+				}
+			],
+			"medianMs": 4924.398472,
+			"timeRangeMs": [4903.160558, 5264.1608559999995],
+			"medianPeakRssMiB": 480.62890625,
+			"rssRangeMiB": [478.66796875, 481.98828125]
+		}
+	},
+	"nativeChunkObservations": {
+		"nodeRaw": {
+			"6652242": 1
+		},
+		"nodeZlib": {
+			"158636": 1
+		},
+		"chromiumRaw": {
+			"65536": 1,
+			"360786": 1,
+			"2031616": 1,
+			"2097152": 2
+		},
+		"chromiumZlib": {
+			"65536": 1,
+			"93100": 1
+		},
+		"chromiumReadDelayMs": 20,
+		"profileZlibProducer": "node:zlib",
+		"benchmarkZlibProducer": "pako"
+	},
+	"scope": "Typed decode only; same Blob source, pako output size, XML decoder and ValueSchema interpreter. One decode per fresh process; three trials; reverse mode order on trial 2."
+}

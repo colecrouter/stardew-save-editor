@@ -2,7 +2,26 @@ import pako from "pako";
 
 // Read in the worker on downstream demand. Only one input chunk and the output
 // of one small inflate push are retained; no full-file byte/string copy exists.
-export function saveBlobBytes(blob: Blob): ReadableStream<Uint8Array> {
+export function saveBlobBytes(
+	blob: Blob,
+	options: {
+		// Infinity bypasses the adapter's subdivision for controlled comparisons.
+		maxInputBytes?: number;
+		// Diagnostics observe queue size only, never uploaded contents.
+		onBufferedBytes?: (bytes: number) => void;
+	} = {},
+): ReadableStream<Uint8Array> {
+	// Reject a zero/negative diagnostic step before acquiring a reader: it would
+	// prevent input progress and leave a permanently pending pull.
+	const limit = options.maxInputBytes;
+	if (
+		limit !== undefined &&
+		limit !== Infinity &&
+		(!Number.isSafeInteger(limit) || limit < 1)
+	)
+		throw new RangeError(
+			"Input subdivision must be a positive integer or Infinity",
+		);
 	const reader = blob.stream().getReader();
 	let input = new Uint8Array();
 	let offset = 0;
@@ -12,6 +31,12 @@ export function saveBlobBytes(blob: Blob): ReadableStream<Uint8Array> {
 	let inflater: pako.Inflate | undefined;
 	let inflatedComplete = false;
 	const output: Uint8Array[] = [];
+	let bufferedBytes = 0;
+	const enqueue = (chunk: Uint8Array) => {
+		output.push(chunk);
+		bufferedBytes += chunk.byteLength;
+		options.onBufferedBytes?.(bufferedBytes);
+	};
 	let released = false;
 	const release = () => {
 		if (!released) {
@@ -47,7 +72,7 @@ export function saveBlobBytes(blob: Blob): ReadableStream<Uint8Array> {
 								inflater.onData = (chunk) => {
 									if (!(chunk instanceof Uint8Array))
 										throw new Error("Unexpected inflate output");
-									output.push(chunk);
+									enqueue(chunk);
 								};
 								const onEnd = inflater.onEnd.bind(inflater);
 								inflater.onEnd = (status) => {
@@ -61,18 +86,21 @@ export function saveBlobBytes(blob: Blob): ReadableStream<Uint8Array> {
 					// can apply backpressure. Uncompressed input needs no extra copying.
 					const end = Math.min(
 						input.length,
-						offset + (inflater ? 1024 : 65_536),
+						offset + (options.maxInputBytes ?? (inflater ? 1024 : 65_536)),
 					);
 					const part = input.subarray(offset, end);
 					offset = end;
 					if (inflater) {
 						if (!inflater.push(part, false))
 							throw new Error(inflater.msg || "Invalid zlib stream");
-					} else output.push(part);
+					} else enqueue(part);
 				}
 				if (cancelled) return;
 				const next = output.shift();
-				if (next) controller.enqueue(next);
+				if (next) {
+					bufferedBytes -= next.byteLength;
+					controller.enqueue(next);
+				}
 				if (eof && !output.length) controller.close();
 			} catch (cause) {
 				controller.error(cause);

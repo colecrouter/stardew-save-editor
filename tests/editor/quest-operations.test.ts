@@ -78,6 +78,40 @@ const transactValue = <A, E>(
 		return value;
 	});
 describe("quest journal operations", () => {
+	it("keeps exact nested Int64 quest identities stable through edits", () =>
+		run(
+			Effect.gen(function* () {
+				// Generated quests can embed character IDs and typed description
+				// parameters. Adjacent Int64 values must not collapse through Number.
+				const exact = 9007199254740993n;
+				const quest = (value: bigint) =>
+					baseQuest({
+						id: undefined,
+						dailyQuest: true,
+						objective: {
+							xmlKey: "objective",
+							param: [{ $type: "System.Int64", value }],
+						},
+					});
+				const document = fixture([quest(exact), quest(exact + 1n)]);
+				const before = structuredClone(document);
+				const rows = readQuestJournals(document)[0]!.quests;
+				expect(rows[0]!.key).not.toBe(rows[1]!.key);
+				expect(document).toEqual(before);
+				const captured = target(document);
+				const session = yield* makeHistorySession(document);
+				yield* session.transact(
+					setQuest({ ...captured, kind: "days", value: 3 }),
+				);
+				const after = (yield* session.snapshot).document;
+				// Editable fields stay outside identity, and the saved Int64 remains
+				// untouched rather than being replaced by its diagnostic text.
+				expect(target(after)).toEqual(captured);
+				expect(after.SaveGame.player.questLog?.[0]?.objective).toEqual(
+					before.SaveGame.player.questLog?.[0]?.objective,
+				);
+			}),
+		));
 	it("reads without normalization and updates rewards while preserving advertised text and opaque fields", () =>
 		run(
 			Effect.gen(function* () {

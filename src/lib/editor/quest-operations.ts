@@ -1,5 +1,6 @@
 import type { T_StardewValley_Quests_Quest as Quest } from "../../../generated/save-format/save.ts";
 import { savedType } from "./saved-types.ts";
+import { stringifySavedData } from "./saved-data.ts";
 import { Data, Effect, Result, Schema } from "effect";
 import { farmers, type Farmer, type SaveDocument } from "./domain.ts";
 import { TransactionDraft } from "./transaction-draft.ts";
@@ -91,7 +92,10 @@ function keyOf(raw: Quest) {
 		parts: _parts,
 		...identity
 	} = raw;
-	return `generated:${JSON.stringify(identity)}`;
+	// Generated quest fields can contain exact Int64 values (including nested
+	// objective data). Use the saved-data representation so projection cannot
+	// prevent an otherwise valid save from opening or round those values.
+	return `generated:${stringifySavedData(identity)}`;
 }
 const questType = (raw: Quest) =>
 	typeof savedType(raw) === "string" ? savedType(raw) : "Quest";

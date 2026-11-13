@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { dynamicAsset } from "$lib/ui/dynamicAsset.ts";
 	import { onDestroy } from "svelte";
 	import { asset } from "$app/paths";
 	import {
@@ -28,16 +27,16 @@
 
 	// Map to a known value: the raw string comes from the save and ends up in a CSS
 	// url(). Like the game, anything but Male uses the female sprites
-	let gender = $derived(player.gender === Gender.Male ? "male" : "female");
+	const gender = $derived(player.gender === Gender.Male ? "male" : "female");
 
 	// Spritesheets
-	let baseSheet = $derived(dynamicAsset(`img/${gender}_farmer.png`));
-	let otherSheet = $derived(dynamicAsset(`img/${gender}_farmer_other.png`));
-	let armsSheet = $derived(dynamicAsset(`img/${gender}_farmer_arms.png`));
-	let bootsSheet = $derived(dynamicAsset(`img/${gender}_farmer_boots.png`));
+	let baseSheet = $derived(asset(`img/${gender}_farmer.png`));
+	let otherSheet = $derived(asset(`img/${gender}_farmer_other.png`));
+	let armsSheet = $derived(asset(`img/${gender}_farmer_arms.png`));
+	let bootsSheet = $derived(asset(`img/${gender}_farmer_boots.png`));
 	// const hairSheet = `${base}/assets/hairstyles.png`;
 	let hairSheet = $derived(
-		dynamicAsset(`assets/hairstyles${player.hairstyle >= 56 ? "2" : ""}.png`),
+		asset(`assets/hairstyles${player.hairstyle >= 56 ? "2" : ""}.png`),
 	);
 	const pantsSheet = asset("assets/pants.png");
 	const shirtSheet = asset("assets/shirts.png");

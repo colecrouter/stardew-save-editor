@@ -34,6 +34,8 @@
 	let loaded = $state(false);
 	$effect(() => {
 		loaded = false;
+		// Unknown villagers retain their initial without issuing a missing-image request.
+		if (!portrait) return;
 		const image = new Image();
 		image.onload = () => {
 			framesPerRow = Math.max(1, Math.round(image.naturalWidth / 64));

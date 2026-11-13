@@ -50,17 +50,19 @@
 	});
 	const width = $derived(sourceRect?.Width ?? buildingData?.textureSize?.X);
 	const height = $derived(sourceRect?.Height ?? buildingData?.textureSize?.Y);
+	// Catalog texture names must identify an installed sheet before a sprite is drawn.
+	const textureUrl = $derived(
+		buildingData?.texture
+			? dynamicAsset(`assets/buildings/${buildingData.texture}`)
+			: undefined,
+	);
 	const known = $derived(
-		!!buildingData?.texture && !!width && width > 0 && !!height && height > 0,
+		!!textureUrl && !!width && width > 0 && !!height && height > 0,
 	);
 	const scale = $derived(frameSize / Math.max(width ?? 1, height ?? 1));
 	// Negative offsets move the chosen source pixels into the crop. Sprite and
 	// scenery URLs both include the deployment base, including GitHub Pages paths.
-	const spriteUrl = $derived(
-		buildingData?.texture
-			? `url("${dynamicAsset(`assets/buildings/${buildingData.texture}`)}")`
-			: "none",
-	);
+	const spriteUrl = $derived(textureUrl ? `url("${textureUrl}")` : "none");
 	const sceneryUrl = `url("${asset("assets/daybg.png")}")`;
 </script>
 

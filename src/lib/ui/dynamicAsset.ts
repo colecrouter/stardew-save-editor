@@ -1,12 +1,21 @@
+import { assets } from "$app/manifest";
 import { asset } from "$app/paths";
+import type { AssetPath } from "$app/types";
 
-/** Resolve catalog-derived asset references without treating their names as a closed union. */
-export function dynamicAsset(path: string): string {
-	// Domain views retain root-relative paths, while Kit 3 accepts asset-relative
-	// inputs. These references are app-owned asset paths assembled from game data;
-	// their runtime names cannot be narrowed to Kit's generated static-file union.
+// Kit's manifest supplies the validated values, while catalog/save references
+// remain strings. Index raw and segment-encoded spellings without widening the
+// values passed to asset(): every stored value is a shipped AssetPath.
+const shippedPaths = new Map<string, AssetPath>();
+for (const { path } of assets) {
+	shippedPaths.set(path, path);
+	shippedPaths.set(path.split("/").map(encodeURIComponent).join("/"), path);
+}
+
+/** Resolve a runtime catalog reference only when its image is actually shipped. */
+export function dynamicAsset(path: string): string | undefined {
+	// Older domain projections retain a leading slash. Missing/modded references
+	// remain absent so each renderer can select its own existing fallback.
 	const relativePath = path.replace(/^\//, "");
-	// Keep Kit's deployment-base and URL behavior, including caller-provided escaping.
-	// Unknown/modded names intentionally keep their existing local 404/image fallback.
-	return asset(relativePath as Parameters<typeof asset>[0]);
+	const shippedPath = shippedPaths.get(relativePath);
+	return shippedPath === undefined ? undefined : asset(shippedPath);
 }

@@ -19,17 +19,19 @@ export interface UiAssets {
 	barn: Atlas;
 	shirts: Atlas;
 }
+// Asset-relative literals retain compile-time membership in Kit's shipped asset union.
 export const uiAtlases = {
-	menu: { path: "/assets/MenuTiles.png", width: 256, height: 1152 },
-	cursors: { path: "/assets/Cursors.png", width: 704, height: 2256 },
-	objects: { path: "/assets/springobjects.png", width: 384, height: 624 },
-	craftables: { path: "/assets/Craftables.png", width: 128, height: 1472 },
-	barn: { path: "/assets/buildings/Barn.png", width: 112, height: 128 },
-	shirts: { path: "/assets/shirts.png", width: 256, height: 608 },
+	menu: { path: "assets/MenuTiles.png", width: 256, height: 1152 },
+	cursors: { path: "assets/Cursors.png", width: 704, height: 2256 },
+	objects: { path: "assets/springobjects.png", width: 384, height: 624 },
+	craftables: { path: "assets/Craftables.png", width: 128, height: 1472 },
+	barn: { path: "assets/buildings/Barn.png", width: 112, height: 128 },
+	shirts: { path: "assets/shirts.png", width: 256, height: 608 },
 } as const;
 export type UiAtlasName = keyof typeof uiAtlases;
+export type UiAtlasPath = (typeof uiAtlases)[UiAtlasName]["path"];
 export function resolveUiAssets(
-	resolve: (name: UiAtlasName, path: string) => string,
+	resolve: (name: UiAtlasName, path: UiAtlasPath) => string,
 ): UiAssets {
 	const atlas = (name: UiAtlasName): Atlas => {
 		const { path, width, height } = uiAtlases[name];

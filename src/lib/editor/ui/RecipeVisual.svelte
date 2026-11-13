@@ -6,7 +6,7 @@
 		sprite?: RecipePresentation["sprite"];
 	}
 	let { sprite }: Props = $props();
-	// Resolve domain sprite references through the shared Kit asset boundary.
+	// Both missing metadata and absent installed sheets use the unknown-item fallback.
 	const sheetUrl = $derived(sprite ? dynamicAsset(sprite.sheet) : undefined);
 	const scale = $derived(
 		sprite ? 40 / Math.max(sprite.width, sprite.height) : 1,
@@ -14,7 +14,7 @@
 </script>
 
 <div class="visual" aria-hidden="true">
-	{#if sprite}
+	{#if sprite && sheetUrl}
 		<svg width="40" height="40" viewBox={`0 0 ${40 / scale} ${40 / scale}`}>
 			<svg
 				x={(40 / scale - sprite.width) / 2}

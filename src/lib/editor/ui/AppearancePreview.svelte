@@ -12,17 +12,21 @@
 	     pixels, including room above the head and below the pants. -->
 	<div class="stage">
 		<div class="figure" class:female={preview.gender === "female"}>
-			<!-- Resolve root-relative domain layers through the shared Kit asset boundary. -->
+			<!-- Missing catalog sheets leave their layer absent rather than requesting a guessed URL. -->
 			{#each preview.layers as layer, index (index)}
-				<div
-					class={layer.part}
-					style:--sheet={`url(${dynamicAsset(layer.sheet)})`}
-					style:--x={`${layer.x}px`}
-					style:--y={`${layer.y}px`}
-					style:--tint={layer.tint
-						? `rgba(${layer.tint[0]},${layer.tint[1]},${layer.tint[2]},${(layer.tint[3] ?? 255) / 255})`
-						: undefined}
-				></div>
+				{@const sheetUrl = dynamicAsset(layer.sheet)}
+
+				{#if sheetUrl}
+					<div
+						class={layer.part}
+						style:--sheet={`url("${sheetUrl}")`}
+						style:--x={`${layer.x}px`}
+						style:--y={`${layer.y}px`}
+						style:--tint={layer.tint
+							? `rgba(${layer.tint[0]},${layer.tint[1]},${layer.tint[2]},${(layer.tint[3] ?? 255) / 255})`
+							: undefined}
+					></div>
+				{/if}
 			{/each}
 		</div>
 	</div>

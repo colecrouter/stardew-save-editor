@@ -14,7 +14,7 @@ it("sprite definitions match the shipped atlas dimensions and stay in bounds", (
 	for (const spec of Object.values(uiAtlases)) {
 		// The image reader also reports its format; this contract checks atlas dimensions.
 		expect(
-			imageDimensionsFromData(readFileSync(`static${spec.path}`)),
+			imageDimensionsFromData(readFileSync(`static/${spec.path}`)),
 		).toMatchObject({ width: spec.width, height: spec.height });
 	}
 	for (const [rectangles, atlas] of [

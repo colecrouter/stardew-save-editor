@@ -13,6 +13,9 @@
 		.map(tintMatrix)
 		.join(";");
 	let drawing = $derived(getItemSprite(item));
+	const sheetUrl = $derived(
+		drawing ? dynamicAsset(`assets/${drawing.sprite.sheet}`) : undefined,
+	);
 	let zoom = $derived(
 		32 /
 			Math.max(
@@ -24,7 +27,7 @@
 </script>
 
 {#if item}
-	{#if drawing}
+	{#if drawing && sheetUrl}
 		<div
 			class="item"
 			aria-hidden="true"
@@ -61,7 +64,7 @@
 						</defs>
 					{/if}
 					<image
-						href={dynamicAsset(`assets/${drawing.sprite.sheet}`)}
+						href={sheetUrl}
 						width={drawing.sprite.sheetSize.width}
 						height={drawing.sprite.sheetSize.height}
 						filter={layer.tint || layer.prismatic

@@ -1,9 +1,8 @@
 <script lang="ts">
-	import { dynamicAsset } from "$lib/ui/dynamicAsset.ts";
 	import { tick } from "svelte";
 	import { chooseSaveDestination } from "$lib/downloadSave";
 	import { goto } from "$app/navigation";
-	import { resolve } from "$app/paths";
+	import { asset, resolve } from "$app/paths";
 	import "$lib/ui/study-theme.css";
 	import StudyIcon from "$lib/ui/StudyIcon.svelte";
 	import EditorShell from "$lib/ui/frame/EditorShell.svelte";
@@ -24,8 +23,8 @@
 
 	const toastManager = getToastManager();
 	const saveManager = getSaveManager();
-	// Resolve root-relative atlas definitions through the shared Kit asset boundary.
-	setUiAssets(resolveUiAssets((_name, path) => dynamicAsset(path)));
+	// Literal atlas paths remain statically checked against the shipped files.
+	setUiAssets(resolveUiAssets((_name, path) => asset(path)));
 
 	let isDownloading = $state(false);
 

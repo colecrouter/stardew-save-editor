@@ -57,10 +57,14 @@
 
 				<span class="markers" aria-hidden="true">
 					{#each occasions as occasion}
-						{#if occasion.portrait}
+						{@const portrait = occasion.portrait
+							? dynamicAsset(`assets/portraits/${occasion.portrait}.png`)
+							: undefined}
+
+						{#if portrait}
 							<span
 								class="portrait"
-								style:background-image={`url('${dynamicAsset(`assets/portraits/${occasion.portrait}.png`)}')`}
+								style:background-image={`url('${portrait}')`}
 							></span>
 						{:else}
 							<svg

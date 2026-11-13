@@ -72,10 +72,16 @@ export function matchesOriginal(
 // Existing backups store XML text. New binary originals carry an explicit encoding
 // so compressed saves round-trip intact while older entries remain readable.
 export function restoreOriginal(file: StoredOriginal): File {
-	const data =
-		file.encoding === "base64"
-			? Uint8Array.from(atob(file.data), (char) => char.charCodeAt(0))
-			: file.data;
+	let data: string | Uint8Array<ArrayBuffer> = file.data;
+	if (file.encoding === "base64") {
+		// atob returns one byte per code unit. Fill the final buffer directly so
+		// multi-megabyte originals avoid string iteration and an intermediate array.
+		const binary = atob(file.data);
+		const bytes = new Uint8Array(binary.length);
+		for (let index = 0; index < binary.length; index++)
+			bytes[index] = binary.charCodeAt(index);
+		data = bytes;
+	}
 	return new File([data], file.name, {
 		lastModified: file.lastModified,
 		type: file.type,

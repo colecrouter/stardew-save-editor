@@ -203,13 +203,13 @@
 	][];
 
 	type PropertyGroup<T extends ItemProxy> = {
-		// biome-ignore lint/suspicious/noExplicitAny: unavoidable
+		// Only constructor identity is compared; each subtype keeps its own argument list.
 		ctor: new (...args: any[]) => T;
 		props: Properties<T>;
 	};
 
 	const pg = <T extends ItemProxy>(
-		// biome-ignore lint/suspicious/noExplicitAny: unavoidable
+		// Only constructor identity is compared; each subtype keeps its own argument list.
 		ctor: new (...args: any[]) => T,
 		props: Properties<T>,
 	): PropertyGroup<T> => ({ ctor, props });

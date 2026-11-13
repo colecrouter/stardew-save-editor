@@ -32,7 +32,7 @@ import {
 	withAnimalBuildings,
 } from "./helpers/animalBuildings";
 
-// biome-ignore lint/suspicious/noExplicitAny: poking at raw parsed save data
+// Raw parsed fixtures deliberately allow unrecognized save fields.
 type Parsed = any;
 
 const tierNames = (type: string) => upgradeTiers(type).map((t) => t.name);

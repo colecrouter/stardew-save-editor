@@ -12,7 +12,7 @@
 	$effect(() => {
 		const saveManager = getSaveManager();
 		if (saveManager.save) {
-			goto(resolve("/inventory"));
+			goto(resolve("inventory"));
 		}
 	});
 </script>

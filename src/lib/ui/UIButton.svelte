@@ -21,7 +21,7 @@
 		HTMLAnchorAttributes,
 		HTMLButtonAttributes,
 	} from "svelte/elements";
-	import { page } from "$app/stores";
+	import { page } from "$app/state";
 
 	let {
 		children,
@@ -75,7 +75,7 @@
 					className,
 					{
 						plain: variant === "plain",
-						active: $page.url.pathname === href || active,
+						active: page.url.pathname === href || active,
 					},
 				]}
 			>

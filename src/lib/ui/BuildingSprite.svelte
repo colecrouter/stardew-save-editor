@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { dynamicAsset } from "$lib/ui/dynamicAsset.ts";
 	import { asset } from "$app/paths";
 	import buildings from "$generated/buildings.json";
 
@@ -57,10 +58,10 @@
 	// scenery URLs both include the deployment base, including GitHub Pages paths.
 	const spriteUrl = $derived(
 		buildingData?.texture
-			? `url("${asset(`/assets/buildings/${buildingData.texture}`)}")`
+			? `url("${dynamicAsset(`assets/buildings/${buildingData.texture}`)}")`
 			: "none",
 	);
-	const sceneryUrl = `url("${asset("/assets/daybg.png")}")`;
+	const sceneryUrl = `url("${asset("assets/daybg.png")}")`;
 </script>
 
 {#if building}

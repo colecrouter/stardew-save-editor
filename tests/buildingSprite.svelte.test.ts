@@ -3,8 +3,9 @@ import { describe, expect, it, vi } from "vitest";
 import BuildingSprite from "../src/lib/ui/BuildingSprite.svelte";
 
 vi.mock("$app/paths", () => ({
+	// Kit 3 accepts asset-relative paths and inserts the deployment separator.
 	// Exercise the same non-root deployment used by GitHub Pages.
-	asset: (file: string) => `/stardew-save-editor${file}`,
+	asset: (file: string) => `/stardew-save-editor/${file}`,
 }));
 
 const sprite = (container: HTMLElement) => {

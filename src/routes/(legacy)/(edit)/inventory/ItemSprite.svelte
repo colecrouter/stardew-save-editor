@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { dynamicAsset } from "$lib/ui/dynamicAsset.ts";
 	import { asset } from "$app/paths";
 	import { getItemSprite, prismaticColors, tintMatrix } from "$lib/ItemSprite";
 	import type { ItemProxy } from "$lib/proxies/items";
@@ -60,7 +61,7 @@
 						</defs>
 					{/if}
 					<image
-						href={asset(`/assets/${drawing.sprite.sheet}`)}
+						href={dynamicAsset(`assets/${drawing.sprite.sheet}`)}
 						width={drawing.sprite.sheetSize.width}
 						height={drawing.sprite.sheetSize.height}
 						filter={layer.tint || layer.prismatic
@@ -74,7 +75,7 @@
 					<div
 						class="smoke"
 						style:--particle={particle}
-						style:background-image={`url(${asset("/assets/Cursors.png")})`}
+						style:background-image={`url(${asset("assets/Cursors.png")})`}
 					></div>
 				{/each}
 			{/if}

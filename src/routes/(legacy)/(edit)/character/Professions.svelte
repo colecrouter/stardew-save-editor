@@ -26,7 +26,7 @@
 {#snippet icon(p: Profession)}
 	{@const [x, y] = getSprite(p)}
 	<img
-		src={asset("/assets/Cursors.png")}
+		src={asset("assets/Cursors.png")}
 		alt={Profession[p]}
 		style:object-position="{-x}px {-y}px"
 		class="profession-icon"

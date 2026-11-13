@@ -13,7 +13,7 @@
 	let color = $derived(bundle.color ?? 0);
 
 	// Junimo Note
-	const sheet = `url(${asset("/assets/JunimoNote.png")})`;
+	const sheet = `url(${asset("assets/JunimoNote.png")})`;
 
 	let posX = $derived(
 		`${(color % 2) * (-16 * 16) + (bundle.completed ? -224 : 0)}px`,

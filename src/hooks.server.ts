@@ -1,7 +1,7 @@
 import * as Sentry from "@sentry/sveltekit";
 import { handleErrorWithSentry, sentryHandle } from "@sentry/sveltekit";
 import { sequence } from "@sveltejs/kit/hooks";
-import { dev } from "$app/environment";
+import { dev } from "$app/env";
 
 dev ||
 	Sentry.init({

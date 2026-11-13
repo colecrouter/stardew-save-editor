@@ -1,4 +1,3 @@
-import type { Subscriber } from "svelte/store";
 import { readFileSync } from "node:fs";
 import { deserialize } from "node:v8";
 import { inject, vi } from "vitest";
@@ -9,46 +8,26 @@ import { setFixtureBaseline } from "./fixture-context.ts";
 const fixture = deserialize(readFileSync(inject("editorFixturePath")));
 setFixtureBaseline(fixture);
 
-vi.mock("$app/stores", async () => {
-	const { readable, writable } = await import("svelte/store");
-	/**
-	 * @type {import('$app/stores').getStores}
-	 */
-	const getStores = () => ({
-		navigating: readable(null),
-		page: readable({ url: new URL("http://localhost"), params: {} }),
-		session: writable(null),
-		updated: readable(false),
-	});
-	/** @type {typeof import('$app/stores').page} */
-	const page = {
-		subscribe(fn: Subscriber<{ url: URL; params: Record<string, unknown> }>) {
-			return getStores().page.subscribe(fn);
-		},
-	};
-	/** @type {typeof import('$app/stores').navigating} */
-	const navigating = {
-		subscribe(fn: Subscriber<null>) {
-			return getStores().navigating.subscribe(fn);
-		},
-	};
-	/** @type {typeof import('$app/stores').session} */
-	const session = {
-		subscribe(fn: Subscriber<null>) {
-			return getStores().session.subscribe(fn);
-		},
-	};
-	/** @type {typeof import('$app/stores').updated} */
-	const updated = {
-		subscribe(fn: Subscriber<boolean>) {
-			return getStores().updated.subscribe(fn);
-		},
-	};
-	return {
-		getStores,
-		navigating,
-		page,
-		session,
-		updated,
-	};
-});
+// Components consume Kit 3's state objects directly. Give isolated component tests
+// a stable home-page snapshot without starting the browser navigation runtime.
+vi.mock("$app/state", () => ({
+	page: {
+		url: new URL("http://localhost"),
+		params: {},
+		route: { id: "/" },
+		status: 200,
+		error: null,
+		data: {},
+		state: {},
+		form: null,
+	},
+	navigating: {
+		from: null,
+		to: null,
+		type: null,
+		delta: null,
+		willUnload: null,
+		complete: null,
+	},
+	updated: { current: false, check: async () => false },
+}));

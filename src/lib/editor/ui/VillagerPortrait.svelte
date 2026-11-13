@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { asset } from "$app/paths";
+	import { dynamicAsset } from "$lib/ui/dynamicAsset.ts";
 	let { name }: { name: string } = $props();
 	let failedName = $state<string>();
 </script>
@@ -12,7 +12,7 @@
 
 	{#key name}
 		<img
-			src={asset(`/assets/portraits/${encodeURIComponent(name)}.png`)}
+			src={dynamicAsset(`assets/portraits/${encodeURIComponent(name)}.png`)}
 			alt=""
 			loading="lazy"
 			decoding="async"

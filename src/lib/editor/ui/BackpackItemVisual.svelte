@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { asset } from "$app/paths";
+	import { dynamicAsset } from "$lib/ui/dynamicAsset.ts";
 	import type { ItemVisual } from "../item-presentation.ts";
 	import UnknownItemVisual from "./UnknownItemVisual.svelte";
 	import QualityBadge from "./QualityBadge.svelte";
@@ -51,7 +51,7 @@
 					</defs>
 				{/if}
 				<image
-					href={asset(`/assets/${drawing.sheet}`)}
+					href={dynamicAsset(`assets/${drawing.sheet}`)}
 					width={drawing.sheetSize.width}
 					height={drawing.sheetSize.height}
 					filter={layer.tint ? `url(#${id}-tint-${index})` : undefined}

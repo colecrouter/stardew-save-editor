@@ -1,11 +1,13 @@
 <script lang="ts">
-	import { asset } from "$app/paths";
+	import { dynamicAsset } from "$lib/ui/dynamicAsset.ts";
 	import type { RecipePresentation } from "../recipe-presentation.ts";
 	import UnknownItemVisual from "./UnknownItemVisual.svelte";
 	interface Props {
 		sprite?: RecipePresentation["sprite"];
 	}
 	let { sprite }: Props = $props();
+	// Resolve domain sprite references through the shared Kit asset boundary.
+	const sheetUrl = $derived(sprite ? dynamicAsset(sprite.sheet) : undefined);
 	const scale = $derived(
 		sprite ? 40 / Math.max(sprite.width, sprite.height) : 1,
 	);
@@ -22,7 +24,7 @@
 				viewBox={`${sprite.x} ${sprite.y} ${sprite.width} ${sprite.height}`}
 			>
 				<image
-					href={asset(sprite.sheet)}
+					href={sheetUrl}
 					width={sprite.sheetWidth}
 					height={sprite.sheetHeight}
 				/>

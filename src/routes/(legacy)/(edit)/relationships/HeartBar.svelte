@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { asset } from "$app/paths";
+	import { dynamicAsset } from "$lib/ui/dynamicAsset.ts";
 	import type { BabyQuestionStatus } from "$lib/babyQuestion";
 	import type { GameDate } from "$lib/calendar";
 	import type { Friendship } from "$lib/proxies/Friendship.svelte";
@@ -23,7 +23,7 @@
 	const description = $derived(Villagers.get(name)?.description);
 	// The name comes from the save and ends up in a CSS url(), so encode it
 	const portrait = $derived(
-		asset(`/assets/portraits/${encodeURIComponent(name)}.png`),
+		dynamicAsset(`assets/portraits/${encodeURIComponent(name)}.png`),
 	);
 
 	// The portrait grows to match the height of the details beside it

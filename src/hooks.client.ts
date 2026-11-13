@@ -4,7 +4,7 @@ import {
 	handleErrorWithSentry,
 	replayIntegration,
 } from "@sentry/sveltekit";
-import { dev } from "$app/environment";
+import { dev } from "$app/env";
 
 dev ||
 	Sentry.init({
@@ -40,7 +40,7 @@ dev ||
 			"Importing a module script failed.",
 		],
 
-		enableLogs: true,
+		// Sentry 11 captures explicit logger calls without an enableLogs opt-in.
 	});
 
 // If you have a custom error handler, pass it to `handleErrorWithSentry`

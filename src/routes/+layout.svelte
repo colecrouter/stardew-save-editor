@@ -26,9 +26,9 @@
 			? "width=device-width, initial-scale=1"
 			: "width=device-width, initial-scale=0.58"}
 	/>
-	<meta property="og:image" content={asset("/img/summary.png")} />
-	<link rel="icon" type="image/png" href={asset("/img/favicon.png")} />
-	<link rel="canonical" href={resolve("/")} />
+	<meta property="og:image" content={asset("img/summary.png")} />
+	<link rel="icon" type="image/png" href={asset("img/favicon.png")} />
+	<link rel="canonical" href={resolve("")} />
 </svelte:head>
 
 <!-- GITHUB LOGO -->
@@ -39,7 +39,7 @@
 	target="_blank"
 	rel="noreferrer"
 >
-	<img src={asset("/img/github.svg")} alt="GitHub Logo" />
+	<img src={asset("img/github.svg")} alt="GitHub Logo" />
 </a>
 
 <main class:calendar-workspace={page.route.id === "/"}>

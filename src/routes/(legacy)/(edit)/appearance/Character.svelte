@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { dynamicAsset } from "$lib/ui/dynamicAsset.ts";
 	import { onDestroy } from "svelte";
 	import { asset } from "$app/paths";
 	import {
@@ -30,18 +31,18 @@
 	let gender = $derived(player.gender === Gender.Male ? "male" : "female");
 
 	// Spritesheets
-	let baseSheet = $derived(asset(`/img/${gender}_farmer.png`));
-	let otherSheet = $derived(asset(`/img/${gender}_farmer_other.png`));
-	let armsSheet = $derived(asset(`/img/${gender}_farmer_arms.png`));
-	let bootsSheet = $derived(asset(`/img/${gender}_farmer_boots.png`));
+	let baseSheet = $derived(dynamicAsset(`img/${gender}_farmer.png`));
+	let otherSheet = $derived(dynamicAsset(`img/${gender}_farmer_other.png`));
+	let armsSheet = $derived(dynamicAsset(`img/${gender}_farmer_arms.png`));
+	let bootsSheet = $derived(dynamicAsset(`img/${gender}_farmer_boots.png`));
 	// const hairSheet = `${base}/assets/hairstyles.png`;
 	let hairSheet = $derived(
-		asset(`/assets/hairstyles${player.hairstyle >= 56 ? "2" : ""}.png`),
+		dynamicAsset(`assets/hairstyles${player.hairstyle >= 56 ? "2" : ""}.png`),
 	);
-	const pantsSheet = asset("/assets/pants.png");
-	const shirtSheet = asset("/assets/shirts.png");
-	const accessoriesSheet = asset("/assets/accessories.png");
-	const hatSheet = asset("/assets/hats.png");
+	const pantsSheet = asset("assets/pants.png");
+	const shirtSheet = asset("assets/shirts.png");
+	const accessoriesSheet = asset("assets/accessories.png");
+	const hatSheet = asset("assets/hats.png");
 
 	const underwear = Item.fromName("Polka Dot Shorts") as ClothingProxy;
 	const undershirt = $derived(

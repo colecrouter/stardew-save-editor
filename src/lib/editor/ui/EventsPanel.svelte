@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { asset } from "$app/paths";
+	import { dynamicAsset } from "$lib/ui/dynamicAsset.ts";
 	import { Result } from "effect";
 	import { useAtomValue } from "effect-atom-svelte";
 	import {
@@ -274,7 +274,7 @@
 						{#if grouping === "npc" && portraits.has(group.name)}
 							<span class="portrait">
 								<img
-									src={asset(`/assets/portraits/${group.name}.png`)}
+									src={dynamicAsset(`assets/portraits/${group.name}.png`)}
 									alt=""
 								/>
 							</span>

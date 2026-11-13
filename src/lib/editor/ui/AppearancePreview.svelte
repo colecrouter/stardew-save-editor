@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { asset } from "$app/paths";
+	import { dynamicAsset } from "$lib/ui/dynamicAsset.ts";
 	import type { AppearancePreviewView } from "../appearance-preview.ts";
 	interface Props {
 		preview: AppearancePreviewView;
@@ -12,10 +12,11 @@
 	     pixels, including room above the head and below the pants. -->
 	<div class="stage">
 		<div class="figure" class:female={preview.gender === "female"}>
+			<!-- Resolve root-relative domain layers through the shared Kit asset boundary. -->
 			{#each preview.layers as layer, index (index)}
 				<div
 					class={layer.part}
-					style:--sheet={`url(${asset(layer.sheet)})`}
+					style:--sheet={`url(${dynamicAsset(layer.sheet)})`}
 					style:--x={`${layer.x}px`}
 					style:--y={`${layer.y}px`}
 					style:--tint={layer.tint

@@ -3,7 +3,7 @@ import { error } from "@sveltejs/kit";
 import * as Comlink from "comlink";
 import pako from "pako";
 import { getContext, setContext } from "svelte";
-import { dev } from "$app/environment";
+import { dev } from "$app/env";
 import { BackupManager } from "$lib/BackupManager.svelte";
 import { Dispose } from "$lib/proxies";
 import { SaveProxy } from "$lib/proxies/SaveFile.svelte";

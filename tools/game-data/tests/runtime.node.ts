@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";
-import { Cause, Effect, Exit, Schema } from "effect";
+import { Cause, Effect, Exit, Fiber, Schema, SchemaIssue } from "effect";
 import * as Xml from "../../../src/lib/save-format/index.ts";
-import { attach } from "../../../src/lib/save-format/events.ts";
+import { accepted, attach } from "../../../src/lib/save-format/events.ts";
 import type { Frame } from "../../../src/lib/save-format/events.ts";
 import { XmlSchema, type Value } from "./generated/inventory.ts";
 
@@ -34,6 +34,70 @@ void test("expected XML failures remain typed and retain their field path", asyn
 				"<Root><Count>bad</Count></Root>",
 			),
 		/Root.*Count/s,
+	);
+});
+
+void test("parent completion stays deferred, repeatable and conditional on child success", async () => {
+	const calls: string[] = [];
+	const value = { count: 7 };
+	const leaf: Frame = {
+		text: () => Effect.void,
+		child: () => Effect.die("unexpected child"),
+		finish: () => {
+			calls.push("finish");
+			return Effect.succeed(value);
+		},
+	};
+	// Nested parents accept the same completed value, from inner to outer. Merely
+	// requesting completion must not read the child or mutate either parent yet.
+	const inner = accepted(leaf, (actual) => {
+		assert.equal(actual, value);
+		calls.push("inner");
+	});
+	const outer = accepted(inner, () => calls.push("outer"));
+	const completion = outer.finish();
+	assert.deepEqual(calls, []);
+	assert.equal(await Effect.runPromise(completion), value);
+	assert.equal(await Effect.runPromise(completion), value);
+	assert.deepEqual(calls, [
+		"finish",
+		"inner",
+		"outer",
+		"finish",
+		"inner",
+		"outer",
+	]);
+
+	// Failed or interrupted children must leave the parent untouched. A bug in
+	// the acceptance callback remains a defect, rather than malformed save data.
+	let acceptedCount = 0;
+	const issue = new SchemaIssue.InvalidValue({ message: "invalid child" });
+	const failed = accepted(
+		{ ...leaf, finish: () => Effect.fail(issue) },
+		() => acceptedCount++,
+	);
+	const failure = await Effect.runPromiseExit(failed.finish());
+	assert.ok(Exit.isFailure(failure));
+	assert.ok(Cause.hasFails(failure.cause));
+	assert.equal(Cause.hasDies(failure.cause), false);
+	const pending = accepted(
+		{ ...leaf, finish: () => Effect.never },
+		() => acceptedCount++,
+	);
+	const fiber = Effect.runFork(pending.finish());
+	await Effect.runPromise(Fiber.interrupt(fiber));
+	assert.equal(acceptedCount, 0);
+	const bug = new TypeError("parent acceptance bug");
+	const broken = accepted(leaf, () => {
+		throw bug;
+	});
+	const defect = await Effect.runPromiseExit(broken.finish());
+	assert.ok(Exit.isFailure(defect));
+	assert.equal(Cause.hasFails(defect.cause), false);
+	assert.ok(
+		defect.cause.reasons.some(
+			(reason) => Cause.isDieReason(reason) && reason.defect === bug,
+		),
 	);
 });
 

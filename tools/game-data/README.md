@@ -1,7 +1,7 @@
 # Game data tools
 
 A .NET 10 console tool for inspecting serialization metadata, generating typed
-codecs, reporting save coverage, and exporting unpacked assets. It operates independently
+codecs and reporting save coverage. It operates independently
 of the web application and never requires game files for normal app builds.
 
 ## Layout
@@ -10,7 +10,6 @@ of the web application and never requires game files for normal app builds.
 - `Inspection/`: installation discovery and raw assembly catalogs.
 - `Compilation/`: effective serialization contracts and TypeScript emission.
 - `Coverage/`: observed save coverage against those contracts.
-- `Assets/`: unpacker execution, asset selection, copying, and manifests.
 - `src/lib/save-format/` (repository root): browser-side codecs used by generated modules.
 - `tests/`: compiler/runtime tests, catalog fixtures, and the synthetic game assembly.
 - `scripts/`: maintenance generators such as the ordinal case table.
@@ -27,14 +26,14 @@ dotnet run --project tools/game-data -- inspect --help
 
 Arguments after `--` belong to the tool. Every command supports `--verbose`
 for detailed errors. `--version` prints the CLI version. JSON goes to stdout when
-no output file is specified; progress and external unpacker logs go to stderr.
+no output file is specified; progress goes to stderr.
 Exit codes are `0` for success, `1` for operational failure or comparison issues,
 and `2` for command-line parsing errors. An incomplete inspection still writes its
 catalog and returns `1`; inspect `diagnostics` before using it.
 
 ## Local game inputs
 
-`inspect` and `unpack` resolve the game directory in this order:
+`inspect` resolves the game directory in this order:
 
 1. `--game-path <directory-or-file>` (alias `-p`).
 2. `STARDEW_GAME_PATH`.
@@ -51,15 +50,14 @@ Prefer versioned input snapshots outside the repository:
 ```text
 ~/.local/share/stardew-save-editor/game-data/<game-version>/
   game/         # vanilla installation snapshot
-  unpacked/     # exported JSON, PNG, TMX and manifest
   catalog.json  # assembly metadata catalog
 ```
 
 The tool does not move, update, or download games. Point `STARDEW_GAME_PATH` at
 `game/`. Input/output paths remain explicit; there is no implicit latest-version
-selection. The existing repository `content/` still serves the current Node
-codegen scripts; this tool doesn't change those imports or assume the contents
-match a particular game version. Don't commit game binaries or unpacked inputs.
+selection. Asset extraction and editor catalogs are handled by the
+[direct XnbHack integration](../xnbhack/README.md), through `npm run dump`.
+Don't commit game binaries or unpacked inputs.
 
 ## Inspect
 
@@ -141,47 +139,6 @@ It does **not** establish full save validity. Scalar values, required members,
 ordering, nullability, wildcard constraints, and all serializer defaults aren't
 validated. Check `unchecked` as well as `issues`. Use a catalog from the same game
 version as the save; version differences otherwise appear as metadata gaps.
-
-## Unpack
-
-Use [StardewXnbHack](https://github.com/Pathoschild/StardewXnbHack) for the repo's
-JSON/PNG/TMX formats. Install the appropriate release and its required dependencies
-in the selected game directory according to its README. Unlike inspection, this
-external tool executes a temporary game instance and can need graphical/native
-runtime support. The extractor doesn't install or download it automatically.
-
-```bash
-dotnet run --project tools/game-data -- unpack \
-  --game-path "/path/to/Stardew Valley" \
-  --output /tmp/unpacked \
-  --asset Data/Objects --asset Portraits
-```
-
-`--unpacker <executable>` overrides the default `StardewXnbHack` executable in the
-game directory. XnbHack always generates `Content (unpacked)` there; the extractor
-then copies selected files to `--output`. Existing `Content (unpacked)` is rejected
-to avoid silently using stale exports. Move it before a fresh run, or explicitly
-reuse an existing export:
-
-```bash
-dotnet run --project tools/game-data -- unpack \
-  --unpacked-path content \
-  --output /tmp/selected-assets \
-  --asset Data/Objects
-```
-
-`--asset` accepts a relative file, extensionless asset name or directory, and is
-repeatable. Without it, all exported files are copied. Selection happens **after**
-the external tool unpacks everything. Output must be new or empty and outside the
-game/source directories. Existing files aren't overwritten. Runs have a five-minute
-external-process timeout; failed runs may leave partial files for inspection.
-
-`game-data-manifest.json` records tool version, selections, output hashes, the game
-assembly hash, and the unpacker executable hash for fresh runs. Existing exports
-are marked as having unverified game provenance. Unconverted `.xnb` files are
-listed and cause exit code `1`. Fresh runs also report packed inputs with no exported counterpart as `missingAssets`. A failed external tool or absent export also fails.
-For complete backend error details inspect its stderr logs: XnbHack can report
-individual conversion failures without setting a failing process exit code.
 
 ## Generate typed codecs
 

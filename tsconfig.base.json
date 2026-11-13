@@ -1,6 +1,6 @@
 {
 	// Shared base TypeScript options used across the project
-	// Extended by tsconfig.json (main app) and codegen/tsconfig.json (build scripts)
+	// Shared by the main application and standalone TypeScript test configurations
 	"compilerOptions": {
 		"plugins": [
 			{

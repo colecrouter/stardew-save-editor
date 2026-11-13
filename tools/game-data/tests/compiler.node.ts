@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { test } from "node:test";
@@ -94,50 +94,6 @@ test("coverage consumes the same resolved contract as generation", () => {
 		assert.deepEqual(report.files[0].issues, []);
 		assert.deepEqual(report.files[0].unchecked, []);
 		assert.ok(report.files[0].matchedElements > 0);
-	}
-});
-
-test("asset export selects files, records provenance, and refuses to overwrite", async () => {
-	const directory = await mkdtemp(join(tmpdir(), "game-data-export-"));
-	try {
-		const source = join(directory, "source"),
-			output = join(directory, "output");
-		await mkdir(join(source, "Data"), { recursive: true });
-		await writeFile(join(source, "Data/Objects.json"), '{"item":"keep"}');
-		await writeFile(join(source, "Data/Other.json"), "{}");
-		const args = [
-			"unpack",
-			"--game-path",
-			join(generated, "game"),
-			"--unpacked-path",
-			source,
-			"--asset",
-			"Data/Objects",
-			"--output",
-			output,
-		];
-		const exported = run(...args);
-		assert.equal(exported.status, 0, exported.stderr);
-		assert.equal(JSON.parse(exported.stdout).files, 1);
-		const manifest = JSON.parse(
-			await readFile(join(output, "game-data-manifest.json"), "utf8"),
-		);
-		assert.equal(manifest.sourceKind, "existing-unpacked-directory");
-		assert.equal(manifest.sourceMatchesGameVerified, false);
-		assert.deepEqual(
-			manifest.files.map((file: { path: string }) => file.path),
-			["Data/Objects.json"],
-		);
-		assert.match(manifest.files[0].sha256, /^[0-9a-f]{64}$/);
-		await assert.rejects(readFile(join(output, "Data/Other.json")));
-		assert.equal(run(...args).status, 1);
-		assert.equal(
-			await readFile(join(output, "Data/Objects.json"), "utf8"),
-			'{"item":"keep"}',
-		);
-		assert.equal(run(...args.slice(0, -1), join(source, "nested")).status, 1);
-	} finally {
-		await rm(directory, { recursive: true, force: true });
 	}
 });
 

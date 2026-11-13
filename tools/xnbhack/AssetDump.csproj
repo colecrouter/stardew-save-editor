@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <GamePath>$(STARDEW_GAME_PATH)</GamePath>
+    <RestoreLockedMode>true</RestoreLockedMode>
+    <TargetFramework>net8.0</TargetFramework>
+    <StartupObject>AssetDump.EntryPoint</StartupObject>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>annotations</Nullable>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <Version>1.1.2</Version>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Compile only the pinned unpacker sources. Do not pick up upstream test
+         programs or build outputs, or import its SMAPI-dependent project file. -->
+    <Compile Remove="tests/**/*.cs;upstream/**/*.cs" />
+    <Compile Include="upstream/StardewXnbHack/Program.cs" />
+    <Compile Include="upstream/StardewXnbHack/Framework/**/*.cs" />
+    <Compile Include="upstream/StardewXnbHack/ProgressHandling/**/*.cs" />
+    <!-- Only use the toolkit shipped in the package. Importing its build targets
+         would require SMAPI to be installed alongside the game. -->
+    <PackageReference Include="Pathoschild.Stardew.ModBuildConfig" Version="4.3.1" GeneratePathProperty="true" ExcludeAssets="all" />
+    <PackageReference Include="Pathoschild.Http.FluentClient" Version="4.4.1" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="Platonymous.TMXTile" Version="1.5.9" />
+    <Reference Include="SMAPI.Toolkit" HintPath="$(PkgPathoschild_Stardew_ModBuildConfig)/build/SMAPI.Toolkit.dll" />
+    <Reference Include="SMAPI.Toolkit.CoreInterfaces" HintPath="$(PkgPathoschild_Stardew_ModBuildConfig)/build/SMAPI.Toolkit.CoreInterfaces.dll" />
+    <Reference Include="Stardew Valley" HintPath="$(GamePath)/Stardew Valley.dll" Private="false" />
+    <Reference Include="StardewValley.GameData" HintPath="$(GamePath)/StardewValley.GameData.dll" Private="false" />
+    <Reference Include="MonoGame.Framework" HintPath="$(GamePath)/MonoGame.Framework.dll" Private="false" />
+    <Reference Include="xTile" HintPath="$(GamePath)/xTile.dll" Private="false" />
+    <Reference Include="BmFont" HintPath="$(GamePath)/BmFont.dll" Private="false" />
+  </ItemGroup>
+  <Target Name="ValidateInputs" BeforeTargets="ResolveReferences">
+    <Error Condition="!Exists('$(MSBuildProjectDirectory)/upstream/StardewXnbHack/Program.cs')" Text="Initialize XnbHack with: git submodule update --init --recursive tools/xnbhack/upstream" />
+    <Error Condition="!Exists('$(GamePath)/Stardew Valley.dll')" Text="Set STARDEW_GAME_PATH to a Stardew Valley installation containing Stardew Valley.dll." />
+  </Target>
+</Project>

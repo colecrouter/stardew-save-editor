@@ -1,5 +1,17 @@
-import type { PreserveLabel } from "./helpers.js";
 import type { TypeEnum } from "./save.js";
+
+/** The base product labels stored alongside flavored artisan goods. */
+export type PreserveLabel =
+	| "Wine"
+	| "Jelly"
+	| "Pickles"
+	| "Juice"
+	| "Roe"
+	| "Aged Roe"
+	| "Honey"
+	| "Bait"
+	| "Dried"
+	| "Smoked";
 
 export interface ItemBase {
 	_type: unknown;

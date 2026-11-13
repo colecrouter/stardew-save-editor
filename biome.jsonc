@@ -6,7 +6,12 @@
 		"useIgnoreFile": true,
 	},
 	"files": {
-		"includes": ["**", "!content", "!generated/save-format"],
+		"includes": [
+			"**",
+			"!content",
+			"!generated/save-format",
+			"!tools/xnbhack/upstream",
+		],
 	},
 	"formatter": {
 		"enabled": false,

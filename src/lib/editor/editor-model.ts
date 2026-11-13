@@ -1,4 +1,5 @@
 import { FieldValidationError } from "./field.ts";
+import { readChildren, type ChildView } from "./children-data.ts";
 import { projectReview } from "./review-projection.ts";
 import {
 	readCalendarEventContext,
@@ -119,6 +120,7 @@ interface EditorViewData {
 	readonly qiOrders: QiOrdersView;
 	readonly appearances: AppearanceView[];
 	readonly relationships: RelationshipFarmerView[];
+	readonly children: ChildView[];
 	readonly greenRain: number;
 	readonly todayOptions: WeatherChoice[];
 	readonly tomorrowOptions: WeatherChoice[];
@@ -236,6 +238,7 @@ function project(
 		qiOrders: readQiOrders(state.document),
 		appearances: readAppearances(state.document),
 		relationships: readRelationships(state.document),
+		children: readChildren(state.document),
 		greenRain: day,
 		todayOptions: today.values,
 		tomorrowOptions: tomorrow.values,

@@ -1,4 +1,5 @@
 import { savedTypeId } from "./saved-types.ts";
+import { readChildren } from "./children-data.ts";
 import { formatDate, weatherLabel } from "../calendar.ts";
 import { readCalendarView } from "./calendar-document.ts";
 import { VanillaEventsById } from "../Events.ts";
@@ -237,8 +238,30 @@ const definitions = {
 	// actual membership participates in added/removed relationship summaries.
 	relationships: {
 		label: "Relationships",
-		records: (document) =>
-			readRelationships(document)
+		records: (document) => [
+			// A resident's saved address stays stable during editing. Claim only
+			// explicit scalar leaves; linked dictionaries and opaque hats remain inspectable.
+			...readChildren(document).map((child) => ({
+				key: `child:${child.key}`,
+				subject: child.home,
+				label: "Child",
+				fields: {
+					"Child name": child.name,
+					Gender: child.gender,
+					"Dark skin": child.darkSkinned,
+					"Days old": child.daysOld,
+					"Development stage": child.stage,
+					Hat: child.hat.name,
+				},
+				paths: {
+					"Child name": [`${child.key}/name`],
+					Gender: [`${child.key}/gender`],
+					"Dark skin": [`${child.key}/darkSkinned`],
+					"Days old": [`${child.key}/daysOld`],
+					"Development stage": [`${child.key}/age`],
+				},
+			})),
+			...readRelationships(document)
 				.filter((owner) => owner.supported)
 				.flatMap((owner) => [
 					...owner.relationships
@@ -272,6 +295,7 @@ const definitions = {
 								},
 							]),
 				]),
+		],
 	},
 	quests: {
 		label: "Quest journal",

@@ -12,10 +12,12 @@
 	import RelationshipHearts from "./RelationshipHearts.svelte";
 	import RelationshipGifts from "./RelationshipGifts.svelte";
 	import PregnancyPanel from "./PregnancyPanel.svelte";
+	import ChildrenPanel from "./ChildrenPanel.svelte";
 	import { relationshipMatches } from "../relationship-gifts.ts";
 	import StudyButton from "../../ui/kit/StudyButton.svelte";
 	import StudyAlert from "../../ui/kit/StudyAlert.svelte";
 	import StudyField from "../../ui/kit/StudyField.svelte";
+	import StudyTabs from "../../ui/kit/StudyTabs.svelte";
 	interface Props {
 		model: EditorModel;
 	}
@@ -38,6 +40,13 @@
 		selected ? createRelationshipDomain(selected, model) : undefined,
 	);
 	let search = $state("");
+	let tab = $state("friendships");
+	function selectTab(value: string) {
+		// Hidden panels keep their fields and drafts. End an immediate friendship
+		// gesture before switching tabs, even when navigation occurs by keyboard.
+		void model.edits.endActive();
+		tab = value;
+	}
 	let pending = $state(false);
 	let feedback = $state<{ farmerId: string; message: string } | undefined>();
 	// Alphabetical ordering is stable across point edits and Undo. Keeping the row
@@ -76,170 +85,191 @@
 <div class="heading">
 	<div>
 		<h1>Relationships</h1>
-		<p class="intro">Friendship, familiar faces and gifts for the week.</p>
+		<p class="intro">Friendship, family and familiar faces.</p>
 	</div>
 
-	<FarmerSelector field={farmerField} />
+	{#if tab === "friendships"}
+		<FarmerSelector field={farmerField} />
+	{/if}
 </div>
 
-{#if domain?.supported}
-	<div class="toolbar">
-		<p>
-			{domain.relationships.filter((row) => row.present).length} saved relationships
+<StudyTabs
+	label="Relationship views"
+	bind:value={() => tab, selectTab}
+	items={[
+		{ value: "friendships", label: "Friendships", content: friendships },
+		{
+			value: "children",
+			label: `Children (${view.current?.children.length ?? 0})`,
+			content: children,
+		},
+	]}
+/>
+
+{#snippet children()}
+	<ChildrenPanel {model} />
+{/snippet}
+
+{#snippet friendships()}
+	{#if domain?.supported}
+		<div class="toolbar">
+			<p>
+				{domain.relationships.filter((row) => row.present).length} saved relationships
+			</p>
+
+			<div class="search">
+				<StudyField label="Search villagers or gifts">
+					{#snippet children(attributes)}
+						<input
+							{...attributes}
+							class="study-input"
+							type="search"
+							placeholder="Villager or loved gift"
+							bind:value={search}
+						/>
+					{/snippet}
+				</StudyField>
+			</div>
+		</div>
+
+		<p class="hint">
+			Hearts change friendship points without changing relationship status.
 		</p>
 
-		<div class="search">
-			<StudyField label="Search villagers or gifts">
-				{#snippet children(attributes)}
-					<input
-						{...attributes}
-						class="study-input"
-						type="search"
-						placeholder="Villager or loved gift"
-						bind:value={search}
-					/>
-				{/snippet}
-			</StudyField>
-		</div>
-	</div>
-
-	<p class="hint">
-		Hearts change friendship points without changing relationship status.
-	</p>
-
-	{#if feedback?.farmerId === domain.farmerId}
-		<StudyAlert
-			title="Relationship change unavailable"
-			tone="danger"
-			live="assertive"
-		>
-			<p>{feedback.message}</p>
-		</StudyAlert>
-	{/if}
-
-	{#key domain.farmerId}
-		{#if domain.pregnancy.kind === "player"}
-			<PregnancyPanel pregnancy={domain.pregnancy} />
+		{#if feedback?.farmerId === domain.farmerId}
+			<StudyAlert
+				title="Relationship change unavailable"
+				tone="danger"
+				live="assertive"
+			>
+				<p>{feedback.message}</p>
+			</StudyAlert>
 		{/if}
 
-		<div class="relationships">
-			{#each shown as row (row.name)}
-				<section
-					class:missing={!row.present}
-					aria-label={`${row.name} relationship`}
-				>
-					<VillagerPortrait name={row.name} />
+		{#key domain.farmerId}
+			{#if domain.pregnancy.kind === "player"}
+				<PregnancyPanel pregnancy={domain.pregnancy} />
+			{/if}
 
-					<div class="identity">
-						<h2>{row.name}</h2>
+			<div class="relationships">
+				{#each shown as row (row.name)}
+					<section
+						class:missing={!row.present}
+						aria-label={`${row.name} relationship`}
+					>
+						<VillagerPortrait name={row.name} />
 
-						<RelationshipHearts
-							points={row.points}
-							maxHearts={row.maxHearts}
-							present={row.present}
-						/>
+						<div class="identity">
+							<h2>{row.name}</h2>
 
-						{#if row.present}
-							<p class="limit">Current limit: {row.maxHearts} hearts</p>
-						{:else}
-							<p class="missing-label">Not in this farmer's save</p>
-						{/if}
-					</div>
-
-					<div class="editor">
-						<!-- Short visual labels keep the ledger compact. Native accessible
-						     names still identify the villager, and field identity/operations
-						     are unchanged. Missing rows explain their state once above. -->
-						<div class="fields">
-							<NumberField
-								field={{
-									...row.fields.hearts,
-									label: "Hearts",
-									reason: row.present ? row.fields.hearts.reason : undefined,
-								}}
-								aria-label={row.fields.hearts.label}
+							<RelationshipHearts
+								points={row.points}
+								maxHearts={row.maxHearts}
+								present={row.present}
 							/>
-							<NumberField
-								field={{
-									...row.fields.points,
-									label: "Points",
-									reason: row.present ? row.fields.points.reason : undefined,
-								}}
-								aria-label={row.fields.points.label}
-							/>
-							<NumberField
-								field={{
-									...row.fields.gifts,
-									label: "Gifts this week",
-									reason: row.present ? row.fields.gifts.reason : undefined,
-								}}
-								aria-label={row.fields.gifts.label}
-							/>
-						</div>
-					</div>
 
-					<!-- Gifts share the action row rather than stretching the narrow
-					     identity column. About remains a separate disclosure below. -->
-					<div class="row-details">
-						<RelationshipGifts name={row.name} />
-
-						<div class="membership">
 							{#if row.present}
-								<ConfirmAction
-									title={`Remove ${row.name}?`}
-									description="This removes their saved relationship, including friendship points and gift history. You can Undo this change."
-									label={`Remove ${row.name}`}
-									disabled={!row.supported || pending}
-									commit={row.remove}
-								/>
+								<p class="limit">Current limit: {row.maxHearts} hearts</p>
 							{:else}
-								<StudyButton
-									intent="constructive"
-									disabled={pending}
-									onclick={() => addVillager(row.name)}
-								>
-									Add {row.name}
-								</StudyButton>
+								<p class="missing-label">Not in this farmer's save</p>
 							{/if}
 						</div>
-					</div>
 
-					{#if Villagers.get(row.name)?.description}
-						<details class="about">
-							<summary>About {row.name}</summary>
-							<p>{Villagers.get(row.name)?.description}</p>
-						</details>
-					{/if}
-
-					{#if domain.pregnancy.kind === "villager" && domain.pregnancy.spouse === row.name}
-						<div class="family-planning">
-							<PregnancyPanel pregnancy={domain.pregnancy} />
+						<div class="editor">
+							<!-- Short visual labels keep the ledger compact. Native accessible
+						     names still identify the villager, and field identity/operations
+						     are unchanged. Missing rows explain their state once above. -->
+							<div class="fields">
+								<NumberField
+									field={{
+										...row.fields.hearts,
+										label: "Hearts",
+										reason: row.present ? row.fields.hearts.reason : undefined,
+									}}
+									aria-label={row.fields.hearts.label}
+								/>
+								<NumberField
+									field={{
+										...row.fields.points,
+										label: "Points",
+										reason: row.present ? row.fields.points.reason : undefined,
+									}}
+									aria-label={row.fields.points.label}
+								/>
+								<NumberField
+									field={{
+										...row.fields.gifts,
+										label: "Gifts this week",
+										reason: row.present ? row.fields.gifts.reason : undefined,
+									}}
+									aria-label={row.fields.gifts.label}
+								/>
+							</div>
 						</div>
-					{/if}
-				</section>
-			{:else}
-				<StudyAlert title="No villagers match your search">
-					<p>Try another name to find a relationship.</p>
-				</StudyAlert>
-			{/each}
-		</div>
-	{/key}
 
-	<small class="attribution">
-		Villager descriptions from <a href="https://stardewvalleywiki.com">
-			Stardew Valley Wiki
-		</a>
-		, licensed under
-		<a href="https://creativecommons.org/licenses/by-nc-sa/3.0/">
-			CC BY-NC-SA 3.0
-		</a>
-		.
-	</small>
-{:else}
-	<StudyAlert title="Relationships unavailable" tone="warning">
-		<p>{domain?.reason ?? "No supported farmer is available."}</p>
-	</StudyAlert>
-{/if}
+						<!-- Gifts share the action row rather than stretching the narrow
+					     identity column. About remains a separate disclosure below. -->
+						<div class="row-details">
+							<RelationshipGifts name={row.name} />
+
+							<div class="membership">
+								{#if row.present}
+									<ConfirmAction
+										title={`Remove ${row.name}?`}
+										description="This removes their saved relationship, including friendship points and gift history. You can Undo this change."
+										label={`Remove ${row.name}`}
+										disabled={!row.supported || pending}
+										commit={row.remove}
+									/>
+								{:else}
+									<StudyButton
+										intent="constructive"
+										disabled={pending}
+										onclick={() => addVillager(row.name)}
+									>
+										Add {row.name}
+									</StudyButton>
+								{/if}
+							</div>
+						</div>
+
+						{#if Villagers.get(row.name)?.description}
+							<details class="about">
+								<summary>About {row.name}</summary>
+								<p>{Villagers.get(row.name)?.description}</p>
+							</details>
+						{/if}
+
+						{#if domain.pregnancy.kind === "villager" && domain.pregnancy.spouse === row.name}
+							<div class="family-planning">
+								<PregnancyPanel pregnancy={domain.pregnancy} />
+							</div>
+						{/if}
+					</section>
+				{:else}
+					<StudyAlert title="No villagers match your search">
+						<p>Try another name to find a relationship.</p>
+					</StudyAlert>
+				{/each}
+			</div>
+		{/key}
+
+		<small class="attribution">
+			Villager descriptions from <a href="https://stardewvalleywiki.com">
+				Stardew Valley Wiki
+			</a>
+			, licensed under
+			<a href="https://creativecommons.org/licenses/by-nc-sa/3.0/">
+				CC BY-NC-SA 3.0
+			</a>
+			.
+		</small>
+	{:else}
+		<StudyAlert title="Relationships unavailable" tone="warning">
+			<p>{domain?.reason ?? "No supported farmer is available."}</p>
+		</StudyAlert>
+	{/if}
+{/snippet}
 
 <style>
 	.heading {

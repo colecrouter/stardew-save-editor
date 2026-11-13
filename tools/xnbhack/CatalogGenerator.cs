@@ -75,6 +75,9 @@ internal sealed partial class CatalogGenerator(string content, string generated,
         Write("cookingrecipes", Entries(cooking).Select(p => p.Key));
         Write("cookingrecipeoutputs", new JObject(Entries(cooking).Select(p => new JProperty(p.Key, CookingOutput(p.Key, Text(p.Value))))));
         Write("craftingrecipes", Entries(Read("Data/CraftingRecipes")).Select(p => p.Key));
+        // Birth naming reserves all character-data keys, including characters
+        // absent from the save and those outside the social-page villager list.
+        Write("character-names", Entries(Read("Data/Characters")).Select(p => p.Key).Order(StringComparer.Ordinal));
         Write("quests", Entries(Read("Data/Quests")).Select(p => ParseQuest(p.Key, Text(p.Value))).OfType<JObject>());
         Write("qiquests", SpecialOrders(Read("Data/SpecialOrders"), Read("Strings/SpecialOrderStrings")));
         // Building dimensions come from the selected texture copies; weather

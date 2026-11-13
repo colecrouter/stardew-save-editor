@@ -13,12 +13,12 @@ jobs:
   game-data:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: npm
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: "10.0.x"
       - run: npm ci
@@ -29,8 +29,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: "npm"
@@ -41,8 +41,8 @@ jobs:
   engine:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: npm
@@ -60,8 +60,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: npm
@@ -71,15 +71,15 @@ jobs:
       - name: Verify save processing in a real browser
         shell: bash
         run: |
-          # Own Vite directly so the cleanup trap terminates the server itself.
-          node node_modules/vite/bin/vite.js preview --host 127.0.0.1 --port 4269 --strictPort > "$RUNNER_TEMP/preview.log" 2>&1 &
+          # Own the process group so cleanup stops both Vite+ and its preview server.
+          setsid ./node_modules/.bin/vp preview --host 127.0.0.1 --port 4269 --strictPort > "$RUNNER_TEMP/preview.log" 2>&1 &
           preview_pid=$!
-          trap 'kill "$preview_pid" 2>/dev/null || true' EXIT
+          trap 'kill -- "-$preview_pid" 2>/dev/null || true' EXIT
           curl --retry 30 --retry-delay 1 --retry-connrefused --retry-max-time 30 --max-time 2 --fail --silent --output /dev/null http://127.0.0.1:4269/stardew-save-editor/
           npm run test:browser:save-processing -- --output "$RUNNER_TEMP/save-processing.json"
       - name: Preserve browser regression evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: save-processing-browser
           path: |

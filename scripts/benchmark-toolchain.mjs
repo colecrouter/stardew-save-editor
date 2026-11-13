@@ -17,7 +17,7 @@ const commands = [
 	[
 		"types",
 		migrated
-			? "npm run check:types && node node_modules/@typescript/native/bin/tsc --noEmit -p tsconfig.tests.json"
+			? "npm run check:types && node node_modules/@typescript/native/bin/tsc --noEmit -p tsconfig.tests.json && npm run check:tooling"
 			: "npm run check:types",
 	],
 	[

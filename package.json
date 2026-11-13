@@ -28,7 +28,8 @@
 		"lint": "vp lint",
 		"check:tests": "node node_modules/@typescript/native/bin/tsc --noEmit -p tsconfig.tests.json && svelte-check --tsgo --tsconfig ./tsconfig.tests.json",
 		"check:tooling": "node node_modules/@typescript/native/bin/tsc --noEmit -p tsconfig.node.json",
-		"effect:diagnostics:tests": "effect-tsgo diagnostics --project tsconfig.tests.json"
+		"effect:diagnostics:tests": "effect-tsgo diagnostics --project tsconfig.tests.json",
+		"benchmark:toolchain": "node scripts/benchmark-toolchain.mjs"
 	},
 	"devDependencies": {
 		"@effect/language-service": "0.87.5",
@@ -47,7 +48,7 @@
 		"@vitejs/plugin-legacy": "^8.2.4",
 		"@vitest/web-worker": "5.1.0",
 		"comlink": "^4.4.2",
-		"core-js": "3.46.0",
+		"core-js": "3.51.0",
 		"fast-xml-parser": "^5.12.0",
 		"happy-dom": "^21.0.4",
 		"idb": "^8.0.4",
@@ -82,10 +83,8 @@
 		"@effect/platform-browser": "4.0.6"
 	},
 	"allowScripts": {
-		"@sentry/cli@2.58.5": true,
-		"core-js@3.46.0": true,
-		"esbuild@0.25.11": true,
-		"esbuild@0.27.7": true
+		"core-js@3.51.0": true,
+		"esbuild@0.28.2": true
 	},
 	"overrides": {
 		"@effect/platform-node-shared": "4.0.6",

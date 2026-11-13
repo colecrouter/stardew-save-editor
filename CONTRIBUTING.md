@@ -164,7 +164,7 @@ compiler SDK intentionally point to different installations.
 
 The browser baseline includes Safari/iOS 15.4 and native `structuredClone`.
 `npm ci`/`npm install` runs `patch-package --error-on-fail` to apply
-`patches/core-js+3.46.0.patch`, adjusting core-js 3.46.0's
+`patches/core-js+3.51.0.patch`, adjusting core-js 3.51.0's
 replacement policy: lack of proposed AggregateError serialization alone must not
 replace native cloning. Loss of core-js-added DOMException stacks is also accepted.
 Ordinary Error stacks, DOMException types/shared references, and the missing-native

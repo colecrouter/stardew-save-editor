@@ -3,7 +3,7 @@
 - `npm run test:asset-dump`: catalog extraction regressions and filesystem publication/rollback
   for the .NET generator; no game installation or graphics device required.
 - `npm test`: application/domain/component and retained legacy regressions (Vite+ Vitest 5,
-  happy-dom). Files named `e2e` here are integration tests, not real-browser tests.
+  Node by default, happy-dom for `*.svelte.test.ts`). Files named `e2e` here are integration tests, not real-browser tests.
 - `npm run test:editor`: the narrower application editor suite.
 - `npm run test:game-data`: .NET 10 inspection/generation, generated-module
   type checks, XML codec behavior, and synthetic XmlSerializer interoperability.
@@ -25,6 +25,14 @@ application code; `tsconfig.tests.json`
 adds the test environment without introducing Node globals into the app scope.
 `tsconfig.node.json` covers build and development tooling. The independent engine
 runner keeps `tests/engine/tsconfig.json`.
+
+The root runner defines `node` and `svelte` projects. Node retains Vitest's default
+test discovery, including colocated tests and `.spec.ts` files; Svelte rendering
+tests are excluded from Node and selected by their `.svelte.test.ts` suffix. Use `npm test -- --project node`
+or `npm test -- --project svelte` to run one environment. DOM event tests that do
+not render Svelte may use an explicit `@vitest-environment happy-dom` directive.
+Both projects load the decoded fixture baseline; only the Svelte project installs
+component cleanup, browser-worker simulation, and Kit page-state mocks.
 
 Shared fixture builders live in `tests/helpers/editor-document.ts`; Vite and Node
 retain separate public-save loaders. The application runner decodes the public save

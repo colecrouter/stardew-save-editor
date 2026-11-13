@@ -85,7 +85,7 @@ export function inventory(state: HistoryState, farmerId: string): ItemView[] {
 		(farmer) => String(farmer.UniqueMultiplayerID) === farmerId,
 	);
 	return (farmer?.items ?? []).map((raw, slot) => {
-		const item = record(raw) ? raw : {};
+		const item: Record<string, unknown> = record(raw) ? raw : {};
 		return {
 			entityId: state.identities[farmerId]?.[slot] ?? "",
 			slot,

@@ -33,6 +33,7 @@
 	},
 	"devDependencies": {
 		"@effect/language-service": "0.87.5",
+		"@effect/platform-node": "4.0.6",
 		"@effect/tsgo": "0.68.1",
 		"@sentry/sveltekit": "^11.12.0",
 		"@sveltejs/adapter-static": "^4.0.1",
@@ -49,7 +50,6 @@
 		"@vitest/web-worker": "5.1.0",
 		"comlink": "^4.4.2",
 		"core-js": "3.51.0",
-		"fast-xml-parser": "^5.12.0",
 		"happy-dom": "^21.0.4",
 		"idb": "^8.0.4",
 		"image-dimensions": "^2.6.0",
@@ -63,10 +63,9 @@
 		"typescript": "6.0.3",
 		"vite": "npm:@voidzero-dev/vite-plus-core@1.6.0",
 		"vite-plugin-sveltekit-legacy": "^0.1.1",
+		"vite-plus": "1.6.0",
 		"vitest": "5.1.0",
-		"vitest-indexeddb": "^0.0.2",
-		"@effect/platform-node": "4.0.6",
-		"vite-plus": "1.6.0"
+		"vitest-indexeddb": "^0.0.2"
 	},
 	"optionalDependencies": {
 		"playwright": "^1.65.0"
@@ -76,11 +75,11 @@
 		"node": ">=24.11 <25"
 	},
 	"dependencies": {
+		"@effect/platform-browser": "4.0.6",
 		"bits-ui": "2.21.0",
 		"effect": "4.0.6",
 		"effect-atom-svelte": "0.4.1",
-		"mutative": "2.0.2",
-		"@effect/platform-browser": "4.0.6"
+		"mutative": "2.0.2"
 	},
 	"allowScripts": {
 		"core-js@3.51.0": true,

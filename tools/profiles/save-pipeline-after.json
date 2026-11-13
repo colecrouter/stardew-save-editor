@@ -1,0 +1,81 @@
+{
+	"fixtureSha256": "16f6dfe6a94d84f7a3c36e26850b0efc9bfb72ddd1261857d1bab57a0529aae9",
+	"sourceSha256": {
+		"src/lib/save-format/xml.ts": "09f7b08e9e567343789908360799463e801173657702826c818ef627ba8a6162",
+		"src/lib/save-format/events.ts": "80dba8e698cb41f4f631597b2a5831aed3bc7b06011f6432d635f2bde5261cde",
+		"src/lib/save-format/values.ts": "31cb3f51c9ba16e2f433e5c06aead6ee8c110f228aa4e8afd317f850f24663ed",
+		"src/lib/save-format/objects.ts": "bba9f361a7d17b8dd14565a9f2a68c55bb2bb7ba11b9c1adf3beb2d138615c89",
+		"src/lib/xmlCodec.ts": "c79bef22f509419c8413d9312ee0dbf22c6d2565990792fe073c58407ec58a5d",
+		"src/lib/xmlObject.ts": "4d24586c1fe6792fca50135ea5e07b3bb87a9f754fef04b9ada562824a5c93d8",
+		"src/lib/editor/save-service.ts": "daba27f3a2ac00dee0f998d38ad31b9453c839bc26d34d0a36d23d252d90ed92",
+		"src/lib/editor/save-processing.ts": "4a0ed4a9762ae02953e9dad803054285870bf79a2e2bed7253fbe0973e25629f",
+		"src/lib/editor/editor-model.ts": "4d029e39805b83c15d2f20df8c5f0519d50803a7c4ba43f69c360dc65b18722a",
+		"generated/save-format/save.ts": "0a64048dd785be3bc69e26d033481a35b2f9e1d587163f7356a0d86e5c626fe5"
+	},
+	"node": "v24.22.3",
+	"cpu": "Intel(R) Core(TM) i7-2600K CPU @ 3.40GHz",
+	"samples": 3,
+	"results": {
+		"public": {
+			"xmlBytes": 6652242,
+			"compressedBytes": 159070,
+			"stages": {
+				"utf8": {
+					"medianMs": 4.721760999999788,
+					"minMs": 4.150424999999814,
+					"maxMs": 5.644367999999304
+				},
+				"inflate": {
+					"medianMs": 40.90354699999989,
+					"minMs": 37.48016199999984,
+					"maxMs": 49.689862999999605
+				},
+				"effectXmlScan": {
+					"medianMs": 134.96429999999964,
+					"minMs": 132.48397399999976,
+					"maxMs": 137.17161299999952
+				},
+				"typedDecode": {
+					"medianMs": 4332.433870000001,
+					"minMs": 4242.645296000001,
+					"maxMs": 4401.098725000002
+				},
+				"typedValueValidation": {
+					"medianMs": 139.4838970000019,
+					"minMs": 122.21524399999907,
+					"maxMs": 141.63507300000128
+				},
+				"typedEncode": {
+					"medianMs": 1020.8275780000004,
+					"minMs": 1002.708966000002,
+					"maxMs": 1033.475939
+				},
+				"structuredClone": {
+					"medianMs": 33.49390999999741,
+					"minMs": 27.06981099999757,
+					"maxMs": 34.33013299999948
+				},
+				"legacyParse": {
+					"medianMs": 457.57864199999676,
+					"minMs": 426.4575640000003,
+					"maxMs": 524.0824809999976
+				},
+				"legacyBuild": {
+					"medianMs": 482.94406600000366,
+					"minMs": 478.70467599999756,
+					"maxMs": 499.777646999999
+				},
+				"currentOpen": {
+					"medianMs": 4262.337086000007,
+					"minMs": 4196.132626999999,
+					"maxMs": 4323.487800999996
+				},
+				"currentExport": {
+					"medianMs": 5201.189765000003,
+					"minMs": 5171.507564,
+					"maxMs": 5340.559466999999
+				}
+			}
+		}
+	}
+}

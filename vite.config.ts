@@ -133,13 +133,7 @@ export default defineConfig(({ mode }) => ({
 		},
 	},
 	optimizeDeps: {
-		include: [
-			"idb",
-			"@thisux/sveltednd",
-			"comlink",
-			"fast-xml-parser",
-			"@sentry/sveltekit",
-		],
+		include: ["idb", "@thisux/sveltednd", "comlink", "@sentry/sveltekit"],
 	},
 	test: {
 		css: true,

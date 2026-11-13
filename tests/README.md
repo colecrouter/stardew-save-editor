@@ -129,3 +129,9 @@ checks the anchor fallback, editing/history and reimport at four viewport sizes.
 Component coverage in `tests/editor/import-loading.svelte.test.ts` also cancels
 while the processing layer is still acquiring, verifies resource release, and
 opens the same file again successfully.
+
+For the focused upload/export CPU audit, run
+`node --import tsx tools/profile-save-pipeline.mts /tmp/save-pipeline.json`
+separately from tests/builds. It warms each probe and records three samples on
+the committed public save. See [the pipeline audit](../tools/save-pipeline.md)
+for the current-main baseline, stage costs, parser findings and worker limits.

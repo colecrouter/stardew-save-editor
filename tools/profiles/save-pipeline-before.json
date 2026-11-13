@@ -1,0 +1,70 @@
+{
+	"sourceRevision": "60689e1",
+	"legacyParser": "fast-xml-parser@5.12.0",
+	"node": "v24.22.3",
+	"cpu": "Intel(R) Core(TM) i7-2600K CPU @ 3.40GHz",
+	"samples": 3,
+	"results": {
+		"public": {
+			"xmlBytes": 6652242,
+			"compressedBytes": 159070,
+			"stages": {
+				"utf8": {
+					"medianMs": 5.094830000000002,
+					"minMs": 4.81078399999933,
+					"maxMs": 5.503397000000405
+				},
+				"inflate": {
+					"medianMs": 37.72960899999998,
+					"minMs": 36.071358999999575,
+					"maxMs": 37.74958299999889
+				},
+				"effectXmlScan": {
+					"medianMs": 123.49206000000049,
+					"minMs": 118.50382499999978,
+					"maxMs": 140.54901600000085
+				},
+				"typedDecode": {
+					"medianMs": 5862.930947000001,
+					"minMs": 5749.756851999999,
+					"maxMs": 6232.352391999999
+				},
+				"typedValueValidation": {
+					"medianMs": 156.72463200000493,
+					"minMs": 125.14643600000272,
+					"maxMs": 158.59163699999772
+				},
+				"typedEncode": {
+					"medianMs": 954.7611200000028,
+					"minMs": 952.7460050000009,
+					"maxMs": 989.0397099999973
+				},
+				"structuredClone": {
+					"medianMs": 26.55372100000386,
+					"minMs": 24.122913999999582,
+					"maxMs": 28.941790999997465
+				},
+				"legacyParse": {
+					"medianMs": 1491.065552,
+					"minMs": 1461.2252730000037,
+					"maxMs": 1590.369713
+				},
+				"legacyBuild": {
+					"medianMs": 304.53887699999905,
+					"minMs": 300.9561440000034,
+					"maxMs": 332.26958800000284
+				},
+				"currentOpen": {
+					"medianMs": 5862.175401,
+					"minMs": 5831.103389999997,
+					"maxMs": 5883.9730930000005
+				},
+				"currentExport": {
+					"medianMs": 6729.514171999996,
+					"minMs": 6534.3241689999995,
+					"maxMs": 6955.953483999998
+				}
+			}
+		}
+	}
+}

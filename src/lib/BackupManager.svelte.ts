@@ -1,9 +1,11 @@
 import {
 	restoreOriginal,
 	serializeOriginal,
+	storedOriginalSchema,
 	type StoredOriginal,
 } from "./saveBackups";
 import { openDB } from "idb";
+import { Schema } from "effect";
 import {
 	getToastManager,
 	Toast,
@@ -12,25 +14,10 @@ import {
 
 const BACKUP_LIMIT = 5;
 
-interface SerializedFile extends StoredOriginal {
-	name: string;
-	data: string;
-	lastModified: number;
-	size: number;
-	type: string;
-}
-
-const isSerializedFile = (obj: unknown): obj is SerializedFile =>
-	typeof obj === "object" &&
-	obj !== null &&
-	"name" in obj &&
-	"data" in obj &&
-	"lastModified" in obj &&
-	"size" in obj &&
-	"type" in obj;
-
-const isSerializedFileArray = (obj: unknown): obj is Array<SerializedFile> =>
-	Array.isArray(obj) && obj.every(isSerializedFile);
+// Stored metadata is untrusted; checking property presence alone would still
+// accept invalid field types and manufacture a wrongly typed File.
+const isSerializedFileArray = (obj: unknown): obj is StoredOriginal[] =>
+	Array.isArray(obj) && obj.every(Schema.is(storedOriginalSchema));
 
 /**
  * Manages backup save files using IndexedDB for storage.
@@ -42,6 +29,9 @@ export class BackupManager {
 	readonly limit: number;
 	private toast?: ToastManager;
 	private disabled: boolean;
+	private loaded = $state(false);
+	private pendingWrite = Promise.resolve();
+	private persisted = new Map<File, IDBValidKey>();
 
 	constructor(limit = BACKUP_LIMIT) {
 		this.files = $state([]);
@@ -55,40 +45,60 @@ export class BackupManager {
 		}
 
 		$effect(() => {
-			if (!this.disabled) return;
+			// Do not overwrite persisted backups with the initial empty state, and
+			// never retry writes after storage has been disabled.
+			if (!this.loaded || this.disabled) return;
 
 			// Limit the number of backups
 			this.files.length = Math.min(this.files.length, this.limit);
 
-			// Save the files when backups change
-			this.save();
+			// Capture each revision before awaiting I/O, then write in order so an
+			// older slow file read cannot replace a newer backup list.
+			const files = Array.from(this.files);
+			this.pendingWrite = this.pendingWrite.then(() => this.save(files));
 		});
 
-		this.load();
+		// load/save contain their error reporting because effects cannot await them.
+		void this.load();
 	}
 
 	/**
 	 * Populates the backup manager from IndexedDB.
 	 *
-	 * If any invalid data/errors are encountered, the database is cleared.
+	 * Invalid/unreadable archives disable writes while retaining persisted data.
 	 */
 	private async load() {
-		// Get the backup files from local storage
-		const db = await openDB("backups", 1, {
-			upgrade: (db) => db.createObjectStore("files", { autoIncrement: true }),
-		});
-
+		// Opening IndexedDB can fail before a connection exists (for example,
+		// private browsing). Keep that failure within the same reporting boundary.
+		let db: Awaited<ReturnType<typeof openDB>> | undefined;
 		try {
-			const backupFiles = await db.getAll("files");
+			db = await openDB("backups", 1, {
+				upgrade: (db) => db.createObjectStore("files", { autoIncrement: true }),
+			});
+			// Values and keys must come from one snapshot even if another editor
+			// appends an original while this manager is loading.
+			const transaction = db.transaction("files");
+			const [backupFiles, keys] = await Promise.all([
+				transaction.store.getAll(),
+				transaction.store.getAllKeys(),
+			]);
 			if (!isSerializedFileArray(backupFiles)) throw new Error("Invalid data");
 
 			const newFiles: File[] = [];
-			for (const file of backupFiles) newFiles.unshift(restoreOriginal(file));
-			this.files = newFiles;
+			for (const [index, stored] of backupFiles.entries()) {
+				const file = restoreOriginal(stored);
+				newFiles.unshift(file);
+				const key = keys[index];
+				if (key === undefined) throw new Error("Backup record has no key");
+				this.persisted.set(file, key);
+			}
+			// Imports can arrive while IndexedDB opens. Keep those newly added
+			// originals ahead of the previously persisted entries.
+			this.files = [...this.files, ...newFiles];
 		} catch (e) {
-			// Empty the database, clear the files
-			await db.clear("files").catch(() => {});
-			this.files = [];
+			// A failed read is not permission to erase the archive. Keep stored bytes
+			// and any import already in memory, then disable destructive replacement.
+			this.disabled = true;
 
 			if (!(e instanceof Error)) return;
 
@@ -106,6 +116,9 @@ export class BackupManager {
 			this.toast?.add(new Toast(msg, "failure"));
 
 			console.warn(new Error("Failed to load backups", { cause: e }));
+		} finally {
+			db?.close();
+			this.loaded = true;
 		}
 	}
 
@@ -115,18 +128,50 @@ export class BackupManager {
 	 * This is triggered via `$effect` when `this.files` updates.
 	 * If any errors occur during saving, a toast notification is triggered.
 	 */
-	private async save() {
-		const serializedFiles: SerializedFile[] = [];
-
-		// Iterate through our updated
-		for (const file of this.files)
-			serializedFiles.unshift(await serializeOriginal(file));
-
+	private async save(files: readonly File[]) {
+		let db: Awaited<ReturnType<typeof openDB>> | undefined;
 		try {
-			const db = await openDB("backups", 1);
-			await db.clear("files").catch(() => {});
-			for (const file of serializedFiles) {
-				await db.add("files", file);
+			// This store is shared with the v2 editor. Only delete keys this manager
+			// loaded or created, and never rewrite retained records or clear the store.
+			const removed = [...this.persisted].filter(
+				([file]) => !files.includes(file),
+			);
+			const added = files.filter((file) => !this.persisted.has(file)).reverse();
+			if (!removed.length && !added.length) return;
+			// File reads happen before opening a write transaction. A rejected read
+			// leaves the archive untouched and cannot outlive an IDB transaction.
+			const serialized = await Promise.all(
+				added.map(async (file) => ({
+					file,
+					stored: await serializeOriginal(file),
+				})),
+			);
+			db = await openDB("backups", 1);
+			const transaction = db.transaction("files", "readwrite");
+			try {
+				const [keys] = await Promise.all([
+					Promise.all(
+						serialized.map(async ({ file, stored }) => ({
+							file,
+							key: await transaction.store.add(stored),
+						})),
+					),
+					Promise.all(removed.map(([, key]) => transaction.store.delete(key))),
+					transaction.done,
+				]);
+				// Publish ownership only after commit; a failed transaction can be retried.
+				for (const [file] of removed) this.persisted.delete(file);
+				for (const { file, key } of keys) this.persisted.set(file, key);
+			} catch (error) {
+				// Request creation can throw synchronously too. Explicitly abort so
+				// other queued additions/deletions cannot commit a partial revision.
+				try {
+					transaction.abort();
+				} catch {
+					/* Already aborted by IndexedDB. */
+				}
+				await transaction.done.catch(() => {});
+				throw error;
 			}
 		} catch (e) {
 			// Generate a consistent error message based on error
@@ -144,6 +189,8 @@ export class BackupManager {
 			} finally {
 				console.error(new Error("Failed to save backups", { cause: e }));
 			}
+		} finally {
+			db?.close();
 		}
 	}
 }

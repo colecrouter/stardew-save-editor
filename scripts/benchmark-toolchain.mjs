@@ -10,6 +10,8 @@ const manifest = JSON.parse(readFileSync("package.json", "utf8"));
 const migrated = Boolean(manifest.devDependencies["vite-plus"]);
 const output = resolve(process.argv[2] ?? "/tmp/stardew-toolchain-benchmark");
 mkdirSync(output, { recursive: true });
+// Each benchmark entry pairs a stable log name with its shell command.
+/** @type {Array<[string, string]>} */
 const commands = [
 	["lint", migrated ? "npm run lint" : "npx --no-install biome lint ."],
 	[

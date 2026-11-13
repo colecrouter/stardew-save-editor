@@ -1,6 +1,8 @@
 {
 	// Shared base TypeScript options used across the project
-	// Shared by the main application and standalone TypeScript test configurations
+	// Extended by the app, component-test, Node-tooling and game-data scopes.
+	// Each scope chooses ambient packages through types; default package lookup
+	// lets Kit 3 resolve its generated node_modules/$app/types declarations.
 	"compilerOptions": {
 		"plugins": [
 			{
@@ -19,7 +21,6 @@
 		"skipLibCheck": true,
 		"sourceMap": true,
 		"strict": true,
-		"typeRoots": ["./node_modules/@types", "./node_modules/@total-typescript"],
 		"noUncheckedIndexedAccess": true
 	}
 }

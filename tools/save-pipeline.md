@@ -114,3 +114,8 @@ suite. Browser file IO, worker startup/messaging, backup storage, rendering and
 download UI are excluded. Neither the legacy parse row nor the model-open row is
 a complete browser UI benchmark. Actual worker transport cannot explain the
 multi-second difference between raw scanning and typed decoding measured here.
+
+The follow-up [scalar decoder audit](scalar-decoder-audit.md) profiles the remaining
+per-field Effect work and compares cached helpers with direct issue-returning
+scalar decoders. Its native-Node measurements use a different harness and should
+be compared within that experiment.

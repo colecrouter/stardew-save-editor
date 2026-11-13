@@ -1,0 +1,99 @@
+{
+	"baselineCommit": "f4a354aa756da8a90b87680dc103c27ec094eeca",
+	"node": "v24.22.3",
+	"fixtureBytes": 6652242,
+	"profileSelfSamples": {
+		"typedReader": 1268,
+		"effectRuntime": 1247,
+		"garbageCollection": 223,
+		"xmlScanner": 103,
+		"other": 398
+	},
+	"variants": {
+		"baseline": {
+			"samples": [
+				{
+					"node": "v24.22.3",
+					"decodeMs": 4027.731704,
+					"encodeMs": 1115.9492439999995,
+					"peakRssKiB": 545080
+				},
+				{
+					"node": "v24.22.3",
+					"decodeMs": 3985.9582680000003,
+					"encodeMs": 1029.0973809999996,
+					"peakRssKiB": 543208
+				},
+				{
+					"node": "v24.22.3",
+					"decodeMs": 4030.053165,
+					"encodeMs": 1064.8904840000005,
+					"peakRssKiB": 544144
+				}
+			],
+			"medianDecodeMs": 4027.731704,
+			"medianEncodeMs": 1064.8904840000005,
+			"medianPeakRssMiB": 531.390625
+		},
+		"cached": {
+			"samples": [
+				{
+					"node": "v24.22.3",
+					"decodeMs": 3765.258503,
+					"encodeMs": 1043.453979,
+					"peakRssKiB": 557648
+				},
+				{
+					"node": "v24.22.3",
+					"decodeMs": 4027.375107,
+					"encodeMs": 1103.9524810000003,
+					"peakRssKiB": 557880
+				},
+				{
+					"node": "v24.22.3",
+					"decodeMs": 4052.6872040000003,
+					"encodeMs": 1025.2046019999998,
+					"peakRssKiB": 558264
+				}
+			],
+			"medianDecodeMs": 4027.375107,
+			"medianEncodeMs": 1043.453979,
+			"medianPeakRssMiB": 544.8046875
+		},
+		"direct": {
+			"samples": [
+				{
+					"node": "v24.22.3",
+					"decodeMs": 3607.7529699999996,
+					"encodeMs": 1003.0956299999998,
+					"peakRssKiB": 562876
+				},
+				{
+					"node": "v24.22.3",
+					"decodeMs": 4059.358608,
+					"encodeMs": 1150.0230849999998,
+					"peakRssKiB": 555388
+				},
+				{
+					"node": "v24.22.3",
+					"decodeMs": 3719.512487,
+					"encodeMs": 1081.0316999999995,
+					"peakRssKiB": 558280
+				}
+			],
+			"medianDecodeMs": 3719.512487,
+			"medianEncodeMs": 1081.0316999999995,
+			"medianPeakRssMiB": 545.1953125
+		}
+	},
+	"operationCounts": {
+		"opens": 176513,
+		"scalarFrames": 95688,
+		"scalarText": 95586,
+		"scalarFinishes": 95688,
+		"decodeValues": 95688,
+		"acceptedFrames": 119975,
+		"acceptedFinishes": 119975,
+		"textCodecs": 6748
+	}
+}

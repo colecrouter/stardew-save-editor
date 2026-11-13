@@ -11,10 +11,10 @@ import {
 import type { ParentIndex } from "$lib/ItemParentIndex";
 import { Color } from "$lib/proxies/Color.svelte";
 import { Sprite } from "$lib/Sprite.svelte";
-import type { PreserveLabel } from "$types/helpers";
 import {
 	FurnitureType,
 	type ItemInformation,
+	type PreserveLabel,
 	ObjectCategory,
 	type ToolClass,
 } from "$types/items";

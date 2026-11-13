@@ -1,5 +1,7 @@
 # Tests
 
+- `npm run test:asset-dump`: catalog extraction regressions and filesystem publication/rollback
+  for the .NET generator; no game installation or graphics device required.
 - `npm test`: application/domain/component and retained legacy regressions (Vitest,
   happy-dom). Files named `e2e` here are integration tests, not real-browser tests.
 - `npm run test:editor`: the narrower application editor suite.

@@ -25,7 +25,6 @@
 		"src/**/*.svelte",
 		"tests/**/*.js",
 		"tests/**/*.ts",
-		"tests/**/*.svelte",
-		"codegen/**/*.d.ts"
+		"tests/**/*.svelte"
 	]
 }

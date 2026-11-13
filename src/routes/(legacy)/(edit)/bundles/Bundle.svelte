@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { asset } from "$app/paths";
 	import type { Bundle } from "$lib/proxies/CommunityBundles.svelte";
-	import { colorMap } from "$types/colors";
+	import { colorMap } from "$lib/itemColors";
 	import BundleItem from "./BundleItem.svelte";
 
 	interface Props {

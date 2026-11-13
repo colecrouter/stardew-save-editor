@@ -16,3 +16,8 @@ vite.config.ts.timestamp-*
 content
 # Sentry Config File
 .env.sentry-build-plugin
+
+# Local asset-unpacking builds and staging directories
+/.cache/xnbhack/
+/tools/xnbhack/**/bin/
+/tools/xnbhack/**/obj/

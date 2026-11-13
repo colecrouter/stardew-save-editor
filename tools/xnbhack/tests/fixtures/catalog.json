@@ -1,0 +1,2185 @@
+[
+	{
+		"name": "building upgrade data: maps the fields an upgrade uses",
+		"op": "getBuildingUpgradeData",
+		"args": [
+			{
+				"BuildingToUpgrade": "Coop",
+				"ValidOccupantTypes": ["Coop"],
+				"HumanDoor": {
+					"X": 1,
+					"Y": 2
+				},
+				"AnimalDoor": {
+					"X": 2,
+					"Y": 2,
+					"Width": 1,
+					"Height": 1
+				},
+				"IndoorItems": [
+					{
+						"Id": "Default_Incubator",
+						"ItemId": "(BC)101",
+						"Tile": {
+							"X": 2,
+							"Y": 3
+						},
+						"Indestructible": true,
+						"ClearTile": true
+					}
+				],
+				"IndoorItemMoves": [
+					{
+						"Id": "Default_ClearSpot_EggIncubator",
+						"Source": {
+							"X": 2,
+							"Y": 3
+						},
+						"Destination": {
+							"X": 14,
+							"Y": 8
+						},
+						"Size": {
+							"X": 1,
+							"Y": 1
+						},
+						"UnlessItemId": "(BC)101"
+					},
+					{
+						"Id": "Default_KeepAlongWall",
+						"Source": {
+							"X": 16,
+							"Y": 4
+						},
+						"Destination": {
+							"X": 20,
+							"Y": 4
+						},
+						"Size": {
+							"X": 1,
+							"Y": 9
+						},
+						"UnlessItemId": null
+					}
+				],
+				"AddMailOnBuild": ["incubator"]
+			}
+		],
+		"expected": {
+			"buildingToUpgrade": "Coop",
+			"validOccupantTypes": ["Coop"],
+			"humanDoor": {
+				"X": 1,
+				"Y": 2
+			},
+			"animalDoor": {
+				"X": 2,
+				"Y": 2
+			},
+			"indoorItems": [
+				{
+					"id": "Default_Incubator",
+					"itemId": "(BC)101",
+					"tile": {
+						"X": 2,
+						"Y": 3
+					},
+					"indestructible": true
+				}
+			],
+			"indoorItemMoves": [
+				{
+					"source": {
+						"X": 2,
+						"Y": 3
+					},
+					"destination": {
+						"X": 14,
+						"Y": 8
+					},
+					"unlessItemId": "(BC)101"
+				},
+				{
+					"source": {
+						"X": 16,
+						"Y": 4
+					},
+					"destination": {
+						"X": 20,
+						"Y": 4
+					},
+					"size": {
+						"X": 1,
+						"Y": 9
+					}
+				}
+			],
+			"addMailOnBuild": ["incubator"]
+		}
+	},
+	{
+		"name": "building upgrade data: leaves out what a building doesn't have",
+		"op": "getBuildingUpgradeData",
+		"args": [
+			{
+				"BuildingToUpgrade": null,
+				"ValidOccupantTypes": [],
+				"HumanDoor": {
+					"X": -1,
+					"Y": -1
+				},
+				"AnimalDoor": {
+					"X": -1,
+					"Y": -1
+				},
+				"IndoorItems": null,
+				"IndoorItemMoves": null,
+				"AddMailOnBuild": null
+			}
+		],
+		"expected": {}
+	},
+	{
+		"name": "building costs: maps qualified and unqualified object IDs to item names",
+		"op": "getBuildMaterials",
+		"args": [
+			[
+				{
+					"ItemId": "(O)388",
+					"Amount": 300
+				},
+				{
+					"ItemId": "390",
+					"Amount": 100
+				}
+			],
+			{
+				"388": "Wood",
+				"390": "Stone"
+			}
+		],
+		"expected": [
+			{
+				"item": "Wood",
+				"amount": 300
+			},
+			{
+				"item": "Stone",
+				"amount": 100
+			}
+		]
+	},
+	{
+		"name": "building costs: leaves out materials that aren't known objects",
+		"op": "getBuildMaterials",
+		"args": [
+			[
+				{
+					"ItemId": "(BC)10",
+					"Amount": 1
+				},
+				{
+					"ItemId": "(O)999"
+				},
+				{}
+			],
+			{
+				"388": "Wood",
+				"390": "Stone"
+			}
+		],
+		"expected": []
+	},
+	{
+		"name": "building costs: counts one of a material without an amount",
+		"op": "getBuildMaterials",
+		"args": [
+			[
+				{
+					"ItemId": "(O)388"
+				}
+			],
+			{
+				"388": "Wood",
+				"390": "Stone"
+			}
+		],
+		"expected": [
+			{
+				"item": "Wood",
+				"amount": 1
+			}
+		]
+	},
+	{
+		"name": "building costs: handles buildings without materials",
+		"op": "getBuildMaterials",
+		"args": [
+			null,
+			{
+				"388": "Wood",
+				"390": "Stone"
+			}
+		],
+		"expected": []
+	},
+	{
+		"name": "building costs: handles buildings without materials",
+		"op": "getBuildMaterials",
+		"args": [
+			null,
+			{
+				"388": "Wood",
+				"390": "Stone"
+			}
+		],
+		"expected": []
+	},
+	{
+		"name": "quest data: parses each field as Quest.getQuestFromId does",
+		"op": "getQuests",
+		"args": [
+			{
+				"6": "ItemHarvest/Getting Started/If you want to become a farmer, you have to start with the basics./Cultivate and harvest a parsnip./(O)24/h7 8/100/-1/true",
+				"9": "Social/Introductions/It would be a nice gesture to introduce yourself around town././null/25/0/-1/true",
+				"18": "Basic/To The Bottom?/So far, there's no sign of the bottom. How low does it go?/Reach the bottom of the mine./-1/-1/0/-1/false",
+				"100": "LostItem/Robin's Lost Axe/Robin lost her favorite axe./Find Robin's lost axe./Robin (O)788 Forest 110 81/-1/250/-1/true/Hey, you found my axe!"
+			}
+		],
+		"expected": [
+			{
+				"id": "6",
+				"type": "ItemHarvest",
+				"title": "Getting Started",
+				"description": "If you want to become a farmer, you have to start with the basics.",
+				"objective": "Cultivate and harvest a parsnip.",
+				"conditions": ["(O)24"],
+				"nextQuests": ["h7", "8"],
+				"moneyReward": 100,
+				"rewardDescription": "-1",
+				"canBeCancelled": true
+			},
+			{
+				"id": "9",
+				"type": "Social",
+				"title": "Introductions",
+				"description": "It would be a nice gesture to introduce yourself around town.",
+				"objective": ".",
+				"conditions": ["null"],
+				"nextQuests": ["25"],
+				"moneyReward": 0,
+				"rewardDescription": "-1",
+				"canBeCancelled": true
+			},
+			{
+				"id": "18",
+				"type": "Basic",
+				"title": "To The Bottom?",
+				"description": "So far, there's no sign of the bottom. How low does it go?",
+				"objective": "Reach the bottom of the mine.",
+				"conditions": ["-1"],
+				"nextQuests": ["-1"],
+				"moneyReward": 0,
+				"rewardDescription": "-1",
+				"canBeCancelled": false
+			},
+			{
+				"id": "100",
+				"type": "LostItem",
+				"title": "Robin's Lost Axe",
+				"description": "Robin lost her favorite axe.",
+				"objective": "Find Robin's lost axe.",
+				"conditions": ["Robin", "(O)788", "Forest", "110", "81"],
+				"nextQuests": ["-1"],
+				"moneyReward": 250,
+				"rewardDescription": "-1",
+				"canBeCancelled": true
+			}
+		]
+	},
+	{
+		"name": "quest data: drops the reward text of a quest without gold, as the game does",
+		"op": "parseQuest",
+		"args": ["1", "Basic/Title/Description/Objective/-1/-1/-1/A hat/true"],
+		"expected": {
+			"id": "1",
+			"type": "Basic",
+			"title": "Title",
+			"description": "Description",
+			"objective": "Objective",
+			"conditions": ["-1"],
+			"nextQuests": ["-1"],
+			"moneyReward": -1,
+			"canBeCancelled": true
+		}
+	},
+	{
+		"name": "quest data: drops the reward text of a quest without gold, as the game does",
+		"op": "parseQuest",
+		"args": ["1", "Basic/Title/Description/Objective/-1/-1/0/A hat/true"],
+		"expected": {
+			"id": "1",
+			"type": "Basic",
+			"title": "Title",
+			"description": "Description",
+			"objective": "Objective",
+			"conditions": ["-1"],
+			"nextQuests": ["-1"],
+			"moneyReward": 0,
+			"rewardDescription": "A hat",
+			"canBeCancelled": true
+		}
+	},
+	{
+		"name": "quest data: leaves out quests the game can't load",
+		"op": "parseQuest",
+		"args": ["1", "Basic/Title//Objective/-1/-1/0/-1/true"],
+		"expected": null
+	},
+	{
+		"name": "quest data: leaves out quests the game can't load",
+		"op": "parseQuest",
+		"args": ["1", "Basic/Title/Description/Objective/-1/-1/lots/-1/true"],
+		"expected": null
+	},
+	{
+		"name": "quest data: leaves out quests the game can't load",
+		"op": "parseQuest",
+		"args": ["1", "Basic/Title/Description/Objective/-1/-1/0/-1/maybe"],
+		"expected": null
+	},
+	{
+		"name": "quest data: treats the objective and the fields after the gold reward as optional",
+		"op": "parseQuest",
+		"args": ["1", "Basic/Title/Description//-1/-1/0"],
+		"expected": {
+			"id": "1",
+			"type": "Basic",
+			"title": "Title",
+			"description": "Description",
+			"conditions": ["-1"],
+			"nextQuests": ["-1"],
+			"moneyReward": 0,
+			"canBeCancelled": false
+		}
+	},
+	{
+		"name": "localized text resolution: resolves a token from its strings file",
+		"op": "localized",
+		"args": [
+			"[LocalizedText Strings\\Objects:Weeds_Description]",
+			{
+				"Strings\\Objects": {
+					"Weeds_Description": "A bunch of obnoxious weeds."
+				}
+			}
+		],
+		"expected": "A bunch of obnoxious weeds."
+	},
+	{
+		"name": "localized text resolution: substitutes token arguments",
+		"op": "localized",
+		"args": [
+			"[LocalizedText Strings\\Tools:TrashCan_Description 30]",
+			{
+				"Strings\\Tools": {
+					"TrashCan_Description": "Reclaims {0}% of an item's value when trashed."
+				}
+			}
+		],
+		"expected": "Reclaims 30% of an item's value when trashed."
+	},
+	{
+		"name": "localized text resolution: returns undefined for missing strings and non-tokens",
+		"op": "localized",
+		"args": [
+			"[LocalizedText Strings\\Objects:Nope]",
+			{
+				"Strings\\Objects": {
+					"Weeds_Description": "A bunch of obnoxious weeds."
+				}
+			}
+		],
+		"expected": null
+	},
+	{
+		"name": "localized text resolution: returns undefined for missing strings and non-tokens",
+		"op": "localized",
+		"args": [
+			"[LocalizedText Strings\\Missing:Key]",
+			{
+				"Strings\\Objects": {
+					"Weeds_Description": "A bunch of obnoxious weeds."
+				}
+			}
+		],
+		"expected": null
+	},
+	{
+		"name": "localized text resolution: returns undefined for missing strings and non-tokens",
+		"op": "localized",
+		"args": [
+			"Plain text",
+			{
+				"Strings\\Objects": {
+					"Weeds_Description": "A bunch of obnoxious weeds."
+				}
+			}
+		],
+		"expected": null
+	},
+	{
+		"name": "localized text resolution: returns undefined for missing strings and non-tokens",
+		"op": "localized",
+		"args": [
+			null,
+			{
+				"Strings\\Objects": {
+					"Weeds_Description": "A bunch of obnoxious weeds."
+				}
+			}
+		],
+		"expected": null
+	},
+	{
+		"name": "localized text resolution: loads each strings file once",
+		"op": "localized",
+		"args": [
+			"[LocalizedText Strings\\Objects:Weeds_Description]",
+			{
+				"Strings\\Objects": {
+					"Weeds_Description": "A bunch of obnoxious weeds."
+				}
+			}
+		],
+		"expected": "A bunch of obnoxious weeds."
+	},
+	{
+		"name": "localized text resolution: loads each strings file once",
+		"op": "localized",
+		"args": [
+			"[LocalizedText Strings\\Objects:Nope]",
+			{
+				"Strings\\Objects": {
+					"Weeds_Description": "A bunch of obnoxious weeds."
+				}
+			}
+		],
+		"expected": null
+	},
+	{
+		"name": "special order generation: resolves fixed elements and nested localized strings",
+		"op": "objective",
+		"args": [
+			"QiChallenge4",
+			[
+				{
+					"Name": "Treasure",
+					"Values": [
+						{
+							"RequiredTags": "",
+							"Value": "Target|item_prismatic_shard|LocalizedName|[ShardName]|Count|4"
+						}
+					]
+				}
+			],
+			{
+				"Objective": "Collect {Treasure:Count} {Treasure:LocalizedName}.",
+				"ShardName": "Prismatic Shards"
+			},
+			"[Objective]"
+		],
+		"expected": "Collect 4 Prismatic Shards."
+	},
+	{
+		"name": "special order generation: resolves fixed elements and nested localized strings",
+		"op": "objective",
+		"args": [
+			"QiChallenge4",
+			[
+				{
+					"Name": "Treasure",
+					"Values": [
+						{
+							"RequiredTags": "",
+							"Value": "Target|item_prismatic_shard|LocalizedName|[ShardName]|Count|4"
+						}
+					]
+				}
+			],
+			{
+				"Objective": "Collect {Treasure:Count} {Treasure:LocalizedName}.",
+				"ShardName": "Prismatic Shards"
+			},
+			"{Treasure:Target}"
+		],
+		"expected": "item_prismatic_shard"
+	},
+	{
+		"name": "special order generation: resolves fixed elements and nested localized strings",
+		"op": "objective",
+		"args": [
+			"QiChallenge4",
+			[
+				{
+					"Name": "Treasure",
+					"Values": [
+						{
+							"RequiredTags": "",
+							"Value": "Target|item_prismatic_shard|LocalizedName|[ShardName]|Count|4"
+						}
+					]
+				}
+			],
+			{
+				"Objective": "Collect {Treasure:Count} {Treasure:LocalizedName}.",
+				"ShardName": "Prismatic Shards"
+			},
+			"{Treasure:Count}"
+		],
+		"expected": "4"
+	},
+	{
+		"name": "special order generation: resolves fixed elements and nested localized strings",
+		"op": "parseRequiredCount",
+		"args": ["4"],
+		"expected": 4
+	},
+	{
+		"name": "special order generation: rejects unresolved tokens rather than generating broken objectives",
+		"op": "objective",
+		"args": ["QiChallenge4", null, {}, "{Treasure:Count}"],
+		"error": "QiChallenge4: unresolved objective token {Treasure:Count}"
+	},
+	{
+		"name": "special order generation: rejects unresolved tokens rather than generating broken objectives",
+		"op": "objective",
+		"args": ["QiChallenge4", null, {}, "[Missing]"],
+		"error": "QiChallenge4: unresolved objective token [Missing]"
+	},
+	{
+		"name": "special order generation: rejects choices which need runtime selection",
+		"op": "objectiveFactory",
+		"args": [
+			"Quest",
+			[
+				{
+					"Name": "Treasure",
+					"Values": [
+						{
+							"RequiredTags": "",
+							"Value": "Target|item_prismatic_shard|LocalizedName|[ShardName]|Count|4"
+						},
+						{
+							"RequiredTags": "",
+							"Value": "Target|item_prismatic_shard|LocalizedName|[ShardName]|Count|4"
+						}
+					]
+				}
+			],
+			{}
+		],
+		"error": "Quest: Treasure requires runtime selection"
+	},
+	{
+		"name": "special order generation: rejects choices which need runtime selection",
+		"op": "objectiveFactory",
+		"args": [
+			"Quest",
+			[
+				{
+					"Name": "Treasure",
+					"Values": [
+						{
+							"RequiredTags": "some_condition",
+							"Value": "Target|item_prismatic_shard|LocalizedName|[ShardName]|Count|4"
+						}
+					]
+				}
+			],
+			{}
+		],
+		"error": "Quest: Treasure requires runtime selection"
+	},
+	{
+		"name": "special order generation: rejects invalid counts: %s",
+		"op": "parseRequiredCount",
+		"args": ["{Treasure:Count}"],
+		"error": "Invalid special-order objective count: {Treasure:Count}"
+	},
+	{
+		"name": "special order generation: rejects invalid counts: %s",
+		"op": "parseRequiredCount",
+		"args": ["4items"],
+		"error": "Invalid special-order objective count: 4items"
+	},
+	{
+		"name": "special order generation: rejects invalid counts: %s",
+		"op": "parseRequiredCount",
+		"args": [""],
+		"error": "Invalid special-order objective count: "
+	},
+	{
+		"name": "special order generation: rejects invalid counts: %s",
+		"op": "parseRequiredCount",
+		"args": ["0"],
+		"error": "Invalid special-order objective count: 0"
+	},
+	{
+		"name": "special order generation: rejects invalid counts: %s",
+		"op": "parseRequiredCount",
+		"args": ["-1"],
+		"error": "Invalid special-order objective count: -1"
+	},
+	{
+		"name": "special order generation: rejects invalid counts: %s",
+		"op": "parseRequiredCount",
+		"args": ["1.5"],
+		"error": "Invalid special-order objective count: 1.5"
+	},
+	{
+		"name": "location weather metadata: reads map properties rather than nested tile properties and ignores invalid context names",
+		"op": "mapWeatherContext",
+		"args": ["<map/>", ["Default", "Island", "Desert"]],
+		"expected": "Default"
+	},
+	{
+		"name": "location weather metadata: reads map properties rather than nested tile properties and ignores invalid context names",
+		"op": "mapWeatherContext",
+		"args": [
+			"<map><properties><property name=\"LocationContext\" value=\"Island\"/></properties></map>",
+			["Default", "Island", "Desert"]
+		],
+		"expected": "Island"
+	},
+	{
+		"name": "location weather metadata: reads map properties rather than nested tile properties and ignores invalid context names",
+		"op": "mapWeatherContext",
+		"args": [
+			"<map><tileset><tile><properties><property name=\"LocationContext\" value=\"Island\"/></properties></tile></tileset></map>",
+			["Default", "Island", "Desert"]
+		],
+		"expected": "Default"
+	},
+	{
+		"name": "location weather metadata: reads map properties rather than nested tile properties and ignores invalid context names",
+		"op": "mapWeatherContext",
+		"args": [
+			"<map><properties><property name=\"LocationContext\" value=\"Missing\"/></properties></map>",
+			["Default", "Island", "Desert"]
+		],
+		"expected": "Default"
+	},
+	{
+		"name": "location weather metadata: reads map properties rather than nested tile properties and ignores invalid context names",
+		"op": "mapWeatherContext",
+		"args": ["<tileset/>", ["Default", "Island", "Desert"]],
+		"error": "Missing map element"
+	},
+	{
+		"name": "getGiftTaste (NPC.getGiftTasteForThisItem): loves a personal item by ID",
+		"op": "giftTaste",
+		"args": [
+			{
+				"Universal_Love": "74 446 279 373",
+				"Universal_Like": "-2 -7",
+				"Universal_Neutral": "194 book_item",
+				"Universal_Dislike": "-4 category_trinket",
+				"Universal_Hate": "0 -20 93",
+				"Abigail": "Love!/66 Book_Void/Like/-6/Dislike/-5 16/Hate/330/Thanks//",
+				"Haley": "Love!/221/Like/18/Dislike/-75/Hate/-4 74/Thanks//",
+				"Penny": "Love!/72 book_item/Like/ancient_item/Dislike/80/Hate/446/Thanks//",
+				"Leo": "Love!/ParrotEgg/Like/852/Dislike/-7 -81/Hate/257/Thanks//",
+				"Linus": "Love!/88/Like/-5/Dislike/-2 194 373/Hate//Neutral/-4/",
+				"Pam": "Love!/-6 0/Like//Dislike//Hate//Thanks/-2/"
+			},
+			"Abigail",
+			{
+				"id": "(O)66",
+				"category": -2,
+				"type": "Minerals",
+				"edibility": -300,
+				"price": 100,
+				"contextTags": []
+			}
+		],
+		"expected": 0
+	},
+	{
+		"name": "getGiftTaste (NPC.getGiftTasteForThisItem): loves a personal item by ID",
+		"op": "giftTaste",
+		"args": [
+			{
+				"Universal_Love": "74 446 279 373",
+				"Universal_Like": "-2 -7",
+				"Universal_Neutral": "194 book_item",
+				"Universal_Dislike": "-4 category_trinket",
+				"Universal_Hate": "0 -20 93",
+				"Abigail": "Love!/66 Book_Void/Like/-6/Dislike/-5 16/Hate/330/Thanks//",
+				"Haley": "Love!/221/Like/18/Dislike/-75/Hate/-4 74/Thanks//",
+				"Penny": "Love!/72 book_item/Like/ancient_item/Dislike/80/Hate/446/Thanks//",
+				"Leo": "Love!/ParrotEgg/Like/852/Dislike/-7 -81/Hate/257/Thanks//",
+				"Linus": "Love!/88/Like/-5/Dislike/-2 194 373/Hate//Neutral/-4/",
+				"Pam": "Love!/-6 0/Like//Dislike//Hate//Thanks/-2/"
+			},
+			"Haley",
+			{
+				"id": "(O)66",
+				"category": -2,
+				"type": "Minerals",
+				"edibility": -300,
+				"price": 100,
+				"contextTags": []
+			}
+		],
+		"expected": 2
+	},
+	{
+		"name": "getGiftTaste (NPC.getGiftTasteForThisItem): loves a personal category",
+		"op": "giftTaste",
+		"args": [
+			{
+				"Universal_Love": "74 446 279 373",
+				"Universal_Like": "-2 -7",
+				"Universal_Neutral": "194 book_item",
+				"Universal_Dislike": "-4 category_trinket",
+				"Universal_Hate": "0 -20 93",
+				"Abigail": "Love!/66 Book_Void/Like/-6/Dislike/-5 16/Hate/330/Thanks//",
+				"Haley": "Love!/221/Like/18/Dislike/-75/Hate/-4 74/Thanks//",
+				"Penny": "Love!/72 book_item/Like/ancient_item/Dislike/80/Hate/446/Thanks//",
+				"Leo": "Love!/ParrotEgg/Like/852/Dislike/-7 -81/Hate/257/Thanks//",
+				"Linus": "Love!/88/Like/-5/Dislike/-2 194 373/Hate//Neutral/-4/",
+				"Pam": "Love!/-6 0/Like//Dislike//Hate//Thanks/-2/"
+			},
+			"Pam",
+			{
+				"id": "(O)184",
+				"category": -6,
+				"type": "Basic",
+				"edibility": -300,
+				"price": 100,
+				"contextTags": []
+			}
+		],
+		"expected": 0
+	},
+	{
+		"name": "getGiftTaste (NPC.getGiftTasteForThisItem): loves a personal category",
+		"op": "giftTaste",
+		"args": [
+			{
+				"Universal_Love": "74 446 279 373",
+				"Universal_Like": "-2 -7",
+				"Universal_Neutral": "194 book_item",
+				"Universal_Dislike": "-4 category_trinket",
+				"Universal_Hate": "0 -20 93",
+				"Abigail": "Love!/66 Book_Void/Like/-6/Dislike/-5 16/Hate/330/Thanks//",
+				"Haley": "Love!/221/Like/18/Dislike/-75/Hate/-4 74/Thanks//",
+				"Penny": "Love!/72 book_item/Like/ancient_item/Dislike/80/Hate/446/Thanks//",
+				"Leo": "Love!/ParrotEgg/Like/852/Dislike/-7 -81/Hate/257/Thanks//",
+				"Linus": "Love!/88/Like/-5/Dislike/-2 194 373/Hate//Neutral/-4/",
+				"Pam": "Love!/-6 0/Like//Dislike//Hate//Thanks/-2/"
+			},
+			"Pam",
+			{
+				"id": "(O)186",
+				"category": -6,
+				"type": "Basic",
+				"edibility": -300,
+				"price": 100,
+				"contextTags": []
+			}
+		],
+		"expected": 0
+	},
+	{
+		"name": "getGiftTaste (NPC.getGiftTasteForThisItem): loves a personal category",
+		"op": "giftTaste",
+		"args": [
+			{
+				"Universal_Love": "74 446 279 373",
+				"Universal_Like": "-2 -7",
+				"Universal_Neutral": "194 book_item",
+				"Universal_Dislike": "-4 category_trinket",
+				"Universal_Hate": "0 -20 93",
+				"Abigail": "Love!/66 Book_Void/Like/-6/Dislike/-5 16/Hate/330/Thanks//",
+				"Haley": "Love!/221/Like/18/Dislike/-75/Hate/-4 74/Thanks//",
+				"Penny": "Love!/72 book_item/Like/ancient_item/Dislike/80/Hate/446/Thanks//",
+				"Leo": "Love!/ParrotEgg/Like/852/Dislike/-7 -81/Hate/257/Thanks//",
+				"Linus": "Love!/88/Like/-5/Dislike/-2 194 373/Hate//Neutral/-4/",
+				"Pam": "Love!/-6 0/Like//Dislike//Hate//Thanks/-2/"
+			},
+			"Abigail",
+			{
+				"id": "(O)184",
+				"category": -6,
+				"type": "Basic",
+				"edibility": -300,
+				"price": 100,
+				"contextTags": []
+			}
+		],
+		"expected": 2
+	},
+	{
+		"name": "getGiftTaste (NPC.getGiftTasteForThisItem): lets a personal category override a universal one",
+		"op": "giftTaste",
+		"args": [
+			{
+				"Universal_Love": "74 446 279 373",
+				"Universal_Like": "-2 -7",
+				"Universal_Neutral": "194 book_item",
+				"Universal_Dislike": "-4 category_trinket",
+				"Universal_Hate": "0 -20 93",
+				"Abigail": "Love!/66 Book_Void/Like/-6/Dislike/-5 16/Hate/330/Thanks//",
+				"Haley": "Love!/221/Like/18/Dislike/-75/Hate/-4 74/Thanks//",
+				"Penny": "Love!/72 book_item/Like/ancient_item/Dislike/80/Hate/446/Thanks//",
+				"Leo": "Love!/ParrotEgg/Like/852/Dislike/-7 -81/Hate/257/Thanks//",
+				"Linus": "Love!/88/Like/-5/Dislike/-2 194 373/Hate//Neutral/-4/",
+				"Pam": "Love!/-6 0/Like//Dislike//Hate//Thanks/-2/"
+			},
+			"Abigail",
+			{
+				"id": "(O)131",
+				"category": -4,
+				"type": "Fish",
+				"edibility": -300,
+				"price": 100,
+				"contextTags": []
+			}
+		],
+		"expected": 4
+	},
+	{
+		"name": "getGiftTaste (NPC.getGiftTasteForThisItem): lets a personal category override a universal one",
+		"op": "giftTaste",
+		"args": [
+			{
+				"Universal_Love": "74 446 279 373",
+				"Universal_Like": "-2 -7",
+				"Universal_Neutral": "194 book_item",
+				"Universal_Dislike": "-4 category_trinket",
+				"Universal_Hate": "0 -20 93",
+				"Abigail": "Love!/66 Book_Void/Like/-6/Dislike/-5 16/Hate/330/Thanks//",
+				"Haley": "Love!/221/Like/18/Dislike/-75/Hate/-4 74/Thanks//",
+				"Penny": "Love!/72 book_item/Like/ancient_item/Dislike/80/Hate/446/Thanks//",
+				"Leo": "Love!/ParrotEgg/Like/852/Dislike/-7 -81/Hate/257/Thanks//",
+				"Linus": "Love!/88/Like/-5/Dislike/-2 194 373/Hate//Neutral/-4/",
+				"Pam": "Love!/-6 0/Like//Dislike//Hate//Thanks/-2/"
+			},
+			"Haley",
+			{
+				"id": "(O)131",
+				"category": -4,
+				"type": "Fish",
+				"edibility": -300,
+				"price": 100,
+				"contextTags": []
+			}
+		],
+		"expected": 6
+	},
+	{
+		"name": "getGiftTaste (NPC.getGiftTasteForThisItem): lets a personal category override a universal one",
+		"op": "giftTaste",
+		"args": [
+			{
+				"Universal_Love": "74 446 279 373",
+				"Universal_Like": "-2 -7",
+				"Universal_Neutral": "194 book_item",
+				"Universal_Dislike": "-4 category_trinket",
+				"Universal_Hate": "0 -20 93",
+				"Abigail": "Love!/66 Book_Void/Like/-6/Dislike/-5 16/Hate/330/Thanks//",
+				"Haley": "Love!/221/Like/18/Dislike/-75/Hate/-4 74/Thanks//",
+				"Penny": "Love!/72 book_item/Like/ancient_item/Dislike/80/Hate/446/Thanks//",
+				"Leo": "Love!/ParrotEgg/Like/852/Dislike/-7 -81/Hate/257/Thanks//",
+				"Linus": "Love!/88/Like/-5/Dislike/-2 194 373/Hate//Neutral/-4/",
+				"Pam": "Love!/-6 0/Like//Dislike//Hate//Thanks/-2/"
+			},
+			"Linus",
+			{
+				"id": "(O)131",
+				"category": -4,
+				"type": "Fish",
+				"edibility": -300,
+				"price": 100,
+				"contextTags": []
+			}
+		],
+		"expected": 8
+	},
+	{
+		"name": "getGiftTaste (NPC.getGiftTasteForThisItem): loves a personal context tag",
+		"op": "giftTaste",
+		"args": [
+			{
+				"Universal_Love": "74 446 279 373",
+				"Universal_Like": "-2 -7",
+				"Universal_Neutral": "194 book_item",
+				"Universal_Dislike": "-4 category_trinket",
+				"Universal_Hate": "0 -20 93",
+				"Abigail": "Love!/66 Book_Void/Like/-6/Dislike/-5 16/Hate/330/Thanks//",
+				"Haley": "Love!/221/Like/18/Dislike/-75/Hate/-4 74/Thanks//",
+				"Penny": "Love!/72 book_item/Like/ancient_item/Dislike/80/Hate/446/Thanks//",
+				"Leo": "Love!/ParrotEgg/Like/852/Dislike/-7 -81/Hate/257/Thanks//",
+				"Linus": "Love!/88/Like/-5/Dislike/-2 194 373/Hate//Neutral/-4/",
+				"Pam": "Love!/-6 0/Like//Dislike//Hate//Thanks/-2/"
+			},
+			"Penny",
+			{
+				"id": "(O)Book_Void",
+				"category": -102,
+				"type": "Basic",
+				"edibility": -300,
+				"price": 100,
+				"contextTags": ["book_item"]
+			}
+		],
+		"expected": 0
+	},
+	{
+		"name": "getGiftTaste (NPC.getGiftTasteForThisItem): loves a personal context tag",
+		"op": "giftTaste",
+		"args": [
+			{
+				"Universal_Love": "74 446 279 373",
+				"Universal_Like": "-2 -7",
+				"Universal_Neutral": "194 book_item",
+				"Universal_Dislike": "-4 category_trinket",
+				"Universal_Hate": "0 -20 93",
+				"Abigail": "Love!/66 Book_Void/Like/-6/Dislike/-5 16/Hate/330/Thanks//",
+				"Haley": "Love!/221/Like/18/Dislike/-75/Hate/-4 74/Thanks//",
+				"Penny": "Love!/72 book_item/Like/ancient_item/Dislike/80/Hate/446/Thanks//",
+				"Leo": "Love!/ParrotEgg/Like/852/Dislike/-7 -81/Hate/257/Thanks//",
+				"Linus": "Love!/88/Like/-5/Dislike/-2 194 373/Hate//Neutral/-4/",
+				"Pam": "Love!/-6 0/Like//Dislike//Hate//Thanks/-2/"
+			},
+			"Penny",
+			{
+				"id": "(O)194",
+				"category": 0,
+				"type": "Basic",
+				"edibility": -300,
+				"price": 100,
+				"contextTags": ["book_item"]
+			}
+		],
+		"expected": 0
+	},
+	{
+		"name": "getGiftTaste (NPC.getGiftTasteForThisItem): loves universal loves",
+		"op": "giftTaste",
+		"args": [
+			{
+				"Universal_Love": "74 446 279 373",
+				"Universal_Like": "-2 -7",
+				"Universal_Neutral": "194 book_item",
+				"Universal_Dislike": "-4 category_trinket",
+				"Universal_Hate": "0 -20 93",
+				"Abigail": "Love!/66 Book_Void/Like/-6/Dislike/-5 16/Hate/330/Thanks//",
+				"Haley": "Love!/221/Like/18/Dislike/-75/Hate/-4 74/Thanks//",
+				"Penny": "Love!/72 book_item/Like/ancient_item/Dislike/80/Hate/446/Thanks//",
+				"Leo": "Love!/ParrotEgg/Like/852/Dislike/-7 -81/Hate/257/Thanks//",
+				"Linus": "Love!/88/Like/-5/Dislike/-2 194 373/Hate//Neutral/-4/",
+				"Pam": "Love!/-6 0/Like//Dislike//Hate//Thanks/-2/"
+			},
+			"Abigail",
+			{
+				"id": "(O)74",
+				"category": -2,
+				"type": "Minerals",
+				"edibility": -300,
+				"price": 100,
+				"contextTags": []
+			}
+		],
+		"expected": 0
+	},
+	{
+		"name": "getGiftTaste (NPC.getGiftTasteForThisItem): loves universal loves",
+		"op": "giftTaste",
+		"args": [
+			{
+				"Universal_Love": "74 446 279 373",
+				"Universal_Like": "-2 -7",
+				"Universal_Neutral": "194 book_item",
+				"Universal_Dislike": "-4 category_trinket",
+				"Universal_Hate": "0 -20 93",
+				"Abigail": "Love!/66 Book_Void/Like/-6/Dislike/-5 16/Hate/330/Thanks//",
+				"Haley": "Love!/221/Like/18/Dislike/-75/Hate/-4 74/Thanks//",
+				"Penny": "Love!/72 book_item/Like/ancient_item/Dislike/80/Hate/446/Thanks//",
+				"Leo": "Love!/ParrotEgg/Like/852/Dislike/-7 -81/Hate/257/Thanks//",
+				"Linus": "Love!/88/Like/-5/Dislike/-2 194 373/Hate//Neutral/-4/",
+				"Pam": "Love!/-6 0/Like//Dislike//Hate//Thanks/-2/"
+			},
+			"Abigail",
+			{
+				"id": "(O)446",
+				"category": -18,
+				"type": "Basic",
+				"edibility": -300,
+				"price": 100,
+				"contextTags": []
+			}
+		],
+		"expected": 0
+	},
+	{
+		"name": "getGiftTaste (NPC.getGiftTasteForThisItem): lets a personal hate or dislike override a universal love",
+		"op": "giftTaste",
+		"args": [
+			{
+				"Universal_Love": "74 446 279 373",
+				"Universal_Like": "-2 -7",
+				"Universal_Neutral": "194 book_item",
+				"Universal_Dislike": "-4 category_trinket",
+				"Universal_Hate": "0 -20 93",
+				"Abigail": "Love!/66 Book_Void/Like/-6/Dislike/-5 16/Hate/330/Thanks//",
+				"Haley": "Love!/221/Like/18/Dislike/-75/Hate/-4 74/Thanks//",
+				"Penny": "Love!/72 book_item/Like/ancient_item/Dislike/80/Hate/446/Thanks//",
+				"Leo": "Love!/ParrotEgg/Like/852/Dislike/-7 -81/Hate/257/Thanks//",
+				"Linus": "Love!/88/Like/-5/Dislike/-2 194 373/Hate//Neutral/-4/",
+				"Pam": "Love!/-6 0/Like//Dislike//Hate//Thanks/-2/"
+			},
+			"Haley",
+			{
+				"id": "(O)74",
+				"category": -2,
+				"type": "Minerals",
+				"edibility": -300,
+				"price": 100,
+				"contextTags": []
+			}
+		],
+		"expected": 6
+	},
+	{
+		"name": "getGiftTaste (NPC.getGiftTasteForThisItem): lets a personal hate or dislike override a universal love",
+		"op": "giftTaste",
+		"args": [
+			{
+				"Universal_Love": "74 446 279 373",
+				"Universal_Like": "-2 -7",
+				"Universal_Neutral": "194 book_item",
+				"Universal_Dislike": "-4 category_trinket",
+				"Universal_Hate": "0 -20 93",
+				"Abigail": "Love!/66 Book_Void/Like/-6/Dislike/-5 16/Hate/330/Thanks//",
+				"Haley": "Love!/221/Like/18/Dislike/-75/Hate/-4 74/Thanks//",
+				"Penny": "Love!/72 book_item/Like/ancient_item/Dislike/80/Hate/446/Thanks//",
+				"Leo": "Love!/ParrotEgg/Like/852/Dislike/-7 -81/Hate/257/Thanks//",
+				"Linus": "Love!/88/Like/-5/Dislike/-2 194 373/Hate//Neutral/-4/",
+				"Pam": "Love!/-6 0/Like//Dislike//Hate//Thanks/-2/"
+			},
+			"Penny",
+			{
+				"id": "(O)446",
+				"category": -18,
+				"type": "Basic",
+				"edibility": -300,
+				"price": 100,
+				"contextTags": []
+			}
+		],
+		"expected": 6
+	},
+	{
+		"name": "getGiftTaste (NPC.getGiftTasteForThisItem): lets a personal hate or dislike override a universal love",
+		"op": "giftTaste",
+		"args": [
+			{
+				"Universal_Love": "74 446 279 373",
+				"Universal_Like": "-2 -7",
+				"Universal_Neutral": "194 book_item",
+				"Universal_Dislike": "-4 category_trinket",
+				"Universal_Hate": "0 -20 93",
+				"Abigail": "Love!/66 Book_Void/Like/-6/Dislike/-5 16/Hate/330/Thanks//",
+				"Haley": "Love!/221/Like/18/Dislike/-75/Hate/-4 74/Thanks//",
+				"Penny": "Love!/72 book_item/Like/ancient_item/Dislike/80/Hate/446/Thanks//",
+				"Leo": "Love!/ParrotEgg/Like/852/Dislike/-7 -81/Hate/257/Thanks//",
+				"Linus": "Love!/88/Like/-5/Dislike/-2 194 373/Hate//Neutral/-4/",
+				"Pam": "Love!/-6 0/Like//Dislike//Hate//Thanks/-2/"
+			},
+			"Linus",
+			{
+				"id": "(O)373",
+				"category": 0,
+				"type": "Basic",
+				"edibility": -300,
+				"price": 100,
+				"contextTags": []
+			}
+		],
+		"expected": 4
+	},
+	{
+		"name": "getGiftTaste (NPC.getGiftTasteForThisItem): lets a personal hate or dislike override a universal love",
+		"op": "giftTaste",
+		"args": [
+			{
+				"Universal_Love": "74 446 279 373",
+				"Universal_Like": "-2 -7",
+				"Universal_Neutral": "194 book_item",
+				"Universal_Dislike": "-4 category_trinket",
+				"Universal_Hate": "0 -20 93",
+				"Abigail": "Love!/66 Book_Void/Like/-6/Dislike/-5 16/Hate/330/Thanks//",
+				"Haley": "Love!/221/Like/18/Dislike/-75/Hate/-4 74/Thanks//",
+				"Penny": "Love!/72 book_item/Like/ancient_item/Dislike/80/Hate/446/Thanks//",
+				"Leo": "Love!/ParrotEgg/Like/852/Dislike/-7 -81/Hate/257/Thanks//",
+				"Linus": "Love!/88/Like/-5/Dislike/-2 194 373/Hate//Neutral/-4/",
+				"Pam": "Love!/-6 0/Like//Dislike//Hate//Thanks/-2/"
+			},
+			"Abigail",
+			{
+				"id": "(O)373",
+				"category": 0,
+				"type": "Basic",
+				"edibility": -300,
+				"price": 100,
+				"contextTags": []
+			}
+		],
+		"expected": 0
+	},
+	{
+		"name": "getGiftTaste (NPC.getGiftTasteForThisItem): ignores a personal category for items listed by ID in a universal taste",
+		"op": "giftTaste",
+		"args": [
+			{
+				"Universal_Love": "74 446 279 373",
+				"Universal_Like": "-2 -7",
+				"Universal_Neutral": "194 book_item",
+				"Universal_Dislike": "-4 category_trinket",
+				"Universal_Hate": "0 -20 93",
+				"Abigail": "Love!/66 Book_Void/Like/-6/Dislike/-5 16/Hate/330/Thanks//",
+				"Haley": "Love!/221/Like/18/Dislike/-75/Hate/-4 74/Thanks//",
+				"Penny": "Love!/72 book_item/Like/ancient_item/Dislike/80/Hate/446/Thanks//",
+				"Leo": "Love!/ParrotEgg/Like/852/Dislike/-7 -81/Hate/257/Thanks//",
+				"Linus": "Love!/88/Like/-5/Dislike/-2 194 373/Hate//Neutral/-4/",
+				"Pam": "Love!/-6 0/Like//Dislike//Hate//Thanks/-2/"
+			},
+			"Leo",
+			{
+				"id": "(O)279",
+				"category": -7,
+				"type": "Cooking",
+				"edibility": -300,
+				"price": 100,
+				"contextTags": []
+			}
+		],
+		"expected": 0
+	},
+	{
+		"name": "getGiftTaste (NPC.getGiftTasteForThisItem): ignores a personal category for items listed by ID in a universal taste",
+		"op": "giftTaste",
+		"args": [
+			{
+				"Universal_Love": "74 446 279 373",
+				"Universal_Like": "-2 -7",
+				"Universal_Neutral": "194 book_item",
+				"Universal_Dislike": "-4 category_trinket",
+				"Universal_Hate": "0 -20 93",
+				"Abigail": "Love!/66 Book_Void/Like/-6/Dislike/-5 16/Hate/330/Thanks//",
+				"Haley": "Love!/221/Like/18/Dislike/-75/Hate/-4 74/Thanks//",
+				"Penny": "Love!/72 book_item/Like/ancient_item/Dislike/80/Hate/446/Thanks//",
+				"Leo": "Love!/ParrotEgg/Like/852/Dislike/-7 -81/Hate/257/Thanks//",
+				"Linus": "Love!/88/Like/-5/Dislike/-2 194 373/Hate//Neutral/-4/",
+				"Pam": "Love!/-6 0/Like//Dislike//Hate//Thanks/-2/"
+			},
+			"Leo",
+			{
+				"id": "(O)194",
+				"category": -7,
+				"type": "Basic",
+				"edibility": -300,
+				"price": 100,
+				"contextTags": []
+			}
+		],
+		"expected": 8
+	},
+	{
+		"name": "getGiftTaste (NPC.getGiftTasteForThisItem): ignores a personal category for items listed by ID in a universal taste",
+		"op": "giftTaste",
+		"args": [
+			{
+				"Universal_Love": "74 446 279 373",
+				"Universal_Like": "-2 -7",
+				"Universal_Neutral": "194 book_item",
+				"Universal_Dislike": "-4 category_trinket",
+				"Universal_Hate": "0 -20 93",
+				"Abigail": "Love!/66 Book_Void/Like/-6/Dislike/-5 16/Hate/330/Thanks//",
+				"Haley": "Love!/221/Like/18/Dislike/-75/Hate/-4 74/Thanks//",
+				"Penny": "Love!/72 book_item/Like/ancient_item/Dislike/80/Hate/446/Thanks//",
+				"Leo": "Love!/ParrotEgg/Like/852/Dislike/-7 -81/Hate/257/Thanks//",
+				"Linus": "Love!/88/Like/-5/Dislike/-2 194 373/Hate//Neutral/-4/",
+				"Pam": "Love!/-6 0/Like//Dislike//Hate//Thanks/-2/"
+			},
+			"Leo",
+			{
+				"id": "(O)195",
+				"category": -7,
+				"type": "Basic",
+				"edibility": -300,
+				"price": 100,
+				"contextTags": []
+			}
+		],
+		"expected": 4
+	},
+	{
+		"name": "getGiftTaste (NPC.getGiftTasteForThisItem): ignores a personal category for items listed by ID in a universal taste",
+		"op": "giftTaste",
+		"args": [
+			{
+				"Universal_Love": "74 446 279 373",
+				"Universal_Like": "-2 -7",
+				"Universal_Neutral": "194 book_item",
+				"Universal_Dislike": "-4 category_trinket",
+				"Universal_Hate": "0 -20 93",
+				"Abigail": "Love!/66 Book_Void/Like/-6/Dislike/-5 16/Hate/330/Thanks//",
+				"Haley": "Love!/221/Like/18/Dislike/-75/Hate/-4 74/Thanks//",
+				"Penny": "Love!/72 book_item/Like/ancient_item/Dislike/80/Hate/446/Thanks//",
+				"Leo": "Love!/ParrotEgg/Like/852/Dislike/-7 -81/Hate/257/Thanks//",
+				"Linus": "Love!/88/Like/-5/Dislike/-2 194 373/Hate//Neutral/-4/",
+				"Pam": "Love!/-6 0/Like//Dislike//Hate//Thanks/-2/"
+			},
+			"Linus",
+			{
+				"id": "(O)194",
+				"category": 0,
+				"type": "Basic",
+				"edibility": -300,
+				"price": 100,
+				"contextTags": []
+			}
+		],
+		"expected": 4
+	},
+	{
+		"name": "getGiftTaste (NPC.getGiftTasteForThisItem): ignores a personal category for items listed by ID in a universal taste",
+		"op": "giftTaste",
+		"args": [
+			{
+				"Universal_Love": "74 446 279 373",
+				"Universal_Like": "-2 -7",
+				"Universal_Neutral": "194 book_item",
+				"Universal_Dislike": "-4 category_trinket",
+				"Universal_Hate": "0 -20 93",
+				"Abigail": "Love!/66 Book_Void/Like/-6/Dislike/-5 16/Hate/330/Thanks//",
+				"Haley": "Love!/221/Like/18/Dislike/-75/Hate/-4 74/Thanks//",
+				"Penny": "Love!/72 book_item/Like/ancient_item/Dislike/80/Hate/446/Thanks//",
+				"Leo": "Love!/ParrotEgg/Like/852/Dislike/-7 -81/Hate/257/Thanks//",
+				"Linus": "Love!/88/Like/-5/Dislike/-2 194 373/Hate//Neutral/-4/",
+				"Pam": "Love!/-6 0/Like//Dislike//Hate//Thanks/-2/"
+			},
+			"Abigail",
+			{
+				"id": "(O)194",
+				"category": 0,
+				"type": "Basic",
+				"edibility": -300,
+				"price": 100,
+				"contextTags": []
+			}
+		],
+		"expected": 8
+	},
+	{
+		"name": "getGiftTaste (NPC.getGiftTasteForThisItem): checks universal categories, then context tags, then IDs",
+		"op": "giftTaste",
+		"args": [
+			{
+				"Universal_Love": "74 446 279 373",
+				"Universal_Like": "-2 -7",
+				"Universal_Neutral": "194 book_item",
+				"Universal_Dislike": "-4 category_trinket",
+				"Universal_Hate": "0 -20 93",
+				"Abigail": "Love!/66 Book_Void/Like/-6/Dislike/-5 16/Hate/330/Thanks//",
+				"Haley": "Love!/221/Like/18/Dislike/-75/Hate/-4 74/Thanks//",
+				"Penny": "Love!/72 book_item/Like/ancient_item/Dislike/80/Hate/446/Thanks//",
+				"Leo": "Love!/ParrotEgg/Like/852/Dislike/-7 -81/Hate/257/Thanks//",
+				"Linus": "Love!/88/Like/-5/Dislike/-2 194 373/Hate//Neutral/-4/",
+				"Pam": "Love!/-6 0/Like//Dislike//Hate//Thanks/-2/"
+			},
+			"Abigail",
+			{
+				"id": "(O)60",
+				"category": -2,
+				"type": "Basic",
+				"edibility": -300,
+				"price": 100,
+				"contextTags": []
+			}
+		],
+		"expected": 2
+	},
+	{
+		"name": "getGiftTaste (NPC.getGiftTasteForThisItem): checks universal categories, then context tags, then IDs",
+		"op": "giftTaste",
+		"args": [
+			{
+				"Universal_Love": "74 446 279 373",
+				"Universal_Like": "-2 -7",
+				"Universal_Neutral": "194 book_item",
+				"Universal_Dislike": "-4 category_trinket",
+				"Universal_Hate": "0 -20 93",
+				"Abigail": "Love!/66 Book_Void/Like/-6/Dislike/-5 16/Hate/330/Thanks//",
+				"Haley": "Love!/221/Like/18/Dislike/-75/Hate/-4 74/Thanks//",
+				"Penny": "Love!/72 book_item/Like/ancient_item/Dislike/80/Hate/446/Thanks//",
+				"Leo": "Love!/ParrotEgg/Like/852/Dislike/-7 -81/Hate/257/Thanks//",
+				"Linus": "Love!/88/Like/-5/Dislike/-2 194 373/Hate//Neutral/-4/",
+				"Pam": "Love!/-6 0/Like//Dislike//Hate//Thanks/-2/"
+			},
+			"Abigail",
+			{
+				"id": "(O)61",
+				"category": -2,
+				"type": "Basic",
+				"edibility": -300,
+				"price": 100,
+				"contextTags": ["category_trinket"]
+			}
+		],
+		"expected": 4
+	},
+	{
+		"name": "getGiftTaste (NPC.getGiftTasteForThisItem): checks universal categories, then context tags, then IDs",
+		"op": "giftTaste",
+		"args": [
+			{
+				"Universal_Love": "74 446 279 373",
+				"Universal_Like": "-2 -7",
+				"Universal_Neutral": "194 book_item",
+				"Universal_Dislike": "-4 category_trinket",
+				"Universal_Hate": "0 -20 93",
+				"Abigail": "Love!/66 Book_Void/Like/-6/Dislike/-5 16/Hate/330/Thanks//",
+				"Haley": "Love!/221/Like/18/Dislike/-75/Hate/-4 74/Thanks//",
+				"Penny": "Love!/72 book_item/Like/ancient_item/Dislike/80/Hate/446/Thanks//",
+				"Leo": "Love!/ParrotEgg/Like/852/Dislike/-7 -81/Hate/257/Thanks//",
+				"Linus": "Love!/88/Like/-5/Dislike/-2 194 373/Hate//Neutral/-4/",
+				"Pam": "Love!/-6 0/Like//Dislike//Hate//Thanks/-2/"
+			},
+			"Abigail",
+			{
+				"id": "(O)93",
+				"category": -2,
+				"type": "Basic",
+				"edibility": -300,
+				"price": 100,
+				"contextTags": ["category_trinket"]
+			}
+		],
+		"expected": 6
+	},
+	{
+		"name": "getGiftTaste (NPC.getGiftTasteForThisItem): checks universal categories, then context tags, then IDs",
+		"op": "giftTaste",
+		"args": [
+			{
+				"Universal_Love": "74 446 279 373",
+				"Universal_Like": "-2 -7",
+				"Universal_Neutral": "194 book_item",
+				"Universal_Dislike": "-4 category_trinket",
+				"Universal_Hate": "0 -20 93",
+				"Abigail": "Love!/66 Book_Void/Like/-6/Dislike/-5 16/Hate/330/Thanks//",
+				"Haley": "Love!/221/Like/18/Dislike/-75/Hate/-4 74/Thanks//",
+				"Penny": "Love!/72 book_item/Like/ancient_item/Dislike/80/Hate/446/Thanks//",
+				"Leo": "Love!/ParrotEgg/Like/852/Dislike/-7 -81/Hate/257/Thanks//",
+				"Linus": "Love!/88/Like/-5/Dislike/-2 194 373/Hate//Neutral/-4/",
+				"Pam": "Love!/-6 0/Like//Dislike//Hate//Thanks/-2/"
+			},
+			"Abigail",
+			{
+				"id": "(O)102",
+				"category": -102,
+				"type": "Basic",
+				"edibility": -300,
+				"price": 10,
+				"contextTags": ["book_item"]
+			}
+		],
+		"expected": 4
+	},
+	{
+		"name": "getGiftTaste (NPC.getGiftTasteForThisItem): checks universal categories, then context tags, then IDs",
+		"op": "giftTaste",
+		"args": [
+			{
+				"Universal_Love": "74 446 279 373",
+				"Universal_Like": "-2 -7",
+				"Universal_Neutral": "194 book_item",
+				"Universal_Dislike": "-4 category_trinket",
+				"Universal_Hate": "0 -20 93",
+				"Abigail": "Love!/66 Book_Void/Like/-6/Dislike/-5 16/Hate/330/Thanks//",
+				"Haley": "Love!/221/Like/18/Dislike/-75/Hate/-4 74/Thanks//",
+				"Penny": "Love!/72 book_item/Like/ancient_item/Dislike/80/Hate/446/Thanks//",
+				"Leo": "Love!/ParrotEgg/Like/852/Dislike/-7 -81/Hate/257/Thanks//",
+				"Linus": "Love!/88/Like/-5/Dislike/-2 194 373/Hate//Neutral/-4/",
+				"Pam": "Love!/-6 0/Like//Dislike//Hate//Thanks/-2/"
+			},
+			"Abigail",
+			{
+				"id": "(O)194",
+				"category": -102,
+				"type": "Basic",
+				"edibility": -300,
+				"price": 10,
+				"contextTags": ["book_item"]
+			}
+		],
+		"expected": 8
+	},
+	{
+		"name": "getGiftTaste (NPC.getGiftTasteForThisItem): matches category 0 against the 0 (Weeds) in Universal_Hate",
+		"op": "giftTaste",
+		"args": [
+			{
+				"Universal_Love": "74 446 279 373",
+				"Universal_Like": "-2 -7",
+				"Universal_Neutral": "194 book_item",
+				"Universal_Dislike": "-4 category_trinket",
+				"Universal_Hate": "0 -20 93",
+				"Abigail": "Love!/66 Book_Void/Like/-6/Dislike/-5 16/Hate/330/Thanks//",
+				"Haley": "Love!/221/Like/18/Dislike/-75/Hate/-4 74/Thanks//",
+				"Penny": "Love!/72 book_item/Like/ancient_item/Dislike/80/Hate/446/Thanks//",
+				"Leo": "Love!/ParrotEgg/Like/852/Dislike/-7 -81/Hate/257/Thanks//",
+				"Linus": "Love!/88/Like/-5/Dislike/-2 194 373/Hate//Neutral/-4/",
+				"Pam": "Love!/-6 0/Like//Dislike//Hate//Thanks/-2/"
+			},
+			"Abigail",
+			{
+				"id": "(O)797",
+				"category": 0,
+				"type": "Basic",
+				"edibility": -300,
+				"price": 100,
+				"contextTags": []
+			}
+		],
+		"expected": 6
+	},
+	{
+		"name": "getGiftTaste (NPC.getGiftTasteForThisItem): matches category 0 against the 0 (Weeds) in Universal_Hate",
+		"op": "giftTaste",
+		"args": [
+			{
+				"Universal_Love": "74 446 279 373",
+				"Universal_Like": "-2 -7",
+				"Universal_Neutral": "194 book_item",
+				"Universal_Dislike": "-4 category_trinket",
+				"Universal_Hate": "0 -20 93",
+				"Abigail": "Love!/66 Book_Void/Like/-6/Dislike/-5 16/Hate/330/Thanks//",
+				"Haley": "Love!/221/Like/18/Dislike/-75/Hate/-4 74/Thanks//",
+				"Penny": "Love!/72 book_item/Like/ancient_item/Dislike/80/Hate/446/Thanks//",
+				"Leo": "Love!/ParrotEgg/Like/852/Dislike/-7 -81/Hate/257/Thanks//",
+				"Linus": "Love!/88/Like/-5/Dislike/-2 194 373/Hate//Neutral/-4/",
+				"Pam": "Love!/-6 0/Like//Dislike//Hate//Thanks/-2/"
+			},
+			"Pam",
+			{
+				"id": "(O)797",
+				"category": 0,
+				"type": "Basic",
+				"edibility": -300,
+				"price": 100,
+				"contextTags": []
+			}
+		],
+		"expected": 6
+	},
+	{
+		"name": "getGiftTaste (NPC.getGiftTasteForThisItem): matches category 0 against the 0 (Weeds) in Universal_Hate",
+		"op": "giftTaste",
+		"args": [
+			{
+				"Universal_Love": "74 446 279 373",
+				"Universal_Like": "-2 -7",
+				"Universal_Neutral": "194 book_item",
+				"Universal_Dislike": "-4 category_trinket",
+				"Universal_Hate": "0 -20 93",
+				"Abigail": "Love!/66 Book_Void/Like/-6/Dislike/-5 16/Hate/330/Thanks//",
+				"Haley": "Love!/221/Like/18/Dislike/-75/Hate/-4 74/Thanks//",
+				"Penny": "Love!/72 book_item/Like/ancient_item/Dislike/80/Hate/446/Thanks//",
+				"Leo": "Love!/ParrotEgg/Like/852/Dislike/-7 -81/Hate/257/Thanks//",
+				"Linus": "Love!/88/Like/-5/Dislike/-2 194 373/Hate//Neutral/-4/",
+				"Pam": "Love!/-6 0/Like//Dislike//Hate//Thanks/-2/"
+			},
+			"Pam",
+			{
+				"id": "(O)0",
+				"category": -999,
+				"type": "Basic",
+				"edibility": -300,
+				"price": 100,
+				"contextTags": []
+			}
+		],
+		"expected": 0
+	},
+	{
+		"name": "getGiftTaste (NPC.getGiftTasteForThisItem): makes artifacts disliked, except by Penny and the Dwarf",
+		"op": "giftTaste",
+		"args": [
+			{
+				"Universal_Love": "74 446 279 373",
+				"Universal_Like": "-2 -7",
+				"Universal_Neutral": "194 book_item",
+				"Universal_Dislike": "-4 category_trinket",
+				"Universal_Hate": "0 -20 93",
+				"Abigail": "Love!/66 Book_Void/Like/-6/Dislike/-5 16/Hate/330/Thanks//",
+				"Haley": "Love!/221/Like/18/Dislike/-75/Hate/-4 74/Thanks//",
+				"Penny": "Love!/72 book_item/Like/ancient_item/Dislike/80/Hate/446/Thanks//",
+				"Leo": "Love!/ParrotEgg/Like/852/Dislike/-7 -81/Hate/257/Thanks//",
+				"Linus": "Love!/88/Like/-5/Dislike/-2 194 373/Hate//Neutral/-4/",
+				"Pam": "Love!/-6 0/Like//Dislike//Hate//Thanks/-2/"
+			},
+			"Abigail",
+			{
+				"id": "(O)100",
+				"category": 0,
+				"type": "Arch",
+				"edibility": -300,
+				"price": 100,
+				"contextTags": []
+			}
+		],
+		"expected": 4
+	},
+	{
+		"name": "getGiftTaste (NPC.getGiftTasteForThisItem): makes artifacts disliked, except by Penny and the Dwarf",
+		"op": "giftTaste",
+		"args": [
+			{
+				"Universal_Love": "74 446 279 373",
+				"Universal_Like": "-2 -7",
+				"Universal_Neutral": "194 book_item",
+				"Universal_Dislike": "-4 category_trinket",
+				"Universal_Hate": "0 -20 93",
+				"Abigail": "Love!/66 Book_Void/Like/-6/Dislike/-5 16/Hate/330/Thanks//",
+				"Haley": "Love!/221/Like/18/Dislike/-75/Hate/-4 74/Thanks//",
+				"Penny": "Love!/72 book_item/Like/ancient_item/Dislike/80/Hate/446/Thanks//",
+				"Leo": "Love!/ParrotEgg/Like/852/Dislike/-7 -81/Hate/257/Thanks//",
+				"Linus": "Love!/88/Like/-5/Dislike/-2 194 373/Hate//Neutral/-4/",
+				"Pam": "Love!/-6 0/Like//Dislike//Hate//Thanks/-2/"
+			},
+			"Penny",
+			{
+				"id": "(O)100",
+				"category": 0,
+				"type": "Arch",
+				"edibility": -300,
+				"price": 100,
+				"contextTags": []
+			}
+		],
+		"expected": 2
+	},
+	{
+		"name": "getGiftTaste (NPC.getGiftTasteForThisItem): makes artifacts disliked, except by Penny and the Dwarf",
+		"op": "giftTaste",
+		"args": [
+			{
+				"Universal_Love": "74 446 279 373",
+				"Universal_Like": "-2 -7",
+				"Universal_Neutral": "194 book_item",
+				"Universal_Dislike": "-4 category_trinket",
+				"Universal_Hate": "0 -20 93",
+				"Abigail": "Love!/66 Book_Void/Like/-6/Dislike/-5 16/Hate/330/Thanks//",
+				"Haley": "Love!/221/Like/18/Dislike/-75/Hate/-4 74/Thanks//",
+				"Penny": "Love!/72 book_item/Like/ancient_item/Dislike/80/Hate/446/Thanks//",
+				"Leo": "Love!/ParrotEgg/Like/852/Dislike/-7 -81/Hate/257/Thanks//",
+				"Linus": "Love!/88/Like/-5/Dislike/-2 194 373/Hate//Neutral/-4/",
+				"Pam": "Love!/-6 0/Like//Dislike//Hate//Thanks/-2/"
+			},
+			"Dwarf",
+			{
+				"id": "(O)100",
+				"category": 0,
+				"type": "Arch",
+				"edibility": -300,
+				"price": 100,
+				"contextTags": []
+			}
+		],
+		"expected": 2
+	},
+	{
+		"name": "getGiftTaste (NPC.getGiftTasteForThisItem): makes artifacts disliked, except by Penny and the Dwarf",
+		"op": "giftTaste",
+		"args": [
+			{
+				"Universal_Love": "74 446 279 373",
+				"Universal_Like": "-2 -7",
+				"Universal_Neutral": "194 book_item",
+				"Universal_Dislike": "-4 category_trinket",
+				"Universal_Hate": "0 -20 93",
+				"Abigail": "Love!/66 Book_Void/Like/-6/Dislike/-5 16/Hate/330/Thanks//",
+				"Haley": "Love!/221/Like/18/Dislike/-75/Hate/-4 74/Thanks//",
+				"Penny": "Love!/72 book_item/Like/ancient_item/Dislike/80/Hate/446/Thanks//",
+				"Leo": "Love!/ParrotEgg/Like/852/Dislike/-7 -81/Hate/257/Thanks//",
+				"Linus": "Love!/88/Like/-5/Dislike/-2 194 373/Hate//Neutral/-4/",
+				"Pam": "Love!/-6 0/Like//Dislike//Hate//Thanks/-2/",
+				"Jas": "Love!/doll_item/Like//Dislike//Hate//Thanks//"
+			},
+			"Jas",
+			{
+				"id": "(O)126",
+				"category": 0,
+				"type": "Arch",
+				"edibility": -300,
+				"price": 100,
+				"contextTags": ["doll_item"]
+			}
+		],
+		"expected": 0
+	},
+	{
+		"name": "getGiftTaste (NPC.getGiftTasteForThisItem): hates bad food and dislikes cheap items left neutral",
+		"op": "giftTaste",
+		"args": [
+			{
+				"Universal_Love": "74 446 279 373",
+				"Universal_Like": "-2 -7",
+				"Universal_Neutral": "194 book_item",
+				"Universal_Dislike": "-4 category_trinket",
+				"Universal_Hate": "0 -20 93",
+				"Abigail": "Love!/66 Book_Void/Like/-6/Dislike/-5 16/Hate/330/Thanks//",
+				"Haley": "Love!/221/Like/18/Dislike/-75/Hate/-4 74/Thanks//",
+				"Penny": "Love!/72 book_item/Like/ancient_item/Dislike/80/Hate/446/Thanks//",
+				"Leo": "Love!/ParrotEgg/Like/852/Dislike/-7 -81/Hate/257/Thanks//",
+				"Linus": "Love!/88/Like/-5/Dislike/-2 194 373/Hate//Neutral/-4/",
+				"Pam": "Love!/-6 0/Like//Dislike//Hate//Thanks/-2/"
+			},
+			"Abigail",
+			{
+				"id": "(O)500",
+				"category": -81,
+				"type": "Basic",
+				"edibility": -20,
+				"price": 100,
+				"contextTags": []
+			}
+		],
+		"expected": 6
+	},
+	{
+		"name": "getGiftTaste (NPC.getGiftTasteForThisItem): hates bad food and dislikes cheap items left neutral",
+		"op": "giftTaste",
+		"args": [
+			{
+				"Universal_Love": "74 446 279 373",
+				"Universal_Like": "-2 -7",
+				"Universal_Neutral": "194 book_item",
+				"Universal_Dislike": "-4 category_trinket",
+				"Universal_Hate": "0 -20 93",
+				"Abigail": "Love!/66 Book_Void/Like/-6/Dislike/-5 16/Hate/330/Thanks//",
+				"Haley": "Love!/221/Like/18/Dislike/-75/Hate/-4 74/Thanks//",
+				"Penny": "Love!/72 book_item/Like/ancient_item/Dislike/80/Hate/446/Thanks//",
+				"Leo": "Love!/ParrotEgg/Like/852/Dislike/-7 -81/Hate/257/Thanks//",
+				"Linus": "Love!/88/Like/-5/Dislike/-2 194 373/Hate//Neutral/-4/",
+				"Pam": "Love!/-6 0/Like//Dislike//Hate//Thanks/-2/"
+			},
+			"Abigail",
+			{
+				"id": "(O)501",
+				"category": -81,
+				"type": "Basic",
+				"edibility": -300,
+				"price": 10,
+				"contextTags": []
+			}
+		],
+		"expected": 4
+	},
+	{
+		"name": "getGiftTaste (NPC.getGiftTasteForThisItem): hates bad food and dislikes cheap items left neutral",
+		"op": "giftTaste",
+		"args": [
+			{
+				"Universal_Love": "74 446 279 373",
+				"Universal_Like": "-2 -7",
+				"Universal_Neutral": "194 book_item",
+				"Universal_Dislike": "-4 category_trinket",
+				"Universal_Hate": "0 -20 93",
+				"Abigail": "Love!/66 Book_Void/Like/-6/Dislike/-5 16/Hate/330/Thanks//",
+				"Haley": "Love!/221/Like/18/Dislike/-75/Hate/-4 74/Thanks//",
+				"Penny": "Love!/72 book_item/Like/ancient_item/Dislike/80/Hate/446/Thanks//",
+				"Leo": "Love!/ParrotEgg/Like/852/Dislike/-7 -81/Hate/257/Thanks//",
+				"Linus": "Love!/88/Like/-5/Dislike/-2 194 373/Hate//Neutral/-4/",
+				"Pam": "Love!/-6 0/Like//Dislike//Hate//Thanks/-2/"
+			},
+			"Abigail",
+			{
+				"id": "(O)194",
+				"category": -81,
+				"type": "Basic",
+				"edibility": -300,
+				"price": 10,
+				"contextTags": []
+			}
+		],
+		"expected": 8
+	},
+	{
+		"name": "getGiftTaste (NPC.getGiftTasteForThisItem): gives Stardrop Tea its own reaction, not a love",
+		"op": "giftTaste",
+		"args": [
+			{
+				"Universal_Love": "74 446 279 373",
+				"Universal_Like": "-2 -7",
+				"Universal_Neutral": "194 book_item",
+				"Universal_Dislike": "-4 category_trinket",
+				"Universal_Hate": "0 -20 93",
+				"Abigail": "Love!/66 Book_Void/Like/-6/Dislike/-5 16/Hate/330/Thanks//",
+				"Haley": "Love!/221/Like/18/Dislike/-75/Hate/-4 74/Thanks//",
+				"Penny": "Love!/72 book_item/Like/ancient_item/Dislike/80/Hate/446/Thanks//",
+				"Leo": "Love!/ParrotEgg/Like/852/Dislike/-7 -81/Hate/257/Thanks//",
+				"Linus": "Love!/88/Like/-5/Dislike/-2 194 373/Hate//Neutral/-4/",
+				"Pam": "Love!/-6 0/Like//Dislike//Hate//Thanks/-2/"
+			},
+			"Abigail",
+			{
+				"id": "(O)StardropTea",
+				"category": 0,
+				"type": "Basic",
+				"edibility": -300,
+				"price": 100,
+				"contextTags": []
+			}
+		],
+		"expected": 7
+	},
+	{
+		"name": "villagerGifts",
+		"op": "gifts",
+		"args": [
+			{
+				"Universal_Love": "74 446 279 373",
+				"Universal_Like": "-2 -7",
+				"Universal_Neutral": "194 book_item",
+				"Universal_Dislike": "-4 category_trinket",
+				"Universal_Hate": "0 -20 93",
+				"Abigail": "Love!/66 Book_Void/Like/-6/Dislike/-5 16/Hate/330/Thanks//",
+				"Haley": "Love!/221/Like/18/Dislike/-75/Hate/-4 74/Thanks//",
+				"Penny": "Love!/72 book_item/Like/ancient_item/Dislike/80/Hate/446/Thanks//",
+				"Leo": "Love!/ParrotEgg/Like/852/Dislike/-7 -81/Hate/257/Thanks//",
+				"Linus": "Love!/88/Like/-5/Dislike/-2 194 373/Hate//Neutral/-4/",
+				"Pam": "Love!/-6 0/Like//Dislike//Hate//Thanks/-2/",
+				"Leah": "Love!/348 458 529 999/Like//Dislike//Hate//Thanks//"
+			},
+			[
+				{
+					"_type": "Object",
+					"_key": "66",
+					"name": "Amethyst",
+					"type": "Basic",
+					"price": 100,
+					"category": -2
+				},
+				{
+					"_type": "Object",
+					"_key": "72",
+					"name": "Diamond",
+					"type": "Basic",
+					"price": 100,
+					"category": -2
+				},
+				{
+					"_type": "Object",
+					"_key": "373",
+					"name": "Golden Pumpkin",
+					"type": "Basic",
+					"price": 100
+				},
+				{
+					"_type": "Object",
+					"_key": "74",
+					"name": "Prismatic Shard",
+					"type": "Basic",
+					"price": 100,
+					"category": -2
+				},
+				{
+					"_type": "Object",
+					"_key": "446",
+					"name": "Rabbit's Foot",
+					"type": "Basic",
+					"price": 100,
+					"category": -18
+				},
+				{
+					"_type": "Object",
+					"_key": "279",
+					"name": "Magic Rock Candy",
+					"type": "Basic",
+					"price": 100,
+					"category": -7
+				},
+				{
+					"_type": "Object",
+					"_key": "88",
+					"name": "Coconut",
+					"type": "Basic",
+					"price": 100,
+					"category": -79
+				},
+				{
+					"_type": "Object",
+					"_key": "348",
+					"name": "Wine",
+					"type": "Basic",
+					"price": 100,
+					"category": -26
+				},
+				{
+					"_type": "Object",
+					"_key": "348",
+					"name": "Blueberry Wine",
+					"type": "Basic",
+					"price": 100,
+					"category": -26,
+					"unpreservedItemId": "258"
+				},
+				{
+					"_type": "Object",
+					"_key": "458",
+					"name": "Bouquet",
+					"type": "Basic",
+					"price": 100
+				},
+				{
+					"_type": "Object",
+					"_key": "StardropTea",
+					"name": "Stardrop Tea",
+					"type": "Basic",
+					"price": 100
+				},
+				{
+					"_type": "Object",
+					"_key": "529",
+					"name": "Amethyst Ring",
+					"type": "Ring",
+					"price": 100,
+					"category": -96
+				},
+				{
+					"_type": "Object",
+					"_key": "Book_Void",
+					"name": "Monster Compendium",
+					"type": "Basic",
+					"price": 100,
+					"category": -102,
+					"tags": ["book_item"]
+				},
+				{
+					"_type": "Object",
+					"_key": "Book_0",
+					"name": "Book 6",
+					"type": "Basic",
+					"price": 100,
+					"category": -102,
+					"tags": ["book_item"]
+				},
+				{
+					"_type": "Object",
+					"_key": "Book_1",
+					"name": "Book 5",
+					"type": "Basic",
+					"price": 100,
+					"category": -102,
+					"tags": ["book_item"]
+				},
+				{
+					"_type": "Object",
+					"_key": "Book_2",
+					"name": "Book 4",
+					"type": "Basic",
+					"price": 100,
+					"category": -102,
+					"tags": ["book_item"]
+				},
+				{
+					"_type": "Object",
+					"_key": "Book_3",
+					"name": "Book 3",
+					"type": "Basic",
+					"price": 100,
+					"category": -102,
+					"tags": ["book_item"]
+				},
+				{
+					"_type": "Object",
+					"_key": "Book_4",
+					"name": "Book 2",
+					"type": "Basic",
+					"price": 100,
+					"category": -102,
+					"tags": ["book_item"]
+				},
+				{
+					"_type": "Object",
+					"_key": "Book_5",
+					"name": "Book 1",
+					"type": "Basic",
+					"price": 100,
+					"category": -102,
+					"tags": ["book_item"]
+				},
+				{
+					"_type": "Trinket",
+					"_key": "ParrotEgg",
+					"name": "ParrotEgg"
+				},
+				{
+					"_type": "BigCraftable",
+					"_key": "74",
+					"name": "Big Craftable 74"
+				}
+			],
+			["Abigail", "Haley", "Penny", "Leo", "Leah", "Krobus"]
+		],
+		"expected": {
+			"villagers": {
+				"Abigail": {
+					"loves": [
+						{
+							"name": "Amethyst",
+							"item": "Amethyst"
+						},
+						{
+							"name": "Monster Compendium",
+							"item": "Monster Compendium"
+						}
+					],
+					"universalLoves": [
+						{
+							"name": "Golden Pumpkin",
+							"item": "Golden Pumpkin"
+						},
+						{
+							"name": "Magic Rock Candy",
+							"item": "Magic Rock Candy"
+						},
+						{
+							"name": "Prismatic Shard",
+							"item": "Prismatic Shard"
+						},
+						{
+							"name": "Rabbit's Foot",
+							"item": "Rabbit's Foot"
+						},
+						{
+							"name": "Stardrop Tea",
+							"item": "Stardrop Tea"
+						}
+					]
+				},
+				"Haley": {
+					"loves": [],
+					"universalLoves": [
+						{
+							"name": "Golden Pumpkin",
+							"item": "Golden Pumpkin"
+						},
+						{
+							"name": "Magic Rock Candy",
+							"item": "Magic Rock Candy"
+						},
+						{
+							"name": "Rabbit's Foot",
+							"item": "Rabbit's Foot"
+						},
+						{
+							"name": "Stardrop Tea",
+							"item": "Stardrop Tea"
+						}
+					]
+				},
+				"Penny": {
+					"loves": [
+						{
+							"name": "Diamond",
+							"item": "Diamond"
+						},
+						{
+							"name": "Any book",
+							"item": "Book 1",
+							"items": [
+								"Book 1",
+								"Book 2",
+								"Book 3",
+								"Book 4",
+								"Book 5",
+								"Book 6",
+								"Monster Compendium"
+							]
+						}
+					],
+					"universalLoves": [
+						{
+							"name": "Golden Pumpkin",
+							"item": "Golden Pumpkin"
+						},
+						{
+							"name": "Magic Rock Candy",
+							"item": "Magic Rock Candy"
+						},
+						{
+							"name": "Prismatic Shard",
+							"item": "Prismatic Shard"
+						},
+						{
+							"name": "Stardrop Tea",
+							"item": "Stardrop Tea"
+						}
+					]
+				},
+				"Leo": {
+					"loves": [
+						{
+							"name": "Parrot Egg",
+							"item": "ParrotEgg"
+						}
+					],
+					"universalLoves": [
+						{
+							"name": "Golden Pumpkin",
+							"item": "Golden Pumpkin"
+						},
+						{
+							"name": "Magic Rock Candy",
+							"item": "Magic Rock Candy"
+						},
+						{
+							"name": "Prismatic Shard",
+							"item": "Prismatic Shard"
+						},
+						{
+							"name": "Rabbit's Foot",
+							"item": "Rabbit's Foot"
+						},
+						{
+							"name": "Stardrop Tea",
+							"item": "Stardrop Tea"
+						}
+					]
+				},
+				"Leah": {
+					"loves": [
+						{
+							"name": "Wine",
+							"item": "Wine"
+						}
+					],
+					"universalLoves": [
+						{
+							"name": "Golden Pumpkin",
+							"item": "Golden Pumpkin"
+						},
+						{
+							"name": "Magic Rock Candy",
+							"item": "Magic Rock Candy"
+						},
+						{
+							"name": "Prismatic Shard",
+							"item": "Prismatic Shard"
+						},
+						{
+							"name": "Rabbit's Foot",
+							"item": "Rabbit's Foot"
+						},
+						{
+							"name": "Stardrop Tea",
+							"item": "Stardrop Tea"
+						}
+					]
+				},
+				"Krobus": {
+					"loves": [],
+					"universalLoves": []
+				}
+			},
+			"unmatched": ["221", "458", "529", "999"]
+		}
+	},
+	{
+		"name": "cooking recipe progress IDs: reads %s with an optional quantity",
+		"op": "getCookingRecipeOutput",
+		"args": ["Fried Egg", "-5 1/10 10/194/default/"],
+		"expected": "194"
+	},
+	{
+		"name": "cooking recipe progress IDs: reads %s with an optional quantity",
+		"op": "getCookingRecipeOutput",
+		"args": ["Cookies", "246 1 245 1 -5 1/20 4/223 1/default/"],
+		"expected": "223"
+	},
+	{
+		"name": "cooking recipe progress IDs: reads %s with an optional quantity",
+		"op": "getCookingRecipeOutput",
+		"args": ["Qualified", "246 1/20 4/(O)223 3/default/"],
+		"expected": "223"
+	},
+	{
+		"name": "cooking recipe progress IDs: rejects missing or ambiguous outputs: %s",
+		"op": "getCookingRecipeOutput",
+		"args": ["Invalid", ""],
+		"error": "Unsupported cooking output for Invalid"
+	},
+	{
+		"name": "cooking recipe progress IDs: rejects missing or ambiguous outputs: %s",
+		"op": "getCookingRecipeOutput",
+		"args": ["Invalid", "ingredients/skills/"],
+		"error": "Unsupported cooking output for Invalid"
+	},
+	{
+		"name": "cooking recipe progress IDs: rejects missing or ambiguous outputs: %s",
+		"op": "getCookingRecipeOutput",
+		"args": ["Invalid", "ingredients/skills/194 1 195 1"],
+		"error": "Unsupported cooking output for Invalid"
+	},
+	{
+		"name": "",
+		"op": "weather",
+		"args": [
+			{
+				"IslandNorth": {
+					"CreateOnLoad": {
+						"MapPath": "Maps/Island_N",
+						"Type": "StardewValley.Locations.IslandNorth"
+					}
+				},
+				"Dynamic": {
+					"CreateOnLoad": null
+				},
+				"Backwoods": {
+					"CreateOnLoad": {
+						"MapPath": "Maps/Backwoods",
+						"Type": null
+					}
+				}
+			},
+			["Default", "Island", "Desert"],
+			{
+				"Maps/Backwoods": "<map version=\"1.4\"/>",
+				"Maps/Island_N": "<map><properties><property name=\"LocationContext\" value=\"Island\"/></properties></map>",
+				"Maps/Farm": "<map version=\"1.4\"/>"
+			}
+		],
+		"expected": {
+			"Backwoods": {
+				"context": "Default",
+				"type": "GameLocation"
+			},
+			"IslandNorth": {
+				"context": "Island",
+				"type": "IslandNorth"
+			},
+			"Farm": {
+				"context": "Default",
+				"type": "Farm"
+			}
+		}
+	}
+]

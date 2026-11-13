@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../ContentWorkspace.cs" Link="ContentWorkspace.cs" />
+    <Compile Include="../*Catalog.cs" />
+    <Compile Include="../CatalogGenerator.cs" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <Content Include="fixtures/catalog.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

@@ -21,36 +21,57 @@ npm run dev
 
 ### Updating Game Assets
 
-Follow [these instructions from the SDV Wiki](https://stardewvalleywiki.com/Modding:Editing_XNB_files#Unpack_game_files) to unpack the game files. Put them in a `content` folder at the root of the project (eg. `content/Characters/Abigail.png`).
+Install the .NET 8 SDK (or a newer SDK plus the .NET 8 runtime) and a
+vanilla PC copy of Stardew Valley. Then run:
 
-Then run `npm run dump`.
+```bash
+export STARDEW_GAME_PATH="/path/to/Stardew Valley"
+npm run dump
+```
+
+On PowerShell, set `$env:STARDEW_GAME_PATH = "C:\path\to\Stardew Valley"`.
+On macOS, point it at the directory containing `Stardew Valley.dll` inside the
+app bundle. The command runs our [XnbHack integration](tools/xnbhack) directly,
+including all transformations into `generated` and `static/assets`. SMAPI and
+mods are not needed,
+and nothing is installed into the game directory. The first run restores pinned
+NuGet dependencies. On Windows, enable Developer Mode so the integration can
+create its temporary Content link. XnbHack creates a temporary game instance,
+so it needs a
+working graphics display; on headless Linux, run `xvfb-run -a npm run dump` with
+Mesa available.
+
+Unpacked inputs, generated catalogs and selected textures are staged together.
+They replace `content`, `generated` and `static/assets` only after extraction and
+transformation succeed, with rollback if publication fails. Temporary exports use
+`.cache/xnbhack`; build outputs stay under `tools/xnbhack/bin` and `obj`.
+The upstream sources and license are pinned under `tools/xnbhack/vendor`.
 
 `generated/location-weather.json` joins `Data/Locations`, `Data/LocationContexts`
-and map-level `LocationContext` properties. Unpack maps as TMX files under
-`content/Maps`. To regenerate only this lookup, run `npm run dump:location-weather`;
-that script runs directly on Node 24. The normal dump includes it as well. App
+and map-level `LocationContext` properties. XnbHack writes maps as TMX files under
+`content/Maps`. The normal dump regenerates this lookup as well. App
 checks and tests use the committed lookup and do not require unpacked maps.
 
-If you need assets that aren't copied from that command, you can modify it in `codegen/dump.ts`.
+If you need assets that aren't copied from that command, you can modify it in `tools/xnbhack/WorldCatalog.cs`.
 
 `generated/buildings.json` includes what the editor needs to upgrade buildings (each building's
 `buildingToUpgrade`, `validOccupantTypes`, doors, and the items the game adds or moves inside), taken
-from `Data/Buildings` by `codegen/buildingUpgrade.ts`.
+from `Data/Buildings` by `tools/xnbhack/WorldCatalog.cs`.
 
 Villager descriptions aren't in the game files: `src/lib/wiki/villagers.json` is copied by hand from the [Stardew Valley Wiki](https://stardewvalleywiki.com) (CC BY-NC-SA 3.0), so edit it directly.
 
 Event names aren't in the game files: they're kept by hand in `src/lib/wiki/events.json`, copied from the Stardew Modding Wiki's [List of Vanilla Event IDs](https://stardewmodding.wiki.gg/wiki/List_of_Vanilla_Event_IDs) (CC BY-SA 4.0).
 
-`generated/quests.json` is `Data/Quests`, parsed by `codegen/quests.ts` the way the game reads it
+`generated/quests.json` is `Data/Quests`, parsed by `tools/xnbhack/QuestCatalog.cs` the way the game reads it
 (`Quest.getQuestFromId`), so completing a story quest in the editor can start the next one.
 
 ### Inspecting game assemblies
 
 The standalone .NET CLI under `tools/game-data` inspects XML serialization
-metadata, compares catalogs with saves, generates typed TypeScript XML codecs, and wraps
-StardewXnbHack for asset exports.
+metadata, compares catalogs with saves, and generates typed TypeScript XML codecs.
 See [game data tooling](tools/game-data/README.md) for setup, commands, input storage,
-and validation limits. It does not change the existing `content/` codegen workflow.
+and validation limits. Asset extraction and catalog generation use `tools/xnbhack`
+as described above.
 
 The production editor imports the committed codec in `generated/save-format/save.ts`.
 Regenerate it with `npm run game-data:generate -- --output generated/save-format/save.ts`.
@@ -82,9 +103,9 @@ and assets are excluded. Biome remains the linter while we assess replacement
 lint coverage; it no longer formats files.
 
 `npm run check` runs linting, native TypeScript 7 checks for the app,
-and `svelte-check`. Run `npm run check:codegen` after unpacking the game assets;
-codegen imports those untracked files, so this check cannot run on a clean CI
-checkout. Svelte still uses the JavaScript TypeScript 6 SDK because it
+and `svelte-check`. Run `npm run check:asset-dump` and `npm run test:asset-dump`
+for the .NET generator; these use synthetic fixtures and require no game
+installation. Svelte still uses the JavaScript TypeScript 6 SDK because it
 needs the compiler API; the native compiler is installed as `@typescript/native`.
 Scripts use an explicit compiler path to avoid ambiguous `tsc` executable names.
 
@@ -142,7 +163,9 @@ generated production polyfills.
 - `src/lib/editor`: file-owned engine, domain views/commands and application UI.
 - `src/lib/ui`: reusable controls and frame artwork.
 - `src/lib/proxies`: temporary legacy editor compatibility, not the default engine.
-- `codegen` and `generated`: game-data extraction and committed output.
+- `tools/xnbhack`: game-data extraction and catalog generation.
+- `codegen`: application-facing catalog and save types.
+- `generated`: committed game-data output.
 
 Use UI-friendly immutable domain views rather than exposing raw save records to
 components. Preserve unfamiliar imported data and validate each supported mutation

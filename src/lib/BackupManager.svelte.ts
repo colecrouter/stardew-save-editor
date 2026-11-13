@@ -2,6 +2,7 @@ import {
 	restoreOriginal,
 	serializeOriginal,
 	storedOriginalSchema,
+	matchesOriginal,
 	type StoredOriginal,
 } from "./saveBackups";
 import { openDB } from "idb";
@@ -31,6 +32,8 @@ export class BackupManager {
 	private disabled: boolean;
 	private loaded = $state(false);
 	private pendingWrite = Promise.resolve();
+	private pendingAdd = Promise.resolve();
+	private readonly loading: Promise<void>;
 	private persisted = new Map<File, IDBValidKey>();
 
 	constructor(limit = BACKUP_LIMIT) {
@@ -49,7 +52,8 @@ export class BackupManager {
 			// never retry writes after storage has been disabled.
 			if (!this.loaded || this.disabled) return;
 
-			// Limit the number of backups
+			// Bound this manager's known list; concurrent unowned v2 records in
+			// the shared store are preserved even if its total temporarily exceeds the limit.
 			this.files.length = Math.min(this.files.length, this.limit);
 
 			// Capture each revision before awaiting I/O, then write in order so an
@@ -58,8 +62,30 @@ export class BackupManager {
 			this.pendingWrite = this.pendingWrite.then(() => this.save(files));
 		});
 
+		// Retain completion so imports can compare against the loaded archive.
 		// load/save contain their error reporting because effects cannot await them.
-		void this.load();
+		this.loading = this.load();
+	}
+
+	/** Keep each distinct original, including changed bytes under the same farm filename. */
+	add(file: File): Promise<void> {
+		const added = this.pendingAdd.then(async () => {
+			await this.loading;
+			const incoming = await serializeOriginal(file);
+			// Compare exact source bytes, not decoded text: compressed originals may
+			// contain different bytes that decode to the same replacement characters.
+			for (const existing of this.files) {
+				if (existing.name !== file.name) continue;
+				const stored = await serializeOriginal(existing);
+				if (this.files.includes(existing) && matchesOriginal(stored, incoming))
+					return;
+			}
+			this.files.unshift(file);
+		});
+		// Each caller receives its failure. Observe it internally only to keep a
+		// failed read from poisoning the queue for subsequent import attempts.
+		this.pendingAdd = added.catch(() => {});
+		return added;
 	}
 
 	/**
@@ -92,9 +118,27 @@ export class BackupManager {
 				if (key === undefined) throw new Error("Backup record has no key");
 				this.persisted.set(file, key);
 			}
-			// Imports can arrive while IndexedDB opens. Keep those newly added
-			// originals ahead of the previously persisted entries.
-			this.files = [...this.files, ...newFiles];
+			// Older callers can still append directly while storage opens. Resolve
+			// those bytes before retention, so a duplicate cannot evict a distinct
+			// stored original. Include arrivals during each asynchronous file read.
+			const incoming = new Map<File, StoredOriginal>();
+			while (this.files.some((file) => !incoming.has(file))) {
+				await Promise.all(
+					this.files
+						.filter((file) => !incoming.has(file))
+						.map(async (file) => {
+							incoming.set(file, await serializeOriginal(file));
+						}),
+				);
+			}
+			const distinct = this.files.filter((file) => {
+				const stored = incoming.get(file);
+				return (
+					stored !== undefined &&
+					!backupFiles.some((previous) => matchesOriginal(previous, stored))
+				);
+			});
+			this.files = [...distinct, ...newFiles];
 		} catch (e) {
 			// A failed read is not permission to erase the archive. Keep stored bytes
 			// and any import already in memory, then disable destructive replacement.

@@ -38,7 +38,10 @@ function encodeBytes(bytes: Uint8Array): string {
 }
 
 /** Same farm filename and exact bytes mean the original is already protected. */
-function matchesOriginal(value: unknown, incoming: StoredOriginal): boolean {
+export function matchesOriginal(
+	value: unknown,
+	incoming: StoredOriginal,
+): boolean {
 	const decoded = decodeStored(value);
 	if (Result.isFailure(decoded) || decoded.success.name !== incoming.name)
 		return false;

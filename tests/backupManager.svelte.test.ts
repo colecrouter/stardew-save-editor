@@ -82,6 +82,52 @@ describe("legacy backup persistence", () => {
 		db.close();
 	});
 
+	it("does not let an identical before-load import evict another original", async () => {
+		const db = await archive();
+		await db.add(
+			"files",
+			await serializeOriginal(new File(["older"], "older")),
+		);
+		await db.add(
+			"files",
+			await serializeOriginal(new File(["latest"], "latest")),
+		);
+		const backups = manager(2);
+		backups.files.unshift(new File(["latest"], "latest"));
+		flushSync();
+		await waitFor(() =>
+			expect(backups.files.map((file) => file.name)).toEqual([
+				"latest",
+				"older",
+			]),
+		);
+		expect((await db.getAll("files")).map((file) => file.name)).toEqual([
+			"older",
+			"latest",
+		]);
+		db.close();
+	});
+
+	it("awaits initial load and serializes duplicate arrivals without dropping changed bytes", async () => {
+		const db = await archive();
+		const old = await serializeOriginal(
+			new File([new Uint8Array([255])], "Farm"),
+		);
+		await db.add("files", old);
+		const backups = manager();
+		// 0xff and 0xfe both decode to U+FFFD, so text equality is insufficient.
+		await Promise.all([
+			backups.add(new File([new Uint8Array([255])], "Farm")),
+			backups.add(new File([new Uint8Array([254])], "Farm")),
+			backups.add(new File([new Uint8Array([254])], "Farm")),
+		]);
+		flushSync();
+		expect(backups.files).toHaveLength(2);
+		await waitFor(async () => expect(await db.getAll("files")).toHaveLength(2));
+		expect((await db.getAll("files"))[0]).toEqual(old);
+		db.close();
+	});
+
 	it("preserves an unreadable archive and disables replacement writes", async () => {
 		const db = await archive();
 		await db.add("files", { name: "invalid", data: 123 });
@@ -125,7 +171,9 @@ describe("legacy backup persistence", () => {
 
 	it("serializes overlapping revisions so an older slow write cannot restore a removed file", async () => {
 		const db = await archive();
+		await db.add("files", await serializeOriginal(new File(["old"], "old")));
 		const backups = manager();
+		await waitFor(() => expect(backups.files).toHaveLength(1));
 		let release!: (value: ArrayBuffer) => void;
 		const reading = new Promise<ArrayBuffer>((resolve) => {
 			release = resolve;

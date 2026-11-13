@@ -1,5 +1,6 @@
 import { malformedFixture } from "../helpers/editor-document.ts";
-import { describe, expect, it } from "vitest";
+import { it } from "@effect/vitest";
+import { describe, expect } from "vitest";
 import { Effect, Result } from "effect";
 import { makeHistorySession } from "../../src/lib/editor/history";
 import {
@@ -40,9 +41,6 @@ const fixture = () => {
 	];
 	return document;
 };
-const run = <A, E>(
-	program: Effect.Effect<A, E, import("effect").Scope.Scope>,
-) => Effect.runPromise(Effect.scoped(program));
 
 // Required fixture lookups fail explicitly so a missing setup slot cannot weaken
 // a preservation assertion or accidentally send an undefined entity target.
@@ -51,8 +49,9 @@ function required<A>(value: A | undefined): A {
 	return value;
 }
 describe("bounded backpack edits", () => {
-	it("updates fields with exact preservation, detached views and undo/redo identities", async () =>
-		run(
+	it.effect(
+		"updates fields with exact preservation, detached views and undo/redo identities",
+		() =>
 			Effect.gen(function* () {
 				const original = fixture();
 				const session = yield* makeHistorySession(original);
@@ -102,10 +101,11 @@ describe("bounded backpack edits", () => {
 				expect((yield* session.redo).document).toEqual(quality.document);
 				expect((yield* session.undo).identities).toEqual(before.identities);
 			}),
-		));
+	);
 
-	it("resolves stable entities after reorder and transfer, including undo", async () =>
-		run(
+	it.effect(
+		"resolves stable entities after reorder and transfer, including undo",
+		() =>
 			Effect.gen(function* () {
 				const session = yield* makeHistorySession(fixture());
 				const before = yield* session.snapshot;
@@ -150,10 +150,11 @@ describe("bounded backpack edits", () => {
 						.quality,
 				).toBe(2);
 			}),
-		));
+	);
 
-	it("transferred entities require their current farmer and undo restores ownership", async () =>
-		run(
+	it.effect(
+		"transferred entities require their current farmer and undo restores ownership",
+		() =>
 			Effect.gen(function* () {
 				const document = fixture();
 				if (!Array.isArray(document.SaveGame.farmhands))
@@ -203,9 +204,9 @@ describe("bounded backpack edits", () => {
 				expect(restored.document).toEqual(before.document);
 				expect(restored.identities).toEqual(before.identities);
 			}),
-		));
+	);
 
-	it.each([
+	it.effect.each([
 		{ slot: 2, temporary: { category: -75 }, property: "quality", value: 4 },
 		{
 			slot: 0,
@@ -219,56 +220,54 @@ describe("bounded backpack edits", () => {
 		},
 	] as const)(
 		"rejects transient eligibility laundering %j",
-		async ({ slot, temporary, property, value }) =>
-			run(
-				Effect.gen(function* () {
-					const document = fixture();
-					// The second case starts as an unsupported tool; the first starts as Wood,
-					// whose serialized category excludes quality despite a numeric quality field.
-					if (slot === 0)
-						Object.assign(document.SaveGame.player.items[0] as object, {
-							$type: "StardewValley.Tools.Axe",
-							bigCraftable: true,
-							itemId: "unknown-tool",
-						});
-					const session = yield* makeHistorySession(document);
-					const before = yield* session.snapshot;
-					const attempt = Effect.gen(function* () {
-						const draft = yield* TransactionDraft;
-						const edited = yield* draft.read;
-						const item = edited.state.document.SaveGame.player.items[
-							slot
-						] as Record<string, unknown>;
-						const original = structuredClone(item);
-						Object.assign(item, temporary);
-						yield* draft.replace(edited);
-						yield* setInventoryItem({
-							ownerId: "1",
-							entityId: required(before.identities["1"]?.[slot]),
-							...(property === "quality"
-								? { property, value: 4 as const }
-								: { property, value }),
-						});
-						const restored = yield* draft.read;
-						const target = restored.state.document.SaveGame.player.items[
-							slot
-						] as Record<string, unknown>;
-						// A final-state-only guard would miss the temporary unsupported fields after
-						// these originals are restored, leaving only the unauthorized value change.
-						for (const key of Object.keys(temporary))
-							target[key] = original[key];
-						yield* draft.replace(restored);
+		({ slot, temporary, property, value }) =>
+			Effect.gen(function* () {
+				const document = fixture();
+				// The second case starts as an unsupported tool; the first starts as Wood,
+				// whose serialized category excludes quality despite a numeric quality field.
+				if (slot === 0)
+					Object.assign(document.SaveGame.player.items[0] as object, {
+						$type: "StardewValley.Tools.Axe",
+						bigCraftable: true,
+						itemId: "unknown-tool",
 					});
-					expect(
-						Result.isFailure(yield* Effect.result(session.transact(attempt))),
-					).toBe(true);
-					expect(yield* session.snapshot).toEqual(before);
-				}),
-			),
+				const session = yield* makeHistorySession(document);
+				const before = yield* session.snapshot;
+				const attempt = Effect.gen(function* () {
+					const draft = yield* TransactionDraft;
+					const edited = yield* draft.read;
+					const item = edited.state.document.SaveGame.player.items[
+						slot
+					] as Record<string, unknown>;
+					const original = structuredClone(item);
+					Object.assign(item, temporary);
+					yield* draft.replace(edited);
+					yield* setInventoryItem({
+						ownerId: "1",
+						entityId: required(before.identities["1"]?.[slot]),
+						...(property === "quality"
+							? { property, value: 4 as const }
+							: { property, value }),
+					});
+					const restored = yield* draft.read;
+					const target = restored.state.document.SaveGame.player.items[
+						slot
+					] as Record<string, unknown>;
+					// A final-state-only guard would miss the temporary unsupported fields after
+					// these originals are restored, leaving only the unauthorized value change.
+					for (const key of Object.keys(temporary)) target[key] = original[key];
+					yield* draft.replace(restored);
+				});
+				expect(
+					Result.isFailure(yield* Effect.result(session.transact(attempt))),
+				).toBe(true);
+				expect(yield* session.snapshot).toEqual(before);
+			}),
 	);
 
-	it("allows consecutive authorized fields alongside noninventory draft changes", async () =>
-		run(
+	it.effect(
+		"allows consecutive authorized fields alongside noninventory draft changes",
+		() =>
 			Effect.gen(function* () {
 				const session = yield* makeHistorySession(fixture());
 				const before = yield* session.snapshot;
@@ -301,10 +300,11 @@ describe("bounded backpack edits", () => {
 				expect(after.entries).toHaveLength(1);
 				expect((yield* session.undo).document).toEqual(before.document);
 			}),
-		));
+	);
 
-	it("rejects raw inventory edits even when mixed with an authorized edit", async () =>
-		run(
+	it.effect(
+		"rejects raw inventory edits even when mixed with an authorized edit",
+		() =>
 			Effect.gen(function* () {
 				const session = yield* makeHistorySession(fixture());
 				const before = yield* session.snapshot;
@@ -331,10 +331,11 @@ describe("bounded backpack edits", () => {
 				).toBe(true);
 				expect(yield* session.snapshot).toEqual(before);
 			}),
-		));
+	);
 
-	it("rejects stale, unsupported and invalid edits without disturbing redo", async () =>
-		run(
+	it.effect(
+		"rejects stale, unsupported and invalid edits without disturbing redo",
+		() =>
 			Effect.gen(function* () {
 				const session = yield* makeHistorySession(fixture());
 				const initial = yield* session.snapshot;
@@ -396,10 +397,11 @@ describe("bounded backpack edits", () => {
 				expect(yield* session.snapshot).toEqual(before);
 				expect((yield* session.redo).cursor).toBe(1);
 			}),
-		));
+	);
 
-	it("tolerates ambiguous IDs and unsupported arrays without normalizing imports", async () =>
-		run(
+	it.effect(
+		"tolerates ambiguous IDs and unsupported arrays without normalizing imports",
+		() =>
 			Effect.gen(function* () {
 				const document = fixture();
 				if (!Array.isArray(document.SaveGame.farmhands))
@@ -421,10 +423,11 @@ describe("bounded backpack edits", () => {
 						.items,
 				).toBe("ModdedInventory");
 			}),
-		));
+	);
 
-	it("preserves opaque and unsupported records without granting edit capabilities", async () =>
-		run(
+	it.effect(
+		"preserves opaque and unsupported records without granting edit capabilities",
+		() =>
 			Effect.gen(function* () {
 				const document = fixture();
 				document.SaveGame.player.items.push(
@@ -479,10 +482,11 @@ describe("bounded backpack edits", () => {
 					expect(yield* session.snapshot).toEqual(before);
 				}
 			}),
-		));
+	);
 
-	it("skips incomplete farmers while retaining their exact saved records", async () =>
-		run(
+	it.effect(
+		"skips incomplete farmers while retaining their exact saved records",
+		() =>
 			Effect.gen(function* () {
 				const document: SaveDocument = fixture();
 				if (!Array.isArray(document.SaveGame.farmhands))
@@ -512,10 +516,11 @@ describe("bounded backpack edits", () => {
 					document.SaveGame.farmhands,
 				);
 			}),
-		));
+	);
 
-	it("rejects an interrupted compound edit without publishing fields or review", async () =>
-		run(
+	it.effect(
+		"rejects an interrupted compound edit without publishing fields or review",
+		() =>
 			Effect.gen(function* () {
 				const session = yield* makeHistorySession(fixture());
 				const before = yield* session.snapshot;
@@ -535,7 +540,7 @@ describe("bounded backpack edits", () => {
 				expect(result._tag).toBe("Failure");
 				expect(yield* session.snapshot).toEqual(before);
 			}),
-		));
+	);
 
 	it("rejects inherited and unknown request fields without coercing valid quantities", () => {
 		const base = {

@@ -36,6 +36,7 @@
 		"@effect/language-service": "0.87.5",
 		"@effect/platform-node": "4.0.6",
 		"@effect/tsgo": "0.68.1",
+		"@effect/vitest": "4.0.6",
 		"@sentry/sveltekit": "^11.12.0",
 		"@sveltejs/adapter-static": "^4.0.1",
 		"@sveltejs/kit": "^3.2.0",

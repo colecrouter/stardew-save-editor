@@ -2,7 +2,8 @@ import { malformedFixture } from "../helpers/editor-document.ts";
 import { stringifySavedData } from "../../src/lib/editor/saved-data.ts";
 import { get } from "svelte/store";
 import { Effect, Result } from "effect";
-import { expect, it } from "vitest";
+import { it } from "@effect/vitest";
+import { expect } from "vitest";
 import { openTestDocument } from "../helpers/open-editor.ts";
 import { makeHistorySession } from "../../src/lib/editor/history";
 import {
@@ -106,64 +107,63 @@ it(
 	},
 );
 
-it("versions actual committed inputs for custom writes, ID collisions and Undo", () =>
-	Effect.runPromise(
-		Effect.scoped(
-			Effect.gen(function* () {
-				const document = tinyFixture();
-				Object.assign(document.SaveGame, { locations: locations() });
-				const session = yield* makeHistorySession(document).pipe(
-					Effect.provideService(EditorOperations, {
-						prepare: (state, action) =>
-							coreOperations.prepare(state, action).pipe(
-								Effect.map((prepared) => {
-									// The action label says farm-name, but a custom adapter also changes
-									// world storage. Invalidation must inspect its prepared result.
-									if (action.type === "farm-name") {
-										const world = locations();
-										if (action.value === "World change")
-											required(required(world[0]).objects[0]).value.name =
-												"Renamed chest";
-										Object.assign(prepared.document.SaveGame, {
-											locations: world,
-										});
-									}
-									if (action.type === "money")
-										prepared.document.SaveGame.player.UniqueMultiplayerID =
-											malformedFixture(
-												required(
-													readChests({
-														...state,
-														identities: required(state.inventory).identities,
-													})[0],
-												).ownerId,
-											);
-									return prepared;
-								}),
-							),
-					}),
-				);
-				const before = yield* session.snapshot;
-				// Equal replacement data remains shared after publication and does not
-				// invalidate merely because the preparer allocated another object.
-				const same = yield* session.execute([
-					{ type: "farm-name", value: "New" },
-				]);
-				expect(same.chestRevision).toBe(before.chestRevision);
-				const worldChanged = yield* session.execute([
-					{ type: "farm-name", value: "World change" },
-				]);
-				expect(worldChanged.chestRevision).toBeGreaterThan(same.chestRevision);
-				expect(readChests(worldChanged)[0]?.name).toContain("Renamed chest");
-				const collided = yield* session.execute([
-					{ type: "money", farmerId: "1", value: 22 },
-				]);
-				expect(collided.chestRevision).toBeGreaterThan(same.chestRevision);
-				expect(readChests(collided)[0]?.supported).toBe(false);
-				yield* session.undo;
-				const undone = yield* session.snapshot;
-				expect(undone.chestRevision).toBeGreaterThan(collided.chestRevision);
-				expect(readChests(undone)[0]?.supported).toBe(true);
-			}),
-		),
-	));
+it.effect(
+	"versions actual committed inputs for custom writes, ID collisions and Undo",
+	() =>
+		Effect.gen(function* () {
+			const document = tinyFixture();
+			Object.assign(document.SaveGame, { locations: locations() });
+			const session = yield* makeHistorySession(document).pipe(
+				Effect.provideService(EditorOperations, {
+					prepare: (state, action) =>
+						coreOperations.prepare(state, action).pipe(
+							Effect.map((prepared) => {
+								// The action label says farm-name, but a custom adapter also changes
+								// world storage. Invalidation must inspect its prepared result.
+								if (action.type === "farm-name") {
+									const world = locations();
+									if (action.value === "World change")
+										required(required(world[0]).objects[0]).value.name =
+											"Renamed chest";
+									Object.assign(prepared.document.SaveGame, {
+										locations: world,
+									});
+								}
+								if (action.type === "money")
+									prepared.document.SaveGame.player.UniqueMultiplayerID =
+										malformedFixture(
+											required(
+												readChests({
+													...state,
+													identities: required(state.inventory).identities,
+												})[0],
+											).ownerId,
+										);
+								return prepared;
+							}),
+						),
+				}),
+			);
+			const before = yield* session.snapshot;
+			// Equal replacement data remains shared after publication and does not
+			// invalidate merely because the preparer allocated another object.
+			const same = yield* session.execute([
+				{ type: "farm-name", value: "New" },
+			]);
+			expect(same.chestRevision).toBe(before.chestRevision);
+			const worldChanged = yield* session.execute([
+				{ type: "farm-name", value: "World change" },
+			]);
+			expect(worldChanged.chestRevision).toBeGreaterThan(same.chestRevision);
+			expect(readChests(worldChanged)[0]?.name).toContain("Renamed chest");
+			const collided = yield* session.execute([
+				{ type: "money", farmerId: "1", value: 22 },
+			]);
+			expect(collided.chestRevision).toBeGreaterThan(same.chestRevision);
+			expect(readChests(collided)[0]?.supported).toBe(false);
+			yield* session.undo;
+			const undone = yield* session.snapshot;
+			expect(undone.chestRevision).toBeGreaterThan(collided.chestRevision);
+			expect(readChests(undone)[0]?.supported).toBe(true);
+		}),
+);

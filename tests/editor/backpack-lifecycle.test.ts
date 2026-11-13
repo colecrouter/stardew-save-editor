@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { it } from "@effect/vitest";
+import { describe, expect } from "vitest";
 import { Effect, Result, Schema } from "effect";
 import { makeHistorySession } from "../../src/lib/editor/history";
 import {
@@ -15,9 +16,6 @@ import {
 	exportDocument,
 } from "../helpers/editor-document.ts";
 
-const run = <A, E>(
-	program: Effect.Effect<A, E, import("effect").Scope.Scope>,
-) => Effect.runPromise(Effect.scoped(program));
 function required<A>(value: A | undefined): A {
 	if (value === undefined) throw Error("Missing fixture handle");
 	return value;
@@ -161,53 +159,48 @@ describe("proxy-free item catalog", () => {
 });
 
 describe("backpack creation and removal", () => {
-	it(
+	it.effect(
 		"adds only into the selected empty entity, exports exact defaults and restores original nil representation on Undo",
 		() =>
-			run(
-				Effect.gen(function* () {
-					const document = tinyFixture();
-					document.SaveGame.player.items[1] = null;
-					const session = yield* makeHistorySession(document);
-					const before = yield* session.snapshot;
-					const empty = required(before.identities["1"]?.[1]);
-					yield* session.execute([
-						{
-							type: "backpack-add",
-							ownerId: "1",
-							entityId: empty,
-							catalogId: "Parsnip",
-						},
-					]);
-					const added = yield* session.snapshot;
-					expect(added.document.SaveGame.player.items[1]).toEqual(
-						createCatalogItem("Parsnip"),
-					);
-					expect(added.identities["1"]?.[1]).not.toBe(empty);
-					const expected = structuredClone(document);
-					expected.SaveGame.player.items[1] = required(
-						createCatalogItem("Parsnip"),
-					);
-					expect(added.document).toEqual(expected);
-					expect(parser.parse(exportDocument(added.document))).toEqual(
-						parser.parse(exportDocument(expected)),
-					);
-					yield* session.undo;
-					expect((yield* session.snapshot).document).toEqual(document);
-					expect((yield* session.snapshot).identities).toEqual(
-						before.identities,
-					);
-					yield* session.redo;
-					expect((yield* session.snapshot).document).toEqual(added.document);
-					expect((yield* session.snapshot).identities).toEqual(
-						added.identities,
-					);
-				}),
-			),
+			Effect.gen(function* () {
+				const document = tinyFixture();
+				document.SaveGame.player.items[1] = null;
+				const session = yield* makeHistorySession(document);
+				const before = yield* session.snapshot;
+				const empty = required(before.identities["1"]?.[1]);
+				yield* session.execute([
+					{
+						type: "backpack-add",
+						ownerId: "1",
+						entityId: empty,
+						catalogId: "Parsnip",
+					},
+				]);
+				const added = yield* session.snapshot;
+				expect(added.document.SaveGame.player.items[1]).toEqual(
+					createCatalogItem("Parsnip"),
+				);
+				expect(added.identities["1"]?.[1]).not.toBe(empty);
+				const expected = structuredClone(document);
+				expected.SaveGame.player.items[1] = required(
+					createCatalogItem("Parsnip"),
+				);
+				expect(added.document).toEqual(expected);
+				expect(parser.parse(exportDocument(added.document))).toEqual(
+					parser.parse(exportDocument(expected)),
+				);
+				yield* session.undo;
+				expect((yield* session.snapshot).document).toEqual(document);
+				expect((yield* session.snapshot).identities).toEqual(before.identities);
+				yield* session.redo;
+				expect((yield* session.snapshot).document).toEqual(added.document);
+				expect((yield* session.snapshot).identities).toEqual(added.identities);
+			}),
 		30_000,
 	);
-	it("removes opaque items as a whole and Undo restores every field and identity", () =>
-		run(
+	it.effect(
+		"removes opaque items as a whole and Undo restores every field and identity",
+		() =>
 			Effect.gen(function* () {
 				const document = tinyFixture();
 				document.SaveGame.player.items[0] = {
@@ -233,9 +226,10 @@ describe("backpack creation and removal", () => {
 				expect((yield* session.snapshot).document).toEqual(document);
 				expect((yield* session.snapshot).identities).toEqual(before.identities);
 			}),
-		));
-	it("rejects occupied, stale, wrong-owner and unknown-catalog requests without touching history or redo", () =>
-		run(
+	);
+	it.effect(
+		"rejects occupied, stale, wrong-owner and unknown-catalog requests without touching history or redo",
+		() =>
 			Effect.gen(function* () {
 				const session = yield* makeHistorySession(tinyFixture());
 				const before = yield* session.snapshot;
@@ -311,9 +305,10 @@ describe("backpack creation and removal", () => {
 				yield* session.redo;
 				expect((yield* session.snapshot).document).toEqual(added.document);
 			}),
-		));
-	it("resolves empty and occupied handles through reorder and preserves malformed unrelated owners", () =>
-		run(
+	);
+	it.effect(
+		"resolves empty and occupied handles through reorder and preserves malformed unrelated owners",
+		() =>
 			Effect.gen(function* () {
 				const document = tinyFixture();
 				document.SaveGame.farmhands = [
@@ -354,9 +349,10 @@ describe("backpack creation and removal", () => {
 					(yield* session.snapshot).document.SaveGame.player.items[0],
 				).toEqual(null);
 			}),
-		));
-	it("validates own schema fields and rolls back a compound request if a later slot operation fails", () =>
-		run(
+	);
+	it.effect(
+		"validates own schema fields and rolls back a compound request if a later slot operation fails",
+		() =>
 			Effect.gen(function* () {
 				const session = yield* makeHistorySession(tinyFixture());
 				const before = yield* session.snapshot;
@@ -390,7 +386,7 @@ describe("backpack creation and removal", () => {
 				).toBe(true);
 				expect(yield* session.snapshot).toEqual(before);
 			}),
-		));
+	);
 });
 
 // The command returns its own committed handle pair even when Undo is already

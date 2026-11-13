@@ -1,4 +1,5 @@
-import { expect, it } from "vitest";
+import { it } from "@effect/vitest";
+import { expect } from "vitest";
 import { Effect, Result } from "effect";
 import { makeHistorySession } from "../../src/lib/editor/history";
 import {
@@ -12,48 +13,44 @@ import {
 	PLAYER_ID,
 } from "../helpers/animalBuildings";
 import { fixtureXml, parser } from "./fixtures";
-const run = <A, E>(
-	program: Effect.Effect<A, E, import("effect").Scope.Scope>,
-) => Effect.runPromise(Effect.scoped(program));
 
-it(
+it.effect(
 	"rejects a structural building change when raw storage aliases would collapse distinct handles",
 	() =>
-		run(
-			Effect.gen(function* () {
-				const document = parser.parse(withAnimalBuildings(fixtureXml)),
-					coop = inspectBuildings(document).buildings.find(
-						(row) => row.id === COOP_ID,
-					);
-				if (!coop?.interior) throw new Error("Missing Coop");
-				const chest = {
-					$type: "StardewValley.Objects.Chest" as const,
-					name: "Chest",
-					itemId: "130",
-					items: [
-						{ $type: "StardewValley.Object" as const, itemId: "388", stack: 3 },
-					],
-				};
-				coop.interior.objects = [10, 11].map((x) => ({
-					key: { X: x, Y: 3 },
-					value: chest,
-				}));
-				const session = yield* makeHistorySession(document),
-					before = yield* session.snapshot;
-				expect(
-					Result.isFailure(
-						yield* Effect.result(
-							session.transact(upgradeBuilding(COOP_ID, "Big Coop")),
-						),
+		Effect.gen(function* () {
+			const document = parser.parse(withAnimalBuildings(fixtureXml)),
+				coop = inspectBuildings(document).buildings.find(
+					(row) => row.id === COOP_ID,
+				);
+			if (!coop?.interior) throw new Error("Missing Coop");
+			const chest = {
+				$type: "StardewValley.Objects.Chest" as const,
+				name: "Chest",
+				itemId: "130",
+				items: [
+					{ $type: "StardewValley.Object" as const, itemId: "388", stack: 3 },
+				],
+			};
+			coop.interior.objects = [10, 11].map((x) => ({
+				key: { X: x, Y: 3 },
+				value: chest,
+			}));
+			const session = yield* makeHistorySession(document),
+				before = yield* session.snapshot;
+			expect(
+				Result.isFailure(
+					yield* Effect.result(
+						session.transact(upgradeBuilding(COOP_ID, "Big Coop")),
 					),
-				).toBe(true);
-				expect(yield* session.snapshot).toEqual(before);
-			}),
-		),
+				),
+			).toBe(true);
+			expect(yield* session.snapshot).toEqual(before);
+		}),
 	30_000,
 );
-it("leaves unnamed farmhand records untouched by building and adoption progression", () =>
-	run(
+it.effect(
+	"leaves unnamed farmhand records untouched by building and adoption progression",
+	() =>
 		Effect.gen(function* () {
 			const document = parser.parse(withAnimalBuildings(fixtureXml)),
 				ghost = structuredClone(document.SaveGame.player);
@@ -73,4 +70,4 @@ it("leaves unnamed farmhand records untouched by building and adoption progressi
 				ghost,
 			]);
 		}),
-	));
+);

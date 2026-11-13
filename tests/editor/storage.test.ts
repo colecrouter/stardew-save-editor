@@ -1,5 +1,6 @@
 import { malformedFixture } from "../helpers/editor-document.ts";
-import { describe, expect, it } from "vitest";
+import { it } from "@effect/vitest";
+import { describe, expect } from "vitest";
 import { Effect, Result } from "effect";
 import { makeHistorySession } from "../../src/lib/editor/history";
 import { createCatalogItem } from "../../src/lib/editor/item-catalog";
@@ -8,9 +9,7 @@ import { discoverPlacedChests } from "../../src/lib/editor/chest-storage";
 import { setStorageQuality } from "../../src/lib/editor/storage-operations";
 import { searchStorage } from "../../src/lib/editor/storage-domain";
 import { tinyFixture } from "../helpers/editor-document.ts";
-const run = <A, E>(
-	program: Effect.Effect<A, E, import("effect").Scope.Scope>,
-) => Effect.runPromise(Effect.scoped(program));
+
 const required = <T>(value: T | undefined): T => {
 	if (value === undefined) throw new Error("Missing fixture value");
 	return value;
@@ -51,8 +50,9 @@ const handle = (
 ) => required(state.identities[ownerId]?.[index]);
 
 describe("storage command boundary", () => {
-	it("organizes tools first and leaves complete stacks and empty markers as paired lifetimes", () =>
-		run(
+	it.effect(
+		"organizes tools first and leaves complete stacks and empty markers as paired lifetimes",
+		() =>
 			Effect.gen(function* () {
 				const { document } = fixture();
 				document.SaveGame.player.items = [
@@ -92,9 +92,10 @@ describe("storage command boundary", () => {
 				yield* session.redo;
 				expect((yield* session.snapshot).identities).toEqual(after.identities);
 			}),
-		));
-	it("organizes a compact chest and preserves each item handle and all raw members", () =>
-		run(
+	);
+	it.effect(
+		"organizes a compact chest and preserves each item handle and all raw members",
+		() =>
 			Effect.gen(function* () {
 				const { document } = fixture([
 						[item("Wood"), item("Parsnip"), item("Rusty Sword")],
@@ -112,9 +113,10 @@ describe("storage command boundary", () => {
 				expect(handle(after, chest.id, 0)).toBe(handle(before, chest.id, 2));
 				expect(after.identities[chest.id]).toHaveLength(36);
 			}),
-		));
-	it("transfers a captured set atomically and follows handles through source compaction", () =>
-		run(
+	);
+	it.effect(
+		"transfers a captured set atomically and follows handles through source compaction",
+		() =>
 			Effect.gen(function* () {
 				const { document } = fixture(),
 					session = yield* makeHistorySession(document),
@@ -141,9 +143,10 @@ describe("storage command boundary", () => {
 				yield* session.redo;
 				expect((yield* session.snapshot).identities).toEqual(after.identities);
 			}),
-		));
-	it("rejects a stale source or insufficient room without touching either endpoint", () =>
-		run(
+	);
+	it.effect(
+		"rejects a stale source or insufficient room without touching either endpoint",
+		() =>
 			Effect.gen(function* () {
 				const { document } = fixture([
 					[item("Wood"), item("Parsnip")],
@@ -182,9 +185,10 @@ describe("storage command boundary", () => {
 				).toBe(true);
 				expect(yield* session.snapshot).toEqual(before);
 			}),
-		));
-	it("bulk quality has one Undo boundary and rolls back all targets after a later stale handle", () =>
-		run(
+	);
+	it.effect(
+		"bulk quality has one Undo boundary and rolls back all targets after a later stale handle",
+		() =>
 			Effect.gen(function* () {
 				const { document } = fixture(),
 					session = yield* makeHistorySession(document),
@@ -219,9 +223,10 @@ describe("storage command boundary", () => {
 				).toBe(true);
 				expect((yield* session.snapshot).document).toEqual(before.document);
 			}),
-		));
-	it("grows and shrinks a chest while retaining occupied IDs and rejecting a full downgrade", () =>
-		run(
+	);
+	it.effect(
+		"grows and shrinks a chest while retaining occupied IDs and rejecting a full downgrade",
+		() =>
 			Effect.gen(function* () {
 				const { document } = fixture([[item("Wood")]]),
 					session = yield* makeHistorySession(document),
@@ -248,9 +253,10 @@ describe("storage command boundary", () => {
 				yield* session.undo;
 				expect((yield* session.snapshot).identities).toEqual(big.identities);
 			}),
-		));
-	it("protects mini-bin separate-wallet items and permits an empty-wallet expansion", () =>
-		run(
+	);
+	it.effect(
+		"protects mini-bin separate-wallet items and permits an empty-wallet expansion",
+		() =>
 			Effect.gen(function* () {
 				for (const wallet of [
 					undefined,
@@ -281,9 +287,10 @@ describe("storage command boundary", () => {
 					}
 				}
 			}),
-		));
-	it("searches item contents across containers without mutating the views", () =>
-		run(
+	);
+	it.effect(
+		"searches item contents across containers without mutating the views",
+		() =>
 			Effect.gen(function* () {
 				const { document } = fixture(),
 					session = yield* makeHistorySession(document),
@@ -294,9 +301,10 @@ describe("storage command boundary", () => {
 				expect(searchStorage(views, "388")).toHaveLength(1);
 				expect(views).toEqual(original);
 			}),
-		));
-	it("discovers fridge, explicit machine roots and building storage without changing existing owner paths", () =>
-		run(
+	);
+	it.effect(
+		"discovers fridge, explicit machine roots and building storage without changing existing owner paths",
+		() =>
 			Effect.gen(function* () {
 				const { document } = fixture([[item("Wood")]]);
 				const placed = required(discoverPlacedChests(document)[0]);
@@ -418,9 +426,10 @@ describe("storage command boundary", () => {
 					transferred.identities,
 				);
 			}),
-		));
-	it("rejects downgrading a full big chest and preserves opaque type IDs during projection", () =>
-		run(
+	);
+	it.effect(
+		"rejects downgrading a full big chest and preserves opaque type IDs during projection",
+		() =>
 			Effect.gen(function* () {
 				const { document, chests } = fixture([
 					Array.from({ length: 37 }, () => item("Wood")),
@@ -450,9 +459,10 @@ describe("storage command boundary", () => {
 					readChests(yield* opaque.snapshot)[0]?.storage?.typeId,
 				).toBeUndefined();
 			}),
-		));
-	it("rejects structural edits to aliased raw chest owners without confusing their separate handles", () =>
-		run(
+	);
+	it.effect(
+		"rejects structural edits to aliased raw chest owners without confusing their separate handles",
+		() =>
 			Effect.gen(function* () {
 				const { document, chests } = fixture([[item("Parsnip"), item("Wood")]]),
 					raw = required(chests[0]);
@@ -503,28 +513,24 @@ describe("storage command boundary", () => {
 				).toBe(true);
 				expect(yield* session.snapshot).toEqual(before);
 			}),
-		));
+	);
 });
 
-it.each(["absent", "array"] as const)(
+it.effect.each(["absent", "array"] as const)(
 	"organizing %s empty storage preserves exact XML and Redo",
 	(representation) =>
-		run(
-			Effect.gen(function* () {
-				const { document, chests } = fixture([[]]),
-					chest = required(chests[0]);
-				if (representation === "absent") Reflect.deleteProperty(chest, "items");
-				const session = yield* makeHistorySession(document);
-				yield* session.execute([{ type: "money", farmerId: "1", value: 99 }]);
-				yield* session.undo;
-				const before = yield* session.snapshot,
-					ownerId = required(readChests(before)[0]).ownerId;
-				yield* session.execute([{ type: "inventory-organize", ownerId }]);
-				expect(yield* session.snapshot).toEqual(before);
-				yield* session.redo;
-				expect((yield* session.snapshot).document.SaveGame.player.money).toBe(
-					99,
-				);
-			}),
-		),
+		Effect.gen(function* () {
+			const { document, chests } = fixture([[]]),
+				chest = required(chests[0]);
+			if (representation === "absent") Reflect.deleteProperty(chest, "items");
+			const session = yield* makeHistorySession(document);
+			yield* session.execute([{ type: "money", farmerId: "1", value: 99 }]);
+			yield* session.undo;
+			const before = yield* session.snapshot,
+				ownerId = required(readChests(before)[0]).ownerId;
+			yield* session.execute([{ type: "inventory-organize", ownerId }]);
+			expect(yield* session.snapshot).toEqual(before);
+			yield* session.redo;
+			expect((yield* session.snapshot).document.SaveGame.player.money).toBe(99);
+		}),
 );

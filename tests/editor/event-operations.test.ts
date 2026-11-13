@@ -1,5 +1,6 @@
-import { Effect, type Scope } from "effect";
-import { describe, expect, it } from "vitest";
+import { Effect } from "effect";
+import { it } from "@effect/vitest";
+import { describe, expect } from "vitest";
 import { toEventId } from "../../src/lib/eventId.ts";
 import {
 	readEvents,
@@ -12,8 +13,7 @@ import {
 	parser,
 	exportDocument,
 } from "../helpers/editor-document.ts";
-const run = <E>(effect: Effect.Effect<void, E, Scope.Scope>) =>
-	Effect.runPromise(Effect.scoped(effect));
+
 function fixture(events: unknown = [1, "Mod.Event"]) {
 	const document = tinyFixture();
 	Object.assign(document.SaveGame.player, { eventsSeen: events });
@@ -57,8 +57,9 @@ describe("event save operations", () => {
 		);
 		expect(document).toEqual(before);
 	});
-	it("updates membership atomically preserving siblings, metadata and exact Undo/Redo", () =>
-		run(
+	it.effect(
+		"updates membership atomically preserving siblings, metadata and exact Undo/Redo",
+		() =>
 			Effect.gen(function* () {
 				const document = fixture([1, "Mod.Event", { opaque: "keep" }]);
 				Object.assign(document.SaveGame.player, {
@@ -86,9 +87,10 @@ describe("event save operations", () => {
 				yield* session.redo;
 				expect((yield* session.snapshot).document).toEqual(removed.document);
 			}),
-		));
-	it("keeps singleton and empty lists unchanged on read and creates no-op history", () =>
-		run(
+	);
+	it.effect(
+		"keeps singleton and empty lists unchanged on read and creates no-op history",
+		() =>
 			Effect.gen(function* () {
 				for (const input of [[], [1]]) {
 					const document = fixture(input);
@@ -113,9 +115,10 @@ describe("event save operations", () => {
 					}
 				}
 			}),
-		));
-	it("rejects an omitted event list while preserving unrelated entries", () =>
-		run(
+	);
+	it.effect(
+		"rejects an omitted event list while preserving unrelated entries",
+		() =>
 			Effect.gen(function* () {
 				const missing = fixture();
 				delete missing.SaveGame.player.eventsSeen;
@@ -136,9 +139,10 @@ describe("event save operations", () => {
 					(yield* session.snapshot).document.SaveGame.player,
 				).toMatchObject({ eventsSeen: [{ opaque: "keep" }, 1, "3"] });
 			}),
-		));
-	it("rejects duplicate targets, invalid requests and ambiguous farmers without partial publication", () =>
-		run(
+	);
+	it.effect(
+		"rejects duplicate targets, invalid requests and ambiguous farmers without partial publication",
+		() =>
 			Effect.gen(function* () {
 				for (const request of [
 					change("1", false),
@@ -169,9 +173,10 @@ describe("event save operations", () => {
 				expect(result._tag).toBe("Failure");
 				expect((yield* session.snapshot).document).toEqual(before.document);
 			}),
-		));
-	it("preserves the captured farmer and does not apply event rewards or other fields", () =>
-		run(
+	);
+	it.effect(
+		"preserves the captured farmer and does not apply event rewards or other fields",
+		() =>
 			Effect.gen(function* () {
 				const session = yield* makeHistorySession(fixture());
 				const before = yield* session.snapshot;
@@ -188,34 +193,32 @@ describe("event save operations", () => {
 						?.seen.map((row) => row.id),
 				).toEqual(["2", "3"]);
 			}),
-		));
-	it(
+	);
+	it.effect(
 		"roundtrips supported typed IDs through the production XML codec without changing identities",
 		() =>
-			run(
-				Effect.gen(function* () {
-					const session = yield* makeHistorySession(fixture([]));
-					const typed = [
-						"01",
-						"007",
-						"-1",
-						"1.5",
-						"123abc",
-						"1e400",
-						"NaN",
-						"Infinity",
-						"Mod.Id_1",
-					];
-					for (const id of typed)
-						yield* session.transact(setEventSeen(change(id, true)));
-					const saved = (yield* session.snapshot).document;
-					const roundtrip = parser.parse(exportDocument(saved));
-					expect(readEvents(roundtrip)[0]?.seen.map((row) => row.id)).toEqual(
-						typed.map(toEventId),
-					);
-					expect(readEvents(roundtrip)[0]?.unsupportedCount).toBe(0);
-				}),
-			),
+			Effect.gen(function* () {
+				const session = yield* makeHistorySession(fixture([]));
+				const typed = [
+					"01",
+					"007",
+					"-1",
+					"1.5",
+					"123abc",
+					"1e400",
+					"NaN",
+					"Infinity",
+					"Mod.Id_1",
+				];
+				for (const id of typed)
+					yield* session.transact(setEventSeen(change(id, true)));
+				const saved = (yield* session.snapshot).document;
+				const roundtrip = parser.parse(exportDocument(saved));
+				expect(readEvents(roundtrip)[0]?.seen.map((row) => row.id)).toEqual(
+					typed.map(toEventId),
+				);
+				expect(readEvents(roundtrip)[0]?.unsupportedCount).toBe(0);
+			}),
 		30_000,
 	);
 	it("validates typed IDs conservatively while keeping exact modded spellings", () => {
@@ -238,8 +241,9 @@ describe("event save operations", () => {
 	});
 });
 
-it("keeps imported leading-zero spellings distinct from deliberately added canonical IDs", () =>
-	run(
+it.effect(
+	"keeps imported leading-zero spellings distinct from deliberately added canonical IDs",
+	() =>
 		Effect.gen(function* () {
 			const session = yield* makeHistorySession(fixture(["007", "Mod.Event"]));
 			const before = yield* session.snapshot;
@@ -258,4 +262,4 @@ it("keeps imported leading-zero spellings distinct from deliberately added canon
 			yield* session.undo;
 			expect((yield* session.snapshot).document).toEqual(before.document);
 		}),
-	));
+);

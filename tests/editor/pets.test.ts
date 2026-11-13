@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect } from "vitest";
+import { it } from "@effect/vitest";
 import { Effect, Result } from "effect";
 import { makeHistorySession } from "../../src/lib/editor/history.ts";
 import { readPets } from "../../src/lib/editor/pet-data.ts";
@@ -13,10 +14,6 @@ import {
 	withPets,
 	fixturePet,
 } from "./pet-fixtures.ts";
-
-const run = <A, E>(
-	program: Effect.Effect<A, E, import("effect").Scope.Scope>,
-) => Effect.runPromise(Effect.scoped(program));
 
 describe("existing pet editing", () => {
 	it("discovers pets across outdoor and nested indoor arrays without normalizing the save", () => {
@@ -50,8 +47,9 @@ describe("existing pet editing", () => {
 		expect(document).toEqual(before);
 	});
 
-	it("changes only the requested fields, round-trips XML, and restores exact history", () =>
-		run(
+	it.effect(
+		"changes only the requested fields, round-trips XML, and restores exact history",
+		() =>
 			Effect.gen(function* () {
 				// Review integrates the other feature projectors, so use one full-save
 				// case here; isolated boundary cases below keep their minimal fixtures.
@@ -103,10 +101,11 @@ describe("existing pet editing", () => {
 				yield* session.redo;
 				expect((yield* session.snapshot).document).toEqual(after.document);
 			}),
-		));
+	);
 
-	it("resolves captured identities after reordering and rejects a removed target", () =>
-		run(
+	it.effect(
+		"resolves captured identities after reordering and rejects a removed target",
+		() =>
 			Effect.gen(function* () {
 				const session = yield* makeHistorySession(withPets());
 				const edit = setPet({ petId: catId, kind: "friendship", value: 900 });
@@ -149,57 +148,52 @@ describe("existing pet editing", () => {
 				).toBe(true);
 				expect(yield* session.snapshot).toEqual(before);
 			}),
-		));
+	);
 
-	it.each([
+	it.effect.each([
 		["blank name", { petId: catId, kind: "name", value: "  " }],
 		["negative points", { petId: catId, kind: "friendship", value: -1 }],
 		["excess points", { petId: catId, kind: "friendship", value: 1001 }],
 		["fractional points", { petId: catId, kind: "friendship", value: 1.5 }],
 		["non-finite points", { petId: catId, kind: "friendship", value: NaN }],
-	] as const)("rejects %s without history or document changes", (_, input) =>
-		run(
+	] as const)("rejects %s without history or document changes", ([, input]) =>
+		Effect.gen(function* () {
+			const session = yield* makeHistorySession(withPets());
+			const before = yield* session.snapshot;
+			expect(
+				Result.isFailure(yield* Effect.result(session.transact(setPet(input)))),
+			).toBe(true);
+			expect(yield* session.snapshot).toEqual(before);
+		}),
+	);
+
+	it.effect.each(["duplicate", "missing identity", "missing friendship"])(
+		"rejects %s without changing document or history",
+		(kind) =>
 			Effect.gen(function* () {
-				const session = yield* makeHistorySession(withPets());
+				const document = withPets();
+				if (kind === "duplicate")
+					fixturePet(document, dogId).guid = catId.toUpperCase();
+				if (kind === "missing identity") delete fixturePet(document).guid;
+				if (kind === "missing friendship")
+					delete fixturePet(document).friendshipTowardFarmer;
+				const session = yield* makeHistorySession(document);
 				const before = yield* session.snapshot;
-				expect(
-					Result.isFailure(
-						yield* Effect.result(session.transact(setPet(input))),
+				const result = yield* Effect.result(
+					session.transact(
+						setPet({ petId: catId, kind: "friendship", value: 800 }),
 					),
+				);
+				expect(
+					Result.isFailure(result) && result.failure instanceof PetInvalid,
 				).toBe(true);
 				expect(yield* session.snapshot).toEqual(before);
 			}),
-		),
 	);
 
-	it.each(["duplicate", "missing identity", "missing friendship"])(
-		"rejects %s without changing document or history",
-		(kind) =>
-			run(
-				Effect.gen(function* () {
-					const document = withPets();
-					if (kind === "duplicate")
-						fixturePet(document, dogId).guid = catId.toUpperCase();
-					if (kind === "missing identity") delete fixturePet(document).guid;
-					if (kind === "missing friendship")
-						delete fixturePet(document).friendshipTowardFarmer;
-					const session = yield* makeHistorySession(document);
-					const before = yield* session.snapshot;
-					const result = yield* Effect.result(
-						session.transact(
-							setPet({ petId: catId, kind: "friendship", value: 800 }),
-						),
-					);
-					expect(
-						Result.isFailure(result) && result.failure instanceof PetInvalid,
-					).toBe(true);
-					expect(yield* session.snapshot).toEqual(before);
-				}),
-			),
-	);
-
-	it("edits friendship at both boundaries without inventing a missing name", () =>
-		run(
+	it.effect(
+		"edits friendship at both boundaries without inventing a missing name",
+		() =>
 			Effect.gen(function* () {
 				const document = withPets();
 				delete fixturePet(document).name;
@@ -213,7 +207,7 @@ describe("existing pet editing", () => {
 					expect(pet).not.toHaveProperty("name");
 				}
 			}),
-		));
+	);
 
 	it("ignores valid nil slots without changing pet discovery", () => {
 		const document = withPets();
@@ -226,58 +220,26 @@ describe("existing pet editing", () => {
 		expect(readPets(document)).toEqual(before);
 	});
 
-	it.each(["character", "building", "location"])(
+	it.effect.each(["character", "building", "location"])(
 		"preserves an opaque %s and rejects edits that cannot rule out duplicate GUIDs",
 		(kind) =>
-			run(
-				Effect.gen(function* () {
-					const document = withPets();
-					const farm = fixtureFarm(document);
-					// Model unknown classes using the codec's actual opaque-object representation.
-					const opaque = {
-						$type: "$unknown" as const,
-						$xmlType: { name: "ModdedRecord", namespace: "" },
-						guid: catId,
-					};
-					if (kind === "character") farm.characters?.push(opaque);
-					if (kind === "building") farm.buildings?.push(opaque);
-					if (kind === "location") document.SaveGame.locations?.push(opaque);
-					const imported = parser.parse(exportDocument(document));
-					const session = yield* makeHistorySession(imported);
-					const before = yield* session.snapshot;
-					expect(readPets(imported)).toHaveLength(2);
-					expect(readPets(imported).every((pet) => !pet.supported)).toBe(true);
-					const result = yield* Effect.result(
-						session.transact(
-							setPet({ petId: catId, kind: "name", value: "Changed" }),
-						),
-					);
-					expect(
-						Result.isFailure(result) && result.failure instanceof PetInvalid,
-					).toBe(true);
-					expect(yield* session.snapshot).toEqual(before);
-					expect(
-						parser.parse(exportDocument((yield* session.snapshot).document)),
-					).toEqual(imported);
-				}),
-			),
-	);
-
-	it("keeps known Cat subclasses visible but read-only", () =>
-		run(
 			Effect.gen(function* () {
 				const document = withPets();
 				const farm = fixtureFarm(document);
-				// Cat is a real generated class, unlike an invented discriminator value.
-				farm.characters = [
-					{ ...fixturePet(document), $type: "StardewValley.Characters.Cat" },
-				];
-				expect(readPets(document).map((pet) => pet.supported)).toEqual([
-					false,
-					true,
-				]);
-				const session = yield* makeHistorySession(document);
+				// Model unknown classes using the codec's actual opaque-object representation.
+				const opaque = {
+					$type: "$unknown" as const,
+					$xmlType: { name: "ModdedRecord", namespace: "" },
+					guid: catId,
+				};
+				if (kind === "character") farm.characters?.push(opaque);
+				if (kind === "building") farm.buildings?.push(opaque);
+				if (kind === "location") document.SaveGame.locations?.push(opaque);
+				const imported = parser.parse(exportDocument(document));
+				const session = yield* makeHistorySession(imported);
 				const before = yield* session.snapshot;
+				expect(readPets(imported)).toHaveLength(2);
+				expect(readPets(imported).every((pet) => !pet.supported)).toBe(true);
 				const result = yield* Effect.result(
 					session.transact(
 						setPet({ petId: catId, kind: "name", value: "Changed" }),
@@ -287,8 +249,37 @@ describe("existing pet editing", () => {
 					Result.isFailure(result) && result.failure instanceof PetInvalid,
 				).toBe(true);
 				expect(yield* session.snapshot).toEqual(before);
+				expect(
+					parser.parse(exportDocument((yield* session.snapshot).document)),
+				).toEqual(imported);
 			}),
-		));
+	);
+
+	it.effect("keeps known Cat subclasses visible but read-only", () =>
+		Effect.gen(function* () {
+			const document = withPets();
+			const farm = fixtureFarm(document);
+			// Cat is a real generated class, unlike an invented discriminator value.
+			farm.characters = [
+				{ ...fixturePet(document), $type: "StardewValley.Characters.Cat" },
+			];
+			expect(readPets(document).map((pet) => pet.supported)).toEqual([
+				false,
+				true,
+			]);
+			const session = yield* makeHistorySession(document);
+			const before = yield* session.snapshot;
+			const result = yield* Effect.result(
+				session.transact(
+					setPet({ petId: catId, kind: "name", value: "Changed" }),
+				),
+			);
+			expect(
+				Result.isFailure(result) && result.failure instanceof PetInvalid,
+			).toBe(true);
+			expect(yield* session.snapshot).toEqual(before);
+		}),
+	);
 
 	it("gives missing identities distinct read-only rows", () => {
 		const document = withPets();

@@ -1,6 +1,7 @@
 import { malformedFixture } from "../helpers/editor-document.ts";
 import { Effect, Result } from "effect";
-import { describe, expect, it } from "vitest";
+import { it } from "@effect/vitest";
+import { describe, expect } from "vitest";
 import { makeHistorySession } from "../../src/lib/editor/history";
 import {
 	canEquipItem,
@@ -12,9 +13,7 @@ import { TransactionDraft } from "../../src/lib/editor/transaction-draft";
 import { savedTypeId } from "../../src/lib/editor/saved-types";
 import { tinyFixture } from "../helpers/editor-document.ts";
 import type { InventoryMoveRequest } from "../../src/lib/editor/inventory-movement.ts";
-const run = <A, E>(
-	program: Effect.Effect<A, E, import("effect").Scope.Scope>,
-) => Effect.runPromise(Effect.scoped(program));
+
 const raw = (type: string, extra: Record<string, unknown> = {}) =>
 	malformedFixture<import("../../src/lib/editor/domain.ts").Item>({
 		$type: savedTypeId(type),
@@ -55,8 +54,9 @@ describe("equipment inventory boundaries", () => {
 		expect(canEquipItem(examples.shirtItem, "pantsItem")).toBe(false);
 		expect(canEquipItem(raw("Clothing"), "shirtItem")).toBe(false);
 	});
-	it("moves into absent equipment without eager initialization and restores exact absence/identities on undo", () =>
-		run(
+	it.effect(
+		"moves into absent equipment without eager initialization and restores exact absence/identities on undo",
+		() =>
 			Effect.gen(function* () {
 				const doc = tinyFixture();
 				doc.SaveGame.player.items[0] = raw("Clothing", {
@@ -89,9 +89,10 @@ describe("equipment inventory boundaries", () => {
 				yield* session.redo;
 				expect((yield* session.snapshot).document).toEqual(after.document);
 			}),
-		));
-	it("checks both displaced records and preserves complete equipment/nil data", () =>
-		run(
+	);
+	it.effect(
+		"checks both displaced records and preserves complete equipment/nil data",
+		() =>
 			Effect.gen(function* () {
 				const doc = tinyFixture();
 				owner(doc).boots = raw("Boots", { tailored: { defense: 8 } });
@@ -127,35 +128,35 @@ describe("equipment inventory boundaries", () => {
 				yield* session.undo;
 				expect((yield* session.snapshot).document).toEqual(doc);
 			}),
-		));
-	it("swaps byte-identical equipped rings by identity", () =>
-		run(
-			Effect.gen(function* () {
-				const doc = tinyFixture();
-				owner(doc).leftRing = raw("Ring", { combined: { opaque: 1 } });
-				owner(doc).rightRing = structuredClone(owner(doc).leftRing);
-				const session = yield* makeHistorySession(doc);
-				const before = yield* session.snapshot;
-				yield* session.execute([
-					request(
-						before.equipmentIdentities["1"]!.leftRing,
-						before.equipmentIdentities["1"]!.rightRing,
-					),
-				]);
-				const after = yield* session.snapshot;
-				expect(after.document).toEqual(before.document);
-				expect(after.entries).toHaveLength(1);
-				expect(after.equipmentIdentities["1"]!.rightRing).toBe(
+	);
+	it.effect("swaps byte-identical equipped rings by identity", () =>
+		Effect.gen(function* () {
+			const doc = tinyFixture();
+			owner(doc).leftRing = raw("Ring", { combined: { opaque: 1 } });
+			owner(doc).rightRing = structuredClone(owner(doc).leftRing);
+			const session = yield* makeHistorySession(doc);
+			const before = yield* session.snapshot;
+			yield* session.execute([
+				request(
 					before.equipmentIdentities["1"]!.leftRing,
-				);
-				yield* session.undo;
-				expect((yield* session.snapshot).equipmentIdentities).toEqual(
-					before.equipmentIdentities,
-				);
-			}),
-		));
-	it("rejects a captured equipment destination after its handle moves into a backpack", () =>
-		run(
+					before.equipmentIdentities["1"]!.rightRing,
+				),
+			]);
+			const after = yield* session.snapshot;
+			expect(after.document).toEqual(before.document);
+			expect(after.entries).toHaveLength(1);
+			expect(after.equipmentIdentities["1"]!.rightRing).toBe(
+				before.equipmentIdentities["1"]!.leftRing,
+			);
+			yield* session.undo;
+			expect((yield* session.snapshot).equipmentIdentities).toEqual(
+				before.equipmentIdentities,
+			);
+		}),
+	);
+	it.effect(
+		"rejects a captured equipment destination after its handle moves into a backpack",
+		() =>
 			Effect.gen(function* () {
 				const doc = tinyFixture();
 				owner(doc).hat = raw("Hat");
@@ -182,9 +183,10 @@ describe("equipment inventory boundaries", () => {
 				).toBe(true);
 				expect(yield* session.snapshot).toEqual(current);
 			}),
-		));
-	it("moves an equipped ring across owners and rejects its old owner handle", () =>
-		run(
+	);
+	it.effect(
+		"moves an equipped ring across owners and rejects its old owner handle",
+		() =>
 			Effect.gen(function* () {
 				const doc = tinyFixture();
 				owner(doc).leftRing = raw("CombinedRing", {
@@ -230,10 +232,11 @@ describe("equipment inventory boundaries", () => {
 					before.equipmentIdentities,
 				);
 			}),
-		));
+	);
 
-	it("respects the trinket unlock stat while allowing an imported equipped trinket to be removed", () =>
-		run(
+	it.effect(
+		"respects the trinket unlock stat while allowing an imported equipped trinket to be removed",
+		() =>
 			Effect.gen(function* () {
 				const doc = tinyFixture();
 				doc.SaveGame.player.items[0] = raw("Trinket", {
@@ -283,9 +286,10 @@ describe("equipment inventory boundaries", () => {
 				yield* importedSession.undo;
 				expect((yield* importedSession.snapshot).document).toEqual(imported);
 			}),
-		));
-	it("rejects raw equipment writes and arbitrary internal farmer-field locations", () =>
-		run(
+	);
+	it.effect(
+		"rejects raw equipment writes and arbitrary internal farmer-field locations",
+		() =>
 			Effect.gen(function* () {
 				const session = yield* makeHistorySession(tinyFixture());
 				const before = yield* session.snapshot;
@@ -315,5 +319,5 @@ describe("equipment inventory boundaries", () => {
 				).toBe(true);
 				expect(yield* session.snapshot).toEqual(before);
 			}),
-		));
+	);
 });

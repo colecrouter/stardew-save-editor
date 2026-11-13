@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { it } from "@effect/vitest";
+import { describe, expect } from "vitest";
 import { Deferred, Effect, Fiber, Result } from "effect";
 import { makeHistorySession } from "../../src/lib/editor/history.ts";
 import { TransactionDraft } from "../../src/lib/editor/transaction-draft.ts";
@@ -9,9 +10,6 @@ import {
 	EditorOperations,
 } from "../../src/lib/editor/operations.ts";
 
-const run = <A, E>(
-	program: Effect.Effect<A, E, import("effect").Scope.Scope>,
-) => Effect.runPromise(Effect.scoped(program));
 const money = (value: number) =>
 	Effect.gen(function* () {
 		const draft = yield* TransactionDraft;
@@ -21,8 +19,9 @@ const money = (value: number) =>
 	});
 
 describe("atomic editing gestures", () => {
-	it("publishes every valid value but groups one complete undo and redo", () =>
-		run(
+	it.effect(
+		"publishes every valid value but groups one complete undo and redo",
+		() =>
 			Effect.gen(function* () {
 				const session = yield* makeHistorySession(tinyFixture());
 				const original = yield* session.snapshot;
@@ -40,9 +39,10 @@ describe("atomic editing gestures", () => {
 				yield* session.redo;
 				expect((yield* session.snapshot).document).toEqual(final.document);
 			}),
-		));
-	it("returning to the original value restores the previous redo tail", () =>
-		run(
+	);
+	it.effect(
+		"returning to the original value restores the previous redo tail",
+		() =>
 			Effect.gen(function* () {
 				const session = yield* makeHistorySession(tinyFixture());
 				yield* session.transact(money(20));
@@ -61,9 +61,10 @@ describe("atomic editing gestures", () => {
 					20,
 				);
 			}),
-		));
-	it("a standalone rejection closes the old group but a field rejection does not", () =>
-		run(
+	);
+	it.effect(
+		"a standalone rejection closes the old group but a field rejection does not",
+		() =>
 			Effect.gen(function* () {
 				const session = yield* makeHistorySession(tinyFixture());
 				yield* session.transact(money(11), undefined, "same-focus");
@@ -87,30 +88,29 @@ describe("atomic editing gestures", () => {
 					12,
 				);
 			}),
-		));
-	it.each(["rejected", "unchanged"])(
+	);
+	it.effect.each(["rejected", "unchanged"])(
 		"a different field's %s attempt ends the previous group",
 		(mode) =>
-			run(
-				Effect.gen(function* () {
-					const session = yield* makeHistorySession(tinyFixture());
-					yield* session.transact(money(11), undefined, "A");
-					const other =
-						mode === "rejected"
-							? Effect.fail(new MutationError("Rejected B"))
-							: money(11);
-					yield* Effect.result(session.transact(other, undefined, "B"));
-					yield* session.transact(money(12), undefined, "A");
-					expect((yield* session.snapshot).entries).toHaveLength(2);
-					yield* session.undo;
-					expect((yield* session.snapshot).document.SaveGame.player.money).toBe(
-						11,
-					);
-				}),
-			),
+			Effect.gen(function* () {
+				const session = yield* makeHistorySession(tinyFixture());
+				yield* session.transact(money(11), undefined, "A");
+				const other =
+					mode === "rejected"
+						? Effect.fail(new MutationError("Rejected B"))
+						: money(11);
+				yield* Effect.result(session.transact(other, undefined, "B"));
+				yield* session.transact(money(12), undefined, "A");
+				expect((yield* session.snapshot).entries).toHaveLength(2);
+				yield* session.undo;
+				expect((yield* session.snapshot).document.SaveGame.player.money).toBe(
+					11,
+				);
+			}),
 	);
-	it("a stale blur cannot close another field and no-op edits preserve redo", () =>
-		run(
+	it.effect(
+		"a stale blur cannot close another field and no-op edits preserve redo",
+		() =>
 			Effect.gen(function* () {
 				const session = yield* makeHistorySession(tinyFixture());
 				yield* session.transact(money(11), undefined, "first");
@@ -124,9 +124,10 @@ describe("atomic editing gestures", () => {
 				const after = yield* session.snapshot;
 				expect(after).toEqual(before);
 			}),
-		));
-	it("recomputes one entry under retention limits instead of evicting on every keystroke", () =>
-		run(
+	);
+	it.effect(
+		"recomputes one entry under retention limits instead of evicting on every keystroke",
+		() =>
 			Effect.gen(function* () {
 				const session = yield* makeHistorySession(tinyFixture(), {
 					entries: 1,
@@ -143,11 +144,12 @@ describe("atomic editing gestures", () => {
 					11,
 				);
 			}),
-		));
+	);
 });
 
-it("rejects an oversized extension without losing the last valid grouped edit", () =>
-	run(
+it.effect(
+	"rejects an oversized extension without losing the last valid grouped edit",
+	() =>
 		Effect.gen(function* () {
 			const session = yield* makeHistorySession(tinyFixture(), { bytes: 4000 });
 			const name = (value: string) =>
@@ -171,7 +173,7 @@ it("rejects an oversized extension without losing the last valid grouped edit", 
 				"Farm",
 			);
 		}),
-	));
+);
 
 it("groups field commands while shared farmer selection and export create explicit boundaries", async () => {
 	const { openEditor } = await import("../helpers/open-editor.ts");
@@ -232,8 +234,9 @@ it("groups field commands while shared farmer selection and export create explic
 	expect(get(model.selectedFarmerId)).toBeUndefined();
 }, 60_000);
 
-it("closes a concurrently restored gesture when a lower-level standalone transaction retries", () =>
-	run(
+it.effect(
+	"closes a concurrently restored gesture when a lower-level standalone transaction retries",
+	() =>
 		Effect.gen(function* () {
 			const entered = yield* Deferred.make<void>();
 			const release = yield* Deferred.make<void>();
@@ -270,4 +273,4 @@ it("closes a concurrently restored gesture when a lower-level standalone transac
 			yield* session.undo;
 			expect((yield* session.snapshot).document.SaveGame.player.money).toBe(12);
 		}),
-	));
+);

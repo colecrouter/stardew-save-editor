@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { it } from "@effect/vitest";
+import { describe, expect } from "vitest";
 import { Effect, Result } from "effect";
 import {
 	inspectPregnancy,
@@ -41,9 +42,6 @@ function fixture() {
 	});
 	return { document, friendship };
 }
-const run = <A, E>(
-	program: Effect.Effect<A, E, import("effect").Scope.Scope>,
-) => Effect.runPromise(Effect.scoped(program));
 
 describe("saved pregnancy and baby-question eligibility", () => {
 	it("projects saved facts without edits and separates eligibility from runtime chance", () => {
@@ -61,45 +59,44 @@ describe("saved pregnancy and baby-question eligibility", () => {
 		Object.assign(document.SaveGame.player, { divorceTonight: true });
 		expect(readPregnancy(document, "1").eligible).toBe(false);
 	});
-	it(
+	it.effect(
 		"retains exact target and date changes through Undo/Redo and XML",
 		() =>
-			run(
-				Effect.gen(function* () {
-					const { document } = fixture();
-					const before = structuredClone(document);
-					const session = yield* makeHistorySession(document);
-					const targetKey = readPregnancy(document, "1").targetKey;
-					if (!targetKey) throw Error("Missing fixture spouse");
-					yield* session.transact(
-						setPregnancy({ farmerId: "1", targetKey, expecting: true }),
-					);
-					const after = yield* session.snapshot;
-					expect(readPregnancy(after.document, "1")).toMatchObject({
-						expecting: true,
-						daysUntilBirth: 14,
-						dueDate: "Thursday, Spring 11, Year 2",
-					});
-					expect(
-						readPregnancy(parser.parse(exportDocument(after.document)), "1")
-							.daysUntilBirth,
-					).toBe(14);
-					yield* session.undo;
-					expect((yield* session.snapshot).document).toEqual(before);
-					yield* session.redo;
-					expect((yield* session.snapshot).document).toEqual(after.document);
-					yield* session.transact(
-						setPregnancy({ farmerId: "1", targetKey, expecting: false }),
-					);
-					expect(
-						readPregnancy((yield* session.snapshot).document, "1").expecting,
-					).toBe(false);
-				}),
-			),
+			Effect.gen(function* () {
+				const { document } = fixture();
+				const before = structuredClone(document);
+				const session = yield* makeHistorySession(document);
+				const targetKey = readPregnancy(document, "1").targetKey;
+				if (!targetKey) throw Error("Missing fixture spouse");
+				yield* session.transact(
+					setPregnancy({ farmerId: "1", targetKey, expecting: true }),
+				);
+				const after = yield* session.snapshot;
+				expect(readPregnancy(after.document, "1")).toMatchObject({
+					expecting: true,
+					daysUntilBirth: 14,
+					dueDate: "Thursday, Spring 11, Year 2",
+				});
+				expect(
+					readPregnancy(parser.parse(exportDocument(after.document)), "1")
+						.daysUntilBirth,
+				).toBe(14);
+				yield* session.undo;
+				expect((yield* session.snapshot).document).toEqual(before);
+				yield* session.redo;
+				expect((yield* session.snapshot).document).toEqual(after.document);
+				yield* session.transact(
+					setPregnancy({ farmerId: "1", targetKey, expecting: false }),
+				);
+				expect(
+					readPregnancy((yield* session.snapshot).document, "1").expecting,
+				).toBe(false);
+			}),
 		30_000,
 	);
-	it("rejects stale couples, invalid days, duplicate spouses and malformed due dates atomically", () =>
-		run(
+	it.effect(
+		"rejects stale couples, invalid days, duplicate spouses and malformed due dates atomically",
+		() =>
 			Effect.gen(function* () {
 				const { document } = fixture();
 				const session = yield* makeHistorySession(document);
@@ -138,178 +135,180 @@ describe("saved pregnancy and baby-question eligibility", () => {
 				});
 				expect(readPregnancy(document, "1").supported).toBe(false);
 			}),
-		));
-	it("checks one actual eligible home for player marriages and requires toddlers", async () => {
-		const { document } = fixture();
-		Object.assign(document.SaveGame.player, { friendshipData: [] });
-		const guest = !Array.isArray(document.SaveGame.farmhands)
-			? undefined
-			: document.SaveGame.farmhands[0];
-		if (!guest) throw Error("Missing guest");
-		Object.assign(guest, { homeLocation: "Cabin_1", houseUpgradeLevel: 2 });
-		Object.assign(document.SaveGame, {
-			farmerFriendships: [
-				{ key: { Farmer1: 2n, Farmer2: 1n }, value: { Status: "Married" } },
-			],
-			locations: [
-				{
-					name: "FarmHouse",
-					$type: "StardewValley.Locations.FarmHouse",
-					cribStyle: 0,
-					characters: [],
-				},
-				{
-					name: "Farm",
-					buildings: [
-						{
-							indoors: {
-								$type: "StardewValley.Locations.Cabin",
-								uniqueName: "Cabin_1",
-								cribStyle: 1,
-								characters: [
-									{ $type: "StardewValley.Characters.Child", daysOld: 54 },
-								],
-							},
-						},
-					],
-				},
-			],
-		});
-		expect(readPregnancy(document, "1")).toMatchObject({
-			kind: "player",
-			spouse: "Guest",
-			eligible: false,
-		});
-		const game: Record<string, unknown> = document.SaveGame;
-		Object.assign(game, {
-			locations: [
-				{
-					name: "Cabin_1",
-					cribStyle: 1,
-					characters: [
-						{ $type: "StardewValley.Characters.Child", daysOld: 55 },
-					],
-				},
-			],
-		});
-		expect(readPregnancy(document, "1").eligible).toBe(true);
-		await run(
+	);
+	it.effect(
+		"checks one actual eligible home for player marriages and requires toddlers",
+		() =>
 			Effect.gen(function* () {
-				const session = yield* makeHistorySession(document);
-				const hostKey = readPregnancy(document, "1").targetKey ?? "";
-				yield* session.transact(
-					setPregnancy({
-						farmerId: "1",
-						targetKey: hostKey,
-						expecting: true,
-					}),
-				);
-				const expecting = (yield* session.snapshot).document;
-				expect(readPregnancy(expecting, "1").daysUntilBirth).toBe(14);
-				expect(readPregnancy(expecting, "2").daysUntilBirth).toBe(14);
-				const guestKey = readPregnancy(expecting, "2").targetKey ?? "";
-				yield* session.transact(
-					setPregnancy({
-						farmerId: "2",
-						targetKey: guestKey,
-						expecting: false,
-					}),
-				);
-				expect(
-					readPregnancy((yield* session.snapshot).document, "1").expecting,
-				).toBe(false);
-				yield* session.undo;
-				expect((yield* session.snapshot).document).toEqual(expecting);
-				// A reversed duplicate key is still the same couple even when the
-				// duplicate claims Friendly status. Reject without picking a winner.
-				const ambiguous = structuredClone(document);
-				Object.assign(ambiguous.SaveGame, {
+				const { document } = fixture();
+				Object.assign(document.SaveGame.player, { friendshipData: [] });
+				const guest = !Array.isArray(document.SaveGame.farmhands)
+					? undefined
+					: document.SaveGame.farmhands[0];
+				if (!guest) throw Error("Missing guest");
+				Object.assign(guest, { homeLocation: "Cabin_1", houseUpgradeLevel: 2 });
+				Object.assign(document.SaveGame, {
 					farmerFriendships: [
+						{ key: { Farmer1: 2n, Farmer2: 1n }, value: { Status: "Married" } },
+					],
+					locations: [
 						{
-							key: { Farmer1: "1", Farmer2: "2" },
-							value: { Status: "Married" },
+							name: "FarmHouse",
+							$type: "StardewValley.Locations.FarmHouse",
+							cribStyle: 0,
+							characters: [],
 						},
 						{
-							key: { Farmer1: "2", Farmer2: "1" },
-							value: { Status: "Friendly" },
+							name: "Farm",
+							buildings: [
+								{
+									indoors: {
+										$type: "StardewValley.Locations.Cabin",
+										uniqueName: "Cabin_1",
+										cribStyle: 1,
+										characters: [
+											{ $type: "StardewValley.Characters.Child", daysOld: 54 },
+										],
+									},
+								},
+							],
 						},
 					],
 				});
-				const duplicateSession = yield* makeHistorySession(ambiguous);
-				expect(
-					Result.isFailure(
-						yield* Effect.result(
-							duplicateSession.transact(
-								setPregnancy({
-									farmerId: "1",
-									targetKey: hostKey,
-									expecting: true,
-								}),
+				expect(readPregnancy(document, "1")).toMatchObject({
+					kind: "player",
+					spouse: "Guest",
+					eligible: false,
+				});
+				const game: Record<string, unknown> = document.SaveGame;
+				Object.assign(game, {
+					locations: [
+						{
+							name: "Cabin_1",
+							cribStyle: 1,
+							characters: [
+								{ $type: "StardewValley.Characters.Child", daysOld: 55 },
+							],
+						},
+					],
+				});
+				expect(readPregnancy(document, "1").eligible).toBe(true);
+				yield* Effect.scoped(
+					Effect.gen(function* () {
+						const session = yield* makeHistorySession(document);
+						const hostKey = readPregnancy(document, "1").targetKey ?? "";
+						yield* session.transact(
+							setPregnancy({
+								farmerId: "1",
+								targetKey: hostKey,
+								expecting: true,
+							}),
+						);
+						const expecting = (yield* session.snapshot).document;
+						expect(readPregnancy(expecting, "1").daysUntilBirth).toBe(14);
+						expect(readPregnancy(expecting, "2").daysUntilBirth).toBe(14);
+						const guestKey = readPregnancy(expecting, "2").targetKey ?? "";
+						yield* session.transact(
+							setPregnancy({
+								farmerId: "2",
+								targetKey: guestKey,
+								expecting: false,
+							}),
+						);
+						expect(
+							readPregnancy((yield* session.snapshot).document, "1").expecting,
+						).toBe(false);
+						yield* session.undo;
+						expect((yield* session.snapshot).document).toEqual(expecting);
+						// A reversed duplicate key is still the same couple even when the
+						// duplicate claims Friendly status. Reject without picking a winner.
+						const ambiguous = structuredClone(document);
+						Object.assign(ambiguous.SaveGame, {
+							farmerFriendships: [
+								{
+									key: { Farmer1: "1", Farmer2: "2" },
+									value: { Status: "Married" },
+								},
+								{
+									key: { Farmer1: "2", Farmer2: "1" },
+									value: { Status: "Friendly" },
+								},
+							],
+						});
+						const duplicateSession = yield* makeHistorySession(ambiguous);
+						expect(
+							Result.isFailure(
+								yield* Effect.result(
+									duplicateSession.transact(
+										setPregnancy({
+											farmerId: "1",
+											targetKey: hostKey,
+											expecting: true,
+										}),
+									),
+								),
 							),
-						),
-					),
-				).toBe(true);
-				const unchanged = yield* duplicateSession.snapshot;
-				expect(unchanged.document).toEqual(ambiguous);
-				expect(unchanged.entries).toHaveLength(0);
+						).toBe(true);
+						const unchanged = yield* duplicateSession.snapshot;
+						expect(unchanged.document).toEqual(ambiguous);
+						expect(unchanged.entries).toHaveLength(0);
+					}),
+				);
 			}),
-		);
-	});
-	it(
+	);
+	it.effect(
 		"turns an explicitly nil saved date into an ordinary date without losing opaque data",
 		() =>
-			run(
-				Effect.gen(function* () {
-					const { document, friendship } = fixture();
-					Object.assign(friendship, {
-						NextBirthingDate: null,
-						dateMetadata: "keep",
-					});
-					expect(readPregnancy(document, "1")).toMatchObject({
-						expecting: false,
-						dueDate: undefined,
-						daysUntilBirth: undefined,
-					});
-					const before = structuredClone(document);
-					const session = yield* makeHistorySession(document);
-					const targetKey = readPregnancy(document, "1").targetKey ?? "";
-					yield* session.transact(
-						setPregnancy({
-							farmerId: "1",
-							targetKey,
-							expecting: true,
-							days: 2,
-						}),
-					);
-					const after = yield* session.snapshot;
-					expect(after.document.SaveGame.player).toMatchObject({
-						friendshipData: [
-							{
-								value: {
-									NextBirthingDate: {
-										Year: 1,
-										Season: "winter",
-										DayOfMonth: 27,
-									},
+			Effect.gen(function* () {
+				const { document, friendship } = fixture();
+				Object.assign(friendship, {
+					NextBirthingDate: null,
+					dateMetadata: "keep",
+				});
+				expect(readPregnancy(document, "1")).toMatchObject({
+					expecting: false,
+					dueDate: undefined,
+					daysUntilBirth: undefined,
+				});
+				const before = structuredClone(document);
+				const session = yield* makeHistorySession(document);
+				const targetKey = readPregnancy(document, "1").targetKey ?? "";
+				yield* session.transact(
+					setPregnancy({
+						farmerId: "1",
+						targetKey,
+						expecting: true,
+						days: 2,
+					}),
+				);
+				const after = yield* session.snapshot;
+				expect(after.document.SaveGame.player).toMatchObject({
+					friendshipData: [
+						{
+							value: {
+								NextBirthingDate: {
+									Year: 1,
+									Season: "winter",
+									DayOfMonth: 27,
 								},
 							},
-						],
-					});
-					expect(
-						inspectPregnancy(after.document, "1").saved?.NextBirthingDate,
-					).toEqual({
-						Year: 1,
-						Season: "winter",
-						DayOfMonth: 27,
-					});
-					expect(
-						readPregnancy(parser.parse(exportDocument(after.document)), "1")
-							.daysUntilBirth,
-					).toBe(2);
-					yield* session.undo;
-					expect((yield* session.snapshot).document).toEqual(before);
-				}),
-			),
+						},
+					],
+				});
+				expect(
+					inspectPregnancy(after.document, "1").saved?.NextBirthingDate,
+				).toEqual({
+					Year: 1,
+					Season: "winter",
+					DayOfMonth: 27,
+				});
+				expect(
+					readPregnancy(parser.parse(exportDocument(after.document)), "1")
+						.daysUntilBirth,
+				).toBe(2);
+				yield* session.undo;
+				expect((yield* session.snapshot).document).toEqual(before);
+			}),
 		30_000,
 	);
 });

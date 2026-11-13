@@ -1,5 +1,6 @@
 import { Effect } from "effect";
-import { expect, expectTypeOf, it } from "vitest";
+import { it } from "@effect/vitest";
+import { expect, expectTypeOf } from "vitest";
 import { makeHistorySession } from "../../src/lib/editor/history";
 import {
 	projectInventoryReview,
@@ -67,9 +68,6 @@ it("keeps review field values correlated with the editable request contract", ()
 	>();
 });
 
-const run = <A, E>(
-	program: Effect.Effect<A, E, import("effect").Scope.Scope>,
-) => Effect.runPromise(Effect.scoped(program));
 const required = <A>(value: A | undefined): A => {
 	if (value === undefined)
 		throw new Error("Missing inventory review fixture value");
@@ -97,8 +95,9 @@ function fixture() {
 	return document;
 }
 
-it("compares repeated quantity edits with import and disappears after restoration and Undo", () =>
-	run(
+it.effect(
+	"compares repeated quantity edits with import and disappears after restoration and Undo",
+	() =>
 		Effect.gen(function* () {
 			const session = yield* makeHistorySession(fixture());
 			const initial = yield* session.snapshot;
@@ -139,10 +138,11 @@ it("compares repeated quantity edits with import and disappears after restoratio
 				expect.objectContaining({ before: 3, after: 9 }),
 			]);
 		}),
-	));
+);
 
-it("retains original instance identities after history eviction and distinguishes transfer from add/remove", () =>
-	run(
+it.effect(
+	"retains original instance identities after history eviction and distinguishes transfer from add/remove",
+	() =>
 		Effect.gen(function* () {
 			const session = yield* makeHistorySession(fixture(), { entries: 1 });
 			const initial = yield* session.snapshot;
@@ -169,10 +169,11 @@ it("retains original instance identities after history eviction and distinguishe
 				}),
 			]);
 		}),
-	));
+);
 
-it("shows new and removed instances without matching equal item type IDs", () =>
-	run(
+it.effect(
+	"shows new and removed instances without matching equal item type IDs",
+	() =>
 		Effect.gen(function* () {
 			const session = yield* makeHistorySession(fixture());
 			const initial = yield* session.snapshot,
@@ -205,10 +206,11 @@ it("shows new and removed instances without matching equal item type IDs", () =>
 				false,
 			);
 		}),
-	));
+);
 
-it("recognizes equipment moves by the original instance rather than a slot name", () =>
-	run(
+it.effect(
+	"recognizes equipment moves by the original instance rather than a slot name",
+	() =>
 		Effect.gen(function* () {
 			const session = yield* makeHistorySession(fixture());
 			const initial = yield* session.snapshot,
@@ -231,10 +233,11 @@ it("recognizes equipment moves by the original instance rather than a slot name"
 				}),
 			]);
 		}),
-	));
+);
 
-it("recognizes placed-chest transfers while preserving opaque chest and item metadata", () =>
-	run(
+it.effect(
+	"recognizes placed-chest transfers while preserving opaque chest and item metadata",
+	() =>
 		Effect.gen(function* () {
 			const document = fixture();
 			document.SaveGame.locations = [
@@ -277,10 +280,11 @@ it("recognizes placed-chest transfers while preserving opaque chest and item met
 				}),
 			);
 		}),
-	));
+);
 
-it("uses editable item property labels and leaves unrecognized metadata changes uncovered", () =>
-	run(
+it.effect(
+	"uses editable item property labels and leaves unrecognized metadata changes uncovered",
+	() =>
 		Effect.gen(function* () {
 			const session = yield* makeHistorySession(fixture()),
 				initial = yield* session.snapshot;
@@ -325,10 +329,11 @@ it("uses editable item property labels and leaves unrecognized metadata changes 
 				false,
 			);
 		}),
-	));
+);
 
-it("does not show handle-only swaps or equal-value replacement as exported inventory changes", () =>
-	run(
+it.effect(
+	"does not show handle-only swaps or equal-value replacement as exported inventory changes",
+	() =>
 		Effect.gen(function* () {
 			const document = fixture();
 			const copy = { ...item(), stack: 3, quality: 0 };
@@ -354,10 +359,11 @@ it("does not show handle-only swaps or equal-value replacement as exported inven
 				[],
 			);
 		}),
-	));
+);
 
-it("never lets an unchanged swapped item cover unknown edits on the displaced item", () =>
-	run(
+it.effect(
+	"never lets an unchanged swapped item cover unknown edits on the displaced item",
+	() =>
 		Effect.gen(function* () {
 			const session = yield* makeHistorySession(fixture());
 			const initial = yield* session.snapshot;
@@ -396,10 +402,11 @@ it("never lets an unchanged swapped item cover unknown edits on the displaced it
 				),
 			).toBe(false);
 		}),
-	));
+);
 
-it("does not cover a removed slot when a moved survivor acquires unknown metadata there", () =>
-	run(
+it.effect(
+	"does not cover a removed slot when a moved survivor acquires unknown metadata there",
+	() =>
 		Effect.gen(function* () {
 			const session = yield* makeHistorySession(fixture());
 			yield* session.execute([
@@ -447,10 +454,11 @@ it("does not cover a removed slot when a moved survivor acquires unknown metadat
 				),
 			).toBe(false);
 		}),
-	));
+);
 
-it("does not claim an unsupported scalar hidden by an unavailable property value", () =>
-	run(
+it.effect(
+	"does not claim an unsupported scalar hidden by an unavailable property value",
+	() =>
 		Effect.gen(function* () {
 			const session = yield* makeHistorySession(fixture());
 			const initial = yield* session.snapshot;
@@ -473,4 +481,4 @@ it("does not claim an unsupported scalar hidden by an unavailable property value
 				"/SaveGame/player/items/2/defenseBonus",
 			);
 		}),
-	));
+);

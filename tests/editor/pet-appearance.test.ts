@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect } from "vitest";
+import { it } from "@effect/vitest";
 import { Effect, Result } from "effect";
 import { makeHistorySession } from "../../src/lib/editor/history.ts";
 import { readPets } from "../../src/lib/editor/pet-data.ts";
@@ -8,9 +9,6 @@ import { TransactionDraft } from "../../src/lib/editor/transaction-draft.ts";
 import { catId, dogId, withPets, fixturePet } from "./pet-fixtures.ts";
 import { exportDocument, fixtureXml, parser } from "./fixtures.ts";
 
-const run = <A, E>(
-	program: Effect.Effect<A, E, import("effect").Scope.Scope>,
-) => Effect.runPromise(Effect.scoped(program));
 const appearance = (petType: string, breedId: string): PetChange => ({
 	petId: catId,
 	kind: "appearance",
@@ -20,7 +18,7 @@ const appearance = (petType: string, breedId: string): PetChange => ({
 describe("pet appearance operations", () => {
 	// List the supported game contract independently of the production lookup:
 	// accidentally removing a catalog entry must fail a test, not remove a case.
-	it.each([
+	it.effect.each([
 		["Cat", "0"],
 		["Cat", "1"],
 		["Cat", "2"],
@@ -33,8 +31,9 @@ describe("pet appearance operations", () => {
 		["Dog", "4"],
 		["Turtle", "0"],
 		["Turtle", "1"],
-	])("supports %s breed %s without changing linked state", (petType, breedId) =>
-		run(
+	] as const)(
+		"supports %s breed %s without changing linked state",
+		([petType, breedId]) =>
 			Effect.gen(function* () {
 				// Start at the real import boundary so codec-owned nil/default fields
 				// are established before testing exact preservation on reimport.
@@ -58,11 +57,11 @@ describe("pet appearance operations", () => {
 					appearance: { known: true },
 				});
 			}),
-		),
 	);
 
-	it("changes species and breed atomically, reviews both, and restores exact Undo/Redo", () =>
-		run(
+	it.effect(
+		"changes species and breed atomically, reviews both, and restores exact Undo/Redo",
+		() =>
 			Effect.gen(function* () {
 				const session = yield* makeHistorySession(
 					withPets(parser.parse(fixtureXml)),
@@ -94,44 +93,44 @@ describe("pet appearance operations", () => {
 				yield* session.redo;
 				expect((yield* session.snapshot).document).toEqual(after.document);
 			}),
-		));
+	);
 
-	it("does not rewrite a saved breed ID or add history when reselecting it", () =>
-		run(
+	it.effect(
+		"does not rewrite a saved breed ID or add history when reselecting it",
+		() =>
 			Effect.gen(function* () {
 				const session = yield* makeHistorySession(withPets());
 				const before = yield* session.snapshot;
 				yield* session.transact(setPet(appearance("Cat", "0")));
 				expect(yield* session.snapshot).toEqual(before);
 			}),
-		));
+	);
 
-	it.each([
+	it.effect.each([
 		["Turtle", "4"],
 		["Dog", "missing"],
 		["Horse", "0"],
 		["Cat", ""],
-	])(
+	] as const)(
 		"rejects unsupported %s/%s without using the game's fallback breed",
-		(petType, breedId) =>
-			run(
-				Effect.gen(function* () {
-					const session = yield* makeHistorySession(withPets());
-					const before = yield* session.snapshot;
-					expect(
-						Result.isFailure(
-							yield* Effect.result(
-								session.transact(setPet(appearance(petType, breedId))),
-							),
+		([petType, breedId]) =>
+			Effect.gen(function* () {
+				const session = yield* makeHistorySession(withPets());
+				const before = yield* session.snapshot;
+				expect(
+					Result.isFailure(
+						yield* Effect.result(
+							session.transact(setPet(appearance(petType, breedId))),
 						),
-					).toBe(true);
-					expect(yield* session.snapshot).toEqual(before);
-				}),
-			),
+					),
+				).toBe(true);
+				expect(yield* session.snapshot).toEqual(before);
+			}),
 	);
 
-	it("retains custom appearance on independent edits and replaces it only by explicit choice", () =>
-		run(
+	it.effect(
+		"retains custom appearance on independent edits and replaces it only by explicit choice",
+		() =>
 			Effect.gen(function* () {
 				const document = withPets();
 				const custom = fixturePet(document);
@@ -158,33 +157,32 @@ describe("pet appearance operations", () => {
 					name: "Goldie",
 				});
 			}),
-		));
-
-	it.each(["missing breed", "duplicate", "missing type"])(
-		"rejects an appearance change on a %s target",
-		(kind) =>
-			run(
-				Effect.gen(function* () {
-					const document = withPets();
-					if (kind === "missing breed") delete fixturePet(document).whichBreed;
-					if (kind === "duplicate") fixturePet(document, dogId).guid = catId;
-					if (kind === "missing type") delete fixturePet(document).petType;
-					const session = yield* makeHistorySession(document);
-					const before = yield* session.snapshot;
-					expect(
-						Result.isFailure(
-							yield* Effect.result(
-								session.transact(setPet(appearance("Dog", "1"))),
-							),
-						),
-					).toBe(true);
-					expect(yield* session.snapshot).toEqual(before);
-				}),
-			),
 	);
 
-	it("keeps a captured appearance target after location changes and rejects removed GUIDs", () =>
-		run(
+	it.effect.each(["missing breed", "duplicate", "missing type"])(
+		"rejects an appearance change on a %s target",
+		(kind) =>
+			Effect.gen(function* () {
+				const document = withPets();
+				if (kind === "missing breed") delete fixturePet(document).whichBreed;
+				if (kind === "duplicate") fixturePet(document, dogId).guid = catId;
+				if (kind === "missing type") delete fixturePet(document).petType;
+				const session = yield* makeHistorySession(document);
+				const before = yield* session.snapshot;
+				expect(
+					Result.isFailure(
+						yield* Effect.result(
+							session.transact(setPet(appearance("Dog", "1"))),
+						),
+					),
+				).toBe(true);
+				expect(yield* session.snapshot).toEqual(before);
+			}),
+	);
+
+	it.effect(
+		"keeps a captured appearance target after location changes and rejects removed GUIDs",
+		() =>
 			Effect.gen(function* () {
 				const session = yield* makeHistorySession(withPets());
 				const edit = setPet(appearance("Dog", "2"));
@@ -226,5 +224,5 @@ describe("pet appearance operations", () => {
 				).toBe(true);
 				expect(yield* session.snapshot).toEqual(before);
 			}),
-		));
+	);
 });

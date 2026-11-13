@@ -1,6 +1,7 @@
 import { malformedFixture } from "../helpers/editor-document.ts";
 import { stringifySavedData } from "../../src/lib/editor/saved-data.ts";
-import { describe, expect, it } from "vitest";
+import { it } from "@effect/vitest";
+import { describe, expect } from "vitest";
 import { Effect, Result } from "effect";
 import { makeHistorySession } from "../../src/lib/editor/history";
 import { TransactionDraft } from "../../src/lib/editor/transaction-draft";
@@ -31,9 +32,7 @@ import {
 	objectXml,
 	incubator,
 } from "../helpers/animalBuildings";
-const run = <A, E>(
-	program: Effect.Effect<A, E, import("effect").Scope.Scope>,
-) => Effect.runPromise(Effect.scoped(program));
+
 const baseline = parser.parse(withAnimalBuildings(fixtureXml));
 const fixture = () => structuredClone(baseline);
 const required = <T>(value: T | undefined): T => {
@@ -58,8 +57,9 @@ describe("v2 buildings and animals", { timeout: 30_000 }, () => {
 		).toMatchObject({ outside: true, location: "Farm" });
 		expect(document).toEqual(before);
 	});
-	it("edits both animal mirrors field-only and restores exact imported age and unknown data on Undo", () =>
-		run(
+	it.effect(
+		"edits both animal mirrors field-only and restores exact imported age and unknown data on Undo",
+		() =>
 			Effect.gen(function* () {
 				const document = fixture(),
 					raw = required(
@@ -107,86 +107,83 @@ describe("v2 buildings and animals", { timeout: 30_000 }, () => {
 				yield* session.redo;
 				expect((yield* session.snapshot).document).toEqual(after.document);
 			}),
-		));
-	it(
+	);
+	it.effect(
 		"upgrades through intermediate tiers with progression, then atomically adopts and round-trips XML",
 		() =>
-			run(
-				Effect.gen(function* () {
-					const session = yield* makeHistorySession(fixture()),
-						initial = yield* session.snapshot;
-					yield* session.transact(upgradeBuilding(COOP_ID, "Deluxe Coop"));
-					const upgraded = yield* session.snapshot;
-					expect(
-						readBuildings(upgraded.document).buildings.find(
-							(row) => row.id === COOP_ID,
-						),
-					).toMatchObject({ name: "Deluxe Coop", capacity: 12 });
-					expect(upgraded.document.SaveGame).toMatchObject({
-						constructedBuildings: expect.arrayContaining([
-							"Big Coop",
-							"Deluxe Coop",
-						]),
-					});
-					yield* session.transact(
-						adoptAnimal(COOP_ID, "Duck", "  Waddles  ", PLAYER_ID),
-					);
-					const adopted = yield* session.snapshot;
-					const receipt = {
-						animalId: required(
-							inspectBuildings(adopted.document).animals.find(
-								(row) => row.raw?.name === "Waddles",
-							)?.id,
-						),
-					};
-					const coop = required(
-						inspectBuildings(adopted.document).buildings.find(
-							(row) => row.id === COOP_ID,
-						),
-					);
-					expect(coop.raw.currentOccupants).toBe(4);
-					expect(
-						readBuildings(adopted.document).buildings.find(
-							(row) => row.id === COOP_ID,
-						),
-					).toMatchObject({ residents: 5, outside: 1 });
-					expect(required(coop.interior).animalsThatLiveHere).toEqual(
-						expect.arrayContaining([BigInt(receipt.animalId)]),
-					);
-					const animal = required(
+			Effect.gen(function* () {
+				const session = yield* makeHistorySession(fixture()),
+					initial = yield* session.snapshot;
+				yield* session.transact(upgradeBuilding(COOP_ID, "Deluxe Coop"));
+				const upgraded = yield* session.snapshot;
+				expect(
+					readBuildings(upgraded.document).buildings.find(
+						(row) => row.id === COOP_ID,
+					),
+				).toMatchObject({ name: "Deluxe Coop", capacity: 12 });
+				expect(upgraded.document.SaveGame).toMatchObject({
+					constructedBuildings: expect.arrayContaining([
+						"Big Coop",
+						"Deluxe Coop",
+					]),
+				});
+				yield* session.transact(
+					adoptAnimal(COOP_ID, "Duck", "  Waddles  ", PLAYER_ID),
+				);
+				const adopted = yield* session.snapshot;
+				const receipt = {
+					animalId: required(
 						inspectBuildings(adopted.document).animals.find(
-							(row) => row.id === receipt.animalId,
-						),
-					);
-					expect(animal.raw).toMatchObject({
-						name: "Waddles",
-						ownerID: BigInt(PLAYER_ID),
-						happiness: 255,
-						fullness: 255,
-						age: 0,
-					});
-					expect(animalDictionary(required(coop.interior)).supported).toBe(
-						true,
-					);
-					expect(
-						stringifySavedData(adopted.document.SaveGame.player),
-					).toContain("purchasedAnimal_Duck");
-					const reparsed = parser.parse(exportDocument(adopted.document));
-					expect(
-						readBuildings(reparsed)
-							.buildings.find((row) => row.id === COOP_ID)
-							?.animals.some((row) => row.id === receipt.animalId),
-					).toBe(true);
-					yield* session.undo;
-					expect((yield* session.snapshot).document).toEqual(upgraded.document);
-					yield* session.undo;
-					expect((yield* session.snapshot).document).toEqual(initial.document);
-				}),
-			),
+							(row) => row.raw?.name === "Waddles",
+						)?.id,
+					),
+				};
+				const coop = required(
+					inspectBuildings(adopted.document).buildings.find(
+						(row) => row.id === COOP_ID,
+					),
+				);
+				expect(coop.raw.currentOccupants).toBe(4);
+				expect(
+					readBuildings(adopted.document).buildings.find(
+						(row) => row.id === COOP_ID,
+					),
+				).toMatchObject({ residents: 5, outside: 1 });
+				expect(required(coop.interior).animalsThatLiveHere).toEqual(
+					expect.arrayContaining([BigInt(receipt.animalId)]),
+				);
+				const animal = required(
+					inspectBuildings(adopted.document).animals.find(
+						(row) => row.id === receipt.animalId,
+					),
+				);
+				expect(animal.raw).toMatchObject({
+					name: "Waddles",
+					ownerID: BigInt(PLAYER_ID),
+					happiness: 255,
+					fullness: 255,
+					age: 0,
+				});
+				expect(animalDictionary(required(coop.interior)).supported).toBe(true);
+				expect(stringifySavedData(adopted.document.SaveGame.player)).toContain(
+					"purchasedAnimal_Duck",
+				);
+				const reparsed = parser.parse(exportDocument(adopted.document));
+				expect(
+					readBuildings(reparsed)
+						.buildings.find((row) => row.id === COOP_ID)
+						?.animals.some((row) => row.id === receipt.animalId),
+				).toBe(true);
+				yield* session.undo;
+				expect((yield* session.snapshot).document).toEqual(upgraded.document);
+				yield* session.undo;
+				expect((yield* session.snapshot).document).toEqual(initial.document);
+			}),
 		30_000,
 	);
-	it("rejects full, incompatible and duplicate-name adoption without writes or history", () =>
-		run(
+	it.effect(
+		"rejects full, incompatible and duplicate-name adoption without writes or history",
+		() =>
 			Effect.gen(function* () {
 				const session = yield* makeHistorySession(fixture());
 				for (const [building, type, name] of [
@@ -212,9 +209,10 @@ describe("v2 buildings and animals", { timeout: 30_000 }, () => {
 					expect(yield* session.snapshot).toEqual(before);
 				}
 			}),
-		));
-	it("rejects conflicting animal mirrors and unsupported field values", () =>
-		run(
+	);
+	it.effect(
+		"rejects conflicting animal mirrors and unsupported field values",
+		() =>
 			Effect.gen(function* () {
 				const document = fixture(),
 					building = required(
@@ -262,9 +260,10 @@ describe("v2 buildings and animals", { timeout: 30_000 }, () => {
 				).toBe(true);
 				expect(yield* session.snapshot).toEqual(before);
 			}),
-		));
-	it("respects construction and outside-resident downgrade capacity", () =>
-		run(
+	);
+	it.effect(
+		"respects construction and outside-resident downgrade capacity",
+		() =>
 			Effect.gen(function* () {
 				const document = parser.parse(
 					withAnimalBuildings(fixtureXml, [
@@ -301,9 +300,10 @@ describe("v2 buildings and animals", { timeout: 30_000 }, () => {
 					),
 				).toBe(true);
 			}),
-		));
-	it("preserves chest handles and ordered composed item edits when a tier changes its location label", () =>
-		run(
+	);
+	it.effect(
+		"preserves chest handles and ordered composed item edits when a tier changes its location label",
+		() =>
 			Effect.gen(function* () {
 				const document = parser.parse(
 					withAnimalBuildings(fixtureXml, [coopXml(), barnXml(), shedXml()]),
@@ -375,9 +375,10 @@ describe("v2 buildings and animals", { timeout: 30_000 }, () => {
 				yield* session.redo;
 				expect((yield* session.snapshot).document).toEqual(after.document);
 			}),
-		));
-	it("rejects unrelated raw inventory writes around a supported building upgrade", () =>
-		run(
+	);
+	it.effect(
+		"rejects unrelated raw inventory writes around a supported building upgrade",
+		() =>
 			Effect.gen(function* () {
 				const session = yield* makeHistorySession(fixture()),
 					before = yield* session.snapshot;
@@ -399,101 +400,100 @@ describe("v2 buildings and animals", { timeout: 30_000 }, () => {
 				expect(Result.isFailure(result)).toBe(true);
 				expect(yield* session.snapshot).toEqual(before);
 			}),
-		));
-	it.each(["upgrade", "downgrade"] as const)(
+	);
+	it.effect.each(["upgrade", "downgrade"] as const)(
 		"preserves exact chest handles through %s tile moves and object-list compaction",
 		(direction) =>
-			run(
-				Effect.gen(function* () {
-					const objects =
-						direction === "upgrade"
-							? [
-									objectXml(2, 3, {
-										name: "Chest",
-										itemId: "130",
-										bigCraftable: true,
-									}),
-								]
-							: [
-									incubator(2, 3),
-									objectXml(14, 8, {
-										name: "Chest",
-										itemId: "130",
-										bigCraftable: true,
-									}),
-								];
-					const document = parser.parse(
-						withAnimalBuildings(fixtureXml, [
-							coopXml({
-								type: direction === "upgrade" ? "Coop" : "Big Coop",
-								limit: direction === "upgrade" ? 4 : 8,
-								objects,
-							}),
-						]),
-					);
-					const building = required(
-						inspectBuildings(document).buildings.find(
-							(row) => row.id === COOP_ID,
+			Effect.gen(function* () {
+				const objects =
+					direction === "upgrade"
+						? [
+								objectXml(2, 3, {
+									name: "Chest",
+									itemId: "130",
+									bigCraftable: true,
+								}),
+							]
+						: [
+								incubator(2, 3),
+								objectXml(14, 8, {
+									name: "Chest",
+									itemId: "130",
+									bigCraftable: true,
+								}),
+							];
+				const document = parser.parse(
+					withAnimalBuildings(fixtureXml, [
+						coopXml({
+							type: direction === "upgrade" ? "Coop" : "Big Coop",
+							limit: direction === "upgrade" ? 4 : 8,
+							objects,
+						}),
+					]),
+				);
+				const building = required(
+					inspectBuildings(document).buildings.find(
+						(row) => row.id === COOP_ID,
+					),
+				);
+				const interior = required(building.interior);
+				if (!Array.isArray(interior.objects))
+					throw new Error("Missing objects");
+				const entry = interior.objects[direction === "upgrade" ? 0 : 1];
+				if (!record(entry) || !record(entry.value))
+					throw new Error("Missing chest");
+				Object.assign(entry.value, {
+					$type: "StardewValley.Objects.Chest",
+					items: [
+						{
+							$type: "StardewValley.Object",
+							itemId: "388",
+							stack: 3,
+							name: "Wood",
+						},
+					],
+				});
+				const session = yield* makeHistorySession(document),
+					before = yield* session.snapshot;
+				const chest = required(
+						discoverPlacedChests(before.document).find((row) =>
+							row.location.includes("Coop"),
+						),
+					),
+					ids = required(before.identities[chest.id]);
+				yield* session.transact(
+					upgradeBuilding(
+						COOP_ID,
+						direction === "upgrade" ? "Big Coop" : "Coop",
+					),
+				);
+				const after = yield* session.snapshot,
+					moved = required(
+						discoverPlacedChests(after.document).find((row) =>
+							row.location.includes("Coop"),
 						),
 					);
-					const interior = required(building.interior);
-					if (!Array.isArray(interior.objects))
-						throw new Error("Missing objects");
-					const entry = interior.objects[direction === "upgrade" ? 0 : 1];
-					if (!record(entry) || !record(entry.value))
-						throw new Error("Missing chest");
-					Object.assign(entry.value, {
-						$type: "StardewValley.Objects.Chest",
-						items: [
-							{
-								$type: "StardewValley.Object",
-								itemId: "388",
-								stack: 3,
-								name: "Wood",
-							},
-						],
-					});
-					const session = yield* makeHistorySession(document),
-						before = yield* session.snapshot;
-					const chest = required(
-							discoverPlacedChests(before.document).find((row) =>
-								row.location.includes("Coop"),
-							),
-						),
-						ids = required(before.identities[chest.id]);
-					yield* session.transact(
-						upgradeBuilding(
-							COOP_ID,
-							direction === "upgrade" ? "Big Coop" : "Coop",
-						),
-					);
-					const after = yield* session.snapshot,
-						moved = required(
-							discoverPlacedChests(after.document).find((row) =>
-								row.location.includes("Coop"),
-							),
-						);
-					expect(after.identities[moved.id]).toEqual(ids);
-					expect(moved.raw.tileLocation).toEqual(
-						direction === "upgrade" ? { X: 14, Y: 8 } : { X: 2, Y: 3 },
-					);
-					if (direction === "downgrade") {
-						expect(moved.id).not.toBe(chest.id);
-						expect(after.identities[chest.id]).toBeUndefined();
-					}
-					yield* session.undo;
-					const undone = yield* session.snapshot;
-					expect(undone.document).toEqual(before.document);
-					expect(undone.identities).toEqual(before.identities);
-					yield* session.redo;
-					const redone = yield* session.snapshot;
-					expect(redone.document).toEqual(after.document);
-					expect(redone.identities).toEqual(after.identities);
-				}),
-			),
+				expect(after.identities[moved.id]).toEqual(ids);
+				expect(moved.raw.tileLocation).toEqual(
+					direction === "upgrade" ? { X: 14, Y: 8 } : { X: 2, Y: 3 },
+				);
+				if (direction === "downgrade") {
+					expect(moved.id).not.toBe(chest.id);
+					expect(after.identities[chest.id]).toBeUndefined();
+				}
+				yield* session.undo;
+				const undone = yield* session.snapshot;
+				expect(undone.document).toEqual(before.document);
+				expect(undone.identities).toEqual(before.identities);
+				yield* session.redo;
+				const redone = yield* session.snapshot;
+				expect(redone.document).toEqual(after.document);
+				expect(redone.identities).toEqual(after.identities);
+			}),
 	);
-	it("collapses duplicate presentation keys into read-only rows and preserves opaque names", () =>
-		run(
+	it.effect(
+		"collapses duplicate presentation keys into read-only rows and preserves opaque names",
+		() =>
 			Effect.gen(function* () {
 				const document = parser.parse(
 					withAnimalBuildings(fixtureXml, [coopXml(), coopXml()]),
@@ -542,5 +542,5 @@ describe("v2 buildings and animals", { timeout: 30_000 }, () => {
 					)?.raw?.name,
 				).toEqual({ modName: "opaque" });
 			}),
-		));
+	);
 });

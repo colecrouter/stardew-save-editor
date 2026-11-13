@@ -1,6 +1,7 @@
 import { TransactionDraft } from "../../src/lib/editor/transaction-draft.ts";
 import { setInventoryItem } from "../../src/lib/editor/inventory-operations.ts";
-import { describe, expect, it } from "vitest";
+import { it } from "@effect/vitest";
+import { describe, expect } from "vitest";
 import { Effect } from "effect";
 import {
 	readCharacterDetails,
@@ -36,14 +37,11 @@ function fixture() {
 	});
 	return document;
 }
-const run = <A, E>(
-	program: Effect.Effect<A, E, import("effect").Scope.Scope>,
-) => Effect.runPromise(Effect.scoped(program));
 
 describe("character detail edits", () => {
 	// Exercise both saved integer representations through the same transaction
 	// path used by the controls, including preservation and export/reimport.
-	it.each([
+	it.effect.each([
 		{ key: "money", raw: "money", label: "Current funds", max: 2147483647 },
 		{
 			key: "earnings",
@@ -54,46 +52,44 @@ describe("character detail edits", () => {
 	] as const)(
 		"restores $label with validation, export and Undo/Redo",
 		({ key, raw, label, max }) =>
-			run(
-				Effect.gen(function* () {
-					const document = fixture();
-					const baseline = structuredClone(document);
-					expect(
-						readCharacterDetails(document, "1").numbers.find(
-							(entry) => entry.key === key,
-						),
-					).toMatchObject({ label, available: true, min: 0, max });
-					const session = yield* makeHistorySession(document);
-					// Rejected edits must leave the complete save and history untouched.
-					for (const value of [-1, 0.5, max + 1]) {
-						const result = yield* Effect.result(
-							session.transact(
-								setCharacterDetails({ farmerId: "1", key, value }),
-							),
-						);
-						expect(result._tag).toBe("Failure");
-					}
-					expect((yield* session.snapshot).document).toEqual(baseline);
-					expect((yield* session.snapshot).entries).toHaveLength(0);
-					for (const value of [0, max]) {
-						yield* session.transact(
+			Effect.gen(function* () {
+				const document = fixture();
+				const baseline = structuredClone(document);
+				expect(
+					readCharacterDetails(document, "1").numbers.find(
+						(entry) => entry.key === key,
+					),
+				).toMatchObject({ label, available: true, min: 0, max });
+				const session = yield* makeHistorySession(document);
+				// Rejected edits must leave the complete save and history untouched.
+				for (const value of [-1, 0.5, max + 1]) {
+					const result = yield* Effect.result(
+						session.transact(
 							setCharacterDetails({ farmerId: "1", key, value }),
-						);
-						const expected = structuredClone(baseline);
-						Object.assign(expected.SaveGame.player, { [raw]: value });
-						const edited = (yield* session.snapshot).document;
-						expect(edited).toEqual(expected);
-						expect(
-							parser.parse(exportDocument(edited)).SaveGame.player[raw],
-						).toBe(value);
-						yield* session.undo;
-						expect((yield* session.snapshot).document).toEqual(baseline);
-						yield* session.redo;
-						expect((yield* session.snapshot).document).toEqual(expected);
-						yield* session.undo;
-					}
-				}),
-			),
+						),
+					);
+					expect(result._tag).toBe("Failure");
+				}
+				expect((yield* session.snapshot).document).toEqual(baseline);
+				expect((yield* session.snapshot).entries).toHaveLength(0);
+				for (const value of [0, max]) {
+					yield* session.transact(
+						setCharacterDetails({ farmerId: "1", key, value }),
+					);
+					const expected = structuredClone(baseline);
+					Object.assign(expected.SaveGame.player, { [raw]: value });
+					const edited = (yield* session.snapshot).document;
+					expect(edited).toEqual(expected);
+					expect(
+						parser.parse(exportDocument(edited)).SaveGame.player[raw],
+					).toBe(value);
+					yield* session.undo;
+					expect((yield* session.snapshot).document).toEqual(baseline);
+					yield* session.redo;
+					expect((yield* session.snapshot).document).toEqual(expected);
+					yield* session.undo;
+				}
+			}),
 	);
 
 	it("projects without mutation and keeps Clint's trash can locked", () => {
@@ -108,8 +104,9 @@ describe("character detail edits", () => {
 		);
 		expect(document).toEqual(baseline);
 	});
-	it("edits max stats without changing current stats, and undo restores exactly", () =>
-		run(
+	it.effect(
+		"edits max stats without changing current stats, and undo restores exactly",
+		() =>
 			Effect.gen(function* () {
 				const document = fixture(),
 					baseline = structuredClone(document);
@@ -123,28 +120,26 @@ describe("character detail edits", () => {
 				yield* session.undo;
 				expect((yield* session.snapshot).document).toEqual(baseline);
 			}),
-		));
-	it("removes only owned mail flags and preserves opaque members", () =>
-		run(
-			Effect.gen(function* () {
-				const session = yield* makeHistorySession(fixture());
-				yield* session.transact(
-					setCharacterDetails({
-						farmerId: "1",
-						key: "HasTownKey",
-						value: false,
-					}),
-				);
-				expect(
-					(yield* session.snapshot).document.SaveGame.player,
-				).toMatchObject({
-					mailReceived: ["mod.flag"],
-					testMetadatamailReceived: { opaque: "keep" },
-				});
-			}),
-		));
-	it("rejects zero during active construction and cancels with the game sentinel", () =>
-		run(
+	);
+	it.effect("removes only owned mail flags and preserves opaque members", () =>
+		Effect.gen(function* () {
+			const session = yield* makeHistorySession(fixture());
+			yield* session.transact(
+				setCharacterDetails({
+					farmerId: "1",
+					key: "HasTownKey",
+					value: false,
+				}),
+			);
+			expect((yield* session.snapshot).document.SaveGame.player).toMatchObject({
+				mailReceived: ["mod.flag"],
+				testMetadatamailReceived: { opaque: "keep" },
+			});
+		}),
+	);
+	it.effect(
+		"rejects zero during active construction and cancels with the game sentinel",
+		() =>
 			Effect.gen(function* () {
 				const session = yield* makeHistorySession(fixture());
 				const failure = yield* Effect.result(
@@ -168,11 +163,12 @@ describe("character detail edits", () => {
 					(yield* session.snapshot).document.SaveGame.player,
 				).toMatchObject({ daysUntilHouseUpgrade: -1 });
 			}),
-		));
+	);
 });
 
-it("resizes canonical backpacks with exact Undo/Redo identities and stale handle rejection", () =>
-	run(
+it.effect(
+	"resizes canonical backpacks with exact Undo/Redo identities and stale handle rejection",
+	() =>
 		Effect.gen(function* () {
 			const document = fixture();
 			Object.assign(document.SaveGame.player, {
@@ -207,68 +203,67 @@ it("resizes canonical backpacks with exact Undo/Redo identities and stale handle
 				expanded.identities["1"]?.[23],
 			);
 		}),
-	));
-it("never shrinks away an opaque nil marker or item", () =>
-	run(
-		Effect.gen(function* () {
-			const document = fixture();
-			Object.assign(document.SaveGame.player, {
-				maxItems: 24,
-				items: Array.from({ length: 24 }, (_, index) =>
-					index === 23 ? { "@_xsi:nil": "true", customModData: "keep" } : null,
-				),
-			});
-			const session = yield* makeHistorySession(document);
-			const before = yield* session.snapshot;
-			const result = yield* Effect.result(
-				session.transact(
-					setCharacterDetails({
-						farmerId: "1",
-						key: "backpack",
-						value: "12",
-					}),
-				),
-			);
-			expect(result._tag).toBe("Failure");
-			expect((yield* session.snapshot).document).toEqual(before.document);
-		}),
-	));
+);
+it.effect("never shrinks away an opaque nil marker or item", () =>
+	Effect.gen(function* () {
+		const document = fixture();
+		Object.assign(document.SaveGame.player, {
+			maxItems: 24,
+			items: Array.from({ length: 24 }, (_, index) =>
+				index === 23 ? { "@_xsi:nil": "true", customModData: "keep" } : null,
+			),
+		});
+		const session = yield* makeHistorySession(document);
+		const before = yield* session.snapshot;
+		const result = yield* Effect.result(
+			session.transact(
+				setCharacterDetails({
+					farmerId: "1",
+					key: "backpack",
+					value: "12",
+				}),
+			),
+		);
+		expect(result._tag).toBe("Failure");
+		expect((yield* session.snapshot).document).toEqual(before.document);
+	}),
+);
 
-it("rejects a removed slot handle after shrink and regrowth", () =>
-	run(
-		Effect.gen(function* () {
-			const document = fixture();
-			Object.assign(document.SaveGame.player, {
-				maxItems: 24,
-				items: Array.from({ length: 24 }, () => null),
-			});
-			const session = yield* makeHistorySession(document);
-			const stale = (yield* session.snapshot).identities["1"]?.[23];
-			if (!stale) throw new Error("Missing test handle");
-			yield* session.transact(
-				setCharacterDetails({ farmerId: "1", key: "backpack", value: "12" }),
-			);
-			yield* session.transact(
-				setCharacterDetails({ farmerId: "1", key: "backpack", value: "24" }),
-			);
-			const before = yield* session.snapshot;
-			const failure = yield* Effect.result(
-				session.transact(
-					setInventoryItem({
-						ownerId: "1",
-						entityId: stale,
-						property: "stack",
-						value: 2,
-					}),
-				),
-			);
-			expect(failure._tag).toBe("Failure");
-			expect((yield* session.snapshot).document).toEqual(before.document);
-		}),
-	));
+it.effect("rejects a removed slot handle after shrink and regrowth", () =>
+	Effect.gen(function* () {
+		const document = fixture();
+		Object.assign(document.SaveGame.player, {
+			maxItems: 24,
+			items: Array.from({ length: 24 }, () => null),
+		});
+		const session = yield* makeHistorySession(document);
+		const stale = (yield* session.snapshot).identities["1"]?.[23];
+		if (!stale) throw new Error("Missing test handle");
+		yield* session.transact(
+			setCharacterDetails({ farmerId: "1", key: "backpack", value: "12" }),
+		);
+		yield* session.transact(
+			setCharacterDetails({ farmerId: "1", key: "backpack", value: "24" }),
+		);
+		const before = yield* session.snapshot;
+		const failure = yield* Effect.result(
+			session.transact(
+				setInventoryItem({
+					ownerId: "1",
+					entityId: stale,
+					property: "stack",
+					value: 2,
+				}),
+			),
+		);
+		expect(failure._tag).toBe("Failure");
+		expect((yield* session.snapshot).document).toEqual(before.document);
+	}),
+);
 
-it("net-zero capacity transactions publish no identities or history", () =>
-	run(
+it.effect(
+	"net-zero capacity transactions publish no identities or history",
+	() =>
 		Effect.gen(function* () {
 			const document = fixture();
 			Object.assign(document.SaveGame.player, {
@@ -298,10 +293,11 @@ it("net-zero capacity transactions publish no identities or history", () =>
 				expect(after.entries).toHaveLength(0);
 			}
 		}),
-	));
+);
 
-it("composes retained item edits before shrinking without losing item identity", () =>
-	run(
+it.effect(
+	"composes retained item edits before shrinking without losing item identity",
+	() =>
 		Effect.gen(function* () {
 			const document = fixture();
 			Object.assign(document.SaveGame.player, {
@@ -344,10 +340,11 @@ it("composes retained item edits before shrinking without losing item identity",
 			yield* session.undo;
 			expect((yield* session.snapshot).document).toEqual(before.document);
 		}),
-	));
+);
 
-it("rejects raw capacity tampering after an otherwise authorized resize", () =>
-	run(
+it.effect(
+	"rejects raw capacity tampering after an otherwise authorized resize",
+	() =>
 		Effect.gen(function* () {
 			const document = fixture();
 			Object.assign(document.SaveGame.player, {
@@ -377,4 +374,4 @@ it("rejects raw capacity tampering after an otherwise authorized resize", () =>
 			expect((yield* session.snapshot).document).toEqual(before.document);
 			expect((yield* session.snapshot).identities).toEqual(before.identities);
 		}),
-	));
+);

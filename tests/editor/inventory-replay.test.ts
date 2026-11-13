@@ -1,4 +1,5 @@
-import { expect, it } from "vitest";
+import { it } from "@effect/vitest";
+import { expect } from "vitest";
 import { Deferred, Effect, Fiber, Result } from "effect";
 import { makeHistorySession } from "../../src/lib/editor/history";
 import { setInventoryItem } from "../../src/lib/editor/inventory-operations";
@@ -6,9 +7,6 @@ import { MutationError } from "../../src/lib/editor/domain";
 import { TransactionDraft } from "../../src/lib/editor/transaction-draft";
 import { tinyFixture } from "../helpers/editor-document.ts";
 
-const run = <A, E>(
-	program: Effect.Effect<A, E, import("effect").Scope.Scope>,
-) => Effect.runPromise(Effect.scoped(program));
 function fixture() {
 	const document = tinyFixture();
 	const item = {
@@ -38,42 +36,41 @@ function handle(state: { identities: Record<string, string[]> }) {
 	return id;
 }
 
-it.each(["before", "after"] as const)(
+it.effect.each(["before", "after"] as const)(
 	"rejects raw writes to another owner %s an approved item edit",
 	(order) =>
-		run(
-			Effect.gen(function* () {
-				const { document } = fixture();
-				const session = yield* makeHistorySession(document);
-				const before = yield* session.snapshot;
-				const raw = Effect.gen(function* () {
-					const draft = yield* TransactionDraft;
-					const snapshot = yield* draft.read;
-					const hands = snapshot.state.document.SaveGame.farmhands;
-					if (!Array.isArray(hands) || !hands[0])
-						throw new Error("Missing guest");
-					// The authorized host edit cannot approve changes to another owner,
-					// even when that owner's inventory has no editable item handles.
-					hands[0].items!.push(null);
-					yield* draft.replace(snapshot);
-				});
-				const result = yield* Effect.result(
-					session.transact(
-						Effect.gen(function* () {
-							if (order === "before") yield* raw;
-							yield* change(handle(before));
-							if (order === "after") yield* raw;
-						}),
-					),
-				);
-				expect(Result.isFailure(result)).toBe(true);
-				expect(yield* session.snapshot).toEqual(before);
-			}),
-		),
+		Effect.gen(function* () {
+			const { document } = fixture();
+			const session = yield* makeHistorySession(document);
+			const before = yield* session.snapshot;
+			const raw = Effect.gen(function* () {
+				const draft = yield* TransactionDraft;
+				const snapshot = yield* draft.read;
+				const hands = snapshot.state.document.SaveGame.farmhands;
+				if (!Array.isArray(hands) || !hands[0])
+					throw new Error("Missing guest");
+				// The authorized host edit cannot approve changes to another owner,
+				// even when that owner's inventory has no editable item handles.
+				hands[0].items!.push(null);
+				yield* draft.replace(snapshot);
+			});
+			const result = yield* Effect.result(
+				session.transact(
+					Effect.gen(function* () {
+						if (order === "before") yield* raw;
+						yield* change(handle(before));
+						if (order === "after") yield* raw;
+					}),
+				),
+			);
+			expect(Result.isFailure(result)).toBe(true);
+			expect(yield* session.snapshot).toEqual(before);
+		}),
 );
 
-it("preserves alias-driven writes across owners and unrelated saved data", () =>
-	run(
+it.effect(
+	"preserves alias-driven writes across owners and unrelated saved data",
+	() =>
 		Effect.gen(function* () {
 			const { document, item } = fixture();
 			const hands = document.SaveGame.farmhands;
@@ -94,10 +91,11 @@ it("preserves alias-driven writes across owners and unrelated saved data", () =>
 			expect((yield* session.undo).document).toEqual(before.document);
 			expect((yield* session.redo).document).toEqual(after.document);
 		}),
-	));
+);
 
-it("discards failed/interrupted authorization and retries against a fresh baseline", () =>
-	run(
+it.effect(
+	"discards failed/interrupted authorization and retries against a fresh baseline",
+	() =>
 		Effect.gen(function* () {
 			const session = yield* makeHistorySession(fixture().document);
 			const before = yield* session.snapshot;
@@ -158,4 +156,4 @@ it("discards failed/interrupted authorization and retries against a fresh baseli
 			expect(undo.document.SaveGame.player.money).toBe(99);
 			expect((yield* session.redo).document).toEqual(after.document);
 		}),
-	));
+);

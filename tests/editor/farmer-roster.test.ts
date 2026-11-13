@@ -1,5 +1,6 @@
 import { stringifySavedData } from "../../src/lib/editor/saved-data.ts";
-import { describe, expect, it } from "vitest";
+import { it } from "@effect/vitest";
+import { describe, expect } from "vitest";
 import { Effect, Result } from "effect";
 import { makeHistorySession } from "../../src/lib/editor/history";
 import { openEditor } from "../../src/lib/editor/editor-model";
@@ -12,9 +13,7 @@ import { setInventoryItem } from "../../src/lib/editor/inventory-operations";
 import { TransactionDraft } from "../../src/lib/editor/transaction-draft";
 import { tinyFixture, fixtureXml, parser, exportDocument } from "./fixtures";
 import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
-const run = <A, E>(
-	program: Effect.Effect<A, E, import("effect").Scope.Scope>,
-) => Effect.runPromise(Effect.scoped(program));
+
 const required = <T>(value: T | undefined): T => {
 	if (value === undefined) throw new Error("Missing fixture value");
 	return value;
@@ -95,8 +94,9 @@ describe("farmer slot reassignment", () => {
 		});
 		expect(document).toEqual(before);
 	});
-	it("promotes a farmhand with complete metadata and inventory identity preservation through Undo/Redo", () =>
-		run(
+	it.effect(
+		"promotes a farmhand with complete metadata and inventory identity preservation through Undo/Redo",
+		() =>
 			Effect.gen(function* () {
 				const session = yield* makeHistorySession(fixture()),
 					before = yield* session.snapshot;
@@ -140,9 +140,10 @@ describe("farmer slot reassignment", () => {
 				yield* session.redo;
 				expect((yield* session.snapshot).document).toEqual(after.document);
 			}),
-		));
-	it("replays item edits on both sides of host promotion in their original order", () =>
-		run(
+	);
+	it.effect(
+		"replays item edits on both sides of host promotion in their original order",
+		() =>
 			Effect.gen(function* () {
 				const document = fixture();
 				document.SaveGame.player.items = [
@@ -185,9 +186,10 @@ describe("farmer slot reassignment", () => {
 				expect(after.entries).toHaveLength(1);
 				expect(after.identities["1"]?.[0]).toBe(entityId);
 			}),
-		));
-	it("rejects ambiguous identities, stale targets and raw inventory writes atomically", () =>
-		run(
+	);
+	it.effect(
+		"rejects ambiguous identities, stale targets and raw inventory writes atomically",
+		() =>
 			Effect.gen(function* () {
 				const document = fixture(),
 					hands = document.SaveGame.farmhands;
@@ -227,7 +229,7 @@ describe("farmer slot reassignment", () => {
 				expect(Result.isFailure(result)).toBe(true);
 				expect(yield* session.snapshot).toEqual(before);
 			}),
-		));
+	);
 	it(
 		"preserves the selected farmer identity and exports a promoted host on a full save",
 		{ timeout: 60_000 },
@@ -272,37 +274,36 @@ describe("farmer slot reassignment", () => {
 	);
 });
 
-it.each(["duplicate-home", "opaque-reference"] as const)(
+it.effect.each(["duplicate-home", "opaque-reference"] as const)(
 	"rejects %s without changing records or paired identities",
 	(mode) =>
-		run(
-			Effect.gen(function* () {
-				const document = fixture(),
-					hands = document.SaveGame.farmhands;
-				if (!Array.isArray(hands)) throw new Error("Missing fixture farmhands");
-				const guest = required(hands.find((row) => row?.name?.trim()));
-				if (!guest) throw Error("Missing named fixture guest");
-				if (mode === "duplicate-home")
-					Object.assign(required(guest), { homeLocation: "FarmHouse" });
-				else {
-					const cabin = required(inspectFarmerRoster(document).cabins[0]);
-					cabin.farmhandReference = { opaque: "retain" };
-				}
-				const session = yield* makeHistorySession(document),
-					before = yield* session.snapshot;
-				expect(readFarmerRoster(document).supported).toBe(false);
-				expect(
-					Result.isFailure(
-						yield* Effect.result(session.transact(swapFarmers("1", "2"))),
-					),
-				).toBe(true);
-				expect(yield* session.snapshot).toEqual(before);
-			}),
-		),
+		Effect.gen(function* () {
+			const document = fixture(),
+				hands = document.SaveGame.farmhands;
+			if (!Array.isArray(hands)) throw new Error("Missing fixture farmhands");
+			const guest = required(hands.find((row) => row?.name?.trim()));
+			if (!guest) throw Error("Missing named fixture guest");
+			if (mode === "duplicate-home")
+				Object.assign(required(guest), { homeLocation: "FarmHouse" });
+			else {
+				const cabin = required(inspectFarmerRoster(document).cabins[0]);
+				cabin.farmhandReference = { opaque: "retain" };
+			}
+			const session = yield* makeHistorySession(document),
+				before = yield* session.snapshot;
+			expect(readFarmerRoster(document).supported).toBe(false);
+			expect(
+				Result.isFailure(
+					yield* Effect.result(session.transact(swapFarmers("1", "2"))),
+				),
+			).toBe(true);
+			expect(yield* session.snapshot).toEqual(before);
+		}),
 );
 
-it("keeps sparse cellar identities paired to the physical homes through host promotion", () =>
-	run(
+it.effect(
+	"keeps sparse cellar identities paired to the physical homes through host promotion",
+	() =>
 		Effect.gen(function* () {
 			const document = fixture(),
 				roster = inspectFarmerRoster(document),
@@ -329,4 +330,4 @@ it("keeps sparse cellar identities paired to the physical homes through host pro
 			yield* session.redo;
 			expect((yield* session.snapshot).document).toEqual(after.document);
 		}),
-	));
+);

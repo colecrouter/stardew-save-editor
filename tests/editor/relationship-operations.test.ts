@@ -1,5 +1,6 @@
 import { stringifySavedData } from "../../src/lib/editor/saved-data.ts";
-import { describe, expect, it } from "vitest";
+import { it } from "@effect/vitest";
+import { describe, expect } from "vitest";
 import { Effect, Result } from "effect";
 import {
 	readRelationships,
@@ -37,12 +38,11 @@ function fixture() {
 	});
 	return document;
 }
-const run = <A, E>(
-	program: Effect.Effect<A, E, import("effect").Scope.Scope>,
-) => Effect.runPromise(Effect.scoped(program));
+
 describe("relationship domain operations", () => {
-	it("refuses insertion into an omitted friendship dictionary without history", () =>
-		run(
+	it.effect(
+		"refuses insertion into an omitted friendship dictionary without history",
+		() =>
 			Effect.gen(function* () {
 				const document = fixture();
 				delete document.SaveGame.player.friendshipData;
@@ -57,7 +57,7 @@ describe("relationship domain operations", () => {
 				expect(Result.isFailure(result)).toBe(true);
 				expect(yield* session.snapshot).toEqual(before);
 			}),
-		));
+	);
 	it("projects without defaults or normalization and retains modded villagers", () => {
 		const document = fixture(),
 			before = structuredClone(document);
@@ -74,8 +74,9 @@ describe("relationship domain operations", () => {
 		expect(rows?.[1]?.maxHearts).toBe(10);
 		expect(document).toEqual(before);
 	});
-	it("writes only one selected property and restores exact saved state through Undo/Redo", () =>
-		run(
+	it.effect(
+		"writes only one selected property and restores exact saved state through Undo/Redo",
+		() =>
 			Effect.gen(function* () {
 				const document = fixture();
 				const session = yield* makeHistorySession(document);
@@ -101,43 +102,43 @@ describe("relationship domain operations", () => {
 				yield* session.redo;
 				expect((yield* session.snapshot).document).toEqual(expected);
 			}),
-		));
-	it("rejects invalid limits and stale keys atomically", () =>
-		run(
-			Effect.gen(function* () {
-				const session = yield* makeHistorySession(fixture());
-				const before = yield* session.snapshot;
-				for (const input of [
-					{
-						farmerId: "1",
-						name: "Abigail",
-						kind: "points" as const,
-						value: 2250,
-					},
-					{
-						farmerId: "1",
-						name: "Abigail",
-						kind: "gifts" as const,
-						value: 8,
-					},
-					{
-						farmerId: "1",
-						name: "Missing",
-						kind: "points" as const,
-						value: 100,
-					},
-				])
-					expect(
-						Result.isFailure(
-							yield* Effect.result(session.transact(setRelationship(input))),
-						),
-					).toBe(true);
-				expect((yield* session.snapshot).document).toEqual(before.document);
-				expect((yield* session.snapshot).entries).toEqual([]);
-			}),
-		));
-	it("adds and removes individual villagers in atomic Undoable transactions", () =>
-		run(
+	);
+	it.effect("rejects invalid limits and stale keys atomically", () =>
+		Effect.gen(function* () {
+			const session = yield* makeHistorySession(fixture());
+			const before = yield* session.snapshot;
+			for (const input of [
+				{
+					farmerId: "1",
+					name: "Abigail",
+					kind: "points" as const,
+					value: 2250,
+				},
+				{
+					farmerId: "1",
+					name: "Abigail",
+					kind: "gifts" as const,
+					value: 8,
+				},
+				{
+					farmerId: "1",
+					name: "Missing",
+					kind: "points" as const,
+					value: 100,
+				},
+			])
+				expect(
+					Result.isFailure(
+						yield* Effect.result(session.transact(setRelationship(input))),
+					),
+				).toBe(true);
+			expect((yield* session.snapshot).document).toEqual(before.document);
+			expect((yield* session.snapshot).entries).toEqual([]);
+		}),
+	);
+	it.effect(
+		"adds and removes individual villagers in atomic Undoable transactions",
+		() =>
 			Effect.gen(function* () {
 				const document = fixture();
 				const session = yield* makeHistorySession(document);
@@ -173,9 +174,10 @@ describe("relationship domain operations", () => {
 				yield* session.redo;
 				expect((yield* session.snapshot).document).toEqual(added.document);
 			}),
-		));
-	it("removes unique modded records while preserving opaque data and restores their exact record with Undo", () =>
-		run(
+	);
+	it.effect(
+		"removes unique modded records while preserving opaque data and restores their exact record with Undo",
+		() =>
 			Effect.gen(function* () {
 				const document = fixture();
 				const session = yield* makeHistorySession(document);
@@ -194,9 +196,10 @@ describe("relationship domain operations", () => {
 				yield* session.undo;
 				expect((yield* session.snapshot).document).toEqual(document);
 			}),
-		));
-	it("makes duplicate villager keys read-only rather than choosing an arbitrary entry", () =>
-		run(
+	);
+	it.effect(
+		"makes duplicate villager keys read-only rather than choosing an arbitrary entry",
+		() =>
 			Effect.gen(function* () {
 				const document = fixture();
 				Object.assign(document.SaveGame.player, {
@@ -230,5 +233,5 @@ describe("relationship domain operations", () => {
 				).toBe(true);
 				expect((yield* session.snapshot).document).toEqual(document);
 			}),
-		));
+	);
 });

@@ -1,5 +1,6 @@
 import { malformedFixture } from "../helpers/editor-document.ts";
-import { describe, expect, it } from "vitest";
+import { it } from "@effect/vitest";
+import { describe, expect } from "vitest";
 import { Effect, Result } from "effect";
 import { makeHistorySession } from "../../src/lib/editor/history";
 import { discoverPlacedChests } from "../../src/lib/editor/chest-storage";
@@ -15,9 +16,7 @@ import {
 	parser,
 	exportDocument,
 } from "../helpers/editor-document.ts";
-const run = <A, E>(
-	program: Effect.Effect<A, E, import("effect").Scope.Scope>,
-) => Effect.runPromise(Effect.scoped(program));
+
 const required = <A>(value: A | undefined): A => {
 	if (value === undefined) throw Error("Missing fixture value");
 	return value;
@@ -81,8 +80,9 @@ function move(
 
 describe("placed chest inventory boundary", () => {
 	// The decoded model represents either XML nil spelling as null.
-	it("edits a local chest with a null global ID and restores it through Undo/Redo/XML", () =>
-		run(
+	it.effect(
+		"edits a local chest with a null global ID and restores it through Undo/Redo/XML",
+		() =>
 			Effect.gen(function* () {
 				const original = fixture();
 				chest(original).raw.globalInventoryId = null;
@@ -114,9 +114,10 @@ describe("placed chest inventory boundary", () => {
 				yield* session.redo;
 				expect((yield* session.snapshot).document).toEqual(after.document);
 			}),
-		));
-	it("projects detached slots without initializing empty/singleton save structures", () =>
-		run(
+	);
+	it.effect(
+		"projects detached slots without initializing empty/singleton save structures",
+		() =>
 			Effect.gen(function* () {
 				for (const shape of [[], undefined, [item()]]) {
 					const document = fixture(shape),
@@ -134,9 +135,10 @@ describe("placed chest inventory boundary", () => {
 					expect((yield* session.snapshot).document).toEqual(original);
 				}
 			}),
-		));
-	it("moves chest records into actual backpack slots and compacts both XML and matching identities", () =>
-		run(
+	);
+	it.effect(
+		"moves chest records into actual backpack slots and compacts both XML and matching identities",
+		() =>
 			Effect.gen(function* () {
 				const original = fixture(),
 					id = ownerId(original),
@@ -163,9 +165,10 @@ describe("placed chest inventory boundary", () => {
 				expect((yield* session.snapshot).document).toEqual(after.document);
 				expect((yield* session.snapshot).identities).toEqual(after.identities);
 			}),
-		));
-	it("rejects an opaque backpack nil that compact chest serialization cannot preserve", () =>
-		run(
+	);
+	it.effect(
+		"rejects an opaque backpack nil that compact chest serialization cannot preserve",
+		() =>
 			Effect.gen(function* () {
 				const original = fixture(),
 					id = ownerId(original);
@@ -179,10 +182,11 @@ describe("placed chest inventory boundary", () => {
 				expect((yield* session.snapshot).document).toEqual(original);
 				expect((yield* session.snapshot).identities).toEqual(before.identities);
 			}),
-		));
+	);
 
-	it("swaps whole records across owners, rejects the old owner handle, and preserves byte-identical instances", () =>
-		run(
+	it.effect(
+		"swaps whole records across owners, rejects the old owner handle, and preserves byte-identical instances",
+		() =>
 			Effect.gen(function* () {
 				const original = fixture([item(), item()]),
 					id = ownerId(original),
@@ -211,9 +215,10 @@ describe("placed chest inventory boundary", () => {
 				expect(identical.identities[id]?.[1]).toBe(before.identities[id]?.[0]);
 				expect(identical.cursor).toBe(1);
 			}),
-		));
-	it("adds to virtual slots with trusted defaults, compacts, removes, and restores exact singleton/empty shapes", () =>
-		run(
+	);
+	it.effect(
+		"adds to virtual slots with trusted defaults, compacts, removes, and restores exact singleton/empty shapes",
+		() =>
 			Effect.gen(function* () {
 				for (const contents of [[], [item()]]) {
 					const original = fixture(contents),
@@ -246,9 +251,10 @@ describe("placed chest inventory boundary", () => {
 					expect((yield* session.snapshot).document).toEqual(original);
 				}
 			}),
-		));
-	it("edits properties field-only without rebuilding singleton wrappers, and blocks raw metadata/eligibility changes", () =>
-		run(
+	);
+	it.effect(
+		"edits properties field-only without rebuilding singleton wrappers, and blocks raw metadata/eligibility changes",
+		() =>
 			Effect.gen(function* () {
 				const original = fixture([{ ...item("Sneakers"), opaque: "007" }]),
 					id = ownerId(original),
@@ -290,9 +296,10 @@ describe("placed chest inventory boundary", () => {
 				expect(Result.isFailure(bad)).toBe(true);
 				expect((yield* session.snapshot).document).toEqual(after.document);
 			}),
-		));
-	it("allows existing quantity/quality policy in chests and keeps owner-dependent trinkets read-only", () =>
-		run(
+	);
+	it.effect(
+		"allows existing quantity/quality policy in chests and keeps owner-dependent trinkets read-only",
+		() =>
 			Effect.gen(function* () {
 				const original = fixture([item(), item("FairyBox")]),
 					id = ownerId(original),
@@ -326,9 +333,10 @@ describe("placed chest inventory boundary", () => {
 				);
 				expect(Result.isFailure(bad)).toBe(true);
 			}),
-		));
-	it("validates equipment in both directions when transferring directly to or from a chest", () =>
-		run(
+	);
+	it.effect(
+		"validates equipment in both directions when transferring directly to or from a chest",
+		() =>
 			Effect.gen(function* () {
 				const original = fixture(),
 					id = ownerId(original),
@@ -368,9 +376,10 @@ describe("placed chest inventory boundary", () => {
 				yield* session.undo;
 				expect((yield* session.snapshot).document).toEqual(original);
 			}),
-		));
-	it("shares one slot array for same-chest low-level equipment exchanges", () =>
-		run(
+	);
+	it.effect(
+		"shares one slot array for same-chest low-level equipment exchanges",
+		() =>
 			Effect.gen(function* () {
 				const original = fixture(),
 					id = ownerId(original),
@@ -393,10 +402,11 @@ describe("placed chest inventory boundary", () => {
 					before.identities[id]?.slice(0, 2).reverse(),
 				);
 			}),
-		));
+	);
 
-	it("does not compact a self-drop or erase redo for an imported plain-nil gap", () =>
-		run(
+	it.effect(
+		"does not compact a self-drop or erase redo for an imported plain-nil gap",
+		() =>
 			Effect.gen(function* () {
 				const original = fixture([nil, item()]),
 					id = ownerId(original),
@@ -412,9 +422,10 @@ describe("placed chest inventory boundary", () => {
 				yield* session.redo;
 				expect((yield* session.snapshot).cursor).toBe(1);
 			}),
-		));
-	it("preserves imported overflow records and restores their extra identity on Undo", () =>
-		run(
+	);
+	it.effect(
+		"preserves imported overflow records and restores their extra identity on Undo",
+		() =>
 			Effect.gen(function* () {
 				const original = fixture(
 						Array.from({ length: 71 }, (_, index) => ({
@@ -442,9 +453,10 @@ describe("placed chest inventory boundary", () => {
 				expect((yield* session.snapshot).document).toEqual(original);
 				expect((yield* session.snapshot).identities).toEqual(before.identities);
 			}),
-		));
-	it("rejects unsupported chest nil shapes and raw writes made after an approved property", () =>
-		run(
+	);
+	it.effect(
+		"rejects unsupported chest nil shapes and raw writes made after an approved property",
+		() =>
 			Effect.gen(function* () {
 				const malformed = fixture(["malformed item"]);
 				const closed = yield* makeHistorySession(malformed);
@@ -477,10 +489,11 @@ describe("placed chest inventory boundary", () => {
 				expect((yield* session.snapshot).document).toEqual(original);
 				expect((yield* session.snapshot).cursor).toBe(0);
 			}),
-		));
+	);
 
-	it("rejects shared storage and owner ID collisions without affecting other save operations", () =>
-		run(
+	it.effect(
+		"rejects shared storage and owner ID collisions without affecting other save operations",
+		() =>
 			Effect.gen(function* () {
 				const document = fixture();
 				document.SaveGame.player.UniqueMultiplayerID = malformedFixture(
@@ -505,5 +518,5 @@ describe("placed chest inventory boundary", () => {
 					(yield* session.snapshot).document.SaveGame.player.farmName,
 				).toBe("Still works");
 			}),
-		));
+	);
 });

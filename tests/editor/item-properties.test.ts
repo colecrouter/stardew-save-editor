@@ -2,7 +2,8 @@ import {
 	catalogFixture,
 	malformedFixture,
 } from "../helpers/editor-document.ts";
-import { describe, expect, it } from "vitest";
+import { it } from "@effect/vitest";
+import { describe, expect } from "vitest";
 import { Effect, Result } from "effect";
 import {
 	getItemPropertyFields,
@@ -22,9 +23,6 @@ import { getInventoryItemCapabilities } from "../../src/lib/editor/inventory-ope
 import { createCatalogItem } from "../../src/lib/editor/item-catalog";
 import { tinyFixture, fixtureXml, parser } from "./fixtures";
 
-const run = <A, E>(
-	program: Effect.Effect<A, E, import("effect").Scope.Scope>,
-) => Effect.runPromise(Effect.scoped(program));
 function required<A>(value: A | undefined): A {
 	if (value === undefined) throw Error("Missing fixture value");
 	return value;
@@ -68,8 +66,9 @@ const change = (
 };
 
 describe("bounded inventory property edits", () => {
-	it("edits equipped boots field-only, preserves unusual imported values, and keeps no-op redo", () =>
-		run(
+	it.effect(
+		"edits equipped boots field-only, preserves unusual imported values, and keeps no-op redo",
+		() =>
 			Effect.gen(function* () {
 				const original = fixture();
 				const session = yield* makeHistorySession(original);
@@ -93,9 +92,10 @@ describe("bounded inventory property edits", () => {
 				yield* session.redo;
 				expect((yield* session.snapshot).document).toEqual(expected);
 			}),
-		));
-	it("writes weapon, object and bottomless fields independently without touching other saved data", () =>
-		run(
+	);
+	it.effect(
+		"writes weapon, object and bottomless fields independently without touching other saved data",
+		() =>
 			Effect.gen(function* () {
 				const original = fixture();
 				const can = original.SaveGame.player.items[3] as Record<
@@ -138,9 +138,10 @@ describe("bounded inventory property edits", () => {
 				for (const _ of requests) yield* session.undo;
 				expect((yield* session.snapshot).document).toEqual(original);
 			}),
-		));
-	it("preserves alpha, unknown color members and mirror presence while coloring equipped clothes", () =>
-		run(
+	);
+	it.effect(
+		"preserves alpha, unknown color members and mirror presence while coloring equipped clothes",
+		() =>
 			Effect.gen(function* () {
 				const original = fixture();
 				const shirt = original.SaveGame.player.shirtItem as Record<
@@ -188,7 +189,7 @@ describe("bounded inventory property edits", () => {
 					)?.value,
 				).toBe("#010203");
 			}),
-		));
+	);
 	it("does not advertise or initialize missing, malformed, unsupported or prismatic properties", () => {
 		const boots = {
 			...catalogFixture(item("Sneakers"), "StardewValley.Objects.Boots"),
@@ -227,8 +228,9 @@ describe("bounded inventory property edits", () => {
 			),
 		).toEqual([]);
 	});
-	it("validates own request values and rejects cross-family, missing-field and stale-owner writes without publication", () =>
-		run(
+	it.effect(
+		"validates own request values and rejects cross-family, missing-field and stale-owner writes without publication",
+		() =>
 			Effect.gen(function* () {
 				for (const input of [
 					{
@@ -270,9 +272,10 @@ describe("bounded inventory property edits", () => {
 					expect(yield* session.snapshot).toEqual(before);
 				}
 			}),
-		));
-	it("follows its equipped instance into a backpack and rejects the old owner after a cross-farmer transfer", () =>
-		run(
+	);
+	it.effect(
+		"follows its equipped instance into a backpack and rejects the old owner after a cross-farmer transfer",
+		() =>
 			Effect.gen(function* () {
 				const original = fixture();
 				const guest = required(
@@ -313,9 +316,10 @@ describe("bounded inventory property edits", () => {
 				yield* session.undo;
 				expect((yield* session.snapshot).document).toEqual(original);
 			}),
-		));
-	it("rejects unapproved temporary type changes before authorizing a property edit", () =>
-		run(
+	);
+	it.effect(
+		"rejects unapproved temporary type changes before authorizing a property edit",
+		() =>
 			Effect.gen(function* () {
 				const session = yield* makeHistorySession(fixture());
 				const before = yield* session.snapshot;
@@ -338,9 +342,10 @@ describe("bounded inventory property edits", () => {
 				).toBe(true);
 				expect(yield* session.snapshot).toEqual(before);
 			}),
-		));
-	it("rejects temporary or later trinket context changes rather than authorizing seeds for another RNG", () =>
-		run(
+	);
+	it.effect(
+		"rejects temporary or later trinket context changes rather than authorizing seeds for another RNG",
+		() =>
 			Effect.gen(function* () {
 				const original = fixture();
 				original.SaveGame.player.trinketItem = [
@@ -376,11 +381,12 @@ describe("bounded inventory property edits", () => {
 					expect(yield* session.snapshot).toEqual(before);
 				}
 			}),
-		));
+	);
 });
 
-it("reads the game's effective Bottomless alias and edits only existing mirrors", () =>
-	run(
+it.effect(
+	"reads the game's effective Bottomless alias and edits only existing mirrors",
+	() =>
 		Effect.gen(function* () {
 			const original = fixture();
 			const can = original.SaveGame.player.items[3] as Record<string, unknown>;
@@ -422,10 +428,11 @@ it("reads the game's effective Bottomless alias and edits only existing mirrors"
 			can.IsBottomless = "custom";
 			expect(getItemPropertyFields(can, { _type: "Tool" })).toEqual([]);
 		}),
-	));
+);
 
-it("rolls back a compound property attempt and closes escaped property authority", () =>
-	run(
+it.effect(
+	"rolls back a compound property attempt and closes escaped property authority",
+	() =>
 		Effect.gen(function* () {
 			const session = yield* makeHistorySession(fixture());
 			const before = yield* session.snapshot;
@@ -451,10 +458,11 @@ it("rolls back a compound property attempt and closes escaped property authority
 			).toBe(true);
 			expect(yield* session.snapshot).toEqual(before);
 		}),
-	));
+);
 
-it("guards owner income as trinket authorization context before and after an edit", () =>
-	run(
+it.effect(
+	"guards owner income as trinket authorization context before and after an edit",
+	() =>
 		Effect.gen(function* () {
 			const original = fixture();
 			original.SaveGame.player.trinketItem = [
@@ -489,10 +497,11 @@ it("guards owner income as trinket authorization context before and after an edi
 				expect(yield* session.snapshot).toEqual(before);
 			}
 		}),
-	));
+);
 
-it("edits colored-object stack and quality without touching color or opaque metadata", () =>
-	run(
+it.effect(
+	"edits colored-object stack and quality without touching color or opaque metadata",
+	() =>
 		Effect.gen(function* () {
 			const original = fixture();
 			original.SaveGame.player.items[2] = {
@@ -530,7 +539,7 @@ it("edits colored-object stack and quality without touching color or opaque meta
 			yield* session.undo;
 			expect((yield* session.snapshot).document).toEqual(original);
 		}),
-	));
+);
 
 it("uses missing game defaults but refuses malformed trinket context without repairing it", () => {
 	const document = fixture();

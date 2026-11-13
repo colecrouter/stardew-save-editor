@@ -1,4 +1,5 @@
-import { expect, it } from "vitest";
+import { it } from "@effect/vitest";
+import { expect } from "vitest";
 import { Effect, Result } from "effect";
 import { makeHistorySession } from "../../src/lib/editor/history";
 import {
@@ -8,9 +9,7 @@ import {
 import { setStorageQuality } from "../../src/lib/editor/storage-operations";
 import { TransactionDraft } from "../../src/lib/editor/transaction-draft";
 import { tinyFixture } from "../helpers/editor-document.ts";
-const run = <A, E>(
-	program: Effect.Effect<A, E, import("effect").Scope.Scope>,
-) => Effect.runPromise(Effect.scoped(program));
+
 const item = () => ({
 	$type: "StardewValley.Object" as const,
 	itemId: "24",
@@ -33,8 +32,9 @@ function selected(state: { identities: Record<string, string[]> }) {
 	}));
 }
 
-it("validates every batch target before mutation even when a caller catches a later capability failure", () =>
-	run(
+it.effect(
+	"validates every batch target before mutation even when a caller catches a later capability failure",
+	() =>
 		Effect.gen(function* () {
 			const document = fixture(),
 				other = document.SaveGame.player.items[1];
@@ -60,9 +60,10 @@ it("validates every batch target before mutation even when a caller catches a la
 			);
 			expect(after.document.SaveGame.player.money).toBe(99);
 		}),
-	));
-it("rejects duplicate selections at the capability boundary and keeps no-op redo intact", () =>
-	run(
+);
+it.effect(
+	"rejects duplicate selections at the capability boundary and keeps no-op redo intact",
+	() =>
 		Effect.gen(function* () {
 			const session = yield* makeHistorySession(fixture()),
 				initial = yield* session.snapshot,
@@ -90,44 +91,43 @@ it("rejects duplicate selections at the capability boundary and keeps no-op redo
 				(yield* session.snapshot).document.SaveGame.player.items[0],
 			).toMatchObject({ quality: 4 });
 		}),
-	));
-it.each(["batch-first", "single-first"] as const)(
+);
+it.effect.each(["batch-first", "single-first"] as const)(
 	"replays batch and individual quality approvals in operation order: %s",
 	(order) =>
-		run(
-			Effect.gen(function* () {
-				const session = yield* makeHistorySession(fixture()),
-					before = yield* session.snapshot,
-					handles = selected(before),
-					first = handles[0];
-				if (!first) throw new Error("Missing fixture handle");
-				yield* session.transact(
-					Effect.gen(function* () {
-						if (order === "batch-first") yield* setStorageQuality(handles, 4);
-						yield* setInventoryItem({
-							...first,
-							property: "quality",
-							value: 1,
-						});
-						if (order === "single-first") yield* setStorageQuality(handles, 4);
-					}),
-				);
-				const after = yield* session.snapshot;
-				expect(after.document.SaveGame.player.items[0]).toMatchObject({
-					quality: order === "batch-first" ? 1 : 4,
-				});
-				expect(after.document.SaveGame.player.items[1]).toMatchObject({
-					quality: 4,
-				});
-				yield* session.undo;
-				expect((yield* session.snapshot).document).toEqual(before.document);
-				yield* session.redo;
-				expect((yield* session.snapshot).document).toEqual(after.document);
-			}),
-		),
+		Effect.gen(function* () {
+			const session = yield* makeHistorySession(fixture()),
+				before = yield* session.snapshot,
+				handles = selected(before),
+				first = handles[0];
+			if (!first) throw new Error("Missing fixture handle");
+			yield* session.transact(
+				Effect.gen(function* () {
+					if (order === "batch-first") yield* setStorageQuality(handles, 4);
+					yield* setInventoryItem({
+						...first,
+						property: "quality",
+						value: 1,
+					});
+					if (order === "single-first") yield* setStorageQuality(handles, 4);
+				}),
+			);
+			const after = yield* session.snapshot;
+			expect(after.document.SaveGame.player.items[0]).toMatchObject({
+				quality: order === "batch-first" ? 1 : 4,
+			});
+			expect(after.document.SaveGame.player.items[1]).toMatchObject({
+				quality: 4,
+			});
+			yield* session.undo;
+			expect((yield* session.snapshot).document).toEqual(before.document);
+			yield* session.redo;
+			expect((yield* session.snapshot).document).toEqual(after.document);
+		}),
 );
-it("retains alias-driven property behavior across owners and unrelated saved branches", () =>
-	run(
+it.effect(
+	"retains alias-driven property behavior across owners and unrelated saved branches",
+	() =>
 		Effect.gen(function* () {
 			const document = fixture(1),
 				raw = document.SaveGame.player.items[0],
@@ -158,37 +158,35 @@ it("retains alias-driven property behavior across owners and unrelated saved bra
 			yield* session.undo;
 			expect((yield* session.snapshot).document).toEqual(before.document);
 		}),
-	));
-it(
+);
+it.effect(
 	"updates 1,000 captured items as one transaction with preserved records, handles and Undo",
-	{ timeout: 10000 },
 	() =>
-		run(
-			Effect.gen(function* () {
-				const session = yield* makeHistorySession(fixture(1000)),
-					before = yield* session.snapshot;
-				yield* session.transact(setStorageQuality(selected(before), 4));
-				const after = yield* session.snapshot;
-				expect(after.document.SaveGame.player.items).toHaveLength(1000);
-				expect(
-					after.document.SaveGame.player.items.every(
-						(raw) =>
-							raw !== null &&
-							typeof raw === "object" &&
-							"quality" in raw &&
-							raw.quality === 4,
-					),
-				).toBe(true);
-				expect(after.document.SaveGame.player.items[999]).toMatchObject({
-					stack: 3,
-					customModData: { opaque: "007" },
-				});
-				expect(after.identities).toEqual(before.identities);
-				expect(after.entries).toHaveLength(1);
-				yield* session.undo;
-				expect((yield* session.snapshot).document).toEqual(before.document);
-				yield* session.redo;
-				expect((yield* session.snapshot).document).toEqual(after.document);
-			}),
-		),
+		Effect.gen(function* () {
+			const session = yield* makeHistorySession(fixture(1000)),
+				before = yield* session.snapshot;
+			yield* session.transact(setStorageQuality(selected(before), 4));
+			const after = yield* session.snapshot;
+			expect(after.document.SaveGame.player.items).toHaveLength(1000);
+			expect(
+				after.document.SaveGame.player.items.every(
+					(raw) =>
+						raw !== null &&
+						typeof raw === "object" &&
+						"quality" in raw &&
+						raw.quality === 4,
+				),
+			).toBe(true);
+			expect(after.document.SaveGame.player.items[999]).toMatchObject({
+				stack: 3,
+				customModData: { opaque: "007" },
+			});
+			expect(after.identities).toEqual(before.identities);
+			expect(after.entries).toHaveLength(1);
+			yield* session.undo;
+			expect((yield* session.snapshot).document).toEqual(before.document);
+			yield* session.redo;
+			expect((yield* session.snapshot).document).toEqual(after.document);
+		}),
+	{ timeout: 10000 },
 );

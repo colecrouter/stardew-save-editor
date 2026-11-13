@@ -1,5 +1,6 @@
-import { Effect, type Scope } from "effect";
-import { describe, it, expect } from "vitest";
+import { Effect } from "effect";
+import { it } from "@effect/vitest";
+import { describe, expect } from "vitest";
 import {
 	tinyFixture,
 	parser,
@@ -12,8 +13,7 @@ import {
 	type RecipeChange,
 } from "../../src/lib/editor/recipe-operations.ts";
 import { recipeDefinitions } from "../../src/lib/editor/recipe-data.ts";
-const run = <E>(program: Effect.Effect<void, E, Scope.Scope>) =>
-	Effect.runPromise(Effect.scoped(program));
+
 const entry = (name: string | number, count: number) => ({
 	key: name,
 	value: count,
@@ -55,8 +55,9 @@ describe("recipe save operations", () => {
 		).toMatchObject({ known: true, count: 4 });
 		expect(doc).toEqual(before);
 	});
-	it("edits and resets real cooked counts preserving known payload, metadata and exact Undo/Redo", () =>
-		run(
+	it.effect(
+		"edits and resets real cooked counts preserving known payload, metadata and exact Undo/Redo",
+		() =>
 			Effect.gen(function* () {
 				const doc = fixture();
 				Object.assign(doc.SaveGame.player, {
@@ -105,9 +106,10 @@ describe("recipe save operations", () => {
 					)?.count,
 				).toBe(0);
 			}),
-		));
-	it("forgets cooking knowledge without erasing history, then relearns at zero knowledge payload", () =>
-		run(
+	);
+	it.effect(
+		"forgets cooking knowledge without erasing history, then relearns at zero knowledge payload",
+		() =>
 			Effect.gen(function* () {
 				const doc = fixture();
 				Object.assign(doc.SaveGame.player, {
@@ -136,9 +138,10 @@ describe("recipe save operations", () => {
 					recipesCooked: [entry(cookedId, 6)],
 				});
 			}),
-		));
-	it("unlocks and edits crafting in its dictionary; forgetting removes its count atomically", () =>
-		run(
+	);
+	it.effect(
+		"unlocks and edits crafting in its dictionary; forgetting removes its count atomically",
+		() =>
 			Effect.gen(function* () {
 				const doc = fixture();
 				Object.assign(doc.SaveGame.player, {
@@ -183,9 +186,10 @@ describe("recipe save operations", () => {
 					craftingRecipes: [{ customModData: "keep" }],
 				});
 			}),
-		));
-	it("rejects ambiguous numeric/string cooked IDs while unrelated knowledge remains editable", () =>
-		run(
+	);
+	it.effect(
+		"rejects ambiguous numeric/string cooked IDs while unrelated knowledge remains editable",
+		() =>
 			Effect.gen(function* () {
 				const doc = fixture();
 				Object.assign(doc.SaveGame.player, {
@@ -216,9 +220,10 @@ describe("recipe save operations", () => {
 					recipesCooked: [entry(cookedId, 4), entry(Number(cookedId), 7)],
 				});
 			}),
-		));
-	it("retains unknown imported recipes and opaque siblings without guessing cooked output IDs", () =>
-		run(
+	);
+	it.effect(
+		"retains unknown imported recipes and opaque siblings without guessing cooked output IDs",
+		() =>
 			Effect.gen(function* () {
 				const doc = fixture();
 				Object.assign(doc.SaveGame.player, {
@@ -252,7 +257,7 @@ describe("recipe save operations", () => {
 					cookingRecipes: [entry("Mod Soup", 5), { opaque: "unaddressable" }],
 				});
 			}),
-		));
+	);
 	it("leaves malformed/missing dictionaries and duplicate knowledge read-only", () => {
 		const doc = fixture();
 		Object.assign(doc.SaveGame.player, {
@@ -267,8 +272,9 @@ describe("recipe save operations", () => {
 			view?.crafting.every((row) => !row.supported && !row.countSupported),
 		).toBe(true);
 	});
-	it("rejects invalid values and inherited request fields without publishing changes", () =>
-		run(
+	it.effect(
+		"rejects invalid values and inherited request fields without publishing changes",
+		() =>
 			Effect.gen(function* () {
 				const session = yield* makeHistorySession(fixture());
 				const before = yield* session.snapshot;
@@ -292,46 +298,46 @@ describe("recipe save operations", () => {
 					).toBe("Failure");
 				expect((yield* session.snapshot).document).toEqual(before.document);
 			}),
-		));
-	it("captures farmer identity and rejects ambiguous owners", () =>
-		run(
-			Effect.gen(function* () {
-				const doc = fixture();
-				const farmhands = doc.SaveGame.farmhands;
-				const guest = farmhands && farmhands[0];
-				if (!guest) throw Error("Missing guest");
-				Object.assign(guest, {
-					craftingRecipes: [entry("Wood Fence", 3)],
-					cookingRecipes: [],
-					recipesCooked: [],
-				});
-				const session = yield* makeHistorySession(doc);
-				yield* session.transact(
-					setRecipe({
-						...change("crafting", "Wood Fence", { kind: "count", value: 8 }),
-						farmerId: "2",
-					}),
-				);
-				expect(
-					readRecipes((yield* session.snapshot).document)
-						.find((owner) => owner.farmerId === "1")
-						?.crafting.find((row) => row.name === "Wood Fence")?.count,
-				).toBe(4);
-				guest.UniqueMultiplayerID = 1n;
-				const ambiguous = yield* makeHistorySession(doc);
-				expect(
-					(yield* Effect.result(
-						ambiguous.transact(
-							setRecipe(change("crafting", "Wood Fence", { kind: "reset" })),
-						),
-					))._tag,
-				).toBe("Failure");
-			}),
-		));
+	);
+	it.effect("captures farmer identity and rejects ambiguous owners", () =>
+		Effect.gen(function* () {
+			const doc = fixture();
+			const farmhands = doc.SaveGame.farmhands;
+			const guest = farmhands && farmhands[0];
+			if (!guest) throw Error("Missing guest");
+			Object.assign(guest, {
+				craftingRecipes: [entry("Wood Fence", 3)],
+				cookingRecipes: [],
+				recipesCooked: [],
+			});
+			const session = yield* makeHistorySession(doc);
+			yield* session.transact(
+				setRecipe({
+					...change("crafting", "Wood Fence", { kind: "count", value: 8 }),
+					farmerId: "2",
+				}),
+			);
+			expect(
+				readRecipes((yield* session.snapshot).document)
+					.find((owner) => owner.farmerId === "1")
+					?.crafting.find((row) => row.name === "Wood Fence")?.count,
+			).toBe(4);
+			guest.UniqueMultiplayerID = 1n;
+			const ambiguous = yield* makeHistorySession(doc);
+			expect(
+				(yield* Effect.result(
+					ambiguous.transact(
+						setRecipe(change("crafting", "Wood Fence", { kind: "reset" })),
+					),
+				))._tag,
+			).toBe("Failure");
+		}),
+	);
 });
 
-it("distinguishes an existing zero cooked entry from no history and reset removes it with exact Undo", () =>
-	run(
+it.effect(
+	"distinguishes an existing zero cooked entry from no history and reset removes it with exact Undo",
+	() =>
 		Effect.gen(function* () {
 			const doc = fixture();
 			Object.assign(doc.SaveGame.player, {
@@ -367,7 +373,7 @@ it("distinguishes an existing zero cooked entry from no history and reset remove
 			yield* session.redo;
 			expect((yield* session.snapshot).document).toEqual(after.document);
 		}),
-	));
+);
 
 it("reads production counters after the real XML codec roundtrip", () => {
 	const doc = fixture();

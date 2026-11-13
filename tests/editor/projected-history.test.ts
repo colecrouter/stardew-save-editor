@@ -1,6 +1,7 @@
 import { Deferred, Effect, Exit } from "effect";
 import { get } from "svelte/store";
-import { expect, it, vi } from "vitest";
+import { it } from "@effect/vitest";
+import { expect, vi } from "vitest";
 import { makeHistorySession } from "../../src/lib/editor/history";
 import { makeEditorModel } from "../../src/lib/editor/editor-model";
 import { SaveCodec, SaveCodecLive } from "../../src/lib/editor/save-service";
@@ -22,8 +23,9 @@ const fullHistoryCopies = (calls: unknown[][]) =>
 			"document" in value,
 	);
 
-it("publishes detached immutable review data without copying full History for the model", () =>
-	Effect.runPromise(
+it.effect(
+	"publishes detached immutable review data without copying full History for the model",
+	() =>
 		Effect.scoped(
 			Effect.gen(function* () {
 				const session = yield* makeHistorySession(parser.parse(fixtureXml));
@@ -105,10 +107,11 @@ it("publishes detached immutable review data without copying full History for th
 				}
 			}),
 		).pipe(Effect.provide(SaveCodecLive)),
-	));
+);
 
-it("publishes only successful retry results and preserves the competing revision", () =>
-	Effect.runPromise(
+it.effect(
+	"publishes only successful retry results and preserves the competing revision",
+	() =>
 		Effect.scoped(
 			Effect.gen(function* () {
 				const session = yield* makeHistorySession(parser.parse(fixtureXml));
@@ -169,35 +172,34 @@ it("publishes only successful retry results and preserves the competing revision
 				}
 			}),
 		).pipe(Effect.provide(SaveCodecLive)),
-	));
+);
 
-it("projects captured results and treats projection defects separately from committed writes", () =>
-	Effect.runPromise(
-		Effect.scoped(
-			Effect.gen(function* () {
-				const session = yield* makeHistorySession(tinyFixture());
-				const projected = session.forProjection((state) => ({
-					revision: state.revision,
-					name: state.document.SaveGame.player.farmName,
-				}));
-				const receipt = yield* projected.execute([
-					{ type: "farm-name", value: "Captured" },
-				]);
-				yield* session.undo;
-				expect(receipt).toEqual({ revision: 1, name: "Captured" });
-				expect((yield* projected.snapshot).name).toBe("Farm");
-				const broken = session.forProjection(() => {
-					throw new Error("Projection defect");
-				});
-				const failed = yield* Effect.exit(
-					broken.execute([{ type: "farm-name", value: "Committed" }]),
-				);
-				expect(Exit.isFailure(failed)).toBe(true);
-				// With no enclosing transaction, delivery failure happens after the command
-				// commits. It cannot claim rollback; a fresh snapshot still recovers the save.
-				expect(
-					(yield* session.snapshot).document.SaveGame.player.farmName,
-				).toBe("Committed");
-			}),
-		),
-	));
+it.effect(
+	"projects captured results and treats projection defects separately from committed writes",
+	() =>
+		Effect.gen(function* () {
+			const session = yield* makeHistorySession(tinyFixture());
+			const projected = session.forProjection((state) => ({
+				revision: state.revision,
+				name: state.document.SaveGame.player.farmName,
+			}));
+			const receipt = yield* projected.execute([
+				{ type: "farm-name", value: "Captured" },
+			]);
+			yield* session.undo;
+			expect(receipt).toEqual({ revision: 1, name: "Captured" });
+			expect((yield* projected.snapshot).name).toBe("Farm");
+			const broken = session.forProjection(() => {
+				throw new Error("Projection defect");
+			});
+			const failed = yield* Effect.exit(
+				broken.execute([{ type: "farm-name", value: "Committed" }]),
+			);
+			expect(Exit.isFailure(failed)).toBe(true);
+			// With no enclosing transaction, delivery failure happens after the command
+			// commits. It cannot claim rollback; a fresh snapshot still recovers the save.
+			expect((yield* session.snapshot).document.SaveGame.player.farmName).toBe(
+				"Committed",
+			);
+		}),
+);

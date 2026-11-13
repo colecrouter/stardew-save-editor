@@ -64,6 +64,16 @@ codec tests retain the real byte import boundary; malformed in-memory domain tes
 do not first serialize values that the codec is expected to reject.
 Never commit private user saves.
 
+Domain tests import `it` from `@effect/vitest` and return an Effect from
+`it.effect`, usually with `Effect.gen`. The adapter owns the test scope, interrupts
+timed-out fibers and runs finalizers; do not duplicate `runPromise(scoped(...))`
+helpers. Keep plain synchronous assertions on ordinary `it`, and use ordinary
+async tests when exercising the application's Promise or browser boundary.
+`it.effect.each` passes each case as one value (destructure tuple rows), and its
+timeout/options argument follows the Effect callback. Test services include a
+controlled clock; use `it.live` only when the behavior requires real Effect time.
+Import `vi` directly from `vitest` so its hoisted mocks are recognized by Vitest.
+
 `openEditorBlob(processingLayer, blob, ...)` is the browser file-import entry:
 its worker opens the Blob stream locally. `openEditor(processingLayer, bytes, ...)`
 retains the byte-based API for existing tools and fixtures. Both require an

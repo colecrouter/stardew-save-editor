@@ -1,6 +1,7 @@
 import { ItemData } from "../../src/lib/ItemData.ts";
 import { Sprite } from "../../src/lib/Sprite.svelte.ts";
-import { describe, expect, it } from "vitest";
+import { it } from "@effect/vitest";
+import { describe, expect } from "vitest";
 import { Effect } from "effect";
 import { tinyFixture } from "../helpers/editor-document.ts";
 import { makeHistorySession } from "../../src/lib/editor/history.ts";
@@ -46,8 +47,7 @@ function fixture() {
 	});
 	return document;
 }
-const run = <A, E>(effect: Effect.Effect<A, E, import("effect").Scope.Scope>) =>
-	Effect.runPromise(Effect.scoped(effect));
+
 describe("appearance operations", () => {
 	it("projects sheet-two hair and preview without changing save data", () => {
 		const document = fixture(),
@@ -95,21 +95,21 @@ describe("appearance operations", () => {
 		expect(view?.preview.notice).toMatch(/imported equipment/);
 		expect(document).toEqual(before);
 	});
-	it("allows an explicitly empty favorite thing", () =>
-		run(
-			Effect.gen(function* () {
-				const session = yield* makeHistorySession(fixture());
-				yield* session.transact(
-					setAppearance({ farmerId: "1", kind: "favorite", value: "" }),
-				);
-				expect(
-					readAppearances((yield* session.snapshot).document)[0]?.texts.favorite
-						.value,
-				).toBe("");
-			}),
-		));
-	it("coordinates gender mirrors and hair representation with exact Undo/Redo", () =>
-		run(
+	it.effect("allows an explicitly empty favorite thing", () =>
+		Effect.gen(function* () {
+			const session = yield* makeHistorySession(fixture());
+			yield* session.transact(
+				setAppearance({ farmerId: "1", kind: "favorite", value: "" }),
+			);
+			expect(
+				readAppearances((yield* session.snapshot).document)[0]?.texts.favorite
+					.value,
+			).toBe("");
+		}),
+	);
+	it.effect(
+		"coordinates gender mirrors and hair representation with exact Undo/Redo",
+		() =>
 			Effect.gen(function* () {
 				const document = fixture(),
 					before = structuredClone(document),
@@ -136,9 +136,10 @@ describe("appearance operations", () => {
 				yield* session.redo;
 				expect((yield* session.snapshot).document).toEqual(after.document);
 			}),
-		));
-	it("preserves alpha, opaque color members and unrelated equipment", () =>
-		run(
+	);
+	it.effect(
+		"preserves alpha, opaque color members and unrelated equipment",
+		() =>
 			Effect.gen(function* () {
 				const document = fixture(),
 					before = structuredClone(document),
@@ -166,32 +167,32 @@ describe("appearance operations", () => {
 					(yield* session.snapshot).document.SaveGame.player.items,
 				).toEqual(before.SaveGame.player.items);
 			}),
-		));
-	it("rejects invalid and inherited requests without publication", () =>
-		run(
-			Effect.gen(function* () {
-				const document = fixture(),
-					session = yield* makeHistorySession(document);
-				// Runtime boundaries receive unknown JavaScript inputs despite typed callers.
-				const requests: unknown[] = [
-					{ farmerId: "1", kind: "gender", value: "bad" },
-					{ farmerId: "1", kind: "hair", value: 74 },
-					{ farmerId: "1", kind: "skin", value: NaN },
-					{ farmerId: "1", kind: "name", value: "" },
-					Object.create({ farmerId: "1", kind: "name", value: "Other" }),
-				];
-				for (const request of requests) {
-					const outcome = yield* Effect.result(
-						session.transact(setAppearance(request as AppearanceChange)),
-					);
-					expect(outcome._tag).toBe("Failure");
-				}
-				expect((yield* session.snapshot).document).toEqual(document);
-				expect((yield* session.snapshot).entries).toHaveLength(0);
-			}),
-		));
-	it("keeps malformed values independently read-only and custom imported indices preserved", () =>
-		run(
+	);
+	it.effect("rejects invalid and inherited requests without publication", () =>
+		Effect.gen(function* () {
+			const document = fixture(),
+				session = yield* makeHistorySession(document);
+			// Runtime boundaries receive unknown JavaScript inputs despite typed callers.
+			const requests: unknown[] = [
+				{ farmerId: "1", kind: "gender", value: "bad" },
+				{ farmerId: "1", kind: "hair", value: 74 },
+				{ farmerId: "1", kind: "skin", value: NaN },
+				{ farmerId: "1", kind: "name", value: "" },
+				Object.create({ farmerId: "1", kind: "name", value: "Other" }),
+			];
+			for (const request of requests) {
+				const outcome = yield* Effect.result(
+					session.transact(setAppearance(request as AppearanceChange)),
+				);
+				expect(outcome._tag).toBe("Failure");
+			}
+			expect((yield* session.snapshot).document).toEqual(document);
+			expect((yield* session.snapshot).entries).toHaveLength(0);
+		}),
+	);
+	it.effect(
+		"keeps malformed values independently read-only and custom imported indices preserved",
+		() =>
 			Effect.gen(function* () {
 				const document = fixture();
 				Object.assign(document.SaveGame.player, {
@@ -228,9 +229,10 @@ describe("appearance operations", () => {
 				);
 				expect(failure._tag).toBe("Failure");
 			}),
-		));
-	it("captures the requested farmer and rejects ambiguous identities", () =>
-		run(
+	);
+	it.effect(
+		"captures the requested farmer and rejects ambiguous identities",
+		() =>
 			Effect.gen(function* () {
 				const document = fixture(),
 					guest = document.SaveGame.farmhands && document.SaveGame.farmhands[0];
@@ -257,7 +259,7 @@ describe("appearance operations", () => {
 				);
 				expect(result._tag).toBe("Failure");
 			}),
-		));
+	);
 });
 
 // The game draws a complete standing frame from each 192×688 pants block;

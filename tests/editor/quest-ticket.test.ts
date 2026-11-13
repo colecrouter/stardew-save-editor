@@ -1,6 +1,7 @@
 import { malformedFixture } from "../helpers/editor-document.ts";
-import { Effect, Scope } from "effect";
-import { expect, it } from "vitest";
+import { Effect } from "effect";
+import { it } from "@effect/vitest";
+import { expect } from "vitest";
 import {
 	InventoryEdits,
 	setInventoryItem,
@@ -8,14 +9,14 @@ import {
 import { TransactionDraft } from "../../src/lib/editor/transaction-draft.ts";
 import { makeHistorySession } from "../../src/lib/editor/history.ts";
 import { tinyFixture } from "../helpers/editor-document.ts";
-const run = <E>(program: Effect.Effect<void, E, Scope.Scope>) =>
-	Effect.runPromise(Effect.scoped(program));
+
 const grant = Effect.gen(function* () {
 	return yield* (yield* InventoryEdits).grantPrizeTicket("1");
 });
 
-it("awards a fixed ticket with a fresh slot identity and restores exact Undo/Redo snapshots", () =>
-	run(
+it.effect(
+	"awards a fixed ticket with a fresh slot identity and restores exact Undo/Redo snapshots",
+	() =>
 		Effect.gen(function* () {
 			const session = yield* makeHistorySession(tinyFixture());
 			const before = yield* session.snapshot;
@@ -53,10 +54,11 @@ it("awards a fixed ticket with a fresh slot identity and restores exact Undo/Red
 			expect(result._tag).toBe("Failure");
 			expect((yield* session.snapshot).document).toEqual(after.document);
 		}),
-	));
+);
 
-it("stacks multiple rewards in order while retaining the existing item's opaque data and identity", () =>
-	run(
+it.effect(
+	"stacks multiple rewards in order while retaining the existing item's opaque data and identity",
+	() =>
 		Effect.gen(function* () {
 			const document = tinyFixture();
 			document.SaveGame.player.items = [
@@ -85,10 +87,11 @@ it("stacks multiple rewards in order while retaining the existing item's opaque 
 			yield* session.undo;
 			expect((yield* session.snapshot).document).toEqual(before.document);
 		}),
-	));
+);
 
-it("preserves opaque empty markers and publishes nothing when no reward fits", () =>
-	run(
+it.effect(
+	"preserves opaque empty markers and publishes nothing when no reward fits",
+	() =>
 		Effect.gen(function* () {
 			const document = tinyFixture();
 			document.SaveGame.player.items = [
@@ -108,10 +111,11 @@ it("preserves opaque empty markers and publishes nothing when no reward fits", (
 			expect((yield* session.snapshot).document).toEqual(before.document);
 			expect((yield* session.snapshot).entries).toHaveLength(0);
 		}),
-	));
+);
 
-it("rolls back a reward and its identity if a later transaction step fails", () =>
-	run(
+it.effect(
+	"rolls back a reward and its identity if a later transaction step fails",
+	() =>
 		Effect.gen(function* () {
 			const session = yield* makeHistorySession(tinyFixture());
 			const before = yield* session.snapshot;
@@ -128,32 +132,32 @@ it("rolls back a reward and its identity if a later transaction step fails", () 
 			expect((yield* session.snapshot).identities).toEqual(before.identities);
 			expect((yield* session.snapshot).entries).toHaveLength(0);
 		}),
-	));
+);
 
-it("rejects raw inventory tampering before reward authorization", () =>
-	run(
-		Effect.gen(function* () {
-			const session = yield* makeHistorySession(tinyFixture());
-			const before = yield* session.snapshot;
-			const result = yield* Effect.result(
-				session.transact(
-					Effect.gen(function* () {
-						const draft = yield* TransactionDraft;
-						const snapshot = yield* draft.read;
-						snapshot.state.document.SaveGame.player.items[0] = null;
-						yield* draft.replace(snapshot);
-						return yield* grant;
-					}),
-				),
-			);
-			expect(result._tag).toBe("Failure");
-			expect((yield* session.snapshot).document).toEqual(before.document);
-		}),
-	));
+it.effect("rejects raw inventory tampering before reward authorization", () =>
+	Effect.gen(function* () {
+		const session = yield* makeHistorySession(tinyFixture());
+		const before = yield* session.snapshot;
+		const result = yield* Effect.result(
+			session.transact(
+				Effect.gen(function* () {
+					const draft = yield* TransactionDraft;
+					const snapshot = yield* draft.read;
+					snapshot.state.document.SaveGame.player.items[0] = null;
+					yield* draft.replace(snapshot);
+					return yield* grant;
+				}),
+			),
+		);
+		expect(result._tag).toBe("Failure");
+		expect((yield* session.snapshot).document).toEqual(before.document);
+	}),
+);
 
 // A matching ID alone does not make a stack compatible with a newly made ticket.
-it("does not merge the reward into colored, special-quality or order-bound tickets", () =>
-	run(
+it.effect(
+	"does not merge the reward into colored, special-quality or order-bound tickets",
+	() =>
 		Effect.gen(function* () {
 			for (const extra of [
 				{ $type: "StardewValley.Objects.ColoredObject" as const },
@@ -178,4 +182,4 @@ it("does not merge the reward into colored, special-quality or order-bound ticke
 				});
 			}
 		}),
-	));
+);

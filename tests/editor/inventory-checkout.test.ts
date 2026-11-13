@@ -1,5 +1,6 @@
 import { setStorageQuality } from "../../src/lib/editor/storage-operations";
-import { expect, it, vi } from "vitest";
+import { it } from "@effect/vitest";
+import { expect, vi } from "vitest";
 import { Effect, Result } from "effect";
 import { makeHistorySession } from "../../src/lib/editor/history";
 import { setInventoryItem } from "../../src/lib/editor/inventory-operations";
@@ -24,9 +25,7 @@ vi.mock("../../src/lib/ItemData.ts", async (importOriginal) => {
 		},
 	};
 });
-const run = <A, E>(
-	program: Effect.Effect<A, E, import("effect").Scope.Scope>,
-) => Effect.runPromise(Effect.scoped(program));
+
 function fixture() {
 	const document = tinyFixture();
 	document.SaveGame.player.items = [
@@ -44,121 +43,116 @@ function fixture() {
 	return document;
 }
 
-it.each([8, 3])(
+it.effect.each([8, 3])(
 	"rejects a stale checkout even when requested quantity %i looks unchanged",
 	(value) =>
-		run(
-			Effect.gen(function* () {
-				const session = yield* makeHistorySession(fixture());
-				const before = yield* session.snapshot;
-				const entityId = before.identities["1"]?.[0];
-				if (!entityId) throw new Error("Missing fixture identity");
-				const after = yield* session.transact(
-					Effect.gen(function* () {
-						const draft = yield* TransactionDraft;
-						const services = yield* Effect.context();
-						catalogHook.run = () => {
-							// The competing edit changes the same draft after checkout and before
-							// apply. It must survive when the caller handles the stale item failure.
-							Effect.runSyncWith(services)(
-								draft.mutate((writer) => {
-									writer.document.SaveGame.player.money = 99;
-								}),
-							);
-						};
-						const result = yield* Effect.result(
-							setInventoryItem({
-								ownerId: "1",
-								entityId,
-								property: "stack",
-								value,
-							}),
-						);
-						expect(Result.isFailure(result)).toBe(true);
-						if (Result.isFailure(result))
-							expect(result.failure._tag).toBe("MutationError");
-					}),
-				);
-				expect(after.document.SaveGame.player.money).toBe(99);
-				expect(after.document.SaveGame.player.items[0]).toMatchObject({
-					stack: 3,
-				});
-				expect(after.entries).toHaveLength(1);
-				expect((yield* session.undo).document).toEqual(before.document);
-				expect((yield* session.redo).document).toEqual(after.document);
-			}),
-		),
-);
-
-it("detaches checkout data before metadata handling can modify it", () =>
-	run(
 		Effect.gen(function* () {
 			const session = yield* makeHistorySession(fixture());
 			const before = yield* session.snapshot;
 			const entityId = before.identities["1"]?.[0];
 			if (!entityId) throw new Error("Missing fixture identity");
-			catalogHook.run = (item) => {
-				if (!item || typeof item !== "object")
-					throw new Error("Missing checkout item");
-				// A metadata consumer accidentally modifying its input must affect only
-				// that detached checkout, never the baseline or fields outside its patch.
-				Object.assign(item, {
-					customModData: { opaque: "changed detached input" },
-				});
-			};
 			const after = yield* session.transact(
-				setInventoryItem({
-					ownerId: "1",
-					entityId,
-					property: "stack",
-					value: 8,
+				Effect.gen(function* () {
+					const draft = yield* TransactionDraft;
+					const services = yield* Effect.context();
+					catalogHook.run = () => {
+						// The competing edit changes the same draft after checkout and before
+						// apply. It must survive when the caller handles the stale item failure.
+						Effect.runSyncWith(services)(
+							draft.mutate((writer) => {
+								writer.document.SaveGame.player.money = 99;
+							}),
+						);
+					};
+					const result = yield* Effect.result(
+						setInventoryItem({
+							ownerId: "1",
+							entityId,
+							property: "stack",
+							value,
+						}),
+					);
+					expect(Result.isFailure(result)).toBe(true);
+					if (Result.isFailure(result))
+						expect(result.failure._tag).toBe("MutationError");
 				}),
 			);
+			expect(after.document.SaveGame.player.money).toBe(99);
 			expect(after.document.SaveGame.player.items[0]).toMatchObject({
-				stack: 8,
-				customModData: { opaque: "007" },
+				stack: 3,
 			});
+			expect(after.entries).toHaveLength(1);
 			expect((yield* session.undo).document).toEqual(before.document);
+			expect((yield* session.redo).document).toEqual(after.document);
 		}),
-	));
+);
+
+it.effect("detaches checkout data before metadata handling can modify it", () =>
+	Effect.gen(function* () {
+		const session = yield* makeHistorySession(fixture());
+		const before = yield* session.snapshot;
+		const entityId = before.identities["1"]?.[0];
+		if (!entityId) throw new Error("Missing fixture identity");
+		catalogHook.run = (item) => {
+			if (!item || typeof item !== "object")
+				throw new Error("Missing checkout item");
+			// A metadata consumer accidentally modifying its input must affect only
+			// that detached checkout, never the baseline or fields outside its patch.
+			Object.assign(item, {
+				customModData: { opaque: "changed detached input" },
+			});
+		};
+		const after = yield* session.transact(
+			setInventoryItem({
+				ownerId: "1",
+				entityId,
+				property: "stack",
+				value: 8,
+			}),
+		);
+		expect(after.document.SaveGame.player.items[0]).toMatchObject({
+			stack: 8,
+			customModData: { opaque: "007" },
+		});
+		expect((yield* session.undo).document).toEqual(before.document);
+	}),
+);
 
 // Metadata may yield or synchronously invoke another domain program. A quality
 // batch must compare-and-set its single checkout even when all values are no-ops.
-it.each([0, 4])(
+it.effect.each([0, 4])(
 	"rejects a stale batch checkout for requested quality %i without partial writes",
 	(value) =>
-		run(
-			Effect.gen(function* () {
-				const document = fixture();
-				const session = yield* makeHistorySession(document),
-					before = yield* session.snapshot,
-					entityId = handleFor(before);
-				const after = yield* session.transact(
-					Effect.gen(function* () {
-						const draft = yield* TransactionDraft,
-							services = yield* Effect.context();
-						catalogHook.run = () => {
-							Effect.runSyncWith(services)(
-								draft.mutate((state) => {
-									state.document.SaveGame.player.money = 99;
-								}),
-							);
-						};
-						const result = yield* Effect.result(
-							setStorageQuality([{ ownerId: "1", entityId }], value),
+		Effect.gen(function* () {
+			const document = fixture();
+			const session = yield* makeHistorySession(document),
+				before = yield* session.snapshot,
+				entityId = handleFor(before);
+			const after = yield* session.transact(
+				Effect.gen(function* () {
+					const draft = yield* TransactionDraft,
+						services = yield* Effect.context();
+					catalogHook.run = () => {
+						Effect.runSyncWith(services)(
+							draft.mutate((state) => {
+								state.document.SaveGame.player.money = 99;
+							}),
 						);
-						expect(Result.isFailure(result)).toBe(true);
-						if (Result.isFailure(result))
-							expect(result.failure._tag).toBe("MutationError");
-					}),
-				);
-				expect(after.document.SaveGame.player.money).toBe(99);
-				expect(after.document.SaveGame.player.items[0]).toMatchObject({
-					quality: 0,
-				});
-				expect((yield* session.undo).document).toEqual(before.document);
-			}),
-		),
+					};
+					const result = yield* Effect.result(
+						setStorageQuality([{ ownerId: "1", entityId }], value),
+					);
+					expect(Result.isFailure(result)).toBe(true);
+					if (Result.isFailure(result))
+						expect(result.failure._tag).toBe("MutationError");
+				}),
+			);
+			expect(after.document.SaveGame.player.money).toBe(99);
+			expect(after.document.SaveGame.player.items[0]).toMatchObject({
+				quality: 0,
+			});
+			expect((yield* session.undo).document).toEqual(before.document);
+		}),
 );
 function handleFor(state: { identities: Record<string, string[]> }) {
 	const id = state.identities["1"]?.[0];

@@ -1,8 +1,9 @@
 import type { TransactionDraft } from "../../src/lib/editor/transaction-draft.ts";
 import type { ReviewJournal } from "../../src/lib/editor/transaction-annotations.ts";
 import type { InventoryEdits } from "../../src/lib/editor/inventory-operations.ts";
-import { Effect, Scope } from "effect";
-import { describe, it, expect } from "vitest";
+import { Effect } from "effect";
+import { it } from "@effect/vitest";
+import { describe, expect } from "vitest";
 import {
 	tinyFixture,
 	exportDocument,
@@ -54,8 +55,7 @@ const target = (document: SaveDocument) => {
 	if (!row) throw new Error("Missing quest");
 	return { farmerId: "1", questKey: row.key };
 };
-const run = <A, E>(program: Effect.Effect<A, E, Scope.Scope>) =>
-	Effect.runPromise(Effect.scoped(program));
+
 // Capture the domain value inside the history program; it is observable only
 // after the enclosing transaction has published successfully.
 const transactValue = <A, E>(
@@ -78,8 +78,9 @@ const transactValue = <A, E>(
 		return value;
 	});
 describe("quest journal operations", () => {
-	it("keeps exact nested Int64 quest identities stable through edits", () =>
-		run(
+	it.effect(
+		"keeps exact nested Int64 quest identities stable through edits",
+		() =>
 			Effect.gen(function* () {
 				// Generated quests can embed character IDs and typed description
 				// parameters. Adjacent Int64 values must not collapse through Number.
@@ -111,9 +112,10 @@ describe("quest journal operations", () => {
 					before.SaveGame.player.questLog?.[0]?.objective,
 				);
 			}),
-		));
-	it("reads without normalization and updates rewards while preserving advertised text and opaque fields", () =>
-		run(
+	);
+	it.effect(
+		"reads without normalization and updates rewards while preserving advertised text and opaque fields",
+		() =>
 			Effect.gen(function* () {
 				const document = fixture([
 					baseQuest({
@@ -167,9 +169,10 @@ describe("quest journal operations", () => {
 				yield* session.redo;
 				expect((yield* session.snapshot).document).toEqual(after.document);
 			}),
-		));
-	it("completes story follow-ups atomically, leaves gold pending and never grants cash", () =>
-		run(
+	);
+	it.effect(
+		"completes story follow-ups atomically, leaves gold pending and never grants cash",
+		() =>
 			Effect.gen(function* () {
 				const document = fixture([baseQuest({ id: "6", nextQuests: ["7"] })]);
 				const session = yield* makeHistorySession(document);
@@ -194,9 +197,10 @@ describe("quest journal operations", () => {
 				yield* session.redo;
 				expect((yield* session.snapshot).document).toEqual(after.document);
 			}),
-		));
-	it("completes Help Wanted with stats, mail and Prize Ticket in one exact Undo step", () =>
-		run(
+	);
+	it.effect(
+		"completes Help Wanted with stats, mail and Prize Ticket in one exact Undo step",
+		() =>
 			Effect.gen(function* () {
 				const document = fixture([
 					baseQuest({
@@ -257,9 +261,10 @@ describe("quest journal operations", () => {
 				yield* session.redo;
 				expect((yield* session.snapshot).identities).toEqual(after.identities);
 			}),
-		));
-	it("reports a full safe backpack without discarding any item, and protects opaque nil markers", () =>
-		run(
+	);
+	it.effect(
+		"reports a full safe backpack without discarding any item, and protects opaque nil markers",
+		() =>
 			Effect.gen(function* () {
 				const document = fixture([
 					baseQuest({ id: undefined, dailyQuest: true }),
@@ -289,9 +294,10 @@ describe("quest journal operations", () => {
 					(yield* session.snapshot).document.SaveGame.player.items,
 				).toEqual(before.document.SaveGame.player.items);
 			}),
-		));
-	it("removes rewardless and secret quests, including the secret replacement, without inappropriate stats", () =>
-		run(
+	);
+	it.effect(
+		"removes rewardless and secret quests, including the secret replacement, without inappropriate stats",
+		() =>
 			Effect.gen(function* () {
 				const document = fixture([
 					baseQuest({ id: "old", moneyReward: 100 }),
@@ -322,9 +328,10 @@ describe("quest journal operations", () => {
 					readQuestJournals((yield* noReward.snapshot).document)[0]?.quests,
 				).toEqual([]);
 			}),
-		));
-	it("skips Meadowlands coop follow-up, recursively completes constructed buildings and guards opaque stats/mail", () =>
-		run(
+	);
+	it.effect(
+		"skips Meadowlands coop follow-up, recursively completes constructed buildings and guards opaque stats/mail",
+		() =>
 			Effect.gen(function* () {
 				const document = fixture([baseQuest({ id: "6", nextQuests: ["7"] })]);
 				Object.assign(document.SaveGame, { whichFarm: "MeadowlandsFarm" });
@@ -367,9 +374,10 @@ describe("quest journal operations", () => {
 					expect((yield* rejection.snapshot).document).toEqual(before.document);
 				}
 			}),
-		));
-	it("rejects duplicate targets and stale removed quests; unique field identities survive edits", () =>
-		run(
+	);
+	it.effect(
+		"rejects duplicate targets and stale removed quests; unique field identities survive edits",
+		() =>
 			Effect.gen(function* () {
 				const duplicated = fixture([baseQuest(), baseQuest()]);
 				expect(
@@ -411,39 +419,38 @@ describe("quest journal operations", () => {
 					))._tag,
 				).toBe("Failure");
 			}),
-		));
-	it(
+	);
+	it.effect(
 		"keeps malformed/singleton journals visible without opening writes and roundtrips supported fields",
 		() =>
-			run(
-				Effect.gen(function* () {
-					const document = fixture();
-					Object.assign(document.SaveGame.player, {
-						questLog: [baseQuest()],
-						testMetadataquestLog: { opaque: "keep" },
-					});
-					const session = yield* makeHistorySession(document);
-					yield* session.transact(
-						setQuest({ ...target(document), kind: "reward", value: 123 }),
-					);
-					const after = (yield* session.snapshot).document;
-					expect(
-						readQuestJournals(parser.parse(exportDocument(after)))[0]?.quests[0]
-							?.reward,
-					).toBe(123);
-					for (const log of [null, false, { opaque: "invalid container" }]) {
-						const invalid = fixture();
-						Object.assign(invalid.SaveGame.player, { questLog: log });
-						expect(readQuestJournals(invalid)[0]?.supported).toBe(false);
-					}
-				}),
-			),
+			Effect.gen(function* () {
+				const document = fixture();
+				Object.assign(document.SaveGame.player, {
+					questLog: [baseQuest()],
+					testMetadataquestLog: { opaque: "keep" },
+				});
+				const session = yield* makeHistorySession(document);
+				yield* session.transact(
+					setQuest({ ...target(document), kind: "reward", value: 123 }),
+				);
+				const after = (yield* session.snapshot).document;
+				expect(
+					readQuestJournals(parser.parse(exportDocument(after)))[0]?.quests[0]
+						?.reward,
+				).toBe(123);
+				for (const log of [null, false, { opaque: "invalid container" }]) {
+					const invalid = fixture();
+					Object.assign(invalid.SaveGame.player, { questLog: log });
+					expect(readQuestJournals(invalid)[0]?.supported).toBe(false);
+				}
+			}),
 		30_000,
 	);
 });
 
-it("recursively completes constructed-building follow-ups and records Emily's one-time dialogue", () =>
-	run(
+it.effect(
+	"recursively completes constructed-building follow-ups and records Emily's one-time dialogue",
+	() =>
 		Effect.gen(function* () {
 			const document = fixture([
 				baseQuest({
@@ -483,10 +490,11 @@ it("recursively completes constructed-building follow-ups and records Emily's on
 				},
 			);
 		}),
-	));
+);
 
-it("keeps host-only future follow-ups out of farmhand-created quests", () =>
-	run(
+it.effect(
+	"keeps host-only future follow-ups out of farmhand-created quests",
+	() =>
 		Effect.gen(function* () {
 			const document = fixture([
 				baseQuest({ id: "parent", nextQuests: ["6"] }),
@@ -532,4 +540,4 @@ it("keeps host-only future follow-ups out of farmhand-created quests", () =>
 				]),
 			});
 		}),
-	));
+);

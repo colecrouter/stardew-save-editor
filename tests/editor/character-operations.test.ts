@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { it } from "@effect/vitest";
+import { describe, expect } from "vitest";
 import { Effect, Result } from "effect";
 import {
 	decodeCharacterChange,
@@ -13,9 +14,6 @@ import {
 import { makeHistorySession } from "../../src/lib/editor/history.ts";
 import { tinyFixture } from "../helpers/editor-document.ts";
 
-const run = <A, E>(
-	program: Effect.Effect<A, E, import("effect").Scope.Scope>,
-) => Effect.runPromise(Effect.scoped(program));
 function fixture() {
 	const document = tinyFixture();
 	Object.assign(document.SaveGame.player, {
@@ -109,8 +107,9 @@ describe("character save operations", () => {
 		});
 		expect(document).toEqual(before);
 	});
-	it("writes XP and its level mirror only, preserves all unrelated data, and restores exact Undo/Redo", () =>
-		run(
+	it.effect(
+		"writes XP and its level mirror only, preserves all unrelated data, and restores exact Undo/Redo",
+		() =>
 			Effect.gen(function* () {
 				const document = fixture();
 				const session = yield* makeHistorySession(document);
@@ -134,9 +133,10 @@ describe("character save operations", () => {
 				yield* session.redo;
 				expect((yield* session.snapshot).document).toEqual(after.document);
 			}),
-		));
-	it("level choices use threshold XP while unchanged XP/current derived level preserve progress and redo", () =>
-		run(
+	);
+	it.effect(
+		"level choices use threshold XP while unchanged XP/current derived level preserve progress and redo",
+		() =>
 			Effect.gen(function* () {
 				const document = fixture();
 				raw(document).farmingLevel = 99;
@@ -172,9 +172,10 @@ describe("character save operations", () => {
 				after = yield* session.snapshot;
 				expect(after).toEqual(before);
 			}),
-		));
-	it("adds a secondary and missing prerequisite atomically, permits other branches, and cascades explicit parent removal", () =>
-		run(
+	);
+	it.effect(
+		"adds a secondary and missing prerequisite atomically, permits other branches, and cascades explicit parent removal",
+		() =>
 			Effect.gen(function* () {
 				const document = fixture();
 				const session = yield* makeHistorySession(document);
@@ -209,9 +210,10 @@ describe("character save operations", () => {
 				yield* session.undo;
 				expect((yield* session.snapshot).document).toEqual(document);
 			}),
-		));
-	it("keeps imported orphan/duplicate professions until an explicit affected edit and supports empty/singleton containers", () =>
-		run(
+	);
+	it.effect(
+		"keeps imported orphan/duplicate professions until an explicit affected edit and supports empty/singleton containers",
+		() =>
 			Effect.gen(function* () {
 				for (const professions of [[], [999]]) {
 					const document = fixture();
@@ -246,9 +248,10 @@ describe("character save operations", () => {
 				);
 				expect(yield* session.snapshot).toEqual(before);
 			}),
-		));
-	it("bounds mastery by both claimed flags and spent counter, updates case-insensitive key without touching rewards", () =>
-		run(
+	);
+	it.effect(
+		"bounds mastery by both claimed flags and spent counter, updates case-insensitive key without touching rewards",
+		() =>
 			Effect.gen(function* () {
 				const document = fixture();
 				raw(document).stats = {
@@ -301,9 +304,10 @@ describe("character save operations", () => {
 				yield* session.undo;
 				expect((yield* session.snapshot).document).toEqual(document);
 			}),
-		));
-	it("allows explicit MasteryExp creation from missing/empty Values and preserves existing singleton wrappers", () =>
-		run(
+	);
+	it.effect(
+		"allows explicit MasteryExp creation from missing/empty Values and preserves existing singleton wrappers",
+		() =>
 			Effect.gen(function* () {
 				for (const stats of [
 					{ opaque: "007" },
@@ -334,9 +338,10 @@ describe("character save operations", () => {
 					expect((yield* session.snapshot).document).toEqual(original);
 				}
 			}),
-		));
-	it("keeps missing fields, invalid game values and ambiguous identities read-only", () =>
-		run(
+	);
+	it.effect(
+		"keeps missing fields, invalid game values and ambiguous identities read-only",
+		() =>
 			Effect.gen(function* () {
 				const document = fixture();
 				raw(document).experiencePoints = [-1, 100];
@@ -390,9 +395,10 @@ describe("character save operations", () => {
 					),
 				).toBe(true);
 			}),
-		));
-	it("targets the selected farmer and rolls back earlier valid edits when a later operation fails", () =>
-		run(
+	);
+	it.effect(
+		"targets the selected farmer and rolls back earlier valid edits when a later operation fails",
+		() =>
 			Effect.gen(function* () {
 				const document = fixture();
 				const guest = structuredClone(document.SaveGame.player);
@@ -438,7 +444,7 @@ describe("character save operations", () => {
 						?.skills.find((skill) => skill.key === "mining")?.level,
 				).toBe(10);
 			}),
-		));
+	);
 	it("preserves a malformed relevant mastery stat rather than coercing it", () => {
 		for (const value of [-1, 1.5, "10", null, { opaque: true }]) {
 			const document = fixture();

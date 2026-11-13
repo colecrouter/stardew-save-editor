@@ -1,13 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { it } from "@effect/vitest";
+import { describe, expect } from "vitest";
 import { Effect, Result } from "effect";
 import { makeHistorySession } from "../../src/lib/editor/history";
 import { openTestDocument } from "../helpers/open-editor.ts";
 import type { InventoryMoveRequest } from "../../src/lib/editor/inventory-movement.ts";
 import { tinyFixture, tinyEditorFixture } from "../helpers/editor-document.ts";
 
-const run = <A, E>(
-	program: Effect.Effect<A, E, import("effect").Scope.Scope>,
-) => Effect.runPromise(Effect.scoped(program));
 const required = <A>(value: A | undefined): A => {
 	if (value === undefined) throw Error("Missing fixture handle");
 	return value;
@@ -60,68 +58,65 @@ function request(
 }
 
 describe("backpack moving and swapping", () => {
-	it.each([
+	it.effect.each([
 		[12, 24],
 		[24, 36],
 		[36, 12],
 		[7, 17],
-	])(
+	] as const)(
 		"moves and swaps between %s/%s-slot backpacks without growing either inventory",
-		(hostSlots, guestSlots) =>
-			run(
-				Effect.gen(function* () {
-					const original = fixture(hostSlots, guestSlots);
-					const session = yield* makeHistorySession(original);
-					const before = yield* session.snapshot;
-					const move = request(before.identities, 0, guestSlots - 2, "2");
-					yield* session.execute([move]);
-					const moved = yield* session.snapshot;
-					const expected = structuredClone(original);
-					if (!Array.isArray(expected.SaveGame.farmhands))
-						throw Error("Expected farmhand");
-					const guest = expected.SaveGame.farmhands[0]!;
-					[expected.SaveGame.player.items[0], guest.items[guestSlots - 2]] = [
-						guest.items[guestSlots - 2]!,
-						expected.SaveGame.player.items[0]!,
-					];
-					expect(moved.document).toEqual(expected);
-					expect(moved.identities["2"]?.[guestSlots - 2]).toBe(move.entityId);
-					expect(moved.identities["1"]?.[0]).toBe(move.toEntityId);
-					expect(moved.nextIdentity).toBe(before.nextIdentity);
-					yield* session.undo;
-					expect((yield* session.snapshot).document).toEqual(original);
-					expect((yield* session.snapshot).identities).toEqual(
-						before.identities,
-					);
-					yield* session.redo;
-					expect((yield* session.snapshot).document).toEqual(expected);
-					// A second transfer into an occupied slot is a complete two-way swap, not
-					// an item-type merge or a replacement of the destination record.
-					yield* session.undo;
-					yield* session.execute([
-						request(before.identities, 0, guestSlots - 1, "2"),
-					]);
-					const swapped = yield* session.snapshot;
-					if (!Array.isArray(swapped.document.SaveGame.farmhands))
-						throw Error("Expected farmhand");
-					expect(swapped.document.SaveGame.player.items[0]).toEqual(
-						guest.items[guestSlots - 1],
-					);
-					expect(
-						swapped.document.SaveGame.farmhands[0]?.items?.[guestSlots - 1],
-					).toEqual(original.SaveGame.player.items[0]);
-					expect(swapped.identities["1"]?.[0]).toBe(
-						before.identities["2"]?.[guestSlots - 1],
-					);
-					expect(swapped.identities["2"]?.[guestSlots - 1]).toBe(
-						before.identities["1"]?.[0],
-					);
-				}),
-			),
+		([hostSlots, guestSlots]) =>
+			Effect.gen(function* () {
+				const original = fixture(hostSlots, guestSlots);
+				const session = yield* makeHistorySession(original);
+				const before = yield* session.snapshot;
+				const move = request(before.identities, 0, guestSlots - 2, "2");
+				yield* session.execute([move]);
+				const moved = yield* session.snapshot;
+				const expected = structuredClone(original);
+				if (!Array.isArray(expected.SaveGame.farmhands))
+					throw Error("Expected farmhand");
+				const guest = expected.SaveGame.farmhands[0]!;
+				[expected.SaveGame.player.items[0], guest.items[guestSlots - 2]] = [
+					guest.items[guestSlots - 2]!,
+					expected.SaveGame.player.items[0]!,
+				];
+				expect(moved.document).toEqual(expected);
+				expect(moved.identities["2"]?.[guestSlots - 2]).toBe(move.entityId);
+				expect(moved.identities["1"]?.[0]).toBe(move.toEntityId);
+				expect(moved.nextIdentity).toBe(before.nextIdentity);
+				yield* session.undo;
+				expect((yield* session.snapshot).document).toEqual(original);
+				expect((yield* session.snapshot).identities).toEqual(before.identities);
+				yield* session.redo;
+				expect((yield* session.snapshot).document).toEqual(expected);
+				// A second transfer into an occupied slot is a complete two-way swap, not
+				// an item-type merge or a replacement of the destination record.
+				yield* session.undo;
+				yield* session.execute([
+					request(before.identities, 0, guestSlots - 1, "2"),
+				]);
+				const swapped = yield* session.snapshot;
+				if (!Array.isArray(swapped.document.SaveGame.farmhands))
+					throw Error("Expected farmhand");
+				expect(swapped.document.SaveGame.player.items[0]).toEqual(
+					guest.items[guestSlots - 1],
+				);
+				expect(
+					swapped.document.SaveGame.farmhands[0]?.items?.[guestSlots - 1],
+				).toEqual(original.SaveGame.player.items[0]);
+				expect(swapped.identities["1"]?.[0]).toBe(
+					before.identities["2"]?.[guestSlots - 1],
+				);
+				expect(swapped.identities["2"]?.[guestSlots - 1]).toBe(
+					before.identities["1"]?.[0],
+				);
+			}),
 	);
 
-	it("keeps byte-identical instances distinct and treats self-drop as a no-op preserving redo", () =>
-		run(
+	it.effect(
+		"keeps byte-identical instances distinct and treats self-drop as a no-op preserving redo",
+		() =>
 			Effect.gen(function* () {
 				const document = fixture();
 				document.SaveGame.player.items[1] = structuredClone(
@@ -145,10 +140,11 @@ describe("backpack moving and swapping", () => {
 					swapped.identities,
 				);
 			}),
-		));
+	);
 
-	it("rejects a replaced destination handle and rolls back earlier changes in the same group", () =>
-		run(
+	it.effect(
+		"rejects a replaced destination handle and rolls back earlier changes in the same group",
+		() =>
 			Effect.gen(function* () {
 				const session = yield* makeHistorySession(fixture());
 				const initial = yield* session.snapshot;
@@ -183,10 +179,11 @@ describe("backpack moving and swapping", () => {
 				).toBe(true);
 				expect(yield* session.snapshot).toEqual(removed);
 			}),
-		));
+	);
 
-	it("resolves handles after reorder and ignores unrelated farmers without identifiers", () =>
-		run(
+	it.effect(
+		"resolves handles after reorder and ignores unrelated farmers without identifiers",
+		() =>
 			Effect.gen(function* () {
 				const document = fixture();
 				if (!Array.isArray(document.SaveGame.farmhands))
@@ -215,10 +212,11 @@ describe("backpack moving and swapping", () => {
 					document.SaveGame.farmhands.slice(1),
 				);
 			}),
-		));
+	);
 
-	it("rejects invalid, inherited, empty-source and unsupported-owner requests without publication", () =>
-		run(
+	it.effect(
+		"rejects invalid, inherited, empty-source and unsupported-owner requests without publication",
+		() =>
 			Effect.gen(function* () {
 				const document = fixture();
 				if (!Array.isArray(document.SaveGame.farmhands))
@@ -254,7 +252,7 @@ describe("backpack moving and swapping", () => {
 					expect(yield* session.snapshot).toEqual(before);
 				}
 			}),
-		));
+	);
 });
 
 it(

@@ -1,5 +1,6 @@
 import { malformedFixture } from "../helpers/editor-document.ts";
-import { expect, it } from "vitest";
+import { it } from "@effect/vitest";
+import { expect } from "vitest";
 import { Effect, Result } from "effect";
 import { makeHistorySession } from "../../src/lib/editor/history";
 import {
@@ -17,9 +18,6 @@ import { setCommunityProgress } from "../../src/lib/editor/community-operations"
 import { record } from "../../src/lib/editor/plain-data";
 import { parser, fixtureXml, exportDocument } from "./fixtures";
 
-const run = <A, E>(
-	program: Effect.Effect<A, E, import("effect").Scope.Scope>,
-) => Effect.runPromise(Effect.scoped(program));
 const required = <T>(value: T | undefined): T => {
 	if (value === undefined) throw new Error("Missing fixture value");
 	return value;
@@ -50,79 +48,76 @@ function edit(bundle: CommunityBundleView) {
 	} satisfies CommunityRequirementsEdit;
 }
 
-it(
+it.effect(
 	"edits a coordinated definition preserving donation credit, reward, opaque tail and exact Undo/Redo/XML",
 	() =>
-		run(
-			Effect.gen(function* () {
-				const document = parser.parse(fixtureXml);
-				const bundle = required(
-					readCommunity(document).bundles.find((row) => row.id === 13),
-				);
-				const definition = required(
-					inspectCommunity(document).definitions.entries.find(
-						(row) => record(row) && row.key === bundle.key,
-					),
-				);
-				if (!record(definition) || typeof definition.value !== "string")
-					throw new Error("Missing definition");
-				definition.value += "/opaque-tail";
-				definition.opaque = { keep: "007" };
-				const session = yield* makeHistorySession(document);
-				const before = yield* session.snapshot;
-				const request = edit(
-					required(
-						readCommunity(before.document).bundles.find((row) => row.id === 13),
-					),
-				);
-				required(request.requirements[0]).itemId = "(O)24";
-				required(request.requirements[0]).quantity = 3;
-				required(request.requirements[0]).quality = 2;
-				yield* session.transact(setCommunityRequirements(request));
-				const after = yield* session.snapshot;
-				expect(
-					readCommunity(after.document).bundles.find((row) => row.id === 13)
-						?.requirements[0],
-				).toMatchObject({
-					itemId: "(O)24",
-					quantity: 3,
-					quality: 2,
-					submitted: required(bundle.requirements[0]).submitted,
-				});
-				const changed = inspectCommunity(
-					after.document,
-				).definitions.entries.find(
+		Effect.gen(function* () {
+			const document = parser.parse(fixtureXml);
+			const bundle = required(
+				readCommunity(document).bundles.find((row) => row.id === 13),
+			);
+			const definition = required(
+				inspectCommunity(document).definitions.entries.find(
 					(row) => record(row) && row.key === bundle.key,
-				);
-				expect(changed).toMatchObject({
-					opaque: { keep: "007" },
-					value: expect.stringContaining("/opaque-tail"),
-				});
-				expect(inspectCommunity(after.document).rewards.entries).toEqual(
-					inspectCommunity(before.document).rewards.entries,
-				);
-				expect(inspectCommunity(after.document).progress.entries).toEqual(
-					inspectCommunity(before.document).progress.entries,
-				);
-				expect(
-					readCommunity(
-						parser.parse(exportDocument(after.document)),
-					).bundles.find((row) => row.id === 13)?.requirements,
-				).toEqual(
-					readCommunity(after.document).bundles.find((row) => row.id === 13)
-						?.requirements,
-				);
-				yield* session.undo;
-				expect((yield* session.snapshot).document).toEqual(before.document);
-				yield* session.redo;
-				expect((yield* session.snapshot).document).toEqual(after.document);
-			}),
-		),
+				),
+			);
+			if (!record(definition) || typeof definition.value !== "string")
+				throw new Error("Missing definition");
+			definition.value += "/opaque-tail";
+			definition.opaque = { keep: "007" };
+			const session = yield* makeHistorySession(document);
+			const before = yield* session.snapshot;
+			const request = edit(
+				required(
+					readCommunity(before.document).bundles.find((row) => row.id === 13),
+				),
+			);
+			required(request.requirements[0]).itemId = "(O)24";
+			required(request.requirements[0]).quantity = 3;
+			required(request.requirements[0]).quality = 2;
+			yield* session.transact(setCommunityRequirements(request));
+			const after = yield* session.snapshot;
+			expect(
+				readCommunity(after.document).bundles.find((row) => row.id === 13)
+					?.requirements[0],
+			).toMatchObject({
+				itemId: "(O)24",
+				quantity: 3,
+				quality: 2,
+				submitted: required(bundle.requirements[0]).submitted,
+			});
+			const changed = inspectCommunity(after.document).definitions.entries.find(
+				(row) => record(row) && row.key === bundle.key,
+			);
+			expect(changed).toMatchObject({
+				opaque: { keep: "007" },
+				value: expect.stringContaining("/opaque-tail"),
+			});
+			expect(inspectCommunity(after.document).rewards.entries).toEqual(
+				inspectCommunity(before.document).rewards.entries,
+			);
+			expect(inspectCommunity(after.document).progress.entries).toEqual(
+				inspectCommunity(before.document).progress.entries,
+			);
+			expect(
+				readCommunity(
+					parser.parse(exportDocument(after.document)),
+				).bundles.find((row) => row.id === 13)?.requirements,
+			).toEqual(
+				readCommunity(after.document).bundles.find((row) => row.id === 13)
+					?.requirements,
+			);
+			yield* session.undo;
+			expect((yield* session.snapshot).document).toEqual(before.document);
+			yield* session.redo;
+			expect((yield* session.snapshot).document).toEqual(after.document);
+		}),
 	30_000,
 );
 
-it("keeps source-row donations when removing requirements and sizes structural slots to the game layout", () =>
-	run(
+it.effect(
+	"keeps source-row donations when removing requirements and sizes structural slots to the game layout",
+	() =>
 		Effect.gen(function* () {
 			const document = parser.parse(fixtureXml);
 			const progress = required(
@@ -162,10 +157,11 @@ it("keeps source-row donations when removing requirements and sizes structural s
 			).toEqual([true, false, false, false, false, false, false, false, false]);
 			expect(result.completed).toBe(false);
 		}),
-	));
+);
 
-it("rejects completion-changing drafts and stale donation state without partial writes", () =>
-	run(
+it.effect(
+	"rejects completion-changing drafts and stale donation state without partial writes",
+	() =>
 		Effect.gen(function* () {
 			const session = yield* makeHistorySession(parser.parse(fixtureXml));
 			const bundle = required(
@@ -204,10 +200,11 @@ it("rejects completion-changing drafts and stale donation state without partial 
 			expect(Result.isFailure(result)).toBe(true);
 			expect((yield* session.snapshot).document).toEqual(before.document);
 		}),
-	));
+);
 
-it("retains unknown imported IDs but rejects new unknown IDs and impossible quality", () =>
-	run(
+it.effect(
+	"retains unknown imported IDs but rejects new unknown IDs and impossible quality",
+	() =>
 		Effect.gen(function* () {
 			const document = parser.parse(fixtureXml);
 			const definition = required(
@@ -274,10 +271,11 @@ it("retains unknown imported IDs but rejects new unknown IDs and impossible qual
 				expect((yield* session.snapshot).document).toEqual(before.document);
 			}
 		}),
-	));
+);
 
-it("updates a Vault price's dual quantity/quality encoding while preserving every other requirement", () =>
-	run(
+it.effect(
+	"updates a Vault price's dual quantity/quality encoding while preserving every other requirement",
+	() =>
 		Effect.gen(function* () {
 			const session = yield* makeHistorySession(parser.parse(fixtureXml));
 			const bundle = required(
@@ -297,10 +295,11 @@ it("updates a Vault price's dual quantity/quality encoding while preserving ever
 					?.requirements.at(-1),
 			).toMatchObject({ quantity: 12345, quality: last.quality });
 		}),
-	));
+);
 
-it("adds a known category to a completed bundle as satisfied without changing reward or restoration", () =>
-	run(
+it.effect(
+	"adds a known category to a completed bundle as satisfied without changing reward or restoration",
+	() =>
 		Effect.gen(function* () {
 			const session = yield* makeHistorySession(parser.parse(fixtureXml));
 			const initial = required(
@@ -350,10 +349,11 @@ it("adds a known category to a completed bundle as satisfied without changing re
 				before.document.SaveGame.player,
 			);
 		}),
-	));
+);
 
-it("does not truncate unfamiliar surplus donation slots during a structural edit", () =>
-	run(
+it.effect(
+	"does not truncate unfamiliar surplus donation slots during a structural edit",
+	() =>
 		Effect.gen(function* () {
 			const document = parser.parse(fixtureXml);
 			const progress = inspectCommunity(document).progress.entries.find(
@@ -383,61 +383,60 @@ it("does not truncate unfamiliar surplus donation slots during a structural edit
 			).toBe(true);
 			expect((yield* session.snapshot).document).toEqual(before.document);
 		}),
-	));
+);
 
-it(
+it.effect(
 	"retains an implicit donation count after adding a requirement and exporting",
 	() =>
-		run(
-			Effect.gen(function* () {
-				const document = parser.parse(fixtureXml);
-				const definition = inspectCommunity(document).definitions.entries.find(
-					(row) => record(row) && row.key === "Crafts Room/13",
+		Effect.gen(function* () {
+			const document = parser.parse(fixtureXml);
+			const definition = inspectCommunity(document).definitions.entries.find(
+				(row) => record(row) && row.key === "Crafts Room/13",
+			);
+			if (
+				!record(definition) ||
+				typeof definition.value !== "string" ||
+				typeof definition.value !== "string"
+			)
+				throw new Error("Missing definition");
+			const parts = definition.value.split("/");
+			parts[4] = "";
+			definition.value = parts.join("/");
+			const session = yield* makeHistorySession(document);
+			const bundle = required(
+				readCommunity((yield* session.snapshot).document).bundles.find(
+					(row) => row.id === 13,
+				),
+			);
+			const request: CommunityRequirementsEdit = {
+				...edit(bundle),
+				requirements: [
+					...edit(bundle).requirements,
+					{ itemId: "390", quantity: 1, quality: 0 },
+				],
+			};
+			yield* session.transact(setCommunityRequirements(request));
+			const after = yield* session.snapshot;
+			for (const version of [
+				after.document,
+				parser.parse(exportDocument(after.document)),
+			]) {
+				const changed = required(
+					readCommunity(version).bundles.find((row) => row.id === 13),
 				);
-				if (
-					!record(definition) ||
-					typeof definition.value !== "string" ||
-					typeof definition.value !== "string"
-				)
-					throw new Error("Missing definition");
-				const parts = definition.value.split("/");
-				parts[4] = "";
-				definition.value = parts.join("/");
-				const session = yield* makeHistorySession(document);
-				const bundle = required(
-					readCommunity((yield* session.snapshot).document).bundles.find(
-						(row) => row.id === 13,
-					),
+				expect(changed.requirements.length).toBe(
+					bundle.requirements.length + 1,
 				);
-				const request: CommunityRequirementsEdit = {
-					...edit(bundle),
-					requirements: [
-						...edit(bundle).requirements,
-						{ itemId: "390", quantity: 1, quality: 0 },
-					],
-				};
-				yield* session.transact(setCommunityRequirements(request));
-				const after = yield* session.snapshot;
-				for (const version of [
-					after.document,
-					parser.parse(exportDocument(after.document)),
-				]) {
-					const changed = required(
-						readCommunity(version).bundles.find((row) => row.id === 13),
-					);
-					expect(changed.requirements.length).toBe(
-						bundle.requirements.length + 1,
-					);
-					expect(changed.needed).toBe(bundle.needed);
-					expect(changed.completed).toBe(bundle.completed);
-				}
-			}),
-		),
+				expect(changed.needed).toBe(bundle.needed);
+				expect(changed.completed).toBe(bundle.completed);
+			}
+		}),
 	30_000,
 );
 
-it("completes/reopens a whole room in one history entry and rolls back unsupported rows", () =>
-	run(
+it.effect(
+	"completes/reopens a whole room in one history entry and rolls back unsupported rows",
+	() =>
 		Effect.gen(function* () {
 			const session = yield* makeHistorySession(parser.parse(fixtureXml));
 			const before = yield* session.snapshot;
@@ -493,4 +492,4 @@ it("completes/reopens a whole room in one history entry and rolls back unsupport
 				unchanged.document,
 			);
 		}),
-	));
+);

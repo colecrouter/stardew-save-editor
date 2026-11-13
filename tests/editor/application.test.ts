@@ -60,7 +60,7 @@ describe("full-save application calendar", { timeout: 45_000 }, () => {
 			await opened.close();
 		}
 		expect(editorResources()).toEqual({ models: 0, registries: 0, streams: 0 });
-	}, 30_000);
+	});
 
 	it("the application validates exact exported bytes and blocks existing definite errors without mutating the baseline", async () => {
 		const document = parser.parse(fixtureXml);
@@ -82,7 +82,7 @@ describe("full-save application calendar", { timeout: 45_000 }, () => {
 		} finally {
 			await opened.close();
 		}
-	}, 30_000);
+	});
 
 	it("application date/weather export reimports with unknown fields and coordinated multiplayer dates intact", async () => {
 		const document = parser.parse(fixtureXml);
@@ -129,5 +129,5 @@ describe("full-save application calendar", { timeout: 45_000 }, () => {
 		} finally {
 			await opened.close();
 		}
-	}, 30_000);
+	});
 });

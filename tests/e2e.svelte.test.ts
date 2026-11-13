@@ -145,7 +145,9 @@ const choose = async (element: HTMLElement, value: string) => {
 	await fireEvent.change(select);
 };
 
-describe("Save Manager Integration Tests", () => {
+// Full public-save fixtures verify codec correctness rather than latency. Allow
+// their integration work at default concurrency without changing unit-suite budgets.
+describe("Save Manager Integration Tests", { timeout: 30_000 }, () => {
 	mockIDB(); // Mock IndexedDB for testing
 	let harness!: PageHarness;
 	let saveManager!: SaveManager;

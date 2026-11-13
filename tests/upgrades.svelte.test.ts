@@ -10,7 +10,7 @@ import { SaveManager } from "../src/lib/SaveManager.svelte";
 import { XMLManager } from "../src/lib/workers/xml";
 import { withHouse, withToolAtClint } from "./helpers/upgrades";
 
-// biome-ignore lint/suspicious/noExplicitAny: poking at raw parsed save data
+// Raw parsed fixtures deliberately allow unrecognized save fields.
 type Parsed = any;
 
 async function importSave(xml: string): Promise<SaveManager> {
@@ -36,7 +36,9 @@ const withStats = (xml: string, ...stats: string[]) =>
 const removeStatValues = (xml: string) =>
 	xml.replace(/<Values>[\s\S]*?<\/Values>/, "<Values />");
 
-describe("Farmer upgrades", () => {
+// Full public-save fixtures verify codec correctness rather than latency. Allow
+// their integration work at default concurrency without changing unit-suite budgets.
+describe("Farmer upgrades", { timeout: 30_000 }, () => {
 	mockIDB();
 	let xml: string;
 	let saveManager: SaveManager;

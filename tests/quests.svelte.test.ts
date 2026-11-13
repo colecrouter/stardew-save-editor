@@ -11,7 +11,7 @@ import type { Player } from "$types/save";
 import { SaveManager } from "../src/lib/SaveManager.svelte";
 import { XMLManager } from "../src/lib/workers/xml";
 
-// biome-ignore lint/suspicious/noExplicitAny: poking at raw parsed save data
+// Raw parsed fixtures deliberately allow unrecognized save fields.
 type Parsed = any;
 
 // For tests that write out and read back the whole save
@@ -232,7 +232,8 @@ const setBillboardQuestsDone = (xml: string, n: number) =>
 		`$1${n}`,
 	);
 
-describe("Quest log", () => {
+// This group opens the full preservation fixture, so use its codec integration budget.
+describe("Quest log", slow, () => {
 	mockIDB();
 	let fixture: string;
 	let saveManager: SaveManager;

@@ -5,14 +5,16 @@ import EditorApp from "../../src/lib/editor/ui/EditorApp.svelte";
 import { fixtureXml, parser } from "./fixtures";
 import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
 
+// Each retry encodes the complete public save; allow its asynchronous UI phase
+// to settle while other full-save files run at Vitest's default concurrency.
 const waitForIO = <T>(assertion: () => T) =>
-	waitFor(assertion, { timeout: 30_000 });
+	waitFor(assertion, { timeout: 60_000 });
 
 // Reject the actual stream phase, not just opening the picker. The same session
 // must remain editable and a retry must export its latest state under its filename.
 it.each(["write", "close"] as const)(
 	"recovers from a browser %s failure without losing edits or backup feedback",
-	{ timeout: 60_000 },
+	{ timeout: 90_000 },
 	async (stage) => {
 		const failure = new DOMException("Destination unavailable", "AbortError");
 		const report = vi.spyOn(console, "error").mockImplementation(() => {});

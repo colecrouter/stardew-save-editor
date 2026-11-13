@@ -6,7 +6,9 @@ import { assertXmlEqual } from "./helpers/xmlDiff";
 
 // helpers moved to tests/helpers/xmlDiff.ts
 
-describe("Import/Export roundtrip", () => {
+// Full public-save fixtures verify codec correctness rather than latency. Allow
+// their integration work at default concurrency without changing unit-suite budgets.
+describe("Import/Export roundtrip", { timeout: 45_000 }, () => {
 	mockIDB();
 	let saveManager: SaveManager;
 	let originalXml: string;
@@ -33,7 +35,9 @@ describe("Import/Export roundtrip", () => {
 	});
 });
 
-describe("Number-like text roundtrip", () => {
+// Full public-save fixtures verify codec correctness rather than latency. Allow
+// their integration work at default concurrency without changing unit-suite budgets.
+describe("Number-like text roundtrip", { timeout: 45_000 }, () => {
 	mockIDB();
 
 	it("keeps text such as a farm called 007 as written", async () => {

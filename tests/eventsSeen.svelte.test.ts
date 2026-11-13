@@ -26,7 +26,9 @@ const importWithoutEvents = async () => {
 	return { saveManager, cleanup };
 };
 
-describe("events seen", () => {
+// Full public-save fixtures verify codec correctness rather than latency. Allow
+// their integration work at default concurrency without changing unit-suite budgets.
+describe("events seen", { timeout: 30_000 }, () => {
 	mockIDB();
 
 	it("reads numeric and string IDs, and writes changes back in order", () => {

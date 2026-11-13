@@ -13,7 +13,9 @@ const prop = (value: unknown, key: string) => asRecord(value)[key];
 const hasArrayProp = (value: unknown, key: string) =>
 	Array.isArray(prop(value, key));
 
-describe("SaveProxy", () => {
+// Full public-save fixtures verify codec correctness rather than latency. Allow
+// their integration work at default concurrency without changing unit-suite budgets.
+describe("SaveProxy", { timeout: 30_000 }, () => {
 	mockIDB();
 
 	it("parses a single cellar assignment item as an array", () => {

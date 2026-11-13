@@ -7,6 +7,8 @@
 	// Crawlers use doSetState(2)'s frame 24 (row 6), rather than reloadSprite's
 	// frame 32 facing away. Each Baby row contains four 22-pixel-wide frames.
 	// The hat's front frame uses Child.draw's offset (-2, 6) in sprite pixels.
+	// Stage 1 deliberately uses a 22x32 frame at y=32: reloadSprite doubles the
+	// Baby frame height before selecting frame 4. Newborns/crawlers stay 22x16.
 	const frame = $derived.by(() => {
 		if (
 			child.stage === undefined ||

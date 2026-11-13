@@ -117,8 +117,11 @@ and does not move the previous hat to inventory.
 An explicit age edit writes `daysOld`, `age` and serialized `Speed` together (4 for
 toddlers, 1 otherwise). It does not simulate overnight events, reposition the child,
 reset daily interaction state, or rearrange beds. `GetChildIndex` sorts siblings by
-age, so changing days can affect which bed the game assigns. Younger ages require
-a saved crib in the home. `Child.checkAction` equips hats only at stage 3; a younger
+age, so changing days can affect which bed the game assigns. Moving to a younger
+development stage requires a saved crib in the home; edits within or advancing
+from an existing stage do not introduce that requirement. Unknown saved stages
+retain the strict crib check for ages under 55 days.
+`Child.checkAction` equips hats only at stage 3; a younger
 age with a saved hat requires explicit removal, and new hats require toddler stage.
 Appearance/name edits alone preserve unfamiliar ages and hats. The age cap leaves
 room for the next signed-Int32 day increment.

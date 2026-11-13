@@ -98,19 +98,20 @@ export const editChild = Effect.fn("Children.edit")(function* (
 		changes.daysOld !== undefined && changes.daysOld !== resident.daysOld;
 	const stage =
 		changes.daysOld !== undefined ? childStage(changes.daysOld) : row.stage;
-	// Babies and crawlers use the home's crib. Do not author a younger child into
-	// a home with a removed or unreadable crib; the editor does not renovate it.
+	// Only regression to a younger stage introduces a new crib requirement.
+	// Existing babies/crawlers may age within or beyond their current stage even
+	// if their saved home lacks a crib. Unknown stages retain the strict guard.
 	if (
 		ageChanged &&
 		stage !== undefined &&
-		stage < 3 &&
+		stage < (row.stage ?? 3) &&
 		(typeof target.home.cribStyle !== "number" ||
 			!Number.isInteger(target.home.cribStyle) ||
 			target.home.cribStyle <= 0)
 	)
 		return yield* new ChildRenameInvalid({
 			message:
-				"Restore a crib in this home before choosing an age under 55 days.",
+				"Restore a crib in this home before choosing a younger development stage.",
 		});
 	// Vanilla interaction equips hats only on toddlers. A younger age must not
 	// silently destroy a saved hat, including opaque/custom ones.
@@ -129,7 +130,15 @@ export const editChild = Effect.fn("Children.edit")(function* (
 	if (changes.hat?.kind === "catalog") {
 		// Trusted catalog construction is shared with Inventory and loaded only
 		// when replacing a hat; Keep preserves the exact imported record.
-		const catalog = yield* Effect.promise(() => import("./item-catalog.ts"));
+		// A missing deployed chunk/network failure is recoverable form feedback;
+		// catalog construction errors below still remain programming defects.
+		const catalog = yield* Effect.tryPromise({
+			try: () => import("./item-catalog.ts"),
+			catch: () =>
+				new ChildRenameInvalid({
+					message: "The hat catalog could not be loaded. Please try again.",
+				}),
+		});
 		const hat = catalog.createCatalogItem(changes.hat.id);
 		if (hat?.$type !== "StardewValley.Objects.Hat")
 			return yield* new ChildRenameInvalid({
@@ -170,8 +179,9 @@ export const editChild = Effect.fn("Children.edit")(function* (
 				tags: ["relationships", "children:edit"],
 			}),
 		);
-	// Reuse the checked linked-reference migration after other staging succeeds.
-	// The enclosing history transaction still publishes exactly one Undo entry.
+	// Reads/writes above belong to detached transaction staging, never the live
+	// document. If this linked-reference migration rejects, history discards the
+	// whole attempt, including earlier replacements; success publishes one Undo entry.
 	if (changes.name !== undefined && changes.name !== request.name)
 		yield* renameChild({
 			key: request.key,
@@ -201,13 +211,16 @@ export const renameChild = Effect.fn("Children.rename")(function* (
 	if (
 		!request.newName.trim() ||
 		request.newName !== request.newName.trim() ||
-		// Control characters are deliberately rejected in user-authored names.
+		// Reject controls and invisible direction/spacing marks so authored names
+		// cannot disguise a different name-keyed identity. Imported keys stay exact.
 		// oxlint-disable-next-line no-control-regex
-		/[\u0000-\u001f\u007f]/u.test(request.newName)
+		/[\u0000-\u001f\u007f\u200b-\u200f\u202a-\u202e\u2060-\u206f\ufeff]/u.test(
+			request.newName,
+		)
 	)
 		return yield* new ChildRenameInvalid({
 			message:
-				"Enter a name without surrounding whitespace or control characters.",
+				"Enter a name without surrounding whitespace, control characters or invisible formatting marks.",
 		});
 	const transaction = yield* TransactionDraft;
 	const snapshot = yield* transaction.read;

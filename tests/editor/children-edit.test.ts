@@ -1,5 +1,5 @@
 import { it } from "@effect/vitest";
-import { expect } from "vitest";
+import { expect, vi } from "vitest";
 import { Effect, Result } from "effect";
 import {
 	editChild,
@@ -45,6 +45,76 @@ function request(
 	const { key, name, parentId } = renameRequest(document);
 	return { key, name, parentId, changes };
 }
+
+it.effect(
+	"reports a failed hat catalog import without publishing an edit",
+	() =>
+		Effect.gen(function* () {
+			const before = childrenFixture();
+			const session = yield* makeHistorySession(before);
+			// Reject the lazy module load itself, rather than a catalog factory call:
+			// deployment/network failures must reach the expected-error channel.
+			vi.doMock("../../src/lib/editor/item-catalog.ts", () => {
+				throw new Error("Unavailable catalog chunk");
+			});
+			const result = yield* session
+				.transact(
+					editChild(
+						request(before, {
+							hat: { kind: "catalog", id: "Straw Hat" },
+							gender: "Male",
+						}),
+					),
+				)
+				.pipe(Effect.result);
+			expect(Result.isFailure(result)).toBe(true);
+			if (Result.isFailure(result))
+				expect(result.failure).toMatchObject({
+					_tag: "ChildRenameInvalid",
+					message: "The hat catalog could not be loaded. Please try again.",
+				});
+			expect((yield* session.snapshot).document).toEqual(before);
+			expect((yield* session.snapshot).entries).toHaveLength(0);
+		}).pipe(
+			Effect.ensuring(
+				Effect.sync(() => {
+					vi.doUnmock("../../src/lib/editor/item-catalog.ts");
+				}),
+			),
+		),
+);
+
+it.effect.each([
+	[1, 20, 22, true],
+	[1, 20, 18, true],
+	[1, 20, 27, true],
+	[2, 40, 20, false],
+	[3, 64, 20, false],
+	[9, 64, 20, false],
+] as const)(
+	"checks crib dependency for saved stage %s, age %s to %s",
+	([age, daysOld, nextDays, allowed]) =>
+		Effect.gen(function* () {
+			const before = childrenFixture();
+			const target = inspectResidents(before)[0]!;
+			target.home.cribStyle = 0;
+			Object.assign(target.resident, { age, daysOld, hat: null });
+			const session = yield* makeHistorySession(before);
+			const result = yield* session
+				.transact(editChild(request(before, { daysOld: nextDays })))
+				.pipe(Effect.result);
+			// Staying in/advancing from an existing young stage adds no dependency;
+			// regression and unknown saved stages must still reject atomically.
+			expect(Result.isSuccess(result)).toBe(allowed);
+			const after = yield* session.snapshot;
+			if (allowed)
+				expect(readChildren(after.document)[0]?.daysOld).toBe(nextDays);
+			else {
+				expect(after.document).toEqual(before);
+				expect(after.entries).toHaveLength(0);
+			}
+		}),
+);
 
 it.effect(
 	"applies appearance, age, hat and linked rename as one exact reversible transaction",

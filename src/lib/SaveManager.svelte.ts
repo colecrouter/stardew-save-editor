@@ -9,6 +9,7 @@ import { Dispose } from "$lib/proxies";
 import { SaveProxy } from "$lib/proxies/SaveFile.svelte";
 import {
 	describeProblems,
+	describeValidationValue,
 	type SaveValidation,
 	SUPPORTED_VERSIONS,
 	validateSave,
@@ -215,7 +216,11 @@ export class SaveManager {
 		} catch (e) {
 			validation = {
 				valid: false,
-				errors: [`The exported file couldn't be read back (${e})`],
+				// A thrown non-Error value must remain reportable without invoking
+				// arbitrary object coercion at the export failure boundary.
+				errors: [
+					`The exported file couldn't be read back (${describeValidationValue(e)})`,
+				],
 				warnings: [],
 			};
 		}

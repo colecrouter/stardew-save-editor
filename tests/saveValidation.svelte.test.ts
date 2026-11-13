@@ -53,6 +53,69 @@ const daysPlayedStat = (player: SaveFile["SaveGame"]["player"]) => {
 const UNUSUAL_QUALITY =
 	"1 item has an unusual quality (not normal, silver, gold or iridium)";
 
+describe("malformed scalar validation", () => {
+	// Keep the smallest otherwise valid save so these cases exercise malformed
+	// field handling without tying them to a costly public-save import.
+	const save = () => ({
+		SaveGame: {
+			gameVersion: "1.6.15",
+			uniqueIDForThisGame: 1,
+			currentSeason: "spring",
+			dayOfMonth: 1,
+			year: 1,
+			player: { name: "Test", farmName: "Farm", money: 100 },
+			locations: [{ name: "Farm" }, { name: "FarmHouse" }],
+		},
+	});
+
+	it.each(["currentSeason", "gameVersion"])(
+		"rejects a structured %s instead of treating an array as scalar text",
+		(field) => {
+			const parsed = save();
+			Object.assign(parsed.SaveGame, {
+				[field]: [field === "currentSeason" ? "spring" : "1.6.15"],
+			});
+			expect(validateSave(parsed).valid).toBe(false);
+		},
+	);
+
+	it("reports malformed fields without invoking their coercion hooks", () => {
+		const parsed = save();
+		const coerce = vi.fn(() => {
+			throw new Error("must not coerce saved objects");
+		});
+		const malformed = { toString: coerce };
+		Object.assign(parsed.SaveGame, {
+			currentSeason: malformed,
+			year: malformed,
+		});
+		Object.assign(parsed.SaveGame.player, { money: malformed });
+		const result = validateSave(parsed);
+		expect(result.valid).toBe(false);
+		expect(result.errors).toEqual([
+			"The season (an object) isn't spring, summer, fall or winter",
+			"The year (an object) isn't a number the game can read",
+			"Test's money (an object) is out of range",
+		]);
+		expect(coerce).not.toHaveBeenCalled();
+	});
+
+	it("warns for structured names while retaining primitive XML name spellings", () => {
+		const parsed = save();
+		Object.assign(parsed.SaveGame.player, { name: {}, farmName: [] });
+		expect(validateSave(parsed).warnings).toEqual([
+			"The main player has no name",
+			"The farm has no name",
+		]);
+		Object.assign(parsed.SaveGame.player, { name: 123, farmName: 456 });
+		expect(validateSave(parsed)).toEqual({
+			valid: true,
+			errors: [],
+			warnings: [],
+		});
+	});
+});
+
 describe("validateSave", () => {
 	let fixture: SaveFile;
 	// Parsing is slow, so parse once and hand each test its own copy

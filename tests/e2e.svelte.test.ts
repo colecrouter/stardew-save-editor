@@ -50,6 +50,7 @@ import {
 	withAnimalBuildings,
 } from "./helpers/animalBuildings";
 import { withHouse, withToolAtClint } from "./helpers/upgrades";
+import { fullSaveTimeout } from "./helpers/full-save-budget";
 
 interface PageHarness {
 	saveManager: SaveManager;
@@ -152,10 +153,11 @@ describe("Save Manager Integration Tests", { timeout: 30_000 }, () => {
 	let harness!: PageHarness;
 	let saveManager!: SaveManager;
 
+	// Full-file setup has its own deadline, independent of test-body options.
 	beforeEach(async () => {
 		harness = await createPageHarness();
 		saveManager = harness.saveManager;
-	});
+	}, fullSaveTimeout);
 
 	afterEach(() => {
 		harness.cleanup();
@@ -2804,9 +2806,10 @@ describe("Animal buildings", () => {
 	mockIDB();
 	let harness!: PageHarness;
 
+	// Full-file setup has its own deadline, independent of test-body options.
 	beforeEach(async () => {
 		harness = await createPageHarness(withAnimalBuildings);
-	});
+	}, fullSaveTimeout);
 
 	afterEach(() => {
 		harness.cleanup();
@@ -3010,77 +3013,89 @@ describe("Animal buildings", () => {
 		).toBeNull();
 	});
 
-	it("says when a building is still being built", async () => {
-		harness.cleanup();
-		harness = await createPageHarness((xml) =>
-			withAnimalBuildings(xml, [
-				coopXml(),
-				barnXml({ daysOfConstructionLeft: 2 }),
-			]),
-		);
-		const page = harness.render(buildingsPage);
-		const { header } = section(page, "Barn");
-		expect(
-			within(header).getByTestId("add-animal-under-construction").textContent,
-		).toBe("Animals can move in once it's built.");
-		expect(
-			(within(header).getByTestId("add-animal-submit") as HTMLButtonElement)
-				.disabled,
-		).toBe(true);
-		const select = within(header).getByTestId(
-			"building-upgrade",
-		) as HTMLSelectElement;
-		expect([...select.options].map((o) => [o.value, o.disabled])).toEqual([
-			["Barn", false],
-			["Big Barn", true],
-			["Deluxe Barn", true],
-		]);
-		expect(
-			within(header).getByTestId("building-upgrade-reason").textContent,
-		).toBe("The Barn is still being built");
-	});
+	it(
+		"says when a building is still being built",
+		async () => {
+			harness.cleanup();
+			harness = await createPageHarness((xml) =>
+				withAnimalBuildings(xml, [
+					coopXml(),
+					barnXml({ daysOfConstructionLeft: 2 }),
+				]),
+			);
+			const page = harness.render(buildingsPage);
+			const { header } = section(page, "Barn");
+			expect(
+				within(header).getByTestId("add-animal-under-construction").textContent,
+			).toBe("Animals can move in once it's built.");
+			expect(
+				(within(header).getByTestId("add-animal-submit") as HTMLButtonElement)
+					.disabled,
+			).toBe(true);
+			const select = within(header).getByTestId(
+				"building-upgrade",
+			) as HTMLSelectElement;
+			expect([...select.options].map((o) => [o.value, o.disabled])).toEqual([
+				["Barn", false],
+				["Big Barn", true],
+				["Deluxe Barn", true],
+			]);
+			expect(
+				within(header).getByTestId("building-upgrade-reason").textContent,
+			).toBe("The Barn is still being built");
+		},
+		fullSaveTimeout,
+	);
 
-	it("offers a shed's upgrade, but no animals", async () => {
-		harness.cleanup();
-		harness = await createPageHarness((xml) =>
-			withAnimalBuildings(xml, [coopXml(), barnXml(), shedXml()]),
-		);
-		const page = harness.render(buildingsPage);
-		const { header } = section(page, "Shed");
-		const select = within(header).getByTestId(
-			"building-upgrade",
-		) as HTMLSelectElement;
-		expect([...select.options].map((o) => o.textContent)).toEqual([
-			"Shed",
-			"Big Shed",
-		]);
-		expect(within(header).queryByTestId("add-animal-type")).toBeNull();
-		expect(within(header).queryByTestId("building-residents")).toBeNull();
+	it(
+		"offers a shed's upgrade, but no animals",
+		async () => {
+			harness.cleanup();
+			harness = await createPageHarness((xml) =>
+				withAnimalBuildings(xml, [coopXml(), barnXml(), shedXml()]),
+			);
+			const page = harness.render(buildingsPage);
+			const { header } = section(page, "Shed");
+			const select = within(header).getByTestId(
+				"building-upgrade",
+			) as HTMLSelectElement;
+			expect([...select.options].map((o) => o.textContent)).toEqual([
+				"Shed",
+				"Big Shed",
+			]);
+			expect(within(header).queryByTestId("add-animal-type")).toBeNull();
+			expect(within(header).queryByTestId("building-residents")).toBeNull();
 
-		await choose(select, "Big Shed");
-		flushSync();
-		expect(building(SHED_ID)[Raw].buildingType).toBe("Big Shed");
-		expect(
-			within(section(page, "Big Shed").header).getByTestId(
-				"building-downgrade-note",
-			),
-		).toBeTruthy();
-	});
+			await choose(select, "Big Shed");
+			flushSync();
+			expect(building(SHED_ID)[Raw].buildingType).toBe("Big Shed");
+			expect(
+				within(section(page, "Big Shed").header).getByTestId(
+					"building-downgrade-note",
+				),
+			).toBeTruthy();
+		},
+		fullSaveTimeout,
+	);
 
-	it("says when it doesn't know what lives in a building", async () => {
-		harness.cleanup();
-		harness = await createPageHarness((xml) =>
-			withAnimalBuildings(xml, [coopXml({ type: "Fancy Coop" }), barnXml()]),
-		);
-		const page = harness.render(buildingsPage);
-		const { header } = section(page, "Fancy Coop");
-		expect(within(header).getByTestId("add-animal-unknown").textContent).toBe(
-			"The editor doesn't know which animals can live in a Fancy Coop.",
-		);
-		expect(within(header).queryByTestId("add-animal-type")).toBeNull();
-		expect(within(header).queryByTestId("building-upgrade")).toBeNull();
-		expect(
-			within(header).getByTestId("building-residents").textContent,
-		).toMatch(/4\/4 animals\s+live here/);
-	});
+	it(
+		"says when it doesn't know what lives in a building",
+		async () => {
+			harness.cleanup();
+			harness = await createPageHarness((xml) =>
+				withAnimalBuildings(xml, [coopXml({ type: "Fancy Coop" }), barnXml()]),
+			);
+			const page = harness.render(buildingsPage);
+			const { header } = section(page, "Fancy Coop");
+			expect(within(header).getByTestId("add-animal-unknown").textContent).toBe(
+				"The editor doesn't know which animals can live in a Fancy Coop.",
+			);
+			expect(within(header).queryByTestId("add-animal-type")).toBeNull();
+			expect(within(header).queryByTestId("building-upgrade")).toBeNull();
+			expect(
+				within(header).getByTestId("building-residents").textContent,
+			).toMatch(/4\/4 animals\s+live here/);
+		},
+		fullSaveTimeout,
+	);
 });

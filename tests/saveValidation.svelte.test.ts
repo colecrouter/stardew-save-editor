@@ -22,6 +22,7 @@ import {
 } from "../src/lib/ToastManager.svelte";
 import editLayout from "../src/routes/(legacy)/(edit)/+layout.svelte";
 import uploadPage from "../src/routes/(legacy)/(home)/(upload)/legacy/+page.svelte";
+import { fullSaveTimeout } from "./helpers/full-save-budget";
 
 // The pages navigate after uploading, which isn't possible here
 vi.mock("$app/navigation", () => ({ goto: vi.fn() }));
@@ -121,11 +122,12 @@ describe("validateSave", () => {
 	// Parsing is slow, so parse once and hand each test its own copy
 	const loadParsed = () => structuredClone(fixture);
 
+	// Full-file setup has its own deadline, independent of test-body options.
 	beforeAll(async () => {
 		fixture = new XMLManager().parse<SaveFile>(
 			await readFile("tests/TestSave", "utf-8"),
 		);
-	});
+	}, fullSaveTimeout);
 
 	it("passes the test save", () => {
 		expect(validateSave(loadParsed())).toEqual({
@@ -495,9 +497,10 @@ describe("SaveManager validation", { timeout: 30_000 }, () => {
 	mockIDB();
 	let saveManager: SaveManager;
 
+	// Full-file setup has its own deadline, independent of test-body options.
 	beforeEach(async () => {
 		saveManager = await importSave(await readFile("tests/TestSave", "utf-8"));
-	});
+	}, fullSaveTimeout);
 
 	it("validates a save when it's uploaded", () => {
 		expect(saveManager.loadValidation).toEqual({
@@ -615,13 +618,14 @@ describe("SaveManager validation of an invalid upload", () => {
 	mockIDB();
 	let saveManager: SaveManager;
 
+	// Full-file setup has its own deadline, independent of test-body options.
 	beforeEach(async () => {
 		const xml = (await readFile("tests/TestSave", "utf-8")).replace(
 			"<money>1285</money>",
 			"<money>99999999999</money>",
 		);
 		saveManager = await importSave(xml);
-	});
+	}, fullSaveTimeout);
 
 	it("still opens the save, so it can be fixed", () => {
 		expect(saveManager.save).toBeDefined();

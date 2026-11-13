@@ -7,6 +7,7 @@ import { getStatValue, setStatValue } from "$lib/proxies/Farmer.svelte";
 import { Season } from "$types/save";
 import { SaveManager } from "../src/lib/SaveManager.svelte";
 import { XMLManager } from "../src/lib/workers/xml";
+import { fullSaveTimeout } from "./helpers/full-save-budget";
 
 const parse = (xml: string) => new XMLManager().parse<SaveFile>(xml);
 
@@ -27,9 +28,10 @@ describe("Calendar", () => {
 	mockIDB();
 	let saveManager: SaveManager;
 
+	// Full-file setup has its own deadline, independent of test-body options.
 	beforeEach(async () => {
 		saveManager = await importSave(await readFile("tests/TestSave", "utf-8"));
-	});
+	}, fullSaveTimeout);
 
 	const save = () => {
 		if (!saveManager.save) throw new Error("No save");
@@ -85,6 +87,7 @@ describe("Calendar", () => {
 			expect(game().currentSeason).toBe(season);
 			expect(game().player.seasonForSaveGame).toBe(index);
 		},
+		fullSaveTimeout,
 	);
 
 	it("changes every copy of the date, and days played with it", () => {
@@ -445,30 +448,34 @@ describe("Calendar", () => {
 			expect(target.soil.state).toBe(0);
 	});
 
-	it("leaves weather from mods alone", async () => {
-		const xml = (await readFile("tests/TestSave", "utf-8")).replace(
-			"<Weather>Rain</Weather>",
-			"<Weather>Meteors</Weather>",
-		);
-		saveManager = await importSave(xml);
-		const { calendar } = save();
-		expect(calendar.today).toBe("Meteors");
-		expect(calendar.todayOptions[0]).toEqual({
-			id: "Meteors",
-			label: "Meteors",
-			allowed: false,
-		});
-		calendar.day = 10;
-		expect(calendar.today).toBe("Meteors");
+	it(
+		"leaves weather from mods alone",
+		async () => {
+			const xml = (await readFile("tests/TestSave", "utf-8")).replace(
+				"<Weather>Rain</Weather>",
+				"<Weather>Meteors</Weather>",
+			);
+			saveManager = await importSave(xml);
+			const { calendar } = save();
+			expect(calendar.today).toBe("Meteors");
+			expect(calendar.todayOptions[0]).toEqual({
+				id: "Meteors",
+				label: "Meteors",
+				allowed: false,
+			});
+			calendar.day = 10;
+			expect(calendar.today).toBe("Meteors");
 
-		// After a festival, it comes back with the flags it was loaded with
-		calendar.day = 13;
-		expect(game().isRaining).toBe(false);
-		calendar.day = 10;
-		expect(calendar.today).toBe("Meteors");
-		expect(weatherIn("Default").Weather).toBe("Meteors");
-		expect(game().isRaining).toBe(true);
-	});
+			// After a festival, it comes back with the flags it was loaded with
+			calendar.day = 13;
+			expect(game().isRaining).toBe(false);
+			calendar.day = 10;
+			expect(calendar.today).toBe("Meteors");
+			expect(weatherIn("Default").Weather).toBe("Meteors");
+			expect(game().isRaining).toBe(true);
+		},
+		fullSaveTimeout,
+	);
 
 	it("moves Year 0 into range when the day changes", slow, async () => {
 		const xml = await readFile("tests/TestSave", "utf-8");
@@ -492,22 +499,29 @@ describe("Calendar", () => {
 		expect(getStatValue(parsed.SaveGame.player, "daysPlayed")).toBe(10);
 	});
 
-	it("moves day 29 into range when the season changes", async () => {
-		const xml = await readFile("tests/TestSave", "utf-8");
-		saveManager = await importSave(
-			xml.replace("<dayOfMonth>6</dayOfMonth>", "<dayOfMonth>29</dayOfMonth>"),
-		);
-		expect(save().calendar.dateProblems).toEqual([
-			expect.stringContaining("There's no day 29"),
-		]);
-		save().calendar.season = Season.Summer;
-		expect(save().calendar.date).toEqual({
-			year: 1,
-			season: Season.Summer,
-			day: 28,
-		});
-		expect(daysPlayed()).toBe(56);
-	});
+	it(
+		"moves day 29 into range when the season changes",
+		async () => {
+			const xml = await readFile("tests/TestSave", "utf-8");
+			saveManager = await importSave(
+				xml.replace(
+					"<dayOfMonth>6</dayOfMonth>",
+					"<dayOfMonth>29</dayOfMonth>",
+				),
+			);
+			expect(save().calendar.dateProblems).toEqual([
+				expect.stringContaining("There's no day 29"),
+			]);
+			save().calendar.season = Season.Summer;
+			expect(save().calendar.date).toEqual({
+				year: 1,
+				season: Season.Summer,
+				day: 28,
+			});
+			expect(daysPlayed()).toBe(56);
+		},
+		fullSaveTimeout,
+	);
 
 	it("refuses a stat the game can't load", () => {
 		const player = game().player;

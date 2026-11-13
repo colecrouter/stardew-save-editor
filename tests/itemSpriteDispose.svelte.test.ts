@@ -10,6 +10,7 @@ import Character from "../src/routes/(legacy)/(edit)/appearance/Character.svelte
 import ItemSelect from "../src/routes/(legacy)/(edit)/inventory/ItemSelect.svelte";
 import NamedItemSprite from "../src/routes/(legacy)/(edit)/inventory/NamedItemSprite.svelte";
 import { trackItems } from "./helpers/trackItems";
+import { fullSaveTimeout } from "./helpers/full-save-budget";
 
 const live = (created: ReturnType<typeof trackItems>) =>
 	created.filter((item) => item.disposed === 0).length;
@@ -19,6 +20,7 @@ describe("Item sprites drawn by name", () => {
 	let saveManager!: SaveManager;
 	let cleanup: () => void;
 
+	// Full-file setup has its own deadline, independent of test-body options.
 	beforeEach(async () => {
 		const xml = await readFile("tests/TestSave", "utf-8");
 		let promise!: Promise<void | boolean>;
@@ -28,7 +30,7 @@ describe("Item sprites drawn by name", () => {
 		});
 		await promise;
 		flushSync();
-	});
+	}, fullSaveTimeout);
 
 	afterEach(() => {
 		vi.restoreAllMocks();

@@ -7,11 +7,13 @@ import { Raw } from "$lib/proxies";
 import { MailFlag } from "$lib/proxies/Mail.svelte";
 import type { SaveProxy } from "$lib/proxies/SaveFile.svelte";
 import { SaveManager } from "../src/lib/SaveManager.svelte";
+import { fullSaveTimeout } from "./helpers/full-save-budget";
 
 describe("bundle side effects - Abandoned JojaMart access", () => {
 	mockIDB();
 	let saveManager: SaveManager;
 
+	// Full-file setup has its own deadline, independent of test-body options.
 	beforeEach(async () => {
 		const file = await readFile("tests/TestSave");
 		let promise: Promise<void | boolean> = Promise.resolve();
@@ -22,7 +24,7 @@ describe("bundle side effects - Abandoned JojaMart access", () => {
 		await promise;
 		flushSync();
 		cleanup();
-	});
+	}, fullSaveTimeout);
 
 	/**
 	 * Base behavior: finishing ALL bundles (including Abandoned Joja Mart) should mark CC complete
@@ -289,113 +291,131 @@ describe("bundle side effects - flags the game set without bundles", () => {
 	// Buying the bus from Joja sends these, without ticking any Vault bundle
 	const boughtBus = [MailFlag.JojaMember, MailFlag.ccVault, MailFlag.jojaVault];
 
-	it("keeps a bought Joja project when a bundle in another room is edited", async () => {
-		const { save, bundles, cleanup } = await loadCoop(boughtBus, boughtBus);
-		const bought = () =>
-			save.players.map(
-				(p) =>
-					p.mailReceived.has(MailFlag.ccVault) &&
-					p.mailReceived.has(MailFlag.jojaVault),
+	it(
+		"keeps a bought Joja project when a bundle in another room is edited",
+		async () => {
+			const { save, bundles, cleanup } = await loadCoop(boughtBus, boughtBus);
+			const bought = () =>
+				save.players.map(
+					(p) =>
+						p.mailReceived.has(MailFlag.ccVault) &&
+						p.mailReceived.has(MailFlag.jojaVault),
+				);
+			expect(bought()).toEqual([true, true]);
+
+			// Finishing a Pantry bundle doesn't finish the Pantry, and the Vault didn't change
+			const spring = bundleNamed(bundles, "Spring Crops");
+			for (const item of spring.requiredItems) item.submitted = true;
+			flushSync();
+			await tick();
+			expect(spring.completed).toBe(true);
+			expect(bought()).toEqual([true, true]);
+
+			for (const item of spring.requiredItems) item.submitted = false;
+			flushSync();
+			await tick();
+			expect(bought()).toEqual([true, true]);
+			cleanup();
+		},
+		fullSaveTimeout,
+	);
+
+	it(
+		"keeps ccIsComplete when the game finished the Community Center without bundles",
+		async () => {
+			const jojaComplete = [...boughtBus, MailFlag.ccIsComplete];
+			const { save, bundles, cleanup } = await loadCoop(
+				jojaComplete,
+				jojaComplete,
 			);
-		expect(bought()).toEqual([true, true]);
 
-		// Finishing a Pantry bundle doesn't finish the Pantry, and the Vault didn't change
-		const spring = bundleNamed(bundles, "Spring Crops");
-		for (const item of spring.requiredItems) item.submitted = true;
-		flushSync();
-		await tick();
-		expect(spring.completed).toBe(true);
-		expect(bought()).toEqual([true, true]);
+			const spring = bundleNamed(bundles, "Spring Crops");
+			for (const item of spring.requiredItems) item.submitted = true;
+			flushSync();
+			await tick();
 
-		for (const item of spring.requiredItems) item.submitted = false;
-		flushSync();
-		await tick();
-		expect(bought()).toEqual([true, true]);
-		cleanup();
-	});
+			for (const player of save.players)
+				expect(player.mailReceived.has(MailFlag.ccIsComplete)).toBe(true);
+			cleanup();
+		},
+		fullSaveTimeout,
+	);
 
-	it("keeps ccIsComplete when the game finished the Community Center without bundles", async () => {
-		const jojaComplete = [...boughtBus, MailFlag.ccIsComplete];
-		const { save, bundles, cleanup } = await loadCoop(
-			jojaComplete,
-			jojaComplete,
-		);
+	it(
+		"reads Joja membership from the host, so switching farmer changes nothing",
+		async () => {
+			// The host joined Joja; the farmhand doesn't have the membership letter
+			const { save, bundles, cleanup } = await loadCoop(
+				[MailFlag.JojaMember],
+				[],
+			);
 
-		const spring = bundleNamed(bundles, "Spring Crops");
-		for (const item of spring.requiredItems) item.submitted = true;
-		flushSync();
-		await tick();
+			// Finish the five rooms the Joja route needs (not the Bulletin Board)
+			const jojaRooms = [
+				CCRoom.Pantry,
+				CCRoom.CraftsRoom,
+				CCRoom.FishTank,
+				CCRoom.BoilerRoom,
+				CCRoom.Vault,
+			];
+			for (const bundle of bundles.values()) {
+				if (!jojaRooms.includes(bundle.room)) continue;
+				for (const item of bundle.requiredItems) item.submitted = true;
+			}
+			flushSync();
+			await tick();
+			const flags = () =>
+				save.players.map((p) => [...p.mailReceived].toSorted().join());
+			const before = flags();
+			expect(save.players[0]?.mailReceived.has(MailFlag.ccIsComplete)).toBe(
+				true,
+			);
 
-		for (const player of save.players)
-			expect(player.mailReceived.has(MailFlag.ccIsComplete)).toBe(true);
-		cleanup();
-	});
+			save.nextFarmer();
+			flushSync();
+			await tick();
+			expect(save.player.name).toBe("Hand");
+			expect(flags()).toEqual(before);
 
-	it("reads Joja membership from the host, so switching farmer changes nothing", async () => {
-		// The host joined Joja; the farmhand doesn't have the membership letter
-		const { save, bundles, cleanup } = await loadCoop(
-			[MailFlag.JojaMember],
-			[],
-		);
+			save.prevFarmer();
+			flushSync();
+			await tick();
+			expect(flags()).toEqual(before);
+			cleanup();
+		},
+		fullSaveTimeout,
+	);
 
-		// Finish the five rooms the Joja route needs (not the Bulletin Board)
-		const jojaRooms = [
-			CCRoom.Pantry,
-			CCRoom.CraftsRoom,
-			CCRoom.FishTank,
-			CCRoom.BoilerRoom,
-			CCRoom.Vault,
-		];
-		for (const bundle of bundles.values()) {
-			if (!jojaRooms.includes(bundle.room)) continue;
-			for (const item of bundle.requiredItems) item.submitted = true;
-		}
-		flushSync();
-		await tick();
-		const flags = () =>
-			save.players.map((p) => [...p.mailReceived].toSorted().join());
-		const before = flags();
-		expect(save.players[0]?.mailReceived.has(MailFlag.ccIsComplete)).toBe(true);
+	it(
+		"still updates the joja room flags when the host's membership changes",
+		async () => {
+			const { save, bundles, cleanup } = await loadCoop([], []);
+			for (const bundle of bundles.values()) {
+				if (bundle.room !== CCRoom.Vault) continue;
+				for (const item of bundle.requiredItems) item.submitted = true;
+			}
+			flushSync();
+			await tick();
+			const host = save.players[0];
+			if (!host) throw new Error("No host");
+			expect(host.mailReceived.has(MailFlag.ccVault)).toBe(true);
+			expect(host.mailReceived.has(MailFlag.jojaVault)).toBe(false);
 
-		save.nextFarmer();
-		flushSync();
-		await tick();
-		expect(save.player.name).toBe("Hand");
-		expect(flags()).toEqual(before);
+			for (const player of save.players)
+				player.mailReceived.add(MailFlag.JojaMember);
+			flushSync();
+			await tick();
+			for (const player of save.players)
+				expect(player.mailReceived.has(MailFlag.jojaVault)).toBe(true);
 
-		save.prevFarmer();
-		flushSync();
-		await tick();
-		expect(flags()).toEqual(before);
-		cleanup();
-	});
-
-	it("still updates the joja room flags when the host's membership changes", async () => {
-		const { save, bundles, cleanup } = await loadCoop([], []);
-		for (const bundle of bundles.values()) {
-			if (bundle.room !== CCRoom.Vault) continue;
-			for (const item of bundle.requiredItems) item.submitted = true;
-		}
-		flushSync();
-		await tick();
-		const host = save.players[0];
-		if (!host) throw new Error("No host");
-		expect(host.mailReceived.has(MailFlag.ccVault)).toBe(true);
-		expect(host.mailReceived.has(MailFlag.jojaVault)).toBe(false);
-
-		for (const player of save.players)
-			player.mailReceived.add(MailFlag.JojaMember);
-		flushSync();
-		await tick();
-		for (const player of save.players)
-			expect(player.mailReceived.has(MailFlag.jojaVault)).toBe(true);
-
-		for (const player of save.players)
-			player.mailReceived.delete(MailFlag.JojaMember);
-		flushSync();
-		await tick();
-		for (const player of save.players)
-			expect(player.mailReceived.has(MailFlag.jojaVault)).toBe(false);
-		cleanup();
-	});
+			for (const player of save.players)
+				player.mailReceived.delete(MailFlag.JojaMember);
+			flushSync();
+			await tick();
+			for (const player of save.players)
+				expect(player.mailReceived.has(MailFlag.jojaVault)).toBe(false);
+			cleanup();
+		},
+		fullSaveTimeout,
+	);
 });

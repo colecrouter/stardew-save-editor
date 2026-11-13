@@ -8,7 +8,7 @@ export {
 	scenarios,
 } from "../../tests/helpers/editor-document.ts";
 
-// Keep the native Node import graph free of Vite's raw-loader syntax.
+// Read the public save from disk; the shared parser reuses the prepared baseline.
 export async function loadFixture(): Promise<SaveDocument> {
 	const xml = await readFile(
 		new URL("../../tests/TestSave", import.meta.url),

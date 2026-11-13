@@ -1,8 +1,12 @@
+import { vi } from "vitest";
 import { expect, it } from "@effect/vitest";
 import { Effect, Exit } from "effect";
 import type { MutationRequest } from "../../src/lib/editor/domain.ts";
 import { loadFixture, tinyFixture } from "./fixture.ts";
 import { makeHistorySession } from "../../src/lib/editor/history.ts";
+
+// Retain the engine suite's budget for full-save codecs and worker round trips.
+vi.setConfig({ testTimeout: 15_000 });
 
 const money = (value: number): MutationRequest => ({
 	type: "money",
@@ -20,8 +24,8 @@ it.effect("undo and redo restore a compound action as one entry", () =>
 		] satisfies MutationRequest[];
 		const after = yield* session.execute(actions, "Restore progress");
 		expect(after.entries.length).toBe(1);
-		expect(after.entries[0].actions).toEqual(actions);
-		expect(after.entries[0].intent.label).toBe("Restore progress");
+		expect(after.entries[0]?.actions).toEqual(actions);
+		expect(after.entries[0]?.intent.label).toBe("Restore progress");
 		expect((yield* session.undo).document).toEqual(baseline);
 		expect((yield* session.redo).document).toEqual(after.document);
 	}),
@@ -97,8 +101,8 @@ it.effect("quiet reorder remains undoable and inspectable in net review", () =>
 			{ type: "reorder", ownerId: "1", order: [2, 1, 0] },
 		]);
 		const review = yield* session.review;
-		expect(review.entries[0].intent.review).toBe("compact");
-		expect(review.entries[0].forward.length).toBeGreaterThan(0);
+		expect(review.entries[0]?.intent.review).toBe("compact");
+		expect(review.entries[0]?.forward.length).toBeGreaterThan(0);
 		expect(review.net.length).toBeGreaterThan(0);
 		expect((yield* session.undo).document).toEqual(baseline);
 	}),

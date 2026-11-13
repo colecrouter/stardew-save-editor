@@ -22,6 +22,6 @@
 		"tests/**/*.ts",
 		"tests/**/*.svelte"
 	],
-	// The independent engine package owns its native Node and Effect test checks.
-	"exclude": ["tests/engine/**", "node_modules/**"]
+	// All application and engine tests share this scope and the root installation.
+	"exclude": ["node_modules/**"]
 }

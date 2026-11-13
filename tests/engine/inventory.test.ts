@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 import { expect, it } from "@effect/vitest";
 import { Effect } from "effect";
 import { get, type Readable } from "svelte/store";
@@ -5,6 +6,9 @@ import { exportDocument, loadFixture, parser } from "./fixture.ts";
 import { makeAtomInventory } from "./inventory-atoms.ts";
 import { type InventoryModel, openInventory } from "./inventory-model.ts";
 import { makeStoreInventory } from "./inventory-stores.ts";
+
+// Retain the engine suite's budget for full-save codecs and worker round trips.
+vi.setConfig({ testTimeout: 15_000 });
 
 async function until(check: () => boolean) {
 	for (let attempt = 0; attempt < 100; attempt++) {
@@ -88,7 +92,7 @@ for (const [name, factory] of [
 				);
 				const state = yield* opened.session.snapshot;
 				expect(state.cursor).toBe(1);
-				expect(state.entries[0].actions[0].type).toBe("item-stack");
+				expect(state.entries[0]?.actions[0]?.type).toBe("item-stack");
 				expect(state.document.SaveGame.player.items[0]).toMatchObject({
 					stack: 7,
 					customModData: { keep: "007" },
@@ -103,9 +107,9 @@ for (const [name, factory] of [
 				);
 				model.reverse();
 				yield* Effect.promise(() =>
-					until(() => get(model.items)[0].name === "Empty"),
+					until(() => get(model.items)[0]?.name === "Empty"),
 				);
-				expect((yield* opened.session.snapshot).entries[1].intent.review).toBe(
+				expect((yield* opened.session.snapshot).entries[1]?.intent.review).toBe(
 					"compact",
 				);
 			}),
@@ -208,7 +212,7 @@ for (const [name, factory] of [
 					},
 				]);
 				yield* Effect.promise(() =>
-					until(() => get(opened.model.items)[1].stack === 60),
+					until(() => get(opened.model.items)[1]?.stack === 60),
 				);
 				expect(selectedNotifications).toBe(selectedBefore);
 				stopSelected();

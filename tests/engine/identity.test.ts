@@ -1,15 +1,22 @@
+import { vi } from "vitest";
 import { stringifySavedData } from "../../src/lib/editor/saved-data.ts";
 import { expect, it } from "@effect/vitest";
 import { Effect, Exit } from "effect";
 import { makeHistorySession } from "../../src/lib/editor/history.ts";
 import { inventoryFixture } from "./inventory-model.ts";
 
+// Retain the engine suite's budget for full-save codecs and worker round trips.
+vi.setConfig({ testTimeout: 15_000 });
+
 it.effect(
 	"placing, moving and removing opaque items preserve identity and raw fields through reversal",
 	() =>
 		Effect.gen(function* () {
 			const fixture = inventoryFixture();
-			if (!Array.isArray(fixture.SaveGame.farmhands))
+			if (
+				!Array.isArray(fixture.SaveGame.farmhands) ||
+				!fixture.SaveGame.farmhands[0]
+			)
 				throw new Error("Missing fixture guest");
 			fixture.SaveGame.farmhands[0].items!.push(null);
 			const session = yield* makeHistorySession(fixture);
@@ -23,7 +30,9 @@ it.effect(
 				{ type: "item-place", ownerId: "1", slot: 2, item: opaque },
 			]);
 			const placed = yield* session.snapshot;
-			const entityId = placed.identities["1"][2];
+			// A real identity is required so the move exercises handle-based targeting.
+			const entityId = placed.identities["1"]?.[2];
+			expect(entityId).toBeDefined();
 			yield* session.execute([
 				{
 					type: "item-move",
@@ -35,7 +44,7 @@ it.effect(
 				},
 			]);
 			const moved = yield* session.snapshot;
-			expect(moved.identities["2"][1]).toBe(entityId);
+			expect(moved.identities["2"]?.[1]).toBe(entityId);
 			expect(moved.document.SaveGame.player.items[2]).toBeNull();
 			if (!Array.isArray(moved.document.SaveGame.farmhands))
 				throw new Error("Missing guest");
@@ -43,11 +52,11 @@ it.effect(
 			yield* session.execute([
 				{ type: "item-remove", ownerId: "2", slot: 0, entityId },
 			]);
-			expect((yield* session.snapshot).identities["2"][1]).not.toBe(entityId);
+			expect((yield* session.snapshot).identities["2"]?.[1]).not.toBe(entityId);
 			yield* session.undo;
-			expect((yield* session.snapshot).identities["2"][1]).toBe(entityId);
+			expect((yield* session.snapshot).identities["2"]?.[1]).toBe(entityId);
 			yield* session.undo;
-			expect((yield* session.snapshot).identities["1"][2]).toBe(entityId);
+			expect((yield* session.snapshot).identities["1"]?.[2]).toBe(entityId);
 			yield* session.undo;
 			expect((yield* session.snapshot).document).toEqual(fixture);
 			yield* session.redo;
@@ -93,12 +102,15 @@ it.effect(
 			yield* session.execute([
 				{ type: "item-place", ownerId: "1", slot: 2, item: { custom: 1 } },
 			]);
-			const abandoned = (yield* session.snapshot).identities["1"][2];
+			const abandoned = (yield* session.snapshot).identities["1"]?.[2];
+			expect(abandoned).toBeDefined();
 			yield* session.undo;
 			yield* session.execute([
 				{ type: "item-place", ownerId: "1", slot: 2, item: { custom: 2 } },
 			]);
-			expect((yield* session.snapshot).identities["1"][2]).not.toBe(abandoned);
+			expect((yield* session.snapshot).identities["1"]?.[2]).not.toBe(
+				abandoned,
+			);
 			expect((yield* session.snapshot).entries).toHaveLength(1);
 		}),
 );
@@ -113,7 +125,12 @@ it.effect(
 			);
 			const session = yield* makeHistorySession(document);
 			const original = yield* session.snapshot;
-			const [first, second] = original.identities["1"];
+			// Both populated fixture slots must receive identities before reordering.
+			const identities = original.identities["1"];
+			if (!identities) throw new Error("Missing host identities");
+			const [first, second] = identities;
+			expect(first).toBeDefined();
+			expect(second).toBeDefined();
 			expect(first).not.toBe(second);
 			yield* session.execute([
 				{ type: "reorder", ownerId: "1", order: [1, 0, 2] },
@@ -123,7 +140,7 @@ it.effect(
 			expect(moved.identities["1"]).toEqual([
 				second,
 				first,
-				original.identities["1"][2],
+				original.identities["1"]?.[2],
 			]);
 			expect(moved.entries).toHaveLength(1);
 			expect((yield* session.review).net).toEqual([]);

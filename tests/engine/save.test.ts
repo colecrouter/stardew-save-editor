@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 import { fileURLToPath } from "node:url";
 import { NodeServices } from "@effect/platform-node";
 import { expect, it } from "@effect/vitest";
@@ -13,6 +14,9 @@ import {
 	SaveReadError,
 } from "../../src/lib/editor/save-service.ts";
 import { workerCodecLayer } from "./worker-service.ts";
+
+// Retain the engine suite's budget for full-save codecs and worker round trips.
+vi.setConfig({ testTimeout: 15_000 });
 
 const fixturePath = fileURLToPath(
 	new URL("../../tests/TestSave", import.meta.url),

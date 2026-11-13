@@ -35,26 +35,8 @@ jobs:
           node-version: 24
           cache: "npm"
       - run: npm ci
-      # The default suite excludes opt-in legacy editor regressions.
+      # The default suite includes engine contracts and excludes opt-in legacy regressions.
       - run: npm run test
-
-  # Standalone engine/native-Node checks survive retirement of the lab package.
-  engine:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 24
-          cache: npm
-          cache-dependency-path: |
-            package-lock.json
-            tests/engine/package-lock.json
-      - run: npm ci
-      - run: npm ci --prefix tests/engine
-      - run: npm run check --prefix tests/engine
-      - run: npm run effect:diagnostics --prefix tests/engine
-      - run: npm test --prefix tests/engine
 
   # Exercise native worker messaging and transfer semantics outside the DOM shim.
   browser:

@@ -1,6 +1,6 @@
+import { vi } from "vitest";
 import { expect, it } from "@effect/vitest";
 import { Effect } from "effect";
-import { vi } from "vitest";
 import { get, writable } from "svelte/store";
 import {
 	createDraft,
@@ -10,6 +10,9 @@ import {
 import { makeAtomInventory } from "./inventory-atoms.ts";
 import { openInventory } from "./inventory-model.ts";
 import { makeStoreInventory } from "./inventory-stores.ts";
+
+// Retain the engine suite's budget for full-save codecs and worker round trips.
+vi.setConfig({ testTimeout: 15_000 });
 
 const settle = () => new Promise((resolve) => setTimeout(resolve, 20));
 

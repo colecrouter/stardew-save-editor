@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 import { expect, it } from "@effect/vitest";
 import { Effect, Exit, Fiber } from "effect";
 import { readFile } from "node:fs/promises";
@@ -18,6 +19,9 @@ import { editorResources, openEditor, openDocument } from "./editor-model.ts";
 import { inventoryFixture } from "./inventory-model.ts";
 import { parser } from "./fixture.ts";
 import type { FixtureSave as Save } from "../helpers/editor-document.ts";
+
+// Retain the engine suite's budget for full-save codecs and worker round trips.
+vi.setConfig({ testTimeout: 15_000 });
 
 const fixtureBytes = () =>
 	readFile(new URL("../../tests/TestSave", import.meta.url));
@@ -119,7 +123,7 @@ it.effect(
 			if (retained.state) retained.state.document.SaveGame.player.money = 999;
 			const after = yield* session.snapshot;
 			expect(after.document.SaveGame.player.money).toBe(7);
-			expect(after.entries[0].annotations[0].tags).toEqual(["owned"]);
+			expect(after.entries[0]?.annotations[0]?.tags).toEqual(["owned"]);
 		}),
 );
 
@@ -188,14 +192,14 @@ it.effect(
 				),
 			);
 			expect(result.document.SaveGame.player.money).toBe(99);
-			expect(result.entries[0].actions).toEqual([]);
-			expect(result.entries[0].annotations).toEqual([
+			expect(result.entries[0]?.actions).toEqual([]);
+			expect(result.entries[0]?.annotations).toEqual([
 				{ label: "Gift money", tags: ["custom:gift"] },
 			]);
-			expect(result.entries[0].intent.label).toBe("Gift money");
+			expect(result.entries[0]?.intent.label).toBe("Gift money");
 			expect((yield* session.undo).document).toEqual(before.document);
-			expect((yield* session.redo).entries[0].annotations).toEqual(
-				result.entries[0].annotations,
+			expect((yield* session.redo).entries[0]?.annotations).toEqual(
+				result.entries[0]?.annotations,
 			);
 		}),
 );
@@ -309,7 +313,7 @@ it.effect(
 				),
 			);
 			expect(result.dropped).toBe(1);
-			expect(result.entries[0].intent.review).toBe("compact");
+			expect(result.entries[0]?.intent.review).toBe("compact");
 			expect((yield* session.review).net.map((patch) => patch.path)).toContain(
 				"/SaveGame/player/money",
 			);
@@ -331,7 +335,7 @@ it.effect(
 					yield* draft.replace(snapshot);
 				}),
 			);
-			expect(result.entries[0].intent).toMatchObject({
+			expect(result.entries[0]?.intent).toMatchObject({
 				label: "Unlabelled changes",
 				review: "standalone",
 			});
@@ -361,9 +365,9 @@ it("calendar and bundle domain programs commit and export as one annotated group
 		);
 		const state = await opened.model.snapshot();
 		expect(state.entries).toHaveLength(1);
-		expect(state.entries[0].annotations).toHaveLength(2);
+		expect(state.entries[0]?.annotations).toHaveLength(2);
 		expect(
-			state.entries[0].annotations.every((record) =>
+			state.entries[0]?.annotations.every((record) =>
 				record.tags?.includes("group:prepare"),
 			),
 		).toBe(true);

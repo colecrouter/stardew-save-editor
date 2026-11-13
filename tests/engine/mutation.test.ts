@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test, vi } from "vitest";
 import { Deferred, Effect, Exit } from "effect";
 import { diff, farmers, MutationError } from "../../src/lib/editor/domain.ts";
 import { makeEffectSession } from "./effect.ts";
@@ -12,9 +12,10 @@ import {
 } from "./fixture.ts";
 import { PlainSession } from "./plain.ts";
 
-// Node owns completion and failure reporting for registered tests. Let module
-// initialization finish rather than awaiting a case before later helpers exist.
-void test("both executors produce identical state and receipts on a full real save", async () => {
+// Retain the engine suite's budget for full-save codecs and worker round trips.
+vi.setConfig({ testTimeout: 15_000 });
+
+test("both executors produce identical state and receipts on a full real save", async () => {
 	const original = await loadFixture();
 	const before = structuredClone(original);
 	const plain = new PlainSession(original);
@@ -28,8 +29,8 @@ void test("both executors produce identical state and receipts on a full real sa
 				}
 				const state = yield* session.snapshot;
 				assert.equal(state.history.length, 3);
-				assert.equal(state.history[2].review, "compact");
-				assert.ok(state.history[2].changes.length > 0);
+				assert.equal(state.history[2]?.review, "compact");
+				assert.ok(state.history[2]?.changes.length > 0);
 				assert.equal(
 					farmers(state.document).every(
 						(f) => f.farmName === "Experiment Farm",
@@ -46,7 +47,7 @@ void test("both executors produce identical state and receipts on a full real sa
 	);
 });
 
-void test("compound failure after writes publishes neither partial state nor history", async () => {
+test("compound failure after writes publishes neither partial state nor history", async () => {
 	const document = tinyFixture();
 	const plain = new PlainSession(document);
 	const action = { type: "farm-name", value: "New" } as const;
@@ -69,7 +70,7 @@ void test("compound failure after writes publishes neither partial state nor his
 	);
 });
 
-void test("compound success updates all farmers once and duplicate IDs are rejected", async () => {
+test("compound success updates all farmers once and duplicate IDs are rejected", async () => {
 	const document = tinyFixture();
 	const plain = new PlainSession(document);
 	const action = { type: "farm-name", value: "Together" } as const;
@@ -79,7 +80,7 @@ void test("compound success updates all farmers once and duplicate IDs are rejec
 		["Together", "Together"],
 	);
 	assert.equal(expected.history.length, 1);
-	assert.equal(expected.history[0].changes.length, 2);
+	assert.equal(expected.history[0]?.changes.length, 2);
 	await Effect.runPromise(
 		Effect.scoped(
 			Effect.gen(function* () {
@@ -89,7 +90,10 @@ void test("compound success updates all farmers once and duplicate IDs are rejec
 		),
 	);
 	const duplicate = tinyFixture();
-	farmers(duplicate)[1].UniqueMultiplayerID = 1n;
+	// The tiny fixture must include a guest before testing duplicate farmer IDs.
+	const guest = farmers(duplicate)[1];
+	assert.ok(guest);
+	guest.UniqueMultiplayerID = 1n;
 	const invalid = { type: "money", farmerId: "1", value: 100 } as const;
 	assert.throws(
 		() => new PlainSession(duplicate).execute(invalid),
@@ -112,7 +116,7 @@ void test("compound success updates all farmers once and duplicate IDs are rejec
 	);
 });
 
-void test("invalid IDs, money, and permutations fail without changes in both implementations", async () => {
+test("invalid IDs, money, and permutations fail without changes in both implementations", async () => {
 	const document = tinyFixture();
 	const actions = [
 		{ type: "money", farmerId: "missing", value: 100 } as const,
@@ -137,7 +141,7 @@ void test("invalid IDs, money, and permutations fail without changes in both imp
 	);
 });
 
-void test("reorder preserves opaque, empty, and hidden entries; no-op creates no history", async () => {
+test("reorder preserves opaque, empty, and hidden entries; no-op creates no history", async () => {
 	const document = tinyFixture();
 	const plain = new PlainSession(document);
 	plain.execute({ type: "money", farmerId: "1", value: 10 });
@@ -168,7 +172,7 @@ void test("reorder preserves opaque, empty, and hidden entries; no-op creates no
 	);
 });
 
-void test("concurrent submissions serialize and closing a scope rejects future edits", async () => {
+test("concurrent submissions serialize and closing a scope rejects future edits", async () => {
 	const document = tinyFixture();
 	const escaped = await Effect.runPromise(
 		Effect.scoped(
@@ -205,7 +209,7 @@ void test("concurrent submissions serialize and closing a scope rejects future e
 	);
 });
 
-void test("changes outside the targeted farmer are absent, including farmhand money", () => {
+test("changes outside the targeted farmer are absent, including farmhand money", () => {
 	const document = tinyFixture();
 	const plain = new PlainSession(document);
 	const state = plain.execute({ type: "money", farmerId: "2", value: 40 });
@@ -216,7 +220,7 @@ void test("changes outside the targeted farmer are absent, including farmhand mo
 	);
 });
 
-void test("store contract emits synchronously, observes commits, and cleans up with session", async () => {
+test("store contract emits synchronously, observes commits, and cleans up with session", async () => {
 	let notifications = 0;
 	const session = await Effect.runPromise(
 		Effect.scoped(

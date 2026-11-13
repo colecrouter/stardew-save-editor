@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 import { expect, it } from "@effect/vitest";
 import { Effect, Exit } from "effect";
 import type { FixtureSave as Save } from "../helpers/editor-document.ts";
@@ -20,6 +21,9 @@ import type {
 	DomainValue,
 	SaveDocument,
 } from "../../src/lib/editor/domain.ts";
+
+// Retain the engine suite's budget for full-save codecs and worker round trips.
+vi.setConfig({ testTimeout: 15_000 });
 
 const gameOf = (document: SaveDocument) => document.SaveGame as unknown as Save;
 const calendarOf = (domain: DomainState) =>
@@ -61,7 +65,7 @@ it.effect(
 				expect(player.dayOfMonthForSaveGame).toBe(8);
 				expect(player.seasonForSaveGame).toBe(0);
 			}
-			expect(after.entries[0].intent.label).toContain("Spring 8");
+			expect(after.entries[0]?.intent.label).toContain("Spring 8");
 			const allowed = [
 				"/SaveGame/year",
 				"/SaveGame/dayOfMonth",
@@ -73,7 +77,7 @@ it.effect(
 				"/SaveGame/farmhands",
 			];
 			expect(
-				after.entries[0].forward.every((change) =>
+				after.entries[0]?.forward.every((change) =>
 					allowed.some(
 						(path) =>
 							change.path === path || change.path.startsWith(`${path}/`),
@@ -391,7 +395,7 @@ it.effect(
 				"Prepare farm",
 			);
 			expect(after.entries).toHaveLength(1);
-			expect(after.entries[0].actions).toHaveLength(3);
+			expect(after.entries[0]?.actions).toHaveLength(3);
 			expect(after.document.SaveGame.player.money).toBe(1234);
 			expect(calendarOf(after.domainState).tomorrow).toBe("Wind");
 			expect(after.domainState.otherFeature).toEqual(initial.otherFeature);

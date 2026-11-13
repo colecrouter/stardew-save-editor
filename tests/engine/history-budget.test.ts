@@ -1,9 +1,13 @@
+import { vi } from "vitest";
 import { malformedFixture } from "../helpers/editor-document.ts";
 import { stringifySavedData } from "../../src/lib/editor/saved-data.ts";
 import { expect, it } from "@effect/vitest";
 import { Effect, Exit } from "effect";
 import { makeHistorySession } from "../../src/lib/editor/history.ts";
 import { inventoryFixture } from "./inventory-model.ts";
+
+// Retain the engine suite's budget for full-save codecs and worker round trips.
+vi.setConfig({ testTimeout: 15_000 });
 
 const money = (value: number) =>
 	({ type: "money", farmerId: "1", value }) as const;

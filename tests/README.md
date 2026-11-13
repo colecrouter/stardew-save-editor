@@ -13,13 +13,10 @@
   It rebuilds ignored test output; no game installation is required.
 - `npm run check:tests`: native TypeScript and Svelte checks for application test
   files and component harnesses.
-- `npm ci --prefix tests/engine`, then `npm test --prefix tests/engine`: engine
-  contracts plus native Node import/codec checks. Both runners use Vitest 5; this
-  package remains independently installed so native engine checks retain their
-  own dependency boundary. The Node platform shared package is pinned to the
-  tested 4.0.6 API alongside Effect.
-- `npm run check --prefix tests/engine` and `npm run effect:diagnostics --prefix tests/engine`:
-  standalone engine typing and Effect diagnostics.
+- `npm test -- tests/engine`: engine contracts, codec preservation, and worker checks
+  in the root Vitest Node project, using the shared Effect dependency installation.
+- `npm run effect:diagnostics:tests`: Effect diagnostics for all application and
+  engine tests; `npm run check:tests` checks their shared TypeScript scope.
 
 Legacy test ownership is listed explicitly in `vite.config.ts`. Add new legacy-only
 files there so they stay opt-in; keep shared regression coverage outside that list.
@@ -31,8 +28,8 @@ scopes. The root `tsconfig.json` lets editors discover the app, test and tooling
 projects while leaving file ownership to those scopes. `tsconfig.app.json` checks browser
 application code; `tsconfig.tests.json`
 adds the test environment without introducing Node globals into the app scope.
-`tsconfig.node.json` covers build and development tooling. The independent engine
-runner keeps `tests/engine/tsconfig.json`.
+`tsconfig.node.json` covers build and development tooling. Engine tests belong to
+`tsconfig.tests.json` alongside the application tests.
 
 The root runner defines `node` and `svelte` projects. Node retains Vitest's default
 test discovery, including colocated tests and `.spec.ts` files; Svelte rendering
@@ -42,9 +39,9 @@ not render Svelte may use an explicit `@vitest-environment happy-dom` directive.
 Both projects load the decoded fixture baseline; only the Svelte project installs
 component cleanup, browser-worker simulation, and Kit page-state mocks.
 
-Shared fixture builders live in `tests/helpers/editor-document.ts`; Vite and Node
-retain separate public-save loaders. The application runner decodes the public save
-once in global setup, writes a temporary V8 snapshot (preserving bigint), and gives
+Shared fixture builders live in `tests/helpers/editor-document.ts`; engine tests
+read the public save from disk and share the same decoded baseline. The root
+runner decodes the public save once in global setup, writes a temporary V8 snapshot (preserving bigint), and gives
 each isolated file its own baseline. Every fixture request returns a fresh
 `structuredClone`; edited XML still goes through the real decoder. The snapshot
 is removed at teardown and is never committed. Vitest chooses worker concurrency from the available CPUs.
@@ -82,14 +79,14 @@ The app supplies `SaveProcessingBrowser`. Component/unit fixtures and CPU-only
 profiling select `SaveProcessingSync`; tests that only need a failure or pending
 operation can supply a mock layer. Engine application integration tests select
 `SaveProcessingNode` from `tests/helpers/save-processing-node.ts`, exercising real
-worker threads with the same RPC client and handlers as the browser. Keep the Node
-adapter beside these shared helpers so it resolves the app's Effect installation,
-rather than mixing the engine test package's separate runtime into the transport.
+worker threads with the same RPC client and handlers as the browser. The Node
+adapter lives beside these shared helpers and uses the same Effect installation
+as the application and engine tests.
 
 Engine comparison executors and store/Atom harnesses are test-only reference
 fixtures, not alternate application runtimes. Their assertions remain until
-superseded deliberately. Native Node tests run without Vite and catch browser-only
-imports; happy-dom cannot replace them. No coverage percentage is currently measured.
+superseded deliberately. Engine tests run in the Vitest Node project; worker
+transport tests use real Node worker threads. No coverage percentage is currently measured.
 
 For production browser smoke, build and run preview separately, then:
 

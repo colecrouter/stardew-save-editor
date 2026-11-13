@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test, vi } from "vitest";
 import { Effect } from "effect";
 import { makeHistorySession } from "../../src/lib/editor/history.ts";
 import type { FixtureSave as Save } from "../helpers/editor-document.ts";
@@ -11,9 +11,10 @@ import { CalendarSeason } from "../../src/lib/calendarSeason.ts";
 import { getStatValue } from "../../src/lib/editor/player-stats.ts";
 import { loadFixture } from "./fixture.ts";
 
-// Node owns completion and failure reporting for registered tests. Let module
-// initialization finish rather than awaiting a case before later helpers exist.
-void test("the complete Effect calendar history graph runs under native Node", async () => {
+// Retain the engine suite's budget for full-save codecs and worker round trips.
+vi.setConfig({ testTimeout: 15_000 });
+
+test("the complete Effect calendar history graph supports editing and undo", async () => {
 	const original = await loadFixture();
 	await Effect.runPromise(
 		Effect.scoped(
@@ -32,7 +33,7 @@ void test("the complete Effect calendar history graph runs under native Node", a
 
 const gameOf = (document: { SaveGame: unknown }) => document.SaveGame as Save;
 
-void test("calendar preparation runs on native Node and stages every farmer's date without changing its source", async () => {
+test("calendar preparation stages every farmer's date without changing its source", async () => {
 	const source = await loadFixture();
 	const before = structuredClone(source);
 	const game = source.SaveGame as unknown as Save;
@@ -52,7 +53,7 @@ void test("calendar preparation runs on native Node and stages every farmer's da
 		assert.equal(player?.yearForSaveGame, 2);
 });
 
-void test("native calendar preparation retains target bindings across document cloning and array reordering", async () => {
+test("calendar preparation retains target bindings across document cloning and array reordering", async () => {
 	const source = await loadFixture();
 	const game = source.SaveGame as unknown as Save;
 	const initial = initializeCalendarDocument(game);

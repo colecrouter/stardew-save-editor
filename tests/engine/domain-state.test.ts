@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 import { stringifySavedData } from "../../src/lib/editor/saved-data.ts";
 import { expect, it } from "@effect/vitest";
 import { Effect, Exit } from "effect";
@@ -14,6 +15,9 @@ import {
 	EditorOperations,
 	type Operations,
 } from "../../src/lib/editor/operations.ts";
+
+// Retain the engine suite's budget for full-save codecs and worker round trips.
+vi.setConfig({ testTimeout: 15_000 });
 
 const money = (value: number) =>
 	({ type: "money", farmerId: "1", value }) as const;
@@ -118,8 +122,8 @@ it.effect(
 			const before = yield* session.snapshot;
 			const after = yield* session.execute([money(10)]);
 			expect(after.entries).toHaveLength(1);
-			expect(after.entries[0].forward).toEqual([]);
-			expect(after.entries[0].intent.label).toBe("Remember ordinary weather");
+			expect(after.entries[0]?.forward).toEqual([]);
+			expect(after.entries[0]?.intent.label).toBe("Remember ordinary weather");
 			expect((yield* session.review).net).toEqual([]);
 			expect((yield* session.undo).domainState).toEqual(ordinary);
 			expect(
@@ -183,7 +187,7 @@ it.effect(
 			const current = yield* session.snapshot;
 			expect(current.document.SaveGame.player.money).toBe(50);
 			expect(current.domainState).toEqual(rainy);
-			expect(current.entries[0].domainAfter).toEqual(rainy);
+			expect(current.entries[0]?.domainAfter).toEqual(rainy);
 		}).pipe(Effect.provideService(EditorOperations, adapter));
 	},
 );

@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 import { readFile } from "node:fs/promises";
 import { deflateSync } from "node:zlib";
 import { createHash } from "node:crypto";
@@ -7,6 +8,9 @@ import { openEditor } from "../../src/lib/editor/editor-model.ts";
 import { SaveProcessor } from "../../src/lib/editor/save-processing.ts";
 import { parser } from "../helpers/editor-document.ts";
 import { SaveProcessingNode } from "../helpers/save-processing-node.ts";
+
+// Retain the engine suite's budget for full-save codecs and worker round trips.
+vi.setConfig({ testTimeout: 15_000 });
 
 const input = () => readFile(new URL("../TestSave", import.meta.url));
 

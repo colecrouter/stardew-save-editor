@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { Effect, Fiber, Stream } from "effect";
-import { expect, it } from "vitest";
+import { expect, it, vi } from "vitest";
 import pako from "pako";
 import {
 	decodeByteStream,
@@ -11,6 +11,9 @@ import { SaveCodec, SaveCodecLive } from "../../src/lib/editor/save-service.ts";
 import { saveBlobBytes } from "../../src/lib/editor/save-blob-stream.ts";
 import { openEditorBlob } from "../../src/lib/editor/editor-model.ts";
 import { SaveProcessingNode } from "../helpers/save-processing-node.ts";
+
+// Retain the engine suite's budget for full-save codecs and worker round trips.
+vi.setConfig({ testTimeout: 15_000 });
 
 const codec = Effect.runSync(Effect.provide(SaveCodec, SaveCodecLive));
 const decode = codec.decodeBlob!;

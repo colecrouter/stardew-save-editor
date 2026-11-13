@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 import { expect, it } from "@effect/vitest";
 import { Data, Effect, Exit } from "effect";
 import {
@@ -5,6 +6,9 @@ import {
 	recordAnnotatedOperation,
 	withReviewMetadata,
 } from "../../src/lib/editor/transaction-annotations.ts";
+
+// Retain the engine suite's budget for full-save codecs and worker round trips.
+vi.setConfig({ testTimeout: 15_000 });
 
 class DonationRejected extends Data.TaggedError("DonationRejected")<{
 	readonly reason: string;

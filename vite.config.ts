@@ -185,7 +185,6 @@ export default defineConfig(({ mode }) => ({
 	test: {
 		// A dedicated mode keeps the opt-in command portable across shells. Both
 		// selections retain Vitest's built-in exclusions and the same runtime setup.
-		include: mode === "legacy-test" ? legacyTests : configDefaults.include,
 		exclude: [
 			...configDefaults.exclude,
 			...(mode === "legacy-test" ? [] : legacyTests),
@@ -198,8 +197,9 @@ export default defineConfig(({ mode }) => ({
 				test: {
 					name: "node",
 					environment: "node",
-					include: configDefaults.include,
-					// Preserve runner exclusions, including the independent engine installation.
+					include:
+						mode === "legacy-test" ? legacyTests : configDefaults.include,
+					// Keep rendering tests in the Svelte project and preserve runner exclusions.
 					exclude: [...configDefaults.exclude, "**/*.svelte.test.ts"],
 				},
 			},
@@ -208,7 +208,12 @@ export default defineConfig(({ mode }) => ({
 				test: {
 					name: "svelte",
 					environment: "happy-dom",
-					include: ["**/*.svelte.test.ts"],
+					// Keep discovery in each project: inherited include arrays merge,
+					// which would otherwise collect Node tests in happy-dom as well.
+					include:
+						mode === "legacy-test"
+							? legacyTests.filter((file) => file.endsWith(".svelte.test.ts"))
+							: ["**/*.svelte.test.ts"],
 					// DOM cleanup and simulated browser workers belong only to rendering tests.
 					setupFiles: [
 						"@vitest/web-worker",

@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 import { expect, it } from "@effect/vitest";
 import { Effect, Exit, Layer } from "effect";
 import { MutationError } from "../../src/lib/editor/domain.ts";
@@ -7,6 +8,9 @@ import {
 	coreOperations,
 	EditorOperations,
 } from "../../src/lib/editor/operations.ts";
+
+// Retain the engine suite's budget for full-save codecs and worker round trips.
+vi.setConfig({ testTimeout: 15_000 });
 
 it.effect(
 	"actual patches expose adapter writes even when receipts omit or misdescribe them",
@@ -26,7 +30,7 @@ it.effect(
 			const after = yield* session.execute([
 				{ type: "money", farmerId: "1", value: 78 },
 			]);
-			expect(after.entries[0].intent).toMatchObject({
+			expect(after.entries[0]?.intent).toMatchObject({
 				label: "Unlabelled changes",
 				review: "standalone",
 			});

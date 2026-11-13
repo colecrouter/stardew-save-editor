@@ -135,9 +135,9 @@ and use the workspace TypeScript SDK; native TypeScript checking uses the separa
 Effect code, also inspect the complete diagnostic stream:
 
 ```bash
-npm run effect:diagnostics -- --project tests/engine/tsconfig.json
-npm run check --prefix tests/engine
-npm test --prefix tests/engine
+npm run effect:diagnostics:tests
+npm run check:tests
+npm test -- tests/engine
 ```
 
 Warnings and suggestions need contextual review: application boundaries may
@@ -157,8 +157,8 @@ See [test commands and ownership](tests/README.md).
 The app and its component tests share one npm installation because they use the
 same application aliases and runtime dependencies. Separate tsconfigs provide
 the required type boundaries without introducing packages solely for checking.
-`tests/engine` retains its own package and lockfile to verify the engine through
-native Node imports as well as its Effect test adapter.
+Engine contracts in `tests/engine` run in the root Vitest Node project, including
+tests that use the Effect test adapter and real Node worker threads.
 
 ### Svelte checker compatibility
 

@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 import type { FixtureSave as Save } from "../helpers/editor-document.ts";
 import type { SaveDocument } from "../../src/lib/editor/domain.ts";
 import { expect, it } from "@effect/vitest";
@@ -5,6 +6,9 @@ import { readFile } from "node:fs/promises";
 import { get } from "svelte/store";
 import { openDocument } from "./editor-model.ts";
 import { parser } from "./fixture.ts";
+
+// Retain the engine suite's budget for full-save codecs and worker round trips.
+vi.setConfig({ testTimeout: 15_000 });
 
 type FullDocument = SaveDocument & { SaveGame: Save };
 

@@ -1,5 +1,12 @@
 import data from "$generated/pets.json";
-import type { PetAppearanceData } from "../../../codegen/pets.ts";
+
+// The asset pipeline owns this compact catalog. Keep its UI contract beside
+// the consuming feature rather than importing generator implementation code.
+export interface PetAppearanceData {
+	petType: string;
+	breedId: string;
+	icon: { sheet: string; x: number; y: number };
+}
 
 // Use the complete pair as a selector value. One discrete choice updates both
 // saved fields atomically, so changing species cannot leave an invalid breed.
@@ -13,13 +20,3 @@ export const petAppearances = (data satisfies PetAppearanceData[]).map(
 		label: `${entry.petType} — breed ${entry.breedId}`,
 	}),
 );
-
-/** The generated codec keeps breed IDs as strings. Accept legacy numeric
- * in-memory values for display without rewriting them during inspection. */
-export function savedBreedId(value: unknown): string | undefined {
-	return typeof value === "string"
-		? value
-		: typeof value === "number" && Number.isSafeInteger(value)
-			? String(value)
-			: undefined;
-}

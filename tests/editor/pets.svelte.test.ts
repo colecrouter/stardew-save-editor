@@ -72,12 +72,12 @@ it(
 );
 
 it(
-	"shows unsupported pet fields as read-only and explains why",
+	"disables a missing name while keeping independent pet fields editable",
 	{ timeout: 15000 },
 	async () => {
 		const document = withPets(parser.parse(fixtureXml));
 		const pet = fixturePet(document);
-		pet["$type"] = "CustomPet";
+		delete pet.name;
 		const opened = await renderTestWorkspace(document, "Pets");
 		try {
 			const before = await opened.model.snapshot();
@@ -90,9 +90,9 @@ it(
 						name: "Appearance",
 					})[0] as HTMLSelectElement
 				).disabled,
-			).toBe(true);
+			).toBe(false);
 			expect(
-				opened.page.getAllByText("This custom pet class is read-only.").length,
+				opened.page.getAllByText("The saved name is unsupported.").length,
 			).toBeGreaterThan(0);
 			expect((await opened.model.snapshot()).document).toEqual(before.document);
 		} finally {
@@ -160,11 +160,11 @@ it(
 );
 
 it(
-	"shows an unreadable appearance without implying the first vanilla choice is selected",
+	"shows a missing appearance without implying the first vanilla choice is selected",
 	{ timeout: 15000 },
 	async () => {
 		const document = withPets(parser.parse(fixtureXml));
-		fixturePet(document).whichBreed = { future: "opaque" };
+		delete fixturePet(document).whichBreed;
 		const opened = await renderTestWorkspace(document, "Pets");
 		try {
 			const selector = opened.page.getAllByRole("combobox", {

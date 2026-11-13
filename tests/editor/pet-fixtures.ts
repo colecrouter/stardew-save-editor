@@ -1,23 +1,40 @@
 import type { SaveDocument } from "../../src/lib/editor/domain.ts";
 import { tinyFixture } from "./fixtures.ts";
-import { inspectPets } from "../../src/lib/editor/pet-data.ts";
+import type { SavedPet } from "../../src/lib/editor/pet-data.ts";
 
 export const catId = "8a408e26-a044-4cba-ade7-1b53565265d0";
 export const dogId = "8a408e26-a044-4cba-ade7-1b53565265d1";
 
-/** Resolve a known fixture pet before deliberately corrupting its identity or
- * fields. Missing setup must fail the test, not silently skip a mutation. */
-export function fixturePet(document: SaveDocument, id = catId) {
-	const pet = inspectPets(document).pets.find((entry) => entry.id === id);
-	if (!pet) throw new Error(`Missing fixture pet ${id}`);
-	return pet.raw;
+/** Fixture access uses its authored layout rather than production discovery.
+ * A discovery bug must fail feature assertions, not hide the test subject. */
+export function fixtureFarm(document: SaveDocument) {
+	const farm = document.SaveGame.locations?.[0];
+	if (farm?.$type !== "StardewValley.Farm")
+		throw new Error("Missing fixture farm");
+	return farm;
+}
+
+export function fixturePet(document: SaveDocument, id = catId): SavedPet {
+	const farm = fixtureFarm(document);
+	const cabin = farm.buildings?.[1];
+	const indoors =
+		cabin && cabin.$type !== "$unknown" ? cabin.indoors : undefined;
+	const pet =
+		id === catId
+			? farm.characters?.[0]
+			: indoors && indoors.$type !== "$unknown"
+				? indoors.characters?.[0]
+				: undefined;
+	if (pet?.$type !== "StardewValley.Characters.Pet" || pet.guid !== id)
+		throw new Error(`Missing fixture pet ${id}`);
+	return pet;
 }
 
 // Keep GUID, bowl assignment and daily player records distinct. The generated
 // model uses arrays, bigint dictionary keys and null for a missing hat/interior.
-export function savedPet(guid = catId, name = "Miso") {
+export function savedPet(guid = catId, name = "Miso"): SavedPet {
 	return {
-		$type: "StardewValley.Characters.Pet" as const,
+		$type: "StardewValley.Characters.Pet",
 		guid,
 		name,
 		petType: "Cat",

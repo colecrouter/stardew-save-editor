@@ -1,26 +1,26 @@
-import type { SaveDocument } from "./domain.ts";
-import { record } from "./plain-data.ts";
+import type { Location, SaveDocument } from "./domain.ts";
+import type { T_StardewValley_Characters_Pet } from "../../../generated/save-format/save.ts";
 
-import {
-	petAppearanceKey,
-	petAppearances,
-	savedBreedId,
-} from "./pet-appearance.ts";
-import type { PetAppearanceData } from "../../../codegen/pets.ts";
+import { petAppearanceKey, petAppearances } from "./pet-appearance.ts";
+import type { PetAppearanceData } from "./pet-appearance.ts";
 
-// The generated codec exposes wrapped XML collections as arrays. Absent lists
-// are empty; malformed extension data makes identity discovery unsafe to edit.
-function collection(raw: unknown) {
-	const entries: unknown[] = Array.isArray(raw) ? raw : [];
-	return { entries, supported: raw === undefined || Array.isArray(raw) };
-}
+// Known pet subclasses share generated fields. The editor currently writes only
+// the concrete Pet class; opaque subclasses remain outside this representation.
+type KnownPet = Exclude<
+	T_StardewValley_Characters_Pet,
+	{ readonly $type: "$unknown" }
+>;
+export type SavedPet = Extract<
+	KnownPet,
+	{ readonly $type: "StardewValley.Characters.Pet" }
+>;
 
 // Pet.guid is the persistent identity matched by the saved PetBowl.petGuid. Names and list
 // positions are not identities: multiple pets can share a name or move indoors.
 const guidPattern =
 	/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const petId = (value: unknown) =>
-	typeof value === "string" &&
+const petId = (value: string | undefined) =>
+	value !== undefined &&
 	guidPattern.test(value) &&
 	value !== "00000000-0000-0000-0000-000000000000"
 		? value.toLowerCase()
@@ -28,7 +28,7 @@ const petId = (value: unknown) =>
 
 /** Only the concrete generated Pet class has the field semantics edited here.
  * Opaque subclasses retain their XML and never receive writable identities. */
-export const supportsPetRecord = (raw: Record<string, unknown>) =>
+export const supportsPetRecord = (raw: KnownPet): raw is SavedPet =>
 	raw.$type === "StardewValley.Characters.Pet";
 
 export interface PetView {
@@ -52,7 +52,7 @@ export interface PetView {
 }
 
 interface LocatedPet {
-	raw: Record<string, unknown>;
+	raw: KnownPet;
 	path: string;
 	location: string;
 	id?: string;
@@ -64,57 +64,52 @@ export function inspectPets(document: SaveDocument) {
 	const pets: LocatedPet[] = [];
 	let supported = true;
 	const seen = new WeakSet<object>();
-	function visit(value: unknown, path: string) {
-		// An unreadable location could hide a second copy of a pet GUID. Inspection
-		// can still show known pets, but mutations must not guess which copy wins.
-		if (!record(value) || value.$type === "$unknown" || seen.has(value)) {
+	function visit(value: Location, path: string) {
+		// Opaque locations could hide another copy of a GUID. Repeated objects
+		// likewise make traversal ambiguous, so keep discovered pets read-only.
+		if (value.$type === "$unknown" || seen.has(value)) {
 			supported = false;
 			return;
 		}
 		seen.add(value);
-		const location =
-			typeof value.name === "string" ? value.name : "Unknown location";
-		const characters = collection(value.characters);
-		supported &&= characters.supported;
-		for (const [index, raw] of characters.entries.entries()) {
-			// Null slots are valid codec output. Opaque XML could hide a second
-			// GUID, so known pets remain visible but edits must be disabled.
+		const location = value.name ?? "Unknown location";
+		// The codec has already validated list shapes and scalar types. Null
+		// slots represent saved nil entries and do not contribute an identity.
+		for (const [index, raw] of (value.characters ?? []).entries()) {
 			if (raw === null) continue;
-			if (record(raw) && raw.$type === "$unknown") supported = false;
-			if (!record(raw)) {
+			if (raw.$type === "$unknown") {
 				supported = false;
 				continue;
 			}
-			// A custom subclass with pet fields remains visible, but only the known
-			// Pet serialization is writable. Other NPCs are left completely alone.
-			if (supportsPetRecord(raw) || Object.hasOwn(raw, "petType"))
+			if (
+				raw.$type === "StardewValley.Characters.Pet" ||
+				raw.$type === "StardewValley.Characters.Cat" ||
+				raw.$type === "StardewValley.Characters.Dog"
+			) {
 				pets.push({
 					raw,
 					path: `${path}/characters/${index}`,
 					location,
 					id: petId(raw.guid),
 				});
+			}
 		}
-		const buildings = collection(value.buildings);
-		supported &&= buildings.supported;
-		for (const [index, building] of buildings.entries.entries()) {
+		for (const [index, building] of (value.buildings ?? []).entries()) {
 			if (building === null) continue;
-			if (record(building) && building.$type === "$unknown") supported = false;
-			if (!record(building)) {
+			// Unknown buildings can contain an interior unavailable to typed
+			// traversal. Never assume that interior cannot contain another pet.
+			if (building.$type === "$unknown") {
 				supported = false;
 				continue;
 			}
-			const indoors = building.indoors;
-			// The codec represents XML-nil interiors as null for outdoor-only buildings.
-			if (indoors === undefined || indoors === null || indoors === "") continue;
-			visit(indoors, `${path}/buildings/${index}/indoors`);
+			if (building.indoors != null)
+				visit(building.indoors, `${path}/buildings/${index}/indoors`);
 		}
 	}
-	const locations = collection(document.SaveGame.locations);
-	supported &&= locations.supported;
-	for (const [index, location] of locations.entries.entries()) {
-		if (location === null) continue;
-		visit(location, `/SaveGame/locations/${index}`);
+	for (const [index, location] of (
+		document.SaveGame.locations ?? []
+	).entries()) {
+		if (location !== null) visit(location, `/SaveGame/locations/${index}`);
 	}
 	const counts = new Map<string, number>();
 	// GUIDs compare without letter case. A duplicate is ambiguous even when the
@@ -124,8 +119,8 @@ export function inspectPets(document: SaveDocument) {
 	return { pets, supported, counts };
 }
 
-/** Read defaults are display-only; missing or malformed saved fields are never
- * filled in during projection. A supported field can be edited independently. */
+/** Missing optional fields receive display-only defaults. Projection never
+ * fills them in, and independent fields keep their own editing availability. */
 export function readPets(document: SaveDocument): PetView[] {
 	const graph = inspectPets(document);
 	return graph.pets.map(({ raw, id, path, location }) => {
@@ -134,13 +129,12 @@ export function readPets(document: SaveDocument): PetView[] {
 			: !id || graph.counts.get(id) !== 1
 				? "This pet has a missing or duplicated saved identity."
 				: !supportsPetRecord(raw)
-					? "This custom pet class is read-only."
+					? "This pet class is read-only."
 					: undefined;
 		// A readable custom pair stays selected until the user deliberately
-		// replaces it. Missing/opaque components cannot be normalized safely.
-		const breed = savedBreedId(raw.whichBreed);
-		const type =
-			typeof raw.petType === "string" && raw.petType ? raw.petType : undefined;
+		// replaces it. Missing components cannot be filled in implicitly.
+		const breed = raw.whichBreed || undefined;
+		const type = raw.petType || undefined;
 		const appearanceValue =
 			type && breed ? petAppearanceKey(type, breed) : undefined;
 		const appearance = petAppearances.find(
@@ -149,13 +143,13 @@ export function readPets(document: SaveDocument): PetView[] {
 		return {
 			key: id && graph.counts.get(id) === 1 ? id : path,
 			id,
-			name: typeof raw.name === "string" ? raw.name : "Unnamed pet",
-			nameEditable: typeof raw.name === "string",
-			type: typeof raw.petType === "string" ? raw.petType : "Unknown pet type",
+			name: raw.name ?? "Unnamed pet",
+			nameEditable: raw.name !== undefined,
+			type: raw.petType ?? "Unknown pet type",
 			breed: breed ?? "Unknown",
 			location,
 			friendship:
-				typeof raw.friendshipTowardFarmer === "number" &&
+				raw.friendshipTowardFarmer !== undefined &&
 				Number.isSafeInteger(raw.friendshipTowardFarmer)
 					? raw.friendshipTowardFarmer
 					: undefined,

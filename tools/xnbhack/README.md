@@ -47,6 +47,21 @@ submodule so our tooling does not modify upstream source.
 The generator is split by domain: `CatalogGenerator` coordinates item catalogs,
 `ArtisanCatalog` derives preserved goods, `GiftCatalog` applies gift precedence,
 `QuestCatalog` resolves recipes and quest tokens, and `WorldCatalog` handles
-buildings, textures and map weather contexts. `npm run test:asset-dump` tests the
+buildings, textures and map weather contexts. `PetCatalog` extracts pet appearance
+pairs and their icon rectangles. `npm run test:asset-dump` tests the
 production code using language-neutral regression fixtures and filesystem
 publication scenarios without a game installation.
+
+## Pet appearance assets
+
+The normal dump reads `Data/Pets` and emits `generated/pets.json`, while
+`WorldCatalog` copies `Cursors.png` and `Cursors_1_6.png`. The catalog includes
+all cat, dog and turtle breeds independently of starter/adoption eligibility.
+Breed IDs remain opaque strings. Fixture cases exercise the production C#
+extractor; application tests check the committed icon rectangles against the sheets.
+
+The initial pet lookup and new cursor sheet came from pinned unmodified 1.6.15
+[data](https://github.com/wsir78933-rgb/stardew-planner/blob/984ba4a77ace42ec5c3dbf0b75ea23472b6f9b6d/public/game-assets/1.6.15/data/Pets.json)
+and [sheet](https://github.com/wsir78933-rgb/stardew-planner/blob/984ba4a77ace42ec5c3dbf0b75ea23472b6f9b6d/public/game-assets/1.6.15/tilesheets/Cursors_1_6.png)
+mirrors. Game-derived data and artwork belong to ConcernedApe and follow the
+repository's [game-asset policy](../../README.md#legal).

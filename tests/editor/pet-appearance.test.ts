@@ -1,18 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { Effect, Result } from "effect";
 import { makeHistorySession } from "../../src/lib/editor/history.ts";
-import { inspectPets, readPets } from "../../src/lib/editor/pet-data.ts";
-import { petAppearances } from "../../src/lib/editor/pet-appearance.ts";
+import { readPets } from "../../src/lib/editor/pet-data.ts";
 import { setPet, type PetChange } from "../../src/lib/editor/pet-operations.ts";
 import { projectReview } from "../../src/lib/editor/review-projection.ts";
 import { TransactionDraft } from "../../src/lib/editor/transaction-draft.ts";
-import {
-	catId,
-	dogId,
-	withPets,
-	fixturePet,
-	savedPet,
-} from "./pet-fixtures.ts";
+import { catId, dogId, withPets, fixturePet } from "./pet-fixtures.ts";
 import { exportDocument, fixtureXml, parser } from "./fixtures.ts";
 
 const run = <A, E>(
@@ -25,39 +18,47 @@ const appearance = (petType: string, breedId: string): PetChange => ({
 });
 
 describe("pet appearance operations", () => {
-	it.each(petAppearances)(
-		"supports $label without changing linked state",
-		(choice) =>
-			run(
-				Effect.gen(function* () {
-					const document = withPets();
-					const session = yield* makeHistorySession(document);
-					const before = yield* session.snapshot;
-					yield* session.transact(
-						setPet(appearance(choice.petType, choice.breedId)),
-					);
-					const after = yield* session.snapshot;
-					const expected = structuredClone(before.document);
-					if (choice.petType !== "Cat" || choice.breedId !== "0") {
-						const raw = fixturePet(expected);
-						raw.petType = choice.petType;
-						if (choice.breedId !== "0") raw.whichBreed = choice.breedId;
-					}
-					// Whole-document equality includes the actual PetBowl.petGuid, hat,
-					// behavior, daily friendship state and the second same-name pet.
-					expect(after.document).toEqual(expected);
-					expect(parser.parse(exportDocument(after.document))).toEqual(
-						parser.parse(exportDocument(expected)),
-					);
-					expect(
-						readPets(parser.parse(exportDocument(after.document)))[0],
-					).toMatchObject({
-						type: choice.petType,
-						breed: choice.breedId,
-						appearance: { known: true },
-					});
-				}),
-			),
+	// List the supported game contract independently of the production lookup:
+	// accidentally removing a catalog entry must fail a test, not remove a case.
+	it.each([
+		["Cat", "0"],
+		["Cat", "1"],
+		["Cat", "2"],
+		["Cat", "3"],
+		["Cat", "4"],
+		["Dog", "0"],
+		["Dog", "1"],
+		["Dog", "2"],
+		["Dog", "3"],
+		["Dog", "4"],
+		["Turtle", "0"],
+		["Turtle", "1"],
+	])("supports %s breed %s without changing linked state", (petType, breedId) =>
+		run(
+			Effect.gen(function* () {
+				// Start at the real import boundary so codec-owned nil/default fields
+				// are established before testing exact preservation on reimport.
+				const document = parser.parse(exportDocument(withPets()));
+				const session = yield* makeHistorySession(document);
+				const before = yield* session.snapshot;
+				yield* session.transact(setPet(appearance(petType, breedId)));
+				const after = yield* session.snapshot;
+				const expected = structuredClone(before.document);
+				const raw = fixturePet(expected);
+				raw.petType = petType;
+				raw.whichBreed = breedId;
+				// Whole-document equality includes the actual PetBowl.petGuid, hat,
+				// behavior, daily friendship state and the second same-name pet.
+				expect(after.document).toEqual(expected);
+				const reimported = parser.parse(exportDocument(after.document));
+				expect(reimported).toEqual(expected);
+				expect(readPets(reimported)[0]).toMatchObject({
+					type: petType,
+					breed: breedId,
+					appearance: { known: true },
+				});
+			}),
+		),
 	);
 
 	it("changes species and breed atomically, reviews both, and restores exact Undo/Redo", () =>
@@ -159,16 +160,15 @@ describe("pet appearance operations", () => {
 			}),
 		));
 
-	it.each(["opaque", "duplicate", "subclass"])(
+	it.each(["missing breed", "duplicate", "missing type"])(
 		"rejects an appearance change on a %s target",
 		(kind) =>
 			run(
 				Effect.gen(function* () {
 					const document = withPets();
-					if (kind === "opaque")
-						fixturePet(document).whichBreed = { future: true };
+					if (kind === "missing breed") delete fixturePet(document).whichBreed;
 					if (kind === "duplicate") fixturePet(document, dogId).guid = catId;
-					if (kind === "subclass") fixturePet(document)["$type"] = "Mod.Pet";
+					if (kind === "missing type") delete fixturePet(document).petType;
 					const session = yield* makeHistorySession(document);
 					const before = yield* session.snapshot;
 					expect(
@@ -192,15 +192,16 @@ describe("pet appearance operations", () => {
 					Effect.gen(function* () {
 						const draft = yield* TransactionDraft;
 						const snapshot = yield* draft.read;
-						const pets = inspectPets(snapshot.state.document).pets;
-						// These references were discovered from typed NPC arrays above.
+						const pets = [
+							fixturePet(snapshot.state.document, dogId),
+							fixturePet(snapshot.state.document),
+						];
+						// Move the fixture subjects without relying on production discovery.
 						snapshot.state.document.SaveGame.locations = [
 							{
 								$type: "StardewValley.Locations.FarmHouse",
 								name: "FarmHouse",
-								characters: pets
-									.map((pet) => pet.raw as ReturnType<typeof savedPet>)
-									.reverse(),
+								characters: pets,
 							},
 						];
 						yield* draft.replace(snapshot);

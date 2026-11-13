@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { asset } from "$app/paths";
-	import type { PetAppearanceData } from "../../../../codegen/pets.ts";
+	import type { PetAppearanceData } from "../pet-appearance.ts";
 	let { icon, label }: { icon: PetAppearanceData["icon"]; label: string } =
 		$props();
 

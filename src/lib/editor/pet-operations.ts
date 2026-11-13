@@ -1,6 +1,6 @@
 import { Data, Effect, Result, Schema } from "effect";
 import { inspectPets, supportsPetRecord } from "./pet-data.ts";
-import { petAppearances, savedBreedId } from "./pet-appearance.ts";
+import { petAppearances } from "./pet-appearance.ts";
 import { TransactionDraft } from "./transaction-draft.ts";
 import {
 	recordAnnotatedOperation,
@@ -45,9 +45,7 @@ const decode = Schema.decodeUnknownResult(changeSchema, {
 export const setPet = Effect.fn("Pets.setPet")(function* (input: PetChange) {
 	// Validate the complete command before acquiring mutable snapshot data. Extra
 	// properties and out-of-range points are rejected rather than silently ignored.
-	const decoded = decode(
-		input && typeof input === "object" ? { ...input } : input,
-	);
+	const decoded = decode(input);
 	if (Result.isFailure(decoded))
 		return yield* new PetInvalid({
 			message: "Choose a valid pet field value.",
@@ -81,34 +79,39 @@ export const setPet = Effect.fn("Pets.setPet")(function* (input: PetChange) {
 			return yield* new PetInvalid({
 				message: "Choose a supported pet appearance.",
 			});
-		const breed = savedBreedId(pet.raw.whichBreed);
-		if (typeof pet.raw.petType !== "string" || !pet.raw.petType || !breed)
+		const breed = pet.raw.whichBreed;
+		if (!pet.raw.petType || !breed)
 			return yield* new PetInvalid({
 				message: "This saved pet appearance is unreadable.",
 			});
-		// Reselecting a known appearance is a true no-op. Preserve the existing
-		// numeric/string breed representation even across types if its ID matches.
+		// Reselecting the current pair must not create an Undo entry. The codec
+		// represents every breed ID as a string, including numeric-looking IDs.
 		if (pet.raw.petType === appearance.petType && breed === appearance.breedId)
 			return;
 		pet.raw.petType = appearance.petType;
 		if (breed !== appearance.breedId) pet.raw.whichBreed = appearance.breedId;
+	} else if (change.kind === "name") {
+		// Missing fields remain unsupported independently: editing a name must
+		// never invent friendship, and editing friendship must not invent a name.
+		if (pet.raw.name === undefined)
+			return yield* new PetInvalid({
+				message: "This saved pet name is missing.",
+			});
+		pet.raw.name = change.value;
 	} else {
-		const property = change.kind === "name" ? "name" : "friendshipTowardFarmer";
-		const previous = pet.raw[property];
-		// A missing/opaque value is not permission to normalize a mod's representation.
 		if (
-			change.kind === "name"
-				? typeof previous !== "string"
-				: typeof previous !== "number" || !Number.isSafeInteger(previous)
+			pet.raw.friendshipTowardFarmer === undefined ||
+			!Number.isSafeInteger(pet.raw.friendshipTowardFarmer)
 		)
 			return yield* new PetInvalid({
-				message: "This saved pet field is unsupported.",
+				message: "This saved pet friendship is unsupported.",
 			});
-		pet.raw[property] = change.value;
+		pet.raw.friendshipTowardFarmer = change.value;
 	}
+
 	yield* recordAnnotatedOperation(draft.replace(snapshot)).pipe(
 		withReviewMetadata({
-			label: `Update ${typeof pet.raw.name === "string" ? pet.raw.name : "pet"} ${change.kind}`,
+			label: `Update ${pet.raw.name ?? "pet"} ${change.kind}`,
 			tags: ["pets", `pet:${id}`],
 		}),
 	);

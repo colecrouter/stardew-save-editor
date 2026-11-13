@@ -23,7 +23,7 @@
 <h1>Pets</h1>
 
 <p class="guidance">
-	Edit existing pets’ names, friendship and appearance. These changes are shared
+	Edit existing pets' names, friendship and appearance. These changes are shared
 	across farmers.
 </p>
 
@@ -34,7 +34,7 @@
 </p>
 
 {#if pets.length === 0}
-	<p>No readable pet records were found in this farm’s locations.</p>
+	<p>No readable pet records were found in this farm's locations.</p>
 {:else}
 	<div class="pets">
 		{#each pets as pet (pet.key)}
@@ -66,8 +66,7 @@
 {/if}
 
 <p class="guidance">
-	Adoption, removal and bowl assignments are not editable here. Custom
-	appearances stay unchanged unless you choose a supported replacement.
+	Custom appearances stay unchanged unless you choose a supported replacement.
 </p>
 
 <style>

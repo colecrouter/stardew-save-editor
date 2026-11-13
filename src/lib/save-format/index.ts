@@ -13,7 +13,7 @@ export {
 } from "./values.ts";
 export type { Codec } from "./values.ts";
 export { dictionary } from "./dictionary.ts";
-export { document, decodeChunks } from "./xml.ts";
+export { document, decodeChunks, decodeByteStream } from "./xml.ts";
 export { nullableEnumText } from "./enum-text.ts";
 
 export { lazy } from "./events.ts";

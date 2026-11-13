@@ -1,5 +1,7 @@
-import { Context, Data, Effect, Layer, Schema } from "effect";
-import { XmlSchema } from "../../../generated/save-format/save.ts";
+import { Context, Data, Effect, Layer, Schema, Stream } from "effect";
+import { decodeByteStream } from "../save-format/index.ts";
+import { saveBlobBytes } from "./save-blob-stream.ts";
+import { ValueSchema, XmlSchema } from "../../../generated/save-format/save.ts";
 import pako from "pako";
 import type { EditorGame, SaveDocument } from "./domain.ts";
 
@@ -45,11 +47,29 @@ export class SaveCodec extends Context.Service<
 	SaveCodec,
 	{
 		decode: (bytes: Uint8Array) => Effect.Effect<SaveDocument, SaveReadError>;
+		decodeBlob?: (blob: Blob) => Effect.Effect<SaveDocument, SaveReadError>;
 		encode: (
 			document: SaveDocument,
 		) => Effect.Effect<Uint8Array<ArrayBuffer>, SaveWriteError>;
 	}
 >()("editor/SaveCodec") {}
+
+// Both import representations apply the same envelope/version checks without
+// projecting away unknown saved fields.
+function validateDocument(saved: typeof ValueSchema.Type) {
+	return Effect.gen(function* () {
+		yield* Schema.decodeUnknownEffect(envelope)(saved).pipe(
+			Effect.mapError((cause) => new SaveReadError({ stage: "shape", cause })),
+		);
+		// The envelope establishes the required editor fields without narrowing away
+		// any other generated or unknown saved fields.
+		const document = { SaveGame: saved as EditorGame };
+		const version = saved.gameVersion ?? "";
+		if (!/^1\.6(?:\.|$)/.test(version))
+			return yield* new SaveReadError({ stage: "version", cause: version });
+		return document;
+	});
+}
 
 export const SaveCodecLive = Layer.sync(SaveCodec, () => {
 	return {
@@ -69,18 +89,26 @@ export const SaveCodecLive = Layer.sync(SaveCodec, () => {
 						(cause) => new SaveReadError({ stage: "xml", cause }),
 					),
 				);
-				yield* Schema.decodeUnknownEffect(envelope)(saved).pipe(
-					Effect.mapError(
-						(cause) => new SaveReadError({ stage: "shape", cause }),
+				return yield* validateDocument(saved);
+			}),
+		decodeBlob: (blob) =>
+			Effect.gen(function* () {
+				const bytes = Stream.fromReadableStream({
+					evaluate: () => saveBlobBytes(blob),
+					onError: (cause) => new SaveReadError({ stage: "decompress", cause }),
+				});
+				const saved = yield* decodeByteStream(
+					"SaveGame",
+					ValueSchema,
+					bytes,
+				).pipe(
+					Effect.mapError((cause) =>
+						cause instanceof SaveReadError
+							? cause
+							: new SaveReadError({ stage: "xml", cause }),
 					),
 				);
-				// The envelope establishes the required editor fields without narrowing away
-				// any other generated or unknown saved fields.
-				const document = { SaveGame: saved as EditorGame };
-				const version = saved.gameVersion ?? "";
-				if (!/^1\.6(?:\.|$)/.test(version))
-					return yield* new SaveReadError({ stage: "version", cause: version });
-				return document;
+				return yield* validateDocument(saved);
 			}),
 		encode: (document) =>
 			Schema.encodeEffect(XmlSchema)(document.SaveGame).pipe(

@@ -9,7 +9,7 @@
 	import { onDestroy, tick } from "svelte";
 	import { RegistryProvider } from "effect-atom-svelte";
 	import { SaveReadError, describeImportError } from "../save-service.ts";
-	import { openEditor } from "../editor-model.ts";
+	import { openEditorBlob } from "../editor-model.ts";
 	import EditorWorkspace from "./EditorWorkspace.svelte";
 	import UploadPanel from "./UploadPanel.svelte";
 	import "../../ui/study-theme.css";
@@ -25,7 +25,7 @@
 		backupOriginal,
 		processingLayer,
 	}: Props = $props();
-	let active = $state.raw<Awaited<ReturnType<typeof openEditor>>>();
+	let active = $state.raw<Awaited<ReturnType<typeof openEditorBlob>>>();
 	let filename = $state("");
 	let opening = $state(false);
 	let openingStatus = $state("Opening save…");
@@ -44,7 +44,7 @@
 	// Keeping this ordering in one helper avoids drift between close/replacement.
 	async function detach() {
 		// Import owns a worker before active exists. Cancel that acquisition too;
-		// its rejected openEditor promise closes the not-yet-installed file scope.
+		// its rejected openEditorBlob promise closes the not-yet-installed file scope.
 		importController?.abort();
 		importController = undefined;
 		const previous = active;
@@ -75,12 +75,12 @@
 		const controller = new AbortController();
 		importController = controller;
 		try {
-			const bytes = new Uint8Array(await file.arrayBuffer());
+			// Send the original file to the processing worker; it opens a byte stream.
 			if (token !== generation) return;
 			openingStatus = "Opening save…";
-			const opened = await openEditor(
+			const opened = await openEditorBlob(
 				processingLayer,
-				bytes,
+				file,
 				{},
 				{ includeProofs, signal: controller.signal },
 			);

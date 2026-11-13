@@ -14,24 +14,52 @@ export function decodeChunks<A>(
 	codec: Codec<A>,
 	chunks: Iterable<string>,
 ) {
+	// Text callers retain the established synchronous iterable interface.
+	function* boundedChunks() {
+		for (const chunk of chunks)
+			for (let offset = 0; offset < chunk.length; offset += 16_384)
+				yield chunk.slice(offset, offset + 16_384);
+	}
+	// Create the iterator for each evaluation so reusing this Effect does not
+	// reuse an already-consumed generator from an earlier decode.
+	return Effect.suspend(() =>
+		decodeEvents(
+			rootName,
+			codec,
+			Stream.fromIterable(boundedChunks(), { chunkSize: 1 }).pipe(
+				Stream.pipeThroughChannel(Xml.decodeString({ maxDepth: 128 })),
+			),
+		),
+	);
+}
+
+// Byte callers keep UTF-8 decoding inside the XML channel, including characters
+// split between reads. The same interpreter and final value checks serve both paths.
+export function decodeByteStream<A, E>(
+	rootName: string,
+	codec: Codec<A>,
+	bytes: Stream.Stream<Uint8Array, E>,
+) {
+	return decodeEvents(
+		rootName,
+		codec,
+		bytes.pipe(Stream.pipeThroughChannel(Xml.decode({ maxDepth: 128 }))),
+	);
+}
+
+function decodeEvents<A, E>(
+	rootName: string,
+	codec: Codec<A>,
+	events: Stream.Stream<Xml.Event, E>,
+) {
 	return Effect.gen(function* () {
 		const stack: Array<{ header: Header; frame: Frame }> = [];
 		let result: unknown;
 		let rootSeen = false;
-		function* boundedChunks() {
-			// The XML channel batches events produced by an input chunk. Bound that
-			// chunk even for a caller supplying one complete save string, so the
-			// parser cannot retain a document-sized batch of pending events.
-			for (const chunk of chunks)
-				for (let offset = 0; offset < chunk.length; offset += 16_384)
-					yield chunk.slice(offset, offset + 16_384);
-		}
-		// Events are consumed as they arrive. Only open frames and decoded values
-		// remain live; no parser-object tree or complete event buffer is built.
-		// The iterable must emit one slice per pull: the default iterable batch
-		// otherwise combines thousands of slices before the XML channel can yield.
-		yield* Stream.fromIterable(boundedChunks(), { chunkSize: 1 }).pipe(
-			Stream.pipeThroughChannel(Xml.decodeString({ maxDepth: 128 })),
+
+		// Upstream supplies bounded batches; the interpreter consumes each before
+		// requesting another input chunk, so stream cancellation stops further reads.
+		yield* events.pipe(
 			Stream.runForEachArray((events) => {
 				// One interpreter Effect owns a bounded event batch. Per-event generator
 				// and error-wrapper Effects otherwise dominate allocation on full saves.

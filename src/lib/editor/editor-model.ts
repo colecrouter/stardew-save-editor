@@ -860,6 +860,12 @@ export const makeEditorModel = (
 	});
 export type EditorModel = Effect.Success<ReturnType<typeof makeEditorModel>>;
 
+export interface OpenEditorOptions {
+	includeProofs?: boolean;
+	validateExport?: boolean;
+	signal?: AbortSignal;
+}
+
 // Scope acquisition can fail after some resources exist. Close on every failure
 // path as well as normal teardown; callers receive ownership only after success.
 /**
@@ -872,15 +878,26 @@ export type EditorModel = Effect.Success<ReturnType<typeof makeEditorModel>>;
  * `includeProofs` and `validateExport: false` support the comparison lab.
  * @returns The application model and the function that closes its file scope.
  */
-export async function openEditor(
+// Keep byte-based tools and test contracts stable while the UI opts into file
+// streaming explicitly. Both entry points acquire the same file-owned scope.
+export const openEditor = (
 	processingLayer: Layer.Layer<SaveProcessor>,
 	bytes: Uint8Array,
 	limits: HistoryLimits = {},
-	options: {
-		includeProofs?: boolean;
-		validateExport?: boolean;
-		signal?: AbortSignal;
-	} = {},
+	options: OpenEditorOptions = {},
+) => openEditorInput(processingLayer, bytes, limits, options);
+export const openEditorBlob = (
+	processingLayer: Layer.Layer<SaveProcessor>,
+	blob: Blob,
+	limits: HistoryLimits = {},
+	options: OpenEditorOptions = {},
+) => openEditorInput(processingLayer, blob, limits, options);
+
+async function openEditorInput(
+	processingLayer: Layer.Layer<SaveProcessor>,
+	input: Uint8Array | Blob,
+	limits: HistoryLimits = {},
+	options: OpenEditorOptions = {},
 ) {
 	const scope = Scope.makeUnsafe();
 	try {
@@ -895,7 +912,17 @@ export async function openEditor(
 				const processor = yield* SaveProcessor;
 				// The worker exists before decode so Cancel can interrupt import and
 				// close its scope even before there is an installed editor session.
-				const imported = yield* processor.import(bytes);
+				// Real file imports keep their Blob until the worker opens its stream.
+				// Byte callers and minimal injected processors retain the established path.
+				const imported = yield* input instanceof Uint8Array
+					? processor.import(input)
+					: processor.importBlob
+						? processor.importBlob(input)
+						: Effect.promise(() => input.arrayBuffer()).pipe(
+								Effect.flatMap((bytes) =>
+									processor.import(new Uint8Array(bytes)),
+								),
+							);
 				const session = yield* makeHistorySession(imported.document, limits);
 				return yield* makeEditorModel(
 					session,

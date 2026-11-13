@@ -13,6 +13,7 @@
 		},
 		"authenticatedSentryUploads": false,
 		"localSentryDotenv": "absent for both runs",
+		"nodeProvenance": "environment.node records the harness launcher only. Actual child Node runtimes were not recorded; these observations do not establish matched child runtime versions.",
 		"coverageNote": "Before checks app/tests/tooling in one TypeScript project; after checks separate scopes. Lint after adds type-aware Effect diagnostics. Full suites are validated separately."
 	},
 	"environment": {

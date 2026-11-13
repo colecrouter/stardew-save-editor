@@ -183,8 +183,18 @@ command gets one local observation, not a statistical performance claim.
 Committed observations and the compared revisions are in
 [`benchmarks/toolchain.json`](benchmarks/toolchain.json). Those original observations
 predate the `test-full-save` probe and do not establish codec performance parity.
-New harness results also record the revision, dirty-tree state and CPU/memory
-metadata so later measurements can be compared against the code actually tested.
+The original artifact's `environment.node` records only the harness launcher's
+version; child runtimes were not captured, so it does not establish that both
+revisions ran every command on the same Node version. Vite+ can select a managed
+Node independently of the launcher.
+
+New harness results record `launcherNode`, actual per-command `nodeProcesses`,
+and deduplicated `selectedNodes`, alongside revision, dirty-tree state and
+CPU/memory metadata. A small Node startup preload writes each command's
+`*.nodes.jsonl` journal; timings include that instrumentation overhead, while
+journal parsing and log publication occur afterward. Existing `NODE_OPTIONS` are
+preserved. Missing or unreadable provenance is reported and makes the harness
+exit unsuccessfully; it never substitutes the launcher's version for a child.
 
 ### Native structured cloning
 

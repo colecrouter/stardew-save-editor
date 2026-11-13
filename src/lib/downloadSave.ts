@@ -20,21 +20,39 @@ export interface SaveDestination {
 	write: (blob: Blob, signal?: AbortSignal) => Promise<boolean>;
 }
 
+// Stages describe browser operations only; observers never receive a filename,
+// file handle or bytes. Export preparation is owned by the application caller.
+export type SaveDownloadStage =
+	| "picker"
+	| "create_writable"
+	| "write"
+	| "close"
+	| "abort"
+	| "download";
+
 /**
  * Ask for a destination directly in the click handler, before export can exhaust
  * transient user activation. Cancellation returns no destination and skips export.
  * The fallback only records the filename; it starts no download until write().
+ * Explicit download mode lets callers recover from unusable picker destinations
+ * without asking the browser for another handle to the same failing location.
  */
 export async function chooseSaveDestination(
 	filename: string,
 	signal?: AbortSignal,
+	mode: "picker" | "download" = "picker",
+	onStage?: (stage: SaveDownloadStage) => void,
 ): Promise<SaveDestination | undefined> {
 	if (signal?.aborted) return;
-	if (!("showSaveFilePicker" in window))
+	if (mode === "download" || !("showSaveFilePicker" in window))
 		return {
-			write: (blob, owner = signal) => writeDownload(blob, filename, owner),
+			write: (blob, owner = signal) => {
+				onStage?.("download");
+				return writeDownload(blob, filename, owner);
+			},
 		};
 	try {
+		onStage?.("picker");
 		const handle = await window.showSaveFilePicker({
 			types: [
 				{
@@ -46,7 +64,8 @@ export async function chooseSaveDestination(
 		});
 		if (signal?.aborted) return;
 		return {
-			write: (blob, owner = signal) => writePicker(blob, handle, owner),
+			write: (blob, owner = signal) =>
+				writePicker(blob, handle, owner, onStage),
 		};
 	} catch (cause) {
 		// Only dismissing the picker is ordinary cancellation. Later stream failures
@@ -77,17 +96,23 @@ async function writePicker(
 	blob: Blob,
 	handle: FileSystemFileHandle,
 	signal?: AbortSignal,
+	onStage?: (stage: SaveDownloadStage) => void,
 ): Promise<boolean> {
 	if (signal?.aborted) return false;
 	const result = await Effect.runPromiseExit(
 		Effect.acquireUseRelease(
-			browserCall(() => handle.createWritable()),
+			browserCall(() => {
+				onStage?.("create_writable");
+				return handle.createWritable();
+			}),
 			(writable) =>
 				Effect.gen(function* () {
 					// A late acquisition still belongs to this scope. Its finalizer
 					// releases the unused stream without writing an abandoned file.
 					if (signal?.aborted) return false;
+					onStage?.("write");
 					yield* browserCall(() => writable.write(blob));
+					onStage?.("close");
 					yield* browserCall(() => writable.close());
 					return true;
 				}),
@@ -96,10 +121,16 @@ async function writePicker(
 				// unused acquisition must abort; without another failure to report,
 				// cleanup rejection itself needs to reach the caller.
 				if (Exit.isSuccess(exit)) {
-					return exit.value ? Effect.void : browserCall(() => writable.abort());
+					return exit.value
+						? Effect.void
+						: browserCall(() => {
+								onStage?.("abort");
+								return writable.abort();
+							});
 				}
 				// An already-errored stream can reject abort too. Preserve the
 				// write/close failure rather than replacing it with a cleanup error.
+				// Keep its stage too: this cleanup must not relabel a write as abort.
 				return browserCall(() => writable.abort(browserCause(exit.cause))).pipe(
 					Effect.ignore,
 				);

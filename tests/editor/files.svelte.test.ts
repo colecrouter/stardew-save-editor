@@ -6,7 +6,11 @@ import {
 	restoreOriginal,
 	type StoredOriginal,
 } from "../../src/lib/saveBackups";
-import { downloadSave } from "../../src/lib/downloadSave";
+import {
+	chooseSaveDestination,
+	downloadSave,
+	type SaveDownloadStage,
+} from "../../src/lib/downloadSave";
 
 mockIDB();
 
@@ -96,6 +100,7 @@ it("save-picker cancellation returns noncompletion without writing bytes", async
 it.each(["write", "close"] as const)(
 	"aborts an acquired stream after %s fails and preserves the original failure",
 	async (stage) => {
+		const stages: SaveDownloadStage[] = [];
 		const failure = new DOMException(
 			"Destination became unavailable",
 			"AbortError",
@@ -121,8 +126,20 @@ it.each(["write", "close"] as const)(
 			}),
 		});
 		try {
-			await expect(downloadSave(new Blob(["save"]), "Farm_123")).rejects.toBe(
+			const destination = await chooseSaveDestination(
+				"Farm_123",
+				undefined,
+				"picker",
+				(next) => stages.push(next),
+			);
+			await expect(destination!.write(new Blob(["save"]))).rejects.toBe(
 				failure,
+			);
+			// Failed cleanup must preserve the original stage as well as its error.
+			expect(stages).toEqual(
+				stage === "write"
+					? ["picker", "create_writable", "write"]
+					: ["picker", "create_writable", "write", "close"],
 			);
 			expect(abort).toHaveBeenCalledExactlyOnceWith(failure);
 			expect(close).toHaveBeenCalledTimes(stage === "close" ? 1 : 0);

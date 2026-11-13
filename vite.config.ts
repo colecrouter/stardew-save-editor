@@ -6,7 +6,6 @@ import { svelteTesting } from "@testing-library/svelte/vite";
 import { defineConfig } from "vite-plus";
 import { configDefaults } from "vitest/config";
 import legacy from "vite-plugin-sveltekit-legacy";
-import { configDefaults } from "vitest/config";
 
 // Legacy editor regressions are opt-in for local development and CI alike.
 // Keep ownership explicit: shared controls, catalogs, validation and save-format

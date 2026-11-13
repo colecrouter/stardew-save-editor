@@ -5,7 +5,6 @@ import { sveltekit } from "@sveltejs/kit/vite";
 import { svelteTesting } from "@testing-library/svelte/vite";
 import { defineConfig } from "vite-plus";
 import legacy from "vite-plugin-sveltekit-legacy";
-import { availableParallelism } from "node:os";
 
 export default defineConfig(({ mode }) => ({
 	// Share formatting and linting with the same versioned toolchain as builds/tests.
@@ -146,9 +145,6 @@ export default defineConfig(({ mode }) => ({
 	test: {
 		css: true,
 		environment: "happy-dom",
-		// Full-save workers retain large schema/DOM graphs. A two-worker cap avoids
-		// memory pressure and reporter stalls; single-core CI still uses one worker.
-		maxWorkers: Math.min(2, availableParallelism()),
 		globalSetup: ["./tests/helpers/global-setup.ts"],
 		setupFiles: ["@vitest/web-worker", "./tests/helpers/setup.ts"],
 		// Required for SvelteKit with Vite 7+

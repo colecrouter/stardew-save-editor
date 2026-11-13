@@ -22,6 +22,7 @@
 	import RecipesPanel from "./RecipesPanel.svelte";
 	import CharacterPanel from "./CharacterPanel.svelte";
 	import FarmPanel from "./FarmPanel.svelte";
+	import PetsPanel from "./PetsPanel.svelte";
 	import BundlePanel from "./BundlePanel.svelte";
 	import ReviewPanel from "./ReviewPanel.svelte";
 	import FarmerRosterPanel from "./FarmerRosterPanel.svelte";
@@ -68,6 +69,7 @@
 	// Proof-only sections remain available only in the comparison workspace.
 	const sections = [
 		{ id: "inventory", label: "Inventory", icon: "inventory" },
+		{ id: "pets", label: "Pets", icon: "relationships" },
 		{ id: "buildings", label: "Buildings & animals", icon: "buildings" },
 		{ id: "community", label: "Community Center & Joja", icon: "community" },
 		{ id: "farmers", label: "Farmhands", icon: "farmhands" },
@@ -106,6 +108,7 @@
 	let questsOpened = $state(false);
 	let qiOpened = $state(false);
 	let buildingsOpened = $state(false);
+	let petsOpened = $state(false);
 	let rosterOpened = $state(false);
 	let communityOpened = $state(false);
 	let storageOpened = $state(false);
@@ -121,6 +124,7 @@
 		if (section === "quests") questsOpened = true;
 		if (section === "qi") qiOpened = true;
 		if (section === "buildings") buildingsOpened = true;
+		if (section === "pets") petsOpened = true;
 		if (section === "farmers") rosterOpened = true;
 		if (section === "community") communityOpened = true;
 		if (section === "storage") storageOpened = true;
@@ -388,6 +392,11 @@
 		{#if qiOpened}
 			<div hidden={tab !== "qi"}>
 				<QiOrdersPanel {model} />
+			</div>
+		{/if}
+		{#if petsOpened}
+			<div hidden={tab !== "pets"}>
+				<PetsPanel {model} />
 			</div>
 		{/if}
 		<div hidden={tab !== "farm"}><FarmPanel {model} /></div>

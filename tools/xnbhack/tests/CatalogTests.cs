@@ -19,6 +19,7 @@ internal static class CatalogTests
             {
                 object? result = Text(test["op"]) switch
                 {
+                    "petAppearances" => PetAppearances((JObject)args[0]),
                     "getBuildingUpgradeData" => BuildingUpgrade((JObject)args[0]),
                     "getBuildMaterials" => BuildMaterials(args[0] as JArray, ((JObject)args[1]).Properties().ToDictionary(p => p.Name, p => Text(p.Value))),
                     "parseQuest" => ParseQuest(Text(args[0]), Text(args[1])),

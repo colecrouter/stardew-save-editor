@@ -57,6 +57,10 @@ and map-level `LocationContext` properties. XnbHack writes maps as TMX files und
 `content/Maps`. The normal dump regenerates this lookup as well. App
 checks and tests use the committed lookup and do not require unpacked maps.
 
+`generated/pets.json` contains supported pet appearances and icon rectangles from
+`Data/Pets`. The normal asset dump generates it and copies both cursor sheets.
+See [asset extraction](tools/xnbhack/README.md) for provenance and generator tests.
+
 If you need assets that aren't copied from that command, you can modify it in `tools/xnbhack/WorldCatalog.cs`.
 
 `generated/buildings.json` includes what the editor needs to upgrade buildings (each building's

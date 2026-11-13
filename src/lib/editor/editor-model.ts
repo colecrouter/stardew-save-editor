@@ -9,6 +9,7 @@ import {
 	readFarmerRoster,
 	type FarmerRosterView,
 } from "./farmer-roster-data.ts";
+import { readPets, type PetView } from "./pet-data.ts";
 import { readBuildings, type BuildingsView } from "./building-data.ts";
 import { immutableView, type ImmutableView } from "./immutable-view.ts";
 import { readFarmerChoices } from "./farmer-selection.ts";
@@ -105,6 +106,7 @@ interface EditorViewData {
 	readonly calendarEventContext: CalendarEventContext;
 	readonly farm: FarmView;
 	readonly buildings: BuildingsView;
+	readonly pets: PetView[];
 	readonly community: CommunityView;
 	readonly farmerRoster: FarmerRosterView;
 	readonly backpacks: readonly InventoryView[];
@@ -221,6 +223,7 @@ function project(
 		calendarEventContext: readCalendarEventContext(state.document),
 		farm: readFarmSettings(state.document),
 		buildings: readBuildings(state.document),
+		pets: readPets(state.document),
 		community: readCommunity(state.document),
 		farmerRoster: readFarmerRoster(state.document),
 		backpacks: readBackpacks(state),

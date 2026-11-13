@@ -80,6 +80,8 @@ internal sealed partial class CatalogGenerator(string content, string generated,
         // Building dimensions come from the selected texture copies; weather
         // metadata instead joins map properties to the game's location catalog.
         CopyAssets();
+        // Pet selection uses the same staged publication as its preview sheets.
+        Write("pets", PetAppearances(Read("Data/Pets")));
         Write("farmanimals", Entries(Read("Data/FarmAnimals")).Select(p => Object(
             ("name", p.Key), ("displayName", p.Value!["DisplayName"]), ("requiredBuilding", p.Value["RequiredBuilding"]),
             ("house", p.Value["House"]), ("canReproduce", p.Value["CanGetPregnant"]),

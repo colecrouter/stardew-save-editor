@@ -132,22 +132,3 @@ checks the anchor fallback, editing/history and reimport at four viewport sizes.
 Component coverage in `tests/editor/import-loading.svelte.test.ts` also cancels
 while the processing layer is still acquiring, verifies resource release, and
 opens the same file again successfully.
-
-For the focused upload/export CPU audit, run
-`node --import tsx tools/profile-save-pipeline.mts /tmp/save-pipeline.json`
-separately from tests/builds. It warms each probe and records three samples on
-the committed public save. See [the pipeline audit](../tools/save-pipeline.md)
-for the current-main baseline, stage costs, parser findings and worker limits.
-
-To compare whole-buffer and Blob-stream imports through real Node worker RPC:
-
-```sh
-node --import tsx tools/compare-blob-import.mts bytes /tmp/import-bytes.json --single
-node --import tsx tools/compare-blob-import.mts blob /tmp/import-blob.json --single
-```
-
-Add `--compressed` for zlib input. Run cases sequentially in fresh processes;
-`--single` records one import, while the default warms up and records three more.
-Each run checks decoded-data parity after capturing timing and peak process RSS.
-See [the streaming comparison](../tools/blob-import-comparison.md) for results and
-measurement limits.

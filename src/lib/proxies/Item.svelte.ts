@@ -133,7 +133,7 @@ export class Item {
 		return instance;
 	}
 
-	// TODO refactor all of this
+	// Resolve catalog families in order before constructing the saved item record.
 	static fromName(name: string): ItemProxy {
 		let data = ItemData.get(name);
 		if (!data) {
@@ -245,7 +245,7 @@ export class Item {
 		}
 
 		if (data._type === "Hat") {
-			// @ts-expect-error TODO revisit this
+			// @ts-expect-error The legacy hat representation stores XML nil in this numeric field.
 			item.which = nil;
 			item.skipHairDraw = data.showRealHair;
 			item.ignoreHairstyleOffset = data.skipHairstyleOffset;

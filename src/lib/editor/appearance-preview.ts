@@ -184,8 +184,8 @@ export function appearanceLayers(
 		add("accessory", "/assets/accessories.png", pos.x, pos.y, hairTint);
 	}
 	const hat = equipment(raw.hat);
-	// Reuse legacy preview's hat/hair rule so this migration doesn't change
-	// appearance composition while replacing its reactive data dependencies.
+	// Match the legacy preview's hat/hair rule to keep appearance composition
+	// consistent between editors.
 	if (!hat || hat._type !== "Hat" || !hat.showRealHair) {
 		const saved = raw.hair;
 		if (typeof saved === "number" && Number.isInteger(saved)) {

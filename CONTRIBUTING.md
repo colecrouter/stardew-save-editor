@@ -133,14 +133,13 @@ successful Apply is one Undo entry; review shows edited fields and linked
 relationship membership changes, with other serialized differences retained.
 
 Automated coverage belongs in `tests/editor/children.test.ts`,
-`children-edit.test.ts` and `children.svelte.test.ts`. In-game qualification remains manual: load exported
+`children-edit.test.ts` and `children.svelte.test.ts`. For manual in-game validation, load exported
 host/cabin and player-couple saves, verify child/social-page names and hearts,
 interact with each parent/farmhand, check retained hats, sleep/save/reload, and
 verify Undo/export restores the original child and progress. No physical-device,
 screen-reader or in-game pass is implied by component/codec tests. Check each age
 boundary, sprite/gender/skin changes, hats, a younger age with explicit hat removal,
-and sibling beds across a day transition. Parenting, creation and removal need
-separately scoped operations.
+and sibling beds across a day transition.
 
 ### Inspecting game assemblies
 
@@ -209,9 +208,9 @@ npm test -- tests/engine
 ```
 
 Warnings and suggestions need contextual review: application boundaries may
-legitimately run Effects, and the experiment deliberately evaluates unstable Atom
-APIs. Errors fail checks; suggestions are shown by the diagnostic command without
-turning every stylistic preference into a compiler failure.
+legitimately run Effects, and Atom integrations use unstable APIs. Errors fail
+checks; suggestions are shown by the diagnostic command without turning every
+stylistic preference into a compiler failure.
 
 The editor lives in `src/lib/editor`. Domain views separate saved representations
 from UI components. Independent edits publish valid changes immediately and group
@@ -287,7 +286,7 @@ generated production polyfills.
 
 - `src/lib/editor`: file-owned engine, domain views/commands and application UI.
 - `src/lib/ui`: reusable controls and frame artwork.
-- `src/lib/proxies`: temporary legacy editor compatibility, not the default engine.
+- `src/lib/proxies`: legacy editor compatibility, not the default engine.
 - `tools/xnbhack`: game-data extraction and catalog generation.
 - `codegen`: application-facing catalog and save types.
 - `generated`: committed game-data output.

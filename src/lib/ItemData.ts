@@ -160,7 +160,8 @@ export const FishingRodSpriteIndex = new Map([
 	["Iridium Rod", 11],
 ]);
 
-// TODO: I don't know what items are allowed to have quality, or if there's some sort of rule.
+// These categories define the legacy quality controls; they are not a complete
+// classification of every item the game allows to have quality.
 export const CategoriesWithQuality = new Set([
 	ObjectCategory.Fish,
 	ObjectCategory.Egg,

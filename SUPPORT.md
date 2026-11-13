@@ -1,6 +1,6 @@
 # Save guide
 
-This guide describes the default editor. The temporary `/legacy` fallback opens a separate editing session.
+This guide describes the default editor. The `/legacy` fallback opens a separate editing session.
 
 ## Choose the right file
 
@@ -95,8 +95,7 @@ identities, custom pet classes and unreadable fields remain read-only. Custom
 type/breed pairs stay selected until you explicitly replace them with a supported
 appearance. The preview does not depict modded textures or hats.
 
-Adoption, removal and bowl reassignment remain separate work. Use the game's
-adoption and removal workflows for those actions.
+Use the game's workflows to adopt or remove pets and assign their bowls.
 
 ## iPhone and iPad
 
@@ -111,8 +110,7 @@ and check its exact filename before opening the game. Keep the companion files.
 
 If Files does not expose the folder, use the
 [game's computer-transfer instructions](https://stardewvalleywiki.com/Saves#iOS)
-rather than assuming the browser can grant access. These steps describe the intended
-workflow; representative iOS/Safari replacement testing remains pending.
+rather than assuming the browser can grant access.
 
 ## Android
 
@@ -129,8 +127,7 @@ computer-assisted transfer where your device permits it. Do not assume every
 Android device supports same-device editing and replacement.
 
 Locate the export in your browser's downloads or file manager, remove only a
-browser-added duplicate suffix, and preserve the original extension. Device storage
-restrictions and actual Android replacement still need representative testing.
+browser-added duplicate suffix, and preserve the original extension.
 
 ## Original backups and Undo
 
@@ -153,9 +150,8 @@ or opening another file. To retain edits, export before leaving.
 
 The configured browser baseline includes Safari/iOS 15.4+, Chrome/Edge 100+ and
 Firefox 100+. These are build targets, not a claim that every device/file flow has
-been tested. Chromium desktop and phone-sized automated checks have passed;
-real-device, native-menu and assistive-technology qualification remains tracked in
-[#219](https://github.com/colecrouter/stardew-save-editor/issues/219).
+been tested. File access, native save dialogs and replacement behavior depend on
+the browser and operating system.
 
 - **Wrong file or unreadable data:** select the main 1.6.x save, not SaveGameInfo, a
   ZIP, or an incomplete download. Retry with your untouched original.

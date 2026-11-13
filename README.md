@@ -17,9 +17,6 @@ A browser-based editor for Stardew Valley saves. [Open the hosted editor](https:
 - Farmhand reassignment, change review, grouped Undo/Redo, import/export and original
   save backups.
 
-Pet adoption/removal, child creation/removal/parenting, general location editing,
-lost-progress restoration and non-Qi special-order editing remain separate work.
-
 ## Using the editor
 
 Keep a separate copy of the entire save folder before editing. Choose the main
@@ -35,11 +32,9 @@ V2 accepts saves tagged **Stardew Valley 1.6.x**; older versions are rejected.
 Recognized saved fields can be edited, while unfamiliar or ambiguous data may be
 read-only. Modded-save support is not guaranteed.
 
-Current Chromium workflows have automated coverage on desktop and phone-sized
-viewports. Actual Safari/iOS/Android file replacement and assistive-technology
-qualification remain open in [#219](https://github.com/colecrouter/stardew-save-editor/issues/219).
-A responsive layout is not device certification. Console save extraction and
-repacking are outside this editor's supported workflow.
+Console save extraction and repacking are outside this editor's supported workflow.
+Browser file access and save replacement depend on the device and operating system;
+see the [save guide](SUPPORT.md) for platform instructions.
 
 ## Development
 

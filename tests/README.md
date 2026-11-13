@@ -84,8 +84,7 @@ adapter lives beside these shared helpers and uses the same Effect installation
 as the application and engine tests.
 
 Engine comparison executors and store/Atom harnesses are test-only reference
-fixtures, not alternate application runtimes. Their assertions remain until
-superseded deliberately. Engine tests run in the Vitest Node project; worker
+fixtures, not alternate application runtimes. Engine tests run in the Vitest Node project; worker
 transport tests use real Node worker threads. No coverage percentage is currently measured.
 
 For production browser smoke, build and run preview separately, then:
@@ -98,7 +97,7 @@ Use `--url` for a different full editor URL, `--chromium` for an installed execu
 and `--output` for evidence (default `/tmp/v2-browser-smoke.json`). It checks four
 viewport sizes, edit/history, desktop native drag and exact export/reimport. It
 starts no server and installs no browser. Restart preview after rebuilding.
-Native devices, VoiceOver and performance budgets remain separate qualifications.
+Validate native devices, VoiceOver and performance budgets separately from this smoke test.
 
 To investigate native save-picker activation, run an existing dev server and then:
 

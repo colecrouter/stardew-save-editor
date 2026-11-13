@@ -22,9 +22,9 @@ export class Friendship implements DataProxy<FriendshipDataItem> {
 	public proposalRejected: boolean;
 	/** The current status of the friendship */
 	public status: Status;
-	/** @todo Unused? I've only seen `0` so far. */
+	/** Preserve the saved proposer value without exposing an edit control. */
 	public readonly proposer: number;
-	/** @todo Unused? I've only seen `false` so far. */
+	/** Preserve the saved roommate-marriage flag without exposing an edit control. */
 	public readonly roommateMarriage: boolean;
 
 	/** The wedding day, if the save has one */

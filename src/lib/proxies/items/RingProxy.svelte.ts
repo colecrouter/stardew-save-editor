@@ -22,7 +22,8 @@ export class RingProxy extends BaseItemProxy<RingItem | CombinedRingItem> {
 	}
 
 	private ensureRing(): asserts this is RingProxy {
-		// TODO: add CombinedRing-specific accessors/UI once component ring editing is supported.
+		// Ordinary and combined rings share this catalog check; component records
+		// stay in the raw saved representation.
 		if (this.info?._type !== "Object" || this.info.type !== TypeEnum.Ring) {
 			throw new TypeError(`Item "${this.name}" is not a Ring`);
 		}

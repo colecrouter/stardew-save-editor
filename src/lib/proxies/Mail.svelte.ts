@@ -286,7 +286,7 @@ export enum MailFlag {
  *
  * Mail is how SDV keeps track of player progress and events. Every single change in the game state is followed by a letter being sent to the player.
  *
- * @todo Implement behavior for "unopened" mail, etc.
+ * This collection manages saved flags without simulating mail delivery or opening.
  */
 export class MailBox
 	extends SvelteSet<MailFlag>

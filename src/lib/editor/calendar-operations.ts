@@ -153,8 +153,9 @@ export const prepareCalendarState = Effect.fn("Calendar.prepare")(function* (
 	};
 });
 
-// Preserve the old command API while its remaining callers migrate. The new UI
-// below bypasses this lossy error conversion and the central command dispatcher.
+// Adapt typed calendar failures to MutationError for compatibility callers.
+// The UI below uses typed failures directly, bypassing this lossy conversion
+// and the central command dispatcher.
 export const prepareCalendarOperation = (
 	state: SessionState,
 	action: CalendarEdit,

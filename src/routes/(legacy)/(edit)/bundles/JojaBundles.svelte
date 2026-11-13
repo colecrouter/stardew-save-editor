@@ -49,7 +49,6 @@
 
 		// As an edge case, if all bundles are completed when changing from Joja to Community Center,
 		// Complete the "missing" bundle, as the user would have otherwise had access to the movie theater
-		// I basically just copied and pasted this from CommunityBundles.svelte (todo refactor)
 		const bundlesByRoom = Map.groupBy(bundles.values(), (b) => b.room);
 		const completedRooms = [...bundlesByRoom.entries()].map(
 			([room, bundles]) => [room, bundles.every((b) => b.completed)] as const,

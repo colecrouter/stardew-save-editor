@@ -261,8 +261,8 @@ export const completeSpringForaging = Effect.fn(
 	);
 });
 
-// Legacy command callers retain MutationError until their migration. Only this
-// compatibility boundary maps tagged domain failures into the older error type.
+// Compatibility callers receive MutationError. Only this boundary maps tagged
+// domain failures into that error type.
 export const prepareBundleOperation = (
 	state: SessionState,
 	action: { type: "bundle-complete"; bundleId: 13 },

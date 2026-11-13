@@ -10,8 +10,6 @@ const FRIENDSHIP_PER_HEART = 200;
 
 /**
  * Represents the different types of farm animals.
- *
- * @todo slime hutch
  */
 export enum FarmAnimalType {
 	WhiteChicken = "White Chicken",

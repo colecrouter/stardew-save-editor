@@ -131,6 +131,14 @@ export default defineConfig(({ mode }) => ({
 				})
 			: undefined,
 		sveltekit({
+			// Kit briefly writes an empty asset manifest while resolving config.
+			// Give each test process its own generated modules so concurrent tests,
+			// checks or dev servers cannot make a browser cache that empty manifest.
+			// Kit resolves its runtime aliases from this directory; normal tooling
+			// keeps the conventional output and generated type locations.
+			outDir: process.env.VITEST
+				? `.svelte-kit/vitest/${process.pid}`
+				: ".svelte-kit",
 			// Preserve the static GitHub Pages deployment while Kit owns its Vite configuration.
 			adapter: adapter(),
 			alias: {

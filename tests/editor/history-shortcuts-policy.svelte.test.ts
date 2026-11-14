@@ -1,4 +1,3 @@
-// @vitest-environment happy-dom
 // These domain guards intentionally exercise real DOM event paths.
 import { afterEach, expect, it } from "vitest";
 import {

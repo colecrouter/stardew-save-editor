@@ -230,48 +230,44 @@ describe("farmer slot reassignment", () => {
 				expect(yield* session.snapshot).toEqual(before);
 			}),
 	);
-	it(
-		"preserves the selected farmer identity and exports a promoted host on a full save",
-		{ timeout: 60_000 },
-		async () => {
-			const document = parser.parse(fixtureXml),
-				host = document.SaveGame.player,
-				guest = structuredClone(host);
-			const hostId = String(host.UniqueMultiplayerID);
-			Object.assign(host, { homeLocation: "FarmHouse" });
-			Object.assign(guest, {
-				UniqueMultiplayerID: 123456789n,
-				name: "Guest",
-				homeLocation: "CabinGuest",
-			});
-			document.SaveGame.farmhands = [guest];
-			const opened = await openEditor(
-				SaveProcessingSync,
-				new TextEncoder().encode(exportDocument(document)),
+	it("preserves the selected farmer identity and exports a promoted host on a full save", async () => {
+		const document = parser.parse(fixtureXml),
+			host = document.SaveGame.player,
+			guest = structuredClone(host);
+		const hostId = String(host.UniqueMultiplayerID);
+		Object.assign(host, { homeLocation: "FarmHouse" });
+		Object.assign(guest, {
+			UniqueMultiplayerID: 123456789n,
+			name: "Guest",
+			homeLocation: "CabinGuest",
+		});
+		document.SaveGame.farmhands = [guest];
+		const opened = await openEditor(
+			SaveProcessingSync,
+			new TextEncoder().encode(exportDocument(document)),
+		);
+		try {
+			await opened.model.commands.selectFarmer("123456789");
+			const outcome = await opened.model.commands.transact(
+				swapFarmers(hostId, "123456789"),
 			);
-			try {
-				await opened.model.commands.selectFarmer("123456789");
-				const outcome = await opened.model.commands.transact(
-					swapFarmers(hostId, "123456789"),
-				);
-				expect(outcome && Result.isSuccess(outcome)).toBe(true);
-				expect(
-					opened.model.atomBindings.registry.get(
-						opened.model.atomBindings.selectedFarmerId,
-					),
-				).toBe("123456789");
-				const exported = await opened.model.commands.export();
-				if (!exported || Result.isFailure(exported))
-					throw new Error("Export failed");
-				expect(
-					parser.parse(new TextDecoder().decode(exported.success)).SaveGame
-						.player.UniqueMultiplayerID,
-				).toBe(123456789n);
-			} finally {
-				await opened.close();
-			}
-		},
-	);
+			expect(outcome && Result.isSuccess(outcome)).toBe(true);
+			expect(
+				opened.model.atomBindings.registry.get(
+					opened.model.atomBindings.selectedFarmerId,
+				),
+			).toBe("123456789");
+			const exported = await opened.model.commands.export();
+			if (!exported || Result.isFailure(exported))
+				throw new Error("Export failed");
+			expect(
+				parser.parse(new TextDecoder().decode(exported.success)).SaveGame.player
+					.UniqueMultiplayerID,
+			).toBe(123456789n);
+		} finally {
+			await opened.close();
+		}
+	});
 });
 
 it.effect.each(["duplicate-home", "opaque-location"] as const)(

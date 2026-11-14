@@ -180,7 +180,6 @@ describe("Qi order transactions", () => {
 					).toBe("InProgress");
 				}
 			}),
-		30_000,
 	);
 	it.effect(
 		"cancels difficulty contributions once and retains other rule/shrine sources with exact Undo",

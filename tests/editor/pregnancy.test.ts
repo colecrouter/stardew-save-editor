@@ -92,7 +92,6 @@ describe("saved pregnancy and baby-question eligibility", () => {
 					readPregnancy((yield* session.snapshot).document, "1").expecting,
 				).toBe(false);
 			}),
-		30_000,
 	);
 	it.effect(
 		"rejects stale couples, invalid days, duplicate spouses and malformed due dates atomically",
@@ -311,7 +310,6 @@ describe("saved pregnancy and baby-question eligibility", () => {
 				yield* session.undo;
 				expect((yield* session.snapshot).document).toEqual(before);
 			}),
-		30_000,
 	);
 });
 

@@ -21,7 +21,7 @@ function required<T>(value: T | undefined): T {
 
 // Exercise domain field adapters against a real file session: controls receive
 // ordinary fields while those fields own coordinated game writes and grouping.
-describe("domain-owned field adapters", { timeout: 25000 }, () => {
+describe("domain-owned field adapters", () => {
 	it("groups repeated skill edits and restores the original document with one Undo", async () => {
 		const opened = await openTestDocument(fixture());
 		try {
@@ -83,7 +83,7 @@ describe("domain-owned field adapters", { timeout: 25000 }, () => {
 		} finally {
 			await opened.close();
 		}
-	}, 30_000);
+	});
 
 	it("groups farm text changes and removes the net Undo entry when the original value returns", async () => {
 		const opened = await openTestDocument(fixture());

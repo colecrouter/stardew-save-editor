@@ -116,20 +116,8 @@ it("filters by real item type, explains empty results, and preserves the preview
 		const select = page.getByRole("combobox", {
 			name: "Item type",
 		}) as HTMLSelectElement;
-		// Happy DOM's :checked currently recognizes inputs only. Svelte's native
-		// select binding asks for the selected option through this browser selector.
-		const querySelector = select.querySelector.bind(select);
-		const query = vi
-			.spyOn(select, "querySelector")
-			.mockImplementation((selector) =>
-				selector === ":checked"
-					? ([...select.options].find((option) => option.selected) ?? null)
-					: querySelector(selector),
-			);
-		for (const option of select.options)
-			option.selected = option.value === "Boots";
-		await fireEvent.change(select);
-		query.mockRestore();
+		// Native select binding resolves the selected option in the real browser.
+		await fireEvent.change(select, { target: { value: "Boots" } });
 		expect(page.getAllByRole("button", { name: /^Preview / })).toHaveLength(1);
 		await fireEvent.click(page.getByRole("button", { name: "Add to slot 1" }));
 		await waitFor(() => expect(onadd).toHaveBeenCalledWith("Sneakers"));
@@ -166,6 +154,13 @@ it("starts a new preview's reading areas at the top while retaining the result l
 		const firstTitle = within(preview).getByRole("heading");
 		const list = page.container.querySelector(".item-list");
 		if (!(list instanceof HTMLElement)) throw new Error("Missing item list");
+		// Small catalogs fit without scrolling in a real browser. Constrain this
+		// reading surface so the retained position is a real, nonzero scroll offset.
+		Object.assign(list.style, {
+			height: "40px",
+			maxHeight: "40px",
+			overflowY: "auto",
+		});
 		firstDescription.scrollTop = 90;
 		firstTitle.scrollTop = 20;
 		list.scrollTop = 100;

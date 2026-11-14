@@ -6,7 +6,7 @@ import BackpackHarness from "./BackpackHarness.svelte";
 import { fixtureXml, parser } from "./fixtures";
 
 // Real full-save UI projections need a bounded integration budget on CI.
-describe("backpack catalog workflow", { timeout: 60_000 }, () => {
+describe("backpack catalog workflow", () => {
 	it("browses without writes, adds to the chosen empty slot, and follows add/remove through undo and redo", async () => {
 		const opened = await openTestEditor(new TextEncoder().encode(fixtureXml));
 		const page = render(BackpackHarness, { model: opened.model });
@@ -28,12 +28,10 @@ describe("backpack catalog workflow", { timeout: 60_000 }, () => {
 			await fireEvent.click(
 				page.getByRole("button", { name: "Add to slot 4" }),
 			);
-			await waitFor(
-				() =>
-					expect(
-						page.getByRole("region", { name: "Selected backpack item" }),
-					).toBeTruthy(),
-				{ timeout: 5000 },
+			await waitFor(() =>
+				expect(
+					page.getByRole("region", { name: "Selected backpack item" }),
+				).toBeTruthy(),
 			);
 			const expected = structuredClone(original);
 			const wood = catalogEntries.find((entry) => entry.id === "Wood");
@@ -57,12 +55,10 @@ describe("backpack catalog workflow", { timeout: 60_000 }, () => {
 				expect(page.getByRole("heading", { name: "Wood" })).toBeTruthy(),
 			);
 			await fireEvent.click(page.getByRole("button", { name: "Remove item" }));
-			await waitFor(
-				() =>
-					expect(
-						page.getByRole("region", { name: "Add backpack item" }),
-					).toBeTruthy(),
-				{ timeout: 5000 },
+			await waitFor(() =>
+				expect(
+					page.getByRole("region", { name: "Add backpack item" }),
+				).toBeTruthy(),
 			);
 			await opened.model.commands.undo();
 			await waitFor(() =>
@@ -101,12 +97,10 @@ describe("backpack catalog workflow", { timeout: 60_000 }, () => {
 			await fireEvent.click(
 				selected.getByRole("button", { name: "Remove item" }),
 			);
-			await waitFor(
-				() =>
-					expect(
-						page.getByRole("region", { name: "Add backpack item" }),
-					).toBeTruthy(),
-				{ timeout: 5000 },
+			await waitFor(() =>
+				expect(
+					page.getByRole("region", { name: "Add backpack item" }),
+				).toBeTruthy(),
 			);
 			await opened.model.commands.undo();
 			await waitFor(() =>
@@ -119,5 +113,5 @@ describe("backpack catalog workflow", { timeout: 60_000 }, () => {
 			page.unmount();
 			await opened.close();
 		}
-	}, 30_000);
+	});
 });

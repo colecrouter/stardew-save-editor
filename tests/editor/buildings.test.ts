@@ -38,7 +38,7 @@ const required = <T>(value: T | undefined): T => {
 	return value;
 };
 
-describe("v2 buildings and animals", { timeout: 30_000 }, () => {
+describe("v2 buildings and animals", () => {
 	it("projects outside residents and virtual age/default fields without changing the import", () => {
 		const document = fixture(),
 			before = structuredClone(document);
@@ -177,7 +177,6 @@ describe("v2 buildings and animals", { timeout: 30_000 }, () => {
 				yield* session.undo;
 				expect((yield* session.snapshot).document).toEqual(initial.document);
 			}),
-		30_000,
 	);
 	it.effect(
 		"rejects full, incompatible and duplicate-name adoption without writes or history",

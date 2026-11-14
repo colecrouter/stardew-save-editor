@@ -218,7 +218,6 @@ describe("event save operations", () => {
 				);
 				expect(readEvents(roundtrip)[0]?.unsupportedCount).toBe(0);
 			}),
-		30_000,
 	);
 	it("validates typed IDs conservatively while keeping exact modded spellings", () => {
 		expect(toEventId(" 007 ")).toBe("7");

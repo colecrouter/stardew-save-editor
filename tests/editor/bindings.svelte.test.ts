@@ -93,4 +93,4 @@ it("a centrally handled defect shows one toast and the mounted UI can keep editi
 		target.remove();
 		report.mockRestore();
 	}
-}, 30_000);
+});

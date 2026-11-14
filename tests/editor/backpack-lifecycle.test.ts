@@ -196,7 +196,6 @@ describe("backpack creation and removal", () => {
 				expect((yield* session.snapshot).document).toEqual(added.document);
 				expect((yield* session.snapshot).identities).toEqual(added.identities);
 			}),
-		30_000,
 	);
 	it.effect(
 		"removes opaque items as a whole and Undo restores every field and identity",
@@ -446,4 +445,4 @@ it("returns exact replacement lineage before a queued Undo and preserves raw ins
 	} finally {
 		await opened.close();
 	}
-}, 25_000);
+});

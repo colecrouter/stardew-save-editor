@@ -188,5 +188,4 @@ it.effect(
 			yield* session.redo;
 			expect((yield* session.snapshot).document).toEqual(after.document);
 		}),
-	{ timeout: 10000 },
 );

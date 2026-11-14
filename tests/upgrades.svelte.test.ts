@@ -1,7 +1,6 @@
-import { readFile } from "node:fs/promises";
+import publicSaveXml from "./TestSave?raw";
 import { flushSync } from "svelte";
 import { beforeEach, describe, expect, it } from "vitest";
-import { setup as mockIDB } from "vitest-indexeddb";
 import { Raw } from "$lib/proxies";
 import { getStatValue, setStatValue } from "$lib/proxies/Farmer.svelte";
 import { Item } from "$lib/proxies/Item.svelte";
@@ -9,7 +8,6 @@ import { masteryLevel } from "$lib/proxies/Skills.svelte";
 import { SaveManager } from "../src/lib/SaveManager.svelte";
 import { XMLManager } from "../src/lib/workers/xml";
 import { withHouse, withToolAtClint } from "./helpers/upgrades";
-import { fullSaveTimeout } from "./helpers/full-save-budget";
 
 // Raw parsed fixtures deliberately allow unrecognized save fields.
 type Parsed = any;
@@ -37,18 +35,17 @@ const withStats = (xml: string, ...stats: string[]) =>
 const removeStatValues = (xml: string) =>
 	xml.replace(/<Values>[\s\S]*?<\/Values>/, "<Values />");
 
-// Full public-save fixtures verify codec correctness rather than latency. Allow
-// their integration work at default concurrency without changing unit-suite budgets.
-describe("Farmer upgrades", { timeout: 30_000 }, () => {
-	mockIDB();
+// Full public-save fixtures verify codec correctness rather than latency. The
+// shared runner deadline covers this work under normal test concurrency.
+describe("Farmer upgrades", () => {
 	let xml: string;
 	let saveManager: SaveManager;
 
-	// Full-file setup has its own deadline, independent of test-body options.
+	// Setup uses the shared hook deadline independently of the test-body deadline.
 	beforeEach(async () => {
-		xml = await readFile("tests/TestSave", "utf-8");
+		xml = publicSaveXml;
 		saveManager = await importSave(xml);
-	}, fullSaveTimeout);
+	});
 
 	const player = () => {
 		if (!saveManager.save) throw new Error("No save");

@@ -94,11 +94,10 @@ it.effect(
 			);
 			expect((yield* session.snapshot).entries).toHaveLength(count);
 		}),
-	30_000,
 );
 // Completing every original bundle exercises repeated progression edits against
-// a full save. Allow CI headroom for that integration workload without relaxing
-// the default timeout for the smaller Community tests.
+// a full save. The shared runner deadline accounts for this integration workload
+// as well as the smaller Community tests.
 it.effect(
 	"completes the original six rooms without completing theater, and retains door access while Missing progresses",
 	() =>
@@ -148,7 +147,6 @@ it.effect(
 				]),
 			});
 		}),
-	{ timeout: 20000 },
 );
 it.effect(
 	"keeps bought Joja projects and does not buy the theater when the fifth project completes",

@@ -28,9 +28,9 @@ const parseBytes = (bytes: Uint8Array) =>
 	parser.parse(new TextDecoder().decode(bytes));
 
 // TestSave is a 6.6 MB preservation fixture. Encoding/reparsing it several times
-// verifies data integrity, not latency; retain the experiment's integration budget
-// on shared CI runners without changing the default timeout for unit tests.
-describe("full-save calendar session", { timeout: 60_000 }, () => {
+// verifies data integrity rather than latency. The shared runner deadline covers
+// this workload under normal CI concurrency.
+describe("full-save calendar session", () => {
 	it("calendar import/view/export preserves the full document before any edit", async () => {
 		const bytes = await input();
 		const opened = await openEditor(bytes);
@@ -228,5 +228,5 @@ describe("full-save calendar session", { timeout: 60_000 }, () => {
 				streams: 0,
 			});
 		}
-	}, 30000);
+	});
 });

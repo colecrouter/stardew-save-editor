@@ -1,7 +1,6 @@
-import { readFile } from "node:fs/promises";
+import publicSaveXml from "./TestSave?raw";
 import { flushSync } from "svelte";
 import { describe, expect, it } from "vitest";
-import { setup as mockIDB } from "vitest-indexeddb";
 import type { EventIdList } from "../codegen/save";
 import { VanillaEvents, VanillaEventsById } from "../src/lib/Events";
 import { Raw } from "../src/lib/proxies";
@@ -11,7 +10,7 @@ import { XMLManager } from "../src/lib/workers/xml";
 
 /** The test save, as if the player hadn't seen any events */
 const importWithoutEvents = async () => {
-	const xml = (await readFile("tests/TestSave", "utf-8")).replace(
+	const xml = publicSaveXml.replace(
 		/<eventsSeen>[\s\S]*?<\/eventsSeen>/,
 		"<eventsSeen />",
 	);
@@ -26,12 +25,10 @@ const importWithoutEvents = async () => {
 	return { saveManager, cleanup };
 };
 
-// Only full-save imports below receive the integration budget. Small parser and
-// ID-normalization cases retain Vitest's default timeout.
-const fullSave = { timeout: 30_000 };
-describe("events seen", () => {
-	mockIDB();
+// Full-save imports and small parser/ID-normalization cases inherit the same
+// runner deadline; these assertions check preservation rather than latency.
 
+describe("events seen", () => {
 	it("reads numeric and string IDs, and writes changes back in order", () => {
 		const data: EventIdList = { int: [60367, "Example.Mod_Event"] };
 		let events!: EventsSeen;
@@ -49,7 +46,7 @@ describe("events seen", () => {
 		cleanup();
 	});
 
-	it("adds events to a save that hasn't seen any", fullSave, async () => {
+	it("adds events to a save that hasn't seen any", async () => {
 		const { saveManager, cleanup } = await importWithoutEvents();
 
 		const player = saveManager.save?.player;
@@ -69,7 +66,7 @@ describe("events seen", () => {
 		cleanup();
 	});
 
-	it("keeps an empty list empty", fullSave, async () => {
+	it("keeps an empty list empty", async () => {
 		const { saveManager, cleanup } = await importWithoutEvents();
 
 		const exported = await (await saveManager.export(true)).text();
@@ -104,7 +101,7 @@ describe("events seen", () => {
 			expect(toEventId(id), id).toBeUndefined();
 	});
 
-	it("saves typed IDs so they read back the same", fullSave, async () => {
+	it("saves typed IDs so they read back the same", async () => {
 		const { saveManager, cleanup } = await importWithoutEvents();
 		const typed = ["01", "007", "-1", "1.5", "123abc", "1e400", "Mod.Id_1"];
 		const ids = typed.map(toEventId);

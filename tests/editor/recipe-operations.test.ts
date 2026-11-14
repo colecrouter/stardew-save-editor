@@ -385,4 +385,4 @@ it("reads production counters after the real XML codec roundtrip", () => {
 	expect(
 		readRecipes(parsed)[0]?.cooking.find((row) => row.name === "Fried Egg"),
 	).toMatchObject({ count: 5, countSupported: true, hasCookedEntry: true });
-}, 30_000);
+});

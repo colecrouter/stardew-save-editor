@@ -8,7 +8,8 @@ import HeartBar from "../src/routes/(legacy)/(edit)/relationships/HeartBar.svelt
 
 const today = { year: 1, season: Season.Spring, day: 1 };
 
-// happy-dom doesn't load images: report each portrait sheet as loaded, this wide
+// Supply deterministic loaded portrait widths so cropping tests do not depend
+// on network image decoding.
 const stubPortraits = (naturalWidth: number) => {
 	const requested: string[] = [];
 	vi.stubGlobal(
@@ -30,7 +31,7 @@ const renderRow = async (name: string) => {
 	const view = render(HeartBar, { props: { name, npc, today } });
 	const portrait = screen.getByRole("img", { name: `${name} portrait` });
 	// Loaded: the initial shown in its place is gone
-	await vi.waitFor(() => expect(portrait.querySelector("strong")).toBeNull());
+	await expect.poll(() => portrait.querySelector("strong")).toBeNull();
 	await tick();
 	return {
 		portrait,

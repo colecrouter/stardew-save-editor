@@ -97,7 +97,6 @@ describe("existing child renaming", () => {
 				yield* session.redo;
 				expect((yield* session.snapshot).document).toEqual(expected);
 			}),
-		30000,
 	);
 	it.effect.each([
 		"",

@@ -112,7 +112,6 @@ it.effect(
 			yield* session.redo;
 			expect((yield* session.snapshot).document).toEqual(after.document);
 		}),
-	30_000,
 );
 
 it.effect(
@@ -431,7 +430,6 @@ it.effect(
 				expect(changed.completed).toBe(bundle.completed);
 			}
 		}),
-	30_000,
 );
 
 it.effect(

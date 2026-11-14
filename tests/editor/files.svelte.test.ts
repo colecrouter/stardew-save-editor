@@ -1,6 +1,5 @@
 import { expect, it, vi } from "vitest";
 import { openDB } from "idb";
-import { setup as mockIDB } from "vitest-indexeddb";
 import {
 	saveOriginalBackup,
 	restoreOriginal,
@@ -11,8 +10,6 @@ import {
 	downloadSave,
 	type SaveDownloadStage,
 } from "../../src/lib/downloadSave";
-
-mockIDB();
 
 it("source backups preserve compressed bytes and prune only the oldest originals", async () => {
 	const bytes = new Uint8Array([120, 156, 255, 0, 128, 42]);
@@ -52,6 +49,10 @@ it("existing plain-text backups remain readable", async () => {
 
 it("browser downloads keep the original filename and release their attached anchor after the stream starts", async () => {
 	vi.useFakeTimers();
+	// Exercise the anchor fallback explicitly even when Chromium supports the
+	// native save picker, which requires a trusted user activation.
+	const picker = Object.getOwnPropertyDescriptor(window, "showSaveFilePicker");
+	Reflect.deleteProperty(window, "showSaveFilePicker");
 	// Spies restore the exact browser methods after the download assertion.
 	const create = vi
 		.spyOn(URL, "createObjectURL")
@@ -75,6 +76,7 @@ it("browser downloads keep the original filename and release their attached anch
 		create.mockRestore();
 		revoke.mockRestore();
 		click.mockRestore();
+		if (picker) Object.defineProperty(window, "showSaveFilePicker", picker);
 		vi.useRealTimers();
 	}
 });

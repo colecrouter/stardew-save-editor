@@ -103,7 +103,7 @@ describe("Item select", () => {
 		// Rows must not shrink to fit, otherwise they squish instead of scrolling
 		expect(rowStyle.flexShrink).toBe("0");
 
-		// happy-dom has no layout engine, so compare the CSS sizes directly
+		// Check declared row geometry independently of viewport clipping.
 		const maxHeight = Number.parseFloat(listStyle.maxHeight);
 		const rowHeight = Number.parseFloat(rowStyle.minHeight);
 		const gap = Number.parseFloat(listStyle.rowGap || listStyle.gap);

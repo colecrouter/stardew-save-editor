@@ -452,7 +452,6 @@ describe("quest journal operations", () => {
 					unsupportedCount: 1,
 				});
 			}),
-		30_000,
 	);
 });
 

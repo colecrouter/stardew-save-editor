@@ -21,51 +21,45 @@ import {
 
 // Cancellation can happen while the processing layer itself is still being
 // acquired, before import() exists. Release acquired resources and permit retry.
-it(
-	"cancels processing-layer acquisition and opens a fresh session on retry",
-	{ timeout: 15000 },
-	async () => {
-		let attempts = 0;
-		const released = vi.fn();
-		const acquiring = vi.fn();
-		const processingLayer = Layer.effect(SaveProcessor)(
-			Effect.gen(function* () {
-				const attempt = yield* Effect.acquireRelease(
-					Effect.sync(() => {
-						acquiring();
-						return ++attempts;
-					}),
-					() => Effect.sync(released),
-				);
-				if (attempt === 1) return yield* Effect.never;
-				return makeSaveProcessor(yield* SaveCodec);
-			}),
-		).pipe(Layer.provide(SaveCodecLive));
-		const page = render(EditorApp, { processingLayer });
-		try {
-			const input = page.getByLabelText("Save file") as HTMLInputElement;
-			// Layer acquisition/retry owns a real codec, but needs no populated world.
-			const file = new File([exportDocument(tinyEditorFixture())], "Farm_123");
-			await fireEvent.change(input, { target: { files: [file] } });
-			await waitFor(() => expect(acquiring).toHaveBeenCalledOnce());
-			expect(page.getByText("Opening save…")).toBeTruthy();
-			expect(input.disabled).toBe(true);
-			await fireEvent.click(
-				page.getByRole("button", { name: "Cancel import" }),
+it("cancels processing-layer acquisition and opens a fresh session on retry", async () => {
+	let attempts = 0;
+	const released = vi.fn();
+	const acquiring = vi.fn();
+	const processingLayer = Layer.effect(SaveProcessor)(
+		Effect.gen(function* () {
+			const attempt = yield* Effect.acquireRelease(
+				Effect.sync(() => {
+					acquiring();
+					return ++attempts;
+				}),
+				() => Effect.sync(released),
 			);
-			await waitFor(() => expect(released).toHaveBeenCalledOnce());
-			expect(input.disabled).toBe(false);
-			expect(page.queryByRole("alert")).toBeNull();
-			await fireEvent.change(input, { target: { files: [file] } });
-			await page.findByRole("button", { name: "Export save" });
-			expect(acquiring).toHaveBeenCalledTimes(2);
-			expect(released).toHaveBeenCalledOnce();
-		} finally {
-			page.unmount();
-			await waitFor(() => expect(released).toHaveBeenCalledTimes(attempts));
-		}
-	},
-);
+			if (attempt === 1) return yield* Effect.never;
+			return makeSaveProcessor(yield* SaveCodec);
+		}),
+	).pipe(Layer.provide(SaveCodecLive));
+	const page = render(EditorApp, { processingLayer });
+	try {
+		const input = page.getByLabelText("Save file") as HTMLInputElement;
+		// Layer acquisition/retry owns a real codec, but needs no populated world.
+		const file = new File([exportDocument(tinyEditorFixture())], "Farm_123");
+		await fireEvent.change(input, { target: { files: [file] } });
+		await waitFor(() => expect(acquiring).toHaveBeenCalledOnce());
+		expect(page.getByText("Opening save…")).toBeTruthy();
+		expect(input.disabled).toBe(true);
+		await fireEvent.click(page.getByRole("button", { name: "Cancel import" }));
+		await waitFor(() => expect(released).toHaveBeenCalledOnce());
+		expect(input.disabled).toBe(false);
+		expect(page.queryByRole("alert")).toBeNull();
+		await fireEvent.change(input, { target: { files: [file] } });
+		await page.findByRole("button", { name: "Export save" });
+		expect(acquiring).toHaveBeenCalledTimes(2);
+		expect(released).toHaveBeenCalledOnce();
+	} finally {
+		page.unmount();
+		await waitFor(() => expect(released).toHaveBeenCalledTimes(attempts));
+	}
+});
 
 // The worker belongs to the pending import, before an editor exists. Cancel must
 // release that scope immediately, without waiting for an uncancelable promise.

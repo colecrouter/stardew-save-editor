@@ -37,188 +37,170 @@ async function openEvents() {
 
 // Submit independent toggles before selection finishes: each command must retain
 // its original farmer and its own discrete history step, even with focus retained.
-it(
-	"keeps queued event toggles on the original farmer and shares selection across pages",
-	{ timeout: 25000 },
-	async () => {
-		const opened = await openEvents();
-		const { page, model } = opened;
-		try {
-			const first = page.getByRole("checkbox", {
-				name: "Abigail's 2 heart event",
-			});
-			const second = page.getByRole("checkbox", {
-				name: "Abigail's 4 heart event",
-			});
-			expect((first as HTMLInputElement).checked).toBe(true);
-			await fireEvent.click(first);
-			await fireEvent.click(second);
-			await fireEvent.change(page.getByRole("combobox", { name: "Farmer" }), {
-				target: { value: "2" },
-			});
-			const snapshot = await model.snapshot();
-			await waitFor(() =>
-				expect(
-					(
-						page.getByRole("checkbox", {
-							name: "Abigail's 4 heart event",
-						}) as HTMLInputElement
-					).checked,
-				).toBe(true),
-			);
+it("keeps queued event toggles on the original farmer and shares selection across pages", async () => {
+	const opened = await openEvents();
+	const { page, model } = opened;
+	try {
+		const first = page.getByRole("checkbox", {
+			name: "Abigail's 2 heart event",
+		});
+		const second = page.getByRole("checkbox", {
+			name: "Abigail's 4 heart event",
+		});
+		expect((first as HTMLInputElement).checked).toBe(true);
+		await fireEvent.click(first);
+		await fireEvent.click(second);
+		await fireEvent.change(page.getByRole("combobox", { name: "Farmer" }), {
+			target: { value: "2" },
+		});
+		const snapshot = await model.snapshot();
+		await waitFor(() =>
 			expect(
-				readEvents(snapshot.document)
-					.find((owner) => owner.farmerId === opened.hostId)
-					?.seen.map((event) => event.id),
-			).toEqual(["Mod.Host_Event", "2"]);
-			expect(
-				readEvents(snapshot.document)
-					.find((owner) => owner.farmerId === "2")
-					?.seen.map((event) => event.id),
-			).toEqual(["2"]);
-			expect(snapshot.entries).toHaveLength(2);
-			await model.commands.undo();
-			expect(
-				readEvents((await model.snapshot()).document)
-					.find((owner) => owner.farmerId === opened.hostId)
-					?.seen.map((event) => event.id),
-			).toEqual(["Mod.Host_Event"]);
-			await model.commands.redo();
-			await fireEvent.click(page.getByRole("link", { name: "Character" }));
-			expect(
-				(page.getByRole("combobox", { name: "Farmer" }) as HTMLSelectElement)
-					.value,
-			).toBe("2");
-		} finally {
-			await opened.dispose();
-		}
-	},
-);
+				(
+					page.getByRole("checkbox", {
+						name: "Abigail's 4 heart event",
+					}) as HTMLInputElement
+				).checked,
+			).toBe(true),
+		);
+		expect(
+			readEvents(snapshot.document)
+				.find((owner) => owner.farmerId === opened.hostId)
+				?.seen.map((event) => event.id),
+		).toEqual(["Mod.Host_Event", "2"]);
+		expect(
+			readEvents(snapshot.document)
+				.find((owner) => owner.farmerId === "2")
+				?.seen.map((event) => event.id),
+		).toEqual(["2"]);
+		expect(snapshot.entries).toHaveLength(2);
+		await model.commands.undo();
+		expect(
+			readEvents((await model.snapshot()).document)
+				.find((owner) => owner.farmerId === opened.hostId)
+				?.seen.map((event) => event.id),
+		).toEqual(["Mod.Host_Event"]);
+		await model.commands.redo();
+		await fireEvent.click(page.getByRole("link", { name: "Character" }));
+		expect(
+			(page.getByRole("combobox", { name: "Farmer" }) as HTMLSelectElement)
+				.value,
+		).toBe("2");
+	} finally {
+		await opened.dispose();
+	}
+});
 
-it(
-	"validates custom IDs and keeps late add/remove work and feedback with its captured farmer",
-	{ timeout: 25000 },
-	async () => {
-		const opened = await openEvents();
-		const { page, model } = opened;
-		try {
-			const input = page.getByRole("textbox", {
-				name: "Event ID to mark as seen",
-			});
-			const add = page.getByRole("button", { name: "Mark as seen" });
-			await fireEvent.input(input, { target: { value: "1e3" } });
-			expect((add as HTMLButtonElement).disabled).toBe(true);
-			await fireEvent.input(input, { target: { value: "00042" } });
+it("validates custom IDs and keeps late add/remove work and feedback with its captured farmer", async () => {
+	const opened = await openEvents();
+	const { page, model } = opened;
+	try {
+		const input = page.getByRole("textbox", {
+			name: "Event ID to mark as seen",
+		});
+		const add = page.getByRole("button", { name: "Mark as seen" });
+		await fireEvent.input(input, { target: { value: "1e3" } });
+		expect((add as HTMLButtonElement).disabled).toBe(true);
+		await fireEvent.input(input, { target: { value: "00042" } });
+		expect(page.getByText("Saved as 42, without leading zeros.")).toBeTruthy();
+		await fireEvent.submit(add.closest("form")!);
+		await fireEvent.change(page.getByRole("combobox", { name: "Farmer" }), {
+			target: { value: "2" },
+		});
+		const snapshot = await model.snapshot();
+		expect(
+			readEvents(snapshot.document)
+				.find((owner) => owner.farmerId === opened.hostId)
+				?.seen.some((event) => event.id === "42"),
+		).toBe(true);
+		expect(
+			readEvents(snapshot.document)
+				.find((owner) => owner.farmerId === "2")
+				?.seen.some((event) => event.id === "42"),
+		).toBe(false);
+		await waitFor(() =>
+			expect(page.queryByText("Marked #42 as seen.")).toBeNull(),
+		);
+		// A successful add may clear its input before selection is published.
+		// Enter the next ID before waiting for its pending guard to release.
+		await fireEvent.input(input, { target: { value: "Mod.Example_Event" } });
+		await waitFor(() =>
+			expect((add as HTMLButtonElement).disabled).toBe(false),
+		);
+		await fireEvent.submit(add.closest("form")!);
+		await model.snapshot();
+		await waitFor(() =>
+			expect(page.getByText("Marked #Mod.Example_Event as seen.")).toBeTruthy(),
+		);
+		await fireEvent.input(
+			page.getByRole("searchbox", { name: "Search events" }),
+			{ target: { value: "Mod.Example_Event" } },
+		);
+		const remove = page.getByRole("button", {
+			name: "Remove Mod.Example_Event",
+		});
+		await waitFor(() =>
+			expect((remove as HTMLButtonElement).disabled).toBe(false),
+		);
+		await fireEvent.click(remove);
+		await model.snapshot();
+		await waitFor(() =>
 			expect(
-				page.getByText("Saved as 42, without leading zeros."),
-			).toBeTruthy();
-			await fireEvent.submit(add.closest("form")!);
-			await fireEvent.change(page.getByRole("combobox", { name: "Farmer" }), {
-				target: { value: "2" },
-			});
-			const snapshot = await model.snapshot();
+				page.queryByRole("button", { name: "Remove Mod.Example_Event" }),
+			).toBeNull(),
+		);
+		await model.commands.undo();
+		await model.snapshot();
+		await waitFor(() =>
 			expect(
-				readEvents(snapshot.document)
-					.find((owner) => owner.farmerId === opened.hostId)
-					?.seen.some((event) => event.id === "42"),
-			).toBe(true);
-			expect(
-				readEvents(snapshot.document)
-					.find((owner) => owner.farmerId === "2")
-					?.seen.some((event) => event.id === "42"),
-			).toBe(false);
-			await waitFor(() =>
-				expect(page.queryByText("Marked #42 as seen.")).toBeNull(),
-			);
-			// A successful add may clear its input before selection is published.
-			// Enter the next ID before waiting for its pending guard to release.
-			await fireEvent.input(input, { target: { value: "Mod.Example_Event" } });
-			await waitFor(() =>
-				expect((add as HTMLButtonElement).disabled).toBe(false),
-			);
-			await fireEvent.submit(add.closest("form")!);
-			await model.snapshot();
-			await waitFor(() =>
-				expect(
-					page.getByText("Marked #Mod.Example_Event as seen."),
-				).toBeTruthy(),
-			);
-			await fireEvent.input(
-				page.getByRole("searchbox", { name: "Search events" }),
-				{ target: { value: "Mod.Example_Event" } },
-			);
-			const remove = page.getByRole("button", {
-				name: "Remove Mod.Example_Event",
-			});
-			await waitFor(() =>
-				expect((remove as HTMLButtonElement).disabled).toBe(false),
-			);
-			await fireEvent.click(remove);
-			await model.snapshot();
-			await waitFor(() =>
-				expect(
-					page.queryByRole("button", { name: "Remove Mod.Example_Event" }),
-				).toBeNull(),
-			);
-			await model.commands.undo();
-			await model.snapshot();
-			await waitFor(() =>
-				expect(
-					page.getByRole("button", { name: "Remove Mod.Example_Event" }),
-				).toBeTruthy(),
-			);
-			expect(
-				readEvents((await model.snapshot()).document)
-					.find((owner) => owner.farmerId === opened.hostId)
-					?.seen.some((event) => event.id === "Mod.Example_Event"),
-			).toBe(false);
-		} finally {
-			await opened.dispose();
-		}
-	},
-);
+				page.getByRole("button", { name: "Remove Mod.Example_Event" }),
+			).toBeTruthy(),
+		);
+		expect(
+			readEvents((await model.snapshot()).document)
+				.find((owner) => owner.farmerId === opened.hostId)
+				?.seen.some((event) => event.id === "Mod.Example_Event"),
+		).toBe(false);
+	} finally {
+		await opened.dispose();
+	}
+});
 
-it(
-	"bounds mounted controls while search and grouping cover shared events across the catalog",
-	{ timeout: 25000 },
-	async () => {
-		const opened = await openEvents();
-		const { page, model } = opened;
-		try {
-			expect(page.getAllByRole("checkbox")).toHaveLength(24);
-			const event = VanillaEvents.find((event) => event.npcs.length > 1);
-			if (!event) throw new Error("Missing shared event fixture");
-			await fireEvent.input(
-				page.getByRole("searchbox", { name: "Search events" }),
-				{ target: { value: event.name } },
-			);
-			const boxes = page.getAllByRole("checkbox", { name: event.name });
-			expect(boxes).toHaveLength(event.npcs.length);
-			await fireEvent.click(boxes[0]!);
-			await model.snapshot();
-			await waitFor(() =>
-				expect(
-					page
-						.getAllByRole("checkbox", { name: event.name })
-						.every((box) => (box as HTMLInputElement).checked),
-				).toBe(true),
-			);
-			await fireEvent.change(page.getByRole("combobox", { name: "Group by" }), {
-				target: { value: "location" },
-			});
+it("bounds mounted controls while search and grouping cover shared events across the catalog", async () => {
+	const opened = await openEvents();
+	const { page, model } = opened;
+	try {
+		expect(page.getAllByRole("checkbox")).toHaveLength(24);
+		const event = VanillaEvents.find((event) => event.npcs.length > 1);
+		if (!event) throw new Error("Missing shared event fixture");
+		await fireEvent.input(
+			page.getByRole("searchbox", { name: "Search events" }),
+			{ target: { value: event.name } },
+		);
+		const boxes = page.getAllByRole("checkbox", { name: event.name });
+		expect(boxes).toHaveLength(event.npcs.length);
+		await fireEvent.click(boxes[0]!);
+		await model.snapshot();
+		await waitFor(() =>
 			expect(
-				page.getByRole("region", { name: `${event.location} events` }),
-			).toBeTruthy();
-			expect(page.getAllByRole("checkbox", { name: event.name })).toHaveLength(
-				1,
-			);
-			await fireEvent.change(
-				page.getByRole("combobox", { name: "Show events" }),
-				{ target: { value: "unseen" } },
-			);
-			expect(page.queryByRole("checkbox", { name: event.name })).toBeNull();
-		} finally {
-			await opened.dispose();
-		}
-	},
-);
+				page
+					.getAllByRole("checkbox", { name: event.name })
+					.every((box) => (box as HTMLInputElement).checked),
+			).toBe(true),
+		);
+		await fireEvent.change(page.getByRole("combobox", { name: "Group by" }), {
+			target: { value: "location" },
+		});
+		expect(
+			page.getByRole("region", { name: `${event.location} events` }),
+		).toBeTruthy();
+		expect(page.getAllByRole("checkbox", { name: event.name })).toHaveLength(1);
+		await fireEvent.change(
+			page.getByRole("combobox", { name: "Show events" }),
+			{ target: { value: "unseen" } },
+		);
+		expect(page.queryByRole("checkbox", { name: event.name })).toBeNull();
+	} finally {
+		await opened.dispose();
+	}
+});

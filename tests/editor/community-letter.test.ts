@@ -103,7 +103,6 @@ it.effect(
 				mailbox: ["unrelated"],
 			});
 		}),
-	30_000,
 );
 
 it.effect.each([
@@ -148,34 +147,31 @@ it.effect(
 		}),
 );
 
-it.effect(
-	"populates an empty mailbox with a decodable letter list",
-	() =>
-		Effect.gen(function* () {
-			const document = fixture();
-			Object.assign(document.SaveGame.player, {
-				mailbox: [],
-				testMetadatamailbox: { opaque: "retain" },
-				mailReceived: [],
-			});
-			const session = yield* makeHistorySession(document);
-			yield* session.transact(
-				setCommunityProgress({ type: "room", room: 5, value: true }),
-			);
-			const after = yield* session.snapshot;
-			expect(after.document.SaveGame.player).toMatchObject({
-				mailbox: ["ccBulletinThankYou"],
-				testMetadatamailbox: { opaque: "retain" },
-			});
-			const reloaded = parser.parse(exportDocument(after.document));
-			expect(reloaded.SaveGame.player).toMatchObject({
-				mailbox: ["ccBulletinThankYou"],
-				mailReceived: ["ccBulletin"],
-			});
-			const mailbox = record(after.document.SaveGame.player)
-				? after.document.SaveGame.player.mailbox
-				: undefined;
-			expect(mailbox).not.toHaveProperty("@_xsi:nil");
-		}),
-	30_000,
+it.effect("populates an empty mailbox with a decodable letter list", () =>
+	Effect.gen(function* () {
+		const document = fixture();
+		Object.assign(document.SaveGame.player, {
+			mailbox: [],
+			testMetadatamailbox: { opaque: "retain" },
+			mailReceived: [],
+		});
+		const session = yield* makeHistorySession(document);
+		yield* session.transact(
+			setCommunityProgress({ type: "room", room: 5, value: true }),
+		);
+		const after = yield* session.snapshot;
+		expect(after.document.SaveGame.player).toMatchObject({
+			mailbox: ["ccBulletinThankYou"],
+			testMetadatamailbox: { opaque: "retain" },
+		});
+		const reloaded = parser.parse(exportDocument(after.document));
+		expect(reloaded.SaveGame.player).toMatchObject({
+			mailbox: ["ccBulletinThankYou"],
+			mailReceived: ["ccBulletin"],
+		});
+		const mailbox = record(after.document.SaveGame.player)
+			? after.document.SaveGame.player.mailbox
+			: undefined;
+		expect(mailbox).not.toHaveProperty("@_xsi:nil");
+	}),
 );

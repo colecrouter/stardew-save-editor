@@ -1,20 +1,17 @@
-import { readFile } from "node:fs/promises";
+import publicSaveXml from "./TestSave?raw";
 import { flushSync, tick } from "svelte";
 import { beforeEach, describe, expect, it } from "vitest";
-import { setup as mockIDB } from "vitest-indexeddb";
 import { Raw } from "$lib/proxies";
 import { SaveManager } from "../src/lib/SaveManager.svelte";
-import { fullSaveTimeout } from "./helpers/full-save-budget";
 
 // Verifies sanitizer keeps bundleRewards[36] false after completing all bundles.
 
 describe("CommunityBundles sanitizer", () => {
-	mockIDB();
 	let saveManager: SaveManager;
 
-	// Full-file setup has its own deadline, independent of test-body options.
+	// Setup uses the shared hook deadline independently of the test-body deadline.
 	beforeEach(async () => {
-		const file = await readFile("tests/TestSave");
+		const file = publicSaveXml;
 		let promise: Promise<void | boolean> = Promise.resolve();
 		const cleanup = $effect.root(() => {
 			saveManager = new SaveManager();
@@ -23,7 +20,7 @@ describe("CommunityBundles sanitizer", () => {
 		await promise;
 		flushSync();
 		cleanup();
-	}, fullSaveTimeout);
+	});
 
 	it("forces bundleRewards[36] to stay false after all bundles are completed", async () => {
 		const save = saveManager.save;

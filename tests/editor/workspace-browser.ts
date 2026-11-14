@@ -11,10 +11,17 @@ export async function renderBrowserWorkspace(
 ) {
 	const opened = await openTestDocument(document);
 	let unmount: (() => Promise<void>) | undefined;
+	const unmountView = async () => {
+		// A lifecycle test may unmount before inspecting the still-open model.
+		// Consume the callback once so its final dispose cannot unmount it twice.
+		const release = unmount;
+		unmount = undefined;
+		await release?.();
+	};
 	const dispose = async () => {
 		// Await consumer teardown before closing the registry they borrow.
 		try {
-			await unmount?.();
+			await unmountView();
 		} finally {
 			await opened.close();
 		}
@@ -23,7 +30,7 @@ export async function renderBrowserWorkspace(
 		const page = await render(WorkspaceHarness, { model: opened.model });
 		unmount = page.unmount;
 		if (section) await page.getByRole("link", { name: section }).click();
-		return { ...opened, page, dispose };
+		return { ...opened, page: { ...page, unmount: unmountView }, dispose };
 	} catch (cause) {
 		// Acquisition failures have no caller to release the partially opened file.
 		await dispose();

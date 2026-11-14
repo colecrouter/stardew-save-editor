@@ -43,15 +43,24 @@ Node and Svelte load the decoded fixture baseline; only the Svelte project insta
 Testing Library cleanup and browser-worker simulation. Both rendering projects use
 Kit page-state mocks. The browser project selects `*.browser.test.ts`, uses
 `vitest-browser-svelte` and real Chromium interactions, and currently constructs
-synthetic documents without importing the Node-only V8 fixture loader. Children is
-the first migrated suite; the other `*.svelte.test.ts` suites remain in happy-dom.
+synthetic documents without importing the Node-only V8 fixture loader. Children,
+shared field controls, rune drafts, stepper controls, responsive navigation and
+history shortcuts use Browser Mode; the remaining `*.svelte.test.ts` suites still
+run in happy-dom. Rune test filenames retain `.svelte.` so Svelte compiles their
+`$state` and `$effect` expressions, for example `draft.svelte.browser.test.ts`.
 Use `npm run test:browser -- --headless=false` to inspect the browser pilot locally.
+
+Vitest processes generate Kit runtime modules under `.svelte-kit/vitest/<pid>`.
+Other test runs, checks and dev servers can resolve config concurrently without
+overwriting a browser's asset manifest. The ordinary app and type generation
+continue using `.svelte-kit`. `tests/tools/config-isolation.test.ts` checks this
+boundary with separate config-resolution subprocesses.
 
 `tests/helpers/timeouts.ts` owns the shared test (120 seconds), hook (30 seconds),
 and assertion (30 seconds) deadlines. Vitest projects inherit these limits, and
 Browser Mode also uses the assertion deadline for input actions. These are
-stuck-test guards, not performance targets. Engine tests and the Children browser
-pilot no longer override the deadlines. Testing Library's global async timeout
+stuck-test guards, not performance targets. Engine tests and migrated browser
+suites no longer override the deadlines. Testing Library's global async timeout
 uses the same assertion budget while the happy-dom suites migrate. Use
 `expect.poll` for asynchronous model observations and `expect.element` for browser DOM assertions; both inherit
 `expect.poll.timeout`. The remaining happy-dom suites and standalone browser tools

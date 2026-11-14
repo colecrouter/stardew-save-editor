@@ -3,6 +3,8 @@ import { sentrySvelteKit } from "@sentry/sveltekit/vite";
 import adapter from "@sveltejs/adapter-static";
 import { sveltekit } from "@sveltejs/kit/vite";
 import { svelteTesting } from "@testing-library/svelte/vite";
+import { playwright } from "@vitest/browser-playwright";
+import { testTimeouts } from "./tests/helpers/timeouts.ts";
 import { defineConfig } from "vite-plus";
 import { configDefaults } from "vitest/config";
 import legacy from "vite-plugin-sveltekit-legacy";
@@ -155,9 +157,17 @@ export default defineConfig(({ mode }) => ({
 					"img-src": ["self", "data:", "blob:"],
 				},
 			},
-			// Tests inspect computed styles, so inject CSS rather than extracting it.
+			// Node DOM tests inspect computed styles, so inject their component CSS.
 			compilerOptions: process.env.VITEST ? { css: "injected" } : {},
-			inspector: true,
+			// Real browsers need Vite's CSS pipeline to resolve imports and artwork
+			// URLs. Node DOM tests still inject styles for computed-style assertions.
+			dynamicCompileOptions: ({ environment }) =>
+				process.env.VITEST && environment.name === "client"
+					? { css: "external" }
+					: undefined,
+			// The inspector injects an application mount, which is unrelated to test
+			// rendering and must not enter isolated Browser Mode module graphs.
+			inspector: !process.env.VITEST,
 		}),
 		legacy({
 			// Native structuredClone is part of the supported browser baseline.
@@ -183,6 +193,11 @@ export default defineConfig(({ mode }) => ({
 		include: ["idb", "@thisux/sveltednd", "comlink", "@sentry/sveltekit"],
 	},
 	test: {
+		// All projects share stuck-test guards; assertions have their own retry
+		// budget so a missing UI state fails before the enclosing test expires.
+		testTimeout: testTimeouts.test,
+		hookTimeout: testTimeouts.hook,
+		expect: { poll: { timeout: testTimeouts.assertion } },
 		// A dedicated mode keeps the opt-in command portable across shells. Both
 		// selections retain Vitest's built-in exclusions and the same runtime setup.
 		exclude: [
@@ -200,7 +215,12 @@ export default defineConfig(({ mode }) => ({
 					include:
 						mode === "legacy-test" ? legacyTests : configDefaults.include,
 					// Keep rendering tests in the Svelte project and preserve runner exclusions.
-					exclude: [...configDefaults.exclude, "**/*.svelte.test.ts"],
+					exclude: [
+						...configDefaults.exclude,
+						"**/*.svelte.test.ts",
+						"**/*.browser.test.ts",
+					],
+					setupFiles: ["./tests/helpers/fixture-setup.ts"],
 				},
 			},
 			{
@@ -216,15 +236,46 @@ export default defineConfig(({ mode }) => ({
 							: ["**/*.svelte.test.ts"],
 					// DOM cleanup and simulated browser workers belong only to rendering tests.
 					setupFiles: [
+						"./tests/helpers/fixture-setup.ts",
 						"@vitest/web-worker",
 						"@testing-library/svelte/vitest",
+						"./tests/helpers/setup-dom.ts",
 						"./tests/helpers/setup.ts",
 					],
 				},
 			},
+			// Keep the pilot distinct from happy-dom and its Node-only fixture loader.
+			// Legacy selection must not accidentally execute modern browser suites.
+			...(mode === "legacy-test"
+				? []
+				: [
+						{
+							extends: true as const,
+							// The root runner resolves Node exports. Browser component graphs must
+							// select Svelte's client runtime instead of inheriting its server entry.
+							resolve: { conditions: ["browser"] },
+							test: {
+								name: "browser",
+								include: ["**/*.browser.test.ts"],
+								setupFiles: ["./tests/helpers/setup.ts"],
+								browser: {
+									enabled: true,
+									headless: true,
+									// Workspace navigation uses links on desktop and a section picker
+									// on phones. This pilot explicitly exercises the desktop flow.
+									viewport: { width: 1280, height: 900 },
+									provider: playwright({
+										actionTimeout: testTimeouts.assertion,
+									}),
+									instances: [{ browser: "chromium" as const }],
+								},
+							},
+						},
+					]),
 		],
+		// Preparation stays in Node; only Node/happy-dom projects deserialize the
+		// V8 baseline. Browser suites currently construct synthetic documents.
 		globalSetup: ["./tests/helpers/global-setup.ts"],
-		setupFiles: ["./tests/helpers/fixture-setup.ts"],
 		// Required for SvelteKit with Vite 7+
 		// Ensures that SvelteKit's virtual modules ($app, __sveltekit) are properly resolved
 		server: {

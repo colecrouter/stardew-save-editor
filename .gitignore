@@ -5,6 +5,7 @@ openspec
 node_modules
 .playwright-cli
 /output/playwright
+/.vitest/
 /build
 /.svelte-kit
 /package

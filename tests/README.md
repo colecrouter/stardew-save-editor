@@ -3,11 +3,14 @@
 - `npm run test:asset-dump`: catalog extraction regressions and filesystem publication/rollback
   for the .NET generator; no game installation or graphics device required.
 - `npm test`: application/domain/component and retained legacy regressions (Vite+ Vitest 5,
-  Node by default, happy-dom for `*.svelte.test.ts`). Legacy-editor regressions are excluded.
+  Node by default, happy-dom for `*.svelte.test.ts`, Chromium for `*.browser.test.ts`). Legacy-editor regressions are excluded.
 - `npm run test:legacy`: opt-in legacy-editor regressions, including the legacy
   route boundary. CI does not run this command. Files named `e2e` here are
   integration tests, not real-browser tests.
 - `npm run test:editor`: the narrower application editor suite.
+- `npm run test:browser`: Vitest Browser Mode component tests in headless Chromium.
+  Run `npx playwright install chromium` once locally; CI installs the browser and
+  its system dependencies before the default suite, which includes these tests.
 - `npm run test:game-data`: .NET 10 inspection/generation, generated-module
   type checks, XML codec behavior, and synthetic XmlSerializer interoperability.
   It rebuilds ignored test output; no game installation is required.
@@ -31,13 +34,30 @@ adds the test environment without introducing Node globals into the app scope.
 `tsconfig.node.json` covers build and development tooling. Engine tests belong to
 `tsconfig.tests.json` alongside the application tests.
 
-The root runner defines `node` and `svelte` projects. Node retains Vitest's default
+The root runner defines `node`, `svelte`, and `browser` projects. Node retains Vitest's default
 test discovery, including colocated tests and `.spec.ts` files; Svelte rendering
 tests are excluded from Node and selected by their `.svelte.test.ts` suffix. Use `npm test -- --project node`
 or `npm test -- --project svelte` to run one environment. DOM event tests that do
 not render Svelte may use an explicit `@vitest-environment happy-dom` directive.
-Both projects load the decoded fixture baseline; only the Svelte project installs
-component cleanup, browser-worker simulation, and Kit page-state mocks.
+Node and Svelte load the decoded fixture baseline; only the Svelte project installs
+Testing Library cleanup and browser-worker simulation. Both rendering projects use
+Kit page-state mocks. The browser project selects `*.browser.test.ts`, uses
+`vitest-browser-svelte` and real Chromium interactions, and currently constructs
+synthetic documents without importing the Node-only V8 fixture loader. Children is
+the first migrated suite; the other `*.svelte.test.ts` suites remain in happy-dom.
+Use `npm run test:browser -- --headless=false` to inspect the browser pilot locally.
+
+`tests/helpers/timeouts.ts` owns the shared test (120 seconds), hook (30 seconds),
+and assertion (30 seconds) deadlines. Vitest projects inherit these limits, and
+Browser Mode also uses the assertion deadline for input actions. These are
+stuck-test guards, not performance targets. Engine tests and the Children browser
+pilot no longer override the deadlines. Testing Library's global async timeout
+uses the same assertion budget while the happy-dom suites migrate. Use
+`expect.poll` for asynchronous model observations and `expect.element` for browser DOM assertions; both inherit
+`expect.poll.timeout`. The remaining happy-dom suites and standalone browser tools
+still have local overrides pending migration. Browser locators use exact matching
+by default; use a regular expression for partial names and `toMatchTextContent`
+for partial text assertions. Await browser unmount before closing the file-owned model.
 
 Shared fixture builders live in `tests/helpers/editor-document.ts`; engine tests
 read the public save from disk and share the same decoded baseline. The root
@@ -49,9 +69,10 @@ is removed at teardown and is never committed. Vitest chooses worker concurrency
 `tests/editor/workspace.ts` owns common workspace setup and unmount-before-file-close cleanup. Keep feature assertions and
 special cancellation/lifetime setup explicit. Use `tinyFixture` for rule tests and
 `tinyEditorFixture` when a model also needs a calendar projection. Retain full-save
-cases for preservation. Full import/export assertions have explicit
-budgets for the event-based codec; pure rule tests keep the default budget. These
-budgets detect stuck correctness tests, not acceptable runtime latency. Use the
+cases for preservation. The shared runner deadline accommodates full import/export
+work with the event-based codec. Older suites retain explicit budgets until their
+migration; new tests should inherit the shared policy. These budgets detect stuck
+correctness tests, not acceptable runtime latency. Use the
 separate full-save probe in `npm run benchmark:toolchain` to compare codec-heavy
 work across revisions; the small inventory probe does not exercise that boundary.
 UI interaction suites can open decoded fixtures through

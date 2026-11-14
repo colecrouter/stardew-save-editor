@@ -1,5 +1,4 @@
 import type { SessionState } from "../../src/lib/editor/domain.ts";
-import { vi } from "vitest";
 import { expect, it } from "@effect/vitest";
 import { Effect, Exit, Fiber } from "effect";
 import { readFile } from "node:fs/promises";
@@ -20,9 +19,6 @@ import { editorResources, openEditor, openDocument } from "./editor-model.ts";
 import { inventoryFixture } from "./inventory-model.ts";
 import { parser } from "./fixture.ts";
 import type { FixtureSave as Save } from "../helpers/editor-document.ts";
-
-// Retain the engine suite's budget for full-save codecs and worker round trips.
-vi.setConfig({ testTimeout: 15_000 });
 
 const fixtureBytes = () =>
 	readFile(new URL("../../tests/TestSave", import.meta.url));
@@ -167,7 +163,7 @@ it("bundle domain failures retain unsupported-data and late-mail tags", async ()
 	} finally {
 		await invalidMail.close();
 	}
-}, 60_000);
+});
 
 // This test-only feature is intentionally absent from MutationRequest. It proves that
 // typed local functions and annotations can extend history without a central case.
@@ -392,7 +388,7 @@ it("calendar and bundle domain programs commit and export as one annotated group
 		await opened.close();
 	}
 	expect(editorResources()).toEqual({ models: 0, registries: 0, streams: 0 });
-}, 60_000);
+});
 
 it("a typed calendar failure after staged bundle writes rolls back the entire group", async () => {
 	const opened = await openEditor(await fixtureBytes());
@@ -410,4 +406,4 @@ it("a typed calendar failure after staged bundle writes rolls back the entire gr
 	} finally {
 		await opened.close();
 	}
-}, 60_000);
+});

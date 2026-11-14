@@ -1,12 +1,8 @@
-import { vi } from "vitest";
 import { stringifySavedData } from "../../src/lib/editor/saved-data.ts";
 import { expect, it } from "@effect/vitest";
 import { Effect, Exit } from "effect";
 import { makeHistorySession } from "../../src/lib/editor/history.ts";
 import { inventoryFixture } from "./inventory-model.ts";
-
-// Retain the engine suite's budget for full-save codecs and worker round trips.
-vi.setConfig({ testTimeout: 15_000 });
 
 it.effect(
 	"placing, moving and removing opaque items preserve identity and raw fields through reversal",

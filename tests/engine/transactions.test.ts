@@ -1,5 +1,4 @@
 import type { SaveDocument } from "../../src/lib/editor/domain.ts";
-import { vi } from "vitest";
 import { expect, it } from "@effect/vitest";
 import { Effect, Exit, JsonPatch, type Schema, TxRef } from "effect";
 import {
@@ -8,9 +7,6 @@ import {
 	type SessionState,
 } from "../../src/lib/editor/domain.ts";
 import { scenarios, tinyFixture } from "./fixture.ts";
-
-// Retain the engine suite's budget for full-save codecs and worker round trips.
-vi.setConfig({ testTimeout: 15_000 });
 
 it.effect("Effect transactions commit document and receipt refs together", () =>
 	Effect.gen(function* () {

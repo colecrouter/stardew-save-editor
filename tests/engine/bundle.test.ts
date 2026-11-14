@@ -1,4 +1,3 @@
-import { vi } from "vitest";
 import type { FixtureSave as Save } from "../helpers/editor-document.ts";
 import type { SaveDocument } from "../../src/lib/editor/domain.ts";
 import { expect, it } from "@effect/vitest";
@@ -6,9 +5,6 @@ import { readFile } from "node:fs/promises";
 import { get } from "svelte/store";
 import { openDocument } from "./editor-model.ts";
 import { parser } from "./fixture.ts";
-
-// Retain the engine suite's budget for full-save codecs and worker round trips.
-vi.setConfig({ testTimeout: 15_000 });
 
 type FullDocument = SaveDocument & { SaveGame: Save };
 
@@ -29,7 +25,7 @@ it("a late room-mail failure rolls back staged donations and rewards", async () 
 	} finally {
 		await opened.close();
 	}
-}, 60_000);
+});
 const fixture = async () =>
 	parser.parse(
 		await readFile(new URL("../../tests/TestSave", import.meta.url), "utf8"),
@@ -86,7 +82,7 @@ it("bundle completion is one compound history entry, preserves opaque fields and
 	} finally {
 		await opened.close();
 	}
-}, 60_000);
+});
 
 it("last Crafts Room bundle includes room and multiplayer completion mail in the same reversible action", async () => {
 	const document = await fixture();
@@ -131,7 +127,7 @@ it("last Crafts Room bundle includes room and multiplayer completion mail in the
 	} finally {
 		await opened.close();
 	}
-}, 60_000);
+});
 
 it("claimed rewards remain claimed and unsupported definitions cannot partially commit another domain", async () => {
 	const document = await fixture();
@@ -163,4 +159,4 @@ it("claimed rewards remain claimed and unsupported definitions cannot partially 
 	} finally {
 		await unsupported.close();
 	}
-}, 60_000);
+});

@@ -175,7 +175,7 @@ successful Apply is one Undo entry; review shows edited fields and linked
 relationship membership changes, with other serialized differences retained.
 
 Automated coverage belongs in `tests/editor/children.test.ts`,
-`children-edit.test.ts` and `children.svelte.test.ts`. For manual in-game validation, load exported
+`children-edit.test.ts` and `children.browser.test.ts`. For manual in-game validation, load exported
 host/cabin and player-couple saves, verify child/social-page names and hearts,
 interact with each parent/farmhand, check retained hats, sleep/save/reload, and
 verify Undo/export restores the original child and progress. No physical-device,

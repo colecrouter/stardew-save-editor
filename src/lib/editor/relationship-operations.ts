@@ -48,10 +48,6 @@ export type RelationshipChange = typeof changeSchema.Type;
 const decode = Schema.decodeUnknownResult(changeSchema, {
 	onExcessProperty: "error",
 });
-const record = (value: unknown): value is Record<string, unknown> =>
-	value !== null && typeof value === "object" && !Array.isArray(value);
-const integerValue = (value: unknown): value is number =>
-	typeof value === "number" && Number.isSafeInteger(value);
 // Farmer identities are optional decoded Int64s, represented as text in UI keys.
 const farmerId = (farmer: Farmer) => farmer.UniqueMultiplayerID?.toString();
 /** Presentation retains unknown villagers while exposing only independently checked fields. */
@@ -122,8 +118,8 @@ function project(
 			data.supported &&
 			names.filter((candidate) => candidate === name).length === 1 &&
 			!!saved &&
-			integerValue(points) &&
-			(!dateable || typeof status === "string");
+			points !== undefined &&
+			(!dateable || status !== undefined);
 		return [
 			{
 				name,
@@ -132,14 +128,13 @@ function project(
 				reason: supported
 					? undefined
 					: "This saved relationship is malformed or has an ambiguous villager key.",
-				points: integerValue(points) ? points : undefined,
-				gifts:
-					gifts === undefined ? 0 : integerValue(gifts) ? gifts : undefined,
-				giftsSupported:
-					supported && (gifts === undefined || integerValue(gifts)),
-				hearts: integerValue(points)
-					? Math.floor(points / POINTS_PER_HEART)
-					: undefined,
+				points,
+				gifts: gifts ?? 0,
+				giftsSupported: supported,
+				hearts:
+					points !== undefined
+						? Math.floor(points / POINTS_PER_HEART)
+						: undefined,
 				maxHearts,
 				maxPoints: maxHearts * POINTS_PER_HEART + (POINTS_PER_HEART - 1),
 			},
@@ -197,7 +192,7 @@ export const setRelationship = Effect.fn("Relationships.set")(function* (
 	input: RelationshipChange,
 ) {
 	// Copy own fields before decoding so inherited request values cannot authorize writes.
-	const decoded = decode(record(input) ? { ...input } : input);
+	const decoded = decode({ ...input });
 	if (Result.isFailure(decoded))
 		return yield* new RelationshipInvalid({
 			message: "Choose a valid relationship edit.",

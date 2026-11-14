@@ -10,14 +10,14 @@ async function openEvents() {
 	const document = parser.parse(fixtureXml);
 	const host = document.SaveGame.player;
 	Object.assign(host, {
-		eventsSeen: [1, "Mod.Host_Event"],
+		eventsSeen: ["1", "Mod.Host_Event"],
 		testMetadataeventsSeen: { opaque: "keep" },
 	});
 	const guest = structuredClone(host);
 	guest.UniqueMultiplayerID = 2n;
 	guest.name = "Guest";
 	Object.assign(guest, {
-		eventsSeen: [2],
+		eventsSeen: ["2"],
 		testMetadataeventsSeen: { opaque: "2" },
 	});
 	document.SaveGame.farmhands = [guest];

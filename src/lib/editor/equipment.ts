@@ -1,6 +1,4 @@
-import { Schema } from "effect";
-import { ValueSchema } from "../../../generated/save-format/save.ts";
-import { savedType } from "./saved-types.ts";
+import { isSavedItem, type InventoryValue } from "./inventory-values.ts";
 import type { ItemPresentation } from "./item-presentation.ts";
 import { emptySlot, type Farmer } from "./domain.ts";
 
@@ -18,54 +16,66 @@ export type EquipmentSlot = (typeof equipmentSlots)[number];
 // The game saves trinkets as a list even though this editor exposes one slot.
 // Preserve multi-trinket imports as opaque values instead of selecting an arbitrary item.
 export function readEquipmentSlot(
-	farmer: unknown,
+	farmer: Farmer | undefined,
 	slot: EquipmentSlot,
-): unknown {
-	if (!record(farmer)) return undefined;
-	const value = farmer[slot];
-	return slot === "trinketItem" && Array.isArray(value) && value.length <= 1
-		? (value[0] ?? null)
-		: value;
+): InventoryValue {
+	if (farmer === undefined) return undefined;
+	if (slot === "trinketItem") {
+		const value = farmer.trinketItem;
+		return value && value.length <= 1 ? (value[0] ?? null) : value;
+	}
+	return farmer[slot];
 }
+/** Assign an already decoded item only to its matching generated equipment field.
+ * Unsupported bundles/subclasses cannot acquire a concrete class through a write. */
 export function writeEquipmentSlot(
 	farmer: Farmer,
 	slot: EquipmentSlot,
-	value: unknown,
+	value: InventoryValue,
 ): void {
-	// Equipment writes arrive from generic inventory transitions. Validate the
-	// generated field here so an opaque value cannot become a known equipment type.
-	const candidate =
-		slot === "trinketItem"
-			? { trinketItem: value == null ? [] : [value] }
-			: { [slot]: value };
-	const checked = Schema.decodeUnknownSync(ValueSchema)({
-		player: candidate,
-	}).player;
-	if (!checked) throw new Error("Equipment validation lost its owner");
+	if (value != null && !isSavedItem(value))
+		throw new Error("Unsupported equipment bundle");
 	switch (slot) {
-		case "trinketItem":
-			farmer.trinketItem = checked.trinketItem;
-			break;
 		case "hat":
-			farmer.hat = checked.hat;
+			if (value == null || value.$type === "StardewValley.Objects.Hat") {
+				farmer.hat = value;
+				return;
+			}
 			break;
 		case "boots":
-			farmer.boots = checked.boots;
+			if (value == null || value.$type === "StardewValley.Objects.Boots") {
+				farmer.boots = value;
+				return;
+			}
 			break;
 		case "leftRing":
-			farmer.leftRing = checked.leftRing;
-			break;
 		case "rightRing":
-			farmer.rightRing = checked.rightRing;
+			if (
+				value == null ||
+				value.$type === "StardewValley.Objects.Ring" ||
+				value.$type === "StardewValley.Objects.CombinedRing"
+			) {
+				farmer[slot] = value;
+				return;
+			}
 			break;
 		case "shirtItem":
-			farmer.shirtItem = checked.shirtItem;
-			break;
 		case "pantsItem":
-			farmer.pantsItem = checked.pantsItem;
+			if (value == null || value.$type === "StardewValley.Objects.Clothing") {
+				farmer[slot] = value;
+				return;
+			}
+			break;
+		case "trinketItem":
+			if (value == null || value.$type === "StardewValley.Objects.Trinket") {
+				farmer.trinketItem = value == null ? [] : [value];
+				return;
+			}
 			break;
 	}
+	throw new Error("Equipment item does not match its saved slot type");
 }
+
 export type EquipmentIdentities = Record<string, Record<EquipmentSlot, string>>;
 export type InventoryLocation = number | EquipmentSlot;
 export const equipmentLabels = {
@@ -90,47 +100,41 @@ export interface EquipmentSlotView extends ItemPresentation {
 	readonly quantity?: number;
 	readonly quality?: number;
 }
-const record = (value: unknown): value is Record<string, unknown> =>
-	value !== null && typeof value === "object" && !Array.isArray(value);
 /** Positive serialized subtype checks avoid guessing equipment from names or generic IDs. */
-export function canEquipItem(raw: unknown, key: EquipmentSlot): boolean {
+export function canEquipItem(raw: InventoryValue, key: EquipmentSlot): boolean {
 	if (emptySlot(raw)) return true;
-	if (!record(raw)) return false;
-	const type = savedType(raw);
+	if (!isSavedItem(raw)) return false;
+	const type = raw.$type;
 	switch (key) {
 		case "hat":
-			return type === "Hat";
+			return type === "StardewValley.Objects.Hat";
 		case "boots":
-			return type === "Boots";
+			return type === "StardewValley.Objects.Boots";
 		case "leftRing":
 		case "rightRing":
-			return type === "Ring" || type === "CombinedRing";
+			return (
+				type === "StardewValley.Objects.Ring" ||
+				type === "StardewValley.Objects.CombinedRing"
+			);
 		case "trinketItem":
-			return type === "Trinket";
+			return type === "StardewValley.Objects.Trinket";
 		// Clothing uses the saved variant, not the ambiguous numeric item ID: shirts
 		// and pants can share catalog IDs and must never be accepted interchangeably.
 		case "shirtItem":
-			return type === "Clothing" && raw.clothesType === "SHIRT";
+			return (
+				type === "StardewValley.Objects.Clothing" && raw.clothesType === "SHIRT"
+			);
 		case "pantsItem":
-			return type === "Clothing" && raw.clothesType === "PANTS";
+			return (
+				type === "StardewValley.Objects.Clothing" && raw.clothesType === "PANTS"
+			);
 	}
 }
-/** Unlock state is read without repairing malformed stats or imported equipment. */
-export function trinketAvailable(farmer: unknown): boolean {
-	if (!record(farmer)) return false;
+/** Unlock state uses decoded statistics without changing equipment or filling defaults. */
+export function trinketAvailable(farmer: Farmer | undefined): boolean {
+	if (farmer === undefined) return false;
 	if (!emptySlot(readEquipmentSlot(farmer, "trinketItem"))) return true;
-	const stats = record(farmer.stats) ? farmer.stats : undefined;
-	const values = stats?.Values;
-	return (
-		Array.isArray(values) &&
-		values.some((entry: unknown) => {
-			if (!record(entry)) return false;
-			return (
-				typeof entry.key === "string" &&
-				entry.key.toLowerCase() === "trinketslots" &&
-				typeof entry.value === "number" &&
-				entry.value > 0
-			);
-		})
+	return (farmer.stats?.Values ?? []).some(
+		(entry) => entry.key.toLowerCase() === "trinketslots" && entry.value > 0,
 	);
 }

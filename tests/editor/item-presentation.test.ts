@@ -13,7 +13,7 @@ const metadata = (name: string) => {
 
 it("projects plain rendering and editing descriptions without exposing saved records", () => {
 	const raw = Object.freeze({
-		$type: "StardewValley.Object",
+		$type: "StardewValley.Object" as const,
 		itemId: "390",
 		name: "Stone",
 		quality: 2,
@@ -62,7 +62,7 @@ it("keeps clothing dye masks and colored-object overlays in domain drawing instr
 
 it("uses the ingredient sprite for smoked fish and preserves an explicit unknown fallback", () => {
 	const raw = {
-		$type: "StardewValley.Object",
+		$type: "StardewValley.Object" as const,
 		itemId: "SmokedFish",
 		name: "Smoked Fish",
 		preservedParentSheetIndex: "128",
@@ -78,7 +78,12 @@ it("uses the ingredient sprite for smoked fish and preserves an explicit unknown
 
 it("rejects malformed catalog inputs as unavailable while preserving genuine lookup defects", () => {
 	expect(
-		readItemPresentation({ itemId: {}, name: { opaque: "kept" } }).visual,
+		readItemPresentation({
+			$type: "$unknown",
+			$xmlType: { name: "ModItem", namespace: "" },
+			itemId: {},
+			name: { opaque: "kept" },
+		}).visual,
 	).toBeUndefined();
 	const lookup = vi.spyOn(catalog, "ResolveItemData").mockImplementation(() => {
 		throw new Error("catalog defect");

@@ -1,48 +1,31 @@
-import { savedType } from "./saved-types.ts";
-import type { Farmer, SaveDocument } from "./domain.ts";
+import { isKnownLocation } from "./saved-types.ts";
+import type { Farmer, Location, SaveDocument } from "./domain.ts";
 
-const record = (value: unknown): value is Record<string, unknown> =>
-	value !== null && typeof value === "object" && !Array.isArray(value);
 const idOf = (farmer: Farmer) => farmer.UniqueMultiplayerID?.toString();
-const empty = (value: unknown) =>
-	value === undefined || value === null || value === "";
-const values = (value: unknown): unknown[] =>
-	empty(value) ? [] : Array.isArray(value) ? value : [value];
-
-interface CellarEntry {
-	key: number;
-	value: bigint;
-}
-const cellarEntry = (value: unknown): value is CellarEntry =>
-	record(value) &&
-	typeof value.key === "number" &&
-	Number.isSafeInteger(value.key) &&
-	value.key >= 1 &&
-	typeof value.value === "bigint";
+type Cabin = Extract<
+	Location,
+	{
+		readonly $type: "StardewValley.Locations.Cabin";
+	}
+>;
 
 /** Engine-only checked roster. Empty-name cabin placeholders stay at their raw slots. */
 export function inspectFarmerRoster(document: SaveDocument) {
 	const game = document.SaveGame;
-	const hands = game.farmhands;
-	const entries = Array.isArray(hands) ? hands : [];
+	const entries = game.farmhands;
 	const candidates = [game.player, ...entries];
 	const active = candidates.filter(
 		(farmer): farmer is Farmer & { name: string } =>
-			record(farmer) &&
-			typeof farmer.name === "string" &&
-			farmer.name.trim() !== "",
+			farmer != null && farmer.name !== undefined && farmer.name.trim() !== "",
 	);
+	// Nil farmhand slots and unnamed placeholders retain their serialized positions.
 	const ids = candidates.map((farmer) =>
-		record(farmer) ? idOf(farmer) : undefined,
+		farmer == null ? undefined : idOf(farmer),
 	);
 	let reason: string | undefined;
 	if (
-		!Array.isArray(hands) ||
-		!record(game.player) ||
 		active[0] !== game.player ||
-		candidates.some(
-			(farmer) => !record(farmer) || typeof farmer.name !== "string",
-		)
+		candidates.some((farmer) => farmer == null || farmer.name === undefined)
 	)
 		reason = "The saved farmer list is unsupported.";
 	else if (
@@ -53,30 +36,17 @@ export function inspectFarmerRoster(document: SaveDocument) {
 	)
 		reason =
 			"Farmer identities must be present and unique before reassigning slots.";
-	else if (
-		active.some(
-			(farmer) =>
-				!record(farmer) ||
-				typeof farmer.homeLocation !== "string" ||
-				!farmer.homeLocation,
-		)
-	)
+	else if (active.some((farmer) => !farmer.homeLocation))
 		reason = "Each farmer needs a supported saved home location.";
-	const homeBySlot = active.map((farmer) =>
-		record(farmer) && typeof farmer.homeLocation === "string"
-			? farmer.homeLocation
-			: "",
-	);
-	const rawGame = game;
-	const rawCellars = rawGame.cellarAssignments;
-	const savedCellars = Array.isArray(rawCellars) ? rawCellars : [];
-	const cellars = savedCellars.filter(cellarEntry);
-	if (cellars.length !== savedCellars.length)
+	const homeBySlot = active.map((farmer) => farmer.homeLocation ?? "");
+	// The codec guarantees dictionary entry shapes and Int64 owner values. Positive
+	// cellar identities and one-to-one ownership remain roster constraints.
+	const rawCellars = game.cellarAssignments;
+	const cellars = rawCellars ?? [];
+	if (cellars.some((entry) => entry.key < 1))
 		reason ??= "The saved cellar assignments are unsupported.";
 	const keys = new Set<number>(),
 		owners = new Set<string>();
-	if (!empty(rawCellars) && !Array.isArray(rawCellars))
-		reason ??= "The saved cellar assignments are unsupported.";
 	for (const entry of cellars) {
 		if (keys.has(entry.key) || owners.has(String(entry.value))) {
 			reason ??= "The saved cellar assignments are ambiguous or unsupported.";
@@ -102,38 +72,29 @@ export function inspectFarmerRoster(document: SaveDocument) {
 	if (new Set(homeBySlot).size !== homeBySlot.length)
 		reason ??= "Farmer slot homes are ambiguous.";
 
-	const cabins: Record<string, unknown>[] = [];
-	function visit(raw: unknown) {
-		if (!record(raw)) return;
-		const buildings = values(raw.buildings);
-		for (const building of buildings) {
-			if (!record(building) || !record(building.indoors)) continue;
-			if (savedType(building.indoors) === "Cabin")
-				cabins.push(building.indoors);
-			visit(building.indoors);
+	const cabins: Cabin[] = [];
+	function visit(raw: Location | null | undefined) {
+		if (raw == null) return;
+		// Opaque locations or buildings may hide another matching cabin. They cannot
+		// authorize reassignment because typed traversal cannot establish uniqueness.
+		if (!isKnownLocation(raw)) {
+			reason ??= "The saved home locations are unsupported.";
+			return;
+		}
+		for (const building of raw.buildings ?? []) {
+			if (building == null) continue;
+			if (building.$type === "$unknown") {
+				reason ??= "The saved home locations are unsupported.";
+				continue;
+			}
+			const indoors = building.indoors;
+			if (indoors?.$type === "StardewValley.Locations.Cabin")
+				cabins.push(indoors);
+			visit(indoors);
 		}
 	}
-	const locations = values(game.locations);
-	locations.forEach(visit);
+	for (const location of game.locations ?? []) visit(location);
 	for (const home of homeBySlot.slice(1, active.length)) {
-		const matching = cabins.filter(
-			(cabin) => cabin.uniqueName === home || cabin.name === home,
-		);
-		if (
-			matching.some((cabin) => {
-				const reference = cabin.farmhandReference;
-				return (
-					!empty(reference) &&
-					!(
-						typeof reference === "string" ||
-						typeof reference === "bigint" ||
-						(typeof reference === "number" && Number.isSafeInteger(reference))
-					)
-				);
-			})
-		)
-			reason ??= "A cabin's saved farmer reference is unsupported.";
-
 		if (
 			cabins.filter((cabin) => cabin.uniqueName === home || cabin.name === home)
 				.length > 1
@@ -145,7 +106,7 @@ export function inspectFarmerRoster(document: SaveDocument) {
 		entries,
 		homeBySlot,
 		cellars,
-		rawCellars: Array.isArray(rawCellars) ? rawCellars : undefined,
+		rawCellars,
 		cabins,
 		supported: reason === undefined,
 		reason,
@@ -177,13 +138,12 @@ export function readFarmerRoster(document: SaveDocument): FarmerRosterView {
 		reason: roster.reason,
 		placeholders: roster.entries.length + 1 - roster.active.length,
 		players: roster.active.map((farmer, index) => {
-			const raw = record(farmer) ? farmer : undefined;
-			const milliseconds = raw?.millisecondsPlayed;
+			// Played time is a decoded UInt64. Divide before formatting so even long
+			// play histories keep exact whole minutes without Number precision loss.
+			const milliseconds = farmer.millisecondsPlayed;
 			const minutes =
-				typeof milliseconds === "number" &&
-				Number.isFinite(milliseconds) &&
-				milliseconds >= 0
-					? Math.floor(milliseconds / 60000)
+				milliseconds !== undefined && milliseconds >= 0n
+					? milliseconds / 60000n
 					: undefined;
 			return {
 				farmerId: roster.idOf(farmer) ?? "",
@@ -191,16 +151,15 @@ export function readFarmerRoster(document: SaveDocument): FarmerRosterView {
 				host: index === 0,
 				name: farmer.name,
 				home: roster.homeBySlot[index] ?? "Unsupported home",
-				farmName:
-					typeof farmer.farmName === "string" ? farmer.farmName : "Unknown",
+				farmName: farmer.farmName ?? "Unknown",
 				played:
 					minutes === undefined
 						? undefined
-						: `${Math.floor(minutes / 60)}h ${minutes % 60}m`,
+						: `${minutes / 60n}h ${minutes % 60n}m`,
 				moneyEarned:
-					typeof raw?.totalMoneyEarned === "number" &&
-					Number.isFinite(raw.totalMoneyEarned)
-						? raw.totalMoneyEarned
+					farmer.totalMoneyEarned !== undefined &&
+					Number.isFinite(farmer.totalMoneyEarned)
+						? farmer.totalMoneyEarned
 						: undefined,
 			};
 		}),

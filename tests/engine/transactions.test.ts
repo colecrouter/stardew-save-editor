@@ -1,3 +1,4 @@
+import type { SaveDocument } from "../../src/lib/editor/domain.ts";
 import { vi } from "vitest";
 import { expect, it } from "@effect/vitest";
 import { Effect, Exit, JsonPatch, type Schema, TxRef } from "effect";
@@ -14,10 +15,7 @@ vi.setConfig({ testTimeout: 15_000 });
 it.effect("Effect transactions commit document and receipt refs together", () =>
 	Effect.gen(function* () {
 		const original = tinyFixture();
-		const document =
-			yield* TxRef.make<import("../../src/lib/editor/domain.ts").SaveDocument>(
-				original,
-			);
+		const document = yield* TxRef.make<SaveDocument>(original);
 		const receipts = yield* TxRef.make<OperationChange[]>([]);
 		const rename = { type: "farm-name", value: "New farm" } as const;
 		const mutate = (fail: boolean) =>
@@ -49,10 +47,7 @@ it.effect(
 	() =>
 		Effect.gen(function* () {
 			const original = tinyFixture();
-			const ref =
-				yield* TxRef.make<
-					import("../../src/lib/editor/domain.ts").SaveDocument
-				>(original);
+			const ref = yield* TxRef.make<SaveDocument>(original);
 			yield* Effect.tx(
 				Effect.gen(function* () {
 					const unsafe = yield* TxRef.get(ref);

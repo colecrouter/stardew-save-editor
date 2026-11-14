@@ -135,7 +135,7 @@ it.effect(
 		Effect.gen(function* () {
 			const document = fixture();
 			Object.assign(document.SaveGame.player, {
-				mailbox: [{ opaque: true }],
+				mailbox: [null],
 			});
 			const session = yield* makeHistorySession(document);
 			const before = yield* session.snapshot;

@@ -13,13 +13,19 @@ export {
 	buildingTierBlocker,
 } from "../animalBuildingData.ts";
 export type { BuildingInfo, AnimalOption } from "../animalBuildingData.ts";
+import type { KnownFields } from "./domain.ts";
 import type { IndoorItem, IndoorItemMove } from "$types/buildingUpgrade";
 import { type BigCraftable, Fragility } from "$types/items";
 import { savedType } from "./saved-types.ts";
-import type { T_StardewValley_Buildings_Building as SavedBuilding } from "../../../generated/save-format/save.ts";
+import type {
+	T_StardewValley_Object as SavedObject,
+	T_StardewValley_Buildings_Building as SavedBuilding,
+} from "../../../generated/save-format/save.ts";
 // These lenses describe only the fields used by placement; additional saved fields remain attached.
 type TileLocation = { X: number; Y: number };
+type KnownObject = Exclude<SavedObject, { readonly $type: "$unknown" }>;
 interface SaveItem {
+	heldObject?: KnownObject["heldObject"];
 	itemId?: string;
 	name?: string;
 	bigCraftable?: boolean;
@@ -83,13 +89,10 @@ function qualifiedItemId(item: SaveItem, isFurniture = false) {
 	return item.bigCraftable ? `(BC)${id}` : `(O)${id}`;
 }
 
-const objectsOf = (location: Location): ItemKV[] =>
-	Array.isArray(location.objects) ? location.objects : [];
+const objectsOf = (location: Location): ItemKV[] => location.objects ?? [];
 
 const furnitureOf = (location: Location): SaveItem[] =>
-	typeof location.furniture === "object" && Array.isArray(location.furniture)
-		? location.furniture
-		: [];
+	location.furniture ?? [];
 
 const objectAt = (location: Location, tile: Tile) =>
 	objectsOf(location).find((entry) => sameTile(entry.key, tile));
@@ -280,8 +283,10 @@ function placedBigCraftable(
 		scale: { X: 0, Y: 0 },
 		uses: 0,
 		destroyOvernight: false,
-	};
-	return object as SaveItem;
+	} satisfies KnownFields<
+		Extract<KnownObject, { readonly $type: "StardewValley.Object" }>
+	>;
+	return object;
 }
 
 /** The data for a `(BC)` item, the only kind the game's buildings add */
@@ -327,8 +332,6 @@ export function placeIndoorItems(
 			problems.push(unplaced(item, "something else is in the way"));
 			continue;
 		}
-		if (typeof location.objects !== "object" || !location.objects)
-			location.objects = [];
 		location.objects ??= [];
 		location.objects.push({
 			key: { X: item.tile.X, Y: item.tile.Y },
@@ -351,9 +354,9 @@ export function removeIndoorItems(
 	for (const item of items) {
 		const existing = objectAt(location, item.tile);
 		if (!existing || qualifiedItemId(existing.value) !== item.itemId) continue;
-		const held = (existing.value as SaveItem & { heldObject?: unknown })
-			.heldObject;
-		if (held && typeof held === "object") {
+		// A non-nil held object means this machine is in use, including opaque
+		// modded contents. Downgrades must preserve it rather than discard it.
+		if (existing.value.heldObject != null) {
 			kept.push(unplaced(item, "it has something in it"));
 			continue;
 		}

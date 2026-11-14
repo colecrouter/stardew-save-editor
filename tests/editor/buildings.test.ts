@@ -1,4 +1,3 @@
-import { malformedFixture } from "../helpers/editor-document.ts";
 import { stringifySavedData } from "../../src/lib/editor/saved-data.ts";
 import { it } from "@effect/vitest";
 import { describe, expect } from "vitest";
@@ -8,7 +7,6 @@ import { TransactionDraft } from "../../src/lib/editor/transaction-draft";
 import {
 	readBuildings,
 	inspectBuildings,
-	record,
 	animalDictionary,
 } from "../../src/lib/editor/building-data";
 import {
@@ -223,8 +221,6 @@ describe("v2 buildings and animals", { timeout: 30_000 }, () => {
 				const mirror = required(
 					animalDictionary(required(building.interior)).upper.entries[0],
 				);
-				if (!record(mirror) || !record(mirror.value) || !record(mirror.value))
-					throw new Error("Missing animal mirror");
 				mirror.value.happiness = 1;
 				const session = yield* makeHistorySession(document),
 					before = yield* session.snapshot;
@@ -440,8 +436,7 @@ describe("v2 buildings and animals", { timeout: 30_000 }, () => {
 				if (!Array.isArray(interior.objects))
 					throw new Error("Missing objects");
 				const entry = interior.objects[direction === "upgrade" ? 0 : 1];
-				if (!record(entry) || !record(entry.value))
-					throw new Error("Missing chest");
+				if (entry === undefined) throw new Error("Missing chest");
 				Object.assign(entry.value, {
 					$type: "StardewValley.Objects.Chest",
 					items: [
@@ -474,7 +469,7 @@ describe("v2 buildings and animals", { timeout: 30_000 }, () => {
 						),
 					);
 				expect(after.identities[moved.id]).toEqual(ids);
-				expect(moved.raw.tileLocation).toEqual(
+				expect(moved.container.tileLocation).toEqual(
 					direction === "upgrade" ? { X: 14, Y: 8 } : { X: 2, Y: 3 },
 				);
 				if (direction === "downgrade") {
@@ -492,7 +487,7 @@ describe("v2 buildings and animals", { timeout: 30_000 }, () => {
 			}),
 	);
 	it.effect(
-		"collapses duplicate presentation keys into read-only rows and preserves opaque names",
+		"collapses duplicate presentation keys into read-only rows and preserves absent names",
 		() =>
 			Effect.gen(function* () {
 				const document = parser.parse(
@@ -511,8 +506,7 @@ describe("v2 buildings and animals", { timeout: 30_000 }, () => {
 							(row) => row.id === COOP_ANIMALS.clucky,
 						),
 					);
-				for (const mirror of animal.mirrors)
-					mirror.name = malformedFixture({ modName: "opaque" });
+				for (const mirror of animal.mirrors) delete mirror.name;
 				const session = yield* makeHistorySession(single),
 					before = yield* session.snapshot;
 				expect(
@@ -540,7 +534,7 @@ describe("v2 buildings and animals", { timeout: 30_000 }, () => {
 					inspectBuildings((yield* session.snapshot).document).animals.find(
 						(row) => row.id === COOP_ANIMALS.clucky,
 					)?.raw?.name,
-				).toEqual({ modName: "opaque" });
+				).toBeUndefined();
 			}),
 	);
 });

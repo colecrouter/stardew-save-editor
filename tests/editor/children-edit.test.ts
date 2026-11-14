@@ -285,6 +285,8 @@ it.effect(
 		Effect.gen(function* () {
 			const before = childrenFixture();
 			const child = inspectResidents(before)[0]!.resident;
+			if (child.$type !== "StardewValley.Characters.Child")
+				throw Error("Missing fixture child");
 			child.hat = {
 				$type: "StardewValley.Objects.Hat",
 				itemId: "custom_hat",
@@ -293,7 +295,9 @@ it.effect(
 			};
 			child.daysOld = -5;
 			const expected = structuredClone(before);
-			inspectResidents(expected)[0]!.resident.gender = "Male";
+			Object.assign(inspectResidents(expected)[0]!.resident, {
+				gender: "Male",
+			});
 			const session = yield* makeHistorySession(before);
 			yield* session.transact(editChild(request(before, { gender: "Male" })));
 			expect((yield* session.snapshot).document).toEqual(expected);

@@ -1,3 +1,4 @@
+import type { SaveDocument } from "../../src/lib/editor/domain.ts";
 import { stringifySavedData } from "../../src/lib/editor/saved-data.ts";
 import { it } from "@effect/vitest";
 import { describe, expect } from "vitest";
@@ -75,9 +76,8 @@ function fixture() {
 	];
 	return document;
 }
-const rawGame = (
-	document: import("../../src/lib/editor/domain.ts").SaveDocument,
-): Record<string, unknown> => document.SaveGame;
+const rawGame = (document: SaveDocument): Record<string, unknown> =>
+	document.SaveGame;
 
 describe("farmer slot reassignment", () => {
 	it("projects named slots without changing ghosts or imported metadata", () => {
@@ -274,7 +274,7 @@ describe("farmer slot reassignment", () => {
 	);
 });
 
-it.effect.each(["duplicate-home", "opaque-reference"] as const)(
+it.effect.each(["duplicate-home", "opaque-location"] as const)(
 	"rejects %s without changing records or paired identities",
 	(mode) =>
 		Effect.gen(function* () {
@@ -286,8 +286,13 @@ it.effect.each(["duplicate-home", "opaque-reference"] as const)(
 			if (mode === "duplicate-home")
 				Object.assign(required(guest), { homeLocation: "FarmHouse" });
 			else {
-				const cabin = required(inspectFarmerRoster(document).cabins[0]);
-				cabin.farmhandReference = { opaque: "retain" };
+				// Opaque subclasses use the codec representation; malformed known fields
+				// are rejected at import rather than reaching roster inspection.
+				document.SaveGame.locations?.push({
+					$type: "$unknown",
+					$xmlType: { name: "ModHome", namespace: "" },
+					name: "CabinGuest",
+				});
 			}
 			const session = yield* makeHistorySession(document),
 				before = yield* session.snapshot;
@@ -331,3 +336,11 @@ it.effect(
 			expect((yield* session.snapshot).document).toEqual(after.document);
 		}),
 );
+
+it("formats decoded UInt64 play time without losing whole-minute precision", () => {
+	const document = fixture();
+	// Include a remainder and exceed Number's exact integer range to exercise
+	// the saved representation rather than a small numeric fixture.
+	document.SaveGame.player.millisecondsPlayed = 9007199254740999n;
+	expect(readFarmerRoster(document).players[0]?.played).toBe("2501999792h 59m");
+});

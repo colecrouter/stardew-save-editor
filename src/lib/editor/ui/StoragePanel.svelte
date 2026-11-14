@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { CommandResult } from "../command-result.ts";
 	import { onDestroy } from "svelte";
 	import { Result } from "effect";
 	import { useAtomValue } from "effect-atom-svelte";
@@ -103,9 +104,7 @@
 		if (selectedId && !eligible.has(selectedId)) selectedId = undefined;
 	});
 	async function perform(
-		action: () => Promise<
-			import("../command-result.ts").CommandResult<unknown, { message: string }>
-		>,
+		action: () => Promise<CommandResult<unknown, { message: string }>>,
 	) {
 		if (busy) return;
 		busy = true;

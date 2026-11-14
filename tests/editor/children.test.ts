@@ -31,6 +31,8 @@ describe("existing child renaming", () => {
 	it("distinguishes absent hats from unknown saved hats and respects saved hair mode", () => {
 		const document = childrenFixture();
 		const child = inspectResidents(document)[0]!.resident;
+		if (child.$type !== "StardewValley.Characters.Child")
+			throw Error("Missing fixture child");
 		// Absence is an empty equipment slot, never an unknown item to draw.
 		for (const hat of [undefined, null]) {
 			child.hat = hat;
@@ -65,7 +67,11 @@ describe("existing child renaming", () => {
 				const before = childrenFixture();
 				const expected = structuredClone(before);
 				const resident = inspectResidents(expected)[0];
-				if (!resident) throw Error("Missing resident");
+				if (
+					!resident ||
+					resident.resident.$type !== "StardewValley.Characters.Child"
+				)
+					throw Error("Missing fixture child");
 				resident.resident.name = "Hazel";
 				for (const farmer of farmers(expected))
 					for (const dictionary of [farmer.friendshipData, farmer.giftedItems])
@@ -148,10 +154,11 @@ describe("existing child renaming", () => {
 	])("keeps %s read-only", (kind) => {
 		const document = childrenFixture();
 		const child = inspectResidents(document)[0]?.resident;
-		if (!child) throw Error("Missing resident");
+		if (!child || child.$type !== "StardewValley.Characters.Child")
+			throw Error("Missing fixture child");
 		if (kind === "duplicate child") {
 			const other = inspectResidents(document)[1]?.resident;
-			if (other) other.name = child.name;
+			if (other && other.$type !== "$unknown") other.name = child.name;
 		} else if (kind === "missing parent") child.idOfParent = 999n;
 		else if (kind === "duplicate parent")
 			document.SaveGame.farmhands[0]!.UniqueMultiplayerID = 1n;
@@ -161,8 +168,10 @@ describe("existing child renaming", () => {
 				value: { Points: 99 },
 			});
 		else {
-			child.$type = "$unknown";
-			child.$xmlType = { name: "Child", namespace: "urn:example" };
+			Object.assign(child, {
+				$type: "$unknown",
+				$xmlType: { name: "Child", namespace: "urn:example" },
+			});
 		}
 		expect(readChildren(document)[0]?.supported).toBe(false);
 	});
@@ -212,4 +221,15 @@ describe("existing child renaming", () => {
 				expect((yield* session.snapshot).entries).toHaveLength(1);
 			}),
 	);
+});
+
+it("keeps known children read-only when an opaque world branch may hide a name collision", () => {
+	const document = childrenFixture();
+	document.SaveGame.locations?.push({
+		$type: "$unknown",
+		$xmlType: { name: "ModHome", namespace: "" },
+	});
+	const before = structuredClone(document);
+	expect(readChildren(document).every((child) => !child.supported)).toBe(true);
+	expect(document).toEqual(before);
 });

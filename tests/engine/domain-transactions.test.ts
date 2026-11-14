@@ -1,3 +1,4 @@
+import type { SessionState } from "../../src/lib/editor/domain.ts";
 import { vi } from "vitest";
 import { expect, it } from "@effect/vitest";
 import { Effect, Exit, Fiber } from "effect";
@@ -105,7 +106,7 @@ it.effect(
 		Effect.gen(function* () {
 			const session = yield* makeHistorySession(inventoryFixture());
 			const retained: {
-				state?: import("../../src/lib/editor/domain.ts").SessionState;
+				state?: SessionState;
 			} = {};
 			const tags = ["owned"];
 			yield* session.transact(
@@ -153,9 +154,9 @@ it("bundle domain failures retain unsupported-data and late-mail tags", async ()
 		throw new Error("Missing fixture Community Center");
 	for (const entry of cc.bundles)
 		if ([14, 15, 16, 17, 19].includes(entry.key)) entry.value.fill(true);
-	// A decoded save can omit mail evidence; the command must reject the room
-	// repair and roll back donations without requiring malformed model input.
-	delete game.player.mailReceived;
+	// Nil mail slots are valid decoded data but cannot support a room repair.
+	// Exercise late rollback without bypassing the model's decoded contract.
+	game.player.mailReceived = [null];
 	const invalidMail = await openDocument(document);
 	try {
 		const before = await invalidMail.model.snapshot();

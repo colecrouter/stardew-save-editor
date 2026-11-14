@@ -159,6 +159,7 @@ describe("saved pregnancy and baby-question eligibility", () => {
 							characters: [],
 						},
 						{
+							$type: "StardewValley.Farm",
 							name: "Farm",
 							buildings: [
 								{
@@ -180,10 +181,11 @@ describe("saved pregnancy and baby-question eligibility", () => {
 					spouse: "Guest",
 					eligible: false,
 				});
-				const game: Record<string, unknown> = document.SaveGame;
+				const game = document.SaveGame;
 				Object.assign(game, {
 					locations: [
 						{
+							$type: "StardewValley.Locations.Cabin",
 							name: "Cabin_1",
 							cribStyle: 1,
 							characters: [
@@ -311,4 +313,36 @@ describe("saved pregnancy and baby-question eligibility", () => {
 			}),
 		30_000,
 	);
+});
+
+it.each(["opaque", "nil"] as const)(
+	"keeps nursery occupancy uncertain for %s residents",
+	(kind) => {
+		const { document } = fixture();
+		const home = document.SaveGame.locations?.[0];
+		if (home?.$type !== "StardewValley.Locations.FarmHouse")
+			throw new Error("Missing fixture home");
+		// Both representations are legal decoded slots, but neither can establish
+		// that the nursery has room for another child.
+		home.characters = [
+			kind === "nil"
+				? null
+				: {
+						$type: "$unknown",
+						$xmlType: { name: "ModChild", namespace: "" },
+					},
+		];
+		expect(readPregnancy(document, "1").eligible).toBe(false);
+	},
+);
+
+it("does not infer a unique nursery through opaque location branches", () => {
+	const { document } = fixture();
+	// A modded branch can hide a second home identity even when the visible
+	// vanilla house appears eligible.
+	document.SaveGame.locations?.push({
+		$type: "$unknown",
+		$xmlType: { name: "ModHome", namespace: "" },
+	});
+	expect(readPregnancy(document, "1").eligible).toBe(false);
 });

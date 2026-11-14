@@ -21,7 +21,7 @@ it.effect(
 			fixture.SaveGame.farmhands[0].items!.push(null);
 			const session = yield* makeHistorySession(fixture);
 			const opaque = {
-				$type: "$unknown",
+				$type: "$unknown" as const,
 				$xmlType: { name: "CustomModItem", namespace: "" },
 				customModData: { version: "007" },
 				unknown: [1, { keep: true }],
@@ -100,13 +100,23 @@ it.effect(
 				expect(yield* session.snapshot).toEqual(before);
 			}
 			yield* session.execute([
-				{ type: "item-place", ownerId: "1", slot: 2, item: { custom: 1 } },
+				{
+					type: "item-place",
+					ownerId: "1",
+					slot: 2,
+					item: { $type: "StardewValley.Object", custom: 1 },
+				},
 			]);
 			const abandoned = (yield* session.snapshot).identities["1"]?.[2];
 			expect(abandoned).toBeDefined();
 			yield* session.undo;
 			yield* session.execute([
-				{ type: "item-place", ownerId: "1", slot: 2, item: { custom: 2 } },
+				{
+					type: "item-place",
+					ownerId: "1",
+					slot: 2,
+					item: { $type: "StardewValley.Object", custom: 2 },
+				},
 			]);
 			expect((yield* session.snapshot).identities["1"]?.[2]).not.toBe(
 				abandoned,

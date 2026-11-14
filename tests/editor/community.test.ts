@@ -201,7 +201,7 @@ it.effect(
 		}),
 );
 it.effect(
-	"rejects stale requirement identities and late malformed mail without partial writes",
+	"rejects stale requirement identities and late nil mail without partial writes",
 	() =>
 		Effect.gen(function* () {
 			const document = fixture(),
@@ -230,9 +230,8 @@ it.effect(
 			).toBe(true);
 			expect(yield* session.snapshot).toEqual(before);
 			const broken = fixture();
-			Object.assign(broken.SaveGame.player, {
-				mailReceived: [{ opaque: true }],
-			});
+			// Nil slots can survive typed decoding and must still block mail edits.
+			broken.SaveGame.player.mailReceived = [null];
 			const invalid = yield* makeHistorySession(broken),
 				original = yield* invalid.snapshot;
 			expect(

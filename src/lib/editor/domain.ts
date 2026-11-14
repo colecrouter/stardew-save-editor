@@ -11,6 +11,7 @@ import {
 import type { InventoryMoveRequest } from "./inventory-movement.ts";
 import type { InventorySlotRequest } from "./inventory-lifecycle.ts";
 import type { CalendarEdit } from "./calendar-document.ts";
+import type { SavedItem } from "./inventory-values.ts";
 
 // Authored records have no extension payload. Removing the generated extension
 // index here lets constructors catch misspelled fields without restricting imports.
@@ -75,7 +76,7 @@ export type ResolvedMutation =
 	  }
 	| CalendarEdit
 	| { type: "bundle-complete"; bundleId: 13 }
-	| { type: "item-place"; ownerId: string; slot: number; item: unknown }
+	| { type: "item-place"; ownerId: string; slot: number; item: SavedItem }
 	| { type: "item-remove"; ownerId: string; slot: number; entityId?: string }
 	| {
 			type: "item-move";

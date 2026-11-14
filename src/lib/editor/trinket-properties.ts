@@ -1,4 +1,14 @@
-import { savedType } from "./saved-types.ts";
+import { isKnownItem, type InventoryValue } from "./inventory-values.ts";
+import type { T_StardewValley_Objects_Trinket as Trinket } from "../../../generated/save-format/save.ts";
+import type { KnownFields } from "./domain.ts";
+export type TrinketPatch = Partial<
+	Pick<
+		KnownFields<Trinket>,
+		| "generationSeed"
+		| "descriptionSubstitutionTemplates"
+		| "displayNameOverrideTemplate"
+	>
+>;
 import { Data, Effect, Result, Schema, SchemaIssue } from "effect";
 import {
 	clampStats,
@@ -92,23 +102,19 @@ export interface TrinketPropertyField {
 	title?: string;
 	options?: readonly { value: number | string; label: string }[];
 }
-const record = (value: unknown): value is Record<string, unknown> =>
-	value !== null && typeof value === "object" && !Array.isArray(value);
 // Only a saved int32 seed can reproduce the game's result. A missing or opaque
 // seed remains unsupported rather than creating random data merely by viewing it.
 function currentStats(
-	raw: unknown,
+	raw: InventoryValue,
 	ctx: TrinketRollContext,
 ): TrinketStats | undefined {
 	if (
-		!record(raw) ||
-		savedType(raw) !== "Trinket" ||
-		typeof raw.itemId !== "string" ||
-		!Number.isInteger(raw.generationSeed) ||
-		typeof raw.generationSeed !== "number" ||
+		!isKnownItem(raw) ||
+		raw.$type !== "StardewValley.Objects.Trinket" ||
+		raw.itemId === undefined ||
+		raw.generationSeed === undefined ||
 		raw.generationSeed < 0 ||
 		raw.generationSeed > 2147483647 ||
-		typeof ctx.useLegacyRandom !== "boolean" ||
 		!Number.isFinite(ctx.totalMoneyEarned) ||
 		ctx.totalMoneyEarned < 0
 	)
@@ -143,7 +149,7 @@ const numberField = (
 
 /** Derive controls only from an existing seed and the current owner's game context. */
 export function readTrinketProperties(
-	raw: unknown,
+	raw: InventoryValue,
 	ctx: TrinketRollContext,
 ): readonly TrinketPropertyField[] {
 	const stats = currentStats(raw, ctx);
@@ -254,7 +260,7 @@ export function readTrinketProperties(
 export const prepareTrinketPropertyChange = Effect.fn(
 	"Item.prepareTrinketProperty",
 )(function* (
-	raw: unknown,
+	item: InventoryValue,
 	input: TrinketPropertyChange,
 	ctx: TrinketRollContext,
 ) {
@@ -267,12 +273,17 @@ export const prepareTrinketPropertyChange = Effect.fn(
 				"Choose valid trinket settings.",
 		);
 	const change = decoded.success;
-	const current = currentStats(raw, ctx);
-	if (!current || !record(raw) || typeof raw.generationSeed !== "number")
+	const current = currentStats(item, ctx);
+	if (
+		!current ||
+		!isKnownItem(item) ||
+		item.$type !== "StardewValley.Objects.Trinket" ||
+		item.generationSeed === undefined
+	)
 		return yield* invalid(
 			"This trinket's saved seed or context is not supported.",
 		);
-	const field = readTrinketProperties(raw, ctx).find(
+	const field = readTrinketProperties(item, ctx).find(
 		(field) => field.property === change.property,
 	);
 	if (!field)
@@ -351,7 +362,7 @@ export const prepareTrinketPropertyChange = Effect.fn(
 	const maxAttempts = 2000000;
 	let selected: { seed: number; stats: TrinketStats } | undefined;
 	for (let offset = 1; offset <= maxAttempts; offset++) {
-		const seed = (raw.generationSeed + offset) % seedRange;
+		const seed = (item.generationSeed + offset) % seedRange;
 		const stats = rollTrinket(
 			target.kind,
 			createRandom(seed, ctx.useLegacyRandom),
@@ -367,14 +378,12 @@ export const prepareTrinketPropertyChange = Effect.fn(
 		return yield* invalid(
 			"No matching trinket roll was found. Try a different value.",
 		);
-	const patch: Record<string, unknown> = { generationSeed: selected.seed };
+	const patch: TrinketPatch = { generationSeed: selected.seed };
 	const fields = statSaveFields(selected.stats);
 	if (fields.templates)
-		patch.descriptionSubstitutionTemplates = [
-			fields.templates.length === 1 ? fields.templates[0] : fields.templates,
-		];
+		// These are serialized strings, not the old nested XML wrapper arrays.
+		patch.descriptionSubstitutionTemplates = fields.templates.map(String);
 	if (fields.displayName !== undefined)
-		patch.displayNameOverrideTemplate =
-			fields.displayName === null ? [null] : [fields.displayName];
+		patch.displayNameOverrideTemplate = fields.displayName;
 	return patch;
 });

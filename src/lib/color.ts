@@ -1,3 +1,5 @@
+import type { T_Microsoft_Xna_Framework_Color as SavedColor } from "../../generated/save-format/save.ts";
+
 /** Game color arithmetic shared by legacy reactive wrappers and read-only v2 projections. */
 export function packRgba(R: number, G: number, B: number, A: number): number {
 	// The save packs red into the low byte and alpha into the high byte, unsigned.
@@ -68,7 +70,7 @@ export function colorHex(value: unknown): string | undefined {
 export function itemColorPatch(
 	value: unknown,
 	hex: string,
-): Record<string, unknown> | undefined {
+): SavedColor | undefined {
 	if (
 		!record(value) ||
 		colorHex(value) === undefined ||

@@ -1,3 +1,4 @@
+import type { Farmer } from "../../src/lib/editor/domain.ts";
 import { Effect } from "effect";
 import { it } from "@effect/vitest";
 import { describe, expect } from "vitest";
@@ -14,9 +15,9 @@ import {
 	exportDocument,
 } from "../helpers/editor-document.ts";
 
-function fixture(events: unknown = [1, "Mod.Event"]) {
+function fixture(events: Farmer["eventsSeen"] = ["1", "Mod.Event"]) {
 	const document = tinyFixture();
-	Object.assign(document.SaveGame.player, { eventsSeen: events });
+	document.SaveGame.player.eventsSeen = events;
 	const guest = document.SaveGame.farmhands && document.SaveGame.farmhands[0];
 	if (guest) Object.assign(guest, { eventsSeen: ["2"] });
 	return document;
@@ -28,15 +29,15 @@ const change = (id: string, seen: boolean): EventChange => ({
 });
 
 describe("event save operations", () => {
-	it("projects without normalizing imported duplicate, opaque or invalid members", () => {
+	it("projects without normalizing imported duplicate, nil or invalid members", () => {
 		const document = fixture([
-			1,
+			"1",
 			"1",
 			"Mod.Event",
 			"bad/id",
-			{ opaque: "keep" },
-			true,
-			9007199254740992,
+			null,
+			null,
+			null,
 		]);
 		Object.assign(document.SaveGame.player, {
 			testMetadataeventsSeen: { meta: "007" },
@@ -61,7 +62,7 @@ describe("event save operations", () => {
 		"updates membership atomically preserving siblings, metadata and exact Undo/Redo",
 		() =>
 			Effect.gen(function* () {
-				const document = fixture([1, "Mod.Event", { opaque: "keep" }]);
+				const document = fixture(["1", "Mod.Event", null]);
 				Object.assign(document.SaveGame.player, {
 					testMetadataeventsSeen: { meta: "007" },
 				});
@@ -70,13 +71,13 @@ describe("event save operations", () => {
 				yield* session.transact(setEventSeen(change("02", true)));
 				const added = yield* session.snapshot;
 				expect(added.document.SaveGame.player).toMatchObject({
-					eventsSeen: [1, "Mod.Event", { opaque: "keep" }, "2"],
+					eventsSeen: ["1", "Mod.Event", null, "2"],
 					testMetadataeventsSeen: { meta: "007" },
 				});
 				yield* session.transact(setEventSeen(change("1", false)));
 				const removed = yield* session.snapshot;
 				expect(removed.document.SaveGame.player).toMatchObject({
-					eventsSeen: ["Mod.Event", { opaque: "keep" }, "2"],
+					eventsSeen: ["Mod.Event", null, "2"],
 					testMetadataeventsSeen: { meta: "007" },
 				});
 				yield* session.undo;
@@ -92,7 +93,7 @@ describe("event save operations", () => {
 		"keeps singleton and empty lists unchanged on read and creates no-op history",
 		() =>
 			Effect.gen(function* () {
-				for (const input of [[], [1]]) {
+				for (const input of [[], ["1"]]) {
 					const document = fixture(input);
 					const before = structuredClone(document);
 					readEvents(document);
@@ -131,13 +132,11 @@ describe("event save operations", () => {
 				expect((yield* missingSession.snapshot).document).toEqual(
 					before.document,
 				);
-				const session = yield* makeHistorySession(
-					fixture([{ opaque: "keep" }, 1]),
-				);
+				const session = yield* makeHistorySession(fixture([null, "1"]));
 				yield* session.transact(setEventSeen(change("3", true)));
 				expect(
 					(yield* session.snapshot).document.SaveGame.player,
-				).toMatchObject({ eventsSeen: [{ opaque: "keep" }, 1, "3"] });
+				).toMatchObject({ eventsSeen: [null, "1", "3"] });
 			}),
 	);
 	it.effect(
@@ -152,7 +151,7 @@ describe("event save operations", () => {
 					change("01", false),
 					{ ...change("3", true), extra: "bad" },
 				]) {
-					const session = yield* makeHistorySession(fixture([1, "1"]));
+					const session = yield* makeHistorySession(fixture(["1", "1"]));
 					const before = yield* session.snapshot;
 					const result = yield* Effect.result(
 						session.transact(setEventSeen(request)),

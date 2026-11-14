@@ -1,3 +1,4 @@
+import type { HistoryLimits } from "../../src/lib/editor/history.ts";
 import { stringifySavedData } from "../../src/lib/editor/saved-data.ts";
 import { describe, expect, it } from "vitest";
 import { fixtureXml } from "./fixtures";
@@ -16,10 +17,7 @@ import {
 import { openEditor as openApplicationEditor } from "../helpers/open-editor.ts";
 import type { FixtureSave as Save } from "../helpers/editor-document.ts";
 
-const openEditor = (
-	bytes: Uint8Array,
-	limits: import("../../src/lib/editor/history.ts").HistoryLimits = {},
-) =>
+const openEditor = (bytes: Uint8Array, limits: HistoryLimits = {}) =>
 	openApplicationEditor(bytes, limits, {
 		includeProofs: true,
 		validateExport: false,

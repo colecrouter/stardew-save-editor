@@ -18,6 +18,7 @@ import {
 	TertiaryBootColors,
 	QuaternaryBootColors,
 } from "../../src/lib/CharacterColors.ts";
+import type { Farmer } from "../../src/lib/editor/domain.ts";
 function fixture() {
 	const document = tinyFixture();
 	Object.assign(document.SaveGame.player, {
@@ -86,7 +87,7 @@ describe("appearance operations", () => {
 		Object.assign(document.SaveGame.player, {
 			shirtItem: {
 				$type: "StardewValley.Objects.Clothing",
-				itemId: { opaque: "keep" },
+				itemId: "mod.UnknownShirt",
 				name: "Unknown shirt",
 			},
 		});
@@ -328,29 +329,34 @@ it("keeps complete feet for omitted and nil boots on both body types", () => {
 
 it("uses default feet without a supported saved palette and preserves equipped boot colors", () => {
 	const base = { gender: "Male", skin: 0, hair: 0, accessory: -1 };
-	const primary = (raw: Record<string, unknown>) =>
+	const primary = (raw: Farmer) =>
 		appearanceLayers(raw).layers.find((layer) => layer.part === "boots")?.tint;
 	const expected = (index: number) => {
 		const c = PrimaryBootColors[index];
 		if (!c) throw new Error("Missing supported boot palette");
 		return [c.R, c.G, c.B, c.A];
 	};
-	for (const shoes of [undefined, "custom:7", -1, 9999])
+	for (const shoes of [undefined, "custom:7", "-1", "9999"])
 		expect(primary({ ...base, shoes })).toEqual(expected(2));
 	const equipped = {
 		...base,
-		shoes: 2,
+		shoes: "2",
 		boots: {
 			$type: "StardewValley.Objects.Boots",
 			name: "Sneakers",
 			itemId: "504",
 			indexInColorSheet: 7,
 		},
-	};
+	} satisfies Farmer;
 	expect(primary(equipped)).toEqual(expected(7));
-	const malformed = { ...base, boots: { name: { opaque: true } } };
-	expect(appearanceLayers(malformed).notice).toMatch(
+	// The codec rejects malformed known fields. Use an unresolved catalog ID to
+	// exercise the display fallback with an actual decoded equipment shape.
+	const unresolved = {
+		...base,
+		boots: { name: "Mod boots", itemId: "mod.UnknownBoots" },
+	};
+	expect(appearanceLayers(unresolved).notice).toMatch(
 		/equipment cannot be previewed/,
 	);
-	expect(primary(malformed)).toEqual(expected(2));
+	expect(primary(unresolved)).toEqual(expected(2));
 });

@@ -4,7 +4,6 @@ import type {
 	T_StardewValley_Farmer as Player,
 	T_StardewValley_Network_LocationWeather as LocationWeatherClass,
 } from "../../../generated/save-format/save.ts";
-type Season = GameDate["season"];
 import { stringifySavedData } from "./saved-data.ts";
 import {
 	dateInRange,
@@ -77,38 +76,43 @@ const fixed = (game: Save, state: CalendarViewState, tomorrow: boolean) => {
 };
 
 export function readCalendarView(game: Save): CalendarViewState {
-	const seasonText = String(game.currentSeason).trim().toLowerCase();
+	const seasonText = (game.currentSeason ?? "").trim().toLowerCase();
 	const seasonNumber = /^-?\d+$/.test(seasonText)
 		? Number(seasonText)
 		: Number.NaN;
+	// A GameDate must contain an actual season. Reject unsupported spellings
+	// instead of asserting that arbitrary saved text belongs to the season union.
+	const season =
+		SEASONS[seasonNumber] ?? SEASONS.find((value) => value === seasonText);
+	if (season === undefined)
+		throw new CalendarDocumentError("Choose a valid saved season");
 	const weather = valleyWeather(game);
-	const loadedFlags: WeatherFlags = {
+	const loadedFlags = {
 		isRaining: game.isRaining === true,
 		isSnowing: game.isSnowing === true,
 		isLightning: game.isLightning === true,
 		isDebrisWeather: game.isDebrisWeather === true,
 		isGreenRain: weather?.IsGreenRain === true,
-	};
+	} satisfies WeatherFlags;
 	const fromFlags = weatherFromFlags(loadedFlags);
 	const named = weather?.Weather ?? weather?.weather;
-	const state: CalendarViewState = {
+	const state = {
 		date: {
 			year: game.year ?? Number.NaN,
-			season: SEASONS[seasonNumber] ?? (seasonText as Season),
+			season,
 			day: game.dayOfMonth ?? Number.NaN,
 		},
 		daysPlayed: game.player ? getStatValue(game.player, "daysPlayed") : 0,
 		today:
-			typeof named === "string" &&
 			named &&
 			(!isWeatherId(named) ||
 				weatherFromFlags(WEATHER_FLAGS[named]) === fromFlags)
 				? named
 				: fromFlags,
-		tomorrow: String(game.weatherForTomorrow ?? "Sun"),
+		tomorrow: game.weatherForTomorrow ?? "Sun",
 		choices: {},
 		loadedFlags,
-	};
+	} satisfies CalendarViewState;
 	if (state.today !== fixed(game, state, false)?.weather)
 		state.choices = { ...state.choices, today: state.today };
 	if (state.tomorrow !== fixed(game, state, true)?.weather)
@@ -189,7 +193,7 @@ function bindings(game: Save): Map<string, TargetBinding> {
 		if (
 			!location ||
 			location.$type === "$unknown" ||
-			typeof location.name !== "string"
+			location.name === undefined
 		)
 			continue;
 		const context = locationWeatherContext({
@@ -197,25 +201,19 @@ function bindings(game: Save): Map<string, TargetBinding> {
 			$type: location.$type,
 		});
 		if (location.isOutdoors !== true || context !== "Default") continue;
-		const locationKey =
-			typeof location.uniqueName === "string" && location.uniqueName
-				? location.uniqueName
-				: location.name;
+		const locationKey = location.uniqueName
+			? location.uniqueName
+			: location.name;
 		if (locations.has(locationKey))
 			throw new CalendarDocumentError("Calendar location key is ambiguous");
 		locations.add(locationKey);
 		for (const building of location.buildings ?? []) {
 			if (!building || building.$type !== "StardewValley.Buildings.PetBowl")
 				continue;
-			if (typeof building.id !== "string" || !building.id)
+			if (!building.id)
 				throw new CalendarDocumentError(
 					"A pet bowl is missing its building ID",
 				);
-			if (
-				building.watered !== undefined &&
-				typeof building.watered !== "boolean"
-			)
-				throw new CalendarDocumentError("Pet bowl watering is invalid");
 			const { watered: _watered, ...detail } = building;
 			add({
 				key: JSON.stringify([locationKey, "bowl", building.id]),
@@ -242,8 +240,6 @@ function bindings(game: Save): Map<string, TargetBinding> {
 				throw new CalendarDocumentError(
 					"A tilled tile is missing its map coordinates",
 				);
-			if (feature.state !== undefined && !Number.isFinite(feature.state))
-				throw new CalendarDocumentError("Soil watering is invalid");
 			const { state: _state, ...detail } = feature;
 			add({
 				key: JSON.stringify([locationKey, "soil", tile.X, tile.Y]),
@@ -262,23 +258,13 @@ function bindings(game: Save): Map<string, TargetBinding> {
 }
 
 function assertCalendarDocument(game: Save) {
-	const record = (value: unknown): value is Record<string, unknown> =>
-		typeof value === "object" && value !== null && !Array.isArray(value);
-	const stats = game.player?.stats;
-	if (!record(stats))
-		throw new CalendarDocumentError(
-			"The host statistics have an unsupported format",
-		);
-	const values = stats.Values;
-	if (values !== undefined && !Array.isArray(values))
-		throw new CalendarDocumentError(
-			"The host statistics have an unsupported format",
-		);
+	// Decoding establishes field shapes. Calendar operations additionally require
+	// the optional date, host statistics and location collection to be present.
 	if (
-		!Number.isInteger(game.year) ||
-		!Number.isInteger(game.dayOfMonth) ||
+		game.year === undefined ||
+		game.dayOfMonth === undefined ||
 		!game.player?.stats ||
-		!Array.isArray(game.locations)
+		game.locations === undefined
 	)
 		throw new CalendarDocumentError(
 			"Calendar requires a date, host stats and locations",
@@ -396,7 +382,10 @@ export function prepareCalendarDocument<T extends Save>(
 			throw new CalendarDocumentError(
 				`The day must be from 1 to ${DAYS_PER_SEASON}`,
 			);
-		if ("season" in change && !SEASONS.includes(change.season as Season))
+		if (
+			"season" in change &&
+			!SEASONS.some((season) => season === change.season)
+		)
 			throw new CalendarDocumentError("Choose a valid season");
 		state.date = dateInRange({ ...state.date, ...change });
 		writeCalendarDate(game, state.date);
@@ -424,7 +413,7 @@ export function prepareCalendarDocument<T extends Save>(
 			: seasonWeathers(date.season).filter(
 					(id) => tomorrow || id !== "GreenRain",
 				);
-		if (!allowed.includes(edit.value as WeatherId))
+		if (!allowed.some((weather) => weather === edit.value))
 			throw new CalendarDocumentError(
 				forced?.reason ?? "Weather is not allowed on this date",
 			);

@@ -16,9 +16,9 @@ it("a late room-mail failure rolls back staged donations and rewards", async () 
 	const document = await fixture();
 	for (const entry of center(document).bundles)
 		if ([14, 15, 16, 17, 19].includes(entry.key)) entry.value.fill(true);
-	// Absent optional mail is schema-valid but cannot support the staged room
-	// repair. Exercise late rollback without bypassing the model's decoded contract.
-	delete document.SaveGame.player.mailReceived;
+	// Nil mail slots are valid decoded data but cannot support a room repair.
+	// Exercise late rollback without bypassing the model's decoded contract.
+	document.SaveGame.player.mailReceived = [null];
 	const opened = await openDocument(document);
 	try {
 		const before = await opened.model.snapshot();

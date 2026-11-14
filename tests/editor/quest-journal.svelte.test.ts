@@ -4,6 +4,7 @@ import { renderTestWorkspace } from "./workspace.ts";
 import { readQuestJournals } from "../../src/lib/editor/quest-operations.ts";
 import { parser, fixtureXml } from "./fixtures.ts";
 const quest = (extra: Record<string, unknown> = {}) => ({
+	$type: "StardewValley.Quests.Quest" as const,
 	_questTitle: "Delivery",
 	_questDescription: "A journal quest",
 	_currentObjective: "Bring the requested item",
@@ -99,7 +100,8 @@ it(
 				],
 			},
 			items: Array.from({ length: 12 }, () => ({
-				"@_xsi:nil": "true",
+				$type: "$unknown",
+				$xmlType: { name: "ModItem", namespace: "" },
 				opaque: "keep",
 			})),
 			mailReceived: [],

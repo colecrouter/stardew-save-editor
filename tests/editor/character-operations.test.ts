@@ -1,3 +1,4 @@
+import type { SaveDocument } from "../../src/lib/editor/domain.ts";
 import { it } from "@effect/vitest";
 import { describe, expect } from "vitest";
 import { Effect, Result } from "effect";
@@ -51,7 +52,7 @@ function required<A>(value: A | undefined): A {
 	if (value === undefined) throw Error("Missing fixture value");
 	return value;
 }
-const raw = (document: import("../../src/lib/editor/domain.ts").SaveDocument) =>
+const raw = (document: SaveDocument) =>
 	document.SaveGame.player as unknown as Record<string, unknown>;
 const change = (
 	value: Omit<Extract<CharacterChange, { kind: "skill-xp" }>, "farmerId">,

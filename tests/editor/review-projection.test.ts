@@ -99,6 +99,7 @@ it.effect(
 						Object.assign(state.document.SaveGame.player, {
 							questLog: [
 								{
+									$type: "StardewValley.Quests.Quest",
 									id: "custom-review",
 									_questTitle: "A new request",
 									_questDescription: "Please help",

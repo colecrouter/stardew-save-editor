@@ -74,6 +74,42 @@ Event names aren't in the game files: they're kept by hand in `src/lib/wiki/even
 `generated/quests.json` is `Data/Quests`, parsed by `tools/xnbhack/QuestCatalog.cs` the way the game reads it
 (`Quest.getQuestFromId`), so completing a story quest in the editor can start the next one.
 
+### Progress diagnostics
+
+`generated/progress.json` supplies vanilla shipping/fishing collection membership,
+Perfection friendship thresholds, monster goals and saved achievement metadata.
+The normal asset dump regenerates it through `tools/xnbhack/ProgressCatalog.cs`.
+Its synthetic generator cases run with `npm run test:asset-dump`.
+
+`src/lib/editor/progress-data.ts` reads committed saves without granting awards,
+delivering mail or triggering endgame events. Perfection takes each customized
+farmer's best whole category result, counts constructed buildings worldwide and
+uses walnuts found rather than the spendable balance. Stardrops and monster goals
+contribute only when their full category is complete; waivers add percentage points.
+Missing or ambiguous evidence produces score bounds instead of fabricated zeros.
+Stardrop mail checks use the host's active mailbox, matching a host-loaded save.
+Mod-added requirements and runtime conditions are outside this vanilla calculation.
+
+The Achievements view separates recorded game IDs from current requirement
+diagnostics. Saved awards survive edits which lower the underlying progress;
+platform unlock state cannot be inferred. Awards without a requirement evaluator
+remain uncertain while showing their saved status. Museum donations and crop
+membership come from `generated/achievement-requirements.json`; the asset dump
+regenerates it with the other progress data. Power books follow the game's explicit
+nineteen-stat list, excluding skill books and the Queen of Sauce cookbook.
+
+Steam artwork and its provenance live in `static/assets/achievements`; the asset
+workspace preserves that maintained folder during a dump. Icon state follows saved
+award membership, independently of any platform account.
+
+Event checks use saved visit/movie/mine markers and the raccoon family's seven-day
+growth delay. Fair and Luau scores are transient game-event state, so their recorded
+awards are the only durable outcome evidence. An Infinity weapon in the selected
+farmer's inventory is positive ownership evidence; absence cannot disprove past
+ownership. Each historical fallback explains that evidence in the view instead of
+inventing counters or treating platform unlocks as known. Tests belong in
+`tests/editor/progress*.test.ts` and `achievement-diagnostics.test.ts`.
+
 ### Child editing
 
 The Children tab under Relationships includes existing children from saved FarmHouse/Cabin character

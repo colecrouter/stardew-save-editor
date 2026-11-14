@@ -78,6 +78,10 @@ internal sealed partial class CatalogGenerator(string content, string generated,
         // Birth naming reserves all character-data keys, including characters
         // absent from the save and those outside the social-page villager list.
         Write("character-names", Entries(Read("Data/Characters")).Select(p => p.Key).Order(StringComparer.Ordinal));
+        // Completion uses collection membership flags which are intentionally
+        // absent from the inventory catalog; retain them in a small dedicated lookup.
+        Write("progress", ProgressCatalog.Build(Read("Data/Objects"), Read("Data/Characters"), Read("Data/MonsterSlayerQuests"), Read("Data/Achievements")));
+        Write("achievement-requirements", ProgressCatalog.AchievementRequirements(Read("Data/Objects"), Read("Data/Crops")));
         Write("quests", Entries(Read("Data/Quests")).Select(p => ParseQuest(p.Key, Text(p.Value))).OfType<JObject>());
         Write("qiquests", SpecialOrders(Read("Data/SpecialOrders"), Read("Strings/SpecialOrderStrings")));
         // Building dimensions come from the selected texture copies; weather

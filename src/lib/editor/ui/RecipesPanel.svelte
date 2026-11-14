@@ -106,8 +106,9 @@
 	<p class="intro">
 		{#if kind === "cooking"}
 			Learn or forget recipes separately from the number of dishes cooked.
-			Forgetting a recipe keeps your cooking progress. A zero count still counts
-			as cooked until you reset its recorded entry.
+			Forgetting a recipe keeps its cooking history, but completion credit also
+			requires learning it. A zero count still counts as cooked until you reset
+			its recorded entry.
 		{:else}
 			Crafted counts record items produced. Forgetting a recipe also clears its
 			crafted count; Undo restores both.
@@ -130,8 +131,8 @@
 		{#snippet children(attributes)}
 			<select {...attributes} class="study-input" bind:value={filter}>
 				<option value="all">All recipes</option>
-				<option value="known">Known recipes</option>
-				<option value="unknown">Unknown recipes</option>
+				<option value="known">Learned recipes</option>
+				<option value="unknown">Not learned recipes</option>
 			</select>
 		{/snippet}
 	</StudyField>
@@ -152,7 +153,7 @@
 						<RecipeVisual sprite={presentation.sprite} />
 						<div>
 							<h2>{row.name}</h2>
-							<span class="known">{row.known ? "Known" : "Not learned"}</span>
+							<span class="known">{row.known ? "Learned" : "Not learned"}</span>
 							{#if kind === "cooking" && row.hasCookedEntry}
 								<span class="recorded">Recorded as cooked</span>
 							{/if}

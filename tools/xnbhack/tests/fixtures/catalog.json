@@ -2455,5 +2455,150 @@
 			}
 		],
 		"error": "Unsupported icon rectangle for Cat/opaque.breed."
+	},
+	{
+		"name": "Completion membership follows game exclusions and preserves award IDs",
+		"op": "progress",
+		"args": [
+			{
+				"433": {
+					"Name": "Special",
+					"Type": "Cooking",
+					"Category": 0,
+					"ExcludeFromShippingCollection": true
+				},
+				"A": {
+					"Name": "Crop",
+					"Type": "Basic",
+					"Category": -75
+				},
+				"B": {
+					"Name": "Fish",
+					"Type": "Fish",
+					"Category": -4
+				},
+				"C": {
+					"Name": "Excluded fish",
+					"Type": "Fish",
+					"Category": -4,
+					"ExcludeFromFishingCollection": true
+				},
+				"D": {
+					"Name": "Excluded crop",
+					"Type": "Basic",
+					"Category": -75,
+					"ExcludeFromShippingCollection": true
+				}
+			},
+			{
+				"Friend": {
+					"PerfectionScore": true,
+					"CanSocialize": null,
+					"CanBeRomanced": true
+				},
+				"Hidden": {
+					"PerfectionScore": true,
+					"CanSocialize": "FALSE"
+				},
+				"Other": {
+					"PerfectionScore": false
+				}
+			},
+			{
+				"Slimes": {
+					"Targets": ["Green Slime", "Frost Jelly"],
+					"Count": 1000
+				}
+			},
+			{
+				"0": "Greenhorn (15k)^Earn 15,000g^true^-1^18"
+			}
+		],
+		"expected": {
+			"shipping": [
+				{
+					"id": "433",
+					"name": "Special"
+				},
+				{
+					"id": "A",
+					"name": "Crop"
+				}
+			],
+			"fish": [
+				{
+					"id": "B",
+					"name": "Fish"
+				}
+			],
+			"friends": [
+				{
+					"name": "Friend",
+					"points": 2000
+				}
+			],
+			"monsters": [
+				{
+					"name": "Slimes",
+					"targets": ["Green Slime", "Frost Jelly"],
+					"count": 1000
+				}
+			],
+			"achievements": [
+				{
+					"id": 0,
+					"name": "Greenhorn",
+					"description": "Earn 15,000g"
+				}
+			]
+		}
+	},
+	{
+		"name": "Achievement membership honors donation tags and crop flags",
+		"op": "achievementRequirements",
+		"args": [
+			{
+				"artifact": {
+					"Type": "Arch",
+					"ContextTags": null
+				},
+				"mineral": {
+					"Type": "Minerals"
+				},
+				"excluded": {
+					"Type": "Arch",
+					"ContextTags": ["not_museum_donatable"]
+				},
+				"added": {
+					"Type": "Basic",
+					"ContextTags": ["museum_donatable"]
+				},
+				"other": {
+					"Type": "Basic"
+				}
+			},
+			{
+				"a": {
+					"HarvestItemId": "24",
+					"CountForPolyculture": true,
+					"CountForMonoculture": true
+				},
+				"b": {
+					"HarvestItemId": "24",
+					"CountForPolyculture": true,
+					"CountForMonoculture": true
+				},
+				"c": {
+					"HarvestItemId": "300",
+					"CountForPolyculture": false,
+					"CountForMonoculture": true
+				}
+			}
+		],
+		"expected": {
+			"museumCount": 3,
+			"polyculture": ["24"],
+			"monoculture": ["24", "300"]
+		}
 	}
 ]

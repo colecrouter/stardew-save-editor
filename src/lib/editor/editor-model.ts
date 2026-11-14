@@ -1,4 +1,5 @@
 import { FieldValidationError } from "./field.ts";
+import { readProgress, type ProgressView } from "./progress-data.ts";
 import { readChildren, type ChildView } from "./children-data.ts";
 import { projectReview } from "./review-projection.ts";
 import {
@@ -115,6 +116,7 @@ interface EditorViewData {
 	readonly characters: CharacterView[];
 	readonly farmerChoices: ReturnType<typeof readFarmerChoices>;
 	readonly recipes: RecipeFarmerView[];
+	readonly progress: ProgressView;
 	readonly events: EventFarmerView[];
 	readonly questJournals: QuestFarmerView[];
 	readonly qiOrders: QiOrdersView;
@@ -211,6 +213,8 @@ function project(
 		// document writes even if an operation supplied an incomplete receipt.
 		net: state.net,
 	});
+	// Reuse recipe projections for diagnostics rather than rebuilding their dictionaries.
+	const recipes = readRecipes(state.document);
 	return {
 		revision: state.revision,
 		bundle: includeProofs
@@ -232,7 +236,8 @@ function project(
 		chests,
 		characters: readCharacters(state.document),
 		farmerChoices: readFarmerChoices(state.document),
-		recipes: readRecipes(state.document),
+		recipes,
+		progress: readProgress(state.document, recipes),
 		events: readEvents(state.document),
 		questJournals: readQuestJournals(state.document),
 		qiOrders: readQiOrders(state.document),

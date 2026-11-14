@@ -20,6 +20,8 @@ internal static class CatalogTests
                 object? result = Text(test["op"]) switch
                 {
                     "petAppearances" => PetAppearances((JObject)args[0]),
+                    "progress" => ProgressCatalog.Build((JObject)args[0], (JObject)args[1], (JObject)args[2], (JObject)args[3]),
+                    "achievementRequirements" => ProgressCatalog.AchievementRequirements((JObject)args[0], (JObject)args[1]),
                     "getBuildingUpgradeData" => BuildingUpgrade((JObject)args[0]),
                     "getBuildMaterials" => BuildMaterials(args[0] as JArray, ((JObject)args[1]).Properties().ToDictionary(p => p.Name, p => Text(p.Value))),
                     "parseQuest" => ParseQuest(Text(args[0]), Text(args[1])),

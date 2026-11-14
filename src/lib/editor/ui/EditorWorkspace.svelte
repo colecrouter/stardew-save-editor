@@ -20,6 +20,7 @@
 	import QiOrdersPanel from "./QiOrdersPanel.svelte";
 	import EventsPanel from "./EventsPanel.svelte";
 	import RecipesPanel from "./RecipesPanel.svelte";
+	import ProgressPanel from "./ProgressPanel.svelte";
 	import CharacterPanel from "./CharacterPanel.svelte";
 	import FarmPanel from "./FarmPanel.svelte";
 	import PetsPanel from "./PetsPanel.svelte";
@@ -80,6 +81,7 @@
 		{ id: "qi", label: "Qi orders", icon: "qi" },
 		{ id: "events", label: "Events", icon: "events" },
 		{ id: "recipes", label: "Recipes", icon: "cooking" },
+		{ id: "progress", label: "Progress", icon: "review" },
 		{ id: "farm", label: "Farm settings", icon: "farm" },
 		{ id: "calendar", label: "Date and weather", icon: "calendar" },
 		{ id: "review", label: "Review changes", icon: "review" },
@@ -104,6 +106,7 @@
 	let characterOpened = $state(false);
 	let relationshipsOpened = $state(false);
 	let recipesOpened = $state(false);
+	let progressOpened = $state(false);
 	let eventsOpened = $state(false);
 	let questsOpened = $state(false);
 	let qiOpened = $state(false);
@@ -120,6 +123,7 @@
 		if (section === "character") characterOpened = true;
 		if (section === "relationships") relationshipsOpened = true;
 		if (section === "recipes") recipesOpened = true;
+		if (section === "progress") progressOpened = true;
 		if (section === "events") eventsOpened = true;
 		if (section === "quests") questsOpened = true;
 		if (section === "qi") qiOpened = true;
@@ -372,6 +376,11 @@
 		{#if relationshipsOpened}
 			<div hidden={tab !== "relationships"}>
 				<RelationshipPanel {model} />
+			</div>
+		{/if}
+		{#if progressOpened}
+			<div hidden={tab !== "progress"}>
+				<ProgressPanel {model} onsection={chooseSection} />
 			</div>
 		{/if}
 		{#if recipesOpened}

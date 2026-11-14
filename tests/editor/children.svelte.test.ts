@@ -20,6 +20,9 @@ it("searches catalog hats, previews a replacement privately and restores focus o
 		);
 		const hats = card.getByRole("combobox", { name: "Hat" });
 		await fireEvent.click(hats);
+		// The catalog loads asynchronously on mount. Establish readiness before
+		// testing filtering, so CI load time does not consume the empty-state wait.
+		await page.findByRole("option", { name: /Straw Hat/ }, { timeout: 10_000 });
 		await fireEvent.input(hats, { target: { value: "no matching hats" } });
 		await waitFor(() => expect(page.getByText("No hats found.")).toBeTruthy());
 		expect(page.queryByRole("option", { name: /Straw Hat/ })).toBeNull();

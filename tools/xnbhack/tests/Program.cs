@@ -16,6 +16,8 @@ foreach (string scenario in new[] { "failed-unpack", "success", "failed-publish"
     Directory.CreateDirectory(Path.Combine(project, "static", "assets"));
     File.WriteAllText(Path.Combine(project, "generated", "old.json"), "{}");
     File.WriteAllText(Path.Combine(project, "static", "assets", "old.png"), "previous asset");
+    Directory.CreateDirectory(Path.Combine(project, "static", "assets", "achievements"));
+    File.WriteAllText(Path.Combine(project, "static", "assets", "achievements", "0.jpg"), "maintained Steam artwork");
     File.WriteAllText(Path.Combine(game, "Content", "source.txt"), "source");
     File.WriteAllText(Path.Combine(project, "content", "old.txt"), "old");
     try
@@ -55,6 +57,8 @@ foreach (string scenario in new[] { "failed-unpack", "success", "failed-publish"
         Assert(File.Exists(Path.Combine(project, "content", expected)), $"{scenario} should retain {expected}");
         Assert(scenario == "success" || File.Exists(Path.Combine(project, "generated", "old.json")), "catalog rollback should restore the previous output");
         Assert(scenario == "success" || File.Exists(Path.Combine(project, "static", "assets", "old.png")), "asset rollback should preserve the previous images");
+        Assert(scenario != "success" || !File.Exists(Path.Combine(project, "static", "assets", "old.png")), "preserving maintained artwork must not retain stale extracted assets");
+        Assert(File.ReadAllText(Path.Combine(project, "static", "assets", "achievements", "0.jpg")) == "maintained Steam artwork", "asset publication and rollback must preserve maintained Steam artwork");
         Assert(File.ReadAllText(Path.Combine(project, "generated", "save-format", "save.ts")) == "preserve schema", "asset generation must preserve the typed save codec");
         Assert(!Directory.EnumerateDirectories(Path.Combine(project, ".cache", "xnbhack")).Any(), "temporary workspace should be removed");
         Console.WriteLine($"Passed: {scenario}");

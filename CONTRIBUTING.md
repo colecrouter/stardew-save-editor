@@ -98,6 +98,10 @@ membership come from `generated/achievement-requirements.json`; the asset dump
 regenerates it with the other progress data. Power books follow the game's explicit
 nineteen-stat list, excluding skill books and the Queen of Sauce cookbook.
 
+Steam artwork and its provenance live in `static/assets/achievements`; the asset
+workspace preserves that maintained folder during a dump. Icon state follows saved
+award membership, independently of any platform account.
+
 Event checks use saved visit/movie/mine markers and the raccoon family's seven-day
 growth delay. Fair and Luau scores are transient game-event state, so their recorded
 awards are the only durable outcome evidence. An Infinity weapon in the selected

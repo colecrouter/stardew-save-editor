@@ -53,10 +53,16 @@ it("updates completion after an edit and Undo while retaining saved award status
 		await waitFor(() =>
 			expect(cooking().getByText(/1 \/ 81 complete/)).toBeTruthy(),
 		);
+		expect(
+			cooking().getByRole("progressbar").getAttribute("aria-valuenow"),
+		).toBe("1");
 		await model.commands.undo();
 		await waitFor(() =>
 			expect(cooking().getByText(/0 \/ 81 complete/)).toBeTruthy(),
 		);
+		expect(
+			cooking().getByRole("progressbar").getAttribute("aria-valuenow"),
+		).toBe("0");
 		await fireEvent.click(page.getByRole("tab", { name: "Achievements" }));
 		await fireEvent.input(
 			page.getByRole("searchbox", { name: "Search achievements" }),
@@ -64,6 +70,37 @@ it("updates completion after an edit and Undo while retaining saved award status
 		);
 		expect(page.getByText("Recorded in save", { selector: "p" })).toBeTruthy();
 		expect(page.getByText(/0 \/ 10 — In progress/)).toBeTruthy();
+	} finally {
+		await opened.dispose();
+	}
+});
+
+it("keeps achievement searches across tab changes and separates recorded awards from requirement progress", async () => {
+	const document = tinyEditorFixture();
+	document.SaveGame.player.achievements = [15];
+	const opened = await renderTestWorkspace(document, "Progress");
+	try {
+		const { page, model } = opened;
+		await fireEvent.click(page.getByRole("tab", { name: "Achievements" }));
+		expect(
+			page
+				.getByRole("progressbar", { name: "Recorded achievements" })
+				.getAttribute("aria-valuenow"),
+		).toBe("1");
+		await fireEvent.input(
+			page.getByRole("searchbox", { name: "Search achievements" }),
+			{ target: { value: "Cook 10" } },
+		);
+		expect(page.getByRole("heading", { name: /^Cook$/ })).toBeTruthy();
+		await waitFor(() =>
+			expect(page.queryByRole("heading", { name: "Gourmet Chef" })).toBeNull(),
+		);
+		await fireEvent.click(page.getByRole("tab", { name: "Perfection" }));
+		await fireEvent.click(page.getByRole("tab", { name: "Achievements" }));
+		expect(
+			page.getByRole("searchbox", { name: "Search achievements" }),
+		).toHaveProperty("value", "Cook 10");
+		expect((await model.snapshot()).entries).toHaveLength(0);
 	} finally {
 		await opened.dispose();
 	}

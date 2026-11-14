@@ -81,7 +81,7 @@
 		{ id: "qi", label: "Qi orders", icon: "qi" },
 		{ id: "events", label: "Events", icon: "events" },
 		{ id: "recipes", label: "Recipes", icon: "cooking" },
-		{ id: "progress", label: "Progress", icon: "review" },
+		{ id: "progress", label: "Progress", icon: "progress" },
 		{ id: "farm", label: "Farm settings", icon: "farm" },
 		{ id: "calendar", label: "Date and weather", icon: "calendar" },
 		{ id: "review", label: "Review changes", icon: "review" },

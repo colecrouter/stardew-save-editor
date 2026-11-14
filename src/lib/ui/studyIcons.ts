@@ -21,8 +21,17 @@ export const studyIcons = {
 			"M7 6h3v3h4V6h3v4h-3v4h3v4h-3v-3h-4v3H7v-4h3v-4H7z",
 		],
 	],
-	// Pixel-grid glyphs fill the two section gaps in the existing illustrated kit.
+	// Pixel-grid glyphs fill section gaps in the existing illustrated kit.
 	// Distinct silhouettes matter at navigation size; colours use the shell palette.
+	// A gold trophy identifies long-term milestones separately from review's checklist.
+	progress: [
+		["#643b25", "M6 2h12v2h5v7h-2v3h-5v2h-2v3h4v3H6v-3h4v-3H8v-2H3v-3H1V4h5z"],
+		[
+			"#e4a62e",
+			"M3 6h3v6H4v-2H3zM18 6h3v4h-1v2h-2zM8 4h8v9h-2v2h-4v-2H8zM11 15h2v5h-2zM8 20h8v1H8z",
+		],
+		["#ffe5a0", "M9 5h2v6H9zM11 5h4v2h-4z"],
+	],
 	calendar: [
 		["#643b25", "M4 4h16v18H4zM6 1h3v6H6zM15 1h3v6h-3z"],
 		["#b74b3d", "M6 6h12v5H6z"],

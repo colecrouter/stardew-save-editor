@@ -66,8 +66,8 @@ export interface ProgressView {
 	upper: number;
 }
 
-const integer = (value: unknown): value is number =>
-	typeof value === "number" && Number.isSafeInteger(value);
+// SaveCodec owns scalar and container validation. This projection reads decoded
+// SaveDocuments; optional fields and ambiguous evidence still need interpretation.
 /** Dictionary absence and duplicate keys are uncertainty, never an empty result.
  * Stats dictionaries use ordinal-ignore-case; ordinary collection keys do not. */
 function entry<K extends string | number, V>(
@@ -181,7 +181,7 @@ function friendships(farmer: Farmer) {
 			const points = saved.value?.Points;
 			return requirement(
 				friend.name,
-				saved.readable && (!saved.present || integer(points))
+				saved.readable && (!saved.present || points !== undefined)
 					? (points ?? 0)
 					: undefined,
 				friend.points,
@@ -192,11 +192,7 @@ function friendships(farmer: Farmer) {
 }
 function skills(farmer: Farmer) {
 	const requirements = skillDefinitions.map((skill) =>
-		requirement(
-			skill.label,
-			integer(farmer[skill.levelField]) ? farmer[skill.levelField] : undefined,
-			10,
-		),
+		requirement(skill.label, farmer[skill.levelField], 10),
 	);
 	const result = category(
 		"skills",
@@ -211,7 +207,7 @@ function skills(farmer: Farmer) {
 		...skillDefinitions.map((skill) => farmer[skill.levelField]),
 		farmer.luckLevel,
 	];
-	const level = levels.every((value) => integer(value) && value >= 0)
+	const level = levels.every((value) => value !== undefined && value >= 0)
 		? Math.min(
 				25,
 				Math.floor(
@@ -232,7 +228,8 @@ function monsters(farmer: Farmer) {
 		catalog.monsters.map((goal) => {
 			const values = goal.targets.map((target) => entry(counts, target, true));
 			const readable = values.every(
-				(saved) => saved.readable && (!saved.present || integer(saved.value)),
+				(saved) =>
+					saved.readable && (!saved.present || saved.value !== undefined),
 			);
 			return requirement(
 				goal.name,
@@ -251,20 +248,10 @@ function stardrops(document: SaveDocument, farmer: Farmer) {
 	// all count. A tomorrow letter can carry the game's no-letter suffix.
 	// Pending mail belongs to the farmer receiving it. Only the host can inherit
 	// SaveGame's obsolete mailbox during migration; guests never borrow host mail.
-	// Engine callers can supply unsupported baselines before codec round-tripping.
-	// Treat a malformed mail container as unreadable instead of failing publication.
-	const received = Array.isArray(farmer.mailReceived)
-		? farmer.mailReceived
-		: undefined;
-	const tomorrow = Array.isArray(farmer.mailForTomorrow)
-		? farmer.mailForTomorrow
-		: undefined;
-	const farmerMailbox = Array.isArray(farmer.mailbox)
-		? farmer.mailbox
-		: undefined;
-	const legacyMailbox = Array.isArray(document.SaveGame.mailbox)
-		? document.SaveGame.mailbox
-		: undefined;
+	const received = farmer.mailReceived;
+	const tomorrow = farmer.mailForTomorrow;
+	const farmerMailbox = farmer.mailbox;
+	const legacyMailbox = document.SaveGame.mailbox;
 	const mailbox =
 		farmer === document.SaveGame.player && !farmerMailbox?.length
 			? (legacyMailbox ?? farmerMailbox)
@@ -337,8 +324,8 @@ function buildings(document: SaveDocument) {
 				continue;
 			}
 			if (
-				typeof building.buildingType !== "string" ||
-				!integer(building.daysOfConstructionLeft)
+				building.buildingType === undefined ||
+				building.daysOfConstructionLeft === undefined
 			)
 				readable = false;
 			else if (building.daysOfConstructionLeft <= 0)
@@ -387,11 +374,7 @@ function achievements(
 		[3, 1000000],
 		[4, 10000000],
 	] as const)
-		add(
-			id,
-			integer(farmer.totalMoneyEarned) ? farmer.totalMoneyEarned : undefined,
-			target,
-		);
+		add(id, farmer.totalMoneyEarned, target);
 	for (const [categoryId, milestones] of [
 		[
 			"cooking",
@@ -435,7 +418,7 @@ function achievements(
 	] as const) {
 		const entries = farmer.friendshipData;
 		const readable =
-			entries?.every((saved) => integer(saved.value?.Points)) &&
+			entries?.every((saved) => saved.value?.Points !== undefined) &&
 			new Set(entries.map((saved) => saved.key)).size === entries.length;
 		add(
 			id,
@@ -448,19 +431,11 @@ function achievements(
 	}
 	// House milestones describe upgrades already reached; cellar level 3 also
 	// meets the second-upgrade requirement even though Stats awards it at level 2.
-	add(
-		18,
-		integer(farmer.houseUpgradeLevel) ? farmer.houseUpgradeLevel : undefined,
-		1,
-	);
-	add(
-		19,
-		integer(farmer.houseUpgradeLevel) ? farmer.houseUpgradeLevel : undefined,
-		2,
-	);
+	add(18, farmer.houseUpgradeLevel, 1);
+	add(19, farmer.houseUpgradeLevel, 2);
 	const quests = entry(farmer.stats?.Values, "questsCompleted", true);
 	const questCount =
-		quests.readable && (!quests.present || integer(quests.value))
+		quests.readable && (!quests.present || quests.value !== undefined)
 			? (quests.value ?? 0)
 			: undefined;
 	add(29, questCount, 10);
@@ -473,7 +448,8 @@ function achievements(
 		fishingCounts.every(
 			(saved) =>
 				saved.readable &&
-				(!saved.present || (integer(saved.value?.[0]) && saved.value[0] >= 0)),
+				(!saved.present ||
+					(saved.value?.[0] !== undefined && saved.value[0] >= 0)),
 		)
 			? fishingCounts.reduce((sum, saved) => sum + (saved.value?.[0] ?? 0), 0)
 			: undefined,
@@ -483,9 +459,7 @@ function achievements(
 	// Neither missing evidence nor current progress changes saved membership.
 	return catalog.achievements.map((award) => {
 		const progress = diagnostics.get(award.id);
-		const recorded = !Array.isArray(farmer.achievements)
-			? undefined
-			: farmer.achievements.includes(award.id);
+		const recorded = farmer.achievements?.includes(award.id);
 		return {
 			...award,
 			recorded,
@@ -559,7 +533,7 @@ export function readProgress(
 		category("walnuts", "Golden Walnuts found", 5, [
 			requirement(
 				"Golden Walnuts found",
-				integer(document.SaveGame.goldenWalnutsFound) &&
+				document.SaveGame.goldenWalnutsFound !== undefined &&
 					document.SaveGame.goldenWalnutsFound >= 0
 					? document.SaveGame.goldenWalnutsFound
 					: undefined,
@@ -569,8 +543,9 @@ export function readProgress(
 	];
 	const walnuts = shared.find((row) => row.id === "walnuts")!;
 	const found = document.SaveGame.goldenWalnutsFound;
-	walnuts.lower = integer(found) && found >= 0 ? Math.min(found, 130) / 130 : 0;
-	walnuts.upper = integer(found) && found >= 0 ? walnuts.lower : 1;
+	walnuts.lower =
+		found !== undefined && found >= 0 ? Math.min(found, 130) / 130 : 0;
+	walnuts.upper = found !== undefined && found >= 0 ? walnuts.lower : 1;
 	// The best whole result wins each category. Never union partial player lists;
 	// uncustomized cabin placeholders are excluded from the game's calculation.
 	const leaders = players[0]!.categories.map((baseline, index) => {
@@ -596,7 +571,7 @@ export function readProgress(
 	// An unreadable waiver count could cover any remaining gap. Preserve that
 	// uncertainty rather than silently assuming the farmer bought no waivers.
 	const waivers =
-		integer(waiverCount) && waiverCount >= 0 ? waiverCount : undefined;
+		waiverCount !== undefined && waiverCount >= 0 ? waiverCount : undefined;
 	const weighted = [...leaders.map((leader) => leader.category), ...shared];
 	return {
 		farmers: players,

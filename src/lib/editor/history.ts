@@ -132,6 +132,9 @@ function entryBytes(payload: Omit<Entry, "bytes">): number {
  * Item handles are allocated only for supported, unambiguous backpack arrays;
  * unsupported inventories remain preserved and do not block other save edits.
  */
+// Callers provide decoded SaveDocuments: import owns schema validation and local
+// constructors/commands must uphold that contract. The plain-data check below
+// establishes clone/patch safety, not a second interpretation of CLR field types.
 export const makeHistorySession = (
 	document: SaveDocument,
 	limits: number | HistoryLimits = {},

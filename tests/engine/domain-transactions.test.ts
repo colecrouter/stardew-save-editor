@@ -153,9 +153,9 @@ it("bundle domain failures retain unsupported-data and late-mail tags", async ()
 		throw new Error("Missing fixture Community Center");
 	for (const entry of cc.bundles)
 		if ([14, 15, 16, 17, 19].includes(entry.key)) entry.value.fill(true);
-	Object.assign(game.player, {
-		mailReceived: { unsupported: "invalid mail container" },
-	});
+	// A decoded save can omit mail evidence; the command must reject the room
+	// repair and roll back donations without requiring malformed model input.
+	delete game.player.mailReceived;
 	const invalidMail = await openDocument(document);
 	try {
 		const before = await invalidMail.model.snapshot();

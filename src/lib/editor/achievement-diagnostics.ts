@@ -31,8 +31,8 @@ const powerBooks = [
 	"Book_Horse",
 	"Book_Grass",
 ] as const;
-const integer = (value: unknown): value is number =>
-	typeof value === "number" && Number.isSafeInteger(value);
+// Saved scalars and container shapes are validated by SaveCodec. Diagnostics
+// retain uncertainty for absent fields, duplicate evidence and domain constraints.
 
 /** A known empty dictionary means zero; missing or duplicate evidence is unknown.
  * Stats use case-insensitive keys, whereas crop shipping uses exact object IDs. */
@@ -41,7 +41,7 @@ function count(
 	key: string,
 	ignoreCase = false,
 ): number | undefined {
-	if (!Array.isArray(entries)) return undefined;
+	if (entries === undefined) return undefined;
 	const matches = entries.filter((row) =>
 		ignoreCase ? row.key.toLowerCase() === key.toLowerCase() : row.key === key,
 	);
@@ -49,9 +49,7 @@ function count(
 		? undefined
 		: matches.length === 0
 			? 0
-			: integer(matches[0]?.value)
-				? matches[0].value
-				: undefined;
+			: matches[0]?.value;
 }
 
 /** Read the remaining vanilla achievement requirements without simulating the
@@ -68,8 +66,7 @@ export function extraAchievementDiagnostics(
 		evidence?: string,
 		unknown = 0,
 	) => result.set(id, { value, target, evidence, unknown });
-	const recorded = (id: number) =>
-		Array.isArray(farmer.achievements) && farmer.achievements.includes(id);
+	const recorded = (id: number) => farmer.achievements?.includes(id) === true;
 	const mailLists = [
 		farmer.mailReceived,
 		farmer.mailForTomorrow,
@@ -79,17 +76,14 @@ export function extraAchievementDiagnostics(
 		// Pending no-letter flags count as durable evidence, just as the game's
 		// hasOrWillReceiveMail check does. Never borrow another farmer's mailbox.
 		if (
-			mailLists.some(
-				(list, index) =>
-					Array.isArray(list) &&
-					list.some(
-						(value) =>
-							value === key || (index === 1 && value === `${key}%&NL&%`),
-					),
+			mailLists.some((list, index) =>
+				list?.some(
+					(value) => value === key || (index === 1 && value === `${key}%&NL&%`),
+				),
 			)
 		)
 			return 1;
-		return mailLists.every(Array.isArray) ? 0 : undefined;
+		return mailLists.every((list) => list !== undefined) ? 0 : undefined;
 	};
 
 	// Museum progress is shared and counts actual donation placements, not the
@@ -99,6 +93,8 @@ export function extraAchievementDiagnostics(
 	);
 	const pieces = museums.length === 1 ? museums[0]?.museumPieces : undefined;
 	const positions = pieces?.map((piece) => `${piece.key.X},${piece.key.Y}`);
+	// CLR floating-point coordinates permit NaN/Infinity, but those values cannot
+	// identify a donation placement. Keep this domain check after scalar decoding.
 	const museumCount =
 		pieces &&
 		positions &&
@@ -106,7 +102,6 @@ export function extraAchievementDiagnostics(
 			(piece) =>
 				Number.isFinite(piece.key.X) &&
 				Number.isFinite(piece.key.Y) &&
-				typeof piece.value === "string" &&
 				piece.value.length > 0,
 		) &&
 		new Set(positions).size === pieces.length &&
@@ -171,7 +166,7 @@ export function extraAchievementDiagnostics(
 	);
 	add(
 		36,
-		integer(farmer.lastSeenMovieWeek) && farmer.lastSeenMovieWeek >= -1
+		farmer.lastSeenMovieWeek !== undefined && farmer.lastSeenMovieWeek >= -1
 			? Number(farmer.lastSeenMovieWeek >= 0)
 			: undefined,
 		1,
@@ -185,10 +180,10 @@ export function extraAchievementDiagnostics(
 		game.currentSeason ?? "",
 	);
 	const totalDays =
-		integer(game.year) &&
+		game.year !== undefined &&
 		game.year >= 1 &&
 		season >= 0 &&
-		integer(game.dayOfMonth) &&
+		game.dayOfMonth !== undefined &&
 		game.dayOfMonth >= 1 &&
 		game.dayOfMonth <= 28
 			? ((game.year - 1) * 4 + season) * 28 + game.dayOfMonth - 1
@@ -196,7 +191,10 @@ export function extraAchievementDiagnostics(
 	const fed = game.timesFedRaccoons;
 	const last = game.daysPlayedWhenLastRaccoonBundleWasFinished;
 	const babies =
-		integer(fed) && fed >= 0 && integer(last) && totalDays !== undefined
+		fed !== undefined &&
+		fed >= 0 &&
+		last !== undefined &&
+		totalDays !== undefined
 			? Math.max(0, fed - 1 - Number(totalDays - last < 7))
 			: undefined;
 	add(

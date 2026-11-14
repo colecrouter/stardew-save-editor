@@ -301,7 +301,7 @@ it("reaches exactly 100% when every vanilla requirement is satisfied", () => {
 	expect(readProgress(document)).toMatchObject({ lower: 100, upper: 100 });
 });
 
-it("marks unreadable learned recipe requirements and malformed mail as uncertain", () => {
+it("marks ambiguous learned recipe requirements and absent mail as uncertain", () => {
 	const document = emptyProgress();
 	const host = document.SaveGame.player;
 	const learned = recipeDefinitions("cooking").slice(0, 10);
@@ -319,7 +319,8 @@ it("marks unreadable learned recipe requirements and malformed mail as uncertain
 		readProgress(document).farmers[0]!.achievements.find((row) => row.id === 15)
 			?.status,
 	).toBe("Unable to determine");
-	Object.assign(host, { mailReceived: { unsupported: true } });
+	// Omitted optional fields are valid decoded data, but cannot prove absence.
+	delete host.mailReceived;
 	expect(category(document, "stardrops").unknown).toBe(7);
 	// Historical cooking credit remains saved, but forgotten knowledge no longer
 	// satisfies either the Perfection or achievement requirement.

@@ -87,6 +87,11 @@ farmer's best whole category result, counts constructed buildings worldwide and
 uses walnuts found rather than the spendable balance. Stardrops and monster goals
 contribute only when their full category is complete; waivers add percentage points.
 Missing or ambiguous evidence produces score bounds instead of fabricated zeros.
+Progress projections consume decoded `SaveDocument` values. The generated schema
+and `SaveCodec` own scalar/container validation; commands validate proposed edits.
+Projections check optional evidence and game-specific constraints, rather than
+revalidating CLR types or integer ranges. Direct callers must supply schema-valid
+documents; malformed-input tests belong at the codec boundary.
 Stardrop mail checks use each farmer's own mailbox; only the host can inherit the
 obsolete save-level mailbox during migration.
 Mod-added requirements and runtime conditions are outside this vanilla calculation.

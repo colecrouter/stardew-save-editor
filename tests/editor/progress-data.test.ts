@@ -126,6 +126,42 @@ it("matches the game's integer farmer level and binary monster and Stardrop cont
 	expect(category(document, "stardrops").lower).toBe(1);
 });
 
+it("keeps pending Stardrop mail with its receiving farmer, including host-only legacy migration", () => {
+	const document = emptyProgress();
+	const host = document.SaveGame.player;
+	const guest = structuredClone(host);
+	guest.UniqueMultiplayerID = 2n;
+	guest.name = "Guest";
+	guest.isCustomized = true;
+	// Leave exactly one source pending so borrowing another farmer's mail would
+	// incorrectly cross the binary seven-Stardrop completion threshold.
+	guest.mailReceived = [
+		"CF_Fish",
+		"CF_Mines",
+		"CF_Sewer",
+		"museumComplete",
+		"CF_Spouse",
+		"CF_Statue",
+	];
+	document.SaveGame.farmhands = [guest];
+	const guestDrops = () =>
+		readProgress(document).farmers[1]!.categories.find(
+			(row) => row.id === "stardrops",
+		)!;
+	host.mailbox = ["CF_Fair"];
+	expect(guestDrops()).toMatchObject({ completed: 6, lower: 0 });
+	// Conversely, guest-only pending mail must count without host evidence.
+	host.mailbox = [];
+	guest.mailbox = ["CF_Fair"];
+	expect(guestDrops()).toMatchObject({ completed: 7, lower: 1 });
+	// Old saves can migrate pending host mail, but that fallback cannot leak
+	// into a guest's empty mailbox.
+	guest.mailbox = [];
+	document.SaveGame.mailbox = ["CF_Fair"];
+	expect(guestDrops()).toMatchObject({ completed: 6, lower: 0 });
+	expect(category(document, "stardrops").completed).toBe(1);
+});
+
 it("counts distinct constructed building types worldwide, excluding unfinished construction", () => {
 	const document = emptyProgress();
 	const farm = document.SaveGame.locations![0]!;

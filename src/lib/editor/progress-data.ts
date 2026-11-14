@@ -249,8 +249,8 @@ function monsters(farmer: Farmer) {
 function stardrops(document: SaveDocument, farmer: Farmer) {
 	// Match Utility.foundAllStardrops: received, tomorrow and the active mailbox
 	// all count. A tomorrow letter can carry the game's no-letter suffix.
-	// Game1.mailbox is the active player's mailbox. Diagnose this save as loaded
-	// by its host, including SaveGame's obsolete mailbox migration when needed.
+	// Pending mail belongs to the farmer receiving it. Only the host can inherit
+	// SaveGame's obsolete mailbox during migration; guests never borrow host mail.
 	// Engine callers can supply unsupported baselines before codec round-tripping.
 	// Treat a malformed mail container as unreadable instead of failing publication.
 	const received = Array.isArray(farmer.mailReceived)
@@ -259,15 +259,16 @@ function stardrops(document: SaveDocument, farmer: Farmer) {
 	const tomorrow = Array.isArray(farmer.mailForTomorrow)
 		? farmer.mailForTomorrow
 		: undefined;
-	const hostMailbox = Array.isArray(document.SaveGame.player.mailbox)
-		? document.SaveGame.player.mailbox
+	const farmerMailbox = Array.isArray(farmer.mailbox)
+		? farmer.mailbox
 		: undefined;
 	const legacyMailbox = Array.isArray(document.SaveGame.mailbox)
 		? document.SaveGame.mailbox
 		: undefined;
-	const mailbox = hostMailbox?.length
-		? hostMailbox
-		: (legacyMailbox ?? hostMailbox);
+	const mailbox =
+		farmer === document.SaveGame.player && !farmerMailbox?.length
+			? (legacyMailbox ?? farmerMailbox)
+			: farmerMailbox;
 	const mail = (key: string): number | undefined => {
 		if (
 			received?.includes(key) ||

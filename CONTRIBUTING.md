@@ -87,7 +87,8 @@ farmer's best whole category result, counts constructed buildings worldwide and
 uses walnuts found rather than the spendable balance. Stardrops and monster goals
 contribute only when their full category is complete; waivers add percentage points.
 Missing or ambiguous evidence produces score bounds instead of fabricated zeros.
-Stardrop mail checks use the host's active mailbox, matching a host-loaded save.
+Stardrop mail checks use each farmer's own mailbox; only the host can inherit the
+obsolete save-level mailbox during migration.
 Mod-added requirements and runtime conditions are outside this vanilla calculation.
 
 The Achievements view separates recorded game IDs from current requirement

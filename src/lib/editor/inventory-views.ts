@@ -12,6 +12,7 @@ import {
 import type { TrinketRollContext } from "../TrinketStats.ts";
 import {
 	getInventoryItemCapabilities,
+	objectMetadataAllowsEdits,
 	backpackFarmers,
 	hasBackpackFarmerId,
 } from "./inventory-operations.ts";
@@ -95,7 +96,7 @@ function projectInventoryItem(
 		...readItemPresentation(raw, context, metadata),
 		...getInventoryItemCapabilities(
 			raw,
-			metadata?._type === "Object",
+			objectMetadataAllowsEdits(raw, metadata),
 			[...CategoriesWithQuality].some((category) => category === raw?.category),
 		),
 	};

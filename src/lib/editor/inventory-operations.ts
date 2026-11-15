@@ -143,6 +143,25 @@ function editable(item: unknown) {
 const numeric = (value: unknown): value is number =>
 	typeof value === "number" && Number.isFinite(value);
 
+/** Whether catalog metadata permits ordinary-object edits. A catalog entry must say Object, but an
+ * item the catalog has never heard of (modded content) stays editable as long as its saved
+ * identity is readable; malformed identities remain unavailable.
+ */
+export function objectMetadataAllowsEdits(
+	raw: unknown,
+	info: { _type?: string } | undefined,
+): boolean {
+	if (info) return info._type === "Object";
+	const scalarKey = (value: unknown) =>
+		value == null || typeof value === "string" || typeof value === "number";
+	return (
+		record(raw) &&
+		scalarKey(raw.itemId) &&
+		scalarKey(raw.preservedParentSheetIndex) &&
+		(raw.name == null || typeof raw.name === "string")
+	);
+}
+
 /** Refine structural eligibility with lazy catalog resolution and category policy.
  * Pass whether ordinary-object metadata resolves and whether the serialized category belongs to
  * CategoriesWithQuality; this keeps the shared policy free of eager catalog data.
@@ -933,7 +952,7 @@ export function makeInventoryEdits(
 				if (
 					!getInventoryItemCapabilities(
 						item,
-						info?._type === "Object",
+						objectMetadataAllowsEdits(item, info),
 						[...catalog.CategoriesWithQuality].some(
 							(value) => value === category,
 						),
@@ -1001,7 +1020,7 @@ export function makeInventoryEdits(
 			const { catalog, info } = yield* metadataFor(item);
 			const capabilities = getInventoryItemCapabilities(
 				item,
-				info?._type === "Object",
+				objectMetadataAllowsEdits(item, info),
 				[...catalog.CategoriesWithQuality].some(
 					(category) => category === item.category,
 				),

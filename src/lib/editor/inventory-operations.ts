@@ -146,6 +146,9 @@ const numeric = (value: unknown): value is number =>
 /** Whether catalog metadata permits ordinary-object edits. A catalog entry must say Object, but an
  * item the catalog has never heard of (modded content) stays editable as long as its saved
  * identity is readable; malformed identities remain unavailable.
+ * Tools, big craftables and other non-Object records stay read-only because `editable` checks the
+ * saved type and `bigCraftable` separately. A mod that saves something tool-like as a plain
+ * Object is indistinguishable from any other unknown Object; only its `stack` number changes.
  */
 export function objectMetadataAllowsEdits(
 	raw: unknown,

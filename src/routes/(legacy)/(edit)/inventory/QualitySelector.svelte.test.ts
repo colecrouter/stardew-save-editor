@@ -4,16 +4,17 @@ import { beforeEach, describe, expect, test } from "vitest";
 
 import { Raw } from "$lib/proxies";
 import { Item } from "$lib/proxies/Item.svelte";
-import { ObjectProxy } from "$lib/proxies/items";
+import { type BaseItemProxy, ObjectProxy } from "$lib/proxies/items";
 
 import { requireInstance } from "../../../../../tests/helpers/assertions.ts";
 import QualitySelector from "./QualitySelector.svelte";
 
 describe("Quality selector", () => {
-	let item: ObjectProxy;
+	let item: BaseItemProxy;
 
 	beforeEach(() => {
-		item = requireInstance(Item.fromName("Blueberry Wine"), ObjectProxy);
+		// Wine is a colored-object proxy; quality is shared by both object families.
+		item = Item.fromName("Blueberry Wine");
 	});
 
 	test("Quality selector should display the correct quality", () => {

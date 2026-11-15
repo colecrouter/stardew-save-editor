@@ -22,8 +22,7 @@ vi.mock("@sentry/sveltekit", async (original) => {
 // preservation belongs to the dedicated application and roundtrip scenarios.
 // Allow asynchronous UI publication the same bounded settling time as nearby
 // lifecycle tests, without tying recovery correctness to large-file throughput.
-const waitForIO = <T>(assertion: () => T) =>
-	waitFor(assertion, { timeout: 5_000 });
+const waitForIO = <T>(assertion: () => T) => waitFor(assertion);
 
 // Reject the actual stream phase, not just opening the picker. The same session
 // must remain editable and a retry must export its latest state under its filename.
@@ -35,7 +34,6 @@ it.each([
 	"InvalidStateError",
 ] as const)(
 	"recovers from a browser %s failure without losing edits or backup feedback",
-	{ timeout: 15_000 },
 	async (stage) => {
 		// Native destination failures can happen before a stream exists. These
 		// cases must offer a route that does not acquire the same kind of handle.
@@ -105,16 +103,13 @@ it.each([
 					files: [new File([exportDocument(tinyEditorFixture())], "Farm_123")],
 				},
 			});
-			const exportButton = await page.findByRole(
-				"button",
-				{ name: "Export save" },
-				{ timeout: 5_000 },
-			);
+			const exportButton = await page.findByRole("button", {
+				name: "Export save",
+			});
 			await fireEvent.click(exportButton);
 			await page.findByText(
 				"The save could not be downloaded. Please try again.",
 				{},
-				{ timeout: 5_000 },
 			);
 			if (acquisitionFailure) expect(abort).not.toHaveBeenCalled();
 			else expect(abort).toHaveBeenCalledExactlyOnceWith(failure);

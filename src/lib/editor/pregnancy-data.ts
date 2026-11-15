@@ -1,4 +1,4 @@
-import { savedType } from "./saved-types.ts";
+import { isKnownLocation, type KnownLocation } from "./saved-types.ts";
 import {
 	formatDate,
 	MAX_YEAR,
@@ -6,8 +6,12 @@ import {
 	totalDays,
 	type GameDate,
 } from "../calendar.ts";
-import { farmers, type Farmer, type SaveDocument } from "./domain.ts";
-import { record } from "./plain-data.ts";
+import {
+	farmers,
+	type Farmer,
+	type Location,
+	type SaveDocument,
+} from "./domain.ts";
 
 /** Saved eligibility facts, adapted from PR #241's baby-question presentation.
  * Game references: NPC.canGetPregnant, Utility.playersCanGetPregnantHere and
@@ -31,22 +35,17 @@ export interface PregnancyView {
 	readonly eligible: boolean;
 	readonly requirements: readonly PregnancyRequirement[];
 }
-const list = (raw: unknown): unknown[] =>
-	raw === undefined || raw === null || raw === ""
-		? []
-		: Array.isArray(raw)
-			? raw
-			: [raw];
-const whole = (raw: unknown): raw is number =>
-	typeof raw === "number" && Number.isSafeInteger(raw);
+// Decoded numeric fields may be absent; gameplay facts still require whole values.
+const whole = (raw: number | undefined): raw is number =>
+	raw !== undefined && Number.isSafeInteger(raw);
 // All saved player identities are decoded Int64s; only absence needs handling.
 const identity = (raw: bigint | undefined) => raw?.toString();
 
 /** Reject malformed dates rather than silently normalizing a saved pregnancy. */
 export function pregnancyDate(
-	year: unknown,
-	season: unknown,
-	day: unknown,
+	year: number | undefined,
+	season: string | undefined,
+	day: number | undefined,
 ): GameDate | undefined {
 	const checkedSeason = SEASONS.find((candidate) => candidate === season);
 	return whole(year) &&
@@ -73,18 +72,30 @@ interface HomeFacts {
 	readonly toddlers?: number;
 }
 function homeFacts(document: SaveDocument, owner: Farmer): HomeFacts {
-	const locations: Record<string, unknown>[] = [];
+	const locations: KnownLocation[] = [];
+	let complete = true;
+	// Decoded locations and interiors share the generated union. Opaque subclasses
+	// have no trusted home fields and cannot establish eligibility.
+	function visit(raw: Location | null | undefined) {
+		if (raw == null) return;
+		if (!isKnownLocation(raw)) {
+			complete = false;
+			return;
+		}
+		locations.push(raw);
+		for (const building of raw.buildings ?? []) {
+			if (building == null) continue;
+			if (building.$type === "$unknown") {
+				complete = false;
+				continue;
+			}
+			visit(building.indoors);
+		}
+	}
 	// Cabins live inside placed buildings, while the host house is a top-level
 	// location. Search both without choosing a winner when identities collide.
-	function visit(raw: unknown) {
-		if (!record(raw)) return;
-		locations.push(raw);
-		for (const building of list(raw.buildings))
-			if (record(building)) visit(building.indoors);
-	}
-	for (const location of list(document.SaveGame.locations)) visit(location);
-	const homeName =
-		typeof owner.homeLocation === "string" ? owner.homeLocation : undefined;
+	for (const location of document.SaveGame.locations ?? []) visit(location);
+	const homeName = owner.homeLocation;
 	const homes = locations.filter(
 		(location) =>
 			location.name === homeName || location.uniqueName === homeName,
@@ -93,15 +104,24 @@ function homeFacts(document: SaveDocument, owner: Farmer): HomeFacts {
 	const level = whole(owner.houseUpgradeLevel)
 		? owner.houseUpgradeLevel
 		: undefined;
-	if (!home) return { level };
-	const characters = home.characters;
-	if (characters !== undefined && !Array.isArray(characters)) return { level };
-	const npcs = list(characters);
-	// A home can come from opaque location data. Check its residents once, then
-	// keep the narrowed records through child selection and age inspection.
-	const residents = npcs.filter(record);
-	if (residents.length !== npcs.length) return { level };
-	const children = residents.filter((npc) => savedType(npc) === "Child");
+	// An opaque branch may hide another home with the same identity. Do not
+	// choose a known home until the search can establish uniqueness.
+	if (!complete || !home) return { level };
+	// Only generated house variants define crib semantics. Other locations cannot
+	// supply nursery facts, even if an extension happens to use the same field name.
+	if (
+		home.$type !== "StardewValley.Locations.FarmHouse" &&
+		home.$type !== "StardewValley.Locations.Cabin"
+	)
+		return { level };
+	const residents = home.characters ?? [];
+	// Null residents and opaque subclasses leave the child count uncertain; they
+	// must not make a potentially occupied nursery appear available.
+	if (residents.some((npc) => npc === null || npc.$type === "$unknown"))
+		return { level };
+	const children = residents.filter(
+		(npc) => npc !== null && npc.$type === "StardewValley.Characters.Child",
+	);
 	const ages = children.map((child) =>
 		whole(child.daysOld) ? child.daysOld : undefined,
 	);

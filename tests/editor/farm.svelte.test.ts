@@ -7,14 +7,14 @@ import { fixtureXml, parser } from "./fixtures";
 import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
 
 // Each scenario imports the complete save and performs real history operations.
-// Keep a bounded integration budget without changing ordinary unit-test timeouts.
-describe("full-save farm workflow", { timeout: 45_000 }, () => {
+// Use the shared runner deadline for this full-save preservation workload.
+describe("full-save farm workflow", () => {
 	const openFarm = async () => {
 		// Observe the real imported session; history is now collapsed/lazy in the UI.
 		const load = openTestEditor;
 		let loaded: Awaited<ReturnType<typeof load>> | undefined;
 		const opening = vi
-			.spyOn(editorModel, "openEditorBlob")
+			.mocked(editorModel.openEditorBlob)
 			.mockImplementation(async (_processing, blob, ...args) => {
 				// Keep fixture decoding cheap while observing the app's Blob entry point.
 				loaded = await load(new Uint8Array(await blob.arrayBuffer()), ...args);
@@ -25,12 +25,8 @@ describe("full-save farm workflow", { timeout: 45_000 }, () => {
 			await fireEvent.change(page.getByLabelText("Save file"), {
 				target: { files: [new File([fixtureXml], "Farm_123")] },
 			});
-			await waitFor(
-				() =>
-					expect(
-						page.getByRole("link", { name: "Farm settings" }),
-					).toBeTruthy(),
-				{ timeout: 5000 },
+			await waitFor(() =>
+				expect(page.getByRole("link", { name: "Farm settings" })).toBeTruthy(),
 			);
 			await fireEvent.click(page.getByRole("link", { name: "Farm settings" }));
 			if (!loaded) throw new Error("Missing imported editor model");
@@ -89,11 +85,9 @@ describe("full-save farm workflow", { timeout: 45_000 }, () => {
 			// The first history row can appear while later full-save edits are still
 			// queued. Undo must run behind all of them; allow that bounded CI work
 			// without waiting for idle first and losing the ordering regression.
-			await waitFor(() => expect(name.value).toBe(initial), { timeout: 5000 });
+			await waitFor(() => expect(name.value).toBe(initial));
 			await fireEvent.click(page.getByRole("button", { name: "Redo" }));
-			await waitFor(() => expect(name.value).toBe("River Farm"), {
-				timeout: 5000,
-			});
+			await waitFor(() => expect(name.value).toBe("River Farm"));
 			name.focus();
 			await fireEvent.input(name, { target: { value: "" } });
 			expect(name.value).toBe("");
@@ -257,7 +251,7 @@ describe("full-save farm workflow", { timeout: 45_000 }, () => {
 			name.focus();
 			await fireEvent.input(name, { target: { value: "Export Farm" } });
 			await fireEvent.click(page.getByRole("button", { name: "Export save" }));
-			await waitFor(() => expect(written).toBeTruthy(), { timeout: 30_000 });
+			await waitFor(() => expect(written).toBeTruthy());
 			if (!written)
 				throw Error("Expected the browser file writer to receive a save");
 			expect(parser.parse(await written.text()).SaveGame.player.farmName).toBe(
@@ -304,3 +298,7 @@ describe("full-save farm workflow", { timeout: 45_000 }, () => {
 		}
 	});
 });
+
+// Browser module boundaries use hoisted spies; their default implementations
+// remain real until an individual test replaces them.
+vi.mock("../../src/lib/editor/editor-model", { spy: true });

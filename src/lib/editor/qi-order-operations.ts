@@ -32,19 +32,19 @@ export type QiOrderChange = typeof requestSchema.Type;
 const decode = Schema.decodeUnknownResult(requestSchema, {
 	onExcessProperty: "error",
 });
-const record = (value: unknown): value is Record<string, unknown> =>
-	value !== null && typeof value === "object" && !Array.isArray(value);
-const integer = (value: unknown): value is number =>
-	typeof value === "number" && Number.isSafeInteger(value);
+// Saved integer fields may be absent. Template parsing also uses this helper to
+// reject invalid generated coordinates before constructing an objective.
+const integer = (value: number | undefined): value is number =>
+	value !== undefined && Number.isSafeInteger(value);
 const definitions = new Map(
 	templates.map((template) => [template.questKey, template]),
 );
 // Orders have one stable array representation at every cardinality.
 function list(raw: SpecialOrder[] | (SpecialOrder | null)[] | undefined) {
 	return {
-		supported: Array.isArray(raw),
+		supported: raw !== undefined,
 		raw,
-		entries: Array.isArray(raw) ? raw : [],
+		entries: raw ?? [],
 	};
 }
 function replace(
@@ -57,12 +57,11 @@ function replace(
 }
 const keyOf = (entry: SpecialOrder | null) => entry?.questKey;
 const rules = (entry: SpecialOrder) =>
-	typeof entry.specialRule === "string"
+	entry.specialRule !== undefined
 		? entry.specialRule.split(",").map((rule) => rule.trim())
 		: [];
 function date(document: SaveDocument) {
 	const game = document.SaveGame;
-	if (!record(game)) return undefined;
 	const { year, currentSeason, dayOfMonth } = game;
 	const season = SEASONS.find((candidate) => candidate === currentSeason);
 	if (
@@ -114,8 +113,8 @@ function cancellationSafe(
 ) {
 	if (
 		!current ||
-		typeof current.appliedSpecialRules !== "boolean" ||
-		typeof current.specialRule !== "string"
+		current.appliedSpecialRules === undefined ||
+		current.specialRule === undefined
 	)
 		return false;
 	// Without applied rules, removing the target cannot require world-rule cleanup.
@@ -126,9 +125,9 @@ function cancellationSafe(
 		!active.entries.every(
 			(entry) =>
 				entry != null &&
-				typeof entry.questState === "string" &&
-				typeof entry.appliedSpecialRules === "boolean" &&
-				typeof entry.specialRule === "string",
+				entry.questState !== undefined &&
+				entry.appliedSpecialRules !== undefined &&
+				entry.specialRule !== undefined,
 		)
 	)
 		return false;
@@ -139,7 +138,7 @@ function cancellationSafe(
 		return integer(value) && value >= 0;
 	});
 }
-function deadlineLabel(value: unknown) {
+function deadlineLabel(value: number | undefined) {
 	if (!integer(value) || value < 0) return undefined;
 	const season = SEASONS[Math.floor(value / 28) % 4];
 	return `${season ? season.charAt(0).toUpperCase() + season.slice(1) : "Unknown season"} ${(value % 28) + 1}, Year ${Math.floor(value / 112) + 1}`;
@@ -171,13 +170,6 @@ export interface QiOrdersView {
 /** Read shared board/active state without synthesizing records or normalizing XML. */
 export function readQiOrders(document: SaveDocument): QiOrdersView {
 	const game = document.SaveGame;
-	if (!record(game))
-		return {
-			supported: false,
-			reason: "This save has no supported world state.",
-			offeredCount: 0,
-			rows: [],
-		};
 	const board = list(game.availableSpecialOrders),
 		active = list(game.specialOrders);
 	// Unknown Qi offers count toward the board cap. A malformed unclassified entry
@@ -301,9 +293,8 @@ export function readQiOrders(document: SaveDocument): QiOrdersView {
 }
 // Generated templates are trusted build inputs. An invalid tile is a defect in
 // that catalog, not a recoverable save problem or a reason to insert NaN values.
-function templateTile(raw: unknown) {
-	if (typeof raw !== "string")
-		throw new Error("Missing generated Qi dropbox tile");
+function templateTile(raw: string | undefined) {
+	if (raw === undefined) throw new Error("Missing generated Qi dropbox tile");
 	const [X, Y, extra] = raw.trim().split(/\s+/).map(Number);
 	if (!integer(X) || !integer(Y) || extra !== undefined)
 		throw new Error("Invalid generated Qi dropbox tile");
@@ -393,7 +384,7 @@ function buildEntry(
 export const setQiOrder = Effect.fn("QiOrders.set")(function* (
 	input: QiOrderChange,
 ) {
-	const decoded = decode(record(input) ? { ...input } : input);
+	const decoded = decode({ ...input });
 	if (Result.isFailure(decoded))
 		return yield* new QiOrderInvalid({
 			message: "Choose a valid Qi order action.",
@@ -402,10 +393,6 @@ export const setQiOrder = Effect.fn("QiOrders.set")(function* (
 	const transaction = yield* TransactionDraft;
 	const snapshot = yield* transaction.read;
 	const game = snapshot.state.document.SaveGame;
-	if (!record(game))
-		return yield* new QiOrderInvalid({
-			message: "This save has no supported world state.",
-		});
 	const row = readQiOrders(snapshot.state.document).rows.find(
 		(row) => row.key === request.key,
 	);

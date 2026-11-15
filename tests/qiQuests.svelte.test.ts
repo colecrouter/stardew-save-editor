@@ -1,14 +1,12 @@
-import { readFile } from "node:fs/promises";
+import publicSaveXml from "./TestSave?raw";
 import { fireEvent, render, within } from "@testing-library/svelte";
 import { flushSync } from "svelte";
 import { beforeEach, describe, expect, it } from "vitest";
-import { setup as mockIDB } from "vitest-indexeddb";
 import { Raw } from "$lib/proxies";
 import qiQuestTemplates from "../generated/qiquests.json";
 import { SaveManager } from "../src/lib/SaveManager.svelte";
 import { XMLManager } from "../src/lib/workers/xml";
 import QuestList from "../src/routes/(legacy)/(edit)/(list)/qi-quests/QuestList.svelte";
-import { fullSaveTimeout } from "./helpers/full-save-budget";
 
 // A structurally realistic `<SpecialOrder>` block (shape borrowed from the
 // fixture's own QiChallenge2 entry) for building an accepted order under
@@ -60,17 +58,16 @@ async function importSave(xml: string): Promise<SaveManager> {
 }
 
 // These retained legacy integration cases import/export the full public save.
-// Their I/O budget is separate from ordinary domain-rule test timeouts.
-describe("QiQuests", { timeout: 30_000 }, () => {
-	mockIDB();
+// They inherit the same stuck-test deadline as ordinary domain-rule tests.
+describe("QiQuests", () => {
 	let saveManager: SaveManager;
 	let fixture: string;
 
-	// Full-file setup has its own deadline, independent of test-body options.
+	// Setup uses the shared hook deadline independently of the test-body deadline.
 	beforeEach(async () => {
-		fixture = (await readFile("tests/TestSave")).toString("utf-8");
+		fixture = publicSaveXml;
 		saveManager = await importSave(fixture);
-	}, fullSaveTimeout);
+	});
 
 	it("doesn't accept or cancel a quest when its text is clicked", async () => {
 		const quests = saveManager.save?.qiQuests;

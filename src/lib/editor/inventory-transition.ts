@@ -1,5 +1,12 @@
+import type { Item } from "./domain.ts";
+import {
+	isSavedItem,
+	isKnownItem,
+	isInventorySlot,
+	type InventoryValue,
+	type InventorySlot,
+} from "./inventory-values.ts";
 import { readEquipmentSlot, writeEquipmentSlot } from "./equipment.ts";
-import { savedType } from "./saved-types.ts";
 import { compareInventoryItems, isInventoryTool } from "../inventory-order.ts";
 import { storageCapabilities, storageTypes } from "./storage-policy.ts";
 import { Result } from "effect";
@@ -61,9 +68,7 @@ export function isInventoryMutation(
 		"chest-type",
 	].includes(action.type);
 }
-const record = (value: unknown): value is Record<string, unknown> =>
-	value !== null && typeof value === "object" && !Array.isArray(value);
-const empty = (value: unknown) => value == null;
+const empty = (value: InventoryValue) => value == null;
 const invalid = (message: string) => Result.fail(new MutationError(message));
 /** Metadata and paired handles staged on the caller's detached draft; publication is still pending. */
 type PreparedInventoryTransition = {
@@ -71,7 +76,7 @@ type PreparedInventoryTransition = {
 	review: OperationChange["review"];
 	inventory?: InventoryIdentityState;
 };
-type Pair = { value: unknown; id?: string };
+type Pair = { value: InventoryValue; id?: string };
 
 /** Plan one record/handle transition together. History publishes this result, not
  * a second interpretation of the action. Pure comparison callers omit handles.
@@ -90,10 +95,11 @@ export function applyInventoryMutation(
 	// reject those affected owners rather than corrupting paired identities.
 	const distinct = (container: InventoryContainer) => {
 		if (container.kind !== "chest") return true;
-		const raw = container.storage?.raw;
+		const raw = container.storage?.container;
 		return (
 			raw !== undefined &&
-			owners.filter((candidate) => candidate.storage?.raw === raw).length === 1
+			owners.filter((candidate) => candidate.storage?.container === raw)
+				.length === 1
 		);
 	};
 	if (!distinct(owner))
@@ -173,18 +179,15 @@ export function applyInventoryMutation(
 		label: string,
 		review: OperationChange["review"],
 	): Result.Result<PreparedInventoryTransition, MutationError> => {
-		// Validate every affected chest before either endpoint is written. Only null
-		// slots can be compacted; malformed scalar entries must never be discarded.
+		// Resolve every numbered destination before writing either endpoint. Typed
+		// equipment bundles cannot be serialized as Item slots or silently dropped.
+		const pending: {
+			container: InventoryContainer;
+			ordered: Pair[];
+			slots: InventorySlot[];
+		}[] = [];
 		for (const { owner: container, pairs } of opened.values()) {
-			if (container.kind !== "chest") continue;
-			if (
-				pairs.some((pair) => !emptyChestSlot(pair.value) && !record(pair.value))
-			)
-				return invalid("Unsupported chest inventory");
-		}
-		for (const { owner: container, pairs } of opened.values()) {
-			// One partition orders both the serialized records and their handles. Virtual
-			// empties follow occupied slots; discovery supplies the resulting capacity.
+			// Compact chest records and their lifetimes with one stable partition.
 			const ordered =
 				container.kind === "chest"
 					? [
@@ -192,7 +195,13 @@ export function applyInventoryMutation(
 							...pairs.filter((pair) => emptyChestSlot(pair.value)),
 						]
 					: pairs;
-			container.write(ordered.map((pair) => pair.value));
+			const slots = ordered.map((pair) => pair.value ?? null);
+			if (!slots.every(isInventorySlot))
+				return invalid("Unsupported inventory slot representation");
+			pending.push({ container, ordered, slots });
+		}
+		for (const { container, ordered, slots } of pending) {
+			container.write(slots);
 			if (working) {
 				const count =
 					container.kind === "chest"
@@ -247,7 +256,7 @@ export function applyInventoryMutation(
 			pairs.some(
 				(pair) =>
 					!identitiesAvailable(pair) ||
-					(!empty(pair.value) && !record(pair.value)),
+					(!empty(pair.value) && !isSavedItem(pair.value)),
 			)
 		)
 			return invalid("This inventory cannot be organized safely");
@@ -264,13 +273,15 @@ export function applyInventoryMutation(
 		// travels with its own handle. Stack merging remains an independent feature.
 		const tools = pairs.filter(
 			(pair) =>
-				record(pair.value) && !empty(pair.value) && isInventoryTool(pair.value),
+				isSavedItem(pair.value) &&
+				!empty(pair.value) &&
+				isInventoryTool(pair.value),
 		);
 		const rest = pairs.filter(
 			(pair) => !empty(pair.value) && !tools.includes(pair),
 		);
 		rest.sort((a, b) =>
-			record(a.value) && record(b.value)
+			isSavedItem(a.value) && isSavedItem(b.value)
 				? compareInventoryItems(a.value, b.value)
 				: 0,
 		);
@@ -306,7 +317,7 @@ export function applyInventoryMutation(
 			if (!container || slot < 0 || !distinct(container))
 				return invalid("A selected item no longer belongs to its inventory");
 			const pair = pairAt(container, slot);
-			if (empty(pair.value) || !record(pair.value))
+			if (empty(pair.value) || !isSavedItem(pair.value))
 				return invalid("A selected item is no longer available");
 			if (container.id !== owner.id) moving.push({ container, slot, pair });
 		}
@@ -343,7 +354,8 @@ export function applyInventoryMutation(
 		const target = storageTypes.find(
 			(candidate) => candidate.itemId === action.itemId,
 		);
-		const capability = chest && storageCapabilities(chest.raw, chest.source);
+		const capability =
+			chest && storageCapabilities(chest.container, chest.source);
 		if (
 			!chest ||
 			!target ||
@@ -373,7 +385,7 @@ export function applyInventoryMutation(
 		const arranged = [...occupied, ...empties].slice(0, target.capacity);
 		while (arranged.length < target.capacity)
 			arranged.push({ value: undefined, id: fresh() });
-		Object.assign(chest.raw, {
+		Object.assign(chest.container, {
 			itemId: target.itemId,
 			name: target.name,
 			parentSheetIndex: target.spriteIndex,
@@ -413,10 +425,10 @@ export function applyInventoryMutation(
 		const item = source.value;
 		if (
 			!owner.farmer ||
-			!record(item) ||
+			!isKnownItem(item) ||
 			String(item.itemId) !== action.itemId ||
 			typeof item.stack !== "number" ||
-			savedType(item) !== "Object" ||
+			item.$type !== "StardewValley.Object" ||
 			item.bigCraftable === true
 		)
 			return invalid(
@@ -436,7 +448,7 @@ export function applyInventoryMutation(
 	}
 	if (action.type === "item-place") {
 		if (!empty(source.value)) return invalid("Destination slot is occupied");
-		if (!record(action.item) || empty(action.item))
+		if (!isSavedItem(action.item))
 			return invalid("An item must be a nonempty save record");
 		put(owner, action.slot, {
 			value: structuredClone(action.item),
@@ -513,7 +525,7 @@ export function applyInventoryMutation(
 export function replaceInventorySlot(
 	owner: InventoryContainer,
 	slot: number,
-	value: Record<string, unknown>,
+	value: Item,
 	inventory: InventoryIdentityState,
 ): Result.Result<InventoryIdentityState, MutationError> {
 	const previous = inventory.identities[owner.id];

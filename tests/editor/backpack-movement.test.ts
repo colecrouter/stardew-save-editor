@@ -255,39 +255,35 @@ describe("backpack moving and swapping", () => {
 	);
 });
 
-it(
-	"returns the committed destination owner before queued Undo changes the current view",
-	{ timeout: 15_000 },
-	async () => {
-		// Queue ordering is independent of XML and full-farm projection costs.
-		const document = tinyEditorFixture();
-		const opened = await openTestDocument(document);
-		try {
-			const initial = await opened.model.snapshot();
-			const farmerId = String(
-				initial.document.SaveGame.player.UniqueMultiplayerID,
-			);
-			const entityId = required(initial.identities[farmerId]?.[0]);
-			const toEntityId = required(initial.identities[farmerId]?.[1]);
-			const moving = opened.model.commands.moveInventoryItem({
-				type: "backpack-move",
-				ownerId: farmerId,
-				entityId,
-				toOwnerId: farmerId,
-				toEntityId,
-			});
-			const undo = opened.model.commands.undo();
-			const result = await moving;
-			expect(result && Result.isSuccess(result) && result.success).toEqual({
-				ownerId: farmerId,
-				entityId,
-			});
-			await undo;
-			const after = await opened.model.snapshot();
-			expect(after.document).toEqual(document);
-			expect(after.identities).toEqual(initial.identities);
-		} finally {
-			await opened.close();
-		}
-	},
-);
+it("returns the committed destination owner before queued Undo changes the current view", async () => {
+	// Queue ordering is independent of XML and full-farm projection costs.
+	const document = tinyEditorFixture();
+	const opened = await openTestDocument(document);
+	try {
+		const initial = await opened.model.snapshot();
+		const farmerId = String(
+			initial.document.SaveGame.player.UniqueMultiplayerID,
+		);
+		const entityId = required(initial.identities[farmerId]?.[0]);
+		const toEntityId = required(initial.identities[farmerId]?.[1]);
+		const moving = opened.model.commands.moveInventoryItem({
+			type: "backpack-move",
+			ownerId: farmerId,
+			entityId,
+			toOwnerId: farmerId,
+			toEntityId,
+		});
+		const undo = opened.model.commands.undo();
+		const result = await moving;
+		expect(result && Result.isSuccess(result) && result.success).toEqual({
+			ownerId: farmerId,
+			entityId,
+		});
+		await undo;
+		const after = await opened.model.snapshot();
+		expect(after.document).toEqual(document);
+		expect(after.identities).toEqual(initial.identities);
+	} finally {
+		await opened.close();
+	}
+});

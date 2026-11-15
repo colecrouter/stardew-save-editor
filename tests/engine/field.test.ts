@@ -11,11 +11,6 @@ import { makeAtomInventory } from "./inventory-atoms.ts";
 import { openInventory } from "./inventory-model.ts";
 import { makeStoreInventory } from "./inventory-stores.ts";
 
-// Retain the engine suite's budget for full-save codecs and worker round trips.
-vi.setConfig({ testTimeout: 15_000 });
-
-const settle = () => new Promise((resolve) => setTimeout(resolve, 20));
-
 for (const [name, factory] of [
 	["Atom", makeAtomInventory],
 	["store", makeStoreInventory],
@@ -42,13 +37,20 @@ for (const [name, factory] of [
 				draft.input("7");
 				expect((yield* opened.session.snapshot).entries).toHaveLength(0);
 				yield* Effect.promise(draft.submit);
-				yield* Effect.promise(settle);
+				// Submission and stream publication are separate boundaries. Observe
+				// the draft's published value before continuing with the next edit.
+				yield* Effect.promise(() =>
+					expect.poll(() => get(draft).text).toBe("7"),
+				);
 				expect((yield* opened.session.snapshot).entries).toHaveLength(1);
 				expect(get(draft).text).toBe("7");
 
 				draft.input("8");
 				opened.model.chooseFarmer("2");
-				yield* Effect.promise(settle);
+				// The captured draft must notice the new farmer without losing input.
+				yield* Effect.promise(() =>
+					expect.poll(() => get(draft).conflict).toBe(true),
+				);
 				expect(get(draft).text).toBe("8");
 				expect(get(draft).conflict).toBe(true);
 				yield* Effect.promise(draft.submit);
@@ -73,7 +75,8 @@ for (const [name, factory] of [
 			for (let index = 0; index < 5; index++) {
 				const opened = await openInventory(factory);
 				const stop = createDraft(opened.model.stackField).subscribe(() => {});
-				await settle();
+				// Ensure the subscription has acquired its stream before testing release.
+				await expect.poll(() => opened.model.debug().liveStreams).toBe(1);
 				stop();
 				await opened.close();
 				expect(opened.model.debug()).toEqual({ nodes: 0, liveStreams: 0 });

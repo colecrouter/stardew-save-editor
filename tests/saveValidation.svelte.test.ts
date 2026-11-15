@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import publicSaveXml from "./TestSave?raw";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import {
 	describeProblems,
@@ -7,7 +7,6 @@ import {
 } from "$lib/saveValidation";
 import { XMLManager } from "$lib/workers/xml";
 import type { Season } from "$types/save";
-import { fullSaveTimeout } from "./helpers/full-save-budget";
 
 // Validation is shared by both editors; keep its rule coverage in the default suite.
 const locationNamed = (parsed: SaveFile, name: string) => {
@@ -105,12 +104,10 @@ describe("validateSave", () => {
 	// Parsing is slow, so parse once and hand each test its own copy
 	const loadParsed = () => structuredClone(fixture);
 
-	// Full-file setup has its own deadline, independent of test-body options.
+	// Setup uses the shared hook deadline independently of the test-body deadline.
 	beforeAll(async () => {
-		fixture = new XMLManager().parse<SaveFile>(
-			await readFile("tests/TestSave", "utf-8"),
-		);
-	}, fullSaveTimeout);
+		fixture = new XMLManager().parse<SaveFile>(publicSaveXml);
+	});
 
 	it("passes the test save", () => {
 		expect(validateSave(loadParsed())).toEqual({

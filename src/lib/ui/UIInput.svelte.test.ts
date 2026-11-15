@@ -97,7 +97,7 @@ describe("UI input", () => {
 		};
 
 		// The component's styles reach the test DOM
-		expect(look("text")[0]).toBe("#f9bb65");
+		expect(look("text")[0]).toBe("rgb(249, 187, 101)");
 		expect(look("input")).toEqual(look("text"));
 	});
 });

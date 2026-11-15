@@ -20,7 +20,10 @@ import {
 } from "./item-presentation.ts";
 
 /** The UI receives drawing instructions and game meaning, never a saved item/proxy. */
-const itemTypes: Record<string, string> = {
+const itemTypes: Record<
+	string,
+	"Furniture" | "Hat" | "Clothing" | "Ring" | "Boots" | "MeleeWeapon"
+> = {
 	F: "Furniture",
 	H: "Hat",
 	C: "Clothing",

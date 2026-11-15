@@ -1,4 +1,3 @@
-import { vi } from "vitest";
 import { stringifySavedData } from "../../src/lib/editor/saved-data.ts";
 import { expect, it } from "@effect/vitest";
 import { Effect, Exit } from "effect";
@@ -15,9 +14,6 @@ import {
 	EditorOperations,
 	type Operations,
 } from "../../src/lib/editor/operations.ts";
-
-// Retain the engine suite's budget for full-save codecs and worker round trips.
-vi.setConfig({ testTimeout: 15_000 });
 
 const money = (value: number) =>
 	({ type: "money", farmerId: "1", value }) as const;
@@ -95,7 +91,6 @@ it.effect(
 					.byteLength,
 			);
 		}).pipe(Effect.provideService(EditorOperations, annotated)),
-	60_000,
 );
 
 it.effect(
@@ -314,9 +309,7 @@ it.effect(
 					Effect.gen(function* () {
 						yield* session.execute([money(50)]);
 						yield* session.execute([money(60)]);
-						return yield* Effect.fail(
-							new MutationError("Reject enclosing operation"),
-						);
+						return yield* new MutationError("Reject enclosing operation");
 					}),
 				),
 			);

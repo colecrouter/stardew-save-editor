@@ -1,3 +1,4 @@
+import type { HistoryLimits } from "../../src/lib/editor/history.ts";
 import { stringifySavedData } from "../../src/lib/editor/saved-data.ts";
 import { describe, expect, it } from "vitest";
 import { fixtureXml } from "./fixtures";
@@ -16,10 +17,7 @@ import {
 import { openEditor as openApplicationEditor } from "../helpers/open-editor.ts";
 import type { FixtureSave as Save } from "../helpers/editor-document.ts";
 
-const openEditor = (
-	bytes: Uint8Array,
-	limits: import("../../src/lib/editor/history.ts").HistoryLimits = {},
-) =>
+const openEditor = (bytes: Uint8Array, limits: HistoryLimits = {}) =>
 	openApplicationEditor(bytes, limits, {
 		includeProofs: true,
 		validateExport: false,
@@ -30,9 +28,9 @@ const parseBytes = (bytes: Uint8Array) =>
 	parser.parse(new TextDecoder().decode(bytes));
 
 // TestSave is a 6.6 MB preservation fixture. Encoding/reparsing it several times
-// verifies data integrity, not latency; retain the experiment's integration budget
-// on shared CI runners without changing the default timeout for unit tests.
-describe("full-save calendar session", { timeout: 60_000 }, () => {
+// verifies data integrity rather than latency. The shared runner deadline covers
+// this workload under normal CI concurrency.
+describe("full-save calendar session", () => {
 	it("calendar import/view/export preserves the full document before any edit", async () => {
 		const bytes = await input();
 		const opened = await openEditor(bytes);
@@ -230,5 +228,5 @@ describe("full-save calendar session", { timeout: 60_000 }, () => {
 				streams: 0,
 			});
 		}
-	}, 30000);
+	});
 });

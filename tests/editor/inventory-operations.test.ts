@@ -590,8 +590,9 @@ describe("bounded backpack edits", () => {
 it("projects opaque item identifiers without invoking their conversion fields", () => {
 	const document = tinyFixture();
 	document.SaveGame.player.items[0] = {
-		$type: "StardewValley.Object",
-		itemId: malformedFixture<string>({ toString: 0 }),
+		$type: "$unknown",
+		$xmlType: { name: "ModItem", namespace: "" },
+		itemId: { toString: 0 },
 		name: "Opaque ID",
 	};
 	const before = structuredClone(document);

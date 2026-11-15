@@ -2,7 +2,6 @@ import { waitFor } from "@testing-library/svelte";
 import * as idb from "idb";
 import { flushSync } from "svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { setup as mockIDB } from "vitest-indexeddb";
 import { BackupManager } from "../src/lib/BackupManager.svelte";
 import { restoreOriginal, serializeOriginal } from "../src/lib/saveBackups";
 
@@ -10,8 +9,6 @@ vi.mock("idb", async (importOriginal) => {
 	const original = await importOriginal<typeof import("idb")>();
 	return { ...original, openDB: vi.fn(original.openDB) };
 });
-
-mockIDB();
 beforeEach(async () => {
 	const db = await archive();
 	await db.clear("files");
@@ -278,7 +275,7 @@ describe("legacy backup persistence", () => {
 	});
 
 	it("reports failures opening IndexedDB without an unhandled rejection", async () => {
-		vi.spyOn(idb, "openDB").mockRejectedValueOnce(
+		vi.mocked(idb.openDB).mockRejectedValueOnce(
 			new DOMException("Unavailable", "AbortError"),
 		);
 		const warn = vi.spyOn(console, "warn").mockImplementation(() => {});

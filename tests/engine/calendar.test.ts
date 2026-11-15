@@ -1,4 +1,3 @@
-import { vi } from "vitest";
 import { expect, it } from "@effect/vitest";
 import { Effect, Exit } from "effect";
 import type { FixtureSave as Save } from "../helpers/editor-document.ts";
@@ -21,9 +20,6 @@ import type {
 	DomainValue,
 	SaveDocument,
 } from "../../src/lib/editor/domain.ts";
-
-// Retain the engine suite's budget for full-save codecs and worker round trips.
-vi.setConfig({ testTimeout: 15_000 });
 
 const gameOf = (document: SaveDocument) => document.SaveGame as unknown as Save;
 const calendarOf = (domain: DomainState) =>
@@ -94,7 +90,6 @@ it.effect(
 			expect(redone.document).toEqual(after.document);
 			expect(redone.domainState).toEqual(after.domainState);
 		}),
-	60_000,
 );
 
 it.effect(
@@ -164,7 +159,6 @@ it.effect(
 				restored.document,
 			);
 		}),
-	60_000,
 );
 
 it.effect(
@@ -185,7 +179,6 @@ it.effect(
 			expect(yield* session.snapshot).toEqual(before);
 			expect(gameOf((yield* session.redo).document).isRaining).toBe(false);
 		}),
-	60_000,
 );
 
 it.effect(
@@ -230,7 +223,6 @@ it.effect(
 			).toBe(true);
 		}).pipe(Effect.provideService(EditorOperations, adapter));
 	},
-	60_000,
 );
 
 it.effect(
@@ -251,7 +243,6 @@ it.effect(
 				"Mod.Meteors",
 			);
 		}),
-	60_000,
 );
 
 it.effect(
@@ -288,21 +279,17 @@ it.effect(
 			).toBe(true);
 			expect(yield* badStats.snapshot).toEqual(badStatsBefore);
 		}),
-	60_000,
 );
 
-it.effect(
-	"calendar no-ops don't initialize hidden history or metadata",
-	() =>
-		Effect.gen(function* () {
-			const session = yield* makeHistorySession(
-				yield* Effect.promise(loadFixture),
-			);
-			const before = yield* session.snapshot;
-			const after = yield* session.execute([today("Rain")]);
-			expect(after).toEqual(before);
-		}),
-	60_000,
+it.effect("calendar no-ops don't initialize hidden history or metadata", () =>
+	Effect.gen(function* () {
+		const session = yield* makeHistorySession(
+			yield* Effect.promise(loadFixture),
+		);
+		const before = yield* session.snapshot;
+		const after = yield* session.execute([today("Rain")]);
+		expect(after).toEqual(before);
+	}),
 );
 
 it.effect(
@@ -335,7 +322,6 @@ it.effect(
 			expect((yield* session.undo).domainState).toEqual(before.domainState);
 			expect((yield* session.redo).domainState).toEqual(forecast.domainState);
 		}),
-	60_000,
 );
 
 it.effect(
@@ -372,7 +358,6 @@ it.effect(
 				expect(yield* session.snapshot).toEqual(before);
 			}
 		}),
-	60_000,
 );
 
 it.effect(
@@ -404,5 +389,4 @@ it.effect(
 			expect(undone.domainState).toEqual(initial);
 			expect((yield* session.redo).domainState).toEqual(after.domainState);
 		}),
-	60_000,
 );

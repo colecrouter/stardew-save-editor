@@ -10,9 +10,9 @@ import {
 } from "../helpers/editor-document.ts";
 
 // These integration scenarios repeatedly parse or export the 6.6 MB save fixture.
-// Match the calendar suites’ CI budget: assertions verify preservation and workflow,
-// while the default unit-test timeout remains unchanged.
-describe("full-save application workflow", { timeout: 60_000 }, () => {
+// These full-save assertions verify preservation and workflow, not latency.
+// The shared runner deadline covers codec work under normal test concurrency.
+describe("full-save application workflow", () => {
 	it("the migrated UI imports, stages one date action, reviews, undoes and closes its session", async () => {
 		const backupOriginal = vi.fn(async () => {});
 		const page = render(EditorApp, {
@@ -26,10 +26,8 @@ describe("full-save application workflow", { timeout: 60_000 }, () => {
 			const input = page.getByLabelText("Save file") as HTMLInputElement;
 			const file = new File([fixtureXml], "Farm_123");
 			await fireEvent.change(input, { target: { files: [file] } });
-			await waitFor(
-				() =>
-					expect(page.getByRole("spinbutton", { name: "Year" })).toBeTruthy(),
-				{ timeout: 30_000 },
+			await waitFor(() =>
+				expect(page.getByRole("spinbutton", { name: "Year" })).toBeTruthy(),
 			);
 			await waitFor(() => expect(backupOriginal).toHaveBeenCalledWith(file));
 			expect(page.queryByRole("link", { name: "Bundles" })).toBeNull();
@@ -43,9 +41,8 @@ describe("full-save application workflow", { timeout: 60_000 }, () => {
 					.hasAttribute("disabled"),
 			).toBe(true);
 			await fireEvent.click(page.getByRole("button", { name: "Apply date" }));
-			await waitFor(
-				() => expect(page.getByText(/Current save:.*Year 3/)).toBeTruthy(),
-				{ timeout: 30_000 },
+			await waitFor(() =>
+				expect(page.getByText(/Current save:.*Year 3/)).toBeTruthy(),
 			);
 			await fireEvent.click(page.getByRole("link", { name: "Review changes" }));
 			expect(page.getByText("Edit history")).toBeTruthy();
@@ -53,12 +50,10 @@ describe("full-save application workflow", { timeout: 60_000 }, () => {
 				page.queryByRole("button", { name: "Reverse backpack" }),
 			).toBeNull();
 			await fireEvent.click(page.getByRole("button", { name: "Undo" }));
-			await waitFor(
-				() =>
-					expect(
-						page.getByText("No exported changes from the imported save."),
-					).toBeTruthy(),
-				{ timeout: 30_000 },
+			await waitFor(() =>
+				expect(
+					page.getByText("No exported changes from the imported save."),
+				).toBeTruthy(),
 			);
 			await fireEvent.click(page.getByRole("button", { name: "Exit" }));
 			await waitFor(() =>
@@ -128,27 +123,17 @@ describe("full-save application workflow", { timeout: 60_000 }, () => {
 					files: [new File([exportDocument(tinyEditorFixture())], "Farm_123")],
 				},
 			});
-			await waitFor(
-				() =>
-					expect(
-						page.getByRole("button", { name: "Export save" }),
-					).toBeTruthy(),
-				{ timeout: 30_000 },
+			await waitFor(() =>
+				expect(page.getByRole("button", { name: "Export save" })).toBeTruthy(),
 			);
 			await fireEvent.click(page.getByRole("button", { name: "Export save" }));
-			await waitFor(
-				() =>
-					expect(
-						page.getByText(
-							"The save could not be downloaded. Please try again.",
-						),
-					).toBeTruthy(),
-				{ timeout: 30_000 },
+			await waitFor(() =>
+				expect(
+					page.getByText("The save could not be downloaded. Please try again."),
+				).toBeTruthy(),
 			);
 			await fireEvent.click(page.getByRole("button", { name: "Export save" }));
-			await waitFor(() => expect(picker).toHaveBeenCalledTimes(2), {
-				timeout: 5000,
-			});
+			await waitFor(() => expect(picker).toHaveBeenCalledTimes(2));
 			await waitFor(() =>
 				expect(
 					page

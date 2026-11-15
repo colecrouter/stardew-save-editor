@@ -1,3 +1,4 @@
+import { isSavedItem, type SavedItem } from "./inventory-values.ts";
 import { readEquipmentSlot } from "./equipment.ts";
 import {
 	storageCapabilities,
@@ -32,11 +33,9 @@ import type { HistoryState } from "./history.ts";
 // Keep presentation/catalog imports out of the mutation/history runtime graph.
 // Projectors interpret save data for the application, while the engine remains
 // usable by native Node consumers without browser asset aliases.
-const record = (value: unknown): value is Record<string, unknown> =>
-	value !== null && typeof value === "object" && !Array.isArray(value);
 // Unknown classes retain XML scalar text. Interpret only safe integer text for
 // these read-only labels; editing eligibility still requires a known typed item.
-function itemCounts(raw: Record<string, unknown> | undefined) {
+function itemCounts(raw: SavedItem | undefined) {
 	const count = (key: string) => {
 		const value = raw?.[key];
 		if (typeof value === "number" && Number.isFinite(value)) return value;
@@ -87,16 +86,18 @@ export interface InventoryView {
 }
 /** Combine metadata-backed editing policy with UI-owned presentation fields. */
 function projectInventoryItem(
-	raw: Record<string, unknown> | undefined,
+	item: SavedItem | undefined,
 	context?: TrinketRollContext,
 ) {
-	const metadata = resolveItemMetadata(raw);
+	const metadata = resolveItemMetadata(item);
 	return {
-		...readItemPresentation(raw, context, metadata),
+		...readItemPresentation(item, context, metadata),
 		...getInventoryItemCapabilities(
-			raw,
+			item,
 			metadata?._type === "Object",
-			[...CategoriesWithQuality].some((category) => category === raw?.category),
+			[...CategoriesWithQuality].some(
+				(category) => category === item?.category,
+			),
 		),
 	};
 }
@@ -122,14 +123,14 @@ export function readBackpacks(
 					hasBackpackFarmerId(other) &&
 					String(other.UniqueMultiplayerID) === ownerId,
 			).length === 1;
-		const items = Array.isArray(farmer.items) ? farmer.items : undefined;
+		const { items } = farmer;
 		const ids = Object.hasOwn(state.identities, ownerId)
 			? state.identities[ownerId]
 			: undefined;
 		const supported =
 			unique &&
 			containers.get(ownerId)?.kind === "farmer" &&
-			Array.isArray(items) &&
+			items !== undefined &&
 			ids?.length === items.length;
 		// Projection interprets saved values into presentation data; it never retains
 		// item records or opaque mod data in the UI-facing view.
@@ -140,7 +141,7 @@ export function readBackpacks(
 				const entityId = state.equipmentIdentities?.[ownerId]?.[key];
 				if (!entityId) return [];
 				const value = readEquipmentSlot(farmer, key);
-				const raw = record(value) ? value : undefined;
+				const raw = isSavedItem(value) ? value : undefined;
 				return [
 					{
 						entityId,
@@ -159,10 +160,7 @@ export function readBackpacks(
 					},
 				];
 			}),
-			name:
-				typeof farmer.name === "string" && farmer.name
-					? farmer.name
-					: "Unnamed farmer",
+			name: farmer.name ? farmer.name : "Unnamed farmer",
 			supported,
 			...(!supported
 				? {
@@ -172,9 +170,9 @@ export function readBackpacks(
 					}
 				: {}),
 			slots:
-				supported && Array.isArray(items) && ids
+				supported && items !== undefined && ids
 					? items.map((item, slot) => {
-							const raw = record(item) ? item : undefined;
+							const raw = isSavedItem(item) ? item : undefined;
 							const empty = emptySlot(item);
 
 							return {
@@ -241,14 +239,14 @@ function projectChestView({
 		kind: "chest",
 		location: chest.location,
 		capacity: chest.capacity,
-		storage: storageCapabilities(chest.raw, chest.source),
+		storage: storageCapabilities(chest.container, chest.source),
 		supported,
 		equipment: [],
 		...(!supported ? { reason } : {}),
 		slots:
 			supported && ids
 				? chest.slots.map((item, slot) => {
-						const raw = record(item) ? item : undefined;
+						const raw = isSavedItem(item) ? item : undefined;
 						const empty = emptySlot(item);
 						return {
 							entityId: ids[slot] ?? "",
@@ -312,7 +310,7 @@ export function projectChests(
 	>();
 	const candidates = chestProjectionInputs(state).map((input) => {
 		const { chest, ids, supported, reason } = input;
-		const cached = previous?.lookup(chest.raw, chest.id);
+		const cached = previous?.lookup(chest.container, chest.id);
 		// Labels and eligibility also depend on ancestors and other owners. Slot
 		// IDs are already presentation values, so compare them without retaining
 		// an authoritative identity array as a cache dependency.
@@ -332,10 +330,10 @@ export function projectChests(
 		const view = reusable ? cached : immutableView(projectChestView(input));
 		// A shared raw chest can appear at multiple placed paths. Give every
 		// current owner its own entry, with fresh buckets even on a cache hit.
-		let bucket = index.get(chest.raw);
+		let bucket = index.get(chest.container);
 		if (!bucket) {
 			bucket = new Map();
-			index.set(chest.raw, bucket);
+			index.set(chest.container, bucket);
 		}
 		bucket.set(chest.id, view);
 		return view;

@@ -1,3 +1,4 @@
+import type { Item } from "../../src/lib/editor/domain.ts";
 import { malformedFixture } from "../helpers/editor-document.ts";
 import { it } from "@effect/vitest";
 import { describe, expect } from "vitest";
@@ -24,10 +25,7 @@ function fixture(
 		playerChest: true,
 		itemId: "130",
 		name: "Chest",
-		items:
-			malformedFixture<
-				(import("../../src/lib/editor/domain.ts").Item | null)[]
-			>(items),
+		items: malformedFixture<(Item | null)[]>(items),
 		specialChestType: "None",
 		customModData: { opaque: "007" },
 	}));
@@ -108,7 +106,7 @@ describe("storage command boundary", () => {
 				]);
 				const after = yield* session.snapshot,
 					result = required(discoverPlacedChests(after.document)[0]);
-				expect(result.raw.customModData).toEqual({ opaque: "007" });
+				expect(result.container.customModData).toEqual({ opaque: "007" });
 				expect(result.slots[0]).toMatchObject({ name: "Rusty Sword" });
 				expect(handle(after, chest.id, 0)).toBe(handle(before, chest.id, 2));
 				expect(after.identities[chest.id]).toHaveLength(36);
@@ -240,7 +238,7 @@ describe("storage command boundary", () => {
 				expect(big.identities[chest.id]).toHaveLength(70);
 				expect(handle(big, chest.id, 0)).toBe(id);
 				expect(
-					required(discoverPlacedChests(big.document)[0]).raw,
+					required(discoverPlacedChests(big.document)[0]).container,
 				).toMatchObject({
 					itemId: "BigStoneChest",
 					currentLidFrame: 329,
@@ -260,7 +258,14 @@ describe("storage command boundary", () => {
 			Effect.gen(function* () {
 				for (const wallet of [
 					undefined,
-					[{ value: { itemId: "388", stack: 5 } }],
+					[
+						{
+							key: 1n,
+							value: [
+								{ $type: "StardewValley.Object", itemId: "388", stack: 5 },
+							],
+						},
+					],
 				]) {
 					const { document, chests } = fixture([[]]);
 					Object.assign(required(chests[0]), {
@@ -329,7 +334,10 @@ describe("storage command boundary", () => {
 						objects: [
 							{
 								key: { X: 3, Y: 7 },
-								value: { ...placed.raw, $type: "StardewValley.Objects.Chest" },
+								value: {
+									...placed.container,
+									$type: "StardewValley.Objects.Chest",
+								},
 							},
 							{
 								key: { X: 4, Y: 7 },
@@ -359,11 +367,10 @@ describe("storage command boundary", () => {
 					session = yield* makeHistorySession(document),
 					before = yield* session.snapshot;
 				const found = discoverPlacedChests(before.document);
-				expect(found).toHaveLength(5);
+				expect(found).toHaveLength(4);
 				expect(found[0]?.id).toBe(placed.id);
 				expect(found.map((chest) => chest.source)).toEqual([
 					"chest",
-					"machine",
 					"machine",
 					"building",
 					"fridge",
@@ -392,7 +399,7 @@ describe("storage command boundary", () => {
 				const edited = yield* session.snapshot;
 				for (const chest of discoverPlacedChests(edited.document).slice(1)) {
 					expect(chest.slots[0]).toMatchObject({ quality: 2 });
-					expect(chest.raw).toMatchObject({
+					expect(chest.container).toMatchObject({
 						items: [{ quality: 2 }],
 						testMetadataitems: { opaque: "keep" },
 						customModData: { unknown: "007" },
@@ -417,7 +424,7 @@ describe("storage command boundary", () => {
 						discoverPlacedChests(transferred.document).find(
 							(chest) => chest.id === from.id,
 						),
-					).raw.items,
+					).container.items,
 				).toEqual([]);
 				yield* session.undo;
 				expect((yield* session.snapshot).document).toEqual(original);

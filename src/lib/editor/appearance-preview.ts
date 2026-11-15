@@ -1,4 +1,4 @@
-import { readCatalogItem } from "../ItemData.ts";
+import type { Farmer } from "./domain.ts";
 import { ItemData, ResolveItemData } from "../ItemData.ts";
 import { Sprite } from "../Sprite.svelte.ts";
 import { readRgba } from "../color.ts";
@@ -12,8 +12,6 @@ import {
 	QuaternaryBootColors,
 } from "../CharacterColors.ts";
 
-const record = (value: unknown): value is Record<string, unknown> =>
-	value !== null && typeof value === "object" && !Array.isArray(value);
 export interface AppearanceLayer {
 	readonly part: string;
 	readonly sheet: string;
@@ -27,45 +25,31 @@ export interface AppearancePreviewView {
 	readonly gender: "male" | "female";
 	readonly notice?: string;
 }
-/** Resolve the small semantic field set needed by the read-only item catalog. */
-function equipment(raw: unknown) {
-	if (!record(raw)) return undefined;
-	// Legacy catalog lookups use string methods on these optional identifiers.
-	// Reject malformed imported shapes before invoking them; unexpected catalog
-	// defects remain visible rather than being converted into missing equipment.
-	if (
-		["name", "itemId", "preservedParentSheetIndex"].some(
-			(key) =>
-				raw[key] != null &&
-				typeof raw[key] !== "string" &&
-				typeof raw[key] !== "number",
-		)
-	)
-		return undefined;
-	if (raw.name != null && typeof raw.name !== "string") return undefined;
-	return ResolveItemData(readCatalogItem(raw) ?? {});
-}
+// Concrete equipment fields already have generated contracts. Resolve their
+// catalog identity directly without revalidating decoded object shapes.
+type Equipment = Farmer["boots" | "shirtItem" | "pantsItem" | "hat"];
+const equipment = (raw: Equipment) =>
+	raw == null ? undefined : ResolveItemData(raw);
 /** Build ordered sprite layers without holding save references or changing defaults. */
 export function appearanceLayers(
-	raw: Record<string, unknown> | undefined,
+	farmer: Farmer | undefined,
 ): AppearancePreviewView {
 	const layers: AppearanceLayer[] = [];
 	if (
-		!raw ||
-		(raw.gender !== "Male" && raw.gender !== "Female") ||
-		typeof raw.skin !== "number" ||
-		!Number.isInteger(raw.skin)
+		!farmer ||
+		(farmer.gender !== "Male" && farmer.gender !== "Female") ||
+		farmer.skin === undefined
 	)
 		return {
 			layers,
 			gender: "male",
 			notice: "This saved appearance cannot be previewed.",
 		};
-	const gender = raw.gender === "Male" ? "male" : "female";
+	const gender = farmer.gender === "Male" ? "male" : "female";
 	const skin = [
-		PrimarySkinColors[raw.skin],
-		SecondarySkinColors[raw.skin],
-		TertiarySkinColors[raw.skin],
+		PrimarySkinColors[farmer.skin],
+		SecondarySkinColors[farmer.skin],
+		TertiarySkinColors[farmer.skin],
 	];
 	if (skin.some((color) => !color))
 		return { layers, gender, notice: "This custom skin cannot be previewed." };
@@ -89,9 +73,9 @@ export function appearanceLayers(
 		`/img/${gender}_farmer_other.png`,
 		32,
 		0,
-		readRgba(raw.newEyeColor),
+		readRgba(farmer.newEyeColor),
 	);
-	const boots = equipment(raw.boots);
+	const boots = equipment(farmer.boots);
 	const bootPalettes = [
 		PrimaryBootColors,
 		SecondaryBootColors,
@@ -103,14 +87,12 @@ export function appearanceLayers(
 	// remain useful without boots; unsupported/custom palettes get the game's
 	// default shoes (2) as a display-only fallback, never a saved replacement.
 	const savedShoes =
-		typeof raw.shoes === "number"
-			? raw.shoes
-			: typeof raw.shoes === "string" && /^\d+$/.test(raw.shoes)
-				? Number(raw.shoes)
-				: 2;
+		farmer.shoes !== undefined && /^\d+$/.test(farmer.shoes)
+			? Number(farmer.shoes)
+			: 2;
 	const requestedBootIndex = boots
-		? record(raw.boots) && typeof raw.boots.indexInColorSheet === "number"
-			? raw.boots.indexInColorSheet
+		? farmer.boots?.indexInColorSheet !== undefined
+			? farmer.boots.indexInColorSheet
 			: 0
 		: savedShoes;
 	const bootIndex =
@@ -132,23 +114,22 @@ export function appearanceLayers(
 	// Missing equipment receives the same display-only stand-ins as v1. These
 	// catalog records are never inserted into the save or constructed as proxies.
 	const shirt =
-		equipment(raw.shirtItem) ??
+		equipment(farmer.shirtItem) ??
 		ItemData.get(
 			gender === "male" ? "Basic Pullover (M)" : "Basic Pullover (F)",
 		);
-	const pants = equipment(raw.pantsItem) ?? ItemData.get("Polka Dot Shorts");
+	const pants = equipment(farmer.pantsItem) ?? ItemData.get("Polka Dot Shorts");
 	let notice: string | undefined;
-	const present = (value: unknown) => value != null;
 	if (
-		[raw.hat, raw.shirtItem, raw.pantsItem, raw.boots].some(
-			(value) => present(value) && !equipment(value),
+		[farmer.hat, farmer.shirtItem, farmer.pantsItem, farmer.boots].some(
+			(value) => value != null && !equipment(value),
 		)
 	)
 		notice =
 			"Some imported equipment cannot be previewed; clothing stand-ins may be shown.";
 	for (const [part, info, saved] of [
-		["pants", pants, raw.pantsItem],
-		["shirt", shirt, raw.shirtItem],
+		["pants", pants, farmer.pantsItem],
+		["shirt", shirt, farmer.shirtItem],
 	] as const) {
 		if (!info || (info._type !== "Pants" && info._type !== "Shirt")) {
 			notice = "Some equipped clothing cannot be previewed.";
@@ -157,7 +138,7 @@ export function appearanceLayers(
 		const sprite = new Sprite(info),
 			pos = sprite.dimensions;
 		const tint =
-			info.canBeDyed && record(saved)
+			info.canBeDyed && saved != null
 				? readRgba(saved.clothesColor)
 				: undefined;
 		add(
@@ -173,22 +154,21 @@ export function appearanceLayers(
 			tint,
 		);
 	}
-	const hairTint = readRgba(raw.hairstyleColor);
+	const hairTint = readRgba(farmer.hairstyleColor);
 	if (
-		typeof raw.accessory === "number" &&
-		Number.isInteger(raw.accessory) &&
-		raw.accessory >= 0 &&
-		raw.accessory <= 29
+		farmer.accessory !== undefined &&
+		farmer.accessory >= 0 &&
+		farmer.accessory <= 29
 	) {
-		const pos = Sprite.fromIndex(raw.accessory, 16, 32, 128, 128);
+		const pos = Sprite.fromIndex(farmer.accessory, 16, 32, 128, 128);
 		add("accessory", "/assets/accessories.png", pos.x, pos.y, hairTint);
 	}
-	const hat = equipment(raw.hat);
+	const hat = equipment(farmer.hat);
 	// Match the legacy preview's hat/hair rule to keep appearance composition
 	// consistent between editors.
 	if (!hat || hat._type !== "Hat" || !hat.showRealHair) {
-		const saved = raw.hair;
-		if (typeof saved === "number" && Number.isInteger(saved)) {
+		const saved = farmer.hair;
+		if (saved !== undefined) {
 			const hair = saved >= 100 ? saved - 44 : saved;
 			if (hair >= 0 && hair <= 73) {
 				const second = hair >= 56;

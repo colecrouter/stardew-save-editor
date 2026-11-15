@@ -22,19 +22,23 @@ afterEach(() => {
 
 // Kit may discover a deployment after the layout has mounted. Invoke its actual
 // registered callback repeatedly to ensure it reads current state, not a snapshot.
-it("reloads client navigation only after a newer deployment is detected", () => {
+it("reloads client navigation only after a newer deployment is detected", ({
+	onTestFinished,
+}) => {
 	render(RootLayout);
 	const navigate = vi.mocked(beforeNavigate).mock.calls[0]?.[0];
 	if (!navigate) throw new Error("Root layout did not register beforeNavigate");
-	const href = vi
-		.spyOn(window.location, "href", "set")
-		.mockImplementation(() => {});
+	// Location is non-configurable in a browser. Observe and cancel its native
+	// navigation event so the real assignment is checked without leaving the test.
+	const href = vi.fn((event: NavigateEvent) => event.preventDefault());
+	window.navigation.addEventListener("navigate", href);
+	onTestFinished(() => window.navigation.removeEventListener("navigate", href));
 	const navigation: BeforeNavigate = {
 		type: "goto",
 		shallow: false,
 		from: null,
 		to: {
-			url: new URL("http://localhost/stardew-save-editor/inventory"),
+			url: new URL("/stardew-save-editor/inventory", window.location.origin),
 			params: {},
 			route: { id: "/" },
 			scroll: null,
@@ -51,7 +55,6 @@ it("reloads client navigation only after a newer deployment is detected", () => 
 	navigate({ ...navigation, to: null });
 	expect(href).not.toHaveBeenCalled();
 	navigate(navigation);
-	expect(href).toHaveBeenCalledExactlyOnceWith(
-		"http://localhost/stardew-save-editor/inventory",
-	);
+	expect(href).toHaveBeenCalledOnce();
+	expect(href.mock.calls[0]?.[0].destination.url).toBe(navigation.to?.url.href);
 });

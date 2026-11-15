@@ -35,31 +35,12 @@ export type RecipeChange = typeof changeSchema.Type;
 const decode = Schema.decodeUnknownResult(changeSchema, {
 	onExcessProperty: "error",
 });
-const record = (v: unknown): v is Record<string, unknown> =>
-	v !== null && typeof v === "object" && !Array.isArray(v);
-const integer = (v: unknown): v is number =>
-	typeof v === "number" && Number.isSafeInteger(v);
-const id = (v: unknown) =>
-	typeof v === "string" && v.length > 0
-		? v
-		: typeof v === "bigint" || (typeof v === "number" && Number.isFinite(v))
-			? String(v)
-			: undefined;
-// Dictionary entries retain their generated shape even when validation rejects
-// a malformed key or counter supplied at an external boundary.
+// The codec supplies text keys and integer counters for all recipe dictionaries.
+// Only a failed lookup can omit an entry; output semantics are checked below.
 type RecipeEntry = NonNullable<Farmer["cookingRecipes"]>[number];
-const keyOf = (entry: RecipeEntry | undefined, numeric = false) =>
-	record(entry)
-		? numeric
-			? id(entry.key)
-			: typeof entry.key === "string"
-				? entry.key
-				: undefined
-		: undefined;
-function savedCount(entry: RecipeEntry | undefined) {
-	return record(entry) && integer(entry.value) ? entry.value : undefined;
-}
-// A dictionary is an ordered entry array; absent or malformed values remain unsupported.
+const keyOf = (entry: RecipeEntry | undefined) => entry?.key;
+const savedCount = (entry: RecipeEntry | undefined) => entry?.value;
+// An absent dictionary remains unsupported; decoding has already checked its entries.
 function dictionary(raw: RecipeEntry[] | undefined) {
 	return {
 		supported: raw !== undefined,
@@ -124,19 +105,15 @@ function rows(owner: Farmer, kind: RecipeKind, unique: boolean): RecipeRow[] {
 		const outputId = definition?.outputId;
 		// Cooking knowledge values are not production counters. The game reads
 		// recipesCooked by output item ID, while crafting stores counts in knowledge.
-		const countKeysSupported = counts.entries.every(
-			(entry) => keyOf(entry, kind === "cooking") !== undefined,
-		);
 		const counted =
 			kind === "crafting"
 				? matches
 				: outputId === undefined
 					? []
-					: counts.entries.filter((entry) => keyOf(entry, true) === outputId);
+					: counts.entries.filter((entry) => keyOf(entry) === outputId);
 		const countSupported =
 			unique &&
 			counts.supported &&
-			countKeysSupported &&
 			(kind === "crafting" ? supported && known : outputId !== undefined) &&
 			counted.length <= 1 &&
 			(counted.length === 0 || savedCount(counted[0]) !== undefined);
@@ -147,12 +124,11 @@ function rows(owner: Farmer, kind: RecipeKind, unique: boolean): RecipeRow[] {
 			reason: supported
 				? undefined
 				: "This saved recipe knowledge is unsupported or ambiguous.",
-			count:
-				!counts.supported || !countKeysSupported
-					? undefined
-					: counted.length === 0
-						? 0
-						: savedCount(counted[0]),
+			count: !counts.supported
+				? undefined
+				: counted.length === 0
+					? 0
+					: savedCount(counted[0]),
 			hasCookedEntry: kind === "cooking" && counted.length > 0,
 			countSupported,
 			countReason: countSupported
@@ -178,7 +154,7 @@ export function readRecipes(document: SaveDocument): RecipeFarmerView[] {
 				.length === 1;
 		return {
 			farmerId: farmerId ?? "",
-			name: typeof owner.name === "string" ? owner.name : "Unnamed farmer",
+			name: owner.name ?? "Unnamed farmer",
 			supported,
 			reason: supported
 				? undefined
@@ -192,7 +168,7 @@ export function readRecipes(document: SaveDocument): RecipeFarmerView[] {
 export const setRecipe = Effect.fn("Recipes.set")(function* (
 	input: RecipeChange,
 ) {
-	const decoded = decode(record(input) ? { ...input } : input);
+	const decoded = decode({ ...input });
 	if (Result.isFailure(decoded))
 		return yield* new RecipeInvalid({
 			message: "Choose a valid recipe change.",
@@ -273,19 +249,17 @@ export const setRecipe = Effect.fn("Recipes.set")(function* (
 			return yield* new RecipeInvalid({
 				message: "This recipe's output is unknown.",
 			});
-		const found = counts.entries.find(
-			(entry) => keyOf(entry, request.recipeKind === "cooking") === counterKey,
-		);
+		const found = counts.entries.find((entry) => keyOf(entry) === counterKey);
 		// Update only the integer member of an existing entry, retaining original key
-		// spelling/type and opaque dictionary/entry/value members byte-for-byte in JSON.
+		// spelling and opaque dictionary/entry/value members without rebuilding them.
 		if (request.kind === "reset" && request.recipeKind === "cooking")
 			replaceEntries(
 				owner,
 				countProperty,
 				counts,
-				counts.entries.filter((entry) => keyOf(entry, true) !== counterKey),
+				counts.entries.filter((entry) => keyOf(entry) !== counterKey),
 			);
-		else if (record(found)) found.value = value;
+		else if (found !== undefined) found.value = value;
 		else
 			replaceEntries(owner, countProperty, counts, [
 				...counts.entries,

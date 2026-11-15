@@ -194,7 +194,7 @@ describe("bounded inventory property edits", () => {
 		const boots = {
 			...catalogFixture(item("Sneakers"), "StardewValley.Objects.Boots"),
 			defenseBonus: undefined,
-			immunityBonus: "custom",
+			immunityBonus: undefined,
 		};
 		expect(getItemPropertyFields(boots, { _type: "Boots" })).toEqual([]);
 		expect(
@@ -425,7 +425,9 @@ it.effect(
 				.items[3] as Record<string, unknown>;
 			expect(upperAfter.IsBottomless).toBe(false);
 			expect(Object.hasOwn(upperAfter, "isBottomless")).toBe(false);
-			can.IsBottomless = "custom";
+			// Omitted aliases do not authorize initialization just by opening controls.
+			delete can.IsBottomless;
+			delete can.isBottomless;
 			expect(getItemPropertyFields(can, { _type: "Tool" })).toEqual([]);
 		}),
 );
@@ -541,22 +543,20 @@ it.effect(
 		}),
 );
 
-it("uses missing game defaults but refuses malformed trinket context without repairing it", () => {
+it("uses decoded game context with virtual defaults without repairing the save", () => {
 	const document = fixture();
+	const before = structuredClone(document);
 	expect(readItemPropertyContext(document, document.SaveGame.player)).toEqual({
 		useLegacyRandom: false,
 		totalMoneyEarned: 0,
 	});
-	document.SaveGame.player.totalMoneyEarned = 1.5;
-	expect(
-		readItemPropertyContext(document, document.SaveGame.player),
-	).toBeUndefined();
-	document.SaveGame.player.totalMoneyEarned = 0;
-	document.SaveGame.useLegacyRandom = malformedFixture("false");
-	expect(
-		readItemPropertyContext(document, document.SaveGame.player),
-	).toBeUndefined();
-	expect(document.SaveGame.useLegacyRandom).toBe("false");
+	expect(document).toEqual(before);
+	document.SaveGame.player.totalMoneyEarned = 3000000;
+	document.SaveGame.useLegacyRandom = true;
+	expect(readItemPropertyContext(document, document.SaveGame.player)).toEqual({
+		useLegacyRandom: true,
+		totalMoneyEarned: 3000000,
+	});
 });
 
 // A mod can reuse a built-in XML name in a different namespace. Its opaque
@@ -564,14 +564,14 @@ it("uses missing game defaults but refuses malformed trinket context without rep
 it("keeps unknown namespaced item classes opaque", () => {
 	const boots = {
 		...catalogFixture(item("Sneakers"), "StardewValley.Objects.Boots"),
-		$type: "$unknown",
+		$type: "$unknown" as const,
 		$xmlType: { name: "Boots", namespace: "urn:mod" },
 	};
 	expect(getItemPropertyFields(boots, { _type: "Boots" })).toEqual([]);
 	expect(canEquipItem(boots, "boots")).toBe(false);
 	const object = {
 		...catalogFixture(item("Parsnip"), "StardewValley.Object"),
-		$type: "$unknown",
+		$type: "$unknown" as const,
 		$xmlType: { name: "Object", namespace: "urn:mod" },
 	};
 	expect(getInventoryItemCapabilities(object, true, true)).toEqual({

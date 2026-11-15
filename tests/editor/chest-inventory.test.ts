@@ -1,3 +1,4 @@
+import type { SaveDocument } from "../../src/lib/editor/domain.ts";
 import { malformedFixture } from "../helpers/editor-document.ts";
 import { it } from "@effect/vitest";
 import { describe, expect } from "vitest";
@@ -47,14 +48,10 @@ function fixture(
 	];
 	return document;
 }
-function chest(
-	document: import("../../src/lib/editor/domain.ts").SaveDocument,
-) {
+function chest(document: SaveDocument) {
 	return required(discoverPlacedChests(document)[0]);
 }
-const ownerId = (
-	document: import("../../src/lib/editor/domain.ts").SaveDocument,
-) => chest(document).id;
+const ownerId = (document: SaveDocument) => chest(document).id;
 const handle = (
 	state: { identities: Record<string, string[]> },
 	owner: string,
@@ -85,7 +82,7 @@ describe("placed chest inventory boundary", () => {
 		() =>
 			Effect.gen(function* () {
 				const original = fixture();
-				chest(original).raw.globalInventoryId = null;
+				chest(original).container.globalInventoryId = null;
 				const id = ownerId(original),
 					session = yield* makeHistorySession(original),
 					before = yield* session.snapshot;
@@ -102,8 +99,8 @@ describe("placed chest inventory boundary", () => {
 				);
 				const after = yield* session.snapshot;
 				expect(chest(after.document).slots[0]).toMatchObject({ stack: 3 });
-				expect(chest(after.document).raw.globalInventoryId).toEqual(
-					chest(original).raw.globalInventoryId,
+				expect(chest(after.document).container.globalInventoryId).toEqual(
+					chest(original).container.globalInventoryId,
 				);
 				expect(after.entries).toHaveLength(1);
 				yield* session.undo;
@@ -150,12 +147,12 @@ describe("placed chest inventory boundary", () => {
 				expect(after.document.SaveGame.player.items[1]).toEqual(
 					chest(original).slots[0],
 				);
-				expect(chest(after.document).raw.items).toEqual([
+				expect(chest(after.document).container.items).toEqual([
 					chest(original).slots[1],
 				]);
 				expect(after.identities["1"]?.[1]).toBe(request.entityId);
 				expect(after.identities[id]?.[0]).toBe(before.identities[id]?.[1]);
-				expect(chest(after.document).raw.customModData).toEqual({
+				expect(chest(after.document).container.customModData).toEqual({
 					owner: "007",
 				});
 				yield* session.undo;
@@ -272,7 +269,9 @@ describe("placed chest inventory boundary", () => {
 				const after = yield* session.snapshot,
 					expected = structuredClone(original);
 				Object.assign(
-					required((chest(expected).raw.items as Record<string, unknown>[])[0]),
+					required(
+						(chest(expected).container.items as Record<string, unknown>[])[0],
+					),
 					{ defenseBonus: 8 },
 				);
 				expect(after.document).toEqual(expected);
@@ -282,7 +281,8 @@ describe("placed chest inventory boundary", () => {
 						Effect.gen(function* () {
 							const draft = yield* TransactionDraft,
 								snapshot = yield* draft.read;
-							chest(snapshot.state.document).raw.specialChestType = "BigChest";
+							chest(snapshot.state.document).container.specialChestType =
+								"BigChest";
 							yield* draft.replace(snapshot);
 							yield* setInventoryItemProperty({
 								ownerId: id,
@@ -455,10 +455,11 @@ describe("placed chest inventory boundary", () => {
 			}),
 	);
 	it.effect(
-		"rejects unsupported chest nil shapes and raw writes made after an approved property",
+		"rejects unsupported shared storage and raw writes made after an approved property",
 		() =>
 			Effect.gen(function* () {
-				const malformed = fixture(["malformed item"]);
+				const malformed = fixture();
+				chest(malformed).container.specialChestType = "JunimoChest";
 				const closed = yield* makeHistorySession(malformed);
 				expect(required(readChests(yield* closed.snapshot)[0]).supported).toBe(
 					false,
@@ -478,7 +479,7 @@ describe("placed chest inventory boundary", () => {
 							});
 							const draft = yield* TransactionDraft,
 								snapshot = yield* draft.read;
-							chest(snapshot.state.document).raw.customModData = {
+							chest(snapshot.state.document).container.customModData = {
 								forged: true,
 							};
 							yield* draft.replace(snapshot);

@@ -1,4 +1,3 @@
-import { vi } from "vitest";
 import type { FixtureSave as Save } from "../helpers/editor-document.ts";
 import type { SaveDocument } from "../../src/lib/editor/domain.ts";
 import { expect, it } from "@effect/vitest";
@@ -7,18 +6,15 @@ import { get } from "svelte/store";
 import { openDocument } from "./editor-model.ts";
 import { parser } from "./fixture.ts";
 
-// Retain the engine suite's budget for full-save codecs and worker round trips.
-vi.setConfig({ testTimeout: 15_000 });
-
 type FullDocument = SaveDocument & { SaveGame: Save };
 
 it("a late room-mail failure rolls back staged donations and rewards", async () => {
 	const document = await fixture();
 	for (const entry of center(document).bundles)
 		if ([14, 15, 16, 17, 19].includes(entry.key)) entry.value.fill(true);
-	// Absent optional mail is schema-valid but cannot support the staged room
-	// repair. Exercise late rollback without bypassing the model's decoded contract.
-	delete document.SaveGame.player.mailReceived;
+	// Nil mail slots are valid decoded data but cannot support a room repair.
+	// Exercise late rollback without bypassing the model's decoded contract.
+	document.SaveGame.player.mailReceived = [null];
 	const opened = await openDocument(document);
 	try {
 		const before = await opened.model.snapshot();
@@ -29,7 +25,7 @@ it("a late room-mail failure rolls back staged donations and rewards", async () 
 	} finally {
 		await opened.close();
 	}
-}, 60_000);
+});
 const fixture = async () =>
 	parser.parse(
 		await readFile(new URL("../../tests/TestSave", import.meta.url), "utf8"),
@@ -86,7 +82,7 @@ it("bundle completion is one compound history entry, preserves opaque fields and
 	} finally {
 		await opened.close();
 	}
-}, 60_000);
+});
 
 it("last Crafts Room bundle includes room and multiplayer completion mail in the same reversible action", async () => {
 	const document = await fixture();
@@ -131,7 +127,7 @@ it("last Crafts Room bundle includes room and multiplayer completion mail in the
 	} finally {
 		await opened.close();
 	}
-}, 60_000);
+});
 
 it("claimed rewards remain claimed and unsupported definitions cannot partially commit another domain", async () => {
 	const document = await fixture();
@@ -163,4 +159,4 @@ it("claimed rewards remain claimed and unsupported definitions cannot partially 
 	} finally {
 		await unsupported.close();
 	}
-}, 60_000);
+});

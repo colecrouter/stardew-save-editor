@@ -47,7 +47,7 @@ export function createChildEditField(
 			}),
 		value: derived(model.view, (view) => {
 			const child = view?.children.find((candidate) => candidate.key === key);
-			const initial: ChildEditDraft = {
+			const initial = {
 				name: child?.name ?? "",
 				gender:
 					child?.gender === "Male" || child?.gender === "Female"
@@ -61,7 +61,7 @@ export function createChildEditField(
 							: "",
 				daysOld: child?.daysOld?.toString() ?? "",
 				hat: "keep",
-			};
+			} satisfies ChildEditDraft;
 			return {
 				key: JSON.stringify([key, child?.name, child?.parentId]),
 				value: initial,

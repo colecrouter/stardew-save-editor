@@ -1,8 +1,8 @@
 import type { T_StardewValley_Farmer as Player } from "../../../generated/save-format/save.ts";
 
 // The game matches stat keys case-insensitively, so "MasteryExp" and "masteryExp" are one stat
-const isStat = (key: string) => (stat: { key: unknown }) =>
-	String(stat.key).toLowerCase() === key.toLowerCase();
+const isStat = (key: string) => (stat: { key: string }) =>
+	stat.key.toLowerCase() === key.toLowerCase();
 
 export const getStatValue = (player: Player, key: string): number =>
 	player.stats?.Values?.find(isStat(key))?.value ?? 0;
@@ -18,7 +18,7 @@ export const setStatValue = (player: Player, key: string, value: number) => {
 		);
 	// Explicit edits can initialize a missing statistics dictionary.
 	player.stats ??= {};
-	if (!Array.isArray(player.stats.Values)) player.stats.Values = [];
+	player.stats.Values ??= [];
 
 	const stats = player.stats.Values;
 	const index = stats.findIndex(isStat(key));

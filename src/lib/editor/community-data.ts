@@ -1,5 +1,5 @@
 import { communityRooms } from "../communityCenterData.ts";
-import type { SaveDocument } from "./domain.ts";
+import type { Farmer, SaveDocument } from "./domain.ts";
 
 export interface CommunityRequirementView {
 	index: number;
@@ -47,17 +47,14 @@ const nonnegative = (text: string | undefined) =>
 	text !== undefined && /^\d+$/.test(text) && Number.isSafeInteger(Number(text))
 		? Number(text)
 		: undefined;
-export function mailStrings(raw: unknown) {
-	const entries = Array.isArray(raw) ? raw : [];
-	const supported =
-		(raw === undefined || raw === null || Array.isArray(raw)) &&
-		entries.every((value) => typeof value === "string");
+// The codec supplies nullable string slots. Nil letters remain unsupported for
+// edits so filtering the display cannot silently discard saved mailbox entries.
+export function mailStrings(raw: Farmer["mailReceived"]) {
+	const entries = raw ?? [];
 	return {
 		raw,
-		entries: entries.filter(
-			(value): value is string => typeof value === "string",
-		),
-		supported,
+		entries: entries.filter((value) => value !== null),
+		supported: entries.every((value) => value !== null),
 	};
 }
 // The game’s standard reward decoder dereferences an item even when a type is

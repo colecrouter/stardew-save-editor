@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test, vi } from "vitest";
+import { expect, test } from "vitest";
 import { Deferred, Effect, Exit } from "effect";
 import { diff, farmers, MutationError } from "../../src/lib/editor/domain.ts";
 import { makeEffectSession } from "./effect.ts";
@@ -11,9 +11,6 @@ import {
 	tinyFixture,
 } from "./fixture.ts";
 import { PlainSession } from "./plain.ts";
-
-// Retain the engine suite's budget for full-save codecs and worker round trips.
-vi.setConfig({ testTimeout: 15_000 });
 
 test("both executors produce identical state and receipts on a full real save", async () => {
 	const original = await loadFixture();
@@ -252,6 +249,12 @@ test("store contract emits synchronously, observes commits, and cleans up with s
 	);
 	assert.throws(() => session.subscribe(() => {}), MutationError);
 	const before = notifications;
-	await new Promise((resolve) => setTimeout(resolve, 10));
+	// Scope closure has joined its consumer fibers. Attempt another publication
+	// through the closed session and verify that no subscriber can observe it.
+	await expect(
+		Effect.runPromise(
+			session.execute({ type: "money", farmerId: "1", value: 26 }),
+		),
+	).rejects.toThrow("Session closed");
 	assert.equal(notifications, before);
 });

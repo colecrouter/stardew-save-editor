@@ -1,3 +1,4 @@
+import type { T_StardewValley_Objects_Chest as Chest } from "../../../generated/save-format/save.ts";
 import { storageTypes } from "../storageTypes.ts";
 export { storageTypes } from "../storageTypes.ts";
 export interface StorageCapabilities {
@@ -6,24 +7,13 @@ export interface StorageCapabilities {
 	readonly miniShippingBin: boolean;
 	readonly expansionReason?: string;
 }
-/** Separate-wallet inventories must never become invisible through a bin conversion. */
-const holdsItems = (value: unknown): boolean =>
-	value !== null &&
-	typeof value === "object" &&
-	(Object.hasOwn(value, "itemId") || Object.values(value).some(holdsItems));
 export function storageCapabilities(
-	raw: Record<string, unknown>,
+	chest: Chest,
 	source: StorageCapabilities["source"] = "chest",
 ): StorageCapabilities {
 	const placed =
-		source === "chest" && raw.playerChest === true && raw.fridge !== true;
-	// Imported IDs can be opaque records with non-callable conversion members.
-	// Only serialized scalar keys participate in known-type lookup.
-	const itemId =
-		typeof raw.itemId === "string" ||
-		(typeof raw.itemId === "number" && Number.isFinite(raw.itemId))
-			? String(raw.itemId)
-			: undefined;
+		source === "chest" && chest.playerChest === true && chest.fridge !== true;
+	const itemId = chest.itemId;
 	const typeId =
 		placed && storageTypes.some((type) => type.itemId === itemId)
 			? itemId
@@ -34,7 +24,10 @@ export function storageCapabilities(
 		typeId,
 		miniShippingBin,
 		expansionReason:
-			miniShippingBin && holdsItems(raw.separateWalletItems)
+			miniShippingBin &&
+			(chest.separateWalletItems ?? []).some((entry) =>
+				entry.value.some((item) => item !== null),
+			)
 				? "This bin holds separate-wallet items that a Chest would not show."
 				: undefined,
 	};

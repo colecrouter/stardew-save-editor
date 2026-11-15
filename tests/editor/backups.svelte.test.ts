@@ -3,7 +3,6 @@ import { expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, waitFor, within } from "@testing-library/svelte";
 import { Effect, Result } from "effect";
 import { openDB } from "idb";
-import { setup as mockIDB } from "vitest-indexeddb";
 import {
 	saveOriginalBackup,
 	openOriginalBackupStore,
@@ -24,8 +23,6 @@ import {
 
 // Backup ownership depends on original bytes, not on the size of the farm.
 const fixtureXml = exportDocument(tinyEditorFixture());
-
-mockIDB();
 beforeEach(async () => {
 	const db = await openOriginalBackupStore();
 	try {
@@ -116,7 +113,7 @@ it("retains malformed archive data and exposes it as an unavailable row instead 
 it("downloads the restored File and original filename, while browser failures stay typed", async () => {
 	const bytes = new Uint8Array([120, 156, 0, 255]);
 	const file = new File([bytes], "Farm_123", { lastModified: 3 });
-	const download = vi.spyOn(downloads, "downloadSave").mockResolvedValue(true);
+	const download = vi.mocked(downloads.downloadSave).mockResolvedValue(true);
 	try {
 		expect(await Effect.runPromise(downloadOriginalBackup(file))).toBe(true);
 		expect(download).toHaveBeenCalledWith(file, "Farm_123", undefined);
@@ -166,45 +163,30 @@ it("requires explicit confirmation for deletion and leaves originals untouched w
 	}
 });
 
-it(
-	"opens an archived original through the v2 import owner without appending a duplicate backup",
-	{ timeout: 45_000 },
-	async () => {
-		await saveOriginalBackup(
-			new File([fixtureXml], "ArchivedFarm", { lastModified: 12 }),
+it("opens an archived original through the v2 import owner without appending a duplicate backup", async () => {
+	await saveOriginalBackup(
+		new File([fixtureXml], "ArchivedFarm", { lastModified: 12 }),
+	);
+	const backup = vi.fn(saveOriginalBackup);
+	const page = render(EditorApp, {
+		processingLayer: SaveProcessingSync,
+		backupOriginal: backup,
+	});
+	try {
+		await fireEvent.click(
+			page.getByText("Original save backups", { selector: "summary" }),
 		);
-		const backup = vi.fn(saveOriginalBackup);
-		const page = render(EditorApp, {
-			processingLayer: SaveProcessingSync,
-			backupOriginal: backup,
-		});
-		try {
-			await fireEvent.click(
-				page.getByText("Original save backups", { selector: "summary" }),
-			);
-			// Happy DOM does not implement summary's native details toggle for fireEvent.
-			const details = page.getByText("Original save backups", {
-				selector: "summary",
-			}).parentElement;
-			if (!(details instanceof HTMLDetailsElement))
-				throw new Error("Missing backups disclosure");
-			details.open = true;
-			await fireEvent(details, new Event("toggle"));
-			await fireEvent.click(
-				await page.findByRole("button", { name: "Open original" }),
-			);
-			await page.findByRole(
-				"button",
-				{ name: "Export save" },
-				{ timeout: 30_000 },
-			);
-			expect(backup).not.toHaveBeenCalled();
-			expect(await Effect.runPromise(readOriginalBackups())).toHaveLength(1);
-		} finally {
-			page.unmount();
-		}
-	},
-);
+		// The native disclosure toggle loads the archive before Open is queried.
+		await fireEvent.click(
+			await page.findByRole("button", { name: "Open original" }),
+		);
+		await page.findByRole("button", { name: "Export save" });
+		expect(backup).not.toHaveBeenCalled();
+		expect(await Effect.runPromise(readOriginalBackups())).toHaveLength(1);
+	} finally {
+		page.unmount();
+	}
+});
 
 it("keeps expected failures typed and reports defects without an unhandled UI rejection", async () => {
 	const report = vi.fn();
@@ -229,7 +211,7 @@ it("keeps expected failures typed and reports defects without an unhandled UI re
 it("reports unexpected download implementation failures as defects rather than storage denials", async () => {
 	const file = new File(["bytes"], "Farm");
 	const download = vi
-		.spyOn(downloads, "downloadSave")
+		.mocked(downloads.downloadSave)
 		.mockRejectedValue(new TypeError("broken implementation"));
 	const log = vi.spyOn(console, "error").mockImplementation(() => {}),
 		report = vi.fn();
@@ -321,7 +303,6 @@ it("deduplicates legacy UTF-8 originals and canonicalizes valid binary entries w
 
 it.each(["browser", "defect"] as const)(
 	"classifies automatic backup %s without blocking the opened save",
-	{ timeout: 45_000 },
 	async (kind) => {
 		const log = vi.spyOn(console, "error").mockImplementation(() => {});
 		const page = render(EditorApp, {
@@ -336,11 +317,7 @@ it.each(["browser", "defect"] as const)(
 			await fireEvent.change(page.getByLabelText("Save file"), {
 				target: { files: [new File([fixtureXml], "Farm_123")] },
 			});
-			await page.findByRole(
-				"button",
-				{ name: "Export save" },
-				{ timeout: 30_000 },
-			);
+			await page.findByRole("button", { name: "Export save" });
 			await page.findByText(
 				kind === "browser"
 					? /The original file could not be backed up/
@@ -358,3 +335,7 @@ it.each(["browser", "defect"] as const)(
 		}
 	},
 );
+
+// Browser ESM exports are immutable. Hoisted spies keep the real implementations
+// while allowing individual tests to replace the module boundary they observe.
+vi.mock("../../src/lib/downloadSave", { spy: true });

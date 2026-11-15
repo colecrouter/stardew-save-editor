@@ -1,8 +1,7 @@
-import { readFile } from "node:fs/promises";
+import publicSaveXml from "./TestSave?raw";
 import { fireEvent, render } from "@testing-library/svelte";
 import { flushSync, tick } from "svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { setup as mockIDB } from "vitest-indexeddb";
 import { Gender } from "../codegen/save";
 import { SaveManager } from "../src/lib/SaveManager.svelte";
 import List from "../src/routes/(legacy)/(edit)/(list)/List.svelte";
@@ -10,19 +9,17 @@ import Character from "../src/routes/(legacy)/(edit)/appearance/Character.svelte
 import ItemSelect from "../src/routes/(legacy)/(edit)/inventory/ItemSelect.svelte";
 import NamedItemSprite from "../src/routes/(legacy)/(edit)/inventory/NamedItemSprite.svelte";
 import { trackItems } from "./helpers/trackItems";
-import { fullSaveTimeout } from "./helpers/full-save-budget";
 
 const live = (created: ReturnType<typeof trackItems>) =>
 	created.filter((item) => item.disposed === 0).length;
 
 describe("Item sprites drawn by name", () => {
-	mockIDB();
 	let saveManager!: SaveManager;
 	let cleanup: () => void;
 
-	// Full-file setup has its own deadline, independent of test-body options.
+	// Setup uses the shared hook deadline independently of the test-body deadline.
 	beforeEach(async () => {
-		const xml = await readFile("tests/TestSave", "utf-8");
+		const xml = publicSaveXml;
 		let promise!: Promise<void | boolean>;
 		cleanup = $effect.root(() => {
 			saveManager = new SaveManager();
@@ -30,7 +27,7 @@ describe("Item sprites drawn by name", () => {
 		});
 		await promise;
 		flushSync();
-	}, fullSaveTimeout);
+	});
 
 	afterEach(() => {
 		vi.restoreAllMocks();

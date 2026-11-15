@@ -1,4 +1,5 @@
-import { fireEvent, render, waitFor } from "@testing-library/svelte";
+import { render } from "vitest-browser-svelte";
+import { userEvent } from "vitest/browser";
 import { Effect, Result } from "effect";
 import { describe, expect, it, vi } from "vitest";
 import type { ImmediateField } from "../../src/lib/editor/immediate-field";
@@ -25,13 +26,14 @@ function field<T extends string | number | boolean>(
 
 // Native customization must remain usable without bypassing field ownership or
 // replacing the focus/input/blur behavior responsible for history grouping.
+// Drive these events with the browser so handler composition follows native order.
 describe("shared field native attributes", () => {
 	it("forwards number attributes and composes focus/blur with queued editing", async () => {
 		const value = field<number>(1),
 			onfocus = vi.fn(),
 			onblur = vi.fn(),
 			oninput = vi.fn();
-		const page = render(NumberField, {
+		const page = await render(NumberField, {
 			field: value,
 			id: "custom-number",
 			"data-testid": "amount",
@@ -47,9 +49,17 @@ describe("shared field native attributes", () => {
 			onblur,
 			oninput,
 		});
-		const input = page.getByTestId("amount") as HTMLInputElement;
+		const input = page.getByTestId("amount").element() as HTMLInputElement;
 		expect(input.id).toBe("custom-number");
-		expect(page.getByLabelText("Value")).toBe(input);
+		// aria-label supplies the accessible name while the visible native label
+		// remains associated with the customized ID and still targets this input.
+		expect(
+			page.getByRole("spinbutton", { name: "Custom amount" }).element(),
+		).toBe(input);
+		expect(
+			[...(input.labels ?? [])].find((label) => label.textContent === "Value")
+				?.control,
+		).toBe(input);
 		expect(input.getAttribute("aria-describedby")).toBe(
 			"external-help custom-number-feedback",
 		);
@@ -57,22 +67,22 @@ describe("shared field native attributes", () => {
 		expect(input.style.color).toBe("red");
 		expect(input.title).toBe("Native title");
 		expect(input.max).toBe("20");
-		await fireEvent.focus(input);
-		await fireEvent.input(input, { target: { value: "2" } });
-		await fireEvent.blur(input);
-		await waitFor(() =>
-			expect(value.commit).toHaveBeenCalledWith(2, expect.anything()),
-		);
+		await userEvent.click(input);
+		await userEvent.fill(input, "2");
+		await userEvent.tab();
+		await expect
+			.poll(() => value.commit)
+			.toHaveBeenCalledWith(2, expect.anything());
 		expect(value.end).toHaveBeenCalledTimes(1);
 		expect(onfocus).toHaveBeenCalledTimes(1);
 		expect(onblur).toHaveBeenCalledTimes(1);
 		expect(oninput).toHaveBeenCalledTimes(1);
-		page.unmount();
+		await page.unmount();
 	});
 	it("forwards text attributes while retaining controlled value and label", async () => {
 		const value = field<string>("Old"),
 			onblur = vi.fn();
-		const page = render(TextField, {
+		const page = await render(TextField, {
 			field: value,
 			id: "custom-text",
 			"data-testid": "name",
@@ -81,17 +91,17 @@ describe("shared field native attributes", () => {
 			autocomplete: "off",
 			onblur,
 		});
-		const input = page.getByTestId("name") as HTMLInputElement;
+		const input = page.getByTestId("name").element() as HTMLInputElement;
 		expect(input.placeholder).toBe("Name");
 		expect(input.maxLength).toBe(40);
-		expect(page.getByLabelText("Value")).toBe(input);
-		await fireEvent.input(input, { target: { value: "New" } });
-		await fireEvent.blur(input);
-		await waitFor(() =>
-			expect(value.commit).toHaveBeenCalledWith("New", expect.anything()),
-		);
+		expect(page.getByLabelText("Value").element()).toBe(input);
+		await userEvent.fill(input, "New");
+		await userEvent.tab();
+		await expect
+			.poll(() => value.commit)
+			.toHaveBeenCalledWith("New", expect.anything());
 		expect(onblur).toHaveBeenCalledTimes(1);
-		page.unmount();
+		await page.unmount();
 	});
 	it("composes native select handlers with its discrete field command", async () => {
 		const value = {
@@ -102,7 +112,7 @@ describe("shared field native attributes", () => {
 			],
 		};
 		const onchange = vi.fn();
-		const page = render(SelectField, {
+		const page = await render(SelectField, {
 			field: value,
 			id: "custom-select",
 			"data-testid": "choice",
@@ -111,37 +121,37 @@ describe("shared field native attributes", () => {
 			onchange,
 			class: "custom-select",
 		});
-		const select = page.getByTestId("choice");
+		const select = page.getByTestId("choice").element();
 		expect(select.getAttribute("aria-describedby")).toBe(
 			"external custom-select-feedback",
 		);
-		expect(page.getByLabelText("Value")).toBe(select);
-		await fireEvent.change(select, { target: { value: "b" } });
-		await waitFor(() =>
-			expect(value.commit).toHaveBeenCalledWith("b", expect.anything()),
-		);
+		expect(page.getByLabelText("Value").element()).toBe(select);
+		await userEvent.selectOptions(select, "b");
+		await expect
+			.poll(() => value.commit)
+			.toHaveBeenCalledWith("b", expect.anything());
 		expect(onchange).toHaveBeenCalledTimes(1);
-		page.unmount();
+		await page.unmount();
 	});
-	it("forwards checkbox attributes without allowing availability to be overridden", () => {
+	it("forwards checkbox attributes without allowing availability to be overridden", async () => {
 		const value = {
 			...field<boolean>(false),
 			available: false,
 			reason: "Unavailable",
 		};
-		const page = render(CheckboxField, {
+		const page = await render(CheckboxField, {
 			field: value,
 			"data-testid": "flag",
 			disabled: false,
 			title: "Native checkbox",
 		});
-		const input = page.getByTestId("flag") as HTMLInputElement;
+		const input = page.getByTestId("flag").element() as HTMLInputElement;
 		expect(input.disabled).toBe(true);
 		expect(input.title).toBe("Native checkbox");
-		expect(page.getByText("Unavailable").id).toBe(
+		expect(page.getByText("Unavailable").element().id).toBe(
 			input.getAttribute("aria-describedby"),
 		);
-		page.unmount();
+		await page.unmount();
 	});
 	it("keeps MutationError's constructor and typed failure when yielded directly", async () => {
 		const error = new MutationError("Expected rejection");

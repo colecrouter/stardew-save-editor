@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { StudyIconName } from "../../ui/studyIcons";
 	// Native action controls need their base styles even when no legacy UI
 	// component has been loaded in this session. Theme rules refine these tokens.
 	import "../../ui/controls.css";
@@ -88,7 +89,7 @@
 	] satisfies {
 		id: string;
 		label: string;
-		icon: import("../../ui/studyIcons").StudyIconName;
+		icon: StudyIconName;
 	}[];
 	const navigationSections = $derived(
 		includeProofs

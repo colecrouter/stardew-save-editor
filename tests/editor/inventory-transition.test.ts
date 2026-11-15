@@ -1,4 +1,3 @@
-import { malformedFixture } from "../helpers/editor-document.ts";
 import * as itemCatalog from "../../src/lib/ItemData";
 import { it } from "@effect/vitest";
 import { describe, expect, vi } from "vitest";
@@ -107,8 +106,9 @@ describe("prepared inventory transitions", () => {
 		() =>
 			Effect.gen(function* () {
 				const document = tinyFixture();
-				const importedItem: Record<string, unknown> = {
-					$type: "StardewValley.Object",
+				const importedItem = {
+					$type: "$unknown" as const,
+					$xmlType: { name: "ModItem", namespace: "" },
 					itemId: { malformed: true },
 					bigCraftable: false,
 					name: "Parsnip",
@@ -116,7 +116,7 @@ describe("prepared inventory transitions", () => {
 					stack: 3,
 					quality: 0,
 				};
-				document.SaveGame.player.items[0] = malformedFixture(importedItem);
+				document.SaveGame.player.items[0] = importedItem;
 				yield* Effect.scoped(
 					Effect.gen(function* () {
 						const session = yield* makeHistorySession(document);
@@ -137,7 +137,11 @@ describe("prepared inventory transitions", () => {
 				);
 				// Once raw lookup inputs are supported, an implementation exception is a
 				// defect for the shared runtime boundary, never an expected edit rejection.
-				importedItem.itemId = "24";
+				document.SaveGame.player.items[0] = {
+					...importedItem,
+					$type: "StardewValley.Object",
+					itemId: "24",
+				};
 				const spy = vi
 					.spyOn(itemCatalog, "ResolveItemData")
 					.mockImplementation(() => {

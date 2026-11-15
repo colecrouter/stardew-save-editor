@@ -1,23 +1,19 @@
-import { savedType } from "./saved-types.ts";
-const record = (value: unknown): value is Record<string, unknown> =>
-	value !== null && typeof value === "object" && !Array.isArray(value);
+import type { InventorySlot } from "./inventory-values.ts";
 /** Read-only destination policy shared by quest previews and reward authorization.
  * Prefer a compatible ordinary ticket stack; opaque empty markers never count as room. */
 export function prizeTicketDestination(
-	slots: readonly unknown[],
+	slots: readonly InventorySlot[],
 ): { kind: "stack" | "empty"; slot: number } | undefined {
 	const stackSlot = slots.findIndex(
 		(item) =>
-			record(item) &&
-			savedType(item) === "Object" &&
+			item?.$type === "StardewValley.Object" &&
 			(item.quality === undefined || item.quality === 0) &&
 			(item.orderData === undefined || item.orderData === "") &&
 			(item.name === undefined || item.name === "Prize Ticket") &&
 			!item.bigCraftable &&
 			!item.specialItem &&
-			String(item.itemId) === "PrizeTicket" &&
-			typeof item.stack === "number" &&
-			Number.isInteger(item.stack) &&
+			item.itemId === "PrizeTicket" &&
+			item.stack !== undefined &&
 			item.stack > 0 &&
 			item.stack < 999,
 	);

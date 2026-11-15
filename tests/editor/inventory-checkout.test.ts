@@ -1,3 +1,4 @@
+import type * as ItemCatalog from "../../src/lib/ItemData.ts";
 import { setStorageQuality } from "../../src/lib/editor/storage-operations";
 import { it } from "@effect/vitest";
 import { expect, vi } from "vitest";
@@ -13,8 +14,7 @@ const catalogHook = vi.hoisted(() => ({
 	run: undefined as ((item: unknown) => void) | undefined,
 }));
 vi.mock("../../src/lib/ItemData.ts", async (importOriginal) => {
-	const actual =
-		await importOriginal<typeof import("../../src/lib/ItemData.ts")>();
+	const actual = await importOriginal<typeof ItemCatalog>();
 	return {
 		...actual,
 		ResolveItemData: (...args: Parameters<typeof actual.ResolveItemData>) => {

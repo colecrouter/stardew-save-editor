@@ -1,5 +1,5 @@
+import { isSavedItem, type InventoryValue } from "./inventory-values.ts";
 import { readCatalogItem } from "../ItemData.ts";
-import { savedType } from "./saved-types.ts";
 import type { ImmutableView } from "./immutable-view.ts";
 import {
 	ItemDescription,
@@ -13,9 +13,6 @@ import type { ItemInformation } from "$types/items";
 import type { TrinketRollContext } from "../TrinketStats.ts";
 import { canEquipItem, equipmentSlots } from "./equipment.ts";
 import { getItemPropertyFields } from "./item-properties.ts";
-
-const record = (value: unknown): value is Record<string, unknown> =>
-	value !== null && typeof value === "object" && !Array.isArray(value);
 
 /** Plain drawing instructions: renderers need no saved record, catalog or Sprite instance. */
 export interface ItemVisual {
@@ -34,27 +31,19 @@ export interface ItemVisual {
 	readonly quality?: number;
 }
 
-/** Adapt malformed or unsupported imported metadata to an unavailable display.
- * Actual catalog implementation failures remain defects rather than unknown items. */
-export function resolveItemMetadata(raw: unknown): ItemInformation | undefined {
-	if (!record(raw)) return undefined;
-	if (
-		["itemId", "preservedParentSheetIndex"].some(
-			(key) =>
-				raw[key] != null &&
-				typeof raw[key] !== "string" &&
-				typeof raw[key] !== "number",
-		) ||
-		(raw.name != null && typeof raw.name !== "string")
-	)
-		return undefined;
-	// The catalog consumes semantic identity fields and never fills saved defaults.
-	return ResolveItemData(readCatalogItem(raw) ?? {});
+/** Catalog matches are display hints, including for opaque mod subclasses.
+ * Editing/equipment policies independently require a known generated class. */
+export function resolveItemMetadata(
+	raw: InventoryValue,
+): ItemInformation | undefined {
+	if (!isSavedItem(raw)) return undefined;
+	const identity = raw.$type === "$unknown" ? readCatalogItem(raw) : raw;
+	return identity ? ResolveItemData(identity) : undefined;
 }
 
 /** Resolve instance-specific sprite layers without retaining or normalizing saved fields. */
 export function readItemVisual(
-	raw: unknown,
+	raw: InventoryValue,
 	info = resolveItemMetadata(raw),
 ): ItemVisual | undefined {
 	return projectItemVisual(raw, info);
@@ -63,12 +52,18 @@ export function readItemVisual(
 // Presentation already resolved metadata. Keep that result, including absence,
 // rather than repeating failed catalog lookup when assembling its visual.
 function projectItemVisual(
-	raw: unknown,
+	raw: InventoryValue,
 	info: ItemInformation | undefined,
 ): ItemVisual | undefined {
-	if (!record(raw) || !info) return undefined;
+	if (!isSavedItem(raw) || !info) return undefined;
 	const smoked = info._key === "SmokedFish";
-	const ingredient = raw.preservedParentSheetIndex;
+	const ingredient =
+		raw.$type === "$unknown"
+			? readCatalogItem(raw)?.preservedParentSheetIndex
+			: raw.$type === "StardewValley.Object" ||
+				  raw.$type === "StardewValley.Objects.ColoredObject"
+				? raw.preservedParentSheetIndex
+				: undefined;
 	const parent =
 		smoked && (typeof ingredient === "string" || typeof ingredient === "number")
 			? ObjectData.get(String(ingredient).replace(/^\([^)]*\)/, ""))
@@ -84,7 +79,7 @@ function projectItemVisual(
 	if (smoked) {
 		layers.push({ rect: { ...sprite.sourceRect }, tint: [80, 30, 10, 153] });
 	} else if (
-		savedType(raw) === "Clothing" &&
+		raw.$type === "StardewValley.Objects.Clothing" &&
 		(info._type === "Shirt" || info._type === "Pants")
 	) {
 		const tint = readRgba(raw.clothesColor);
@@ -98,7 +93,7 @@ function projectItemVisual(
 				tint,
 			});
 		else layers.splice(0, 1, { rect: { ...sprite.sourceRect }, tint });
-	} else if (savedType(raw) === "ColoredObject") {
+	} else if (raw.$type === "StardewValley.Objects.ColoredObject") {
 		const tint = readRgba(raw.color);
 		// Some saved colors multiply the base; others use an adjacent overlay cell.
 		if (raw.colorSameIndexAsParentSheetIndex === true)
@@ -121,17 +116,16 @@ function projectItemVisual(
 
 /** Present the item's meaning to UI consumers, leaving saved subtype interpretation here. */
 export function readItemPresentation(
-	raw: unknown,
+	raw: InventoryValue,
 	context?: TrinketRollContext,
 	info = resolveItemMetadata(raw),
 ) {
-	const saved = record(raw) ? raw : undefined;
-	// ItemNameHelper reads string methods too. Invoke it only after the same
-	// malformed-name guard used by metadata resolution, even for unknown catalog IDs.
-	const readableName =
-		saved && (saved.name == null || typeof saved.name === "string")
-			? ItemNameHelper(readCatalogItem(saved) ?? {})
-			: undefined;
+	const saved = isSavedItem(raw) ? raw : undefined;
+	// Opaque subclasses may supply a readable name, but only the catalog's checked
+	// scalar projection may interpret their otherwise untyped extension fields.
+	const catalogItem =
+		saved?.$type === "$unknown" ? readCatalogItem(saved) : saved;
+	const readableName = catalogItem ? ItemNameHelper(catalogItem) : undefined;
 	return {
 		name: readableName ?? "Unknown item",
 		description: ItemDescription(info),

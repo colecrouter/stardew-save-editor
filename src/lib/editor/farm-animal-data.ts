@@ -64,7 +64,7 @@ export function createFarmAnimal(
 	const data = animals.find((a) => a.name === type);
 	if (!data) throw new Error(`No animal found with name ${type}`);
 
-	const raw: AnimalsKV = {
+	const raw = {
 		key: BigInt(id),
 		value: {
 			modData: [],
@@ -114,7 +114,7 @@ export function createFarmAnimal(
 			isEating: false,
 			displayName: name,
 		},
-	};
+	} satisfies AnimalsKV;
 
 	return raw;
 }

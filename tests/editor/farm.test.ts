@@ -52,9 +52,9 @@ it.each([
 );
 
 // These integration scenarios repeatedly parse or export the 6.6 MB save fixture.
-// Match the calendar suites’ CI budget: assertions verify preservation and workflow,
-// while the default unit-test timeout remains unchanged.
-describe("full-save farm operations", { timeout: 45_000 }, () => {
+// These full-save assertions verify preservation and workflow, not latency.
+// The shared runner deadline covers codec work under normal test concurrency.
+describe("full-save farm operations", () => {
 	it("farm settings update multiplayer copies atomically and preserve opaque records through undo/export", async () => {
 		const document = parser.parse(fixtureXml);
 		const game = document.SaveGame as unknown as Save;
@@ -128,7 +128,7 @@ describe("full-save farm operations", { timeout: 45_000 }, () => {
 		} finally {
 			await opened.close();
 		}
-	}, 60_000);
+	});
 
 	it("a failed grouped farm edit leaves the document, calendar state and redo branch unchanged", async () => {
 		const opened = await openEditor(bytes(fixtureXml));
@@ -190,7 +190,7 @@ describe("full-save farm operations", { timeout: 45_000 }, () => {
 		} finally {
 			await opened.close();
 		}
-	}, 60_000);
+	});
 
 	it("an imported out-of-range multiplier survives edits to other fields", async () => {
 		const document = parser.parse(fixtureXml);
@@ -218,7 +218,7 @@ describe("full-save farm operations", { timeout: 45_000 }, () => {
 		} finally {
 			await opened.close();
 		}
-	}, 60_000);
+	});
 
 	it("farm no-ops retain no action and an explicit stale revision cannot overwrite newer calendar edits", async () => {
 		const opened = await openEditor(bytes(fixtureXml));
@@ -275,7 +275,7 @@ describe("full-save farm operations", { timeout: 45_000 }, () => {
 		} finally {
 			await opened.close();
 		}
-	}, 60_000);
+	});
 
 	it.each([
 		{ name: "   " },

@@ -25,6 +25,10 @@ export function savedType(value: unknown): string | undefined {
 	if (value.$type === "$unknown") return undefined;
 	return value.$type.split(/[.+]/).at(-1);
 }
+export function savedTypeId<K extends keyof typeof TypeIds>(
+	name: K,
+): (typeof TypeIds)[K];
+export function savedTypeId(name: string): string;
 export function savedTypeId(name: string): string {
 	if (!Object.hasOwn(TypeIds, name))
 		throw new Error(`Unknown saved type ${name}`);

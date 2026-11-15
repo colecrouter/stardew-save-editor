@@ -78,7 +78,7 @@ export const setPregnancy = Effect.fn("Relationships.setPregnancy")(function* (
 		// XML stores a WorldDate with PascalCase fields. Keep any opaque members
 		// on an existing date while changing only its three calendar coordinates.
 		const existing = saved.NextBirthingDate;
-		const due: KnownFields<WorldDate> = {
+		const due = {
 			...(existing !== null &&
 			typeof existing === "object" &&
 			!Array.isArray(existing)
@@ -87,7 +87,7 @@ export const setPregnancy = Effect.fn("Relationships.setPregnancy")(function* (
 			Year: year,
 			Season: season,
 			DayOfMonth: (absolute % 28) + 1,
-		};
+		} satisfies KnownFields<WorldDate>;
 		// Assigning the date creates the value; the codec owns any xsi:nil transition.
 		saved.NextBirthingDate = due;
 	}

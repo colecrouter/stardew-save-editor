@@ -1,3 +1,5 @@
+import { isSavedItem, type SavedItem } from "./inventory-values.ts";
+import type { SaveDocument } from "./domain.ts";
 import { readEquipmentSlot } from "./equipment.ts";
 import { record, samePlainData } from "./plain-data.ts";
 import type { HistoryState } from "./history.ts";
@@ -180,13 +182,13 @@ interface ObservedItem {
 	quantity?: number;
 	quality?: number;
 	properties: readonly ItemPropertyField[];
-	raw: Record<string, unknown>;
+	raw: SavedItem;
 	path?: string;
 }
 const pointer = (part: string) => part.replace(/~/g, "~0").replace(/\//g, "~1");
 /** Locate only the observed records by reference. Paths stay engine-side coverage
  * metadata; UI never needs the raw record or a save-format location lens. */
-function attachPaths(document: unknown, items: ObservedItem[]) {
+function attachPaths(document: SaveDocument, items: ObservedItem[]) {
 	const targets = new Map<object, ObservedItem[]>();
 	for (const item of items)
 		targets.set(item.raw, [...(targets.get(item.raw) ?? []), item]);
@@ -218,7 +220,7 @@ function observe(
 			owner.kind === "chest" ? owner.name : `${owner.name} · Backpack`;
 		for (const slot of owner.slots) {
 			const raw = rawOwner.slots[slot.slot];
-			if (slot.empty || !slot.entityId || !record(raw)) continue;
+			if (slot.empty || !slot.entityId || !isSavedItem(raw)) continue;
 			result.push({
 				id: slot.entityId,
 				name: slot.name,
@@ -232,7 +234,7 @@ function observe(
 		}
 		for (const equipment of owner.equipment) {
 			const raw = readEquipmentSlot(rawOwner.farmer, equipment.key);
-			if (equipment.empty || !equipment.entityId || !record(raw)) continue;
+			if (equipment.empty || !equipment.entityId || !isSavedItem(raw)) continue;
 			result.push({
 				id: equipment.entityId,
 				name: equipment.name,

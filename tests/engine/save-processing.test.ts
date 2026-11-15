@@ -1,4 +1,3 @@
-import { vi } from "vitest";
 import { readFile } from "node:fs/promises";
 import { deflateSync } from "node:zlib";
 import { createHash } from "node:crypto";
@@ -9,44 +8,35 @@ import { SaveProcessor } from "../../src/lib/editor/save-processing.ts";
 import { parser } from "../helpers/editor-document.ts";
 import { SaveProcessingNode } from "../helpers/save-processing-node.ts";
 
-// Retain the engine suite's budget for full-save codecs and worker round trips.
-vi.setConfig({ testTimeout: 15_000 });
-
 const input = () => readFile(new URL("../TestSave", import.meta.url));
 
 // Exercise the real Node adapter and production handlers, not a worker shim or
 // an alternate test codec. The caller's input bytes remain owned by the caller.
-// These full-save roundtrips include worker startup and the generated XML codec,
-// so both scenarios use an integration budget rather than the unit-test timeout.
-it(
-	"Node worker processing preserves the full save and caller-owned bytes",
-	{ timeout: 60_000 },
-	async () => {
-		const bytes = await input();
-		const originalLength = bytes.byteLength;
-		const originalHash = createHash("sha256").update(bytes).digest("hex");
-		const opened = await openEditor(SaveProcessingNode, bytes);
-		try {
-			const result = await opened.model.commands.export();
-			if (!result || Result.isFailure(result))
-				throw new Error("Export did not complete");
-			// Compare semantic saved values, including bigint IDs, rather than the
-			// lexical XML spellings intentionally canonicalized by the new codec.
-			expect(parser.parse(new TextDecoder().decode(result.success))).toEqual(
-				parser.parse(new TextDecoder().decode(bytes)),
-			);
-			// Hash the full input instead of asking the assertion engine to expand
-			// millions of individual byte indices; detachment also changes its length.
-			expect(bytes.byteLength).toBe(originalLength);
-			expect(createHash("sha256").update(bytes).digest("hex")).toBe(
-				originalHash,
-			);
-			expect(result.success.buffer).toBeInstanceOf(ArrayBuffer);
-		} finally {
-			await opened.close();
-		}
-	},
-);
+// These full-save roundtrips include worker startup and the generated XML codec;
+// the shared runner deadline accommodates that work without suite overrides.
+it("Node worker processing preserves the full save and caller-owned bytes", async () => {
+	const bytes = await input();
+	const originalLength = bytes.byteLength;
+	const originalHash = createHash("sha256").update(bytes).digest("hex");
+	const opened = await openEditor(SaveProcessingNode, bytes);
+	try {
+		const result = await opened.model.commands.export();
+		if (!result || Result.isFailure(result))
+			throw new Error("Export did not complete");
+		// Compare semantic saved values, including bigint IDs, rather than the
+		// lexical XML spellings intentionally canonicalized by the new codec.
+		expect(parser.parse(new TextDecoder().decode(result.success))).toEqual(
+			parser.parse(new TextDecoder().decode(bytes)),
+		);
+		// Hash the full input instead of asking the assertion engine to expand
+		// millions of individual byte indices; detachment also changes its length.
+		expect(bytes.byteLength).toBe(originalLength);
+		expect(createHash("sha256").update(bytes).digest("hex")).toBe(originalHash);
+		expect(result.success.buffer).toBeInstanceOf(ArrayBuffer);
+	} finally {
+		await opened.close();
+	}
+});
 
 // Expected decode errors must cross RPC without killing the worker. A subsequent
 // compressed import and export in the same scope must still preserve mod fields.
@@ -69,5 +59,4 @@ it.effect(
 				imported.document,
 			);
 		}).pipe(Effect.provide(SaveProcessingNode)),
-	60_000,
 );

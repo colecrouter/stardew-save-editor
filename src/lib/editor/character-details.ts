@@ -7,10 +7,10 @@ import {
 	withReviewMetadata,
 } from "./transaction-annotations.ts";
 
-const record = (value: unknown): value is Record<string, unknown> =>
-	value !== null && typeof value === "object" && !Array.isArray(value);
-const numeric = (value: unknown): value is number =>
-	typeof value === "number" && Number.isFinite(value);
+// Decoding establishes numeric types; projections still distinguish absence and
+// nonfinite game values from editable counters.
+const numeric = (value: number | undefined): value is number =>
+	value !== undefined && Number.isFinite(value);
 // This catalog owns both presentation and write limits. Raw keys never escape
 // into the UI, and imported values outside these edit limits remain visible.
 const numbers = [
@@ -123,7 +123,7 @@ function numberTarget(document: SaveDocument, farmer: Farmer, key: string) {
 			(location) => location?.name === "Farm",
 		);
 		const farm = matches.length === 1 ? matches[0] : undefined;
-		if (!farm || farm.$type === "$unknown") return undefined;
+		if (farm?.$type !== "StardewValley.Farm") return undefined;
 		return {
 			value: farm.piecesOfHay,
 			write: (value: number) => {
@@ -150,15 +150,12 @@ function numberTarget(document: SaveDocument, farmer: Farmer, key: string) {
 
 function mailList(farmer: Farmer) {
 	const raw = farmer.mailReceived;
-	const value = raw;
-	const list =
-		value === undefined ? [] : Array.isArray(value) ? value : [value];
+	const list = raw ?? [];
 	return {
 		raw,
-		value,
+		value: raw,
 		list,
-		supported:
-			Array.isArray(raw) && list.every((item) => typeof item === "string"),
+		supported: raw !== undefined && list.every((item) => item !== null),
 	};
 }
 /** Read-only projection; no opening-time defaults are written into the save. */
@@ -169,18 +166,17 @@ export function readCharacterDetails(
 	const farmer = owner(document, farmerId);
 	const mail = farmer ? mailList(farmer) : undefined;
 	const tool = farmer?.toolBeingUpgraded;
-	const hasTool = record(tool);
+	const hasTool = tool != null && tool.$type !== "$unknown";
 	const houseLevel = numeric(farmer?.houseUpgradeLevel)
 		? farmer.houseUpgradeLevel
 		: undefined;
 	const houseUpgrading =
 		numeric(farmer?.daysUntilHouseUpgrade) && farmer.daysUntilHouseUpgrade > 0;
 	return {
-		backpackSize:
-			farmer && Array.isArray(farmer.items) ? farmer.items.length : undefined,
+		backpackSize: farmer?.items?.length,
 		backpackAvailable: Boolean(
 			farmer &&
-			Array.isArray(farmer.items) &&
+			farmer.items !== undefined &&
 			[12, 24, 36].includes(farmer.items.length) &&
 			farmer.maxItems === farmer.items.length,
 		),
@@ -214,13 +210,8 @@ export function readCharacterDetails(
 			}
 			if (
 				definition.key === "trash" &&
-				((!record(tool) && tool !== undefined) ||
-					(hasTool &&
-						record(tool) &&
-						// Item IDs are saved strings. Opaque values must not manufacture
-						// a supported tool identity through JavaScript string coercion.
-						typeof tool.itemId === "string" &&
-						tool.itemId.endsWith("TrashCan")))
+				tool != null &&
+				(tool.$type === "$unknown" || tool.itemId?.endsWith("TrashCan"))
 			) {
 				available = false;
 				reason = "Collect the trash can from Clint before changing its level.";
@@ -269,7 +260,7 @@ export const setCharacterDetails = Effect.fn("CharacterDetails.set")(function* (
 ) {
 	// Copy only own fields before strict decoding so prototype state cannot
 	// authorize a save mutation at this public operation boundary.
-	const decoded = decodeRequest(record(request) ? { ...request } : request);
+	const decoded = decodeRequest({ ...request });
 	if (Result.isFailure(decoded))
 		return yield* new CharacterDetailsInvalid({
 			message: "Choose a valid character edit.",

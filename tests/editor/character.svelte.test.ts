@@ -5,8 +5,7 @@ import { renderTestWorkspace } from "./workspace.ts";
 import type { SaveDocument } from "../../src/lib/editor/domain";
 import { parser, fixtureXml } from "./fixtures";
 
-const committed = (check: () => Promise<void>) =>
-	waitFor(check, { timeout: 5000 });
+const committed = (check: () => Promise<void>) => waitFor(check);
 async function open(mutate: (document: SaveDocument) => void = () => {}) {
 	const document = parser.parse(fixtureXml);
 	mutate(document);
@@ -26,7 +25,7 @@ const rawFarmer = (document: SaveDocument) =>
 
 // Whole-save commands verify that immediate controls publish only the requested
 // progression fields and retain unrecognized profession IDs and stat payloads.
-describe("character progression controls", { timeout: 25000 }, () => {
+describe("character progression controls", () => {
 	it("groups rapid XP typing into one Undo gesture while level edits remain a separate action", async () => {
 		const opened = await open();
 		try {

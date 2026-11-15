@@ -86,6 +86,9 @@ export const editChild = Effect.fn("Children.edit")(function* (
 	if (
 		!row?.supported ||
 		!target ||
+		target.resident.$type !== "StardewValley.Characters.Child" ||
+		(target.home.$type !== "StardewValley.Locations.FarmHouse" &&
+			target.home.$type !== "StardewValley.Locations.Cabin") ||
 		row.name !== request.name ||
 		row.parentId !== request.parentId
 	)
@@ -105,9 +108,7 @@ export const editChild = Effect.fn("Children.edit")(function* (
 		ageChanged &&
 		stage !== undefined &&
 		stage < (row.stage ?? 3) &&
-		(typeof target.home.cribStyle !== "number" ||
-			!Number.isInteger(target.home.cribStyle) ||
-			target.home.cribStyle <= 0)
+		(target.home.cribStyle === undefined || target.home.cribStyle <= 0)
 	)
 		return yield* new ChildRenameInvalid({
 			message:
@@ -200,7 +201,7 @@ const decode = Schema.decodeUnknownResult(renameSchema, {
 export const renameChild = Effect.fn("Children.rename")(function* (
 	input: ChildRename,
 ) {
-	const decoded = decode(record(input) ? { ...input } : input);
+	const decoded = decode({ ...input });
 	if (Result.isFailure(decoded))
 		return yield* new ChildRenameInvalid({
 			message: "Choose a valid child rename.",
@@ -253,7 +254,7 @@ export const renameChild = Effect.fn("Children.rename")(function* (
 				"That name already identifies a character or saved relationship. Choose another name.",
 		});
 	const target = residents.find((resident) => resident.key === request.key);
-	if (!target)
+	if (!target || target.resident.$type !== "StardewValley.Characters.Child")
 		return yield* new ChildRenameInvalid({
 			message: "This child is no longer available.",
 		});

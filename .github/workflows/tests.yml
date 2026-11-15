@@ -36,7 +36,16 @@ jobs:
           cache: "npm"
       - run: npm ci
       # The default suite includes engine contracts and excludes opt-in legacy regressions.
+      - run: npx playwright install --with-deps chromium
       - run: npm run test
+      - name: Preserve component browser failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: component-browser-failures
+          path: .vitest/attachments/
+          if-no-files-found: ignore
+          retention-days: 7
 
   # Exercise native worker messaging and transfer semantics outside the DOM shim.
   browser:

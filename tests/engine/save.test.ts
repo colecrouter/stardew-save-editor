@@ -1,4 +1,3 @@
-import { vi } from "vitest";
 import { fileURLToPath } from "node:url";
 import { NodeServices } from "@effect/platform-node";
 import { expect, it } from "@effect/vitest";
@@ -14,9 +13,6 @@ import {
 	SaveReadError,
 } from "../../src/lib/editor/save-service.ts";
 import { workerCodecLayer } from "./worker-service.ts";
-
-// Retain the engine suite's budget for full-save codecs and worker round trips.
-vi.setConfig({ testTimeout: 15_000 });
 
 const fixturePath = fileURLToPath(
 	new URL("../../tests/TestSave", import.meta.url),
@@ -43,7 +39,6 @@ it.effect(
 			// Encoding strips synthetic equipment attributes on a copy, not on the session.
 			expect(yield* session.snapshot).toEqual(state);
 		}).pipe(Effect.provide(Layer.merge(SaveCodecLive, NodeServices.layer))),
-	60_000,
 );
 
 it.effect(
@@ -63,7 +58,6 @@ it.effect(
 				original,
 			);
 		}).pipe(Effect.provide(Layer.merge(SaveCodecLive, NodeServices.layer))),
-	60_000,
 );
 
 it.effect(
@@ -93,7 +87,6 @@ it.effect(
 				.pipe(Effect.flip);
 			expect(unsupported.stage).toBe("version");
 		}).pipe(Effect.provide(Layer.merge(SaveCodecLive, NodeServices.layer))),
-	60_000,
 );
 
 it.effect(
@@ -208,7 +201,6 @@ it.effect(
 			expect(acquired).toBe(4);
 			expect(live).toBe(0);
 		}).pipe(Effect.provide(NodeServices.layer)),
-	60_000,
 );
 
 it.effect("ten canceled real worker requests release every worker", () =>

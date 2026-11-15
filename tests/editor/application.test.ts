@@ -9,15 +9,15 @@ import {
 } from "../../src/lib/editor/calendar-operations";
 import { fixtureXml, parser, exportDocument } from "./fixtures";
 import type { Value as GeneratedSave } from "../../generated/save-format/save.ts";
-import { fullSaveTimeout } from "../helpers/full-save-budget";
+
 type Save = GeneratedSave & { player: NonNullable<GeneratedSave["player"]> };
 
 const bytes = (xml: string) => new TextEncoder().encode(xml);
 
 // TestSave is a 6.6 MB preservation fixture. Encoding/reparsing it several times
-// verifies data integrity, not latency; retain the experiment's integration budget
-// on shared CI runners without changing the default timeout for unit tests.
-describe("full-save application calendar", { timeout: 45_000 }, () => {
+// verifies data integrity rather than latency. The shared runner deadline covers
+// this workload under normal CI concurrency.
+describe("full-save application calendar", () => {
 	it("the application calendar preserves unsupported inventory and bundle data without constructing those features", async () => {
 		const document = parser.parse(fixtureXml);
 		const raw = document.SaveGame as unknown as Record<string, unknown>;
@@ -88,54 +88,50 @@ describe("full-save application calendar", { timeout: 45_000 }, () => {
 	// Keep all three full-file boundaries here: initial import, validated export,
 	// and reimport. Scale this correctness guard with that work; benchmark timings
 	// qualify latency separately without moving work outside the test.
-	it(
-		"application date/weather export reimports with unknown fields and coordinated multiplayer dates intact",
-		async () => {
-			const document = parser.parse(fixtureXml);
-			const game = document.SaveGame as unknown as Save;
-			document.SaveGame.farmhands = [
-				{
-					...structuredClone(document.SaveGame.player),
-					UniqueMultiplayerID: 123456789n,
-					name: "Guest",
-				},
-			];
-			Object.assign(game, { customModData: { untouched: "007" } });
-			const opened = await openEditor(bytes(exportDocument(document)));
+	it("application date/weather export reimports with unknown fields and coordinated multiplayer dates intact", async () => {
+		const document = parser.parse(fixtureXml);
+		const game = document.SaveGame as unknown as Save;
+		document.SaveGame.farmhands = [
+			{
+				...structuredClone(document.SaveGame.player),
+				UniqueMultiplayerID: 123456789n,
+				name: "Guest",
+			},
+		];
+		Object.assign(game, { customModData: { untouched: "007" } });
+		const opened = await openEditor(bytes(exportDocument(document)));
+		try {
+			const result = await opened.model.commands.transact(
+				Effect.gen(function* () {
+					yield* setCalendarDate({ year: 3, day: 8 });
+					yield* setCalendarWeather("tomorrow", "Rain");
+				}),
+			);
+			expect(result && Result.isSuccess(result)).toBe(true);
+			const exported = await opened.model.commands.export();
+			expect(exported && Result.isSuccess(exported)).toBe(true);
+			if (!exported || Result.isFailure(exported))
+				throw Error("Expected valid exported save");
+			const reloaded = await openEditor(exported.success);
 			try {
-				const result = await opened.model.commands.transact(
-					Effect.gen(function* () {
-						yield* setCalendarDate({ year: 3, day: 8 });
-						yield* setCalendarWeather("tomorrow", "Rain");
-					}),
-				);
-				expect(result && Result.isSuccess(result)).toBe(true);
-				const exported = await opened.model.commands.export();
-				expect(exported && Result.isSuccess(exported)).toBe(true);
-				if (!exported || Result.isFailure(exported))
-					throw Error("Expected valid exported save");
-				const reloaded = await openEditor(exported.success);
-				try {
-					expect(get(reloaded.model.view)?.calendar.date).toMatchObject({
-						year: 3,
-						day: 8,
-					});
-					expect(get(reloaded.model.view)?.net).toEqual([]);
-					const after = (await reloaded.model.snapshot()).document
-						.SaveGame as unknown as Save & {
-						customModData: { untouched: string };
-					};
-					expect(after.customModData.untouched).toBe("007");
-					expect(after.player.yearForSaveGame).toBe(3);
-					if (!after.farmhands) throw Error("Missing preserved farmhand");
-					expect(after.farmhands[0]?.yearForSaveGame).toBe(3);
-				} finally {
-					await reloaded.close();
-				}
+				expect(get(reloaded.model.view)?.calendar.date).toMatchObject({
+					year: 3,
+					day: 8,
+				});
+				expect(get(reloaded.model.view)?.net).toEqual([]);
+				const after = (await reloaded.model.snapshot()).document
+					.SaveGame as unknown as Save & {
+					customModData: { untouched: string };
+				};
+				expect(after.customModData.untouched).toBe("007");
+				expect(after.player.yearForSaveGame).toBe(3);
+				if (!after.farmhands) throw Error("Missing preserved farmhand");
+				expect(after.farmhands[0]?.yearForSaveGame).toBe(3);
 			} finally {
-				await opened.close();
+				await reloaded.close();
 			}
-		},
-		3 * fullSaveTimeout,
-	);
+		} finally {
+			await opened.close();
+		}
+	});
 });

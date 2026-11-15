@@ -1,4 +1,4 @@
-import { type Farmer, type Location, type SaveDocument } from "./domain.ts";
+import type { Farmer, Location, SaveDocument } from "./domain.ts";
 import { nonemptyText } from "./plain-data.ts";
 import { isKnownLocation } from "./saved-types.ts";
 

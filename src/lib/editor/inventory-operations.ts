@@ -2,10 +2,10 @@ import { Context, Data, Effect, Result, Schema, SchemaIssue } from "effect";
 import { create as createCopyOnWrite } from "mutative";
 
 import type * as ItemCatalog from "../ItemData.ts";
-import { type UnplacedItem } from "./animal-buildings.ts";
-import {
-	type BuildingInvalid,
-	type replayBuildingUpgrade,
+import type { UnplacedItem } from "./animal-buildings.ts";
+import type {
+	BuildingInvalid,
+	replayBuildingUpgrade,
 } from "./building-operations.ts";
 import { discoverPlacedChests } from "./chest-storage.ts";
 import {
@@ -23,9 +23,9 @@ import {
 	type InventoryLocation,
 	readEquipmentSlot,
 } from "./equipment.ts";
-import {
-	type FarmerRosterInvalid,
-	type replayFarmerSwap,
+import type {
+	FarmerRosterInvalid,
+	replayFarmerSwap,
 } from "./farmer-roster-operations.ts";
 import {
 	inventoryContainers,
@@ -57,7 +57,7 @@ import {
 	recordAnnotatedOperation,
 	withReviewMetadata,
 } from "./transaction-annotations.ts";
-import { type makeTransactionDraftFromCommitted } from "./transaction-draft.ts";
+import type { makeTransactionDraftFromCommitted } from "./transaction-draft.ts";
 import {
 	prepareTrinketPropertyChange,
 	TrinketPropertyChangeSchema,

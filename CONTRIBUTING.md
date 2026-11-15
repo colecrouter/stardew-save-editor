@@ -241,6 +241,9 @@ distinct from declared saved fields. Do not widen every optional field merely to
 silence the checker.
 
 Oxfmt orders imports by built-in, external, internal and relative sources.
+Use `import type` when a declaration contains only types. Inline `type` specifiers
+belong in declarations that also import runtime values; otherwise
+`verbatimModuleSyntax` can preserve an empty runtime import and introduce cycles.
 `$lib/`, `$types/`, `$generated/` and `$app/` are internal prefixes. Oxlint sorts
 names inside declarations and checks duplicate imports. Comments partition
 intentional import sections. Bare side-effect imports retain their relative

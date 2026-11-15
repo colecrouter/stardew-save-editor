@@ -1,7 +1,7 @@
-import {
-	type T_StardewValley_Network_LocationWeather as LocationWeatherClass,
-	type T_StardewValley_Farmer as Player,
-	type Value as Save,
+import type {
+	T_StardewValley_Network_LocationWeather as LocationWeatherClass,
+	T_StardewValley_Farmer as Player,
+	Value as Save,
 } from "../../../generated/save-format/save.ts";
 import {
 	type CalendarWeatherChoices,

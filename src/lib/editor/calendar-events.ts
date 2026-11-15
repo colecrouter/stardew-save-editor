@@ -7,7 +7,7 @@ import {
 } from "../calendar.ts";
 import { createGameRandom } from "../game-random.ts";
 import { characters } from "../NPCs.ts";
-import { type SaveDocument } from "./domain.ts";
+import type { SaveDocument } from "./domain.ts";
 
 export interface CalendarEvent {
 	readonly day: number;

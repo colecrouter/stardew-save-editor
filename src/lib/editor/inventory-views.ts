@@ -1,5 +1,5 @@
 import { CategoriesWithQuality } from "../ItemData.ts";
-import { type TrinketRollContext } from "../TrinketStats.ts";
+import type { TrinketRollContext } from "../TrinketStats.ts";
 import { discoverPlacedChests } from "./chest-storage.ts";
 import {
 	type EquipmentIdentities,
@@ -9,7 +9,7 @@ import {
 	readEquipmentSlot,
 	trinketAvailable,
 } from "./equipment.ts";
-import { type HistoryState } from "./history.ts";
+import type { HistoryState } from "./history.ts";
 import { immutableView, type ImmutableView } from "./immutable-view.ts";
 import { inventoryContainers } from "./inventory-containers.ts";
 import {

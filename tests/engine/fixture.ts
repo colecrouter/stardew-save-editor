@@ -2,10 +2,7 @@ import { readFile } from "node:fs/promises";
 
 import { expect } from "vitest";
 
-import {
-	type Location,
-	type SaveDocument,
-} from "../../src/lib/editor/domain.ts";
+import type { Location, SaveDocument } from "../../src/lib/editor/domain.ts";
 import { parser } from "../../tests/helpers/editor-document.ts";
 
 export {

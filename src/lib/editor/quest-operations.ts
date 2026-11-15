@@ -1,6 +1,6 @@
 import { Data, Effect, Result, Schema } from "effect";
 
-import { type T_StardewValley_Quests_Quest as Quest } from "../../../generated/save-format/save.ts";
+import type { T_StardewValley_Quests_Quest as Quest } from "../../../generated/save-format/save.ts";
 import { type Farmer, farmers, type SaveDocument } from "./domain.ts";
 import { InventoryEdits } from "./inventory-operations.ts";
 import { nonemptyText } from "./plain-data.ts";

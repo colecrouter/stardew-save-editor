@@ -1,4 +1,4 @@
-import { type T_Microsoft_Xna_Framework_Color as SavedColor } from "../../generated/save-format/save.ts";
+import type { T_Microsoft_Xna_Framework_Color as SavedColor } from "../../generated/save-format/save.ts";
 
 /** Game color arithmetic shared by legacy reactive wrappers and read-only v2 projections. */
 export function packRgba(R: number, G: number, B: number, A: number): number {

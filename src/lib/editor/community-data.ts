@@ -1,5 +1,5 @@
 import { CCRoom, communityRooms } from "../communityCenterData.ts";
-import { type Farmer, type SaveDocument } from "./domain.ts";
+import type { Farmer, SaveDocument } from "./domain.ts";
 import { nonemptyText } from "./plain-data.ts";
 
 export interface CommunityRequirementView {

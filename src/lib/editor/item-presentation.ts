@@ -1,4 +1,4 @@
-import { type ItemInformation } from "$types/items";
+import type { ItemInformation } from "$types/items";
 
 import { readRgba } from "../color.ts";
 import {
@@ -9,9 +9,9 @@ import {
 	ResolveItemData,
 } from "../ItemData.ts";
 import { Sprite } from "../Sprite.svelte.ts";
-import { type TrinketRollContext } from "../TrinketStats.ts";
+import type { TrinketRollContext } from "../TrinketStats.ts";
 import { canEquipItem, equipmentSlots } from "./equipment.ts";
-import { type ImmutableView } from "./immutable-view.ts";
+import type { ImmutableView } from "./immutable-view.ts";
 import { type InventoryValue, isSavedItem } from "./inventory-values.ts";
 import { getItemPropertyFields } from "./item-properties.ts";
 

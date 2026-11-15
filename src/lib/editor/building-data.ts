@@ -1,21 +1,21 @@
 import animalData from "$generated/farmanimals.json";
 
-import {
-	type T_StardewValley_FarmAnimal as FarmAnimal,
-	type T_Microsoft_Xna_Framework_Rectangle as Rectangle,
-	type T_StardewValley_Buildings_Building as SavedBuilding,
-	type T_StardewValley_Objects_Furniture as SavedFurniture,
-	type T_StardewValley_Object as SavedObject,
-	type T_Microsoft_Xna_Framework_Vector2 as Vector,
+import type {
+	T_StardewValley_FarmAnimal as FarmAnimal,
+	T_Microsoft_Xna_Framework_Rectangle as Rectangle,
+	T_StardewValley_Buildings_Building as SavedBuilding,
+	T_StardewValley_Objects_Furniture as SavedFurniture,
+	T_StardewValley_Object as SavedObject,
+	T_Microsoft_Xna_Framework_Vector2 as Vector,
 } from "../../../generated/save-format/save.ts";
 import {
 	animalOptions,
 	buildingTierBlocker,
 	upgradeTiers,
 } from "../animalBuildingData.ts";
-import { type Building } from "./animal-buildings.ts";
+import type { Building } from "./animal-buildings.ts";
 import { buildingConstructionCost } from "./building-costs.ts";
-import { type Location, type SaveDocument } from "./domain.ts";
+import type { Location, SaveDocument } from "./domain.ts";
 import { nonemptyText, samePlainData } from "./plain-data.ts";
 import {
 	isKnownLocation,

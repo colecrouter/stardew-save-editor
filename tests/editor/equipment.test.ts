@@ -2,7 +2,7 @@ import { it } from "@effect/vitest";
 import { Effect, Result } from "effect";
 import { describe, expect } from "vitest";
 
-import { type Item } from "../../src/lib/editor/domain.ts";
+import type { Item } from "../../src/lib/editor/domain.ts";
 import {
 	canEquipItem,
 	equipmentSlots,

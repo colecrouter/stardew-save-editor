@@ -1,11 +1,11 @@
 import { Data, Result, Schema, SchemaIssue } from "effect";
 
-import { type ItemInformation } from "$types/items";
+import type { ItemInformation } from "$types/items";
 
-import { type T_Microsoft_Xna_Framework_Color } from "../../../generated/save-format/save.ts";
+import type { T_Microsoft_Xna_Framework_Color } from "../../../generated/save-format/save.ts";
 import { colorHex } from "../color.ts";
-import { type TrinketRollContext } from "../TrinketStats.ts";
-import { type Farmer, type SaveDocument } from "./domain.ts";
+import type { TrinketRollContext } from "../TrinketStats.ts";
+import type { Farmer, SaveDocument } from "./domain.ts";
 import { type InventoryValue, isKnownItem } from "./inventory-values.ts";
 import {
 	readTrinketProperties,

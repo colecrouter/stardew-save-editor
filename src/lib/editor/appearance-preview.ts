@@ -10,7 +10,7 @@ import {
 import { readRgba } from "../color.ts";
 import { ItemData, ResolveItemData } from "../ItemData.ts";
 import { Sprite } from "../Sprite.svelte.ts";
-import { type Farmer } from "./domain.ts";
+import type { Farmer } from "./domain.ts";
 
 export interface AppearanceLayer {
 	readonly part: string;

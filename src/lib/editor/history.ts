@@ -15,7 +15,7 @@ import {
 	type SaveDocument,
 	type SessionState,
 } from "./domain.ts";
-import { type EquipmentIdentities } from "./equipment.ts";
+import type { EquipmentIdentities } from "./equipment.ts";
 import { inventoryContainers } from "./inventory-containers.ts";
 import { resolveInventorySlotChange } from "./inventory-lifecycle.ts";
 import { resolveInventoryMove } from "./inventory-movement.ts";

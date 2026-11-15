@@ -1,5 +1,5 @@
 import { TypeIds } from "../../../generated/save-format/save.ts";
-import { type Location } from "./domain.ts";
+import type { Location } from "./domain.ts";
 
 // Keep this structural boundary independent of building presentation so native
 // inventory consumers do not load sprites or browser-only catalog modules.

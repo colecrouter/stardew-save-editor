@@ -3,8 +3,8 @@ import {
 	type PlacedChest,
 	writeChestSlots,
 } from "./chest-storage.ts";
-import { type Farmer, type SaveDocument } from "./domain.ts";
-import { type InventorySlot } from "./inventory-values.ts";
+import type { Farmer, SaveDocument } from "./domain.ts";
+import type { InventorySlot } from "./inventory-values.ts";
 import { farmers as savedFarmers } from "./saved-farmers.ts";
 
 /** A transient lens over an inventory; numbered slots are shared, equipment belongs to farmers. */

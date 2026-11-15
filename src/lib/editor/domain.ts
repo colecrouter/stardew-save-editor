@@ -1,19 +1,19 @@
 import { Effect, Result } from "effect";
 
-import {
-	type Value as SavedGame,
-	type T_StardewValley_Farmer,
+import type {
+	Value as SavedGame,
+	T_StardewValley_Farmer,
 } from "../../../generated/save-format/save.ts";
-import { type CalendarEdit } from "./calendar-document.ts";
-import { type InventoryLocation } from "./equipment.ts";
-import { type InventorySlotRequest } from "./inventory-lifecycle.ts";
-import { type InventoryMoveRequest } from "./inventory-movement.ts";
+import type { CalendarEdit } from "./calendar-document.ts";
+import type { InventoryLocation } from "./equipment.ts";
+import type { InventorySlotRequest } from "./inventory-lifecycle.ts";
+import type { InventoryMoveRequest } from "./inventory-movement.ts";
 import {
 	applyInventoryMutation,
 	type InventoryIdentityState,
 	isInventoryMutation,
 } from "./inventory-transition.ts";
-import { type SavedItem } from "./inventory-values.ts";
+import type { SavedItem } from "./inventory-values.ts";
 import { MutationError } from "./mutation-error.ts";
 import { record, samePlainData } from "./plain-data.ts";
 import { farmers } from "./saved-farmers.ts";

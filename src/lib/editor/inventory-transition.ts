@@ -2,11 +2,11 @@ import { Result } from "effect";
 
 import { compareInventoryItems, isInventoryTool } from "../inventory-order.ts";
 import { emptyChestSlot } from "./chest-storage.ts";
-import {
-	type Item,
-	type OperationChange,
-	type ResolvedMutation,
-	type SaveDocument,
+import type {
+	Item,
+	OperationChange,
+	ResolvedMutation,
+	SaveDocument,
 } from "./domain.ts";
 import {
 	canEquipItem,

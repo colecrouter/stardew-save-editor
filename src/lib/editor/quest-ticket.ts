@@ -1,4 +1,4 @@
-import { type InventorySlot } from "./inventory-values.ts";
+import type { InventorySlot } from "./inventory-values.ts";
 
 /** Read-only destination policy shared by quest previews and reward authorization.
  * Prefer a compatible ordinary ticket stack; opaque empty markers never count as room. */

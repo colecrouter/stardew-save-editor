@@ -7,11 +7,7 @@ import {
 	TypeIds,
 } from "../../../generated/save-format/save.ts";
 import { MAX_YEAR, SEASONS, totalDays } from "../calendar.ts";
-import {
-	type EditorGame,
-	type KnownFields,
-	type SaveDocument,
-} from "./domain.ts";
+import type { EditorGame, KnownFields, SaveDocument } from "./domain.ts";
 import {
 	recordAnnotatedOperation,
 	withReviewMetadata,

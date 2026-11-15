@@ -37,6 +37,9 @@ export const lintPolicy: OxlintConfig = {
 		"import/no-unassigned-import": ["error", { allow: ["**/*.css"] }],
 		"typescript/no-explicit-any": "error",
 		"typescript/no-non-null-assertion": "error",
+		// All-type inline specifiers can retain an empty runtime import under
+		// verbatimModuleSyntax. Erase those edges entirely to prevent initialization cycles.
+		"typescript/no-import-type-side-effects": "error",
 		"typescript/no-unsafe-argument": "error",
 		"typescript/no-unsafe-assignment": "error",
 		"typescript/no-unsafe-call": "error",

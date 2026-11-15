@@ -1,13 +1,13 @@
 import { ItemData, KeyToName } from "$lib/ItemData";
-import { type IndoorItem, type IndoorItemMove } from "$types/buildingUpgrade";
+import type { IndoorItem, IndoorItemMove } from "$types/buildingUpgrade";
 import { type BigCraftable, Fragility } from "$types/items";
 
-import {
-	type T_StardewValley_Buildings_Building as SavedBuilding,
-	type T_StardewValley_Object as SavedObject,
+import type {
+	T_StardewValley_Buildings_Building as SavedBuilding,
+	T_StardewValley_Object as SavedObject,
 } from "../../../generated/save-format/save.ts";
 import { type BuildingInfo, upgradeTiers } from "../animalBuildingData.ts";
-import { type KnownFields } from "./domain.ts";
+import type { KnownFields } from "./domain.ts";
 import { savedType } from "./saved-types.ts";
 
 /**

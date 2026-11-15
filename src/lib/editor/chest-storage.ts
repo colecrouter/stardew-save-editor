@@ -1,6 +1,6 @@
-import { type T_StardewValley_Objects_Chest as Chest } from "../../../generated/save-format/save.ts";
-import { type Location, type SaveDocument } from "./domain.ts";
-import { type InventorySlot, type InventoryValue } from "./inventory-values.ts";
+import type { T_StardewValley_Objects_Chest as Chest } from "../../../generated/save-format/save.ts";
+import type { Location, SaveDocument } from "./domain.ts";
+import type { InventorySlot, InventoryValue } from "./inventory-values.ts";
 import { nonemptyText } from "./plain-data.ts";
 import { isKnownLocation } from "./saved-types.ts";
 

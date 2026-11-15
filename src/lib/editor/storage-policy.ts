@@ -1,4 +1,4 @@
-import { type T_StardewValley_Objects_Chest as Chest } from "../../../generated/save-format/save.ts";
+import type { T_StardewValley_Objects_Chest as Chest } from "../../../generated/save-format/save.ts";
 import { storageTypes } from "../storageTypes.ts";
 
 export { storageTypes } from "../storageTypes.ts";

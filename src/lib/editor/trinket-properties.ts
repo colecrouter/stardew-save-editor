@@ -1,6 +1,6 @@
 import { Data, Effect, Result, Schema, SchemaIssue } from "effect";
 
-import { type T_StardewValley_Objects_Trinket as Trinket } from "../../../generated/save-format/save.ts";
+import type { T_StardewValley_Objects_Trinket as Trinket } from "../../../generated/save-format/save.ts";
 import {
 	clampStats,
 	createRandom,
@@ -14,7 +14,7 @@ import {
 	type TrinketRollContext,
 	type TrinketStats,
 } from "../TrinketStats.ts";
-import { type KnownFields } from "./domain.ts";
+import type { KnownFields } from "./domain.ts";
 import { type InventoryValue, isKnownItem } from "./inventory-values.ts";
 
 export type TrinketPatch = Partial<

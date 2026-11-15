@@ -1,6 +1,6 @@
-import { type Farmer } from "./domain.ts";
+import type { Farmer } from "./domain.ts";
 import { type InventoryValue, isSavedItem } from "./inventory-values.ts";
-import { type ItemPresentation } from "./item-presentation.ts";
+import type { ItemPresentation } from "./item-presentation.ts";
 import { emptySlot } from "./saved-farmers.ts";
 
 /** Serialized farmer fields, kept separate from positional backpack capacity. */

@@ -1,6 +1,6 @@
-import { type SaveDocument } from "./domain.ts";
+import type { SaveDocument } from "./domain.ts";
 import { readEquipmentSlot } from "./equipment.ts";
-import { type HistoryState } from "./history.ts";
+import type { HistoryState } from "./history.ts";
 import { inventoryContainers } from "./inventory-containers.ts";
 import { isSavedItem, type SavedItem } from "./inventory-values.ts";
 import {
@@ -8,9 +8,9 @@ import {
 	readBackpacks,
 	readChests,
 } from "./inventory-views.ts";
-import {
-	type ItemPropertyChange,
-	type ItemPropertyField,
+import type {
+	ItemPropertyChange,
+	ItemPropertyField,
 } from "./item-properties.ts";
 import { record, samePlainData } from "./plain-data.ts";
 

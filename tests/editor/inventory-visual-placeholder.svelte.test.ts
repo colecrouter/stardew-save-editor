@@ -1,6 +1,7 @@
-import { readItemVisual } from "../../src/lib/editor/item-presentation.ts";
-import { expect, it } from "vitest";
 import { render } from "@testing-library/svelte";
+import { expect, it } from "vitest";
+
+import { readItemVisual } from "../../src/lib/editor/item-presentation.ts";
 import BackpackItemVisual from "../../src/lib/editor/ui/BackpackItemVisual.svelte";
 
 it.each([

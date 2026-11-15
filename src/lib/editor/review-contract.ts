@@ -1,4 +1,5 @@
 import type { JsonPatch } from "effect";
+
 import type { InventoryReviewChange } from "./review-inventory.ts";
 
 /** A feature registry is closed on purpose: a new section needs a projector and label. */

@@ -1,17 +1,26 @@
 <script lang="ts">
 	import { dynamicAsset } from "$lib/ui/dynamicAsset.ts";
+
 	import type { AppearancePreviewView } from "../appearance-preview.ts";
+
 	interface Props {
 		preview: AppearancePreviewView;
 	}
 	let { preview }: Props = $props();
 </script>
 
-<div class="preview" role="img" aria-label="Character appearance preview">
+<div
+	class="preview"
+	role="img"
+	aria-label="Character appearance preview"
+>
 	<!-- The stage reserves scaled layout space; layer offsets stay in source
 	     pixels, including room above the head and below the pants. -->
 	<div class="stage">
-		<div class="figure" class:female={preview.gender === "female"}>
+		<div
+			class="figure"
+			class:female={preview.gender === "female"}
+		>
 			<!-- Missing catalog sheets leave their layer absent rather than requesting a guessed URL. -->
 			{#each preview.layers as layer, index (index)}
 				{@const sheetUrl = dynamicAsset(layer.sheet)}

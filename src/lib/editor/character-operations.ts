@@ -1,23 +1,24 @@
-import { characterLimits } from "./character-data.ts";
 import { Data, Effect, Result, Schema, SchemaIssue } from "effect";
+
 import {
-	readCharacterDetails,
+	characterLimits,
+	masteryXpForLevel,
+	professionDefinitions,
+	skillDefinitions,
+	type SkillKey,
+	skillXpForLevel,
+} from "./character-data.ts";
+import {
 	type CharacterDetailsView,
+	readCharacterDetails,
 } from "./character-details.ts";
-import { farmers, type Farmer, type SaveDocument } from "./domain.ts";
-import { TransactionDraft } from "./transaction-draft.ts";
+import { type Farmer, farmers, type SaveDocument } from "./domain.ts";
 import {
 	recordAnnotatedOperation,
 	withReviewMetadata,
 } from "./transaction-annotations.ts";
+import { TransactionDraft } from "./transaction-draft.ts";
 
-import {
-	skillDefinitions,
-	skillXpForLevel,
-	masteryXpForLevel,
-	professionDefinitions,
-	type SkillKey,
-} from "./character-data.ts";
 // Preserve existing operation consumers while presentation imports the pure data.
 export {
 	skillDefinitions,
@@ -209,7 +210,7 @@ export function readCharacters(document: SaveDocument): CharacterView[] {
 			farmerId: id ?? "",
 			details: readCharacterDetails(document, id ?? ""),
 			name:
-				typeof farmer.name === "string" && farmer.name
+				typeof farmer.name === "string" && farmer.name !== ""
 					? farmer.name
 					: "Unnamed farmer",
 			supported,
@@ -281,7 +282,7 @@ export const setCharacter = Effect.fn("Character.set")(function* (
 	let label: string;
 	if (request.kind === "skill-xp" || request.kind === "skill-level") {
 		const definition = skillDefinitions.find(
-			(definition) => definition.key === request.skill,
+			(fieldDefinition) => fieldDefinition.key === request.skill,
 		);
 		if (!definition)
 			return yield* new CharacterInvalid({

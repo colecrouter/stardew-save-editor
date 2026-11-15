@@ -1,12 +1,20 @@
-import publicSaveXml from "./TestSave?raw";
 import { fireEvent, render, within } from "@testing-library/svelte";
 import { flushSync } from "svelte";
 import { beforeEach, describe, expect, it } from "vitest";
+
 import { Raw } from "$lib/proxies";
+
+import { Season } from "../codegen/save";
 import qiQuestTemplates from "../generated/qiquests.json";
 import { SaveManager } from "../src/lib/SaveManager.svelte";
 import { XMLManager } from "../src/lib/workers/xml";
 import QuestList from "../src/routes/(legacy)/(edit)/(list)/qi-quests/QuestList.svelte";
+import {
+	requireArray,
+	requireInstance,
+	requireRecord,
+} from "./helpers/assertions.ts";
+import publicSaveXml from "./TestSave?raw";
 
 // A structurally realistic `<SpecialOrder>` block (shape borrowed from the
 // fixture's own QiChallenge2 entry) for building an accepted order under
@@ -76,7 +84,10 @@ describe("QiQuests", () => {
 		const { container } = render(QuestList, { quests });
 
 		const descriptions = container.querySelectorAll(".entry .description");
-		const last = descriptions[descriptions.length - 1] as HTMLElement;
+		const last = requireInstance(
+			descriptions[descriptions.length - 1],
+			HTMLElement,
+		);
 		await fireEvent.click(last);
 		expect(quests.inProgress).toEqual([]);
 
@@ -107,9 +118,9 @@ describe("QiQuests", () => {
 	});
 
 	it.each([
-		[1, "spring", 6, 8],
-		[3, "summer", 28, 282],
-		[3, "winter", 28, 338],
+		[1, Season.Spring, 6, 8],
+		[3, Season.Summer, 28, 282],
+		[3, Season.Winter, 28, 338],
 	] as const)(
 		"uses the world date for deadlines in year %i, %s %i",
 		async (year, season, day, expectedDeadline) => {
@@ -117,7 +128,7 @@ describe("QiQuests", () => {
 			if (!save) throw new Error("Save import failed");
 			const game = save[Raw].SaveGame;
 			game.year = year;
-			game.currentSeason = season as typeof game.currentSeason;
+			game.currentSeason = season;
 			game.dayOfMonth = day;
 			// Player statistics may be empty, stale, or edited independently.
 			game.player.stats.daysPlayed = "9999";
@@ -165,8 +176,15 @@ describe("QiQuests", () => {
 		const rawKeys = save[Raw].SaveGame.availableSpecialOrders.SpecialOrder.map(
 			(order) => order.questKey,
 		);
+		// Vitest types asymmetric matchers as any. Keep expected matcher values
+		// unknown so they cannot weaken the surrounding saved-data assertions.
 		expect(rawKeys).toEqual(
-			expect.arrayContaining(["Gus", "Pam", "QiChallenge6", "QiChallenge2"]),
+			expect.arrayContaining([
+				"Gus",
+				"Pam",
+				"QiChallenge6",
+				"QiChallenge2",
+			]) as unknown,
 		);
 	});
 
@@ -189,17 +207,13 @@ describe("QiQuests", () => {
 		expect(entry.duration).toBe("Month");
 		expect(entry.dueDate).toBe(28);
 		expect(entry.questState).toBe("InProgress");
-		expect(
-			(entry.objectives as unknown as Record<string, unknown>[])[0],
-		).toMatchObject({
+		expect(requireRecord(requireArray(entry.objectives)[0])).toMatchObject({
 			"@_xsi:type": "ShipObjective",
 			maxCount: 500,
 			acceptableContextTagSets: "item_qi_fruit",
 			useShipmentValue: false,
 		});
-		expect(
-			(entry.rewards as unknown as Record<string, unknown>[])[0],
-		).toMatchObject({
+		expect(requireRecord(requireArray(entry.rewards)[0])).toMatchObject({
 			"@_xsi:type": "GemsReward",
 			amount: { int: 100 },
 		});
@@ -261,7 +275,12 @@ describe("QiQuests", () => {
 		expect(rawKeys).not.toContain("QiChallenge3");
 		// Pre-existing orders (Qi and non-Qi) must survive untouched
 		expect(rawKeys).toEqual(
-			expect.arrayContaining(["Gus", "Pam", "QiChallenge6", "QiChallenge2"]),
+			expect.arrayContaining([
+				"Gus",
+				"Pam",
+				"QiChallenge6",
+				"QiChallenge2",
+			]) as unknown,
 		);
 	});
 
@@ -474,7 +493,7 @@ describe("QiQuests", () => {
 		// Still taken: it can't be made active or offered again
 		expect(view.queryByTestId("qi-quest-accept-qichallenge9")).toBeNull();
 		const checkbox = view.getByTestId("qi-quest-qichallenge9");
-		expect((checkbox as HTMLInputElement).disabled).toBe(true);
+		expect(requireInstance(checkbox, HTMLInputElement).disabled).toBe(true);
 	});
 
 	it("does not repeat cleanup for a completed order", async () => {
@@ -541,7 +560,7 @@ describe("QiQuests", () => {
 		expect(typeof specialOrders).toBe("object");
 		if (typeof specialOrders !== "object") return;
 		expect(specialOrders.SpecialOrder.map((order) => order.questKey)).toEqual(
-			expect.arrayContaining(["Gus", "QiChallenge3"]),
+			expect.arrayContaining(["Gus", "QiChallenge3"]) as unknown,
 		);
 	});
 

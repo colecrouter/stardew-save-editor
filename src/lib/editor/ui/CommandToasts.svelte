@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { useAtomValue } from "effect-atom-svelte";
+
 	import type { EditorModel } from "../editor-model.ts";
+
 	let { model }: { model: EditorModel } = $props();
 	const notice = useAtomValue(() => model.atomBindings.notice);
 	// One session-level presenter handles defects from every command. A newer
@@ -14,7 +16,11 @@
 	});
 </script>
 
-<div class="command-toasts" role="status" aria-live="polite">
+<div
+	class="command-toasts"
+	role="status"
+	aria-live="polite"
+>
 	{#if notice.current}
 		<div class="toast">
 			<p>{notice.current.message}</p>

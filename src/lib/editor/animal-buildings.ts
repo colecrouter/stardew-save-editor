@@ -1,10 +1,21 @@
+import { ItemData, KeyToName } from "$lib/ItemData";
+import type { IndoorItem, IndoorItemMove } from "$types/buildingUpgrade";
+import { type BigCraftable, Fragility } from "$types/items";
+
+import type {
+	T_StardewValley_Buildings_Building as SavedBuilding,
+	T_StardewValley_Object as SavedObject,
+} from "../../../generated/save-format/save.ts";
+import { type BuildingInfo, upgradeTiers } from "../animalBuildingData.ts";
+import type { KnownFields } from "./domain.ts";
+import { savedType } from "./saved-types.ts";
+
 /**
     Helpers for coops and barns (and sheds, which can be upgraded too): their
     upgrade tiers, which animals can live in them, and the changes the game
     makes inside them when they're upgraded.
 */
-import { ItemData, KeyToName } from "$lib/ItemData";
-import { upgradeTiers, type BuildingInfo } from "../animalBuildingData.ts";
+
 export {
 	upgradeTiers,
 	animalOptions,
@@ -13,14 +24,7 @@ export {
 	buildingTierBlocker,
 } from "../animalBuildingData.ts";
 export type { BuildingInfo, AnimalOption } from "../animalBuildingData.ts";
-import type { KnownFields } from "./domain.ts";
-import type { IndoorItem, IndoorItemMove } from "$types/buildingUpgrade";
-import { type BigCraftable, Fragility } from "$types/items";
-import { savedType } from "./saved-types.ts";
-import type {
-	T_StardewValley_Object as SavedObject,
-	T_StardewValley_Buildings_Building as SavedBuilding,
-} from "../../../generated/save-format/save.ts";
+
 // These lenses describe only the fields used by placement; additional saved fields remain attached.
 type TileLocation = { X: number; Y: number };
 type KnownObject = Exclude<SavedObject, { readonly $type: "$unknown" }>;
@@ -83,10 +87,10 @@ const intersects = (a: Rect, b: Rect) =>
 
 /** The qualified item ID, like `(BC)101`, as `ItemRegistry.HasItemId` compares them */
 function qualifiedItemId(item: SaveItem, isFurniture = false) {
-	const id = String(item.itemId ?? "");
+	const id = item.itemId ?? "";
 	if (id.startsWith("(")) return id;
 	if (isFurniture) return `(F)${id}`;
-	return item.bigCraftable ? `(BC)${id}` : `(O)${id}`;
+	return item.bigCraftable === true ? `(BC)${id}` : `(O)${id}`;
 }
 
 const objectsOf = (location: Location): ItemKV[] => location.objects ?? [];
@@ -99,7 +103,8 @@ const objectAt = (location: Location, tile: Tile) =>
 
 const furnitureCovering = (location: Location, tile: Tile) =>
 	furnitureOf(location).filter(
-		(f) => f.boundingBox && intersects(f.boundingBox, tileRect(tile)),
+		(f) =>
+			f.boundingBox !== undefined && intersects(f.boundingBox, tileRect(tile)),
 	);
 
 /** What's on a tile: the object there, and any furniture covering it */
@@ -222,7 +227,7 @@ export function applyIndoorItemMoves(
 		.map(([item, tile]) => {
 			const isFurniture = furnitureOf(location).includes(item);
 			return {
-				name: String(item.name ?? qualifiedItemId(item, isFurniture)),
+				name: item.name ?? qualifiedItemId(item, isFurniture),
 				itemId: qualifiedItemId(item, isFurniture),
 				tile: isFurniture ? (item.tileLocation ?? tile) : tile,
 				reason: "its old spot is taken",
@@ -292,7 +297,7 @@ function placedBigCraftable(
 /** The data for a `(BC)` item, the only kind the game's buildings add */
 function bigCraftableData(item: IndoorItem) {
 	const id = /^\(BC\)(.+)$/.exec(item.itemId)?.[1];
-	if (!id) return undefined;
+	if (!(id != null && id !== "")) return undefined;
 	try {
 		const data = ItemData.get(KeyToName(id, "BigCraftable"));
 		return data?._type === "BigCraftable" ? data : undefined;
@@ -335,7 +340,7 @@ export function placeIndoorItems(
 		location.objects ??= [];
 		location.objects.push({
 			key: { X: item.tile.X, Y: item.tile.Y },
-			value: placedBigCraftable(data, item.tile, !!item.indestructible),
+			value: placedBigCraftable(data, item.tile, Boolean(item.indestructible)),
 		});
 	}
 	return problems;
@@ -404,7 +409,7 @@ export function changeBuildingTier(
 		const below = tiers[i - 1];
 		if (!tier || !below || !interior) continue;
 		const added = (tier.indoorItems ?? []).filter(
-			(item) => !below.indoorItems?.some((b) => b.id === item.id),
+			(item) => !(below.indoorItems?.some((b) => b.id === item.id) === true),
 		);
 		problems.push(...removeIndoorItems(interior, added));
 		problems.push(

@@ -1,5 +1,6 @@
 import { Effect, Schema } from "effect";
 import { expect, it } from "vitest";
+
 import { ValueSchema, XmlSchema } from "../../generated/save-format/save.ts";
 import { SaveCodec, SaveCodecLive } from "../../src/lib/editor/save-service.ts";
 import { tinyEditorFixture } from "../helpers/editor-document.ts";
@@ -38,5 +39,7 @@ it("rejects malformed mail containers in the decoded schema", () => {
 			mailReceived: { unsupported: true },
 		},
 	};
-	expect(() => Schema.decodeUnknownSync(ValueSchema)(external)).toThrow();
+	expect(() => Schema.decodeUnknownSync(ValueSchema)(external)).toThrow(
+		Schema.SchemaError,
+	);
 });

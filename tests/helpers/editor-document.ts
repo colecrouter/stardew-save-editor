@@ -1,18 +1,19 @@
-import { isHostFarmer } from "../../src/lib/editor/domain.ts";
 import { Schema } from "effect";
-import { getFixtureBaseline } from "./fixture-context.ts";
+
 import {
-	XmlSchema,
-	type Value,
 	type T_StardewValley_Farmer,
 	type T_StardewValley_GameLocation,
+	type Value,
+	XmlSchema,
 } from "../../generated/save-format/save.ts";
-import type {
-	ResolvedMutation,
-	Item,
-	HostFarmer,
-	SaveDocument,
+import {
+	type HostFarmer,
+	isHostFarmer,
+	type Item,
+	type ResolvedMutation,
+	type SaveDocument,
 } from "../../src/lib/editor/domain.ts";
+import { getFixtureBaseline } from "./fixture-context.ts";
 
 // Use the production codec, including equipment types and XML normalization.
 
@@ -132,7 +133,9 @@ export type FixtureSave = Omit<
 
 // Malformed-import tests intentionally bypass the decoder to exercise defensive
 // domain behavior. Keep that escape hatch explicit and local to test fixtures.
+// oxlint-disable-next-line typescript/no-unnecessary-type-parameters -- Callers intentionally select the rejected type at this malformed-input boundary.
 export function malformedFixture<T>(value: unknown): T {
+	// oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Deliberately invalid fixture data must bypass its declared decoded type to exercise rejection paths.
 	return value as T;
 }
 
@@ -144,5 +147,8 @@ export function catalogFixture<T extends Item["$type"]>(
 ): Extract<Item, { $type: T }> {
 	if (!item || item.$type !== type)
 		throw Error(`Unexpected fixture item type: ${type}`);
+	// TypeScript cannot relate a runtime discriminant comparison to Extract's
+	// generic conditional type; the check above establishes that exact variant.
+	// oxlint-disable-next-line typescript/no-unsafe-type-assertion -- The checked discriminator establishes the requested catalog variant.
 	return item as Extract<Item, { $type: T }>;
 }

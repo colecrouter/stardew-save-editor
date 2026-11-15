@@ -1,9 +1,11 @@
 import { expect, it } from "vitest";
+
 import catalog from "../../generated/progress.json";
-import { tinyEditorFixture } from "../helpers/editor-document.ts";
-import { recipeDefinitions } from "../../src/lib/editor/recipe-data.ts";
-import { readProgress } from "../../src/lib/editor/progress-data.ts";
 import type { SaveDocument } from "../../src/lib/editor/domain.ts";
+import { readProgress } from "../../src/lib/editor/progress-data.ts";
+import { recipeDefinitions } from "../../src/lib/editor/recipe-data.ts";
+import { requireDefined } from "../helpers/assertions.ts";
+import { tinyEditorFixture } from "../helpers/editor-document.ts";
 
 /** Every category is explicitly empty rather than absent. This distinguishes a
  * known zero from the uncertainty required for incomplete imported records. */
@@ -40,7 +42,11 @@ function emptyProgress() {
 	return document;
 }
 const category = (document: SaveDocument, id: string) =>
-	readProgress(document).farmers[0]!.categories.find((row) => row.id === id)!;
+	requireDefined(
+		requireDefined(readProgress(document).farmers[0]).categories.find(
+			(row) => row.id === id,
+		),
+	);
 
 it("calculates known zero and applies found walnuts and waivers without spending balances", () => {
 	const document = emptyProgress();
@@ -56,16 +62,16 @@ it("counts collection keys at zero, ignores excluded IDs and rejects duplicate e
 	const document = emptyProgress();
 	const host = document.SaveGame.player;
 	host.basicShipped = [
-		{ key: catalog.shipping[0]!.id, value: 0 },
+		{ key: requireDefined(catalog.shipping[0]).id, value: 0 },
 		{ key: "ModItem", value: 42 },
 	];
 	host.fishCaught = [
-		{ key: `(O)${catalog.fish[0]!.id}`, value: [0, 10] },
+		{ key: `(O)${requireDefined(catalog.fish[0]).id}`, value: [0, 10] },
 		{ key: "(O)Trash", value: [99, 0] },
 	];
 	expect(category(document, "shipping").completed).toBe(1);
 	expect(category(document, "fishing").completed).toBe(1);
-	host.basicShipped.push({ ...host.basicShipped[0]! });
+	host.basicShipped.push({ ...requireDefined(host.basicShipped[0]) });
 	expect(category(document, "shipping")).toMatchObject({
 		completed: 0,
 		unknown: 1,
@@ -82,7 +88,7 @@ it("uses fixed friendship thresholds for Perfection but includes children in ach
 		{ key: "Baby", value: { Points: 2500 } },
 	];
 	expect(category(document, "friends").completed).toBe(1);
-	const awards = readProgress(document).farmers[0]!.achievements;
+	const awards = requireDefined(readProgress(document).farmers[0]).achievements;
 	expect(awards.find((row) => row.id === 7)).toMatchObject({
 		value: 1,
 		status: "Requirements satisfied",
@@ -95,14 +101,17 @@ it("matches the game's integer farmer level and binary monster and Stardrop cont
 	const host = document.SaveGame.player;
 	Object.assign(host, { farmingLevel: 10, fishingLevel: 9 });
 	expect(category(document, "skills").lower).toBe(9 / 25);
-	host.stats!.specificMonstersKilled = catalog.monsters.flatMap((goal) =>
-		goal.targets.map((target, index) => ({
-			key: target,
-			value: index === 0 ? goal.count : 0,
-		})),
+	requireDefined(host.stats).specificMonstersKilled = catalog.monsters.flatMap(
+		(goal) =>
+			goal.targets.map((target, index) => ({
+				key: target,
+				value: index === 0 ? goal.count : 0,
+			})),
 	);
 	expect(category(document, "monsters").lower).toBe(1);
-	host.stats!.specificMonstersKilled[0]!.value--;
+	requireDefined(
+		requireDefined(requireDefined(host.stats).specificMonstersKilled)[0],
+	).value--;
 	expect(category(document, "monsters").lower).toBe(0);
 	host.mailReceived = [
 		"CF_Fair",
@@ -145,9 +154,11 @@ it("keeps pending Stardrop mail with its receiving farmer, including host-only l
 	];
 	document.SaveGame.farmhands = [guest];
 	const guestDrops = () =>
-		readProgress(document).farmers[1]!.categories.find(
-			(row) => row.id === "stardrops",
-		)!;
+		requireDefined(
+			requireDefined(readProgress(document).farmers[1]).categories.find(
+				(row) => row.id === "stardrops",
+			),
+		);
 	host.mailbox = ["CF_Fair"];
 	expect(guestDrops()).toMatchObject({ completed: 6, lower: 0 });
 	// Conversely, guest-only pending mail must count without host evidence.
@@ -164,7 +175,7 @@ it("keeps pending Stardrop mail with its receiving farmer, including host-only l
 
 it("counts distinct constructed building types worldwide, excluding unfinished construction", () => {
 	const document = emptyProgress();
-	const farm = document.SaveGame.locations![0]!;
+	const farm = requireDefined(requireDefined(document.SaveGame.locations)[0]);
 	if (farm.$type === "$unknown") throw new Error("Expected a known farm");
 	farm.buildings = [
 		{
@@ -215,9 +226,11 @@ it("chooses whole player category leaders and excludes uncustomized cabins", () 
 		.slice(20, 50)
 		.map((row) => ({ key: row.name, value: 1 }));
 	document.SaveGame.farmhands = [guest];
-	const leader = readProgress(document).leaders.find(
-		(row) => row.category.id === "crafting",
-	)!;
+	const leader = requireDefined(
+		readProgress(document).leaders.find(
+			(row) => row.category.id === "crafting",
+		),
+	);
 	expect(leader.farmer).toBe("Guest");
 	expect(leader.category.completed).toBe(30);
 	guest.isCustomized = false;
@@ -235,9 +248,9 @@ it("keeps earned awards separate from current requirements and preserves the sou
 	const document = emptyProgress();
 	document.SaveGame.player.achievements = [0, 999];
 	const before = structuredClone(document);
-	const award = readProgress(document).farmers[0]!.achievements.find(
-		(row) => row.id === 0,
-	);
+	const award = requireDefined(
+		readProgress(document).farmers[0],
+	).achievements.find((row) => row.id === 0);
 	expect(award).toMatchObject({
 		recorded: true,
 		status: "In progress",
@@ -264,7 +277,7 @@ it("reaches exactly 100% when every vanilla requirement is satisfied", () => {
 			value: 0,
 		})),
 		recipesCooked: recipeDefinitions("cooking").map((row) => ({
-			key: row.outputId!,
+			key: requireDefined(row.outputId),
 			value: 0,
 		})),
 		craftingRecipes: recipeDefinitions("crafting").map((row) => ({
@@ -278,14 +291,15 @@ it("reaches exactly 100% when every vanilla requirement is satisfied", () => {
 		combatLevel: 10,
 		mailReceived: ["gotMaxStamina"],
 	});
-	host.stats!.specificMonstersKilled = catalog.monsters.flatMap((goal) =>
-		goal.targets.map((target, index) => ({
-			key: target,
-			value: index === 0 ? goal.count : 0,
-		})),
+	requireDefined(host.stats).specificMonstersKilled = catalog.monsters.flatMap(
+		(goal) =>
+			goal.targets.map((target, index) => ({
+				key: target,
+				value: index === 0 ? goal.count : 0,
+			})),
 	);
 	document.SaveGame.goldenWalnutsFound = 130;
-	const farm = document.SaveGame.locations![0]!;
+	const farm = requireDefined(requireDefined(document.SaveGame.locations)[0]);
 	if (farm.$type === "$unknown") throw new Error("Expected a known farm");
 	farm.buildings = [
 		"Earth Obelisk",
@@ -308,16 +322,17 @@ it("marks ambiguous learned recipe requirements and absent mail as uncertain", (
 	host.cookingRecipes = learned.map((row) => ({ key: row.name, value: 0 }));
 	host.recipesCooked = learned
 		.slice(0, 9)
-		.map((row) => ({ key: row.outputId!, value: 0 }));
+		.map((row) => ({ key: requireDefined(row.outputId), value: 0 }));
 	// Ambiguous evidence for the tenth recipe could put Cook on either side of
 	// its threshold, so the UI must not describe it as definitely incomplete.
 	host.recipesCooked.push(
-		{ key: learned[9]!.outputId!, value: 0 },
-		{ key: learned[9]!.outputId!, value: 0 },
+		{ key: requireDefined(requireDefined(learned[9]).outputId), value: 0 },
+		{ key: requireDefined(requireDefined(learned[9]).outputId), value: 0 },
 	);
 	expect(
-		readProgress(document).farmers[0]!.achievements.find((row) => row.id === 15)
-			?.status,
+		requireDefined(readProgress(document).farmers[0]).achievements.find(
+			(row) => row.id === 15,
+		)?.status,
 	).toBe("Unable to determine");
 	// Omitted optional fields are valid decoded data, but cannot prove absence.
 	delete host.mailReceived;

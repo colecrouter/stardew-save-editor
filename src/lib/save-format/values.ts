@@ -1,18 +1,20 @@
 import { Effect, Schema, SchemaParser } from "effect";
-import { scalarTypes } from "./scalars.ts";
-import type { ScalarType } from "./scalars.ts";
+
 import {
-	attach,
 	accepted,
+	attach,
+	type Codec,
+	type Frame,
 	instanceAttribute,
+	invalid,
 	noAttributes,
 	rejectContent,
 	whitespace,
 	without,
 	xsi,
-	invalid,
 } from "./events.ts";
-import type { Codec, Frame } from "./events.ts";
+import { type ScalarType, scalarTypes } from "./scalars.ts";
+
 export { record, xsi } from "./events.ts";
 export type { Codec } from "./events.ts";
 
@@ -28,14 +30,14 @@ export function text<A>(codec: Schema.Codec<A, string>): Codec<A> {
 			(header) =>
 				Effect.gen(function* () {
 					yield* noAttributes(header);
-					let text = "";
+					let nestedText = "";
 					return {
 						text: (value) =>
 							Effect.sync(() => {
-								text += value;
+								nestedText += value;
 							}),
 						child: rejectContent,
-						finish: () => decodeText(text),
+						finish: () => decodeText(nestedText),
 					} satisfies Frame;
 				}),
 			function* (name, value, attributes) {
@@ -65,7 +67,10 @@ export function nullable<A>(codec: Codec<A>): Codec<A | null> {
 		(header) =>
 			Effect.gen(function* () {
 				const attribute = yield* instanceAttribute(header, "nil");
-				const nil = attribute ? header.attributes[attribute] : undefined;
+				const nil =
+					attribute != null && attribute !== ""
+						? header.attributes[attribute]
+						: undefined;
 				const clean = without(header, attribute);
 				if (nil !== undefined && !["true", "1", "false", "0"].includes(nil))
 					return yield* invalid("Invalid xsi:nil");
@@ -73,7 +78,8 @@ export function nullable<A>(codec: Codec<A>): Codec<A | null> {
 					yield* noAttributes(clean);
 					const invalidContent = () => invalid("Nil element contains data");
 					return {
-						text: (value) => (value.trim() ? invalidContent() : Effect.void),
+						text: (value) =>
+							value.trim() !== "" ? invalidContent() : Effect.void,
 						child: invalidContent,
 						finish: () => Effect.succeed(null),
 					} satisfies Frame;
@@ -158,23 +164,25 @@ export function wrapped<A>(
 // CLR NetField wrappers serialize zero or one child, but represent one logical
 // value. Empty reference wrappers decode to null; present values need no array.
 export function single<A>(codec: Codec<A>, itemName: string): Codec<A | null> {
-	const sequence = wrapped(codec, itemName, 1);
+	const nestedSequence = wrapped(codec, itemName, 1);
 	return attach(
 		Schema.NullOr(Schema.toType(codec)),
 		(header) =>
 			Effect.gen(function* () {
-				const frame = yield* sequence.open(header);
+				const frame = yield* nestedSequence.open(header);
 				return {
 					...frame,
 					finish: () =>
-						Effect.map(
-							frame.finish(),
-							(value) => (value as readonly A[])[0] ?? null,
-						),
+						Effect.map(frame.finish(), (value) => {
+							// The wrapped codec already established its element type and
+							// maximum length; Frame erases that generic at the XML boundary.
+							// oxlint-disable-next-line typescript/no-unsafe-type-assertion -- The wrapped A codec produced this sequence.
+							return (value as readonly A[])[0] ?? null;
+						}),
 				};
 			}),
 		(name, value, attributes) =>
-			sequence.write(name, value === null ? [] : [value], attributes),
+			nestedSequence.write(name, value === null ? [] : [value], attributes),
 	);
 }
 

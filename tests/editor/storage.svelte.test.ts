@@ -1,8 +1,9 @@
 import { fireEvent, render, waitFor } from "@testing-library/svelte";
 import { expect, it } from "vitest";
-import { openTestDocument } from "../helpers/open-editor.ts";
+
 import { readChests } from "../../src/lib/editor/inventory-views";
 import { createCatalogItem } from "../../src/lib/editor/item-catalog";
+import { openTestDocument } from "../helpers/open-editor.ts";
 import { fixtureXml, parser } from "./fixtures";
 import StorageHarness from "./StorageHarness.svelte";
 
@@ -27,7 +28,7 @@ it("searches across chests, picks eligible items and changes quality with one Un
 	if (!Array.isArray(locations)) throw new Error("Missing fixture locations");
 	const farm = locations.find(
 		(value: unknown) =>
-			value &&
+			value !== null &&
 			typeof value === "object" &&
 			"name" in value &&
 			value.name === "Farm",
@@ -48,7 +49,9 @@ it("searches across chests, picks eligible items and changes quality with one Un
 	try {
 		await fireEvent.input(
 			page.getByRole("searchbox", { name: "Search stored items" }),
-			{ target: { value: "Parsnip" } },
+			{
+				target: { value: "Parsnip" },
+			},
 		);
 		expect(
 			page.getAllByRole("button", { name: "Slot 1: Parsnip" }),
@@ -88,7 +91,9 @@ it("searches across chests, picks eligible items and changes quality with one Un
 		);
 		await fireEvent.input(
 			page.getByRole("searchbox", { name: "Search stored items" }),
-			{ target: { value: "Wood" } },
+			{
+				target: { value: "Wood" },
+			},
 		);
 		expect(page.queryByText("2 selected")).toBeNull();
 		expect(page.getAllByRole("button", { name: "Organize" })).toHaveLength(1);
@@ -96,7 +101,9 @@ it("searches across chests, picks eligible items and changes quality with one Un
 		await fireEvent.click(page.getByRole("button", { name: "Slot 2: Wood" }));
 		await fireEvent.input(
 			page.getByRole("searchbox", { name: "Search stored items" }),
-			{ target: { value: "" } },
+			{
+				target: { value: "" },
+			},
 		);
 		const parsnip = page.getAllByRole("button", {
 			name: "Slot 1: Parsnip",

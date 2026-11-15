@@ -1,27 +1,30 @@
-/**
-    Helpers for coops and barns (and sheds, which can be upgraded too): their
-    upgrade tiers, which animals can live in them, and the changes the game
-    makes inside them when they're upgraded.
-*/
 import { ItemData, KeyToName } from "$lib/ItemData";
-import { upgradeTiers, type BuildingInfo } from "./animalBuildingData.ts";
-export {
-	upgradeTiers,
-	animalOptions,
-	defaultAnimalName,
-	purchasedAnimalTopic,
-	buildingTierBlocker,
-} from "./animalBuildingData.ts";
-export type { BuildingInfo, AnimalOption } from "./animalBuildingData.ts";
-import type { Building } from "$types/save";
 import type { IndoorItem, IndoorItemMove } from "$types/buildingUpgrade";
 import { type BigCraftable, Fragility } from "$types/items";
 import type {
+	Building,
 	ItemKV,
 	GameLocation as Location,
 	Item as SaveItem,
 	TileLocation,
 } from "$types/save";
+
+import { type BuildingInfo, upgradeTiers } from "./animalBuildingData.ts";
+
+/**
+    Helpers for coops and barns (and sheds, which can be upgraded too): their
+    upgrade tiers, which animals can live in them, and the changes the game
+    makes inside them when they're upgraded.
+*/
+
+export type { AnimalOption, BuildingInfo } from "./animalBuildingData.ts";
+export {
+	animalOptions,
+	buildingTierBlocker,
+	defaultAnimalName,
+	purchasedAnimalTopic,
+	upgradeTiers,
+} from "./animalBuildingData.ts";
 
 export type { IndoorItem, IndoorItemMove };
 
@@ -48,7 +51,7 @@ function qualifiedItemId(item: SaveItem, isFurniture = false) {
 	const id = String(item.itemId ?? "");
 	if (id.startsWith("(")) return id;
 	if (isFurniture) return `(F)${id}`;
-	return item.bigCraftable ? `(BC)${id}` : `(O)${id}`;
+	return item.bigCraftable === true ? `(BC)${id}` : `(O)${id}`;
 }
 
 const objectsOf = (location: Location): ItemKV[] =>
@@ -65,7 +68,10 @@ const objectAt = (location: Location, tile: Tile) =>
 
 const furnitureCovering = (location: Location, tile: Tile) =>
 	furnitureOf(location).filter(
-		(f) => f.boundingBox && intersects(f.boundingBox, tileRect(tile)),
+		(f) =>
+			f.boundingBox !== undefined &&
+			f.boundingBox !== null &&
+			intersects(f.boundingBox, tileRect(tile)),
 	);
 
 /** What's on a tile: the object there, and any furniture covering it */
@@ -90,7 +96,8 @@ function setTile(item: SaveItem, tile: Tile) {
 		if (!box) continue;
 		box.X += (tile.X - from.X) * TILE_SIZE;
 		box.Y += (tile.Y - from.Y) * TILE_SIZE;
-		if (box.Location) box.Location = { X: box.X, Y: box.Y };
+		if (box.Location !== undefined && box.Location !== null)
+			box.Location = { X: box.X, Y: box.Y };
 	}
 }
 
@@ -188,7 +195,7 @@ export function applyIndoorItemMoves(
 		.map(([item, tile]) => {
 			const isFurniture = furnitureOf(location).includes(item);
 			return {
-				name: String(item.name ?? qualifiedItemId(item, isFurniture)),
+				name: item.name ?? qualifiedItemId(item, isFurniture),
 				itemId: qualifiedItemId(item, isFurniture),
 				tile: isFurniture ? (item.tileLocation ?? tile) : tile,
 				reason: "its old spot is taken",
@@ -249,13 +256,13 @@ function placedBigCraftable(
 		uses: 0,
 		destroyOvernight: false,
 	};
-	return object as SaveItem;
+	return object;
 }
 
 /** The data for a `(BC)` item, the only kind the game's buildings add */
 function bigCraftableData(item: IndoorItem) {
 	const id = /^\(BC\)(.+)$/.exec(item.itemId)?.[1];
-	if (!id) return undefined;
+	if (id === undefined || id === null || id.length === 0) return undefined;
 	try {
 		const data = ItemData.get(KeyToName(id, "BigCraftable"));
 		return data?._type === "BigCraftable" ? data : undefined;
@@ -296,13 +303,17 @@ export function placeIndoorItems(
 			problems.push(unplaced(item, "something else is in the way"));
 			continue;
 		}
-		if (typeof location.objects !== "object" || !location.objects)
+		if (typeof location.objects !== "object" || location.objects === null)
 			location.objects = { item: [] };
 		location.objects.item ??= [];
 		location.objects.item.push({
 			key: { Vector2: { X: item.tile.X, Y: item.tile.Y } },
 			value: {
-				Object: placedBigCraftable(data, item.tile, !!item.indestructible),
+				Object: placedBigCraftable(
+					data,
+					item.tile,
+					Boolean(item.indestructible),
+				),
 			},
 		});
 	}
@@ -323,9 +334,11 @@ export function removeIndoorItems(
 		const existing = objectAt(location, item.tile);
 		if (!existing || qualifiedItemId(existing.value.Object) !== item.itemId)
 			continue;
-		const held = (existing.value.Object as SaveItem & { heldObject?: unknown })
-			.heldObject;
-		if (held && typeof held === "object") {
+		// Extension fields are opaque until their container representation is checked.
+		const object = existing.value.Object;
+		const held: unknown =
+			"heldObject" in object ? object.heldObject : undefined;
+		if (held !== null && typeof held === "object") {
 			kept.push(unplaced(item, "it has something in it"));
 			continue;
 		}
@@ -373,7 +386,7 @@ export function changeBuildingTier(
 		const below = tiers[i - 1];
 		if (!tier || !below || !interior) continue;
 		const added = (tier.indoorItems ?? []).filter(
-			(item) => !below.indoorItems?.some((b) => b.id === item.id),
+			(item) => !(below.indoorItems?.some((b) => b.id === item.id) === true),
 		);
 		problems.push(...removeIndoorItems(interior, added));
 		problems.push(

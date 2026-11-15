@@ -1,10 +1,12 @@
-import { openTestEditor } from "../helpers/open-editor.ts";
-import * as editorModel from "../../src/lib/editor/editor-model";
+import { fireEvent, render, waitFor } from "@testing-library/svelte";
 import { describe, expect, it, vi } from "vitest";
-import { render, fireEvent, waitFor } from "@testing-library/svelte";
-import EditorApp from "../../src/lib/editor/ui/EditorApp.svelte";
-import { fixtureXml, parser } from "./fixtures";
+
+import * as editorModel from "../../src/lib/editor/editor-model";
 import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
+import EditorApp from "../../src/lib/editor/ui/EditorApp.svelte";
+import { requireInstance } from "../helpers/assertions.ts";
+import { openTestEditor } from "../helpers/open-editor.ts";
+import { fixtureXml, parser } from "./fixtures";
 
 // Each scenario imports the complete save and performs real history operations.
 // Use the shared runner deadline for this full-save preservation workload.
@@ -44,30 +46,35 @@ describe("full-save farm workflow", () => {
 	const actionCount = (page: Page) =>
 		page.model.atomBindings.registry.get(page.model.atomBindings.view)?.entries
 			.length ?? 0;
-	const idle = async (page: Page) =>
-		waitFor(() => {
-			expect(
-				page
-					.getByRole("button", { name: "Export save" })
-					.hasAttribute("disabled"),
-			).toBe(false);
-			// Toolbar actions remain available to queue behind a blur commit.
-			// Wait on the controls' own saving flags, never a global click lock.
-			for (const control of [
-				page.getByRole("textbox", { name: "Farm name" }),
-				page.getByRole("spinbutton", { name: "Profit margin (%)" }),
-				page.getByRole("checkbox", { name: "Spawn monsters on the farm" }),
-				page.getByRole("combobox", { name: "Mine rewards" }),
-			])
-				expect(control.hasAttribute("disabled")).toBe(false);
-		});
+	const idle = (page: Page) =>
+		Promise.resolve(
+			waitFor(() => {
+				expect(
+					page
+						.getByRole("button", { name: "Export save" })
+						.hasAttribute("disabled"),
+				).toBe(false);
+				// Toolbar actions remain available to queue behind a blur commit.
+				// Wait on the controls' own saving flags, never a global click lock.
+				for (const control of [
+					page.getByRole("textbox", { name: "Farm name" }),
+					page.getByRole("spinbutton", { name: "Profit margin (%)" }),
+					page.getByRole("checkbox", { name: "Spawn monsters on the farm" }),
+					page.getByRole("combobox", { name: "Mine rewards" }),
+				])
+					expect(control.hasAttribute("disabled")).toBe(false);
+			}),
+		);
 
 	it("farm name applies while typing but preserves one Undo step for the whole focus gesture", async () => {
 		const page = await openFarm();
 		try {
-			const name = page.getByRole("textbox", {
-				name: "Farm name",
-			}) as HTMLInputElement;
+			const name = requireInstance(
+				page.getByRole("textbox", {
+					name: "Farm name",
+				}),
+				HTMLInputElement,
+			);
 			const initial = name.value;
 			expect(
 				page.queryByRole("button", { name: "Apply farm settings" }),
@@ -114,9 +121,12 @@ describe("full-save farm workflow", () => {
 	it("profit edits apply immediately, group typing, and reject invalid values without new history", async () => {
 		const page = await openFarm();
 		try {
-			const profit = page.getByRole("spinbutton", {
-				name: "Profit margin (%)",
-			}) as HTMLInputElement;
+			const profit = requireInstance(
+				page.getByRole("spinbutton", {
+					name: "Profit margin (%)",
+				}),
+				HTMLInputElement,
+			);
 			profit.focus();
 			await fireEvent.input(profit, { target: { value: "7" } });
 			await fireEvent.input(profit, { target: { value: "75" } });
@@ -151,12 +161,18 @@ describe("full-save farm workflow", () => {
 	it("monster and mine selectors commit immediately, undo independently, and leave calendar draft gating intact", async () => {
 		const page = await openFarm();
 		try {
-			const monsters = page.getByRole("checkbox", {
-				name: "Spawn monsters on the farm",
-			}) as HTMLInputElement;
-			const rewards = page.getByRole("combobox", {
-				name: "Mine rewards",
-			}) as HTMLSelectElement;
+			const monsters = requireInstance(
+				page.getByRole("checkbox", {
+					name: "Spawn monsters on the farm",
+				}),
+				HTMLInputElement,
+			);
+			const rewards = requireInstance(
+				page.getByRole("combobox", {
+					name: "Mine rewards",
+				}),
+				HTMLSelectElement,
+			);
 			const initialMonsters = monsters.checked;
 			const initialRewards = rewards.value;
 			const changedRewards =
@@ -208,12 +224,18 @@ describe("full-save farm workflow", () => {
 	it("blurring a name then clicking another control preserves both queued edits", async () => {
 		const page = await openFarm();
 		try {
-			const name = page.getByRole("textbox", {
-				name: "Farm name",
-			}) as HTMLInputElement;
-			const monsters = page.getByRole("checkbox", {
-				name: "Spawn monsters on the farm",
-			}) as HTMLInputElement;
+			const name = requireInstance(
+				page.getByRole("textbox", {
+					name: "Farm name",
+				}),
+				HTMLInputElement,
+			);
+			const monsters = requireInstance(
+				page.getByRole("checkbox", {
+					name: "Spawn monsters on the farm",
+				}),
+				HTMLInputElement,
+			);
 			const initialMonsters = monsters.checked;
 			name.focus();
 			await fireEvent.input(name, { target: { value: "Concurrent Farm" } });
@@ -231,23 +253,38 @@ describe("full-save farm workflow", () => {
 
 	it("export includes the latest typed name before blur and finalizes its Undo group", async () => {
 		let written: Blob | undefined;
-		const picker = vi.fn(async () => ({
-			createWritable: async () => ({
-				write: async (blob: Blob) => {
-					written = blob;
-				},
-				close: async () => {},
+		const picker = vi.fn<
+			() => Promise<{
+				createWritable: () => Promise<{
+					write: (blob: Blob) => Promise<void>;
+					close: () => Promise<void>;
+				}>;
+			}>
+		>(() =>
+			Promise.resolve({
+				createWritable: () =>
+					Promise.resolve({
+						write: (blob: Blob) => {
+							written = blob;
+
+							return Promise.resolve();
+						},
+						close: () => Promise.resolve(),
+					}),
 			}),
-		}));
+		);
 		Object.defineProperty(window, "showSaveFilePicker", {
 			configurable: true,
 			value: picker,
 		});
 		const page = await openFarm();
 		try {
-			const name = page.getByRole("textbox", {
-				name: "Farm name",
-			}) as HTMLInputElement;
+			const name = requireInstance(
+				page.getByRole("textbox", {
+					name: "Farm name",
+				}),
+				HTMLInputElement,
+			);
 			name.focus();
 			await fireEvent.input(name, { target: { value: "Export Farm" } });
 			await fireEvent.click(page.getByRole("button", { name: "Export save" }));
@@ -267,9 +304,12 @@ describe("full-save farm workflow", () => {
 	it("Undo clicked after name blur reverses the just-committed name, and one Redo restores it", async () => {
 		const page = await openFarm();
 		try {
-			const name = page.getByRole("textbox", {
-				name: "Farm name",
-			}) as HTMLInputElement;
+			const name = requireInstance(
+				page.getByRole("textbox", {
+					name: "Farm name",
+				}),
+				HTMLInputElement,
+			);
 			name.focus();
 			await fireEvent.input(name, { target: { value: "Previous Farm" } });
 			await fireEvent.blur(name);

@@ -22,6 +22,8 @@ import {
 	Status,
 } from "$types/save";
 
+import { isRecord } from "./unknown.ts";
+
 /** 10 hearts of 250 points */
 export const BABY_QUESTION_POINTS = 2500;
 export const BABY_QUESTION_DAYS_MARRIED = 7;
@@ -71,7 +73,7 @@ export function babyQuestionStatus(
 	const daysMarried = wedding ? totalDays(today) - totalDays(wedding) : null;
 	const hearts = spouse ? spouse.hearts : 0;
 
-	const requirements: BabyQuestionRequirement[] = [
+	const requirements = [
 		{
 			id: "married",
 			label: "Married to a villager",
@@ -133,12 +135,13 @@ export function babyQuestionStatus(
 		{
 			id: "not-pregnant",
 			label: "Not already pregnant",
-			met: !spouse?.pregnant,
-			detail: spouse?.pregnant
-				? "A baby is already on the way"
-				: "Not expecting",
+			met: !(spouse?.pregnant === true),
+			detail:
+				spouse?.pregnant === true
+					? "A baby is already on the way"
+					: "Not expecting",
 		},
-	];
+	] as const satisfies BabyQuestionRequirement[];
 
 	return {
 		title: `Will ${spouse?.name ?? "a spouse"} ask about a baby?`,
@@ -162,7 +165,7 @@ export function playerMarriageOf(
 	farmerId: number | string,
 	pairs: Save["farmerFriendships"] | undefined,
 ): PlayerMarriage | undefined {
-	if (!pairs) return undefined;
+	if (pairs === undefined || pairs === null || pairs === "") return undefined;
 	const me = String(farmerId);
 	for (const { key, value } of [pairs.item].flat()) {
 		const { Farmer1, Farmer2 } = key.FarmerPair;
@@ -233,7 +236,7 @@ export function playerBabyQuestionStatus(
 	);
 	const expecting = marriage?.friendship.NextBirthingDate !== undefined;
 
-	const requirements: BabyQuestionRequirement[] = [
+	const requirements = [
 		{
 			id: "married",
 			label: "Married to another player",
@@ -280,7 +283,7 @@ export function playerBabyQuestionStatus(
 			met: !expecting,
 			detail: expecting ? "A baby is already on the way" : "Not expecting",
 		},
-	];
+	] as const satisfies BabyQuestionRequirement[];
 
 	return {
 		title: partner
@@ -298,20 +301,23 @@ export function readHome(
 	upgradeLevel: number,
 ): BabyQuestionHome {
 	const characters = home?.characters;
-	const npcs =
-		characters && typeof characters === "object" ? [characters.NPC].flat() : [];
-	const children = (npcs as unknown as RawNPC[]).filter(
-		(npc) => npc?.["@_xsi:type"] === "Child",
-	);
+	// Known NPC fields do not cover custom child records. Narrow opaque extension
+	// fields instead of asserting that every saved NPC has the child contract.
+	const npcs: readonly unknown[] =
+		characters !== undefined &&
+		characters !== null &&
+		typeof characters === "object"
+			? [characters.NPC].flat()
+			: [];
+	const children = npcs
+		.filter(isRecord)
+		.filter((npc) => npc["@_xsi:type"] === "Child");
 	return {
 		upgradeLevel,
 		cribStyle: home?.cribStyle,
 		children: children.length,
 		toddlers: children.filter(
-			(child) => Number(child.daysOld) >= TODDLER_DAYS_OLD,
+			(child) => Number(child["daysOld"]) >= TODDLER_DAYS_OLD,
 		).length,
 	};
 }
-
-/** A character in the farmhouse; `daysOld` is a child's age in days */
-type RawNPC = { "@_xsi:type"?: string; daysOld?: number | string };

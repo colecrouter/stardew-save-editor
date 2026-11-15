@@ -1,21 +1,22 @@
-import type { HistoryLimits } from "../../src/lib/editor/history.ts";
-import { stringifySavedData } from "../../src/lib/editor/saved-data.ts";
-import { describe, expect, it } from "vitest";
-import { fixtureXml } from "./fixtures";
 import { get } from "svelte/store";
-import { createDraft } from "../../src/lib/editor/field.ts";
+import { describe, expect, it } from "vitest";
+
 import {
 	editorResources,
 	formatDateDraft,
 } from "../../src/lib/editor/editor-model.ts";
+import { createDraft } from "../../src/lib/editor/field.ts";
+import type { HistoryLimits } from "../../src/lib/editor/history.ts";
+import { stringifySavedData } from "../../src/lib/editor/saved-data.ts";
 import {
 	exportDocument,
+	malformedFixture,
 	parser,
-	tinyFixture,
 	tinyEditorFixture,
+	tinyFixture,
 } from "../helpers/editor-document.ts";
 import { openEditor as openApplicationEditor } from "../helpers/open-editor.ts";
-import type { FixtureSave as Save } from "../helpers/editor-document.ts";
+import { fixtureXml } from "./fixtures";
 
 const openEditor = (bytes: Uint8Array, limits: HistoryLimits = {}) =>
 	openApplicationEditor(bytes, limits, {
@@ -23,7 +24,7 @@ const openEditor = (bytes: Uint8Array, limits: HistoryLimits = {}) =>
 		validateExport: false,
 	});
 
-const input = async () => new TextEncoder().encode(fixtureXml);
+const input = () => Promise.resolve(new TextEncoder().encode(fixtureXml));
 const parseBytes = (bytes: Uint8Array) =>
 	parser.parse(new TextDecoder().decode(bytes));
 
@@ -53,7 +54,11 @@ describe("full-save calendar session", () => {
 		try {
 			const before = await opened.model.snapshot();
 			draft.input(
-				formatDateDraft({ year: 3, season: "spring" as never, day: 8 }),
+				formatDateDraft({
+					year: 3,
+					season: malformedFixture<never>("spring"),
+					day: 8,
+				}),
 			);
 			expect((await opened.model.snapshot()).document).toEqual(before.document);
 			await opened.model.execute([
@@ -67,7 +72,11 @@ describe("full-save calendar session", () => {
 			expect(get(draft).conflict).toBe(true);
 			draft.reload();
 			draft.input(
-				formatDateDraft({ year: 3, season: "spring" as never, day: 8 }),
+				formatDateDraft({
+					year: 3,
+					season: malformedFixture<never>("spring"),
+					day: 8,
+				}),
 			);
 			await draft.submit();
 			expect(get(draft).dirty).toBe(false);
@@ -101,7 +110,7 @@ describe("full-save calendar session", () => {
 					{ type: "calendar-date", change: { day: 8 } },
 					{ type: "calendar-weather", day: "today", value: "not-allowed" },
 				]),
-			).rejects.toThrow();
+			).rejects.toThrow("Weather is not allowed on this date");
 			expect(await opened.model.snapshot()).toEqual(before);
 		} finally {
 			stop();
@@ -117,9 +126,7 @@ describe("full-save calendar session", () => {
 			]);
 			const exported = opened.model.export();
 			await edit;
-			expect(
-				(parseBytes(await exported).SaveGame as unknown as Save).year,
-			).toBe(5);
+			expect(parseBytes(await exported).SaveGame.year).toBe(5);
 			const revision = get(opened.model.view)?.revision;
 			const results = await Promise.allSettled([
 				opened.model.execute(
@@ -203,7 +210,7 @@ describe("full-save calendar session", () => {
 		Object.assign(malformed.SaveGame, { gameVersion: "1.6.15" });
 		await expect(
 			openEditor(new TextEncoder().encode(exportDocument(malformed))),
-		).rejects.toThrow();
+		).rejects.toThrow(/calendar date/);
 		expect(editorResources()).toEqual({ models: 0, registries: 0, streams: 0 });
 		// Repeated acquisition/closure needs the real codec and registry lifecycle,
 		// but unrelated world records only make leak detection more expensive.

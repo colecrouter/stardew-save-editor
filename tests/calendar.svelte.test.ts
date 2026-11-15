@@ -1,11 +1,14 @@
-import publicSaveXml from "./TestSave?raw";
 import { flushSync } from "svelte";
 import { beforeEach, describe, expect, it } from "vitest";
+
 import { Raw } from "$lib/proxies";
 import { getStatValue, setStatValue } from "$lib/proxies/Farmer.svelte";
 import { Season } from "$types/save";
+
 import { SaveManager } from "../src/lib/SaveManager.svelte";
 import { XMLManager } from "../src/lib/workers/xml";
+import { malformedFixture } from "./helpers/editor-document.ts";
+import publicSaveXml from "./TestSave?raw";
 
 const parse = (xml: string) => new XMLManager().parse<SaveFile>(xml);
 
@@ -112,15 +115,15 @@ describe("Calendar", () => {
 		}).toThrow("1 to 28");
 		expect(() => {
 			calendar.day = 0;
-		}).toThrow();
+		}).toThrow("1 to 28");
 		expect(() => {
 			calendar.year = 0;
-		}).toThrow();
+		}).toThrow("whole number from 1");
 		expect(() => {
 			calendar.year = 1.5;
-		}).toThrow();
+		}).toThrow("whole number from 1");
 		expect(() => {
-			calendar.season = "autumn" as Season;
+			calendar.season = malformedFixture<Season>("autumn");
 		}).toThrow("isn't a season");
 		expect(game().dayOfMonth).toBe(6);
 		expect(game().year).toBe(1);
@@ -181,7 +184,7 @@ describe("Calendar", () => {
 		}).toThrow("isn't possible in Spring");
 		expect(() => {
 			calendar.tomorrow = "GreenRain";
-		}).toThrow();
+		}).toThrow("isn't possible in Spring");
 		expect(calendar.todayOptions.map((o) => o.id)).toEqual([
 			"Sun",
 			"Rain",
@@ -299,7 +302,8 @@ describe("Calendar", () => {
 		// A year whose green rain falls on another day
 		calendar.day = 17;
 		const year = [2, 3, 4, 5, 6].find((y) => calendar.greenRainDay(y) !== 18);
-		if (!year) throw new Error("No year without green rain on Summer 18");
+		if (year === undefined)
+			throw new Error("No year without green rain on Summer 18");
 		calendar.year = year;
 		expect(calendar.tomorrow).toBe("Sun");
 
@@ -362,7 +366,8 @@ describe("Calendar", () => {
 		const features = farm.terrainFeatures?.item ?? [];
 		const buildings = farm.buildings?.Building ?? [];
 		const entry = features.find(
-			(entry) => entry.value.TerrainFeature["@_xsi:type"] === "HoeDirt",
+			(candidateEntry) =>
+				candidateEntry.value.TerrainFeature["@_xsi:type"] === "HoeDirt",
 		);
 		const bowl = buildings.find(
 			(building) => building["@_xsi:type"] === "PetBowl",
@@ -405,7 +410,7 @@ describe("Calendar", () => {
 		calendar.today = "Sun";
 		const prepare = (name: string) => {
 			const location = save().locations.find(
-				(location) => location[Raw].name === name,
+				(candidateLocation) => candidateLocation[Raw].name === name,
 			)?.[Raw];
 			if (!location) throw new Error(`No ${name}`);
 			location.terrainFeatures = {
@@ -473,8 +478,10 @@ describe("Calendar", () => {
 		saveManager = await importSave(
 			xml.replace("<year>1</year>", "<year>0</year>"),
 		);
+		// Vitest types asymmetric matchers as any. Keep expected matcher values
+		// unknown so they cannot weaken the surrounding saved-data assertions.
 		expect(save().calendar.dateProblems).toEqual([
-			expect.stringContaining("There's no Year 0"),
+			expect.stringContaining("There's no Year 0") as unknown,
 		]);
 		save().calendar.day = 10;
 		expect(save().calendar.date).toEqual({
@@ -596,16 +603,16 @@ describe("Calendar", () => {
 
 		const exported = async () => {
 			const parsed = parse(await (await saveManager.export()).text());
-			const farm = parsed.SaveGame.locations.GameLocation.find(
+			const exportedFarm = parsed.SaveGame.locations.GameLocation.find(
 				(l) => l.name === "Farm",
 			);
-			if (!farm) throw new Error("No farm in the export");
+			if (!exportedFarm) throw new Error("No farm in the export");
 			return {
-				soil: (farm.terrainFeatures?.item ?? [])
+				soil: (exportedFarm.terrainFeatures?.item ?? [])
 					.map((entry) => entry.value.TerrainFeature)
 					.filter((f) => f["@_xsi:type"] === "HoeDirt")
 					.map((f) => f.state),
-				bowl: farm.buildings?.Building?.find(
+				bowl: exportedFarm.buildings?.Building?.find(
 					(b) => b["@_xsi:type"] === "PetBowl",
 				)?.watered,
 			};

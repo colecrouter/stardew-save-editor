@@ -1,13 +1,14 @@
-import { expect, it, vi } from "vitest";
+import { fireEvent, render, waitFor, within } from "@testing-library/svelte";
 import { Result } from "effect";
-import { render, fireEvent, within, waitFor } from "@testing-library/svelte";
-import { openTestDocument } from "../helpers/open-editor.ts";
+import { expect, it, vi } from "vitest";
+
 import { readCommunity } from "../../src/lib/editor/community-data";
 import { setCommunityProgress } from "../../src/lib/editor/community-operations";
 import { MutationError } from "../../src/lib/editor/mutation-error";
-import WorkspaceHarness from "./WorkspaceHarness.svelte";
-import { fixtureXml, parser, exportDocument } from "./fixtures";
 import { tinyEditorFixture } from "../helpers/editor-document.ts";
+import { openTestDocument } from "../helpers/open-editor.ts";
+import { exportDocument, fixtureXml, parser } from "./fixtures";
+import WorkspaceHarness from "./WorkspaceHarness.svelte";
 
 // Preserve the real Center and bundle definitions while removing unrelated world
 // entities; these scenarios own route state and dialog lifecycle, not world I/O.
@@ -163,7 +164,7 @@ it("keeps a stale membership confirmation open without reversing a newer route",
 it("rejects a malformed membership list at the typed import boundary", () => {
 	const document = tinyEditorFixture();
 	Object.assign(document.SaveGame.player, { mailReceived: true });
-	expect(() => exportDocument(document)).toThrow();
+	expect(() => exportDocument(document)).toThrow(/mailReceived/);
 });
 
 it.each(["failure", "noncompletion"] as const)(
@@ -173,10 +174,12 @@ it.each(["failure", "noncompletion"] as const)(
 		const page = render(WorkspaceHarness, { model: opened.model });
 		const transact = vi
 			.spyOn(opened.model.commands, "transact")
-			.mockImplementation(async () =>
-				outcome === "failure"
-					? Result.fail(new MutationError("Donation rejected for this test."))
-					: null,
+			.mockImplementation(() =>
+				Promise.resolve(
+					outcome === "failure"
+						? Result.fail(new MutationError("Donation rejected for this test."))
+						: null,
+				),
 			);
 		try {
 			await fireEvent.click(
@@ -192,11 +195,14 @@ it.each(["failure", "noncompletion"] as const)(
 				before = await opened.model.snapshot();
 			await fireEvent.click(control);
 			await waitFor(() => expect(control.checked).toBe(original));
-			if (outcome === "failure")
-				expect(within(card).getByRole("alert").textContent).toContain(
-					"Donation rejected for this test.",
-				);
-			else expect(within(card).queryByRole("alert")).toBeNull();
+			// The alert also has its UI title. Require the original rejection body on failure,
+			// and require the alert to be absent when the command produces no receipt.
+			const rejectionBody: unknown = expect.stringContaining(
+				"Donation rejected for this test.",
+			);
+			expect(within(card).queryByRole("alert")?.textContent).toEqual(
+				outcome === "failure" ? rejectionBody : undefined,
+			);
 			expect(within(card).getByText("Wild Horseradish")).toBeTruthy();
 			expect((await opened.model.snapshot()).document).toEqual(before.document);
 		} finally {
@@ -271,10 +277,12 @@ it.each(["failure", "noncompletion"] as const)(
 		const page = render(WorkspaceHarness, { model: opened.model });
 		const transact = vi
 			.spyOn(opened.model.commands, "transact")
-			.mockImplementation(async () =>
-				outcome === "failure"
-					? Result.fail(new MutationError("Project rejected for this test."))
-					: null,
+			.mockImplementation(() =>
+				Promise.resolve(
+					outcome === "failure"
+						? Result.fail(new MutationError("Project rejected for this test."))
+						: null,
+				),
 			);
 		try {
 			await fireEvent.click(
@@ -289,11 +297,12 @@ it.each(["failure", "noncompletion"] as const)(
 				before = await opened.model.snapshot();
 			await fireEvent.click(control);
 			await waitFor(() => expect(control.checked).toBe(original));
-			if (outcome === "failure")
-				expect(page.getByRole("alert").textContent).toContain(
-					"Project rejected for this test.",
-				);
-			else expect(page.queryByRole("alert")).toBeNull();
+			const rejectionBody: unknown = expect.stringContaining(
+				"Project rejected for this test.",
+			);
+			expect(page.queryByRole("alert")?.textContent).toEqual(
+				outcome === "failure" ? rejectionBody : undefined,
+			);
 			expect((await opened.model.snapshot()).document).toEqual(before.document);
 		} finally {
 			transact.mockRestore();
@@ -316,10 +325,12 @@ it.each(["failure", "noncompletion"] as const)(
 		const page = render(WorkspaceHarness, { model: opened.model });
 		const transact = vi
 			.spyOn(opened.model.commands, "transact")
-			.mockImplementation(async () =>
-				outcome === "failure"
-					? Result.fail(new MutationError("Theater rejected for this test."))
-					: null,
+			.mockImplementation(() =>
+				Promise.resolve(
+					outcome === "failure"
+						? Result.fail(new MutationError("Theater rejected for this test."))
+						: null,
+				),
 			);
 		try {
 			await fireEvent.click(
@@ -332,11 +343,12 @@ it.each(["failure", "noncompletion"] as const)(
 			const before = await opened.model.snapshot();
 			await fireEvent.click(control);
 			await waitFor(() => expect(control).toHaveProperty("checked", true));
-			if (outcome === "failure")
-				expect(page.getByRole("alert").textContent).toContain(
-					"Theater rejected for this test.",
-				);
-			else expect(page.queryByRole("alert")).toBeNull();
+			const rejectionBody: unknown = expect.stringContaining(
+				"Theater rejected for this test.",
+			);
+			expect(page.queryByRole("alert")?.textContent).toEqual(
+				outcome === "failure" ? rejectionBody : undefined,
+			);
 			expect((await opened.model.snapshot()).document).toEqual(before.document);
 		} finally {
 			transact.mockRestore();

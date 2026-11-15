@@ -1,6 +1,7 @@
-import publicSaveXml from "./TestSave?raw";
 import { describe, expect, it } from "vitest";
+
 import { SaveManager } from "../src/lib/SaveManager.svelte";
+import publicSaveXml from "./TestSave?raw";
 
 const injectInvalidHat = (xml: string) =>
 	xml.replace(

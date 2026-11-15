@@ -1,7 +1,9 @@
 import { expect, it } from "vitest";
-import { tinyEditorFixture } from "../helpers/editor-document.ts";
-import { extraAchievementDiagnostics } from "../../src/lib/editor/achievement-diagnostics.ts";
+
 import cropRequirements from "../../generated/achievement-requirements.json";
+import { extraAchievementDiagnostics } from "../../src/lib/editor/achievement-diagnostics.ts";
+import { requireDefined } from "../helpers/assertions.ts";
+import { tinyEditorFixture } from "../helpers/editor-document.ts";
 
 function fixture() {
 	const document = tinyEditorFixture();
@@ -24,7 +26,7 @@ it("counts shared museum donations rather than discoveries and rejects ambiguous
 		key: { X: index, Y: 1 },
 		value: String(index),
 	}));
-	document.SaveGame.locations!.push({
+	requireDefined(document.SaveGame.locations).push({
 		$type: "StardewValley.Locations.LibraryMuseum",
 		name: "ArchaeologyHouse",
 		museumPieces: pieces,
@@ -51,18 +53,20 @@ it("uses crop-specific membership and quantity boundaries for shipping achieveme
 		target: 28,
 		unknown: 0,
 	});
-	host.basicShipped[0]!.value = 14;
+	requireDefined(host.basicShipped[0]).value = 14;
 	expect(diagnostics().get(31)?.value).toBe(27);
 	host.basicShipped.push({ key: "unrelated", value: 999 });
 	expect(diagnostics().get(32)?.value).toBe(15);
 	host.basicShipped.push({
-		key: cropRequirements.monoculture.find(
-			(key) => !cropRequirements.polyculture.includes(key),
-		)!,
+		key: requireDefined(
+			cropRequirements.monoculture.find(
+				(key) => !cropRequirements.polyculture.includes(key),
+			),
+		),
 		value: 300,
 	});
 	expect(diagnostics().get(32)).toMatchObject({ value: 300, target: 300 });
-	host.basicShipped.push({ ...host.basicShipped[0]! });
+	host.basicShipped.push({ ...requireDefined(host.basicShipped[0]) });
 	expect(diagnostics().get(31)?.unknown).toBe(1);
 });
 
@@ -99,10 +103,13 @@ it("counts only the nineteen named power books and keeps duplicate stat keys unc
 		target: 19,
 		unknown: 0,
 	});
-	host.stats.Values![0]!.value = 0;
-	host.stats.Values!.push({ key: "Book_QueenOfSauce", value: 1 });
+	requireDefined(requireDefined(host.stats.Values)[0]).value = 0;
+	requireDefined(host.stats.Values).push({
+		key: "Book_QueenOfSauce",
+		value: 1,
+	});
 	expect(diagnostics().get(35)?.value).toBe(18);
-	host.stats.Values!.push({ key: "book_trash", value: 1 });
+	requireDefined(host.stats.Values).push({ key: "book_trash", value: 1 });
 	expect(diagnostics().get(35)?.unknown).toBe(1);
 });
 
@@ -159,7 +166,7 @@ it("uses movie history, positive Infinity ownership and explicitly explained his
 	expect(diagnostics().get(42)?.value).toBe(1);
 	host.items = [];
 	expect(diagnostics().get(42)?.value).toBeUndefined();
-	host.festivalScore = 99999;
+	host["festivalScore"] = 99999;
 	expect(diagnostics().get(37)?.value).toBeUndefined();
 	expect(diagnostics().get(38)?.evidence).toContain(
 		"no independent saved score",

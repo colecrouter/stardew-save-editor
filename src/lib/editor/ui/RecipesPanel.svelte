@@ -1,18 +1,20 @@
 <script lang="ts">
 	import { Result } from "effect";
 	import { useAtomValue } from "effect-atom-svelte";
-	import type { EditorModel } from "../editor-model.ts";
+
+	import StudyAlert from "../../ui/kit/StudyAlert.svelte";
+	import StudyButton from "../../ui/kit/StudyButton.svelte";
+	import StudyField from "../../ui/kit/StudyField.svelte";
 	import type { CommandResult } from "../command-result.ts";
+	import type { EditorModel } from "../editor-model.ts";
+	import { createFarmerSelectionField } from "../farmer-selection.ts";
 	import { createRecipeDomain } from "../recipe-domain.ts";
 	import { recipePresentation } from "../recipe-presentation.ts";
-	import { createFarmerSelectionField } from "../farmer-selection.ts";
+	import ConfirmAction from "./ConfirmAction.svelte";
 	import FarmerSelector from "./fields/FarmerSelector.svelte";
 	import NumberField from "./fields/NumberField.svelte";
-	import ConfirmAction from "./ConfirmAction.svelte";
 	import RecipeVisual from "./RecipeVisual.svelte";
-	import StudyButton from "../../ui/kit/StudyButton.svelte";
-	import StudyAlert from "../../ui/kit/StudyAlert.svelte";
-	import StudyField from "../../ui/kit/StudyField.svelte";
+
 	interface Props {
 		model: EditorModel;
 	}
@@ -85,7 +87,11 @@
 	</div>
 	<FarmerSelector field={farmerField} />
 </div>
-<div class="categories" role="group" aria-label="Recipe category">
+<div
+	class="categories"
+	role="group"
+	aria-label="Recipe category"
+>
 	<StudyButton
 		variant={kind === "cooking" ? "filled" : "plain"}
 		aria-pressed={kind === "cooking"}
@@ -129,7 +135,11 @@
 	</StudyField>
 	<StudyField label="Show recipes">
 		{#snippet children(attributes)}
-			<select {...attributes} class="study-input" bind:value={filter}>
+			<select
+				{...attributes}
+				class="study-input"
+				bind:value={filter}
+			>
 				<option value="all">All recipes</option>
 				<option value="known">Learned recipes</option>
 				<option value="unknown">Not learned recipes</option>
@@ -139,7 +149,11 @@
 	<span role="status">{rows.length} recipes</span>
 </div>
 {#if feedback?.target === targetKey}
-	<StudyAlert tone="danger" title="Recipe change unavailable" live="assertive">
+	<StudyAlert
+		tone="danger"
+		title="Recipe change unavailable"
+		live="assertive"
+	>
 		<p>{feedback.message}</p>
 	</StudyAlert>
 {/if}
@@ -148,7 +162,10 @@
 		<div class="recipes">
 			{#each shown as row (row.name)}
 				{@const presentation = recipePresentation(row.outputName)}
-				<section class:unlearned={!row.known} aria-label={`${row.name} recipe`}>
+				<section
+					class:unlearned={!row.known}
+					aria-label={`${row.name} recipe`}
+				>
 					<div class="recipe-summary">
 						<RecipeVisual sprite={presentation.sprite} />
 						<div>
@@ -241,7 +258,10 @@
 		{/if}
 	{/key}
 {:else}
-	<StudyAlert title="Recipes unavailable" tone="warning">
+	<StudyAlert
+		title="Recipes unavailable"
+		tone="warning"
+	>
 		<p>{domain?.reason ?? "No supported farmer is available."}</p>
 	</StudyAlert>
 {/if}

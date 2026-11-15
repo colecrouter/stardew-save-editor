@@ -1,11 +1,13 @@
-import type { SaveDocument } from "../../src/lib/editor/domain.ts";
 import { expect, it } from "@effect/vitest";
 import { Effect, Exit, JsonPatch, type Schema, TxRef } from "effect";
+
 import {
-	prepare,
 	type OperationChange,
+	prepare,
+	type SaveDocument,
 	type SessionState,
 } from "../../src/lib/editor/domain.ts";
+import { patchValue } from "../../src/lib/editor/saved-data.ts";
 import { scenarios, tinyFixture } from "./fixture.ts";
 
 it.effect("Effect transactions commit document and receipt refs together", () =>
@@ -63,7 +65,7 @@ it.effect(
 			const initial = tinyFixture();
 			let state: SessionState = { document: initial, history: [] };
 			const json = (value: unknown): Schema.Json =>
-				structuredClone(value) as Schema.Json;
+				patchValue(structuredClone(value));
 			const steps = [];
 			for (const action of scenarios(initial)) {
 				const next = prepare(state, action);
@@ -97,8 +99,8 @@ it.effect(
 			expect(state.history.length).toBe(2);
 			expect(
 				JsonPatch.get(
-					structuredClone(initial) as unknown as Schema.Json,
-					structuredClone(state.document) as unknown as Schema.Json,
+					patchValue(structuredClone(initial)),
+					patchValue(structuredClone(state.document)),
 				),
 			).toEqual([]);
 		}),

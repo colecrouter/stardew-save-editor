@@ -1,16 +1,19 @@
-import { isKnownItem, type InventoryValue } from "./inventory-values.ts";
-import { colorHex } from "../color.ts";
-export { colorHex, itemColorPatch } from "../color.ts";
 import { Data, Result, Schema, SchemaIssue } from "effect";
+
 import type { ItemInformation } from "$types/items";
-import type { Farmer, SaveDocument } from "./domain.ts";
-import type { TrinketRollContext } from "../TrinketStats.ts";
-import {
-	TrinketPropertyChangeSchema,
-	readTrinketProperties,
-} from "./trinket-properties.ts";
-import type { TrinketPatch } from "./trinket-properties.ts";
+
 import type { T_Microsoft_Xna_Framework_Color } from "../../../generated/save-format/save.ts";
+import { colorHex } from "../color.ts";
+import type { TrinketRollContext } from "../TrinketStats.ts";
+import type { Farmer, SaveDocument } from "./domain.ts";
+import { type InventoryValue, isKnownItem } from "./inventory-values.ts";
+import {
+	readTrinketProperties,
+	type TrinketPatch,
+	TrinketPropertyChangeSchema,
+} from "./trinket-properties.ts";
+
+export { colorHex, itemColorPatch } from "../color.ts";
 
 /** Expected invalid input, unsupported saved property, or stale item ownership. */
 export class ItemPropertyInvalid extends Data.TaggedError(
@@ -112,7 +115,7 @@ export function decodeItemPropertyChange(
 	input: unknown,
 ): Result.Result<ItemPropertyChange, ItemPropertyInvalid> {
 	const result = decode(
-		input && typeof input === "object" && !Array.isArray(input)
+		input !== null && typeof input === "object" && !Array.isArray(input)
 			? { ...input }
 			: input,
 	);
@@ -231,9 +234,8 @@ export function getItemPropertyFields(
 		);
 		// The game reads the uppercase property after the lowercase field. Show its
 		// effective value without silently synchronizing a mismatched imported pair.
-		if (aliases.length && aliases.every((key) => raw[key] !== undefined)) {
-			const value =
-				raw.IsBottomless !== undefined ? raw.IsBottomless : raw.isBottomless;
+		if (aliases.length > 0 && aliases.every((key) => raw[key] !== undefined)) {
+			const value = raw.IsBottomless ?? raw.isBottomless;
 			if (value !== undefined)
 				fields.push({
 					property: "isBottomless",
@@ -250,7 +252,7 @@ export function getItemPropertyFields(
 		metadata._type === "Object"
 	) {
 		const value = colorHex(raw.color);
-		if (value)
+		if (value != null && value !== "")
 			fields.push({ property: "color", label: "Color", kind: "color", value });
 	} else if (
 		type === "StardewValley.Objects.Clothing" &&
@@ -258,7 +260,7 @@ export function getItemPropertyFields(
 		raw.isPrismatic !== true
 	) {
 		const value = colorHex(raw.clothesColor);
-		if (value)
+		if (value != null && value !== "")
 			fields.push({
 				property: "clothesColor",
 				label: "Color",

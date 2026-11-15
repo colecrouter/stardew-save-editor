@@ -20,7 +20,11 @@
 </script>
 
 {#if fields.length}
-	<div class="item-properties" role="group" aria-label="Item properties">
+	<div
+		class="item-properties"
+		role="group"
+		aria-label="Item properties"
+	>
 		{#each fields as field (field.property)}
 			<ItemPropertyControl
 				field={createInventoryPropertyField(model, ownerId, entityId, field)}

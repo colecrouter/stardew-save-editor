@@ -8,8 +8,10 @@
 </script>
 
 <script lang="ts">
+	import { type DragDropState, draggable, droppable } from "@thisux/sveltednd";
+
 	import type { Farmer } from "$lib/proxies/Farmer.svelte";
-	import { draggable, droppable, type DragDropState } from "@thisux/sveltednd";
+
 	import Character from "../appearance/Character.svelte";
 
 	interface Props {
@@ -41,7 +43,7 @@
 </script>
 
 <div class="container">
-	{#each farmers as farmer, index}
+	{#each farmers as farmer, index (farmer)}
 		<div
 			use:droppable={{
 				container: index.toString(),

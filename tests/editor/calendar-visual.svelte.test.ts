@@ -1,11 +1,13 @@
+import { fireEvent, render, waitFor, within } from "@testing-library/svelte";
 import { Result } from "effect";
 import { expect, it, vi } from "vitest";
-import { fireEvent, render, waitFor, within } from "@testing-library/svelte";
-import { openTestEditor } from "../helpers/open-editor.ts";
-import { calendarEventsForMonth } from "../../src/lib/editor/calendar-events";
-import WorkspaceHarness from "./WorkspaceHarness.svelte";
+
 import { CalendarSeason } from "../../src/lib/calendarSeason";
+import { calendarEventsForMonth } from "../../src/lib/editor/calendar-events";
+import { requireInstance } from "../helpers/assertions.ts";
+import { openTestEditor } from "../helpers/open-editor.ts";
 import { fixtureXml } from "./fixtures";
+import WorkspaceHarness from "./WorkspaceHarness.svelte";
 
 it("previews calendar events without writing until Apply and restores the saved date with Undo", async () => {
 	const opened = await openTestEditor(new TextEncoder().encode(fixtureXml));
@@ -63,11 +65,13 @@ it("previews calendar events without writing until Apply and restores the saved 
 				}),
 			).toBeTruthy();
 		await fireEvent.click(page.getByRole("button", { name: "Apply date" }));
-		await waitFor(async () =>
-			expect(
-				opened.model.atomBindings.registry.get(opened.model.atomBindings.view)
-					?.calendar.date.day,
-			).toBe(13),
+		await waitFor(() =>
+			Promise.resolve(
+				expect(
+					opened.model.atomBindings.registry.get(opened.model.atomBindings.view)
+						?.calendar.date.day,
+				).toBe(13),
+			),
 		);
 		expect((await opened.model.snapshot()).entries).toHaveLength(
 			before.entries.length + 1,
@@ -91,9 +95,12 @@ it.each(["failure", "noncompletion"] as const)(
 			await fireEvent.click(
 				page.getByRole("link", { name: "Date and weather" }),
 			);
-			const select = page.getByRole("combobox", {
-				name: "Today",
-			}) as HTMLSelectElement;
+			const select = requireInstance(
+				page.getByRole("combobox", {
+					name: "Today",
+				}),
+				HTMLSelectElement,
+			);
 			const before = select.value;
 			const alternative = [...select.options].find(
 				(option) => !option.disabled && option.value !== before,
@@ -113,8 +120,9 @@ it.each(["failure", "noncompletion"] as const)(
 				);
 			await fireEvent.change(select, { target: { value: alternative.value } });
 			await waitFor(() => expect(select.value).toBe(before));
-			if (outcome === "failure")
-				expect(page.getByText("Refused weather")).toBeTruthy();
+			expect(page.queryByText("Refused weather") !== null).toBe(
+				outcome === "failure",
+			);
 			refused.mockRestore();
 		} finally {
 			page.unmount();

@@ -1,13 +1,15 @@
-import { Effect, JsonPatch } from "effect";
 import { it } from "@effect/vitest";
+import { Effect, JsonPatch } from "effect";
 import { expect } from "vitest";
+
+import type { SessionState } from "../../src/lib/editor/domain";
 import { makeHistorySession } from "../../src/lib/editor/history";
 import {
-	EditorOperations,
 	coreOperations,
+	EditorOperations,
 } from "../../src/lib/editor/operations";
-import type { SessionState } from "../../src/lib/editor/domain";
-import { tinyFixture } from "../helpers/editor-document.ts";
+import { requireRecord } from "../helpers/assertions.ts";
+import { malformedFixture, tinyFixture } from "../helpers/editor-document.ts";
 
 it.effect(
 	"isolates retained adapter drafts and public patches while preserving exact nested Undo/Redo",
@@ -44,7 +46,7 @@ it.effect(
 			committed.document.SaveGame.player.farmName = "Public mutation";
 			for (const patch of committed.net) {
 				if (patch.op !== "remove" && patch.path === "/SaveGame/opaque") {
-					Object.assign(patch.value as object, {
+					Object.assign(requireRecord(patch.value), {
 						children: ["Public patch mutation"],
 					});
 				}
@@ -53,7 +55,10 @@ it.effect(
 			const current = yield* session.snapshot;
 			expect(current.document).toEqual(expected);
 			expect(current.net).toEqual(
-				JsonPatch.get(before.document as never, expected as never),
+				JsonPatch.get(
+					malformedFixture<never>(before.document),
+					malformedFixture<never>(expected),
+				),
 			);
 			yield* session.undo;
 			expect((yield* session.snapshot).document).toEqual(before.document);

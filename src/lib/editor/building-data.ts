@@ -1,11 +1,12 @@
 import animalData from "$generated/farmanimals.json";
+
 import type {
 	T_StardewValley_FarmAnimal as FarmAnimal,
-	T_StardewValley_Object as SavedObject,
-	T_StardewValley_Objects_Furniture as SavedFurniture,
-	T_Microsoft_Xna_Framework_Vector2 as Vector,
 	T_Microsoft_Xna_Framework_Rectangle as Rectangle,
 	T_StardewValley_Buildings_Building as SavedBuilding,
+	T_StardewValley_Objects_Furniture as SavedFurniture,
+	T_StardewValley_Object as SavedObject,
+	T_Microsoft_Xna_Framework_Vector2 as Vector,
 } from "../../../generated/save-format/save.ts";
 import {
 	animalOptions,
@@ -15,15 +16,14 @@ import {
 import type { Building } from "./animal-buildings.ts";
 import { buildingConstructionCost } from "./building-costs.ts";
 import type { Location, SaveDocument } from "./domain.ts";
+import { nonemptyText, samePlainData } from "./plain-data.ts";
 import {
-	savedType,
 	isKnownLocation,
 	type KnownLocation,
+	savedType,
 } from "./saved-types.ts";
 
 export { isKnownLocation, type KnownLocation } from "./saved-types.ts";
-
-import { samePlainData } from "./plain-data.ts";
 
 // Saved IDs are decoded Int64 values. Only absence needs handling before
 // converting them into display/selection keys.
@@ -33,7 +33,7 @@ export function residents(interior: KnownLocation | undefined) {
 	// Resident semantics belong to AnimalHouse, not a similarly named extension
 	// on another location class. Preserve unsupported extension data without edits.
 	if (interior && interior.$type !== "StardewValley.AnimalHouse")
-		return { ids: [], supported: interior.animalsThatLiveHere == null };
+		return { ids: [], supported: interior["animalsThatLiveHere"] == null };
 	const ids = (interior?.animalsThatLiveHere ?? []).map((value) =>
 		value.toString(),
 	);
@@ -55,10 +55,10 @@ export function animalDictionary(location: KnownLocation) {
 	return { entries, lower, upper, hasLower, hasUpper, supported };
 }
 export interface LocatedAnimal {
-	id?: string;
+	id?: string | undefined;
 	container: KnownLocation;
 	location: string;
-	raw?: FarmAnimal;
+	raw?: FarmAnimal | undefined;
 	mirrors: FarmAnimal[];
 	supported: boolean;
 }
@@ -66,7 +66,7 @@ export interface LocatedBuilding {
 	id: string;
 	raw: SavedBuilding;
 	location: string;
-	interior?: KnownLocation;
+	interior?: KnownLocation | undefined;
 	supported: boolean;
 }
 /** Private DTO lens. Raw references live only as long as the supplied engine snapshot. */
@@ -104,9 +104,12 @@ export function inspectBuildings(document: SaveDocument) {
 				raw,
 				container: value,
 				location,
-				mirrors: raw ? [...new Set([raw, ...(mirror ? [mirror] : [])])] : [],
+				mirrors: [...new Set([raw, ...(mirror ? [mirror] : [])])],
 				supported:
-					dictionary.supported && !!id && !!raw && long(raw.myID) === id,
+					dictionary.supported &&
+					Boolean(id) &&
+					Boolean(raw) &&
+					long(raw.myID) === id,
 			});
 		}
 		for (const [index, raw] of (value.buildings ?? []).entries()) {
@@ -126,14 +129,14 @@ export function inspectBuildings(document: SaveDocument) {
 				});
 				continue;
 			}
-			const id = raw.id || undefined;
+			const id = nonemptyText(raw.id) ?? undefined;
 			const interior = isKnownLocation(raw.indoors) ? raw.indoors : undefined;
 			buildings.push({
 				id: id ?? `building-path:${path}:${index}`,
 				raw,
 				location,
 				interior,
-				supported: !!id && (raw.indoors == null || !!interior),
+				supported: Boolean(id) && (raw.indoors == null || Boolean(interior)),
 			});
 			if (interior) visit(interior, `${path}/building:${index}`, location);
 		}
@@ -159,35 +162,39 @@ export interface AnimalView {
 	location: string;
 	outside: boolean;
 	supported: boolean;
-	reason?: string;
-	daysOwned?: number;
-	friendship?: number;
-	happiness?: number;
-	fullness?: number;
-	gender?: string;
-	reproduction?: boolean;
-	cracker?: boolean;
+	reason?: string | undefined;
+	daysOwned?: number | undefined;
+	friendship?: number | undefined;
+	happiness?: number | undefined;
+	fullness?: number | undefined;
+	gender?: string | undefined;
+	reproduction?: boolean | undefined;
+	cracker?: boolean | undefined;
 	canReproduce: boolean;
 	canEatCracker: boolean;
 }
 export interface BuildingView {
 	id: string;
 	name: string;
-	description?: string;
-	constructionCost?: ReturnType<typeof buildingConstructionCost>;
+	description?: string | undefined;
+	constructionCost?: ReturnType<typeof buildingConstructionCost> | undefined;
 	location: string;
 	supported: boolean;
-	reason?: string;
-	capacity?: number;
+	reason?: string | undefined;
+	capacity?: number | undefined;
 	residents: number;
 	outside: number;
 	animalHouse: boolean;
 	construction: boolean;
 	upgrading: boolean;
-	repaired?: boolean;
-	tiers: { name: string; reason?: string }[];
-	animalOptions: { type: string; allowed: boolean; reason?: string }[];
-	adoptionReason?: string;
+	repaired?: boolean | undefined;
+	tiers: { name: string; reason?: string | undefined }[];
+	animalOptions: {
+		type: string;
+		allowed: boolean;
+		reason?: string | undefined;
+	}[];
+	adoptionReason?: string | undefined;
 	animals: AnimalView[];
 }
 export interface BuildingsView {
@@ -212,19 +219,15 @@ function projectAnimal(
 	return {
 		id,
 		nameEditable: raw?.name !== undefined,
-		name:
-			raw?.name !== undefined
-				? raw.name
-				: raw
-					? "Unnamed animal"
-					: "Missing animal",
+		name: raw?.name ?? (raw ? "Unnamed animal" : "Missing animal"),
 		type: raw?.type ?? "Unknown type",
 		location: animal?.location ?? "Not found in the save",
 		outside,
-		supported: !!animal?.supported,
-		reason: animal?.supported
-			? undefined
-			: "This animal is missing or has ambiguous saved records.",
+		supported: Boolean(animal?.supported),
+		reason:
+			animal?.supported === true
+				? undefined
+				: "This animal is missing or has ambiguous saved records.",
 		daysOwned: days !== undefined && days >= 0 ? days : undefined,
 		friendship: raw?.friendshipTowardFarmer,
 		happiness: raw?.happiness,
@@ -343,15 +346,11 @@ export function readBuildings(document: SaveDocument): BuildingsView {
 				(interior?.$type === "StardewValley.AnimalHouse"
 					? interior.animalLimit
 					: undefined) ??
-				upgradeTiers(
-					building.buildingType !== undefined
-						? building.buildingType
-						: undefined,
-				).find((tier) => tier.name === building.buildingType)?.maxOccupants ??
+				upgradeTiers(building.buildingType).find(
+					(tier) => tier.name === building.buildingType,
+				)?.maxOccupants ??
 				building.maxOccupants;
-			const tiers = upgradeTiers(
-				building.buildingType !== undefined ? building.buildingType : undefined,
-			);
+			const tiers = upgradeTiers(building.buildingType);
 			const supported = locatedBuilding.supported && home.supported;
 			const animals = [...new Set(home.ids)].map((id) => {
 				housed.add(id);
@@ -374,17 +373,12 @@ export function readBuildings(document: SaveDocument): BuildingsView {
 									: undefined;
 			return {
 				id: locatedBuilding.id,
-				name:
-					building.buildingType !== undefined
-						? building.buildingType
-						: "Unknown building",
+				name: building.buildingType ?? "Unknown building",
 				// Descriptive game metadata belongs in the domain view alongside prices,
 				// without exposing the generated building DTO to the component.
 				description: tiers.find((tier) => tier.name === building.buildingType)
 					?.description,
-				constructionCost: buildingConstructionCost(
-					building.buildingType !== undefined ? building.buildingType : "",
-				),
+				constructionCost: buildingConstructionCost(building.buildingType ?? ""),
 				location: locatedBuilding.location,
 				supported,
 				reason: supported
@@ -412,12 +406,7 @@ export function readBuildings(document: SaveDocument): BuildingsView {
 							: buildingTierBlocker(checked, tier, home.ids.length),
 				})),
 				animalOptions: animalHouse
-					? animalOptions(
-							tiers,
-							building.buildingType !== undefined
-								? building.buildingType
-								: undefined,
-						)
+					? animalOptions(tiers, building.buildingType)
 					: [],
 				adoptionReason,
 				animals,
@@ -426,10 +415,11 @@ export function readBuildings(document: SaveDocument): BuildingsView {
 	return {
 		buildings: locatedBuildings,
 		unhoused: graph.animals
-			.filter((row) => !row.id || !housed.has(row.id))
+			.filter((row) => row.id == null || row.id === "" || !housed.has(row.id))
 			.filter(
 				(row, index, all) =>
-					!row.id ||
+					row.id == null ||
+					row.id === "" ||
 					all.findIndex((candidate) => candidate.id === row.id) === index,
 			)
 			.map((animal, index) =>

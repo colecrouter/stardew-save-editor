@@ -1,7 +1,9 @@
 import { Worker } from "node:worker_threads";
-import { Layer } from "effect";
+
 import * as NodeWorker from "@effect/platform-node/NodeWorker";
+import { Layer } from "effect";
 import * as RpcClient from "effect/rpc/RpcClient";
+
 import { SaveProcessingClient } from "../../src/lib/editor/save-processing-rpc.ts";
 
 // Integration tests exercise the production RPC client and handlers with real

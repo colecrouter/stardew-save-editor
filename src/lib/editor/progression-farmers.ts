@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+
 import { farmers, MutationError, type SaveDocument } from "./domain.ts";
 
 /** Match the game's/legacy editor's active roster for all-player progression.
@@ -11,7 +12,8 @@ export const progressionFarmers = Effect.fn("Progression.farmers")(function* (
 	if (
 		candidates.some(
 			(farmer, index) =>
-				farmer.name === undefined || (index === 0 && !farmer.name.trim()),
+				farmer.name === undefined ||
+				(index === 0 && !(farmer.name.trim() !== "")),
 		)
 	)
 		return yield* new MutationError(

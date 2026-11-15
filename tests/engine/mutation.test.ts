@@ -1,6 +1,6 @@
-import assert from "node:assert/strict";
-import { expect, test } from "vitest";
 import { Deferred, Effect, Exit } from "effect";
+import { expect, test } from "vitest";
+
 import { diff, farmers, MutationError } from "../../src/lib/editor/domain.ts";
 import { makeEffectSession } from "./effect.ts";
 import {
@@ -22,23 +22,21 @@ test("both executors produce identical state and receipts on a full real save", 
 				const session = yield* makeEffectSession(original);
 				for (const action of scenarios(original)) {
 					const expected = plain.execute(action);
-					assert.deepEqual(yield* session.execute(action), expected);
+					expect(yield* session.execute(action)).toStrictEqual(expected);
 				}
 				const state = yield* session.snapshot;
-				assert.equal(state.history.length, 3);
-				assert.equal(state.history[2]?.review, "compact");
-				assert.ok(state.history[2]?.changes.length > 0);
-				assert.equal(
+				expect(state.history.length).toBe(3);
+				expect(state.history[2]?.review).toBe("compact");
+				expect(state.history[2]?.changes.length).toBeGreaterThan(0);
+				expect(
 					farmers(state.document).every(
 						(f) => f.farmName === "Experiment Farm",
 					),
-					true,
-				);
-				assert.deepEqual(
-					parser.parse(exportDocument(state.document)),
+				).toBe(true);
+				expect(parser.parse(exportDocument(state.document))).toStrictEqual(
 					state.document,
 				);
-				assert.deepEqual(original, before);
+				expect(original).toStrictEqual(before);
 			}),
 		),
 	);
@@ -51,17 +49,18 @@ test("compound failure after writes publishes neither partial state nor history"
 	const fail = () => {
 		throw new Error("Injected after all writes");
 	};
-	assert.throws(() => plain.execute(action, fail));
-	assert.deepEqual(plain.snapshot(), { document, history: [] });
+	expect(() => plain.execute(action, fail)).toThrow(
+		"Injected after all writes",
+	);
+	expect(plain.snapshot()).toStrictEqual({ document, history: [] });
 	await Effect.runPromise(
 		Effect.scoped(
 			Effect.gen(function* () {
 				const session = yield* makeEffectSession(document);
-				assert.equal(
+				expect(
 					Exit.isFailure(yield* Effect.exit(session.execute(action, fail))),
-					true,
-				);
-				assert.deepEqual(yield* session.snapshot, plain.snapshot());
+				).toBe(true);
+				expect(yield* session.snapshot).toStrictEqual(plain.snapshot());
 			}),
 		),
 	);
@@ -72,39 +71,36 @@ test("compound success updates all farmers once and duplicate IDs are rejected",
 	const plain = new PlainSession(document);
 	const action = { type: "farm-name", value: "Together" } as const;
 	const expected = plain.execute(action);
-	assert.deepEqual(
+	expect(
 		farmers(expected.document).map((farmer) => farmer.farmName),
-		["Together", "Together"],
-	);
-	assert.equal(expected.history.length, 1);
-	assert.equal(expected.history[0]?.changes.length, 2);
+	).toStrictEqual(["Together", "Together"]);
+	expect(expected.history.length).toBe(1);
+	expect(expected.history[0]?.changes.length).toBe(2);
 	await Effect.runPromise(
 		Effect.scoped(
 			Effect.gen(function* () {
 				const session = yield* makeEffectSession(document);
-				assert.deepEqual(yield* session.execute(action), expected);
+				expect(yield* session.execute(action)).toStrictEqual(expected);
 			}),
 		),
 	);
 	const duplicate = tinyFixture();
 	// The tiny fixture must include a guest before testing duplicate farmer IDs.
 	const guest = farmers(duplicate)[1];
-	assert.ok(guest);
+	expect.assert(guest);
 	guest.UniqueMultiplayerID = 1n;
 	const invalid = { type: "money", farmerId: "1", value: 100 } as const;
-	assert.throws(
-		() => new PlainSession(duplicate).execute(invalid),
+	expect(() => new PlainSession(duplicate).execute(invalid)).toThrow(
 		MutationError,
 	);
 	await Effect.runPromise(
 		Effect.scoped(
 			Effect.gen(function* () {
 				const session = yield* makeEffectSession(duplicate);
-				assert.equal(
+				expect(
 					Exit.isFailure(yield* Effect.exit(session.execute(invalid))),
-					true,
-				);
-				assert.deepEqual(yield* session.snapshot, {
+				).toBe(true);
+				expect(yield* session.snapshot).toStrictEqual({
 					document: duplicate,
 					history: [],
 				});
@@ -126,13 +122,15 @@ test("invalid IDs, money, and permutations fail without changes in both implemen
 			Effect.gen(function* () {
 				const session = yield* makeEffectSession(document);
 				for (const action of actions) {
-					assert.throws(() => plain.execute(action), MutationError);
-					assert.equal(
+					expect(() => plain.execute(action)).toThrow(MutationError);
+					expect(
 						Exit.isFailure(yield* Effect.exit(session.execute(action))),
-						true,
-					);
+					).toBe(true);
 				}
-				assert.deepEqual(yield* session.snapshot, { document, history: [] });
+				expect(yield* session.snapshot).toStrictEqual({
+					document,
+					history: [],
+				});
 			}),
 		),
 	);
@@ -142,26 +140,24 @@ test("reorder preserves opaque, empty, and hidden entries; no-op creates no hist
 	const document = tinyFixture();
 	const plain = new PlainSession(document);
 	plain.execute({ type: "money", farmerId: "1", value: 10 });
-	assert.equal(plain.snapshot().history.length, 0);
+	expect(plain.snapshot().history.length).toBe(0);
 	const result = plain.execute({
 		type: "reorder",
 		ownerId: "1",
 		order: [2, 1, 0],
 	});
-	assert.deepEqual(
-		result.document.SaveGame.player.items,
+	expect(result.document.SaveGame.player.items).toStrictEqual(
 		[...document.SaveGame.player.items].reverse(),
 	);
 	result.document.SaveGame.player.money = 999;
-	assert.equal(plain.snapshot().document.SaveGame.player.money, 10);
+	expect(plain.snapshot().document.SaveGame.player.money).toBe(10);
 	await Effect.runPromise(
 		Effect.scoped(
 			Effect.gen(function* () {
 				const session = yield* makeEffectSession(document);
 				const view = yield* session.snapshot;
 				view.document.SaveGame.player.money = 999;
-				assert.equal(
-					(yield* session.snapshot).document.SaveGame.player.money,
+				expect((yield* session.snapshot).document.SaveGame.player.money).toBe(
 					10,
 				);
 			}),
@@ -185,36 +181,33 @@ test("concurrent submissions serialize and closing a scope rejects future edits"
 					),
 					{ concurrency: "unbounded" },
 				);
-				assert.equal((yield* session.snapshot).history.length, 20);
+				expect((yield* session.snapshot).history.length).toBe(20);
 				return session;
 			}),
 		),
 	);
-	assert.equal(
+	expect(
 		Exit.isFailure(
 			await Effect.runPromiseExit(
 				escaped.execute({ type: "money", farmerId: "1", value: 5 }),
 			),
 		),
-		true,
-	);
+	).toBe(true);
 	const plain = new PlainSession(document);
 	plain.close();
-	assert.throws(
-		() => plain.execute({ type: "money", farmerId: "1", value: 5 }),
-		MutationError,
-	);
+	expect(() =>
+		plain.execute({ type: "money", farmerId: "1", value: 5 }),
+	).toThrow(MutationError);
 });
 
 test("changes outside the targeted farmer are absent, including farmhand money", () => {
 	const document = tinyFixture();
 	const plain = new PlainSession(document);
 	const state = plain.execute({ type: "money", farmerId: "2", value: 40 });
-	assert.equal(state.document.SaveGame.player.money, 10);
-	assert.deepEqual(
-		diff(document, state.document).map((c) => c.path),
-		["/SaveGame/farmhands"],
-	);
+	expect(state.document.SaveGame.player.money).toBe(10);
+	expect(diff(document, state.document).map((c) => c.path)).toStrictEqual([
+		"/SaveGame/farmhands",
+	]);
 });
 
 test("store contract emits synchronously, observes commits, and cleans up with session", async () => {
@@ -222,32 +215,35 @@ test("store contract emits synchronously, observes commits, and cleans up with s
 	const session = await Effect.runPromise(
 		Effect.scoped(
 			Effect.gen(function* () {
-				const session = yield* makeEffectSession(tinyFixture());
+				const candidateSession = yield* makeEffectSession(tinyFixture());
 				const changed = yield* Deferred.make<void>();
-				const unsubscribe = session.subscribe((value) => {
+				const unsubscribe = candidateSession.subscribe((value) => {
 					notifications++;
 					if (value.document.SaveGame.player.money === 25)
 						Deferred.doneUnsafe(changed, Effect.void);
 					// A view cannot mutate the authoritative state.
 					value.document.SaveGame.player.name = "View only";
 				});
-				assert.ok(notifications >= 1);
-				yield* session.execute({ type: "money", farmerId: "1", value: 25 });
+				expect.assert(notifications >= 1);
+				yield* candidateSession.execute({
+					type: "money",
+					farmerId: "1",
+					value: 25,
+				});
 				yield* Deferred.await(changed);
-				assert.equal(
-					(yield* session.snapshot).document.SaveGame.player.name,
-					"Host",
-				);
+				expect(
+					(yield* candidateSession.snapshot).document.SaveGame.player.name,
+				).toBe("Host");
 				unsubscribe();
 				// Also exercise a consumer that forgets to unsubscribe.
-				session.subscribe(() => {
+				candidateSession.subscribe(() => {
 					notifications++;
 				});
-				return session;
+				return candidateSession;
 			}),
 		),
 	);
-	assert.throws(() => session.subscribe(() => {}), MutationError);
+	expect(() => session.subscribe(() => {})).toThrow(MutationError);
 	const before = notifications;
 	// Scope closure has joined its consumer fibers. Attempt another publication
 	// through the closed session and verify that no subscriber can observe it.
@@ -256,5 +252,5 @@ test("store contract emits synchronously, observes commits, and cleans up with s
 			session.execute({ type: "money", farmerId: "1", value: 26 }),
 		),
 	).rejects.toThrow("Session closed");
-	assert.equal(notifications, before);
+	expect(notifications).toBe(before);
 });

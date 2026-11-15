@@ -1,16 +1,17 @@
 import { it } from "@effect/vitest";
-import { expect } from "vitest";
 import { Effect, Result } from "effect";
-import { farmers } from "../../src/lib/editor/domain";
-import { makeHistorySession } from "../../src/lib/editor/history";
+import { expect } from "vitest";
+
 import {
-	readCommunity,
 	inspectCommunity,
 	progressId,
+	readCommunity,
 } from "../../src/lib/editor/community-data";
 import { setCommunityProgress } from "../../src/lib/editor/community-operations";
+import { farmers } from "../../src/lib/editor/domain";
+import { makeHistorySession } from "../../src/lib/editor/history";
 import { record } from "../../src/lib/editor/plain-data";
-import { parser, fixtureXml, exportDocument } from "./fixtures";
+import { exportDocument, fixtureXml, parser } from "./fixtures";
 
 function fixture() {
 	const document = parser.parse(fixtureXml);
@@ -63,18 +64,22 @@ it.effect(
 			const before = yield* session.snapshot;
 			yield* session.transact(complete(document));
 			const after = yield* session.snapshot;
-			for (const farmer of farmers(after.document).filter((row) => row.name)) {
+			for (const farmer of farmers(after.document).filter(
+				(row) => row.name != null && row.name.length > 0,
+			)) {
+				// Vitest types asymmetric matchers as any. Keep expected matcher values
+				// unknown so they cannot weaken the surrounding saved-data assertions.
 				expect(farmer).toMatchObject({
 					mailbox: ["unrelated", "ccBulletinThankYou"],
 					testMetadatamailbox: { opaque: "retain" },
 					mailReceived: expect.not.arrayContaining([
 						"ccBulletinThankYou",
 						"ccBulletinThankYouReceived",
-					]),
+					]) as unknown,
 				});
 			}
 			expect(after.document.SaveGame.farmhands).toMatchObject([
-				expect.anything(),
+				expect.anything() as unknown,
 				empty,
 			]);
 			const reloaded = parser.parse(exportDocument(after.document));
@@ -121,7 +126,7 @@ it.effect.each([
 			yield* session.transact(complete(document));
 			const player = (yield* session.snapshot).document.SaveGame.player;
 			expect(player).toMatchObject({
-				[field]: expect.arrayContaining([flag]),
+				[field]: expect.arrayContaining([flag]) as unknown,
 			});
 			if (field !== "mailbox")
 				expect(player).toMatchObject({ mailbox: ["unrelated"] });

@@ -1,9 +1,9 @@
 import {
 	FESTIVALS,
-	OTHER_FESTIVALS,
-	SEASONS,
-	seasonIndex,
 	type GameDate,
+	OTHER_FESTIVALS,
+	seasonIndex,
+	SEASONS,
 } from "../calendar.ts";
 import { createGameRandom } from "../game-random.ts";
 import { characters } from "../NPCs.ts";
@@ -14,16 +14,21 @@ export interface CalendarEvent {
 	readonly label: string;
 	readonly kind: "birthday" | "festival" | "bookseller" | "derby";
 	/** Only names with bundled vanilla portraits cross the presentation boundary. */
-	readonly portrait?: string;
-	readonly locked?: boolean;
+	readonly portrait?: string | undefined;
+	readonly locked?: boolean | undefined;
 }
 export interface CalendarEventContext {
-	readonly random?: { readonly seed: number; readonly legacy: boolean };
+	readonly random?:
+		| {
+				readonly seed: number;
+				readonly legacy: boolean;
+		  }
+		| undefined;
 	readonly birthdays: readonly {
 		readonly name: string;
 		readonly season: GameDate["season"];
 		readonly day: number;
-		readonly portrait?: string;
+		readonly portrait?: string | undefined;
 	}[];
 	readonly desertAccessible: boolean | undefined;
 	readonly notes: readonly string[];
@@ -86,7 +91,8 @@ export function readCalendarEventContext(
 			continue;
 		const day = safeInteger(resident.birthday_Day);
 		const season = SEASONS.find((value) => value === resident.birthday_Season);
-		if (day === undefined || day < 1 || day > 28 || !season) continue;
+		if (day === undefined || day < 1 || day > 28 || !(season !== undefined))
+			continue;
 		if (hiddenUntilMet.has(resident.name) && !met.has(resident.name)) continue;
 		const entries = candidates.get(resident.name) ?? [];
 		entries.push({ season, day });
@@ -110,7 +116,7 @@ export function readCalendarEventContext(
 		}
 		birthdays.push({ name, ...first, portrait: name });
 	}
-	if (!birthdays.length)
+	if (!(birthdays.length > 0))
 		notes.push("No supported saved resident birthdays are available.");
 	// The calendar is based on saved resident records, not a full simulation of
 	// future NPC arrivals or mod-defined calendar queries absent from the save.
@@ -191,5 +197,9 @@ export function calendarEventsForMonth(
 				events.push({ day, label: "Bookseller visiting", kind: "bookseller" });
 		}
 	}
-	return events.sort((a, b) => a.day - b.day || a.label.localeCompare(b.label));
+	return events.sort((a, b) => {
+		// Calendar position sorts first; labels only break ties on the same day.
+		const dayOrder = a.day - b.day;
+		return dayOrder !== 0 ? dayOrder : a.label.localeCompare(b.label);
+	});
 }

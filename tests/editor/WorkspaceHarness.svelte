@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { RegistryProvider } from "effect-atom-svelte";
+
 	import type { EditorModel } from "../../src/lib/editor/editor-model";
 	import EditorWorkspace from "../../src/lib/editor/ui/EditorWorkspace.svelte";
 

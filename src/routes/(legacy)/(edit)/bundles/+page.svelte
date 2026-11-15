@@ -5,6 +5,7 @@
 	import { getSaveManager } from "$lib/SaveManager.svelte";
 	import UiCheckbox from "$lib/ui/UICheckbox.svelte";
 	import UiContainer from "$lib/ui/UIContainer.svelte";
+
 	import Bundle from "./Bundle.svelte";
 	import JojaBundles from "./JojaBundles.svelte";
 

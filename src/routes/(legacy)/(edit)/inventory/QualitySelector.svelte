@@ -9,10 +9,12 @@
 </script>
 
 <script lang="ts">
-	import type { ObjectProxy } from "$lib/proxies/items";
+	import type { BaseItemProxy } from "$lib/proxies/items";
 
 	interface Props {
-		item: ObjectProxy;
+		// Ordinary and colored objects share quality through the base proxy;
+		// selecting a star does not require either family's other fields.
+		item: Pick<BaseItemProxy, "quality">;
 	}
 
 	// Picking a star only sets the quality. The game saves an item's base price
@@ -24,7 +26,7 @@
 <div class="container">
 	<!-- Create 4 buttons containing star emoji-->
 	{#if item.quality !== undefined}
-		{#each qualityLevels as [i]}
+		{#each qualityLevels as [i] (i)}
 			<label>
 				{#if i === 0}
 					☆

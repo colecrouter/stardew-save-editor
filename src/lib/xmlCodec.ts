@@ -1,7 +1,7 @@
 // Legacy save representation codec, wrapped in workers/xml.ts for the old UI.
 // The current editor uses its generated typed codec in save-format instead.
 
-import { parseXmlObject, buildXmlObject } from "./xmlObject.ts";
+import { buildXmlObject, parseXmlObject } from "./xmlObject.ts";
 
 // Equipment slots in the Stardew Valley save file don't include xsi:type because the
 // C# deserializer knows the type from the field declaration. We inject the correct
@@ -21,18 +21,21 @@ const EQUIPMENT_SLOT_TYPES: Record<string, string> = {
 // equipment, so rebuilding seven entry pairs per node only adds traversal cost.
 const equipmentSlotTypes = Object.entries(EQUIPMENT_SLOT_TYPES);
 
+// XML containers can be records or arrays. Both expose string-keyed children;
+// scalar values must never enter the recursive equipment traversal.
+const isContainer = (value: unknown): value is Record<string, unknown> =>
+	value !== null && typeof value === "object";
+
 function injectEquipmentXsiTypes(node: unknown): void {
-	if (typeof node !== "object" || node === null) return;
-	const record = node as Record<string, unknown>;
+	if (!isContainer(node)) return;
+	const record = node;
 	for (const [slot, xsiType] of equipmentSlotTypes) {
 		const item = record[slot];
-		if (
-			item &&
-			typeof item === "object" &&
-			!("@_xsi:nil" in (item as Record<string, unknown>))
-		) {
-			const itemRecord = item as Record<string, unknown>;
-			if (!itemRecord["@_xsi:type"]) {
+		if (isContainer(item) && !("@_xsi:nil" in item)) {
+			const itemRecord = item;
+			// Preserve the legacy absence test for empty or missing attributes.
+			const hasType = Boolean(itemRecord["@_xsi:type"]);
+			if (!hasType) {
 				itemRecord["@_xsi:type"] = xsiType;
 			}
 		}
@@ -43,19 +46,19 @@ function injectEquipmentXsiTypes(node: unknown): void {
 			for (const entry of value) {
 				injectEquipmentXsiTypes(entry);
 			}
-		} else if (value && typeof value === "object") {
+		} else if (isContainer(value)) {
 			injectEquipmentXsiTypes(value);
 		}
 	}
 }
 
 function stripEquipmentXsiTypes(node: unknown): void {
-	if (typeof node !== "object" || node === null) return;
-	const record = node as Record<string, unknown>;
+	if (!isContainer(node)) return;
+	const record = node;
 	for (const [slot, defaultXsiType] of equipmentSlotTypes) {
 		const item = record[slot];
-		if (item && typeof item === "object") {
-			const itemRecord = item as Record<string, unknown>;
+		if (isContainer(item)) {
+			const itemRecord = item;
 			if (itemRecord["@_xsi:type"] === defaultXsiType) {
 				delete itemRecord["@_xsi:type"];
 			}
@@ -67,7 +70,7 @@ function stripEquipmentXsiTypes(node: unknown): void {
 			for (const entry of value) {
 				stripEquipmentXsiTypes(entry);
 			}
-		} else if (value && typeof value === "object") {
+		} else if (isContainer(value)) {
 			stripEquipmentXsiTypes(value);
 		}
 	}
@@ -88,8 +91,8 @@ const pruneFormattingWhitespace = (node: unknown): unknown => {
 			.filter((item) => item !== undefined);
 		return next;
 	}
-	if (node && typeof node === "object") {
-		const record = node as Record<string, unknown>;
+	if (isContainer(node)) {
+		const record = node;
 		for (const key of Object.keys(record)) {
 			// Recurse into nested structures so indentation nodes never leak through.
 			const cleaned = pruneFormattingWhitespace(record[key]);
@@ -104,8 +107,14 @@ const pruneFormattingWhitespace = (node: unknown): unknown => {
 };
 
 export class XMLCodec {
+	// Compatibility callers supply the legacy save type; this parser deliberately
+	// preserves unknown records rather than validating the current editor's schema.
+	// oxlint-disable-next-line typescript/no-unnecessary-type-parameters -- Existing callers select their legacy representation explicitly.
 	public parse<T>(xml: string) {
-		const parsed = parseXmlObject(xml) as T;
+		const parsed = parseXmlObject(xml);
+		// This legacy API predates schema validation: the caller owns the requested
+		// save shape. Whitespace removal preserves that representation's data fields.
+		// oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Caller-owned legacy representation boundary.
 		const pruned = pruneFormattingWhitespace(parsed) as T;
 		injectEquipmentXsiTypes(pruned);
 		return pruned;
@@ -115,14 +124,14 @@ export class XMLCodec {
 	 * Build XML UTF-8 bytes (with BOM) and return a Uint8Array. This is safer to
 	 * transfer across threads on some mobile browsers than a Blob.
 	 */
-	public stringify<T>(obj: T, pretty = false) {
+	public stringify(obj: unknown, pretty = false) {
 		// Strip injected xsi:type from equipment slots before serializing,
 		// since the game's save format doesn't include them on dedicated slots.
 		stripEquipmentXsiTypes(obj);
 
 		const raw = buildXmlObject(obj, pretty);
 		const xml = raw.trim().replaceAll("&apos;", "'");
-		if (!xml) throw new Error("Failed to generate XML");
+		if (xml.length === 0) throw new Error("Failed to generate XML");
 
 		// Create UTF-8 BOM bytes
 		const bom = new Uint8Array([0xef, 0xbb, 0xbf]);

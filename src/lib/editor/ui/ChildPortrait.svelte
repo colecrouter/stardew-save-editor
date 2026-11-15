@@ -2,6 +2,7 @@
 	import { dynamicAsset } from "../../ui/dynamicAsset.ts";
 	import type { ChildView } from "../children-data.ts";
 	import BackpackItemVisual from "./BackpackItemVisual.svelte";
+
 	let { child }: { child: ChildView } = $props();
 	// Use Child.reloadSprite's vanilla sheets and a representative front frame.
 	// Crawlers use doSetState(2)'s frame 24 (row 6), rather than reloadSprite's
@@ -34,7 +35,10 @@
 	const hairCrop = $derived(hat && child.hat.hideHair ? 15 : 0);
 </script>
 
-<div class="portrait" aria-hidden="true">
+<div
+	class="portrait"
+	aria-hidden="true"
+>
 	{#if frame}
 		<div
 			class="scene"
@@ -54,8 +58,14 @@
 			</div>
 
 			{#if hat}
-				<div class="hat" data-child-hat={child.hat.name}>
-					<BackpackItemVisual visual={hat} size={60} />
+				<div
+					class="hat"
+					data-child-hat={child.hat.name}
+				>
+					<BackpackItemVisual
+						visual={hat}
+						size={60}
+					/>
 				</div>
 			{/if}
 		</div>

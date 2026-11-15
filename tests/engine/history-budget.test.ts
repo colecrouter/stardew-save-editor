@@ -1,8 +1,9 @@
-import { malformedFixture } from "../helpers/editor-document.ts";
-import { stringifySavedData } from "../../src/lib/editor/saved-data.ts";
 import { expect, it } from "@effect/vitest";
 import { Effect, Exit } from "effect";
+
 import { makeHistorySession } from "../../src/lib/editor/history.ts";
+import { stringifySavedData } from "../../src/lib/editor/saved-data.ts";
+import { malformedFixture } from "../helpers/editor-document.ts";
 import { inventoryFixture } from "./inventory-model.ts";
 
 const money = (value: number) =>
@@ -74,7 +75,7 @@ it.effect(
 			const session = yield* makeHistorySession(fixture);
 			yield* session.execute([{ type: "farm-name", value: "🌻農場" }]);
 			const state = yield* session.snapshot;
-			expect(state.identities.__proto__).toHaveLength(3);
+			expect(state.identities["__proto__"]).toHaveLength(3);
 			expect(state.retainedBytes).toBe(
 				new TextEncoder().encode(stringifySavedData(state.entries[0]))
 					.byteLength,

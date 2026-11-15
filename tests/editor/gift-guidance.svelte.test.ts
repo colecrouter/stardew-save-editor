@@ -1,13 +1,14 @@
-import { render, fireEvent } from "@testing-library/svelte";
+import { fireEvent, render } from "@testing-library/svelte";
 import { describe, expect, it } from "vitest";
+
 import generatedGifts from "../../generated/gifttastes.json";
-import { ItemData } from "../../src/lib/ItemData";
+import { buildingConstructionCost } from "../../src/lib/editor/building-costs";
 import {
 	relationshipGifts,
 	relationshipMatches,
 } from "../../src/lib/editor/relationship-gifts";
-import { buildingConstructionCost } from "../../src/lib/editor/building-costs";
 import RelationshipGifts from "../../src/lib/editor/ui/RelationshipGifts.svelte";
+import { ItemData } from "../../src/lib/ItemData";
 
 describe("catalog guidance in the editor", () => {
 	it("retains villager exceptions and searches members of grouped gifts", () => {

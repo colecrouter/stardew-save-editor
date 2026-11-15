@@ -1,4 +1,5 @@
 import type { ToolItem } from "$types/save";
+
 import { BaseItemProxy, Raw } from "./ItemProxy.svelte";
 
 export class ToolProxy extends BaseItemProxy<ToolItem> {

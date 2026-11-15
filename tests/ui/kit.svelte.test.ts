@@ -1,10 +1,11 @@
 import { fireEvent, render, waitFor } from "@testing-library/svelte";
 import { expect, it, vi } from "vitest";
+
 import KitHarness from "./KitHarness.svelte";
 
 it("preserves native form behavior and prevents pending/disabled button activation", () => {
-	const onclick = vi.fn(),
-		onsubmit = vi.fn();
+	const onclick = vi.fn<() => void>(),
+		onsubmit = vi.fn<() => void>();
 	const page = render(KitHarness, { onclick, onsubmit });
 	try {
 		page.getByRole("button", { name: "Ordinary action" }).click();
@@ -28,7 +29,10 @@ it("preserves native form behavior and prevents pending/disabled button activati
 });
 
 it("associates native labels and all feedback with unique controls", () => {
-	const page = render(KitHarness, { onclick: vi.fn(), onsubmit: vi.fn() });
+	const page = render(KitHarness, {
+		onclick: vi.fn<() => void>(),
+		onsubmit: vi.fn<() => void>(),
+	});
 	try {
 		const farm = page.getByRole("textbox", { name: "Farm name" });
 		const farmer = page.getByRole("textbox", { name: "Farmer name" });
@@ -46,7 +50,10 @@ it("associates native labels and all feedback with unique controls", () => {
 });
 
 it("retains native draft state while inactive panels are excluded from accessibility", async () => {
-	const page = render(KitHarness, { onclick: vi.fn(), onsubmit: vi.fn() });
+	const page = render(KitHarness, {
+		onclick: vi.fn<() => void>(),
+		onsubmit: vi.fn<() => void>(),
+	});
 	try {
 		const note = page.getByRole("textbox", { name: "Draft note" });
 		await fireEvent.input(note, { target: { value: "Uncommitted note" } });
@@ -71,7 +78,10 @@ it("retains native draft state while inactive panels are excluded from accessibi
 });
 
 it("only announces notices whose owners request live feedback", () => {
-	const page = render(KitHarness, { onclick: vi.fn(), onsubmit: vi.fn() });
+	const page = render(KitHarness, {
+		onclick: vi.fn<() => void>(),
+		onsubmit: vi.fn<() => void>(),
+	});
 	try {
 		expect(page.getAllByRole("alert")).toHaveLength(1);
 		expect(page.getByRole("alert").textContent).toContain("Dynamic failure");

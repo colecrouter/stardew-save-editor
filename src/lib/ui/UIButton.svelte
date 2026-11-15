@@ -1,6 +1,12 @@
 <script lang="ts">
 	import "./controls.css";
 	import type { Snippet } from "svelte";
+	import type {
+		HTMLAnchorAttributes,
+		HTMLButtonAttributes,
+	} from "svelte/elements";
+
+	import { page } from "$app/state";
 	import Tooltip from "$lib/ui/Tooltip.svelte";
 	import UiContainerSmall from "$lib/ui/UIContainerSmall.svelte";
 
@@ -16,12 +22,6 @@
 
 			[key: string]: unknown;
 		};
-
-	import type {
-		HTMLAnchorAttributes,
-		HTMLButtonAttributes,
-	} from "svelte/elements";
-	import { page } from "$app/state";
 
 	let {
 		children,
@@ -54,6 +54,8 @@
 <Tooltip text={alt ?? ""} disabled={unavailable}>
 	<div class={["wrapper", { disabled: unavailable }]}>
 		{#if href}
+			<!-- The caller supplies a resolved route or external URL; resolving again would duplicate the deployment base. -->
+			<!-- eslint-disable svelte/no-navigation-without-resolve -->
 			<a
 				href={unavailable ? undefined : href}
 				aria-label={props["aria-label"] ?? alt}
@@ -81,6 +83,7 @@
 			>
 				{@render content()}
 			</a>
+			<!-- eslint-enable svelte/no-navigation-without-resolve -->
 		{:else}
 			<button
 				{...props}

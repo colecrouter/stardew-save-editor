@@ -14,8 +14,8 @@ import { Sprite } from "$lib/Sprite.svelte";
 import {
 	FurnitureType,
 	type ItemInformation,
-	type PreserveLabel,
 	ObjectCategory,
+	type PreserveLabel,
 	type ToolClass,
 } from "$types/items";
 import {
@@ -24,7 +24,9 @@ import {
 	Preserve,
 	TypeEnum,
 } from "$types/save";
+
 import { Dispose } from ".";
+import { writeOptionalField } from "../optional-field.ts";
 import {
 	BootsProxy,
 	ClothingProxy,
@@ -123,22 +125,20 @@ const typeToCategoryMap = {
 	Mannequin: ObjectCategory.Furniture,
 };
 
-export class Item {
-	static create(raw: ItemModel): ItemProxy {
+export const Item = {
+	create(raw: ItemModel): ItemProxy {
 		let instance!: ItemProxy;
 		const dispose = $effect.root(() => {
 			instance = createItemProxy(raw);
 		});
 		instance[Dispose] = dispose;
 		return instance;
-	}
+	},
 
 	// Resolve catalog families in order before constructing the saved item record.
-	static fromName(name: string): ItemProxy {
+	fromName(name: string): ItemProxy {
 		let data = ItemData.get(name);
-		if (!data) {
-			data = Shirts.get(name);
-		}
+		data ??= Shirts.get(name);
 
 		if (!data) throw new Error(`Item "${name}" not found in ItemData`);
 
@@ -153,8 +153,7 @@ export class Item {
 			quality: 0,
 			isRecipe: false,
 			price: data.price ?? 0,
-			parentSheetIndex: data.spriteIndex || undefined,
-			indexInTileSheet: data.spriteIndex || undefined,
+
 			category: category,
 			hasBeenInInventory: true,
 			SpecialVariable: 0,
@@ -171,16 +170,38 @@ export class Item {
 			},
 			canBeSetDown: true,
 			canBeGrabbed: true,
-			type:
-				data._type === "Object"
-					? data.type
-					: data._type === "BigCraftable"
-						? "Crafting"
-						: undefined,
-			bigCraftable: data._type === "BigCraftable" ? true : undefined,
 		};
+		// Unavailable constructor metadata leaves a field absent in the saved record.
+		writeOptionalField(
+			item,
+			"parentSheetIndex",
+			data.spriteIndex === null || data.spriteIndex === 0
+				? undefined
+				: data.spriteIndex,
+		);
+		writeOptionalField(
+			item,
+			"indexInTileSheet",
+			data.spriteIndex === null || data.spriteIndex === 0
+				? undefined
+				: data.spriteIndex,
+		);
+		writeOptionalField(
+			item,
+			"type",
+			data._type === "Object"
+				? data.type
+				: data._type === "BigCraftable"
+					? "Crafting"
+					: undefined,
+		);
+		writeOptionalField(
+			item,
+			"bigCraftable",
+			data._type === "BigCraftable" ? true : undefined,
+		);
 
-		if (category && CategoriesWithQuality.has(category)) {
+		if (CategoriesWithQuality.has(category)) {
 			item.quality = 0;
 		}
 
@@ -190,7 +211,8 @@ export class Item {
 			const nameWithoutPrefix = name.split(" ").pop() ?? name;
 			itemType = toolTypeMap.get(nameWithoutPrefix);
 			if (
-				itemType &&
+				itemType != null &&
+				itemType !== "" &&
 				["Pickaxe", "Axe", "Hoe", "WateringCan"].includes(itemType)
 			) {
 				item.upgradeLevel = 0;
@@ -201,7 +223,7 @@ export class Item {
 						break;
 					}
 				}
-				item.indexOfMenuItemView = data.menuSpriteIndex;
+				writeOptionalField(item, "indexOfMenuItemView", data.menuSpriteIndex);
 			}
 
 			if (itemType === "FishingRod") {
@@ -216,7 +238,8 @@ export class Item {
 				item.isBottomless = false;
 			}
 
-			if (!itemType) itemType = toolTypeMap.get(data.class);
+			if (!(itemType != null && itemType !== ""))
+				itemType = toolTypeMap.get(data.class);
 		}
 
 		if (data._type === "Weapon") {
@@ -235,12 +258,12 @@ export class Item {
 			item.generationSeed = Math.floor(Math.random() * 9999999);
 		}
 
-		if (itemType) {
+		if (itemType != null && itemType !== "") {
 			item["@_xsi:type"] = itemType;
 		}
 
 		if (data._type === "Object" && data.type === TypeEnum.Ring) {
-			item.uniqueID = RingsUniqueID.get(name);
+			writeOptionalField(item, "uniqueID", RingsUniqueID.get(name));
 			item["@_xsi:type"] = "Ring";
 		}
 
@@ -253,7 +276,7 @@ export class Item {
 
 		if (data._type === "Furniture") {
 			item.canBeGrabbed = true;
-			item.type = FurnitureTypeToNumber.get(data.type as FurnitureType);
+			writeOptionalField(item, "type", FurnitureTypeToNumber.get(data.type));
 
 			const sprite = new Sprite(data);
 			if ("tilesheetSize" in data && data.tilesheetSize !== undefined) {
@@ -309,8 +332,8 @@ export class Item {
 		}
 		item.price = data.price ?? 0;
 
-		if (data._type in ClothesType) {
-			item.clothesType = ClothesType[data._type as keyof typeof ClothesType];
+		if (data._type === "Shirt" || data._type === "Pants") {
+			item.clothesType = ClothesType[data._type];
 		}
 		if (data._type === "Boots") {
 			// The game saves boots' stats, which is how tailored boots keep theirs
@@ -321,8 +344,9 @@ export class Item {
 
 		if (
 			"unpreservedItemId" in data &&
-			data.unpreservedItemId &&
-			data.preservedItemName
+			data.unpreservedItemId != null &&
+			data.unpreservedItemId !== "" &&
+			data.preservedItemName != null
 		) {
 			item.preservedParentSheetIndex = Number.parseInt(
 				data.unpreservedItemId,
@@ -332,7 +356,7 @@ export class Item {
 			item.preserve = normalizePreserveType(data.preservedItemName, data._key);
 		}
 
-		if (data.color) {
+		if (data.color != null && data.color !== "") {
 			item.color = new Color(data.color);
 
 			if (data._type === "Object") {
@@ -341,16 +365,16 @@ export class Item {
 		}
 
 		// Use Item.create() which now delegates to the factory function
-		return Item.create(item as ItemModel);
-	}
+		return Item.create(item);
+	},
 
-	static fromKey(key: string, type: string): ItemProxy {
+	fromKey(key: string, type: string): ItemProxy {
 		console.log(key, type, KeyToName(key, type));
 		const name = KeyToName(key, type);
 
 		return Item.fromName(name);
-	}
-}
+	},
+};
 
 export const ValidSlotForItem = (item: ItemProxy, slot: ParentIndex) => {
 	if (typeof slot === "number") return true;

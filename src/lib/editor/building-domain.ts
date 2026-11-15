@@ -1,12 +1,12 @@
-import type { ImmutableView } from "./immutable-view.ts";
 import type { AnimalView, BuildingView } from "./building-data.ts";
-import { bindImmediateField, type DomainEditPort } from "./field-binding.ts";
 import {
-	setAnimal,
 	adoptAnimal,
-	upgradeBuilding,
+	setAnimal,
 	setGreenhouseRepaired,
+	upgradeBuilding,
 } from "./building-operations.ts";
+import { bindImmediateField, type DomainEditPort } from "./field-binding.ts";
+import type { ImmutableView } from "./immutable-view.ts";
 
 /** Project editable animal fields from intuitive values; saved property names stay in the adapter. */
 export function createAnimalDomain(

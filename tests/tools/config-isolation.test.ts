@@ -1,7 +1,10 @@
-import { execFile, type ChildProcess } from "node:child_process";
+import { type ChildProcess, execFile } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
+
 import { expect, it } from "vitest";
+
+import { isRecord } from "../../src/lib/unknown.ts";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
 
@@ -43,7 +46,7 @@ it("isolates generated modules and optimizer caches between test processes", asy
 						([name]) => !name.startsWith("VITEST"),
 					),
 				);
-				env.VITEST = "true";
+				env["VITEST"] = "true";
 				const child = execFile(
 					process.execPath,
 					["--input-type=module", "--eval", probe],
@@ -58,17 +61,28 @@ it("isolates generated modules and optimizer caches between test processes", asy
 							);
 							return;
 						}
-						// The probe is our own fixed program; its only stdout is this record.
+						// Check the subprocess transport envelope before using its paths.
+						// The probe is fixed, but malformed stdout should fail at this boundary.
 						try {
-							resolve(
-								JSON.parse(stdout) as {
-									manifest: string;
-									cache: string;
-									marker: string;
-								},
-							);
+							const result: unknown = JSON.parse(stdout);
+							if (
+								!isRecord(result) ||
+								typeof result["manifest"] !== "string" ||
+								typeof result["cache"] !== "string" ||
+								typeof result["marker"] !== "string"
+							)
+								throw new Error("Invalid config probe result");
+							resolve({
+								manifest: result["manifest"],
+								cache: result["cache"],
+								marker: result["marker"],
+							});
 						} catch (cause) {
-							reject(cause);
+							reject(
+								cause instanceof Error
+									? cause
+									: new Error("Invalid config probe result", { cause }),
+							);
 						}
 					},
 				);

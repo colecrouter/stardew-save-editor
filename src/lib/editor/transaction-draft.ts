@@ -1,8 +1,9 @@
-import { isSavedData, patchValue } from "./saved-data.ts";
 import { Context, Effect, JsonPatch } from "effect";
 import { create as createCopyOnWrite } from "mutative";
-import { freezeDraftState } from "./draft-state.ts";
+
 import { MutationError, type SessionState } from "./domain.ts";
+import { freezeDraftState } from "./draft-state.ts";
+import { isSavedData, patchValue } from "./saved-data.ts";
 
 // A domain operation receives a detached snapshot and submits its replacement
 // against that snapshot's version. Concurrent substeps cannot silently overwrite
@@ -98,6 +99,7 @@ function stageTransactionDraft(initial: SessionState) {
 					const base: object = before;
 					const [prepared, assignments] = createCopyOnWrite(
 						base,
+						// oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Mutative exposes an object writer for the supplied SessionState; the synchronous recipe preserves that envelope.
 						(writer) => run(writer as SessionState),
 						{
 							enablePatches: true,
@@ -110,6 +112,7 @@ function stageTransactionDraft(initial: SessionState) {
 						return yield* new MutationError(
 							"Transaction drafts require plain saved state",
 						);
+					// oxlint-disable-next-line typescript/no-unsafe-type-assertion -- The producer preserves the SessionState root and its assigned values passed the plain-data check above.
 					next = prepared as SessionState;
 				} else {
 					// Copy-on-write assumes a tree. Preserve existing alias-driven
@@ -137,6 +140,7 @@ function stageTransactionDraft(initial: SessionState) {
 				if (patch.length === 0) return;
 				// Foreign inserted values must be detached before any become owned;
 				// unchanged branches remain shared inside the stable staging boundary.
+				// oxlint-disable-next-line typescript/no-unsafe-type-assertion -- The patch is derived from validated SessionState roots; replay preserves their envelope while the library forgets its type.
 				state = JsonPatch.apply(
 					structuredClone(patch),
 					patchValue(before),
@@ -165,6 +169,7 @@ function stageTransactionDraft(initial: SessionState) {
 				);
 				// The patch was derived from validated SessionState values, so replay
 				// preserves that envelope even though JsonPatch forgets its root type.
+				// oxlint-disable-next-line typescript/no-unsafe-type-assertion -- The patch is derived from validated SessionState roots; replay preserves their envelope while the library forgets its type.
 				state = JsonPatch.apply(
 					patch,
 					patchValue(state),

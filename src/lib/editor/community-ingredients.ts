@@ -1,7 +1,8 @@
 // Adapted from adam110th’s bundle ingredient policy in PR #160. Keep metadata
 // pure: these choices never construct mutable saved items or proxies.
-import { CategoriesWithQuality, ObjectData } from "../ItemData.ts";
 import { ObjectCategory } from "$types/items";
+
+import { CategoriesWithQuality, ObjectData } from "../ItemData.ts";
 
 /*
 	What a Community Center bundle can ask for. Each ingredient in a bundle's
@@ -59,7 +60,8 @@ export function ingredientObject(id: string) {
 	const category = categoryOf(id);
 	if (category === undefined) return ObjectData.get(objectKey(id));
 	for (const item of ObjectData.values())
-		if (item.category === category) return item;
+		if (item.category.valueOf() === category) return item;
+	return undefined;
 }
 
 export function ingredientName(id: string) {
@@ -67,9 +69,11 @@ export function ingredientName(id: string) {
 	if (id === GOLD) return "Gold";
 	if (category !== undefined) {
 		const known = BUNDLE_CATEGORIES.get(category);
-		if (known) return known;
+		if (known != null && known !== "") return known;
 		const name = ObjectCategory[category];
-		return name ? `Any ${name.replace(/(?<=[a-z])(?=[A-Z])/g, " ")}` : id;
+		return name != null && name !== ""
+			? `Any ${name.replace(/(?<=[a-z])(?=[A-Z])/g, " ")}`
+			: id;
 	}
 	return ObjectData.get(objectKey(id))?.name ?? id;
 }

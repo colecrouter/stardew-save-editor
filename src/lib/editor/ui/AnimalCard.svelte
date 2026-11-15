@@ -1,10 +1,11 @@
 <script lang="ts">
+	import StudyAlert from "../../ui/kit/StudyAlert.svelte";
 	import type { AnimalDomain } from "../building-domain.ts";
-	import TextField from "./fields/TextField.svelte";
+	import CheckboxField from "./fields/CheckboxField.svelte";
 	import NumberField from "./fields/NumberField.svelte";
 	import SelectField from "./fields/SelectField.svelte";
-	import CheckboxField from "./fields/CheckboxField.svelte";
-	import StudyAlert from "../../ui/kit/StudyAlert.svelte";
+	import TextField from "./fields/TextField.svelte";
+
 	let { animal }: { animal: AnimalDomain } = $props();
 </script>
 
@@ -27,9 +28,16 @@
 			role="img"
 			aria-label={`Friendship: ${animal.friendship} of 1,000 points`}
 		>
-			<div class="hearts" aria-hidden="true">
+			<div
+				class="hearts"
+				aria-hidden="true"
+			>
 				{#each [0, 1, 2, 3, 4] as heart (heart)}
-					<svg viewBox="0 0 16 16" width="22" height="22">
+					<svg
+						viewBox="0 0 16 16"
+						width="22"
+						height="22"
+					>
 						<path
 							fill="#bca17a"
 							d="M2 2h4v2h4V2h4v2h2v6h-2v2h-2v2h-2v2H6v-2H4v-2H2v-2H0V4h2z"
@@ -47,20 +55,32 @@
 	{/if}
 
 	{#if animal.reason}
-		<StudyAlert title="Animal unavailable" tone="warning">
+		<StudyAlert
+			title="Animal unavailable"
+			tone="warning"
+		>
 			<p>{animal.reason}</p>
 		</StudyAlert>
 	{/if}
 	<div class="fields">
-		<TextField field={animal.fields.name} sensitive />
+		<TextField
+			field={animal.fields.name}
+			sensitive
+		/>
 		<NumberField field={animal.fields.daysOwned} />
 		<SelectField field={animal.fields.gender} />
 		<NumberField
 			field={animal.fields.friendship}
 			description="0–1,000 · 200 per heart"
 		/>
-		<NumberField field={animal.fields.happiness} description="0–255" />
-		<NumberField field={animal.fields.fullness} description="0–255" />
+		<NumberField
+			field={animal.fields.happiness}
+			description="0–255"
+		/>
+		<NumberField
+			field={animal.fields.fullness}
+			description="0–255"
+		/>
 	</div>
 	<div class="toggles">
 		{#if animal.canReproduce}

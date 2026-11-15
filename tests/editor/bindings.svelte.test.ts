@@ -1,10 +1,8 @@
-import { expect, it } from "vitest";
-import { flushSync, mount, unmount } from "svelte";
 import { Atom, AtomRegistry } from "effect/reactivity";
-import type {
-	EditorModel,
-	EditorView,
-} from "../../src/lib/editor/editor-model.ts";
+import { flushSync, mount, unmount } from "svelte";
+import { expect, it } from "vitest";
+
+import type { AdapterModel } from "./components/adapter-model.ts";
 import AdapterLifecycleProbe from "./components/AdapterLifecycleProbe.svelte";
 
 it("mounted Atom readers follow a model replacement within their provider registry", async () => {
@@ -15,12 +13,10 @@ it("mounted Atom readers follow a model replacement within their provider regist
 		({
 			atomBindings: {
 				registry,
-				view: Atom.make({ calendar: { date: { day } } } as EditorView),
-				selectedFarmerId: Atom.make<string | undefined>(undefined),
+				view: Atom.make({ calendar: { date: { day } } }),
 				pending: Atom.make(0),
-				notice: Atom.make(undefined),
 			},
-		}) satisfies Pick<EditorModel, "atomBindings">;
+		}) satisfies AdapterModel;
 	let model = $state.raw(modelFor(2));
 	const target = document.createElement("div");
 	document.body.append(target);

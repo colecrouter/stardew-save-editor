@@ -1,8 +1,9 @@
 import { expect, it } from "vitest";
+
 import {
-	DotNetRandom,
 	createGameRandom,
 	createRandomSeed,
+	DotNetRandom,
 } from "../src/lib/game-random";
 
 it("matches a mixed sequence of seeded .NET integer and floating draws", () => {

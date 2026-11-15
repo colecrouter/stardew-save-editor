@@ -1,8 +1,10 @@
 import { render, screen } from "@testing-library/svelte";
 import { tick } from "svelte";
 import { afterEach, describe, expect, it, vi } from "vitest";
+
 import { Dispose } from "$lib/proxies";
 import { Friendship } from "$lib/proxies/Friendship.svelte";
+
 import { Season } from "../codegen/save";
 import HeartBar from "../src/routes/(legacy)/(edit)/relationships/HeartBar.svelte";
 
@@ -14,12 +16,17 @@ const stubPortraits = (naturalWidth: number) => {
 	const requested: string[] = [];
 	vi.stubGlobal(
 		"Image",
-		class {
+		class extends EventTarget {
 			naturalWidth = naturalWidth;
-			onload?: () => void;
+			#src = "";
+			get src() {
+				return this.#src;
+			}
 			set src(value: string) {
+				this.#src = value;
 				requested.push(value);
-				queueMicrotask(() => this.onload?.());
+				// Match the browser load event, including the component's once listener.
+				queueMicrotask(() => this.dispatchEvent(new Event("load")));
 			}
 		},
 	);
@@ -49,7 +56,13 @@ describe("Villager portrait", () => {
 
 	it("shows the villager's initial until the portrait loads", () => {
 		// An image that never loads, like a modded villager without a portrait
-		vi.stubGlobal("Image", class {});
+		// Retain the image event API while deliberately never firing load.
+		vi.stubGlobal(
+			"Image",
+			class extends EventTarget {
+				src = "";
+			},
+		);
 		const npc = Friendship.fromName("Abigail");
 		const view = render(HeartBar, { props: { name: "Abigail", npc, today } });
 

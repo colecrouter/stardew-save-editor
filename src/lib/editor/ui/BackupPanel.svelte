@@ -1,16 +1,18 @@
 <script lang="ts">
-	import { onMount, onDestroy } from "svelte";
 	import { Effect, Result } from "effect";
+	import { onDestroy, onMount } from "svelte";
+
+	import StudyAlert from "../../ui/kit/StudyAlert.svelte";
+	import StudyButton from "../../ui/kit/StudyButton.svelte";
 	import {
-		readOriginalBackups,
 		deleteOriginalBackup,
 		downloadOriginalBackup,
-		runBackupCommand,
 		type OriginalBackup,
+		readOriginalBackups,
+		runBackupCommand,
 	} from "../backup-operations.ts";
 	import ConfirmAction from "./ConfirmAction.svelte";
-	import StudyButton from "../../ui/kit/StudyButton.svelte";
-	import StudyAlert from "../../ui/kit/StudyAlert.svelte";
+
 	interface Props {
 		onopen: (file: File) => Promise<void>;
 		disabled?: boolean;
@@ -94,13 +96,22 @@
 	</header>
 
 	{#if error}
-		<StudyAlert title="Backups unavailable" tone="danger" live="assertive">
+		<StudyAlert
+			title="Backups unavailable"
+			tone="danger"
+			live="assertive"
+		>
 			{error}
 		</StudyAlert>
 	{/if}
 
 	{#if loading}
-		<p class="empty" role="status">Loading backups…</p>
+		<p
+			class="empty"
+			role="status"
+		>
+			Loading backups…
+		</p>
 	{:else if rows.length === 0}
 		<div class="empty">
 			<h3>Your originals will appear here</h3>
@@ -134,7 +145,12 @@
 						</div>
 
 						{#if backup.reason}
-							<p class="unavailable" role="status">{backup.reason}</p>
+							<p
+								class="unavailable"
+								role="status"
+							>
+								{backup.reason}
+							</p>
 						{/if}
 					</div>
 

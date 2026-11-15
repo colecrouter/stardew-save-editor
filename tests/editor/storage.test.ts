@@ -1,15 +1,15 @@
-import type { Item } from "../../src/lib/editor/domain.ts";
-import { malformedFixture } from "../helpers/editor-document.ts";
 import { it } from "@effect/vitest";
-import { describe, expect } from "vitest";
 import { Effect, Result } from "effect";
-import { makeHistorySession } from "../../src/lib/editor/history";
-import { createCatalogItem } from "../../src/lib/editor/item-catalog";
-import { readChests } from "../../src/lib/editor/inventory-views";
+import { describe, expect } from "vitest";
+
 import { discoverPlacedChests } from "../../src/lib/editor/chest-storage";
-import { setStorageQuality } from "../../src/lib/editor/storage-operations";
+import type { Item } from "../../src/lib/editor/domain.ts";
+import { makeHistorySession } from "../../src/lib/editor/history";
+import { readChests } from "../../src/lib/editor/inventory-views";
+import { createCatalogItem } from "../../src/lib/editor/item-catalog";
 import { searchStorage } from "../../src/lib/editor/storage-domain";
-import { tinyFixture } from "../helpers/editor-document.ts";
+import { setStorageQuality } from "../../src/lib/editor/storage-operations";
+import { malformedFixture, tinyFixture } from "../helpers/editor-document.ts";
 
 const required = <T>(value: T | undefined): T => {
 	if (value === undefined) throw new Error("Missing fixture value");
@@ -106,7 +106,7 @@ describe("storage command boundary", () => {
 				]);
 				const after = yield* session.snapshot,
 					result = required(discoverPlacedChests(after.document)[0]);
-				expect(result.container.customModData).toEqual({ opaque: "007" });
+				expect(result.container["customModData"]).toEqual({ opaque: "007" });
 				expect(result.slots[0]).toMatchObject({ name: "Rusty Sword" });
 				expect(handle(after, chest.id, 0)).toBe(handle(before, chest.id, 2));
 				expect(after.identities[chest.id]).toHaveLength(36);
@@ -134,7 +134,11 @@ describe("storage command boundary", () => {
 				expect(
 					required(discoverPlacedChests(after.document)[0]).serializedLength,
 				).toBe(0);
-				expect(after.identities[to.id]).toEqual(expect.arrayContaining(ids));
+				// Vitest types asymmetric matchers as any. Keep expected matcher values
+				// unknown so they cannot weaken the surrounding saved-data assertions.
+				expect(after.identities[to.id]).toEqual(
+					expect.arrayContaining(ids) as unknown,
+				);
 				expect(after.entries).toHaveLength(1);
 				yield* session.undo;
 				expect((yield* session.snapshot).document).toEqual(before.document);

@@ -1,4 +1,5 @@
 import { Data, Effect, Schema } from "effect";
+
 import { formatDate, SEASONS, weatherLabel } from "../calendar.ts";
 import { CalendarDocumentError } from "../calendarErrors.ts";
 import {
@@ -8,8 +9,8 @@ import {
 	prepareCalendarDocument,
 } from "./calendar-document.ts";
 import {
-	type DomainValue,
 	diff,
+	type DomainValue,
 	MutationError,
 	type SessionState,
 } from "./domain.ts";
@@ -88,7 +89,7 @@ export const prepareCalendarState = Effect.fn("Calendar.prepare")(function* (
 	const current = yield* Effect.try({
 		try: () =>
 			state.domainState && Object.hasOwn(state.domainState, "calendar")
-				? state.domainState.calendar
+				? state.domainState["calendar"]
 				: initializeCalendarDocument(game),
 		// Only deliberate planner rejections are expected failures. A TypeError or
 		// cloning defect retains its original cause and stack.
@@ -107,6 +108,7 @@ export const prepareCalendarState = Effect.fn("Calendar.prepare")(function* (
 				game,
 				// The validated schema exposes readonly collections; the planner
 				// clones them before editing, so this boundary preserves the data.
+				// oxlint-disable-next-line typescript/no-unsafe-type-assertion -- The schema check above establishes the state; the planner clones its readonly collections before editing.
 				current as CalendarDocumentState,
 				action,
 			),
@@ -140,6 +142,7 @@ export const prepareCalendarState = Effect.fn("Calendar.prepare")(function* (
 	return {
 		...state,
 		document,
+		// oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Schema.Json was checked above; this owned state has the same plain scalar/container representation.
 		domainState: { ...state.domainState, calendar: metadata as DomainValue },
 		history: [
 			...state.history,

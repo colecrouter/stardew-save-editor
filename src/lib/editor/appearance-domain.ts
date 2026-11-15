@@ -1,11 +1,11 @@
-import type { ImmutableView } from "./immutable-view.ts";
-import { bindImmediateField, type ImmediateEditPort } from "./field-binding.ts";
-import type { ImmediateField } from "./immediate-field.ts";
 import {
-	setAppearance,
 	type AppearanceChange,
 	type AppearanceView,
+	setAppearance,
 } from "./appearance-operations.ts";
+import { bindImmediateField, type ImmediateEditPort } from "./field-binding.ts";
+import type { ImmediateField } from "./immediate-field.ts";
+import type { ImmutableView } from "./immutable-view.ts";
 
 /** Bind editor-owned fields to the farmer captured when this view was projected. */
 export function createAppearanceDomain(
@@ -25,7 +25,7 @@ export function createAppearanceDomain(
 		return bindImmediateField(
 			model,
 			{ key: identity, label, value, available, reason, constraints },
-			(value: T) => setAppearance(change(value)),
+			(nextValue: T) => setAppearance(change(nextValue)),
 		);
 	}
 	return {

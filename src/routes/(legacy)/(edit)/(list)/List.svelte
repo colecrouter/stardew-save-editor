@@ -4,6 +4,7 @@
 	import UiCheckbox from "$lib/ui/UICheckbox.svelte";
 	import UiContainer from "$lib/ui/UIContainer.svelte";
 	import UiInput from "$lib/ui/UIInput.svelte";
+
 	import NamedItemSprite from "../inventory/NamedItemSprite.svelte";
 	import { recipeMapping } from "./mapping";
 
@@ -15,7 +16,7 @@
 	let { recipes = $bindable(), title = "Crafting Recipes" }: Props = $props();
 
 	let filter = $state("");
-	let regex = $derived.by(() => searchRegexp(filter));
+	let regex = $derived(searchRegexp(filter));
 
 	// Gracefully handle invalid regex patterns
 	// I thought about trying to replace, but this is fine for now
@@ -42,7 +43,7 @@
 	</div>
 
 	<div class="wrapper">
-		{#each recipes as [key, value]}
+		{#each recipes as [key, value] (key)}
 			{#if regex.test(key)}
 				{@const description = describe(key)}
 				<label class="entry">

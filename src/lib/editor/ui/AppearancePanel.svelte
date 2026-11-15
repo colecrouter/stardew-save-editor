@@ -1,14 +1,16 @@
 <script lang="ts">
 	import { useAtomValue } from "effect-atom-svelte";
-	import type { EditorModel } from "../editor-model.ts";
-	import { createAppearanceDomain } from "../appearance-domain.ts";
-	import TextField from "./fields/TextField.svelte";
-	import StepperField from "./fields/StepperField.svelte";
-	import StudyButton from "../../ui/kit/StudyButton.svelte";
-	import SelectField from "./fields/SelectField.svelte";
-	import ColorField from "./fields/ColorField.svelte";
-	import AppearancePreview from "./AppearancePreview.svelte";
+
 	import StudyAlert from "../../ui/kit/StudyAlert.svelte";
+	import StudyButton from "../../ui/kit/StudyButton.svelte";
+	import { createAppearanceDomain } from "../appearance-domain.ts";
+	import type { EditorModel } from "../editor-model.ts";
+	import AppearancePreview from "./AppearancePreview.svelte";
+	import ColorField from "./fields/ColorField.svelte";
+	import SelectField from "./fields/SelectField.svelte";
+	import StepperField from "./fields/StepperField.svelte";
+	import TextField from "./fields/TextField.svelte";
+
 	interface Props {
 		model: EditorModel;
 		oninventory: () => void;
@@ -48,13 +50,22 @@
 					<h2>Identity</h2>
 
 					<div class="field-grid">
-						<TextField field={domain.name} sensitive />
-						<TextField field={domain.favorite} sensitive />
+						<TextField
+							field={domain.name}
+							sensitive
+						/>
+						<TextField
+							field={domain.favorite}
+							sensitive
+						/>
 						<SelectField field={domain.gender} />
 					</div>
 				</section>
 
-				<section class="style-controls" aria-label="Style">
+				<section
+					class="style-controls"
+					aria-label="Style"
+				>
 					<h2>Style</h2>
 
 					<div class="field-grid">
@@ -77,7 +88,10 @@
 		</div>
 	{/key}
 {:else}
-	<StudyAlert title="Appearance unavailable" tone="warning">
+	<StudyAlert
+		title="Appearance unavailable"
+		tone="warning"
+	>
 		<p>{domain?.reason ?? "No supported farmer is available."}</p>
 	</StudyAlert>
 {/if}

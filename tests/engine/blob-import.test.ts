@@ -1,19 +1,22 @@
 import { readFile } from "node:fs/promises";
+
 import { Effect, Fiber, Stream } from "effect";
+import { deflate } from "pako";
 import { expect, it } from "vitest";
-import pako from "pako";
+
+import { openEditorBlob } from "../../src/lib/editor/editor-model.ts";
+import { saveBlobBytes } from "../../src/lib/editor/save-blob-stream.ts";
+import { SaveCodec, SaveCodecLive } from "../../src/lib/editor/save-service.ts";
 import {
 	decodeByteStream,
 	decodeChunks,
 	scalar,
 } from "../../src/lib/save-format/index.ts";
-import { SaveCodec, SaveCodecLive } from "../../src/lib/editor/save-service.ts";
-import { saveBlobBytes } from "../../src/lib/editor/save-blob-stream.ts";
-import { openEditorBlob } from "../../src/lib/editor/editor-model.ts";
+import { requireDefined } from "../helpers/assertions.ts";
 import { SaveProcessingNode } from "../helpers/save-processing-node.ts";
 
 const codec = Effect.runSync(Effect.provide(SaveCodec, SaveCodecLive));
-const decode = codec.decodeBlob!;
+const decode = requireDefined(codec.decodeBlob);
 
 it("streams public XML and compressed saves with byte-path parity and real worker transport", async () => {
 	const bytes = new Uint8Array(
@@ -21,9 +24,9 @@ it("streams public XML and compressed saves with byte-path parity and real worke
 	);
 	const original = await Effect.runPromise(codec.decode(bytes));
 	expect(await Effect.runPromise(decode(new Blob([bytes])))).toEqual(original);
-	expect(
-		await Effect.runPromise(decode(new Blob([pako.deflate(bytes)]))),
-	).toEqual(original);
+	expect(await Effect.runPromise(decode(new Blob([deflate(bytes)])))).toEqual(
+		original,
+	);
 	// Blob crosses the production RPC schema; opening its stream happens in the
 	// worker, not in the caller. The caller's original remains available for backup.
 	class StreamingOnlyBlob extends Blob {
@@ -42,7 +45,7 @@ it("streams public XML and compressed saves with byte-path parity and real worke
 });
 
 it("rejects truncated zlib and malformed XML through typed failures", async () => {
-	const compressed = pako.deflate(new TextEncoder().encode("<SaveGame />"));
+	const compressed = deflate(new TextEncoder().encode("<SaveGame />"));
 	const broken = compressed.subarray(0, compressed.length - 3);
 	const error = await Effect.runPromise(
 		decode(new Blob([broken])).pipe(Effect.flip),

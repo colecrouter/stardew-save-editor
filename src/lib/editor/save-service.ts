@@ -1,9 +1,10 @@
 import { Context, Data, Effect, Layer, Schema, Stream } from "effect";
-import { decodeByteStream } from "../save-format/index.ts";
-import { saveBlobBytes } from "./save-blob-stream.ts";
+import { inflate } from "pako";
+
 import { ValueSchema, XmlSchema } from "../../../generated/save-format/save.ts";
-import pako from "pako";
+import { decodeByteStream } from "../save-format/index.ts";
 import type { EditorGame, SaveDocument } from "./domain.ts";
+import { saveBlobBytes } from "./save-blob-stream.ts";
 
 export class SaveReadError extends Data.TaggedError("SaveReadError")<{
 	stage: "decompress" | "xml" | "shape" | "version" | "worker";
@@ -63,6 +64,7 @@ function validateDocument(saved: typeof ValueSchema.Type) {
 		);
 		// The envelope establishes the required editor fields without narrowing away
 		// any other generated or unknown saved fields.
+		// oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Full generated decoding plus the envelope check above establish the required host fields without projecting unknown data away.
 		const document = { SaveGame: saved as EditorGame };
 		const version = saved.gameVersion ?? "";
 		if (!/^1\.6(?:\.|$)/.test(version))
@@ -77,7 +79,7 @@ export const SaveCodecLive = Layer.sync(SaveCodec, () => {
 			Effect.gen(function* () {
 				const xml = yield* Effect.try({
 					try: () => {
-						const inflated = bytes[0] === 120 ? pako.inflate(bytes) : bytes;
+						const inflated = bytes[0] === 120 ? inflate(bytes) : bytes;
 						if (!(inflated instanceof Uint8Array))
 							throw new Error("Incomplete zlib stream");
 						return new TextDecoder("utf-8", { fatal: true }).decode(inflated);

@@ -1,18 +1,20 @@
-import { Effect } from "effect";
 import { it } from "@effect/vitest";
+import { Effect } from "effect";
 import { describe, expect } from "vitest";
-import {
-	tinyFixture,
-	parser,
-	exportDocument,
-} from "../helpers/editor-document.ts";
+
 import { makeHistorySession } from "../../src/lib/editor/history.ts";
+import { recipeDefinitions } from "../../src/lib/editor/recipe-data.ts";
 import {
 	readRecipes,
-	setRecipe,
 	type RecipeChange,
+	setRecipe,
 } from "../../src/lib/editor/recipe-operations.ts";
-import { recipeDefinitions } from "../../src/lib/editor/recipe-data.ts";
+import {
+	exportDocument,
+	malformedFixture,
+	parser,
+	tinyFixture,
+} from "../helpers/editor-document.ts";
 
 const entry = (name: string, count: number) => ({
 	key: name,
@@ -38,7 +40,8 @@ const change = (
 const cookedId = recipeDefinitions("cooking").find(
 	(row) => row.name === "Fried Egg",
 )?.outputId;
-if (!cookedId) throw Error("Missing cooking metadata");
+if (cookedId == null || cookedId.length === 0)
+	throw Error("Missing cooking metadata");
 describe("recipe save operations", () => {
 	it("reads real cooked counts independently of knowledge without modifying input", () => {
 		const doc = fixture();
@@ -198,7 +201,7 @@ describe("recipe save operations", () => {
 				const session = yield* makeHistorySession(doc);
 				const before = yield* session.snapshot;
 				const row = readRecipes(before.document)[0]?.cooking.find(
-					(row) => row.name === "Fried Egg",
+					(candidateRow) => candidateRow.name === "Fried Egg",
 				);
 				expect(row).toMatchObject({ supported: true, countSupported: false });
 				expect(
@@ -293,7 +296,9 @@ describe("recipe save operations", () => {
 				for (const request of requests)
 					expect(
 						(yield* Effect.result(
-							session.transact(setRecipe(request as RecipeChange)),
+							session.transact(
+								setRecipe(malformedFixture<RecipeChange>(request)),
+							),
 						))._tag,
 					).toBe("Failure");
 				expect((yield* session.snapshot).document).toEqual(before.document);
@@ -303,8 +308,8 @@ describe("recipe save operations", () => {
 		Effect.gen(function* () {
 			const doc = fixture();
 			const farmhands = doc.SaveGame.farmhands;
-			const guest = farmhands && farmhands[0];
-			if (!guest) throw Error("Missing guest");
+			const guest = farmhands[0];
+			if (guest == null || guest["length"] === 0) throw Error("Missing guest");
 			Object.assign(guest, {
 				craftingRecipes: [entry("Wood Fence", 3)],
 				cookingRecipes: [],

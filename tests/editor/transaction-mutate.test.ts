@@ -1,14 +1,15 @@
-import { Effect, Result, Exit, Cause, Deferred, Fiber } from "effect";
 import { it } from "@effect/vitest";
+import { Cause, Deferred, Effect, Exit, Fiber, Result } from "effect";
 import { expect } from "vitest";
-import {
-	makeTransactionDraftFromCommitted,
-	makeTransactionDraft,
-} from "../../src/lib/editor/transaction-draft";
-import { makeHistorySession } from "../../src/lib/editor/history";
+
+import { MutationError, type SessionState } from "../../src/lib/editor/domain";
 import { setFarmSettings } from "../../src/lib/editor/farm-operations";
-import { MutationError } from "../../src/lib/editor/domain";
-import type { SessionState } from "../../src/lib/editor/domain";
+import { makeHistorySession } from "../../src/lib/editor/history";
+import {
+	makeTransactionDraft,
+	makeTransactionDraftFromCommitted,
+} from "../../src/lib/editor/transaction-draft";
+import { requireArray, requireRecord } from "../helpers/assertions.ts";
 import { tinyFixture } from "../helpers/editor-document.ts";
 
 const initial = (): SessionState => ({
@@ -27,17 +28,19 @@ it.effect(
 			let escaped: SessionState | undefined;
 			yield* draft.service.mutate((writer) => {
 				escaped = writer;
-				const reflected = Object.getOwnPropertyDescriptor(
+				const reflected: unknown = Object.getOwnPropertyDescriptor(
 					writer,
 					"document",
 				)?.value;
 				expect(() => {
-					reflected.SaveGame.player.farmName = "poisoned";
-				}).toThrow();
+					requireRecord(
+						requireRecord(requireRecord(reflected)["SaveGame"])["player"],
+					)["farmName"] = "poisoned";
+				}).toThrow(TypeError);
 				writer.document.SaveGame.player.farmName = "Changed";
 				Object.assign(writer.document.SaveGame, { opaque: inserted });
 			});
-			expect(() => escaped?.document).toThrow();
+			expect(() => escaped?.document).toThrow(TypeError);
 			inserted.values[0] = "caller mutation";
 			const prepared = yield* draft.prepared;
 			expect(prepared.document.SaveGame).toMatchObject({
@@ -64,13 +67,9 @@ it.effect(
 				});
 			});
 			yield* draft.service.mutate((writer) => {
-				const game = writer.document
-					.SaveGame as typeof writer.document.SaveGame & {
-					left: { value: number };
-					right: { value: number };
-				};
-				game.left.value = 2;
-				expect(game.right.value).toBe(2);
+				const game = writer.document.SaveGame;
+				requireRecord(game["left"])["value"] = 2;
+				expect(requireRecord(game["right"])["value"]).toBe(2);
 			});
 			expect((yield* draft.prepared).document.SaveGame).toMatchObject({
 				left: { value: 2 },
@@ -99,15 +98,10 @@ it.effect(
 				});
 			});
 			yield* draft.service.mutate((writer) => {
-				const game = writer.document
-					.SaveGame as typeof writer.document.SaveGame & {
-					number: number;
-					list: number[];
-					"a/b": { "~x": number };
-				};
-				game.number = -0;
-				game.list.reverse();
-				game["a/b"]["~x"] = 2;
+				const game = writer.document.SaveGame;
+				game["number"] = -0;
+				requireArray(game["list"]).reverse();
+				requireRecord(game["a/b"])["~x"] = 2;
 			});
 			const before = yield* draft.prepared;
 			expect(
@@ -160,7 +154,7 @@ it.effect(
 			expect(Exit.isFailure(failure) && Cause.hasDies(failure.cause)).toBe(
 				true,
 			);
-			expect(() => escaped?.document).toThrow();
+			expect(() => escaped?.document).toThrow(TypeError);
 			expect((yield* draft.prepared).document.SaveGame.player.farmName).toBe(
 				"Changed",
 			);
@@ -189,7 +183,7 @@ it.effect(
 				}),
 			);
 			expect(Exit.isFailure(getterFailure)).toBe(true);
-			expect(() => escaped?.document).toThrow();
+			expect(() => escaped?.document).toThrow(TypeError);
 			const replacement = yield* Effect.exit(
 				// @ts-expect-error A writer must not return a replacement or async result.
 				draft.service.mutate((writer) => {
@@ -198,7 +192,7 @@ it.effect(
 				}),
 			);
 			expect(Exit.isFailure(replacement)).toBe(true);
-			expect(() => escaped?.document).toThrow();
+			expect(() => escaped?.document).toThrow(TypeError);
 			expect((yield* draft.prepared).document.SaveGame.player.farmName).toBe(
 				"Farm",
 			);
@@ -273,7 +267,6 @@ it.effect(
 	() =>
 		Effect.gen(function* () {
 			const draft = makeTransactionDraft(initial());
-			let escaped: SessionState | undefined;
 			let ran = false;
 			for (const value of [
 				Effect.sync(() => {
@@ -281,6 +274,7 @@ it.effect(
 				}),
 				Promise.resolve(),
 			]) {
+				let escaped: SessionState | undefined;
 				const exit = yield* Effect.exit(
 					// @ts-expect-error Async/Effect work belongs outside the synchronous writer.
 					draft.service.mutate((writer) => {
@@ -289,7 +283,7 @@ it.effect(
 					}),
 				);
 				expect(Exit.isFailure(exit)).toBe(true);
-				expect(() => escaped?.document).toThrow();
+				expect(() => escaped?.document).toThrow(TypeError);
 			}
 			expect(ran).toBe(false);
 			yield* draft.close;

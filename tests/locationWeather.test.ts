@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import { locationWeatherContext } from "$lib/locationWeather";
 
 // Map extraction cases now run against the .NET generator. These assertions

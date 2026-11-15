@@ -1,18 +1,22 @@
 import { Effect, Schema } from "effect";
-import { keyIdentities } from "./key-identities.ts";
-import type { DictionaryKeyComparison } from "./key-identities.ts";
-import { ordinalIgnoreCaseKey } from "./ordinal-ignore-case.ts";
-import { object } from "./objects.ts";
-import { scalar, wrapped } from "./values.ts";
+
 import {
 	accepted,
 	attach,
+	type Codec,
+	type Frame,
+	invalid,
 	noAttributes,
 	record,
 	whitespace,
-	invalid,
 } from "./events.ts";
-import type { Codec, Frame } from "./events.ts";
+import {
+	type DictionaryKeyComparison,
+	keyIdentities,
+} from "./key-identities.ts";
+import { object } from "./objects.ts";
+import { ordinalIgnoreCaseKey } from "./ordinal-ignore-case.ts";
+import { scalar, wrapped } from "./values.ts";
 
 function boxed(
 	codec: Codec,
@@ -91,7 +95,7 @@ export function dictionary(
 				ordinalIgnoreCaseKey(String(left)) ===
 				ordinalIgnoreCaseKey(String(right))
 			);
-		if (comparison) {
+		if (comparison != null) {
 			const a = record(left),
 				b = record(right);
 			return Object.keys(keyIdentities[comparison].fields).every(
@@ -108,17 +112,17 @@ export function dictionary(
 	};
 	const target = Schema.toType(entries).check(
 		Schema.makeFilter((values) => {
-			for (const [index, entry] of values.entries())
+			for (const [index, nestedEntry] of values.entries())
 				if (
 					values
 						.slice(0, index)
-						.some((previous) => equal(previous.key, entry.key))
+						.some((previous) => equal(previous["key"], nestedEntry["key"]))
 				)
 					return "Duplicate dictionary key";
 			return undefined;
 		}),
 	);
-	return attach(target, entries.open, (name, value, attributes) =>
-		entries.write(name, value, attributes),
+	return attach(target, entries.open, (name, nestedValue, attributes) =>
+		entries.write(name, nestedValue, attributes),
 	);
 }

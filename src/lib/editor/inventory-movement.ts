@@ -1,13 +1,17 @@
-import { readEquipmentSlot } from "./equipment.ts";
-import { resolveInventoryContainer } from "./inventory-containers.ts";
-import { equipmentSlots, type EquipmentIdentities } from "./equipment.ts";
 import { Effect, Result, Schema, SchemaIssue } from "effect";
+
 import {
 	emptySlot,
 	MutationError,
 	type ResolvedMutation,
 	type SaveDocument,
 } from "./domain.ts";
+import {
+	type EquipmentIdentities,
+	equipmentSlots,
+	readEquipmentSlot,
+} from "./equipment.ts";
+import { resolveInventoryContainer } from "./inventory-containers.ts";
 
 /** Both ends name session instances, including virtual chest empties.
  * ownerId/toOwnerId are opaque inventory owner keys for farmers or placed chests.
@@ -37,11 +41,11 @@ export const resolveInventoryMove = Effect.fn("Backpack.resolveMove")(
 	function* (
 		document: SaveDocument,
 		identities: Record<string, string[]>,
-		input: InventoryMoveRequest,
+		input: unknown,
 		equipmentIdentities: EquipmentIdentities = {},
 	) {
 		const decoded = decode(
-			input && typeof input === "object" ? { ...input } : input,
+			input !== null && typeof input === "object" ? { ...input } : input,
 		);
 		if (Result.isFailure(decoded))
 			return yield* invalid(
@@ -68,9 +72,9 @@ export const resolveInventoryMove = Effect.fn("Backpack.resolveMove")(
 				!ids ||
 				ids.length !== items.length
 			)
-				return undefined;
+				return;
 			const slot = backpackSlot >= 0 ? backpackSlot : equipmentKey;
-			if (slot === undefined) return undefined;
+			if (slot === undefined) return;
 			return {
 				slot,
 				item:

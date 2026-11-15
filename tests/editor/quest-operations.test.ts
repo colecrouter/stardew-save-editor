@@ -1,23 +1,26 @@
-import type { TransactionDraft } from "../../src/lib/editor/transaction-draft.ts";
-import type { ReviewJournal } from "../../src/lib/editor/transaction-annotations.ts";
-import type { InventoryEdits } from "../../src/lib/editor/inventory-operations.ts";
-import { Effect } from "effect";
 import { it } from "@effect/vitest";
+import { Effect } from "effect";
 import { describe, expect } from "vitest";
-import {
-	tinyFixture,
-	exportDocument,
-	parser,
-} from "../helpers/editor-document.ts";
+
+import type { SaveDocument } from "../../src/lib/editor/domain.ts";
 import {
 	type HistorySession,
 	makeHistorySession,
 } from "../../src/lib/editor/history.ts";
+import type { InventoryEdits } from "../../src/lib/editor/inventory-operations.ts";
 import {
-	setQuest,
 	readQuestJournals,
+	setQuest,
 } from "../../src/lib/editor/quest-operations.ts";
-import type { SaveDocument } from "../../src/lib/editor/domain.ts";
+import type { ReviewJournal } from "../../src/lib/editor/transaction-annotations.ts";
+import type { TransactionDraft } from "../../src/lib/editor/transaction-draft.ts";
+import { requireDefined } from "../helpers/assertions.ts";
+import {
+	exportDocument,
+	parser,
+	tinyFixture,
+} from "../helpers/editor-document.ts";
+
 const baseQuest = (extra: Record<string, unknown> = {}) =>
 	Object.fromEntries(
 		Object.entries({
@@ -96,8 +99,10 @@ describe("quest journal operations", () => {
 					});
 				const document = fixture([quest(exact), quest(exact + 1n)]);
 				const before = structuredClone(document);
-				const rows = readQuestJournals(document)[0]!.quests;
-				expect(rows[0]!.key).not.toBe(rows[1]!.key);
+				const rows = requireDefined(readQuestJournals(document)[0]).quests;
+				expect(requireDefined(rows[0]).key).not.toBe(
+					requireDefined(rows[1]).key,
+				);
 				expect(document).toEqual(before);
 				const captured = target(document);
 				const session = yield* makeHistorySession(document);
@@ -506,9 +511,9 @@ it.effect(
 			const document = fixture([
 				baseQuest({ id: "parent", nextQuests: ["6"] }),
 			]);
-			const guest =
-				document.SaveGame.farmhands && document.SaveGame.farmhands[0];
-			if (!guest) throw new Error("Missing guest");
+			const guest = document.SaveGame.farmhands[0];
+			if (guest == null || guest["length"] === 0)
+				throw new Error("Missing guest");
 			Object.assign(guest, {
 				questLog: [baseQuest({ id: "guest-parent", nextQuests: ["6"] })],
 				activeDialogueEvents: [],
@@ -530,21 +535,21 @@ it.effect(
 				}),
 			);
 			const after = yield* session.snapshot;
+			// Vitest types asymmetric matchers as any. Keep expected matcher values
+			// unknown so they cannot weaken the surrounding saved-data assertions.
 			expect(after.document.SaveGame.player).toMatchObject({
 				questLog: expect.arrayContaining([
 					expect.objectContaining({
 						id: "6",
 						nextQuests: ["7", "8"],
-					}),
-				]),
+					}) as unknown,
+				]) as unknown,
 			});
-			const saved =
-				after.document.SaveGame.farmhands &&
-				after.document.SaveGame.farmhands[0];
+			const saved = after.document.SaveGame.farmhands[0];
 			expect(saved).toMatchObject({
 				questLog: expect.arrayContaining([
-					expect.objectContaining({ id: "6", nextQuests: ["8"] }),
-				]),
+					expect.objectContaining({ id: "6", nextQuests: ["8"] }) as unknown,
+				]) as unknown,
 			});
 		}),
 );

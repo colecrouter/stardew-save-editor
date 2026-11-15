@@ -1,14 +1,11 @@
-import type { InventorySlot } from "./inventory-values.ts";
-import {
-	farmers as savedFarmers,
-	type Farmer,
-	type SaveDocument,
-} from "./domain.ts";
 import {
 	discoverPlacedChests,
-	writeChestSlots,
 	type PlacedChest,
+	writeChestSlots,
 } from "./chest-storage.ts";
+import type { Farmer, SaveDocument } from "./domain.ts";
+import type { InventorySlot } from "./inventory-values.ts";
+import { farmers as savedFarmers } from "./saved-farmers.ts";
 
 /** A transient lens over an inventory; numbered slots are shared, equipment belongs to farmers. */
 export interface InventoryContainer {
@@ -51,9 +48,9 @@ export function inventoryContainers(
 				kind: "farmer" as const,
 				slots,
 				farmer,
-				write: (slots: InventorySlot[]) => {
+				write: (replacementSlots: InventorySlot[]) => {
 					// Transitions preserve decoded slots or insert typed catalog items.
-					farmer.items = slots;
+					farmer.items = replacementSlots;
 				},
 			},
 		];

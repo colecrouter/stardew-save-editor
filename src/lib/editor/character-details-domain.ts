@@ -1,10 +1,11 @@
-import type { ImmutableView } from "./immutable-view.ts";
+import {
+	type CharacterDetailsView,
+	setCharacterDetails,
+} from "./character-details.ts";
 import { bindImmediateField, type ImmediateEditPort } from "./field-binding.ts";
 import type { ImmediateField } from "./immediate-field.ts";
-import {
-	setCharacterDetails,
-	type CharacterDetailsView,
-} from "./character-details.ts";
+import type { ImmutableView } from "./immutable-view.ts";
+
 /** Capture the farmer selected when descriptors were built, including queued work. */
 export function createCharacterDetailsDomain(
 	view: ImmutableView<CharacterDetailsView>,
@@ -23,7 +24,8 @@ export function createCharacterDetailsDomain(
 		return bindImmediateField(
 			model,
 			{ key: identity, label, value, available, constraints, reason },
-			(value: T) => setCharacterDetails({ farmerId, key, value }),
+			(nextValue: T) =>
+				setCharacterDetails({ farmerId, key, value: nextValue }),
 		);
 	}
 	return {

@@ -1,0 +1,171 @@
+{
+	"formatVersion": 3,
+	"roots": ["StardewValley.SaveGame"],
+	"diagnostics": [],
+	"types": [
+		{
+			"id": "Netcode.NetEnum`1[StardewValley.Status]",
+			"assembly": "Stardew Valley",
+			"kind": "collection",
+			"baseType": "System.Object",
+			"elementType": "System.String",
+			"maxItems": 1,
+			"genericDefinition": "Netcode.NetEnum`1",
+			"genericArguments": ["StardewValley.Status"]
+		},
+		{
+			"id": "Netcode.NetRef`1[StardewValley.Tool]",
+			"assembly": "Stardew Valley",
+			"kind": "collection",
+			"baseType": "Netcode.NetField`2[StardewValley.Tool,Netcode.NetRef`1[StardewValley.Tool]]",
+			"elementType": "StardewValley.Tool",
+			"maxItems": 1,
+			"genericDefinition": "Netcode.NetRef`1",
+			"genericArguments": ["StardewValley.Tool"]
+		},
+		{
+			"id": "StardewValley.Item",
+			"assembly": "Stardew Valley",
+			"kind": "object",
+			"baseType": "System.Object",
+			"derivedTypes": ["StardewValley.Tool"],
+			"attributes": [
+				{
+					"type": "System.Xml.Serialization.XmlIncludeAttribute",
+					"constructorArguments": [
+						{
+							"type": "System.Type",
+							"value": "StardewValley.Tool"
+						}
+					]
+				}
+			],
+			"members": [
+				{
+					"name": "Name",
+					"type": "System.String"
+				}
+			]
+		},
+		{
+			"id": "StardewValley.SaveGame",
+			"assembly": "Stardew Valley",
+			"kind": "object",
+			"baseType": "System.Object",
+			"members": [
+				{
+					"name": "Day",
+					"type": "System.Nullable`1[System.Int32]"
+				},
+				{
+					"name": "Equipped",
+					"type": "Netcode.NetRef`1[StardewValley.Tool]",
+					"attributes": [
+						{
+							"type": "System.Xml.Serialization.XmlElementAttribute",
+							"constructorArguments": [
+								{
+									"type": "System.String",
+									"value": "Equipped"
+								}
+							]
+						}
+					]
+				},
+				{
+					"name": "FarmerId",
+					"type": "System.Int64"
+				},
+				{
+					"name": "Items",
+					"type": "System.Collections.Generic.List`1[StardewValley.Item]"
+				},
+				{
+					"name": "Money",
+					"type": "System.Int32",
+					"attributes": [
+						{
+							"type": "System.Xml.Serialization.XmlElementAttribute",
+							"namedArguments": {
+								"Form": {
+									"type": "System.Xml.Schema.XmlSchemaForm",
+									"value": 2
+								}
+							}
+						}
+					]
+				},
+				{
+					"name": "Name",
+					"type": "System.String"
+				},
+				{
+					"name": "Status",
+					"type": "Netcode.NetEnum`1[StardewValley.Status]",
+					"attributes": [
+						{
+							"type": "System.Xml.Serialization.XmlElementAttribute",
+							"constructorArguments": [
+								{
+									"type": "System.String",
+									"value": "Status"
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"id": "StardewValley.Tool",
+			"assembly": "Stardew Valley",
+			"kind": "object",
+			"baseType": "StardewValley.Item",
+			"members": [
+				{
+					"name": "Level",
+					"type": "System.Int32"
+				},
+				{
+					"name": "Name",
+					"type": "System.String"
+				}
+			]
+		},
+		{
+			"id": "System.Collections.Generic.List`1[StardewValley.Item]",
+			"assembly": "System.Private.CoreLib",
+			"kind": "collection",
+			"baseType": "System.Object",
+			"elementType": "StardewValley.Item",
+			"genericDefinition": "System.Collections.Generic.List`1",
+			"genericArguments": ["StardewValley.Item"]
+		},
+		{
+			"id": "System.Int32",
+			"assembly": "System.Private.CoreLib",
+			"kind": "scalar",
+			"baseType": "System.ValueType"
+		},
+		{
+			"id": "System.Int64",
+			"assembly": "System.Private.CoreLib",
+			"kind": "scalar",
+			"baseType": "System.ValueType"
+		},
+		{
+			"id": "System.Nullable`1[System.Int32]",
+			"assembly": "System.Private.CoreLib",
+			"kind": "nullable",
+			"baseType": "System.ValueType",
+			"genericDefinition": "System.Nullable`1",
+			"genericArguments": ["System.Int32"]
+		},
+		{
+			"id": "System.String",
+			"assembly": "System.Private.CoreLib",
+			"kind": "scalar",
+			"baseType": "System.Object"
+		}
+	]
+}

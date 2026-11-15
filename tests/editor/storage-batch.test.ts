@@ -1,6 +1,7 @@
 import { it } from "@effect/vitest";
-import { expect } from "vitest";
 import { Effect, Result } from "effect";
+import { expect } from "vitest";
+
 import { makeHistorySession } from "../../src/lib/editor/history";
 import {
 	InventoryEdits,
@@ -8,6 +9,7 @@ import {
 } from "../../src/lib/editor/inventory-operations";
 import { setStorageQuality } from "../../src/lib/editor/storage-operations";
 import { TransactionDraft } from "../../src/lib/editor/transaction-draft";
+import { requireDefined } from "../helpers/assertions.ts";
 import { tinyFixture } from "../helpers/editor-document.ts";
 
 const item = () => ({
@@ -134,12 +136,13 @@ it.effect(
 				hands = document.SaveGame.farmhands;
 			if (!Array.isArray(hands) || !hands[0])
 				throw new Error("Missing fixture farmer");
-			hands[0].items = [raw!];
+			hands[0].items = [requireDefined(raw)];
 			Object.assign(document.SaveGame, { opaqueAlias: raw });
 			const session = yield* makeHistorySession(document),
 				before = yield* session.snapshot;
 			const guest = before.identities["2"]?.[0];
-			if (!guest) throw new Error("Missing guest handle");
+			if (guest == null || guest.length === 0)
+				throw new Error("Missing guest handle");
 			yield* session.transact(
 				setStorageQuality(
 					[...selected(before), { ownerId: "2", entityId: guest }],

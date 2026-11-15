@@ -24,5 +24,8 @@
 	"js/ts.experimental.useTsgo": true,
 	"typescript.native-preview.tsdk": "./node_modules/@typescript/native/bin",
 	"js/ts.tsdk.promptToUseWorkspaceVersion": true,
-	"npm.scriptRunner": "vp"
+	"npm.scriptRunner": "vp",
+	// ESLint supplies template diagnostics; Oxfmt remains the component formatter.
+	"eslint.validate": ["svelte"],
+	"eslint.format.enable": false
 }

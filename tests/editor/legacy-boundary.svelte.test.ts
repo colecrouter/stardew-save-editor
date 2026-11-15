@@ -1,11 +1,13 @@
-import { expect, it, vi } from "vitest";
 import { render, waitFor } from "@testing-library/svelte";
 import { flushSync } from "svelte";
-import { Item } from "../../src/lib/proxies/Item.svelte";
+import { expect, it, vi } from "vitest";
+
 import { Raw } from "../../src/lib/proxies";
+import { Item } from "../../src/lib/proxies/Item.svelte";
 import type { SaveManager } from "../../src/lib/SaveManager.svelte";
 import Harness from "./components/LegacyBoundaryHarness.svelte";
 import { fixtureXml } from "./fixtures";
+
 // This boundary check imports the full public save before switching editor lifetimes.
 it("leaving the legacy route group releases imported item roots before another editor opens", async () => {
 	let manager: SaveManager | undefined;
@@ -83,8 +85,10 @@ it("a legacy export finishing after teardown cannot write its reserved destinati
 				release = resolve;
 			}),
 	);
-	const createWritable = vi.fn();
-	const picker = vi.fn(async () => ({ createWritable }));
+	const createWritable = vi.fn<() => Promise<FileSystemWritableFileStream>>();
+	const picker = vi.fn<
+		() => Promise<{ createWritable: typeof createWritable }>
+	>(() => Promise.resolve({ createWritable }));
 	Object.defineProperty(window, "showSaveFilePicker", {
 		configurable: true,
 		value: picker,

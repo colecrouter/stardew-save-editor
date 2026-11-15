@@ -1,17 +1,23 @@
 <script lang="ts">
 	import { tick } from "svelte";
-	import { chooseSaveDestination } from "$lib/downloadSave";
+
 	import { goto } from "$app/navigation";
 	import { asset, resolve } from "$app/paths";
+	import { chooseSaveDestination } from "$lib/downloadSave";
+
+	// Retain the legacy layout's established stylesheet registration order.
 	import "$lib/ui/study-theme.css";
-	import StudyIcon from "$lib/ui/StudyIcon.svelte";
-	import EditorShell from "$lib/ui/frame/EditorShell.svelte";
-	import { setUiAssets, resolveUiAssets } from "$lib/ui/uiAssets";
+	// Component modules follow the theme in this route; keep that import partition
+	// separate from the current editor's controls-before-theme arrangement.
 	import { getSaveManager, SaveValidationError } from "$lib/SaveManager.svelte";
 	import { describeResult } from "$lib/saveValidation";
 	import { getToastManager, Toast } from "$lib/ToastManager.svelte";
+	import EditorShell from "$lib/ui/frame/EditorShell.svelte";
+	import StudyIcon from "$lib/ui/StudyIcon.svelte";
 	import Tooltip from "$lib/ui/Tooltip.svelte";
+	import { resolveUiAssets, setUiAssets } from "$lib/ui/uiAssets";
 	import UiButton from "$lib/ui/UIButton.svelte";
+
 	import CharacterPreview from "./appearance/CharacterPreview.svelte";
 	import Router from "./Router.svelte";
 
@@ -46,7 +52,7 @@
 		return prepare()
 			.then((validation) => {
 				// A dismissed save picker did not download a file.
-				if (!validation) return;
+				if (!validation) return undefined;
 				// Downloaded, but there may still be warnings to show
 				const { message, type, duration } = describeResult(
 					"downloaded",
@@ -54,6 +60,8 @@
 				);
 				toastManager.add(new Toast(message, type), duration);
 				if (type !== "success") console.warn("Save file problems", validation);
+				// Download feedback completes this side-effect-only continuation.
+				return undefined;
 			})
 			.catch((e) => {
 				if (e instanceof SaveValidationError) {

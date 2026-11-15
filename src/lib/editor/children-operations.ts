@@ -1,13 +1,14 @@
 import { Data, Effect, Result, Schema } from "effect";
+
 import characterNames from "../../../generated/character-names.json";
-import { farmers } from "./domain.ts";
 import { childStage, inspectResidents, readChildren } from "./children-data.ts";
-import { record } from "./plain-data.ts";
-import { TransactionDraft } from "./transaction-draft.ts";
+import { farmers } from "./domain.ts";
+import { nonemptyText, record } from "./plain-data.ts";
 import {
 	recordAnnotatedOperation,
 	withReviewMetadata,
 } from "./transaction-annotations.ts";
+import { TransactionDraft } from "./transaction-draft.ts";
 
 export class ChildRenameInvalid extends Data.TaggedError("ChildRenameInvalid")<{
 	readonly message: string;
@@ -84,7 +85,7 @@ export const editChild = Effect.fn("Children.edit")(function* (
 		(resident) => resident.key === request.key,
 	);
 	if (
-		!row?.supported ||
+		!(row?.supported === true) ||
 		!target ||
 		target.resident.$type !== "StardewValley.Characters.Child" ||
 		(target.home.$type !== "StardewValley.Locations.FarmHouse" &&
@@ -164,7 +165,7 @@ export const editChild = Effect.fn("Children.edit")(function* (
 		resident.darkSkinned = changes.darkSkinned;
 		changed = true;
 	}
-	if (ageChanged) {
+	if (ageChanged && changes.daysOld !== undefined && stage !== undefined) {
 		// Keep the current stage and movement speed consistent immediately. Runtime
 		// positions, bed assignment, daily flags and overnight events are not simulated.
 		resident.daysOld = changes.daysOld;
@@ -210,7 +211,7 @@ export const renameChild = Effect.fn("Children.rename")(function* (
 	// Preserve the exact internal name once accepted. Birth code uses trailing
 	// spaces to disambiguate identities; never silently trim an imported key.
 	if (
-		!request.newName.trim() ||
+		nonemptyText(request.newName.trim()) === undefined ||
 		request.newName !== request.newName.trim() ||
 		// Reject controls and invisible direction/spacing marks so authored names
 		// cannot disguise a different name-keyed identity. Imported keys stay exact.
@@ -228,7 +229,7 @@ export const renameChild = Effect.fn("Children.rename")(function* (
 	const document = snapshot.state.document;
 	const row = readChildren(document).find((child) => child.key === request.key);
 	if (
-		!row?.supported ||
+		!(row?.supported === true) ||
 		row.name !== request.name ||
 		row.parentId !== request.parentId
 	)
@@ -244,8 +245,9 @@ export const renameChild = Effect.fn("Children.rename")(function* (
 		characterNames.includes(request.newName) ||
 		residents.some(({ resident }) => resident.name === request.newName) ||
 		owners.some((owner) =>
-			[owner.friendshipData, owner.giftedItems].some((dictionary) =>
-				dictionary?.some((entry) => entry.key === request.newName),
+			[owner.friendshipData, owner.giftedItems].some(
+				(dictionary) =>
+					dictionary?.some((entry) => entry.key === request.newName) === true,
 			),
 		)
 	)

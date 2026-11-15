@@ -1,12 +1,14 @@
 <script lang="ts">
 	import { useAtomValue } from "effect-atom-svelte";
+
+	import StudyAlert from "../../ui/kit/StudyAlert.svelte";
 	import type { EditorModel } from "../editor-model.ts";
 	import { createQiOrderDomain } from "../qi-order-domain.ts";
 	import { MAX_QI_OFFERS } from "../qi-order-operations.ts";
-	import CheckboxField from "./fields/CheckboxField.svelte";
 	import ConfirmAction from "./ConfirmAction.svelte";
+	import CheckboxField from "./fields/CheckboxField.svelte";
 	import QuestNoticeBoard from "./QuestNoticeBoard.svelte";
-	import StudyAlert from "../../ui/kit/StudyAlert.svelte";
+
 	interface Props {
 		model: EditorModel;
 	}
@@ -73,7 +75,10 @@
 </div>
 
 {#if !domain?.supported}
-	<StudyAlert title="Qi orders unavailable" tone="warning">
+	<StudyAlert
+		title="Qi orders unavailable"
+		tone="warning"
+	>
 		<p>{domain?.reason ?? "Qi orders are unavailable."}</p>
 	</StudyAlert>
 {/if}

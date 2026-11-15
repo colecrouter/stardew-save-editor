@@ -7,7 +7,10 @@
 
 {#if (field.options?.length ?? 0) > 1 || field.reason}
 	<div class="farmer">
-		<SelectField {field} inline />
+		<SelectField
+			{field}
+			inline
+		/>
 	</div>
 {/if}
 

@@ -1,25 +1,26 @@
-import { progressionFarmers } from "./progression-farmers.ts";
-import { Data, Effect, Schema, Result } from "effect";
-import { createFarmAnimal, newAnimalId } from "./farm-animal-data.ts";
+import { Data, Effect, Result, Schema } from "effect";
+
+import { purchasedAnimalTopic, upgradeTiers } from "../animalBuildingData.ts";
 import { changeBuildingTier } from "./animal-buildings.ts";
-import { upgradeTiers, purchasedAnimalTopic } from "../animalBuildingData.ts";
+import {
+	animalDictionary,
+	inspectBuildings,
+	isKnownLocation,
+	long,
+	readBuildings,
+	residents,
+	safeInterior,
+	tierRecord,
+} from "./building-data.ts";
 import type { Farmer, SaveDocument } from "./domain.ts";
-import { TransactionDraft } from "./transaction-draft.ts";
+import { createFarmAnimal, newAnimalId } from "./farm-animal-data.ts";
 import { InventoryEdits } from "./inventory-operations.ts";
+import { progressionFarmers } from "./progression-farmers.ts";
 import {
 	recordAnnotatedOperation,
 	withReviewMetadata,
 } from "./transaction-annotations.ts";
-import {
-	long,
-	residents,
-	animalDictionary,
-	inspectBuildings,
-	readBuildings,
-	tierRecord,
-	safeInterior,
-	isKnownLocation,
-} from "./building-data.ts";
+import { TransactionDraft } from "./transaction-draft.ts";
 
 export class BuildingInvalid extends Data.TaggedError("BuildingInvalid")<{
 	readonly message: string;
@@ -73,7 +74,7 @@ export const setAnimal = Effect.fn("Buildings.setAnimal")(function* (
 	input: AnimalChange,
 ) {
 	const decoded = decode(
-		input && typeof input === "object" ? { ...input } : input,
+		input !== null && typeof input === "object" ? { ...input } : input,
 	);
 	if (Result.isFailure(decoded))
 		return yield* invalid("Choose a valid animal field value.");
@@ -89,7 +90,11 @@ export const setAnimal = Effect.fn("Buildings.setAnimal")(function* (
 		...view.buildings.flatMap((row) => row.animals),
 		...view.unhoused,
 	].find((row) => row.id === change.animalId);
-	if (!target?.supported || !target.raw || !animal?.supported)
+	if (
+		!(target?.supported === true) ||
+		!target.raw ||
+		!(animal?.supported === true)
+	)
 		return yield* invalid(
 			"This animal no longer has an unambiguous saved record.",
 		);
@@ -101,7 +106,7 @@ export const setAnimal = Effect.fn("Buildings.setAnimal")(function* (
 		return yield* invalid("This animal cannot eat Golden Animal Crackers.");
 	if (change.kind === "name" && !animal.nameEditable)
 		return yield* invalid("This saved name is unsupported.");
-	if (change.kind === "name" && !change.value.trim())
+	if (change.kind === "name" && !(change.value.trim() !== ""))
 		return yield* invalid("The animal needs a name.");
 	const property = {
 		name: "name",
@@ -208,7 +213,13 @@ export const prepareBuildingUpgrade = Effect.fn("Buildings.prepareUpgrade")(
 		);
 		const raw = building && tierRecord(building),
 			option = view?.tiers.find((row) => row.name === targetName);
-		if (!building || !raw || !view?.supported || !option || option.reason)
+		if (
+			!building ||
+			!raw ||
+			!(view?.supported === true) ||
+			!option ||
+			(option.reason ?? "") !== ""
+		)
 			return yield* invalid(
 				option?.reason ?? "Choose a supported building tier.",
 			);
@@ -288,12 +299,12 @@ export const adoptAnimal = Effect.fn("Buildings.adopt")(function* (
 	if (
 		!graph.supported ||
 		graph.animals.some((row) => !row.supported) ||
-		!building?.supported ||
+		!(building?.supported === true) ||
 		building.raw.$type === "$unknown" ||
 		!building.interior ||
 		!view ||
-		view.adoptionReason ||
-		!option?.allowed
+		(view.adoptionReason ?? "") !== "" ||
+		!(option?.allowed === true)
 	)
 		return yield* invalid(
 			view?.adoptionReason ??
@@ -301,9 +312,12 @@ export const adoptAnimal = Effect.fn("Buildings.adopt")(function* (
 				"This animal cannot be adopted here.",
 		);
 	const trimmed = name.trim();
-	if (!trimmed || graph.animals.some((row) => row.raw?.name === trimmed))
+	if (
+		!(trimmed !== "") ||
+		graph.animals.some((row) => row.raw?.name === trimmed)
+	)
 		return yield* invalid(
-			trimmed
+			trimmed !== ""
 				? "Another animal already has this name."
 				: "The animal needs a name.",
 		);
@@ -362,7 +376,7 @@ export const setGreenhouseRepaired = Effect.fn("Buildings.greenhouse")(
 		);
 		if (
 			typeof value !== "boolean" ||
-			!view?.supported ||
+			!(view?.supported === true) ||
 			view.repaired === undefined ||
 			farms.length !== 1 ||
 			!isKnownLocation(farms[0])

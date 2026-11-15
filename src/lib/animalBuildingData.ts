@@ -2,6 +2,7 @@
 import buildings from "$generated/buildings.json";
 import farmAnimals from "$generated/farmanimals.json";
 import type { BuildingUpgradeData } from "$types/buildingUpgrade";
+
 export type BuildingInfo = (typeof buildings)[number] & BuildingUpgradeData;
 const allBuildings = buildings as BuildingInfo[];
 
@@ -11,12 +12,15 @@ const allBuildings = buildings as BuildingInfo[];
     names the one it upgrades (`BuildingToUpgrade` in Data/Buildings).
 */
 export function upgradeTiers(type: string | undefined): BuildingInfo[] {
-	let base = allBuildings.find((b) => b.name === type);
-	if (!base) return [];
+	const first = allBuildings.find((b) => b.name === type);
+	if (!first) return [];
+	let base: BuildingInfo = first;
 	const tiers = [base];
-	while (base.buildingToUpgrade) {
-		const previous = allBuildings.find(
-			(b) => b.name === base?.buildingToUpgrade,
+	while (base.buildingToUpgrade != null && base.buildingToUpgrade !== "") {
+		// Capture this tier before the next loop iteration changes the cursor.
+		const predecessor: string = base.buildingToUpgrade;
+		const previous: BuildingInfo | undefined = allBuildings.find(
+			(building) => building.name === predecessor,
 		);
 		if (!previous || tiers.includes(previous)) break;
 		tiers.unshift(previous);

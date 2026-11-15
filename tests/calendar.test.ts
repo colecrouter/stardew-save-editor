@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
+
 import {
-	CSharpRandom,
 	calendarFestivalOn,
 	createRandomSeed,
+	CSharpRandom,
 	dateInRange,
 	festivalOn,
 	forcedWeather,
@@ -17,6 +18,9 @@ import {
 	weekday,
 } from "$lib/calendar";
 import { Season } from "$types/save";
+
+import { jsonRoundTrip } from "./helpers/assertions.ts";
+import { malformedFixture } from "./helpers/editor-document.ts";
 
 const date = (season: Season, day: number, year = 1): GameDate => ({
 	year,
@@ -39,7 +43,7 @@ describe("calendar weather preparation", () => {
 	it("retains serializable ordinary choices across a festival round trip", () => {
 		const choices = Object.freeze({ today: "Rain", tomorrow: "Wind" });
 		expect(prepare(date(Season.Spring, 13), choices).today).toBe("Festival");
-		const restored = JSON.parse(JSON.stringify(choices)) as typeof choices;
+		const restored = jsonRoundTrip(choices);
 		expect(prepare(date(Season.Spring, 14), restored)).toEqual({
 			today: "Rain",
 			tomorrow: "Wind",
@@ -98,7 +102,10 @@ describe("calendar", () => {
 	it("finds festivals, including several-day ones", () => {
 		expect(festivalOn(date(Season.Spring, 13))?.name).toBe("Egg Festival");
 		expect(festivalOn(date(Season.Winter, 16))?.name).toBe("Night Market");
-		expect(festivalOn(date(Season.Winter, 16))?.passive).toBe(true);
+		// Only passive festival variants declare this flag in the literal catalog.
+		expect(festivalOn(date(Season.Winter, 16))).toMatchObject({
+			passive: true,
+		});
 		expect(festivalOn(date(Season.Spring, 14))).toBeUndefined();
 	});
 
@@ -128,7 +135,7 @@ describe("calendar", () => {
 		expect(dateInRange(date(Season.Fall, 0, 2))).toEqual(
 			date(Season.Fall, 1, 2),
 		);
-		expect(dateInRange(date("autumn" as Season, 5))).toEqual(
+		expect(dateInRange(date(malformedFixture<Season>("autumn"), 5))).toEqual(
 			date(Season.Spring, 5),
 		);
 		expect(dateInRange(date(Season.Fall, Number.NaN, Number.NaN))).toEqual(
@@ -167,8 +174,15 @@ describe("weather", () => {
 			isGreenRain: true,
 		});
 		expect(Object.values(WEATHER_FLAGS.Festival).some(Boolean)).toBe(false);
-		for (const id of ["Sun", "Rain", "GreenRain", "Wind", "Storm", "Snow"])
-			expect(weatherFromFlags(WEATHER_FLAGS[id as "Sun"])).toBe(id);
+		for (const id of [
+			"Sun",
+			"Rain",
+			"GreenRain",
+			"Wind",
+			"Storm",
+			"Snow",
+		] as const)
+			expect(weatherFromFlags(WEATHER_FLAGS[id])).toBe(id);
 	});
 
 	it("knows the days with fixed weather", () => {

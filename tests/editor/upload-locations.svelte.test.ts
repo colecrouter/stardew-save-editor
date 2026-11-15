@@ -1,11 +1,12 @@
-import { afterEach, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/svelte";
 import { Effect, Result } from "effect";
-import UploadPanel from "../../src/lib/editor/ui/UploadPanel.svelte";
+import { afterEach, expect, it, vi } from "vitest";
+
 import {
 	copySaveLocation,
 	runEntryCommand,
 } from "../../src/lib/editor/entry-operations";
+import UploadPanel from "../../src/lib/editor/ui/UploadPanel.svelte";
 
 const originalClipboard = Object.getOwnPropertyDescriptor(
 	navigator,
@@ -25,13 +26,15 @@ const clipboard = (writeText: (text: string) => Promise<void>) =>
 const props = {
 	opening: false,
 	error: "",
-	onfile: vi.fn(),
-	onoriginal: vi.fn(),
-	oncancel: vi.fn(),
+	onfile: vi.fn<(file: File) => Promise<void>>().mockResolvedValue(undefined),
+	onoriginal: vi
+		.fn<(file: File) => Promise<void>>()
+		.mockResolvedValue(undefined),
+	oncancel: vi.fn<() => void>(),
 };
 
 it("copies a platform path without opening the file picker and keeps the path available for manual selection", async () => {
-	const write = vi.fn(async () => {});
+	const write = vi.fn<() => Promise<void>>(() => Promise.resolve());
 	clipboard(write);
 	const open = vi.spyOn(HTMLInputElement.prototype, "click");
 	render(UploadPanel, { props });
@@ -53,7 +56,7 @@ it("copies a platform path without opening the file picker and keeps the path av
 
 it("reports browser denial and allows copying another path without replacing the upload controls", async () => {
 	const write = vi
-		.fn()
+		.fn<(text: string) => Promise<void>>()
 		.mockRejectedValueOnce(new DOMException("Denied", "NotAllowedError"))
 		.mockResolvedValue(undefined);
 	clipboard(write);
@@ -90,10 +93,10 @@ it("keeps absent clipboard support typed and programming failures at the shared 
 			await Effect.runPromise(Effect.result(copySaveLocation("path"))),
 		),
 	).toBe(true);
-	const report = vi.fn();
+	const report = vi.fn<() => void>();
 	const log = vi.spyOn(console, "error").mockImplementation(() => {});
-	clipboard(async () => {
-		throw new TypeError("broken implementation");
+	clipboard(() => {
+		return Promise.reject(new TypeError("broken implementation"));
 	});
 	expect(
 		await runEntryCommand(copySaveLocation("path"), report, {

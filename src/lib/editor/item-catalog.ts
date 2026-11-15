@@ -1,9 +1,26 @@
 import { Schema } from "effect";
+
+import { FurnitureType, type ItemInformation } from "$types/items";
+import { TypeEnum } from "$types/save";
+
 import {
-	ValueSchema,
 	type T_StardewValley_Object,
+	ValueSchema,
 } from "../../../generated/save-format/save.ts";
+import {
+	FurnitureTypeToNumber,
+	ItemData,
+	ItemDescription,
+	RingsUniqueID,
+} from "../ItemData.ts";
+import { writeOptionalField } from "../optional-field.ts";
+import { Sprite } from "../Sprite.svelte.ts";
 import type { Item, KnownFields } from "./domain.ts";
+import { immutableView } from "./immutable-view.ts";
+import { type ItemVisual, readItemVisual } from "./item-presentation.ts";
+import { nonemptyText } from "./plain-data.ts";
+import { savedType, savedTypeId } from "./saved-types.ts";
+
 // Construction selects the class after accumulating shared and family defaults.
 // Retain every known field's generated value type, but exclude extension keys so
 // a misspelled default cannot silently become opaque saved data.
@@ -15,7 +32,10 @@ type ItemField<T, K> = T extends unknown
 		: never
 	: never;
 type ItemDraft = {
-	[K in Exclude<ItemKeys<KnownItem>, "$type">]?: ItemField<KnownItem, K>;
+	[K in Exclude<ItemKeys<KnownItem>, "$type">]?: Exclude<
+		ItemField<KnownItem, K>,
+		undefined
+	>;
 } & {
 	$type?: string;
 	// Existing new-furniture defaults are retained as extension fields; the
@@ -23,17 +43,6 @@ type ItemDraft = {
 	sourceIndexOffset?: number;
 	drawPosition?: { X: number; Y: number };
 };
-import { savedType, savedTypeId } from "./saved-types.ts";
-import { immutableView } from "./immutable-view.ts";
-import { readItemVisual, type ItemVisual } from "./item-presentation.ts";
-import {
-	FurnitureTypeToNumber,
-	ItemData,
-	ItemDescription,
-	RingsUniqueID,
-} from "../ItemData.ts";
-import { Sprite } from "../Sprite.svelte.ts";
-import type { ItemInformation } from "$types/items";
 
 /** One catalog choice. Its ID distinguishes flavored variants sharing a game ID. */
 export interface CatalogEntry {
@@ -48,7 +57,8 @@ export interface CatalogEntry {
 /** Picker-ready catalog metadata. Item construction stays private to the domain;
  * visual instructions are resolved only for choices the UI actually displays. */
 export interface CatalogChoice extends Omit<CatalogEntry, "raw"> {
-	readonly visual?: ItemVisual;
+	// A missing sprite is an unavailable presentation value, not a saved field.
+	readonly visual?: ItemVisual | undefined;
 }
 
 const prefixes = {
@@ -108,7 +118,7 @@ function color(value: string) {
 				value.slice(1, 3),
 				value.slice(3, 5),
 				value.slice(5, 7),
-				value.slice(7, 9) || "ff",
+				nonemptyText(value.slice(7, 9)) ?? "ff",
 			].map((part) => Number.parseInt(part, 16))
 		: value
 				.replace(/^rgb\(|\)$/g, "")
@@ -199,19 +209,16 @@ function supportsConstruction(data: ItemInformation) {
 }
 
 function construct(name: string, data: ItemInformation): Item | undefined {
-	if (!supportsConstruction(data)) return undefined;
+	if (!supportsConstruction(data)) return;
 	const type = saveTypes[data._type];
 	const item: ItemDraft = {
-		$type: type ? savedTypeId(type) : undefined,
 		name: data.name,
 		itemId: data._key,
 		stack: 1,
 		quality: 0,
 		isRecipe: false,
 		price: data.price ?? 0,
-		parentSheetIndex: data.spriteIndex ?? undefined,
-		indexInTileSheet: data.spriteIndex ?? undefined,
-		category: "category" in data ? data.category : categories[data._type],
+
 		hasBeenInInventory: true,
 		SpecialVariable: 0,
 		isLostItem: false,
@@ -222,6 +229,19 @@ function construct(name: string, data: ItemInformation): Item | undefined {
 		canBeGrabbed: true,
 		bigCraftable: data._type === "BigCraftable",
 	};
+	// Unavailable constructor metadata leaves a field absent in the saved record.
+	writeOptionalField(
+		item,
+		"$type",
+		type != null && type !== "" ? savedTypeId(type) : undefined,
+	);
+	writeOptionalField(item, "parentSheetIndex", data.spriteIndex ?? undefined);
+	writeOptionalField(item, "indexInTileSheet", data.spriteIndex ?? undefined);
+	writeOptionalField(
+		item,
+		"category",
+		"category" in data ? data.category : categories[data._type],
+	);
 	// Each family contributes its actual saved representation rather than inheriting
 	// proxy initialization effects or depending on a mounted component/effect root.
 	if (data._type === "Object") item.type = data.type;
@@ -270,7 +290,7 @@ function construct(name: string, data: ItemInformation): Item | undefined {
 	// Preview seeds are deterministic. The committed fresh trinket receives a seed
 	// only at creation, so browsing does not generate or mutate an item instance.
 	if (data._type === "Trinket") item.generationSeed = 0;
-	if (data._type === "Object" && data.type === "Ring") {
+	if (data._type === "Object" && data.type === TypeEnum.Ring) {
 		item.$type = savedTypeId("Ring");
 		item.uniqueID = RingsUniqueID.get(name);
 	}
@@ -309,7 +329,7 @@ function construct(name: string, data: ItemInformation): Item | undefined {
 			);
 			item.defaultBoundingBox = structuredClone(item.boundingBox);
 		}
-		if (data.type === "lamp") item.isLamp = true;
+		if (data.type === FurnitureType.Lamp) item.isLamp = true;
 	}
 	if ("canBeDyed" in data && data.canBeDyed)
 		item.clothesColor = color("#FFFFFF");
@@ -324,8 +344,9 @@ function construct(name: string, data: ItemInformation): Item | undefined {
 		} satisfies ItemDraft);
 	if (
 		"unpreservedItemId" in data &&
-		data.unpreservedItemId &&
-		data.preservedItemName
+		data.unpreservedItemId != null &&
+		data.unpreservedItemId !== "" &&
+		data.preservedItemName !== undefined
 	) {
 		// Version 1.6 ingredients also have string IDs such as Goby and Carrot.
 		// Keep numeric legacy IDs numeric while preserving these string IDs.
@@ -337,11 +358,11 @@ function construct(name: string, data: ItemInformation): Item | undefined {
 					: "DriedFruit"
 				: preserves[data.preservedItemName];
 	}
-	if (data.color) {
+	if (data.color != null && data.color !== "") {
 		item.color = color(data.color);
 		if (data._type === "Object") item.$type = savedTypeId("ColoredObject");
 	}
-	if (!savedType(item)) return undefined;
+	if (!((savedType(item) ?? "") !== "")) return;
 	// Generated metadata has optional fields. Omit those absent defaults deliberately;
 	// unlike imported saves, these new records contain no opaque data to preserve.
 	const clean: unknown = JSON.parse(JSON.stringify(item));
@@ -396,11 +417,11 @@ const entriesById = new Map(catalogEntries.map((entry) => [entry.id, entry]));
 /** Create a detached item from an exact catalog choice; callers cannot supply raw XML. */
 export function createCatalogItem(id: string): Item | undefined {
 	const entry = entriesById.get(id);
-	if (!entry) return undefined;
+	if (!entry) return;
 	// Reconstruct from trusted metadata instead of UI-exposed previews: even a caller
 	// mutating a preview cannot introduce arbitrary fields into a newly placed item.
 	const data = ItemData.get(id);
-	if (!data) return undefined;
+	if (!data) return;
 	const raw = construct(id, data);
 	if (raw?.$type === "StardewValley.Objects.Trinket")
 		raw.generationSeed = Math.floor(Math.random() * 9999999);
@@ -418,7 +439,7 @@ export function searchCatalog(
 		.filter(
 			(entry) =>
 				(kind === "all" || entry.kind === kind) &&
-				(!search ||
+				(!(search !== "") ||
 					entry.name.toLowerCase().includes(search) ||
 					entry.id.toLowerCase().includes(search) ||
 					entry.qualifiedId.toLowerCase() === search ||
@@ -434,10 +455,11 @@ export function searchCatalog(
 					: entry.name.toLowerCase().startsWith(search)
 						? 1
 						: 2;
-			return (
-				rank(a) - rank(b) ||
-				a.name.localeCompare(b.name) ||
-				a.id.localeCompare(b.id)
-			);
+			// Resolve ties explicitly: zero means the next comparison owns ordering,
+			// while either sign must retain its original sort direction.
+			const rankOrder = rank(a) - rank(b);
+			if (rankOrder !== 0) return rankOrder;
+			const nameOrder = a.name.localeCompare(b.name);
+			return nameOrder !== 0 ? nameOrder : a.id.localeCompare(b.id);
 		});
 }

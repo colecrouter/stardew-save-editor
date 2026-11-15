@@ -1,19 +1,21 @@
 <script lang="ts">
 	import { useAtomValue } from "effect-atom-svelte";
-	import type { EditorModel } from "../editor-model.ts";
-	import type { ImmutableView } from "../immutable-view.ts";
-	import StudyIcon from "../../ui/StudyIcon.svelte";
-	import type { StudyIconName } from "../../ui/studyIcons.ts";
-	import ProgressMeter from "./ProgressMeter.svelte";
-	import AchievementIcon from "./AchievementIcon.svelte";
-	import BackpackItemVisual from "./BackpackItemVisual.svelte";
-	import { readItemVisual } from "../item-presentation.ts";
-	import type { ProgressCategory, ProgressSection } from "../progress-data.ts";
-	import { createFarmerSelectionField } from "../farmer-selection.ts";
-	import FarmerSelector from "./fields/FarmerSelector.svelte";
-	import StudyTabs from "../../ui/kit/StudyTabs.svelte";
+
 	import StudyButton from "../../ui/kit/StudyButton.svelte";
 	import StudyField from "../../ui/kit/StudyField.svelte";
+	import StudyTabs from "../../ui/kit/StudyTabs.svelte";
+	import StudyIcon from "../../ui/StudyIcon.svelte";
+	import type { StudyIconName } from "../../ui/studyIcons.ts";
+	import type { EditorModel } from "../editor-model.ts";
+	import { createFarmerSelectionField } from "../farmer-selection.ts";
+	import type { ImmutableView } from "../immutable-view.ts";
+	import { readItemVisual } from "../item-presentation.ts";
+	import type { ProgressCategory, ProgressSection } from "../progress-data.ts";
+	import AchievementIcon from "./AchievementIcon.svelte";
+	import BackpackItemVisual from "./BackpackItemVisual.svelte";
+	import FarmerSelector from "./fields/FarmerSelector.svelte";
+	import ProgressMeter from "./ProgressMeter.svelte";
+
 	let {
 		model,
 		onsection,
@@ -141,7 +143,10 @@
 
 {#snippet perfection()}
 	{#if progress}
-		<section aria-label="Farm Perfection score" class="score">
+		<section
+			aria-label="Farm Perfection score"
+			class="score"
+		>
 			<div class="score-heading">
 				<div>
 					<h2>Farm Perfection</h2>
@@ -226,7 +231,10 @@
 					<summary class="category-summary">
 						<span class="category-icon">
 							{#if visual}
-								<BackpackItemVisual {visual} size={30} />
+								<BackpackItemVisual
+									{visual}
+									size={30}
+								/>
 							{:else}
 								<StudyIcon
 									name={categoryIcons[category.id] ?? "review"}
@@ -236,7 +244,11 @@
 						</span>
 
 						<span class="category-content">
-							<span class="category-title" role="heading" aria-level="3">
+							<span
+								class="category-title"
+								role="heading"
+								aria-level="3"
+							>
 								{category.label}
 							</span>
 
@@ -259,14 +271,20 @@
 						<span class="category-weight">
 							{#if complete}
 								<span class="complete-label">
-									<StudyIcon name="check" size={16} /> Complete
+									<StudyIcon
+										name="check"
+										size={16}
+									/> Complete
 								</span>
 							{/if}
 
 							<span>{category.weight}% of Perfection</span>
 						</span>
 
-						<span class="disclosure-arrow" aria-hidden="true"></span>
+						<span
+							class="disclosure-arrow"
+							aria-hidden="true"
+						></span>
 					</summary>
 
 					<div class="category-details">
@@ -379,7 +397,11 @@
 
 		<StudyField label="Show achievements">
 			{#snippet children(attributes)}
-				<select {...attributes} class="study-input" bind:value={filter}>
+				<select
+					{...attributes}
+					class="study-input"
+					bind:value={filter}
+				>
 					<option value="all">All achievements</option>
 
 					<option value="recorded">Recorded in save</option>
@@ -390,7 +412,10 @@
 		</StudyField>
 	</div>
 
-	<p class="result-count" role="status">
+	<p
+		class="result-count"
+		role="status"
+	>
 		{awards.length}
 		{awards.length === 1 ? "achievement" : "achievements"}
 	</p>
@@ -403,7 +428,10 @@
 					class:marked={award.recorded === true}
 					aria-hidden="true"
 				>
-					<AchievementIcon id={award.id} recorded={award.recorded} />
+					<AchievementIcon
+						id={award.id}
+						recorded={award.recorded}
+					/>
 				</span>
 
 				<div class="award-content">
@@ -451,7 +479,10 @@
 			</li>
 		{:else}
 			<li class="empty-result">
-				<StudyIcon name="review" size={32} />
+				<StudyIcon
+					name="review"
+					size={32}
+				/>
 
 				<div>
 					<h3>No achievements match these filters.</h3>

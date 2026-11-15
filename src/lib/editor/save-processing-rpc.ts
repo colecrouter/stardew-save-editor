@@ -1,17 +1,18 @@
 import { Effect, Layer, Schema } from "effect";
+import * as Rpc from "effect/rpc/Rpc";
 import * as RpcClient from "effect/rpc/RpcClient";
+import * as RpcGroup from "effect/rpc/RpcGroup";
 import * as RpcServer from "effect/rpc/RpcServer";
-import { SaveReadError } from "./save-service.ts";
+import * as Transferable from "effect/workers/Transferable";
+
 import type { SaveDocument } from "./domain.ts";
 import {
-	SaveProcessor,
-	SaveProcessingSync,
 	SaveExportFailed,
 	SaveExportRejected,
+	SaveProcessingSync,
+	SaveProcessor,
 } from "./save-processing.ts";
-import * as Rpc from "effect/rpc/Rpc";
-import * as RpcGroup from "effect/rpc/RpcGroup";
-import * as Transferable from "effect/workers/Transferable";
+import { SaveReadError } from "./save-service.ts";
 
 // RPC derives JSON codecs even on worker transports. Unknown's JSON codec would
 // reject bigint IDs, so this declaration explicitly preserves structured-clone
@@ -88,6 +89,7 @@ export const SaveProcessingClient = Layer.effect(SaveProcessor)(
 				).pipe(
 					Effect.map((result) => ({
 						...result,
+						// oxlint-disable-next-line typescript/no-unsafe-type-assertion -- The worker codec validates imported documents; structured-clone transport preserves that validated representation.
 						document: result.document as SaveDocument,
 					})),
 					Effect.catchTags({
@@ -107,6 +109,7 @@ export const SaveProcessingClient = Layer.effect(SaveProcessor)(
 				Effect.suspend(() => client.importBlob({ blob })).pipe(
 					Effect.map((result) => ({
 						...result,
+						// oxlint-disable-next-line typescript/no-unsafe-type-assertion -- The worker codec validates imported documents; structured-clone transport preserves that validated representation.
 						document: result.document as SaveDocument,
 					})),
 					Effect.catchTags({
@@ -167,6 +170,7 @@ const handlers = SaveProcessingRpc.toLayer(
 					);
 			},
 			exportSave: ({ document, validate }) =>
+				// oxlint-disable-next-line typescript/no-unsafe-type-assertion -- This private RPC only carries SaveDocuments supplied by the editor; export validation remains owned by the processor.
 				processor.export(document as SaveDocument, validate),
 		};
 	}),

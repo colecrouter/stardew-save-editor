@@ -15,6 +15,11 @@ const browserCause = (cause: Cause.Cause<BrowserCallFailure>) => {
 	return failure instanceof BrowserCallFailure ? failure.cause : failure;
 };
 
+// Read cancellation afresh after asynchronous browser work; TypeScript must not
+// carry an earlier readonly-property narrowing across an external abort event.
+const isAborted = (signal: AbortSignal | undefined): boolean =>
+	signal?.aborted === true;
+
 /** A chosen destination owns no writable stream until validated bytes are ready. */
 export interface SaveDestination {
 	write: (blob: Blob, signal?: AbortSignal) => Promise<boolean>;
@@ -43,7 +48,7 @@ export async function chooseSaveDestination(
 	mode: "picker" | "download" = "picker",
 	onStage?: (stage: SaveDownloadStage) => void,
 ): Promise<SaveDestination | undefined> {
-	if (signal?.aborted) return;
+	if (isAborted(signal)) return;
 	if (mode === "download" || !("showSaveFilePicker" in window))
 		return {
 			write: (blob, owner = signal) => {
@@ -62,7 +67,7 @@ export async function chooseSaveDestination(
 			],
 			suggestedName: filename,
 		});
-		if (signal?.aborted) return;
+		if (isAborted(signal)) return;
 		return {
 			write: (blob, owner = signal) =>
 				writePicker(blob, handle, owner, onStage),
@@ -98,7 +103,7 @@ async function writePicker(
 	signal?: AbortSignal,
 	onStage?: (stage: SaveDownloadStage) => void,
 ): Promise<boolean> {
-	if (signal?.aborted) return false;
+	if (isAborted(signal)) return false;
 	const result = await Effect.runPromiseExit(
 		Effect.acquireUseRelease(
 			browserCall(() => {
@@ -109,7 +114,7 @@ async function writePicker(
 				Effect.gen(function* () {
 					// A late acquisition still belongs to this scope. Its finalizer
 					// releases the unused stream without writing an abandoned file.
-					if (signal?.aborted) return false;
+					if (isAborted(signal)) return false;
 					onStage?.("write");
 					yield* browserCall(() => writable.write(blob));
 					onStage?.("close");
@@ -141,12 +146,15 @@ async function writePicker(
 	return result.value;
 }
 
+// Keep synchronous browser failures in the rejected-Promise channel expected by
+// destination callers, even though anchor creation itself does not suspend.
+// oxlint-disable-next-line typescript/require-await -- async preserves rejection behavior for synchronous DOM exceptions.
 async function writeDownload(
 	blob: Blob,
 	filename: string,
 	signal?: AbortSignal,
 ): Promise<boolean> {
-	if (signal?.aborted) return false;
+	if (isAborted(signal)) return false;
 	const url = URL.createObjectURL(blob);
 	const anchor = document.createElement("a");
 	anchor.href = url;

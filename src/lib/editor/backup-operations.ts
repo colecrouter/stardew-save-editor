@@ -1,10 +1,11 @@
 import { Data, Effect, Result, Schema } from "effect";
+
+import { downloadSave } from "../downloadSave.ts";
 import {
 	openOriginalBackupStore,
 	restoreOriginal,
 	storedOriginalSchema,
 } from "../saveBackups.ts";
-import { downloadSave } from "../downloadSave.ts";
 import type { CommandResult } from "./command-result.ts";
 import { runEntryCommand } from "./entry-operations.ts";
 
@@ -13,15 +14,17 @@ export class BackupUnavailable extends Data.TaggedError("BackupUnavailable")<{
 	readonly message: string;
 }> {}
 const decodeStored = Schema.decodeUnknownResult(storedOriginalSchema);
+// Optional presentation members may be omitted or explicitly unavailable.
+// These transient projections do not encode presence of serialized save fields.
 export interface OriginalBackup {
 	/** Existing shared archives use auto-incremented numeric keys. Unknown keys remain read-only. */
-	readonly key?: number;
+	readonly key?: number | undefined;
 	readonly rowId: string;
 	readonly name: string;
-	readonly lastModified?: number;
-	readonly size?: number;
-	readonly file?: File;
-	readonly reason?: string;
+	readonly lastModified?: number | undefined;
+	readonly size?: number | undefined;
+	readonly file?: File | undefined;
+	readonly reason?: string | undefined;
 }
 const unavailable = (message: string) => new BackupUnavailable({ message });
 // DOMExceptions can cross browser/test realms; their standard tag preserves
@@ -63,7 +66,12 @@ export const readOriginalBackups = Effect.fn("Backups.readOriginals")(
 						transaction.store.getAll(),
 					]);
 					await transaction.done;
-					return keys.map((key, index) => ({ key, value: values[index] }));
+					return keys.map((key, index) => {
+						// Storage is an external boundary; inspect each payload as unknown
+						// before deciding whether it represents an original backup.
+						const value: unknown = values[index];
+						return { key, value };
+					});
 				} finally {
 					db.close();
 				}

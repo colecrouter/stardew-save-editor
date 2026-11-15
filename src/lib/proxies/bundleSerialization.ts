@@ -9,15 +9,17 @@ export interface ParsedBundleKey {
 	spriteIndex: number; // bundle icon index
 }
 
+// Optional presentation members may be omitted or explicitly unavailable.
+// These transient projections do not encode presence of serialized save fields.
 export interface ParsedBundleValue {
 	name: string; // internal name (not translated)
-	reward?: string; // raw reward segment (e.g. "BO 194 1")
+	reward?: string | undefined; // raw reward segment (e.g. "BO 194 1")
 	requirements: BundleRequirement[]; // list of requirement triplets
-	color?: number; // bundle color index
-	count?: number; // required number of submissions (optional, may be omitted)
+	color?: number | undefined; // bundle color index
+	count?: number | undefined; // required number of submissions (optional, may be omitted)
 	// Any additional trailing segments after the standard five (e.g., localized display name),
 	// preserved verbatim to ensure exact XML roundtrip.
-	tailSegments?: string[];
+	tailSegments?: string[] | undefined;
 }
 
 // Mapping between room string identifiers and CCRoom enum
@@ -34,7 +36,10 @@ const ROOM_NAME_TO_ENUM: Record<string, CCRoom> = {
 /** Parse the bundle key string ("<roomName>/<spriteIndex>"). */
 export function parseBundleKey(raw: string): ParsedBundleKey {
 	const [roomName, spriteIndexStr] = raw.split("/");
-	if (!roomName || !spriteIndexStr)
+	if (
+		!(roomName != null && roomName !== "") ||
+		!(spriteIndexStr != null && spriteIndexStr !== "")
+	)
 		throw new Error(`Invalid bundle key: ${raw}`);
 	const room = ROOM_NAME_TO_ENUM[roomName];
 	if (room === undefined) throw new Error(`Invalid room name: ${roomName}`);
@@ -58,8 +63,9 @@ export function parseBundleValue(raw: string): ParsedBundleValue {
 	const colorSeg = segments[3];
 	const countSeg = segments[4];
 	const tailSegments = segments.length > 5 ? segments.slice(5) : undefined;
-	if (!name) throw new Error("Bundle value missing name segment");
-	if (!requirementsSeg)
+	if (!(name != null && name !== ""))
+		throw new Error("Bundle value missing name segment");
+	if (!(requirementsSeg != null && requirementsSeg !== ""))
 		throw new Error("Bundle value missing requirements segment");
 	const tokens = requirementsSeg
 		.trim()
@@ -75,7 +81,11 @@ export function parseBundleValue(raw: string): ParsedBundleValue {
 		const itemID = tokens[i];
 		const qtyToken = tokens[i + 1];
 		const qualityToken = tokens[i + 2];
-		if (!itemID || !qtyToken || !qualityToken)
+		if (
+			!(itemID != null && itemID !== "") ||
+			!(qtyToken != null && qtyToken !== "") ||
+			!(qualityToken != null && qualityToken !== "")
+		)
 			throw new Error(
 				`Invalid requirement triplet at index ${i / 3}: ${tokens.slice(i, i + 3).join(" ")}`,
 			);
@@ -87,15 +97,21 @@ export function parseBundleValue(raw: string): ParsedBundleValue {
 			);
 		requirements.push([itemID, qty, quality]);
 	}
-	const color = colorSeg ? Number.parseInt(colorSeg, 10) : undefined;
-	const count = countSeg ? Number.parseInt(countSeg, 10) : undefined;
+	const color =
+		colorSeg != null && colorSeg !== ""
+			? Number.parseInt(colorSeg, 10)
+			: undefined;
+	const count =
+		countSeg != null && countSeg !== ""
+			? Number.parseInt(countSeg, 10)
+			: undefined;
 	const safeColor =
 		color !== undefined && !Number.isNaN(color) ? color : undefined;
 	const safeCount =
 		count !== undefined && !Number.isNaN(count) ? count : undefined;
 	return {
 		name,
-		reward: rewardSeg || undefined,
+		reward: rewardSeg === "" ? undefined : rewardSeg,
 		requirements,
 		color: safeColor,
 		count: safeCount,
@@ -109,10 +125,10 @@ export function serializeBundleValue(v: ParsedBundleValue): string {
 		.map(([id, qty, qual]) => `${id} ${qty} ${qual}`)
 		.join(" ");
 	const rewardSeg = v.reward ?? "";
-	const colorSeg = v.color !== undefined ? v.color : "";
-	const countSeg = v.count !== undefined ? v.count : "";
+	const colorSeg = v.color ?? "";
+	const countSeg = v.count ?? "";
 	let result = `${v.name}/${rewardSeg}/${req}/${colorSeg}/${countSeg}`;
-	if (v.tailSegments?.length) {
+	if (v.tailSegments !== undefined && v.tailSegments.length !== 0) {
 		// Append any trailing segments exactly as they were parsed (including empties)
 		result += `/${v.tailSegments.join("/")}`;
 	}
@@ -173,9 +189,9 @@ export function debugInspectBundleValue(raw: string) {
 		segments,
 	};
 	try {
-		info.parsed = parseBundleValue(raw);
+		info["parsed"] = parseBundleValue(raw);
 	} catch (e) {
-		info.error = (e as Error).message;
+		info["error"] = e instanceof Error ? e.message : String(e);
 	}
 	console.info("[BundleDiag] Inspect", info);
 }

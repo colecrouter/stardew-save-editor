@@ -1,5 +1,7 @@
 import { parentPort } from "node:worker_threads";
+
 import { Effect } from "effect";
+
 import type { SaveDocument } from "../../src/lib/editor/domain.ts";
 import { SaveCodec, SaveCodecLive } from "../../src/lib/editor/save-service.ts";
 

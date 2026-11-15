@@ -1,8 +1,8 @@
 import {
 	calendarFestivalOn,
 	type CalendarWeatherChoices,
-	DAYS_PER_SEASON,
 	dateInRange,
+	DAYS_PER_SEASON,
 	type ForcedWeather,
 	forcedWeather,
 	type GameDate,
@@ -10,8 +10,8 @@ import {
 	MAX_YEAR,
 	nextDay,
 	planCalendarWeather,
-	SEASONS,
 	seasonName,
+	SEASONS,
 	seasonWeathers,
 	totalDays,
 	type WeatherFlags,
@@ -19,22 +19,24 @@ import {
 	weatherLabel,
 	weekday,
 } from "$lib/calendar";
-import type { SaveProxy } from "$lib/proxies/SaveFile.svelte";
-import { locationWeatherContext } from "$lib/locationWeather";
-import {
-	planRainWatering,
-	type WateringMark,
-	type WateringTarget,
-	type WateringWrite,
-} from "$lib/calendarWatering";
-import { type Save, Season } from "$types/save";
 import {
 	readCalendarView,
 	writeCalendarDate,
 	writeCalendarToday,
 	writeCalendarTomorrow,
 } from "$lib/calendarDocument";
+import {
+	planRainWatering,
+	type WateringMark,
+	type WateringTarget,
+	type WateringWrite,
+} from "$lib/calendarWatering";
+import { locationWeatherContext } from "$lib/locationWeather";
+import type { SaveProxy } from "$lib/proxies/SaveFile.svelte";
+import { type Save, Season } from "$types/save";
+
 import { type DataProxy, Raw } from ".";
+import { writeOptionalField } from "../optional-field.ts";
 
 export interface WeatherOption {
 	id: string;
@@ -168,8 +170,9 @@ export class Calendar implements DataProxy<Save> {
 		const game = this[Raw];
 		return greenRainDay(
 			year,
-			Number(game.uniqueIDForThisGame),
-			game.useLegacyRandom === true,
+			game.uniqueIDForThisGame,
+
+			game.useLegacyRandom,
 		);
 	}
 
@@ -192,7 +195,7 @@ export class Calendar implements DataProxy<Save> {
 	}
 
 	set today(value: string) {
-		if (!this.#todayWeathers().includes(value as WeatherId))
+		if (!this.#todayWeathers().some((weather) => weather === value))
 			throw new Error(
 				this.forcedToday?.reason ??
 					`${weatherLabel(value)} isn't possible in ${seasonName(this.#date.season)}`,
@@ -208,7 +211,7 @@ export class Calendar implements DataProxy<Save> {
 	}
 
 	set tomorrow(value: string) {
-		if (!this.#tomorrowWeathers().includes(value as WeatherId))
+		if (!this.#tomorrowWeathers().some((weather) => weather === value))
 			throw new Error(
 				this.forcedTomorrow?.reason ??
 					`${weatherLabel(value)} isn't possible in ${seasonName(this.tomorrowDate.season)}`,
@@ -249,7 +252,7 @@ export class Calendar implements DataProxy<Save> {
 			label: weatherLabel(id),
 			allowed: true,
 		}));
-		if (!allowed.includes(current as WeatherId))
+		if (!allowed.some((weather) => weather === current))
 			options.unshift({
 				id: current,
 				label: weatherLabel(current),
@@ -292,8 +295,8 @@ export class Calendar implements DataProxy<Save> {
 		const { today, tomorrow } = planCalendarWeather({
 			date: this.#date,
 			daysPlayed: this.#daysPlayed,
-			gameId: Number(this[Raw].uniqueIDForThisGame),
-			legacyRandom: this[Raw].useLegacyRandom === true,
+			gameId: this[Raw].uniqueIDForThisGame,
+			legacyRandom: this[Raw].useLegacyRandom,
 			choices: this.#chosenWeather,
 		});
 		if (today !== this.#today) this.#writeToday(today);
@@ -301,9 +304,9 @@ export class Calendar implements DataProxy<Save> {
 	}
 
 	#writeToday(id: string) {
-		const wasRaining = this[Raw].isRaining === true;
+		const wasRaining = this[Raw].isRaining;
 		writeCalendarToday(this[Raw], id, this.#loadedFlags);
-		const raining = this[Raw].isRaining === true;
+		const raining = this[Raw].isRaining;
 		if (raining !== wasRaining) this.#applyWatering(wasRaining, raining);
 		this.#today = id;
 	}
@@ -326,7 +329,7 @@ export class Calendar implements DataProxy<Save> {
 		for (const location of this.#save.locations) {
 			const raw = location[Raw];
 			const context = locationWeatherContext(raw);
-			if (raw.isOutdoors !== true || context !== "Default") continue;
+			if (!raw.isOutdoors || context !== "Default") continue;
 			for (const building of raw.buildings?.Building ?? []) {
 				if (building["@_xsi:type"] !== "PetBowl") continue;
 				const id = identity(building);
@@ -338,11 +341,12 @@ export class Calendar implements DataProxy<Save> {
 					value: building.watered,
 				});
 				bindings.set(id, (write) => {
-					if (write.kind === "bowl") building.watered = write.value;
+					if (write.kind === "bowl")
+						writeOptionalField(building, "watered", write.value);
 				});
 			}
 			const features =
-				typeof raw.terrainFeatures === "object" && raw.terrainFeatures
+				typeof raw.terrainFeatures === "object" && raw.terrainFeatures !== null
 					? (raw.terrainFeatures.item ?? [])
 					: [];
 			for (const { value } of features) {
@@ -357,7 +361,8 @@ export class Calendar implements DataProxy<Save> {
 					value: feature.state,
 				});
 				bindings.set(id, (write) => {
-					if (write.kind === "soil") feature.state = write.value;
+					if (write.kind === "soil")
+						writeOptionalField(feature, "state", write.value);
 				});
 			}
 		}

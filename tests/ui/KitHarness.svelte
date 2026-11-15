@@ -1,8 +1,9 @@
 <script lang="ts">
+	import StudyAlert from "../../src/lib/ui/kit/StudyAlert.svelte";
 	import StudyButton from "../../src/lib/ui/kit/StudyButton.svelte";
 	import StudyField from "../../src/lib/ui/kit/StudyField.svelte";
 	import StudyTabs from "../../src/lib/ui/kit/StudyTabs.svelte";
-	import StudyAlert from "../../src/lib/ui/kit/StudyAlert.svelte";
+
 	let { onclick, onsubmit }: { onclick: () => void; onsubmit: () => void } =
 		$props();
 	let value = $state("backpack");
@@ -19,9 +20,19 @@
 
 	<StudyButton type="submit">Submit form</StudyButton>
 
-	<StudyButton pending {onclick}>Pending action</StudyButton>
+	<StudyButton
+		pending
+		{onclick}
+	>
+		Pending action
+	</StudyButton>
 
-	<StudyButton disabled {onclick}>Disabled action</StudyButton>
+	<StudyButton
+		disabled
+		{onclick}
+	>
+		Disabled action
+	</StudyButton>
 </form>
 
 <StudyField
@@ -30,13 +41,19 @@
 	error="Enter a name."
 >
 	{#snippet children(props)}
-		<input class="study-input" {...props} />
+		<input
+			class="study-input"
+			{...props}
+		/>
 	{/snippet}
 </StudyField>
 
 <StudyField label="Farmer name">
 	{#snippet children(props)}
-		<input class="study-input" {...props} />
+		<input
+			class="study-input"
+			{...props}
+		/>
 	{/snippet}
 </StudyField>
 
@@ -62,10 +79,17 @@
 	<p>Chest contents</p>
 {/snippet}
 
-<StudyAlert title="Static notice" tone="warning">
+<StudyAlert
+	title="Static notice"
+	tone="warning"
+>
 	<p>A visible warning.</p>
 </StudyAlert>
 
-<StudyAlert title="Dynamic failure" tone="danger" live="assertive">
+<StudyAlert
+	title="Dynamic failure"
+	tone="danger"
+	live="assertive"
+>
 	<p>Try again.</p>
 </StudyAlert>

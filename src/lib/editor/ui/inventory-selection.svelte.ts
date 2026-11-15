@@ -1,4 +1,5 @@
 import { tick } from "svelte";
+
 import type { InventoryView } from "../inventory-views.ts";
 import {
 	allInventorySlots as allSlots,
@@ -46,13 +47,13 @@ export function createInventorySelection(input: SelectionInput) {
 		selectionVersion++;
 		input.onChoose();
 		selectedEntity = entityId;
-		selectionFamily = entityId ? [entityId] : [];
+		selectionFamily = entityId != null && entityId !== "" ? [entityId] : [];
 	}
 	// Selection belongs to an item instance, not whichever grid happens to be open.
 	// Both visible inventories share this lookup, including replacement Undo lineage.
 	const selectedOwner = $derived(
 		selectedEntity === undefined
-			? backpack?.supported
+			? backpack?.supported === true
 				? backpack
 				: chest
 			: owners.find((owner) =>
@@ -114,7 +115,12 @@ export function createInventorySelection(input: SelectionInput) {
 	$effect(() => {
 		// Transfers and Undo reveal the current owner while preserving the other grid.
 		// Explicit owner/search changes start a new selection and cannot be undone here.
-		if (!input.dragging() && selectedOwner && selectedEntity) {
+		if (
+			!input.dragging() &&
+			selectedOwner &&
+			selectedEntity != null &&
+			selectedEntity !== ""
+		) {
 			if (
 				selectedOwner.kind !== "chest" &&
 				selectedOwner.ownerId !== input.farmerId()

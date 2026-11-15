@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import { Color } from "./Color.svelte";
 
 describe("Color", () => {

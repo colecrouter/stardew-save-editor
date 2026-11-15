@@ -1,7 +1,9 @@
-import { page as browser } from "vitest/browser";
 import { expect, it } from "vitest";
-import { renderBrowserWorkspace } from "./workspace-browser.ts";
+import { page as browser } from "vitest/browser";
+
+import { requireInstance } from "../helpers/assertions.ts";
 import { tinyEditorFixture } from "../helpers/editor-document.ts";
+import { renderBrowserWorkspace } from "./workspace-browser.ts";
 
 // A select does not dispatch the sidebar's click handler. Exercise lazy mounting
 // and field-gesture closure through the responsive picker's actual user flow.
@@ -20,7 +22,7 @@ it("navigates with the section picker and retains one Undo entry for a completed
 		await picker.selectOptions("farm");
 		const name = page.getByRole("textbox", { name: "Farm name" });
 		await expect.element(name).toBeVisible();
-		const original = (name.element() as HTMLInputElement).value;
+		const original = requireInstance(name.element(), HTMLInputElement).value;
 		await name.fill("Visual");
 		await expect
 			.poll(async () => (await model.snapshot()).entries.length)

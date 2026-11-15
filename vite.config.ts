@@ -1,12 +1,13 @@
-import { recommended as effectRules } from "@effect/tsgo/oxlint-presets";
 import { sentrySvelteKit } from "@sentry/sveltekit/vite";
 import adapter from "@sveltejs/adapter-static";
 import { sveltekit } from "@sveltejs/kit/vite";
 import { playwright } from "@vitest/browser-playwright";
-import { testTimeouts } from "./tests/helpers/timeouts.ts";
+import legacy from "vite-plugin-sveltekit-legacy";
 import { defineConfig } from "vite-plus";
 import { configDefaults } from "vitest/config";
-import legacy from "vite-plugin-sveltekit-legacy";
+
+import { lintPolicy } from "./lint-policy.ts";
+import { testTimeouts } from "./tests/helpers/timeouts.ts";
 
 // Legacy editor regressions are opt-in for local development and CI alike.
 // Keep ownership explicit: shared controls, catalogs, validation and save-format
@@ -57,9 +58,10 @@ export default defineConfig(({ mode }) => ({
 	// Parallel browser runs must not replace each other's optimized dependency
 	// URLs. Keep test caches with their process-owned Kit output; app caching stays
 	// conventional for development and builds.
-	cacheDir: process.env.VITEST
-		? `.svelte-kit/vitest/${process.pid}/cache`
-		: "node_modules/.vite",
+	cacheDir:
+		(process.env["VITEST"] ?? "").length > 0
+			? `.svelte-kit/vitest/${process.pid}/cache`
+			: "node_modules/.vite",
 	// Share formatting and linting with the same versioned toolchain as builds/tests.
 	fmt: {
 		// Svelte formatting is opt-in in Oxfmt; preserve the existing component policy.
@@ -67,7 +69,20 @@ export default defineConfig(({ mode }) => ({
 		useTabs: true,
 		endOfLine: "lf",
 		printWidth: 80,
-		sortImports: false,
+		// Preserve documented import sections while sorting declarations within them.
+		sortImports: {
+			internalPattern: ["$lib/", "$types/", "$generated/", "$app/"],
+			groups: [
+				"builtin",
+				"external",
+				"internal",
+				["parent", "sibling", "index"],
+				"style",
+				"unknown",
+			],
+			partitionByComment: true,
+			sortSideEffects: false,
+		},
 		sortPackageJson: false,
 		ignorePatterns: [
 			"content/**",
@@ -76,6 +91,7 @@ export default defineConfig(({ mode }) => ({
 			"**/package-lock.json",
 			".cache/**",
 			"tools/xnbhack/upstream/**",
+			"tools/game-data/tests/generated/**",
 		],
 		overrides: [
 			{
@@ -86,46 +102,22 @@ export default defineConfig(({ mode }) => ({
 				],
 				options: {
 					htmlWhitespaceSensitivity: "ignore",
+					singleAttributePerLine: true,
+					bracketSameLine: false,
 				},
 			},
 		],
 	},
-	lint: {
-		// Keep Effect diagnostics available in Oxlint as well as native compiler checks.
-		extends: [effectRules],
-		options: { typeAware: true },
-		// Correctness findings block CI; intentional exceptions belong beside their
-		// implementation so a future change cannot silently inherit a downgrade.
-		categories: { correctness: "error" },
-		rules: {
-			// Atom APIs are an explicitly adopted foundation, matching tsconfig.base.json.
-			"effecttsgo/unstable-api-usage": "off",
-		},
-		// Game assets, generated output and vendored extraction sources are not maintained app code.
-		ignorePatterns: [
-			"content/**",
-			"generated/**",
-			"static/**",
-			"build/**",
-			".svelte-kit/**",
-			".cache/**",
-			"tools/xnbhack/upstream/**",
-		],
-		overrides: [
-			{
-				files: ["**/*.svelte"],
-				// Template references and rune bindings are owned by svelte-check.
-				rules: { "no-unused-vars": "off", "no-undef": "off" },
-			},
-		],
-	},
+	lint: lintPolicy,
 
 	plugins: [
 		mode === "production"
 			? sentrySvelteKit({
 					// Sentry 11 accepts bundler options directly; explicit credentials
 					// also let benchmarks suppress uploads despite a local dotenv file.
-					authToken: process.env.SENTRY_AUTH_TOKEN,
+					...(process.env["SENTRY_AUTH_TOKEN"] === undefined
+						? {}
+						: { authToken: process.env["SENTRY_AUTH_TOKEN"] }),
 					org: "cole-crouter",
 					project: "stardew-save-editor",
 					bundleSizeOptimizations: {
@@ -141,9 +133,10 @@ export default defineConfig(({ mode }) => ({
 			// checks or dev servers cannot make a browser cache that empty manifest.
 			// Kit resolves its runtime aliases from this directory; normal tooling
 			// keeps the conventional output and generated type locations.
-			outDir: process.env.VITEST
-				? `.svelte-kit/vitest/${process.pid}`
-				: ".svelte-kit",
+			outDir:
+				(process.env["VITEST"] ?? "").length > 0
+					? `.svelte-kit/vitest/${process.pid}`
+					: ".svelte-kit",
 			// Preserve the static GitHub Pages deployment while Kit owns its Vite configuration.
 			adapter: adapter(),
 			alias: {
@@ -154,7 +147,9 @@ export default defineConfig(({ mode }) => ({
 			},
 			paths: {
 				base:
-					process.env.NODE_ENV === "production" ? "/stardew-save-editor" : "",
+					process.env["NODE_ENV"] === "production"
+						? "/stardew-save-editor"
+						: "",
 			},
 			prerender: {
 				handleHttpError: "warn",
@@ -173,7 +168,7 @@ export default defineConfig(({ mode }) => ({
 			// Rendering tests use the normal CSS pipeline, including asset URLs.
 			// The inspector injects an application mount, which is unrelated to test
 			// rendering and must not enter isolated Browser Mode module graphs.
-			inspector: !process.env.VITEST,
+			inspector: (process.env["VITEST"] ?? "").length === 0,
 		}),
 		legacy({
 			// Native structuredClone is part of the supported browser baseline.
@@ -201,7 +196,11 @@ export default defineConfig(({ mode }) => ({
 		// budget so a missing UI state fails before the enclosing test expires.
 		testTimeout: testTimeouts.test,
 		hookTimeout: testTimeouts.hook,
-		expect: { poll: { timeout: testTimeouts.assertion } },
+		// Assertions must execute, including those inside Effect generators and helpers.
+		expect: {
+			requireAssertions: true,
+			poll: { timeout: testTimeouts.assertion },
+		},
 		// A dedicated mode keeps the opt-in command portable across shells. Both
 		// selections retain Vitest's built-in exclusions and the same runtime setup.
 		exclude: [

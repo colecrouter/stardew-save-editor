@@ -1,17 +1,52 @@
-import publicSaveXml from "./TestSave?raw";
 import { flushSync } from "svelte";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
+
 import { Raw } from "$lib/proxies";
 import { getStatValue } from "$lib/proxies/Farmer.svelte";
 import { Item } from "$lib/proxies/Item.svelte";
 import { MailFlag } from "$lib/proxies/Mail.svelte";
 import { type Quest, questLabel } from "$lib/proxies/Quest.svelte";
 import type { Player } from "$types/save";
+
 import { SaveManager } from "../src/lib/SaveManager.svelte";
 import { XMLManager } from "../src/lib/workers/xml";
+import {
+	requireArray,
+	requireDefined,
+	requireNumber,
+	requireRecord,
+} from "./helpers/assertions.ts";
+import { malformedFixture } from "./helpers/editor-document.ts";
+import publicSaveXml from "./TestSave?raw";
 
-// Raw parsed fixtures deliberately allow unrecognized save fields.
-type Parsed = any;
+// Exported quest fixtures use the legacy XML representation, including its populated journal.
+type Parsed = import("../codegen/save").Quest;
+type ParsedSave = {
+	SaveGame: import("../codegen/save").Save & {
+		player: Player & { questLog: { Quest: Parsed[] } };
+	};
+};
+
+// Description parameters are extensible XML values; verify containers before reading their payloads.
+function descriptionPart(quest: Parsed, index = 0): Record<string, unknown> {
+	const elements = requireRecord(quest.parts)["DescriptionElement"];
+	return requireRecord(Array.isArray(elements) ? elements[index] : elements);
+}
+function requireDefinedFarmhand(
+	save: ParsedSave,
+): Player & { questLog: { Quest: Parsed[] } } {
+	const farmhands = save.SaveGame.farmhands;
+	expect.assert(
+		typeof farmhands === "object",
+		"Expected the fixture farmhand container",
+	);
+	const farmer = requireDefined(farmhands.Farmer[0]);
+	expect.assert(
+		typeof farmer.questLog === "object",
+		"Expected the farmhand journal",
+	);
+	return { ...farmer, questLog: farmer.questLog };
+}
 
 // For tests that write out and read back the whole save
 
@@ -216,7 +251,7 @@ const withFarmhand = (xml: string, quests = "") => {
 		)
 		.replace(
 			/<questLog>[\s\S]*<\/questLog>/,
-			quests ? `<questLog>${quests}</questLog>` : "<questLog />",
+			quests.length > 0 ? `<questLog>${quests}</questLog>` : "<questLog />",
 		);
 	return xml.replace(
 		"<farmhands />",
@@ -236,7 +271,7 @@ describe("Quest log", () => {
 	let saveManager: SaveManager;
 	let dispose: (() => void) | undefined;
 
-	beforeAll(async () => {
+	beforeAll(() => {
 		fixture = publicSaveXml;
 	});
 
@@ -292,10 +327,10 @@ describe("Quest log", () => {
 			(item) => item?.[Raw].itemId === "PrizeTicket",
 		);
 
-	async function exported(): Promise<Parsed> {
+	async function exported(): Promise<ParsedSave> {
 		flushSync();
 		const xml = await (await saveManager.export()).text();
-		return new XMLManager().parse(xml);
+		return new XMLManager().parse<ParsedSave>(xml);
 	}
 
 	it("lists the journal newest first, as the game does", async () => {
@@ -322,9 +357,14 @@ describe("Quest log", () => {
 		expect(quest("Introductions").rewardText).toBeUndefined();
 		// No time limits on story quests
 		for (const q of journal) expect(q.timed).toBe(false);
+		// Vitest types asymmetric matchers as any. Keep expected matcher values
+		// unknown so they cannot weaken the surrounding saved-data assertions.
 		expect(log().followUps(quest("Introductions"), save())).toEqual({
 			start: [
-				expect.objectContaining({ id: "25", title: "How To Win Friends" }),
+				expect.objectContaining({
+					id: "25",
+					title: "How To Win Friends",
+				}) as unknown,
 			],
 			cantStart: [],
 		});
@@ -427,8 +467,10 @@ describe("Quest log", () => {
 			questTitle: "How To Win Friends",
 		});
 		// The same fields, in the same order, as a basic quest the game made
-		expect(Object.keys(saved)).toEqual(gameMade);
-		expect(Object.keys(out.find((q: Parsed) => q.id === 18))).toEqual(gameMade);
+		expect(Object.keys(requireDefined(saved))).toEqual(gameMade);
+		expect(
+			Object.keys(requireDefined(out.find((q: Parsed) => q.id === 18))),
+		).toEqual(gameMade);
 	});
 
 	it("doesn't start a topic the player has already had", async () => {
@@ -448,11 +490,8 @@ describe("Quest log", () => {
 		expect(delivery.timed).toBe(true);
 		expect(delivery.id).toBeUndefined();
 		expect(log().journal[0]).toBe(delivery);
-		const topics = (
-			typeof player().activeDialogueEvents === "object"
-				? player().activeDialogueEvents
-				: { item: [] }
-		) as { item: unknown[] };
+		const savedTopics = player().activeDialogueEvents;
+		const topics = typeof savedTopics === "object" ? savedTopics : { item: [] };
 		const topicCount = topics.item.length;
 
 		const result = complete(delivery);
@@ -485,10 +524,11 @@ describe("Quest log", () => {
 	it("stacks the sixth Prize Ticket onto one in the backpack", async () => {
 		await load(insertQuests(setBillboardQuestsDone(fixture, 5), DELIVERY));
 		const inventory = farmer().inventory;
-		const empty = [...Array(inventory.slotCount).keys()].filter(
-			(i) => !inventory.get(i),
+		const first = requireNumber(
+			[...Array(inventory.slotCount).keys()].find(
+				(index) => !inventory.get(index),
+			),
 		);
-		const first = empty[0] as number;
 		inventory.set(first, Item.fromName("Prize Ticket"));
 		flushSync();
 
@@ -539,12 +579,13 @@ describe("Quest log", () => {
 			itemId: "79",
 			stack: 1,
 		};
-		(player().items.Item as Parsed[])[noteSlot as number] = note;
+		player().items.Item[requireDefined(noteSlot)] =
+			malformedFixture<Player["items"]["Item"][number]>(note);
 		flushSync();
 
 		expect(log().prizeTicketDue(delivery)).toBe("noRoom");
 		expect(complete(delivery).prizeTicket).toBe("noRoom");
-		expect(player().items.Item[noteSlot as number]).toBe(note);
+		expect(player().items.Item[requireDefined(noteSlot)]).toBe(note);
 	});
 
 	it("pays a slay quest's advertised reward when it's completed", async () => {
@@ -574,7 +615,7 @@ describe("Quest log", () => {
 		const story = quest("Initiation");
 		story.goldReward = 450;
 		// Cleared inputs are ignored; bad values are refused
-		delivery.daysLeft = null as unknown as number;
+		delivery.daysLeft = malformedFixture<number>(null);
 		delivery.goldReward = Number.NaN;
 		expect(() => {
 			delivery.daysLeft = 0;
@@ -588,26 +629,30 @@ describe("Quest log", () => {
 		const parsed = await exported();
 		const quests = parsed.SaveGame.player.questLog.Quest;
 		const find = (title: string) =>
-			quests.find((q: Parsed) => q._questTitle === title);
+			requireDefined(quests.find((q: Parsed) => q._questTitle === title));
 		const out = find("Abigail's Request");
 		expect(out.daysLeft).toBe(3);
 		expect(out.moneyReward).toBe(250);
 		// The game rebuilds the description from these
-		expect(out.parts.DescriptionElement[1].param["#text"]).toBe(250);
-		expect(out.parts.DescriptionElement[0].param).toBeUndefined();
+		expect(requireRecord(descriptionPart(out, 1)["param"])["#text"]).toBe(250);
+		expect(descriptionPart(out)["param"]).toBeUndefined();
 
 		const outSlay = find("Wanted: Slimes");
 		expect(outSlay.reward).toBe(500);
 		expect(outSlay.moneyReward).toBe(0);
-		expect(outSlay.parts.DescriptionElement[1].param["#text"]).toBe(500);
+		expect(requireRecord(descriptionPart(outSlay, 1)["param"])["#text"]).toBe(
+			500,
+		);
 		// The number of monsters stays
-		expect(outSlay.parts.DescriptionElement[0].param["#text"]).toBe(5);
+		expect(requireRecord(descriptionPart(outSlay)["param"])["#text"]).toBe(5);
 
 		const outStory = find("Initiation");
 		expect(outStory.moneyReward).toBe(450);
 		// Its description comes from Data/Quests, so its parts are left alone
 		expect(outStory.reward).toBe(180);
-		expect(outStory.parts.DescriptionElement.param["#text"]).toBe(180);
+		expect(requireRecord(descriptionPart(outStory)["param"])["#text"]).toBe(
+			180,
+		);
 	});
 
 	it("handles an empty journal", async () => {
@@ -657,7 +702,7 @@ describe("Quest log", () => {
 	});
 
 	it("starts the next story quests, finishing a building quest that's already built", async () => {
-		const original = new XMLManager().parse<Parsed>(fixture).SaveGame.player
+		const original = new XMLManager().parse<ParsedSave>(fixture).SaveGame.player
 			.questLog.Quest;
 		await load(
 			beforeGettingStarted(fixture).replace(
@@ -692,9 +737,10 @@ describe("Quest log", () => {
 			_questDescription: q._questDescription.replace(/\s+/g, " "),
 		});
 		const out = (await exported()).SaveGame.player.questLog.Quest;
-		const made = (id: number) => unwrap(out.find((q: Parsed) => q.id === id));
+		const made = (id: number) =>
+			unwrap(requireDefined(out.find((q: Parsed) => q.id === id)));
 		const saved = (id: number) =>
-			unwrap(original.find((q: Parsed) => q.id === id));
+			unwrap(requireDefined(original.find((q: Parsed) => q.id === id)));
 		expect(made(8)).toEqual(saved(8));
 		expect(made(7)).toEqual({ ...saved(7), completed: true });
 		expect(Object.keys(made(7))).toEqual(Object.keys(saved(7)));
@@ -748,14 +794,14 @@ describe("Quest log", () => {
 		expect(guild.objective).toBe("Enter the Adventurer's Guild.");
 
 		const out = (await exported()).SaveGame.player.questLog.Quest;
-		const harvest = out.find((q: Parsed) => q.id === 12);
+		const harvest = requireDefined(out.find((q: Parsed) => q.id === 12));
 		expect(harvest["@_xsi:type"]).toBe("ItemHarvestQuest");
 		expect(harvest.questType).toBe(9);
 		expect(harvest.itemIndex).toBe("(O)334");
 		expect(harvest.number).toBe(1);
 		expect(harvest.moneyReward).toBe(0);
 		expect(harvest.nextQuests).toEqual({ int: -1 });
-		const location = out.find((q: Parsed) => q.id === 16);
+		const location = requireDefined(out.find((q: Parsed) => q.id === 16));
 		expect(location["@_xsi:type"]).toBe("GoSomewhereQuest");
 		expect(location.questType).toBe(6);
 		expect(location.whereToGo).toBe("AdventureGuild");
@@ -779,11 +825,13 @@ describe("Quest log", () => {
 
 		const parsed = await exported();
 		const nextOf = (quests: Parsed[]) =>
-			quests.find((q: Parsed) => q.id === 6).nextQuests;
+			requireDefined(quests.find((q: Parsed) => q.id === 6)).nextQuests;
 		expect(nextOf(parsed.SaveGame.player.questLog.Quest)).toEqual({
 			int: [7, 8],
 		});
-		expect(nextOf(parsed.SaveGame.farmhands.Farmer[0].questLog.Quest)).toEqual({
+		expect(
+			nextOf(requireDefined(requireDefinedFarmhand(parsed).questLog).Quest),
+		).toEqual({
 			int: 8,
 		});
 	});
@@ -793,7 +841,7 @@ describe("Quest log", () => {
 		await load(insertQuests(fixture, leadingTo(990, "9999", "15", "25")));
 		const lead = byId("990");
 		expect(log().followUps(lead, save())).toEqual({
-			start: [expect.objectContaining({ id: "25" })],
+			start: [expect.objectContaining({ id: "25" }) as unknown],
 			cantStart: ["9999", "15"],
 		});
 		expect(questLabel("9999")).toBe("Quest #9999");
@@ -812,16 +860,21 @@ describe("Quest log", () => {
 		expect(fishing[Raw].reward).toBe(300);
 		expect(fishing[Raw].moneyReward).toBe(0);
 
-		const parts = (await exported()).SaveGame.player.questLog.Quest.find(
-			(q: Parsed) => q._questTitle === "Fishing",
-		).parts.DescriptionElement;
+		const savedFishing = requireDefined(
+			(await exported()).SaveGame.player.questLog.Quest.find(
+				(candidateQuest) => candidateQuest._questTitle === "Fishing",
+			),
+		);
+		const parts = descriptionPart(savedFishing);
 		// 13248 states the reward first, then how many to catch, then the fish
-		const [reward, number, fish] = parts[0].param;
-		expect(reward["#text"]).toBe(300);
-		expect(number["#text"]).toBe(3);
-		expect(fish.name).toBe("Sardine");
-		expect(parts[1].param["#text"]).toBe(300);
-		expect(parts[2].param).toBeUndefined();
+		const [reward, number, fish] = requireArray(parts["param"]);
+		expect(requireRecord(reward)["#text"]).toBe(300);
+		expect(requireRecord(number)["#text"]).toBe(3);
+		expect(requireRecord(fish)["name"]).toBe("Sardine");
+		expect(
+			requireRecord(descriptionPart(savedFishing, 1)["param"])["#text"],
+		).toBe(300);
+		expect(descriptionPart(savedFishing, 2)["param"]).toBeUndefined();
 
 		// Handing it in to Willy pays the reward, and counts once toward each stat
 		complete(fishing);

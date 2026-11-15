@@ -1,7 +1,9 @@
 import { SvelteMap } from "svelte/reactivity";
+
 import type { ParentIndex } from "$lib/ItemParentIndex";
 import { createItemProxy, type ItemProxy } from "$lib/proxies/items";
 import type { Player } from "$types/save";
+
 import { type DataProxy, Dispose, Raw } from ".";
 
 const nil = { "@_xsi:nil": "true" };
@@ -9,10 +11,10 @@ function isNilSentinel(value: unknown): value is { "@_xsi:nil": "true" } {
 	return (
 		typeof value === "object" &&
 		value !== null &&
-		"@_xsi:nil" in (value as Record<string, unknown>) &&
+		"@_xsi:nil" in value &&
 		// Only consider it a nil sentinel when explicitly "true"
 		// Some loaders might emit "@_xsi:nil": "false" which should not be treated as nil
-		(value as Record<string, unknown>)["@_xsi:nil"] === "true"
+		value["@_xsi:nil"] === "true"
 	);
 }
 
@@ -42,7 +44,7 @@ export class Inventory
 			if (
 				isNilSentinel(entry) ||
 				!entry ||
-				entry.name?.startsWith?.("Secret Note")
+				entry.name?.startsWith?.("Secret Note") === true
 			) {
 				super.set(i, undefined);
 			} else {
@@ -66,7 +68,7 @@ export class Inventory
 			if (
 				!rawEntry ||
 				isNilSentinel(rawEntry) ||
-				rawEntry?.name?.startsWith?.("Secret Note")
+				rawEntry?.name?.startsWith?.("Secret Note") === true
 			) {
 				// Treat undefined or nil sentinel as empty equipment
 				super.set(slot, undefined);
@@ -80,7 +82,7 @@ export class Inventory
 		}
 	}
 
-	public set(index: ParentIndex, value: ItemProxy | undefined): this {
+	public override set(index: ParentIndex, value: ItemProxy | undefined): this {
 		// Dispose previous item's effect root if replacing/removing
 		const prev = this.get(index);
 		if (prev && prev !== value) {
@@ -97,8 +99,7 @@ export class Inventory
 				delete this[Raw][index];
 			} else {
 				// Equipment slots are properly typed in Player interface
-				const equipmentSlots = this[Raw] as unknown as Record<string, unknown>;
-				equipmentSlots[index] = value[Raw];
+				Reflect.set(this[Raw], index, value[Raw]);
 			}
 		}
 		return super.set(index, value);
@@ -115,7 +116,9 @@ export class Inventory
 		for (let index = 0; index < this.slotCount; index++) {
 			const entry = raw[index];
 			const hidden =
-				this.get(index) === undefined && !!entry && !isNilSentinel(entry);
+				this.get(index) === undefined &&
+				Boolean(entry) &&
+				!isNilSentinel(entry);
 			if (!hidden) slots.push(index);
 		}
 		if (items.length > slots.length) {
@@ -131,7 +134,7 @@ export class Inventory
 		});
 	}
 
-	public delete(index: ParentIndex): boolean {
+	public override delete(index: ParentIndex): boolean {
 		const existed = this.has(index);
 		// Preserve reactive anchor by using set(undefined) instead of super.delete
 		this.set(index, undefined);

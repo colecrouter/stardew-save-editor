@@ -1,22 +1,23 @@
 <script lang="ts">
 	import { untrack } from "svelte";
+
 	import {
-		type ChestGroupId,
-		ChestGroups,
 		chestColor,
 		chestGroup,
+		type ChestGroupId,
+		ChestGroups,
 	} from "$lib/chestGroups";
 	import {
 		moveItem,
 		moveItems,
-		type SlotRef,
 		sameSlot,
+		type SlotRef,
 		sortChest,
 	} from "$lib/chestMoves";
 	import {
 		type ChestProxy,
-		SwappableChests,
 		searchChests,
+		SwappableChests,
 	} from "$lib/proxies/Chest.svelte";
 	import { Item } from "$lib/proxies/Item.svelte";
 	import { getSaveManager } from "$lib/SaveManager.svelte";
@@ -25,6 +26,7 @@
 	import UiContainer from "$lib/ui/UIContainer.svelte";
 	import UiInput from "$lib/ui/UIInput.svelte";
 	import UiSelect from "$lib/ui/UISelect.svelte";
+
 	import ItemSlot from "../inventory/ItemSlot.svelte";
 	import ItemSprite from "../inventory/ItemSprite.svelte";
 	import ItemView from "../inventory/ItemView.svelte";
@@ -83,11 +85,19 @@
 
 	/** Chest names; chests in a group with the same label get a number to tell them apart */
 	let headings = $derived.by(() => {
+		// This derived evaluation builds a fresh lookup; mutations never outlive it.
+		// The output is rebuilt from chest state during this evaluation; only the
+		// completed labels escape, rather than mutable reactive collections.
+		// eslint-disable-next-line svelte/prefer-svelte-reactivity -- This Map is derived scratch space.
 		const result = new Map<ChestProxy, string>();
 		for (const group of groups) {
+			// This derived evaluation builds a fresh lookup; mutations never outlive it.
+			// eslint-disable-next-line svelte/prefer-svelte-reactivity -- Counting is local to this derived evaluation.
 			const counts = new Map<string, number>();
 			for (const { metadata } of group.chests)
 				counts.set(metadata.label, (counts.get(metadata.label) ?? 0) + 1);
+			// This derived evaluation builds a fresh lookup; mutations never outlive it.
+			// eslint-disable-next-line svelte/prefer-svelte-reactivity -- Occurrence numbering is local to this derived evaluation.
 			const seen = new Map<string, number>();
 			for (const chest of group.chests) {
 				const { label } = chest.metadata;
@@ -271,7 +281,9 @@
 
 	/** Swap a chest for another kind, e.g. a Stone Chest, or a 70-slot Big Chest */
 	const changeType = (chest: ChestProxy, itemId: string) => {
-		const type = SwappableChests.find((type) => type.itemId === itemId);
+		const type = SwappableChests.find(
+			(candidate) => candidate.itemId === itemId,
+		);
 		if (!type || type === chest.type) return;
 		try {
 			chest.setType(type);
@@ -386,7 +398,7 @@
 			<small
 				>Set the quality of every {searching ? "match" : "item listed"}:</small
 			>
-			{#each qualityLevels as [quality, name]}
+			{#each qualityLevels as [quality, name] (quality)}
 				<button
 					type="button"
 					class={`star quality-${quality}`}
@@ -469,7 +481,7 @@
 							/>
 						</header>
 						<div class="item-grid">
-							{#each slots(chest) as { index, item }}
+							{#each slots(chest) as { index, item } (index)}
 								<ItemSlot
 									{item}
 									active={multiSelected

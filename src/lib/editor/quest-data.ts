@@ -1,12 +1,13 @@
+import questList from "../../../generated/quests.json";
 import {
-	TypeIds,
-	type T_StardewValley_Quests_Quest as Quest,
 	type T_StardewValley_Quests_CraftingQuest as CraftingQuest,
 	type T_StardewValley_Quests_ItemHarvestQuest as HarvestQuest,
 	type T_StardewValley_Quests_GoSomewhereQuest as LocationQuest,
+	type T_StardewValley_Quests_Quest as Quest,
+	TypeIds,
 } from "../../../generated/save-format/save.ts";
 import type { KnownFields } from "./domain.ts";
-import questList from "../../../generated/quests.json";
+
 export type QuestDefinition = (typeof questList)[number];
 /** Static story definitions stay separate from runtime proxies and raw save types. */
 export const questDefinitions = new Map(
@@ -15,7 +16,7 @@ export const questDefinitions = new Map(
 export const questLabel = (id: string) =>
 	questDefinitions.get(id)?.title ?? `Quest #${id}`;
 const qualified = (id: string | undefined) =>
-	id?.startsWith("(") || id?.startsWith("-") ? id : undefined;
+	id?.startsWith("(") === true || id?.startsWith("-") === true ? id : undefined;
 /** Construct only the story subclasses whose saved fields are fully known.
  * Unsupported follow-ups are reported explicitly instead of guessed. */
 export function questFromData(
@@ -37,7 +38,7 @@ export function questFromData(
 			questType = 1;
 			break;
 		case "Building":
-			if (!first) return;
+			if (!(first != null && first !== "")) return;
 			questType = 8;
 			completionString = first;
 			break;
@@ -50,10 +51,13 @@ export function questFromData(
 			)
 				return;
 			const itemId =
-				first && bigCraftable !== undefined && !first.startsWith("(")
+				first != null &&
+				first !== "" &&
+				bigCraftable !== undefined &&
+				!first.startsWith("(")
 					? `${bigCraftable === "true" ? "(BC)" : "(O)"}${first}`
 					: qualified(first);
-			if (!itemId) return;
+			if (!(itemId != null && itemId !== "")) return;
 
 			questType = 2;
 			fields = {
@@ -66,14 +70,15 @@ export function questFromData(
 		case "ItemHarvest": {
 			const itemId = qualified(first);
 			const number = second === undefined ? 1 : Number(second);
-			if (!itemId || !Number.isInteger(number)) return;
+			if (!(itemId != null && itemId !== "") || !Number.isInteger(number))
+				return;
 
 			questType = 9;
 			fields = { $type: TypeIds.ItemHarvestQuest, itemIndex: itemId, number };
 			break;
 		}
 		case "Location":
-			if (!first) return;
+			if (!(first != null && first !== "")) return;
 
 			questType = 6;
 			fields = { $type: TypeIds.GoSomewhereQuest, whereToGo: first };
@@ -91,7 +96,9 @@ export function questFromData(
 		...(data.rewardDescription === undefined
 			? {}
 			: { rewardDescription: data.rewardDescription }),
-		...(completionString ? { completionString } : {}),
+		...(completionString != null && completionString !== ""
+			? { completionString }
+			: {}),
 		accepted: false,
 		completed: false,
 		dailyQuest: false,

@@ -1,4 +1,5 @@
 import type { InventorySlot } from "./inventory-values.ts";
+
 /** Read-only destination policy shared by quest previews and reward authorization.
  * Prefer a compatible ordinary ticket stack; opaque empty markers never count as room. */
 export function prizeTicketDestination(
@@ -10,8 +11,8 @@ export function prizeTicketDestination(
 			(item.quality === undefined || item.quality === 0) &&
 			(item.orderData === undefined || item.orderData === "") &&
 			(item.name === undefined || item.name === "Prize Ticket") &&
-			!item.bigCraftable &&
-			!item.specialItem &&
+			!(item.bigCraftable === true) &&
+			!(item.specialItem === true) &&
 			item.itemId === "PrizeTicket" &&
 			item.stack !== undefined &&
 			item.stack > 0 &&

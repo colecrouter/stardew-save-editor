@@ -1,15 +1,16 @@
-import { stringifySavedData } from "../../src/lib/editor/saved-data.ts";
-import { record } from "../../src/lib/editor/plain-data.ts";
-import { Effect, Exit, Scope, type Context } from "effect";
+import { type Context, Effect, Exit, Scope } from "effect";
 import { derived, type Readable } from "svelte/store";
-import { parseStack, type NumericField } from "../../src/lib/editor/field.ts";
+
 import {
 	farmers,
+	type HostFarmer,
 	type MutationRequest,
 	type SaveDocument,
-	type HostFarmer,
 } from "../../src/lib/editor/domain.ts";
+import { type NumericField, parseStack } from "../../src/lib/editor/field.ts";
 import { makeHistorySession } from "../../src/lib/editor/history.ts";
+import { record } from "../../src/lib/editor/plain-data.ts";
+import { stringifySavedData } from "../../src/lib/editor/saved-data.ts";
 
 export type HistorySession = Effect.Success<
 	ReturnType<typeof makeHistorySession>
@@ -59,30 +60,34 @@ export function makeStackField(
 		description: "Apply a whole number from 1 to 999 as one undoable action.",
 		parse: parseStack,
 		format: String,
-		value: derived([state, farmer, slot], ([state, farmerId, slot]) => {
-			const item = inventory(state, farmerId)[slot];
-			return {
-				key: stringifySavedData([farmerId, item?.entityId])!,
-				value: item?.stack ?? 0,
-				revision: state.revision,
-				available: item?.editable ?? false,
-				commit: async (value: number) => {
-					await Effect.runPromiseWith(services)(
-						session.execute(
-							[stackAction(farmerId, item, value)],
-							undefined,
-							state.revision,
-						),
-					);
-				},
-			};
-		}),
+		value: derived(
+			[state, farmer, slot],
+			([candidateState, farmerId, candidateSlot]) => {
+				const item = inventory(candidateState, farmerId)[candidateSlot];
+				return {
+					key: stringifySavedData([farmerId, item?.entityId]),
+					value: item?.stack ?? 0,
+					revision: candidateState.revision,
+					available: item?.editable ?? false,
+					commit: async (value: number) => {
+						await Effect.runPromiseWith(services)(
+							session.execute(
+								[stackAction(farmerId, item, value)],
+								undefined,
+								candidateState.revision,
+							),
+						);
+					},
+				};
+			},
+		),
 	};
 }
 
 export function inventory(state: HistoryState, farmerId: string): ItemView[] {
 	const farmer = farmers(state.document).find(
-		(farmer) => String(farmer.UniqueMultiplayerID) === farmerId,
+		(candidateFarmer) =>
+			String(candidateFarmer.UniqueMultiplayerID) === farmerId,
 	);
 	return (farmer?.items ?? []).map((raw, slot) => {
 		const item: Record<string, unknown> = record(raw) ? raw : {};
@@ -91,13 +96,13 @@ export function inventory(state: HistoryState, farmerId: string): ItemView[] {
 			slot,
 			// Match the saved string representation rather than inventing item IDs
 			// or display names by coercing malformed extension values.
-			id: typeof item.itemId === "string" ? item.itemId : "",
-			name: typeof item.name === "string" ? item.name : "Empty",
-			stack: typeof item.stack === "number" ? item.stack : 0,
+			id: typeof item["itemId"] === "string" ? item["itemId"] : "",
+			name: typeof item["name"] === "string" ? item["name"] : "Empty",
+			stack: typeof item["stack"] === "number" ? item["stack"] : 0,
 			editable:
-				item.$type === "StardewValley.Object" &&
-				item.bigCraftable !== true &&
-				typeof item.stack === "number",
+				item["$type"] === "StardewValley.Object" &&
+				item["bigCraftable"] !== true &&
+				typeof item["stack"] === "number",
 		};
 	});
 }

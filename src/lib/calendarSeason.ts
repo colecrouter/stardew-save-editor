@@ -1,12 +1,10 @@
-import type { Season as SaveSeason } from "$types/save";
+import { Season as SaveSeason } from "../../codegen/save.ts";
 
-// Checked against each save enum member, without loading an enum runtime in Node.
-const value = <T extends SaveSeason>(text: `${T}`): T => text as T;
+// Use the enum's actual values through a relative module path so Node tooling
+// shares the same season contract without depending on application aliases.
 export const CalendarSeason = {
-	Spring: value<SaveSeason.Spring>("spring"),
-	Summer: value<SaveSeason.Summer>("summer"),
-	Fall: value<SaveSeason.Fall>("fall"),
-	Winter: value<SaveSeason.Winter>("winter"),
-} as const satisfies {
-	readonly [K in keyof typeof SaveSeason]: (typeof SaveSeason)[K];
-};
+	Spring: SaveSeason.Spring,
+	Summer: SaveSeason.Summer,
+	Fall: SaveSeason.Fall,
+	Winter: SaveSeason.Winter,
+} as const;

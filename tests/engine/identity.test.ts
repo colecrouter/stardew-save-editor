@@ -1,7 +1,9 @@
-import { stringifySavedData } from "../../src/lib/editor/saved-data.ts";
 import { expect, it } from "@effect/vitest";
 import { Effect, Exit } from "effect";
+
 import { makeHistorySession } from "../../src/lib/editor/history.ts";
+import { stringifySavedData } from "../../src/lib/editor/saved-data.ts";
+import { requireDefined } from "../helpers/assertions.ts";
 import { inventoryFixture } from "./inventory-model.ts";
 
 it.effect(
@@ -14,7 +16,7 @@ it.effect(
 				!fixture.SaveGame.farmhands[0]
 			)
 				throw new Error("Missing fixture guest");
-			fixture.SaveGame.farmhands[0].items!.push(null);
+			fixture.SaveGame.farmhands[0].items.push(null);
 			const session = yield* makeHistorySession(fixture);
 			const opaque = {
 				$type: "$unknown" as const,
@@ -127,7 +129,7 @@ it.effect(
 		Effect.gen(function* () {
 			const document = inventoryFixture();
 			document.SaveGame.player.items[1] = structuredClone(
-				document.SaveGame.player.items[0]!,
+				requireDefined(document.SaveGame.player.items[0]),
 			);
 			const session = yield* makeHistorySession(document);
 			const original = yield* session.snapshot;

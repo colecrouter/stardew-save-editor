@@ -1,19 +1,23 @@
-import { malformedFixture } from "../helpers/editor-document.ts";
-import { stringifySavedData } from "../../src/lib/editor/saved-data.ts";
-import { get } from "svelte/store";
-import { Effect, Result } from "effect";
 import { it } from "@effect/vitest";
+import { Effect, Result } from "effect";
+import { get } from "svelte/store";
 import { expect } from "vitest";
-import { openTestDocument } from "../helpers/open-editor.ts";
-import { makeHistorySession } from "../../src/lib/editor/history";
-import {
-	EditorOperations,
-	coreOperations,
-} from "../../src/lib/editor/operations";
+
 import { setFarmSettings } from "../../src/lib/editor/farm-operations";
+import { makeHistorySession } from "../../src/lib/editor/history";
 import { setInventoryItem } from "../../src/lib/editor/inventory-operations";
 import { readChests } from "../../src/lib/editor/inventory-views";
-import { tinyFixture, tinyEditorFixture } from "../helpers/editor-document.ts";
+import {
+	coreOperations,
+	EditorOperations,
+} from "../../src/lib/editor/operations";
+import { stringifySavedData } from "../../src/lib/editor/saved-data.ts";
+import {
+	malformedFixture,
+	tinyEditorFixture,
+	tinyFixture,
+} from "../helpers/editor-document.ts";
+import { openTestDocument } from "../helpers/open-editor.ts";
 
 const locations = () => [
 	{

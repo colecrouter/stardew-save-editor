@@ -1,24 +1,27 @@
-import type { SessionState } from "../../src/lib/editor/domain.ts";
+import { readFile } from "node:fs/promises";
+
 import { expect, it } from "@effect/vitest";
 import { Effect, Exit, Fiber } from "effect";
-import { readFile } from "node:fs/promises";
 import { get } from "svelte/store";
-import { makeHistorySession } from "../../src/lib/editor/history.ts";
-import { TransactionDraft } from "../../src/lib/editor/transaction-draft.ts";
-import {
-	recordAnnotatedOperation,
-	ReviewJournal,
-	withReviewMetadata,
-} from "../../src/lib/editor/transaction-annotations.ts";
+
 import { completeSpringForaging } from "../../src/lib/editor/bundle-operations.ts";
 import {
 	setCalendarDate,
 	setCalendarWeather,
 } from "../../src/lib/editor/calendar-operations.ts";
-import { editorResources, openEditor, openDocument } from "./editor-model.ts";
-import { inventoryFixture } from "./inventory-model.ts";
+import type { SessionState } from "../../src/lib/editor/domain.ts";
+import { makeHistorySession } from "../../src/lib/editor/history.ts";
+import {
+	recordAnnotatedOperation,
+	ReviewJournal,
+	type ReviewMetadata,
+	withReviewMetadata,
+} from "../../src/lib/editor/transaction-annotations.ts";
+import { TransactionDraft } from "../../src/lib/editor/transaction-draft.ts";
+import { malformedFixture } from "../helpers/editor-document.ts";
+import { editorResources, openDocument, openEditor } from "./editor-model.ts";
 import { parser } from "./fixture.ts";
-import type { FixtureSave as Save } from "../helpers/editor-document.ts";
+import { inventoryFixture } from "./inventory-model.ts";
 
 const fixtureBytes = () =>
 	readFile(new URL("../../tests/TestSave", import.meta.url));
@@ -126,7 +129,7 @@ it.effect(
 
 it("bundle domain failures retain unsupported-data and late-mail tags", async () => {
 	const document = parser.parse(new TextDecoder().decode(await fixtureBytes()));
-	const game = document.SaveGame as unknown as Save;
+	const game = document.SaveGame;
 	const definition = game.bundleData?.find(
 		(entry) => entry.key === "Crafts Room/13",
 	);
@@ -143,7 +146,7 @@ it("bundle domain failures retain unsupported-data and late-mail tags", async ()
 		await unsupported.close();
 	}
 	definition.value = vanilla;
-	const cc = game.locations.find(
+	const cc = game.locations?.find(
 		(location) => location?.name === "CommunityCenter",
 	);
 	if (cc?.$type !== "StardewValley.Locations.CommunityCenter" || !cc.bundles)
@@ -281,7 +284,14 @@ it.effect(
 			);
 			expect(Exit.isFailure(oversized)).toBe(true);
 			const invalid = yield* session
-				.transact(setMoney(9).pipe(withReviewMetadata({ label: undefined })))
+				// A present undefined annotation is deliberately invalid, unlike omission.
+				.transact(
+					setMoney(9).pipe(
+						withReviewMetadata(
+							malformedFixture<ReviewMetadata>({ label: undefined }),
+						),
+					),
+				)
 				.pipe(
 					Effect.catchTag("ReviewMetadataError", () =>
 						Effect.succeed("rejected"),
@@ -364,8 +374,8 @@ it("calendar and bundle domain programs commit and export as one annotated group
 		expect(state.entries).toHaveLength(1);
 		expect(state.entries[0]?.annotations).toHaveLength(2);
 		expect(
-			state.entries[0]?.annotations.every((record) =>
-				record.tags?.includes("group:prepare"),
+			state.entries[0]?.annotations.every(
+				(record) => record.tags?.includes("group:prepare") === true,
 			),
 		).toBe(true);
 		expect(get(opened.model.view)?.bundle.completed).toBe(true);

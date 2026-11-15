@@ -1,8 +1,8 @@
 <script lang="ts">
 	import {
 		type Quest,
-		type QuestLog,
 		questLabel,
+		type QuestLog,
 	} from "$lib/proxies/Quest.svelte";
 	import type { SaveProxy } from "$lib/proxies/SaveFile.svelte";
 	import UiInput from "$lib/ui/UIInput.svelte";

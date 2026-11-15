@@ -1,17 +1,19 @@
-import {
-	catalogFixture,
-	tinyEditorFixture,
-	exportDocument,
-} from "../helpers/editor-document.ts";
-import { describe, expect, it } from "vitest";
 import { fireEvent, render, waitFor } from "@testing-library/svelte";
 import { Result } from "effect";
-import { openTestDocument } from "../helpers/open-editor.ts";
+import { describe, expect, it } from "vitest";
+
+import type { SaveDocument } from "../../src/lib/editor/domain";
 import { createCatalogItem } from "../../src/lib/editor/item-catalog";
 import { createRandom, rollTrinket } from "../../src/lib/TrinketStats";
+import { requireInstance, requireRecord } from "../helpers/assertions.ts";
+import {
+	catalogFixture,
+	exportDocument,
+	tinyEditorFixture,
+} from "../helpers/editor-document.ts";
+import { openTestDocument } from "../helpers/open-editor.ts";
 import BackpackHarness from "./BackpackHarness.svelte";
 import { fixtureXml, parser } from "./fixtures";
-import type { SaveDocument } from "../../src/lib/editor/domain";
 
 function catalog(id: string) {
 	const item = createCatalogItem(id);
@@ -41,8 +43,8 @@ async function open(mutate: (document: SaveDocument) => void) {
 		},
 	};
 }
-const waitCommitted = async (assertion: () => Promise<void>) =>
-	waitFor(assertion);
+const waitCommitted = (assertion: () => Promise<void>) =>
+	Promise.resolve(waitFor(assertion));
 
 // Real commands and exports protect opaque inventory fields. World data is not
 // needed to verify these controls and their queued edits.
@@ -66,24 +68,30 @@ describe("item property controls", () => {
 							location === "equipment" ? "Boots: Sneakers" : "Slot 4: Sneakers",
 					}),
 				);
-				const defense = opened.page.getByRole("spinbutton", {
-					name: "Defense",
-				}) as HTMLInputElement;
-				const immunity = opened.page.getByRole("spinbutton", {
-					name: "Immunity",
-				}) as HTMLInputElement;
+				const defense = requireInstance(
+					opened.page.getByRole("spinbutton", {
+						name: "Defense",
+					}),
+					HTMLInputElement,
+				);
+				const immunity = requireInstance(
+					opened.page.getByRole("spinbutton", {
+						name: "Immunity",
+					}),
+					HTMLInputElement,
+				);
 				defense.focus();
 				await fireEvent.input(defense, { target: { value: "7" } });
 				await fireEvent.input(defense, { target: { value: "78" } });
 				const readBoots = async () => {
 					const farmer = (await opened.model.snapshot()).document.SaveGame
 						.player;
-					return (
-						location === "equipment" ? farmer.boots : farmer.items[3]
-					) as Record<string, unknown>;
+					return requireRecord(
+						location === "equipment" ? farmer.boots : farmer.items[3],
+					);
 				};
 				await waitCommitted(async () =>
-					expect((await readBoots()).defenseBonus).toBe(78),
+					expect((await readBoots())["defenseBonus"]).toBe(78),
 				);
 				expect(document.activeElement).toBe(defense);
 				const entries = (await opened.model.snapshot()).entries.length;
@@ -92,7 +100,7 @@ describe("item property controls", () => {
 				expect((await opened.model.snapshot()).entries).toHaveLength(entries);
 				await fireEvent.input(defense, { target: { value: "79" } });
 				await waitCommitted(async () =>
-					expect((await readBoots()).defenseBonus).toBe(79),
+					expect((await readBoots())["defenseBonus"]).toBe(79),
 				);
 				// All values in the focused field share one Undo entry, including a
 				// blank replacement. Undo restores the original boot stat in one step.
@@ -112,20 +120,20 @@ describe("item property controls", () => {
 				expect((await opened.model.snapshot()).cursor).toBe(0);
 				await fireEvent.input(defense, { target: { value: "78" } });
 				await waitCommitted(async () =>
-					expect((await readBoots()).defenseBonus).toBe(78),
+					expect((await readBoots())["defenseBonus"]).toBe(78),
 				);
 				await fireEvent.input(immunity, { target: { value: "4" } });
 				await waitCommitted(async () =>
-					expect((await readBoots()).immunityBonus).toBe(4),
+					expect((await readBoots())["immunityBonus"]).toBe(4),
 				);
 				const expected = structuredClone(before);
-				const changed = (
+				const changed = requireRecord(
 					location === "equipment"
 						? expected.SaveGame.player.boots
-						: expected.SaveGame.player.items[3]
-				) as Record<string, unknown>;
-				changed.defenseBonus = 78;
-				changed.immunityBonus = 4;
+						: expected.SaveGame.player.items[3],
+				);
+				changed["defenseBonus"] = 78;
+				changed["immunityBonus"] = 4;
 				const exported = await opened.model.commands.export();
 				if (!exported || Result.isFailure(exported))
 					throw Error("Expected successful export");
@@ -142,9 +150,9 @@ describe("item property controls", () => {
 
 	it("edits weapon decimals, object base values, and the bottomless flag as independent actions", async () => {
 		const opened = await open((document) => {
-			const can = document.SaveGame.player.items[2] as Record<string, unknown>;
-			can.isBottomless = false;
-			can.IsBottomless = false;
+			const can = requireRecord(document.SaveGame.player.items[2]);
+			can["isBottomless"] = false;
+			can["IsBottomless"] = false;
 		});
 		try {
 			const before = (await opened.model.snapshot()).document;
@@ -155,23 +163,32 @@ describe("item property controls", () => {
 			await waitCommitted(async () =>
 				expect(
 					(await opened.model.snapshot()).document.SaveGame.player.items[0],
-				).toMatchObject({ critChance: 0.25 }),
+				).toMatchObject({
+					critChance: 0.25,
+				}),
 			);
 			await fireEvent.click(
 				opened.page.getByRole("button", { name: "Slot 5: Parsnip" }),
 			);
 			await fireEvent.input(
 				opened.page.getByRole("spinbutton", { name: "Base price" }),
-				{ target: { value: "123" } },
+				{
+					target: { value: "123" },
+				},
 			);
 			await fireEvent.input(
 				opened.page.getByRole("spinbutton", { name: "Edibility" }),
-				{ target: { value: "42" } },
+				{
+					target: { value: "42" },
+				},
 			);
 			await waitCommitted(async () =>
 				expect(
 					(await opened.model.snapshot()).document.SaveGame.player.items[4],
-				).toMatchObject({ price: 123, edibility: 42 }),
+				).toMatchObject({
+					price: 123,
+					edibility: 42,
+				}),
 			);
 			await fireEvent.click(
 				opened.page.getByRole("button", { name: "Slot 3: Watering Can" }),
@@ -182,7 +199,10 @@ describe("item property controls", () => {
 			await waitCommitted(async () =>
 				expect(
 					(await opened.model.snapshot()).document.SaveGame.player.items[2],
-				).toMatchObject({ isBottomless: true, IsBottomless: true }),
+				).toMatchObject({
+					isBottomless: true,
+					IsBottomless: true,
+				}),
 			);
 			await opened.model.commands.undo();
 			expect(
@@ -190,7 +210,10 @@ describe("item property controls", () => {
 			).toEqual(before.SaveGame.player.items[2]);
 			expect(
 				(await opened.model.snapshot()).document.SaveGame.player.items[4],
-			).toMatchObject({ price: 123, edibility: 42 });
+			).toMatchObject({
+				price: 123,
+				edibility: 42,
+			});
 		} finally {
 			await opened.dispose();
 		}
@@ -198,11 +221,8 @@ describe("item property controls", () => {
 
 	it("edits clothing and colored-object RGB while preserving alpha and opaque color members", async () => {
 		const opened = await open((document) => {
-			const pants = document.SaveGame.player.pantsItem as Record<
-				string,
-				unknown
-			>;
-			pants.clothesColor = {
+			const pants = requireRecord(document.SaveGame.player.pantsItem);
+			pants["clothesColor"] = {
 				R: 1,
 				G: 2,
 				B: 3,
@@ -279,30 +299,28 @@ describe("item property controls", () => {
 			await fireEvent.click(
 				opened.page.getByRole("button", { name: /^Trinket:/ }),
 			);
-			const level = opened.page.getByRole("spinbutton", {
-				name: "Level",
-			}) as HTMLInputElement;
+			const level = requireInstance(
+				opened.page.getByRole("spinbutton", {
+					name: "Level",
+				}),
+				HTMLInputElement,
+			);
 			const target = level.value === "5" ? 4 : 5;
 			await fireEvent.input(level, { target: { value: String(target) } });
 			await waitCommitted(async () => {
 				const document = (await opened.model.snapshot()).document;
-				const item = document.SaveGame.player.trinketItem?.[0] as Record<
-					string,
-					unknown
-				>;
+				const item = requireRecord(document.SaveGame.player.trinketItem?.[0]);
 				const context = {
 					useLegacyRandom: document.SaveGame.useLegacyRandom === true,
-					totalMoneyEarned: Number(
-						document.SaveGame.player.totalMoneyEarned ?? 0,
-					),
+					totalMoneyEarned: document.SaveGame.player.totalMoneyEarned ?? 0,
 				};
 				const stats = rollTrinket(
 					"FairyBox",
-					createRandom(Number(item.generationSeed), context.useLegacyRandom),
+					createRandom(Number(item["generationSeed"]), context.useLegacyRandom),
 					context,
 				);
 				expect(stats).toMatchObject({ kind: "FairyBox", level: target });
-				expect(item.customModData).toEqual({ opaque: "keep" });
+				expect(item["customModData"]).toEqual({ opaque: "keep" });
 			});
 			await opened.model.commands.undo();
 			await waitFor(() => expect(level.value).not.toBe(String(target)));
@@ -333,9 +351,12 @@ describe("item property controls", () => {
 			await fireEvent.click(
 				opened.page.getByRole("button", { name: /^Trinket:/ }),
 			);
-			const color = opened.page.getByRole("combobox", {
-				name: "Color",
-			}) as HTMLSelectElement;
+			const color = requireInstance(
+				opened.page.getByRole("combobox", {
+					name: "Color",
+				}),
+				HTMLSelectElement,
+			);
 			const before = (await opened.model.snapshot()).document;
 			const target = [...color.options].find(
 				(option) => option.value !== color.value,
@@ -345,20 +366,18 @@ describe("item property controls", () => {
 			await fireEvent.change(color, { target: { value: target } });
 			await waitCommitted(async () => {
 				const document = (await opened.model.snapshot()).document;
-				const item = document.SaveGame.player.trinketItem?.[0] as Record<
-					string,
-					unknown
-				>;
+				const item = requireRecord(document.SaveGame.player.trinketItem?.[0]);
 				const context = {
 					useLegacyRandom: document.SaveGame.useLegacyRandom === true,
-					totalMoneyEarned: Number(
-						document.SaveGame.player.totalMoneyEarned ?? 0,
-					),
+					totalMoneyEarned: document.SaveGame.player.totalMoneyEarned ?? 0,
 				};
 				expect(
 					rollTrinket(
 						"FrogEgg",
-						createRandom(Number(item.generationSeed), context.useLegacyRandom),
+						createRandom(
+							Number(item["generationSeed"]),
+							context.useLegacyRandom,
+						),
 						context,
 					),
 				).toMatchObject({ kind: "FrogEgg", variant: Number(target) });

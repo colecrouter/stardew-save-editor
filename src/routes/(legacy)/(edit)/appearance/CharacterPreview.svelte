@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Farmer } from "$lib/proxies/Farmer.svelte";
+
 	import Character from "./Character.svelte";
 
 	interface Props {

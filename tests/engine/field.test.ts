@@ -1,11 +1,12 @@
-import { vi } from "vitest";
 import { expect, it } from "@effect/vitest";
 import { Effect } from "effect";
 import { get, writable } from "svelte/store";
+import { vi } from "vitest";
+
 import {
 	createDraft,
-	parseStack,
 	type FieldValue,
+	parseStack,
 } from "../../src/lib/editor/field.ts";
 import { makeAtomInventory } from "./inventory-atoms.ts";
 import { openInventory } from "./inventory-model.ts";

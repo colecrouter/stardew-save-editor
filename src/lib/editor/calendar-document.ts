@@ -1,30 +1,29 @@
-import { CalendarDocumentError } from "../calendarErrors.ts";
 import type {
-	Value as Save,
-	T_StardewValley_Farmer as Player,
 	T_StardewValley_Network_LocationWeather as LocationWeatherClass,
+	T_StardewValley_Farmer as Player,
+	Value as Save,
 } from "../../../generated/save-format/save.ts";
-import { stringifySavedData } from "./saved-data.ts";
 import {
+	type CalendarWeatherChoices,
 	dateInRange,
 	DAYS_PER_SEASON,
 	forcedWeather,
+	type GameDate,
 	greenRainDay,
 	isWeatherId,
 	MAX_YEAR,
 	nextDay,
 	planCalendarWeather,
-	SEASONS,
 	seasonIndex,
+	SEASONS,
 	seasonWeathers,
 	totalDays,
 	WEATHER_FLAGS,
-	weatherFromFlags,
-	type CalendarWeatherChoices,
-	type GameDate,
 	type WeatherFlags,
+	weatherFromFlags,
 	type WeatherId,
 } from "../calendar.ts";
+import { CalendarDocumentError } from "../calendarErrors.ts";
 import {
 	planRainWatering,
 	type WateringMark,
@@ -33,6 +32,7 @@ import {
 } from "../calendarWatering.ts";
 import { locationWeatherContext } from "../locationWeather.ts";
 import { getStatValue, setStatValue } from "./player-stats.ts";
+import { stringifySavedData } from "./saved-data.ts";
 
 export interface CalendarViewState {
 	date: GameDate;
@@ -83,7 +83,8 @@ export function readCalendarView(game: Save): CalendarViewState {
 	// A GameDate must contain an actual season. Reject unsupported spellings
 	// instead of asserting that arbitrary saved text belongs to the season union.
 	const season =
-		SEASONS[seasonNumber] ?? SEASONS.find((value) => value === seasonText);
+		SEASONS[seasonNumber] ??
+		SEASONS.find((value) => value.toLowerCase() === seasonText);
 	if (season === undefined)
 		throw new CalendarDocumentError("Choose a valid saved season");
 	const weather = valleyWeather(game);
@@ -104,7 +105,8 @@ export function readCalendarView(game: Save): CalendarViewState {
 		},
 		daysPlayed: game.player ? getStatValue(game.player, "daysPlayed") : 0,
 		today:
-			named &&
+			named != null &&
+			named !== "" &&
 			(!isWeatherId(named) ||
 				weatherFromFlags(WEATHER_FLAGS[named]) === fromFlags)
 				? named
@@ -201,16 +203,17 @@ function bindings(game: Save): Map<string, TargetBinding> {
 			$type: location.$type,
 		});
 		if (location.isOutdoors !== true || context !== "Default") continue;
-		const locationKey = location.uniqueName
-			? location.uniqueName
-			: location.name;
+		const locationKey =
+			location.uniqueName != null && location.uniqueName !== ""
+				? location.uniqueName
+				: location.name;
 		if (locations.has(locationKey))
 			throw new CalendarDocumentError("Calendar location key is ambiguous");
 		locations.add(locationKey);
 		for (const building of location.buildings ?? []) {
 			if (!building || building.$type !== "StardewValley.Buildings.PetBowl")
 				continue;
-			if (!building.id)
+			if (!(building.id != null && building.id !== ""))
 				throw new CalendarDocumentError(
 					"A pet bowl is missing its building ID",
 				);
@@ -236,7 +239,7 @@ function bindings(game: Save): Map<string, TargetBinding> {
 			const feature = entry.value;
 			if (feature.$type !== "StardewValley.TerrainFeatures.HoeDirt") continue;
 			const tile = entry.key;
-			if (!tile || !Number.isInteger(tile.X) || !Number.isInteger(tile.Y))
+			if (!Number.isInteger(tile.X) || !Number.isInteger(tile.Y))
 				throw new CalendarDocumentError(
 					"A tilled tile is missing its map coordinates",
 				);
@@ -349,7 +352,9 @@ export function prepareCalendarDocument<T extends Save>(
 			raining: game.isRaining === true,
 		});
 		for (const write of prepared.writes) {
-			const target = state.targets.find((target) => target.id === write.id);
+			const target = state.targets.find(
+				(targetCandidate) => targetCandidate.id === write.id,
+			);
 			if (!target)
 				throw new CalendarDocumentError("A farm object is no longer available");
 			resolve(target.key).write(write);
@@ -360,7 +365,7 @@ export function prepareCalendarDocument<T extends Save>(
 	if (edit.type === "calendar-date") {
 		const { change } = edit;
 		if (
-			!Object.keys(change).length ||
+			!(Object.keys(change).length > 0) ||
 			Object.keys(change).some(
 				(key) => !["year", "season", "day"].includes(key),
 			)
@@ -369,15 +374,15 @@ export function prepareCalendarDocument<T extends Save>(
 		if (
 			"year" in change &&
 			(!Number.isInteger(change.year) ||
-				Number(change.year) < 1 ||
-				Number(change.year) > MAX_YEAR)
+				change.year < 1 ||
+				change.year > MAX_YEAR)
 		)
 			throw new CalendarDocumentError(`The year must be from 1 to ${MAX_YEAR}`);
 		if (
 			"day" in change &&
 			(!Number.isInteger(change.day) ||
-				Number(change.day) < 1 ||
-				Number(change.day) > DAYS_PER_SEASON)
+				change.day < 1 ||
+				change.day > DAYS_PER_SEASON)
 		)
 			throw new CalendarDocumentError(
 				`The day must be from 1 to ${DAYS_PER_SEASON}`,

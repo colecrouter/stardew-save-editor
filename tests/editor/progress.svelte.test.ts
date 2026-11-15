@@ -1,5 +1,6 @@
 import { fireEvent, waitFor, within } from "@testing-library/svelte";
 import { expect, it } from "vitest";
+
 import { tinyEditorFixture } from "../helpers/editor-document.ts";
 import { renderTestWorkspace } from "./workspace.ts";
 

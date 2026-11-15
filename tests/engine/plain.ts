@@ -1,7 +1,7 @@
 import {
-	type ResolvedMutation,
 	MutationError,
 	prepare,
+	type ResolvedMutation,
 	type SaveDocument,
 	type SessionState,
 } from "../../src/lib/editor/domain.ts";

@@ -1,20 +1,20 @@
-import type { Item } from "../../src/lib/editor/domain.ts";
-import type { SaveDocument } from "../../src/lib/editor/domain.ts";
-import { malformedFixture } from "../helpers/editor-document.ts";
-import { Effect, Result } from "effect";
 import { it } from "@effect/vitest";
+import { Effect, Result } from "effect";
 import { describe, expect } from "vitest";
-import { makeHistorySession } from "../../src/lib/editor/history";
+
+import type { Item } from "../../src/lib/editor/domain.ts";
 import {
 	canEquipItem,
 	equipmentSlots,
 	trinketAvailable,
 } from "../../src/lib/editor/equipment";
-import { readBackpacks } from "../../src/lib/editor/inventory-views";
-import { TransactionDraft } from "../../src/lib/editor/transaction-draft";
-import { savedTypeId } from "../../src/lib/editor/saved-types";
-import { tinyFixture } from "../helpers/editor-document.ts";
+import { makeHistorySession } from "../../src/lib/editor/history";
 import type { InventoryMoveRequest } from "../../src/lib/editor/inventory-movement.ts";
+import { readBackpacks } from "../../src/lib/editor/inventory-views";
+import { savedTypeId } from "../../src/lib/editor/saved-types";
+import { TransactionDraft } from "../../src/lib/editor/transaction-draft";
+import { requireDefined, requireRecord } from "../helpers/assertions.ts";
+import { malformedFixture, tinyFixture } from "../helpers/editor-document.ts";
 
 const raw = (type: string, extra: Record<string, unknown> = {}) =>
 	malformedFixture<Item>({
@@ -23,8 +23,8 @@ const raw = (type: string, extra: Record<string, unknown> = {}) =>
 		stack: 1,
 		...extra,
 	});
-const owner = (doc: SaveDocument) =>
-	doc.SaveGame.player as unknown as Record<string, unknown>;
+const owner = (doc: import("../../src/lib/editor/domain.ts").SaveDocument) =>
+	requireRecord(doc.SaveGame.player);
 const request = (
 	entityId: string,
 	toEntityId: string,
@@ -68,21 +68,25 @@ describe("equipment inventory boundaries", () => {
 				const session = yield* makeHistorySession(doc);
 				const before = yield* session.snapshot;
 				expect(Object.hasOwn(owner(before.document), "shirtItem")).toBe(false);
-				const from = before.identities["1"]![0]!,
-					to = before.equipmentIdentities["1"]!.shirtItem;
+				const from = requireDefined(requireDefined(before.identities["1"])[0]),
+					to = requireDefined(before.equipmentIdentities["1"]).shirtItem;
 				expect(
-					readBackpacks(before)[0]!.equipment.find(
-						(x) => x.key === "shirtItem",
-					)!.empty,
+					requireDefined(
+						requireDefined(readBackpacks(before)[0]).equipment.find(
+							(x) => x.key === "shirtItem",
+						),
+					).empty,
 				).toBe(true);
 				yield* session.execute([request(from, to)]);
 				const after = yield* session.snapshot;
-				expect(owner(after.document).shirtItem).toEqual(
+				expect(owner(after.document)["shirtItem"]).toEqual(
 					doc.SaveGame.player.items[0],
 				);
 				expect(after.document.SaveGame.player.items[0]).toEqual(null);
-				expect(after.identities["1"]![0]).toBe(to);
-				expect(after.equipmentIdentities["1"]!.shirtItem).toBe(from);
+				expect(requireDefined(after.identities["1"])[0]).toBe(to);
+				expect(requireDefined(after.equipmentIdentities["1"]).shirtItem).toBe(
+					from,
+				);
 				yield* session.undo;
 				const undone = yield* session.snapshot;
 				expect(undone.document).toEqual(doc);
@@ -97,8 +101,8 @@ describe("equipment inventory boundaries", () => {
 		() =>
 			Effect.gen(function* () {
 				const doc = tinyFixture();
-				owner(doc).boots = raw("Boots", { tailored: { defense: 8 } });
-				owner(doc).hat = null;
+				owner(doc)["boots"] = raw("Boots", { tailored: { defense: 8 } });
+				owner(doc)["hat"] = null;
 				doc.SaveGame.player.items[0] = raw("Hat", {
 					customModData: { hat: "opaque" },
 				});
@@ -110,8 +114,8 @@ describe("equipment inventory boundaries", () => {
 						yield* Effect.result(
 							session.execute([
 								request(
-									before.equipmentIdentities["1"]!.boots,
-									before.identities["1"]![0]!,
+									requireDefined(before.equipmentIdentities["1"]).boots,
+									requireDefined(requireDefined(before.identities["1"])[0]),
 								),
 							]),
 						),
@@ -120,13 +124,17 @@ describe("equipment inventory boundaries", () => {
 				expect(yield* session.snapshot).toEqual(before);
 				yield* session.execute([
 					request(
-						before.identities["1"]![0]!,
-						before.equipmentIdentities["1"]!.hat,
+						requireDefined(requireDefined(before.identities["1"])[0]),
+						requireDefined(before.equipmentIdentities["1"]).hat,
 					),
 				]);
 				const after = yield* session.snapshot;
-				expect(after.document.SaveGame.player.items[0]).toEqual(owner(doc).hat);
-				expect(owner(after.document).hat).toEqual(doc.SaveGame.player.items[0]);
+				expect(after.document.SaveGame.player.items[0]).toEqual(
+					owner(doc)["hat"],
+				);
+				expect(owner(after.document)["hat"]).toEqual(
+					doc.SaveGame.player.items[0],
+				);
 				yield* session.undo;
 				expect((yield* session.snapshot).document).toEqual(doc);
 			}),
@@ -134,21 +142,21 @@ describe("equipment inventory boundaries", () => {
 	it.effect("swaps byte-identical equipped rings by identity", () =>
 		Effect.gen(function* () {
 			const doc = tinyFixture();
-			owner(doc).leftRing = raw("Ring", { combined: { opaque: 1 } });
-			owner(doc).rightRing = structuredClone(owner(doc).leftRing);
+			owner(doc)["leftRing"] = raw("Ring", { combined: { opaque: 1 } });
+			owner(doc)["rightRing"] = structuredClone(owner(doc)["leftRing"]);
 			const session = yield* makeHistorySession(doc);
 			const before = yield* session.snapshot;
 			yield* session.execute([
 				request(
-					before.equipmentIdentities["1"]!.leftRing,
-					before.equipmentIdentities["1"]!.rightRing,
+					requireDefined(before.equipmentIdentities["1"]).leftRing,
+					requireDefined(before.equipmentIdentities["1"]).rightRing,
 				),
 			]);
 			const after = yield* session.snapshot;
 			expect(after.document).toEqual(before.document);
 			expect(after.entries).toHaveLength(1);
-			expect(after.equipmentIdentities["1"]!.rightRing).toBe(
-				before.equipmentIdentities["1"]!.leftRing,
+			expect(requireDefined(after.equipmentIdentities["1"]).rightRing).toBe(
+				requireDefined(before.equipmentIdentities["1"]).leftRing,
 			);
 			yield* session.undo;
 			expect((yield* session.snapshot).equipmentIdentities).toEqual(
@@ -161,22 +169,22 @@ describe("equipment inventory boundaries", () => {
 		() =>
 			Effect.gen(function* () {
 				const doc = tinyFixture();
-				owner(doc).hat = raw("Hat");
+				owner(doc)["hat"] = raw("Hat");
 				doc.SaveGame.player.items[0] = raw("Hat", { which: 1 });
 				const session = yield* makeHistorySession(doc);
 				const before = yield* session.snapshot;
 				const captured = {
 					...request(
-						before.identities["1"]![0]!,
-						before.equipmentIdentities["1"]!.hat,
+						requireDefined(requireDefined(before.identities["1"])[0]),
+						requireDefined(before.equipmentIdentities["1"]).hat,
 					),
 					fromLocation: "backpack",
 					toLocation: "hat",
 				} as const;
 				yield* session.execute([
 					request(
-						before.equipmentIdentities["1"]!.hat,
-						before.identities["1"]![1]!,
+						requireDefined(before.equipmentIdentities["1"]).hat,
+						requireDefined(requireDefined(before.identities["1"])[1]),
 					),
 				]);
 				const current = yield* session.snapshot;
@@ -191,7 +199,7 @@ describe("equipment inventory boundaries", () => {
 		() =>
 			Effect.gen(function* () {
 				const doc = tinyFixture();
-				owner(doc).leftRing = raw("CombinedRing", {
+				owner(doc)["leftRing"] = raw("CombinedRing", {
 					combinedRings: [raw("Ring"), raw("Ring")],
 				});
 				doc.SaveGame.farmhands = [
@@ -204,24 +212,31 @@ describe("equipment inventory boundaries", () => {
 				];
 				const session = yield* makeHistorySession(doc);
 				const before = yield* session.snapshot;
-				const source = before.equipmentIdentities["1"]!.leftRing;
+				const source = requireDefined(before.equipmentIdentities["1"]).leftRing;
 				yield* session.execute([
 					{
 						type: "backpack-move",
 						ownerId: "1",
 						entityId: source,
 						toOwnerId: "2",
-						toEntityId: before.identities["2"]![0]!,
+						toEntityId: requireDefined(
+							requireDefined(before.identities["2"])[0],
+						),
 						fromLocation: "leftRing",
 						toLocation: "backpack",
 					},
 				]);
 				const current = yield* session.snapshot;
-				expect(current.identities["2"]![0]).toBe(source);
+				expect(requireDefined(current.identities["2"])[0]).toBe(source);
 				expect(
 					Result.isFailure(
 						yield* Effect.result(
-							session.execute([request(source, before.identities["1"]![1]!)]),
+							session.execute([
+								request(
+									source,
+									requireDefined(requireDefined(before.identities["1"])[1]),
+								),
+							]),
 						),
 					),
 				).toBe(true);
@@ -252,36 +267,38 @@ describe("equipment inventory boundaries", () => {
 						yield* Effect.result(
 							session.execute([
 								request(
-									before.identities["1"]![0]!,
-									before.equipmentIdentities["1"]!.trinketItem,
+									requireDefined(requireDefined(before.identities["1"])[0]),
+									requireDefined(before.equipmentIdentities["1"]).trinketItem,
 								),
 							]),
 						),
 					),
 				).toBe(true);
 				expect(yield* session.snapshot).toEqual(before);
-				owner(doc).stats = {
+				owner(doc)["stats"] = {
 					Values: [{ key: "TrinketSlots", value: 1 }],
 				};
 				const unlocked = yield* makeHistorySession(doc);
 				const current = yield* unlocked.snapshot;
 				yield* unlocked.execute([
 					request(
-						current.identities["1"]![0]!,
-						current.equipmentIdentities["1"]!.trinketItem,
+						requireDefined(requireDefined(current.identities["1"])[0]),
+						requireDefined(current.equipmentIdentities["1"]).trinketItem,
 					),
 				]);
-				expect(owner((yield* unlocked.snapshot).document).trinketItem).toEqual([
-					doc.SaveGame.player.items[0],
-				]);
+				expect(
+					owner((yield* unlocked.snapshot).document)["trinketItem"],
+				).toEqual([doc.SaveGame.player.items[0]]);
 				const imported = tinyFixture();
-				owner(imported).trinketItem = [raw("Trinket", { generationSeed: 789 })];
+				owner(imported)["trinketItem"] = [
+					raw("Trinket", { generationSeed: 789 }),
+				];
 				const importedSession = yield* makeHistorySession(imported);
 				const importedBefore = yield* importedSession.snapshot;
 				yield* importedSession.execute([
 					request(
-						importedBefore.equipmentIdentities["1"]!.trinketItem,
-						importedBefore.identities["1"]![1]!,
+						requireDefined(importedBefore.equipmentIdentities["1"]).trinketItem,
+						requireDefined(requireDefined(importedBefore.identities["1"])[1]),
 					),
 				]);
 				expect(importedSession).toBeTruthy();
@@ -298,7 +315,7 @@ describe("equipment inventory boundaries", () => {
 				const write = Effect.gen(function* () {
 					const draft = yield* TransactionDraft;
 					const state = yield* draft.read;
-					owner(state.state.document).hat = raw("Hat");
+					owner(state.state.document)["hat"] = raw("Hat");
 					yield* draft.replace(state);
 				});
 				expect(
@@ -308,13 +325,13 @@ describe("equipment inventory boundaries", () => {
 					Result.isFailure(
 						yield* Effect.result(
 							session.execute([
-								{
+								malformedFixture<never>({
 									type: "equipment-swap",
 									ownerId: "1",
 									slot: 0,
 									toOwnerId: "1",
 									toSlot: "money",
-								} as never,
+								}),
 							]),
 						),
 					),

@@ -27,7 +27,8 @@ export function freezeDraftState(state: SessionState): boolean {
 			continue;
 		}
 		seen.add(value);
-		for (const child of Object.values(value)) {
+		const children: unknown[] = Object.values(value);
+		for (const child of children) {
 			if (child !== null && typeof child === "object") pending.push(child);
 		}
 		// Freezing owned descendants protects against reflection through a draft's

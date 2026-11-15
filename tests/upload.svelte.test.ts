@@ -1,5 +1,6 @@
 import { fireEvent, render, waitFor } from "@testing-library/svelte";
 import { describe, expect, it, vi } from "vitest";
+
 import {
 	SaveManager,
 	setSaveManagerContext,
@@ -9,6 +10,7 @@ import {
 	ToastManager,
 } from "../src/lib/ToastManager.svelte";
 import uploadPage from "../src/routes/(legacy)/(home)/(upload)/legacy/+page.svelte";
+import { requireInstance } from "./helpers/assertions.ts";
 
 const renderUploadPage = () => {
 	let saveManager!: SaveManager;
@@ -27,7 +29,12 @@ const renderUploadPage = () => {
 describe("Upload page", () => {
 	it("says how to choose a save in the drop zone", () => {
 		const { page, cleanup } = renderUploadPage();
-		expect(page.getByLabelText("Save file").getAttribute("type")).toBe("file");
+		expect(
+			requireInstance(
+				page.getByLabelText("Save file"),
+				HTMLInputElement,
+			).getAttribute("type"),
+		).toBe("file");
 		expect(page.getByTestId("upload-hint").textContent?.trim()).toBe(
 			"Click to select a file, or drag and drop here",
 		);
@@ -39,7 +46,10 @@ describe("Upload page", () => {
 
 		// A first byte of 0x78 ("x") marks a zlib-compressed save; pako throws a string
 		const file = new File(["xyz, not a save"], "Farm_1");
-		const input = page.getByLabelText("Save file") as HTMLInputElement;
+		const input = requireInstance(
+			page.getByLabelText("Save file"),
+			HTMLInputElement,
+		);
 		const transfer = new DataTransfer();
 		transfer.items.add(file);
 		input.files = transfer.files;
@@ -58,7 +68,7 @@ describe("Upload page", () => {
 
 it("retains selectable legacy save paths with keyboard copying beside current save guidance", async () => {
 	const clipboard = Object.getOwnPropertyDescriptor(navigator, "clipboard");
-	const writeText = vi.fn(async () => {});
+	const writeText = vi.fn<() => Promise<void>>(() => Promise.resolve());
 	Object.defineProperty(navigator, "clipboard", {
 		configurable: true,
 		value: { writeText },

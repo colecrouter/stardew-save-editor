@@ -1,9 +1,10 @@
 import { Effect, Result } from "effect";
 import { expect, it } from "vitest";
-import { openTestDocument } from "../helpers/open-editor.ts";
+
 import { MutationError } from "../../src/lib/editor/domain.ts";
 import { TransactionDraft } from "../../src/lib/editor/transaction-draft.ts";
 import { tinyEditorFixture } from "../helpers/editor-document.ts";
+import { openTestDocument } from "../helpers/open-editor.ts";
 
 // A receipt describes its own committed action, even if a queued Undo has already
 // restored the document before its caller next reads the editor projection.

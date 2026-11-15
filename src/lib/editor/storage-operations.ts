@@ -1,7 +1,8 @@
 import { Effect } from "effect";
+
 import {
-	InventoryEdits,
 	decodeInventoryQualityBatch,
+	InventoryEdits,
 	type InventoryQualityBatch,
 } from "./inventory-operations.ts";
 import {
@@ -20,7 +21,7 @@ export const setStorageQuality = Effect.fn("Storage.setQuality")(function* (
 	);
 	const edits = yield* InventoryEdits;
 	const result = yield* edits.setQualityBatch(request);
-	if (result.changed)
+	if (result.changed > 0)
 		yield* recordAnnotatedOperation(Effect.void).pipe(
 			withReviewMetadata({
 				label: `Set quality on ${result.changed} stored items`,

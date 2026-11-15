@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { dynamicAsset } from "$lib/ui/dynamicAsset.ts";
+
 	let { name }: { name: string } = $props();
 	let failedName = $state<string>();
 	const portrait = $derived(
@@ -10,7 +11,10 @@
 <!-- Portrait sheets use 64px frames. Crop the first expression at its native
      dimensions rather than shrinking the entire sheet. Unknown/modded names
      retain the same footprint and a readable initial if their image is absent. -->
-<div class="portrait" aria-hidden="true">
+<div
+	class="portrait"
+	aria-hidden="true"
+>
 	<span>{name.slice(0, 1)}</span>
 
 	{#key name}

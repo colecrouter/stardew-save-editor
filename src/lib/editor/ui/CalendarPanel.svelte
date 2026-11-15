@@ -1,17 +1,24 @@
 <script lang="ts">
 	import { Result } from "effect";
-	import CalendarMonth from "./CalendarMonth.svelte";
-	import { calendarEventsForMonth } from "../calendar-events.ts";
-	import StudyButton from "../../ui/kit/StudyButton.svelte";
+	import { useAtomValue } from "effect-atom-svelte";
+
+	import {
+		formatDate,
+		type GameDate,
+		nextDay,
+		seasonName,
+		SEASONS,
+	} from "../../calendar.ts";
 	import StudyAlert from "../../ui/kit/StudyAlert.svelte";
 	import StudyAside from "../../ui/kit/StudyAside.svelte";
-	import { setCalendarWeather } from "../calendar-operations.ts";
-	import { useAtomValue } from "effect-atom-svelte";
-	import type { createRuneDraft } from "../field.svelte.ts";
-	import type { GameDate } from "../../calendar.ts";
-	import type { EditorModel } from "../editor-model.ts";
-	import { formatDate, nextDay, SEASONS, seasonName } from "../../calendar.ts";
+	import StudyButton from "../../ui/kit/StudyButton.svelte";
 	import WeatherIcon from "../../ui/WeatherIcon.svelte";
+	import { calendarEventsForMonth } from "../calendar-events.ts";
+	import { setCalendarWeather } from "../calendar-operations.ts";
+	import type { EditorModel } from "../editor-model.ts";
+	import type { createRuneDraft } from "../field.svelte.ts";
+	import CalendarMonth from "./CalendarMonth.svelte";
+
 	interface Props {
 		model: EditorModel;
 		draft: ReturnType<typeof createRuneDraft<GameDate>>;
@@ -84,7 +91,10 @@
 		<p>Current save: {formatDate(view.current.calendar.date)}</p>
 	</header>
 	<div class="calendar-layout">
-		<section class="date-panel" aria-label="Farm date">
+		<section
+			class="date-panel"
+			aria-label="Farm date"
+		>
 			<h2>Farm date</h2>
 			<form
 				onsubmit={(event) => {
@@ -144,7 +154,7 @@
 					</StudyAlert>
 				{/if}
 
-				{#each view.current.calendarEventContext.notes as note}
+				{#each view.current.calendarEventContext.notes as note (note)}
 					<p class="event-note">{note}</p>
 				{/each}
 
@@ -168,7 +178,10 @@
 						Reload current date
 					</StudyButton>
 				</div>
-				<p id="date-feedback" role="status">
+				<p
+					id="date-feedback"
+					role="status"
+				>
 					{#if draft.current.error}
 						{draft.current.error}
 					{:else if draft.current.conflict}
@@ -180,7 +193,10 @@
 				</p>
 			</form>
 		</section>
-		<section class="weather-panel" aria-label="Weather">
+		<section
+			class="weather-panel"
+			aria-label="Weather"
+		>
 			<h2>Weather</h2>
 			{#each weatherDays as day (day)}
 				{@const options =
@@ -214,7 +230,10 @@
 						onchange={(event) => void weather(day, event.currentTarget)}
 					>
 						{#each options as option (option.id)}
-							<option value={option.id} disabled={!option.allowed}>
+							<option
+								value={option.id}
+								disabled={!option.allowed}
+							>
 								{option.label}
 							</option>
 						{/each}

@@ -1,8 +1,10 @@
-import publicSaveXml from "./TestSave?raw";
 import { flushSync, tick } from "svelte";
 import { beforeEach, describe, expect, it } from "vitest";
+
 import { Raw } from "$lib/proxies";
+
 import { SaveManager } from "../src/lib/SaveManager.svelte";
+import publicSaveXml from "./TestSave?raw";
 
 // Verifies sanitizer keeps bundleRewards[36] false after completing all bundles.
 
@@ -64,12 +66,10 @@ describe("CommunityBundles sanitizer", () => {
 		}
 
 		for (const kv of postRewards) {
-			if (kv.key.int === 36) {
-				expect(kv.value.boolean).toBe(false);
-			} else {
-				// unchanged
-				expect(kv.value.boolean).toBe(initialMap.get(kv.key.int));
-			}
+			// Only the special reward changes; every other saved flag retains its prior value.
+			expect(kv.value.boolean).toBe(
+				kv.key.int === 36 ? false : initialMap.get(kv.key.int),
+			);
 		}
 	});
 });

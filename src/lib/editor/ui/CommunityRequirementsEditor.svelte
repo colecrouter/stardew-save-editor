@@ -1,22 +1,24 @@
 <script lang="ts">
 	import { Result } from "effect";
 	import { tick } from "svelte";
+
+	import StudyAlert from "../../ui/kit/StudyAlert.svelte";
+	import StudyButton from "../../ui/kit/StudyButton.svelte";
+	import StudyDialog from "../../ui/kit/StudyDialog.svelte";
 	import type { CommunityBundleDomain } from "../community-domain.ts";
 	import {
 		BUNDLE_QUALITIES,
-		MAX_BUNDLE_ITEMS,
-		MAX_GOLD,
-		MAX_INGREDIENT_STACK,
 		canHaveQuality,
 		ingredientChoices,
 		ingredientName,
 		ingredientObject,
+		MAX_BUNDLE_ITEMS,
+		MAX_GOLD,
+		MAX_INGREDIENT_STACK,
 	} from "../community-ingredients.ts";
-	import StudyDialog from "../../ui/kit/StudyDialog.svelte";
-	import StudyButton from "../../ui/kit/StudyButton.svelte";
-	import StudyAlert from "../../ui/kit/StudyAlert.svelte";
 	import { guidanceItem } from "../item-guidance.ts";
 	import BackpackItemVisual from "./BackpackItemVisual.svelte";
+
 	interface Props {
 		bundle: CommunityBundleDomain;
 		disabled?: boolean;
@@ -109,6 +111,8 @@
 		// keyed handle, allowing repeated arrow moves without a keyboard detour.
 		void tick().then(() => {
 			if (handle.isConnected) handle.focus();
+			// This continuation only restores focus; it produces no chained result.
+			return undefined;
 		});
 	}
 	function prepareDrag(event: PointerEvent) {
@@ -116,7 +120,9 @@
 		// must remain a native control gesture rather than moving a requirement.
 		dragBlocked =
 			event.target instanceof Element &&
-			!!event.target.closest("input, select, textarea, button:not(.handle), a");
+			Boolean(
+				event.target.closest("input, select, textarea, button:not(.handle), a"),
+			);
 	}
 	function startDrag(event: DragEvent, id: number) {
 		if (busy || dragBlocked) {
@@ -176,7 +182,10 @@
 	dismissible={!busy}
 	disabled={disabled || !bundle.supported}
 >
-	<fieldset class="draft study-theme" disabled={busy}>
+	<fieldset
+		class="draft study-theme"
+		disabled={busy}
+	>
 		<legend class="sr-only">Bundle requirements</legend>
 
 		{#if vault}
@@ -196,11 +205,19 @@
 				</label>
 			{/if}
 		{:else}
-			<p class="sr-only" id={reorderHelpId}>
+			<p
+				class="sr-only"
+				id={reorderHelpId}
+			>
 				Drag a row to reorder, or focus its handle and press Arrow Up or Arrow
 				Down.
 			</p>
-			<p class="sr-only" role="status">{announcement}</p>
+			<p
+				class="sr-only"
+				role="status"
+			>
+				{announcement}
+			</p>
 			<div class="rows">
 				{#each rows as row, index (row.id)}
 					{@const object = ingredientObject(row.itemId)}
@@ -300,7 +317,10 @@
 			</div>
 
 			{#if adding}
-				<section class="picker" aria-label="Add a bundle requirement">
+				<section
+					class="picker"
+					aria-label="Add a bundle requirement"
+				>
 					<label>
 						Search items or categories
 						<input
@@ -373,7 +393,12 @@
 	{/if}
 
 	{#snippet actions(close)}
-		<StudyButton onclick={close} disabled={busy}>Cancel</StudyButton>
+		<StudyButton
+			onclick={close}
+			disabled={busy}
+		>
+			Cancel
+		</StudyButton>
 
 		<StudyButton
 			intent="constructive"

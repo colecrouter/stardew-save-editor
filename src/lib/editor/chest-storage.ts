@@ -1,8 +1,8 @@
-import { isKnownLocation } from "./saved-types.ts";
-import type { Location, SaveDocument } from "./domain.ts";
 import type { T_StardewValley_Objects_Chest as Chest } from "../../../generated/save-format/save.ts";
-
+import type { Location, SaveDocument } from "./domain.ts";
 import type { InventorySlot, InventoryValue } from "./inventory-values.ts";
+import { nonemptyText } from "./plain-data.ts";
+import { isKnownLocation } from "./saved-types.ts";
 
 /** A reachable local storage inventory; raw references belong only to the supplied document. */
 export interface PlacedChest {
@@ -32,7 +32,7 @@ function describe(
 	source: PlacedChest["source"],
 	labelName?: string,
 ): PlacedChest {
-	const name = container.name || "Chest";
+	const name = nonemptyText(container.name) ?? "Chest";
 	const special = container.specialChestType;
 	const capacity =
 		special === "BigChest" ||
@@ -59,7 +59,7 @@ function describe(
 	)
 		reason = "This special chest inventory is not supported.";
 	// A nonempty ID addresses shared storage rather than this local inventory.
-	if (container.globalInventoryId)
+	if (container.globalInventoryId != null && container.globalInventoryId !== "")
 		reason = "This chest uses a shared or unsupported global inventory.";
 
 	// The codec already supplies nullable Item slots at every cardinality.
@@ -75,7 +75,7 @@ function describe(
 		capacity: slotCount,
 		container,
 		supported,
-		...(reason ? { reason } : {}),
+		...(reason != null && reason !== "" ? { reason } : {}),
 		serializedLength: entries.length,
 		// Virtual nils give every empty display target an identity without writing
 		// capacity-sized arrays into a compact chest just because it was inspected.
@@ -117,8 +117,11 @@ export function discoverPlacedChests(
 	) => {
 		if (!isKnownLocation(knownLocation)) return;
 		const ownName =
-			knownLocation.uniqueName || knownLocation.name || "Unknown location";
-		const location = parent ? `${parent} / ${ownName}` : ownName;
+			nonemptyText(knownLocation.uniqueName) ??
+			nonemptyText(knownLocation.name) ??
+			"Unknown location";
+		const location =
+			parent != null && parent !== "" ? `${parent} / ${ownName}` : ownName;
 		// Only generated house contracts define a fridge. Similarly named extension
 		// data on other locations is retained without granting storage authority.
 		if (
@@ -154,13 +157,14 @@ export function discoverPlacedChests(
 					location,
 					"machine",
 					tile,
-					raw.name || "Machine",
+					nonemptyText(raw.name) ?? "Machine",
 				);
 		});
 		const buildings = knownLocation.buildings ?? [];
 		for (const [index, building] of (buildings ?? []).entries()) {
 			if (!building || building.$type === "$unknown") continue;
-			const label = building.buildingType || `Building ${index + 1}`;
+			const label =
+				nonemptyText(building.buildingType) ?? `Building ${index + 1}`;
 			const buildingPath = `${path}.buildings.${index}`;
 			const chests = building.buildingChests ?? [];
 			for (const [chestIndex, chest] of chests.entries())
@@ -170,7 +174,7 @@ export function discoverPlacedChests(
 					`${location} / ${label}`,
 					"building",
 					"",
-					chest?.name || `Chest ${chestIndex + 1}`,
+					nonemptyText(chest?.name) ?? `Chest ${chestIndex + 1}`,
 				);
 			visit(
 				building.indoors,

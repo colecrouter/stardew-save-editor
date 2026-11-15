@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { tick } from "svelte";
+
 	import { ItemDescription, ItemNameHelper } from "$lib/ItemData";
 	import type { ParentIndex } from "$lib/ItemParentIndex";
 	import { Raw } from "$lib/proxies";
@@ -29,6 +30,7 @@
 	import UiCheckbox from "$lib/ui/UICheckbox.svelte";
 	import UiInput from "$lib/ui/UIInput.svelte";
 	import UiSelect from "$lib/ui/UISelect.svelte";
+
 	import ItemSelect from "./ItemSelect.svelte";
 	import ItemSlot from "./ItemSlot.svelte";
 	import ItemSprite from "./ItemSprite.svelte";
@@ -203,14 +205,14 @@
 	][];
 
 	type PropertyGroup<T extends ItemProxy> = {
-		// Only constructor identity is compared; each subtype keeps its own argument list.
-		ctor: new (...args: any[]) => T;
+		// Constructor identity narrows item subtypes; never[] forbids invoking it here.
+		ctor: abstract new (...args: never[]) => T;
 		props: Properties<T>;
 	};
 
 	const pg = <T extends ItemProxy>(
-		// Only constructor identity is compared; each subtype keeps its own argument list.
-		ctor: new (...args: any[]) => T,
+		// Constructor identity narrows item subtypes; never[] forbids invoking it here.
+		ctor: abstract new (...args: never[]) => T,
 		props: Properties<T>,
 	): PropertyGroup<T> => ({ ctor, props });
 
@@ -324,9 +326,9 @@
 	<!-- Keep every supported property available, grouped in a compact scanning order. -->
 	<div class="stats">
 		{#if selectedItem}
-			{#each properties as { ctor, props }}
+			{#each properties as { ctor, props } (ctor)}
 				{#if selectedItem instanceof ctor}
-					{#each props as [label, key, min, max, step]}
+					{#each props as [label, key, min, max, step] (key)}
 						{@render inputField(
 							selectedItem as InstanceType<typeof ctor>,
 							label,
@@ -364,7 +366,7 @@
 							}
 							data-testid="property-quiverType"
 						>
-							{#each Object.entries(QUIVER_TYPES) as [type, range]}
+							{#each Object.entries(QUIVER_TYPES) as [type, range] (type)}
 								<option value={type}>{range.label}</option>
 							{/each}
 						</UiSelect>
@@ -380,7 +382,7 @@
 							}
 							data-testid="property-frogVariant"
 						>
-							{#each FROG_VARIANTS as name, variant}
+							{#each FROG_VARIANTS as name, variant (name)}
 								<option value={variant}>{name}</option>
 							{/each}
 						</UiSelect>

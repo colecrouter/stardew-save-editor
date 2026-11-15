@@ -1,6 +1,8 @@
 import { Raw } from "$lib/proxies";
 import type { ChestProxy } from "$lib/proxies/Chest.svelte";
 
+import { isRecord } from "./unknown.ts";
+
 export type ChestGroupId =
 	| "chests"
 	| "farm-fridges"
@@ -32,7 +34,10 @@ export function chestGroup(chest: ChestProxy): ChestGroupId {
 	if (!isFridge(chest)) return island ? "island-chests" : "chests";
 	if (island) return "island-fridges";
 	// Cabin interiors are named FarmHouse<id>, so match the main house exactly
-	return chest.metadata.location === "FarmHouse" && !chest.metadata.building
+	return chest.metadata.location === "FarmHouse" &&
+		(chest.metadata.building === undefined ||
+			chest.metadata.building === null ||
+			chest.metadata.building.length === 0)
 		? "farmhouse-fridges"
 		: "farm-fridges";
 }
@@ -42,10 +47,18 @@ export function chestGroup(chest: ChestProxy): ChestGroupId {
  * for an uncoloured chest (the game stores black for "no colour").
  */
 export function chestColor(chest: ChestProxy) {
-	const color = (chest[Raw] as { playerChoiceColor?: unknown })
-		.playerChoiceColor as { R?: number; G?: number; B?: number } | undefined;
-	if (!color) return undefined;
-	const [r, g, b] = [color.R, color.G, color.B].map((c) => Number(c) || 0);
+	const raw: unknown = chest[Raw];
+	const color: unknown = isRecord(raw) ? raw["playerChoiceColor"] : undefined;
+	// Unknown/modded colour data must be a record before channels are converted.
+	if (!isRecord(color)) return undefined;
+	const channel = (value: unknown) => {
+		const number = Number(value);
+		// Match the legacy fallback for NaN and signed zero; preserve other values.
+		return Number.isNaN(number) || number === 0 ? 0 : number;
+	};
+	const r = channel(color["R"]),
+		g = channel(color["G"]),
+		b = channel(color["B"]);
 	if (r === 0 && g === 0 && b === 0) return undefined;
 	return { css: `rgb(${r} ${g} ${b})`, r, g, b };
 }

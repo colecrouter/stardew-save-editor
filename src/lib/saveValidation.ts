@@ -76,6 +76,10 @@ const scalarText = (value: unknown): string | undefined => {
 		case "boolean":
 		case "bigint":
 			return String(value);
+		case "function":
+		case "object":
+		case "symbol":
+		case "undefined":
 		default:
 			return undefined;
 	}
@@ -110,7 +114,7 @@ const itemsHave = (count: number) =>
 // Walk every object in the save, calling `visit` on each one that looks like an item
 const forEachItem = (node: unknown, visit: (item: Json) => void) => {
 	const stack: unknown[] = [node];
-	while (stack.length) {
+	while (stack.length !== 0) {
 		const current = stack.pop();
 		if (Array.isArray(current)) {
 			for (const value of current) stack.push(value);
@@ -127,19 +131,21 @@ export const validateSave = (parsed: unknown): SaveValidation => {
 	const warnings: string[] = [];
 	const result = () => ({ valid: errors.length === 0, errors, warnings });
 
-	const game = isObject(parsed) ? parsed.SaveGame : undefined;
+	const game = isObject(parsed) ? parsed["SaveGame"] : undefined;
 	if (!isObject(game)) {
 		errors.push("Not a Stardew Valley save (no <SaveGame> data)");
 		return result();
 	}
 
-	const version = scalarText(game.gameVersion) ?? "";
+	const version = scalarText(game["gameVersion"]) ?? "";
 	if (!SUPPORTED_VERSIONS.some((v) => version.startsWith(v)))
-		errors.push(`Unsupported game version "${version || "missing"}"`);
+		errors.push(
+			`Unsupported game version "${version.length > 0 ? version : "missing"}"`,
+		);
 
 	// The typed codec keeps UInt64 IDs as bigint; the legacy parser exposes a
 	// number or string. Check bigint directly so validation never loses precision.
-	const rawId = game.uniqueIDForThisGame;
+	const rawId = game["uniqueIDForThisGame"];
 	const id = typeof rawId === "bigint" ? rawId : toInteger(rawId);
 	if (id === undefined || id < 0)
 		errors.push("Missing or invalid unique ID (uniqueIDForThisGame)");
@@ -147,72 +153,80 @@ export const validateSave = (parsed: unknown): SaveValidation => {
 	// Date. The game can't load a season it can't read, or a day or year that
 	// isn't an int. Other days and years, and snow outside winter, load, but
 	// the game never makes them itself
-	const season = toSeason(game.currentSeason);
+	const season = toSeason(game["currentSeason"]);
 	if (season === undefined)
 		errors.push(
-			`The season (${describeValidationValue(game.currentSeason ?? "missing")}) isn't spring, summer, fall or winter`,
+			`The season (${describeValidationValue(game["currentSeason"] ?? "missing")}) isn't spring, summer, fall or winter`,
 		);
 	// A missing day or year loads as 0
-	const day = toInt32(game.dayOfMonth ?? 0);
+	const day = toInt32(game["dayOfMonth"] ?? 0);
 	if (day === undefined)
 		errors.push(
-			`The day of the month (${describeValidationValue(game.dayOfMonth)}) isn't a number the game can read`,
+			`The day of the month (${describeValidationValue(game["dayOfMonth"])}) isn't a number the game can read`,
 		);
 	else if (day < 1 || day > DAYS_PER_SEASON)
 		warnings.push(
 			`The day of the month (${day}) isn't 1 to ${DAYS_PER_SEASON}`,
 		);
-	const year = toInt32(game.year ?? 0);
+	const year = toInt32(game["year"] ?? 0);
 	if (year === undefined)
 		errors.push(
-			`The year (${describeValidationValue(game.year)}) isn't a number the game can read`,
+			`The year (${describeValidationValue(game["year"])}) isn't a number the game can read`,
 		);
 	else if (year < 1) warnings.push(`The year (${year}) is less than 1`);
-	if (isTrue(game.isSnowing) && season !== undefined && season !== "winter")
+	if (isTrue(game["isSnowing"]) && season !== undefined && season !== "winter")
 		warnings.push(`It's snowing in ${season}, and only snows in winter`);
 
 	// Players
-	const player = game.player;
+	const player = game["player"];
 	if (!isObject(player)) {
 		errors.push("Missing the main player");
 	} else {
-		if (!(scalarText(player.name) ?? "").trim())
+		if (!((scalarText(player["name"]) ?? "").trim() !== ""))
 			warnings.push("The main player has no name");
-		if (!(scalarText(player.farmName) ?? "").trim())
+		if (!((scalarText(player["farmName"]) ?? "").trim() !== ""))
 			warnings.push("The farm has no name");
 
 		// Unclaimed cabins have a farmhand with no name, which is normal
 		const farmhands = asArray(
-			isObject(game.farmhands) ? game.farmhands.Farmer : game.farmhands,
+			isObject(game["farmhands"])
+				? game["farmhands"]["Farmer"]
+				: game["farmhands"],
 		).filter(isObject);
 		for (const [i, farmer] of [player, ...farmhands].entries()) {
+			const savedName = (scalarText(farmer["name"]) ?? "").trim();
 			const label =
-				(scalarText(farmer.name) ?? "").trim() ||
-				(i === 0 ? "The main player" : `Farmhand ${i}`);
+				savedName.length > 0
+					? savedName
+					: i === 0
+						? "The main player"
+						: `Farmhand ${i}`;
 			if ("money" in farmer) {
-				const money = toInt32(farmer.money);
+				const money = toInt32(farmer["money"]);
 				if (money === undefined)
 					errors.push(
-						`${label}'s money (${describeValidationValue(farmer.money)}) is out of range`,
+						`${label}'s money (${describeValidationValue(farmer["money"])}) is out of range`,
 					);
 				else if (money < 0)
 					warnings.push(`${label}'s money (${money}) is negative`);
 			}
 
 			// A stat that doesn't fit in a `uint` can't be read back
-			const stats = isObject(farmer.stats)
+			const stats = isObject(farmer["stats"])
 				? asArray(
-						isObject(farmer.stats.Values)
-							? farmer.stats.Values.item
-							: farmer.stats.Values,
+						isObject(farmer["stats"]["Values"])
+							? farmer["stats"]["Values"]["item"]
+							: farmer["stats"]["Values"],
 					).filter(isObject)
 				: [];
 			for (const stat of stats) {
-				const value = isObject(stat.value)
-					? stat.value.unsignedInt
-					: stat.value;
+				const value = isObject(stat["value"])
+					? stat["value"]["unsignedInt"]
+					: stat["value"];
 				if (value === undefined) continue;
-				const name = isObject(stat.key) ? stat.key.string : stat.key;
+				const name = isObject(stat["key"])
+					? stat["key"]["string"]
+					: stat["key"];
 				const number = toInteger(value);
 				if (number === undefined || number < 0 || number > UINT32_MAX)
 					errors.push(
@@ -224,22 +238,26 @@ export const validateSave = (parsed: unknown): SaveValidation => {
 
 	// Locations
 	const locations = asArray(
-		isObject(game.locations) ? game.locations.GameLocation : game.locations,
+		isObject(game["locations"])
+			? game["locations"]["GameLocation"]
+			: game["locations"],
 	).filter(isObject);
 	if (locations.length === 0) {
 		errors.push("The save has no locations");
 	} else {
-		const names = new Set(locations.map((l) => l.name));
+		const names = new Set(locations.map((l) => l["name"]));
 		for (const required of ["Farm", "FarmHouse"])
 			if (!names.has(required)) errors.push(`Missing the ${required} location`);
 	}
 
 	// Community Center
-	const cc = locations.find((l) => l.name === "CommunityCenter");
+	const cc = locations.find((l) => l["name"] === "CommunityCenter");
 	if (cc) {
 		// Six rooms, plus a seventh once the Abandoned Joja Mart is restored
 		const areas = asArray(
-			isObject(cc.areasComplete) ? cc.areasComplete.boolean : cc.areasComplete,
+			isObject(cc["areasComplete"])
+				? cc["areasComplete"]["boolean"]
+				: cc["areasComplete"],
 		);
 		if (areas.length !== 6 && areas.length !== 7)
 			errors.push(
@@ -247,13 +265,17 @@ export const validateSave = (parsed: unknown): SaveValidation => {
 			);
 
 		const rewards = asArray(
-			isObject(cc.bundleRewards) ? cc.bundleRewards.item : cc.bundleRewards,
+			isObject(cc["bundleRewards"])
+				? cc["bundleRewards"]["item"]
+				: cc["bundleRewards"],
 		).filter(isObject);
 		for (const reward of rewards) {
-			const key = toInteger(isObject(reward.key) ? reward.key.int : reward.key);
-			const value = isObject(reward.value)
-				? reward.value.boolean
-				: reward.value;
+			const key = toInteger(
+				isObject(reward["key"]) ? reward["key"]["int"] : reward["key"],
+			);
+			const value = isObject(reward["value"])
+				? reward["value"]["boolean"]
+				: reward["value"];
 			if (key === MISSING_BUNDLE && isTrue(value))
 				errors.push(
 					"The Missing Bundle has a reward waiting, which crashes the game",
@@ -266,31 +288,33 @@ export const validateSave = (parsed: unknown): SaveValidation => {
 	let unusualQuality = 0;
 	let badStack = 0;
 	forEachItem(game, (item) => {
-		if (item.quality !== undefined) {
-			const quality = toInt32(item.quality);
+		if (item["quality"] !== undefined) {
+			const quality = toInt32(item["quality"]);
 			const isHatRarecrow =
-				isTrue(item.bigCraftable) && String(item.itemId) === HAT_RARECROW_ID;
+				isTrue(item["bigCraftable"]) &&
+				String(item["itemId"]) === HAT_RARECROW_ID;
 			if (quality === undefined) unreadableQuality++;
 			else if (!STAR_QUALITIES.has(quality) && !isHatRarecrow) unusualQuality++;
 		}
-		if ((toInteger(item.stack) ?? 0) < 1) badStack++;
+		if ((toInteger(item["stack"]) ?? 0) < 1) badStack++;
 	});
-	if (unreadableQuality)
+	if (unreadableQuality > 0)
 		errors.push(
 			`${itemsHave(unreadableQuality)} a quality the game can't read`,
 		);
-	if (unusualQuality)
+	if (unusualQuality > 0)
 		warnings.push(
 			`${itemsHave(unusualQuality)} an unusual quality (not normal, silver, gold or iridium)`,
 		);
-	if (badStack) warnings.push(`${itemsHave(badStack)} a stack of less than 1`);
+	if (badStack > 0)
+		warnings.push(`${itemsHave(badStack)} a stack of less than 1`);
 
 	return result();
 };
 
 /** A short summary of a list of problems: the first one, and how many more */
 export const describeProblems = ([first = "", ...rest]: string[]) =>
-	rest.length ? `${first} (and ${rest.length} more)` : first;
+	rest.length !== 0 ? `${first} (and ${rest.length} more)` : first;
 
 /**
  * The toast to show once a save has been uploaded or downloaded. Problems
@@ -306,7 +330,7 @@ export const describeResult = (
 			type: "failure",
 			duration: 10000,
 		};
-	if (validation?.warnings.length)
+	if (validation !== undefined && validation.warnings.length !== 0)
 		return {
 			message: `Save file ${action}, with ${validation.warnings.length === 1 ? "a warning" : "warnings"}: ${describeProblems(validation.warnings)}`,
 			type: "warning",

@@ -1,6 +1,6 @@
 import type { SaveDocument } from "../../src/lib/editor/domain.ts";
-import { tinyFixture } from "./fixtures.ts";
 import type { SavedPet } from "../../src/lib/editor/pet-data.ts";
+import { tinyFixture } from "./fixtures.ts";
 
 export const catId = "8a408e26-a044-4cba-ade7-1b53565265d0";
 export const dogId = "8a408e26-a044-4cba-ade7-1b53565265d1";

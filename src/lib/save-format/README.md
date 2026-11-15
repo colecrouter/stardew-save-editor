@@ -32,6 +32,7 @@ Generated modules export `ValueSchema` (typed-value validation), `XmlSchema` (XM
 
 ```ts
 import { Schema } from "effect";
+
 import { XmlSchema } from "./save.generated.ts";
 
 const save = Schema.decodeSync(XmlSchema)(xml);

@@ -1,12 +1,13 @@
-import { stringifySavedData } from "../../src/lib/editor/saved-data.ts";
 import { expect, it } from "vitest";
+
 import { CalendarSeason } from "../../src/lib/calendarSeason.ts";
 import {
+	type CalendarEventContext,
 	calendarEventsForMonth,
 	readCalendarEventContext,
-	type CalendarEventContext,
 } from "../../src/lib/editor/calendar-events.ts";
-import { parser, fixtureXml, tinyFixture } from "./fixtures.ts";
+import { stringifySavedData } from "../../src/lib/editor/saved-data.ts";
+import { fixtureXml, parser, tinyFixture } from "./fixtures.ts";
 
 const context: CalendarEventContext = {
 	random: { seed: 390176213, legacy: false },
@@ -44,7 +45,7 @@ it("shows every day of passive events and keeps locked Desert dates honest", () 
 		context,
 	);
 	expect(
-		spring.filter((event) => event.locked).map((event) => event.day),
+		spring.filter((event) => event.locked === true).map((event) => event.day),
 	).toEqual([15, 16, 17]);
 	const accessible = calendarEventsForMonth(
 		{ year: 1, season: CalendarSeason.Spring },
@@ -187,8 +188,8 @@ it.each([390176213n, 9007199254740993n])(
 			uniqueIDForThisGame: id,
 			useLegacyRandom: false,
 		});
-		const context = readCalendarEventContext(document);
-		expect(context.random).toEqual(
+		const candidateContext = readCalendarEventContext(document);
+		expect(candidateContext.random).toEqual(
 			id === 390176213n ? { seed: 390176213, legacy: false } : undefined,
 		);
 	},

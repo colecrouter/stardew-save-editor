@@ -1,19 +1,20 @@
-import type { SaveDocument } from "../../src/lib/editor/domain.ts";
-import { stringifySavedData } from "../../src/lib/editor/saved-data.ts";
 import { it } from "@effect/vitest";
-import { describe, expect } from "vitest";
 import { Effect, Result } from "effect";
-import { makeHistorySession } from "../../src/lib/editor/history";
+import { describe, expect } from "vitest";
+
+import type { SaveDocument } from "../../src/lib/editor/domain.ts";
 import { openEditor } from "../../src/lib/editor/editor-model";
 import {
-	readFarmerRoster,
 	inspectFarmerRoster,
+	readFarmerRoster,
 } from "../../src/lib/editor/farmer-roster-data";
 import { swapFarmers } from "../../src/lib/editor/farmer-roster-operations";
+import { makeHistorySession } from "../../src/lib/editor/history";
 import { setInventoryItem } from "../../src/lib/editor/inventory-operations";
-import { TransactionDraft } from "../../src/lib/editor/transaction-draft";
-import { tinyFixture, fixtureXml, parser, exportDocument } from "./fixtures";
 import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
+import { stringifySavedData } from "../../src/lib/editor/saved-data.ts";
+import { TransactionDraft } from "../../src/lib/editor/transaction-draft";
+import { exportDocument, fixtureXml, parser, tinyFixture } from "./fixtures";
 
 const required = <T>(value: T | undefined): T => {
 	if (value === undefined) throw new Error("Missing fixture value");
@@ -120,8 +121,8 @@ describe("farmer slot reassignment", () => {
 						customModData: { owner: "1" },
 					},
 				]);
-				expect(rawGame(after.document).testMetadatafarmhands).toBe("keep");
-				expect(rawGame(after.document).cellarAssignments).toEqual([
+				expect(rawGame(after.document)["testMetadatafarmhands"]).toBe("keep");
+				expect(rawGame(after.document)["cellarAssignments"]).toEqual([
 					{
 						key: 1,
 						value: 2n,
@@ -277,8 +278,11 @@ it.effect.each(["duplicate-home", "opaque-location"] as const)(
 			const document = fixture(),
 				hands = document.SaveGame.farmhands;
 			if (!Array.isArray(hands)) throw new Error("Missing fixture farmhands");
-			const guest = required(hands.find((row) => row?.name?.trim()));
-			if (!guest) throw Error("Missing named fixture guest");
+			const guest = required(
+				hands.find((row) => (row?.name?.trim().length ?? 0) > 0),
+			);
+			if (guest == null || guest["length"] === 0)
+				throw Error("Missing named fixture guest");
 			if (mode === "duplicate-home")
 				Object.assign(required(guest), { homeLocation: "FarmHouse" });
 			else {

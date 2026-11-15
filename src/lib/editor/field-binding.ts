@@ -1,11 +1,12 @@
 import type { Effect } from "effect";
-import type { MutationError } from "./mutation-error.ts";
+
 import type { CommandResult } from "./command-result.ts";
 import type { EditGesture } from "./edit-gesture.ts";
 import type { ImmediateField } from "./immediate-field.ts";
-import type { TransactionDraft } from "./transaction-draft.ts";
-import type { ReviewJournal } from "./transaction-annotations.ts";
 import type { InventoryEdits } from "./inventory-operations.ts";
+import type { MutationError } from "./mutation-error.ts";
+import type { ReviewJournal } from "./transaction-annotations.ts";
+import type { TransactionDraft } from "./transaction-draft.ts";
 
 type EditServices = TransactionDraft | ReviewJournal | InventoryEdits;
 /** Domain fields need only an editing capability, never the full editor model. */

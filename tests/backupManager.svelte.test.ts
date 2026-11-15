@@ -2,12 +2,28 @@ import { waitFor } from "@testing-library/svelte";
 import * as idb from "idb";
 import { flushSync } from "svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
 import { BackupManager } from "../src/lib/BackupManager.svelte";
-import { restoreOriginal, serializeOriginal } from "../src/lib/saveBackups";
+import {
+	restoreOriginal,
+	serializeOriginal,
+	type StoredOriginal,
+} from "../src/lib/saveBackups";
+import { requireDefined } from "./helpers/assertions.ts";
+import { malformedFixture } from "./helpers/editor-document.ts";
+
+// The test database stores the same portable originals as the archive writer.
+// Supplying its schema keeps reads typed instead of allowing IDB's default any.
+interface BackupArchive extends idb.DBSchema {
+	files: { key: number; value: StoredOriginal };
+}
 
 vi.mock("idb", async (importOriginal) => {
-	const original = await importOriginal<typeof import("idb")>();
-	return { ...original, openDB: vi.fn(original.openDB) };
+	const original = await importOriginal<typeof idb>();
+	return {
+		...original,
+		openDB: vi.fn<typeof original.openDB>(original.openDB),
+	};
 });
 beforeEach(async () => {
 	const db = await archive();
@@ -30,8 +46,9 @@ function manager(limit = 5) {
 }
 
 async function archive() {
-	const db = await idb.openDB("backups", 1, {
-		upgrade: (db) => db.createObjectStore("files", { autoIncrement: true }),
+	const db = await idb.openDB<BackupArchive>("backups", 1, {
+		upgrade: (candidateDb) =>
+			candidateDb.createObjectStore("files", { autoIncrement: true }),
 	});
 	return db;
 }
@@ -50,7 +67,9 @@ describe("legacy backup persistence", () => {
 			const stored = await db.getAll("files");
 			expect(stored.map((file) => file.name)).toEqual(["old", "new"]);
 			expect(
-				new Uint8Array(await restoreOriginal(stored[1]).arrayBuffer()),
+				new Uint8Array(
+					await restoreOriginal(requireDefined(stored[1])).arrayBuffer(),
+				),
 			).toEqual(new Uint8Array([0, 255]));
 		});
 		backups.files.pop();
@@ -160,7 +179,7 @@ describe("legacy backup persistence", () => {
 		db.close();
 	});
 
-	it.each([{ data: "a" }, { data: " YQ \n", encoding: "base64" }])(
+	it.each([{ data: "a" }, { data: " YQ \n", encoding: "base64" }] as const)(
 		"canonicalizes loaded bytes lazily for duplicate comparison (%j)",
 		async (source) => {
 			const db = await archive();
@@ -210,7 +229,11 @@ describe("legacy backup persistence", () => {
 
 	it("preserves an unreadable archive and disables replacement writes", async () => {
 		const db = await archive();
-		await db.add("files", { name: "invalid", data: 123 });
+		// Deliberately corrupt persisted data exercises the archive reader's defensive boundary.
+		await db.add(
+			"files",
+			malformedFixture<StoredOriginal>({ name: "invalid", data: 123 }),
+		);
 		const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
 		const backups = manager();
 		await waitFor(() => expect(warn).toHaveBeenCalled());

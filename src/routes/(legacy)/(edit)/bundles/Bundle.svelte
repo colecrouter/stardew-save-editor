@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { asset } from "$app/paths";
-	import type { Bundle } from "$lib/proxies/CommunityBundles.svelte";
 	import { colorMap } from "$lib/itemColors";
+	import type { Bundle } from "$lib/proxies/CommunityBundles.svelte";
+
 	import BundleItem from "./BundleItem.svelte";
 
 	interface Props {
@@ -11,6 +12,7 @@
 	let { bundle }: Props = $props();
 
 	let color = $derived(bundle.color ?? 0);
+	const reward = $derived(bundle.reward?.item);
 
 	// Junimo Note
 	const sheet = `url(${asset("assets/JunimoNote.png")})`;
@@ -59,7 +61,7 @@
 		</h3>
 
 		<div class="container" data-testid="bundle-required-items">
-			{#each bundle.requiredItems as itemdata}
+			{#each bundle.requiredItems as itemdata (itemdata)}
 				<span data-testid="bundle-required-item">
 					<BundleItem
 						itemId={itemdata.itemID}
@@ -75,12 +77,17 @@
 		<h3>Reward</h3>
 
 		<div class="row" data-testid="bundle-reward">
-			{#if bundle.reward?.item}
-				<BundleItem
-					itemId={bundle.reward.item.id}
-					type={bundle.reward.item.type}
-					quantity={bundle.reward.item.quantity}
-				/>
+			{#if reward}
+				<!-- Preserve custom reward metadata while rendering only supported item kinds. -->
+				{#if reward.type === "O" || reward.type === "BO" || reward.type === "F" || reward.type === "H" || reward.type === "C" || reward.type === "R"}
+					<BundleItem
+						itemId={reward.id}
+						type={reward.type}
+						quantity={reward.quantity}
+					/>
+				{:else}
+					<span>Unsupported reward: {reward.type} {reward.id}</span>
+				{/if}
 			{/if}
 		</div>
 	</details>

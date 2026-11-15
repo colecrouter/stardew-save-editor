@@ -24,7 +24,7 @@ export function recipeProgress(
 			// both require knowledge before consulting cooking history. Unlearned
 			// recipes are definitely missing even if their history is unreadable.
 			const readable =
-				!!row &&
+				row !== undefined &&
 				farmer.supported &&
 				row.supported &&
 				(!row.known || row.countSupported);

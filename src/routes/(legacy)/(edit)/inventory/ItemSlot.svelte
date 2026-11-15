@@ -1,12 +1,14 @@
 <script lang="ts">
 	import type { Snippet } from "svelte";
 	import type { HTMLButtonAttributes } from "svelte/elements";
+
 	import type { ItemProxy } from "$lib/proxies/items";
 
 	type Props = HTMLButtonAttributes & {
 		children: Snippet;
 		active?: boolean;
-		item?: ItemProxy;
+		// Empty slots remain explicit renderable positions.
+		item?: ItemProxy | undefined;
 	};
 
 	let { children, active, item, ...rest }: Props = $props();

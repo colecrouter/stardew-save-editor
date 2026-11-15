@@ -1,12 +1,13 @@
 <script lang="ts">
-	import type { ImmutableView } from "../immutable-view.ts";
-	import type { CharacterDetailsView } from "../character-details.ts";
-	import { createCharacterDetailsDomain } from "../character-details-domain.ts";
-	import type { EditorModel } from "../editor-model.ts";
-	import SelectField from "./fields/SelectField.svelte";
-	import NumberField from "./fields/NumberField.svelte";
-	import CheckboxField from "./fields/CheckboxField.svelte";
 	import StudyIcon from "../../ui/StudyIcon.svelte";
+	import { createCharacterDetailsDomain } from "../character-details-domain.ts";
+	import type { CharacterDetailsView } from "../character-details.ts";
+	import type { EditorModel } from "../editor-model.ts";
+	import type { ImmutableView } from "../immutable-view.ts";
+	import CheckboxField from "./fields/CheckboxField.svelte";
+	import NumberField from "./fields/NumberField.svelte";
+	import SelectField from "./fields/SelectField.svelte";
+
 	interface Props {
 		details: ImmutableView<CharacterDetailsView>;
 		farmerId: string;
@@ -23,10 +24,16 @@
 </script>
 
 <div class="records">
-	<section class="record" aria-label="Stats and upgrades">
+	<section
+		class="record"
+		aria-label="Stats and upgrades"
+	>
 		<header>
 			<h2>
-				<StudyIcon name="character" size={28} />
+				<StudyIcon
+					name="character"
+					size={28}
+				/>
 				Stats and upgrades
 			</h2>
 			<p>House level {fields.houseLevel ?? "—"}</p>
@@ -76,10 +83,16 @@
 		</details>
 	</section>
 
-	<section class="record" aria-label="Wallet">
+	<section
+		class="record"
+		aria-label="Wallet"
+	>
 		<header>
 			<h2>
-				<StudyIcon name="inventory" size={28} />
+				<StudyIcon
+					name="inventory"
+					size={28}
+				/>
 				Wallet
 			</h2>
 			<p>

@@ -3,13 +3,20 @@
 export const record = (value: unknown): value is Record<string, unknown> =>
 	value !== null && typeof value === "object" && !Array.isArray(value);
 
+/** Lookup/display fallbacks treat empty text as absent without trimming nonempty
+ * spellings. This derives a value without mutating the underlying saved text. */
+export const nonemptyText = (
+	value: string | null | undefined,
+): string | undefined =>
+	value === null || value === undefined || value === "" ? undefined : value;
+
 // Parsed XML consists of plain records, arrays, and primitive values. This
 // comparator intentionally does not support class instances, cycles, Maps or Sets.
 export function samePlainData(left: unknown, right: unknown): boolean {
 	if (Object.is(left, right)) return true;
 	if (
-		!left ||
-		!right ||
+		left === null ||
+		right === null ||
 		typeof left !== "object" ||
 		typeof right !== "object" ||
 		Array.isArray(left) !== Array.isArray(right)
@@ -23,11 +30,16 @@ export function samePlainData(left: unknown, right: unknown): boolean {
 		left.length !== right.length
 	)
 		return false;
-	const a = left as Record<string, unknown>;
-	const b = right as Record<string, unknown>;
-	const keys = Object.keys(a);
+	// Reflection reads remain unknown until recursive comparison establishes their
+	// representation; arrays can also carry enumerable extension properties.
+	const read = (value: object, key: string): unknown => Reflect.get(value, key);
+	const keys = Object.keys(left);
 	return (
-		keys.length === Object.keys(b).length &&
-		keys.every((key) => Object.hasOwn(b, key) && samePlainData(a[key], b[key]))
+		keys.length === Object.keys(right).length &&
+		keys.every(
+			(key) =>
+				Object.hasOwn(right, key) &&
+				samePlainData(read(left, key), read(right, key)),
+		)
 	);
 }

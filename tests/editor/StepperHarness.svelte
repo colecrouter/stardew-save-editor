@@ -1,8 +1,10 @@
 <script lang="ts">
 	import { untrack } from "svelte";
-	import type { EditorModel } from "../../src/lib/editor/editor-model.ts";
+
 	import { createAppearanceDomain } from "../../src/lib/editor/appearance-domain.ts";
+	import type { EditorModel } from "../../src/lib/editor/editor-model.ts";
 	import StepperField from "../../src/lib/editor/ui/fields/StepperField.svelte";
+
 	let {
 		model,
 		holdPublication = false,

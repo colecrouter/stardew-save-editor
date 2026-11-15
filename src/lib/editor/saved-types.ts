@@ -25,12 +25,15 @@ export function savedType(value: unknown): string | undefined {
 	if (value.$type === "$unknown") return undefined;
 	return value.$type.split(/[.+]/).at(-1);
 }
+// Dynamic names are checked through a string-keyed lookup, while the overload
+// retains precise discriminator types for statically known constructor names.
+const typeIdsByName = new Map<string, string>(Object.entries(TypeIds));
 export function savedTypeId<K extends keyof typeof TypeIds>(
 	name: K,
 ): (typeof TypeIds)[K];
 export function savedTypeId(name: string): string;
 export function savedTypeId(name: string): string {
-	if (!Object.hasOwn(TypeIds, name))
-		throw new Error(`Unknown saved type ${name}`);
-	return TypeIds[name as keyof typeof TypeIds];
+	const id = typeIdsByName.get(name);
+	if (id === undefined) throw new Error(`Unknown saved type ${name}`);
+	return id;
 }

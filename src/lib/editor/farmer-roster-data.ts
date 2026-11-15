@@ -1,5 +1,6 @@
-import { isKnownLocation } from "./saved-types.ts";
 import type { Farmer, Location, SaveDocument } from "./domain.ts";
+import { nonemptyText } from "./plain-data.ts";
+import { isKnownLocation } from "./saved-types.ts";
 
 const idOf = (farmer: Farmer) => farmer.UniqueMultiplayerID?.toString();
 type Cabin = Extract<
@@ -31,12 +32,17 @@ export function inspectFarmerRoster(document: SaveDocument) {
 	else if (
 		active.some(
 			(farmer) =>
-				!idOf(farmer) || ids.filter((id) => id === idOf(farmer)).length !== 1,
+				nonemptyText(idOf(farmer)) === undefined ||
+				ids.filter((id) => id === idOf(farmer)).length !== 1,
 		)
 	)
 		reason =
 			"Farmer identities must be present and unique before reassigning slots.";
-	else if (active.some((farmer) => !farmer.homeLocation))
+	else if (
+		active.some(
+			(farmer) => !(farmer.homeLocation != null && farmer.homeLocation !== ""),
+		)
+	)
 		reason = "Each farmer needs a supported saved home location.";
 	const homeBySlot = active.map((farmer) => farmer.homeLocation ?? "");
 	// The codec guarantees dictionary entry shapes and Int64 owner values. Positive
@@ -121,12 +127,12 @@ export interface FarmerRosterPlayerView {
 	readonly name: string;
 	readonly home: string;
 	readonly farmName: string;
-	readonly played?: string;
-	readonly moneyEarned?: number;
+	readonly played?: string | undefined;
+	readonly moneyEarned?: number | undefined;
 }
 export interface FarmerRosterView {
 	readonly supported: boolean;
-	readonly reason?: string;
+	readonly reason?: string | undefined;
 	readonly placeholders: number;
 	readonly players: readonly FarmerRosterPlayerView[];
 }

@@ -1,14 +1,14 @@
-import { malformedFixture } from "../helpers/editor-document.ts";
-import { Effect } from "effect";
 import { it } from "@effect/vitest";
+import { Effect } from "effect";
 import { expect } from "vitest";
+
+import { makeHistorySession } from "../../src/lib/editor/history.ts";
 import {
 	InventoryEdits,
 	setInventoryItem,
 } from "../../src/lib/editor/inventory-operations.ts";
 import { TransactionDraft } from "../../src/lib/editor/transaction-draft.ts";
-import { makeHistorySession } from "../../src/lib/editor/history.ts";
-import { tinyFixture } from "../helpers/editor-document.ts";
+import { malformedFixture, tinyFixture } from "../helpers/editor-document.ts";
 
 const grant = Effect.gen(function* () {
 	return yield* (yield* InventoryEdits).grantPrizeTicket("1");
@@ -40,7 +40,8 @@ it.effect(
 			expect((yield* session.snapshot).identities).toEqual(after.identities);
 			// A queued stale empty-slot handle must not mutate the newly awarded item.
 			const stale = before.identities["1"]?.[1];
-			if (!stale) throw new Error("Missing test slot");
+			if (stale == null || stale.length === 0)
+				throw new Error("Missing test slot");
 			const result = yield* Effect.result(
 				session.transact(
 					setInventoryItem({

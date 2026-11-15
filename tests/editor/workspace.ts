@@ -1,4 +1,5 @@
 import { fireEvent, render } from "@testing-library/svelte";
+
 import type { SaveDocument } from "../../src/lib/editor/domain.ts";
 import { openTestDocument } from "../helpers/open-editor.ts";
 import WorkspaceHarness from "./WorkspaceHarness.svelte";
@@ -22,7 +23,7 @@ export async function renderTestWorkspace(
 	try {
 		const page = render(WorkspaceHarness, { model: opened.model });
 		unmount = () => page.unmount();
-		if (section)
+		if (section != null && section.length > 0)
 			await fireEvent.click(page.getByRole("link", { name: section }));
 		return { ...opened, page, dispose };
 	} catch (cause) {

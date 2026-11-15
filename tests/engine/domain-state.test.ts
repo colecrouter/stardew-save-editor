@@ -1,19 +1,22 @@
-import { stringifySavedData } from "../../src/lib/editor/saved-data.ts";
 import { expect, it } from "@effect/vitest";
 import { Effect, Exit } from "effect";
+
 import { planRainWatering } from "../../src/lib/calendarWatering.ts";
 import {
-	MutationError,
 	type DomainState,
+	MutationError,
 	type SessionState,
 } from "../../src/lib/editor/domain.ts";
-import { exportDocument, tinyFixture } from "./fixture.ts";
 import { makeHistorySession } from "../../src/lib/editor/history.ts";
 import {
 	coreOperations,
 	EditorOperations,
 	type Operations,
 } from "../../src/lib/editor/operations.ts";
+import { stringifySavedData } from "../../src/lib/editor/saved-data.ts";
+import { jsonRoundTrip, partialFixture } from "../helpers/assertions.ts";
+import { malformedFixture } from "../helpers/editor-document.ts";
+import { exportDocument, tinyFixture } from "./fixture.ts";
 
 const money = (value: number) =>
 	({ type: "money", farmerId: "1", value }) as const;
@@ -53,7 +56,7 @@ it.effect(
 							makeHistorySession(
 								tinyFixture(),
 								{},
-								invalid as unknown as DomainState,
+								malformedFixture<DomainState>(invalid),
 							),
 						),
 					),
@@ -69,7 +72,7 @@ it.effect(
 			const initial = structuredClone(ordinary);
 			const baseline = tinyFixture();
 			const session = yield* makeHistorySession(baseline, {}, initial);
-			initial.calendar = { changedOutsideSession: true };
+			initial["calendar"] = { changedOutsideSession: true };
 			expect((yield* session.snapshot).domainState).toEqual(ordinary);
 			const after = yield* session.execute([money(50)]);
 			expect(after.domainState).toEqual(rainy);
@@ -177,8 +180,8 @@ it.effect(
 			if (!retained) throw new Error("No adapter draft");
 			retained.document.SaveGame.player.money = 777;
 			if (!retained.domainState) throw new Error("No retained domain state");
-			retained.domainState.calendar = { external: true };
-			after.domainState.calendar = { external: true };
+			retained.domainState["calendar"] = { external: true };
+			after.domainState["calendar"] = { external: true };
 			const current = yield* session.snapshot;
 			expect(current.document.SaveGame.player.money).toBe(50);
 			expect(current.domainState).toEqual(rainy);
@@ -208,7 +211,9 @@ it.effect(
 it.effect(
 	"invalid initial or prepared metadata is rejected without normalization or publication",
 	() => {
-		const invalid = { removedByStringify: undefined } as unknown as DomainState;
+		const invalid = partialFixture<DomainState>({
+			removedByStringify: undefined,
+		});
 		const adapter: Operations = {
 			prepare: (state, action) =>
 				coreOperations
@@ -321,9 +326,11 @@ it.effect(
 it.effect(
 	"prototype-looking metadata keys remain data through domain-only undo and redo",
 	() => {
-		const metadata = JSON.parse(
-			'{"__proto__":{"retained":true}}',
-		) as DomainState;
+		// Computed syntax creates an own data property; the JSON round trip must
+		// preserve that key instead of changing the object's prototype.
+		const metadata = jsonRoundTrip<DomainState>({
+			["__proto__"]: { retained: true },
+		});
 		const adapter: Operations = {
 			prepare: (state) => Effect.succeed({ ...state, domainState: metadata }),
 		};

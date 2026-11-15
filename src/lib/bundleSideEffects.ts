@@ -1,6 +1,7 @@
 import type { GameLocation } from "$lib/proxies/GameLocation.svelte";
 import { MailFlag } from "$lib/proxies/Mail.svelte";
 import type { SaveProxy } from "$lib/proxies/SaveFile.svelte";
+
 import { Raw } from "./proxies";
 
 /*
@@ -14,6 +15,7 @@ import { Raw } from "./proxies";
 // Helpers
 
 import { CCRoom, communityRooms } from "./communityCenterData.ts";
+
 export { CCRoom } from "./communityCenterData.ts";
 
 type SideEffect = (s: SaveProxy, cc: GameLocation) => void;
@@ -26,9 +28,7 @@ type SideEffectPair = {
 const updateRoom = (cc: GameLocation, room: CCRoom, completed: boolean) => {
 	// Initialize with the vanilla baseline of 6 rooms (Pantry..Bulletin).
 	// Only expand to 7 when explicitly touching AbandonedJojaMart.
-	if (!cc[Raw].areasComplete) {
-		cc[Raw].areasComplete = { boolean: Array.from({ length: 6 }, () => false) };
-	}
+	cc[Raw].areasComplete ??= { boolean: Array.from({ length: 6 }, () => false) };
 
 	const arr = cc[Raw].areasComplete.boolean;
 
@@ -40,7 +40,7 @@ const updateRoom = (cc: GameLocation, room: CCRoom, completed: boolean) => {
 	}
 
 	// Defensive guard: ignore invalid indices (shouldn't happen)
-	if (room < 0) return;
+	if (room < CCRoom.Pantry) return;
 
 	// Update the room flag
 	arr[room] = completed;
@@ -54,7 +54,7 @@ const updateRoom = (cc: GameLocation, room: CCRoom, completed: boolean) => {
 	}
 };
 
-function applyMail(s: SaveProxy, transform: (mail: Set<MailFlag>) => void) {
+function applyMail(s: SaveProxy, transform: (mail: Set<string>) => void) {
 	for (const player of s.players) {
 		transform(player.mailReceived);
 	}
@@ -69,7 +69,7 @@ function makeEffect(
 		add: (s, cc) => {
 			applyMail(s, (mail) => {
 				mail.add(mainFlag);
-				if (jojaFlag) {
+				if (jojaFlag !== undefined) {
 					if (mail.has(MailFlag.JojaMember)) mail.add(jojaFlag);
 					else mail.delete(jojaFlag);
 				}
@@ -79,7 +79,7 @@ function makeEffect(
 		remove: (s, cc) => {
 			applyMail(s, (mail) => {
 				mail.delete(mainFlag);
-				if (jojaFlag) mail.delete(jojaFlag);
+				if (jojaFlag !== undefined) mail.delete(jojaFlag);
 			});
 			if (room !== undefined) updateRoom(cc, room, false);
 		},

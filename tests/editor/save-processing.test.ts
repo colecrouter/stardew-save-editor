@@ -1,11 +1,12 @@
 import { Effect, Layer, Result, Schema } from "effect";
 import * as Transferable from "effect/workers/Transferable";
 import { expect, it, vi } from "vitest";
+
 import { openEditor } from "../../src/lib/editor/editor-model.ts";
 import {
-	SaveProcessor,
-	SaveExportFailed,
 	importSave,
+	SaveExportFailed,
+	SaveProcessor,
 } from "../../src/lib/editor/save-processing.ts";
 import { SaveCodec, SaveCodecLive } from "../../src/lib/editor/save-service.ts";
 import {
@@ -16,12 +17,14 @@ import {
 // Processing acquisition must live as long as the open file, not just openEditor's
 // acquisition Effect. A premature close would return an already-dead RPC client.
 it("keeps the export service alive until the file closes and preserves typed failures", async () => {
-	const released = vi.fn();
+	const released = vi.fn<() => void>();
 	const failure = new SaveExportFailed({
 		stage: "worker",
 		message: "Worker unavailable",
 	});
-	const exporting = vi.fn(() => Effect.fail(failure));
+	const exporting = vi.fn<() => Effect.Effect<never, SaveExportFailed>>(() =>
+		Effect.fail(failure),
+	);
 	const codec = Effect.runSync(Effect.provide(SaveCodec, SaveCodecLive));
 	const processingLayer = Layer.effect(SaveProcessor)(
 		Effect.acquireRelease(

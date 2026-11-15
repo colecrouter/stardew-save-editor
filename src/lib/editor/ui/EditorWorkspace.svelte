@@ -3,31 +3,35 @@
 	// Native action controls need their base styles even when no legacy UI
 	// component has been loaded in this session. Theme rules refine these tokens.
 	import "../../ui/controls.css";
+	// Keep component dependencies after base controls; EditorApp applies the theme
+	// after loading this workspace. This partition preserves stylesheet registration.
 	import { Result } from "effect";
-	import { onMount, untrack } from "svelte";
-	import { historyShortcut, usesAppleShortcuts } from "../history-shortcuts.ts";
-	import { formatDate } from "../../calendar.ts";
-	import type { CommandResult } from "../command-result.ts";
-	import CommandToasts from "./CommandToasts.svelte";
 	import { useAtomValue } from "effect-atom-svelte";
-	import type { EditorModel } from "../editor-model.ts";
-	import { createRuneDraft } from "../field.svelte.ts";
+	import { onMount, untrack } from "svelte";
+
+	import { formatDate } from "../../calendar.ts";
 	import EditorShell from "../../ui/frame/EditorShell.svelte";
 	import SectionLink from "../../ui/frame/SectionLink.svelte";
 	import StudyIcon from "../../ui/StudyIcon.svelte";
+	import type { CommandResult } from "../command-result.ts";
+	import type { EditorModel } from "../editor-model.ts";
+	import { createRuneDraft } from "../field.svelte.ts";
+	import { historyShortcut, usesAppleShortcuts } from "../history-shortcuts.ts";
+	import BundlePanel from "./BundlePanel.svelte";
 	import CalendarPanel from "./CalendarPanel.svelte";
-	import RelationshipPanel from "./RelationshipPanel.svelte";
-	import QuestJournalPanel from "./QuestJournalPanel.svelte";
-	import QiOrdersPanel from "./QiOrdersPanel.svelte";
-	import EventsPanel from "./EventsPanel.svelte";
-	import RecipesPanel from "./RecipesPanel.svelte";
-	import ProgressPanel from "./ProgressPanel.svelte";
 	import CharacterPanel from "./CharacterPanel.svelte";
+	import CommandToasts from "./CommandToasts.svelte";
+	import EventsPanel from "./EventsPanel.svelte";
+	import FarmerRosterPanel from "./FarmerRosterPanel.svelte";
 	import FarmPanel from "./FarmPanel.svelte";
 	import PetsPanel from "./PetsPanel.svelte";
-	import BundlePanel from "./BundlePanel.svelte";
+	import ProgressPanel from "./ProgressPanel.svelte";
+	import QiOrdersPanel from "./QiOrdersPanel.svelte";
+	import QuestJournalPanel from "./QuestJournalPanel.svelte";
+	import RecipesPanel from "./RecipesPanel.svelte";
+	import RelationshipPanel from "./RelationshipPanel.svelte";
 	import ReviewPanel from "./ReviewPanel.svelte";
-	import FarmerRosterPanel from "./FarmerRosterPanel.svelte";
+
 	interface Props {
 		includeProofs?: boolean;
 		downloading?: boolean;
@@ -181,7 +185,11 @@
 					<!-- Wrap identity parts independently on phones; retain the source
 					     filename as secondary text rather than another toolbar control. -->
 					{#if importedIdentity}
-						<div class="save-identity" role="group" aria-label="Imported save">
+						<div
+							class="save-identity"
+							role="group"
+							aria-label="Imported save"
+						>
 							<span>{importedIdentity.farm} Farm</span>
 
 							<span>{importedIdentity.farmer}</span>
@@ -190,7 +198,12 @@
 						</div>
 					{/if}
 
-					<div class="source-file" title={filename}>{filename}</div>
+					<div
+						class="source-file"
+						title={filename}
+					>
+						{filename}
+					</div>
 				</div>
 				<!-- Export joins the command queue after a field's blur commit;
 					     disabling it during that commit would swallow the same click. -->
@@ -202,7 +215,10 @@
 					aria-label="Export save"
 					onclick={() => void perform(ondownload)}
 				>
-					<StudyIcon name="save" size={22} />
+					<StudyIcon
+						name="save"
+						size={22}
+					/>
 
 					{downloading ? "Exporting…" : "Export save"}
 				</button>
@@ -215,7 +231,10 @@
 		{/snippet}
 		{#snippet navigation()}
 			<div class="navigation-content">
-				<nav aria-label="Editor sections" class="section-links">
+				<nav
+					aria-label="Editor sections"
+					class="section-links"
+				>
 					{#each navigationSections as section (section.id)}
 						<SectionLink
 							href={`#${section.id}`}
@@ -254,7 +273,11 @@
 
 				<!-- History belongs to editing, away from file export. Keep these targets
 			     enabled through blur commits so the same click queues after the edit. -->
-				<div class="history" role="group" aria-label="Edit history">
+				<div
+					class="history"
+					role="group"
+					aria-label="Edit history"
+				>
 					<span class="history-label">History</span>
 
 					<div class="history-buttons">
@@ -266,7 +289,10 @@
 							disabled={!view.current?.canUndo}
 							onclick={() => void perform(model.commands.undo)}
 						>
-							<StudyIcon name="undo" size={20} />
+							<StudyIcon
+								name="undo"
+								size={20}
+							/>
 
 							Undo
 						</button>
@@ -281,7 +307,10 @@
 							disabled={!view.current?.canRedo}
 							onclick={() => void perform(model.commands.redo)}
 						>
-							<StudyIcon name="redo" size={20} />
+							<StudyIcon
+								name="redo"
+								size={20}
+							/>
 
 							Redo
 						</button>
@@ -299,7 +328,10 @@
 		     sprites then request their sheets. This boundary can also load locale data
 		     in future. Keep the consumer mounted so selection survives navigation. -->
 		{#if inventoryOpened}
-			<div class="inventory-section" hidden={tab !== "inventory"}>
+			<div
+				class="inventory-section"
+				hidden={tab !== "inventory"}
+			>
 				{#await import("./BackpackPanel.svelte")}
 					<p role="status">Loading inventory…</p>
 				{:then panel}
@@ -381,7 +413,10 @@
 		{/if}
 		{#if progressOpened}
 			<div hidden={tab !== "progress"}>
-				<ProgressPanel {model} onsection={chooseSection} />
+				<ProgressPanel
+					{model}
+					onsection={chooseSection}
+				/>
 			</div>
 		{/if}
 		{#if recipesOpened}
@@ -411,7 +446,10 @@
 		{/if}
 		<div hidden={tab !== "farm"}><FarmPanel {model} /></div>
 		<div hidden={tab !== "calendar"}>
-			<CalendarPanel {model} draft={dateDraft} />
+			<CalendarPanel
+				{model}
+				draft={dateDraft}
+			/>
 		</div>
 		{#if includeProofs}
 			<div hidden={tab !== "bundles"}>
@@ -419,7 +457,11 @@
 			</div>
 		{/if}
 		<div hidden={tab !== "review"}>
-			<ReviewPanel {model} {includeProofs} active={tab === "review"} />
+			<ReviewPanel
+				{model}
+				{includeProofs}
+				active={tab === "review"}
+			/>
 		</div>
 	</EditorShell>
 </div>

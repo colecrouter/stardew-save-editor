@@ -23,8 +23,8 @@
 		<small>{((backup.size >> 10) / 1024).toPrecision(3)} MB</small>
 	</div>
 	<div>
-		<button aria-label="Download" onclick={download}>💾</button>
-		<button aria-label="Delete" onclick={deleteFunc}>🗑️</button>
+		<button type="button" aria-label="Download" onclick={download}>💾</button>
+		<button type="button" aria-label="Delete" onclick={deleteFunc}>🗑️</button>
 	</div>
 </div>
 

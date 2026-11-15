@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import type { Item, Save } from "../codegen/save";
 import {
 	type ChestKind,
@@ -8,24 +9,29 @@ import {
 	SwappableChests,
 } from "../src/lib/proxies/Chest.svelte";
 import { XMLManager } from "../src/lib/workers/xml";
+import {
+	partialFixture,
+	requireArray,
+	requireRecord,
+} from "./helpers/assertions.ts";
+import { malformedFixture } from "./helpers/editor-document.ts";
 
-const item = (name: string, itemId: string): Item =>
-	({
-		"@_xsi:type": "Object",
-		name,
-		itemId,
-		stack: 1,
-		quality: 0,
-		isRecipe: false,
-		hasBeenInInventory: true,
-	}) as Item;
+const item = (name: string, itemId: string): Item => ({
+	"@_xsi:type": "Object",
+	name,
+	itemId,
+	stack: 1,
+	quality: 0,
+	isRecipe: false,
+	hasBeenInInventory: true,
+});
 
 // A placed chest, as the game saves one
 const rawChest = (
 	fields: Record<string, unknown> = {},
 	items = [item("Wood", "388"), item("Stone", "390")],
 ): RawChest =>
-	({
+	malformedFixture<RawChest>({
 		"@_xsi:type": "Chest",
 		name: "Chest",
 		itemId: 130,
@@ -42,7 +48,7 @@ const rawChest = (
 		separateWalletItems: { SerializableDictionaryOfInt64Inventory: "" },
 		items: { Item: items },
 		...fields,
-	}) as unknown as RawChest;
+	});
 
 const bigChest = (items: Item[]) =>
 	rawChest(
@@ -67,7 +73,7 @@ const miniShippingBin = (fields: Record<string, unknown> = {}) =>
 
 /** Discover the chests of a farm with `objects` placed at (3, 4), (4, 4)... */
 const load = (...objects: RawChest[]) => {
-	const save = {
+	const save = malformedFixture<Save>({
 		locations: {
 			GameLocation: [
 				{
@@ -82,8 +88,8 @@ const load = (...objects: RawChest[]) => {
 				},
 			],
 		},
-	} as unknown as Save;
-	let chests = [] as ReturnType<typeof discoverChests>;
+	});
+	let chests = partialFixture<ReturnType<typeof discoverChests>>([]);
 	const cleanup = $effect.root(() => {
 		chests = discoverChests(save);
 	});
@@ -93,15 +99,21 @@ const load = (...objects: RawChest[]) => {
 };
 
 const type = (name: string) => {
-	const found = SwappableChests.find((type) => type.name === name);
+	const found = SwappableChests.find(
+		(candidateType) => candidateType.name === name,
+	);
 	if (!found) throw new Error(`No ${name}`);
 	return found;
 };
 
 const savedItems = (raw: RawChest) =>
-	raw.items ? raw.items.Item.map((item) => item as Item) : [];
-const itemNames = (raw: RawChest) => savedItems(raw).map((item) => item.name);
-const stacks = (raw: RawChest) => savedItems(raw).map((item) => item.stack);
+	typeof raw.items === "object"
+		? requireArray(raw.items.Item).map(requireRecord)
+		: [];
+const itemNames = (raw: RawChest) =>
+	savedItems(raw).map((candidateItem) => candidateItem["name"]);
+const stacks = (raw: RawChest) =>
+	savedItems(raw).map((candidateItem) => candidateItem["stack"]);
 
 describe("changing a chest's type", () => {
 	it("swaps a Chest for a Stone Chest, keeping its items and colour", () => {
@@ -180,7 +192,9 @@ describe("changing a chest's type", () => {
 		expect(chest.inventory.slotCount).toBe(36);
 		expect(chest.inventory.usedSlots).toBe(36);
 		expect(chest.inventory.get(35)).toBe(last);
-		expect(stacks(raw)).toEqual(many.slice(4).map((item) => item.stack));
+		expect(stacks(raw)).toEqual(
+			many.slice(4).map((candidateItem) => candidateItem.stack),
+		);
 		cleanup();
 	});
 
@@ -227,7 +241,7 @@ describe("changing a chest's type", () => {
 
 	it("leaves fridges and machines' storage alone", () => {
 		// The kitchen fridge is saved as a Chest (130), like the auto-grabber's storage
-		const save = {
+		const save = malformedFixture<Save>({
 			locations: {
 				GameLocation: [
 					{
@@ -251,7 +265,7 @@ describe("changing a chest's type", () => {
 					},
 				],
 			},
-		} as unknown as Save;
+		});
 		let kinds: ChestKind[] = [];
 		const cleanup = $effect.root(() => {
 			const chests = discoverChests(save);
@@ -259,7 +273,9 @@ describe("changing a chest's type", () => {
 			for (const chest of chests) {
 				expect(chest.type).toBeUndefined();
 				expect(chest.isMiniShippingBin).toBe(false);
-				expect(() => chest.setType(type("Big Chest"))).toThrow();
+				expect(() => chest.setType(type("Big Chest"))).toThrow(
+					"This container's type can't be changed",
+				);
 			}
 		});
 		expect(kinds).toEqual(["fridge", "machine"]);

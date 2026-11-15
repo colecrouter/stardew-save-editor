@@ -1,23 +1,25 @@
 <script lang="ts">
-	import { useAtomValue } from "effect-atom-svelte";
-	import type { EditorModel } from "../editor-model.ts";
-	import { createRelationshipDomain } from "../relationship-domain.ts";
-	import { createFarmerSelectionField } from "../farmer-selection.ts";
-	import ConfirmAction from "./ConfirmAction.svelte";
-	import NumberField from "./fields/NumberField.svelte";
-	import FarmerSelector from "./fields/FarmerSelector.svelte";
 	import { Result } from "effect";
-	import { Villagers } from "../../Villagers.ts";
-	import VillagerPortrait from "./VillagerPortrait.svelte";
-	import RelationshipHearts from "./RelationshipHearts.svelte";
-	import RelationshipGifts from "./RelationshipGifts.svelte";
-	import PregnancyPanel from "./PregnancyPanel.svelte";
-	import ChildrenPanel from "./ChildrenPanel.svelte";
-	import { relationshipMatches } from "../relationship-gifts.ts";
-	import StudyButton from "../../ui/kit/StudyButton.svelte";
+	import { useAtomValue } from "effect-atom-svelte";
+
 	import StudyAlert from "../../ui/kit/StudyAlert.svelte";
+	import StudyButton from "../../ui/kit/StudyButton.svelte";
 	import StudyField from "../../ui/kit/StudyField.svelte";
 	import StudyTabs from "../../ui/kit/StudyTabs.svelte";
+	import { Villagers } from "../../Villagers.ts";
+	import type { EditorModel } from "../editor-model.ts";
+	import { createFarmerSelectionField } from "../farmer-selection.ts";
+	import { createRelationshipDomain } from "../relationship-domain.ts";
+	import { relationshipMatches } from "../relationship-gifts.ts";
+	import ChildrenPanel from "./ChildrenPanel.svelte";
+	import ConfirmAction from "./ConfirmAction.svelte";
+	import FarmerSelector from "./fields/FarmerSelector.svelte";
+	import NumberField from "./fields/NumberField.svelte";
+	import PregnancyPanel from "./PregnancyPanel.svelte";
+	import RelationshipGifts from "./RelationshipGifts.svelte";
+	import RelationshipHearts from "./RelationshipHearts.svelte";
+	import VillagerPortrait from "./VillagerPortrait.svelte";
+
 	interface Props {
 		model: EditorModel;
 	}
@@ -265,7 +267,10 @@
 			.
 		</small>
 	{:else}
-		<StudyAlert title="Relationships unavailable" tone="warning">
+		<StudyAlert
+			title="Relationships unavailable"
+			tone="warning"
+		>
 			<p>{domain?.reason ?? "No supported farmer is available."}</p>
 		</StudyAlert>
 	{/if}

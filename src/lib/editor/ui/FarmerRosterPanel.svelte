@@ -1,14 +1,16 @@
 <script lang="ts">
 	import { Result } from "effect";
-	import type { DomainEditPort } from "../field-binding.ts";
-	import type { ImmutableView } from "../immutable-view.ts";
-	import type { FarmerRosterView } from "../farmer-roster-data.ts";
-	import { createFarmerRosterDomain } from "../farmer-roster-domain.ts";
-	import type { AppearanceView } from "../appearance-operations.ts";
-	import AppearancePreview from "./AppearancePreview.svelte";
-	import StudyButton from "../../ui/kit/StudyButton.svelte";
+
 	import StudyAlert from "../../ui/kit/StudyAlert.svelte";
 	import StudyAside from "../../ui/kit/StudyAside.svelte";
+	import StudyButton from "../../ui/kit/StudyButton.svelte";
+	import type { AppearanceView } from "../appearance-operations.ts";
+	import type { FarmerRosterView } from "../farmer-roster-data.ts";
+	import { createFarmerRosterDomain } from "../farmer-roster-domain.ts";
+	import type { DomainEditPort } from "../field-binding.ts";
+	import type { ImmutableView } from "../immutable-view.ts";
+	import AppearancePreview from "./AppearancePreview.svelte";
+
 	let {
 		model,
 		roster,
@@ -48,18 +50,29 @@
 <p class="intro">Your farmers, their homes, and who hosts the save.</p>
 
 {#if domain.reason}
-	<StudyAlert title="Farmer slots unavailable" tone="warning">
+	<StudyAlert
+		title="Farmer slots unavailable"
+		tone="warning"
+	>
 		<p>{domain.reason}</p>
 	</StudyAlert>
 {/if}
 
 {#if error}
-	<StudyAlert title="Reassignment unavailable" tone="danger" live="assertive">
+	<StudyAlert
+		title="Reassignment unavailable"
+		tone="danger"
+		live="assertive"
+	>
 		<p>{error}</p>
 	</StudyAlert>
 {/if}
 
-<div class="roster" aria-label="Farmer slots" aria-busy={pending}>
+<div
+	class="roster"
+	aria-label="Farmer slots"
+	aria-busy={pending}
+>
 	{#each domain.players as farmer, index (farmer.position)}
 		{@const preview = previewFor(farmer.farmerId)}
 		<article
@@ -110,7 +123,10 @@
 								Slot {farmer.position} · {farmer.host ? "Host" : "Farmhand"}
 							</p>
 							<h2 data-sentry-mask="">{farmer.name}</h2>
-							<p class="farm-name" data-sentry-mask="">
+							<p
+								class="farm-name"
+								data-sentry-mask=""
+							>
 								{farmer.farmName} Farm
 							</p>
 						</div>

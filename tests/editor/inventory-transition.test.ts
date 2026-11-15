@@ -1,17 +1,18 @@
-import * as itemCatalog from "../../src/lib/ItemData";
 import { it } from "@effect/vitest";
-import { describe, expect, vi } from "vitest";
 import { Cause, Effect, Exit, Result } from "effect";
+import { describe, expect, vi } from "vitest";
+
 import { makeHistorySession } from "../../src/lib/editor/history";
-import {
-	coreOperations,
-	EditorOperations,
-} from "../../src/lib/editor/operations";
 import { setInventoryItem } from "../../src/lib/editor/inventory-operations";
 import {
 	readBackpacks,
 	readChests,
 } from "../../src/lib/editor/inventory-views";
+import {
+	coreOperations,
+	EditorOperations,
+} from "../../src/lib/editor/operations";
+import * as itemCatalog from "../../src/lib/ItemData";
 import { tinyFixture } from "../helpers/editor-document.ts";
 
 // Fail fixture setup explicitly rather than allowing absent handles to weaken assertions.

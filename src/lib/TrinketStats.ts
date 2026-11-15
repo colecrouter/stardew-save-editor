@@ -1,3 +1,5 @@
+import { createGameRandom, type DotNetRandom } from "./game-random.ts";
+
 // Trinket stats are not authoritative in the save file: whenever the game
 // loads a trinket it re-rolls the stats from `generationSeed`
 // (`Trinket.reloadSprite` -> `TrinketEffect.GenerateRandomStats`) and
@@ -17,7 +19,6 @@ export interface TrinketRollContext {
 
 // Preserve the trinket API while all game consumers share the same algorithm.
 export { DotNetRandom } from "./game-random.ts";
-import { type DotNetRandom, createGameRandom } from "./game-random.ts";
 
 /** Utility.CreateRandom for a trinket's single persisted generation seed. */
 export function createRandom(seed: number, useLegacyRandom: boolean) {

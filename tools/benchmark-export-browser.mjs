@@ -1,14 +1,16 @@
 import assert from "node:assert/strict";
 import { writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+
 import { chromium } from "playwright";
 
 // Compare the currently shipped legacy and V2 flows on the same public save.
 // Measure click-to-write preparation only: OS interaction and disk writes vary
 // independently of the editor. The destination accepts bytes without touching disk.
+/** @template {string | undefined} T @param {string} name @param {T} fallback @returns {string | T} */
 const argument = (name, fallback) => {
 	const index = process.argv.indexOf(name);
-	return index < 0 ? fallback : process.argv[index + 1];
+	return index < 0 ? fallback : (process.argv[index + 1] ?? fallback);
 };
 const base = argument("--url", "http://127.0.0.1:4269/stardew-save-editor/");
 const output = argument("--output", undefined);
@@ -20,7 +22,13 @@ try {
 		try {
 			await page.route(/sentry\.io/, (route) => route.abort());
 			await page.addInitScript(() => {
-				window.exportBenchmark = { samples: [], cloneCalls: [] };
+				window.exportBenchmark = {
+					samples: [],
+					cloneCalls: [],
+					started: undefined,
+					lastTick: 0,
+					maxStallMs: 0,
+				};
 				const probe = window.exportBenchmark;
 				// Track full-document detachment without retaining uploaded data.
 				const clone = window.structuredClone.bind(window);
@@ -34,14 +42,17 @@ try {
 				document.addEventListener(
 					"click",
 					(event) => {
-						const button = event.target.closest("button");
-						if (!button?.textContent.includes("Export save")) return;
+						const button =
+							event.target instanceof Element
+								? event.target.closest("button")
+								: null;
+						if (button?.textContent.includes("Export save") !== true) return;
 						probe.cloneCalls = [];
 						probe.started = performance.now();
 						probe.lastTick = probe.started;
 						probe.maxStallMs = 0;
 						// A heartbeat distinguishes wall time from a frozen main thread.
-						probe.timer = setInterval(() => {
+						probe.timer = window.setInterval(() => {
 							const now = performance.now();
 							probe.maxStallMs = Math.max(
 								probe.maxStallMs,
@@ -54,31 +65,41 @@ try {
 				);
 				// Accept a destination immediately, then measure until validated bytes
 				// are ready. The separate native-picker probe covers activation rules.
-				window.showSaveFilePicker = async () => {
-					const pickerMs = performance.now() - probe.started;
-					const active = navigator.userActivation.isActive;
-					return {
-						createWritable: async () => ({
-							write: async (blob) => {
-								clearInterval(probe.timer);
-								probe.samples.push({
-									elapsedMs: performance.now() - probe.started,
-									pickerMs,
-									active,
-									bytes: blob.size,
-									maxStallMs: Math.max(
-										probe.maxStallMs,
-										performance.now() - probe.lastTick,
-									),
-									cloneCallsMs: probe.cloneCalls,
-								});
-								probe.started = undefined;
-							},
-							close: async () => {},
-							abort: async () => {},
-						}),
-					};
-				};
+				// The mock destination deliberately implements only the app's write boundary.
+				Object.defineProperty(window, "showSaveFilePicker", {
+					configurable: true,
+					value: () => {
+						const pickerMs =
+							performance.now() - (probe.started ?? performance.now());
+						const active = navigator.userActivation.isActive;
+						return Promise.resolve({
+							createWritable: () =>
+								Promise.resolve({
+									/** @param {Blob} blob */
+									write: (blob) => {
+										clearInterval(probe.timer);
+										probe.samples.push({
+											elapsedMs:
+												performance.now() -
+												(probe.started ?? performance.now()),
+											pickerMs,
+											active,
+											bytes: blob.size,
+											maxStallMs: Math.max(
+												probe.maxStallMs,
+												performance.now() - probe.lastTick,
+											),
+											cloneCallsMs: probe.cloneCalls,
+										});
+										probe.started = undefined;
+										return Promise.resolve();
+									},
+									close: () => Promise.resolve(),
+									abort: () => Promise.resolve(),
+								}),
+						});
+					},
+				});
 			});
 			await page.goto(editor === "legacy" ? `${base}legacy` : base);
 			await page
@@ -112,6 +133,7 @@ try {
 					const sample = await page.evaluate(() =>
 						window.exportBenchmark.samples.at(-1),
 					);
+					assert(sample, "Export finished without a recorded sample");
 					assert(Number.isFinite(sample.elapsedMs));
 					samples.push(sample);
 				}
@@ -122,7 +144,7 @@ try {
 				const result = {
 					editor,
 					rate,
-					firstMs: samples[0].elapsedMs,
+					firstMs: samples[0]?.elapsedMs,
 					medianMs: warmed[2],
 					samples,
 				};
@@ -135,5 +157,6 @@ try {
 	}
 } finally {
 	await browser.close();
-	if (output) writeFileSync(output, JSON.stringify({ base, results }, null, 2));
+	if (output !== undefined && output.length > 0)
+		writeFileSync(output, JSON.stringify({ base, results }, null, 2));
 }

@@ -139,7 +139,7 @@ export class DotNetRandom {
 	next(min: number, max: number): number;
 	next(minOrMax: number, upper?: number): number {
 		const min = upper === undefined ? 0 : minOrMax;
-		const max = upper === undefined ? minOrMax : upper;
+		const max = upper ?? minOrMax;
 		return Math.trunc(this.nextDouble() * (max - min)) + min;
 	}
 

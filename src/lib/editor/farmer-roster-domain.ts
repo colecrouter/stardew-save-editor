@@ -1,7 +1,7 @@
-import type { DomainEditPort } from "./field-binding.ts";
-import type { ImmutableView } from "./immutable-view.ts";
 import type { FarmerRosterView } from "./farmer-roster-data.ts";
 import { swapFarmers } from "./farmer-roster-operations.ts";
+import type { DomainEditPort } from "./field-binding.ts";
+import type { ImmutableView } from "./immutable-view.ts";
 
 /** Commands capture farmer identities rather than stale positional indices. */
 export function createFarmerRosterDomain(

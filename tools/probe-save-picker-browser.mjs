@@ -1,13 +1,15 @@
 import assert from "node:assert/strict";
 import { writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+
 import { chromium } from "playwright";
 
 // Probe the real picker rather than the anchor fallback used by the smoke test.
 // Run against an existing server; optional --url also accepts the deployed app.
+/** @template {string | undefined} T @param {string} name @param {T} fallback @returns {string | T} */
 const argument = (name, fallback) => {
 	const index = process.argv.indexOf(name);
-	return index < 0 ? fallback : process.argv[index + 1];
+	return index < 0 ? fallback : (process.argv[index + 1] ?? fallback);
 };
 const url = argument("--url", "http://127.0.0.1:5173/");
 const browser = await chromium.launch({
@@ -22,7 +24,7 @@ try {
 			// A production reproduction must not send our intentional errors to Sentry.
 			await page.route(/sentry\.io/, (route) => route.abort());
 			await page.addInitScript(() => {
-				window.pickerProbe = { events: [] };
+				window.pickerProbe = { events: [], started: 0 };
 				const probe = window.pickerProbe;
 				const nativePicker = window.showSaveFilePicker.bind(window);
 				// Capture a trusted click before Svelte starts export. Do not introduce
@@ -30,10 +32,13 @@ try {
 				document.addEventListener(
 					"click",
 					(event) => {
-						const button = event.target.closest("button");
+						const button =
+							event.target instanceof Element
+								? event.target.closest("button")
+								: null;
 						if (
 							button?.getAttribute("aria-label") !== "Export save" &&
-							!button?.textContent.includes("Export save")
+							button?.textContent.includes("Export save") !== true
 						)
 							return;
 						probe.started = performance.now();
@@ -57,8 +62,8 @@ try {
 					} catch (error) {
 						probe.events.push({
 							stage: "rejection",
-							name: error.name,
-							message: error.message,
+							name: error instanceof Error ? error.name : "UnknownError",
+							message: error instanceof Error ? error.message : String(error),
 						});
 						throw error;
 					}
@@ -89,17 +94,17 @@ try {
 			);
 			const events = await page.evaluate(() => window.pickerProbe.events);
 			assert.equal(
-				events[0].active,
+				events[0]?.active,
 				true,
 				"The export must start with a trusted activation",
 			);
 			assert.equal(
-				events.find((event) => event.stage === "picker").active,
+				events.find((event) => event.stage === "picker")?.active,
 				true,
 				"The picker must open before export can expire activation",
 			);
 			assert.equal(
-				events.at(-1).name,
+				events.at(-1)?.name,
 				"AbortError",
 				"Headless cancellation must not become an activation SecurityError",
 			);
@@ -113,5 +118,6 @@ try {
 } finally {
 	await browser.close();
 	const output = argument("--output", undefined);
-	if (output) writeFileSync(output, JSON.stringify({ url, results }, null, 2));
+	if (output !== undefined && output.length > 0)
+		writeFileSync(output, JSON.stringify({ url, results }, null, 2));
 }

@@ -1,7 +1,8 @@
 <script lang="ts">
-	import { relationshipGifts } from "../relationship-gifts.ts";
 	import StudyTooltip from "../../ui/kit/StudyTooltip.svelte";
+	import { relationshipGifts } from "../relationship-gifts.ts";
 	import BackpackItemVisual from "./BackpackItemVisual.svelte";
+
 	interface Props {
 		name: string;
 	}
@@ -12,7 +13,10 @@
 <!-- Recommendations are catalog data, including for missing saved friendships.
      Focusable tooltip triggers make the same names reachable without hovering. -->
 {#if gifts.loves.length || gifts.universalLoves.length}
-	<div class="gift-guidance" aria-label={`${name}'s loved gifts`}>
+	<div
+		class="gift-guidance"
+		aria-label={`${name}'s loved gifts`}
+	>
 		{#each [{ label: "Loves", items: gifts.loves }, { label: "Universal loves", items: gifts.universalLoves }] as group (group.label)}
 			{#if group.items.length}
 				<div class="gift-group">
@@ -26,7 +30,10 @@
 								aria-label={gift.tooltip}
 								class="gift-icon"
 							>
-								<BackpackItemVisual visual={gift.visual} size={24} />
+								<BackpackItemVisual
+									visual={gift.visual}
+									size={24}
+								/>
 							</StudyTooltip>
 						{/each}
 					</div>

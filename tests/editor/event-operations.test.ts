@@ -1,24 +1,25 @@
-import type { Farmer } from "../../src/lib/editor/domain.ts";
-import { Effect } from "effect";
 import { it } from "@effect/vitest";
+import { Effect } from "effect";
 import { describe, expect } from "vitest";
-import { toEventId } from "../../src/lib/eventId.ts";
+
+import type { Farmer } from "../../src/lib/editor/domain.ts";
 import {
+	type EventChange,
 	readEvents,
 	setEventSeen,
-	type EventChange,
 } from "../../src/lib/editor/event-operations.ts";
 import { makeHistorySession } from "../../src/lib/editor/history.ts";
+import { toEventId } from "../../src/lib/eventId.ts";
 import {
-	tinyFixture,
-	parser,
 	exportDocument,
+	parser,
+	tinyFixture,
 } from "../helpers/editor-document.ts";
 
 function fixture(events: Farmer["eventsSeen"] = ["1", "Mod.Event"]) {
 	const document = tinyFixture();
 	document.SaveGame.player.eventsSeen = events;
-	const guest = document.SaveGame.farmhands && document.SaveGame.farmhands[0];
+	const guest = document.SaveGame.farmhands[0];
 	if (guest) Object.assign(guest, { eventsSeen: ["2"] });
 	return document;
 }
@@ -99,20 +100,24 @@ describe("event save operations", () => {
 					readEvents(document);
 					expect(document).toEqual(before);
 					const session = yield* makeHistorySession(document);
-					if (input.length) {
+					if (input.length > 0) {
 						yield* session.transact(setEventSeen(change("1", true)));
 						expect((yield* session.snapshot).entries).toHaveLength(0);
 						yield* session.transact(setEventSeen(change("1", false)));
 						expect(
 							(yield* session.snapshot).document.SaveGame.player,
-						).toMatchObject({ eventsSeen: [] });
+						).toMatchObject({
+							eventsSeen: [],
+						});
 					} else {
 						yield* session.transact(setEventSeen(change("Absent.Mod", false)));
 						expect((yield* session.snapshot).entries).toHaveLength(0);
 						yield* session.transact(setEventSeen(change("7", true)));
 						expect(
 							(yield* session.snapshot).document.SaveGame.player,
-						).toMatchObject({ eventsSeen: ["7"] });
+						).toMatchObject({
+							eventsSeen: ["7"],
+						});
 					}
 				}
 			}),
@@ -136,7 +141,9 @@ describe("event save operations", () => {
 				yield* session.transact(setEventSeen(change("3", true)));
 				expect(
 					(yield* session.snapshot).document.SaveGame.player,
-				).toMatchObject({ eventsSeen: [null, "1", "3"] });
+				).toMatchObject({
+					eventsSeen: [null, "1", "3"],
+				});
 			}),
 	);
 	it.effect(
@@ -160,9 +167,9 @@ describe("event save operations", () => {
 					expect((yield* session.snapshot).document).toEqual(before.document);
 				}
 				const document = fixture();
-				const guest =
-					document.SaveGame.farmhands && document.SaveGame.farmhands[0];
-				if (!guest) throw Error("Missing guest");
+				const guest = document.SaveGame.farmhands[0];
+				if (guest == null || guest["length"] === 0)
+					throw Error("Missing guest");
 				guest.UniqueMultiplayerID = 1n;
 				const session = yield* makeHistorySession(document);
 				const before = yield* session.snapshot;

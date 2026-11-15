@@ -3,27 +3,28 @@ import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import type { Readable } from "svelte/store";
+
 import type { MutationRequest } from "../../src/lib/editor/domain.ts";
 import {
 	type HistorySession,
-	type InventoryModel,
 	inventory,
+	type InventoryModel,
+	makeStackField,
 	sameView,
 	stackAction,
-	makeStackField,
 } from "./inventory-model.ts";
 
 export const makeAtomInventory = (session: HistorySession) =>
 	Effect.gen(function* () {
 		// UI callbacks run later; retain the session services at this boundary.
-		const services = yield* Effect.context<never>();
+		const services = yield* Effect.context();
 		const registry = yield* Effect.acquireRelease(
 			// Supplying a zero TTL without a positive bucket resolution produces a
 			// NaN timer in Effect 4.0.6. Keep eviction immediate with a valid bucket.
 			Effect.sync(() =>
 				AtomRegistry.make({ defaultIdleTTL: 0, timeoutResolution: 1 }),
 			),
-			(registry) => Effect.sync(() => registry.dispose()),
+			(candidateRegistry) => Effect.sync(() => candidateRegistry.dispose()),
 		);
 		const initial = yield* session.snapshot;
 		let liveStreams = 0;

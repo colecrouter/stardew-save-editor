@@ -1,13 +1,14 @@
-import { expect, it, vi } from "vitest";
 import { Effect } from "effect";
 import { flushSync } from "svelte";
 import { get, writable } from "svelte/store";
+import { expect, it, vi } from "vitest";
+
 import { createRuneDraft } from "../../src/lib/editor/field.svelte.ts";
 import {
 	createDraft,
-	parseStack,
 	type Field,
 	type FieldValue,
+	parseStack,
 } from "../../src/lib/editor/field.ts";
 
 it("rune drafts preserve invalid text and prevent commits to a replacement field", async () => {
@@ -24,8 +25,10 @@ it("rune drafts preserve invalid text and prevent commits to a replacement field
 				revision: 0,
 				available: true,
 				value: 2,
-				commit: async () => {
+				commit: () => {
 					commits++;
+
+					return Promise.resolve();
 				},
 			},
 			() => {
@@ -78,7 +81,7 @@ it("an application-handled noncompletion leaves the rune draft editable for retr
 			revision: 0,
 			available: true,
 			value: 2,
-			commit: async () => null,
+			commit: () => Promise.resolve(null),
 		}),
 	};
 	let draft!: ReturnType<typeof createRuneDraft<number>>;
@@ -114,9 +117,12 @@ it.each(["parse", "commit", "refresh"] as const)(
 			revision: 0,
 			value: 2,
 			available: true,
-			commit: async (value) => {
-				if (broken && stage === "commit") throw new TypeError("commit bug");
+			commit: (value) => {
+				if (broken && stage === "commit")
+					return Promise.reject(new TypeError("commit bug"));
 				source.update((current) => ({ ...current, value }));
+
+				return Promise.resolve();
 			},
 		});
 		const field: Field<number> = {

@@ -1,8 +1,9 @@
-import publicSaveXml from "./TestSave?raw";
 import { fireEvent, render } from "@testing-library/svelte";
 import { createRawSnippet, flushSync } from "svelte";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+
 import { Raw } from "$lib/proxies";
+
 import {
 	SaveManager,
 	SaveValidationError,
@@ -14,9 +15,14 @@ import {
 } from "../src/lib/ToastManager.svelte";
 import editLayout from "../src/routes/(legacy)/(edit)/+layout.svelte";
 import uploadPage from "../src/routes/(legacy)/(home)/(upload)/legacy/+page.svelte";
+import publicSaveXml from "./TestSave?raw";
 
 // Legacy routes navigate after upload; exercise their UI without starting Kit navigation.
-vi.mock("$app/navigation", () => ({ goto: vi.fn() }));
+vi.mock("$app/navigation", () => ({
+	goto: vi
+		.fn<typeof import("$app/navigation").goto>()
+		.mockResolvedValue(undefined),
+}));
 
 beforeEach(() => {
 	// These cases assert validation and anchor downloads. Picker acquisition has
@@ -93,7 +99,7 @@ describe("SaveManager validation", () => {
 });
 
 describe("Validation toasts", () => {
-	const negativeMoneySave = async () =>
+	const negativeMoneySave = () =>
 		publicSaveXml.replace("<money>1285</money>", "<money>-5</money>");
 
 	// Contexts for the pages, with a spy on the toasts they add
@@ -121,7 +127,7 @@ describe("Validation toasts", () => {
 		// FileList has no public constructor. Populate the real input through a
 		// browser transfer so the upload still receives native File objects.
 		const transfer = new DataTransfer();
-		transfer.items.add(new File([await negativeMoneySave()], "TestSave"));
+		transfer.items.add(new File([negativeMoneySave()], "TestSave"));
 		input.files = transfer.files;
 		await fireEvent.change(input);
 
@@ -139,7 +145,7 @@ describe("Validation toasts", () => {
 		const click = vi
 			.spyOn(HTMLAnchorElement.prototype, "click")
 			.mockImplementation(() => {});
-		const saveManager = await importSave(await negativeMoneySave());
+		const saveManager = await importSave(negativeMoneySave());
 		const { context, add } = contexts(saveManager);
 		const children = createRawSnippet(() => ({ render: () => "<div></div>" }));
 		const page = render(editLayout, { props: { children }, context });

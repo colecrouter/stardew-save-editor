@@ -1,18 +1,19 @@
-import type { SaveDocument } from "../../src/lib/editor/domain.ts";
 import { it } from "@effect/vitest";
-import { describe, expect } from "vitest";
 import { Effect, Result } from "effect";
+import { describe, expect } from "vitest";
+
 import {
+	type CharacterChange,
 	decodeCharacterChange,
+	masteryLevel,
+	masteryXpForLevel,
 	readCharacters,
 	setCharacter,
 	skillLevel,
-	masteryLevel,
 	skillXpForLevel,
-	masteryXpForLevel,
-	type CharacterChange,
 } from "../../src/lib/editor/character-operations.ts";
 import { makeHistorySession } from "../../src/lib/editor/history.ts";
+import { requireArray, requireRecord } from "../helpers/assertions.ts";
 import { tinyFixture } from "../helpers/editor-document.ts";
 
 function fixture() {
@@ -48,12 +49,9 @@ function fixture() {
 	});
 	return document;
 }
-function required<A>(value: A | undefined): A {
-	if (value === undefined) throw Error("Missing fixture value");
-	return value;
-}
-const raw = (document: SaveDocument) =>
-	document.SaveGame.player as unknown as Record<string, unknown>;
+
+const raw = (document: import("../../src/lib/editor/domain.ts").SaveDocument) =>
+	requireRecord(document.SaveGame.player);
 const change = (
 	value: Omit<Extract<CharacterChange, { kind: "skill-xp" }>, "farmerId">,
 ): CharacterChange => ({ farmerId: "1", ...value });
@@ -62,11 +60,16 @@ describe("character save operations", () => {
 	it("uses the game's skill and mastery threshold tables including unsigned mastery read semantics", () => {
 		skillXpForLevel.forEach((xp, level) => {
 			expect(skillLevel(xp)).toBe(level);
-			if (level) expect(skillLevel(xp - 1)).toBe(level - 1);
+		});
+		// Check the lower side of every real transition; level zero has no preceding level.
+		skillXpForLevel.slice(1).forEach((xp, index) => {
+			expect(skillLevel(xp - 1)).toBe(index);
 		});
 		masteryXpForLevel.forEach((xp, level) => {
 			expect(masteryLevel(xp)).toBe(level);
-			if (level) expect(masteryLevel(xp - 1)).toBe(level - 1);
+		});
+		masteryXpForLevel.slice(1).forEach((xp, index) => {
+			expect(masteryLevel(xp - 1)).toBe(index);
 		});
 		expect(masteryLevel(4294967295)).toBe(0);
 	});
@@ -95,7 +98,7 @@ describe("character save operations", () => {
 	});
 	it("projects read-only without repairing custom mirrors, profession IDs, or stat containers", () => {
 		const document = fixture();
-		raw(document).farmingLevel = 99;
+		raw(document)["farmingLevel"] = 99;
 		const before = structuredClone(document);
 		const view = readCharacters(document)[0];
 		expect(view?.skills[0]).toMatchObject({ xp: 0, level: 0, supported: true });
@@ -123,8 +126,8 @@ describe("character save operations", () => {
 				const after = yield* session.snapshot;
 				const expected = structuredClone(document);
 				const owner = raw(expected);
-				(owner.experiencePoints as number[])[0] = 2150;
-				owner.farmingLevel = 5;
+				requireArray(owner["experiencePoints"])[0] = 2150;
+				owner["farmingLevel"] = 5;
 				expect(after.document).toEqual(expected);
 				expect(after.entries[0]?.annotations[0]?.tags).toContain(
 					"character:skill-xp",
@@ -140,7 +143,7 @@ describe("character save operations", () => {
 		() =>
 			Effect.gen(function* () {
 				const document = fixture();
-				raw(document).farmingLevel = 99;
+				raw(document)["farmingLevel"] = 99;
 				const session = yield* makeHistorySession(document);
 				yield* session.transact(
 					setCharacter({
@@ -151,10 +154,10 @@ describe("character save operations", () => {
 					}),
 				);
 				let after = yield* session.snapshot;
-				expect((raw(after.document).experiencePoints as number[])[1]).toBe(
+				expect(requireArray(raw(after.document)["experiencePoints"])[1]).toBe(
 					15000,
 				);
-				expect(raw(after.document).fishingLevel).toBe(10);
+				expect(raw(after.document)["fishingLevel"]).toBe(10);
 				yield* session.undo;
 				const before = yield* session.snapshot;
 				yield* session.transact(
@@ -189,12 +192,12 @@ describe("character save operations", () => {
 					}),
 				);
 				let after = yield* session.snapshot;
-				expect(raw(after.document).professions as number[]).toEqual([
+				expect(requireArray(raw(after.document)["professions"])).toEqual([
 					0, 0, 1, 4, 999, 24, 27,
 				]);
 				// Profession editing never simulates gameplay's health refill/perk hooks.
-				expect(raw(after.document).maxHealth).toBe(140);
-				expect(raw(after.document).health).toBe(120);
+				expect(raw(after.document)["maxHealth"]).toBe(140);
+				expect(raw(after.document)["health"]).toBe(120);
 				yield* session.transact(
 					setCharacter({
 						farmerId: "1",
@@ -204,7 +207,7 @@ describe("character save operations", () => {
 					}),
 				);
 				after = yield* session.snapshot;
-				expect(raw(after.document).professions as number[]).toEqual([
+				expect(requireArray(raw(after.document)["professions"])).toEqual([
 					1, 4, 999, 24, 27,
 				]);
 				yield* session.undo;
@@ -218,7 +221,7 @@ describe("character save operations", () => {
 			Effect.gen(function* () {
 				for (const professions of [[], [999]]) {
 					const document = fixture();
-					raw(document).professions = professions;
+					raw(document)["professions"] = professions;
 					const session = yield* makeHistorySession(document);
 					yield* session.transact(
 						setCharacter({
@@ -229,14 +232,14 @@ describe("character save operations", () => {
 						}),
 					);
 					const after = yield* session.snapshot;
-					expect(raw(after.document).professions as number[]).toEqual(
+					expect(requireArray(raw(after.document)["professions"])).toEqual(
 						professions.length === 0 ? [1, 5] : [999, 1, 5],
 					);
 					yield* session.undo;
 					expect((yield* session.snapshot).document).toEqual(document);
 				}
 				const document = fixture();
-				raw(document).professions = [5, 5, 999];
+				raw(document)["professions"] = [5, 5, 999];
 				const session = yield* makeHistorySession(document);
 				const before = yield* session.snapshot;
 				yield* session.transact(
@@ -255,7 +258,7 @@ describe("character save operations", () => {
 		() =>
 			Effect.gen(function* () {
 				const document = fixture();
-				raw(document).stats = {
+				raw(document)["stats"] = {
 					Values: [
 						{
 							key: "masteryexp",
@@ -294,13 +297,11 @@ describe("character save operations", () => {
 					setCharacter({ farmerId: "1", kind: "mastery-xp", value: 70000 }),
 				);
 				const expected = structuredClone(document);
-				required(
-					(
-						raw(expected).stats as {
-							Values: { value: number }[];
-						}
-					).Values[0],
-				).value = 70000;
+				const expectedStats = requireRecord(raw(expected)["stats"]);
+				const firstStat = requireRecord(
+					requireArray(expectedStats["Values"])[0],
+				);
+				firstStat["value"] = 70000;
 				expect((yield* session.snapshot).document).toEqual(expected);
 				yield* session.undo;
 				expect((yield* session.snapshot).document).toEqual(document);
@@ -319,7 +320,7 @@ describe("character save operations", () => {
 					},
 				]) {
 					const document = fixture();
-					raw(document).stats = stats;
+					raw(document)["stats"] = stats;
 					const original = structuredClone(document);
 					expect(readCharacters(document)[0]?.mastery.xp).toBe(0);
 					expect(document).toEqual(original);
@@ -345,9 +346,9 @@ describe("character save operations", () => {
 		() =>
 			Effect.gen(function* () {
 				const document = fixture();
-				raw(document).experiencePoints = [-1, 100];
-				delete raw(document).professions;
-				raw(document).stats = {
+				raw(document)["experiencePoints"] = [-1, 100];
+				delete raw(document)["professions"];
+				raw(document)["stats"] = {
 					Values: [
 						{ key: "masteryExp", value: 1 },
 						{ key: "MasteryExp", value: 2 },
@@ -449,7 +450,7 @@ describe("character save operations", () => {
 	it("preserves a malformed relevant mastery stat rather than coercing it", () => {
 		for (const value of [-1, 1.5, "10", null, { opaque: true }]) {
 			const document = fixture();
-			raw(document).stats = {
+			raw(document)["stats"] = {
 				Values: [{ key: "mastery_2", value: value }],
 			};
 			expect(readCharacters(document)[0]?.mastery.supported).toBe(false);

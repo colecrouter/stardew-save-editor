@@ -1,7 +1,9 @@
 import { SvelteMap } from "svelte/reactivity";
+
 import cookingRecipes from "$generated/cookingrecipes.json";
 import craftingRecipes from "$generated/craftingrecipes.json";
 import type { Player } from "$types/save";
+
 import { type DataProxy, Raw } from ".";
 
 type RecipeType = "craftingRecipes" | "cookingRecipes";
@@ -40,7 +42,7 @@ export class Recipes<T extends RecipeType>
 		this[Raw] = recipes;
 	}
 
-	set(key: string, value: number | null): this {
+	override set(key: string, value: number | null): this {
 		super.set(key, value);
 
 		if (value === null) {

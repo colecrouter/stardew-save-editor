@@ -1,11 +1,12 @@
-import { describe, expect, it } from "vitest";
 import { Result } from "effect";
-import { openTestDocument } from "../helpers/open-editor.ts";
+import { describe, expect, it } from "vitest";
+
 import { createCharacterDomain } from "../../src/lib/editor/character-domain.ts";
-import { createFarmFields } from "../../src/lib/editor/farm-domain.ts";
 import { readCharacters } from "../../src/lib/editor/character-operations.ts";
+import { createFarmFields } from "../../src/lib/editor/farm-domain.ts";
 import { readFarmSettings } from "../../src/lib/editor/farm-operations.ts";
 import { tinyEditorFixture } from "../helpers/editor-document.ts";
+import { openTestDocument } from "../helpers/open-editor.ts";
 
 // Field grouping needs populated skill counters, not a complete imported farm.
 function fixture() {
@@ -42,8 +43,10 @@ describe("domain-owned field adapters", () => {
 			await field.end(gesture);
 			const after = await opened.model.snapshot();
 			expect(after.entries).toHaveLength(1);
+			// Vitest types asymmetric matchers as any. Keep expected matcher values
+			// unknown so they cannot weaken the surrounding saved-data assertions.
 			expect(after.document.SaveGame.player).toMatchObject({
-				experiencePoints: expect.arrayContaining([770]),
+				experiencePoints: expect.arrayContaining([770]) as unknown,
 				farmingLevel: 3,
 			});
 			await opened.model.commands.undo();

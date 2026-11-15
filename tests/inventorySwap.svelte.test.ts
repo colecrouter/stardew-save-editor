@@ -1,9 +1,11 @@
 import { flushSync } from "svelte";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+
 import type { Player } from "../codegen/save";
+import { Raw } from "../src/lib/proxies/index";
 import { Inventory } from "../src/lib/proxies/Inventory.svelte";
 import { Item } from "../src/lib/proxies/Item.svelte";
-import { Raw } from "../src/lib/proxies/index";
+import { malformedFixture } from "./helpers/editor-document.ts";
 
 const nil = { "@_xsi:nil": "true" };
 
@@ -13,7 +15,7 @@ describe("Inventory.swap", () => {
 	let cleanup: () => void;
 
 	beforeEach(() => {
-		player = { items: { Item: [nil, nil, nil] } } as unknown as Player;
+		player = malformedFixture<Player>({ items: { Item: [nil, nil, nil] } });
 		cleanup = $effect.root(() => {
 			inventory = new Inventory(player);
 		});
@@ -63,7 +65,8 @@ describe("Inventory.swap", () => {
 			stack: 1,
 		};
 		// Raw parsed fixtures deliberately allow unrecognized save fields.
-		(player.items.Item as any[])[0] = note;
+		player.items.Item[0] =
+			malformedFixture<(typeof player.items.Item)[number]>(note);
 		const parsnip = Item.fromName("Parsnip");
 		inventory.set(1, parsnip);
 

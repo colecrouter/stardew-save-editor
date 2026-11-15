@@ -1,12 +1,9 @@
-import { storageTypes as SwappableChests } from "../storageTypes.ts";
 import { SvelteMap } from "svelte/reactivity";
-import type {
-	Building as RawBuilding,
-	GameLocation as RawGameLocation,
-	Item as RawItem,
-	Save,
-} from "$types/save";
+
+import type { Item as RawItem, Save } from "$types/save";
+
 import { type DataProxy, Dispose, Raw } from ".";
+import { storageTypes as SwappableChests } from "../storageTypes.ts";
 import { createItemProxy, type ItemProxy } from "./items";
 
 type NilItem = { "@_xsi:nil": "true" };
@@ -24,14 +21,16 @@ export type RawChest = RawItem & {
 
 export type ChestKind = "chest" | "fridge" | "machine" | "building";
 
+// Optional presentation members may be omitted or explicitly unavailable.
+// These transient projections do not encode presence of serialized save fields.
 export interface ChestMetadata {
 	id: string;
 	label: string;
 	kind: ChestKind;
 	location: string;
-	building?: string;
-	x?: number;
-	y?: number;
+	building?: string | undefined;
+	x?: number | undefined;
+	y?: number | undefined;
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -94,7 +93,7 @@ export class ChestInventory extends SvelteMap<number, ItemProxy | undefined> {
 		return count;
 	}
 
-	public set(index: number, value: ItemProxy | undefined): this {
+	public override set(index: number, value: ItemProxy | undefined): this {
 		if (!Number.isInteger(index) || index < 0 || index >= this.slotCount) {
 			throw new Error(`Invalid chest slot: ${index}`);
 		}
@@ -160,7 +159,7 @@ export class ChestInventory extends SvelteMap<number, ItemProxy | undefined> {
 		this.syncRawItems();
 	}
 
-	public delete(index: number): boolean {
+	public override delete(index: number): boolean {
 		const existed = this.get(index) !== undefined;
 		this.set(index, undefined);
 		return existed;
@@ -172,7 +171,7 @@ export class ChestInventory extends SvelteMap<number, ItemProxy | undefined> {
 			const item = this.get(index);
 			if (item) entries.push(item[Raw]);
 		}
-		this.#chest.items = entries.length ? { Item: entries } : "";
+		this.#chest.items = entries.length !== 0 ? { Item: entries } : "";
 	}
 }
 
@@ -288,7 +287,7 @@ export function searchChests(
 	term: string,
 ): ChestSearchResult[] {
 	const needle = term.trim().toLowerCase();
-	if (!needle) return [];
+	if (!(needle !== "")) return [];
 
 	const results: ChestSearchResult[] = [];
 	chests.forEach((chest, chestIndex) => {
@@ -298,7 +297,7 @@ export function searchChests(
 			slotIndex++
 		) {
 			const item = chest.inventory.get(slotIndex);
-			if (item?.name?.toLowerCase().includes(needle)) {
+			if (item?.name?.toLowerCase().includes(needle) === true) {
 				results.push({ chestIndex, slotIndex, chest, item });
 			}
 		}
@@ -330,15 +329,19 @@ const usesGlobalInventory = (chest: RawChest) =>
 	(isRecord(chest.globalInventoryId) &&
 		text(chest.globalInventoryId.string) !== undefined);
 
-const locationName = (location: RawGameLocation, fallback: string) =>
-	text(location.uniqueName) ?? text(location.name) ?? fallback;
+const locationName = (
+	location: { name?: unknown; uniqueName?: unknown },
+	fallback: string,
+) => text(location.uniqueName) ?? text(location.name) ?? fallback;
 
 const coordinates = (entry: unknown) => {
-	if (!isRecord(entry) || !isRecord(entry.key)) return {};
-	const vector = isRecord(entry.key.Vector2) ? entry.key.Vector2 : undefined;
+	if (!isRecord(entry) || !isRecord(entry["key"])) return {};
+	const vector = isRecord(entry["key"]["Vector2"])
+		? entry["key"]["Vector2"]
+		: undefined;
 	return {
-		x: vector ? Number(vector.X) : undefined,
-		y: vector ? Number(vector.Y) : undefined,
+		x: vector ? Number(vector["X"]) : undefined,
+		y: vector ? Number(vector["Y"]) : undefined,
 	};
 };
 
@@ -355,18 +358,21 @@ export function discoverChests(save: Save): ChestProxy[] {
 	};
 
 	const visitLocation = (
-		location: RawGameLocation,
+		location: unknown,
 		idPath: string,
 		displayPath: string,
 		parentBuilding?: string,
 	) => {
-		const locationRecord = location as unknown as Record<string, unknown>;
+		// Traverse opaque/modded location fields without promoting them to a vanilla class.
+		if (!isRecord(location)) return;
+		const locationRecord = location;
 		const currentLocation = locationName(location, displayPath);
-		const area = parentBuilding
-			? `${displayPath} / ${parentBuilding}`
-			: currentLocation;
+		const area =
+			parentBuilding != null && parentBuilding !== ""
+				? `${displayPath} / ${parentBuilding}`
+				: currentLocation;
 
-		add(locationRecord.fridge, {
+		add(locationRecord["fridge"], {
 			id: `${idPath}.fridge`,
 			label: `${area} - Fridge`,
 			kind: "fridge",
@@ -374,19 +380,19 @@ export function discoverChests(save: Save): ChestProxy[] {
 			building: parentBuilding,
 		});
 
-		const objects = isRecord(locationRecord.objects)
-			? asArray(locationRecord.objects.item)
+		const objects = isRecord(locationRecord["objects"])
+			? asArray(locationRecord["objects"]["item"])
 			: [];
 		objects.forEach((entry, objectIndex) => {
-			if (!isRecord(entry) || !isRecord(entry.value)) return;
-			const object = entry.value.Object;
+			if (!isRecord(entry) || !isRecord(entry["value"])) return;
+			const object = entry["value"]["Object"];
 			if (!isRecord(object)) return;
 			const { x, y } = coordinates(entry);
 			const tile = x !== undefined && y !== undefined ? ` (${x}, ${y})` : "";
 
 			add(object, {
 				id: `${idPath}.objects.${objectIndex}`,
-				label: `${area} - ${text(object.name) ?? "Chest"}${tile}`,
+				label: `${area} - ${text(object["name"]) ?? "Chest"}${tile}`,
 				kind: "chest",
 				location: currentLocation,
 				building: parentBuilding,
@@ -394,9 +400,9 @@ export function discoverChests(save: Save): ChestProxy[] {
 				y,
 			});
 
-			add(object.Chest, {
+			add(object["Chest"], {
 				id: `${idPath}.objects.${objectIndex}.Chest`,
-				label: `${area} - ${text(object.name) ?? "Machine"}${tile}`,
+				label: `${area} - ${text(object["name"]) ?? "Machine"}${tile}`,
 				kind: "machine",
 				location: currentLocation,
 				building: parentBuilding,
@@ -404,9 +410,9 @@ export function discoverChests(save: Save): ChestProxy[] {
 				y,
 			});
 
-			add(object.heldObject, {
+			add(object["heldObject"], {
 				id: `${idPath}.objects.${objectIndex}.heldObject`,
-				label: `${area} - ${text(object.name) ?? "Machine"}${tile}`,
+				label: `${area} - ${text(object["name"]) ?? "Machine"}${tile}`,
 				kind: "machine",
 				location: currentLocation,
 				building: parentBuilding,
@@ -415,33 +421,33 @@ export function discoverChests(save: Save): ChestProxy[] {
 			});
 		});
 
-		const buildings = isRecord(locationRecord.buildings)
-			? asArray(locationRecord.buildings.Building)
+		const buildings = isRecord(locationRecord["buildings"])
+			? asArray(locationRecord["buildings"]["Building"])
 			: [];
 		buildings.forEach((buildingValue, buildingIndex) => {
 			if (!isRecord(buildingValue)) return;
-			const building = buildingValue as unknown as RawBuilding;
+			const building = buildingValue;
 			const buildingRecord = buildingValue;
-			const buildingName = text(building.buildingType) ?? "Building";
+			const buildingName = text(building["buildingType"]) ?? "Building";
 			const buildingPath = `${idPath}.buildings.${buildingIndex}`;
-			const buildingChests = isRecord(buildingRecord.buildingChests)
-				? asArray(buildingRecord.buildingChests.Chest)
+			const buildingChests = isRecord(buildingRecord["buildingChests"])
+				? asArray(buildingRecord["buildingChests"]["Chest"])
 				: [];
 
 			buildingChests.forEach((chest, chestIndex) => {
 				const chestRecord = isRecord(chest) ? chest : undefined;
 				add(chest, {
 					id: `${buildingPath}.buildingChests.${chestIndex}`,
-					label: `${area} / ${buildingName} - ${text(chestRecord?.name) ?? `Chest ${chestIndex + 1}`}`,
+					label: `${area} / ${buildingName} - ${text(chestRecord?.["name"]) ?? `Chest ${chestIndex + 1}`}`,
 					kind: "building",
 					location: currentLocation,
 					building: buildingName,
 				});
 			});
 
-			if (isRecord(buildingRecord.indoors)) {
+			if (isRecord(buildingRecord["indoors"])) {
 				visitLocation(
-					buildingRecord.indoors as unknown as RawGameLocation,
+					buildingRecord["indoors"],
 					buildingPath,
 					area,
 					buildingName,

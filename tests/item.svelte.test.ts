@@ -1,7 +1,9 @@
 import { flushSync } from "svelte";
 import { describe, expect, it } from "vitest";
+
 import { Dispose, Raw } from "$lib/proxies";
 import { createRandom, rollFairyBox } from "$lib/TrinketStats";
+
 import { Item } from "../src/lib/proxies/Item.svelte";
 import {
 	FishingRodProxy,
@@ -10,6 +12,8 @@ import {
 	TrinketProxy,
 	WateringCanProxy,
 } from "../src/lib/proxies/items";
+import { requireInstance } from "./helpers/assertions.ts";
+import { malformedFixture } from "./helpers/editor-document.ts";
 
 /*
     In this file are *known-to-be-correct* tests for the item save data.
@@ -366,27 +370,29 @@ describe("Item", () => {
 
 	it("should resolve preserved roe variants from save data", () => {
 		withRoot(() => {
-			const item = Item.create({
-				"@_xsi:type": "ColoredObject",
-				name: "Anchovy Roe",
-				itemId: "812",
-				parentSheetIndex: 812,
-				preservedParentSheetIndex: "129",
-				preserve: "Roe",
-				category: -26,
-				type: "Basic",
-				stack: 1,
-				quality: 0,
-				isRecipe: false,
-				price: 30,
-				color: {
-					R: 244,
-					G: 164,
-					B: 37,
-					A: 255,
-					PackedValue: 4280655092,
-				},
-			} as never);
+			const item = Item.create(
+				malformedFixture<never>({
+					"@_xsi:type": "ColoredObject",
+					name: "Anchovy Roe",
+					itemId: "812",
+					parentSheetIndex: 812,
+					preservedParentSheetIndex: "129",
+					preserve: "Roe",
+					category: -26,
+					type: "Basic",
+					stack: 1,
+					quality: 0,
+					isRecipe: false,
+					price: 30,
+					color: {
+						R: 244,
+						G: 164,
+						B: 37,
+						A: 255,
+						PackedValue: 4280655092,
+					},
+				}),
+			);
 
 			expect(item.name).toBe("Anchovy Roe");
 			expect(item.info).toMatchObject({
@@ -400,20 +406,22 @@ describe("Item", () => {
 
 	it("should resolve preserved honey variants from save data", () => {
 		withRoot(() => {
-			const item = Item.create({
-				"@_xsi:type": "Object",
-				name: "Poppy Honey",
-				itemId: "340",
-				parentSheetIndex: 340,
-				preservedParentSheetIndex: "376",
-				preserve: "Honey",
-				category: -26,
-				type: "Basic",
-				stack: 1,
-				quality: 0,
-				isRecipe: false,
-				price: 380,
-			} as never);
+			const item = Item.create(
+				malformedFixture<never>({
+					"@_xsi:type": "Object",
+					name: "Poppy Honey",
+					itemId: "340",
+					parentSheetIndex: 340,
+					preservedParentSheetIndex: "376",
+					preserve: "Honey",
+					category: -26,
+					type: "Basic",
+					stack: 1,
+					quality: 0,
+					isRecipe: false,
+					price: 380,
+				}),
+			);
 
 			expect(item.name).toBe("Poppy Honey");
 			expect(item.info).toMatchObject({
@@ -426,27 +434,29 @@ describe("Item", () => {
 
 	it("should resolve preserved bait variants from save data", () => {
 		withRoot(() => {
-			const item = Item.create({
-				"@_xsi:type": "ColoredObject",
-				name: "Salmon Bait",
-				itemId: "SpecificBait",
-				parentSheetIndex: 774,
-				preservedParentSheetIndex: "139",
-				preserve: "Bait",
-				category: -21,
-				type: "Basic",
-				stack: 1,
-				quality: 0,
-				isRecipe: false,
-				price: 7,
-				color: {
-					R: 250,
-					G: 128,
-					B: 114,
-					A: 255,
-					PackedValue: 4285694202,
-				},
-			} as never);
+			const item = Item.create(
+				malformedFixture<never>({
+					"@_xsi:type": "ColoredObject",
+					name: "Salmon Bait",
+					itemId: "SpecificBait",
+					parentSheetIndex: 774,
+					preservedParentSheetIndex: "139",
+					preserve: "Bait",
+					category: -21,
+					type: "Basic",
+					stack: 1,
+					quality: 0,
+					isRecipe: false,
+					price: 7,
+					color: {
+						R: 250,
+						G: 128,
+						B: 114,
+						A: 255,
+						PackedValue: 4285694202,
+					},
+				}),
+			);
 
 			expect(item.name).toBe("Salmon Bait");
 			expect(item.info).toMatchObject({
@@ -504,7 +514,7 @@ describe("Item", () => {
 		withRoot(() => {
 			const item = Item.fromName("FairyBox");
 			expect(item).toBeInstanceOf(TrinketProxy);
-			const trinket = item as TrinketProxy;
+			const trinket = requireInstance(item, TrinketProxy);
 			expect(trinket.statKind).toBe("FairyBox");
 
 			for (const level of [5, 1, 3]) {
@@ -526,7 +536,7 @@ describe("Item", () => {
 
 	it("should cap a Parrot Egg's level by money earned", () => {
 		withRoot(() => {
-			const trinket = Item.fromName("ParrotEgg") as TrinketProxy;
+			const trinket = requireInstance(Item.fromName("ParrotEgg"), TrinketProxy);
 			expect(trinket.setStats({ kind: "ParrotEgg", level: 4 }, ctx)).toBe(true);
 			expect(trinket.getStats(ctx)).toEqual({ kind: "ParrotEgg", level: 4 });
 			expect(trinket.descriptionSubstitutionTemplates).toEqual({
@@ -541,7 +551,7 @@ describe("Item", () => {
 
 	it("should set an Ice Rod's stats and clear a stale Perfect name", () => {
 		withRoot(() => {
-			const trinket = Item.fromName("IceRod") as TrinketProxy;
+			const trinket = requireInstance(Item.fromName("IceRod"), TrinketProxy);
 			trinket.displayNameOverrideTemplate = { string: name("PerfectIceRod") };
 			const target = {
 				kind: "IceRod",
@@ -566,7 +576,10 @@ describe("Item", () => {
 
 	it("should set a Golden Spur's speed boost duration", () => {
 		withRoot(() => {
-			const trinket = Item.fromName("IridiumSpur") as TrinketProxy;
+			const trinket = requireInstance(
+				Item.fromName("IridiumSpur"),
+				TrinketProxy,
+			);
 			expect(trinket.setStats({ kind: "IridiumSpur", duration: 10 }, ctx)).toBe(
 				true,
 			);
@@ -580,7 +593,10 @@ describe("Item", () => {
 
 	it("should set every Magic Quiver type and its stats", () => {
 		withRoot(() => {
-			const trinket = Item.fromName("MagicQuiver") as TrinketProxy;
+			const trinket = requireInstance(
+				Item.fromName("MagicQuiver"),
+				TrinketProxy,
+			);
 			const targets = [
 				{ type: "rapid", minDamage: 12, delay: 0.6, title: "RapidMagicQuiver" },
 				{ type: "heavy", minDamage: 38, delay: 1.5, title: "HeavyMagicQuiver" },
@@ -604,7 +620,9 @@ describe("Item", () => {
 					string: [stats.delay, stats.minDamage, stats.maxDamage],
 				});
 				expect(trinket.displayNameOverrideTemplate).toEqual(
-					title ? { string: name(title) } : { string: { "@_xsi:nil": "true" } },
+					title != null && title.length > 0
+						? { string: name(title) }
+						: { string: { "@_xsi:nil": "true" } },
 				);
 			}
 		});
@@ -612,7 +630,7 @@ describe("Item", () => {
 
 	it("should set a Frog Egg's color", () => {
 		withRoot(() => {
-			const trinket = Item.fromName("FrogEgg") as TrinketProxy;
+			const trinket = requireInstance(Item.fromName("FrogEgg"), TrinketProxy);
 			expect(trinket.setStats({ kind: "FrogEgg", variant: 7 }, ctx)).toBe(true);
 			expect(trinket.getStats(ctx)).toEqual({ kind: "FrogEgg", variant: 7 });
 			expect(trinket.displayNameOverrideTemplate).toEqual({
@@ -623,7 +641,10 @@ describe("Item", () => {
 
 	it("should not give other trinkets editable stats", () => {
 		withRoot(() => {
-			const trinket = Item.fromName("BasiliskPaw") as TrinketProxy;
+			const trinket = requireInstance(
+				Item.fromName("BasiliskPaw"),
+				TrinketProxy,
+			);
 			expect(trinket.statKind).toBeUndefined();
 			expect(trinket.getStats(ctx)).toBeUndefined();
 			expect(trinket.setStats({ kind: "FairyBox", level: 3 }, ctx)).toBe(false);

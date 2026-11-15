@@ -34,11 +34,11 @@
 {/snippet}
 
 <div class="professions-grid">
-	{#each skillGroups as sg}
+	{#each skillGroups as sg (sg.skill)}
 		<div class="skill-column">
 			<h3>{sg.skill}</h3>
 			<div class="level5">
-				{#each sg.primary as p}
+				{#each sg.primary as p (p)}
 					<UiButton
 						name="primary-{sg.skill}"
 						alt={Profession[p]}
@@ -51,8 +51,8 @@
 				{/each}
 			</div>
 			<div class="level10">
-				{#each sg.primary as pr}
-					{#each sg.secondary[pr] ?? [] as s}
+				{#each sg.primary as pr (pr)}
+					{#each sg.secondary[pr] ?? [] as s (s)}
 						<UiButton
 							name="secondary-{sg.skill}"
 							alt={Profession[s]}

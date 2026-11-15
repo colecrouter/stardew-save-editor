@@ -1,12 +1,13 @@
 <script lang="ts">
-	import { dynamicAsset } from "$lib/ui/dynamicAsset.ts";
 	import type { BabyQuestionStatus } from "$lib/babyQuestion";
 	import type { GameDate } from "$lib/calendar";
 	import type { Friendship } from "$lib/proxies/Friendship.svelte";
+	import { dynamicAsset } from "$lib/ui/dynamicAsset.ts";
 	import EmojiRange from "$lib/ui/EmojiRange.svelte";
 	import UiContainerSmall from "$lib/ui/UIContainerSmall.svelte";
 	import UiInput from "$lib/ui/UIInput.svelte";
 	import { Villagers } from "$lib/Villagers";
+
 	import BabyQuestion from "./BabyQuestion.svelte";
 
 	interface Props {
@@ -15,7 +16,7 @@
 		/** The save's current date, which a pregnancy is counted from */
 		today: GameDate;
 		/** The spouse's row shows whether they can ask about a baby, under their hearts */
-		babyQuestion?: BabyQuestionStatus;
+		babyQuestion?: BabyQuestionStatus | undefined;
 	}
 
 	let { npc, name, today, babyQuestion }: Props = $props();
@@ -37,10 +38,14 @@
 		// Unknown villagers retain their initial without issuing a missing-image request.
 		if (!portrait) return;
 		const image = new Image();
-		image.onload = () => {
-			framesPerRow = Math.max(1, Math.round(image.naturalWidth / 64));
-			loaded = true;
-		};
+		image.addEventListener(
+			"load",
+			() => {
+				framesPerRow = Math.max(1, Math.round(image.naturalWidth / 64));
+				loaded = true;
+			},
+			{ once: true },
+		);
 		image.src = portrait;
 	});
 </script>

@@ -1,8 +1,9 @@
-import publicSaveXml from "./TestSave?raw";
 import { flushSync } from "svelte";
 import { beforeEach, describe, expect, it } from "vitest";
+
 import type { Bundle } from "../src/lib/proxies/CommunityBundles.svelte";
 import { SaveManager } from "../src/lib/SaveManager.svelte";
+import publicSaveXml from "./TestSave?raw";
 
 // Verify River Fish bundle reward is Deluxe Bait x30 (not gold)
 
@@ -22,7 +23,7 @@ describe("River Fish bundle reward", () => {
 		cleanup();
 	});
 
-	it("parses reward as DeluxeBait x30", async () => {
+	it("parses reward as DeluxeBait x30", () => {
 		const save = saveManager.save;
 		expect(save).toBeTruthy();
 		if (!save) return;

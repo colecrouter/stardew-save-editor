@@ -1,8 +1,9 @@
+import { fireEvent, render, waitFor, within } from "@testing-library/svelte";
 import { expect, it, vi } from "vitest";
-import { fireEvent, render, within, waitFor } from "@testing-library/svelte";
+
 import { openTestEditor } from "../helpers/open-editor.ts";
-import WorkspaceHarness from "./WorkspaceHarness.svelte";
 import { fixtureXml } from "./fixtures";
+import WorkspaceHarness from "./WorkspaceHarness.svelte";
 
 it("builds review only while visible, shows final values and removes restored edits from export review", async () => {
 	const opened = await openTestEditor(new TextEncoder().encode(fixtureXml));

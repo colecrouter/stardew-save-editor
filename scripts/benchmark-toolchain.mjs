@@ -8,13 +8,25 @@ import { pathToFileURL } from "node:url";
 // Run from the repository root after installing that revision's dependencies.
 // Choose tools from package.json so the same harness can measure the base commit
 // when copied outside the checkout. Logs stay separate from timing metadata.
+/** @type {unknown} */
 const manifest = JSON.parse(readFileSync("package.json", "utf8"));
-const migrated = Boolean(manifest.devDependencies["vite-plus"]);
+// Older revisions have different package fields; inspect only the commands used here.
+if (
+	manifest === null ||
+	typeof manifest !== "object" ||
+	!("devDependencies" in manifest) ||
+	manifest.devDependencies === null ||
+	typeof manifest.devDependencies !== "object" ||
+	!("scripts" in manifest) ||
+	manifest.scripts === null ||
+	typeof manifest.scripts !== "object"
+)
+	throw new Error("Invalid benchmark package manifest");
+const migrated = "vite-plus" in manifest.devDependencies;
 // The full-save probe deliberately measures the retained legacy codec. Opt in
 // when this checkout separates legacy tests, while supporting older revisions.
-const legacyTestCommand = manifest.scripts["test:legacy"]
-	? "npm run test:legacy"
-	: "npm test";
+const legacyTestCommand =
+	"test:legacy" in manifest.scripts ? "npm run test:legacy" : "npm test";
 const output = resolve(process.argv[2] ?? "/tmp/stardew-toolchain-benchmark");
 mkdirSync(output, { recursive: true });
 // npm/npx and Vite+ can select different Node executables. Capture each actual
@@ -34,7 +46,7 @@ appendFileSync(process.env.TOOLCHAIN_BENCHMARK_NODE_LOG, JSON.stringify({
 // Preserve existing launch options; an encoded file URI stays one option even
 // when the output directory contains spaces, without shell interpolation.
 const nodeOptions = [
-	process.env.NODE_OPTIONS,
+	process.env["NODE_OPTIONS"],
 	`--import=${pathToFileURL(runtimeProbe).href}`,
 ]
 	.filter(Boolean)
@@ -56,23 +68,32 @@ function readNodeProvenance(path) {
 	}
 	for (const line of journal.split("\n").filter(Boolean)) {
 		try {
+			/** @type {unknown} */
 			const record = JSON.parse(line);
 			// Validate only the fields our preload writes; do not collect arguments,
 			// environment variables or credentials alongside runtime provenance.
 			if (
 				record === null ||
 				typeof record !== "object" ||
+				!("version" in record) ||
 				typeof record.version !== "string" ||
+				!("execPath" in record) ||
 				typeof record.execPath !== "string" ||
-				(record.entrypoint !== undefined &&
+				("entrypoint" in record &&
+					record.entrypoint !== undefined &&
 					typeof record.entrypoint !== "string")
 			) {
 				throw new Error("Invalid Node runtime record");
 			}
+			const entrypoint =
+				"entrypoint" in record && typeof record.entrypoint === "string"
+					? record.entrypoint
+					: undefined;
 			nodeProcesses.push({
 				version: record.version,
 				execPath: record.execPath,
-				entrypoint: record.entrypoint,
+				// Missing launch entrypoints are omitted from the provenance record.
+				...(entrypoint === undefined ? {} : { entrypoint }),
 			});
 		} catch (error) {
 			errors.push(

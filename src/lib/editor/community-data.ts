@@ -1,5 +1,6 @@
-import { communityRooms } from "../communityCenterData.ts";
+import { CCRoom, communityRooms } from "../communityCenterData.ts";
 import type { Farmer, SaveDocument } from "./domain.ts";
+import { nonemptyText } from "./plain-data.ts";
 
 export interface CommunityRequirementView {
 	index: number;
@@ -11,35 +12,41 @@ export interface CommunityRequirementView {
 }
 export interface CommunityBundleView {
 	key: string;
-	id?: number;
-	room?: number;
+	id?: number | undefined;
+	room?: number | undefined;
 	name: string;
 	/** Known vanilla seal colour; unknown colours use the UI fallback. */
-	color?: number;
+	color?: number | undefined;
 	supported: boolean;
-	reason?: string;
+	reason?: string | undefined;
 	completed: boolean;
 	needed: number;
 	submitted: number;
 	requirements: CommunityRequirementView[];
-	reward?: { type: string; itemId: string; quantity: number };
+	reward?:
+		| {
+				type: string;
+				itemId: string;
+				quantity: number;
+		  }
+		| undefined;
 	rewardAvailable: boolean;
 	rewardSupported: boolean;
 }
 export interface CommunityView {
 	supported: boolean;
-	reason?: string;
-	membership?: boolean;
+	reason?: string | undefined;
+	membership?: boolean | undefined;
 	bundles: CommunityBundleView[];
 	rooms: {
 		id: number;
 		name: string;
 		unlock: string;
-		note?: string;
-		completed?: boolean;
+		note?: string | undefined;
+		completed?: boolean | undefined;
 		restored: boolean;
-		project?: string;
-		price?: number;
+		project?: string | undefined;
+		price?: number | undefined;
 	}[];
 	theater: boolean;
 }
@@ -88,12 +95,12 @@ function definition(key: string, value: string) {
 	const room = communityRooms.find((row) => row.key === split[0]);
 	const parts = value.split("/"),
 		tokens = parts[2]?.trim().split(/\s+/) ?? [];
-	const requirements = [] as Omit<CommunityRequirementView, "submitted">[];
+	const requirements: Omit<CommunityRequirementView, "submitted">[] = [];
 	let supported =
 		split.length === 2 &&
 		id !== undefined &&
-		!!room &&
-		!!parts[0] &&
+		Boolean(room) &&
+		Boolean(parts[0]) &&
 		tokens.length > 0 &&
 		tokens.length % 3 === 0;
 	for (let index = 0; index < tokens.length; index += 3) {
@@ -101,7 +108,7 @@ function definition(key: string, value: string) {
 			quantity = nonnegative(tokens[index + 1]),
 			quality = nonnegative(tokens[index + 2]);
 		if (
-			!itemId ||
+			!(itemId != null && itemId !== "") ||
 			quantity === undefined ||
 			quantity < 1 ||
 			quality === undefined
@@ -114,7 +121,10 @@ function definition(key: string, value: string) {
 			itemId,
 			quantity,
 			quality,
-			currency: room?.id === 4 && /^-?\d+$/.test(itemId) && Number(itemId) <= 0,
+			currency:
+				room?.id === CCRoom.Vault &&
+				/^-?\d+$/.test(itemId) &&
+				Number(itemId) <= 0,
 		});
 	}
 	// Seal appearance is optional presentation, independent of editable progress.
@@ -124,7 +134,10 @@ function definition(key: string, value: string) {
 	const savedColor = nonnegative(parts[3]);
 	const color =
 		savedColor !== undefined && savedColor <= 6 ? savedColor : undefined;
-	const needed = parts[4] ? nonnegative(parts[4]) : requirements.length;
+	const needed =
+		parts[4] != null && parts[4] !== ""
+			? nonnegative(parts[4])
+			: requirements.length;
 	supported &&=
 		needed !== undefined && needed > 0 && needed <= requirements.length;
 	const rewardTokens = parts[1]?.trim().split(/\s+/) ?? [];
@@ -144,12 +157,12 @@ function definition(key: string, value: string) {
 	return {
 		id,
 		room: room?.id,
-		name: parts[6] || parts[0] || "Unknown bundle",
+		name: nonemptyText(parts[6]) ?? nonemptyText(parts[0]) ?? "Unknown bundle",
 		color,
 		requirements,
 		needed: needed ?? 0,
 		reward,
-		rewardMalformed: !!parts[1]?.trim() && !reward,
+		rewardMalformed: Boolean(parts[1]?.trim()) && !reward,
 		supported,
 	};
 }
@@ -168,7 +181,7 @@ export function inspectCommunity(document: SaveDocument) {
 		definitions: { entries: document.SaveGame.bundleData ?? [] },
 		progress: { entries: center?.bundles ?? [] },
 		rewards: { entries: center?.bundleRewards ?? [] },
-		supported: !!center,
+		supported: Boolean(center),
 	};
 }
 // These helpers accept decoded dictionary entries; only a failed lookup can
@@ -202,9 +215,9 @@ export function readCommunity(document: SaveDocument): CommunityView {
 			}).length !== 1;
 		const supported =
 			data.supported &&
-			!!parsed?.supported &&
+			parsed?.supported &&
 			!duplicate &&
-			!!flags &&
+			flags !== undefined &&
 			flags.length >= parsed.requirements.length;
 		const requirements =
 			parsed?.requirements.map((row) => ({
@@ -265,7 +278,7 @@ export function readCommunity(document: SaveDocument): CommunityView {
 			unlock: room.unlock,
 			note: "note" in room ? room.note : undefined,
 			completed:
-				children.length && children.every((row) => row.supported)
+				children.length > 0 && children.every((row) => row.supported)
 					? children.every((row) => row.completed)
 					: undefined,
 			restored: hostMail.entries.includes(room.flag),

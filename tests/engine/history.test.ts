@@ -1,8 +1,10 @@
 import { expect, it } from "@effect/vitest";
 import { Effect, Exit } from "effect";
+
 import type { MutationRequest } from "../../src/lib/editor/domain.ts";
-import { loadFixture, tinyFixture } from "./fixture.ts";
 import { makeHistorySession } from "../../src/lib/editor/history.ts";
+import { requireArray } from "../helpers/assertions.ts";
+import { loadFixture, tinyFixture } from "./fixture.ts";
 
 const money = (value: number): MutationRequest => ({
 	type: "money",
@@ -182,7 +184,7 @@ it.effect(
 					const snapshot = yield* session.snapshot;
 					snapshot.document.SaveGame.player.money = 999;
 					const review = yield* session.review;
-					(review.net as unknown[]).length = 0;
+					requireArray(review.net).length = 0;
 					expect((yield* session.snapshot).document.SaveGame.player.money).toBe(
 						20,
 					);

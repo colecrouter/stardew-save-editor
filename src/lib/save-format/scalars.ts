@@ -13,8 +13,8 @@ function floatingPoint(
 		Schema.isPattern(
 			/^[\t\n\r ]*(?:[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?|INF|-INF|NaN)[\t\n\r ]*$/,
 		),
-		Schema.makeFilter<string>((text) => {
-			const token = text.trim();
+		Schema.makeFilter<string>((nestedText2) => {
+			const token = nestedText2.trim();
 			// Explicit infinities are valid. Reject decimal overflow so an ordinary
 			// imported value cannot silently become infinite during numeric conversion.
 			return ["INF", "-INF", "NaN"].includes(token) ||
@@ -25,6 +25,7 @@ function floatingPoint(
 	);
 	// Non-finite values are intentional CLR/XML float values. Number rather than
 	// Finite admits their explicit tokens; the round check bounds edited Singles.
+	// oxlint-disable-next-line effecttsgo/schema-number -- CLR floats preserve explicit NaN and infinity tokens.
 	const number = Schema.Number.check(
 		Schema.makeFilter<number>((value) =>
 			!Number.isFinite(value) || Number.isFinite(round(value))
@@ -40,8 +41,8 @@ function floatingPoint(
 		Schema.decodeTo(
 			number,
 			SchemaTransformation.transform({
-				decode: (text) => {
-					const token = text.trim();
+				decode: (nestedText) => {
+					const token = nestedText.trim();
 					if (token === "INF") return Infinity;
 					if (token === "-INF") return -Infinity;
 					if (token === "NaN") return NaN;

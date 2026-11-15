@@ -1,6 +1,8 @@
 import { packRgba, rgbaHex } from "$lib/color.ts";
 import type { Color as ColorType } from "$types/save";
 
+import { nonemptyText } from "../editor/plain-data.ts";
+
 const RGB_REGEX = /^rgb\((\d{1,3}),\s*(\d{1,3}),\s*(\d{1,3})\)$/;
 
 // Type to make the specified keys optional, but keep the rest of the keys the same.
@@ -25,12 +27,12 @@ export class Color implements ColorType {
 
 		if (typeof color === "string") {
 			if (color.startsWith("#")) {
-				this.R = Number.parseInt(color.slice(1, 3) || "0", 16);
-				this.G = Number.parseInt(color.slice(3, 5) || "0", 16);
-				this.B = Number.parseInt(color.slice(5, 7) || "0", 16);
+				this.R = Number.parseInt(nonemptyText(color.slice(1, 3)) ?? "0", 16);
+				this.G = Number.parseInt(nonemptyText(color.slice(3, 5)) ?? "0", 16);
+				this.B = Number.parseInt(nonemptyText(color.slice(5, 7)) ?? "0", 16);
 				this.A =
 					color.length === 9
-						? Number.parseInt(color.slice(7, 9) || "255", 16)
+						? Number.parseInt(nonemptyText(color.slice(7, 9)) ?? "255", 16)
 						: 255;
 			} else if (color.match(RGB_REGEX)) {
 				// rgb(RRR, GGG, BBB)

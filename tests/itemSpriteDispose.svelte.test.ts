@@ -1,14 +1,16 @@
-import publicSaveXml from "./TestSave?raw";
 import { fireEvent, render } from "@testing-library/svelte";
 import { flushSync, tick } from "svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
 import { Gender } from "../codegen/save";
 import { SaveManager } from "../src/lib/SaveManager.svelte";
 import List from "../src/routes/(legacy)/(edit)/(list)/List.svelte";
 import Character from "../src/routes/(legacy)/(edit)/appearance/Character.svelte";
 import ItemSelect from "../src/routes/(legacy)/(edit)/inventory/ItemSelect.svelte";
 import NamedItemSprite from "../src/routes/(legacy)/(edit)/inventory/NamedItemSprite.svelte";
+import { requireInstance } from "./helpers/assertions.ts";
 import { trackItems } from "./helpers/trackItems";
+import publicSaveXml from "./TestSave?raw";
 
 const live = (created: ReturnType<typeof trackItems>) =>
 	created.filter((item) => item.disposed === 0).length;
@@ -73,7 +75,10 @@ describe("Item sprites drawn by name", () => {
 	it("disposes the add-item list's icons as the search changes", async () => {
 		const created = trackItems();
 		const page = render(ItemSelect, { onsubmit: () => {} });
-		const input = page.getByTestId("item-name") as HTMLInputElement;
+		const input = requireInstance(
+			page.getByTestId("item-name"),
+			HTMLInputElement,
+		);
 		await fireEvent.input(input, { target: { value: "Leek" } });
 		await tick();
 		await fireEvent.input(input, { target: { value: "Parsnip" } });
@@ -87,7 +92,7 @@ describe("Item sprites drawn by name", () => {
 		expect(created.every((item) => item.disposed === 1)).toBe(true);
 	});
 
-	it("disposes the appearance preview's stand-in clothes", async () => {
+	it("disposes the appearance preview's stand-in clothes", () => {
 		const created = trackItems();
 		const farmer = player();
 		const page = render(Character, { player: farmer });

@@ -1,7 +1,7 @@
+import { type FarmView, setFarmSettings } from "./farm-operations.ts";
 import { farmProfitLimits } from "./farm-settings.ts";
 import { bindImmediateField, type ImmediateEditPort } from "./field-binding.ts";
 import type { ImmediateField } from "./immediate-field.ts";
-import { setFarmSettings, type FarmView } from "./farm-operations.ts";
 
 // This adapter reads editable farm values only; creation explanations are not
 // part of its input contract and need not regain mutable array types here.

@@ -1,11 +1,12 @@
 import { Data, Effect, Result, Schema } from "effect";
-import { farmers, type Farmer, type SaveDocument } from "./domain.ts";
-import { TransactionDraft } from "./transaction-draft.ts";
+
+import { type Farmer, farmers, type SaveDocument } from "./domain.ts";
+import { recipeDefinitions, type RecipeKind } from "./recipe-data.ts";
 import {
 	recordAnnotatedOperation,
 	withReviewMetadata,
 } from "./transaction-annotations.ts";
-import { recipeDefinitions, type RecipeKind } from "./recipe-data.ts";
+import { TransactionDraft } from "./transaction-draft.ts";
 
 export class RecipeInvalid extends Data.TaggedError("RecipeInvalid")<{
 	readonly message: string;
@@ -57,23 +58,25 @@ function replaceEntries(
 ) {
 	owner[property] = entries;
 }
+// Optional presentation members may be omitted or explicitly unavailable.
+// These transient projections do not encode presence of serialized save fields.
 export interface RecipeRow {
 	name: string;
 	known: boolean;
 	supported: boolean;
-	reason?: string;
-	count?: number;
+	reason?: string | undefined;
+	count?: number | undefined;
 	hasCookedEntry: boolean;
 	countSupported: boolean;
-	countReason?: string;
-	outputName?: string;
-	outputId?: string;
+	countReason?: string | undefined;
+	outputName?: string | undefined;
+	outputId?: string | undefined;
 }
 export interface RecipeFarmerView {
 	farmerId: string;
 	name: string;
 	supported: boolean;
-	reason?: string;
+	reason?: string | undefined;
 	cooking: RecipeRow[];
 	crafting: RecipeRow[];
 }
@@ -88,7 +91,9 @@ function rows(owner: Farmer, kind: RecipeKind, unique: boolean): RecipeRow[] {
 		...definitions.map((row) => row.name),
 		...knowledge.entries.flatMap((entry) => {
 			const name = keyOf(entry);
-			return name && !definitions.some((row) => row.name === name)
+			return name != null &&
+				name !== "" &&
+				!definitions.some((row) => row.name === name)
 				? [name]
 				: [];
 		}),
@@ -135,7 +140,7 @@ function rows(owner: Farmer, kind: RecipeKind, unique: boolean): RecipeRow[] {
 				? undefined
 				: kind === "crafting" && !known
 					? "Learn this recipe before changing its crafted count."
-					: !outputId && kind === "cooking"
+					: !(outputId != null && outputId !== "") && kind === "cooking"
 						? "The output of this imported recipe is unknown; its cooked count cannot be edited safely."
 						: "This saved production counter is unsupported or ambiguous.",
 			outputName: definition?.outputName,
@@ -185,7 +190,7 @@ export const setRecipe = Effect.fn("Recipes.set")(function* (
 			message: "Choose a farmer with an unambiguous saved identifier.",
 		});
 	const row = rows(owner, request.recipeKind, true).find(
-		(row) => row.name === request.name,
+		(candidateRow) => candidateRow.name === request.name,
 	);
 	if (!row)
 		return yield* new RecipeInvalid({

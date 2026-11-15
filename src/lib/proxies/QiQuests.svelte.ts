@@ -1,4 +1,5 @@
 import { SvelteSet } from "svelte/reactivity";
+
 import qiQuestTemplates from "$generated/qiquests.json";
 import { totalDays } from "$lib/calendar";
 import type { SaveProxy } from "$lib/proxies/SaveFile.svelte";
@@ -9,7 +10,9 @@ import type {
 	SpecialOrdersSpecialOrder,
 	TileLocation,
 } from "$types/save";
+
 import { type DataProxy, Raw } from ".";
+import { writeOptionalField } from "../optional-field.ts";
 
 interface QiQuestObjectiveTemplate {
 	type: string;
@@ -64,7 +67,7 @@ const templatesByKey = new Map<string, QiQuestTemplate>(
 );
 
 function parseTileLocation(raw: string | undefined): TileLocation | undefined {
-	if (!raw) return undefined;
+	if (!(raw != null && raw !== "")) return undefined;
 	const [x, y] = raw.split(" ").map(Number);
 	if (x === undefined || y === undefined || Number.isNaN(x + y))
 		return undefined;
@@ -103,7 +106,7 @@ export class QiQuests
 		// as an array. Keep the normalized container attached for export.
 		const rawAvailable = saveData[Raw].SaveGame.availableSpecialOrders;
 		const available =
-			rawAvailable && typeof rawAvailable === "object"
+			rawAvailable !== null && typeof rawAvailable === "object"
 				? rawAvailable
 				: { SpecialOrder: [] };
 		available.SpecialOrder ??= [];
@@ -122,7 +125,7 @@ export class QiQuests
 		// the generated type doesn't capture - so this checks defensively.
 		const active = saveData[Raw].SaveGame.specialOrders;
 		const accepted =
-			active && typeof active === "object"
+			active !== null && typeof active === "object"
 				? active.SpecialOrder.filter((order) =>
 						templatesByKey.has(order.questKey),
 					).map((order) => order.questKey)
@@ -147,7 +150,7 @@ export class QiQuests
 	 */
 	stateOf(questKey: string): string | undefined {
 		const active = this.saveData[Raw].SaveGame.specialOrders;
-		if (!active || typeof active !== "object") return undefined;
+		if (active === null || typeof active !== "object") return undefined;
 		const orders = active.SpecialOrder.filter(
 			(order) => order.questKey === questKey,
 		);
@@ -165,13 +168,17 @@ export class QiQuests
 	removeInProgress(questKey: string): void {
 		const game = this.saveData[Raw].SaveGame;
 		const active = game.specialOrders;
-		if (!templatesByKey.has(questKey) || !active || typeof active !== "object")
+		if (
+			!templatesByKey.has(questKey) ||
+			active === null ||
+			typeof active !== "object"
+		)
 			return;
 		const cancelled = active.SpecialOrder.filter(
 			(order) =>
 				order.questKey === questKey && order.questState === "InProgress",
 		);
-		if (!cancelled.length) return;
+		if (!(cancelled.length !== 0)) return;
 		active.SpecialOrder = active.SpecialOrder.filter(
 			(order) => !cancelled.includes(order),
 		);
@@ -208,41 +215,42 @@ export class QiQuests
 	 * defaults for fields that only make sense once an order is live
 	 * (generation seed, participant/reward-claim state, due date).
 	 */
-	private buildEntry(
-		template: QiQuestTemplate,
-	): AvailableSpecialOrdersSpecialOrder {
+	private buildEntry(template: QiQuestTemplate) {
 		const { year, currentSeason, dayOfMonth } = this.saveData[Raw].SaveGame;
 		// Special-order deadlines use WorldDate.TotalDays (Spring 1, year 1 = 0),
 		// not the selected farmer's legacy daysPlayed statistic.
 		const today = totalDays({ year, season: currentSeason, day: dayOfMonth });
 
-		const objectives: QiObjective[] = template.objectives.map((objective) => ({
-			"@_xsi:type": `${objective.type}Objective`,
-			currentCount: 0,
-			maxCount: objective.maxCount,
-			description: objective.description,
-			failOnCompletion: false,
-			acceptableContextTagSets: objective.acceptableContextTagSets,
-			...(objective.dropBox
-				? {
-						dropBox: objective.dropBox,
-						dropBoxGameLocation: objective.dropBoxGameLocation,
-						dropBoxTileLocation: parseTileLocation(
-							objective.dropBoxTileLocation,
-						),
-						confirmed: false,
-					}
-				: {}),
-			...(objective.minimumCapacity !== undefined
-				? { minimumCapacity: objective.minimumCapacity }
-				: {}),
-			...(objective.useShipmentValue !== undefined
-				? { useShipmentValue: objective.useShipmentValue }
-				: {}),
-			...(objective.skullCave !== undefined
-				? { skullCave: objective.skullCave }
-				: {}),
-		}));
+		const objectives: QiObjective[] = template.objectives.map((objective) => {
+			const entry: QiObjective = {
+				"@_xsi:type": `${objective.type}Objective`,
+				currentCount: 0,
+				maxCount: objective.maxCount,
+				description: objective.description,
+				failOnCompletion: false,
+				acceptableContextTagSets: objective.acceptableContextTagSets,
+			};
+			// Empty or unreadable optional metadata stays absent in the serialized
+			// objective; explicit scalar values retain the template's representation.
+			if (objective.dropBox != null && objective.dropBox !== "") {
+				entry.dropBox = objective.dropBox;
+				writeOptionalField(
+					entry,
+					"dropBoxGameLocation",
+					objective.dropBoxGameLocation,
+				);
+				writeOptionalField(
+					entry,
+					"dropBoxTileLocation",
+					parseTileLocation(objective.dropBoxTileLocation),
+				);
+				entry.confirmed = false;
+			}
+			writeOptionalField(entry, "minimumCapacity", objective.minimumCapacity);
+			writeOptionalField(entry, "useShipmentValue", objective.useShipmentValue);
+			writeOptionalField(entry, "skullCave", objective.skullCave);
+			return entry;
+		});
 
 		const rewards: QiReward[] = [
 			{ "@_xsi:type": "GemsReward", amount: { int: template.rewardGems } },
@@ -272,10 +280,10 @@ export class QiQuests
 			dueDate: today + template.durationDays,
 			duration: template.duration,
 			questState: "InProgress",
-		};
+		} satisfies AvailableSpecialOrdersSpecialOrder;
 	}
 
-	add(questKey: string): this {
+	override add(questKey: string): this {
 		if (this.has(questKey)) return this;
 
 		const template = templatesByKey.get(questKey);
@@ -310,19 +318,17 @@ export class QiQuests
 		if (!this.has(questKey)) {
 			if (this.size >= MAX_AVAILABLE_ORDERS) {
 				const toEvict = [...templatesByKey.keys()].find((key) => this.has(key));
-				if (toEvict) this.delete(toEvict);
+				if (toEvict != null && toEvict !== "") this.delete(toEvict);
 			}
 			this.add(questKey);
 		}
 
 		this.delete(questKey);
 
-		const entry = this.buildEntry(
-			template,
-		) as unknown as SpecialOrdersSpecialOrder;
+		const entry = this.buildEntry(template);
 
 		const active = this.saveData[Raw].SaveGame.specialOrders;
-		if (active && typeof active === "object") {
+		if (active !== null && typeof active === "object") {
 			active.SpecialOrder.push(entry);
 		} else {
 			this.saveData[Raw].SaveGame.specialOrders = { SpecialOrder: [entry] };
@@ -332,7 +338,7 @@ export class QiQuests
 		return this;
 	}
 
-	delete(questKey: string): boolean {
+	override delete(questKey: string): boolean {
 		if (!this.has(questKey)) return false;
 
 		this[Raw].SpecialOrder = this[Raw].SpecialOrder.filter(

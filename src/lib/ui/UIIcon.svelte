@@ -1,12 +1,14 @@
 <script lang="ts">
 	import { untrack } from "svelte";
+
 	import AtlasRegion from "./AtlasRegion.svelte";
 	import {
 		getUiAssets,
-		uiIcons,
 		uiIconAtlases,
 		type UiIconName,
+		uiIcons,
 	} from "./uiAssets";
+
 	let {
 		name,
 		label,

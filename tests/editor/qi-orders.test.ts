@@ -1,18 +1,20 @@
-import { Effect } from "effect";
 import { it } from "@effect/vitest";
+import { Effect } from "effect";
 import { describe, expect } from "vitest";
-import {
-	tinyFixture,
-	parser,
-	exportDocument,
-} from "../helpers/editor-document.ts";
+
+import type { EditorGame } from "$lib/editor/domain.ts";
+
+import templates from "../../generated/qiquests.json";
 import { makeHistorySession } from "../../src/lib/editor/history.ts";
 import {
 	readQiOrders,
 	setQiOrder,
 } from "../../src/lib/editor/qi-order-operations.ts";
-import templates from "../../generated/qiquests.json";
-import type { EditorGame } from "$lib/editor/domain.ts";
+import {
+	exportDocument,
+	parser,
+	tinyFixture,
+} from "../helpers/editor-document.ts";
 
 function fixture(
 	board: EditorGame["availableSpecialOrders"] = [],
@@ -144,9 +146,9 @@ describe("Qi order transactions", () => {
 				for (const template of templates) {
 					const document = fixture();
 					const row = readQiOrders(document).rows.find(
-						(row) => row.key === template.questKey,
+						(candidateRow) => candidateRow.key === template.questKey,
 					);
-					if (!row?.acceptAvailable) {
+					if (row?.acceptAvailable !== true) {
 						// Unimplemented game objectives must never become invalid new XML.
 						expect(row?.reason).toBe(
 							"This challenge cannot be created by this editor.",
@@ -169,13 +171,13 @@ describe("Qi order transactions", () => {
 									: 151 + template.durationDays;
 					expect(
 						readQiOrders(after.document).rows.find(
-							(row) => row.key === template.questKey,
+							(candidateRow) => candidateRow.key === template.questKey,
 						)?.dueDate,
 					).toBe(due);
 					const parsed = parser.parse(exportDocument(after.document));
 					expect(
 						readQiOrders(parsed).rows.find(
-							(row) => row.key === template.questKey,
+							(candidateRow) => candidateRow.key === template.questKey,
 						)?.state,
 					).toBe("InProgress");
 				}
@@ -241,8 +243,9 @@ describe("Qi order transactions", () => {
 				]) {
 					const session = yield* makeHistorySession(document);
 					const key =
-						readQiOrders(document).rows.find((row) => row.state)?.key ??
-						"QiChallenge3";
+						readQiOrders(document).rows.find(
+							(row) => row.state != null && row.state.length > 0,
+						)?.key ?? "QiChallenge3";
 					const result = yield* Effect.result(
 						session.transact(setQiOrder({ kind: "cancel", key })),
 					);
@@ -283,7 +286,10 @@ describe("Qi order transactions", () => {
 					readQiOrders(document).rows.find(
 						(row) => row.key === "QiChallenge11",
 					),
-				).toMatchObject({ offerAvailable: false, acceptAvailable: false });
+				).toMatchObject({
+					offerAvailable: false,
+					acceptAvailable: false,
+				});
 				const session = yield* makeHistorySession(document);
 				const result = yield* Effect.result(
 					session.transact(

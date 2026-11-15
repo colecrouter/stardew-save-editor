@@ -1,24 +1,26 @@
-import { ItemData } from "../../src/lib/ItemData.ts";
-import { Sprite } from "../../src/lib/Sprite.svelte.ts";
 import { it } from "@effect/vitest";
-import { describe, expect } from "vitest";
 import { Effect } from "effect";
-import { tinyFixture } from "../helpers/editor-document.ts";
-import { makeHistorySession } from "../../src/lib/editor/history.ts";
-import {
-	readAppearances,
-	setAppearance,
-	type AppearanceChange,
-} from "../../src/lib/editor/appearance-operations.ts";
-import { appearanceLayers } from "../../src/lib/editor/appearance-preview.ts";
-import { packRgba } from "../../src/lib/color.ts";
+import { describe, expect } from "vitest";
+
 import {
 	PrimaryBootColors,
+	QuaternaryBootColors,
 	SecondaryBootColors,
 	TertiaryBootColors,
-	QuaternaryBootColors,
 } from "../../src/lib/CharacterColors.ts";
+import { packRgba } from "../../src/lib/color.ts";
+import {
+	type AppearanceChange,
+	readAppearances,
+	setAppearance,
+} from "../../src/lib/editor/appearance-operations.ts";
+import { appearanceLayers } from "../../src/lib/editor/appearance-preview.ts";
 import type { Farmer } from "../../src/lib/editor/domain.ts";
+import { makeHistorySession } from "../../src/lib/editor/history.ts";
+import { ItemData } from "../../src/lib/ItemData.ts";
+import { Sprite } from "../../src/lib/Sprite.svelte.ts";
+import { malformedFixture, tinyFixture } from "../helpers/editor-document.ts";
+
 function fixture() {
 	const document = tinyFixture();
 	Object.assign(document.SaveGame.player, {
@@ -183,7 +185,9 @@ describe("appearance operations", () => {
 			];
 			for (const request of requests) {
 				const outcome = yield* Effect.result(
-					session.transact(setAppearance(request as AppearanceChange)),
+					session.transact(
+						setAppearance(malformedFixture<AppearanceChange>(request)),
+					),
 				);
 				expect(outcome._tag).toBe("Failure");
 			}
@@ -236,8 +240,9 @@ describe("appearance operations", () => {
 		() =>
 			Effect.gen(function* () {
 				const document = fixture(),
-					guest = document.SaveGame.farmhands && document.SaveGame.farmhands[0];
-				if (!guest) throw new Error("Missing guest");
+					guest = document.SaveGame.farmhands[0];
+				if (guest == null || guest["length"] === 0)
+					throw new Error("Missing guest");
 				Object.assign(guest, { favoriteThing: "Guest favorite" });
 				const session = yield* makeHistorySession(document);
 				yield* session.transact(
@@ -245,7 +250,9 @@ describe("appearance operations", () => {
 				);
 				expect(
 					(yield* session.snapshot).document.SaveGame.player,
-				).toMatchObject({ favoriteThing: "Stars" });
+				).toMatchObject({
+					favoriteThing: "Stars",
+				});
 				expect(
 					readAppearances((yield* session.snapshot).document).find(
 						(view) => view.farmerId === "2",
@@ -296,7 +303,8 @@ it("keeps complete feet for omitted and nil boots on both body types", () => {
 				hair: 0,
 				accessory: -1,
 				shoes: "7",
-				...(boots ? { boots } : {}),
+				// Preserve omission as a distinct saved representation from explicit nil.
+				...(boots === undefined ? {} : { boots }),
 			};
 			const before = structuredClone(raw);
 			const layers = appearanceLayers(raw).layers.filter(
@@ -337,7 +345,9 @@ it("uses default feet without a supported saved palette and preserves equipped b
 		return [c.R, c.G, c.B, c.A];
 	};
 	for (const shoes of [undefined, "custom:7", "-1", "9999"])
-		expect(primary({ ...base, shoes })).toEqual(expected(2));
+		expect(
+			primary({ ...base, ...(shoes === undefined ? {} : { shoes }) }),
+		).toEqual(expected(2));
 	const equipped = {
 		...base,
 		shoes: "2",

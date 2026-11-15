@@ -1,22 +1,26 @@
 <script lang="ts">
-	import { Result, type Layer } from "effect";
-	import type { SaveProcessor } from "../save-processing.ts";
-	import {
-		runBackupCommand,
-		writeOriginalBackup,
-	} from "../backup-operations.ts";
+	import * as Sentry from "@sentry/sveltekit";
+	import { type Layer, Result } from "effect";
+	import { RegistryProvider } from "effect-atom-svelte";
+	import { onDestroy, tick } from "svelte";
+
 	import {
 		chooseSaveDestination,
 		type SaveDownloadStage,
 	} from "../../downloadSave.ts";
-	import * as Sentry from "@sentry/sveltekit";
-	import { onDestroy, tick } from "svelte";
-	import { RegistryProvider } from "effect-atom-svelte";
-	import { SaveReadError, describeImportError } from "../save-service.ts";
+	import {
+		runBackupCommand,
+		writeOriginalBackup,
+	} from "../backup-operations.ts";
 	import { openEditorBlob } from "../editor-model.ts";
+	import type { SaveProcessor } from "../save-processing.ts";
+	import { describeImportError, SaveReadError } from "../save-service.ts";
 	import EditorWorkspace from "./EditorWorkspace.svelte";
 	import UploadPanel from "./UploadPanel.svelte";
+
+	// Apply theme refinements after EditorWorkspace registers native control styles.
 	import "../../ui/study-theme.css";
+
 	interface Props {
 		includeProofs?: boolean;
 		legacyHref?: string;
@@ -124,7 +128,7 @@
 	// work runs must not trigger a download for the wrong active workspace.
 	async function download(mode: "picker" | "download" = "picker") {
 		const current = active;
-		if (!current || downloading) return;
+		if (!current || downloading) return undefined;
 		// Per-attempt context never includes the filename or document. Keep it local
 		// so overlapping teardown/replacement cannot attach another save's context.
 		const started = performance.now();
@@ -160,15 +164,15 @@
 					stage = next;
 				},
 			);
-			if (active !== current) return;
+			if (active !== current) return undefined;
 			if (!destination) {
 				outcome("cancelled");
-				return;
+				return undefined;
 			}
 			downloadStatus = "Preparing save…";
 			stage = "export";
 			const result = await current.model.commands.export();
-			if (!result || active !== current) return;
+			if (!result || active !== current) return undefined;
 			if (Result.isFailure(result)) {
 				outcome("export_rejected");
 				// The workspace displays returned failures itself. Recovery runs
@@ -216,6 +220,8 @@
 			// A previous session must not clear a replacement's pending state.
 			if (active === current) downloading = false;
 		}
+		// Feedback is published in state; only rejected commands return a failure.
+		return undefined;
 	}
 
 	onDestroy(() => {
@@ -224,7 +230,10 @@
 	});
 </script>
 
-<div class="editor-application" class:has-session={!!active}>
+<div
+	class="editor-application"
+	class:has-session={!!active}
+>
 	{#if active}
 		{#if opening}
 			<p role="status">{openingStatus}</p>
@@ -253,7 +262,8 @@
 			<details class="validation">
 				<summary>Imported save has existing problems</summary>
 				<ul>
-					{#each [...active.model.loadValidation.errors, ...active.model.loadValidation.warnings] as problem}
+					<!-- Diagnostic positions preserve repeated messages within this immutable load report. -->
+					{#each [...active.model.loadValidation.errors, ...active.model.loadValidation.warnings] as problem, index (index)}
 						<li>
 							{problem}
 						</li>

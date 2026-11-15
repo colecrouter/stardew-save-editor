@@ -1,14 +1,19 @@
-import { render, cleanup } from "@testing-library/svelte";
-import type { BeforeNavigate } from "$app/navigation";
-import { beforeNavigate } from "$app/navigation";
+import { cleanup, render } from "@testing-library/svelte";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
+
+import { type BeforeNavigate, beforeNavigate } from "$app/navigation";
+
 import RootLayout from "../src/routes/+layout.svelte";
 import { updated } from "./helpers/navigation-state.svelte";
 
 // The root layout serves both editors, so its deployment handling stays in the default suite.
-vi.mock("$app/state", async () => import("./helpers/navigation-state.svelte"));
+vi.mock("$app/state", () =>
+	Promise.resolve(import("./helpers/navigation-state.svelte")),
+);
 vi.mock("$app/env", () => ({ browser: true }));
-vi.mock("$app/navigation", () => ({ beforeNavigate: vi.fn() }));
+vi.mock("$app/navigation", () => ({
+	beforeNavigate: vi.fn<typeof import("$app/navigation").beforeNavigate>(),
+}));
 
 beforeEach(() => {
 	vi.clearAllMocks();
@@ -30,7 +35,9 @@ it("reloads client navigation only after a newer deployment is detected", ({
 	if (!navigate) throw new Error("Root layout did not register beforeNavigate");
 	// Location is non-configurable in a browser. Observe and cancel its native
 	// navigation event so the real assignment is checked without leaving the test.
-	const href = vi.fn((event: NavigateEvent) => event.preventDefault());
+	const href = vi.fn<(event: NavigateEvent) => void>((event) =>
+		event.preventDefault(),
+	);
 	window.navigation.addEventListener("navigate", href);
 	onTestFinished(() => window.navigation.removeEventListener("navigate", href));
 	const navigation: BeforeNavigate = {
@@ -45,7 +52,7 @@ it("reloads client navigation only after a newer deployment is detected", ({
 		},
 		willUnload: false,
 		complete: Promise.resolve(),
-		cancel: vi.fn(),
+		cancel: vi.fn<() => void>(),
 	};
 
 	navigate(navigation);

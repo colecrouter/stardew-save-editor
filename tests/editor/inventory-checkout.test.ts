@@ -1,11 +1,12 @@
-import type * as ItemCatalog from "../../src/lib/ItemData.ts";
-import { setStorageQuality } from "../../src/lib/editor/storage-operations";
 import { it } from "@effect/vitest";
-import { expect, vi } from "vitest";
 import { Effect, Result } from "effect";
+import { expect, vi } from "vitest";
+
 import { makeHistorySession } from "../../src/lib/editor/history";
 import { setInventoryItem } from "../../src/lib/editor/inventory-operations";
+import { setStorageQuality } from "../../src/lib/editor/storage-operations";
 import { TransactionDraft } from "../../src/lib/editor/transaction-draft";
+import type * as ItemCatalog from "../../src/lib/ItemData.ts";
 import { tinyFixture } from "../helpers/editor-document.ts";
 
 // Catalog resolution happens after checkout and can yield on module loading.
@@ -50,7 +51,8 @@ it.effect.each([8, 3])(
 			const session = yield* makeHistorySession(fixture());
 			const before = yield* session.snapshot;
 			const entityId = before.identities["1"]?.[0];
-			if (!entityId) throw new Error("Missing fixture identity");
+			if (entityId == null || entityId.length === 0)
+				throw new Error("Missing fixture identity");
 			const after = yield* session.transact(
 				Effect.gen(function* () {
 					const draft = yield* TransactionDraft;
@@ -92,9 +94,10 @@ it.effect("detaches checkout data before metadata handling can modify it", () =>
 		const session = yield* makeHistorySession(fixture());
 		const before = yield* session.snapshot;
 		const entityId = before.identities["1"]?.[0];
-		if (!entityId) throw new Error("Missing fixture identity");
+		if (entityId == null || entityId.length === 0)
+			throw new Error("Missing fixture identity");
 		catalogHook.run = (item) => {
-			if (!item || typeof item !== "object")
+			if (item === null || typeof item !== "object")
 				throw new Error("Missing checkout item");
 			// A metadata consumer accidentally modifying its input must affect only
 			// that detached checkout, never the baseline or fields outside its patch.
@@ -156,6 +159,7 @@ it.effect.each([0, 4])(
 );
 function handleFor(state: { identities: Record<string, string[]> }) {
 	const id = state.identities["1"]?.[0];
-	if (!id) throw new Error("Missing fixture identity");
+	if (id == null || id.length === 0)
+		throw new Error("Missing fixture identity");
 	return id;
 }

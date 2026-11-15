@@ -1,5 +1,5 @@
-import publicSaveXml from "./TestSave?raw";
 import { beforeAll, describe, expect, it, vi } from "vitest";
+
 import {
 	describeProblems,
 	describeResult,
@@ -7,6 +7,9 @@ import {
 } from "$lib/saveValidation";
 import { XMLManager } from "$lib/workers/xml";
 import type { Season } from "$types/save";
+
+import { malformedFixture } from "./helpers/editor-document.ts";
+import publicSaveXml from "./TestSave?raw";
 
 // Validation is shared by both editors; keep its rule coverage in the default suite.
 const locationNamed = (parsed: SaveFile, name: string) => {
@@ -64,7 +67,7 @@ describe("malformed scalar validation", () => {
 
 	it("reports malformed fields without invoking their coercion hooks", () => {
 		const parsed = save();
-		const coerce = vi.fn(() => {
+		const coerce = vi.fn<() => never>(() => {
 			throw new Error("must not coerce saved objects");
 		});
 		const malformed = { toString: coerce };
@@ -105,7 +108,7 @@ describe("validateSave", () => {
 	const loadParsed = () => structuredClone(fixture);
 
 	// Setup uses the shared hook deadline independently of the test-body deadline.
-	beforeAll(async () => {
+	beforeAll(() => {
 		fixture = new XMLManager().parse<SaveFile>(publicSaveXml);
 	});
 
@@ -193,14 +196,14 @@ describe("validateSave", () => {
 		[
 			"an item quality the game can't read",
 			(p: SaveFile) => {
-				firstItemWithQuality(p).quality = "high" as unknown as number;
+				firstItemWithQuality(p).quality = malformedFixture<number>("high");
 			},
 			"1 item has a quality the game can't read",
 		],
 		[
 			"a season the game can't read",
 			(p: SaveFile) => {
-				p.SaveGame.currentSeason = "autumn" as Season;
+				p.SaveGame.currentSeason = malformedFixture<Season>("autumn");
 			},
 			"The season (autumn) isn't spring, summer, fall or winter",
 		],
@@ -214,7 +217,7 @@ describe("validateSave", () => {
 		[
 			"a day of the month the game can't read",
 			(p: SaveFile) => {
-				p.SaveGame.dayOfMonth = "first" as unknown as number;
+				p.SaveGame.dayOfMonth = malformedFixture<number>("first");
 			},
 			"The day of the month (first) isn't a number the game can read",
 		],
@@ -345,7 +348,7 @@ describe("validateSave", () => {
 		(value) => {
 			const parsed = loadParsed();
 			daysPlayedStat(parsed.SaveGame.player).value.unsignedInt =
-				value as number;
+				malformedFixture<number>(value);
 			const result = validateSave(parsed);
 			expect(result.valid).toBe(false);
 			expect(result.errors).toEqual([

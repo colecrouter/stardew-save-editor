@@ -1,10 +1,20 @@
 import { it } from "@effect/vitest";
-import { describe, expect } from "vitest";
 import { Effect, Result } from "effect";
+import { describe, expect } from "vitest";
+
 import { makeHistorySession } from "../../src/lib/editor/history";
-import { openTestDocument } from "../helpers/open-editor.ts";
 import type { InventoryMoveRequest } from "../../src/lib/editor/inventory-movement.ts";
-import { tinyFixture, tinyEditorFixture } from "../helpers/editor-document.ts";
+import {
+	requireDefined,
+	requireRecord,
+	requireStoredSlot,
+} from "../helpers/assertions.ts";
+import {
+	malformedFixture,
+	tinyEditorFixture,
+	tinyFixture,
+} from "../helpers/editor-document.ts";
+import { openTestDocument } from "../helpers/open-editor.ts";
 
 const required = <A>(value: A | undefined): A => {
 	if (value === undefined) throw Error("Missing fixture handle");
@@ -15,8 +25,7 @@ function fixture(hostSlots = 12, guestSlots = 24) {
 	const nil = (_index: number) => null;
 	// Imported/modded arrays define the actual addressable slots; maxItems is
 	// preserved metadata rather than authority to invent or truncate records.
-	(document.SaveGame.player as unknown as Record<string, unknown>).maxItems =
-		36;
+	requireRecord(document.SaveGame.player)["maxItems"] = 36;
 	document.SaveGame.player.items = Array.from(
 		{ length: hostSlots },
 		(_, index) => nil(index),
@@ -30,11 +39,11 @@ function fixture(hostSlots = 12, guestSlots = 24) {
 	};
 	if (!Array.isArray(document.SaveGame.farmhands))
 		throw Error("Expected farmhand");
-	document.SaveGame.farmhands[0]!.items = Array.from(
+	requireDefined(document.SaveGame.farmhands[0]).items = Array.from(
 		{ length: guestSlots },
 		(_, index) => nil(index),
 	);
-	document.SaveGame.farmhands[0]!.items[guestSlots - 1] = {
+	requireDefined(document.SaveGame.farmhands[0]).items[guestSlots - 1] = {
 		$type: "StardewValley.Object",
 		itemId: "target",
 		name: "Other",
@@ -76,10 +85,10 @@ describe("backpack moving and swapping", () => {
 				const expected = structuredClone(original);
 				if (!Array.isArray(expected.SaveGame.farmhands))
 					throw Error("Expected farmhand");
-				const guest = expected.SaveGame.farmhands[0]!;
+				const guest = requireDefined(expected.SaveGame.farmhands[0]);
 				[expected.SaveGame.player.items[0], guest.items[guestSlots - 2]] = [
-					guest.items[guestSlots - 2]!,
-					expected.SaveGame.player.items[0]!,
+					requireStoredSlot(guest.items[guestSlots - 2]),
+					requireDefined(expected.SaveGame.player.items[0]),
 				];
 				expect(moved.document).toEqual(expected);
 				expect(moved.identities["2"]?.[guestSlots - 2]).toBe(move.entityId);
@@ -120,7 +129,7 @@ describe("backpack moving and swapping", () => {
 			Effect.gen(function* () {
 				const document = fixture();
 				document.SaveGame.player.items[1] = structuredClone(
-					document.SaveGame.player.items[0]!,
+					requireDefined(document.SaveGame.player.items[0]),
 				);
 				const session = yield* makeHistorySession(document);
 				const before = yield* session.snapshot;
@@ -188,7 +197,7 @@ describe("backpack moving and swapping", () => {
 				const document = fixture();
 				if (!Array.isArray(document.SaveGame.farmhands))
 					throw Error("Expected farmhand");
-				document.SaveGame.farmhands.push(null as never, {
+				document.SaveGame.farmhands.push(malformedFixture<never>(null), {
 					name: "Placeholder",
 					items: [],
 				});
@@ -223,11 +232,11 @@ describe("backpack moving and swapping", () => {
 					throw Error("Expected farmhand");
 				document.SaveGame.farmhands.push(
 					{
-						...structuredClone(document.SaveGame.farmhands[0]!),
+						...structuredClone(requireDefined(document.SaveGame.farmhands[0])),
 						UniqueMultiplayerID: 3n,
 					},
 					{
-						...structuredClone(document.SaveGame.farmhands[0]!),
+						...structuredClone(requireDefined(document.SaveGame.farmhands[0])),
 						UniqueMultiplayerID: 3n,
 					},
 				);
@@ -245,7 +254,9 @@ describe("backpack moving and swapping", () => {
 					expect(
 						Result.isFailure(
 							yield* Effect.result(
-								session.execute([input as InventoryMoveRequest]),
+								session.execute([
+									malformedFixture<InventoryMoveRequest>(input),
+								]),
 							),
 						),
 					).toBe(true);

@@ -8,5 +8,3 @@ declare global {
 		// interface Platform {}
 	}
 }
-
-export type {};

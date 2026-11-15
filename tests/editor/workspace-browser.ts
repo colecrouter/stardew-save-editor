@@ -1,4 +1,5 @@
 import { render } from "vitest-browser-svelte";
+
 import type { SaveDocument } from "../../src/lib/editor/domain.ts";
 import { openTestDocument } from "../helpers/open-editor.ts";
 import WorkspaceHarness from "./WorkspaceHarness.svelte";
@@ -29,7 +30,8 @@ export async function renderBrowserWorkspace(
 	try {
 		const page = await render(WorkspaceHarness, { model: opened.model });
 		unmount = page.unmount;
-		if (section) await page.getByRole("link", { name: section }).click();
+		if (section !== undefined && section !== "")
+			await page.getByRole("link", { name: section }).click();
 		return { ...opened, page: { ...page, unmount: unmountView }, dispose };
 	} catch (cause) {
 		// Acquisition failures have no caller to release the partially opened file.

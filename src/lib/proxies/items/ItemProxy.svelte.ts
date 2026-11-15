@@ -1,4 +1,5 @@
 import * as Sentry from "@sentry/sveltekit";
+
 import {
 	CategoriesWithQuality,
 	ItemNameHelper,
@@ -8,7 +9,10 @@ import {
 import { Sprite } from "$lib/Sprite.svelte";
 import type { ItemInformation } from "$types/items";
 import type { Item } from "$types/save";
+
 import { type DataProxy, Dispose, Raw } from "..";
+import { nonemptyText } from "../../editor/plain-data.ts";
+
 export { Raw };
 
 export type ReportedMissingItemMetadata = {
@@ -58,8 +62,8 @@ export class BaseItemProxy<
 	public [Raw]: RawModel;
 	public [Dispose]?: () => void;
 
-	readonly info?: ItemInformation;
-	readonly sprite?: Sprite;
+	readonly info: ItemInformation | undefined;
+	readonly sprite: Sprite | undefined;
 
 	public quality: number | undefined;
 	public isRecipe: boolean | undefined;
@@ -113,7 +117,8 @@ export class BaseItemProxy<
 	}
 
 	private computeQuality() {
-		if (!this[Raw].category) return undefined;
+		if (this[Raw].category === undefined || this[Raw].category === 0)
+			return undefined;
 		if (!CategoriesWithQuality.has(this[Raw].category)) return undefined;
 		return this[Raw].quality;
 	}
@@ -167,18 +172,18 @@ export class BaseItemProxy<
 }
 
 function ensureItemName(raw: Item) {
-	if (raw.name) return;
-	if (!raw._type) return;
+	if (raw.name != null && raw.name !== "") return;
+	if (!(raw._type != null && raw._type !== "")) return;
 
 	const lookupKey = normalizeItemKey(raw.itemId);
-	if (!lookupKey) return;
+	if (!(lookupKey != null && lookupKey !== "")) return;
 
 	try {
 		raw.name = KeyToName(lookupKey, raw._type);
 	} catch {
 		if (raw._type === "Trinket" && typeof raw.itemId === "string") {
 			const trinketKey = stripParenthesizedNumber(raw.itemId);
-			if (trinketKey) {
+			if (trinketKey !== "") {
 				try {
 					raw.name = KeyToName(trinketKey, "Trinket");
 				} catch {
@@ -193,7 +198,7 @@ function normalizeItemKey(itemId: Item["itemId"]): string | undefined {
 	if (itemId == null) return undefined;
 	if (typeof itemId === "number") return itemId.toString();
 	if (typeof itemId === "string")
-		return stripParenthesizedNumber(itemId) || undefined;
+		return nonemptyText(stripParenthesizedNumber(itemId));
 	return undefined;
 }
 

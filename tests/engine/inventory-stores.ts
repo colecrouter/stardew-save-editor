@@ -1,19 +1,20 @@
 import { Cause, Effect, Fiber, Stream } from "effect";
 import { derived, get, type Readable, readable, writable } from "svelte/store";
+
 import { farmers } from "../../src/lib/editor/domain.ts";
 import {
 	type HistorySession,
-	type InventoryModel,
 	inventory,
+	type InventoryModel,
+	makeStackField,
 	sameView,
 	stackAction,
-	makeStackField,
 } from "./inventory-model.ts";
 
 export const makeStoreInventory = (session: HistorySession) =>
 	Effect.gen(function* () {
 		// UI callbacks run later; retain the session services at this boundary.
-		const services = yield* Effect.context<never>();
+		const services = yield* Effect.context();
 		const scope = yield* Effect.scope;
 		const initial = yield* session.snapshot;
 		let liveStreams = 0;
@@ -47,14 +48,17 @@ export const makeStoreInventory = (session: HistorySession) =>
 			String(initial.document.SaveGame.player.UniqueMultiplayerID),
 		);
 		const slot = writable(0);
-		const items = derived([state, farmer], ([state, id]) =>
-			inventory(state, id),
+		const items = derived([state, farmer], ([candidateState, id]) =>
+			inventory(candidateState, id),
 		);
-		const selected = derived([items, slot], ([items, slot]) => items[slot]);
+		const selected = derived(
+			[items, slot],
+			([candidateItems, candidateSlot]) => candidateItems[candidateSlot],
+		);
 		const money = derived(
 			[state, farmer],
-			([state, id]) =>
-				farmers(state.document).find(
+			([candidateState, id]) =>
+				farmers(candidateState.document).find(
 					(player) => String(player.UniqueMultiplayerID) === id,
 				)?.money ?? 0,
 		);
@@ -88,18 +92,22 @@ export const makeStoreInventory = (session: HistorySession) =>
 			},
 		});
 		return {
-			historyUsage: derived(state, (state) => ({
-				bytes: state.retainedBytes,
-				dropped: state.dropped,
+			historyUsage: derived(state, (candidateState) => ({
+				bytes: candidateState.retainedBytes,
+				dropped: candidateState.dropped,
 			})),
 			kind: "store",
 			stackField: makeStackField(session, state, farmer, slot, services),
 			items: distinct(items),
 			selected: distinct(selected),
 			money,
-			canUndo: derived(state, (state) => state.cursor > 0),
-			canRedo: derived(state, (state) => state.cursor < state.entries.length),
-			count: derived(state, (state) => state.cursor),
+			canUndo: derived(state, (candidateState) => candidateState.cursor > 0),
+			canRedo: derived(
+				state,
+				(candidateState) =>
+					candidateState.cursor < candidateState.entries.length,
+			),
+			count: derived(state, (candidateState) => candidateState.cursor),
 			error,
 			stack: {
 				...derived(selected, (item) => item?.stack ?? 0),

@@ -1,8 +1,10 @@
+import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { deflateSync } from "node:zlib";
-import { createHash } from "node:crypto";
+
 import { expect, it } from "@effect/vitest";
 import { Effect, Result } from "effect";
+
 import { openEditor } from "../../src/lib/editor/editor-model.ts";
 import { SaveProcessor } from "../../src/lib/editor/save-processing.ts";
 import { parser } from "../helpers/editor-document.ts";

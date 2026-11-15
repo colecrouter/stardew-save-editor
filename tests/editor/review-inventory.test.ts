@@ -1,26 +1,28 @@
-import { Effect } from "effect";
 import { it } from "@effect/vitest";
-import { expect, expectTypeOf } from "vitest";
+import { Effect } from "effect";
+import { expect } from "vitest";
+
+import { discoverPlacedChests } from "../../src/lib/editor/chest-storage";
 import { makeHistorySession } from "../../src/lib/editor/history";
-import {
-	projectInventoryReview,
-	type InventoryItemFieldChange,
-	type InventoryReviewFields,
-} from "../../src/lib/editor/review-inventory";
-import type { ItemPropertyChange } from "../../src/lib/editor/item-properties";
 import {
 	setInventoryItem,
 	setInventoryItemProperty,
 } from "../../src/lib/editor/inventory-operations";
-
 import { createCatalogItem } from "../../src/lib/editor/item-catalog";
-import { discoverPlacedChests } from "../../src/lib/editor/chest-storage";
+import type { ItemPropertyChange } from "../../src/lib/editor/item-properties";
+import {
+	type InventoryItemFieldChange,
+	type InventoryReviewFields,
+	projectInventoryReview,
+} from "../../src/lib/editor/review-inventory";
 import { tinyFixture } from "../helpers/editor-document.ts";
 
 // These assertions are checked by the application compiler, independently of
 // runtime examples. Weakening field/value correlation makes this tuple invalid.
 type Assert<Truth extends true> = Truth;
-type InventoryReviewTypeChecks = [
+// check:tests owns this compile-time proof; each Assert entry must remain true.
+// Runtime cases below verify presentation behavior independently.
+export type InventoryReviewTypeChecks = [
 	Assert<
 		boolean extends Extract<
 			InventoryItemFieldChange,
@@ -61,12 +63,6 @@ type InventoryReviewTypeChecks = [
 			: false
 	>,
 ];
-
-it("keeps review field values correlated with the editable request contract", () => {
-	expectTypeOf<InventoryReviewTypeChecks>().toEqualTypeOf<
-		[true, true, true, true, true]
-	>();
-});
 
 const required = <A>(value: A | undefined): A => {
 	if (value === undefined)
@@ -113,13 +109,15 @@ it.effect(
 				);
 			const current = yield* session.snapshot,
 				beforeProjection = structuredClone(current);
+			// Vitest types asymmetric matchers as any. Keep expected matcher values
+			// unknown so they cannot weaken the surrounding saved-data assertions.
 			expect(projectInventoryReview(current).changes).toEqual([
 				expect.objectContaining({
 					_tag: "ItemFieldChanged",
 					field: "quantity",
 					before: 3,
 					after: 9,
-				}),
+				}) as unknown,
 			]);
 			expect(current).toEqual(beforeProjection);
 			yield* session.transact(
@@ -135,7 +133,7 @@ it.effect(
 			);
 			yield* session.undo;
 			expect(projectInventoryReview(yield* session.snapshot).changes).toEqual([
-				expect.objectContaining({ before: 3, after: 9 }),
+				expect.objectContaining({ before: 3, after: 9 }) as unknown,
 			]);
 		}),
 );
@@ -166,7 +164,7 @@ it.effect(
 					item: { id: entityId, name: "Parsnip" },
 					before: "Host · Backpack · Slot 1",
 					after: "Guest · Backpack · Slot 1",
-				}),
+				}) as unknown,
 			]);
 		}),
 );
@@ -194,13 +192,13 @@ it.effect(
 						_tag: "ItemRemoved",
 						quantity: 3,
 						location: "Host · Backpack · Slot 1",
-					}),
+					}) as unknown,
 					expect.objectContaining({
 						_tag: "ItemAdded",
 						quantity: 7,
 						location: "Host · Backpack · Slot 2",
-					}),
-				]),
+					}) as unknown,
+				]) as unknown,
 			);
 			expect(review.changes.some((row) => row._tag === "ItemMoved")).toBe(
 				false,
@@ -230,7 +228,7 @@ it.effect(
 					_tag: "ItemMoved",
 					before: "Host · Backpack · Slot 3",
 					after: "Host · Boots",
-				}),
+				}) as unknown,
 			]);
 		}),
 );
@@ -277,7 +275,7 @@ it.effect(
 					_tag: "ItemMoved",
 					item: { id, name: "Wood" },
 					after: "Host · Backpack · Slot 2",
-				}),
+				}) as unknown,
 			);
 		}),
 );
@@ -320,7 +318,7 @@ it.effect(
 					label: "Defense",
 					before: 1,
 					after: 7,
-				}),
+				}) as unknown,
 			);
 			expect(review.coveredPaths).toContain(
 				"/SaveGame/player/items/2/defenseBonus",
@@ -438,14 +436,14 @@ it.effect(
 			expect(review.changes).toContainEqual(
 				expect.objectContaining({
 					_tag: "ItemRemoved",
-					item: expect.objectContaining({ name: "Parsnip" }),
-				}),
+					item: expect.objectContaining({ name: "Parsnip" }) as unknown,
+				}) as unknown,
 			);
 			expect(review.changes).toContainEqual(
 				expect.objectContaining({
 					_tag: "ItemMoved",
-					item: expect.objectContaining({ name: "Sneakers" }),
-				}),
+					item: expect.objectContaining({ name: "Sneakers" }) as unknown,
+				}) as unknown,
 			);
 			const opaquePath = "/SaveGame/player/items/0/customModData";
 			expect(

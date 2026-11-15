@@ -1,6 +1,8 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
+
 import { expect, it } from "vitest";
+
 import catalog from "../../generated/progress.json";
 import sources from "../../static/assets/achievements/sources.json";
 

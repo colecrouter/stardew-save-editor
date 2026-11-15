@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { getSaveManager } from "$lib/SaveManager.svelte";
+
 	import QuestList from "./QuestList.svelte";
 
 	const save = getSaveManager().save;

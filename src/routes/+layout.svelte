@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { beforeNavigate } from "$app/navigation";
 	import { asset, resolve } from "$app/paths";
-	import { updated, page } from "$app/state";
+	import { page, updated } from "$app/state";
 	import { setToastManager } from "$lib/ToastManager.svelte";
 	import Toasts from "$lib/ui/Toasts.svelte";
 

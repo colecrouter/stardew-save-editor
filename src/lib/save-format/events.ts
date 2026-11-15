@@ -1,6 +1,8 @@
 import { Effect, Schema, SchemaIssue } from "effect";
 import type { Xml } from "effect/encoding";
 
+import { isRecord, isUnknownArray } from "../unknown.ts";
+
 export const xsi = "http://www.w3.org/2001/XMLSchema-instance";
 export interface Header {
 	readonly name: string;
@@ -10,6 +12,9 @@ export interface Header {
 export interface Frame {
 	text(value: string): Reading<void>;
 	child(header: Header): Reading<Frame>;
+	// Finish snapshots mutable reader state after children complete; storing an
+	// already-constructed Effect could capture that state before the frame is read.
+	// oxlint-disable-next-line effecttsgo/lazy-effect -- Completion is an invocation-time frame contract.
 	finish(): Reading<unknown>;
 }
 export type Reading<A> = Effect.Effect<A, SchemaIssue.Issue>;
@@ -43,15 +48,17 @@ export type Codec<A = unknown> = Schema.Codec<A> & {
 	readonly text?: Schema.Codec<A, string>;
 };
 export function record(input: unknown): Record<string, unknown> {
-	if (typeof input !== "object" || input === null || Array.isArray(input))
-		throw new Error("Expected an object");
-	return input as Record<string, unknown>;
+	if (!isRecord(input)) throw new Error("Expected an object");
+	return input;
 }
+// Frame child callbacks construct their issue at the rejected input, preserving
+// per-read diagnostic identity instead of sharing one module-level failure.
+// oxlint-disable-next-line effecttsgo/lazy-effect -- This function implements the parser callback contract.
 export function rejectContent(): Reading<never> {
 	return invalid("Unexpected XML content");
 }
 export function whitespace(value: string): Reading<void> {
-	return value.trim() ? rejectContent() : Effect.void;
+	return value.trim() !== "" ? rejectContent() : Effect.void;
 }
 export function namespaceAttribute(name: string): boolean {
 	return name === "xmlns" || name.startsWith("xmlns:");
@@ -80,7 +87,7 @@ export function instanceAttribute(
 		: Effect.succeed(names[0]);
 }
 export function without(header: Header, name: string | undefined): Header {
-	if (!name) return header;
+	if (!(name != null && name !== "")) return header;
 	const attributes = { ...header.attributes };
 	delete attributes[name];
 	return { ...header, attributes };
@@ -103,7 +110,12 @@ export function attach<A>(
 			name: string,
 			value: unknown,
 			attributes: Readonly<Record<string, string>> = {},
-		) => write(name, value as A, attributes),
+		) => {
+			// Internal child writes receive document-validated values. Revalidating
+			// each ancestor would repeat whole subtrees; events() is the public gate.
+			// oxlint-disable-next-line typescript/no-unsafe-type-assertion -- The document codec established A before internal traversal.
+			return write(name, value as A, attributes);
+		},
 		events: (
 			name: string,
 			value: unknown,
@@ -154,6 +166,18 @@ export function add(
 	});
 }
 
+/** Append only to containers established as repeated fields by the XML reader. */
+export function append(
+	object: Record<string, unknown>,
+	name: string,
+	value: unknown,
+): void {
+	const values = object[name];
+	if (!isUnknownArray(values))
+		throw new Error(`Missing repeated XML field ${name}`);
+	values.push(value);
+}
+
 export function unknownFrame(header: Header): Reading<Frame> {
 	return Effect.gen(function* () {
 		// Unknown subtrees alone use the ordinary property representation. Retain the
@@ -163,13 +187,17 @@ export function unknownFrame(header: Header): Reading<Frame> {
 			.filter((name) => name.includes(":"))
 			.map((name) => name.split(":")[0] ?? "");
 		const type = yield* instanceAttribute(header, "type");
-		if (type && attributes[type]?.includes(":"))
+		if (type != null && type !== "" && attributes[type]?.includes(":") === true)
 			prefixes.push(attributes[type].split(":")[0] ?? "");
 		for (const prefix of prefixes)
 			if (prefix !== "xmlns" && header.namespaces[prefix] !== undefined)
 				attributes[`xmlns:${prefix}`] = header.namespaces[prefix] ?? "";
-		if (!header.name.includes(":") && header.namespaces[""])
-			attributes.xmlns = header.namespaces[""];
+		if (
+			!header.name.includes(":") &&
+			header.namespaces[""] != null &&
+			header.namespaces[""] !== ""
+		)
+			attributes["xmlns"] = header.namespaces[""];
 		const result: Record<string, unknown> = Object.fromEntries(
 			Object.entries(attributes).map(([key, value]) => [`@_${key}`, value]),
 		);
@@ -186,9 +214,13 @@ export function unknownFrame(header: Header): Reading<Frame> {
 						accepted(frame, (value) => {
 							if (!Object.hasOwn(result, child.name))
 								add(result, child.name, value);
-							else if (repeated.has(child.name))
-								(result[child.name] as unknown[]).push(value);
-							else {
+							else if (repeated.has(child.name)) {
+								const siblings = result[child.name];
+								// The repeated-name set is populated only after creating an array.
+								if (!isUnknownArray(siblings))
+									throw new Error("Missing repeated XML values");
+								siblings.push(value);
+							} else {
 								add(result, child.name, [result[child.name], value]);
 								repeated.add(child.name);
 							}
@@ -197,8 +229,8 @@ export function unknownFrame(header: Header): Reading<Frame> {
 				),
 			finish: () =>
 				Effect.sync(() => {
-					if (!Object.keys(result).length) return text;
-					if (text && (text.trim() || !/[\r\n]/.test(text)))
+					if (!(Object.keys(result).length !== 0)) return text;
+					if (text !== "" && (text.trim() !== "" || !/[\r\n]/.test(text)))
 						add(result, "#text", text);
 					return result;
 				}),
@@ -220,12 +252,12 @@ export function* unknownEvents(
 	const attributes = Object.fromEntries(
 		Object.entries(object)
 			.filter(([key]) => key.startsWith("@_"))
-			.map(([key, value]) => [key.slice(2), String(value)]),
+			.map(([key, nestedValue2]) => [key.slice(2), String(nestedValue2)]),
 	);
 	yield { _tag: "StartElement", name, attributes };
-	for (const [key, value] of Object.entries(object)) {
-		if (key === "#text") yield { _tag: "Text", text: String(value) };
-		else if (!key.startsWith("@_")) yield* unknownEvents(key, value);
+	for (const [key, nestedValue] of Object.entries(object)) {
+		if (key === "#text") yield { _tag: "Text", text: String(nestedValue) };
+		else if (!key.startsWith("@_")) yield* unknownEvents(key, nestedValue);
 	}
 	yield { _tag: "EndElement", name };
 }

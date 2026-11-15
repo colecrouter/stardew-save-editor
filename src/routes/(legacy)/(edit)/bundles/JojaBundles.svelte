@@ -51,7 +51,8 @@
 		// Complete the "missing" bundle, as the user would have otherwise had access to the movie theater
 		const bundlesByRoom = Map.groupBy(bundles.values(), (b) => b.room);
 		const completedRooms = [...bundlesByRoom.entries()].map(
-			([room, bundles]) => [room, bundles.every((b) => b.completed)] as const,
+			([roomId, roomBundles]) =>
+				[roomId, roomBundles.every((b) => b.completed)] as const,
 		);
 		if (
 			completedRooms
@@ -85,7 +86,7 @@
 	</header>
 
 	<section class="projects-grid" data-testid="joja-projects">
-		{#each projects as p}
+		{#each projects as p (p.room)}
 			<label
 				class="project-row"
 				data-testid="joja-project-row"

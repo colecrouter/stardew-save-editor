@@ -1,9 +1,11 @@
-import { render, cleanup } from "@testing-library/svelte";
-import { goto } from "$app/navigation";
+import { cleanup, render } from "@testing-library/svelte";
 import { flushSync } from "svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import BackupsLayout from "../src/routes/(legacy)/(home)/(backups)/backups/+layout.svelte";
+
+import { goto } from "$app/navigation";
+
 import Router from "../src/routes/(legacy)/(edit)/Router.svelte";
+import BackupsLayout from "../src/routes/(legacy)/(home)/(backups)/backups/+layout.svelte";
 import {
 	deployment,
 	page,
@@ -13,18 +15,27 @@ import {
 
 // These mocks replace Kit's browser runtime, while rune-backed page state keeps
 // its relevant reactive contract. Render the real layouts and sidebar below.
-vi.mock("$app/state", async () => import("./helpers/navigation-state.svelte"));
+vi.mock("$app/state", () =>
+	Promise.resolve(import("./helpers/navigation-state.svelte")),
+);
 vi.mock("$app/env", () => ({ browser: true }));
-vi.mock("$app/navigation", () => ({ beforeNavigate: vi.fn(), goto: vi.fn() }));
+vi.mock("$app/navigation", () => ({
+	beforeNavigate: vi.fn<typeof import("$app/navigation").beforeNavigate>(),
+	goto: vi
+		.fn<typeof import("$app/navigation").goto>()
+		.mockResolvedValue(undefined),
+}));
 vi.mock("$lib/SaveManager.svelte", async () => {
-	const { saveManager } = await import("./helpers/navigation-state.svelte");
-	return { getSaveManager: () => saveManager };
+	const { saveManager: candidateSaveManager } =
+		await import("./helpers/navigation-state.svelte");
+	return { getSaveManager: () => candidateSaveManager };
 });
 vi.mock("$app/paths", async () => {
-	const { deployment } = await import("./helpers/navigation-state.svelte");
+	const { deployment: candidateDeployment } =
+		await import("./helpers/navigation-state.svelte");
 	return {
-		resolve: (path: string) => `${deployment.base}/${path}`,
-		asset: (path: string) => `${deployment.base}/${path}`,
+		resolve: (path: string) => `${candidateDeployment.base}/${path}`,
+		asset: (path: string) => `${candidateDeployment.base}/${path}`,
 	};
 });
 

@@ -1,16 +1,17 @@
+import { it } from "@effect/vitest";
 import { Effect, Stream } from "effect";
 import { get } from "svelte/store";
-import { it } from "@effect/vitest";
 import { expect, vi } from "vitest";
-import {
-	makeHistorySession,
-	type HistoryState,
-} from "../../src/lib/editor/history";
+
 import { makeEditorModel } from "../../src/lib/editor/editor-model";
-import { SaveCodec, SaveCodecLive } from "../../src/lib/editor/save-service";
 import { setFarmSettings } from "../../src/lib/editor/farm-operations";
-import { fixtureXml, parser, tinyFixture } from "./fixtures";
+import {
+	type HistoryState,
+	makeHistorySession,
+} from "../../src/lib/editor/history";
 import { makeSaveProcessor } from "../../src/lib/editor/save-processing.ts";
+import { SaveCodec, SaveCodecLive } from "../../src/lib/editor/save-service";
+import { fixtureXml, parser, tinyFixture } from "./fixtures";
 
 it.effect(
 	"skips acknowledged snapshots before cloning while ordinary subscribers retain detached changes",
@@ -54,7 +55,7 @@ it.effect(
 				expect(
 					spy.mock.calls.filter(
 						([value]) =>
-							value &&
+							value !== null &&
 							typeof value === "object" &&
 							"baseline" in value &&
 							"document" in value,

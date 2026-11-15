@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { HTMLButtonAttributes } from "svelte/elements";
+
 	import { asset } from "$app/paths";
 	import Tooltip from "$lib/ui/Tooltip.svelte";
 

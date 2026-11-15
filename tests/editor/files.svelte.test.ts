@@ -1,15 +1,22 @@
+import { type DBSchema, openDB } from "idb";
 import { expect, it, vi } from "vitest";
-import { openDB } from "idb";
-import {
-	saveOriginalBackup,
-	restoreOriginal,
-	type StoredOriginal,
-} from "../../src/lib/saveBackups";
+
 import {
 	chooseSaveDestination,
 	downloadSave,
 	type SaveDownloadStage,
 } from "../../src/lib/downloadSave";
+import {
+	restoreOriginal,
+	saveOriginalBackup,
+	type StoredOriginal,
+} from "../../src/lib/saveBackups";
+import { requireDefined } from "../helpers/assertions.ts";
+
+// The test reads records written by the real backup writer, under its known storage contract.
+interface BackupSchema extends DBSchema {
+	files: { key: number; value: StoredOriginal };
+}
 
 it("source backups preserve compressed bytes and prune only the oldest originals", async () => {
 	const bytes = new Uint8Array([120, 156, 255, 0, 128, 42]);
@@ -20,9 +27,9 @@ it("source backups preserve compressed bytes and prune only the oldest originals
 				lastModified: index,
 			}),
 		);
-	const db = await openDB("backups", 1);
+	const db = await openDB<BackupSchema>("backups", 1);
 	try {
-		const stored = (await db.getAll("files")) as StoredOriginal[];
+		const stored = await db.getAll("files");
 		expect(stored).toHaveLength(5);
 		expect(stored[0]?.name).toBe("Farm_1");
 		const last = stored[4];
@@ -82,8 +89,8 @@ it("browser downloads keep the original filename and release their attached anch
 });
 
 it("save-picker cancellation returns noncompletion without writing bytes", async () => {
-	const picker = vi.fn(async () => {
-		throw new DOMException("Cancelled", "AbortError");
+	const picker = vi.fn<() => Promise<never>>(() => {
+		return Promise.reject(new DOMException("Cancelled", "AbortError"));
 	});
 	Object.defineProperty(window, "showSaveFilePicker", {
 		configurable: true,
@@ -107,25 +114,30 @@ it.each(["write", "close"] as const)(
 			"Destination became unavailable",
 			"AbortError",
 		);
-		const write = vi.fn(async () => {
-			if (stage === "write") throw failure;
+		const write = vi.fn<() => Promise<void>>(() => {
+			if (stage === "write") return Promise.reject(failure);
+
+			return Promise.resolve();
 		});
-		const close = vi.fn(async () => {
-			if (stage === "close") throw failure;
+		const close = vi.fn<() => Promise<void>>(() => {
+			if (stage === "close") return Promise.reject(failure);
+
+			return Promise.resolve();
 		});
 		// Some browsers already error the stream; a second cleanup failure must not
 		// replace the write/close reason that the caller needs to report.
 		const abort =
 			stage === "close"
-				? vi.fn(async () => {
-						throw new TypeError("Already closed");
+				? vi.fn<() => Promise<never>>(() => {
+						return Promise.reject(new TypeError("Already closed"));
 					})
-				: vi.fn(async () => {});
+				: vi.fn<() => Promise<void>>(() => Promise.resolve());
 		Object.defineProperty(window, "showSaveFilePicker", {
 			configurable: true,
-			value: async () => ({
-				createWritable: async () => ({ write, close, abort }),
-			}),
+			value: () =>
+				Promise.resolve({
+					createWritable: () => Promise.resolve({ write, close, abort }),
+				}),
 		});
 		try {
 			const destination = await chooseSaveDestination(
@@ -134,9 +146,9 @@ it.each(["write", "close"] as const)(
 				"picker",
 				(next) => stages.push(next),
 			);
-			await expect(destination!.write(new Blob(["save"]))).rejects.toBe(
-				failure,
-			);
+			await expect(
+				requireDefined(destination).write(new Blob(["save"])),
+			).rejects.toBe(failure);
 			// Failed cleanup must preserve the original stage as well as its error.
 			expect(stages).toEqual(
 				stage === "write"
@@ -155,11 +167,12 @@ it("reports stream acquisition failure rather than treating it as picker cancell
 	const failure = new DOMException("Cannot acquire stream", "AbortError");
 	Object.defineProperty(window, "showSaveFilePicker", {
 		configurable: true,
-		value: async () => ({
-			createWritable: async () => {
-				throw failure;
-			},
-		}),
+		value: () =>
+			Promise.resolve({
+				createWritable: () => {
+					return Promise.reject(failure);
+				},
+			}),
 	});
 	try {
 		await expect(downloadSave(new Blob(["save"]), "Farm_123")).rejects.toBe(
@@ -173,18 +186,19 @@ it("reports stream acquisition failure rather than treating it as picker cancell
 it("reports cleanup rejection for a late unused stream when there is no earlier write failure", async () => {
 	const controller = new AbortController();
 	const failure = new Error("Cannot release unused stream");
-	const write = vi.fn(async () => {});
-	const abort = vi.fn(async () => {
-		throw failure;
+	const write = vi.fn<() => Promise<void>>(() => Promise.resolve());
+	const abort = vi.fn<() => Promise<never>>(() => {
+		return Promise.reject(failure);
 	});
 	Object.defineProperty(window, "showSaveFilePicker", {
 		configurable: true,
-		value: async () => ({
-			createWritable: async () => {
-				controller.abort();
-				return { write, abort };
-			},
-		}),
+		value: () =>
+			Promise.resolve({
+				createWritable: () => {
+					controller.abort();
+					return Promise.resolve({ write, abort });
+				},
+			}),
 	});
 	try {
 		await expect(

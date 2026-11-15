@@ -1,13 +1,20 @@
-import publicSaveXml from "./TestSave?raw";
 import { flushSync } from "svelte";
 import { describe, expect, it } from "vitest";
-import type { Building, Player, Save } from "../codegen/save";
+
+import type { Building, Player } from "../codegen/save";
 import { SaveProxy } from "../src/lib/proxies/SaveFile.svelte";
 import { SaveManager } from "../src/lib/SaveManager.svelte";
 import { XMLManager } from "../src/lib/workers/xml";
+import {
+	jsonRoundTrip,
+	partialFixture,
+	requireArray,
+	requireRecord,
+} from "./helpers/assertions.ts";
+import publicSaveXml from "./TestSave?raw";
 
-const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
-const asRecord = (value: unknown) => value as Record<string, unknown>;
+const clone = <T>(value: T): T => jsonRoundTrip(value);
+const asRecord = (value: unknown) => requireRecord(value);
 const prop = (value: unknown, key: string) => asRecord(value)[key];
 const hasArrayProp = (value: unknown, key: string) =>
 	Array.isArray(prop(value, key));
@@ -148,19 +155,19 @@ describe("SaveProxy", () => {
 
 		const save = raw.SaveGame;
 		const player = prop(save, "player");
-		const location = (
-			prop(prop(save, "locations"), "GameLocation") as unknown[]
+		const location = requireArray(
+			prop(prop(save, "locations"), "GameLocation"),
 		)[0];
-		const order = (
-			prop(prop(save, "specialOrders"), "SpecialOrder") as unknown[]
+		const order = requireArray(
+			prop(prop(save, "specialOrders"), "SpecialOrder"),
 		)[0];
 		const leftRing = prop(player, "leftRing");
 		const object = prop(
-			(prop(prop(location, "objects"), "item") as unknown[])[0],
+			requireArray(prop(prop(location, "objects"), "item"))[0],
 			"value",
 		);
-		const building = (
-			prop(prop(location, "buildings"), "Building") as unknown[]
+		const building = requireArray(
+			prop(prop(location, "buildings"), "Building"),
 		)[0];
 
 		expect(hasArrayProp(prop(save, "constructedBuildings"), "string")).toBe(
@@ -245,6 +252,53 @@ describe("SaveProxy", () => {
 		return raw;
 	};
 
+	it("preserves unnamed cabin placeholders without exposing them as players", async () => {
+		const raw = await importedRaw();
+		// Unclaimed cabins retain serialized farmer placeholders. Missing and empty
+		// names are both absence markers, even when other saved metadata exists.
+		const missingName = Object.assign(
+			partialFixture<Player>({ UniqueMultiplayerID: 701 }),
+			{
+				opaqueCabinData: { retain: "missing-name" },
+			},
+		);
+		const blankName = Object.assign(
+			partialFixture<Player>({ UniqueMultiplayerID: 702, name: "" }),
+			{
+				opaqueCabinData: { retain: "blank-name" },
+			},
+		);
+		const guest = {
+			...clone(raw.SaveGame.player),
+			name: "Guest",
+			UniqueMultiplayerID: 703,
+		};
+		raw.SaveGame.farmhands = { Farmer: [missingName, blankName, guest] };
+		const placeholders = clone([missingName, blankName]);
+		let save!: SaveProxy;
+		const cleanup = $effect.root(() => {
+			save = new SaveProxy(raw);
+		});
+		try {
+			flushSync();
+			expect(save.players.map((player) => player.name)).toEqual([
+				raw.SaveGame.player.name,
+				"Guest",
+			]);
+			// Replacing the facade list exercises the synchronization path while the
+			// unclaimed cabin records remain owned by the original saved collection.
+			save.players = [...save.players];
+			flushSync();
+			expect(
+				raw.SaveGame.farmhands.Farmer.filter((farmer) =>
+					[701, 702].includes(farmer.UniqueMultiplayerID),
+				),
+			).toEqual(placeholders);
+			expect(save.players).toHaveLength(2);
+		} finally {
+			cleanup();
+		}
+	});
 	it("names the farmers the previous and next buttons switch to", async () => {
 		const raw = await importedRaw();
 		const host = raw.SaveGame.player;
@@ -253,7 +307,7 @@ describe("SaveProxy", () => {
 			name,
 			UniqueMultiplayerID: 1000 + i,
 		}));
-		raw.SaveGame.farmhands = { Farmer: farmhands as Player[] };
+		raw.SaveGame.farmhands = { Farmer: farmhands };
 
 		let save!: SaveProxy;
 		const cleanup = $effect.root(() => {
@@ -311,20 +365,20 @@ describe("SaveProxy", () => {
 		farmhand.name = "Farmhand";
 		farmhand.UniqueMultiplayerID = farmhandId;
 		farmhand.homeLocation = "CabinFarmhand";
-		raw.SaveGame.farmhands = { Farmer: [farmhand as Player] };
+		raw.SaveGame.farmhands = { Farmer: [farmhand] };
 		raw.SaveGame.cellarAssignments = {
 			item: [
 				{ key: { int: 1 }, value: { long: hostId } },
 				{ key: { int: 2 }, value: { long: farmhandId } },
 			],
-		} as Save["cellarAssignments"];
+		};
 		const farm = raw.SaveGame.locations.GameLocation.find(
 			(location) => location.name === "Farm",
 		);
 		if (!farm?.buildings) throw new Error("Expected farm buildings");
 		farm.buildings.Building = [
 			...(farm.buildings.Building ?? []),
-			{
+			partialFixture<Building>({
 				buildingType: "Cabin",
 				owner: hostId,
 				indoors: {
@@ -333,7 +387,7 @@ describe("SaveProxy", () => {
 					uniqueName: "CabinFarmhand",
 					farmhandReference: farmhandId,
 				},
-			} as Building,
+			}),
 		];
 
 		let save!: SaveProxy;

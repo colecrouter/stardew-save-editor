@@ -1,16 +1,20 @@
-import { malformedFixture } from "../helpers/editor-document.ts";
-import { expect, it } from "vitest";
-import { get } from "svelte/store";
 import { Result } from "effect";
+import { get } from "svelte/store";
+import { expect, it } from "vitest";
+
+import { discoverPlacedChests } from "../../src/lib/editor/chest-storage";
+import { freezeDraftState } from "../../src/lib/editor/draft-state";
+import { setInventoryItem } from "../../src/lib/editor/inventory-operations";
 import {
 	projectChests,
 	readChests,
 } from "../../src/lib/editor/inventory-views";
-import { discoverPlacedChests } from "../../src/lib/editor/chest-storage";
-import { freezeDraftState } from "../../src/lib/editor/draft-state";
+import {
+	malformedFixture,
+	tinyEditorFixture,
+	tinyFixture,
+} from "../helpers/editor-document.ts";
 import { openTestDocument } from "../helpers/open-editor.ts";
-import { setInventoryItem } from "../../src/lib/editor/inventory-operations";
-import { tinyFixture, tinyEditorFixture } from "../helpers/editor-document.ts";
 
 const chest = (name = "Chest") => ({
 	$type: "StardewValley.Objects.Chest",
@@ -48,9 +52,11 @@ function state(
 		],
 	});
 	const identities = Object.fromEntries(
-		discoverPlacedChests(document).map((chest) => [
-			chest.id,
-			chest.slots.map((_, slot) => `${chest.id}:item:${slot}`),
+		discoverPlacedChests(document).map((candidateChest) => [
+			candidateChest.id,
+			candidateChest.slots.map(
+				(_, slot) => `${candidateChest.id}:item:${slot}`,
+			),
 		]),
 	);
 	// These private fixture graphs stand in for committed immutable revisions.

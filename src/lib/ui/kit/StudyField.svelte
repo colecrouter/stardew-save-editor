@@ -1,6 +1,7 @@
 <script lang="ts">
 	import "./styles.css";
 	import type { Snippet } from "svelte";
+
 	interface ControlAttributes {
 		id: string;
 		"aria-describedby": string | undefined;
@@ -13,7 +14,8 @@
 		children,
 	}: {
 		label: string;
-		description?: string;
+		// Callers can clear supplemental feedback without remounting the field.
+		description?: string | undefined;
 		error?: string;
 		children: Snippet<[ControlAttributes]>;
 	} = $props();
@@ -40,10 +42,21 @@
 	})}
 
 	{#if description}
-		<p class="study-field-note" id={`${id}-description`}>{description}</p>
+		<p
+			class="study-field-note"
+			id={`${id}-description`}
+		>
+			{description}
+		</p>
 	{/if}
 
 	{#if error}
-		<p class="study-field-error" role="status" id={`${id}-error`}>{error}</p>
+		<p
+			class="study-field-error"
+			role="status"
+			id={`${id}-error`}
+		>
+			{error}
+		</p>
 	{/if}
 </div>

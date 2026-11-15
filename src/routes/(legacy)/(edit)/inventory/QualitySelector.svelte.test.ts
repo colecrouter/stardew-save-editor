@@ -1,28 +1,35 @@
 import { fireEvent, render, screen } from "@testing-library/svelte";
 import { flushSync } from "svelte";
 import { beforeEach, describe, expect, test } from "vitest";
+
 import { Raw } from "$lib/proxies";
 import { Item } from "$lib/proxies/Item.svelte";
-import type { ObjectProxy } from "$lib/proxies/items";
+import { type BaseItemProxy, ObjectProxy } from "$lib/proxies/items";
+
+import { requireInstance } from "../../../../../tests/helpers/assertions.ts";
 import QualitySelector from "./QualitySelector.svelte";
 
-describe("Quality selector", async () => {
-	let item: ObjectProxy;
+describe("Quality selector", () => {
+	let item: BaseItemProxy;
 
 	beforeEach(() => {
-		item = Item.fromName("Blueberry Wine") as ObjectProxy;
+		// Wine is a colored-object proxy; quality is shared by both object families.
+		item = Item.fromName("Blueberry Wine");
 	});
 
-	test("Quality selector should display the correct quality", async () => {
+	test("Quality selector should display the correct quality", () => {
 		render(QualitySelector, { item });
 
-		const normal = screen.getByTestId("quality-0") as HTMLInputElement;
+		const normal = requireInstance(
+			screen.getByTestId("quality-0"),
+			HTMLInputElement,
+		);
 
 		expect(normal?.checked).toBe(true);
 	});
 
 	test("Changing quality keeps the saved base price and edibility", async () => {
-		const parsnip = Item.fromName("Parsnip") as ObjectProxy;
+		const parsnip = requireInstance(Item.fromName("Parsnip"), ObjectProxy);
 		render(QualitySelector, { item: parsnip });
 		expect(parsnip.price).toBe(35);
 		expect(parsnip.edibility).toBe(10);

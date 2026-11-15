@@ -1,12 +1,13 @@
-import sun from "./art/weather/sun.png";
-import rain from "./art/weather/rain.png";
-import greenRain from "./art/weather/green-rain.png";
-import storm from "./art/weather/storm.png";
-import snow from "./art/weather/snow.png";
-import springWind from "./art/weather/wind-spring.png";
-import fallWind from "./art/weather/wind-fall.png";
+import { hasOwnKey } from "../unknown.ts";
 import festival from "./art/weather/festival.png";
+import greenRain from "./art/weather/green-rain.png";
+import rain from "./art/weather/rain.png";
+import snow from "./art/weather/snow.png";
+import storm from "./art/weather/storm.png";
+import sun from "./art/weather/sun.png";
 import wedding from "./art/weather/wedding.png";
+import fallWind from "./art/weather/wind-fall.png";
+import springWind from "./art/weather/wind-spring.png";
 
 const icons = {
 	Sun: sun,
@@ -29,7 +30,5 @@ export function weatherIconUrl(
 			: season === "fall"
 				? fallWind
 				: springWind;
-	return Object.hasOwn(icons, weather)
-		? icons[weather as keyof typeof icons]
-		: undefined;
+	return hasOwnKey(icons, weather) ? icons[weather] : undefined;
 }

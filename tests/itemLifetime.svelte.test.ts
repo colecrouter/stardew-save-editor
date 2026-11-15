@@ -1,9 +1,12 @@
-import publicSaveXml from "./TestSave?raw";
 import { flushSync } from "svelte";
 import { expect, it } from "vitest";
+
 import { Raw } from "$lib/proxies";
 import { Item } from "$lib/proxies/Item.svelte";
 import { SaveManager } from "$lib/SaveManager.svelte";
+
+import publicSaveXml from "./TestSave?raw";
+
 it("reset releases factory-created backpack and chest item roots", async () => {
 	let manager!: SaveManager;
 	const stop = $effect.root(() => {

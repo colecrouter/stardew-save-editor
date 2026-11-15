@@ -1,57 +1,9 @@
-import { FieldValidationError } from "./field.ts";
-import { readProgress, type ProgressView } from "./progress-data.ts";
-import { readChildren, type ChildView } from "./children-data.ts";
-import { projectReview } from "./review-projection.ts";
-import {
-	readCalendarEventContext,
-	type CalendarEventContext,
-} from "./calendar-events.ts";
-import { readCommunity, type CommunityView } from "./community-data.ts";
-import {
-	readFarmerRoster,
-	type FarmerRosterView,
-} from "./farmer-roster-data.ts";
-import { readPets, type PetView } from "./pet-data.ts";
-import { readBuildings, type BuildingsView } from "./building-data.ts";
-import { immutableView, type ImmutableView } from "./immutable-view.ts";
-import { readFarmerChoices } from "./farmer-selection.ts";
-import { readQuestJournals, type QuestFarmerView } from "./quest-operations.ts";
-import { readQiOrders, type QiOrdersView } from "./qi-order-operations.ts";
-import { readEvents, type EventFarmerView } from "./event-operations.ts";
-import { readRecipes, type RecipeFarmerView } from "./recipe-operations.ts";
-import {
-	readAppearances,
-	type AppearanceView,
-} from "./appearance-operations.ts";
-import {
-	readRelationships,
-	type RelationshipFarmerView,
-} from "./relationship-operations.ts";
-import type { EditGesture } from "./edit-gesture.ts";
-import { readCharacters, type CharacterView } from "./character-operations.ts";
-import type { InventoryMoveRequest } from "./inventory-movement.ts";
-import type { InventorySlotRequest } from "./inventory-lifecycle.ts";
-import type { InventoryEdits } from "./inventory-operations.ts";
-import {
-	readBackpacks,
-	readChests,
-	projectChests,
-	type ChestProjection,
-	type InventoryView,
-} from "./inventory-views.ts";
-import { readFarmSettings, type FarmView } from "./farm-operations.ts";
-import { validateSave, type SaveValidation } from "../saveValidation.ts";
-import type { CommandResult } from "./command-result.ts";
-import type { TransactionDraft } from "./transaction-draft.ts";
-import type { ReviewJournal } from "./transaction-annotations.ts";
-import { setCalendarDate } from "./calendar-operations.ts";
-import { springBundleView } from "./bundle-operations.ts";
 import {
 	Cause,
 	Effect,
 	Exit,
 	Fiber,
-	JsonPatch,
+	type JsonPatch,
 	Layer,
 	Option,
 	Result,
@@ -61,25 +13,79 @@ import {
 import * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { derived, type Readable } from "svelte/store";
+
 import {
 	forcedWeather,
+	type GameDate,
 	greenRainDay,
 	MAX_YEAR,
 	nextDay,
 	SEASONS,
 	seasonWeathers,
 	weatherLabel,
-	type GameDate,
 } from "../calendar.ts";
+import { type SaveValidation, validateSave } from "../saveValidation.ts";
 import {
-	readCalendarView,
+	type AppearanceView,
+	readAppearances,
+} from "./appearance-operations.ts";
+import { type BuildingsView, readBuildings } from "./building-data.ts";
+import { springBundleView } from "./bundle-operations.ts";
+import {
 	type CalendarViewState,
+	readCalendarView,
 } from "./calendar-document.ts";
-import type { Field } from "./field.ts";
+import {
+	type CalendarEventContext,
+	readCalendarEventContext,
+} from "./calendar-events.ts";
+import { setCalendarDate } from "./calendar-operations.ts";
+import { type CharacterView, readCharacters } from "./character-operations.ts";
+import { type ChildView, readChildren } from "./children-data.ts";
+import type { CommandResult } from "./command-result.ts";
+import { type CommunityView, readCommunity } from "./community-data.ts";
 import { MutationError, type MutationRequest } from "./domain.ts";
-import { makeHistorySession, type HistoryLimits } from "./history.ts";
-import type { HistorySession, HistoryState } from "./history.ts";
+import type { EditGesture } from "./edit-gesture.ts";
+import { type EventFarmerView, readEvents } from "./event-operations.ts";
+import { type FarmView, readFarmSettings } from "./farm-operations.ts";
+import {
+	type FarmerRosterView,
+	readFarmerRoster,
+} from "./farmer-roster-data.ts";
+import { readFarmerChoices } from "./farmer-selection.ts";
+import { type Field, FieldValidationError } from "./field.ts";
+import {
+	type HistoryLimits,
+	type HistorySession,
+	type HistoryState,
+	makeHistorySession,
+} from "./history.ts";
+import { immutableView, type ImmutableView } from "./immutable-view.ts";
+import type { InventorySlotRequest } from "./inventory-lifecycle.ts";
+import type { InventoryMoveRequest } from "./inventory-movement.ts";
+import type { InventoryEdits } from "./inventory-operations.ts";
+import {
+	type ChestProjection,
+	type InventoryView,
+	projectChests,
+	readBackpacks,
+	readChests,
+} from "./inventory-views.ts";
+import { type PetView, readPets } from "./pet-data.ts";
+import { nonemptyText, record } from "./plain-data.ts";
+import { type ProgressView, readProgress } from "./progress-data.ts";
+import { type QiOrdersView, readQiOrders } from "./qi-order-operations.ts";
+import { type QuestFarmerView, readQuestJournals } from "./quest-operations.ts";
+import { readRecipes, type RecipeFarmerView } from "./recipe-operations.ts";
+import {
+	readRelationships,
+	type RelationshipFarmerView,
+} from "./relationship-operations.ts";
+import { projectReview } from "./review-projection.ts";
 import { SaveProcessor } from "./save-processing.ts";
+import type { ReviewJournal } from "./transaction-annotations.ts";
+import type { TransactionDraft } from "./transaction-draft.ts";
+
 export { SaveExportRejected } from "./save-processing.ts";
 
 const resources = { models: 0, registries: 0, streams: 0 };
@@ -101,6 +107,8 @@ export interface WeatherChoice {
 	label: string;
 	allowed: boolean;
 }
+// Optional presentation members may be omitted or explicitly unavailable.
+// These transient projections do not encode presence of serialized save fields.
 interface EditorViewData {
 	readonly revision: number;
 	readonly bundle: ReturnType<typeof springBundleView>;
@@ -126,8 +134,8 @@ interface EditorViewData {
 	readonly greenRain: number;
 	readonly todayOptions: WeatherChoice[];
 	readonly tomorrowOptions: WeatherChoice[];
-	readonly todayReason?: string;
-	readonly tomorrowReason?: string;
+	readonly todayReason?: string | undefined;
+	readonly tomorrowReason?: string | undefined;
 	readonly canUndo: boolean;
 	readonly canRedo: boolean;
 	readonly retainedBytes: number;
@@ -191,7 +199,8 @@ function project(
 				label: weatherLabel(id),
 				allowed: fixed
 					? id === fixed.weather
-					: seasonWeathers(date.season).includes(id as never) || id === current,
+					: seasonWeathers(date.season).some((weather) => weather === id) ||
+						id === current,
 			})),
 		};
 	};
@@ -203,7 +212,7 @@ function project(
 	const review = structuredClone({
 		entries: state.entries.map((entry, index) => ({
 			id: entry.id,
-			label: entry.intent.label || "Unlabelled changes",
+			label: nonemptyText(entry.intent.label) ?? "Unlabelled changes",
 			compact: entry.intent.review === "compact",
 			applied: index < state.cursor,
 			paths: entry.forward.map((patch) => patch.path),
@@ -277,16 +286,16 @@ export const parseDateDraft = Effect.fn("Draft.parseDate")(function* (
 				: Effect.die(cause),
 		),
 	);
-	if (!input || typeof input !== "object")
+	if (!record(input))
 		return yield* new FieldValidationError({ message: "Enter a valid date." });
-	const raw = input as Record<string, unknown>;
+	const raw = input;
 	const integer = (value: unknown) =>
 		typeof value === "string" && /^\d+$/.test(value)
 			? Number(value)
 			: Number.NaN;
-	const year = integer(raw.year),
-		day = integer(raw.day);
-	const season = SEASONS.find((candidate) => candidate === raw.season);
+	const year = integer(raw["year"]),
+		day = integer(raw["day"]);
+	const season = SEASONS.find((candidate) => candidate === raw["season"]);
 	if (
 		!Number.isSafeInteger(year) ||
 		year < 1 ||
@@ -294,7 +303,7 @@ export const parseDateDraft = Effect.fn("Draft.parseDate")(function* (
 		!Number.isInteger(day) ||
 		day < 1 ||
 		day > 28 ||
-		!season
+		!(season !== undefined)
 	)
 		return yield* new FieldValidationError({
 			message: `Choose Year 1–${MAX_YEAR}, a season, and Day 1–28.`,
@@ -313,7 +322,10 @@ export const formatDateDraft = (date: GameDate) =>
 export const makeEditorModel = (
 	session: HistorySession,
 	processor: SaveProcessor["Service"],
-	options: { includeProofs?: boolean; validateExport?: boolean } = {},
+	options: {
+		includeProofs?: boolean | undefined;
+		validateExport?: boolean | undefined;
+	} = {},
 	importValidation?: SaveValidation,
 ) =>
 	Effect.gen(function* () {
@@ -718,7 +730,7 @@ export const makeEditorModel = (
 								: undefined;
 						// A successful add/remove always allocates a replacement handle. Read
 						// it from that committed state, never from a later snapshot after Undo.
-						if (!entityId)
+						if (!(entityId != null && entityId !== ""))
 							return yield* Effect.die(
 								new Error("Committed backpack replacement has no identity"),
 							);
@@ -812,13 +824,11 @@ export const makeEditorModel = (
 			// its sole owner. Expose read-only atom types so bindings cannot bypass
 			// explicit commands by assigning a new feature projection.
 			atomBindings: {
-				registry: registry as AtomRegistry.AtomRegistry,
-				view: viewAtom as Atom.Atom<EditorView | undefined>,
-				selectedFarmerId: selectedFarmerAtom as Atom.Atom<string | undefined>,
-				pending: pendingAtom as Atom.Atom<number>,
-				notice: noticeAtom as Atom.Atom<
-					{ id: number; message: string } | undefined
-				>,
+				registry: registry,
+				view: viewAtom,
+				selectedFarmerId: selectedFarmerAtom,
+				pending: pendingAtom,
+				notice: noticeAtom,
 			},
 			loadValidation,
 			commands,
@@ -872,9 +882,9 @@ export const makeEditorModel = (
 export type EditorModel = Effect.Success<ReturnType<typeof makeEditorModel>>;
 
 export interface OpenEditorOptions {
-	includeProofs?: boolean;
-	validateExport?: boolean;
-	signal?: AbortSignal;
+	includeProofs?: boolean | undefined;
+	validateExport?: boolean | undefined;
+	signal?: AbortSignal | undefined;
 }
 
 // Scope acquisition can fail after some resources exist. Close on every failure

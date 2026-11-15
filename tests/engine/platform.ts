@@ -1,7 +1,8 @@
 import { Effect, FileSystem } from "effect";
+
 import type { ResolvedMutation } from "../../src/lib/editor/domain.ts";
-import { makeEffectSession } from "./effect.ts";
 import { SaveCodec } from "../../src/lib/editor/save-service.ts";
+import { makeEffectSession } from "./effect.ts";
 
 // The domain program asks for abstract filesystem and codec services. Node layers
 // are assembled by the CLI/tests; a browser would instead supply File/worker ports.

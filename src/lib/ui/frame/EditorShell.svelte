@@ -1,9 +1,11 @@
 <script lang="ts">
 	import type { Snippet } from "svelte";
-	import StudyFrame from "../StudyFrame.svelte";
+
 	import StudyButton from "../kit/StudyButton.svelte";
-	import WoodDivider from "./WoodDivider.svelte";
+	import StudyFrame from "../StudyFrame.svelte";
 	import ParchmentPane from "./ParchmentPane.svelte";
+	import WoodDivider from "./WoodDivider.svelte";
+
 	let {
 		header,
 		navigation,

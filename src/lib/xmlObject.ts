@@ -1,8 +1,16 @@
 import { Effect, Stream } from "effect";
 import { Xml } from "effect/encoding";
+
+import { isRecord } from "./unknown.ts";
 import { arrayTags, nestedArrayTags } from "./workers/jank.ts";
 
 type RecordNode = Record<string, unknown>;
+
+// Opaque legacy XML nodes are inspected only after establishing record shape.
+const recordNode = (value: unknown): RecordNode => {
+	if (!isRecord(value)) throw new Error("Expected an XML record");
+	return value;
+};
 
 // The editor's saved representation uses scalars for text-only elements and
 // @_ attributes on records. Keep identifiers and imprecise numbers as strings.
@@ -79,7 +87,7 @@ export function parseXmlObject(xml: string): RecordNode {
 								Object.keys(record).length === 0
 									? scalar(formatting ? "" : text)
 									: record;
-							if (value === record && text && !formatting)
+							if (value === record && text !== "" && !formatting)
 								record["#text"] = scalar(text);
 							const parent = stack.at(-1)?.record ?? root;
 							// Known game collections must stay arrays even with one member.
@@ -117,7 +125,9 @@ export function parseXmlObject(xml: string): RecordNode {
 							// Preserve the existing declaration representation expected by export/tests.
 							root["?xml"] = {
 								"@_version": event.version,
-								...(event.encoding ? { "@_encoding": event.encoding } : {}),
+								...(event.encoding != null && event.encoding !== ""
+									? { "@_encoding": event.encoding }
+									: {}),
 								...(event.standalone !== undefined
 									? { "@_standalone": event.standalone ? "yes" : "no" }
 									: {}),
@@ -168,7 +178,7 @@ export function buildXmlObject(document: unknown, pretty: boolean): string {
 		if (name.startsWith("?")) {
 			// Legacy cached records may store instruction attributes; new imports keep
 			// the opaque instruction body. Both encodings remain readable on export.
-			const instruction = value as RecordNode;
+			const instruction = recordNode(value);
 			const data = Object.hasOwn(instruction, "#text")
 				? xmlText(instruction["#text"])
 				: Object.entries(instruction)
@@ -178,10 +188,9 @@ export function buildXmlObject(document: unknown, pretty: boolean): string {
 			yield { _tag: "ProcessingInstruction", target: name.slice(1), data };
 			return;
 		}
-		const record =
-			value !== null && typeof value === "object"
-				? (value as RecordNode)
-				: undefined;
+		const record = isRecord(value) ? value : undefined;
+		// The null prototype makes arbitrary saved attribute names safe dictionary keys.
+		// oxlint-disable-next-line typescript/no-unsafe-assignment -- Object.create(null) constructs an empty string dictionary.
 		const attributes: Record<string, string> = Object.create(null);
 		if (record)
 			for (const [key, entry] of Object.entries(record)) {
@@ -216,9 +225,9 @@ export function buildXmlObject(document: unknown, pretty: boolean): string {
 	function* events(): Generator<Xml.Event> {
 		// The declaration is a pseudo-member in the existing saved representation,
 		// while Effect models it separately from game elements and their attributes.
-		for (const [name, value] of Object.entries(document as RecordNode)) {
+		for (const [name, value] of Object.entries(recordNode(document))) {
 			if (name === "?xml") {
-				const declaration = value as RecordNode;
+				const declaration = recordNode(value);
 				yield {
 					_tag: "Declaration",
 					version: xmlText(declaration["@_version"] ?? "1.0"),

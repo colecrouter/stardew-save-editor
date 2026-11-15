@@ -1,5 +1,6 @@
-import { Effect, Layer } from "effect";
 import * as NodeWorkerRunner from "@effect/platform-node/NodeWorkerRunner";
+import { Effect, Layer } from "effect";
+
 import { SaveProcessingServer } from "../../src/lib/editor/save-processing-rpc.ts";
 
 // Run the same handlers as the browser worker, over the native Node port.

@@ -1,13 +1,15 @@
 <script lang="ts">
 	import { Result } from "effect";
-	import type { CommunityBundleDomain } from "../community-domain.ts";
+
+	import StudyAlert from "../../ui/kit/StudyAlert.svelte";
+	import StudyButton from "../../ui/kit/StudyButton.svelte";
+	import StudyIcon from "../../ui/StudyIcon.svelte";
 	import type { CommandResult } from "../command-result.ts";
+	import type { CommunityBundleDomain } from "../community-domain.ts";
 	import BackpackItemVisual from "./BackpackItemVisual.svelte";
 	import CommunityRequirementsEditor from "./CommunityRequirementsEditor.svelte";
 	import QualityBadge from "./QualityBadge.svelte";
-	import StudyButton from "../../ui/kit/StudyButton.svelte";
-	import StudyAlert from "../../ui/kit/StudyAlert.svelte";
-	import StudyIcon from "../../ui/StudyIcon.svelte";
+
 	let {
 		bundle,
 		disabled = false,
@@ -48,14 +50,23 @@
 	}
 </script>
 
-<article aria-label={`${bundle.name} bundle`} class:complete={bundle.completed}>
+<article
+	aria-label={`${bundle.name} bundle`}
+	class:complete={bundle.completed}
+>
 	<header>
 		<div class="bundle-heading">
-			<div class="seal" aria-hidden="true">
+			<div
+				class="seal"
+				aria-hidden="true"
+			>
 				{#if bundle.seal}
 					<BackpackItemVisual visual={bundle.seal} />
 				{:else}
-					<StudyIcon name="community" size={40} />
+					<StudyIcon
+						name="community"
+						size={40}
+					/>
 				{/if}
 			</div>
 
@@ -78,11 +89,19 @@
 	</header>
 
 	<div class="edit-requirements">
-		<CommunityRequirementsEditor {bundle} {disabled} />
+		<CommunityRequirementsEditor
+			{bundle}
+			{disabled}
+		/>
 	</div>
 
 	{#if bundle.reason}
-		<p role="status" class="bundle-note">{bundle.reason}</p>
+		<p
+			role="status"
+			class="bundle-note"
+		>
+			{bundle.reason}
+		</p>
 	{/if}
 
 	{#if error}

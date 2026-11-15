@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { dynamicAsset } from "$lib/ui/dynamicAsset.ts";
+
 	import type { RecipePresentation } from "../recipe-presentation.ts";
 	import UnknownItemVisual from "./UnknownItemVisual.svelte";
+
 	interface Props {
 		sprite?: RecipePresentation["sprite"];
 	}
@@ -13,9 +15,16 @@
 	);
 </script>
 
-<div class="visual" aria-hidden="true">
+<div
+	class="visual"
+	aria-hidden="true"
+>
 	{#if sprite && sheetUrl}
-		<svg width="40" height="40" viewBox={`0 0 ${40 / scale} ${40 / scale}`}>
+		<svg
+			width="40"
+			height="40"
+			viewBox={`0 0 ${40 / scale} ${40 / scale}`}
+		>
 			<svg
 				x={(40 / scale - sprite.width) / 2}
 				y={(40 / scale - sprite.height) / 2}

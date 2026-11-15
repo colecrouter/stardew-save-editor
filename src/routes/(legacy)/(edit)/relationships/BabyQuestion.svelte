@@ -10,12 +10,14 @@
 	interface Props {
 		status: BabyQuestionStatus;
 		/** Lets the couple be made pregnant, for players married to each other */
-		pregnancy?: {
-			pregnant: boolean;
-			/** Days until the baby is born, while pregnant */
-			daysUntilBirth: number | null;
-			onchange: (pregnant: boolean, days?: number) => void;
-		};
+		pregnancy?:
+			| {
+					pregnant: boolean;
+					/** Days until the baby is born, while pregnant */
+					daysUntilBirth: number | null;
+					onchange: (pregnant: boolean, days?: number) => void;
+			  }
+			| undefined;
 	}
 
 	let { status, pregnancy }: Props = $props();

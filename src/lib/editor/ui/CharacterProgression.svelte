@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { useAtomValue } from "effect-atom-svelte";
+
 	import StudyAlert from "../../ui/kit/StudyAlert.svelte";
 	import { createCharacterDomain } from "../character-domain.ts";
 	import type { EditorModel } from "../editor-model.ts";
@@ -26,11 +27,19 @@
 </script>
 
 {#if !character || !character.supported}
-	<StudyAlert title="Character unavailable" tone="warning">
+	<StudyAlert
+		title="Character unavailable"
+		tone="warning"
+	>
 		<p>{character?.reason ?? "No supported farmer is available."}</p>
 	</StudyAlert>
 {:else}
-	<h2 class="farmer-name" data-sentry-mask="">{character.name}</h2>
+	<h2
+		class="farmer-name"
+		data-sentry-mask=""
+	>
+		{character.name}
+	</h2>
 
 	{#key character.farmerId}
 		<CharacterDetails
@@ -43,7 +52,10 @@
 
 		<div class="skills">
 			{#each character.skills as skill (skill.key)}
-				<section class="skill" aria-label={`${skill.label} skill`}>
+				<section
+					class="skill"
+					aria-label={`${skill.label} skill`}
+				>
 					<div class="skill-summary">
 						<h2>{skill.label}</h2>
 						<!-- The ten blocks echo the game's skill ledger. Exact XP and
@@ -73,7 +85,10 @@
 					</div>
 
 					{#if character.professions.supported}
-						<div class="branches" aria-label={`${skill.label} professions`}>
+						<div
+							class="branches"
+							aria-label={`${skill.label} professions`}
+						>
 							{#each skill.professionBranches as branch (branch.primary.id)}
 								<div class="branch">
 									<p class="branch-level">Level 5</p>
@@ -103,7 +118,10 @@
 			<p role="status">{character.professions.reason}</p>
 		{/if}
 
-		<section class="mastery" aria-label="Mastery">
+		<section
+			class="mastery"
+			aria-label="Mastery"
+		>
 			<div>
 				<h2>Mastery</h2>
 				<p class="mastery-level">Level {character.mastery.level ?? "—"} / 5</p>

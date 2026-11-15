@@ -1,11 +1,13 @@
 import requirements from "../../../generated/achievement-requirements.json";
 import type { Farmer, SaveDocument } from "./domain.ts";
 
+// Optional presentation members may be omitted or explicitly unavailable.
+// These transient projections do not encode presence of serialized save fields.
 export interface AchievementDiagnostic {
-	value?: number;
+	value?: number | undefined;
 	target: number;
-	unknown?: number;
-	evidence?: string;
+	unknown?: number | undefined;
+	evidence?: string | undefined;
 }
 
 // Utility.checkForBooksReadAchievement names these power-book stats explicitly.
@@ -41,7 +43,7 @@ function count(
 	key: string,
 	ignoreCase = false,
 ): number | undefined {
-	if (entries === undefined) return undefined;
+	if (entries === undefined) return;
 	const matches = entries.filter((row) =>
 		ignoreCase ? row.key.toLowerCase() === key.toLowerCase() : row.key === key,
 	);
@@ -76,10 +78,12 @@ export function extraAchievementDiagnostics(
 		// Pending no-letter flags count as durable evidence, just as the game's
 		// hasOrWillReceiveMail check does. Never borrow another farmer's mailbox.
 		if (
-			mailLists.some((list, index) =>
-				list?.some(
-					(value) => value === key || (index === 1 && value === `${key}%&NL&%`),
-				),
+			mailLists.some(
+				(list, index) =>
+					list?.some(
+						(value) =>
+							value === key || (index === 1 && value === `${key}%&NL&%`),
+					) === true,
 			)
 		)
 			return 1;
@@ -221,9 +225,9 @@ export function extraAchievementDiagnostics(
 	);
 	add(
 		42,
-		hasInfinity ? 1 : undefined,
+		hasInfinity === true ? 1 : undefined,
 		1,
-		hasInfinity
+		hasInfinity === true
 			? "An Infinity weapon is present in this farmer's inventory."
 			: "Past weapon ownership cannot be reconstructed from the current inventory.",
 	);

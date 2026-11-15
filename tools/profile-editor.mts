@@ -1,27 +1,31 @@
-import { readFileSync, writeFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { performance } from "node:perf_hooks";
-import { makeLargeProfileFixture } from "./profile-fixtures.mts";
+import { readFileSync, writeFileSync } from "node:fs";
 import { cpus, platform, release } from "node:os";
-import { JsonPatch, Result, Schema } from "effect";
+import { performance } from "node:perf_hooks";
+
+import { JsonPatch, Result, type Schema } from "effect";
+
+import { readAppearances } from "../src/lib/editor/appearance-operations.ts";
+import { readCharacters } from "../src/lib/editor/character-operations.ts";
+import type { CommandResult } from "../src/lib/editor/command-result.ts";
+import type { EditGesture } from "../src/lib/editor/edit-gesture.ts";
 import { openEditor } from "../src/lib/editor/editor-model.ts";
+import { readEvents } from "../src/lib/editor/event-operations.ts";
 import {
-	setFarmSettings,
 	readFarmSettings,
+	setFarmSettings,
 } from "../src/lib/editor/farm-operations.ts";
 import {
 	readBackpacks,
 	readChests,
 } from "../src/lib/editor/inventory-views.ts";
-import { readCharacters } from "../src/lib/editor/character-operations.ts";
-import { readAppearances } from "../src/lib/editor/appearance-operations.ts";
-import { readRelationships } from "../src/lib/editor/relationship-operations.ts";
-import { readRecipes } from "../src/lib/editor/recipe-operations.ts";
-import { readEvents } from "../src/lib/editor/event-operations.ts";
-import { readQuestJournals } from "../src/lib/editor/quest-operations.ts";
 import { readQiOrders } from "../src/lib/editor/qi-order-operations.ts";
+import { readQuestJournals } from "../src/lib/editor/quest-operations.ts";
+import { readRecipes } from "../src/lib/editor/recipe-operations.ts";
+import { readRelationships } from "../src/lib/editor/relationship-operations.ts";
 import { SaveProcessingSync } from "../src/lib/editor/save-processing.ts";
+import { makeLargeProfileFixture } from "./profile-fixtures.mts";
 
 // This harness uses only the committed public fixture. Larger scenarios append
 // deterministic synthetic chest data; no local player save is read or printed.
@@ -39,7 +43,10 @@ if (
 	extraChests < 1
 )
 	throw new Error("Use at least 4 samples and one synthetic chest");
-const tick = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
+const tick = () =>
+	new Promise<void>((resolve) => {
+		setTimeout(resolve, 0);
+	});
 const summary = (values: number[]) => {
 	const sorted = values.toSorted((a, b) => a - b);
 	return {
@@ -89,9 +96,7 @@ async function measured<A>(work: () => Promise<A>) {
 		globalThis.structuredClone = nativeClone;
 	}
 }
-const check = <A, E>(
-	result: import("../src/lib/editor/command-result.ts").CommandResult<A, E>,
-) => {
+const check = <A, E>(result: CommandResult<A, E>) => {
 	if (!result || Result.isFailure(result))
 		throw new Error("A benchmark command did not commit");
 };
@@ -106,9 +111,7 @@ async function scenario(name: string, bytes: Uint8Array) {
 	const model = opened.model;
 	const importMs = performance.now() - importStart;
 	let sequence = 0;
-	const commit = (
-		gesture?: import("../src/lib/editor/edit-gesture.ts").EditGesture,
-	) =>
+	const commit = (gesture?: EditGesture) =>
 		model.commands.edit(
 			setFarmSettings({ name: `Profile ${name} ${++sequence}` }),
 			gesture ?? model.edits.begin("profile-discrete"),
@@ -171,7 +174,10 @@ async function scenario(name: string, bytes: Uint8Array) {
 				qiOrders: () => readQiOrders(state.document),
 				baselineDiff: () =>
 					JsonPatch.get(
+						// Save documents intentionally include exact CLR scalars outside JSON's type; this benchmark measures the same structural diff traversal.
+						// oxlint-disable-next-line typescript/no-unsafe-type-assertion
 						state.baseline as unknown as Schema.Json,
+						// oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Match the baseline traversal representation above.
 						state.document as unknown as Schema.Json,
 					),
 			};

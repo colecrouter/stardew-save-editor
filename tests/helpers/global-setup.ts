@@ -1,8 +1,10 @@
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+
 import { stringify } from "devalue";
 import type { TestProject } from "vitest/node";
+
 import { parser } from "./editor-document.ts";
 
 declare module "vitest" {

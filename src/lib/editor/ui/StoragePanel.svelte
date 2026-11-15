@@ -1,26 +1,27 @@
 <script lang="ts">
-	import type { CommandResult } from "../command-result.ts";
-	import { onDestroy } from "svelte";
 	import { Result } from "effect";
 	import { useAtomValue } from "effect-atom-svelte";
+	import { onDestroy } from "svelte";
+
+	import StudyAlert from "../../ui/kit/StudyAlert.svelte";
+	import StudyButton from "../../ui/kit/StudyButton.svelte";
+	import StudyCheckbox from "../../ui/kit/StudyCheckbox.svelte";
+	import StudyField from "../../ui/kit/StudyField.svelte";
+	import StudyIcon from "../../ui/StudyIcon.svelte";
+	import type { CommandResult } from "../command-result.ts";
 	import type { EditorModel } from "../editor-model.ts";
-	import type { InventoryView, InventorySlotView } from "../inventory-views.ts";
+	import { inventoryQualities } from "../inventory-policy.ts";
+	import type { InventorySlotView, InventoryView } from "../inventory-views.ts";
 	import { createStorageDomain, searchStorage } from "../storage-domain.ts";
 	import { storageTypes } from "../storage-policy.ts";
-	import { inventoryQualities } from "../inventory-policy.ts";
-	import BackpackItemVisual from "./BackpackItemVisual.svelte";
 	import BackpackItemEditor from "./BackpackItemEditor.svelte";
+	import BackpackItemVisual from "./BackpackItemVisual.svelte";
 	import {
 		createInventoryDrag,
 		type InventoryDragSource,
 	} from "./inventory-drag.svelte.ts";
 	import type { InventorySlot } from "./inventory-slot.ts";
-	import StudyButton from "../../ui/kit/StudyButton.svelte";
-	import StudyField from "../../ui/kit/StudyField.svelte";
-	import StudyCheckbox from "../../ui/kit/StudyCheckbox.svelte";
-	import StudyAlert from "../../ui/kit/StudyAlert.svelte";
 	import QualityBadge from "./QualityBadge.svelte";
-	import StudyIcon from "../../ui/StudyIcon.svelte";
 
 	interface Props {
 		model: EditorModel;
@@ -189,7 +190,12 @@
 			<p>Find your supplies, wherever you put them.</p>
 		</div>
 		<div class="heading-actions">
-			<a class="detail-link" href={`#${inspectorId}`}>Selected item</a>
+			<a
+				class="detail-link"
+				href={`#${inspectorId}`}
+			>
+				Selected item
+			</a>
 			<StudyButton
 				type="button"
 				disabled={busy || !owners.some((owner) => owner.supported)}
@@ -240,10 +246,16 @@
 			{/snippet}
 		</StudyField>
 		<div class="multi">
-			<StudyCheckbox label="Select multiple items" bind:checked={selectMany} />
+			<StudyCheckbox
+				label="Select multiple items"
+				bind:checked={selectMany}
+			/>
 		</div>
 	</div>
-	<div class="bulk" aria-label="Bulk storage actions">
+	<div
+		class="bulk"
+		aria-label="Bulk storage actions"
+	>
 		<!-- Group the count with its action so both align with the quality buttons,
              independently of the fieldset legend above that button row. -->
 		<div class="selection-summary">
@@ -281,7 +293,10 @@
 							void perform(() => domain.quality(captured, quality.value));
 						}}
 					>
-						<span class="quality-symbol" aria-hidden="true">
+						<span
+							class="quality-symbol"
+							aria-hidden="true"
+						>
 							<QualityBadge quality={quality.value} />
 							{#if quality.value === 0}—{/if}
 						</span>
@@ -308,12 +323,22 @@
 	<div class="workspace">
 		<!-- The drag root is the scrollable chest pane, so held touch drags can
              scroll it before falling back to a parent or the document. -->
-		<div class="containers" id={containersId} bind:this={root}>
+		<div
+			class="containers"
+			id={containersId}
+			bind:this={root}
+		>
 			{#each shown as owner (owner.ownerId)}
-				<section class="container" aria-label={owner.name}>
+				<section
+					class="container"
+					aria-label={owner.name}
+				>
 					<header>
 						<div class="container-identity">
-							<StudyIcon name="chests" size={32} />
+							<StudyIcon
+								name="chests"
+								size={32}
+							/>
 							<div>
 								<h2>{owner.name}</h2>
 								<small>
@@ -368,7 +393,10 @@
 						</p>
 					{/if}
 					{#if !owner.supported}
-						<StudyAlert title="Container unavailable" tone="warning">
+						<StudyAlert
+							title="Container unavailable"
+							tone="warning"
+						>
 							<p>{owner.reason}</p>
 						</StudyAlert>
 					{:else}
@@ -405,7 +433,10 @@
 										<BackpackItemVisual visual={item.visual} />
 									{/if}
 									{#if item.quantity !== undefined && item.quantity > 1}
-										<span class="quantity" aria-hidden="true">
+										<span
+											class="quantity"
+											aria-hidden="true"
+										>
 											{item.quantity}
 										</span>
 									{/if}
@@ -424,10 +455,18 @@
 		</div>
 		<!-- Reserve the desktop inspector column before a drag begins. Selecting
              its source must not reflow the grids underneath the active pointer. -->
-		<aside aria-label="Stored item details" id={inspectorId}>
+		<aside
+			aria-label="Stored item details"
+			id={inspectorId}
+		>
 			<div class="inspector-heading">
 				<span>Selected item</span>
-				<a class="detail-link" href={`#${containersId}`}>Back to containers</a>
+				<a
+					class="detail-link"
+					href={`#${containersId}`}
+				>
+					Back to containers
+				</a>
 			</div>
 			{#if selected && !selected.item.empty && !selectMany && pickedItems.length === 0}
 				{#key selected.item.entityId}

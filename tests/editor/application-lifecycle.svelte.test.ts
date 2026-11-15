@@ -1,10 +1,11 @@
-import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
 import { fireEvent, render, waitFor } from "@testing-library/svelte";
-import { expect, it, vi } from "vitest";
 import { tick } from "svelte";
-import EditorApp from "../../src/lib/editor/ui/EditorApp.svelte";
+import { expect, it, type Mock, vi } from "vitest";
+
 import * as editor from "../../src/lib/editor/editor-model";
 import { editorResources } from "../../src/lib/editor/editor-model";
+import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
+import EditorApp from "../../src/lib/editor/ui/EditorApp.svelte";
 import {
 	exportDocument,
 	tinyEditorFixture,
@@ -25,10 +26,14 @@ it("ignores a stream read that finishes after application teardown", async () =>
 	const pending = Promise.withResolvers<void>();
 	const file = new File([fixtureXml], "LateFarm");
 	let cancelled = false;
-	const cancel = vi.fn(() => {
+	const cancel = vi.fn<() => void>(() => {
 		cancelled = true;
 	});
-	const read = vi.fn(
+	const read = vi.fn<
+		(
+			controller: ReadableStreamDefaultController<Uint8Array<ArrayBuffer>>,
+		) => Promise<void>
+	>(
 		async (
 			controller: ReadableStreamDefaultController<Uint8Array<ArrayBuffer>>,
 		) => {
@@ -42,7 +47,7 @@ it("ignores a stream read that finishes after application teardown", async () =>
 	const stream = vi
 		.spyOn(file, "stream")
 		.mockReturnValue(new ReadableStream({ pull: read, cancel }));
-	const backup = vi.fn(async () => {});
+	const backup = vi.fn<() => Promise<void>>(() => Promise.resolve());
 	const page = render(EditorApp, {
 		processingLayer: SaveProcessingSync,
 		backupOriginal: backup,
@@ -74,15 +79,31 @@ it.each(["picker", "stream"] as const)(
 	"suppresses a late %s acquisition after Exit while the next save stays usable",
 	async (stage) => {
 		const acquisition = Promise.withResolvers<void>();
-		const write = vi.fn(async () => {}),
-			close = vi.fn(async () => {}),
-			abort = vi.fn(async () => {});
+		const write = vi.fn<() => Promise<void>>(() => Promise.resolve()),
+			close = vi.fn<() => Promise<void>>(() => Promise.resolve()),
+			abort = vi.fn<() => Promise<void>>(() => Promise.resolve());
 		const writable = { write, close, abort };
-		const createWritable = vi.fn(async () => {
+		const createWritable = vi.fn<
+			() => Promise<{
+				write: Mock<() => Promise<void>>;
+				close: Mock<() => Promise<void>>;
+				abort: Mock<() => Promise<void>>;
+			}>
+		>(async () => {
 			if (stage === "stream") await acquisition.promise;
 			return writable;
 		});
-		const picker = vi.fn(async () => {
+		const picker = vi.fn<
+			() => Promise<{
+				createWritable: Mock<
+					() => Promise<{
+						write: Mock<() => Promise<void>>;
+						close: Mock<() => Promise<void>>;
+						abort: Mock<() => Promise<void>>;
+					}>
+				>;
+			}>
+		>(async () => {
 			if (stage === "picker") await acquisition.promise;
 			return { createWritable };
 		});
@@ -115,9 +136,10 @@ it.each(["picker", "stream"] as const)(
 			acquisition.resolve();
 			await acquisition.promise;
 			await tick();
-			if (stage === "stream")
-				await waitForIO(() => expect(abort).toHaveBeenCalledOnce());
-			else expect(createWritable).not.toHaveBeenCalled();
+			await waitForIO(() =>
+				expect(abort).toHaveBeenCalledTimes(stage === "stream" ? 1 : 0),
+			);
+			expect(createWritable).toHaveBeenCalledTimes(stage === "stream" ? 1 : 0);
 			expect(write).not.toHaveBeenCalled();
 			expect(close).not.toHaveBeenCalled();
 			// The prior export's finally block must not disable the replacement's export.
@@ -178,5 +200,10 @@ it("closes an acquired session delivered after application teardown", async () =
 vi.mock("../../src/lib/editor/editor-model", async (importOriginal) => {
 	const original =
 		await importOriginal<typeof import("../../src/lib/editor/editor-model")>();
-	return { ...original, openEditorBlob: vi.fn(original.openEditorBlob) };
+	return {
+		...original,
+		openEditorBlob: vi.fn<typeof original.openEditorBlob>(
+			original.openEditorBlob,
+		),
+	};
 });

@@ -1,18 +1,20 @@
 <script lang="ts">
-	import { onDestroy } from "svelte";
 	import { Result } from "effect";
-	import { copySaveLocation, runEntryCommand } from "../entry-operations.ts";
-	import StudyFrame from "../../ui/StudyFrame.svelte";
+	import { onDestroy } from "svelte";
+
 	import ParchmentPane from "../../ui/frame/ParchmentPane.svelte";
-	import StudyButton from "../../ui/kit/StudyButton.svelte";
 	import StudyAlert from "../../ui/kit/StudyAlert.svelte";
+	import StudyButton from "../../ui/kit/StudyButton.svelte";
+	import StudyFrame from "../../ui/StudyFrame.svelte";
+	import { copySaveLocation, runEntryCommand } from "../entry-operations.ts";
 	import BackupPanel from "./BackupPanel.svelte";
 
 	interface Props {
 		opening: boolean;
 		status?: string;
 		error: string;
-		legacyHref?: string;
+		// Removing the optional destination hides the legacy navigation link.
+		legacyHref?: string | undefined;
 		onfile: (file: File) => Promise<void>;
 		onoriginal: (file: File) => Promise<void>;
 		oncancel: () => void;
@@ -88,14 +90,20 @@
 	<StudyFrame>
 		<ParchmentPane>
 			<div class="welcome">
-				<section class="open-save" aria-labelledby="open-save-title">
+				<section
+					class="open-save"
+					aria-labelledby="open-save-title"
+				>
 					<h2 id="open-save-title">Open your farm</h2>
 					<p class="intro">
 						Make yourself at home. Edit your farmer, tend to your inventory, or
 						give the farm a new beginning.
 					</p>
 
-					<div class="file-picker" aria-busy={opening}>
+					<div
+						class="file-picker"
+						aria-busy={opening}
+					>
 						<label for="farm-save">Save file</label>
 						<input
 							bind:this={fileInput}
@@ -125,7 +133,10 @@
 						     technology can announce it before import has finished. -->
 						<div class="import-status">
 							<p role="status">
-								<span class="loading-mark" aria-hidden="true"></span>
+								<span
+									class="loading-mark"
+									aria-hidden="true"
+								></span>
 								{status}
 							</p>
 							<StudyButton onclick={oncancel}>Cancel import</StudyButton>
@@ -142,7 +153,10 @@
 					{/if}
 				</section>
 
-				<aside class="guide" aria-labelledby="before-you-begin">
+				<aside
+					class="guide"
+					aria-labelledby="before-you-begin"
+				>
 					<h2 id="before-you-begin">Before you begin</h2>
 					<ol>
 						<li>
@@ -201,25 +215,36 @@
 						</span>
 					</li>
 				</ul>
-				<p role={copyFailed ? "alert" : "status"} class="copy-feedback">
+				<p
+					role={copyFailed ? "alert" : "status"}
+					class="copy-feedback"
+				>
 					{copyFeedback}
 				</p>
 			</details>
 
 			<!-- Load the browser archive only when requested. Archived originals
                  reopen through the same import path without creating another copy. -->
-			<details class="archive" bind:open={backupsOpen}>
+			<details
+				class="archive"
+				bind:open={backupsOpen}
+			>
 				<summary>
 					Original save backups <span>
 						Reopen or download an imported original
 					</span>
 				</summary>
 				{#if backupsOpen}
-					<BackupPanel disabled={opening} onopen={onoriginal} />
+					<BackupPanel
+						disabled={opening}
+						onopen={onoriginal}
+					/>
 				{/if}
 			</details>
 			{#if legacyHref}
 				<footer class="entry-footer">
+					<!-- The caller supplies a resolved route or external URL; resolving again would duplicate the deployment base. -->
+					<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
 					<a href={legacyHref}>Open the legacy editor</a>
 				</footer>
 			{/if}

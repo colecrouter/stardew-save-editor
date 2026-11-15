@@ -1,5 +1,7 @@
 import { Color } from "$lib/proxies/Color.svelte";
 import type { ColoredObjectItem } from "$types/save";
+
+import { writeOptionalField } from "../../optional-field.ts";
 import { BaseItemProxy, Raw } from "./ItemProxy.svelte";
 
 export class ColoredObjectProxy extends BaseItemProxy<ColoredObjectItem> {
@@ -13,7 +15,7 @@ export class ColoredObjectProxy extends BaseItemProxy<ColoredObjectItem> {
 			this[Raw].color ? new Color(this[Raw].color) : undefined,
 		);
 		$effect(() => {
-			this[Raw].color = this.color;
+			writeOptionalField(this[Raw], "color", this.color);
 		});
 	}
 

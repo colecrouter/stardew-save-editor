@@ -1,7 +1,8 @@
-import type { InventoryValue } from "../../src/lib/editor/inventory-values.ts";
-import { Effect, Exit, Fiber, Result } from "effect";
 import { it } from "@effect/vitest";
+import { Effect, Exit, Fiber, Result } from "effect";
 import { describe, expect } from "vitest";
+
+import type { InventoryValue } from "../../src/lib/editor/inventory-values.ts";
 import {
 	prepareTrinketPropertyChange,
 	readTrinketProperties,
@@ -14,6 +15,8 @@ import {
 	type TrinketKind,
 	type TrinketRollContext,
 } from "../../src/lib/TrinketStats";
+import { requireNumber } from "../helpers/assertions.ts";
+import { malformedFixture } from "../helpers/editor-document.ts";
 
 const ctx = {
 	useLegacyRandom: false,
@@ -29,10 +32,12 @@ const request = <P extends TrinketPropertyChange["property"]>(
 	property: P,
 	value: Extract<TrinketPropertyChange, { property: P }>["value"],
 ) =>
-	({ ownerId: "1", entityId: "item:1", property, value }) as Extract<
-		TrinketPropertyChange,
-		{ property: P }
-	>;
+	malformedFixture<Extract<TrinketPropertyChange, { property: P }>>({
+		ownerId: "1",
+		entityId: "item:1",
+		property,
+		value,
+	});
 const prepare = (
 	raw: InventoryValue,
 	change: TrinketPropertyChange,
@@ -86,7 +91,10 @@ describe("proxy-free trinket property policy", () => {
 				expect(
 					rollTrinket(
 						"FairyBox",
-						createRandom(patch.generationSeed as number, useLegacyRandom),
+						createRandom(
+							requireNumber(patch["generationSeed"]),
+							useLegacyRandom,
+						),
 						context,
 					),
 				).toMatchObject({ level });
@@ -114,7 +122,7 @@ describe("proxy-free trinket property policy", () => {
 			expect(raw.descriptionSubstitutionTemplates).toEqual(["custom template"]);
 			const quiver = rawItem("MagicQuiver", 1);
 			const type = readTrinketProperties(quiver, ctx).find(
-				(field) => field.property === "trinket:type",
+				(candidateField) => candidateField.property === "trinket:type",
 			)?.value;
 			if (
 				type !== "normal" &&
@@ -146,7 +154,7 @@ describe("proxy-free trinket property policy", () => {
 				expect(
 					rollTrinket(
 						"ParrotEgg",
-						createRandom(patch.generationSeed as number, false),
+						createRandom(requireNumber(patch["generationSeed"]), false),
 						ctx,
 					),
 				).toMatchObject({ level: 4 });
@@ -161,7 +169,7 @@ describe("proxy-free trinket property policy", () => {
 				const patch = yield* prepare(raw, request("trinket:type", "perfect"));
 				const rolled = rollTrinket(
 					"MagicQuiver",
-					createRandom(patch.generationSeed as number, false),
+					createRandom(requireNumber(patch["generationSeed"]), false),
 					ctx,
 				);
 				expect(rolled).toMatchObject({
@@ -189,12 +197,12 @@ describe("proxy-free trinket property policy", () => {
 				expect(
 					rollTrinket(
 						"FrogEgg",
-						createRandom(patch.generationSeed as number, false),
+						createRandom(requireNumber(patch["generationSeed"]), false),
 						ctx,
 					),
 				).toMatchObject({ variant });
 				expect(patch).not.toHaveProperty("descriptionSubstitutionTemplates");
-				expect(patch.displayNameOverrideTemplate).toBeTruthy();
+				expect(patch["displayNameOverrideTemplate"]).toBeTruthy();
 			}),
 	);
 
@@ -206,7 +214,7 @@ describe("proxy-free trinket property policy", () => {
 				const patch = yield* prepare(raw, request("trinket:interval", 3.3));
 				const rolled = rollTrinket(
 					"IceRod",
-					createRandom(patch.generationSeed as number, false),
+					createRandom(requireNumber(patch["generationSeed"]), false),
 					ctx,
 				);
 				expect(rolled).toMatchObject({ interval: 3.3, perfect: false });
@@ -249,8 +257,9 @@ describe("proxy-free trinket property policy", () => {
 					[rawItem("IceRod"), request("trinket:interval", 3.33)],
 					[rawItem("MagicQuiver"), request("trinket:minDamage", 999)],
 					[rawItem("MagicQuiver", 1), request("trinket:delay", 0.65)],
+					// A missing seed is an absent serialized field.
 					[
-						{ ...rawItem("FairyBox"), generationSeed: undefined },
+						{ $type: "StardewValley.Objects.Trinket", itemId: "FairyBox" },
 						request("trinket:level", 2),
 					],
 				] as const) {
@@ -285,7 +294,8 @@ it.effect(
 			);
 			const before = yield* session.snapshot;
 			const entityId = before.identities["1"]?.[0];
-			if (!entityId) throw Error("Missing fixture item handle");
+			if (entityId === undefined || entityId === "")
+				throw Error("Missing fixture item handle");
 			yield* session.transact(
 				setInventoryItemProperty({
 					...request("trinket:type", "perfect"),

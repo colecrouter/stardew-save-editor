@@ -1,11 +1,13 @@
-import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
-import * as editorModel from "../../src/lib/editor/editor-model";
-import { readItemVisual } from "../../src/lib/editor/item-presentation.ts";
-import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, waitFor, within } from "@testing-library/svelte";
 import { flushSync } from "svelte";
-import EditorApp from "../../src/lib/editor/ui/EditorApp.svelte";
+import { describe, expect, it, vi } from "vitest";
+
+import * as editorModel from "../../src/lib/editor/editor-model";
+import { readItemVisual } from "../../src/lib/editor/item-presentation.ts";
+import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
 import BackpackItemVisual from "../../src/lib/editor/ui/BackpackItemVisual.svelte";
+import EditorApp from "../../src/lib/editor/ui/EditorApp.svelte";
+import { requireInstance, requireRecord } from "../helpers/assertions.ts";
 import { openTestEditor } from "../helpers/open-editor.ts";
 import BackpackHarness from "./BackpackHarness.svelte";
 import { exportDocument, fixtureXml, parser } from "./fixtures";
@@ -59,9 +61,12 @@ describe("full-save backpack workflow", () => {
 				expect(selected().getByText(`Slot ${count - 4}`)).toBeTruthy(),
 			);
 			expect(selected().getByRole("heading", { name: "Parsnip" })).toBeTruthy();
-			const quantity = selected().getByRole("spinbutton", {
-				name: "Quantity",
-			}) as HTMLInputElement;
+			const quantity = requireInstance(
+				selected().getByRole("spinbutton", {
+					name: "Quantity",
+				}),
+				HTMLInputElement,
+			);
 			await fireEvent.input(quantity, { target: { value: "18" } });
 			await waitFor(async () => {
 				expect(
@@ -133,14 +138,26 @@ describe("full-save backpack workflow", () => {
 
 	it("quantity and quality commit independently, undo/redo, and export only the intended item fields", async () => {
 		let written: Blob | undefined;
-		const picker = vi.fn(async () => ({
-			createWritable: async () => ({
-				write: async (blob: Blob) => {
-					written = blob;
-				},
-				close: async () => {},
+		const picker = vi.fn<
+			() => Promise<{
+				createWritable: () => Promise<{
+					write: (blob: Blob) => Promise<void>;
+					close: () => Promise<void>;
+				}>;
+			}>
+		>(() =>
+			Promise.resolve({
+				createWritable: () =>
+					Promise.resolve({
+						write: (blob: Blob) => {
+							written = blob;
+
+							return Promise.resolve();
+						},
+						close: () => Promise.resolve(),
+					}),
 			}),
-		}));
+		);
 		Object.defineProperty(window, "showSaveFilePicker", {
 			configurable: true,
 			value: picker,
@@ -150,17 +167,23 @@ describe("full-save backpack workflow", () => {
 			await fireEvent.click(
 				page.getByRole("button", { name: "Slot 5: Parsnip" }),
 			);
-			const quantity = inspector(page).getByRole("spinbutton", {
-				name: "Quantity",
-			}) as HTMLInputElement;
+			const quantity = requireInstance(
+				inspector(page).getByRole("spinbutton", {
+					name: "Quantity",
+				}),
+				HTMLInputElement,
+			);
 			const quality = (name: string) =>
-				inspector(page).getByRole("radio", { name }) as HTMLInputElement;
+				requireInstance(
+					inspector(page).getByRole("radio", { name }),
+					HTMLInputElement,
+				);
 			expect(quality("Silver").checked).toBe(true);
 			// Every supported tier is labeled; custom value 3 is never silently mapped.
 			expect(
 				inspector(page)
 					.getAllByRole("radio")
-					.map((input) => (input as HTMLInputElement).value),
+					.map((input) => requireInstance(input, HTMLInputElement).value),
 			).toEqual(["0", "1", "2", "4"]);
 			expect(
 				page.queryByRole("button", { name: /Apply.*(?:item|inventory)/i }),
@@ -200,12 +223,9 @@ describe("full-save backpack workflow", () => {
 			if (!written)
 				throw Error("Expected the browser writer to receive the save");
 			const expected = parser.parse(fixtureXml);
-			const item = expected.SaveGame.player.items[4] as
-				| Record<string, unknown>
-				| undefined;
-			if (!item) throw Error("Expected the fixture Parsnip");
-			item.stack = 13;
-			item.quality = 4;
+			const item = requireRecord(expected.SaveGame.player.items[4]);
+			item["stack"] = 13;
+			item["quality"] = 4;
 			// Whole-document equality also protects base price, edibility, other
 			// items, and opaque records from incidental proxy normalization.
 			expect(parser.parse(await written.text())).toEqual(expected);
@@ -223,9 +243,12 @@ describe("full-save backpack workflow", () => {
 			await fireEvent.click(
 				page.getByRole("button", { name: "Slot 5: Parsnip" }),
 			);
-			const quantity = page.getByRole("spinbutton", {
-				name: "Quantity",
-			}) as HTMLInputElement;
+			const quantity = requireInstance(
+				page.getByRole("spinbutton", {
+					name: "Quantity",
+				}),
+				HTMLInputElement,
+			);
 			quantity.focus();
 			// A pending valid write must not refill a subsequently cleared control.
 			await fireEvent.input(quantity, { target: { value: "12" } });
@@ -269,11 +292,8 @@ describe("full-save backpack workflow", () => {
 
 	it("custom quality stays unselected until an explicit radio choice and Undo restores it", async () => {
 		const document = parser.parse(fixtureXml);
-		const parsnip = document.SaveGame.player.items[4] as Record<
-			string,
-			unknown
-		>;
-		parsnip.quality = 3;
+		const parsnip = requireRecord(document.SaveGame.player.items[4]);
+		parsnip["quality"] = 3;
 		const page = await openBackpack(exportDocument(document));
 		try {
 			await fireEvent.click(
@@ -283,11 +303,14 @@ describe("full-save backpack workflow", () => {
 			expect(
 				inspector(page)
 					.getAllByRole("radio")
-					.some((input) => (input as HTMLInputElement).checked),
+					.some((input) => requireInstance(input, HTMLInputElement).checked),
 			).toBe(false);
-			const gold = inspector(page).getByRole("radio", {
-				name: "Gold",
-			}) as HTMLInputElement;
+			const gold = requireInstance(
+				inspector(page).getByRole("radio", {
+					name: "Gold",
+				}),
+				HTMLInputElement,
+			);
 			gold.focus();
 			await fireEvent.click(gold);
 			await waitFor(() => expect(actions(page)).toBe(1));
@@ -299,7 +322,7 @@ describe("full-save backpack workflow", () => {
 			expect(
 				inspector(page)
 					.getAllByRole("radio")
-					.some((input) => (input as HTMLInputElement).checked),
+					.some((input) => requireInstance(input, HTMLInputElement).checked),
 			).toBe(false);
 		} finally {
 			page.unmount();
@@ -323,9 +346,12 @@ describe("full-save backpack workflow", () => {
 			await fireEvent.click(
 				page.getByRole("button", { name: "Slot 5: Parsnip" }),
 			);
-			const quantity = inspector(page).getByRole("spinbutton", {
-				name: "Quantity",
-			}) as HTMLInputElement;
+			const quantity = requireInstance(
+				inspector(page).getByRole("spinbutton", {
+					name: "Quantity",
+				}),
+				HTMLInputElement,
+			);
 			await fireEvent.input(quantity, { target: { value: "0" } });
 			await waitFor(() => expect(quantity.value).toBe("1"));
 			expect(inspector(page).getByRole("status").textContent).toMatch(
@@ -414,7 +440,7 @@ it.each(["shirtItem", "pantsItem"] as const)(
 	"previews saved %s color without normalizing the record",
 	(key) => {
 		const raw = Object.freeze({
-			...(clothingFixture[key] as Record<string, unknown>),
+			...requireRecord(clothingFixture[key]),
 			clothesColor: Object.freeze({
 				R: 18,
 				G: 32,

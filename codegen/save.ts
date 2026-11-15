@@ -199,7 +199,8 @@ export interface CellarAssignmentsItem {
 }
 
 export interface LongContainer {
-	long: number;
+	// XML longs retain decimal strings when a JavaScript number would lose precision.
+	long: number | string;
 }
 
 export enum Season {
@@ -608,8 +609,8 @@ export interface FarmAnimal {
 	allowReproduction: boolean;
 	type: string;
 	buildingTypeILiveIn: string;
-	myID: number;
-	ownerID: number;
+	myID: number | string;
+	ownerID: number | string;
 	parentId: number;
 	hasEatenAnimalCracker: boolean;
 	moodMessage: number;
@@ -618,7 +619,8 @@ export interface FarmAnimal {
 }
 
 export interface LongArrContainer {
-	long: number[];
+	// Resident IDs share the exact long representation used by animal records.
+	long: (number | string)[];
 }
 
 export interface IndoorsAppliedFloor {
@@ -1809,11 +1811,11 @@ export interface SpecialOrders {
 
 export interface SpecialOrdersSpecialOrder {
 	preSelectedItems: PreSelectedItems | string;
-	selectedRandomElements: KVContainer;
+	selectedRandomElements: KVContainer | string;
 	objectives: ObjectivesElement[] | ObjectivesElement;
 	generationSeed: number;
-	seenParticipantsIDs: ParticipantsIDs;
-	participantsIDs: ParticipantsIDs;
+	seenParticipantsIDs: ParticipantsIDs | string;
+	participantsIDs: ParticipantsIDs | string;
 	unclaimedRewardsIDs: string;
 	appliedSpecialRules: boolean;
 	rewards: SpecialOrderReward[];

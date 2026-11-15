@@ -1,6 +1,7 @@
 <script lang="ts">
 	import StudyIcon from "../StudyIcon.svelte";
 	import type { StudyIconName } from "../studyIcons";
+
 	let {
 		href,
 		label,
@@ -18,6 +19,8 @@
 	} = $props();
 </script>
 
+<!-- The caller supplies a resolved route or external URL; resolving again would duplicate the deployment base. -->
+<!-- eslint-disable svelte/no-navigation-without-resolve -->
 <a
 	{href}
 	aria-label={label}
@@ -32,6 +35,8 @@
 		<span class="short-label" aria-hidden="true">{shortLabel}</span>
 	{/if}
 </a>
+
+<!-- eslint-enable svelte/no-navigation-without-resolve -->
 
 <style>
 	.short-label {

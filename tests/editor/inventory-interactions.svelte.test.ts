@@ -1,10 +1,11 @@
-import { installSyntheticPointerCapture } from "../helpers/synthetic-pointer-capture.ts";
 import { fireEvent, render, waitFor, within } from "@testing-library/svelte";
+import { Result } from "effect";
 import { tick } from "svelte";
 import { expect, it, vi } from "vitest";
-import { Result } from "effect";
-import { openTestEditor } from "../helpers/open-editor.ts";
+
 import { MutationError } from "../../src/lib/editor/domain";
+import { openTestEditor } from "../helpers/open-editor.ts";
+import { installSyntheticPointerCapture } from "../helpers/synthetic-pointer-capture.ts";
 import BackpackHarness from "./BackpackHarness.svelte";
 import { fixtureXml } from "./fixtures";
 
@@ -56,8 +57,9 @@ it.each(["success", "failure"] as const)(
 			expect(later.getAttribute("aria-pressed")).toBe("true");
 			expect(document.activeElement).toBe(later);
 			expect(page.queryByText("Old selection failed")).toBeNull();
-			if (outcome === "success")
-				expect(page.getByRole("button", { name: "Slot 4: Wood" })).toBeTruthy();
+			expect(
+				page.queryByRole("button", { name: "Slot 4: Wood" }) !== null,
+			).toBe(outcome === "success");
 		} finally {
 			release.resolve();
 			command.mockRestore();

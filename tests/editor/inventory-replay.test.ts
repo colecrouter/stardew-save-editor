@@ -1,10 +1,12 @@
 import { it } from "@effect/vitest";
-import { expect } from "vitest";
 import { Deferred, Effect, Fiber, Result } from "effect";
+import { expect } from "vitest";
+
+import { MutationError } from "../../src/lib/editor/domain";
 import { makeHistorySession } from "../../src/lib/editor/history";
 import { setInventoryItem } from "../../src/lib/editor/inventory-operations";
-import { MutationError } from "../../src/lib/editor/domain";
 import { TransactionDraft } from "../../src/lib/editor/transaction-draft";
+import { requireDefined, requireRecord } from "../helpers/assertions.ts";
 import { tinyFixture } from "../helpers/editor-document.ts";
 
 function fixture() {
@@ -32,7 +34,8 @@ function change(entityId: string, value = 8) {
 }
 function handle(state: { identities: Record<string, string[]> }) {
 	const id = state.identities["1"]?.[0];
-	if (!id) throw new Error("Missing fixture item identity");
+	if (id == null || id.length === 0)
+		throw new Error("Missing fixture item identity");
 	return id;
 }
 
@@ -51,7 +54,7 @@ it.effect.each(["before", "after"] as const)(
 					throw new Error("Missing guest");
 				// The authorized host edit cannot approve changes to another owner,
 				// even when that owner's inventory has no editable item handles.
-				hands[0].items!.push(null);
+				requireDefined(hands[0].items).push(null);
 				yield* draft.replace(snapshot);
 			});
 			const result = yield* Effect.result(
@@ -83,7 +86,7 @@ it.effect(
 			const before = yield* session.snapshot;
 			const after = yield* session.transact(change(handle(before)));
 			const expected = structuredClone(before.document);
-			Object.assign(expected.SaveGame.player.items[0] as object, {
+			Object.assign(requireRecord(expected.SaveGame.player.items[0]), {
 				stack: 8,
 			});
 			expect(after.document).toEqual(expected);

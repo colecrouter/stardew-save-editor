@@ -1,8 +1,10 @@
 <script lang="ts">
 	import { useAtomValue } from "effect-atom-svelte";
+
+	import StudyAlert from "../../ui/kit/StudyAlert.svelte";
 	import type { EditorModel } from "../editor-model.ts";
 	import ChildCard from "./ChildCard.svelte";
-	import StudyAlert from "../../ui/kit/StudyAlert.svelte";
+
 	let { model }: { model: EditorModel } = $props();
 	const view = useAtomValue(() => model.atomBindings.view);
 </script>
@@ -29,7 +31,10 @@
 
 	<div class="child-list">
 		{#each view.current?.children ?? [] as child (child.key)}
-			<ChildCard {child} {model} />
+			<ChildCard
+				{child}
+				{model}
+			/>
 		{:else}
 			<StudyAlert title="No children in this save">
 				<p>

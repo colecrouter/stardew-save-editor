@@ -1,5 +1,7 @@
 import { Worker } from "node:worker_threads";
+
 import { Effect, Layer } from "effect";
+
 import type { SaveDocument } from "../../src/lib/editor/domain.ts";
 import {
 	SaveCodec,
@@ -20,15 +22,15 @@ export const workerCodecLayer = (
 			Effect.gen(function* () {
 				const worker = yield* Effect.acquireRelease(
 					Effect.sync(() => {
-						const worker = new Worker(
+						const candidateWorker = new Worker(
 							new URL("./xml-worker.ts", import.meta.url),
 						);
 						observe(1);
-						return worker;
+						return candidateWorker;
 					}),
-					(worker) =>
+					(candidateWorker) =>
 						Effect.promise(async () => {
-							await worker.terminate();
+							await candidateWorker.terminate();
 							observe(-1);
 						}),
 				);

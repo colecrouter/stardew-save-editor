@@ -1,5 +1,6 @@
-import { onDestroy } from "svelte";
 import { Result } from "effect";
+import { onDestroy } from "svelte";
+
 import type { EditGesture } from "./edit-gesture.ts";
 import type { ImmediateField } from "./immediate-field.ts";
 
@@ -65,7 +66,7 @@ export function createImmediateFieldController<
 		const field = getField();
 		error = "";
 		if (!field.available) return;
-		if (next == null || (next === "" && field.constraints?.required)) {
+		if (next == null || (next === "" && field.constraints?.required === true)) {
 			blank = { committed: value };
 			return;
 		}
@@ -74,7 +75,7 @@ export function createImmediateFieldController<
 		// without producing another saved change or another Undo step.
 		if (next === value) return;
 		// A checkbox or select is a complete decision, not a typing gesture.
-		if (options.discrete) end();
+		if (options.discrete === true) end();
 		focus();
 		const active = gesture;
 		if (!active) return;
@@ -82,7 +83,7 @@ export function createImmediateFieldController<
 		pending = { value: next, request: current };
 		try {
 			const completion = active.field.commit(next, active.handle);
-			if (options.discrete) end();
+			if (options.discrete === true) end();
 			const result = await completion;
 			if (result && Result.isFailure(result) && pending?.request === current)
 				error = result.failure.message;

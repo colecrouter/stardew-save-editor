@@ -5,6 +5,7 @@ import {
 	readItemPresentation,
 	resolveItemMetadata,
 } from "./item-presentation.ts";
+import { nonemptyText } from "./plain-data.ts";
 import { isKnownLocation, type KnownLocation } from "./saved-types.ts";
 
 /** Child.dayUpdate increments daysOld, then selects these inclusive thresholds. */
@@ -23,20 +24,20 @@ export interface ChildView {
 	readonly name: string;
 	readonly home: string;
 	readonly parent: string;
-	readonly parentId?: string;
-	readonly daysOld?: number;
+	readonly parentId?: string | undefined;
+	readonly daysOld?: number | undefined;
 	readonly appearance: string;
-	readonly stage?: number;
-	readonly gender?: string;
-	readonly darkSkinned?: boolean;
+	readonly stage?: number | undefined;
+	readonly gender?: string | undefined;
+	readonly darkSkinned?: boolean | undefined;
 	readonly hat: {
 		readonly present: boolean;
 		readonly name: string;
-		readonly visual?: ItemVisual;
-		readonly hideHair?: boolean;
+		readonly visual?: ItemVisual | undefined;
+		readonly hideHair?: boolean | undefined;
 	};
 	readonly supported: boolean;
-	readonly reason?: string;
+	readonly reason?: string | undefined;
 }
 
 type Resident = NonNullable<NonNullable<KnownLocation["characters"]>[number]>;
@@ -108,7 +109,10 @@ export function readChildren(document: SaveDocument): ChildView[] {
 	const owners = farmers(document);
 	const dictionariesSupported = childDictionariesSupported(document);
 	return all.flatMap(({ key, home, resident }): ChildView[] => {
-		const homeName = home.uniqueName || home.name || "Unknown home";
+		const homeName =
+			nonemptyText(home.uniqueName) ??
+			nonemptyText(home.name) ??
+			"Unknown home";
 		if (resident.$type === "$unknown") {
 			if (resident.$xmlType.name !== "Child") return [];
 			// Only a readable display name crosses the opaque-class boundary. Its
@@ -117,12 +121,12 @@ export function readChildren(document: SaveDocument): ChildView[] {
 				{
 					key,
 					home: homeName,
-					name: typeof resident.name === "string" ? resident.name : "",
+					name: typeof resident["name"] === "string" ? resident["name"] : "",
 					parent: "Unknown parent",
 					appearance: "Unknown appearance",
 					hat: {
-						present: resident.hat != null,
-						name: resident.hat != null ? "Unknown hat" : "No hat",
+						present: resident["hat"] != null,
+						name: resident["hat"] != null ? "Unknown hat" : "No hat",
 					},
 					supported: false,
 					reason: "This custom child class is read-only.",
@@ -144,7 +148,7 @@ export function readChildren(document: SaveDocument): ChildView[] {
 			reason =
 				"Opaque or repeated home data prevents checking child identities safely.";
 		else if (
-			!name.trim() ||
+			nonemptyText(name.trim()) === undefined ||
 			characterNames.includes(name) ||
 			all.filter(({ resident: other }) => other.name === name).length !== 1
 		)

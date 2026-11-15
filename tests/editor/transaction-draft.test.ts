@@ -1,11 +1,12 @@
-import { Effect, Result } from "effect";
 import { it } from "@effect/vitest";
+import { Effect, Result } from "effect";
 import { expect } from "vitest";
+
+import type { SessionState } from "../../src/lib/editor/domain";
 import {
 	makeTransactionDraft,
 	makeTransactionDraftFromCommitted,
 } from "../../src/lib/editor/transaction-draft";
-import type { SessionState } from "../../src/lib/editor/domain";
 import { tinyFixture } from "../helpers/editor-document.ts";
 
 it.effect(

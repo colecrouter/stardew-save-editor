@@ -85,7 +85,10 @@
 		return undefined;
 	});
 	const canAdd = $derived(
-		!!type && !nameError && !building.isFull && !building.underConstruction,
+		Boolean(type) &&
+			!nameError &&
+			!building.isFull &&
+			!building.underConstruction,
 	);
 
 	const add = (event: SubmitEvent) => {

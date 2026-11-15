@@ -1,4 +1,5 @@
 import { CalendarDocumentError } from "./calendarErrors.ts";
+
 interface TargetLocation {
 	/** Session identity, retained through moves and never reused for a replacement. */
 	id: string;

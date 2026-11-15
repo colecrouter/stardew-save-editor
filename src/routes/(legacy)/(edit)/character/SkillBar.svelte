@@ -11,8 +11,9 @@
 </script>
 
 <div class="wrapper">
-	{#each levels as level}
+	{#each levels as level (level)}
 		<button
+			type="button"
 			aria-label={`Set skill to ${level}`}
 			class="pill"
 			class:active={skill >= level}

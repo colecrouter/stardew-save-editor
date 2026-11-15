@@ -1,7 +1,9 @@
 <script lang="ts">
-	import { stringifySavedData } from "../saved-data.ts";
 	import type { JsonPatch } from "effect";
+
 	import type { ImmutableView } from "../immutable-view.ts";
+	import { stringifySavedData } from "../saved-data.ts";
+
 	let { patch }: { patch: ImmutableView<JsonPatch.JsonPatch[number]> } =
 		$props();
 	let open = $state(false);

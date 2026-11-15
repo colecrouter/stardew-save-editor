@@ -8,8 +8,8 @@ permissions:
   contents: read
 
 jobs:
-  # The offline fixture exercises the .NET inspector/compiler and browser codecs.
-  # No game installation or generated snapshots are needed in CI.
+  # Focused compiler cases verify committed codec fixtures without a game installation.
+  # Real-binary inspection and regeneration coverage remain a documented TODO.
   game-data:
     runs-on: ubuntu-latest
     steps:
@@ -22,7 +22,8 @@ jobs:
         with:
           dotnet-version: "10.0.x"
       - run: npm ci
-      - run: npm run test:game-data
+      - run: npm run check:game-data:fixtures
+      - run: npm run test:game-data:compiler
       - run: dotnet format tools/game-data --verify-no-changes --no-restore
 
   tests:
@@ -46,6 +47,8 @@ jobs:
           path: .vitest/attachments/
           if-no-files-found: ignore
           retention-days: 7
+      # Committed codec fixtures make these runtime checks independent of .NET.
+      - run: npm run test:game-data
 
   # Exercise native worker messaging and transfer semantics outside the DOM shim.
   browser:

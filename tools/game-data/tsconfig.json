@@ -8,5 +8,9 @@
 		"noEmit": true,
 		"types": ["node"]
 	},
-	"include": ["../../src/lib/save-format/**/*.ts", "tests/**/*.ts"]
+	"include": [
+		"../../src/lib/save-format/**/*.ts",
+		"tests/**/*.ts",
+		"tests/*.mjs"
+	]
 }

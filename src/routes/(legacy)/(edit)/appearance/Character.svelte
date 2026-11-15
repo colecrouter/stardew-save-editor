@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onDestroy } from "svelte";
+
 	import { asset } from "$app/paths";
 	import {
 		PrimaryBootColors,

@@ -1,7 +1,10 @@
 <script lang="ts">
 	import { dynamicAsset } from "$lib/ui/dynamicAsset.ts";
+
 	import StudyIcon from "../../ui/StudyIcon.svelte";
-	let { id, recorded }: { id: number; recorded?: boolean } = $props();
+
+	let { id, recorded }: { id: number; recorded?: boolean | undefined } =
+		$props();
 	let failedUrl = $state<string>();
 	// Local filenames use saved game IDs, not Steam's ordering or achievement
 	// count. The manifest validates deployment-aware URLs without contacting Steam.
@@ -14,7 +17,10 @@
 
 <!-- The adjacent text owns the accessible award status. Artwork is decorative;
      its locked/unlocked variant reflects this save, not a connected Steam account. -->
-<span class="achievement-icon" aria-hidden="true">
+<span
+	class="achievement-icon"
+	aria-hidden="true"
+>
 	<!-- Separate image nodes keep an old request's URL intact for late errors. -->
 	{#key imageUrl}
 		{#if imageUrl && failedUrl !== imageUrl}
@@ -31,7 +37,10 @@
 				}}
 			/>
 		{:else}
-			<StudyIcon name={recorded === true ? "check" : "review"} size={28} />
+			<StudyIcon
+				name={recorded === true ? "check" : "review"}
+				size={28}
+			/>
 		{/if}
 	{/key}
 </span>

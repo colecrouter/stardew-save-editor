@@ -1,15 +1,15 @@
-import { expect, it } from "vitest";
 import { Effect, Result } from "effect";
-import { vi } from "vitest";
-import { fixtureXml } from "./fixtures";
 import { get } from "svelte/store";
-import { openTestEditor as openEditor } from "../helpers/open-editor.ts";
+import { expect, it, vi } from "vitest";
+
 import {
 	setCalendarDate,
 	setCalendarWeather,
 } from "../../src/lib/editor/calendar-operations.ts";
+import { openTestEditor as openEditor } from "../helpers/open-editor.ts";
+import { fixtureXml } from "./fixtures";
 
-const input = async () => new TextEncoder().encode(fixtureXml);
+const input = () => Promise.resolve(new TextEncoder().encode(fixtureXml));
 
 it("command results retain expected errors without reporting defects", async () => {
 	const report = vi.spyOn(console, "error").mockImplementation(() => {});
@@ -68,7 +68,7 @@ it("closing a session cancels running and queued UI commands without toasts or r
 		// Closing must interrupt a running transaction, not merely reject work
 		// that has not started. Signal entry from inside the transaction itself.
 		const started = Promise.withResolvers<void>();
-		const finished = vi.fn();
+		const finished = vi.fn<() => void>();
 		const pending = opened.model.commands.transact(
 			Effect.sync(() => started.resolve()).pipe(
 				Effect.andThen(Effect.never),
@@ -78,7 +78,7 @@ it("closing a session cancels running and queued UI commands without toasts or r
 		await started.promise;
 		// The second transaction must remain queued behind the blocked first one,
 		// and closing must discard it without ever executing its program.
-		const queuedStarted = vi.fn();
+		const queuedStarted = vi.fn<() => void>();
 		const queued = opened.model.commands.transact(
 			Effect.sync(queuedStarted).pipe(
 				Effect.andThen(setCalendarDate({ year: 5 })),

@@ -1,12 +1,13 @@
 import { expect, it } from "@effect/vitest";
 import { Effect, Exit, Layer } from "effect";
+
 import { MutationError } from "../../src/lib/editor/domain.ts";
 import { makeHistorySession } from "../../src/lib/editor/history.ts";
-import { inventoryFixture } from "./inventory-model.ts";
 import {
 	coreOperations,
 	EditorOperations,
 } from "../../src/lib/editor/operations.ts";
+import { inventoryFixture } from "./inventory-model.ts";
 
 it.effect(
 	"actual patches expose adapter writes even when receipts omit or misdescribe them",

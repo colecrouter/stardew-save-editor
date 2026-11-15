@@ -1,16 +1,18 @@
 <script lang="ts">
-	import { dynamicAsset } from "$lib/ui/dynamicAsset.ts";
 	import { Result } from "effect";
 	import { useAtomValue } from "effect-atom-svelte";
+
+	import { dynamicAsset } from "$lib/ui/dynamicAsset.ts";
+
+	import { toEventId } from "../../eventId.ts";
 	import {
+		type EventInfo,
 		VanillaEvents,
 		VanillaEventsById,
-		type EventInfo,
 	} from "../../Events.ts";
 	import { characters } from "../../NPCs.ts";
-	import { toEventId } from "../../eventId.ts";
-	import type { EditorModel } from "../editor-model.ts";
 	import type { CommandResult } from "../command-result.ts";
+	import type { EditorModel } from "../editor-model.ts";
 	import { createEventDomain } from "../event-domain.ts";
 	import { createFarmerSelectionField } from "../farmer-selection.ts";
 	import CheckboxField from "./fields/CheckboxField.svelte";
@@ -65,6 +67,8 @@
 	const groups = $derived.by(() => {
 		// A shared event can appear under several NPCs. Every occurrence addresses
 		// the same domain field; presentation grouping never duplicates saved IDs.
+		// This derived evaluation builds a fresh lookup; mutations never outlive it.
+		// eslint-disable-next-line svelte/prefer-svelte-reactivity -- This Map is consumed within one derived evaluation.
 		const result = new Map<string, EventInfo[]>();
 		for (const event of VanillaEvents) {
 			const names =
@@ -117,14 +121,14 @@
 		// Bound mounted controllers across all groups, not once per group. Search
 		// still considers the entire catalog and the complete imported ID list.
 		let remaining = limit;
-		const groups = filteredGroups
+		const visibleGroups = filteredGroups
 			.map((group) => {
 				const events = group.events.slice(0, remaining);
 				remaining -= events.length;
 				return { ...group, events };
 			})
 			.filter((group) => group.events.length);
-		return { groups, unknown: unknown.slice(0, remaining) };
+		return { groups: visibleGroups, unknown: unknown.slice(0, remaining) };
 	});
 	function changePresentation() {
 		// A filtered-away field must finish its gesture before its control unmounts.
@@ -216,13 +220,21 @@
 					aria-describedby={inputHint ? `${inputId}-hint` : undefined}
 				/>
 			</label>
-			<button type="submit" disabled={pending || parsedId === undefined}>
+			<button
+				type="submit"
+				disabled={pending || parsedId === undefined}
+			>
 				Mark as seen
 			</button>
 		</form>
 	</div>
 
-	{#if inputHint}<p id={`${inputId}-hint`} class="hint">{inputHint}</p>{/if}
+	{#if inputHint}<p
+			id={`${inputId}-hint`}
+			class="hint"
+		>
+			{inputHint}
+		</p>{/if}
 	{#if feedback?.scope === model.edits.scope && feedback.farmerId === domain.farmerId}
 		<p role={feedback.failed ? "alert" : "status"}>{feedback.message}</p>
 	{/if}
@@ -278,7 +290,10 @@
 
 							{#if portrait}
 								<span class="portrait">
-									<img src={portrait} alt="" />
+									<img
+										src={portrait}
+										alt=""
+									/>
 								</span>
 							{/if}
 						{/if}
@@ -326,7 +341,11 @@
 	{/key}
 
 	{#if matchingCount > limit}
-		<button type="button" class="more" onclick={() => (limit += 24)}>
+		<button
+			type="button"
+			class="more"
+			onclick={() => (limit += 24)}
+		>
 			Show more events ({matchingCount - limit} remaining)
 		</button>
 	{:else if matchingCount === 0}

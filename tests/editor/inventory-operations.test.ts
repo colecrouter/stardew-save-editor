@@ -426,7 +426,7 @@ describe("bounded backpack edits", () => {
 	);
 
 	it.effect(
-		"preserves opaque and unsupported records without granting edit capabilities",
+		"preserves unsupported records without granting edit capabilities but lets modded objects change quantity",
 		() =>
 			Effect.gen(function* () {
 				const document = fixture();
@@ -464,7 +464,7 @@ describe("bounded backpack edits", () => {
 				);
 				const session = yield* makeHistorySession(document);
 				const before = yield* session.snapshot;
-				for (const entityId of required(before.identities["1"]).slice(3)) {
+				for (const entityId of required(before.identities["1"]).slice(4)) {
 					expect(
 						Result.isFailure(
 							yield* Effect.result(
@@ -481,6 +481,20 @@ describe("bounded backpack edits", () => {
 					).toBe(true);
 					expect(yield* session.snapshot).toEqual(before);
 				}
+				// A readable plain Object from a mod is not in the catalog, but its stack
+				// is an ordinary saved number.
+				const modded = yield* session.transact(
+					setInventoryItem({
+						ownerId: "1",
+						entityId: required(before.identities["1"])[3] as string,
+						property: "stack",
+						value: 2,
+					}),
+				);
+				expect(modded.document.SaveGame.player.items[3]).toMatchObject({
+					itemId: "mod.unknown",
+					stack: 2,
+				});
 			}),
 	);
 

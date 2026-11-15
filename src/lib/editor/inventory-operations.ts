@@ -168,6 +168,28 @@ function editable(item: InventoryValue): item is Extract<
 const numeric = (value: number | undefined): value is number =>
 	value !== undefined && Number.isFinite(value);
 
+/** Whether catalog metadata permits ordinary-object edits. A catalog entry must say Object, but an
+ * item the catalog has never heard of (modded content) stays editable as long as its saved
+ * identity is readable; malformed identities remain unavailable.
+ * Tools, big craftables and other non-Object records stay read-only because `editable` checks the
+ * saved type and `bigCraftable` separately. A mod that saves something tool-like as a plain
+ * Object is indistinguishable from any other unknown Object; only its `stack` number changes.
+ */
+export function objectMetadataAllowsEdits(
+	raw: unknown,
+	info: { _type?: string } | undefined,
+): boolean {
+	if (info) return info._type === "Object";
+	const scalarKey = (value: unknown) =>
+		value == null || typeof value === "string" || typeof value === "number";
+	return (
+		record(raw) &&
+		scalarKey(raw.itemId) &&
+		scalarKey(raw.preservedParentSheetIndex) &&
+		(raw.name == null || typeof raw.name === "string")
+	);
+}
+
 /** Refine structural eligibility with lazy catalog resolution and category policy.
  * Pass whether ordinary-object metadata resolves and whether the serialized category belongs to
  * CategoriesWithQuality; this keeps the shared policy free of eager catalog data.
@@ -921,7 +943,7 @@ export function makeInventoryEdits(
 				if (
 					!getInventoryItemCapabilities(
 						item,
-						info?._type === "Object",
+						objectMetadataAllowsEdits(item, info),
 						[...catalog.CategoriesWithQuality].some(
 							(value) => value === category,
 						),
@@ -989,7 +1011,7 @@ export function makeInventoryEdits(
 			const { catalog, info } = yield* metadataFor(item);
 			const capabilities = getInventoryItemCapabilities(
 				item,
-				info?._type === "Object",
+				objectMetadataAllowsEdits(item, info),
 				[...catalog.CategoriesWithQuality].some(
 					(category) => category === item.category,
 				),

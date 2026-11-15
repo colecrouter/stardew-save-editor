@@ -1,25 +1,26 @@
-import { CalendarDocumentError } from "./calendarErrors.ts";
 import type { LocationWeatherClass, Player, Save, Season } from "$types/save";
+
 import {
+	type CalendarWeatherChoices,
 	dateInRange,
 	DAYS_PER_SEASON,
 	forcedWeather,
+	type GameDate,
 	greenRainDay,
 	isWeatherId,
 	MAX_YEAR,
 	nextDay,
 	planCalendarWeather,
-	SEASONS,
 	seasonIndex,
+	SEASONS,
 	seasonWeathers,
 	totalDays,
 	WEATHER_FLAGS,
-	weatherFromFlags,
-	type CalendarWeatherChoices,
-	type GameDate,
 	type WeatherFlags,
+	weatherFromFlags,
 	type WeatherId,
 } from "./calendar.ts";
+import { CalendarDocumentError } from "./calendarErrors.ts";
 import {
 	planRainWatering,
 	type WateringMark,
@@ -47,7 +48,8 @@ export type CalendarEdit =
 	| { type: "calendar-weather"; day: "today" | "tomorrow"; value: string };
 
 export function valleyWeather(game: Save): LocationWeatherClass | undefined {
-	return typeof game.locationWeather === "object" && game.locationWeather
+	return typeof game.locationWeather === "object" &&
+		game.locationWeather !== null
 		? game.locationWeather.item?.find(
 				(entry) => entry.key?.string === "Default",
 			)?.value?.LocationWeather
@@ -61,6 +63,11 @@ const flags = [
 	["isGreenRain", "IsGreenRain"],
 ] as const;
 
+// Legacy XML fields may retain scalar text despite the historical declarations.
+// Convert projections only; these adapters never normalize the imported record.
+const savedNumber = (value: unknown) => Number(value);
+const savedText = (value: unknown) => String(value);
+
 const fixed = (game: Save, state: CalendarViewState, tomorrow: boolean) => {
 	const date = tomorrow ? nextDay(state.date) : state.date;
 	return forcedWeather(
@@ -68,42 +75,48 @@ const fixed = (game: Save, state: CalendarViewState, tomorrow: boolean) => {
 		state.daysPlayed + (tomorrow ? 1 : 0),
 		greenRainDay(
 			date.year,
-			Number(game.uniqueIDForThisGame),
-			game.useLegacyRandom === true,
+			savedNumber(game.uniqueIDForThisGame),
+
+			game.useLegacyRandom,
 		),
 	);
 };
 
 export function readCalendarView(game: Save): CalendarViewState {
-	const seasonText = String(game.currentSeason).trim().toLowerCase();
+	const seasonText = savedText(game.currentSeason).trim().toLowerCase();
+	// Preserve unfamiliar imported season text in the view until an explicit date
+	// edit normalizes it. This legacy open-value projection cannot brand unknown text.
+	// oxlint-disable-next-line typescript/no-unsafe-type-assertion, typescript/no-unsafe-enum-assignment -- Retain the legacy open season representation for display.
+	const importedSeason = seasonText as Season;
 	const seasonNumber = /^-?\d+$/.test(seasonText)
 		? Number(seasonText)
 		: Number.NaN;
 	const weather = valleyWeather(game);
 	const loadedFlags: WeatherFlags = {
-		isRaining: game.isRaining === true,
-		isSnowing: game.isSnowing === true,
-		isLightning: game.isLightning === true,
-		isDebrisWeather: game.isDebrisWeather === true,
+		isRaining: game.isRaining,
+		isSnowing: game.isSnowing,
+		isLightning: game.isLightning,
+		isDebrisWeather: game.isDebrisWeather,
 		isGreenRain: weather?.IsGreenRain === true,
 	};
 	const fromFlags = weatherFromFlags(loadedFlags);
 	const named = weather?.Weather ?? weather?.weather?.string;
+	// Match known textual seasons without changing unfamiliar imported values.
 	const state: CalendarViewState = {
 		date: {
 			year: game.year,
-			season: SEASONS[seasonNumber] ?? (seasonText as Season),
+			season: SEASONS[seasonNumber] ?? importedSeason,
 			day: game.dayOfMonth,
 		},
 		daysPlayed: getStatValue(game.player, "daysPlayed"),
 		today:
 			typeof named === "string" &&
-			named &&
+			named !== "" &&
 			(!isWeatherId(named) ||
 				weatherFromFlags(WEATHER_FLAGS[named]) === fromFlags)
 				? named
 				: fromFlags,
-		tomorrow: String(game.weatherForTomorrow ?? "Sun"),
+		tomorrow: savedText(game.weatherForTomorrow ?? "Sun"),
 		choices: {},
 		loadedFlags,
 	};
@@ -146,12 +159,12 @@ export function writeCalendarToday(
 	game.isDebrisWeather = selected.isDebrisWeather;
 	const weather = valleyWeather(game);
 	if (!weather) return;
-	if (typeof weather.weather === "object" && weather.weather)
+	if (typeof weather.weather === "object" && weather.weather !== null)
 		weather.weather.string = id;
 	else weather.weather = { string: id };
 	weather.Weather = id;
 	for (const [field, property] of flags) {
-		if (typeof weather[field] === "object" && weather[field])
+		if (typeof weather[field] === "object" && weather[field] !== null)
 			weather[field].boolean = selected[field];
 		else weather[field] = { boolean: selected[field] };
 		weather[property] = selected[field];
@@ -164,7 +177,7 @@ export function writeCalendarTomorrow(game: Save, id: string) {
 	if (!weather) return;
 	if (
 		typeof weather.weatherForTomorrow === "object" &&
-		weather.weatherForTomorrow
+		weather.weatherForTomorrow !== null
 	)
 		weather.weatherForTomorrow.string = id;
 	else weather.weatherForTomorrow = { string: id };
@@ -192,9 +205,9 @@ function bindings(game: Save): Map<string, TargetBinding> {
 	};
 	for (const location of game.locations.GameLocation) {
 		const context = locationWeatherContext(location);
-		if (location.isOutdoors !== true || context !== "Default") continue;
+		if (!location.isOutdoors || context !== "Default") continue;
 		const locationKey =
-			typeof location.uniqueName === "string" && location.uniqueName
+			typeof location.uniqueName === "string" && location.uniqueName !== ""
 				? location.uniqueName
 				: location.name;
 		if (locations.has(locationKey))
@@ -202,7 +215,7 @@ function bindings(game: Save): Map<string, TargetBinding> {
 		locations.add(locationKey);
 		for (const building of location.buildings?.Building ?? []) {
 			if (building["@_xsi:type"] !== "PetBowl") continue;
-			if (typeof building.id !== "string" || !building.id)
+			if (typeof building.id !== "string" || !(building.id !== ""))
 				throw new CalendarDocumentError(
 					"A pet bowl is missing its building ID",
 				);
@@ -233,7 +246,12 @@ function bindings(game: Save): Map<string, TargetBinding> {
 			const feature = entry.value?.TerrainFeature;
 			if (feature?.["@_xsi:type"] !== "HoeDirt") continue;
 			const tile = entry.key?.Vector2;
-			if (!tile || !Number.isInteger(tile.X) || !Number.isInteger(tile.Y))
+			if (
+				tile === undefined ||
+				tile === null ||
+				!Number.isInteger(tile.X) ||
+				!Number.isInteger(tile.Y)
+			)
 				throw new CalendarDocumentError(
 					"A tilled tile is missing its map coordinates",
 				);
@@ -264,12 +282,12 @@ function assertCalendarDocument(game: Save) {
 		throw new CalendarDocumentError(
 			"The host statistics have an unsupported format",
 		);
-	const values = stats.Values;
+	const values = stats["Values"];
 	if (
 		values !== undefined &&
 		values !== "" &&
 		(!record(values) ||
-			(values.item !== undefined && !Array.isArray(values.item)))
+			(values["item"] !== undefined && !Array.isArray(values["item"])))
 	)
 		throw new CalendarDocumentError(
 			"The host statistics have an unsupported format",
@@ -277,7 +295,7 @@ function assertCalendarDocument(game: Save) {
 	if (
 		!Number.isInteger(game.year) ||
 		!Number.isInteger(game.dayOfMonth) ||
-		!game.player?.stats ||
+		game.player?.stats === undefined ||
 		!Array.isArray(game.locations?.GameLocation)
 	)
 		throw new CalendarDocumentError(
@@ -350,7 +368,7 @@ export function prepareCalendarDocument(
 		marks.add(mark.id);
 	}
 	const writeToday = (id: string) => {
-		const wasRaining = game.isRaining === true;
+		const wasRaining = game.isRaining;
 		writeCalendarToday(game, id, state.loadedFlags);
 		const prepared = planRainWatering({
 			targets: state.targets.map((target) => ({
@@ -360,10 +378,12 @@ export function prepareCalendarDocument(
 			provenance: state.watering,
 			context: "Default",
 			wasRaining,
-			raining: game.isRaining === true,
+			raining: game.isRaining,
 		});
 		for (const write of prepared.writes) {
-			const target = state.targets.find((target) => target.id === write.id);
+			const target = state.targets.find(
+				(candidate) => candidate.id === write.id,
+			);
 			if (!target)
 				throw new CalendarDocumentError("A farm object is no longer available");
 			resolve(target.key).write(write);
@@ -374,7 +394,7 @@ export function prepareCalendarDocument(
 	if (edit.type === "calendar-date") {
 		const { change } = edit;
 		if (
-			!Object.keys(change).length ||
+			Object.keys(change).length === 0 ||
 			Object.keys(change).some(
 				(key) => !["year", "season", "day"].includes(key),
 			)
@@ -383,20 +403,23 @@ export function prepareCalendarDocument(
 		if (
 			"year" in change &&
 			(!Number.isInteger(change.year) ||
-				Number(change.year) < 1 ||
-				Number(change.year) > MAX_YEAR)
+				change.year < 1 ||
+				change.year > MAX_YEAR)
 		)
 			throw new CalendarDocumentError(`The year must be from 1 to ${MAX_YEAR}`);
 		if (
 			"day" in change &&
 			(!Number.isInteger(change.day) ||
-				Number(change.day) < 1 ||
-				Number(change.day) > DAYS_PER_SEASON)
+				change.day < 1 ||
+				change.day > DAYS_PER_SEASON)
 		)
 			throw new CalendarDocumentError(
 				`The day must be from 1 to ${DAYS_PER_SEASON}`,
 			);
-		if ("season" in change && !SEASONS.includes(change.season as Season))
+		if (
+			"season" in change &&
+			!SEASONS.some((season) => season === change.season)
+		)
 			throw new CalendarDocumentError("Choose a valid season");
 		state.date = dateInRange({ ...state.date, ...change });
 		writeCalendarDate(game, state.date);
@@ -404,8 +427,8 @@ export function prepareCalendarDocument(
 		const weather = planCalendarWeather({
 			date: state.date,
 			daysPlayed: state.daysPlayed,
-			gameId: Number(game.uniqueIDForThisGame),
-			legacyRandom: game.useLegacyRandom === true,
+			gameId: savedNumber(game.uniqueIDForThisGame),
+			legacyRandom: game.useLegacyRandom,
 			choices: state.choices,
 		});
 		if (weather.today !== state.today) writeToday(weather.today);
@@ -424,7 +447,7 @@ export function prepareCalendarDocument(
 			: seasonWeathers(date.season).filter(
 					(id) => tomorrow || id !== "GreenRain",
 				);
-		if (!allowed.includes(edit.value as WeatherId))
+		if (!allowed.some((weatherId) => weatherId === edit.value))
 			throw new CalendarDocumentError(
 				forced?.reason ?? "Weather is not allowed on this date",
 			);

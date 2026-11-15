@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { searchCatalog, type CatalogChoice } from "../item-catalog.ts";
+	import { type CatalogChoice, searchCatalog } from "../item-catalog.ts";
 	import BackpackItemVisual from "./BackpackItemVisual.svelte";
 
 	interface Props {
@@ -106,7 +106,12 @@
 		</div>
 
 		{#if oncancel}
-			<button type="button" class="back" onclick={oncancel} disabled={saving}>
+			<button
+				type="button"
+				class="back"
+				onclick={oncancel}
+				disabled={saving}
+			>
 				Back to backpack
 			</button>
 		{/if}
@@ -151,7 +156,11 @@
 
 	<div class="catalog-layout">
 		<div class="results">
-			<p class="result-count" id={`${id}-results`} aria-live="polite">
+			<p
+				class="result-count"
+				id={`${id}-results`}
+				aria-live="polite"
+			>
 				{#if results.length}
 					{start + 1}–{start + visible.length} of {results.length.toLocaleString()}
 					{results.length === 1 ? "item" : "items"}
@@ -188,7 +197,10 @@
 				</div>
 
 				{#if pages > 1}
-					<nav aria-label="Item result pages" class="pagination">
+					<nav
+						aria-label="Item result pages"
+						class="pagination"
+					>
 						<button
 							type="button"
 							disabled={currentPage === 0}
@@ -222,7 +234,10 @@
 			{/if}
 		</div>
 
-		<section aria-label="Item preview" class="preview">
+		<section
+			aria-label="Item preview"
+			class="preview"
+		>
 			{#if selected}
 				<!-- Recreate the preview for a new catalog identity.
                      Their scroll resets without disturbing the list or inspector. -->
@@ -263,7 +278,10 @@
 						{saving ? "Adding…" : `Add to slot ${slot + 1}`}
 					</button>
 
-					<p class="feedback" role="status">
+					<p
+						class="feedback"
+						role="status"
+					>
 						{error ?? ""}
 					</p>
 				{/key}

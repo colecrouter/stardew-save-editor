@@ -1,11 +1,13 @@
+import { Result } from "effect";
+import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-svelte";
 import { userEvent } from "vitest/browser";
-import { describe, expect, it, vi } from "vitest";
-import { Result } from "effect";
-import type { ImmediateField } from "../../src/lib/editor/immediate-field.ts";
+
 import type { CommandResult } from "../../src/lib/editor/command-result.ts";
+import type { ImmediateField } from "../../src/lib/editor/immediate-field.ts";
 import NumberField from "../../src/lib/editor/ui/fields/NumberField.svelte";
 import TextField from "../../src/lib/editor/ui/fields/TextField.svelte";
+import { requireInstance } from "../helpers/assertions.ts";
 
 const testScope = Symbol("test-fields");
 type Completion = CommandResult<unknown, { message: string }>;
@@ -26,8 +28,8 @@ function numeric(
 		value: 1,
 		available: true,
 		begin: () => ({ fieldKey: "test:owner:amount" }),
-		commit: async () => Result.succeed(undefined),
-		end: async () => Result.succeed(undefined),
+		commit: () => Promise.resolve(Result.succeed(undefined)),
+		end: () => Promise.resolve(Result.succeed(undefined)),
 		...overrides,
 	};
 }
@@ -38,15 +40,22 @@ describe("shared immediate field controller", () => {
 	it("keeps the latest queued value and focus while earlier requests complete", async () => {
 		const first = deferred(),
 			second = deferred();
-		const begin = vi.fn(() => ({ fieldKey: "test:owner:amount" }));
+		const begin = vi.fn<() => { fieldKey: string }>(() => ({
+			fieldKey: "test:owner:amount",
+		}));
 		const commit = vi
-			.fn()
+			.fn<ImmediateField<number>["commit"]>()
 			.mockReturnValueOnce(first.promise)
 			.mockReturnValueOnce(second.promise);
-		const end = vi.fn(async () => Result.succeed(undefined));
+		const end = vi.fn<() => Promise<Result.Result<undefined>>>(() =>
+			Promise.resolve(Result.succeed(undefined)),
+		);
 		const field = numeric({ begin, commit, end });
 		const page = await render(NumberField, { field });
-		const input = page.getByRole("spinbutton").element() as HTMLInputElement;
+		const input = requireInstance(
+			page.getByRole("spinbutton").element(),
+			HTMLInputElement,
+		);
 		input.focus();
 		await userEvent.fill(input, "2");
 		await userEvent.fill(input, "3");
@@ -64,11 +73,16 @@ describe("shared immediate field controller", () => {
 	});
 
 	it("clears a rejected edit when corrected to the committed value without another command", async () => {
-		const commit = vi.fn(async () =>
-			Result.fail({ message: "Choose a positive amount." }),
+		const commit = vi.fn<
+			() => Promise<Result.Result<never, { message: string }>>
+		>(() =>
+			Promise.resolve(Result.fail({ message: "Choose a positive amount." })),
 		);
 		const page = await render(NumberField, { field: numeric({ commit }) });
-		const input = page.getByRole("spinbutton").element() as HTMLInputElement;
+		const input = requireInstance(
+			page.getByRole("spinbutton").element(),
+			HTMLInputElement,
+		);
 		await userEvent.fill(input, "0");
 		await expect.element(input).toHaveAttribute("aria-invalid", "true");
 		expect(input.value).toBe("1");
@@ -79,9 +93,14 @@ describe("shared immediate field controller", () => {
 	});
 
 	it("keeps numeric replacement blanks local and restores them on blur", async () => {
-		const commit = vi.fn(async () => Result.succeed(undefined));
+		const commit = vi.fn<() => Promise<Result.Result<undefined>>>(() =>
+			Promise.resolve(Result.succeed(undefined)),
+		);
 		const page = await render(NumberField, { field: numeric({ commit }) });
-		const input = page.getByRole("spinbutton").element() as HTMLInputElement;
+		const input = requireInstance(
+			page.getByRole("spinbutton").element(),
+			HTMLInputElement,
+		);
 		await userEvent.fill(input, "");
 		expect(input.value).toBe("");
 		expect(commit).not.toHaveBeenCalled();
@@ -95,9 +114,14 @@ describe("shared immediate field controller", () => {
 		const commit = vi.fn<ImmediateField<number>["commit"]>(
 			() => pending.promise,
 		);
-		const end = vi.fn(async () => Result.succeed(undefined));
+		const end = vi.fn<() => Promise<Result.Result<undefined>>>(() =>
+			Promise.resolve(Result.succeed(undefined)),
+		);
 		const page = await render(NumberField, { field: numeric({ commit, end }) });
-		const input = page.getByRole("spinbutton").element() as HTMLInputElement;
+		const input = requireInstance(
+			page.getByRole("spinbutton").element(),
+			HTMLInputElement,
+		);
 		await userEvent.fill(input, "2");
 		await page.rerender({
 			field: numeric({ key: "test:other:amount", value: 7 }),
@@ -112,8 +136,8 @@ describe("shared immediate field controller", () => {
 	});
 
 	it("keeps required empty text local while allowing optional empty text through", async () => {
-		const commit = vi.fn<ImmediateField<string>["commit"]>(async () =>
-			Result.succeed(undefined),
+		const commit = vi.fn<ImmediateField<string>["commit"]>(() =>
+			Promise.resolve(Result.succeed(undefined)),
 		);
 		const field: ImmediateField<string> = {
 			scope: testScope,
@@ -124,10 +148,13 @@ describe("shared immediate field controller", () => {
 			constraints: { required: true },
 			begin: () => ({ fieldKey: "farm:name" }),
 			commit,
-			end: async () => Result.succeed(undefined),
+			end: () => Promise.resolve(Result.succeed(undefined)),
 		};
 		const page = await render(TextField, { field });
-		const input = page.getByRole("textbox").element() as HTMLInputElement;
+		const input = requireInstance(
+			page.getByRole("textbox").element(),
+			HTMLInputElement,
+		);
 		await userEvent.fill(input, "");
 		expect(input.value).toBe("");
 		expect(commit).not.toHaveBeenCalled();
@@ -143,8 +170,12 @@ describe("shared immediate field controller", () => {
 	});
 
 	it("does not reuse a gesture when another session presents the same field key", async () => {
-		const oldCommit = vi.fn(async () => Result.succeed(undefined));
-		const nextCommit = vi.fn(async () => Result.succeed(undefined));
+		const oldCommit = vi.fn<() => Promise<Result.Result<undefined>>>(() =>
+			Promise.resolve(Result.succeed(undefined)),
+		);
+		const nextCommit = vi.fn<() => Promise<Result.Result<undefined>>>(() =>
+			Promise.resolve(Result.succeed(undefined)),
+		);
 		const page = await render(NumberField, {
 			field: numeric({ commit: oldCommit }),
 		});
@@ -164,7 +195,7 @@ describe("shared immediate field controller", () => {
 	});
 	it("clears rejection feedback when Undo supplies another committed value", async () => {
 		const field = numeric({
-			commit: async () => Result.fail({ message: "Rejected" }),
+			commit: () => Promise.resolve(Result.fail({ message: "Rejected" })),
 		});
 		const page = await render(NumberField, { field });
 		await userEvent.fill(page.getByRole("spinbutton").element(), "-1");

@@ -1,12 +1,13 @@
+import { Schema } from "effect";
+import { openDB } from "idb";
+
 import {
 	restoreOriginal,
 	serializeOriginal,
-	storedOriginalSchema,
-	storedOriginalBase64,
 	type StoredOriginal,
+	storedOriginalBase64,
+	storedOriginalSchema,
 } from "./saveBackups";
-import { openDB } from "idb";
-import { Schema } from "effect";
 import {
 	getToastManager,
 	Toast,
@@ -153,7 +154,8 @@ export class BackupManager {
 		let db: Awaited<ReturnType<typeof openDB>> | undefined;
 		try {
 			db = await openDB("backups", 1, {
-				upgrade: (db) => db.createObjectStore("files", { autoIncrement: true }),
+				upgrade: (database) =>
+					database.createObjectStore("files", { autoIncrement: true }),
 			});
 			// Values and keys must come from one snapshot even if another editor
 			// appends an original while this manager is loading.
@@ -240,7 +242,7 @@ export class BackupManager {
 				([file]) => !files.includes(file),
 			);
 			const added = files.filter((file) => !this.persisted.has(file)).reverse();
-			if (!removed.length && !added.length) return;
+			if (removed.length === 0 && added.length === 0) return;
 			// File reads happen before opening a write transaction. A rejected read
 			// leaves the archive untouched and cannot outlive an IDB transaction.
 			const serialized = await Promise.all(
@@ -283,7 +285,7 @@ export class BackupManager {
 			const msg = "Failed to backup save. Please try reloading the page.";
 
 			// Prevent spam
-			if (this.toast?.toasts?.some((t) => t.message === msg)) return;
+			if (this.toast?.toasts?.some((t) => t.message === msg) === true) return;
 
 			try {
 				// Since saving happens inside of an effect, there's no way to

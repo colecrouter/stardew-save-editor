@@ -1,20 +1,22 @@
-import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
+import { fireEvent, render, waitFor } from "@testing-library/svelte";
 import { describe, expect, it, vi } from "vitest";
-import { render, fireEvent, waitFor } from "@testing-library/svelte";
+
 import { editorResources } from "../../src/lib/editor/editor-model";
+import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
 import EditorApp from "../../src/lib/editor/ui/EditorApp.svelte";
-import { fixtureXml } from "./fixtures";
+import { requireInstance } from "../helpers/assertions.ts";
 import {
 	exportDocument,
 	tinyEditorFixture,
 } from "../helpers/editor-document.ts";
+import { fixtureXml } from "./fixtures";
 
 // These integration scenarios repeatedly parse or export the 6.6 MB save fixture.
 // These full-save assertions verify preservation and workflow, not latency.
 // The shared runner deadline covers codec work under normal test concurrency.
 describe("full-save application workflow", () => {
 	it("the migrated UI imports, stages one date action, reviews, undoes and closes its session", async () => {
-		const backupOriginal = vi.fn(async () => {});
+		const backupOriginal = vi.fn<() => Promise<void>>(() => Promise.resolve());
 		const page = render(EditorApp, {
 			props: {
 				processingLayer: SaveProcessingSync,
@@ -23,7 +25,10 @@ describe("full-save application workflow", () => {
 			},
 		});
 		try {
-			const input = page.getByLabelText("Save file") as HTMLInputElement;
+			const input = requireInstance(
+				page.getByLabelText("Save file"),
+				HTMLInputElement,
+			);
 			const file = new File([fixtureXml], "Farm_123");
 			await fireEvent.change(input, { target: { files: [file] } });
 			await waitFor(() =>
@@ -31,9 +36,12 @@ describe("full-save application workflow", () => {
 			);
 			await waitFor(() => expect(backupOriginal).toHaveBeenCalledWith(file));
 			expect(page.queryByRole("link", { name: "Bundles" })).toBeNull();
-			const year = page.getByRole("spinbutton", {
-				name: "Year",
-			}) as HTMLInputElement;
+			const year = requireInstance(
+				page.getByRole("spinbutton", {
+					name: "Year",
+				}),
+				HTMLInputElement,
+			);
 			await fireEvent.input(year, { target: { value: "3" } });
 			expect(
 				page
@@ -63,7 +71,9 @@ describe("full-save application workflow", () => {
 					streams: 0,
 				}),
 			);
-			expect(page.getByLabelText("Save file")).toBeTruthy();
+			expect(
+				requireInstance(page.getByLabelText("Save file"), HTMLInputElement),
+			).toBeTruthy();
 		} finally {
 			page.unmount();
 		}
@@ -72,17 +82,23 @@ describe("full-save application workflow", () => {
 	it("an unreadable compressed file leaves the upload usable for another attempt", async () => {
 		const page = render(EditorApp, { processingLayer: SaveProcessingSync });
 		try {
-			await fireEvent.change(page.getByLabelText("Save file"), {
-				target: { files: [new File(["xyz"], "BadFarm")] },
-			});
+			await fireEvent.change(
+				requireInstance(page.getByLabelText("Save file"), HTMLInputElement),
+				{
+					target: { files: [new File(["xyz"], "BadFarm")] },
+				},
+			);
 			await waitFor(() =>
 				expect(page.getByRole("alert").textContent).toContain(
 					"could not be decompressed",
 				),
 			);
-			expect(page.getByLabelText("Save file").hasAttribute("disabled")).toBe(
-				false,
-			);
+			expect(
+				requireInstance(
+					page.getByLabelText("Save file"),
+					HTMLInputElement,
+				).hasAttribute("disabled"),
+			).toBe(false);
 			expect(editorResources()).toEqual({
 				models: 0,
 				registries: 0,
@@ -97,13 +113,21 @@ describe("full-save application workflow", () => {
 		// Retry ownership needs real export I/O, not a full-size farm.
 		const report = vi.spyOn(console, "error").mockImplementation(() => {});
 		const picker = vi
-			.fn()
+			.fn<
+				() => Promise<{
+					createWritable: () => Promise<{
+						write: () => Promise<void>;
+						close: () => Promise<void>;
+					}>;
+				}>
+			>()
 			.mockRejectedValueOnce(new Error("Browser write failed"))
 			.mockResolvedValue({
-				createWritable: async () => ({
-					write: async () => {},
-					close: async () => {},
-				}),
+				createWritable: () =>
+					Promise.resolve({
+						write: () => Promise.resolve(),
+						close: () => Promise.resolve(),
+					}),
 			});
 		Object.defineProperty(window, "showSaveFilePicker", {
 			configurable: true,
@@ -112,17 +136,24 @@ describe("full-save application workflow", () => {
 		const page = render(EditorApp, {
 			props: {
 				processingLayer: SaveProcessingSync,
-				backupOriginal: async () => {
-					throw new DOMException("Backup unavailable", "QuotaExceededError");
+				backupOriginal: () => {
+					return Promise.reject(
+						new DOMException("Backup unavailable", "QuotaExceededError"),
+					);
 				},
 			},
 		});
 		try {
-			await fireEvent.change(page.getByLabelText("Save file"), {
-				target: {
-					files: [new File([exportDocument(tinyEditorFixture())], "Farm_123")],
+			await fireEvent.change(
+				requireInstance(page.getByLabelText("Save file"), HTMLInputElement),
+				{
+					target: {
+						files: [
+							new File([exportDocument(tinyEditorFixture())], "Farm_123"),
+						],
+					},
 				},
-			});
+			);
 			await waitFor(() =>
 				expect(page.getByRole("button", { name: "Export save" })).toBeTruthy(),
 			);

@@ -1,35 +1,36 @@
-import { stringifySavedData } from "../../src/lib/editor/saved-data.ts";
 import { it } from "@effect/vitest";
-import { describe, expect } from "vitest";
 import { Effect, Result } from "effect";
-import { makeHistorySession } from "../../src/lib/editor/history";
-import { TransactionDraft } from "../../src/lib/editor/transaction-draft";
+import { describe, expect } from "vitest";
+
 import {
-	readBuildings,
-	inspectBuildings,
 	animalDictionary,
+	inspectBuildings,
+	readBuildings,
 } from "../../src/lib/editor/building-data";
 import {
+	adoptAnimal,
 	setAnimal,
 	upgradeBuilding,
-	adoptAnimal,
 } from "../../src/lib/editor/building-operations";
-import { setInventoryItem } from "../../src/lib/editor/inventory-operations";
 import { discoverPlacedChests } from "../../src/lib/editor/chest-storage";
-import { fixtureXml, parser, exportDocument } from "./fixtures";
+import { makeHistorySession } from "../../src/lib/editor/history";
+import { setInventoryItem } from "../../src/lib/editor/inventory-operations";
+import { stringifySavedData } from "../../src/lib/editor/saved-data.ts";
+import { TransactionDraft } from "../../src/lib/editor/transaction-draft";
 import {
-	withAnimalBuildings,
-	COOP_ID,
 	BARN_ID,
-	COOP_ANIMALS,
-	PLAYER_ID,
-	coopXml,
 	barnXml,
-	shedXml,
-	SHED_ID,
-	objectXml,
+	COOP_ANIMALS,
+	COOP_ID,
+	coopXml,
 	incubator,
+	objectXml,
+	PLAYER_ID,
+	SHED_ID,
+	shedXml,
+	withAnimalBuildings,
 } from "../helpers/animalBuildings";
+import { exportDocument, fixtureXml, parser } from "./fixtures";
 
 const baseline = parser.parse(withAnimalBuildings(fixtureXml));
 const fixture = () => structuredClone(baseline);
@@ -49,10 +50,16 @@ describe("v2 buildings and animals", () => {
 		expect(coop.adoptionReason).toContain("full");
 		expect(
 			coop.animals.find((row) => row.id === COOP_ANIMALS.clucky),
-		).toMatchObject({ daysOwned: 12, supported: true });
+		).toMatchObject({
+			daysOwned: 12,
+			supported: true,
+		});
 		expect(
 			coop.animals.find((row) => row.id === COOP_ANIMALS.wanderer),
-		).toMatchObject({ outside: true, location: "Farm" });
+		).toMatchObject({
+			outside: true,
+			location: "Farm",
+		});
 		expect(document).toEqual(before);
 	});
 	it.effect(
@@ -66,7 +73,7 @@ describe("v2 buildings and animals", () => {
 						),
 					);
 				for (const mirror of raw.mirrors)
-					mirror.customModData = { opaque: "007" };
+					mirror["customModData"] = { opaque: "007" };
 				const session = yield* makeHistorySession(document),
 					before = yield* session.snapshot;
 				yield* session.transact(
@@ -119,11 +126,13 @@ describe("v2 buildings and animals", () => {
 						(row) => row.id === COOP_ID,
 					),
 				).toMatchObject({ name: "Deluxe Coop", capacity: 12 });
+				// Vitest types asymmetric matchers as any. Keep expected matcher values
+				// unknown so they cannot weaken the surrounding saved-data assertions.
 				expect(upgraded.document.SaveGame).toMatchObject({
 					constructedBuildings: expect.arrayContaining([
 						"Big Coop",
 						"Deluxe Coop",
-					]),
+					]) as unknown,
 				});
 				yield* session.transact(
 					adoptAnimal(COOP_ID, "Duck", "  Waddles  ", PLAYER_ID),
@@ -148,7 +157,7 @@ describe("v2 buildings and animals", () => {
 					),
 				).toMatchObject({ residents: 5, outside: 1 });
 				expect(required(coop.interior).animalsThatLiveHere).toEqual(
-					expect.arrayContaining([BigInt(receipt.animalId)]),
+					expect.arrayContaining([BigInt(receipt.animalId)]) as unknown,
 				);
 				const animal = required(
 					inspectBuildings(adopted.document).animals.find(

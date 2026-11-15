@@ -1,16 +1,18 @@
 <script lang="ts">
-	import { untrack } from "svelte";
-	import { useAtomValue } from "effect-atom-svelte";
 	import { Result } from "effect";
-	import type { EditorModel } from "../editor-model.ts";
-	import { createCommunityDomain } from "../community-domain.ts";
-	import CommunityBundleCard from "./CommunityBundleCard.svelte";
-	import JojaProjectBoard from "./JojaProjectBoard.svelte";
-	import StudyDialog from "../../ui/kit/StudyDialog.svelte";
-	import StudyButton from "../../ui/kit/StudyButton.svelte";
+	import { useAtomValue } from "effect-atom-svelte";
+	import { untrack } from "svelte";
+
 	import StudyAlert from "../../ui/kit/StudyAlert.svelte";
 	import StudyAside from "../../ui/kit/StudyAside.svelte";
+	import StudyButton from "../../ui/kit/StudyButton.svelte";
+	import StudyDialog from "../../ui/kit/StudyDialog.svelte";
 	import StudyIcon from "../../ui/StudyIcon.svelte";
+	import { createCommunityDomain } from "../community-domain.ts";
+	import type { EditorModel } from "../editor-model.ts";
+	import CommunityBundleCard from "./CommunityBundleCard.svelte";
+	import JojaProjectBoard from "./JojaProjectBoard.svelte";
+
 	let { model }: { model: EditorModel } = $props();
 	const view = useAtomValue(() => model.atomBindings.view);
 	const domain = $derived(
@@ -102,7 +104,11 @@
 <div class="community-heading">
 	<h1>Community development</h1>
 
-	<div class="route-control" role="group" aria-label="Restoration route">
+	<div
+		class="route-control"
+		role="group"
+		aria-label="Restoration route"
+	>
 		<p class="route-status">
 			<span>Restoration route</span>
 			<strong>
@@ -123,7 +129,10 @@
 				dismissible={!membershipBusy}
 				disabled={domain.membership === undefined}
 			>
-				<fieldset class="route-options" disabled={membershipBusy}>
+				<fieldset
+					class="route-options"
+					disabled={membershipBusy}
+				>
 					<legend>Restoration route</legend>
 
 					<label>
@@ -165,7 +174,10 @@
 				{/if}
 
 				{#snippet actions(close)}
-					<StudyButton onclick={close} disabled={membershipBusy}>
+					<StudyButton
+						onclick={close}
+						disabled={membershipBusy}
+					>
 						Cancel
 					</StudyButton>
 
@@ -187,13 +199,19 @@
 </div>
 
 {#if !domain?.supported}
-	<StudyAlert title="Community Center unavailable" tone="warning">
+	<StudyAlert
+		title="Community Center unavailable"
+		tone="warning"
+	>
 		<p>{domain?.reason ?? "Community Center data is unavailable."}</p>
 	</StudyAlert>
 {:else if domain.membership === true}
 	<JojaProjectBoard community={domain} />
 
-	<details class="retained-donations" bind:open={retainedOpen}>
+	<details
+		class="retained-donations"
+		bind:open={retainedOpen}
+	>
 		<summary>Retained Community Center donations</summary>
 
 		{#if retainedOpen}
@@ -208,7 +226,10 @@
 	{#if domain}
 		{#if domain.membership === true}
 			<div class="route-notice">
-				<StudyAlert title="Saved Community Center donations" tone="info">
+				<StudyAlert
+					title="Saved Community Center donations"
+					tone="info"
+				>
 					<p>
 						Joja membership is active. These saved donations share restoration
 						progress with Joja projects, so editing them can change those
@@ -218,7 +239,10 @@
 			</div>
 		{:else if domain.membership === undefined}
 			<div class="route-notice">
-				<StudyAlert title="Membership could not be read" tone="warning">
+				<StudyAlert
+					title="Membership could not be read"
+					tone="warning"
+				>
 					<p>
 						Saved donations are shown below. Membership changes and Joja
 						projects are unavailable.
@@ -228,7 +252,10 @@
 		{/if}
 
 		<div class="room-layout">
-			<nav aria-label="Community Center rooms" class="rooms">
+			<nav
+				aria-label="Community Center rooms"
+				class="rooms"
+			>
 				{#each domain.rooms as row (row.id)}
 					<button
 						type="button"
@@ -251,7 +278,10 @@
 				{/each}
 			</nav>
 
-			<section class="room" aria-label={room?.name}>
+			<section
+				class="room"
+				aria-label={room?.name}
+			>
 				<header class="room-heading">
 					<div>
 						<h2>{room?.name}</h2>
@@ -259,7 +289,10 @@
 						<p>{room?.unlock}</p>
 					</div>
 
-					<StudyIcon name={room?.restored ? "check" : "community"} size={32} />
+					<StudyIcon
+						name={room?.restored ? "check" : "community"}
+						size={32}
+					/>
 				</header>
 
 				<div class="room-actions">

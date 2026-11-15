@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
+
 import { XMLCodec } from "../src/lib/xmlCodec.ts";
+import { requireRecord } from "./helpers/assertions.ts";
 
 const codec = new XMLCodec();
 const roundTrip = (xml: string) => {
@@ -98,13 +100,13 @@ describe("save XML representation", () => {
 	});
 
 	it.each([
-		"<a><b></a>",
-		'<a x="1" x="2"/>',
-		"<a>&missing;</a>",
-		"<a/><b/>",
-		"<a>\u0000</a>",
-	])("rejects malformed XML: %s", (xml) => {
-		expect(() => codec.parse(xml)).toThrow();
+		["<a><b></a>", "end tag </a> does not match <b>"],
+		['<a x="1" x="2"/>', "duplicate attribute x"],
+		["<a>&missing;</a>", "undefined entity &missing;"],
+		["<a/><b/>", "content after the root element"],
+		["<a>\u0000</a>", "invalid character U+0000"],
+	])("rejects malformed XML: %s", (xml, reason) => {
+		expect(() => codec.parse(xml)).toThrow(reason);
 	});
 	it("keeps prototype-like unknown element names as ordinary saved data", () => {
 		const document = codec.parse(
@@ -116,7 +118,10 @@ describe("save XML representation", () => {
 			),
 		).toEqual(document);
 		expect(
-			Object.hasOwn((document as { SaveGame: object }).SaveGame, "__proto__"),
+			Object.hasOwn(
+				requireRecord(requireRecord(document)["SaveGame"]),
+				"__proto__",
+			),
 		).toBe(true);
 	});
 });

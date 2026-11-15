@@ -1,45 +1,49 @@
-import { savedTypeId } from "./saved-types.ts";
-import { readChildren } from "./children-data.ts";
 import { formatDate, weatherLabel } from "../calendar.ts";
-import { readCalendarView } from "./calendar-document.ts";
 import { VanillaEventsById } from "../Events.ts";
 import { readAppearances } from "./appearance-operations.ts";
-import { inspectPets, readPets } from "./pet-data.ts";
 import { readBuildings } from "./building-data.ts";
+import { readCalendarView } from "./calendar-document.ts";
 import { professionDefinitions } from "./character-data.ts";
 import { readCharacters } from "./character-operations.ts";
+import { readChildren } from "./children-data.ts";
 import {
-	readCommunity,
 	type CommunityRequirementView,
+	readCommunity,
 } from "./community-data.ts";
-import { resolveItemMetadata } from "./item-presentation.ts";
-import { inventoryQualities } from "./inventory-policy.ts";
 import { farmers, type SaveDocument } from "./domain.ts";
 import { readEvents } from "./event-operations.ts";
+import { type FarmSettings, readFarmSettings } from "./farm-operations.ts";
 import { readFarmerRoster } from "./farmer-roster-data.ts";
-import { readFarmSettings, type FarmSettings } from "./farm-operations.ts";
 import type { HistoryState } from "./history.ts";
-import { readQuestJournals } from "./quest-operations.ts";
+import { inventoryQualities } from "./inventory-policy.ts";
+import { resolveItemMetadata } from "./item-presentation.ts";
+import { inspectPets, readPets } from "./pet-data.ts";
+import { nonemptyText, record } from "./plain-data.ts";
 import { readQiOrders } from "./qi-order-operations.ts";
+import { readQuestJournals } from "./quest-operations.ts";
 import { readRecipes } from "./recipe-operations.ts";
 import { readRelationships } from "./relationship-operations.ts";
-import { projectInventoryReview } from "./review-inventory.ts";
 import {
-	reviewFeatures,
 	type ReviewChange,
 	type ReviewFeature,
+	reviewFeatures,
 	type ReviewValue,
 	type ReviewView,
 } from "./review-contract.ts";
-import { record } from "./plain-data.ts";
+import { projectInventoryReview } from "./review-inventory.ts";
+import { savedTypeId } from "./saved-types.ts";
 
+// Optional presentation members may be omitted or explicitly unavailable.
+// These transient projections do not encode presence of serialized save fields.
 interface ReviewRecord {
 	readonly key: string;
 	readonly subject: string;
 	readonly label: string;
 	readonly fields: Readonly<Record<string, ReviewValue | undefined>>;
 	/** Only explicit serialized leaves are claimed; derived and opaque side effects remain visible. */
-	readonly paths?: Readonly<Record<string, readonly string[] | undefined>>;
+	readonly paths?:
+		| Readonly<Record<string, readonly string[] | undefined>>
+		| undefined;
 }
 interface FeatureProjection {
 	readonly changes: readonly ReviewChange[];
@@ -70,8 +74,8 @@ const scalar = (value: unknown): value is ReviewValue =>
 // Imported identifiers may be opaque objects, including objects with a
 // non-callable toString. Only established scalar identities may be compared.
 function ownerIdentity(owner: unknown): string | undefined {
-	if (!record(owner)) return undefined;
-	const id = owner.UniqueMultiplayerID;
+	if (!record(owner)) return;
+	const id = owner["UniqueMultiplayerID"];
 	return typeof id === "string" ||
 		typeof id === "bigint" ||
 		(typeof id === "number" && Number.isFinite(id))
@@ -106,9 +110,10 @@ function donationLabel(item: CommunityRequirementView): string {
 				itemId: item.itemId,
 				$type: savedTypeId("Object"),
 			})?.name ?? `Item ${item.itemId}`);
-	const quality = item.quality
-		? ` (${inventoryQualities.find((row) => row.value === item.quality)?.label ?? `quality ${item.quality}`})`
-		: "";
+	const quality =
+		item.quality !== 0
+			? ` (${inventoryQualities.find((row) => row.value === item.quality)?.label ?? `quality ${item.quality}`})`
+			: "";
 	return `${item.quantity} × ${name}${quality}`;
 }
 
@@ -125,12 +130,14 @@ const definitions = {
 					fields: Object.fromEntries(
 						Object.entries(farmLabels).map(([key, label]) => [
 							label,
+							// oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Object.entries enumerates the complete typed farmLabels map; its keys are exactly FarmSettings fields.
 							view[key as keyof FarmSettings],
 						]),
 					),
 					paths: Object.fromEntries(
 						Object.entries(farmLabels).map(([key, label]) => [
 							label,
+							// oxlint-disable-next-line typescript/no-unsafe-type-assertion -- The complete typed label and path maps share exactly the FarmSettings keys.
 							farmPaths[key as keyof FarmSettings],
 						]),
 					),
@@ -211,25 +218,28 @@ const definitions = {
 								]),
 							),
 							Professions: owner.professions.supported
-								? owner.professions.values
-										.map(
-											(id) =>
-												professionDefinitions.find(
-													(profession) => profession.id === id,
-												)?.name ?? `Unknown profession ${id}`,
-										)
-										.join(", ") || "None"
+								? (nonemptyText(
+										owner.professions.values
+											.map(
+												(id) =>
+													professionDefinitions.find(
+														(profession) => profession.id === id,
+													)?.name ?? `Unknown profession ${id}`,
+											)
+											.join(", "),
+									) ?? "None")
 								: undefined,
 							"Mastery experience": owner.mastery.xp,
 							"Mastery levels spent": owner.mastery.spent,
 						},
-						paths: path
-							? {
-									Gold: [`${path}/money`],
-									"Backpack slots": [`${path}/maxItems`],
-									"House level": [`${path}/houseUpgradeLevel`],
-								}
-							: {},
+						paths:
+							path != null && path !== ""
+								? {
+										Gold: [`${path}/money`],
+										"Backpack slots": [`${path}/maxItems`],
+										"House level": [`${path}/houseUpgradeLevel`],
+									}
+								: {},
 					};
 				});
 		},
@@ -371,10 +381,12 @@ const definitions = {
 								? bundle.rewardAvailable
 								: undefined,
 							Donations:
-								bundle.requirements
-									.filter((item) => item.submitted)
-									.map(donationLabel)
-									.join(", ") || "None",
+								nonemptyText(
+									bundle.requirements
+										.filter((item) => item.submitted)
+										.map(donationLabel)
+										.join(", "),
+								) ?? "None",
 						},
 					})),
 				...view.rooms.map((room) => ({
@@ -403,17 +415,24 @@ const definitions = {
 						fields: {
 							Name: pet.nameEditable ? pet.name : undefined,
 							Friendship: pet.friendship,
-							Type: pet.appearance.value ? pet.type : undefined,
-							Breed: pet.appearance.value ? pet.breed : undefined,
+							Type:
+								pet.appearance.value != null && pet.appearance.value !== ""
+									? pet.type
+									: undefined,
+							Breed:
+								pet.appearance.value != null && pet.appearance.value !== ""
+									? pet.breed
+									: undefined,
 						},
-						paths: path
-							? {
-									Name: [`${path}/name`],
-									Friendship: [`${path}/friendshipTowardFarmer`],
-									Type: [`${path}/petType`],
-									Breed: [`${path}/whichBreed`],
-								}
-							: undefined,
+						paths:
+							path != null && path !== ""
+								? {
+										Name: [`${path}/name`],
+										Friendship: [`${path}/friendshipTowardFarmer`],
+										Type: [`${path}/petType`],
+										Breed: [`${path}/whichBreed`],
+									}
+								: undefined,
 					};
 				});
 		},
@@ -525,13 +544,14 @@ const definitions = {
 								owner.colors.map((field) => [field.label, field.value]),
 							),
 						},
-						paths: path
-							? {
-									Name: [`${path}/name`],
-									"Favorite thing": [`${path}/favoriteThing`],
-									Gender: [`${path}/gender`],
-								}
-							: {},
+						paths:
+							path != null && path !== ""
+								? {
+										Name: [`${path}/name`],
+										"Favorite thing": [`${path}/favoriteThing`],
+										Gender: [`${path}/gender`],
+									}
+								: {},
 					};
 				});
 		},
@@ -567,7 +587,7 @@ function rawAt(document: SaveDocument, path: string): unknown {
 		if (Array.isArray(value)) value = value[Number(segment)];
 		else if (record(value) && Object.hasOwn(value, segment))
 			value = value[segment];
-		else return undefined;
+		else return;
 	}
 	return value;
 }
@@ -601,7 +621,7 @@ function compareRecords(
 				_tag: b ? "EntityAdded" : "EntityRemoved",
 				subject: target.subject,
 				label: target.label,
-				value: target.fields.Status ?? target.fields.Kind ?? target.label,
+				value: target.fields["Status"] ?? target.fields["Kind"] ?? target.label,
 			});
 			continue;
 		}
@@ -644,7 +664,7 @@ function compareRecords(
 
 /** Produce detached semantic review data only on demand; history/annotations never substitute for net comparison. */
 export function projectReview(state: HistoryState): ReviewView {
-	if (!state.net.length)
+	if (!(state.net.length > 0))
 		return { revision: state.revision, groups: [], otherChanges: [] };
 	const inventory = projectInventoryReview(state);
 	const projections = Object.fromEntries(
@@ -666,7 +686,7 @@ export function projectReview(state: HistoryState): ReviewView {
 	const groups = reviewFeatures.flatMap((feature) => {
 		const projection =
 			feature === "inventory" ? inventory : projections[feature];
-		if (!projection?.changes.length) return [];
+		if (!projection || projection.changes.length === 0) return [];
 		return [
 			{
 				feature,

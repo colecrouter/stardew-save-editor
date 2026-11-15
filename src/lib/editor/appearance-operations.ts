@@ -1,21 +1,22 @@
-import { samePlainData } from "./plain-data.ts";
+import { Data, Effect, Result, Schema } from "effect";
+
+import { colorHex, itemColorPatch } from "../color.ts";
 import {
 	appearanceLayers,
 	type AppearancePreviewView,
 } from "./appearance-preview.ts";
-import { Data, Effect, Result, Schema } from "effect";
-import { colorHex, itemColorPatch } from "../color.ts";
 import {
-	farmers,
 	type Farmer,
+	farmers,
 	type KnownFields,
 	type SaveDocument,
 } from "./domain.ts";
-import { TransactionDraft } from "./transaction-draft.ts";
+import { samePlainData } from "./plain-data.ts";
 import {
 	recordAnnotatedOperation,
 	withReviewMetadata,
 } from "./transaction-annotations.ts";
+import { TransactionDraft } from "./transaction-draft.ts";
 
 // The codec decodes Int64 IDs as bigint. Missing IDs cannot identify an owner;
 // present IDs become strings only for the editor's selection keys.
@@ -76,16 +77,16 @@ const decode = Schema.decodeUnknownResult(changeSchema, {
 	onExcessProperty: "error",
 });
 export interface AppearanceValue<T> {
-	value?: T;
+	value?: T | undefined;
 	available: boolean;
-	reason?: string;
+	reason?: string | undefined;
 }
 /** Read model exposes editor names and checked values, never raw field conventions. */
 export interface AppearanceView {
 	farmerId: string;
 	name: string;
 	supported: boolean;
-	reason?: string;
+	reason?: string | undefined;
 	texts: { name: AppearanceValue<string>; favorite: AppearanceValue<string> };
 	gender: AppearanceValue<string>;
 	numbers: {
@@ -93,16 +94,16 @@ export interface AppearanceView {
 		label: string;
 		min: number;
 		max: number;
-		value?: number;
+		value?: number | undefined;
 		available: boolean;
-		reason?: string;
+		reason?: string | undefined;
 	}[];
 	colors: {
 		key: "hair-color" | "eye-color";
 		label: string;
-		value?: string;
+		value?: string | undefined;
 		available: boolean;
-		reason?: string;
+		reason?: string | undefined;
 	}[];
 	/** Complete drawing instructions, not a detached copy of saved appearance fields. */
 	preview: AppearancePreviewView;
@@ -146,7 +147,8 @@ export function readAppearances(document: SaveDocument): AppearanceView[] {
 				gender,
 				supported &&
 					(gender === "Male" || gender === "Female") &&
-					(!Object.hasOwn(owner, "Gender") || typeof owner.Gender === "string"),
+					(!Object.hasOwn(owner, "Gender") ||
+						typeof owner["Gender"] === "string"),
 			),
 			numbers: appearanceNumbers.map((def) => {
 				const raw = owner[def.raw];
@@ -212,9 +214,9 @@ export const setAppearance = Effect.fn("Appearance.set")(function* (
 			message: "This farmer is no longer available.",
 		});
 	const view = readAppearances(snapshot.state.document).find(
-		(view) => view.farmerId === request.farmerId,
+		(viewCandidate) => viewCandidate.farmerId === request.farmerId,
 	);
-	if (!view?.supported)
+	if (!(view?.supported === true))
 		return yield* new AppearanceInvalid({
 			message: "This farmer cannot be edited safely.",
 		});
@@ -250,8 +252,8 @@ export const setAppearance = Effect.fn("Appearance.set")(function* (
 		const genderChanged = setField("gender", request.value);
 		// Uppercase Gender is retained extension data rather than a generated farmer
 		// field. Its supported string mirror was checked by readAppearances above.
-		const mirrorChanged = owner.Gender !== request.value;
-		owner.Gender = request.value;
+		const mirrorChanged = owner["Gender"] !== request.value;
+		owner["Gender"] = request.value;
 		changed = genderChanged || mirrorChanged;
 	} else if (request.kind === "hair-color" || request.kind === "eye-color") {
 		const raw =
@@ -267,10 +269,15 @@ export const setAppearance = Effect.fn("Appearance.set")(function* (
 		request.kind === "hair" ||
 		request.kind === "accessory"
 	) {
-		const def = appearanceNumbers.find((def) => def.key === request.kind);
+		const def = appearanceNumbers.find(
+			(defCandidate) => defCandidate.key === request.kind,
+		);
 		if (
 			!def ||
-			!view.numbers.find((field) => field.key === request.kind)?.available
+			!(
+				view.numbers.find((field) => field.key === request.kind)?.available ===
+				true
+			)
 		)
 			return yield* new AppearanceInvalid({
 				message: "This saved appearance index cannot be edited safely.",

@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { dynamicAsset } from "$lib/ui/dynamicAsset.ts";
 	import { asset } from "$app/paths";
 	import { getItemSprite, prismaticColors, tintMatrix } from "$lib/ItemSprite";
 	import type { ItemProxy } from "$lib/proxies/items";
+	import { dynamicAsset } from "$lib/ui/dynamicAsset.ts";
 
 	interface Props {
 		item: ItemProxy | undefined;

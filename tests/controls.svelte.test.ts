@@ -1,14 +1,19 @@
 import { fireEvent, render, screen } from "@testing-library/svelte";
 import { describe, expect, it, vi } from "vitest";
+
+import { requireInstance } from "./helpers/assertions.ts";
 import Harness from "./helpers/ControlHarness.svelte";
 
 describe("shared control behavior", () => {
 	it("pending controls expose busy state and resume normal activation afterward", async () => {
-		const onclick = vi.fn();
+		const onclick = vi.fn<() => void>();
 		const view = render(Harness, { pending: true, onclick });
-		const button = screen.getByRole("button", {
-			name: "Apply quantity",
-		}) as HTMLButtonElement;
+		const button = requireInstance(
+			screen.getByRole("button", {
+				name: "Apply quantity",
+			}),
+			HTMLButtonElement,
+		);
 		expect(button.disabled).toBe(true);
 		expect(button.getAttribute("aria-busy")).toBe("true");
 		button.click();
@@ -19,7 +24,7 @@ describe("shared control behavior", () => {
 		expect(onclick).toHaveBeenCalledTimes(1);
 	});
 	it("connects labels, descriptions and errors to the actual input", async () => {
-		const view = render(Harness, { onclick: vi.fn() });
+		const view = render(Harness, { onclick: vi.fn<() => void>() });
 		const input = screen.getByRole("spinbutton", { name: "Quantity" });
 		const described = () =>
 			input
@@ -38,11 +43,14 @@ describe("shared control behavior", () => {
 		);
 	});
 	it("preserves explicit accessible names and prevents disabled link activation", async () => {
-		const onclick = vi.fn();
+		const onclick = vi.fn<() => void>();
 		render(Harness, { disabled: true, onclick });
-		const button = screen.getByRole("button", {
-			name: "Apply quantity",
-		}) as HTMLButtonElement;
+		const button = requireInstance(
+			screen.getByRole("button", {
+				name: "Apply quantity",
+			}),
+			HTMLButtonElement,
+		);
 		const link = screen.getByLabelText("Open farm");
 		expect(button.disabled).toBe(true);
 		expect(link.hasAttribute("href")).toBe(false);

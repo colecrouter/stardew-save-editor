@@ -1,23 +1,28 @@
 import { Effect, Schema } from "effect";
-import { scalarTypes, scalarXmlType } from "./scalars.ts";
-import type { ScalarType } from "./scalars.ts";
-import { scalar } from "./values.ts";
+
+import { hasOwnKey } from "../unknown.ts";
 import {
 	accepted,
 	add,
+	append,
 	attach,
+	type Codec,
+	decodeValue,
+	type Frame,
+	type Header,
 	instanceAttribute,
+	invalid,
 	namespaceAttribute,
+	type Reading,
 	record,
 	unknownEvents,
 	unknownFrame,
 	whitespace,
 	without,
 	xsi,
-	invalid,
-	decodeValue,
 } from "./events.ts";
-import type { Codec, Frame, Header, Reading } from "./events.ts";
+import { type ScalarType, scalarTypes, scalarXmlType } from "./scalars.ts";
+import { scalar } from "./values.ts";
 
 // Boxed scalars need a CLR discriminator even when their JS values look alike.
 export type ScalarObject = {
@@ -54,9 +59,11 @@ export function object(
 		target,
 		(header) =>
 			Effect.gen(function* () {
-				if (header.namespaces[""])
+				if (header.namespaces[""] != null && header.namespaces[""] !== "")
 					return yield* invalid("Namespaced object elements are unsupported");
-				if (yield* instanceAttribute(header, "nil"))
+				// Read the attribute once: the Effect owns namespace validation as well.
+				const nilAttribute = yield* instanceAttribute(header, "nil");
+				if (nilAttribute !== undefined && nilAttribute !== "")
 					return yield* invalid("Non-nullable object has xsi:nil");
 				const output: Record<string, unknown> = {};
 				const seen = new Set<string>();
@@ -80,7 +87,11 @@ export function object(
 					} else {
 						add(output, `@_${key}`, value);
 						const prefix = key.includes(":") ? key.split(":")[0] : undefined;
-						if (prefix && header.namespaces[prefix] !== undefined)
+						if (
+							prefix != null &&
+							prefix !== "" &&
+							header.namespaces[prefix] !== undefined
+						)
 							add(output, `@_xmlns:${prefix}`, header.namespaces[prefix]);
 					}
 				}
@@ -105,7 +116,7 @@ export function object(
 									if (!Object.hasOwn(output, child.name))
 										add(output, child.name, value);
 									else if (unknownRepeated.has(child.name))
-										(output[child.name] as unknown[]).push(value);
+										append(output, child.name, value);
 									else {
 										add(output, child.name, [output[child.name], value]);
 										unknownRepeated.add(child.name);
@@ -120,7 +131,7 @@ export function object(
 							if (!codec)
 								throw new Error(`Repeated ${name} needs an item codec`);
 							return accepted(yield* codec.open(child), (value) => {
-								if (field.repeated) (output[name] as unknown[]).push(value);
+								if (field.repeated) append(output, name, value);
 								else add(output, name, value);
 							});
 						}),
@@ -138,11 +149,11 @@ export function object(
 				...Object.fromEntries(
 					Object.entries(value)
 						.filter(([key]) => key.startsWith("@_") && !xmlFields.has(key))
-						.map(([key, value]) => [key.slice(2), String(value)]),
+						.map(([key, nestedValue2]) => [key.slice(2), String(nestedValue2)]),
 				),
 				...supplied,
 			};
-			if (attributes.xmlns)
+			if (attributes["xmlns"] != null && attributes["xmlns"] !== "")
 				throw new Error("Namespaced object elements are unsupported");
 			for (const [member, field] of entries) {
 				if (!field.xmlName.startsWith("@_") || !Object.hasOwn(value, member))
@@ -186,7 +197,7 @@ function readType(
 ): Reading<{ name: string; namespace: string } | undefined> {
 	return Effect.gen(function* () {
 		const attribute = yield* instanceAttribute(header, "type");
-		if (!attribute) return undefined;
+		if (!(attribute != null && attribute !== "")) return undefined;
 		const parts = header.attributes[attribute]?.split(":") ?? [];
 		if (
 			parts.length > 2 ||
@@ -194,7 +205,7 @@ function readType(
 		)
 			return yield* invalid("Invalid xsi:type QName");
 		const prefix = parts.length === 2 ? (parts[0] ?? "") : "";
-		const ns = header.namespaces[prefix] ?? (prefix ? undefined : "");
+		const ns = header.namespaces[prefix] ?? (prefix !== "" ? undefined : "");
 		if (ns === undefined)
 			return yield* invalid(`Unbound xsi:type prefix ${prefix}`);
 		return { name: parts.at(-1) ?? "", namespace: ns };
@@ -207,21 +218,20 @@ function typeAttributes(
 ): Record<string, string> {
 	const attributes: Record<string, string> = {};
 	const prefix = (base: string, uri: string) => {
-		let name = base;
+		let nestedName = base;
 		for (
 			let index = 1;
-			Object.hasOwn(value, `@_xmlns:${name}`) &&
-			value[`@_xmlns:${name}`] !== uri;
+			Object.hasOwn(value, `@_xmlns:${nestedName}`) &&
+			value[`@_xmlns:${nestedName}`] !== uri;
 			index++
 		)
-			name = `${base}${index}`;
-		attributes[`xmlns:${name}`] = uri;
-		return name;
+			nestedName = `${base}${index}`;
+		attributes[`xmlns:${nestedName}`] = uri;
+		return nestedName;
 	};
 	const instance = prefix("xsi", xsi);
-	attributes[`${instance}:type`] = namespace
-		? `${prefix("type", namespace)}:${name}`
-		: name;
+	attributes[`${instance}:type`] =
+		namespace !== "" ? `${prefix("type", namespace)}:${name}` : name;
 	return attributes;
 }
 export function polymorphic(
@@ -234,7 +244,7 @@ export function polymorphic(
 		variants.length !== 1 ||
 		variants[0]?.id !== declared;
 	const choose = (id: unknown) => {
-		const variant = variants.find((variant) => variant.id === id);
+		const variant = variants.find((nestedVariant) => nestedVariant.id === id);
 		if (!variant)
 			throw new Error(`Unknown concrete type ${String(id)} for ${declared}`);
 		return variant;
@@ -254,10 +264,10 @@ export function polymorphic(
 	// callers use ValueSchema directly, outside the XML event entry point.
 	const target = Schema.Record(Schema.String, Schema.Unknown).check(
 		Schema.makeFilter((value) => {
-			if (needsTag && value.$type === "$unknown") {
-				const type = value.$xmlType;
+			if (needsTag && value["$type"] === "$unknown") {
+				const type = value["$xmlType"];
 				if (
-					!type ||
+					type == null ||
 					typeof type !== "object" ||
 					!("name" in type) ||
 					!("namespace" in type) ||
@@ -275,17 +285,21 @@ export function polymorphic(
 			}
 			// A concrete field may omit its tag, but an explicit conflicting tag
 			// must not be silently rewritten as the declared XML type.
-			if (!needsTag && value.$type !== undefined && value.$type !== declared)
+			if (
+				!needsTag &&
+				value["$type"] !== undefined &&
+				value["$type"] !== declared
+			)
 				return `Expected concrete type ${declared}`;
 			try {
 				if (
 					declared === "System.Object" &&
-					typeof value.$type === "string" &&
-					Object.hasOwn(scalarTypes, value.$type)
+					typeof value["$type"] === "string" &&
+					hasOwnKey(scalarTypes, value["$type"])
 				) {
-					validate(value.$type, scalar(value.$type as ScalarType), value.value);
+					validate(value["$type"], scalar(value["$type"]), value["value"]);
 				} else {
-					const id = needsTag ? value.$type : declared;
+					const id = needsTag ? value["$type"] : declared;
 					const variant = variants.find((candidate) => candidate.id === id);
 					if (!variant)
 						return `Unknown concrete type ${String(id)} for ${declared}`;
@@ -307,14 +321,16 @@ export function polymorphic(
 				const type = yield* readType(header);
 				const clean = without(header, yield* instanceAttribute(header, "type"));
 				if (declared === "System.Object" && type) {
-					const id = (Object.keys(scalarTypes) as ScalarType[]).find((id) => {
-						const expected = scalarXmlType(id);
-						return (
-							expected.name === type.name &&
-							expected.namespace === type.namespace
-						);
-					});
-					if (id) {
+					const id = Object.keys(scalarTypes)
+						.filter((key): key is ScalarType => hasOwnKey(scalarTypes, key))
+						.find((nestedId) => {
+							const expected = scalarXmlType(nestedId);
+							return (
+								expected.name === type.name &&
+								expected.namespace === type.namespace
+							);
+						});
+					if (id != null) {
 						const frame = yield* scalar(id).open(clean);
 						return {
 							...frame,
@@ -378,33 +394,40 @@ export function polymorphic(
 				} satisfies Frame;
 			}),
 		function* (name, value, attributes) {
-			if (needsTag && value.$type === "$unknown") {
+			if (needsTag && value["$type"] === "$unknown") {
 				const { $type: _, $xmlType, ...fields } = value;
-				const type = $xmlType as UnknownObject["$xmlType"];
+				// Unknown subclasses carry their XML discriminator as opaque metadata;
+				// validate that envelope before writing it into namespace attributes.
+				const type = record($xmlType);
+				if (
+					typeof type["name"] !== "string" ||
+					typeof type["namespace"] !== "string"
+				)
+					throw new Error("Invalid unknown XML type");
 				yield* unknownEvents(name, {
 					...fields,
 					...Object.fromEntries(
 						Object.entries(
-							typeAttributes(fields, type.name, type.namespace),
-						).map(([key, value]) => [`@_${key}`, value]),
+							typeAttributes(fields, type["name"], type["namespace"]),
+						).map(([key, nestedValue]) => [`@_${key}`, nestedValue]),
 					),
 				});
 				return;
 			}
 			if (
 				declared === "System.Object" &&
-				typeof value.$type === "string" &&
-				Object.hasOwn(scalarTypes, value.$type)
+				typeof value["$type"] === "string" &&
+				hasOwnKey(scalarTypes, value["$type"])
 			) {
-				const id = value.$type as ScalarType,
+				const id = value["$type"],
 					type = scalarXmlType(id);
-				yield* scalar(id).write(name, value.value, {
+				yield* scalar(id).write(name, value["value"], {
 					...attributes,
 					...typeAttributes(value, type.name, type.namespace),
 				});
 				return;
 			}
-			const variant = choose(needsTag ? value.$type : declared);
+			const variant = choose(needsTag ? value["$type"] : declared);
 			const { $type: _, ...payload } = value;
 			yield* variant.codec.write(
 				name,

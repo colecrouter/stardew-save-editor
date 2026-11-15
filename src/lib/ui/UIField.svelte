@@ -1,6 +1,8 @@
 <script lang="ts">
 	import type { Snippet } from "svelte";
+
 	import "./controls.css";
+
 	interface FieldAttributes {
 		id: string;
 		describedby: string | undefined;

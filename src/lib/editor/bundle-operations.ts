@@ -1,4 +1,5 @@
 import { Data, Effect, Result } from "effect";
+
 import {
 	diff,
 	farmers,
@@ -6,12 +7,11 @@ import {
 	type SaveDocument,
 	type SessionState,
 } from "./domain.ts";
-
-import { TransactionDraft } from "./transaction-draft.ts";
 import {
 	recordAnnotatedOperation,
 	withReviewMetadata,
 } from "./transaction-annotations.ts";
+import { TransactionDraft } from "./transaction-draft.ts";
 
 // These failures belong to this domain. Callers can catch one by tag without a
 // framework-maintained union of every feature's errors or parsing message text.
@@ -159,11 +159,14 @@ const complete = Effect.fn("Bundles.prepareSpringForaging")(function* (
 		const id = Number(definition.key.split("/")[1]);
 		const parts = definition.value.split("/");
 		const tokens = parts[2]?.trim().split(/\s+/) ?? [];
-		const required = parts[4] ? Number(parts[4]) : tokens.length / 3;
+		const required =
+			parts[4] != null && parts[4] !== ""
+				? Number(parts[4])
+				: tokens.length / 3;
 		const records = bundles.filter((entry) => entry.key === id);
 		if (
 			tokens.length === 0 ||
-			tokens.length % 3 ||
+			tokens.length % 3 !== 0 ||
 			!Number.isInteger(required) ||
 			required < 1 ||
 			required > tokens.length / 3 ||
@@ -197,7 +200,7 @@ const complete = Effect.fn("Bundles.prepareSpringForaging")(function* (
 	if (!roomComplete) return true;
 	// Apply repair/mail side effects only on a completion transition. Existing
 	// completed rooms may contain game-established flags we must not recompute.
-	const newlyComplete = !areas[1];
+	const newlyComplete = !(areas[1] === true);
 	areas[1] = true;
 	const overall = !previouslyComplete && areas.slice(0, 6).every(Boolean);
 	if (!newlyComplete && !overall) return true;

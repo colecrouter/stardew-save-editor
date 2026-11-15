@@ -1,9 +1,11 @@
 import { fireEvent, render, waitFor } from "@testing-library/svelte";
 import { expect, it } from "vitest";
-import { openTestEditor, openTestDocument } from "../helpers/open-editor.ts";
+
 import { readQiOrders } from "../../src/lib/editor/qi-order-operations.ts";
+import { requireInstance } from "../helpers/assertions.ts";
+import { openTestDocument, openTestEditor } from "../helpers/open-editor.ts";
+import { fixtureXml, parser } from "./fixtures.ts";
 import WorkspaceHarness from "./WorkspaceHarness.svelte";
-import { parser, fixtureXml } from "./fixtures.ts";
 
 // The real workspace exercises discrete offer fields, coordinated dialogs and
 // global Undo through one file queue; no domain transaction is stubbed out.
@@ -35,10 +37,11 @@ it("enforces the shared board cap and confirms atomic activation/cancellation wi
 		);
 		await waitFor(() =>
 			expect(
-				(
+				requireInstance(
 					page.getByRole("checkbox", {
 						name: "Offer Qi's Hungry Challenge",
-					}) as HTMLInputElement
+					}),
+					HTMLInputElement,
 				).disabled,
 			).toBe(true),
 		);
@@ -133,10 +136,11 @@ it("keeps completed and unknown active orders visible and read-only", async () =
 			await page.findByRole("button", { name: /^Let's Play A Game/ }),
 		);
 		expect(
-			(
+			requireInstance(
 				page.getByRole("checkbox", {
 					name: "Offer Let's Play A Game",
-				}) as HTMLInputElement
+				}),
+				HTMLInputElement,
 			).disabled,
 		).toBe(true);
 		expect(page.getAllByText("Completed", { exact: true })[0]).toBeTruthy();
@@ -145,10 +149,11 @@ it("keeps completed and unknown active orders visible and read-only", async () =
 		).toBeNull();
 		await fireEvent.click(page.getByRole("button", { name: /^Mod.Unknown/ }));
 		expect(
-			(
+			requireInstance(
 				page.getByRole("checkbox", {
 					name: "Offer Mod.Unknown",
-				}) as HTMLInputElement
+				}),
+				HTMLInputElement,
 			).disabled,
 		).toBe(true);
 		expect((await opened.model.snapshot()).document).toEqual(before.document);
@@ -173,20 +178,26 @@ it("browses and filters Qi notices without changing offers, progress or history"
 		).toBeTruthy();
 		await fireEvent.input(
 			page.getByRole("searchbox", { name: "Search Qi orders" }),
-			{ target: { value: "Junimo Kart" } },
+			{
+				target: { value: "Junimo Kart" },
+			},
 		);
 		expect(
 			page.getByRole("button", { name: /^Let's Play A Game/ }),
 		).toBeTruthy();
 		await fireEvent.input(
 			page.getByRole("searchbox", { name: "Search Qi orders" }),
-			{ target: { value: "no matching notice" } },
+			{
+				target: { value: "no matching notice" },
+			},
 		);
 		expect(page.getByText("No Qi orders match your search.")).toBeTruthy();
 		expect(page.queryByRole("checkbox")).toBeNull();
 		await fireEvent.input(
 			page.getByRole("searchbox", { name: "Search Qi orders" }),
-			{ target: { value: "" } },
+			{
+				target: { value: "" },
+			},
 		);
 		expect(
 			page.getByRole("button", { name: /^Four Precious Stones/ }),

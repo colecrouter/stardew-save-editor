@@ -1,25 +1,30 @@
-import { readFileSync, writeFileSync } from "node:fs";
+import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { cpus, platform, release, loadavg } from "node:os";
-import assert from "node:assert/strict";
+import { readFileSync, writeFileSync } from "node:fs";
+import { cpus, loadavg, platform, release } from "node:os";
+
+import { Schema } from "effect";
 import { chromium } from "playwright";
-import { XMLCodec } from "../src/lib/xmlCodec.ts";
+
+import { XmlSchema } from "../generated/save-format/save.ts";
 import { makeLargeProfileFixture } from "./profile-fixtures.mts";
 
 // Run with `node --import tsx`. This harness drives an already-built production
 // preview, never starts a server or changes application code during measurements.
+/** @template {string | undefined} T @param {string} key @param {T} fallback @returns {string | T} */
 const arg = (key, fallback) => {
 	const at = process.argv.indexOf(key);
-	return at < 0 ? fallback : process.argv[at + 1];
+	return at < 0 ? fallback : (process.argv[at + 1] ?? fallback);
 };
 const url = arg("--url", "http://127.0.0.1:4269/stardew-save-editor/");
 const output = arg("--output", "/tmp/v2-browser-qualification.json");
 const mode = arg("--mode", "lab");
 const selectedCase = arg("--case", "all");
 const executablePath = arg("--chromium", undefined);
+/** @param {import("node:crypto").BinaryLike} bytes */
 const hash = (bytes) => createHash("sha256").update(bytes).digest("hex");
-const codec = new XMLCodec();
+const decodeSave = Schema.decodeUnknownSync(XmlSchema);
 const fixture = readFileSync(new URL("../tests/TestSave", import.meta.url));
 const large = Buffer.from(makeLargeProfileFixture(fixture));
 // A changed hash means a different workload. Stop rather than silently comparing
@@ -62,6 +67,8 @@ const result = {
 			encoding: "utf8",
 		}).trim(),
 		before: fingerprint(),
+		after: "",
+		stable: false,
 		harness: hash(readFileSync(new URL(import.meta.url))),
 	},
 	runtime: {
@@ -70,6 +77,7 @@ const result = {
 		os: release(),
 		cpu: cpus()[0]?.model,
 		loadAtStart: loadavg(),
+		browser: "",
 	},
 	fixtures: {
 		public: { sha256: hash(fixture), bytes: fixture.length },
@@ -82,14 +90,26 @@ const result = {
 		pacedNominalGapMs: 50,
 		eventTimingDurationThresholdMs: 16,
 	},
-	cases: [],
+	// Consumers inspect gates; other measured fields remain attached to each row.
+	cases: /** @type {Array<{gates:Record<string,boolean>}>} */ ([]),
+	cycles: /** @type {unknown[]} */ ([]),
+	hardTimingGatesPass: false,
+	failure: /** @type {{message:string,stack?:string}|undefined} */ (undefined),
 };
 const save = () =>
 	writeFileSync(output, JSON.stringify(result, null, 2) + "\n");
+/** @param {number[]} values */
 const median = (values) => {
 	const sorted = [...values].sort((a, b) => a - b);
-	return (sorted[3] + sorted[4]) / 2;
+	const lower = sorted[3],
+		upper = sorted[4];
+	assert(
+		lower !== undefined && upper !== undefined,
+		"A median requires eight samples",
+	);
+	return (lower + upper) / 2;
 };
+/** @param {number[]} values */
 const summary = (values) => ({
 	samples: values,
 	medianMs: median(values),
@@ -127,15 +147,20 @@ const headings = [
 	"Date and weather",
 	"Review changes",
 ];
-const browser = await chromium.launch({ headless: true, executablePath });
+const browser = await chromium.launch({
+	headless: true,
+	...(executablePath === undefined ? {} : { executablePath }),
+});
 result.runtime.browser = browser.version();
 
+/** @param {{viewport: {width:number,height:number},cpu:number}} config @param {Buffer} bytes @param {string} name */
 async function open(config, bytes, name) {
 	const context = await browser.newContext({
 		viewport: config.viewport,
 		acceptDownloads: true,
 	});
 	const page = await context.newPage();
+	/** @type {string[]} */
 	const errors = [];
 	page.on("pageerror", (error) => errors.push(error.message));
 	// Exercise the shared anchor-download path without invoking an OS picker.
@@ -147,7 +172,7 @@ async function open(config, bytes, name) {
 			revoke = URL.revokeObjectURL.bind(URL);
 		URL.createObjectURL = (blob) => {
 			const value = create(blob);
-			if (blob.type === "application/octet-stream")
+			if (blob instanceof Blob && blob.type === "application/octet-stream")
 				window.__ownedDownloadUrls.add(value);
 			return value;
 		};
@@ -171,48 +196,59 @@ async function open(config, bytes, name) {
 	return { context, page, cdp, errors };
 }
 
+/** @param {import("playwright").Page} page @param {string} id */
 async function navigate(page, id) {
 	const expected = headings[sectionIds.indexOf(id)];
 	// The observer reads only the active wrapper, first heading and first control.
 	// Never enumerate thousands of inventory nodes inside a timing callback.
 	return page.evaluate(
-		({ id, expected }) =>
-			new Promise((resolve, reject) => {
-				const content = document.querySelector("#editor-content");
-				const link = document.querySelector(`a[href="#${id}"]`);
-				const started = performance.now();
-				const timer = setTimeout(() => {
-					observer.disconnect();
-					reject(new Error(`Navigation timeout: ${id}`));
-				}, 30000);
-				const check = () => {
-					const active = [...content.children].find(
-						(child) => child.tagName === "DIV" && !child.hasAttribute("hidden"),
-					);
-					const heading = active?.querySelector("h1");
-					if (
-						heading?.textContent.trim() !== expected ||
-						!active.querySelector("button,input,select,summary")
-					)
-						return;
-					observer.disconnect();
-					clearTimeout(timer);
-					requestAnimationFrame(() => resolve(performance.now() - started));
-				};
-				const observer = new MutationObserver(check);
-				observer.observe(content, {
-					childList: true,
-					subtree: true,
-					attributes: true,
-					attributeFilter: ["hidden"],
-				});
-				link.click();
-				check();
-			}),
+		({ id: targetId, expected: expectedHeading }) =>
+			new Promise(
+				/** @param {(value:number)=>void} resolve @param {(reason:Error)=>void} reject */ (
+					resolve,
+					reject,
+				) => {
+					const content = document.querySelector("#editor-content");
+					const link = document.querySelector(`a[href="#${targetId}"]`);
+					if (!content || !(link instanceof HTMLAnchorElement))
+						throw new Error(`Missing navigation target: ${targetId}`);
+					const started = performance.now();
+					const timer = setTimeout(() => {
+						observer.disconnect();
+						reject(new Error(`Navigation timeout: ${targetId}`));
+					}, 30000);
+					const check = () => {
+						const active = [...content.children].find(
+							(child) =>
+								child.tagName === "DIV" && !child.hasAttribute("hidden"),
+						);
+						const heading = active?.querySelector("h1");
+						if (
+							heading?.textContent.trim() !== expectedHeading ||
+							!active ||
+							!active.querySelector("button,input,select,summary")
+						)
+							return;
+						observer.disconnect();
+						clearTimeout(timer);
+						requestAnimationFrame(() => resolve(performance.now() - started));
+					};
+					const observer = new MutationObserver(check);
+					observer.observe(content, {
+						childList: true,
+						subtree: true,
+						attributes: true,
+						attributeFilter: ["hidden"],
+					});
+					link.click();
+					check();
+				},
+			),
 		{ id, expected },
 	);
 }
 
+/** @param {import("playwright").Page} page */
 async function settleReview(page) {
 	// Review exposes its heading before the deferred comparison finishes. Let
 	// that pending work finish before measuring another *idle* warm transition.
@@ -227,6 +263,7 @@ async function settleReview(page) {
 	return performance.now() - started;
 }
 
+/** @param {import("playwright").Page} page @param {string} kind */
 async function arm(page, kind) {
 	// Cache the committed farm patch before hiding Review. Its typed comparison
 	// intentionally stops updating while hidden, but raw view.net remains live.
@@ -265,14 +302,14 @@ async function arm(page, kind) {
 		kind === "farm"
 			? page.getByRole("textbox", { name: "Farm name", exact: true })
 			: page.getByRole("spinbutton", { name: "Quantity", exact: true });
-	await page.evaluate((kind) => {
+	await page.evaluate((probeKind) => {
 		window.__editorProbe?.dispose();
-		const field = [...document.querySelectorAll("input")].find(
+		const measuredField = [...document.querySelectorAll("input")].find(
 			(node) =>
-				[...node.labels].some(
+				[...(node.labels ?? [])].some(
 					(label) =>
 						label.textContent.trim() ===
-						(kind === "farm" ? "Farm name" : "Quantity"),
+						(probeKind === "farm" ? "Farm name" : "Quantity"),
 				) && !node.closest("[hidden]"),
 		);
 		const patch = [...document.querySelectorAll("summary code")]
@@ -282,13 +319,26 @@ async function arm(page, kind) {
 		const badge = document.querySelector(
 			'button[aria-label="Slot 5: Parsnip"] .quantity',
 		);
-		const node = kind === "farm" ? patch : badge;
-		if (!field || !node) throw new Error(`Missing authoritative ${kind} probe`);
-		const read = () =>
-			kind === "farm"
-				? String(JSON.parse(node.textContent).value)
-				: node.textContent.trim();
+		const node = probeKind === "farm" ? patch : badge;
+		if (!measuredField || !node)
+			throw new Error(`Missing authoritative ${probeKind} probe`);
+		// Measure the authoritative patch value, and reject a changed report format.
+		const read = () => {
+			if (probeKind !== "farm") return node.textContent.trim();
+			/** @type {unknown} */
+			const patchValue = JSON.parse(node.textContent);
+			if (
+				patchValue === null ||
+				typeof patchValue !== "object" ||
+				!("value" in patchValue) ||
+				typeof patchValue.value !== "string"
+			)
+				throw new Error("Invalid farm-name patch evidence");
+			return patchValue.value;
+		};
+		/** @type {import("./browser-probes.d.ts").EditorProbe} */
 		const state = {
+			dispose: () => {},
 			phase: undefined,
 			pending: [],
 			commits: [],
@@ -297,14 +347,15 @@ async function arm(page, kind) {
 			timing: [],
 			mismatches: [],
 			read,
-			field,
+			field: measuredField,
 			node,
 		};
+		/** @param {Event} event */
 		const input = (event) => {
-			if (!state.phase) return;
+			if (state.phase === undefined || state.phase.length === 0) return;
 			const sample = {
 				phase: state.phase,
-				value: field.value,
+				value: measuredField.value,
 				started: performance.now(),
 				trusted: event.isTrusted,
 				sequence: state.inputs.length,
@@ -312,9 +363,12 @@ async function arm(page, kind) {
 			state.inputs.push(sample);
 			state.pending.push(sample);
 		};
+		/** @param {Event} event */
 		const key = (event) => {
 			if (
-				!state.phase ||
+				state.phase === undefined ||
+				state.phase.length === 0 ||
+				!(event instanceof KeyboardEvent) ||
 				!event.isTrusted ||
 				event.key.length !== 1 ||
 				event.metaKey ||
@@ -333,14 +387,16 @@ async function arm(page, kind) {
 			});
 		};
 		const observer = new MutationObserver(() => {
-			if (!state.pending.length) return;
+			if (state.pending.length === 0) return;
 			const value = read(),
 				first = state.pending[0];
+			if (!first) return;
 			if (value !== first.value) {
 				state.mismatches.push({ expected: first.value, actual: value });
 				return;
 			}
 			state.pending.shift();
+			/** @type {import("./browser-probes.d.ts").CommitSample} */
 			const record = {
 				...first,
 				committed: performance.now(),
@@ -356,11 +412,17 @@ async function arm(page, kind) {
 			childList: true,
 			characterData: true,
 		});
+		/** @type {PerformanceObserver | undefined} */
 		let eventObserver;
 		if (PerformanceObserver.supportedEntryTypes.includes("event")) {
 			eventObserver = new PerformanceObserver((list) => {
 				for (const entry of list.getEntries())
-					if (entry.target === field)
+					if (
+						"target" in entry &&
+						entry.target === measuredField &&
+						"processingStart" in entry &&
+						typeof entry.processingStart === "number"
+					)
 						state.timing.push({
 							type: entry.name,
 							timestamp: entry.startTime,
@@ -373,16 +435,16 @@ async function arm(page, kind) {
 				durationThreshold: 16,
 			});
 		}
-		field.addEventListener("input", input, true);
+		measuredField.addEventListener("input", input, true);
 		for (const type of ["keydown", "keypress", "keyup"])
-			field.addEventListener(type, key, true);
+			measuredField.addEventListener(type, key, true);
 		state.dispose = () => {
 			observer.disconnect();
 			eventObserver?.disconnect();
-			field.removeEventListener("input", input, true);
+			measuredField.removeEventListener("input", input, true);
 			for (const type of ["keydown", "keypress", "keyup"])
-				field.removeEventListener(type, key, true);
-			delete window.__editorProbe;
+				measuredField.removeEventListener(type, key, true);
+			Reflect.deleteProperty(window, "__editorProbe");
 		};
 		window.__editorProbe = state;
 	}, kind);
@@ -392,7 +454,7 @@ async function arm(page, kind) {
 		const value = kind === "farm" ? `Warm${i}` : String(10 + i);
 		await field.fill(value);
 		await page.waitForFunction(
-			(value) => window.__editorProbe.read() === value,
+			(expectedValue) => window.__editorProbe.read() === expectedValue,
 			value,
 		);
 		await field.blur();
@@ -400,12 +462,13 @@ async function arm(page, kind) {
 	return field;
 }
 
+/** @param {import("playwright").Page} page @param {import("playwright").Locator} field @param {string} kind @param {string} name @param {string[]} values */
 async function phase(page, field, kind, name, values) {
 	const baseline = await page.evaluate(() => window.__editorProbe.read());
 	await field.focus();
-	await page.evaluate((name) => {
+	await page.evaluate((phaseName) => {
 		const p = window.__editorProbe;
-		p.phase = name;
+		p.phase = phaseName;
 		p.pending = [];
 		p.commits = [];
 		p.inputs = [];
@@ -414,7 +477,7 @@ async function phase(page, field, kind, name, values) {
 	if (name === "burst") {
 		// Same-task synthetic queue stress is deliberately separate from trusted
 		// typing. Mutation delivery must expose all eight committed values in order.
-		await page.evaluate((values) => {
+		await page.evaluate((queuedValues) => {
 			const input = window.__editorProbe.field;
 			const descriptor = Object.getOwnPropertyDescriptor(
 				HTMLInputElement.prototype,
@@ -424,7 +487,7 @@ async function phase(page, field, kind, name, values) {
 			// input receiver. A missing browser setter invalidates this stress probe.
 			if (!descriptor?.set)
 				throw new Error("Missing native input value setter");
-			for (const value of values) {
+			for (const value of queuedValues) {
 				descriptor.set.call(input, value);
 				input.dispatchEvent(
 					new InputEvent("input", {
@@ -438,7 +501,9 @@ async function phase(page, field, kind, name, values) {
 	} else {
 		for (const [index, value] of values.entries()) {
 			if (kind === "quantity") await field.press("ControlOrMeta+A");
-			await field.press(kind === "farm" ? value.at(-1) : value);
+			const key = kind === "farm" ? value.at(-1) : value;
+			assert(key !== undefined, "A measured input must contain a key");
+			await field.press(key);
 			if (name === "settled")
 				await page.waitForFunction(
 					(count) => window.__editorProbe.commits.length === count,
@@ -481,15 +546,21 @@ async function phase(page, field, kind, name, values) {
 	assert.equal(data.mismatches.length, 0);
 	await page.getByRole("button", { name: "Undo", exact: true }).click();
 	await page.waitForFunction(
-		(value) => window.__editorProbe.read() === value,
+		(expectedValue) => window.__editorProbe.read() === expectedValue,
 		baseline,
 	);
 	await page.getByRole("button", { name: "Redo", exact: true }).click();
 	await page.waitForFunction(
-		(value) => window.__editorProbe.read() === value,
+		(expectedValue) => window.__editorProbe.read() === expectedValue,
 		values.at(-1),
 	);
-	const drainMs = data.commits.at(-1).committed - data.inputs[0].started;
+	const lastCommit = data.commits.at(-1),
+		firstInput = data.inputs[0];
+	assert(
+		lastCommit && firstInput,
+		"A completed phase must have input and commit samples",
+	);
+	const drainMs = lastCommit.committed - firstInput.started;
 	return {
 		...data,
 		baseline,
@@ -499,6 +570,7 @@ async function phase(page, field, kind, name, values) {
 	};
 }
 
+/** @param {import("playwright").Page} page @param {string} kind */
 async function feature(page, kind) {
 	const field = await arm(page, kind);
 	const initial = await page.evaluate(() => window.__editorProbe.read());
@@ -555,18 +627,24 @@ async function feature(page, kind) {
 	return { settled, paced, burst, events, limits, final: burst.value };
 }
 
+/** @param {import("playwright").Page} page @param {Buffer} original @param {string} name @param {string} farm @param {string} quantity */
 async function exportCheck(page, original, name, farm, quantity) {
 	const downloadPromise = page.waitForEvent("download");
 	await page.getByRole("button", { name: "Export save", exact: true }).click();
 	const download = await downloadPromise;
 	assert.equal(download.suggestedFilename(), name);
-	const exported = codec.parse(readFileSync(await download.path()));
-	const expected = codec.parse(original);
-	expected.SaveGame.player.farmName = farm;
-	const guests = expected.SaveGame.farmhands?.Farmer;
-	for (const guest of Array.isArray(guests) ? guests : guests ? [guests] : [])
-		guest.farmName = farm;
-	expected.SaveGame.player.items.Item[4].stack = Number(quantity);
+	const exported = decodeSave(
+		new TextDecoder().decode(readFileSync(await download.path())),
+	);
+	const expected = decodeSave(new TextDecoder().decode(original));
+	assert(expected.player, "Fixture has no player");
+	expected.player.farmName = farm;
+	for (const guest of expected.farmhands ?? [])
+		if (guest) guest.farmName = farm;
+	const inventory = expected.player.items;
+	const item = inventory?.[4];
+	assert(inventory && item, "Fixture has no fifth inventory item");
+	inventory[4] = { ...item, stack: Number(quantity) };
 	assert.deepEqual(exported, expected);
 	await download.delete();
 	return { exactDocument: true, filename: name };
@@ -585,8 +663,11 @@ async function lifecycle() {
 	const heap = async () => {
 		for (let i = 0; i < 3; i++) await cdp.send("HeapProfiler.collectGarbage");
 		const metrics = await cdp.send("Performance.getMetrics");
-		return metrics.metrics.find((metric) => metric.name === "JSHeapUsedSize")
-			.value;
+		const memoryMetric = metrics.metrics.find(
+			(metric) => metric.name === "JSHeapUsedSize",
+		);
+		assert(memoryMetric, "Chrome did not report renderer heap usage");
+		return memoryMetric.value;
 	};
 	const cycles = [];
 	try {
@@ -631,11 +712,14 @@ async function lifecycle() {
 						?.textContent.trim() === "77",
 			);
 			await page.getByRole("button", { name: "Undo", exact: true }).click();
-			await page.waitForFunction(
-				() =>
-					document.querySelector(
+			await page.waitForFunction(() =>
+				[
+					...document.querySelectorAll(
 						'.inventory-layout > .inspector input[type="number"]',
-					)?.value === "1",
+					),
+				].some(
+					(node) => node instanceof HTMLInputElement && node.value === "1",
+				),
 			);
 			await page.getByRole("button", { name: "Redo", exact: true }).click();
 			await page.waitForFunction(
@@ -657,7 +741,7 @@ async function lifecycle() {
 			const owned = await page.evaluate(() => ({
 				urls: window.__ownedDownloadUrls.size,
 				anchors: document.querySelectorAll("a[download]").length,
-				probe: !!window.__editorProbe,
+				probe: Boolean(window.__editorProbe),
 			}));
 			assert.deepEqual(owned, { urls: 0, anchors: 0, probe: false });
 			assert.deepEqual(errors, []);
@@ -728,7 +812,7 @@ try {
 		const { context, page, errors } = await open(config, bytes, name);
 		try {
 			const firstInventoryMs = await navigate(page, "inventory");
-			if (config.allOpen) {
+			if (config.allOpen === true) {
 				for (const id of sectionIds) await navigate(page, id);
 				await settleReview(page);
 			}
@@ -736,12 +820,15 @@ try {
 			const quantity = await feature(page, "quantity");
 			// Mounting/navigation follows ordinary measurements, except for the
 			// explicitly labelled current-full-UI stress case above.
+			/** @type {Record<string, number>} */
 			const postEditTraversal = {};
 			for (const id of sectionIds)
 				postEditTraversal[id] = await navigate(page, id);
 			const reviewCompletionWaitMs = await settleReview(page);
+			/** @type {Array<Record<string, number>>} */
 			const warm = [];
 			for (let pass = 0; pass < 3; pass++) {
+				/** @type {Record<string, number>} */
 				const row = {};
 				for (const id of sectionIds) row[id] = await navigate(page, id);
 				warm.push(row);
@@ -769,7 +856,7 @@ try {
 				overflow,
 			};
 			const settledLimit = config.fixture === "public" ? 200 : 300;
-			row.gates = {
+			const gates = {
 				farmCommit: farm.settled.latency.medianMs <= settledLimit,
 				quantityCommit: quantity.settled.latency.medianMs <= settledLimit,
 				farmQueue: farm.burst.drainMs <= 1000,
@@ -782,10 +869,15 @@ try {
 				firstInventory:
 					firstInventoryMs <= (config.fixture === "public" ? 250 : 500),
 			};
-			row.navigation.overTarget = Object.keys(warm[0]).filter(
-				(id) => Math.max(...warm.map((pass) => pass[id])) > 100,
+			const overTarget = Object.keys(warm[0] ?? {}).filter(
+				(id) => Math.max(...warm.map((pass) => pass[id] ?? Infinity)) > 100,
 			);
-			result.cases.push(row);
+			const evidenceRow = {
+				...row,
+				gates,
+				navigation: { ...row.navigation, overTarget },
+			};
+			result.cases.push(evidenceRow);
 			save();
 			console.log(
 				JSON.stringify({
@@ -813,7 +905,13 @@ try {
 		if (!result.hardTimingGatesPass) process.exitCode = 1;
 	}
 } catch (error) {
-	result.failure = { message: error.message, stack: error.stack };
+	result.failure =
+		error instanceof Error
+			? {
+					message: error.message,
+					...(error.stack === undefined ? {} : { stack: error.stack }),
+				}
+			: { message: String(error) };
 	save();
 	throw error;
 } finally {

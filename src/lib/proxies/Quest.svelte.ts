@@ -1,9 +1,5 @@
 import questList from "$generated/quests.json";
-import {
-	type Farmer,
-	getStatValue,
-	setStatValue,
-} from "$lib/proxies/Farmer.svelte";
+import type { Farmer } from "$lib/proxies/Farmer.svelte";
 import { Item } from "$lib/proxies/Item.svelte";
 import type { ItemProxy } from "$lib/proxies/items";
 import { MailFlag } from "$lib/proxies/Mail.svelte";
@@ -14,7 +10,10 @@ import type {
 	Quest as QuestModel,
 	QuestType,
 } from "$types/save";
+
 import { type DataProxy, Raw } from ".";
+import { nonemptyText } from "../editor/plain-data.ts";
+import { getStatValue, setStatValue } from "../playerStats.ts";
 import type { SaveProxy } from "./SaveFile.svelte";
 
 /*
@@ -70,7 +69,8 @@ function setRewardText(raw: QuestModel, gold: number) {
 	if (typeof raw.parts !== "object") return;
 	const parts: DescriptionElement[] = asArray(raw.parts.DescriptionElement);
 	for (const part of parts) {
-		if (!REWARD_TEXT_KEYS.some((key) => part.xmlKey?.endsWith(key))) continue;
+		if (!REWARD_TEXT_KEYS.some((key) => part.xmlKey?.endsWith(key) === true))
+			continue;
 		// Saved with its type: <param xsi:type="xsd:int">
 		const [first] = asArray(part.param);
 		if (typeof first === "object") first["#text"] = gold;
@@ -83,7 +83,7 @@ function setRewardText(raw: QuestModel, gold: number) {
     needs the item registry, so other IDs aren't supported.
 */
 const qualified = (id: string | undefined) =>
-	id?.startsWith("(") || id?.startsWith("-") ? id : undefined;
+	id?.startsWith("(") === true || id?.startsWith("-") === true ? id : undefined;
 
 /**
     Make a quest from Data/Quests as Quest.getQuestFromId does, in the shape
@@ -108,7 +108,7 @@ function questFromData(data: QuestData, host: boolean): QuestModel | undefined {
 			questType = 1;
 			break;
 		case "Building":
-			if (!first) return;
+			if (!(first != null && first !== "")) return;
 			questType = 8;
 			completionString = first;
 			break;
@@ -121,10 +121,13 @@ function questFromData(data: QuestData, host: boolean): QuestModel | undefined {
 			)
 				return;
 			const itemId =
-				first && bigCraftable !== undefined && !first.startsWith("(")
+				first != null &&
+				first !== "" &&
+				bigCraftable !== undefined &&
+				!first.startsWith("(")
 					? `${bigCraftable === "true" ? "(BC)" : "(O)"}${first}`
 					: qualified(first);
-			if (!itemId) return;
+			if (!(itemId != null && itemId !== "")) return;
 			subclass = "CraftingQuest";
 			questType = 2;
 			fields = {
@@ -136,14 +139,15 @@ function questFromData(data: QuestData, host: boolean): QuestModel | undefined {
 		case "ItemHarvest": {
 			const itemId = qualified(first);
 			const number = second === undefined ? 1 : Number(second);
-			if (!itemId || !Number.isInteger(number)) return;
+			if (!(itemId != null && itemId !== "") || !Number.isInteger(number))
+				return;
 			subclass = "ItemHarvestQuest";
 			questType = 9;
 			fields = { itemIndex: itemId, number };
 			break;
 		}
 		case "Location":
-			if (!first) return;
+			if (!(first != null && first !== "")) return;
 			subclass = "GoSomewhereQuest";
 			questType = 6;
 			fields = { whereToGo: first };
@@ -155,14 +159,16 @@ function questFromData(data: QuestData, host: boolean): QuestModel | undefined {
 		id.startsWith("h") ? (host ? [id.slice(1)] : []) : [id],
 	);
 	return {
-		...(subclass ? { "@_xsi:type": subclass } : {}),
+		...(subclass != null ? { "@_xsi:type": subclass } : {}),
 		_currentObjective: data.objective ?? "",
 		_questDescription: data.description,
 		_questTitle: data.title,
 		...(data.rewardDescription === undefined
 			? {}
 			: { rewardDescription: data.rewardDescription }),
-		...(completionString ? { completionString } : {}),
+		...(completionString != null && completionString !== ""
+			? { completionString }
+			: {}),
 		accepted: false,
 		completed: false,
 		dailyQuest: false,
@@ -209,13 +215,13 @@ export class Quest implements DataProxy<QuestModel> {
 		this[Raw] = raw;
 		this.type = raw["@_xsi:type"] ?? "Quest";
 		this.id = raw.id === undefined ? undefined : String(raw.id);
-		this.helpWanted = raw.dailyQuest === true;
+		this.helpWanted = raw.dailyQuest;
 		this.secret = this.type === "SecretLostItemQuest";
 
-		this.#completed = raw.completed === true;
-		this.#daysLeft = Number(raw.daysLeft ?? 0);
-		this.#moneyReward = Number(raw.moneyReward ?? 0);
-		this.#reward = raw.reward === undefined ? undefined : Number(raw.reward);
+		this.#completed = raw.completed;
+		this.#daysLeft = raw.daysLeft ?? 0;
+		this.#moneyReward = raw.moneyReward ?? 0;
+		this.#reward = raw.reward;
 		const reportsTo = raw.target !== undefined && raw.target !== "null";
 		this.#paysReward =
 			this.#reward !== undefined &&
@@ -226,17 +232,21 @@ export class Quest implements DataProxy<QuestModel> {
 
 	/** The cached title: the game reloads it from Data/Quests */
 	get title() {
-		return String(this[Raw]._questTitle || this[Raw].questTitle || "Untitled");
+		return (
+			nonemptyText(this[Raw]._questTitle) ??
+			nonemptyText(this[Raw].questTitle) ??
+			"Untitled"
+		);
 	}
 
 	/** The cached description; the game reloads it from Data/Quests, or `parts` */
 	get description() {
-		return String(this[Raw]._questDescription ?? "");
+		return this[Raw]._questDescription ?? "";
 	}
 
 	/** The cached objective, like "14/28 people greeted" */
 	get objective() {
-		return String(this[Raw]._currentObjective ?? "");
+		return this[Raw]._currentObjective ?? "";
 	}
 
 	/** A reward other than gold, if it has one (Quest.hasReward) */
@@ -255,7 +265,7 @@ export class Quest implements DataProxy<QuestModel> {
 	/** The building type that finishes a building quest, like "Coop" */
 	get completionString() {
 		const value = this[Raw].completionString;
-		return value === undefined ? undefined : String(value);
+		return value;
 	}
 
 	get completed() {
@@ -263,12 +273,12 @@ export class Quest implements DataProxy<QuestModel> {
 	}
 
 	get canBeCancelled() {
-		return this[Raw].canBeCancelled === true;
+		return this[Raw].canBeCancelled;
 	}
 
 	/** About to be dropped from the journal */
 	get destroyed() {
-		return this[Raw].destroy === true;
+		return this[Raw].destroy;
 	}
 
 	/** Has a time limit (Quest.IsTimedQuest) */
@@ -372,7 +382,7 @@ export class QuestLog implements DataProxy<QuestLogModel> {
 	constructor(farmer: Farmer) {
 		const player = farmer[Raw];
 		// An empty journal parses as ""
-		if (typeof player.questLog !== "object" || !player.questLog)
+		if (typeof player.questLog !== "object" || player.questLog === null)
 			player.questLog = { Quest: [] };
 		player.questLog.Quest ??= [];
 		this[Raw] = player.questLog;
@@ -475,7 +485,7 @@ export class QuestLog implements DataProxy<QuestLogModel> {
 			}
 		}
 		// Fishing quests count too
-		if (quest.helpWanted || Number(quest[Raw].questType) === 7)
+		if (quest.helpWanted || quest[Raw].questType === 7)
 			setStatValue(
 				player,
 				"questsCompleted",
@@ -494,7 +504,11 @@ export class QuestLog implements DataProxy<QuestLogModel> {
 			result.started.push(next);
 			// A building quest is done already if that building has been built
 			const building = next.completionString;
-			if (building && save.constructedBuildings.includes(building)) {
+			if (
+				building != null &&
+				building !== "" &&
+				save.constructedBuildings.includes(building)
+			) {
 				const done = this.complete(next, save);
 				result.started.push(...done.started);
 				result.skippedFollowUps.push(...done.skippedFollowUps);
@@ -531,6 +545,7 @@ export class QuestLog implements DataProxy<QuestLogModel> {
 		}
 		for (let index = 0; index < inventory.slotCount; index++)
 			if (inventory.isEmpty(index)) return index;
+		return undefined;
 	}
 
 	#givePrizeTicket() {

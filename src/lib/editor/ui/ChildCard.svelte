@@ -1,17 +1,18 @@
 <script lang="ts">
 	import { tick, untrack } from "svelte";
-	import type { ChildView } from "../children-data.ts";
-	import type { EditorModel } from "../editor-model.ts";
-	import {
-		createChildEditField,
-		type ChildEditDraft,
-	} from "../children-domain.ts";
-	import { childStage, childStages } from "../children-data.ts";
-	import { createRuneDraft } from "../field.svelte.ts";
+
 	import StudyButton from "../../ui/kit/StudyButton.svelte";
 	import StudyField from "../../ui/kit/StudyField.svelte";
-	import ChildPortrait from "./ChildPortrait.svelte";
+	import { childStage, childStages, type ChildView } from "../children-data.ts";
+	import {
+		type ChildEditDraft,
+		createChildEditField,
+	} from "../children-domain.ts";
+	import type { EditorModel } from "../editor-model.ts";
+	import { createRuneDraft } from "../field.svelte.ts";
 	import ChildHatPicker from "./ChildHatPicker.svelte";
+	import ChildPortrait from "./ChildPortrait.svelte";
+
 	interface Props {
 		child: ChildView;
 		model: EditorModel;
@@ -110,7 +111,11 @@
 		</div>
 
 		{#if !editing}
-			<StudyButton id={triggerId} disabled={!child.supported} onclick={open}>
+			<StudyButton
+				id={triggerId}
+				disabled={!child.supported}
+				onclick={open}
+			>
 				Edit child
 			</StudyButton>
 		{/if}
@@ -212,7 +217,7 @@
 							{#if preview.stage === undefined}
 								<option value="">Unknown saved stage</option>
 							{/if}
-							{#each childStages as stage, index}
+							{#each childStages as stage, index (stage)}
 								<option value={index.toString()}>
 									{stage.label} · {stage.days}{index === 3
 										? "+"
@@ -258,7 +263,12 @@
 			</div>
 
 			{#if draft.current.error}
-				<p class="error" role="status">{draft.current.error}</p>
+				<p
+					class="error"
+					role="status"
+				>
+					{draft.current.error}
+				</p>
 			{/if}
 
 			<div class="actions">

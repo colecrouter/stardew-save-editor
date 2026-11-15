@@ -1,7 +1,8 @@
-import { installSyntheticPointerCapture } from "../helpers/synthetic-pointer-capture.ts";
 import { fireEvent, render, waitFor } from "@testing-library/svelte";
 import { expect, it, vi } from "vitest";
+
 import { openTestEditor } from "../helpers/open-editor.ts";
+import { installSyntheticPointerCapture } from "../helpers/synthetic-pointer-capture.ts";
 import BackpackHarness from "./BackpackHarness.svelte";
 import { fixtureXml } from "./fixtures";
 

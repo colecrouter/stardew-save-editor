@@ -1,5 +1,7 @@
 import animals from "$generated/farmanimals.json";
+
 import type { T_StardewValley_FarmAnimal } from "../../../generated/save-format/save.ts";
+
 type AnimalsKV = { key: bigint; value: T_StardewValley_FarmAnimal };
 
 /** `DateTime.UtcNow.Ticks / 10000` at the Unix epoch (milliseconds since 0001-01-01) */
@@ -23,7 +25,7 @@ export function newAnimalId(
 		taken = new Set(),
 		now = Date.now(),
 	}: {
-		latestId?: number | string;
+		latestId?: number | string | undefined;
 		taken?: ReadonlySet<string>;
 		now?: number;
 	} = {},

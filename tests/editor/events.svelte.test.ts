@@ -1,10 +1,12 @@
 import { fireEvent, render, waitFor } from "@testing-library/svelte";
 import { expect, it } from "vitest";
-import { openTestDocument } from "../helpers/open-editor.ts";
+
 import { readEvents } from "../../src/lib/editor/event-operations.ts";
 import { VanillaEvents } from "../../src/lib/Events.ts";
+import { requireDefined, requireInstance } from "../helpers/assertions.ts";
+import { openTestDocument } from "../helpers/open-editor.ts";
+import { fixtureXml, parser } from "./fixtures.ts";
 import WorkspaceHarness from "./WorkspaceHarness.svelte";
-import { parser, fixtureXml } from "./fixtures.ts";
 
 async function openEvents() {
 	const document = parser.parse(fixtureXml);
@@ -47,19 +49,26 @@ it("keeps queued event toggles on the original farmer and shares selection acros
 		const second = page.getByRole("checkbox", {
 			name: "Abigail's 4 heart event",
 		});
-		expect((first as HTMLInputElement).checked).toBe(true);
+		expect(requireInstance(first, HTMLInputElement).checked).toBe(true);
 		await fireEvent.click(first);
 		await fireEvent.click(second);
-		await fireEvent.change(page.getByRole("combobox", { name: "Farmer" }), {
-			target: { value: "2" },
-		});
+		await fireEvent.change(
+			requireInstance(
+				page.getByRole("combobox", { name: "Farmer" }),
+				HTMLSelectElement,
+			),
+			{
+				target: { value: "2" },
+			},
+		);
 		const snapshot = await model.snapshot();
 		await waitFor(() =>
 			expect(
-				(
+				requireInstance(
 					page.getByRole("checkbox", {
 						name: "Abigail's 4 heart event",
-					}) as HTMLInputElement
+					}),
+					HTMLInputElement,
 				).checked,
 			).toBe(true),
 		);
@@ -83,8 +92,10 @@ it("keeps queued event toggles on the original farmer and shares selection acros
 		await model.commands.redo();
 		await fireEvent.click(page.getByRole("link", { name: "Character" }));
 		expect(
-			(page.getByRole("combobox", { name: "Farmer" }) as HTMLSelectElement)
-				.value,
+			requireInstance(
+				page.getByRole("combobox", { name: "Farmer" }),
+				HTMLSelectElement,
+			).value,
 		).toBe("2");
 	} finally {
 		await opened.dispose();
@@ -100,13 +111,21 @@ it("validates custom IDs and keeps late add/remove work and feedback with its ca
 		});
 		const add = page.getByRole("button", { name: "Mark as seen" });
 		await fireEvent.input(input, { target: { value: "1e3" } });
-		expect((add as HTMLButtonElement).disabled).toBe(true);
+		expect(requireInstance(add, HTMLButtonElement).disabled).toBe(true);
 		await fireEvent.input(input, { target: { value: "00042" } });
 		expect(page.getByText("Saved as 42, without leading zeros.")).toBeTruthy();
-		await fireEvent.submit(add.closest("form")!);
-		await fireEvent.change(page.getByRole("combobox", { name: "Farmer" }), {
-			target: { value: "2" },
-		});
+		await fireEvent.submit(
+			requireDefined(requireInstance(add, HTMLButtonElement).closest("form")),
+		);
+		await fireEvent.change(
+			requireInstance(
+				page.getByRole("combobox", { name: "Farmer" }),
+				HTMLSelectElement,
+			),
+			{
+				target: { value: "2" },
+			},
+		);
 		const snapshot = await model.snapshot();
 		expect(
 			readEvents(snapshot.document)
@@ -125,22 +144,26 @@ it("validates custom IDs and keeps late add/remove work and feedback with its ca
 		// Enter the next ID before waiting for its pending guard to release.
 		await fireEvent.input(input, { target: { value: "Mod.Example_Event" } });
 		await waitFor(() =>
-			expect((add as HTMLButtonElement).disabled).toBe(false),
+			expect(requireInstance(add, HTMLButtonElement).disabled).toBe(false),
 		);
-		await fireEvent.submit(add.closest("form")!);
+		await fireEvent.submit(
+			requireDefined(requireInstance(add, HTMLButtonElement).closest("form")),
+		);
 		await model.snapshot();
 		await waitFor(() =>
 			expect(page.getByText("Marked #Mod.Example_Event as seen.")).toBeTruthy(),
 		);
 		await fireEvent.input(
 			page.getByRole("searchbox", { name: "Search events" }),
-			{ target: { value: "Mod.Example_Event" } },
+			{
+				target: { value: "Mod.Example_Event" },
+			},
 		);
 		const remove = page.getByRole("button", {
 			name: "Remove Mod.Example_Event",
 		});
 		await waitFor(() =>
-			expect((remove as HTMLButtonElement).disabled).toBe(false),
+			expect(requireInstance(remove, HTMLButtonElement).disabled).toBe(false),
 		);
 		await fireEvent.click(remove);
 		await model.snapshot();
@@ -171,21 +194,25 @@ it("bounds mounted controls while search and grouping cover shared events across
 	const { page, model } = opened;
 	try {
 		expect(page.getAllByRole("checkbox")).toHaveLength(24);
-		const event = VanillaEvents.find((event) => event.npcs.length > 1);
+		const event = VanillaEvents.find(
+			(candidateEvent) => candidateEvent.npcs.length > 1,
+		);
 		if (!event) throw new Error("Missing shared event fixture");
 		await fireEvent.input(
 			page.getByRole("searchbox", { name: "Search events" }),
-			{ target: { value: event.name } },
+			{
+				target: { value: event.name },
+			},
 		);
 		const boxes = page.getAllByRole("checkbox", { name: event.name });
 		expect(boxes).toHaveLength(event.npcs.length);
-		await fireEvent.click(boxes[0]!);
+		await fireEvent.click(requireDefined(boxes[0]));
 		await model.snapshot();
 		await waitFor(() =>
 			expect(
 				page
 					.getAllByRole("checkbox", { name: event.name })
-					.every((box) => (box as HTMLInputElement).checked),
+					.every((box) => requireInstance(box, HTMLInputElement).checked),
 			).toBe(true),
 		);
 		await fireEvent.change(page.getByRole("combobox", { name: "Group by" }), {
@@ -197,7 +224,9 @@ it("bounds mounted controls while search and grouping cover shared events across
 		expect(page.getAllByRole("checkbox", { name: event.name })).toHaveLength(1);
 		await fireEvent.change(
 			page.getByRole("combobox", { name: "Show events" }),
-			{ target: { value: "unseen" } },
+			{
+				target: { value: "unseen" },
+			},
 		);
 		expect(page.queryByRole("checkbox", { name: event.name })).toBeNull();
 	} finally {

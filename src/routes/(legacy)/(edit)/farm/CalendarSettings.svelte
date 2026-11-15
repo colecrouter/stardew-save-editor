@@ -4,17 +4,17 @@
 		DAYS_PER_SEASON,
 		formatDate,
 		MAX_YEAR,
-		SEASONS,
 		seasonName,
+		SEASONS,
 		WEEKDAYS,
 	} from "$lib/calendar";
 	import type { Calendar } from "$lib/proxies/Calendar.svelte";
 	import StudyIcon from "$lib/ui/StudyIcon.svelte";
-	import WeatherIcon from "$lib/ui/WeatherIcon.svelte";
 	import UiButton from "$lib/ui/UIButton.svelte";
 	import UiField from "$lib/ui/UIField.svelte";
 	import UiInput from "$lib/ui/UIInput.svelte";
 	import UiSelect from "$lib/ui/UISelect.svelte";
+	import WeatherIcon from "$lib/ui/WeatherIcon.svelte";
 	import { Season } from "$types/save";
 
 	interface Props {

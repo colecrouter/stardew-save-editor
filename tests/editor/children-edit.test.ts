@@ -1,24 +1,26 @@
 import { it } from "@effect/vitest";
-import { expect, vi } from "vitest";
 import { Effect, Result } from "effect";
-import {
-	editChild,
-	type ChildEdit,
-} from "../../src/lib/editor/children-operations.ts";
+import { expect, vi } from "vitest";
+
 import {
 	inspectResidents,
 	readChildren,
 } from "../../src/lib/editor/children-data.ts";
-import { makeHistorySession } from "../../src/lib/editor/history.ts";
+import {
+	type ChildEdit,
+	editChild,
+} from "../../src/lib/editor/children-operations.ts";
 import { farmers } from "../../src/lib/editor/domain.ts";
+import { makeHistorySession } from "../../src/lib/editor/history.ts";
 import { createCatalogItem } from "../../src/lib/editor/item-catalog.ts";
+import { requireDefined } from "../helpers/assertions.ts";
 import { exportDocument, parser } from "../helpers/editor-document.ts";
 import { childrenFixture, renameRequest } from "./children-fixture.ts";
 
 it.effect("rejects equipping a catalog hat on an existing baby", () =>
 	Effect.gen(function* () {
 		const before = childrenFixture();
-		Object.assign(inspectResidents(before)[0]!.resident, {
+		Object.assign(requireDefined(inspectResidents(before)[0]).resident, {
 			age: 1,
 			daysOld: 13,
 			hat: null,
@@ -96,8 +98,8 @@ it.effect.each([
 	([age, daysOld, nextDays, allowed]) =>
 		Effect.gen(function* () {
 			const before = childrenFixture();
-			const target = inspectResidents(before)[0]!;
-			target.home.cribStyle = 0;
+			const target = requireDefined(inspectResidents(before)[0]);
+			target.home["cribStyle"] = 0;
 			Object.assign(target.resident, { age, daysOld, hat: null });
 			const session = yield* makeHistorySession(before);
 			const result = yield* session
@@ -122,7 +124,7 @@ it.effect(
 		Effect.gen(function* () {
 			const before = childrenFixture();
 			const expected = structuredClone(before);
-			const target = inspectResidents(expected)[0]!.resident;
+			const target = requireDefined(inspectResidents(expected)[0]).resident;
 			Object.assign(target, {
 				name: "Hazel",
 				gender: "Male",
@@ -187,7 +189,7 @@ it.effect.each([
 		Effect.gen(function* () {
 			const before = childrenFixture(),
 				expected = structuredClone(before);
-			Object.assign(inspectResidents(expected)[0]!.resident, {
+			Object.assign(requireDefined(inspectResidents(expected)[0]).resident, {
 				daysOld,
 				age,
 				Speed: age === 3 ? 4 : 1,
@@ -195,7 +197,12 @@ it.effect.each([
 			});
 			const session = yield* makeHistorySession(before);
 			yield* session.transact(
-				editChild(request(before, { daysOld, hat: { kind: "remove" } })),
+				editChild(
+					request(before, {
+						daysOld: requireDefined(daysOld),
+						hat: { kind: "remove" },
+					}),
+				),
 			);
 			expect((yield* session.snapshot).document).toEqual(expected);
 		}),
@@ -235,7 +242,7 @@ it.effect(
 	() =>
 		Effect.gen(function* () {
 			const before = childrenFixture();
-			inspectResidents(before)[0]!.home.cribStyle = 0;
+			requireDefined(inspectResidents(before)[0]).home["cribStyle"] = 0;
 			const session = yield* makeHistorySession(before);
 			for (const changes of [
 				{ daysOld: 13, hat: { kind: "remove" as const } },
@@ -283,7 +290,7 @@ it.effect(
 	() =>
 		Effect.gen(function* () {
 			const before = childrenFixture();
-			const child = inspectResidents(before)[0]!.resident;
+			const child = requireDefined(inspectResidents(before)[0]).resident;
 			if (child.$type !== "StardewValley.Characters.Child")
 				throw Error("Missing fixture child");
 			child.hat = {
@@ -292,9 +299,9 @@ it.effect(
 				opaque: "007",
 				modData: [{ key: "test", value: "keep" }],
 			};
-			child.daysOld = -5;
+			child["daysOld"] = -5;
 			const expected = structuredClone(before);
-			Object.assign(inspectResidents(expected)[0]!.resident, {
+			Object.assign(requireDefined(inspectResidents(expected)[0]).resident, {
 				gender: "Male",
 			});
 			const session = yield* makeHistorySession(before);

@@ -17,7 +17,7 @@
 	const MAX_AVAILABLE = MAX_AVAILABLE_ORDERS;
 
 	let filter = $state("");
-	let regex = $derived.by(() => searchRegexp(filter));
+	let regex = $derived(searchRegexp(filter));
 	let atLimit = $derived(quests.size >= MAX_AVAILABLE);
 	let inProgress = $derived(new Set(quests.inProgress));
 
@@ -43,7 +43,7 @@
 	</div>
 
 	<div class="wrapper">
-		{#each qiQuests as quest}
+		{#each qiQuests as quest (quest.questKey)}
 			{#if regex.test(quest.name)}
 				{@const active = inProgress.has(quest.questKey)}
 				{@const state = active

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import {
 	createRandom,
 	DotNetRandom,
@@ -16,6 +17,8 @@ import {
 	rollTrinket,
 	type TrinketStats,
 } from "$lib/TrinketStats";
+
+import { requireNumber } from "./helpers/assertions.ts";
 
 /*
 	Seeds and the stats the game rolled for them, taken from a real 1.6 save
@@ -210,12 +213,15 @@ describe("TrinketStats", () => {
 
 	it("finds a seed for every Magic Quiver type's best and worst stats", () => {
 		const ctx = { useLegacyRandom: false, totalMoneyEarned: 0 };
+		const isQuiverType = (name: string): name is QuiverType =>
+			Object.hasOwn(QUIVER_TYPES, name);
 		for (const [type, range] of Object.entries(QUIVER_TYPES)) {
+			expect.assert(isQuiverType(type), "Expected an enumerated quiver type");
 			for (const minDamage of range.minDamage) {
 				for (const delay of range.delay) {
 					const target: TrinketStats = {
 						kind: "MagicQuiver",
-						type: type as QuiverType,
+						type,
 						minDamage,
 						maxDamage: minDamage + 5,
 						delay,
@@ -258,9 +264,9 @@ describe("TrinketStats", () => {
 			for (let level = 1; level <= 5; level++) {
 				const seed = findSeed(rollFairyBox, (s) => s.level === level, legacy);
 				expect(seed).toBeDefined();
-				expect(rollFairyBox(createRandom(seed as number, legacy)).level).toBe(
-					level,
-				);
+				expect(
+					rollFairyBox(createRandom(requireNumber(seed), legacy)).level,
+				).toBe(level);
 			}
 		}
 	});

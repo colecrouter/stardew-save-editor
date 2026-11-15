@@ -1,4 +1,6 @@
 import type { WeaponItem } from "$types/save";
+
+import { writeOptionalField } from "../../optional-field.ts";
 import { BaseItemProxy, Raw } from "./ItemProxy.svelte";
 
 export class WeaponProxy extends BaseItemProxy<WeaponItem> {
@@ -110,7 +112,7 @@ export class WeaponProxy extends BaseItemProxy<WeaponItem> {
 	}
 
 	private syncAppearance() {
-		this[Raw].appearance = this.appearance;
+		writeOptionalField(this[Raw], "appearance", this.appearance);
 	}
 
 	private ensureWeapon(): asserts this is WeaponProxy {

@@ -1,8 +1,8 @@
 import { MAX_YEAR } from "../calendar.ts";
-import type { ImmutableView } from "./immutable-view.ts";
 import { bindImmediateField, type DomainEditPort } from "./field-binding.ts";
-import { setPregnancy } from "./pregnancy-operations.ts";
+import type { ImmutableView } from "./immutable-view.ts";
 import type { PregnancyView } from "./pregnancy-data.ts";
+import { setPregnancy } from "./pregnancy-operations.ts";
 
 /** Bind controls to a captured couple, so switching farmers cannot retarget work. */
 export function createPregnancyDomain(

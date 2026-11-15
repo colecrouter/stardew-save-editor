@@ -1,8 +1,8 @@
+import type { CommandResult } from "./command-result.ts";
 import { farmers, type SaveDocument } from "./domain.ts";
 import type { ImmediateEditPort } from "./field-binding.ts";
-import type { CommandResult } from "./command-result.ts";
-import type { MutationError } from "./mutation-error.ts";
 import type { ImmediateField } from "./immediate-field.ts";
+import type { MutationError } from "./mutation-error.ts";
 
 /** Domain selection candidates expose identity and display text, never raw farmer records. */
 export interface FarmerChoice {
@@ -45,16 +45,16 @@ interface FarmerSelectionPort {
  * queued validation, expected-error feedback, and controlled-value rollback.
  */
 export function createFarmerSelectionField(
-	farmers: readonly FarmerChoice[],
+	availableFarmers: readonly FarmerChoice[],
 	selectedId: string | undefined,
 	model: FarmerSelectionPort,
 ): ImmediateField<string> {
 	const counts = new Map<string, number>();
-	for (const farmer of farmers)
+	for (const farmer of availableFarmers)
 		counts.set(farmer.farmerId, (counts.get(farmer.farmerId) ?? 0) + 1);
 	// Every feature may have other unsupported fields. Selection depends only on
 	// a nonempty, unique identity; malformed backpacks must not hide valid farmers.
-	const options = farmers
+	const options = availableFarmers
 		.filter(
 			(farmer) => farmer.farmerId !== "" && counts.get(farmer.farmerId) === 1,
 		)
@@ -67,7 +67,7 @@ export function createFarmerSelectionField(
 		value: selectedId,
 		available: options.length > 0,
 		options,
-		...(options.length !== farmers.length
+		...(options.length !== availableFarmers.length
 			? {
 					reason:
 						"Farmers with missing or ambiguous identities cannot be selected.",

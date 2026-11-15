@@ -1,7 +1,8 @@
-import publicSaveXml from "./TestSave?raw";
 import { describe, expect, it } from "vitest";
+
 import { MailFlag } from "../src/lib/proxies/Mail.svelte";
 import { SaveManager } from "../src/lib/SaveManager.svelte";
+import publicSaveXml from "./TestSave?raw";
 
 const injectLegacyWalletNodes = (xml: string) =>
 	xml.replace(

@@ -1,5 +1,6 @@
 // These domain guards intentionally exercise real DOM event paths.
 import { afterEach, expect, it } from "vitest";
+
 import {
 	historyShortcut,
 	usesAppleShortcuts,

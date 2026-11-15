@@ -1,7 +1,8 @@
-import type { ImmutableView } from "./immutable-view.ts";
 import { bindImmediateField, type DomainEditPort } from "./field-binding.ts";
 import type { ImmediateField } from "./immediate-field.ts";
-import { setQuest, type QuestFarmerView } from "./quest-operations.ts";
+import type { ImmutableView } from "./immutable-view.ts";
+import { type QuestFarmerView, setQuest } from "./quest-operations.ts";
+
 /** Bind detached journal values to the farmer and quest captured by the projection. */
 export function createQuestDomain(
 	view: ImmutableView<QuestFarmerView>,

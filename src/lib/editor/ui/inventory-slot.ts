@@ -1,5 +1,5 @@
-import type { InventorySlotView, InventoryView } from "../inventory-views.ts";
 import type { EquipmentSlotView } from "../equipment.ts";
+import type { InventorySlotView, InventoryView } from "../inventory-views.ts";
 
 /** Local interaction targets share instance identity across numbered/equipment slots. */
 export type InventorySlot = InventorySlotView | EquipmentSlotView;

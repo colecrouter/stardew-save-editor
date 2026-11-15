@@ -1,5 +1,5 @@
-import type { ReviewChange, ReviewValue } from "./review-contract.ts";
 import { inventoryQualities } from "./inventory-policy.ts";
+import type { ReviewChange, ReviewValue } from "./review-contract.ts";
 
 /** The renderer consumes this one small row shape, never arbitrary save objects. */
 export interface ReviewRow {

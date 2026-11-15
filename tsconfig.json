@@ -11,6 +11,8 @@
 	"references": [
 		{ "path": "./tsconfig.app.json" },
 		{ "path": "./tsconfig.tests.json" },
-		{ "path": "./tsconfig.node.json" }
+		{ "path": "./tsconfig.node.json" },
+		{ "path": "./tsconfig.tools.json" },
+		{ "path": "./tools/game-data/tsconfig.json" }
 	]
 }

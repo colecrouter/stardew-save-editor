@@ -2,6 +2,7 @@
 	import "./styles.css";
 	import { Popover } from "bits-ui";
 	import type { Snippet } from "svelte";
+
 	let {
 		trigger,
 		title,

@@ -2,6 +2,7 @@
 	import "./styles.css";
 	import { Tooltip } from "bits-ui";
 	import type { Snippet } from "svelte";
+
 	let {
 		text,
 		children,
@@ -31,8 +32,11 @@
 			{#snippet child({ props })}
 				{#if informative}
 					{@const { type: _type, ...attributes } = props}
-					<!-- svelte-ignore a11y_no_noninteractive_tabindex (A tooltip's informational graphic must be keyboard reachable.) -->
-					<span {...attributes} role="img">
+					<!-- The trigger supplies focusability so keyboard users can reach the informational graphic. -->
+					<span
+						{...attributes}
+						role="img"
+					>
 						{@render children()}
 					</span>
 				{:else}

@@ -1,18 +1,19 @@
-import { inventoryQuantity } from "./inventory-policy.ts";
 import { Effect } from "effect";
+
+import type { EquipmentSlotView } from "./equipment.ts";
 import { bindImmediateField, type ImmediateEditPort } from "./field-binding.ts";
 import type { ImmediateField } from "./immediate-field.ts";
-import type { InventorySlotView } from "./inventory-views.ts";
 import {
-	setInventoryItem,
 	decodeInventoryItemChange,
+	setInventoryItem,
 	setInventoryItemProperty,
 } from "./inventory-operations.ts";
+import { inventoryQuantity } from "./inventory-policy.ts";
+import type { InventorySlotView } from "./inventory-views.ts";
 import {
 	decodeItemPropertyChange,
 	type ItemPropertyField,
 } from "./item-properties.ts";
-import type { EquipmentSlotView } from "./equipment.ts";
 
 /** Inspectors need field editing, not document loading, history or selection ownership. */
 export type InventoryEditPort = ImmediateEditPort;
@@ -49,10 +50,12 @@ export function createInventoryQuantityFields(
 		quality: field("quality", "Quality", canQuality),
 	};
 }
+// Optional presentation members may be omitted or explicitly unavailable.
+// These transient projections do not encode presence of serialized save fields.
 type PropertyBase = {
 	property: ItemPropertyField["property"];
-	hint?: string;
-	title?: string;
+	hint?: string | undefined;
+	title?: string | undefined;
 };
 export type InventoryPropertyField = PropertyBase &
 	(
@@ -81,7 +84,7 @@ export function createInventoryPropertyField(
 	const make = <T extends string | number | boolean>(
 		value: T | undefined,
 		available: boolean,
-		encode: (value: T) => unknown = (value) => value,
+		encode: (value: T) => unknown = (nextValue) => nextValue,
 	) =>
 		bindImmediateField(
 			port,
@@ -96,7 +99,7 @@ export function createInventoryPropertyField(
 					step: property.step,
 				},
 			},
-			(value: T) => command(encode(value)),
+			(nextValue: T) => command(encode(nextValue)),
 		);
 	const base = {
 		property: property.property,

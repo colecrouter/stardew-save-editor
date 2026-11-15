@@ -1,10 +1,14 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+
 import { Schema } from "effect";
+
 import * as Xml from "../../../src/lib/save-format/index.ts";
-import { scalarTypes } from "../../../src/lib/save-format/scalars.ts";
-import type { ScalarType } from "../../../src/lib/save-format/scalars.ts";
 import { ordinalIgnoreCaseKey } from "../../../src/lib/save-format/ordinal-ignore-case.ts";
+import {
+	type ScalarType,
+	scalarTypes,
+} from "../../../src/lib/save-format/scalars.ts";
 import { XmlSchema as ObjectSchema } from "./generated/any-object.ts";
 import { XmlSchema as NullableEnumSchema } from "./generated/nullable-enum.ts";
 
@@ -53,8 +57,11 @@ void test("scalar conversions retain CLR bounds and precision in both directions
 			value,
 			id,
 		);
-		for (const text of invalid)
-			assert.throws(() => Schema.decodeSync(codec)(text), `${id}: ${text}`);
+		for (const invalidText of invalid)
+			assert.throws(
+				() => Schema.decodeSync(codec)(invalidText),
+				`${id}: ${invalidText}`,
+			);
 	}
 	assert.throws(() => Schema.encodeSync(scalarTypes["System.Byte"].codec)(256));
 	assert.throws(() =>

@@ -1,29 +1,40 @@
 import catalog from "../../../generated/progress.json";
+import { extraAchievementDiagnostics } from "./achievement-diagnostics.ts";
+import { skillDefinitions } from "./character-data.ts";
 import {
-	farmers,
 	type Farmer,
+	farmers,
 	type Location,
 	type SaveDocument,
 } from "./domain.ts";
-import { skillDefinitions } from "./character-data.ts";
-import { isKnownLocation } from "./saved-types.ts";
-import { readRecipes, type RecipeFarmerView } from "./recipe-operations.ts";
+import { nonemptyText } from "./plain-data.ts";
 import { recipeProgress } from "./progress.ts";
-import { extraAchievementDiagnostics } from "./achievement-diagnostics.ts";
+import { readRecipes, type RecipeFarmerView } from "./recipe-operations.ts";
+import { isKnownLocation } from "./saved-types.ts";
 
 export type ProgressSection =
 	| "recipes"
 	| "character"
 	| "relationships"
 	| "buildings";
+// Category layouts and recipe rows are authored in lockstep. Missing members
+// indicate a projection defect rather than uncertain imported game evidence.
+function requireProgressValue<T>(value: T | undefined): T {
+	if (value === undefined)
+		throw new Error("Progress projection layout is incomplete");
+	return value;
+}
+
+// Optional presentation members may be omitted or explicitly unavailable.
+// These transient projections do not encode presence of serialized save fields.
 export interface ProgressRequirement {
 	// Collection IDs distinguish same-name objects; named rules use their name.
-	id?: string;
+	id?: string | undefined;
 	name: string;
 	status: "complete" | "missing" | "unknown";
-	value?: number;
-	target?: number;
-	learned?: boolean;
+	value?: number | undefined;
+	target?: number | undefined;
+	learned?: boolean | undefined;
 }
 export interface ProgressCategory {
 	id: string;
@@ -33,8 +44,8 @@ export interface ProgressCategory {
 	total: number;
 	unknown: number;
 	requirements: ProgressRequirement[];
-	section?: ProgressSection;
-	note?: string;
+	section?: ProgressSection | undefined;
+	note?: string | undefined;
 	// Lower and upper bounds refer to the fraction of this category's weight.
 	// Binary categories grant nothing until every requirement is satisfied.
 	lower: number;
@@ -44,24 +55,24 @@ export interface ProgressAchievement {
 	id: number;
 	name: string;
 	description: string;
-	recorded?: boolean;
-	value?: number;
-	target?: number;
-	evidence?: string;
+	recorded?: boolean | undefined;
+	value?: number | undefined;
+	target?: number | undefined;
+	evidence?: string | undefined;
 	status: "Requirements satisfied" | "In progress" | "Unable to determine";
 }
 export interface ProgressFarmer {
 	farmerId: string;
 	name: string;
-	eligible?: boolean;
+	eligible?: boolean | undefined;
 	categories: ProgressCategory[];
 	achievements: ProgressAchievement[];
 }
 export interface ProgressView {
 	farmers: ProgressFarmer[];
 	shared: ProgressCategory[];
-	leaders: { category: ProgressCategory; farmer?: string }[];
-	waivers?: number;
+	leaders: { category: ProgressCategory; farmer?: string | undefined }[];
+	waivers?: number | undefined;
 	lower: number;
 	upper: number;
 }
@@ -253,14 +264,15 @@ function stardrops(document: SaveDocument, farmer: Farmer) {
 	const farmerMailbox = farmer.mailbox;
 	const legacyMailbox = document.SaveGame.mailbox;
 	const mailbox =
-		farmer === document.SaveGame.player && !farmerMailbox?.length
+		farmer === document.SaveGame.player && !((farmerMailbox?.length ?? 0) > 0)
 			? (legacyMailbox ?? farmerMailbox)
 			: farmerMailbox;
 	const mail = (key: string): number | undefined => {
 		if (
-			received?.includes(key) ||
-			tomorrow?.some((value) => value === key || value === `${key}%&NL&%`) ||
-			mailbox?.includes(key)
+			received?.includes(key) === true ||
+			tomorrow?.some((value) => value === key || value === `${key}%&NL&%`) ===
+				true ||
+			mailbox?.includes(key) === true
 		)
 			return 1;
 		return received !== undefined &&
@@ -297,7 +309,7 @@ function stardrops(document: SaveDocument, farmer: Farmer) {
 	);
 	// The historical completion marker is an explicit alternative to the seven
 	// individual flags. It does not authorize inventing those missing flags.
-	if (received?.includes("gotMaxStamina")) {
+	if (received?.includes("gotMaxStamina") === true) {
 		result.lower = result.upper = 1;
 		result.note =
 			"The game's all-Stardrops completion marker is present, independently of the individual source flags.";
@@ -402,9 +414,16 @@ function achievements(
 		],
 		["shipping", [[34, 0]]],
 	] as const) {
-		const progress = categories.find((row) => row.id === categoryId)!;
+		const progress = requireProgressValue(
+			categories.find((row) => row.id === categoryId),
+		);
 		for (const [id, target] of milestones)
-			add(id, progress.completed, target || progress.total, progress.unknown);
+			add(
+				id,
+				progress.completed,
+				target === 0 ? progress.total : target,
+				progress.unknown,
+			);
 	}
 	// Friendship achievements inspect every saved relationship, including children.
 	// Unlike Perfection they are not restricted to the vanilla villager catalog.
@@ -418,7 +437,7 @@ function achievements(
 	] as const) {
 		const entries = farmer.friendshipData;
 		const readable =
-			entries?.every((saved) => saved.value?.Points !== undefined) &&
+			entries?.every((saved) => saved.value?.Points !== undefined) === true &&
 			new Set(entries.map((saved) => saved.key)).size === entries.length;
 		add(
 			id,
@@ -490,7 +509,7 @@ export function readProgress(
 	const all = farmers(document);
 	const players: ProgressFarmer[] = all.map((farmer, index) => {
 		const farmerId = farmer.UniqueMultiplayerID?.toString() ?? "";
-		const recipe = recipes[index]!;
+		const recipe = requireProgressValue(recipes[index]);
 		const categories = [
 			...collections(farmer),
 			friendships(farmer),
@@ -522,7 +541,7 @@ export function readProgress(
 			}
 		return {
 			farmerId,
-			name: farmer.name || "Unnamed farmer",
+			name: nonemptyText(farmer.name) ?? "Unnamed farmer",
 			eligible: index === 0 ? true : farmer.isCustomized,
 			categories,
 			achievements: achievements(document, farmer, categories),
@@ -541,32 +560,39 @@ export function readProgress(
 			),
 		]),
 	];
-	const walnuts = shared.find((row) => row.id === "walnuts")!;
+	const walnuts = requireProgressValue(
+		shared.find((row) => row.id === "walnuts"),
+	);
 	const found = document.SaveGame.goldenWalnutsFound;
 	walnuts.lower =
 		found !== undefined && found >= 0 ? Math.min(found, 130) / 130 : 0;
 	walnuts.upper = found !== undefined && found >= 0 ? walnuts.lower : 1;
 	// The best whole result wins each category. Never union partial player lists;
 	// uncustomized cabin placeholders are excluded from the game's calculation.
-	const leaders = players[0]!.categories.map((baseline, index) => {
-		const eligible = players.filter((player) => player.eligible === true);
-		const leader = eligible.reduce(
-			(best, candidate) =>
-				candidate.categories[index]!.lower > best.categories[index]!.lower
-					? candidate
-					: best,
-			eligible[0]!,
-		);
-		const highest = leader.categories[index]!;
-		const upper = Math.max(
-			...players
-				.filter((player) => player.eligible !== false)
-				.map((player) =>
-					player.eligible === undefined ? 1 : player.categories[index]!.upper,
-				),
-		);
-		return { category: { ...highest, upper }, farmer: leader.name };
-	});
+	const leaders = requireProgressValue(players[0]).categories.map(
+		(baseline, index) => {
+			const eligible = players.filter((player) => player.eligible === true);
+			const leader = eligible.reduce(
+				(best, candidate) =>
+					requireProgressValue(candidate.categories[index]).lower >
+					requireProgressValue(best.categories[index]).lower
+						? candidate
+						: best,
+				requireProgressValue(eligible[0]),
+			);
+			const highest = requireProgressValue(leader.categories[index]);
+			const upper = Math.max(
+				...players
+					.filter((player) => player.eligible !== false)
+					.map((player) =>
+						player.eligible === undefined
+							? 1
+							: requireProgressValue(player.categories[index]).upper,
+					),
+			);
+			return { category: { ...highest, upper }, farmer: leader.name };
+		},
+	);
 	const waiverCount = document.SaveGame.perfectionWaivers;
 	// An unreadable waiver count could cover any remaining gap. Preserve that
 	// uncertainty rather than silently assuming the farmer bought no waivers.

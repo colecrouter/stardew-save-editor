@@ -21,5 +21,5 @@ vi.mock("$app/state", () => ({
 		willUnload: null,
 		complete: null,
 	},
-	updated: { current: false, check: async () => false },
+	updated: { current: false, check: () => Promise.resolve(false) },
 }));

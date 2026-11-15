@@ -1,17 +1,19 @@
 import { fileURLToPath } from "node:url";
+
 import { NodeServices } from "@effect/platform-node";
 import { expect, it } from "@effect/vitest";
 import { Deferred, Effect, Exit, Fiber, FileSystem, Layer } from "effect";
-import pako from "pako";
+import { deflate } from "pako";
+
 import { farmers } from "../../src/lib/editor/domain.ts";
-import { makeEffectSession } from "./effect.ts";
-import { scenarios } from "./fixture.ts";
-import { editFile } from "./platform.ts";
 import {
 	SaveCodec,
 	SaveCodecLive,
 	SaveReadError,
 } from "../../src/lib/editor/save-service.ts";
+import { makeEffectSession } from "./effect.ts";
+import { scenarios } from "./fixture.ts";
+import { editFile } from "./platform.ts";
 import { workerCodecLayer } from "./worker-service.ts";
 
 const fixturePath = fileURLToPath(
@@ -49,7 +51,7 @@ it.effect(
 			const codec = yield* SaveCodec;
 			const bytes = yield* fs.readFile(fixturePath);
 			const original = yield* codec.decode(bytes);
-			expect(yield* codec.decode(pako.deflate(bytes))).toEqual(original);
+			expect(yield* codec.decode(deflate(bytes))).toEqual(original);
 			// Unknown arrays need save-specific recognition; use an opaque object here.
 			Object.assign(original.SaveGame, {
 				customModField: { opaque: "007", nested: { flag: "text" } },
@@ -209,6 +211,9 @@ it.effect("ten canceled real worker requests release every worker", () =>
 		let acquired = 0;
 		for (let index = 0; index < 10; index++) {
 			const ready = yield* Deferred.make<void>();
+			// Each iteration awaits interruption before the next worker starts. These
+			// shared counters intentionally observe lifetime changes across iterations.
+			// oxlint-disable-next-line no-loop-func -- The callback tracks shared worker counts, not the loop index.
 			const layer = workerCodecLayer((delta) => {
 				live += delta;
 				if (delta > 0) {

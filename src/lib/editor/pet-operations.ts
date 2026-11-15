@@ -1,11 +1,12 @@
 import { Data, Effect, Result, Schema } from "effect";
-import { inspectPets, supportsPetRecord } from "./pet-data.ts";
+
 import { petAppearances } from "./pet-appearance.ts";
-import { TransactionDraft } from "./transaction-draft.ts";
+import { inspectPets, supportsPetRecord } from "./pet-data.ts";
 import {
 	recordAnnotatedOperation,
 	withReviewMetadata,
 } from "./transaction-annotations.ts";
+import { TransactionDraft } from "./transaction-draft.ts";
 
 export class PetInvalid extends Data.TaggedError("PetInvalid")<{
 	readonly message: string;
@@ -51,7 +52,7 @@ export const setPet = Effect.fn("Pets.setPet")(function* (input: PetChange) {
 			message: "Choose a valid pet field value.",
 		});
 	const change = decoded.success;
-	if (change.kind === "name" && !change.value.trim())
+	if (change.kind === "name" && !(change.value.trim() !== ""))
 		return yield* new PetInvalid({ message: "The pet needs a name." });
 	const draft = yield* TransactionDraft;
 	const snapshot = yield* draft.read;
@@ -80,7 +81,10 @@ export const setPet = Effect.fn("Pets.setPet")(function* (input: PetChange) {
 				message: "Choose a supported pet appearance.",
 			});
 		const breed = pet.raw.whichBreed;
-		if (!pet.raw.petType || !breed)
+		if (
+			!(pet.raw.petType != null && pet.raw.petType !== "") ||
+			!(breed != null && breed !== "")
+		)
 			return yield* new PetInvalid({
 				message: "This saved pet appearance is unreadable.",
 			});

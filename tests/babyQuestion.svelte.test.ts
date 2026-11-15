@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/svelte";
 import { flushSync, tick } from "svelte";
 import { describe, expect, it, vi } from "vitest";
+
 import {
 	type FarmerFriendshipItem,
 	type FarmerFriendships,
@@ -20,6 +21,8 @@ import { Raw } from "../src/lib/proxies";
 import { Friendship } from "../src/lib/proxies/Friendship.svelte";
 import BabyQuestion from "../src/routes/(legacy)/(edit)/relationships/BabyQuestion.svelte";
 import HeartBar from "../src/routes/(legacy)/(edit)/relationships/HeartBar.svelte";
+import { requireInstance, requireRecord } from "./helpers/assertions.ts";
+import { malformedFixture } from "./helpers/editor-document.ts";
 
 const today = { year: 2, season: Season.Spring, day: 10 };
 const home = { upgradeLevel: 2, cribStyle: 1, children: 0, toddlers: 0 };
@@ -31,7 +34,7 @@ const spouse = (change?: (f: Record<string, unknown>) => void) => {
 	f.Status = Status.Married;
 	f.Points = 2500;
 	f.WeddingDate = { Year: 1, Season: Season.Fall, DayOfMonth: 1 };
-	change?.(f as unknown as Record<string, unknown>);
+	change?.(requireRecord(f));
 	let friendship!: Friendship;
 	$effect.root(() => {
 		friendship = new Friendship(raw);
@@ -62,14 +65,14 @@ describe("babyQuestionStatus", () => {
 	});
 
 	it("needs 10 hearts", () => {
-		const s = spouse((f) => (f.Points = 2499));
+		const s = spouse((f) => (f["Points"] = 2499));
 		expect(unmet(babyQuestionStatus(s, today, home))).toEqual(["hearts"]);
 	});
 
 	it("needs a week of marriage", () => {
 		const wed = (day: number) =>
 			spouse((f) => {
-				f.WeddingDate = { Year: 2, Season: Season.Spring, DayOfMonth: day };
+				f["WeddingDate"] = { Year: 2, Season: Season.Spring, DayOfMonth: day };
 			});
 		expect(unmet(babyQuestionStatus(wed(4), today, home))).toEqual([
 			"days-married",
@@ -79,14 +82,14 @@ describe("babyQuestionStatus", () => {
 
 	it("needs a wedding date in the save", () => {
 		const s = spouse((f) => {
-			delete f.WeddingDate;
+			delete f["WeddingDate"];
 		});
 		expect(unmet(babyQuestionStatus(s, today, home))).toEqual(["days-married"]);
 	});
 
 	it("rejects roommates", () => {
 		const s = spouse((f) => {
-			f.RoommateMarriage = true;
+			f["RoommateMarriage"] = true;
 		});
 		expect(unmet(babyQuestionStatus(s, today, home))).toEqual([
 			"not-roommates",
@@ -246,7 +249,7 @@ describe("making a couple pregnant", () => {
 			},
 		},
 	});
-	const today = { year: 1, season: Season.Winter, day: 20 };
+	const candidateToday = { year: 1, season: Season.Winter, day: 20 };
 
 	it("sets the due date 14 days out in the couple's friendship, and clears it", () => {
 		const data = { item: [raw()] };
@@ -254,7 +257,7 @@ describe("making a couple pregnant", () => {
 		if (!marriage) throw new Error("no marriage");
 		expect(playerDueDate(marriage)).toBeNull();
 
-		setPlayerPregnant(marriage, true, today);
+		setPlayerPregnant(marriage, true, candidateToday);
 		expect(data.item[0]?.value.Friendship.NextBirthingDate).toEqual({
 			Year: 2,
 			DayOfMonth: 6,
@@ -266,21 +269,21 @@ describe("making a couple pregnant", () => {
 			day: 6,
 		});
 
-		setPlayerPregnant(marriage, true, today, 3);
+		setPlayerPregnant(marriage, true, candidateToday, 3);
 		expect(playerDueDate(marriage)).toEqual({
 			year: 1,
 			season: Season.Winter,
 			day: 23,
 		});
 
-		setPlayerPregnant(marriage, false, today);
+		setPlayerPregnant(marriage, false, candidateToday);
 		expect(data.item[0]?.value.Friendship).not.toHaveProperty(
 			"NextBirthingDate",
 		);
 	});
 
 	it("shows a toggle in the panel that reports changes", async () => {
-		const onchange = vi.fn();
+		const onchange = vi.fn<() => void>();
 		const status = playerBabyQuestionStatus(
 			{ name: "Princess", home: { ...home, upgradeLevel: 2 } },
 			{ name: "weswy", home },
@@ -302,14 +305,15 @@ describe("making a couple pregnant", () => {
 			pregnancy: { pregnant: true, daysUntilBirth: 14, onchange },
 		});
 		await tick();
-		const days = screen.getByTestId(
-			"baby-player-days-until-birth",
-		) as HTMLInputElement;
+		const days = requireInstance(
+			screen.getByTestId("baby-player-days-until-birth"),
+			HTMLInputElement,
+		);
 		expect(days.value).toBe("14");
 	});
 
 	it("has no toggle without one passed in", async () => {
-		const status = babyQuestionStatus(spouse(), today, home);
+		const status = babyQuestionStatus(spouse(), candidateToday, home);
 		render(BabyQuestion, { props: { status } });
 		await fireEvent.click(screen.getByTestId("baby-question-toggle"));
 		expect(screen.queryByTestId("baby-player-pregnant")).toBeNull();
@@ -318,7 +322,7 @@ describe("making a couple pregnant", () => {
 
 describe("readHome", () => {
 	const location = (characters: unknown) =>
-		({ cribStyle: 0, characters }) as unknown as GameLocation;
+		malformedFixture<GameLocation>({ cribStyle: 0, characters });
 
 	it("counts only children, and which are toddlers", () => {
 		const npcs = {
@@ -373,9 +377,15 @@ describe("BabyQuestion panel", () => {
 		const status = babyQuestionStatus(spouse(), today, home);
 		render(BabyQuestion, { props: { status } });
 		await fireEvent.click(screen.getByTestId("baby-question-toggle"));
-		const boxes = screen.getAllByRole("checkbox") as HTMLInputElement[];
+		const boxes = screen.getAllByRole("checkbox");
 		expect(boxes).toHaveLength(status.requirements.length);
-		expect(boxes.every((b) => b.disabled && b.checked)).toBe(true);
+		expect(
+			boxes.every(
+				(b) =>
+					requireInstance(b, HTMLInputElement).disabled &&
+					requireInstance(b, HTMLInputElement).checked,
+			),
+		).toBe(true);
 		expect(screen.getByTestId("baby-question-status").textContent).toContain(
 			"Eligible",
 		);
@@ -391,8 +401,10 @@ describe("BabyQuestion panel", () => {
 		render(BabyQuestion, { props: { status } });
 		await fireEvent.click(screen.getByTestId("baby-question-toggle"));
 		expect(
-			(screen.getByTestId("baby-requirement-children") as HTMLInputElement)
-				.checked,
+			requireInstance(
+				screen.getByTestId("baby-requirement-children"),
+				HTMLInputElement,
+			).checked,
 		).toBe(false);
 		expect(screen.getByTestId("baby-question-status").textContent).toContain(
 			"Not eligible: 2 requirements not met",

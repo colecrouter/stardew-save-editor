@@ -1,9 +1,11 @@
+import { fireEvent, render, waitFor, within } from "@testing-library/svelte";
 import { expect, it } from "vitest";
-import { render, fireEvent, within, waitFor } from "@testing-library/svelte";
-import { openTestEditor } from "../helpers/open-editor.ts";
-import WorkspaceHarness from "./WorkspaceHarness.svelte";
-import { fixtureXml } from "./fixtures";
+
 import { readCommunity } from "../../src/lib/editor/community-data";
+import { requireInstance } from "../helpers/assertions.ts";
+import { openTestEditor } from "../helpers/open-editor.ts";
+import { fixtureXml } from "./fixtures";
+import WorkspaceHarness from "./WorkspaceHarness.svelte";
 
 it("edits donations, changes membership and projects with complete Undo and preserved room selection", async () => {
 	const opened = await openTestEditor(new TextEncoder().encode(fixtureXml));
@@ -15,9 +17,10 @@ it("edits donations, changes membership and projects with complete Undo and pres
 		const card = await page.findByRole("article", {
 			name: "Spring Foraging bundle",
 		});
-		const checkbox = within(card).getAllByRole(
-			"checkbox",
-		)[0] as HTMLInputElement;
+		const checkbox = requireInstance(
+			within(card).getAllByRole("checkbox")[0],
+			HTMLInputElement,
+		);
 		const original = checkbox.checked;
 		await fireEvent.click(checkbox);
 		await waitFor(async () =>

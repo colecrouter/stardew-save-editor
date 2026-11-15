@@ -1,22 +1,23 @@
-import { malformedFixture } from "../helpers/editor-document.ts";
 import { it } from "@effect/vitest";
-import { expect } from "vitest";
 import { Effect, Result } from "effect";
-import { makeHistorySession } from "../../src/lib/editor/history";
+import { expect } from "vitest";
+
 import {
-	readCommunity,
+	type CommunityBundleView,
 	inspectCommunity,
 	progressId,
+	readCommunity,
 	submissionFlags,
-	type CommunityBundleView,
 } from "../../src/lib/editor/community-data";
-import {
-	setCommunityRequirements,
-	type CommunityRequirementsEdit,
-} from "../../src/lib/editor/community-requirements";
 import { setCommunityProgress } from "../../src/lib/editor/community-operations";
+import {
+	type CommunityRequirementsEdit,
+	setCommunityRequirements,
+} from "../../src/lib/editor/community-requirements";
+import { makeHistorySession } from "../../src/lib/editor/history";
 import { record } from "../../src/lib/editor/plain-data";
-import { parser, fixtureXml, exportDocument } from "./fixtures";
+import { malformedFixture } from "../helpers/editor-document.ts";
+import { exportDocument, fixtureXml, parser } from "./fixtures";
 
 const required = <T>(value: T | undefined): T => {
 	if (value === undefined) throw new Error("Missing fixture value");
@@ -64,7 +65,7 @@ it.effect(
 			if (!record(definition) || typeof definition.value !== "string")
 				throw new Error("Missing definition");
 			definition.value += "/opaque-tail";
-			definition.opaque = { keep: "007" };
+			definition["opaque"] = { keep: "007" };
 			const session = yield* makeHistorySession(document);
 			const before = yield* session.snapshot;
 			const request = edit(
@@ -89,9 +90,11 @@ it.effect(
 			const changed = inspectCommunity(after.document).definitions.entries.find(
 				(row) => record(row) && row.key === bundle.key,
 			);
+			// Vitest types asymmetric matchers as any. Keep expected matcher values
+			// unknown so they cannot weaken the surrounding saved-data assertions.
 			expect(changed).toMatchObject({
 				opaque: { keep: "007" },
-				value: expect.stringContaining("/opaque-tail"),
+				value: expect.stringContaining("/opaque-tail") as unknown,
 			});
 			expect(inspectCommunity(after.document).rewards.entries).toEqual(
 				inspectCommunity(before.document).rewards.entries,
@@ -126,7 +129,13 @@ it.effect(
 			);
 			if (!record(progress) || !Array.isArray(progress.value))
 				throw new Error("Missing progress");
-			progress.value = [true, false, false, false, ...Array(8).fill(false)];
+			progress.value = [
+				true,
+				false,
+				false,
+				false,
+				...Array.from({ length: 8 }, () => false),
+			];
 			const session = yield* makeHistorySession(document);
 			const request = edit(
 				required(
@@ -360,7 +369,7 @@ it.effect(
 			);
 			if (!record(progress) || !Array.isArray(progress.value))
 				throw new Error("Missing progress");
-			progress.value = Array(13).fill(false);
+			progress.value = Array.from({ length: 13 }, () => false);
 			const session = yield* makeHistorySession(document);
 			const before = yield* session.snapshot;
 			const bundle = required(

@@ -1,5 +1,6 @@
 import { flushSync } from "svelte";
 import { describe, expect, it } from "vitest";
+
 import type { Item, Save } from "../codegen/save";
 import {
 	discoverChests,
@@ -7,31 +8,31 @@ import {
 	searchChests,
 } from "../src/lib/proxies/Chest.svelte";
 import { Item as ItemFactory } from "../src/lib/proxies/Item.svelte";
+import { partialFixture } from "./helpers/assertions.ts";
+import { malformedFixture } from "./helpers/editor-document.ts";
 
-const wood = (): Item =>
-	({
-		"@_xsi:type": "Object",
-		name: "Wood",
-		itemId: "388",
-		stack: 10,
-		quality: 0,
-		isRecipe: false,
-		hasBeenInInventory: true,
-	}) as Item;
+const wood = (): Item => ({
+	"@_xsi:type": "Object",
+	name: "Wood",
+	itemId: "388",
+	stack: 10,
+	quality: 0,
+	isRecipe: false,
+	hasBeenInInventory: true,
+});
 
-const chest = (name = "Chest"): RawChest =>
-	({
-		"@_xsi:type": "Chest",
-		name,
-		stack: 1,
-		quality: 0,
-		isRecipe: false,
-		hasBeenInInventory: true,
-		playerChest: true,
-		fridge: false,
-		specialChestType: name === "Big Chest" ? "BigChest" : "None",
-		items: { Item: [wood()] },
-	}) as RawChest;
+const chest = (name = "Chest"): RawChest => ({
+	"@_xsi:type": "Chest",
+	name,
+	stack: 1,
+	quality: 0,
+	isRecipe: false,
+	hasBeenInInventory: true,
+	playerChest: true,
+	fridge: false,
+	specialChestType: name === "Big Chest" ? "BigChest" : "None",
+	items: { Item: [wood()] },
+});
 
 describe("chest discovery and editing", () => {
 	it("finds placed, machine, building, and fridge containers", () => {
@@ -39,7 +40,7 @@ describe("chest discovery and editing", () => {
 		const machine = chest();
 		const buildingChest = chest();
 		const fridge = { ...chest(), "@_xsi:type": undefined, fridge: true };
-		const save = {
+		const save = malformedFixture<Save>({
 			locations: {
 				GameLocation: [
 					{
@@ -74,9 +75,9 @@ describe("chest discovery and editing", () => {
 					},
 				],
 			},
-		} as unknown as Save;
+		});
 
-		let discovered = [] as ReturnType<typeof discoverChests>;
+		let discovered = partialFixture<ReturnType<typeof discoverChests>>([]);
 		const cleanup = $effect.root(() => {
 			discovered = discoverChests(save);
 		});
@@ -95,7 +96,7 @@ describe("chest discovery and editing", () => {
 
 	it("adds, edits, and deletes only the chest item list", () => {
 		const raw = chest("Big Chest");
-		const save = {
+		const save = malformedFixture<Save>({
 			locations: {
 				GameLocation: [
 					{
@@ -112,9 +113,9 @@ describe("chest discovery and editing", () => {
 					},
 				],
 			},
-		} as unknown as Save;
+		});
 
-		let discovered = [] as ReturnType<typeof discoverChests>;
+		let discovered = partialFixture<ReturnType<typeof discoverChests>>([]);
 		const cleanup = $effect.root(() => {
 			discovered = discoverChests(save);
 		});
@@ -128,7 +129,7 @@ describe("chest discovery and editing", () => {
 		expect(target.inventory.usedSlots).toBe(2);
 		const items = () => {
 			const container = raw.items;
-			if (!container || typeof container === "string") {
+			if (container == null || typeof container === "string") {
 				throw new Error("Expected item list");
 			}
 			return container.Item;
@@ -146,7 +147,7 @@ describe("chest discovery and editing", () => {
 	it("searches item names across every chest", () => {
 		const first = chest();
 		const second = chest("Big Chest");
-		const save = {
+		const save = malformedFixture<Save>({
 			locations: {
 				GameLocation: [
 					{
@@ -167,21 +168,21 @@ describe("chest discovery and editing", () => {
 					},
 				],
 			},
-		} as unknown as Save;
+		});
 
-		let discovered = [] as ReturnType<typeof discoverChests>;
+		let discovered = partialFixture<ReturnType<typeof discoverChests>>([]);
 		const cleanup = $effect.root(() => {
 			discovered = discoverChests(save);
 		});
 		discovered[1]?.inventory.set(1, ItemFactory.fromName("Stone"));
 		flushSync();
 
-		const wood = searchChests(discovered, "  wOo ");
-		expect(wood.map((r) => [r.chestIndex, r.slotIndex])).toEqual([
+		const candidateWood = searchChests(discovered, "  wOo ");
+		expect(candidateWood.map((r) => [r.chestIndex, r.slotIndex])).toEqual([
 			[0, 0],
 			[1, 0],
 		]);
-		expect(wood[0]?.item.name).toBe("Wood");
+		expect(candidateWood[0]?.item.name).toBe("Wood");
 
 		const stone = searchChests(discovered, "stone");
 		expect(stone.map((r) => [r.chestIndex, r.slotIndex])).toEqual([[1, 1]]);
@@ -197,25 +198,25 @@ describe("chests with a shared inventory", () => {
 	it("leaves out Junimo Chests and other chests with a global inventory", () => {
 		const nilString = { string: { "@_xsi:nil": "true" } };
 		const placed = chest();
-		const junimo = {
+		const junimo = malformedFixture<RawChest>({
 			...chest("Junimo Chest"),
 			itemId: "256",
 			specialChestType: "JunimoChest",
 			globalInventoryId: nilString,
-		} as unknown as RawChest;
-		const shared = {
+		});
+		const shared = partialFixture<RawChest>({
 			...chest(),
 			globalInventoryId: { string: "SomeModInventory" },
-		} as RawChest;
-		const ordinary = {
+		});
+		const ordinary = malformedFixture<RawChest>({
 			...chest(),
 			globalInventoryId: nilString,
-		} as unknown as RawChest;
+		});
 		const entry = (x: number, object: RawChest) => ({
 			key: { Vector2: { X: x, Y: 0 } },
 			value: { Object: object },
 		});
-		const save = {
+		const save = malformedFixture<Save>({
 			locations: {
 				GameLocation: [
 					{
@@ -232,9 +233,9 @@ describe("chests with a shared inventory", () => {
 					},
 				],
 			},
-		} as unknown as Save;
+		});
 
-		let discovered = [] as ReturnType<typeof discoverChests>;
+		let discovered = partialFixture<ReturnType<typeof discoverChests>>([]);
 		const cleanup = $effect.root(() => {
 			discovered = discoverChests(save);
 		});

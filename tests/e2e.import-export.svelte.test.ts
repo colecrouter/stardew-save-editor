@@ -1,7 +1,8 @@
-import publicSaveXml from "./TestSave?raw";
 import { beforeEach, describe, expect, it } from "vitest";
+
 import { SaveManager } from "../src/lib/SaveManager.svelte";
 import { assertXmlEqual } from "./helpers/xmlDiff";
+import publicSaveXml from "./TestSave?raw";
 
 // helpers moved to tests/helpers/xmlDiff.ts
 

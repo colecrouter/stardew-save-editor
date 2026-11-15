@@ -1,14 +1,16 @@
 import { it } from "@effect/vitest";
-import { describe, expect } from "vitest";
 import { Effect, Result } from "effect";
+import { describe, expect } from "vitest";
+
 import {
-	readChildren,
 	inspectResidents,
+	readChildren,
 } from "../../src/lib/editor/children-data.ts";
 import { renameChild } from "../../src/lib/editor/children-operations.ts";
-import { makeHistorySession } from "../../src/lib/editor/history.ts";
 import { farmers } from "../../src/lib/editor/domain.ts";
+import { makeHistorySession } from "../../src/lib/editor/history.ts";
 import { projectReview } from "../../src/lib/editor/review-projection.ts";
+import { requireDefined } from "../helpers/assertions.ts";
 import { exportDocument, parser } from "../helpers/editor-document.ts";
 import { childrenFixture, renameRequest } from "./children-fixture.ts";
 
@@ -30,30 +32,35 @@ describe("existing child renaming", () => {
 	});
 	it("distinguishes absent hats from unknown saved hats and respects saved hair mode", () => {
 		const document = childrenFixture();
-		const child = inspectResidents(document)[0]!.resident;
+		const child = requireDefined(inspectResidents(document)[0]).resident;
 		if (child.$type !== "StardewValley.Characters.Child")
 			throw Error("Missing fixture child");
 		// Absence is an empty equipment slot, never an unknown item to draw.
 		for (const hat of [undefined, null]) {
-			child.hat = hat;
+			// Omission must stay absent rather than store an own undefined value.
+			if (hat === undefined) delete child.hat;
+			else child.hat = hat;
 			expect(readChildren(document)[0]?.hat).toEqual({
 				present: false,
 				name: "No hat",
 			});
 		}
-		child.hat = { $type: "StardewValley.Objects.Hat", itemId: "mod/unknown" };
+		child["hat"] = {
+			$type: "StardewValley.Objects.Hat",
+			itemId: "mod/unknown",
+		};
 		expect(readChildren(document)[0]?.hat).toMatchObject({
 			present: true,
 			name: "Unknown hat",
 		});
 		// Saved runtime hair flags take precedence over the catalog fallback.
-		child.hat = {
+		child["hat"] = {
 			$type: "StardewValley.Objects.Hat",
 			itemId: "0",
 			hairDrawType: 2,
 		};
 		expect(readChildren(document)[0]?.hat.hideHair).toBe(true);
-		child.hat = {
+		child["hat"] = {
 			$type: "StardewValley.Objects.Hat",
 			itemId: "0",
 			hairDrawType: 0,
@@ -83,6 +90,8 @@ describe("existing child renaming", () => {
 				expect(after.document).toEqual(expected);
 				expect(after.entries).toHaveLength(1);
 				expect(parser.parse(exportDocument(after.document))).toEqual(expected);
+				// Vitest types asymmetric matchers as any. Keep expected matcher values
+				// unknown so they cannot weaken the surrounding saved-data assertions.
 				expect(
 					projectReview(after).groups.flatMap((group) => group.changes),
 				).toContainEqual(
@@ -90,7 +99,7 @@ describe("existing child renaming", () => {
 						label: "Child · Child name",
 						before: "Juniper",
 						after: "Hazel",
-					}),
+					}) as unknown,
 				);
 				yield* session.undo;
 				expect((yield* session.snapshot).document).toEqual(before);
@@ -157,10 +166,13 @@ describe("existing child renaming", () => {
 			throw Error("Missing fixture child");
 		if (kind === "duplicate child") {
 			const other = inspectResidents(document)[1]?.resident;
-			if (other && other.$type !== "$unknown") other.name = child.name;
+			if (other && other.$type !== "$unknown") {
+				if (child.name === undefined) delete other.name;
+				else other.name = child.name;
+			}
 		} else if (kind === "missing parent") child.idOfParent = 999n;
 		else if (kind === "duplicate parent")
-			document.SaveGame.farmhands[0]!.UniqueMultiplayerID = 1n;
+			requireDefined(document.SaveGame.farmhands[0]).UniqueMultiplayerID = 1n;
 		else if (kind === "duplicate friendship")
 			document.SaveGame.player.friendshipData?.push({
 				key: "Juniper",

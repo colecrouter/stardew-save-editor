@@ -1,11 +1,16 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";
+
 import { Cause, Effect, Exit, Fiber, Schema, SchemaIssue } from "effect";
+
+import {
+	accepted,
+	attach,
+	type Frame,
+} from "../../../src/lib/save-format/events.ts";
 import * as Xml from "../../../src/lib/save-format/index.ts";
-import { accepted, attach } from "../../../src/lib/save-format/events.ts";
-import type { Frame } from "../../../src/lib/save-format/events.ts";
-import { XmlSchema, type Value } from "./generated/inventory.ts";
+import { type Value, XmlSchema } from "./generated/inventory.ts";
 
 const decode = Schema.decodeUnknownSync(XmlSchema);
 const encode = Schema.encodeSync(XmlSchema);
@@ -182,8 +187,8 @@ void test("plain generated values support creation, cloning, reordering and auto
 	assert.equal(result.Items?.[0], null);
 	assert.equal(result.Items?.[1]?.BarkCount, 8);
 	assert.equal(result.Items?.[2]?.Name, "new");
-	assert.deepEqual(result.Items?.[1]?.Mod, dog.Mod);
-	assert.deepEqual(result.Future, imported.Future);
+	assert.deepEqual(result.Items?.[1]?.["Mod"], dog["Mod"]);
+	assert.deepEqual(result["Future"], imported["Future"]);
 	assert.equal(imported.Items?.[0]?.BarkCount, 7);
 	// Ordinary concrete roots can be created without an application discriminator.
 	assert.deepEqual(decode(encode({ Items: [] })).Items, []);
@@ -212,15 +217,15 @@ void test("plain fields retain unknown properties while owning renamed values an
 	const value = read(
 		'<Root flag="1"><Name>1e3</Name><Count>9007199254740993</Count><Maybe xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:nil="true"/><unknown a="b">keep</unknown></Root>',
 	);
-	assert.equal(value.count, 9007199254740993n);
-	assert.equal(value.name, "1e3");
-	assert.equal(value.maybe, null);
-	assert.equal(value.flag, true);
+	assert.equal(value["count"], 9007199254740993n);
+	assert.equal(value["name"], "1e3");
+	assert.equal(value["maybe"], null);
+	assert.equal(value["flag"], true);
 	const { count: _, ...withoutCount } = value;
 	const output = read(write({ ...withoutCount, maybe: 5 }));
 	assert.equal(Object.hasOwn(output, "count"), false);
-	assert.equal(output.maybe, 5);
-	assert.deepEqual(output.unknown, value.unknown);
+	assert.equal(output["maybe"], 5);
+	assert.deepEqual(output["unknown"], value["unknown"]);
 	assert.throws(
 		() => read('<Root flag="true"><Name>ok</Name><Count>bad</Count></Root>'),
 		/Count/,
@@ -305,14 +310,15 @@ void test("plain dictionary entries support creation and enforce reviewed key eq
 });
 
 void test("generated recursive contracts initialize and round-trip without envelopes", async () => {
-	const { XmlSchema } = await import("./generated/recursive.ts");
+	const { XmlSchema: RecursiveXmlSchema } =
+		await import("./generated/recursive.ts");
 	const source = await readFile(
 		new URL("./fixtures/recursive.xml", import.meta.url),
 		"utf8",
 	);
-	const decoded = Schema.decodeSync(XmlSchema)(source);
-	const output = Schema.encodeSync(XmlSchema)(decoded);
-	assert.deepEqual(Schema.decodeSync(XmlSchema)(output), decoded);
+	const decoded = Schema.decodeSync(RecursiveXmlSchema)(source);
+	const output = Schema.encodeSync(RecursiveXmlSchema)(decoded);
+	assert.deepEqual(Schema.decodeSync(RecursiveXmlSchema)(output), decoded);
 });
 
 void test("concrete equipment and inventory references share semantic type identity", () => {
@@ -322,13 +328,13 @@ void test("concrete equipment and inventory references share semantic type ident
 	const variants = [
 		{ id: "Item", name: "Item", namespace: "", codec: payload },
 		{ id: "Boots", name: "Boots", namespace: "", codec: payload },
-	];
+	] as const;
 	const schema = Xml.document(
 		"Root",
 		Xml.object({
 			equipped: {
 				xmlName: "equipped",
-				codec: Xml.nullable(Xml.polymorphic("Boots", [variants[1]!], true)),
+				codec: Xml.nullable(Xml.polymorphic("Boots", [variants[1]], true)),
 			},
 			items: {
 				xmlName: "items",
@@ -339,8 +345,8 @@ void test("concrete equipment and inventory references share semantic type ident
 	const decoded = Schema.decodeSync(schema)(
 		"<Root><equipped><name>Sneakers</name></equipped><items/></Root>",
 	);
-	assert.deepEqual(decoded.equipped, { name: "Sneakers", $type: "Boots" });
-	const moved = { equipped: null, items: [decoded.equipped] };
+	assert.deepEqual(decoded["equipped"], { name: "Sneakers", $type: "Boots" });
+	const moved = { equipped: null, items: [decoded["equipped"]] };
 	const xml = Schema.encodeSync(schema)(moved);
 	assert.match(xml, /xsi:nil="true"/);
 	assert.match(xml, /xsi:type="Boots"/);

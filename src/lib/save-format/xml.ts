@@ -6,8 +6,15 @@ import {
 	Stream,
 } from "effect";
 import { Xml } from "effect/encoding";
-import type { Codec, Frame, Header } from "./events.ts";
-import { invalid, namespaceAttribute, whitespace } from "./events.ts";
+
+import {
+	type Codec,
+	type Frame,
+	type Header,
+	invalid,
+	namespaceAttribute,
+	whitespace,
+} from "./events.ts";
 
 export function decodeChunks<A>(
 	rootName: string,
@@ -60,13 +67,13 @@ function decodeEvents<A, E>(
 		// Upstream supplies bounded batches; the interpreter consumes each before
 		// requesting another input chunk, so stream cancellation stops further reads.
 		yield* events.pipe(
-			Stream.runForEachArray((events) => {
+			Stream.runForEachArray((nestedEvents) => {
 				// One interpreter Effect owns a bounded event batch. Per-event generator
 				// and error-wrapper Effects otherwise dominate allocation on full saves.
 				let active: Xml.Event | undefined;
 				let ended: Header | undefined;
 				return Effect.gen(function* () {
-					for (const event of events) {
+					for (const event of nestedEvents) {
 						active = event;
 						ended = undefined;
 						// Structural whitespace has no frame operation; scalar text handlers
@@ -74,7 +81,7 @@ function decodeEvents<A, E>(
 						if (
 							event._tag === "Text" &&
 							stack.at(-1)?.frame.text === whitespace &&
-							!event.text.trim()
+							!(event.text.trim() !== "")
 						)
 							continue;
 						if (event._tag === "Doctype")
@@ -83,7 +90,7 @@ function decodeEvents<A, E>(
 							const parent = stack.at(-1);
 							const declarations = Object.entries(event.attributes)
 								.filter(([name]) => namespaceAttribute(name))
-								.map(([name, value]) => [
+								.map(([name, value]): [string, string] => [
 									name === "xmlns" ? "" : name.slice(6),
 									value,
 								]);
@@ -113,7 +120,7 @@ function decodeEvents<A, E>(
 						} else if (event._tag === "Text") {
 							const current = stack.at(-1);
 							if (current) yield* current.frame.text(event.text);
-							else if (event.text.trim())
+							else if (event.text.trim() !== "")
 								return yield* invalid("Text outside document root");
 						} else if (event._tag === "EndElement") {
 							const finished = stack.pop();
@@ -125,7 +132,7 @@ function decodeEvents<A, E>(
 									new Error("XML event stack is inconsistent"),
 								);
 							const value = yield* finished.frame.finish();
-							if (!stack.length) result = value;
+							if (!(stack.length !== 0)) result = value;
 						}
 						// Declarations, comments and instructions do not enter the typed model.
 					}

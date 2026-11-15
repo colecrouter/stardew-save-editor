@@ -1,12 +1,12 @@
-import type { ImmutableView } from "./immutable-view.ts";
-import { bindImmediateField, type ImmediateEditPort } from "./field-binding.ts";
-import type { ImmediateField } from "./immediate-field.ts";
+import { characterLimits, professionDefinitions } from "./character-data.ts";
 import {
-	setCharacter,
 	type CharacterChange,
 	type CharacterView,
+	setCharacter,
 } from "./character-operations.ts";
-import { characterLimits, professionDefinitions } from "./character-data.ts";
+import { bindImmediateField, type ImmediateEditPort } from "./field-binding.ts";
+import type { ImmediateField } from "./immediate-field.ts";
+import type { ImmutableView } from "./immutable-view.ts";
 
 type ProfessionField = (typeof professionDefinitions)[number] & {
 	field: ImmediateField<boolean>;
@@ -46,7 +46,7 @@ export function createCharacterDomain(
 		return bindImmediateField(
 			model,
 			{ key: key, label, value, available, constraints, reason },
-			(value: T) => setCharacter(change(value)),
+			(nextValue: T) => setCharacter(change(nextValue)),
 		);
 	}
 	// Profession branches are resolved once in the domain view. The screen renders

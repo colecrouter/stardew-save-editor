@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { fly } from "svelte/transition";
+
 	import { getToastManager } from "$lib/ToastManager.svelte";
 	import UiContainer from "$lib/ui/UIContainer.svelte";
 
@@ -8,7 +9,7 @@
 
 <!-- A live region, so screen readers announce each toast as it appears -->
 <div class="toasts" role="status" aria-live="polite">
-	{#each manager.toasts as toast}
+	{#each manager.toasts as toast (toast)}
 		<div class="toast" transition:fly={{ y: -100 }}>
 			<UiContainer>
 				<div class="content">

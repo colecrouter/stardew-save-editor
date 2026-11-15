@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { asset } from "$app/paths";
+
 	import type { PetAppearanceData } from "../pet-appearance.ts";
+
 	let { icon, label }: { icon: PetAppearanceData["icon"]; label: string } =
 		$props();
 
@@ -14,7 +16,11 @@
 
 <!-- Data/Pets supplies the 16px icon rectangle. Reserve scaled layout space
      separately so the pixel-art transform cannot overlap the adjacent text. -->
-<span class="pet-icon" role="img" aria-label={`Vanilla appearance: ${label}`}>
+<span
+	class="pet-icon"
+	role="img"
+	aria-label={`Vanilla appearance: ${label}`}
+>
 	<span
 		class="sprite"
 		style:background-image={`url(${sheet})`}

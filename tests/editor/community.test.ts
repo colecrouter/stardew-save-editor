@@ -1,19 +1,20 @@
-import { stringifySavedData } from "../../src/lib/editor/saved-data.ts";
-import { record } from "../../src/lib/editor/plain-data";
 import { it } from "@effect/vitest";
-import { expect } from "vitest";
 import { Effect, Result } from "effect";
-import { makeHistorySession } from "../../src/lib/editor/history";
+import { expect } from "vitest";
+
+import { communityRooms } from "../../src/lib/communityCenterData";
 import {
-	readCommunity,
 	inspectCommunity,
 	progressId,
+	readCommunity,
 	submissionFlags,
 } from "../../src/lib/editor/community-data";
 import { setCommunityProgress } from "../../src/lib/editor/community-operations";
-import { communityRooms } from "../../src/lib/communityCenterData";
+import { makeHistorySession } from "../../src/lib/editor/history";
+import { record } from "../../src/lib/editor/plain-data";
+import { stringifySavedData } from "../../src/lib/editor/saved-data.ts";
 import { TransactionDraft } from "../../src/lib/editor/transaction-draft";
-import { parser, fixtureXml, exportDocument } from "./fixtures";
+import { exportDocument, fixtureXml, parser } from "./fixtures";
 
 const required = <T>(value: T | undefined): T => {
 	if (value === undefined) throw new Error("Missing fixture value");
@@ -69,8 +70,10 @@ it.effect(
 					.filter((row) => row.room === 1)
 					.every((row) => row.rewardAvailable),
 			).toBe(true);
+			// Vitest types asymmetric matchers as any. Keep expected matcher values
+			// unknown so they cannot weaken the surrounding saved-data assertions.
 			expect(after.document.SaveGame.player).toMatchObject({
-				mailReceived: expect.arrayContaining(["ccCraftsRoom"]),
+				mailReceived: expect.arrayContaining(["ccCraftsRoom"]) as unknown,
 			});
 			expect(inspectCommunity(after.document).definitions.entries).toEqual(
 				inspectCommunity(before.document).definitions.entries,
@@ -120,7 +123,7 @@ it.effect(
 					"ccIsComplete",
 					"seenJunimoNote",
 					"abandonedJojaMartAccessible",
-				]),
+				]) as unknown,
 			});
 			expect(readCommunity(complete.document).theater).toBe(false);
 			const missing = required(
@@ -144,7 +147,7 @@ it.effect(
 				mailReceived: expect.arrayContaining([
 					"ccIsComplete",
 					"abandonedJojaMartAccessible",
-				]),
+				]) as unknown,
 			});
 		}),
 );
@@ -168,7 +171,10 @@ it.effect(
 				}),
 			);
 			expect((yield* session.snapshot).document.SaveGame.player).toMatchObject({
-				mailReceived: expect.arrayContaining(["ccVault", "jojaVault"]),
+				mailReceived: expect.arrayContaining([
+					"ccVault",
+					"jojaVault",
+				]) as unknown,
 			});
 			yield* session.transact(
 				Effect.gen(function* () {
@@ -183,7 +189,7 @@ it.effect(
 			const projects = yield* session.snapshot;
 			expect(readCommunity(projects.document).theater).toBe(false);
 			expect(projects.document.SaveGame.player).toMatchObject({
-				mailReceived: expect.arrayContaining(["ccIsComplete"]),
+				mailReceived: expect.arrayContaining(["ccIsComplete"]) as unknown,
 			});
 			yield* session.transact(
 				setCommunityProgress({ type: "theater", value: true }),
@@ -238,7 +244,7 @@ it.effect(
 						invalid.transact(
 							Effect.gen(function* () {
 								for (const row of readCommunity(broken).bundles.filter(
-									(row) => row.room === 1,
+									(candidateRow) => candidateRow.room === 1,
 								))
 									yield* setCommunityProgress({
 										type: "bundle",

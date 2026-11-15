@@ -1,3 +1,4 @@
+import { partialFixture } from "./assertions.ts";
 /**
     The test save has no coops, barns, sheds or farm animals, so these add
     some, in the shape the game (1.6) saves them: a Coop and a Barn on the
@@ -139,7 +140,7 @@ const furnitureXml = (
 		source: [x: number, y: number, width: number, height: number];
 	},
 ) => {
-	const box = rect(x * 64, y * 64, size.X * 64, size.Y * 64);
+	const candidateBox = rect(x * 64, y * 64, size.X * 64, size.Y * 64);
 	const sourceRect = rect(...source);
 	return (
 		`<Furniture><isLostItem>false</isLostItem><category>0</category><hasBeenInInventory>false</hasBeenInInventory>` +
@@ -151,11 +152,11 @@ const furnitureXml = (
 		"<edibility>-300</edibility><bigCraftable>false</bigCraftable><setOutdoors>false</setOutdoors>" +
 		"<setIndoors>false</setIndoors><readyForHarvest>false</readyForHarvest><showNextIndex>false</showNextIndex>" +
 		"<flipped>false</flipped><isLamp>false</isLamp><minutesUntilReady>0</minutesUntilReady>" +
-		`<boundingBox>${box}</boundingBox><scale><X>0</X><Y>0</Y></scale><uses>0</uses>` +
+		`<boundingBox>${candidateBox}</boundingBox><scale><X>0</X><Y>0</Y></scale><uses>0</uses>` +
 		`<destroyOvernight>false</destroyOvernight><furniture_type>${type}</furniture_type>` +
 		`<rotations>${rotations}</rotations><currentRotation>0</currentRotation>` +
 		`<sourceRect>${sourceRect}</sourceRect><defaultSourceRect>${sourceRect}</defaultSourceRect>` +
-		`<defaultBoundingBox>${box}</defaultBoundingBox><drawHeldObjectLow>false</drawHeldObjectLow></Furniture>`
+		`<defaultBoundingBox>${candidateBox}</defaultBoundingBox><drawHeldObjectLow>false</drawHeldObjectLow></Furniture>`
 	);
 };
 
@@ -196,10 +197,10 @@ const waterColor =
 	"<waterColor><B>127</B><G>100</G><R>60</R><A>127</A><PackedValue>2139055164</PackedValue></waterColor>";
 
 const dictionary = (items: string) =>
-	items ? `<animals>${items}</animals>` : "<animals />";
+	items.length > 0 ? `<animals>${items}</animals>` : "<animals />";
 
 const list = (tag: string, items: readonly string[] = []) =>
-	items.length ? `<${tag}>${items.join("")}</${tag}>` : `<${tag} />`;
+	items.length > 0 ? `<${tag}>${items.join("")}</${tag}>` : `<${tag} />`;
 
 /** A `<Building>` around its interior */
 const buildingXml = (b: {
@@ -245,9 +246,10 @@ interface AnimalHouseXml {
 /** A coop or barn `<Building>`, with its `AnimalHouse` interior */
 export const animalHouseXml = (b: AnimalHouseXml) => {
 	const animals = b.inside.map(farmAnimal).join("");
-	const residents = b.residents.length
-		? `<animalsThatLiveHere>${b.residents.map((id) => `<long>${id}</long>`).join("")}</animalsThatLiveHere>`
-		: "<animalsThatLiveHere />";
+	const residents =
+		b.residents.length > 0
+			? `<animalsThatLiveHere>${b.residents.map((id) => `<long>${id}</long>`).join("")}</animalsThatLiveHere>`
+			: "<animalsThatLiveHere />";
 	const indoors =
 		`<indoors xsi:type="AnimalHouse"><buildings />${dictionary(animals)}<piecesOfHay>0</piecesOfHay>` +
 		`<characters />${list("objects", b.objects)}<resourceClumps /><largeTerrainFeatures /><terrainFeatures />` +
@@ -257,7 +259,7 @@ export const animalHouseXml = (b: AnimalHouseXml) => {
 		"<ignoreLights>false</ignoreLights><treatAsOutdoors>false</treatAsOutdoors>" +
 		"<numberOfSpawnedObjectsOnMap>0</numberOfSpawnedObjectsOnMap><miniJukeboxCount>0</miniJukeboxCount>" +
 		`<miniJukeboxTrack />${list("furniture", b.furniture)}` +
-		`<Animals>${animals ? `<SerializableDictionaryOfInt64FarmAnimal>${animals}</SerializableDictionaryOfInt64FarmAnimal>` : "<SerializableDictionaryOfInt64FarmAnimal />"}</Animals>` +
+		`<Animals>${animals.length > 0 ? `<SerializableDictionaryOfInt64FarmAnimal>${animals}</SerializableDictionaryOfInt64FarmAnimal>` : "<SerializableDictionaryOfInt64FarmAnimal />"}</Animals>` +
 		`<IsGreenhouse>false</IsGreenhouse><animalLimit>${b.limit}</animalLimit>${residents}</indoors>`;
 	return buildingXml({ ...b, indoors, occupants: b.inside.length });
 };
@@ -266,8 +268,8 @@ export const SHED_ID = "05000000-0000-4000-8000-0000000005ed";
 
 /** A Shed: a `<Building>` with a decoratable `Shed` interior */
 export const shedXml = ({
-	objects = [] as string[],
-	furniture = [] as string[],
+	objects = partialFixture<string[]>([]),
+	furniture = partialFixture<string[]>([]),
 } = {}) =>
 	buildingXml({
 		id: SHED_ID,

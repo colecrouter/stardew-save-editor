@@ -1,7 +1,9 @@
-import { describe, expect, it } from "vitest";
 import { fireEvent, render, waitFor, within } from "@testing-library/svelte";
-import { openTestEditor, openTestDocument } from "../helpers/open-editor.ts";
+import { describe, expect, it } from "vitest";
+
 import { catalogEntries } from "../../src/lib/editor/item-catalog";
+import { malformedFixture } from "../helpers/editor-document.ts";
+import { openTestDocument, openTestEditor } from "../helpers/open-editor.ts";
 import BackpackHarness from "./BackpackHarness.svelte";
 import { fixtureXml, parser } from "./fixtures";
 
@@ -36,7 +38,9 @@ describe("backpack catalog workflow", () => {
 			const expected = structuredClone(original);
 			const wood = catalogEntries.find((entry) => entry.id === "Wood");
 			if (!wood) throw Error("Expected the Wood catalog entry");
-			expected.SaveGame.player.items[3] = structuredClone(wood.raw) as never;
+			expected.SaveGame.player.items[3] = malformedFixture<never>(
+				structuredClone(wood.raw),
+			);
 			expect((await opened.model.snapshot()).document).toEqual(expected);
 			expect(
 				page
@@ -75,14 +79,14 @@ describe("backpack catalog workflow", () => {
 
 	it("removes an opaque imported item and restores its complete data on undo", async () => {
 		const original = parser.parse(fixtureXml);
-		original.SaveGame.player.items[3] = {
+		original.SaveGame.player.items[3] = malformedFixture<never>({
 			$type: "$unknown",
 			$xmlType: { name: "ModdedItem", namespace: "" },
 			itemId: "mod.example",
 			name: "Opaque keepsake",
 			stack: 7,
 			custom: { "@_version": "2", nested: [{ value: 0 }, { value: false }] },
-		} as never;
+		});
 		const opened = await openTestDocument(original);
 		const page = render(BackpackHarness, { model: opened.model });
 		try {

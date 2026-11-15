@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import {
 	discoverPlacedChests,
 	writeChestSlots,
@@ -106,13 +107,12 @@ describe("placed chest storage", () => {
 		expect(found.some((entry) => entry.id.endsWith(".Chest"))).toBe(false);
 		expect(document).toEqual(before);
 		expect(found).toHaveLength(4);
-		expect(found.map((chest) => chest.source).sort()).toEqual([
-			"building",
-			"chest",
-			"fridge",
-			"machine",
-		]);
-		expect(found.find((chest) => chest.capacity === 70)).toMatchObject({
+		expect(found.map((candidateChest) => candidateChest.source).sort()).toEqual(
+			["building", "chest", "fridge", "machine"],
+		);
+		expect(
+			found.find((candidateChest) => candidateChest.capacity === 70),
+		).toMatchObject({
 			id: "chest:locations.0.buildings.0.indoors.objects.0",
 			location: "Farm / Shed / Shed",
 			capacity: 70,
@@ -167,7 +167,7 @@ describe("placed chest storage", () => {
 		slots[0] = item("Potato");
 		writeChestSlots(found, slots);
 		expect(found.container.items).toEqual([item("Potato")]);
-		expect(found.container.testMetadataitems).toEqual({
+		expect(found.container["testMetadataitems"]).toEqual({
 			opaque: { flag: "007" },
 		});
 		slots[0] = null;

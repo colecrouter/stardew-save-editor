@@ -1,14 +1,16 @@
 <script lang="ts">
 	import type { HTMLInputAttributes } from "svelte/elements";
-	import type { ImmediateField } from "../../immediate-field.ts";
+
 	import { createImmediateFieldController } from "../../immediate-field.svelte.ts";
+	import type { ImmediateField } from "../../immediate-field.ts";
 
 	interface Props extends Omit<
 		HTMLInputAttributes,
 		"value" | "checked" | "type" | "children"
 	> {
 		field: ImmediateField<boolean>;
-		description?: string;
+		// An absent domain explanation is passed through as cleared feedback.
+		description?: string | undefined;
 	}
 	const generatedId = $props.id();
 	// Native attributes belong to the control. Value and editor lifecycle remain

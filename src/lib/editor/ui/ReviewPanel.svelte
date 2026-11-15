@@ -1,15 +1,17 @@
 <script lang="ts">
 	import { Result } from "effect";
 	import { useAtomValue } from "effect-atom-svelte";
-	import type { EditorModel } from "../editor-model.ts";
-	import type { ReviewView, ReviewFeature } from "../review-contract.ts";
-	import type { ImmutableView } from "../immutable-view.ts";
-	import { presentReviewChange } from "../review-presentation.ts";
+
 	import StudyAlert from "../../ui/kit/StudyAlert.svelte";
 	import StudyButton from "../../ui/kit/StudyButton.svelte";
 	import StudyIcon from "../../ui/StudyIcon.svelte";
 	import type { StudyIconName } from "../../ui/studyIcons.ts";
+	import type { EditorModel } from "../editor-model.ts";
+	import type { ImmutableView } from "../immutable-view.ts";
+	import type { ReviewFeature, ReviewView } from "../review-contract.ts";
+	import { presentReviewChange } from "../review-presentation.ts";
 	import ReviewRawChange from "./ReviewRawChange.svelte";
+
 	let {
 		model,
 		includeProofs = false,
@@ -55,10 +57,12 @@
 		loading = true;
 		failed = false;
 		void model.commands.review().then((result) => {
-			if (!current || view.current?.revision !== revision) return;
+			if (!current || view.current?.revision !== revision) return undefined;
 			if (result && Result.isSuccess(result)) comparison = result.success;
 			else failed = true;
 			loading = false;
+			// The comparison is published through component state, not the promise value.
+			return undefined;
 		});
 		return () => {
 			current = false;
@@ -93,11 +97,17 @@
 		</div>
 	</header>
 
-	<div class="comparison" aria-busy={loading}>
+	<div
+		class="comparison"
+		aria-busy={loading}
+	>
 		<h2>Changes in this export</h2>
 
 		{#if failed}
-			<StudyAlert title="Comparison unavailable" tone="warning">
+			<StudyAlert
+				title="Comparison unavailable"
+				tone="warning"
+			>
 				<p>The comparison could not be completed. Your edits are kept.</p>
 			</StudyAlert>
 
@@ -105,14 +115,23 @@
 		{:else if loading || comparison?.revision !== view.current.revision}
 			<p role="status">Updating comparison…</p>
 		{:else if view.current.net.length === 0}
-			<StudyAlert title="No changes to export" tone="success">
+			<StudyAlert
+				title="No changes to export"
+				tone="success"
+			>
 				<p>No exported changes from the imported save.</p>
 			</StudyAlert>
 		{:else if comparison}
 			{#each comparison.groups as group (group.feature)}
-				<section class="review-group" aria-label={group.label}>
+				<section
+					class="review-group"
+					aria-label={group.label}
+				>
 					<h3>
-						<StudyIcon name={icons[group.feature]} size={26} />
+						<StudyIcon
+							name={icons[group.feature]}
+							size={26}
+						/>
 						{group.label}
 					</h3>
 
@@ -143,8 +162,16 @@
 			{/each}
 
 			{#if comparison.otherChanges.length}
-				<section class="review-group other" aria-label="Other save changes">
-					<h3><StudyIcon name="notice-info" size={26} /> Other save changes</h3>
+				<section
+					class="review-group other"
+					aria-label="Other save changes"
+				>
+					<h3>
+						<StudyIcon
+							name="notice-info"
+							size={26}
+						/> Other save changes
+					</h3>
 
 					<p>
 						{comparison.otherChanges.length} save-field changes have no complete domain
@@ -159,7 +186,10 @@
 		{/if}
 	</div>
 
-	<details class="secondary" bind:open={historyOpen}>
+	<details
+		class="secondary"
+		bind:open={historyOpen}
+	>
 		<summary>Edit history</summary>
 
 		{#if historyOpen}
@@ -188,7 +218,8 @@
 								<summary>Operations in this edit</summary>
 
 								<ul>
-									{#each entry.annotations as annotation}
+									<!-- Completed edit annotations are immutable occurrences; repeated commands may share their descriptor. -->
+									{#each entry.annotations as annotation, index (index)}
 										<li>
 											{annotation.label || "Unlabelled change"}
 										</li>
@@ -204,7 +235,10 @@
 		{/if}
 	</details>
 
-	<details class="secondary" bind:open={technicalOpen}>
+	<details
+		class="secondary"
+		bind:open={technicalOpen}
+	>
 		<summary>Technical details</summary>
 
 		{#if technicalOpen}
@@ -229,7 +263,11 @@
 	</details>
 
 	{#if error}
-		<StudyAlert title="Operation unavailable" tone="danger" live="assertive">
+		<StudyAlert
+			title="Operation unavailable"
+			tone="danger"
+			live="assertive"
+		>
 			<p>{error}</p>
 		</StudyAlert>
 	{/if}

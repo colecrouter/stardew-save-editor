@@ -2,6 +2,7 @@
 	import "./styles.css";
 	import { Tabs } from "bits-ui";
 	import type { Snippet } from "svelte";
+
 	interface Tab {
 		value: string;
 		label: string;
@@ -21,8 +22,15 @@
 
 <!-- Manual activation lets arrows explore without changing an editor. Retained
      panels preserve local drafts; hidden removes inactive controls from focus/AT. -->
-<Tabs.Root bind:value activationMode="manual" class="study-kit">
-	<Tabs.List aria-label={label} class="study-tabs-list">
+<Tabs.Root
+	bind:value
+	activationMode="manual"
+	class="study-kit"
+>
+	<Tabs.List
+		aria-label={label}
+		class="study-tabs-list"
+	>
 		{#each items as item (item.value)}
 			<Tabs.Trigger
 				value={item.value}

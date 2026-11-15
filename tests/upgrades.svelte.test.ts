@@ -1,16 +1,19 @@
-import publicSaveXml from "./TestSave?raw";
 import { flushSync } from "svelte";
 import { beforeEach, describe, expect, it } from "vitest";
+
 import { Raw } from "$lib/proxies";
 import { getStatValue, setStatValue } from "$lib/proxies/Farmer.svelte";
 import { Item } from "$lib/proxies/Item.svelte";
 import { masteryLevel } from "$lib/proxies/Skills.svelte";
+
 import { SaveManager } from "../src/lib/SaveManager.svelte";
 import { XMLManager } from "../src/lib/workers/xml";
+import { malformedFixture } from "./helpers/editor-document.ts";
 import { withHouse, withToolAtClint } from "./helpers/upgrades";
+import publicSaveXml from "./TestSave?raw";
 
-// Raw parsed fixtures deliberately allow unrecognized save fields.
-type Parsed = any;
+// Exported fixtures retain the legacy XML container representation.
+type Parsed = { SaveGame: import("../codegen/save").Save };
 
 async function importSave(xml: string): Promise<SaveManager> {
 	let saveManager!: SaveManager;
@@ -97,7 +100,10 @@ describe("Farmer upgrades", () => {
 				itemId: "79",
 				stack: 1,
 			};
-			(farmer[Raw].items.Item as Parsed[])[20] = note;
+			farmer[Raw].items.Item[20] =
+				malformedFixture<
+					import("../codegen/save").Player["items"]["Item"][number]
+				>(note);
 
 			expect(farmer.inventory.get(20)).toBeUndefined();
 			expect(farmer.canResizeBackpack(12)).toBe(false);
@@ -217,7 +223,7 @@ describe("Farmer upgrades", () => {
 			expect(farmer.masteryLevelsSpent).toBe(0);
 			expect(
 				farmer[Raw].stats.Values?.item?.some((s) =>
-					/mastery/i.test(String(s.key.string)),
+					/mastery/i.test(s.key.string),
 				),
 			).toBe(false);
 		});
@@ -254,7 +260,7 @@ describe("Farmer upgrades", () => {
 			expect(farmer.masteryExp).toBe(12000);
 			farmer.masteryExp = 30000;
 			const mastery = farmer[Raw].stats.Values?.item?.filter((s) =>
-				/^masteryexp$/i.test(String(s.key.string)),
+				/^masteryexp$/i.test(s.key.string),
 			);
 			// Updated in place, not added a second time
 			expect(mastery).toEqual([
@@ -293,7 +299,9 @@ describe("Farmer upgrades", () => {
 			expect(() => {
 				farmer.masteryExp = 1.5;
 			}).toThrow("0 to 4294967295");
-			expect(() => setStatValue(farmer[Raw], "MasteryExp", -1)).toThrow();
+			expect(() => setStatValue(farmer[Raw], "MasteryExp", -1)).toThrow(
+				"0 to 4294967295",
+			);
 		});
 	});
 });

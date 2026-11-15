@@ -17,6 +17,7 @@
 	import UiContainerSmall from "$lib/ui/UIContainerSmall.svelte";
 	import UiInput from "$lib/ui/UIInput.svelte";
 	import UiSelect from "$lib/ui/UISelect.svelte";
+
 	import Professions from "./Professions.svelte";
 	import SkillBar from "./SkillBar.svelte";
 	import WalletItem from "./WalletItem.svelte";
@@ -75,7 +76,7 @@
 <UiContainer>
 	<h3>Skills</h3>
 	<div class="wrapper">
-		{#each skills as [key, label]}
+		{#each skills as [key, label] (key)}
 			<label for={`skills-${key}`}>
 				{label}
 				<SkillBar bind:skill={save.player.skills.experience[key]} />
@@ -209,7 +210,7 @@
 							save.player.setBackpackSize(Number(e.currentTarget.value))}
 						data-testid="backpack-size"
 					>
-						{#each BACKPACK_SIZES as size}
+						{#each BACKPACK_SIZES as size (size)}
 							<option
 								value={size}
 								disabled={!save.player.canResizeBackpack(size)}
@@ -280,7 +281,7 @@
 					disabled={save.player.trashCanAtClint}
 					data-testid="trash-can-level"
 				>
-					{#each trashCans as name, level}
+					{#each trashCans as name, level (name)}
 						<option value={level}>{name}</option>
 					{/each}
 				</UiSelect>
@@ -320,7 +321,7 @@
 	<div class="wallet-wrapper">
 		<UiContainerSmall>
 			<div class="wallet">
-				{#each unlocks as [emoji, flag, alt]}
+				{#each unlocks as [emoji, flag, alt] (flag)}
 					<WalletItem {alt} {mail} {flag}>
 						{emoji}
 					</WalletItem>

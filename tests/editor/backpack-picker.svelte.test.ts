@@ -1,7 +1,9 @@
 import { fireEvent, render, waitFor, within } from "@testing-library/svelte";
 import { expect, it, vi } from "vitest";
+
 import type { CatalogChoice } from "../../src/lib/editor/item-catalog";
 import BackpackItemPicker from "../../src/lib/editor/ui/BackpackItemPicker.svelte";
+import { requireDefined, requireInstance } from "../helpers/assertions.ts";
 
 // Small catalog fixtures isolate browsing from save construction; integration
 // tests exercise the same Add callback against the real application session.
@@ -16,7 +18,6 @@ const entry = (
 	qualifiedId,
 	kind,
 	description: `${name} description`,
-	visual: undefined,
 });
 const entries = [
 	entry("Hardwood", "Hardwood", "(O)709"),
@@ -25,7 +26,7 @@ const entries = [
 ];
 
 it("searches name and both ID forms, previews without adding, and explicitly adds the catalog identity", async () => {
-	const onadd = vi.fn(async () => true);
+	const onadd = vi.fn<() => Promise<boolean>>(() => Promise.resolve(true));
 	const page = render(BackpackItemPicker, { slot: 3, entries, onadd });
 	try {
 		const search = page.getByRole("searchbox", { name: "Search items" });
@@ -41,7 +42,9 @@ it("searches name and both ID forms, previews without adding, and explicitly add
 		expect(
 			within(page.getByRole("region", { name: "Item preview" })).getByRole(
 				"heading",
-				{ name: "Hardwood" },
+				{
+					name: "Hardwood",
+				},
 			),
 		).toBeTruthy();
 		expect(onadd).not.toHaveBeenCalled();
@@ -53,7 +56,9 @@ it("searches name and both ID forms, previews without adding, and explicitly add
 			expect(
 				within(page.getByRole("region", { name: "Item preview" })).getByRole(
 					"heading",
-					{ name: "Wood" },
+					{
+						name: "Wood",
+					},
 				),
 			).toBeTruthy();
 		}
@@ -65,7 +70,7 @@ it("searches name and both ID forms, previews without adding, and explicitly add
 });
 
 it("keeps later results reachable with pagination and resets the page when filtering", async () => {
-	const entries = Array.from({ length: 101 }, (_, index) =>
+	const candidateEntries = Array.from({ length: 101 }, (_, index) =>
 		entry(
 			`item:${index}`,
 			`Item ${String(index).padStart(2, "0")}`,
@@ -74,15 +79,17 @@ it("keeps later results reachable with pagination and resets the page when filte
 	);
 	const page = render(BackpackItemPicker, {
 		slot: 0,
-		entries,
-		onadd: async () => true,
+		entries: candidateEntries,
+		onadd: () => Promise.resolve(true),
 	});
 	try {
 		expect(page.getAllByRole("button", { name: /^Preview / })).toHaveLength(48);
 		expect(page.getByText(/1–48 of 101 items/)).toBeTruthy();
 		// The next equally sized page must start at its first result, even after
 		// the user scrolled the prior page to the bottom.
-		const list = page.container.querySelector<HTMLDivElement>(".item-list")!;
+		const list = requireDefined(
+			page.container.querySelector<HTMLDivElement>(".item-list"),
+		);
 		list.scrollTop = 200;
 		await fireEvent.click(page.getByRole("button", { name: "Next" }));
 		expect(page.getAllByRole("button", { name: /^Preview / })).toHaveLength(48);
@@ -105,7 +112,7 @@ it("keeps later results reachable with pagination and resets the page when filte
 });
 
 it("filters by real item type, explains empty results, and preserves the preview after a rejected add", async () => {
-	const onadd = vi.fn(async () => false);
+	const onadd = vi.fn<() => Promise<boolean>>(() => Promise.resolve(false));
 	const page = render(BackpackItemPicker, {
 		slot: 0,
 		entries,
@@ -113,9 +120,10 @@ it("filters by real item type, explains empty results, and preserves the preview
 		error: "This slot is no longer empty.",
 	});
 	try {
-		const select = page.getByRole("combobox", {
-			name: "Item type",
-		}) as HTMLSelectElement;
+		const select = requireInstance(
+			page.getByRole("combobox", { name: "Item type" }),
+			HTMLSelectElement,
+		);
 		// Native select binding resolves the selected option in the real browser.
 		await fireEvent.change(select, { target: { value: "Boots" } });
 		expect(page.getAllByRole("button", { name: /^Preview / })).toHaveLength(1);
@@ -144,7 +152,7 @@ it("starts a new preview's reading areas at the top while retaining the result l
 	const page = render(BackpackItemPicker, {
 		slot: 3,
 		entries,
-		onadd: async () => true,
+		onadd: () => Promise.resolve(true),
 	});
 	try {
 		const preview = page.getByRole("region", { name: "Item preview" });

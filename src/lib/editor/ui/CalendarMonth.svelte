@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { dynamicAsset } from "$lib/ui/dynamicAsset.ts";
-	import { seasonName, type GameDate } from "../../calendar.ts";
+
+	import { type GameDate, seasonName } from "../../calendar.ts";
 	import type { CalendarEvent } from "../calendar-events.ts";
+
 	let {
 		date,
 		saved,
@@ -34,13 +36,20 @@
 		<span>Year {yearLabel ?? date.year}</span>
 	</h2>
 
-	<div class="weekdays" aria-hidden="true">
-		{#each weekdays as day}
+	<div
+		class="weekdays"
+		aria-hidden="true"
+	>
+		{#each weekdays as day (day)}
 			<span>{day}</span>
 		{/each}
 	</div>
 
-	<div class="days" role="group" aria-label="Day of month">
+	<div
+		class="days"
+		role="group"
+		aria-label="Day of month"
+	>
 		{#each Array.from({ length: 28 }, (_, index) => index + 1) as day (day)}
 			{@const occasions = events.filter((event) => event.day === day)}
 			{@const summary = occasions.map((event) => event.label).join(", ")}
@@ -55,8 +64,11 @@
 			>
 				<span class="day-number">{day}</span>
 
-				<span class="markers" aria-hidden="true">
-					{#each occasions as occasion}
+				<span
+					class="markers"
+					aria-hidden="true"
+				>
+					{#each occasions as occasion (occasion)}
 						{@const portrait = occasion.portrait
 							? dynamicAsset(`assets/portraits/${occasion.portrait}.png`)
 							: undefined}
@@ -109,14 +121,17 @@
 	</div>
 </div>
 
-<div class="day-detail" aria-live="polite">
+<div
+	class="day-detail"
+	aria-live="polite"
+>
 	<strong>{seasonName(date.season)} {date.day}</strong>
 
 	{#if !eventsAvailable}
 		<p>Calendar events are unavailable until the year is valid.</p>
 	{:else if selected.length}
 		<ul>
-			{#each selected as event}
+			{#each selected as event (event)}
 				<li>{event.label}{event.locked ? " — unavailable" : ""}</li>
 			{/each}
 		</ul>

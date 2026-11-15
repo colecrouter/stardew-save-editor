@@ -1,20 +1,21 @@
 import { it } from "@effect/vitest";
-import { expect } from "vitest";
 import { Effect } from "effect";
+import { expect } from "vitest";
+
+import { readChildren } from "../../src/lib/editor/children-data.ts";
+import { renameChild } from "../../src/lib/editor/children-operations.ts";
 import { makeHistorySession } from "../../src/lib/editor/history.ts";
 import { readItemPresentation } from "../../src/lib/editor/item-presentation.ts";
 import {
 	readRelationships,
 	setRelationship,
 } from "../../src/lib/editor/relationship-operations.ts";
-import { readChildren } from "../../src/lib/editor/children-data.ts";
-import { renameChild } from "../../src/lib/editor/children-operations.ts";
-import { childrenFixture, renameRequest } from "./children-fixture.ts";
 import {
-	tinyFixture,
-	parser,
 	exportDocument,
+	parser,
+	tinyFixture,
 } from "../helpers/editor-document.ts";
+import { childrenFixture, renameRequest } from "./children-fixture.ts";
 
 it.effect(
 	"preserves custom IDs, NPCs and opaque classes through edits, XML and Undo",
@@ -69,7 +70,8 @@ it.effect(
 			const session = yield* makeHistorySession(document);
 			const before = yield* session.snapshot;
 			const entityId = before.identities["1"]?.[1];
-			if (!entityId) throw Error("Missing opaque item handle");
+			if (entityId === undefined || entityId === "")
+				throw Error("Missing opaque item handle");
 			expect(
 				readRelationships(document)[0]?.relationships.find(
 					(row) => row.name === "Example.ModFriend",

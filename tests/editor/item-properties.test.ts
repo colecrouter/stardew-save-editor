@@ -1,27 +1,29 @@
+import { it } from "@effect/vitest";
+import { Effect, Result } from "effect";
+import { describe, expect } from "vitest";
+
+import { canEquipItem } from "../../src/lib/editor/equipment";
+import { makeHistorySession } from "../../src/lib/editor/history";
+import {
+	getInventoryItemCapabilities,
+	InventoryEdits,
+	setInventoryItem,
+	setInventoryItemProperty,
+} from "../../src/lib/editor/inventory-operations";
+import { createCatalogItem } from "../../src/lib/editor/item-catalog";
+import {
+	decodeItemPropertyChange,
+	getItemPropertyFields,
+	type ItemPropertyChange,
+	readItemPropertyContext,
+} from "../../src/lib/editor/item-properties";
+import { TransactionDraft } from "../../src/lib/editor/transaction-draft";
+import { requireDefined, requireRecord } from "../helpers/assertions.ts";
 import {
 	catalogFixture,
 	malformedFixture,
 } from "../helpers/editor-document.ts";
-import { it } from "@effect/vitest";
-import { describe, expect } from "vitest";
-import { Effect, Result } from "effect";
-import {
-	getItemPropertyFields,
-	decodeItemPropertyChange,
-	readItemPropertyContext,
-	type ItemPropertyChange,
-} from "../../src/lib/editor/item-properties";
-import {
-	setInventoryItemProperty,
-	setInventoryItem,
-	InventoryEdits,
-} from "../../src/lib/editor/inventory-operations";
-import { makeHistorySession } from "../../src/lib/editor/history";
-import { TransactionDraft } from "../../src/lib/editor/transaction-draft";
-import { canEquipItem } from "../../src/lib/editor/equipment";
-import { getInventoryItemCapabilities } from "../../src/lib/editor/inventory-operations";
-import { createCatalogItem } from "../../src/lib/editor/item-catalog";
-import { tinyFixture, fixtureXml, parser } from "./fixtures";
+import { fixtureXml, parser, tinyFixture } from "./fixtures";
 
 function required<A>(value: A | undefined): A {
 	if (value === undefined) throw Error("Missing fixture value");
@@ -45,7 +47,7 @@ function fixture() {
 		immunityBonus: 777,
 	};
 	document.SaveGame.player.shirtItem = structuredClone(
-		parser.parse(fixtureXml).SaveGame.player.shirtItem,
+		requireDefined(parser.parse(fixtureXml).SaveGame.player.shirtItem),
 	);
 	return document;
 }
@@ -78,7 +80,9 @@ describe("bounded inventory property edits", () => {
 					setInventoryItemProperty(change(id, "defenseBonus", 7)),
 				);
 				const expected = structuredClone(original);
-				Object.assign(expected.SaveGame.player.boots!, { defenseBonus: 7 });
+				Object.assign(requireDefined(expected.SaveGame.player.boots), {
+					defenseBonus: 7,
+				});
 				expect((yield* session.snapshot).document).toEqual(expected);
 				expect((yield* session.snapshot).equipmentIdentities).toEqual(
 					before.equipmentIdentities,
@@ -98,11 +102,8 @@ describe("bounded inventory property edits", () => {
 		() =>
 			Effect.gen(function* () {
 				const original = fixture();
-				const can = original.SaveGame.player.items[3] as Record<
-					string,
-					unknown
-				>;
-				can.IsBottomless = false;
+				const can = requireRecord(original.SaveGame.player.items[3]);
+				can["IsBottomless"] = false;
 				const session = yield* makeHistorySession(original);
 				const before = yield* session.snapshot;
 				const sword = required(before.identities["1"]?.[1]),
@@ -120,17 +121,17 @@ describe("bounded inventory property edits", () => {
 				for (const request of requests)
 					yield* session.transact(setInventoryItemProperty(request));
 				const expected = structuredClone(original);
-				Object.assign(expected.SaveGame.player.items[1]!, {
+				Object.assign(requireDefined(expected.SaveGame.player.items[1]), {
 					minDamage: 8,
 					addedPrecision: 4,
 					critChance: 0.25,
 					knockback: 1.5,
 				});
-				Object.assign(expected.SaveGame.player.items[2]!, {
+				Object.assign(requireDefined(expected.SaveGame.player.items[2]), {
 					price: 999,
 					edibility: -7,
 				});
-				Object.assign(expected.SaveGame.player.items[3]!, {
+				Object.assign(requireDefined(expected.SaveGame.player.items[3]), {
 					isBottomless: true,
 					IsBottomless: true,
 				});
@@ -144,12 +145,9 @@ describe("bounded inventory property edits", () => {
 		() =>
 			Effect.gen(function* () {
 				const original = fixture();
-				const shirt = original.SaveGame.player.shirtItem as Record<
-					string,
-					unknown
-				>;
-				shirt.isPrismatic = false;
-				shirt.clothesColor = {
+				const shirt = requireRecord(original.SaveGame.player.shirtItem);
+				shirt["isPrismatic"] = false;
+				shirt["clothesColor"] = {
 					R: 1,
 					G: 2,
 					B: 3,
@@ -169,9 +167,7 @@ describe("bounded inventory property edits", () => {
 					),
 				);
 				const expected = structuredClone(original);
-				(
-					expected.SaveGame.player.shirtItem as Record<string, unknown>
-				).clothesColor = {
+				requireRecord(expected.SaveGame.player.shirtItem)["clothesColor"] = {
 					R: 170,
 					G: 187,
 					B: 204,
@@ -182,7 +178,7 @@ describe("bounded inventory property edits", () => {
 				expect((yield* session.snapshot).document).toEqual(expected);
 				yield* session.undo;
 				expect((yield* session.snapshot).document).toEqual(original);
-				delete (shirt.clothesColor as Record<string, unknown>).PackedValue;
+				delete requireRecord(shirt["clothesColor"])["PackedValue"];
 				expect(
 					getItemPropertyFields(shirt, { _type: "Shirt" }).find(
 						(field) => field.property === "clothesColor",
@@ -191,11 +187,13 @@ describe("bounded inventory property edits", () => {
 			}),
 	);
 	it("does not advertise or initialize missing, malformed, unsupported or prismatic properties", () => {
-		const boots = {
-			...catalogFixture(item("Sneakers"), "StardewValley.Objects.Boots"),
-			defenseBonus: undefined,
-			immunityBonus: undefined,
-		};
+		const boots = catalogFixture(
+			item("Sneakers"),
+			"StardewValley.Objects.Boots",
+		);
+		// Missing saved properties cannot authorize controls or initialize defaults.
+		delete boots.defenseBonus;
+		delete boots.immunityBonus;
 		expect(getItemPropertyFields(boots, { _type: "Boots" })).toEqual([]);
 		expect(
 			getItemPropertyFields(
@@ -219,7 +217,9 @@ describe("bounded inventory property edits", () => {
 		expect(
 			getItemPropertyFields(
 				catalogFixture(item("Sneakers"), "StardewValley.Objects.Boots"),
-				{ _type: "Object" },
+				{
+					_type: "Object",
+				},
 			),
 		).toEqual([]);
 		expect(
@@ -278,10 +278,7 @@ describe("bounded inventory property edits", () => {
 		() =>
 			Effect.gen(function* () {
 				const original = fixture();
-				const guest = required(
-					(original.SaveGame.farmhands && original.SaveGame.farmhands[0]) ||
-						undefined,
-				);
+				const guest = required(original.SaveGame.farmhands[0]);
 				guest.items = [null];
 				const session = yield* makeHistorySession(original);
 				const before = yield* session.snapshot;
@@ -326,12 +323,9 @@ describe("bounded inventory property edits", () => {
 				const forged = Effect.gen(function* () {
 					const draft = yield* TransactionDraft;
 					const snapshot = yield* draft.read;
-					(
-						snapshot.state.document.SaveGame.player.items[1] as Record<
-							string,
-							unknown
-						>
-					).$type = "StardewValley.Objects.Boots";
+					requireRecord(snapshot.state.document.SaveGame.player.items[1])[
+						"$type"
+					] = "StardewValley.Objects.Boots";
 					yield* draft.replace(snapshot);
 					yield* setInventoryItemProperty(
 						change(required(before.identities["1"]?.[1]), "defenseBonus", 3),
@@ -389,9 +383,9 @@ it.effect(
 	() =>
 		Effect.gen(function* () {
 			const original = fixture();
-			const can = original.SaveGame.player.items[3] as Record<string, unknown>;
-			can.isBottomless = false;
-			can.IsBottomless = true;
+			const can = requireRecord(original.SaveGame.player.items[3]);
+			can["isBottomless"] = false;
+			can["IsBottomless"] = true;
 			expect(
 				getItemPropertyFields(can, { _type: "Tool" }).find(
 					(field) => field.property === "isBottomless",
@@ -406,10 +400,13 @@ it.effect(
 			);
 			expect(
 				(yield* session.snapshot).document.SaveGame.player.items[3],
-			).toMatchObject({ isBottomless: false, IsBottomless: false });
+			).toMatchObject({
+				isBottomless: false,
+				IsBottomless: false,
+			});
 			yield* session.undo;
 			expect((yield* session.snapshot).document).toEqual(original);
-			delete can.isBottomless;
+			delete can["isBottomless"];
 			const upperOnly = yield* makeHistorySession(original);
 			const upperBefore = yield* upperOnly.snapshot;
 			yield* upperOnly.transact(
@@ -421,13 +418,14 @@ it.effect(
 					),
 				),
 			);
-			const upperAfter = (yield* upperOnly.snapshot).document.SaveGame.player
-				.items[3] as Record<string, unknown>;
-			expect(upperAfter.IsBottomless).toBe(false);
+			const upperAfter = requireRecord(
+				(yield* upperOnly.snapshot).document.SaveGame.player.items[3],
+			);
+			expect(upperAfter["IsBottomless"]).toBe(false);
 			expect(Object.hasOwn(upperAfter, "isBottomless")).toBe(false);
 			// Omitted aliases do not authorize initialization just by opening controls.
-			delete can.IsBottomless;
-			delete can.isBottomless;
+			delete can["IsBottomless"];
+			delete can["isBottomless"];
 			expect(getItemPropertyFields(can, { _type: "Tool" })).toEqual([]);
 		}),
 );
@@ -532,7 +530,7 @@ it.effect(
 				}),
 			);
 			const expected = structuredClone(original);
-			Object.assign(expected.SaveGame.player.items[2]!, {
+			Object.assign(requireDefined(expected.SaveGame.player.items[2]), {
 				stack: 18,
 				quality: 4,
 			});

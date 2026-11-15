@@ -1,4 +1,5 @@
 import { SvelteMap } from "svelte/reactivity";
+
 import { addDays, dateInRange, type GameDate, totalDays } from "$lib/calendar";
 import { characters, dateableCharacters } from "$lib/NPCs";
 import {
@@ -6,6 +7,7 @@ import {
 	type FriendshipDataItem,
 	Status,
 } from "$types/save";
+
 import { type DataProxy, Dispose, Raw } from ".";
 
 /**
@@ -141,9 +143,9 @@ export class Friendship implements DataProxy<FriendshipDataItem> {
 		// Compute derived values
 		this.maxHearts = $derived(
 			this.dateable
-				? this.status === "Married"
+				? this.status === Status.Married
 					? 14
-					: this.status === "Dating"
+					: this.status === Status.Dating
 						? 10
 						: 8
 				: 10,
@@ -207,13 +209,13 @@ export class Friendships
 	}
 
 	/** Custom iterator to sort similar to how friendships are displayed in-game */
-	[Symbol.iterator]() {
+	override [Symbol.iterator]() {
 		return Array.from(this.entries())
 			.sort(([, a], [, b]) => sortFriendships(a, b))
 			.values();
 	}
 
-	set(name: string, value: Friendship): this {
+	override set(name: string, value: Friendship): this {
 		super.set(name, value);
 
 		// Update raw data
@@ -240,7 +242,7 @@ export class Friendships
 		return added;
 	}
 
-	delete(name: string): boolean {
+	override delete(name: string): boolean {
 		const idx = this[Raw].item.findIndex((i) => i.key.string === name);
 		if (idx === -1) return false;
 

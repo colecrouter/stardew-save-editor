@@ -1,12 +1,10 @@
 import { SvelteMap } from "svelte/reactivity";
+
 import { bundleSideEffects, CCRoom } from "$lib/bundleSideEffects";
 import type { GameLocation } from "$lib/proxies/GameLocation.svelte";
 import type { SaveProxy } from "$lib/proxies/SaveFile.svelte";
-import type {
-	BoolArrayContainer,
-	GameLocation as GameLocationRaw,
-	StringContainer,
-} from "$types/save";
+import type { BoolArrayContainer, StringContainer } from "$types/save";
+
 import { type DataProxy, Raw } from ".";
 import {
 	type BundleRequirement,
@@ -97,7 +95,7 @@ export class CommunityBundles extends SvelteMap<BundleName, Bundle> {
 
 		const bundleData = saveData[Raw].SaveGame.bundleData;
 		const bundles = cc[Raw].bundles.item.map((bundle) => {
-			const bundleKey = bundle.key.int as BundleName;
+			const bundleKey = bundle.key.int;
 			const matchingBundleData = bundleData.item.find((data) => {
 				const { spriteIndex } = parseBundleKey(data.key.string);
 				return spriteIndex === bundleKey;
@@ -245,11 +243,17 @@ export class CommunityBundles extends SvelteMap<BundleName, Bundle> {
 	 * being set true, which can crash the game.
 	 */
 	private sanitizeBundleRewards() {
-		const ccRaw = this.communityCenter[Raw] as GameLocationRaw;
+		const ccRaw = this.communityCenter[Raw];
 		const bundles = ccRaw?.bundles?.item;
 		const rewards = ccRaw?.bundleRewards;
 
-		if (!rewards || !rewards.item || !bundles) return;
+		if (
+			!rewards ||
+			rewards.item === null ||
+			rewards.item === undefined ||
+			!bundles
+		)
+			return;
 
 		const validKeys = new Set<number>(bundles.map((b) => b.key.int));
 
@@ -264,7 +268,7 @@ export class CommunityBundles extends SvelteMap<BundleName, Bundle> {
 
 		// The Missing Bundle's reward crashes the game, so keep it false
 		for (const kv of rewards.item) {
-			if (kv.key.int === BundleName.Missing && kv.value.boolean === true) {
+			if (kv.key.int === BundleName.Missing.valueOf() && kv.value.boolean) {
 				kv.value.boolean = false;
 				console.warn(
 					"Corrected bundleRewards[36] from true to false to prevent a crash",
@@ -341,9 +345,10 @@ export class Bundle {
 		this.completed = $derived.by(() => {
 			const { count } = this.parse();
 			const needed = count ?? this.requiredItems.length;
-			let submitted = 0;
-			for (const item of this.requiredItems) if (item.submitted) submitted++;
-			return submitted >= needed;
+			let submittedCount = 0;
+			for (const item of this.requiredItems)
+				if (item.submitted) submittedCount++;
+			return submittedCount >= needed;
 		});
 	}
 
@@ -419,7 +424,8 @@ class BundleRequiredItem {
 }
 
 type Reward = {
-	type: "O" | "BO";
+	// Keep unfamiliar saved reward command tokens intact during serialization.
+	type: string;
 	// Item identifier: may be a numeric ID (e.g. "680") or a string key (e.g. "DeluxeBait").
 	id: string;
 	quantity: number;
@@ -427,7 +433,8 @@ type Reward = {
 
 class BundleReward implements DataProxy<StringContainer> {
 	public [Raw]: StringContainer;
-	public item?: Reward;
+	// No selected reward is an explicit reactive state, distinct from raw serialized absence.
+	public item: Reward | undefined;
 
 	constructor(bundleData: StringContainer) {
 		this[Raw] = bundleData;
@@ -435,14 +442,15 @@ class BundleReward implements DataProxy<StringContainer> {
 
 		// Initial parse
 		const parsed = parseBundleValue(this[Raw].string);
-		if (parsed.reward) {
+		if (parsed.reward != null && parsed.reward !== "") {
 			const parts = parsed.reward.split(" ");
 			if (parts.length >= 3) {
-				const [type, itemID, quantity] = parts as [string, string, string];
+				// split creates a dense array, and the length check establishes all three tokens.
+				const [type = "", itemID = "", quantity = "1"] = parts;
 				// Accept string item IDs (e.g. "DeluxeBait") or numeric ones; store as string.
 				const qty = Number.parseInt(quantity, 10);
 				this.item = {
-					type: type as "O" | "BO",
+					type,
 					id: itemID, // keep raw key to support string IDs
 					quantity: Number.isNaN(qty) ? 1 : qty,
 				};

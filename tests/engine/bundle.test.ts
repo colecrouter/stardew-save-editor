@@ -1,12 +1,27 @@
-import type { FixtureSave as Save } from "../helpers/editor-document.ts";
-import type { SaveDocument } from "../../src/lib/editor/domain.ts";
-import { expect, it } from "@effect/vitest";
 import { readFile } from "node:fs/promises";
+
+import { expect, it } from "@effect/vitest";
 import { get } from "svelte/store";
+
+import type { Location, SaveDocument } from "../../src/lib/editor/domain.ts";
+import { requireRecord } from "../helpers/assertions.ts";
 import { openDocument } from "./editor-model.ts";
 import { parser } from "./fixture.ts";
 
-type FullDocument = SaveDocument & { SaveGame: Save };
+type FullDocument = SaveDocument;
+type Center = Extract<
+	Location,
+	{ $type: "StardewValley.Locations.CommunityCenter" }
+>;
+type PopulatedCenter = Center &
+	Required<Pick<Center, "bundles" | "areasComplete">>;
+
+// The codec establishes saved field types; fixture checks establish that these
+// optional Community Center collections are present before tests mutate them.
+const isPopulatedCenter = (value: Location): value is PopulatedCenter =>
+	value.$type === "StardewValley.Locations.CommunityCenter" &&
+	value.bundles !== undefined &&
+	value.areasComplete !== undefined;
 
 it("a late room-mail failure rolls back staged donations and rewards", async () => {
 	const document = await fixture();
@@ -29,25 +44,20 @@ it("a late room-mail failure rolls back staged donations and rewards", async () 
 const fixture = async () =>
 	parser.parse(
 		await readFile(new URL("../../tests/TestSave", import.meta.url), "utf8"),
-	) as unknown as FullDocument;
+	);
 function must<T>(value: T | undefined | null): NonNullable<T> {
 	if (value == null) throw new Error("Required fixture field is absent");
-	return value as NonNullable<T>;
+	return value;
 }
 function center(document: FullDocument) {
 	const cc = must(
-		document.SaveGame.locations.find(
+		must(document.SaveGame.locations).find(
 			(location) => location?.name === "CommunityCenter",
 		),
 	);
-	if (
-		cc.$type !== "StardewValley.Locations.CommunityCenter" ||
-		!cc.bundles ||
-		!cc.areasComplete
-	)
+	if (!isPopulatedCenter(cc))
 		throw new Error("Incomplete Community Center fixture");
-	return cc as typeof cc &
-		Required<Pick<typeof cc, "bundles" | "areasComplete">>;
+	return cc;
 }
 const progress = (document: FullDocument) =>
 	must(center(document).bundles.find((entry) => entry.key === 13)).value;
@@ -68,13 +78,13 @@ it("bundle completion is one compound history entry, preserves opaque fields and
 		expect(state.entries).toHaveLength(1);
 		const after = parser.parse(
 			new TextDecoder().decode(await opened.model.export()),
-		) as unknown as FullDocument;
+		);
 		const flags = progress(after);
 		expect(flags.slice(0, 4)).toEqual([true, true, true, true]);
 		expect(flags[11]).toBe(true);
-		expect(
-			(center(after) as unknown as { opaqueModData: unknown }).opaqueModData,
-		).toEqual({ value: "retain" });
+		expect(requireRecord(center(after))["opaqueModData"]).toEqual({
+			value: "retain",
+		});
 		await opened.model.undo();
 		expect((await opened.model.snapshot()).document).toEqual(document);
 		await opened.model.redo();
@@ -96,7 +106,7 @@ it("last Crafts Room bundle includes room and multiplayer completion mail in the
 		await opened.model.execute([{ type: "bundle-complete", bundleId: 13 }]);
 		const after = parser.parse(
 			new TextDecoder().decode(await opened.model.export()),
-		) as unknown as FullDocument;
+		);
 		expect(center(after).areasComplete).toEqual([
 			true,
 			true,
@@ -112,6 +122,7 @@ it("last Crafts Room bundle includes room and multiplayer completion mail in the
 				: after.SaveGame.farmhands),
 		];
 		for (const player of players) {
+			expect.assert(player != null, "Expected a populated fixture farmer");
 			expect(player.mailReceived).toContain("ccCraftsRoom");
 			expect(player.mailReceived).toContain("ccIsComplete");
 			expect(player.mailReceived).toContain("seenJunimoNote");

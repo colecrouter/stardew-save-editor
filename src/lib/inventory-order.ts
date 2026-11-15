@@ -53,7 +53,7 @@ export function compareInventoryItems(
 		return category(b) - category(a);
 	if (a.name === b.name && a.parentSheetIndex === b.parentSheetIndex) {
 		const quality = number(b.quality) - number(a.quality);
-		return quality || aCount - bCount;
+		return quality === 0 || Number.isNaN(quality) ? aCount - bCount : quality;
 	}
 	if (isObject(a) && isObject(b))
 		return `${text(a.type)}${text(a.name)}`.localeCompare(

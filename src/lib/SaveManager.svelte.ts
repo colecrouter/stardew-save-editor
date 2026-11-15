@@ -1,8 +1,8 @@
-import { chooseSaveDestination, type SaveDestination } from "./downloadSave";
 import { error } from "@sveltejs/kit";
 import * as Comlink from "comlink";
-import pako from "pako";
+import { inflate } from "pako";
 import { getContext, setContext } from "svelte";
+
 import { dev } from "$app/env";
 import { BackupManager } from "$lib/BackupManager.svelte";
 import { Dispose } from "$lib/proxies";
@@ -15,6 +15,9 @@ import {
 	validateSave,
 } from "$lib/saveValidation";
 import type { XMLManager } from "$lib/workers/xml";
+
+import { chooseSaveDestination, type SaveDestination } from "./downloadSave";
+import { isRecord } from "./unknown.ts";
 import { nestedArrayTags } from "./workers/jank";
 
 const SAVE_KEY = Symbol("saveManager");
@@ -24,7 +27,11 @@ let xmlManager: Comlink.Remote<XMLManager> | XMLManager | undefined;
 
 const getXmlManager = async () => {
 	if (xmlManager) return xmlManager;
-	if (import.meta.env.TEST) {
+	// Vite injects this optional value; narrow its opaque declaration before
+	// applying the existing truthiness convention for test transport selection.
+	const testMode: unknown = import.meta.env["TEST"];
+	const usingTestTransport = Boolean(testMode);
+	if (usingTestTransport) {
 		const manager = await import("$lib/workers/xml");
 		xmlManager = new manager.XMLManager();
 	} else {
@@ -44,7 +51,7 @@ const isSaveFile = (obj: unknown): obj is SaveFile =>
 	obj.SaveGame !== null;
 
 const isValidGameVersion = (version: string | undefined): boolean =>
-	SUPPORTED_VERSIONS.some((v) => version?.startsWith(v));
+	SUPPORTED_VERSIONS.some((v) => version?.startsWith(v) === true);
 
 /** Thrown by download() when the exported save fails validation */
 export class SaveValidationError extends Error {
@@ -59,7 +66,8 @@ export class SaveManager {
 	/** Validation of the save as it was uploaded */
 	loadValidation = $state<SaveValidation>();
 	backups = new BackupManager();
-	private disposeSave?: () => void;
+	// Teardown explicitly resets this live resource handle; it is not saved data.
+	private disposeSave: (() => void) | undefined;
 	// Route teardown invalidates work already waiting on files, workers or pickers.
 	private generation = 0;
 	private downloads = new AbortController();
@@ -71,7 +79,13 @@ export class SaveManager {
 	private loadDevState() {
 		const saveData = localStorage.getItem("save");
 		const filename = localStorage.getItem("filename");
-		if (!saveData || !filename) return;
+		if (
+			saveData === null ||
+			saveData.length === 0 ||
+			filename === null ||
+			filename.length === 0
+		)
+			return;
 
 		const parsed = JSON.parse(saveData);
 		if (!isSaveFile(parsed)) return;
@@ -110,22 +124,22 @@ export class SaveManager {
 			if (content[0] === 120) {
 				// This is also how vanilla checks if a save is compressed. Around SaveGame.cs Line 671
 				// File is zlib compressed
-				const decompressed = pako.inflate(content);
+				const decompressed = inflate(content);
 				decompressedContent = new TextDecoder().decode(decompressed);
 			} else {
 				// File is not compressed
 				decompressedContent = new TextDecoder().decode(content);
 			}
 
-			const xmlManager = await getXmlManager();
-			const json = await xmlManager.parse(decompressedContent);
+			const transport = await getXmlManager();
+			const json = await transport.parse(decompressedContent);
 			if (generation !== this.generation) return false;
 
 			if (!isSaveFile(json)) {
 				throw new Error("Invalid save file");
 			}
 
-			if (!isValidGameVersion(json.SaveGame.gameVersion as string)) {
+			if (!isValidGameVersion(json.SaveGame.gameVersion)) {
 				throw new Error(
 					`Unsupported game version: ${json.SaveGame.gameVersion}`,
 				);
@@ -139,12 +153,10 @@ export class SaveManager {
 
 			// I hate that I have to do this
 			function fixEmpty(obj: unknown) {
-				if (typeof obj !== "object" || obj === null) return;
+				if (!isRecord(obj)) return;
 				for (const [child, parents] of nestedArrayTags.entries()) {
 					for (const parent of parents) {
-						// @ts-expect-error
 						if (parent in obj && obj[parent] === "") {
-							// @ts-expect-error
 							obj[parent] = { [child]: [] };
 							// console.debug(
 							// 	`Fixed empty "${parent}" tag by converting to object with empty "${child}" array`,
@@ -204,10 +216,10 @@ export class SaveManager {
 	 */
 	async validatedExport() {
 		const blob = await this.export();
-		const xmlManager = await getXmlManager();
+		const transport = await getXmlManager();
 		let validation: SaveValidation;
 		try {
-			validation = validateSave(await xmlManager.parse(await blob.text()));
+			validation = validateSave(await transport.parse(await blob.text()));
 		} catch (e) {
 			validation = {
 				valid: false,
@@ -246,8 +258,8 @@ export class SaveManager {
 
 	async export(pretty = false) {
 		if (!this.save) throw new Error("No save file provided");
-		const xmlManager = await getXmlManager();
-		const bytes = await xmlManager.stringify(
+		const transport = await getXmlManager();
+		const bytes = await transport.stringify(
 			/* 
                 DON'T REMOVE THESE
 

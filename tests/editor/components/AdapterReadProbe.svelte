@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { useAtomValue } from "effect-atom-svelte";
-	import type { EditorModel } from "../../../src/lib/editor/editor-model.ts";
-	let { model }: { model: Pick<EditorModel, "atomBindings"> } = $props();
+
+	import type { AdapterModel } from "./adapter-model.ts";
+
+	let { model }: { model: AdapterModel } = $props();
 	// This consumer intentionally mounts independently of the session. The browser
 	// proof can detach every hook, edit the save, then inspect a fresh mount.
 

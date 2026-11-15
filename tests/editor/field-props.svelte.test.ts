@@ -1,13 +1,15 @@
-import { render } from "vitest-browser-svelte";
-import { userEvent } from "vitest/browser";
 import { Effect, Result } from "effect";
 import { describe, expect, it, vi } from "vitest";
-import type { ImmediateField } from "../../src/lib/editor/immediate-field";
+import { render } from "vitest-browser-svelte";
+import { userEvent } from "vitest/browser";
+
 import { MutationError } from "../../src/lib/editor/domain";
-import NumberField from "../../src/lib/editor/ui/fields/NumberField.svelte";
-import TextField from "../../src/lib/editor/ui/fields/TextField.svelte";
-import SelectField from "../../src/lib/editor/ui/fields/SelectField.svelte";
+import type { ImmediateField } from "../../src/lib/editor/immediate-field";
 import CheckboxField from "../../src/lib/editor/ui/fields/CheckboxField.svelte";
+import NumberField from "../../src/lib/editor/ui/fields/NumberField.svelte";
+import SelectField from "../../src/lib/editor/ui/fields/SelectField.svelte";
+import TextField from "../../src/lib/editor/ui/fields/TextField.svelte";
+import { requireInstance } from "../helpers/assertions.ts";
 
 function field<T extends string | number | boolean>(
 	value: T,
@@ -19,8 +21,12 @@ function field<T extends string | number | boolean>(
 		value,
 		available: true,
 		begin: () => ({ fieldKey: "test" }),
-		commit: vi.fn(async () => Result.succeed(undefined)),
-		end: vi.fn(async () => Result.succeed(undefined)),
+		commit: vi.fn<() => Promise<Result.Result<undefined>>>(() =>
+			Promise.resolve(Result.succeed(undefined)),
+		),
+		end: vi.fn<() => Promise<Result.Result<undefined>>>(() =>
+			Promise.resolve(Result.succeed(undefined)),
+		),
 	};
 }
 
@@ -30,9 +36,9 @@ function field<T extends string | number | boolean>(
 describe("shared field native attributes", () => {
 	it("forwards number attributes and composes focus/blur with queued editing", async () => {
 		const value = field<number>(1),
-			onfocus = vi.fn(),
-			onblur = vi.fn(),
-			oninput = vi.fn();
+			onfocus = vi.fn<() => void>(),
+			onblur = vi.fn<() => void>(),
+			oninput = vi.fn<() => void>();
 		const page = await render(NumberField, {
 			field: value,
 			id: "custom-number",
@@ -49,7 +55,10 @@ describe("shared field native attributes", () => {
 			onblur,
 			oninput,
 		});
-		const input = page.getByTestId("amount").element() as HTMLInputElement;
+		const input = requireInstance(
+			page.getByTestId("amount").element(),
+			HTMLInputElement,
+		);
 		expect(input.id).toBe("custom-number");
 		// aria-label supplies the accessible name while the visible native label
 		// remains associated with the customized ID and still targets this input.
@@ -72,7 +81,7 @@ describe("shared field native attributes", () => {
 		await userEvent.tab();
 		await expect
 			.poll(() => value.commit)
-			.toHaveBeenCalledWith(2, expect.anything());
+			.toHaveBeenCalledWith(2, expect.anything() as unknown);
 		expect(value.end).toHaveBeenCalledTimes(1);
 		expect(onfocus).toHaveBeenCalledTimes(1);
 		expect(onblur).toHaveBeenCalledTimes(1);
@@ -81,7 +90,7 @@ describe("shared field native attributes", () => {
 	});
 	it("forwards text attributes while retaining controlled value and label", async () => {
 		const value = field<string>("Old"),
-			onblur = vi.fn();
+			onblur = vi.fn<() => void>();
 		const page = await render(TextField, {
 			field: value,
 			id: "custom-text",
@@ -91,7 +100,10 @@ describe("shared field native attributes", () => {
 			autocomplete: "off",
 			onblur,
 		});
-		const input = page.getByTestId("name").element() as HTMLInputElement;
+		const input = requireInstance(
+			page.getByTestId("name").element(),
+			HTMLInputElement,
+		);
 		expect(input.placeholder).toBe("Name");
 		expect(input.maxLength).toBe(40);
 		expect(page.getByLabelText("Value").element()).toBe(input);
@@ -99,7 +111,7 @@ describe("shared field native attributes", () => {
 		await userEvent.tab();
 		await expect
 			.poll(() => value.commit)
-			.toHaveBeenCalledWith("New", expect.anything());
+			.toHaveBeenCalledWith("New", expect.anything() as unknown);
 		expect(onblur).toHaveBeenCalledTimes(1);
 		await page.unmount();
 	});
@@ -111,7 +123,7 @@ describe("shared field native attributes", () => {
 				{ value: "b", label: "Second" },
 			],
 		};
-		const onchange = vi.fn();
+		const onchange = vi.fn<() => void>();
 		const page = await render(SelectField, {
 			field: value,
 			id: "custom-select",
@@ -129,7 +141,7 @@ describe("shared field native attributes", () => {
 		await userEvent.selectOptions(select, "b");
 		await expect
 			.poll(() => value.commit)
-			.toHaveBeenCalledWith("b", expect.anything());
+			.toHaveBeenCalledWith("b", expect.anything() as unknown);
 		expect(onchange).toHaveBeenCalledTimes(1);
 		await page.unmount();
 	});
@@ -145,7 +157,10 @@ describe("shared field native attributes", () => {
 			disabled: false,
 			title: "Native checkbox",
 		});
-		const input = page.getByTestId("flag").element() as HTMLInputElement;
+		const input = requireInstance(
+			page.getByTestId("flag").element(),
+			HTMLInputElement,
+		);
 		expect(input.disabled).toBe(true);
 		expect(input.title).toBe("Native checkbox");
 		expect(page.getByText("Unavailable").element().id).toBe(
@@ -172,7 +187,12 @@ describe("shared field native attributes", () => {
 			),
 		);
 		expect(Result.isFailure(result)).toBe(true);
-		if (Result.isFailure(result)) expect(result.failure).toBe(error);
+		// Require the expected scenario state so this test cannot silently skip its assertions.
+		expect.assert(
+			Result.isFailure(result),
+			"Expected the scenario fixture to be available",
+		);
+		expect(result.failure).toBe(error);
 		expect(finalized).toBe(true);
 		expect(error).toBeInstanceOf(Error);
 		expect(error._tag).toBe("MutationError");

@@ -1,7 +1,9 @@
 import { expect, it } from "vitest";
-import { tinyEditorFixture } from "../helpers/editor-document.ts";
-import { readRecipes } from "../../src/lib/editor/recipe-operations.ts";
+
 import { recipeProgress } from "../../src/lib/editor/progress.ts";
+import { readRecipes } from "../../src/lib/editor/recipe-operations.ts";
+import { requireDefined } from "../helpers/assertions.ts";
+import { tinyEditorFixture } from "../helpers/editor-document.ts";
 
 it("separates learned recipes from production and excludes the Wedding Ring", () => {
 	const document = tinyEditorFixture();
@@ -14,7 +16,7 @@ it("separates learned recipes from production and excludes the Wedding Ring", ()
 			{ key: "Mod Recipe", value: 1 },
 		],
 	});
-	const farmer = readRecipes(document)[0]!;
+	const farmer = requireDefined(readRecipes(document)[0]);
 	const before = structuredClone(document);
 	const cooking = recipeProgress(farmer, "cooking");
 	const crafting = recipeProgress(farmer, "crafting");
@@ -43,7 +45,10 @@ it("keeps malformed counters uncertain instead of reporting missing or complete"
 		],
 		craftingRecipes: [],
 	});
-	const progress = recipeProgress(readRecipes(document)[0]!, "cooking");
+	const progress = recipeProgress(
+		requireDefined(readRecipes(document)[0]),
+		"cooking",
+	);
 	expect(
 		progress.requirements.find((row) => row.name === "Fried Egg")?.status,
 	).toBe("unknown");
@@ -63,11 +68,18 @@ it("keeps farmer progress separate and reports absent dictionaries as uncertain"
 	guest.recipesCooked = [];
 	document.SaveGame.farmhands = [guest];
 	const farmers = readRecipes(document);
-	expect(recipeProgress(farmers[0]!, "cooking").completed).toBe(1);
-	expect(recipeProgress(farmers[1]!, "cooking").completed).toBe(0);
+	expect(recipeProgress(requireDefined(farmers[0]), "cooking").completed).toBe(
+		1,
+	);
+	expect(recipeProgress(requireDefined(farmers[1]), "cooking").completed).toBe(
+		0,
+	);
 	// Missing cooking history leaves learned recipes uncertain; unlearned ones
 	// still cannot earn completion credit.
 	delete guest.recipesCooked;
-	const progress = recipeProgress(readRecipes(document)[1]!, "cooking");
+	const progress = recipeProgress(
+		requireDefined(readRecipes(document)[1]),
+		"cooking",
+	);
 	expect(progress.unknown).toBe(1);
 });

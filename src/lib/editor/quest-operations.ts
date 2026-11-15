@@ -1,15 +1,17 @@
-import type { T_StardewValley_Quests_Quest as Quest } from "../../../generated/save-format/save.ts";
-import { stringifySavedData } from "./saved-data.ts";
 import { Data, Effect, Result, Schema } from "effect";
-import { farmers, type Farmer, type SaveDocument } from "./domain.ts";
-import { TransactionDraft } from "./transaction-draft.ts";
-import { prizeTicketDestination } from "./quest-ticket.ts";
+
+import { type T_StardewValley_Quests_Quest as Quest } from "../../../generated/save-format/save.ts";
+import { type Farmer, farmers, type SaveDocument } from "./domain.ts";
 import { InventoryEdits } from "./inventory-operations.ts";
+import { nonemptyText } from "./plain-data.ts";
+import { questDefinitions, questFromData, questLabel } from "./quest-data.ts";
+import { prizeTicketDestination } from "./quest-ticket.ts";
+import { stringifySavedData } from "./saved-data.ts";
 import {
 	recordAnnotatedOperation,
 	withReviewMetadata,
 } from "./transaction-annotations.ts";
-import { questDefinitions, questFromData, questLabel } from "./quest-data.ts";
+import { TransactionDraft } from "./transaction-draft.ts";
 
 /** A rejected journal action leaves its entire quest/reward transaction unpublished. */
 export class QuestInvalid extends Data.TaggedError("QuestInvalid")<{
@@ -118,28 +120,28 @@ export interface QuestView {
 	description: string;
 	objective: string;
 	supported: boolean;
-	reason?: string;
+	reason?: string | undefined;
 	completed: boolean;
 	secret: boolean;
 	helpWanted: boolean;
 	canBeCancelled: boolean;
-	reward?: number;
+	reward?: number | undefined;
 	rewardSupported: boolean;
-	rewardText?: string;
-	friendshipReward?: number;
+	rewardText?: string | undefined;
+	friendshipReward?: number | undefined;
 	timed: boolean;
-	daysLeft?: number;
+	daysLeft?: number | undefined;
 	daysSupported: boolean;
 	followUps: string[];
 	skippedFollowUps: string[];
 	ticketDue: boolean;
-	ticketRoom?: boolean;
+	ticketRoom?: boolean | undefined;
 }
 export interface QuestFarmerView {
 	farmerId: string;
 	name: string;
 	supported: boolean;
-	reason?: string;
+	reason?: string | undefined;
 	quests: QuestView[];
 	unsupportedCount: number;
 }
@@ -183,8 +185,8 @@ function project(
 						key,
 						renderKey: `${key}:${occurrence}`,
 						title:
-							typeof quest.questTitle === "string"
-								? quest.questTitle
+							typeof quest["questTitle"] === "string"
+								? quest["questTitle"]
 								: "Unknown quest",
 						description: "",
 						objective: "",
@@ -237,19 +239,12 @@ function project(
 				return {
 					key,
 					renderKey: `${key}:${occurrence}`,
-					title: quest._questTitle
-						? quest._questTitle
-						: quest.questTitle !== undefined
-							? quest.questTitle
-							: "Untitled quest",
-					description:
-						quest._questDescription !== undefined
-							? quest._questDescription
-							: "",
-					objective:
-						quest._currentObjective !== undefined
-							? quest._currentObjective
-							: "",
+					title:
+						quest._questTitle != null && quest._questTitle !== ""
+							? quest._questTitle
+							: (quest.questTitle ?? "Untitled quest"),
+					description: quest._questDescription ?? "",
+					objective: quest._currentObjective ?? "",
 					supported: valid,
 					reason: valid
 						? undefined
@@ -450,7 +445,7 @@ const complete = Effect.fn("Quest.complete")(function* (
 			if (quest.completed === true || processed.has(quest)) return;
 			processed.add(quest);
 			const id = quest.id;
-			if (id) completedIds.add(id);
+			if (id != null && id !== "") completedIds.add(id);
 			// Secret retrieval quests bypass ordinary quest stats and replace another
 			// journal entry; completing them here does not grant friendship or take items.
 			if (quest.$type === "StardewValley.Quests.SecretLostItemQuest") {
@@ -463,7 +458,7 @@ const complete = Effect.fn("Quest.complete")(function* (
 					journal(owner).entries.filter(
 						(candidate) =>
 							candidate !== quest &&
-							(!replaced ||
+							(nonemptyText(replaced) === undefined ||
 								candidate === null ||
 								candidate.$type === "$unknown" ||
 								candidate.id !== replaced),
@@ -516,9 +511,7 @@ const complete = Effect.fn("Quest.complete")(function* (
 					continue;
 				}
 				writeJournal(owner, [...journal(owner).entries, next]);
-				result.started.push(
-					next.questTitle !== undefined ? next.questTitle : questLabel(nextId),
-				);
+				result.started.push(next.questTitle ?? questLabel(nextId));
 				if (next.completionString !== undefined) {
 					const values = game.constructedBuildings ?? [];
 					if (values.some((value) => value === null))
@@ -533,7 +526,7 @@ const complete = Effect.fn("Quest.complete")(function* (
 			const gold = reward(quest);
 			// Reward-bearing quests remain in the journal for in-game collection;
 			// rewardless quests leave immediately, without paying money into the wallet.
-			if (gold <= 0 && !rewardText(quest)) {
+			if (gold <= 0 && !(nonemptyText(rewardText(quest)) !== undefined)) {
 				writeJournal(
 					owner,
 					journal(owner).entries.filter((candidate) => candidate !== quest),
@@ -569,7 +562,7 @@ export const setQuest = Effect.fn("Quest.set")(function* (input: QuestChange) {
 		});
 	const view = project(snapshot.state.document, owner, true);
 	const row = view.quests.find((quest) => quest.key === request.questKey);
-	if (!view.supported || !row?.supported)
+	if (!view.supported || !(row?.supported === true))
 		return yield* new QuestInvalid({
 			message:
 				row?.reason ?? view.reason ?? "This quest is no longer available.",

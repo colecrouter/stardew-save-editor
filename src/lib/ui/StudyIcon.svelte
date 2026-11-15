@@ -1,7 +1,8 @@
 <script lang="ts">
-	import { studyIcons, type StudyIconName } from "./studyIcons";
-	import atlas from "./art/icons.png";
 	import metadata from "./art/icon-regions.json";
+	import atlas from "./art/icons.png";
+	import { type StudyIconName, studyIcons } from "./studyIcons";
+
 	let { name, size = 28 }: { name: StudyIconName; size?: number } = $props();
 	const rect = $derived(
 		name in metadata.regions

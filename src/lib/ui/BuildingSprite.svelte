@@ -1,13 +1,13 @@
 <script lang="ts">
-	import { dynamicAsset } from "$lib/ui/dynamicAsset.ts";
 	import { asset } from "$app/paths";
 	import buildings from "$generated/buildings.json";
+	import { dynamicAsset } from "$lib/ui/dynamicAsset.ts";
 
 	interface Props {
 		/** Domain views and legacy proxies share this small presentation contract. */
 		building?: {
 			readonly name: string | undefined;
-			readonly repaired?: boolean;
+			readonly repaired?: boolean | undefined;
 		};
 		/** The square stays reserved while the selected building changes. */
 		size?: number;
@@ -57,7 +57,11 @@
 			: undefined,
 	);
 	const known = $derived(
-		!!textureUrl && !!width && width > 0 && !!height && height > 0,
+		textureUrl !== undefined &&
+			width !== undefined &&
+			width > 0 &&
+			height !== undefined &&
+			height > 0,
 	);
 	const scale = $derived(frameSize / Math.max(width ?? 1, height ?? 1));
 	// Negative offsets move the chosen source pixels into the crop. Sprite and

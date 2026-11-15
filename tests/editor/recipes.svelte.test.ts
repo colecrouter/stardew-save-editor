@@ -1,8 +1,10 @@
 import { fireEvent, waitFor } from "@testing-library/svelte";
 import { expect, it } from "vitest";
-import { renderTestWorkspace } from "./workspace.ts";
+
 import { readRecipes } from "../../src/lib/editor/recipe-operations.ts";
+import { requireInstance } from "../helpers/assertions.ts";
 import { tinyEditorFixture } from "../helpers/editor-document.ts";
+import { renderTestWorkspace } from "./workspace.ts";
 
 async function openRecipes() {
 	// Recipe controls need two farmers and their dictionaries, not a full world.
@@ -31,7 +33,7 @@ it("groups cooked counts and preserves the edited farmer through selection", asy
 	const { page, model } = opened;
 	try {
 		const count = page.getByRole("spinbutton", { name: "Fried Egg cooked" });
-		expect((count as HTMLInputElement).value).toBe("5");
+		expect(requireInstance(count, HTMLInputElement).value).toBe("5");
 		await fireEvent.focus(count);
 		await fireEvent.input(count, { target: { value: "6" } });
 		await fireEvent.input(count, { target: { value: "66" } });
@@ -41,10 +43,11 @@ it("groups cooked counts and preserves the edited farmer through selection", asy
 		const snapshot = await model.snapshot();
 		await waitFor(() =>
 			expect(
-				(
+				requireInstance(
 					page.getByRole("spinbutton", {
 						name: "Fried Egg cooked",
-					}) as HTMLInputElement
+					}),
+					HTMLInputElement,
 				).value,
 			).toBe("17"),
 		);
@@ -87,10 +90,11 @@ it("forgets cooking without losing cooked progress and confirms crafting removal
 			).toBeTruthy(),
 		);
 		expect(
-			(
+			requireInstance(
 				page.getByRole("spinbutton", {
 					name: "Fried Egg cooked",
-				}) as HTMLInputElement
+				}),
+				HTMLInputElement,
 			).value,
 		).toBe("5");
 		// Zero does not clear the game's recorded-cooking flag. The explicit
@@ -103,10 +107,11 @@ it("forgets cooking without losing cooked progress and confirms crafting removal
 		await model.snapshot();
 		expect(page.getByText("Recorded as cooked")).toBeTruthy();
 		expect(
-			(
+			requireInstance(
 				page.getByRole("button", {
 					name: /^Reset Fried Egg count$/,
-				}) as HTMLButtonElement
+				}),
+				HTMLButtonElement,
 			).disabled,
 		).toBe(false);
 		const resetDialog = page
@@ -131,10 +136,11 @@ it("forgets cooking without losing cooked progress and confirms crafting removal
 		await model.snapshot();
 		await waitFor(() =>
 			expect(
-				(
+				requireInstance(
 					page.getByRole("spinbutton", {
 						name: "Fried Egg cooked",
-					}) as HTMLInputElement
+					}),
+					HTMLInputElement,
 				).value,
 			).toBe("0"),
 		);
@@ -173,20 +179,22 @@ it("forgets cooking without losing cooked progress and confirms crafting removal
 			expect(page.getByRole("button", { name: /^Learn Torch$/ })).toBeTruthy(),
 		);
 		expect(
-			(
+			requireInstance(
 				page.getByRole("spinbutton", {
 					name: "Torch crafted items",
-				}) as HTMLInputElement
+				}),
+				HTMLInputElement,
 			).disabled,
 		).toBe(true);
 		await model.commands.undo();
 		expect((await model.snapshot()).document).toEqual(before.document);
 		await fireEvent.click(page.getByRole("button", { name: /^Cooking$/ }));
 		expect(
-			(
+			requireInstance(
 				page.getByRole("spinbutton", {
 					name: "Fried Egg cooked",
-				}) as HTMLInputElement
+				}),
+				HTMLInputElement,
 			).value,
 		).toBe("5");
 	} finally {

@@ -1,12 +1,13 @@
 import { Data, Effect, Result, Schema } from "effect";
-import { readPregnancy, type PregnancyView } from "./pregnancy-data.ts";
+
 import { characters, dateableCharacters } from "../NPCs.ts";
-import { farmers, type Farmer, type SaveDocument } from "./domain.ts";
-import { TransactionDraft } from "./transaction-draft.ts";
+import { type Farmer, farmers, type SaveDocument } from "./domain.ts";
+import { type PregnancyView, readPregnancy } from "./pregnancy-data.ts";
 import {
 	recordAnnotatedOperation,
 	withReviewMetadata,
 } from "./transaction-annotations.ts";
+import { TransactionDraft } from "./transaction-draft.ts";
 
 /** Friendship points in one heart, shared by projections, edits and UI summaries. */
 export const POINTS_PER_HEART = 250;
@@ -55,11 +56,11 @@ export interface RelationshipView {
 	name: string;
 	present: boolean;
 	supported: boolean;
-	reason?: string;
-	points?: number;
-	gifts?: number;
+	reason?: string | undefined;
+	points?: number | undefined;
+	gifts?: number | undefined;
 	giftsSupported: boolean;
-	hearts?: number;
+	hearts?: number | undefined;
 	maxHearts: number;
 	maxPoints: number;
 }
@@ -67,7 +68,7 @@ export interface RelationshipFarmerView {
 	farmerId: string;
 	name: string;
 	supported: boolean;
-	reason?: string;
+	reason?: string | undefined;
 	relationships: RelationshipView[];
 	pregnancy: PregnancyView;
 }
@@ -117,7 +118,7 @@ function project(
 			unique &&
 			data.supported &&
 			names.filter((candidate) => candidate === name).length === 1 &&
-			!!saved &&
+			Boolean(saved) &&
 			points !== undefined &&
 			(!dateable || status !== undefined);
 		return [
@@ -142,7 +143,9 @@ function project(
 	});
 	// Known villagers absent from the dictionary are projected without creating
 	// save data. Their controls stay disabled until an explicit add transaction.
-	for (const name of characters.filter((name) => !names.includes(name))) {
+	for (const name of characters.filter(
+		(nameCandidate) => !names.includes(nameCandidate),
+	)) {
 		const maxHearts = dateableCharacters.some((candidate) => candidate === name)
 			? 8
 			: 10;
@@ -243,8 +246,10 @@ export const setRelationship = Effect.fn("Relationships.set")(function* (
 		];
 		label = `Add ${request.name} relationship`;
 	} else if (request.kind === "remove") {
-		const row = view.relationships.find((row) => row.name === request.name);
-		if (!row?.present || !row.supported)
+		const row = view.relationships.find(
+			(rowCandidate) => rowCandidate.name === request.name,
+		);
+		if (!(row?.present === true) || !row.supported)
 			return yield* new RelationshipInvalid({
 				message: "This relationship cannot be removed safely.",
 			});
@@ -256,8 +261,13 @@ export const setRelationship = Effect.fn("Relationships.set")(function* (
 		owner.friendshipData = entries;
 		label = `Remove ${request.name} relationship`;
 	} else {
-		const row = view.relationships.find((row) => row.name === request.name);
-		if (!row?.supported || (request.kind === "gifts" && !row.giftsSupported))
+		const row = view.relationships.find(
+			(rowCandidate) => rowCandidate.name === request.name,
+		);
+		if (
+			!(row?.supported === true) ||
+			(request.kind === "gifts" && !row.giftsSupported)
+		)
 			return yield* new RelationshipInvalid({
 				message: row?.reason ?? "This relationship cannot be edited safely.",
 			});

@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { POINTS_PER_HEART } from "../relationship-operations.ts";
+
 	interface Props {
-		points?: number;
+		// Undefined is a displayed unavailable value, not zero friendship.
+		points?: number | undefined;
 		maxHearts: number;
 		present: boolean;
 	}
@@ -20,7 +22,12 @@
 			: "No saved friendship"}
 >
 	{#each Array.from({ length: maxHearts }, (_, index) => index) as heart (heart)}
-		<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+		<svg
+			viewBox="0 0 16 16"
+			width="16"
+			height="16"
+			aria-hidden="true"
+		>
 			<path
 				fill="#bca17a"
 				d="M2 2h4v2h4V2h4v2h2v6h-2v2h-2v2h-2v2H6v-2H4v-2H2v-2H0V4h2z"

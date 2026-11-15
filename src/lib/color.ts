@@ -1,4 +1,4 @@
-import type { T_Microsoft_Xna_Framework_Color as SavedColor } from "../../generated/save-format/save.ts";
+import { type T_Microsoft_Xna_Framework_Color as SavedColor } from "../../generated/save-format/save.ts";
 
 /** Game color arithmetic shared by legacy reactive wrappers and read-only v2 projections. */
 export function packRgba(R: number, G: number, B: number, A: number): number {
@@ -10,15 +10,11 @@ export function packRgba(R: number, G: number, B: number, A: number): number {
 
 /** Read complete finite channels without supplying defaults or changing imported data. */
 export function readRgba(value: unknown): readonly number[] | undefined {
-	if (!value || typeof value !== "object" || Array.isArray(value))
-		return undefined;
-	const color = value as Record<string, unknown>;
-	const keys = ["R", "G", "B", "A"];
-	return keys.every(
-		(key) => typeof color[key] === "number" && Number.isFinite(color[key]),
-	)
-		? keys.map((key) => color[key] as number)
-		: undefined;
+	if (!record(value)) return undefined;
+	// Keep the validated channel values rather than casting a later lookup;
+	// malformed or incomplete extension colors remain unavailable to previews.
+	const channels = ["R", "G", "B", "A"].map((key) => value[key]);
+	return channels.every(finite) ? channels : undefined;
 }
 
 /** Render byte channels as CSS hex; callers choose their own input-validation policy. */
@@ -58,13 +54,13 @@ export function colorHex(value: unknown): string | undefined {
 	// A malformed packed representation cannot be silently repaired by changing RGB.
 	if (
 		Object.hasOwn(value, "PackedValue") &&
-		(!finite(value.PackedValue) ||
-			!Number.isInteger(value.PackedValue) ||
-			value.PackedValue < 0 ||
-			value.PackedValue > 4294967295)
+		(!finite(value["PackedValue"]) ||
+			!Number.isInteger(value["PackedValue"]) ||
+			value["PackedValue"] < 0 ||
+			value["PackedValue"] > 4294967295)
 	)
 		return undefined;
-	return rgbaHex([Number(value.R), Number(value.G), Number(value.B)]);
+	return rgbaHex([Number(value["R"]), Number(value["G"]), Number(value["B"])]);
 }
 /** Rebuild only RGB and an existing packed mirror; alpha and every other member survive. */
 export function itemColorPatch(
@@ -87,7 +83,7 @@ export function itemColorPatch(
 		B,
 		...(Object.hasOwn(value, "PackedValue")
 			? {
-					PackedValue: packRgba(R, G, B, Number(value.A)),
+					PackedValue: packRgba(R, G, B, Number(value["A"])),
 				}
 			: {}),
 	};

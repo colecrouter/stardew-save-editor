@@ -1,23 +1,24 @@
-import { savedTypeId } from "./saved-types.ts";
 import { ObjectCategory } from "$types/items";
+
 import type {
-	CommunityView,
 	CommunityBundleView,
 	CommunityRequirementView,
+	CommunityView,
 } from "./community-data.ts";
+import { setCommunityProgress } from "./community-operations.ts";
+import {
+	type CommunityIngredientEdit,
+	setCommunityRequirements,
+} from "./community-requirements.ts";
 import type { DomainEditPort } from "./field-binding.ts";
 import type { ImmutableView } from "./immutable-view.ts";
-import {
-	setCommunityRequirements,
-	type CommunityIngredientEdit,
-} from "./community-requirements.ts";
-import { setCommunityProgress } from "./community-operations.ts";
 import { inventoryQualities } from "./inventory-policy.ts";
 import {
+	type ItemVisual,
 	readItemPresentation,
 	resolveItemMetadata,
-	type ItemVisual,
 } from "./item-presentation.ts";
+import { savedTypeId } from "./saved-types.ts";
 
 /** The UI receives drawing instructions and game meaning, never a saved item/proxy. */
 const itemTypes: Record<
@@ -48,9 +49,10 @@ function presentItem(
 	if (/^-\d+$/.test(itemId)) {
 		const category = ObjectCategory[Number(itemId)];
 		return {
-			name: category
-				? `Any ${category.replace(/([a-z])([A-Z])/g, "$1 $2").toLowerCase()}`
-				: `Any item in category ${itemId}`,
+			name:
+				category != null && category !== ""
+					? `Any ${category.replace(/([a-z])([A-Z])/g, "$1 $2").toLowerCase()}`
+					: `Any item in category ${itemId}`,
 			visual: undefined,
 			quantity,
 			quality,
@@ -68,7 +70,10 @@ function presentItem(
 	// Seed the name from the same metadata used for drawing the requested item.
 	const metadata = resolveItemMetadata(item);
 	const presentation = readItemPresentation(
-		{ ...item, name: metadata?.name },
+		{
+			...item,
+			...(metadata?.name !== undefined ? { name: metadata.name } : {}),
+		},
 		undefined,
 		metadata,
 	);
@@ -106,7 +111,7 @@ export function communityDonation(
 function bundleSeal(
 	bundle: ImmutableView<CommunityBundleView>,
 ): ItemVisual | undefined {
-	if (bundle.color === undefined) return undefined;
+	if (bundle.color === undefined) return;
 	const rect = {
 		x: (bundle.color % 2) * 256 + (bundle.completed ? 240 : 16),
 		y: 244 + Math.floor(bundle.color / 2) * 16,

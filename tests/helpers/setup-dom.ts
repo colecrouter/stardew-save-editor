@@ -1,4 +1,5 @@
 import { configure } from "@testing-library/svelte";
+
 import { testTimeouts } from "./timeouts.ts";
 
 // Existing Testing Library tests and native browser assertions use one retry

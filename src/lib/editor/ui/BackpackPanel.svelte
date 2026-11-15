@@ -1,24 +1,25 @@
 <script lang="ts">
-	import { onDestroy, tick } from "svelte";
 	import { Result } from "effect";
 	import { useAtomValue } from "effect-atom-svelte";
+	import { onDestroy, tick } from "svelte";
+
 	import type { EditorModel } from "../editor-model.ts";
+	import { createFarmerSelectionField } from "../farmer-selection.ts";
+	import { catalogChoices } from "../item-catalog.ts";
 	import { createStorageDomain } from "../storage-domain.ts";
-	import { createInventorySelection } from "./inventory-selection.svelte.ts";
+	import BackpackItemEditor from "./BackpackItemEditor.svelte";
+	import BackpackItemPicker from "./BackpackItemPicker.svelte";
+	import BackpackItemVisual from "./BackpackItemVisual.svelte";
+	import FarmerSelector from "./fields/FarmerSelector.svelte";
 	import {
 		createInventoryDrag,
 		type InventoryDragSource,
 	} from "./inventory-drag.svelte.ts";
+	import { createInventorySelection } from "./inventory-selection.svelte.ts";
 	import {
-		isEquipmentSlot as isEquipment,
 		type InventorySlot,
+		isEquipmentSlot as isEquipment,
 	} from "./inventory-slot.ts";
-	import { catalogChoices } from "../item-catalog.ts";
-	import { createFarmerSelectionField } from "../farmer-selection.ts";
-	import FarmerSelector from "./fields/FarmerSelector.svelte";
-	import BackpackItemVisual from "./BackpackItemVisual.svelte";
-	import BackpackItemEditor from "./BackpackItemEditor.svelte";
-	import BackpackItemPicker from "./BackpackItemPicker.svelte";
 
 	let { model }: { model: EditorModel } = $props();
 	const view = useAtomValue(() => model.atomBindings.view);
@@ -236,15 +237,28 @@
 		ondragend={drag.endNative}
 	>
 		{#if !isEquipment(item)}
-			<span class="slot-number" aria-hidden="true">{item.slot + 1}</span>
+			<span
+				class="slot-number"
+				aria-hidden="true"
+			>
+				{item.slot + 1}
+			</span>
 		{/if}
 		{#if !item.empty}
 			<BackpackItemVisual visual={item.visual} />
 		{:else if isEquipment(item)}
-			<span class="empty-equipment" aria-hidden="true"></span>
+			<span
+				class="empty-equipment"
+				aria-hidden="true"
+			></span>
 		{/if}
 		{#if !isEquipment(item) && item.quantity !== undefined && item.quantity > 1}
-			<span class="quantity" aria-hidden="true">{item.quantity}</span>
+			<span
+				class="quantity"
+				aria-hidden="true"
+			>
+				{item.quantity}
+			</span>
 		{/if}
 	</button>
 {/snippet}
@@ -254,7 +268,12 @@
 		<div>
 			<h1>Inventory</h1>
 
-			<a class="detail-link" href={`#${inspectorId}`}>Selected item</a>
+			<a
+				class="detail-link"
+				href={`#${inspectorId}`}
+			>
+				Selected item
+			</a>
 		</div>
 		<FarmerSelector field={farmerField} />
 	</div>
@@ -266,8 +285,14 @@
 	{:else}
 		<!-- The same workbench geometry serves occupied, empty and equipped slots.
 	     Only the detail content changes; the grids remain stable drag targets. -->
-		<div class="inventory-layout" bind:this={inventory}>
-			<div class="possessions" bind:this={possessions}>
+		<div
+			class="inventory-layout"
+			bind:this={inventory}
+		>
+			<div
+				class="possessions"
+				bind:this={possessions}
+			>
 				{#if backpack?.supported}
 					<section
 						aria-label={`${backpack.name}'s equipment`}
@@ -283,7 +308,10 @@
 							{/each}
 						</div>
 					</section>
-					<section aria-label={`${backpack.name}'s backpack`} class="backpack">
+					<section
+						aria-label={`${backpack.name}'s backpack`}
+						class="backpack"
+					>
 						<div class="backpack-heading">
 							<h2>Backpack</h2>
 							<span>{backpack.slots.length} slots</span>
@@ -309,7 +337,10 @@
 					</p>
 				{/if}
 
-				<section class="chest" aria-label="Chest inventory">
+				<section
+					class="chest"
+					aria-label="Chest inventory"
+				>
 					<div class="backpack-heading">
 						<h2>Chests</h2>
 						{#if chest}
@@ -355,7 +386,10 @@
 						{#if chest}
 							<p class="chest-location">{chest.location}</p>
 							{#if chest.supported}
-								<div class="slots" aria-label={chest.name}>
+								<div
+									class="slots"
+									aria-label={chest.name}
+								>
 									{#each chest.slots as item (item.entityId)}
 										{@render slot(item)}
 									{/each}
@@ -403,7 +437,10 @@
 						/>
 					{/key}
 				{:else if selected && isEquipment(selected)}
-					<section class="empty-detail" aria-label="Empty equipment slot">
+					<section
+						class="empty-detail"
+						aria-label="Empty equipment slot"
+					>
 						<h2>{selected.label}</h2>
 						<p>
 							{selected.locked
@@ -427,7 +464,12 @@
 					</p>
 				{/if}
 				{#if operationError && !browsing}
-					<p role="status" class="operation-error">{operationError}</p>
+					<p
+						role="status"
+						class="operation-error"
+					>
+						{operationError}
+					</p>
 				{/if}
 			</div>
 		</div>

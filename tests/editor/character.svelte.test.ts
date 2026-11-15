@@ -1,9 +1,15 @@
-import { malformedFixture } from "../helpers/editor-document.ts";
 import { fireEvent, waitFor } from "@testing-library/svelte";
 import { describe, expect, it, vi } from "vitest";
-import { renderTestWorkspace } from "./workspace.ts";
+
 import type { SaveDocument } from "../../src/lib/editor/domain";
-import { parser, fixtureXml } from "./fixtures";
+import {
+	requireArray,
+	requireInstance,
+	requireRecord,
+} from "../helpers/assertions.ts";
+import { malformedFixture } from "../helpers/editor-document.ts";
+import { fixtureXml, parser } from "./fixtures";
+import { renderTestWorkspace } from "./workspace.ts";
 
 const committed = (check: () => Promise<void>) => waitFor(check);
 async function open(mutate: (document: SaveDocument) => void = () => {}) {
@@ -21,7 +27,7 @@ async function open(mutate: (document: SaveDocument) => void = () => {}) {
 	}
 }
 const rawFarmer = (document: SaveDocument) =>
-	document.SaveGame.player as unknown as Record<string, unknown>;
+	requireRecord(document.SaveGame.player);
 
 // Whole-save commands verify that immediate controls publish only the requested
 // progression fields and retain unrecognized profession IDs and stat payloads.
@@ -30,23 +36,27 @@ describe("character progression controls", () => {
 		const opened = await open();
 		try {
 			const before = (await opened.model.snapshot()).document;
-			const xp = opened.page.getByRole("spinbutton", {
-				name: "Farming XP",
-			}) as HTMLInputElement;
+			const xp = requireInstance(
+				opened.page.getByRole("spinbutton", {
+					name: "Farming XP",
+				}),
+				HTMLInputElement,
+			);
 			xp.focus();
 			await fireEvent.input(xp, { target: { value: "380" } });
 			await fireEvent.input(xp, { target: { value: "770" } });
 			await committed(async () =>
 				expect(
-					rawFarmer((await opened.model.snapshot()).document).farmingLevel,
+					rawFarmer((await opened.model.snapshot()).document)["farmingLevel"],
 				).toBe(3),
 			);
 			expect(document.activeElement).toBe(xp);
 			expect(
-				(
+				requireInstance(
 					opened.page.getByRole("spinbutton", {
 						name: "Farming level",
-					}) as HTMLInputElement
+					}),
+					HTMLInputElement,
 				).value,
 			).toBe("3");
 			const count = (await opened.model.snapshot()).entries.length;
@@ -56,7 +66,7 @@ describe("character progression controls", () => {
 			await opened.model.commands.undo();
 			await waitFor(() =>
 				expect(xp.value).toBe(
-					String((rawFarmer(before).experiencePoints as number[])[0]),
+					String(requireArray(rawFarmer(before)["experiencePoints"])[0]),
 				),
 			);
 			await opened.model.commands.redo();
@@ -67,8 +77,8 @@ describe("character progression controls", () => {
 			);
 			await committed(async () => {
 				const farmer = rawFarmer((await opened.model.snapshot()).document);
-				expect(farmer.farmingLevel).toBe(5);
-				expect((farmer.experiencePoints as number[])[0]).toBe(2150);
+				expect(farmer["farmingLevel"]).toBe(5);
+				expect(requireArray(farmer["experiencePoints"])[0]).toBe(2150);
 			});
 			await opened.model.commands.undo();
 			await opened.model.commands.undo();
@@ -80,32 +90,37 @@ describe("character progression controls", () => {
 
 	it("shows profession branches and cascades removal while preserving unknown imported choices", async () => {
 		const opened = await open((document) => {
-			rawFarmer(document).professions = [99, 1, 4, 99];
+			rawFarmer(document)["professions"] = [99, 1, 4, 99];
 		});
 		try {
 			const before = (await opened.model.snapshot()).document;
-			const tiller = opened.page.getByRole("checkbox", {
-				name: "Tiller",
-			}) as HTMLInputElement;
+			const tiller = requireInstance(
+				opened.page.getByRole("checkbox", {
+					name: "Tiller",
+				}),
+				HTMLInputElement,
+			);
 			expect(tiller.checked).toBe(true);
 			expect(
-				(
+				requireInstance(
 					opened.page.getByRole("checkbox", {
 						name: "Artisan",
-					}) as HTMLInputElement
+					}),
+					HTMLInputElement,
 				).checked,
 			).toBe(true);
 			expect(
-				(
+				requireInstance(
 					opened.page.getByRole("checkbox", {
 						name: "Coopmaster",
-					}) as HTMLInputElement
+					}),
+					HTMLInputElement,
 				).disabled,
 			).toBe(true);
 			await fireEvent.click(tiller);
 			await committed(async () =>
 				expect(
-					rawFarmer((await opened.model.snapshot()).document).professions,
+					rawFarmer((await opened.model.snapshot()).document)["professions"],
 				).toEqual([99, 99]),
 			);
 			await opened.model.commands.undo();
@@ -115,10 +130,11 @@ describe("character progression controls", () => {
 			);
 			await waitFor(() =>
 				expect(
-					(
+					requireInstance(
 						opened.page.getByRole("checkbox", {
 							name: "Coopmaster",
-						}) as HTMLInputElement
+						}),
+						HTMLInputElement,
 					).disabled,
 				).toBe(false),
 			);
@@ -127,8 +143,9 @@ describe("character progression controls", () => {
 			);
 			await committed(async () =>
 				expect(
-					rawFarmer((await opened.model.snapshot()).document)
-						.professions as number[],
+					requireArray(
+						rawFarmer((await opened.model.snapshot()).document)["professions"],
+					),
 				).toEqual([99, 1, 4, 99, 0, 2]),
 			);
 		} finally {
@@ -139,7 +156,7 @@ describe("character progression controls", () => {
 	it("guards claimed mastery XP and targets the selected farmer through immediate edits and navigation", async () => {
 		const opened = await open((document) => {
 			const farmer = rawFarmer(document);
-			farmer.stats = {
+			farmer["stats"] = {
 				Values: [
 					{ key: "MasteryExp", value: 25000 },
 					{
@@ -160,9 +177,12 @@ describe("character progression controls", () => {
 		});
 		try {
 			const before = (await opened.model.snapshot()).document;
-			const mastery = opened.page.getByRole("spinbutton", {
-				name: "Mastery XP",
-			}) as HTMLInputElement;
+			const mastery = requireInstance(
+				opened.page.getByRole("spinbutton", {
+					name: "Mastery XP",
+				}),
+				HTMLInputElement,
+			);
 			expect(mastery.min).toBe("25000");
 			await fireEvent.input(mastery, { target: { value: "100" } });
 			await waitFor(() =>
@@ -185,9 +205,12 @@ describe("character progression controls", () => {
 				{ target: { value: "10000" } },
 			);
 
-			const farmerSelect = opened.page.getByRole("combobox", {
-				name: "Farmer",
-			}) as HTMLSelectElement;
+			const farmerSelect = requireInstance(
+				opened.page.getByRole("combobox", {
+					name: "Farmer",
+				}),
+				HTMLSelectElement,
+			);
 			// The shared selector sends stable farmer identity through the actual change
 			// event, without Svelte's index-bound selected-option DOM query.
 			await fireEvent.change(farmerSelect, { target: { value: "2" } });
@@ -197,16 +220,17 @@ describe("character progression controls", () => {
 
 			await waitFor(() =>
 				expect(
-					(
+					requireInstance(
 						opened.page.getByRole("spinbutton", {
 							name: "Fishing XP",
-						}) as HTMLInputElement
+						}),
+						HTMLInputElement,
 					).value,
 				).toBe("114"),
 			);
 			await committed(async () =>
 				expect(
-					rawFarmer((await opened.model.snapshot()).document).fishingLevel,
+					rawFarmer((await opened.model.snapshot()).document)["fishingLevel"],
 				).toBe(9),
 			);
 			await fireEvent.click(
@@ -216,9 +240,12 @@ describe("character progression controls", () => {
 			// module graph before applying the DOM-query timeout; CI transformation
 			// time is not part of the farmer-selection behavior under test.
 			await vi.dynamicImportSettled();
-			const inventoryFarmer = (await opened.page.findByRole("combobox", {
-				name: "Farmer",
-			})) as HTMLSelectElement;
+			const inventoryFarmer = requireInstance(
+				await opened.page.findByRole("combobox", {
+					name: "Farmer",
+				}),
+				HTMLSelectElement,
+			);
 			// Selection is session-owned across feature pages; choosing a farmer in
 			// Inventory also changes Character without retargeting the earlier edit.
 			expect(inventoryFarmer.value).toBe("2");
@@ -230,10 +257,11 @@ describe("character progression controls", () => {
 			);
 			await waitFor(() =>
 				expect(
-					(
+					requireInstance(
 						opened.page.getByRole("spinbutton", {
 							name: "Fishing XP",
-						}) as HTMLInputElement
+						}),
+						HTMLInputElement,
 					).value,
 				).toBe("10000"),
 			);
@@ -270,9 +298,12 @@ describe("character progression controls", () => {
 		});
 		try {
 			const before = await opened.model.snapshot();
-			const farmer = opened.page.getByRole("combobox", {
-				name: "Farmer",
-			}) as HTMLSelectElement;
+			const farmer = requireInstance(
+				opened.page.getByRole("combobox", {
+					name: "Farmer",
+				}),
+				HTMLSelectElement,
+			);
 			const hostId = String(
 				before.document.SaveGame.player.UniqueMultiplayerID,
 			);
@@ -320,9 +351,12 @@ describe("character progression controls", () => {
 			// module graph before applying the DOM-query timeout; CI transformation
 			// time is not part of the farmer-selection behavior under test.
 			await vi.dynamicImportSettled();
-			const inventoryFarmer = (await opened.page.findByRole("combobox", {
-				name: "Farmer",
-			})) as HTMLSelectElement;
+			const inventoryFarmer = requireInstance(
+				await opened.page.findByRole("combobox", {
+					name: "Farmer",
+				}),
+				HTMLSelectElement,
+			);
 			expect(inventoryFarmer.value).toBe("2");
 			expect(
 				[...inventoryFarmer.options].map((option) => option.value),

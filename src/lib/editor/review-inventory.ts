@@ -1,18 +1,18 @@
-import { isSavedItem, type SavedItem } from "./inventory-values.ts";
-import type { SaveDocument } from "./domain.ts";
+import { type SaveDocument } from "./domain.ts";
 import { readEquipmentSlot } from "./equipment.ts";
-import { record, samePlainData } from "./plain-data.ts";
-import type { HistoryState } from "./history.ts";
-import type {
-	ItemPropertyChange,
-	ItemPropertyField,
-} from "./item-properties.ts";
+import { type HistoryState } from "./history.ts";
+import { inventoryContainers } from "./inventory-containers.ts";
+import { isSavedItem, type SavedItem } from "./inventory-values.ts";
 import {
+	type InventoryView,
 	readBackpacks,
 	readChests,
-	type InventoryView,
 } from "./inventory-views.ts";
-import { inventoryContainers } from "./inventory-containers.ts";
+import {
+	type ItemPropertyChange,
+	type ItemPropertyField,
+} from "./item-properties.ts";
+import { record, samePlainData } from "./plain-data.ts";
 
 /** Reuse the write contract's field/value relationship rather than a second edit vocabulary. */
 type RequestedValue<Property, Change = ItemPropertyChange> = Change extends {
@@ -85,7 +85,7 @@ function fieldChange(
 		]: InventoryReviewFields[Key] extends number ? Key : never;
 	}[keyof InventoryReviewFields];
 	const numberChange = <Field extends NumericField>(
-		field: Field,
+		fieldCandidate: Field,
 	): ItemChangeBase & {
 		_tag: "ItemFieldChanged";
 		field: Field;
@@ -94,7 +94,7 @@ function fieldChange(
 	} => ({
 		...base,
 		_tag: "ItemFieldChanged",
-		field,
+		field: fieldCandidate,
 		before: numeric(before),
 		after: numeric(after),
 	});
@@ -179,11 +179,11 @@ interface ObservedItem {
 	name: string;
 	location: string;
 	locationKey: string;
-	quantity?: number;
-	quality?: number;
+	quantity?: number | undefined;
+	quality?: number | undefined;
 	properties: readonly ItemPropertyField[];
 	raw: SavedItem;
-	path?: string;
+	path?: string | undefined;
 }
 const pointer = (part: string) => part.replace(/~/g, "~0").replace(/\//g, "~1");
 /** Locate only the observed records by reference. Paths stay engine-side coverage
@@ -193,7 +193,7 @@ function attachPaths(document: SaveDocument, items: ObservedItem[]) {
 	for (const item of items)
 		targets.set(item.raw, [...(targets.get(item.raw) ?? []), item]);
 	function visit(value: unknown, path: string) {
-		if (!value || typeof value !== "object") return;
+		if (value === null || typeof value !== "object") return;
 		const found = targets.get(value);
 		if (found) for (const item of found) item.path = path;
 		for (const [key, child] of Object.entries(value))
@@ -220,7 +220,7 @@ function observe(
 			owner.kind === "chest" ? owner.name : `${owner.name} · Backpack`;
 		for (const slot of owner.slots) {
 			const raw = rawOwner.slots[slot.slot];
-			if (slot.empty || !slot.entityId || !isSavedItem(raw)) continue;
+			if (slot.empty || !(slot.entityId !== "") || !isSavedItem(raw)) continue;
 			result.push({
 				id: slot.entityId,
 				name: slot.name,
@@ -234,7 +234,8 @@ function observe(
 		}
 		for (const equipment of owner.equipment) {
 			const raw = readEquipmentSlot(rawOwner.farmer, equipment.key);
-			if (equipment.empty || !equipment.entityId || !isSavedItem(raw)) continue;
+			if (equipment.empty || !(equipment.entityId !== "") || !isSavedItem(raw))
+				continue;
 			result.push({
 				id: equipment.entityId,
 				name: equipment.name,
@@ -260,7 +261,7 @@ export function projectInventoryReview(state: HistoryState): {
 	changes: InventoryReviewChange[];
 	coveredPaths: string[];
 } {
-	if (!state.net.length) return { changes: [], coveredPaths: [] };
+	if (!(state.net.length > 0)) return { changes: [], coveredPaths: [] };
 	const initial = observe({
 		document: state.baseline,
 		identities: state.baselineIdentities,
@@ -339,7 +340,11 @@ export function projectInventoryReview(state: HistoryState): {
 				quantity: item.quantity ?? null,
 				quality: item.quality ?? null,
 			});
-			if (item.path && completeLocation(item.locationKey))
+			if (
+				item.path != null &&
+				item.path !== "" &&
+				completeLocation(item.locationKey)
+			)
 				coveredPaths.push(item.path);
 			continue;
 		}
@@ -355,7 +360,11 @@ export function projectInventoryReview(state: HistoryState): {
 			// Mixed moves/edits retain parent/coalesced patches in the fallback.
 			if (!rawChanged)
 				for (const location of [old, current])
-					if (location.path && completeLocation(location.locationKey))
+					if (
+						location.path != null &&
+						location.path !== "" &&
+						completeLocation(location.locationKey)
+					)
 						coveredPaths.push(location.path);
 		}
 		if (!rawChanged) continue;
@@ -412,7 +421,7 @@ export function projectInventoryReview(state: HistoryState): {
 						? ["isBottomless", "IsBottomless"]
 						: [field];
 			for (const rawField of rawFields) {
-				if (!current.path) continue;
+				if (!(current.path != null && current.path !== "")) continue;
 				if (field === "color" || field === "clothesColor") {
 					// RGB editing preserves alpha and opaque members; cover only the
 					// known channels/mirror, leaving independent alpha changes visible.

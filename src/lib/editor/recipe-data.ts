@@ -1,6 +1,7 @@
+import cookingOutputs from "../../../generated/cookingrecipeoutputs.json";
 import cooking from "../../../generated/cookingrecipes.json";
 import crafting from "../../../generated/craftingrecipes.json";
-import cookingOutputs from "../../../generated/cookingrecipeoutputs.json";
+
 const outputIds = new Map<string, string>(Object.entries(cookingOutputs));
 
 export type RecipeKind = "cooking" | "crafting";

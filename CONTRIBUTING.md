@@ -220,12 +220,52 @@ Oxfmt through its local `vp` command. Keep using the npm scripts: `npm run dev`,
 `npm run build`, `npm test`, and `npm run lint`. Run `npm run format` to format
 TypeScript, Svelte, styles, and documentation, or `npm run format:check` to verify
 formatting. Generated game data and assets are excluded. Linting and formatting
-configuration live in `vite.config.ts`; Biome is no longer installed.
+configuration live in `vite.config.ts` and `lint-policy.ts`. `eslint.config.mjs` adds Svelte template
+rules that Oxlint's script parser cannot check. Oxfmt remains the sole formatter.
+
+Correctness, suspicious-code and performance rules fail linting. Additional rules
+require explicit boolean intent, checked type boundaries, exhaustive switches,
+typed test doubles and an acyclic runtime import graph. Use runtime guards for
+unknown imported data; do not replace a reported assertion with a double cast.
+Where a codec or compatibility boundary establishes a type the checker cannot
+recover, keep the exception local and explain the proof. Unused suppressions and
+lint warnings fail checks. Ordered awaits, mutation of owned arrays and immutable
+projection copies remain valid; those are ownership decisions, not syntax bans.
+
+Compiler checks also require explicit subclass overrides, complete return paths,
+and non-falling-through switches. Exact optional properties distinguish an
+omitted field from a present `undefined` value: serialized removals use deletion,
+while resettable UI state explicitly permits undefined where that is its contract.
+Access unknown extension dictionaries with brackets so they remain visibly
+distinct from declared saved fields. Do not widen every optional field merely to
+silence the checker.
+
+Oxfmt orders imports by built-in, external, internal and relative sources.
+`$lib/`, `$types/`, `$generated/` and `$app/` are internal prefixes. Oxlint sorts
+names inside declarations and checks duplicate imports. Comments partition
+intentional import sections. Bare side-effect imports retain their relative
+order, but value imports can move across them: preserve initialization-sensitive
+sections with comments and review CSS ordering when moving imports. Expanded
+markup uses one attribute per line in the existing whitespace-insensitive Svelte
+scopes; other components retain their rendered whitespace semantics.
+
+Vitest requires assertions to execute, including assertions inside Effect
+generators. Prefer a failing assertion which narrows a result before inspecting
+its payload, typed mocks of the replaced function, and an expected error class or
+message in throw checks. Tests intentionally constructing incomplete legacy saves
+use the typed fixture helpers; malformed fixtures must remain visibly intentional.
+
+The generated item and texture catalogs have explicit ambient entry contracts in
+`src/types/item-catalog.d.ts`. These describe trusted generator output, not
+validation of arbitrary user input. Family-specific consumers still narrow the
+item discriminator before accessing subtype fields.
 
 `npm run check` runs linting, native TypeScript checks for the app, tests, and
 tooling, and native Svelte checks for application and test components. Use
 `npm run check:types`, `npm run check:tests`, or `npm run check:tooling` for the
-individual scopes. The separate TypeScript configurations keep browser globals
+individual scopes. `check:tooling` also checks `tsconfig.tools.json`, which owns
+Node browser-automation scripts and their explicitly typed page callbacks.
+The separate TypeScript configurations keep browser globals
 from silently acquiring Node declarations from test or build code. The root
 `tsconfig.json` is an empty solution that lets editors discover the app, tests
 and tooling projects. CLI checks target `tsconfig.app.json`,
@@ -236,6 +276,15 @@ these use synthetic fixtures and require no game installation. The native
 TypeScript 7 compiler is installed as `@typescript/native`; the TypeScript 6 SDK
 remains installed for integrations that need its JavaScript compiler API. Scripts
 use an explicit native compiler path to avoid ambiguous `tsc` executable names.
+
+Game-data codec fixtures are committed. Their maintained consumers participate in
+ordinary linting and tooling type checks without .NET or a generation step.
+`npm run test:game-data` exercises the codecs using Node alone. After changing the
+compiler or catalog fixtures, run `npm run game-data:fixtures` to refresh the codec
+fixtures; `npm run check:game-data:fixtures` verifies that they match the generator
+without overwriting them. These maintenance commands and
+`npm run test:game-data:compiler` require the .NET 10 SDK. Generated fixture source
+is excluded from linting and formatting, while its types are checked.
 
 Dependency installation configures Vite+ and patches the compiler integrations
 with Effect language service support. Install the recommended VS Code extensions

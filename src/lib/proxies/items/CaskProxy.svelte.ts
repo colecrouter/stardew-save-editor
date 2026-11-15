@@ -1,4 +1,5 @@
 import type { CaskItem } from "$types/save";
+
 import { BaseItemProxy, Raw } from "./ItemProxy.svelte";
 
 export class CaskProxy extends BaseItemProxy<CaskItem> {

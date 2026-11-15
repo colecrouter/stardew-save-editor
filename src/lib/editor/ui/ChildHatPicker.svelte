@@ -1,13 +1,15 @@
 <script lang="ts">
+	import { Combobox } from "bits-ui";
 	import { Effect, Result } from "effect";
 	import { onMount } from "svelte";
-	import { Combobox } from "bits-ui";
+
+	import StudyField from "../../ui/kit/StudyField.svelte";
+	import type { ChildView } from "../children-data.ts";
 	import { runEntryCommand } from "../entry-operations.ts";
 	import type { CatalogChoice } from "../item-catalog.ts";
-	import type { ChildView } from "../children-data.ts";
 	import { resolveItemMetadata } from "../item-presentation.ts";
 	import BackpackItemVisual from "./BackpackItemVisual.svelte";
-	import StudyField from "../../ui/kit/StudyField.svelte";
+
 	let {
 		hat,
 		value,
@@ -18,7 +20,8 @@
 	}: {
 		hat: ChildView["hat"];
 		value: string;
-		stage?: number;
+		// Unknown saved development stages intentionally disable stage-dependent choices.
+		stage?: number | undefined;
 		disabled: boolean;
 		onchange: (value: string) => void;
 		onpreview: (value: string, hat: ChildView["hat"]) => void;
@@ -43,14 +46,16 @@
 				message: "The hat catalog could not be loaded.",
 			},
 		).then((result) => {
-			if (!active) return;
+			if (!active) return undefined;
 			if (result && Result.isSuccess(result)) {
 				choices = result.success.catalogChoices.filter(
 					(choice) => choice.kind === "Hat",
 				);
-				search = (query) => result.success.searchCatalog(query, "Hat", choices);
+				search = (term) => result.success.searchCatalog(term, "Hat", choices);
 			}
 			loading = false;
+			// Completion reports no value; the mounted picker owns the updated state.
+			return undefined;
 		});
 		return () => {
 			active = false;
@@ -102,7 +107,10 @@
 <div class="hat-picker">
 	<div class="hat-preview">
 		{#if visual}
-			<BackpackItemVisual {visual} size={48} />
+			<BackpackItemVisual
+				{visual}
+				size={48}
+			/>
 		{/if}
 
 		<span>{label}</span>
@@ -154,13 +162,21 @@
 					>
 						<Combobox.Viewport>
 							{#if showKeep}
-								<Combobox.Item value="keep" label={hat.name} class="hat-option">
+								<Combobox.Item
+									value="keep"
+									label={hat.name}
+									class="hat-option"
+								>
 									<span>Keep saved hat &middot; {hat.name}</span>
 								</Combobox.Item>
 							{/if}
 
 							{#if showRemove}
-								<Combobox.Item value="remove" label="No hat" class="hat-option">
+								<Combobox.Item
+									value="remove"
+									label="No hat"
+									class="hat-option"
+								>
 									<span aria-hidden="true">&mdash;</span>
 
 									<span>No hat</span>

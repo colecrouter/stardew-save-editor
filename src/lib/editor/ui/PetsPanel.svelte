@@ -1,11 +1,12 @@
 <script lang="ts">
 	import { useAtomValue } from "effect-atom-svelte";
+
+	import StudyPanel from "../../ui/kit/StudyPanel.svelte";
 	import type { EditorModel } from "../editor-model.ts";
 	import { createPetFields } from "../pet-domain.ts";
-	import StudyPanel from "../../ui/kit/StudyPanel.svelte";
-	import TextField from "./fields/TextField.svelte";
 	import NumberField from "./fields/NumberField.svelte";
 	import SelectField from "./fields/SelectField.svelte";
+	import TextField from "./fields/TextField.svelte";
 	import PetAppearanceIcon from "./PetAppearanceIcon.svelte";
 
 	let { model }: { model: EditorModel } = $props();
@@ -51,7 +52,10 @@
 				</div>
 
 				<div class="fields">
-					<TextField field={pet.fields.name} sensitive />
+					<TextField
+						field={pet.fields.name}
+						sensitive
+					/>
 
 					<NumberField field={pet.fields.friendship} />
 

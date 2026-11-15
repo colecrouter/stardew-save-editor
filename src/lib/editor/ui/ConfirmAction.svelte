@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { Result } from "effect";
+
 	import type { CommandResult } from "../command-result.ts";
+
 	interface Props {
 		title: string;
 		description: string;
@@ -82,7 +84,11 @@
 		>
 			Cancel
 		</button>
-		<button class="ui-control ui-button" type="submit" disabled={busy}>
+		<button
+			class="ui-control ui-button"
+			type="submit"
+			disabled={busy}
+		>
 			{busy ? "Applying..." : label}
 		</button>
 	</form>

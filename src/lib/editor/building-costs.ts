@@ -1,6 +1,7 @@
 import buildings from "$generated/buildings.json";
-import { guidanceItem } from "./item-guidance.ts";
+
 import { immutableView } from "./immutable-view.ts";
+import { guidanceItem } from "./item-guidance.ts";
 
 // Definitions are safe to index during module loading. Resolve their drawings
 // only when requested: item presentation also imports building/domain code, so
@@ -25,7 +26,7 @@ const cache = new Map<string, ReturnType<typeof describe>>();
 /** Unknown/modded buildings have no invented construction price. */
 export function buildingConstructionCost(name: string) {
 	const building = definitions.get(name);
-	if (!building) return undefined;
+	if (!building) return;
 	const existing = cache.get(name);
 	if (existing) return existing;
 	const result = describe(building);

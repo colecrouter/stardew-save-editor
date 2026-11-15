@@ -1,16 +1,17 @@
 import { it } from "@effect/vitest";
-import { describe, expect } from "vitest";
 import { Effect, Result } from "effect";
+import { describe, expect } from "vitest";
+
+import { makeHistorySession } from "../../src/lib/editor/history.ts";
 import {
 	inspectPregnancy,
 	readPregnancy,
 } from "../../src/lib/editor/pregnancy-data.ts";
 import { setPregnancy } from "../../src/lib/editor/pregnancy-operations.ts";
-import { makeHistorySession } from "../../src/lib/editor/history.ts";
 import {
-	tinyFixture,
-	parser,
 	exportDocument,
+	parser,
+	tinyFixture,
 } from "../helpers/editor-document.ts";
 
 function fixture() {
@@ -67,7 +68,8 @@ describe("saved pregnancy and baby-question eligibility", () => {
 				const before = structuredClone(document);
 				const session = yield* makeHistorySession(document);
 				const targetKey = readPregnancy(document, "1").targetKey;
-				if (!targetKey) throw Error("Missing fixture spouse");
+				if (targetKey == null || targetKey.length === 0)
+					throw Error("Missing fixture spouse");
 				yield* session.transact(
 					setPregnancy({ farmerId: "1", targetKey, expecting: true }),
 				);
@@ -144,7 +146,8 @@ describe("saved pregnancy and baby-question eligibility", () => {
 				const guest = !Array.isArray(document.SaveGame.farmhands)
 					? undefined
 					: document.SaveGame.farmhands[0];
-				if (!guest) throw Error("Missing guest");
+				if (guest == null || guest["length"] === 0)
+					throw Error("Missing guest");
 				Object.assign(guest, { homeLocation: "Cabin_1", houseUpgradeLevel: 2 });
 				Object.assign(document.SaveGame, {
 					farmerFriendships: [

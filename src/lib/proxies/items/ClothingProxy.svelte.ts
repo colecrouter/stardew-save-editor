@@ -1,9 +1,14 @@
 import type { ParentIndex } from "$lib/ItemParentIndex";
 import { Color } from "$lib/proxies/Color.svelte";
 import type { ClothesType, ClothingItem } from "$types/save";
+
+import { writeOptionalField } from "../../optional-field.ts";
 import { BaseItemProxy, Raw } from "./ItemProxy.svelte";
 
-const CLOTHING_SLOTS: ParentIndex[] = ["shirtItem", "pantsItem"];
+const CLOTHING_SLOTS: ReadonlySet<ParentIndex> = new Set<ParentIndex>([
+	"shirtItem",
+	"pantsItem",
+]);
 
 export class ClothingProxy extends BaseItemProxy<ClothingItem> {
 	public indexInTileSheet: number | undefined;
@@ -17,17 +22,17 @@ export class ClothingProxy extends BaseItemProxy<ClothingItem> {
 
 		this.indexInTileSheet = $state(this[Raw].indexInTileSheet);
 		$effect(() => {
-			this[Raw].indexInTileSheet = this.indexInTileSheet;
+			writeOptionalField(this[Raw], "indexInTileSheet", this.indexInTileSheet);
 		});
 
 		this.dyeable = $state(this[Raw].dyeable);
 		$effect(() => {
-			this[Raw].dyeable = this.dyeable;
+			writeOptionalField(this[Raw], "dyeable", this.dyeable);
 		});
 
 		this.isPrismatic = $state(this[Raw].isPrismatic);
 		$effect(() => {
-			this[Raw].isPrismatic = this.isPrismatic;
+			writeOptionalField(this[Raw], "isPrismatic", this.isPrismatic);
 		});
 
 		this.color = $state(this.computeClothesColor());
@@ -35,7 +40,7 @@ export class ClothingProxy extends BaseItemProxy<ClothingItem> {
 	}
 
 	static isClothingSlot(slot: ParentIndex) {
-		return CLOTHING_SLOTS.includes(slot);
+		return CLOTHING_SLOTS.has(slot);
 	}
 
 	static isSlotCompatible(slot: ParentIndex) {
@@ -47,7 +52,7 @@ export class ClothingProxy extends BaseItemProxy<ClothingItem> {
 	}
 
 	set clothesType(value: ClothesType | undefined) {
-		this[Raw].clothesType = value;
+		writeOptionalField(this[Raw], "clothesType", value);
 	}
 
 	private computeClothesColor() {

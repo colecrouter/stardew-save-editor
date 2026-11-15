@@ -1,6 +1,7 @@
 <script lang="ts">
 	import "./styles.css";
 	import type { HTMLButtonAttributes } from "svelte/elements";
+
 	interface Props extends HTMLButtonAttributes {
 		intent?: "neutral" | "constructive" | "destructive";
 		variant?: "plain" | "filled";

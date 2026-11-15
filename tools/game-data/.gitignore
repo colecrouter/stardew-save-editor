@@ -5,5 +5,6 @@
 # Local game inspection/export artifacts; never commit binary-derived work inputs.
 /workspace/
 
-# Rebuilt by the game-data test preparation command.
-/tests/generated/
+# Only transient fixture verification output is disposable; codec fixtures are committed.
+/tests/generated/*.verify.ts
+/tests/generated/game/

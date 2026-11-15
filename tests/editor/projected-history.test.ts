@@ -1,23 +1,24 @@
+import { it } from "@effect/vitest";
 import { Deferred, Effect, Exit } from "effect";
 import { get } from "svelte/store";
-import { it } from "@effect/vitest";
 import { expect, vi } from "vitest";
-import { makeHistorySession } from "../../src/lib/editor/history";
+
 import { makeEditorModel } from "../../src/lib/editor/editor-model";
-import { SaveCodec, SaveCodecLive } from "../../src/lib/editor/save-service";
-import { TransactionDraft } from "../../src/lib/editor/transaction-draft";
 import { setFarmSettings } from "../../src/lib/editor/farm-operations";
+import { makeHistorySession } from "../../src/lib/editor/history";
+import { makeSaveProcessor } from "../../src/lib/editor/save-processing.ts";
+import { SaveCodec, SaveCodecLive } from "../../src/lib/editor/save-service";
 import {
 	recordAnnotatedOperation,
 	withReviewMetadata,
 } from "../../src/lib/editor/transaction-annotations";
+import { TransactionDraft } from "../../src/lib/editor/transaction-draft";
 import { fixtureXml, parser, tinyFixture } from "./fixtures";
-import { makeSaveProcessor } from "../../src/lib/editor/save-processing.ts";
 
 const fullHistoryCopies = (calls: unknown[][]) =>
 	calls.filter(
 		([value]) =>
-			value &&
+			value !== null &&
 			typeof value === "object" &&
 			"baseline" in value &&
 			"document" in value,
@@ -58,21 +59,21 @@ it.effect(
 					const view = get(model.view);
 					if (!view) throw new Error("Missing projected view");
 					const patch = view.net.find(
-						(patch) => patch.path === "/SaveGame/opaque",
+						(candidatePatch) => candidatePatch.path === "/SaveGame/opaque",
 					);
 					if (!patch || patch.op === "remove")
 						throw new Error("Missing review payload");
 					const payload = patch.value;
-					if (!payload || typeof payload !== "object")
+					if (payload === null || typeof payload !== "object")
 						throw new Error("Missing object payload");
 					expect(() =>
 						Object.assign(payload, { children: ["UI mutation"] }),
-					).toThrow();
+					).toThrow(TypeError);
 					// A borrowed-source probe returns only booleans. UI freezing must never
 					// freeze or retain the corresponding saved patch/annotation references.
 					const isolation = yield* session.forProjection((state) => {
 						const saved = state.net.find(
-							(patch) => patch.path === "/SaveGame/opaque",
+							(candidatePatch) => candidatePatch.path === "/SaveGame/opaque",
 						);
 						return {
 							netShared: Object.is(state.net, view.net),

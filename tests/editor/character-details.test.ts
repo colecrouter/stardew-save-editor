@@ -1,17 +1,18 @@
-import { TransactionDraft } from "../../src/lib/editor/transaction-draft.ts";
-import { setInventoryItem } from "../../src/lib/editor/inventory-operations.ts";
 import { it } from "@effect/vitest";
-import { describe, expect } from "vitest";
 import { Effect } from "effect";
+import { describe, expect } from "vitest";
+
 import {
 	readCharacterDetails,
 	setCharacterDetails,
 } from "../../src/lib/editor/character-details.ts";
 import { makeHistorySession } from "../../src/lib/editor/history.ts";
+import { setInventoryItem } from "../../src/lib/editor/inventory-operations.ts";
+import { TransactionDraft } from "../../src/lib/editor/transaction-draft.ts";
 import {
-	tinyFixture,
-	parser,
 	exportDocument,
+	parser,
+	tinyFixture,
 } from "../helpers/editor-document.ts";
 
 function fixture() {
@@ -238,7 +239,8 @@ it.effect("rejects a removed slot handle after shrink and regrowth", () =>
 		});
 		const session = yield* makeHistorySession(document);
 		const stale = (yield* session.snapshot).identities["1"]?.[23];
-		if (!stale) throw new Error("Missing test handle");
+		if (stale == null || stale.length === 0)
+			throw new Error("Missing test handle");
 		yield* session.transact(
 			setCharacterDetails({ farmerId: "1", key: "backpack", value: "12" }),
 		);
@@ -316,7 +318,8 @@ it.effect(
 			const session = yield* makeHistorySession(document);
 			const before = yield* session.snapshot;
 			const entityId = before.identities["1"]?.[0];
-			if (!entityId) throw new Error("Missing retained identity");
+			if (entityId == null || entityId.length === 0)
+				throw new Error("Missing retained identity");
 			yield* session.transact(
 				Effect.gen(function* () {
 					yield* setInventoryItem({

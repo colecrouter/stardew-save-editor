@@ -1,21 +1,23 @@
-import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
-import { expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, waitFor, within } from "@testing-library/svelte";
 import { Effect, Result } from "effect";
 import { openDB } from "idb";
+import { beforeEach, expect, it, vi } from "vitest";
+
+import * as downloads from "../../src/lib/downloadSave";
 import {
-	saveOriginalBackup,
-	openOriginalBackupStore,
-} from "../../src/lib/saveBackups";
-import {
-	readOriginalBackups,
 	deleteOriginalBackup,
 	downloadOriginalBackup,
+	readOriginalBackups,
 	runBackupCommand,
 } from "../../src/lib/editor/backup-operations";
-import * as downloads from "../../src/lib/downloadSave";
+import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
 import BackupPanel from "../../src/lib/editor/ui/BackupPanel.svelte";
 import EditorApp from "../../src/lib/editor/ui/EditorApp.svelte";
+import {
+	openOriginalBackupStore,
+	saveOriginalBackup,
+} from "../../src/lib/saveBackups";
+import { requireRecord } from "../helpers/assertions.ts";
 import {
 	exportDocument,
 	tinyEditorFixture,
@@ -96,10 +98,12 @@ it("retains malformed archive data and exposes it as an unavailable row instead 
 	await saveOriginalBackup(new File(["valid original"], "ValidFarm"));
 	const rows = await Effect.runPromise(readOriginalBackups());
 	expect(rows).toHaveLength(2);
+	// Vitest types asymmetric matchers as any. Keep expected matcher values
+	// unknown so they cannot weaken the surrounding saved-data assertions.
 	expect(rows.find((row) => row.key === key)).toMatchObject({
 		name: "Broken",
 		file: undefined,
-		reason: expect.any(String),
+		reason: expect.any(String) as unknown,
 	});
 	const check = await openDB("backups", 1);
 	try {
@@ -133,7 +137,9 @@ it("downloads the restored File and original filename, while browser failures st
 
 it("requires explicit confirmation for deletion and leaves originals untouched when cancelled", async () => {
 	await saveOriginalBackup(new File(["source bytes"], "Farm_123"));
-	const page = render(BackupPanel, { onopen: vi.fn(async () => {}) });
+	const page = render(BackupPanel, {
+		onopen: vi.fn<() => Promise<void>>(() => Promise.resolve()),
+	});
 	try {
 		const card = within(
 			await page.findByRole("article", { name: "Farm_123 backup" }),
@@ -167,7 +173,7 @@ it("opens an archived original through the v2 import owner without appending a d
 	await saveOriginalBackup(
 		new File([fixtureXml], "ArchivedFarm", { lastModified: 12 }),
 	);
-	const backup = vi.fn(saveOriginalBackup);
+	const backup = vi.fn<(file: File) => Promise<void>>(saveOriginalBackup);
 	const page = render(EditorApp, {
 		processingLayer: SaveProcessingSync,
 		backupOriginal: backup,
@@ -189,7 +195,7 @@ it("opens an archived original through the v2 import owner without appending a d
 });
 
 it("keeps expected failures typed and reports defects without an unhandled UI rejection", async () => {
-	const report = vi.fn();
+	const report = vi.fn<() => void>();
 	const rejected = await runBackupCommand(
 		deleteOriginalBackup(undefined),
 		report,
@@ -214,7 +220,7 @@ it("reports unexpected download implementation failures as defects rather than s
 		.mocked(downloads.downloadSave)
 		.mockRejectedValue(new TypeError("broken implementation"));
 	const log = vi.spyOn(console, "error").mockImplementation(() => {}),
-		report = vi.fn();
+		report = vi.fn<() => void>();
 	try {
 		expect(
 			await runBackupCommand(downloadOriginalBackup(file), report),
@@ -252,9 +258,9 @@ it("does not let duplicate uploads evict distinct originals, while changed revis
 		await saveOriginalBackup(
 			new File([new Uint8Array([...bytes, 42])], "Farm_123"),
 		);
-		const after = await db.getAll("files");
+		const after: unknown[] = await db.getAll("files");
 		expect(after).toHaveLength(5);
-		expect(after[0].name).toBe("Other_0");
+		expect(requireRecord(after[0])["name"]).toBe("Other_0");
 		const latest = (await Effect.runPromise(readOriginalBackups()))[0]?.file;
 		if (!latest) throw new Error("Missing updated original");
 		expect(new Uint8Array(await latest.arrayBuffer())).toEqual(
@@ -307,10 +313,12 @@ it.each(["browser", "defect"] as const)(
 		const log = vi.spyOn(console, "error").mockImplementation(() => {});
 		const page = render(EditorApp, {
 			processingLayer: SaveProcessingSync,
-			backupOriginal: async () => {
+			backupOriginal: () => {
 				if (kind === "browser")
-					throw new DOMException("No space", "QuotaExceededError");
-				throw new TypeError("writer bug");
+					return Promise.reject(
+						new DOMException("No space", "QuotaExceededError"),
+					);
+				return Promise.reject(new TypeError("writer bug"));
 			},
 		});
 		try {

@@ -1,11 +1,12 @@
-import { expect, it } from "vitest";
 import { fireEvent, render, waitFor, within } from "@testing-library/svelte";
-import { openTestEditor } from "../helpers/open-editor.ts";
+import { expect, it } from "vitest";
+
 import { readCommunity } from "../../src/lib/editor/community-data";
-import WorkspaceHarness from "./WorkspaceHarness.svelte";
-import { fixtureXml } from "./fixtures";
-import { setCommunityProgress } from "../../src/lib/editor/community-operations";
 import { ingredientName } from "../../src/lib/editor/community-ingredients";
+import { setCommunityProgress } from "../../src/lib/editor/community-operations";
+import { openTestEditor } from "../helpers/open-editor.ts";
+import { fixtureXml } from "./fixtures";
+import WorkspaceHarness from "./WorkspaceHarness.svelte";
 
 it("keeps requirement drafts cancellable and commits one undoable transaction", async () => {
 	const opened = await openTestEditor(new TextEncoder().encode(fixtureXml));

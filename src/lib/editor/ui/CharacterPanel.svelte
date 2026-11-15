@@ -1,11 +1,13 @@
 <script lang="ts">
 	import { useAtomValue } from "effect-atom-svelte";
+
+	import StudyTabs from "../../ui/kit/StudyTabs.svelte";
 	import type { EditorModel } from "../editor-model.ts";
 	import { createFarmerSelectionField } from "../farmer-selection.ts";
-	import FarmerSelector from "./fields/FarmerSelector.svelte";
-	import StudyTabs from "../../ui/kit/StudyTabs.svelte";
 	import AppearancePanel from "./AppearancePanel.svelte";
 	import CharacterProgression from "./CharacterProgression.svelte";
+	import FarmerSelector from "./fields/FarmerSelector.svelte";
+
 	let { model, oninventory }: { model: EditorModel; oninventory: () => void } =
 		$props();
 	const view = useAtomValue(() => model.atomBindings.view);
@@ -35,7 +37,10 @@
 </header>
 
 {#snippet profile()}
-	<AppearancePanel {model} {oninventory} />
+	<AppearancePanel
+		{model}
+		{oninventory}
+	/>
 {/snippet}
 
 {#snippet progression()}

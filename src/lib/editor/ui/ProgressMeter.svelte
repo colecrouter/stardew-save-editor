@@ -34,7 +34,10 @@
 			? `${verified} of ${max}`
 			: `${verified} to ${upper} of ${max}; some progress is uncertain`)}
 >
-	<span class="verified" style:width={`${width}%`}></span>
+	<span
+		class="verified"
+		style:width={`${width}%`}
+	></span>
 
 	{#if uncertainWidth > 0}
 		<span

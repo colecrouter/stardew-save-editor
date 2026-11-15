@@ -1,30 +1,32 @@
 import { fireEvent, render, waitFor } from "@testing-library/svelte";
 import { Effect, Layer } from "effect";
 import { expect, it, vi } from "vitest";
-import EditorApp from "../../src/lib/editor/ui/EditorApp.svelte";
+
+import { editorResources } from "../../src/lib/editor/editor-model.ts";
 import {
-	SaveProcessor,
-	makeSaveProcessor,
 	type ImportedSave,
+	makeSaveProcessor,
+	SaveProcessor,
 } from "../../src/lib/editor/save-processing.ts";
 import {
-	SaveReadError,
 	SaveCodec,
 	SaveCodecLive,
+	SaveReadError,
 } from "../../src/lib/editor/save-service.ts";
-import { editorResources } from "../../src/lib/editor/editor-model.ts";
-import { fixtureXml, parser } from "./fixtures.ts";
+import EditorApp from "../../src/lib/editor/ui/EditorApp.svelte";
+import { requireInstance } from "../helpers/assertions.ts";
 import {
 	exportDocument,
 	tinyEditorFixture,
 } from "../helpers/editor-document.ts";
+import { fixtureXml, parser } from "./fixtures.ts";
 
 // Cancellation can happen while the processing layer itself is still being
 // acquired, before import() exists. Release acquired resources and permit retry.
 it("cancels processing-layer acquisition and opens a fresh session on retry", async () => {
 	let attempts = 0;
-	const released = vi.fn();
-	const acquiring = vi.fn();
+	const released = vi.fn<() => void>();
+	const acquiring = vi.fn<() => void>();
 	const processingLayer = Layer.effect(SaveProcessor)(
 		Effect.gen(function* () {
 			const attempt = yield* Effect.acquireRelease(
@@ -40,7 +42,10 @@ it("cancels processing-layer acquisition and opens a fresh session on retry", as
 	).pipe(Layer.provide(SaveCodecLive));
 	const page = render(EditorApp, { processingLayer });
 	try {
-		const input = page.getByLabelText("Save file") as HTMLInputElement;
+		const input = requireInstance(
+			page.getByLabelText("Save file"),
+			HTMLInputElement,
+		);
 		// Layer acquisition/retry owns a real codec, but needs no populated world.
 		const file = new File([exportDocument(tinyEditorFixture())], "Farm_123");
 		await fireEvent.change(input, { target: { files: [file] } });
@@ -66,8 +71,10 @@ it("cancels processing-layer acquisition and opens a fresh session on retry", as
 it("announces reading and processing, disables duplicate imports and cancels pending work", async () => {
 	const read = Promise.withResolvers<ArrayBuffer>();
 	const decoded = Promise.withResolvers<ImportedSave>();
-	const importing = vi.fn(() => Effect.promise(() => decoded.promise));
-	const released = vi.fn();
+	const importing = vi.fn<() => Effect.Effect<ImportedSave>>(() =>
+		Effect.promise(() => decoded.promise),
+	);
+	const released = vi.fn<() => void>();
 	const processingLayer = Layer.effect(SaveProcessor)(
 		Effect.acquireRelease(
 			Effect.succeed(
@@ -80,7 +87,10 @@ it("announces reading and processing, disables duplicate imports and cancels pen
 	vi.spyOn(file, "arrayBuffer").mockReturnValue(read.promise);
 	const page = render(EditorApp, { processingLayer });
 	try {
-		const input = page.getByLabelText("Save file") as HTMLInputElement;
+		const input = requireInstance(
+			page.getByLabelText("Save file"),
+			HTMLInputElement,
+		);
 		await fireEvent.change(input, { target: { files: [file] } });
 		expect(page.getByText("Reading save…")).toBeTruthy();
 		expect(input.disabled).toBe(true);
@@ -113,7 +123,7 @@ it("announces reading and processing, disables duplicate imports and cancels pen
 });
 
 it("clears busy feedback and releases the worker after a typed import failure", async () => {
-	const released = vi.fn();
+	const released = vi.fn<() => void>();
 	const processingLayer = Layer.effect(SaveProcessor)(
 		Effect.acquireRelease(
 			Effect.succeed(
@@ -128,7 +138,10 @@ it("clears busy feedback and releases the worker after a typed import failure", 
 	);
 	const page = render(EditorApp, { processingLayer });
 	try {
-		const input = page.getByLabelText("Save file") as HTMLInputElement;
+		const input = requireInstance(
+			page.getByLabelText("Save file"),
+			HTMLInputElement,
+		);
 		await fireEvent.change(input, {
 			target: { files: [new File(["broken"], "Farm_123")] },
 		});

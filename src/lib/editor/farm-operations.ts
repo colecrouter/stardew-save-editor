@@ -1,15 +1,17 @@
 import { Effect, Result } from "effect";
+
+import { farmers, type SaveDocument } from "./domain.ts";
 import {
 	decodeFarmSettingsChange,
 	type FarmSettingsChange,
 } from "./farm-settings.ts";
-export { FarmSettingsInvalid } from "./farm-settings.ts";
-import { farmers, type SaveDocument } from "./domain.ts";
-import { TransactionDraft } from "./transaction-draft.ts";
 import {
 	recordAnnotatedOperation,
 	withReviewMetadata,
 } from "./transaction-annotations.ts";
+import { TransactionDraft } from "./transaction-draft.ts";
+
+export { FarmSettingsInvalid } from "./farm-settings.ts";
 
 /**
  * Committed display values use the schema's field types, except mine rewards:
@@ -73,7 +75,8 @@ export function readFarmSettings(document: SaveDocument): FarmView {
 				: 100,
 		monsters: game.shouldSpawnMonsters === true,
 		mineRewards:
-			typeof game.shuffleMineChests === "string" && game.shuffleMineChests
+			typeof game.shuffleMineChests === "string" &&
+			game.shuffleMineChests !== undefined
 				? game.shuffleMineChests
 				: "Default",
 		creation: [
@@ -100,7 +103,10 @@ export function readFarmSettings(document: SaveDocument): FarmView {
 			},
 			{
 				label: "Money",
-				value: game.player?.useSeparateWallets ? "Separate wallets" : "Shared",
+				value:
+					game.player?.useSeparateWallets === true
+						? "Separate wallets"
+						: "Shared",
 				reason:
 					"Change wallet mode with the ledger in the Mayor’s Manor so the game can split or merge the gold overnight.",
 			},
@@ -112,7 +118,7 @@ export function readFarmSettings(document: SaveDocument): FarmView {
 			},
 			{
 				label: "Legacy randomization",
-				value: game.useLegacyRandom ? "On" : "Off",
+				value: game.useLegacyRandom === true ? "On" : "Off",
 				reason:
 					"Changing this recalculates rolled items and other random outcomes.",
 			},

@@ -1,29 +1,27 @@
-import { describe, expect, it } from "vitest";
 import { Effect, Result } from "effect";
 import { get } from "svelte/store";
-import { editorResources } from "../../src/lib/editor/editor-model";
-import { openEditor } from "../helpers/open-editor.ts";
+import { describe, expect, it } from "vitest";
+
 import {
 	setCalendarDate,
 	setCalendarWeather,
 } from "../../src/lib/editor/calendar-operations";
-import { fixtureXml, parser, exportDocument } from "./fixtures";
-import type { Value as GeneratedSave } from "../../generated/save-format/save.ts";
-
-type Save = GeneratedSave & { player: NonNullable<GeneratedSave["player"]> };
+import { editorResources } from "../../src/lib/editor/editor-model";
+import { requireRecord } from "../helpers/assertions.ts";
+import { openEditor } from "../helpers/open-editor.ts";
+import { exportDocument, fixtureXml, parser } from "./fixtures";
 
 const bytes = (xml: string) => new TextEncoder().encode(xml);
 
 // TestSave is a 6.6 MB preservation fixture. Encoding/reparsing it several times
-// verifies data integrity rather than latency. The shared runner deadline covers
-// this workload under normal CI concurrency.
+// verifies data integrity under the shared full-save test deadline.
 describe("full-save application calendar", () => {
 	it("the application calendar preserves unsupported inventory and bundle data without constructing those features", async () => {
 		const document = parser.parse(fixtureXml);
-		const raw = document.SaveGame as unknown as Record<string, unknown>;
-		delete raw.bundleData;
-		raw.player = {
-			...(raw.player as object),
+		const raw = requireRecord(document.SaveGame);
+		delete raw["bundleData"];
+		raw["player"] = {
+			...requireRecord(raw["player"]),
 			items: [
 				{
 					$type: "StardewValley.Object",
@@ -35,7 +33,7 @@ describe("full-save application calendar", () => {
 				},
 			],
 		};
-		raw.customModData = { untouched: ["0007", { nested: "opaque" }] };
+		raw["customModData"] = { untouched: ["0007", { nested: "opaque" }] };
 		const opened = await openEditor(bytes(exportDocument(document)));
 		try {
 			// Compare edits with the decoded baseline, including codec defaults for
@@ -48,10 +46,9 @@ describe("full-save application calendar", () => {
 			);
 			expect(result && Result.isSuccess(result)).toBe(true);
 			const after = await opened.model.snapshot();
-			expect(
-				(after.document.SaveGame as unknown as Record<string, unknown>)
-					.customModData,
-			).toEqual(raw.customModData);
+			expect(requireRecord(after.document.SaveGame)["customModData"]).toEqual(
+				raw["customModData"],
+			);
 			expect(after.document.SaveGame.player.items).toEqual(
 				before.SaveGame.player.items,
 			);
@@ -90,7 +87,7 @@ describe("full-save application calendar", () => {
 	// qualify latency separately without moving work outside the test.
 	it("application date/weather export reimports with unknown fields and coordinated multiplayer dates intact", async () => {
 		const document = parser.parse(fixtureXml);
-		const game = document.SaveGame as unknown as Save;
+		const game = document.SaveGame;
 		document.SaveGame.farmhands = [
 			{
 				...structuredClone(document.SaveGame.player),
@@ -119,13 +116,13 @@ describe("full-save application calendar", () => {
 					day: 8,
 				});
 				expect(get(reloaded.model.view)?.net).toEqual([]);
-				const after = (await reloaded.model.snapshot()).document
-					.SaveGame as unknown as Save & {
-					customModData: { untouched: string };
-				};
-				expect(after.customModData.untouched).toBe("007");
+				const after = (await reloaded.model.snapshot()).document.SaveGame;
+				expect(requireRecord(after["customModData"])["untouched"]).toBe("007");
 				expect(after.player.yearForSaveGame).toBe(3);
-				if (!after.farmhands) throw Error("Missing preserved farmhand");
+				expect.assert(
+					after.farmhands.length > 0,
+					"Expected the preserved farmhand",
+				);
 				expect(after.farmhands[0]?.yearForSaveGame).toBe(3);
 			} finally {
 				await reloaded.close();

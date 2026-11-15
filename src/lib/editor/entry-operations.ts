@@ -1,4 +1,5 @@
 import { Cause, Data, Effect, Exit, Result } from "effect";
+
 import type { CommandResult } from "./command-result.ts";
 
 /** A denied or unavailable clipboard leaves the selectable path usable by hand. */
@@ -16,7 +17,8 @@ const clipboardFailure = () =>
 export const copySaveLocation = Effect.fn("Entry.copySaveLocation")(function* (
 	path: string,
 ) {
-	if (!navigator.clipboard?.writeText) return yield* clipboardFailure();
+	if (typeof navigator.clipboard?.writeText !== "function")
+		return yield* clipboardFailure();
 	// A browser denial is expected feedback. A programming error remains a defect
 	// for the entry runtime, rather than silently pretending copying was denied.
 	yield* Effect.promise(() => navigator.clipboard.writeText(path)).pipe(

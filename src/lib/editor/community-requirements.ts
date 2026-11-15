@@ -1,27 +1,28 @@
 import { Effect, Result, Schema } from "effect";
-import { CommunityInvalid } from "./community-operations.ts";
+
 import {
 	inspectCommunity,
-	readCommunity,
 	progressId,
+	readCommunity,
 	submissionFlags,
 } from "./community-data.ts";
+import {
+	BUNDLE_CATEGORIES,
+	BUNDLE_QUALITIES,
+	canHaveQuality,
+	ingredientKind,
+	isValidIngredientId,
+	MAX_BUNDLE_ITEMS,
+	MAX_GOLD,
+	MAX_INGREDIENT_STACK,
+} from "./community-ingredients.ts";
+import { CommunityInvalid } from "./community-operations.ts";
 import { samePlainData } from "./plain-data.ts";
-import { TransactionDraft } from "./transaction-draft.ts";
 import {
 	recordAnnotatedOperation,
 	withReviewMetadata,
 } from "./transaction-annotations.ts";
-import {
-	BUNDLE_CATEGORIES,
-	BUNDLE_QUALITIES,
-	MAX_BUNDLE_ITEMS,
-	MAX_GOLD,
-	MAX_INGREDIENT_STACK,
-	canHaveQuality,
-	ingredientKind,
-	isValidIngredientId,
-} from "./community-ingredients.ts";
+import { TransactionDraft } from "./transaction-draft.ts";
 
 const integer = Schema.Number.check(
 	Schema.isInt(),
@@ -70,7 +71,7 @@ export const setCommunityRequirements = Effect.fn("Community.setRequirements")(
 		const bundle = readCommunity(document).bundles.find(
 			(row) => row.key === change.bundleKey,
 		);
-		if (!bundle?.supported)
+		if (!(bundle?.supported === true))
 			return yield* invalid(bundle?.reason ?? "Choose a supported bundle.");
 		// Compare saved requirements and donations, not unrelated global revision numbers.
 		// A draft must never silently inherit an intervening donation or definition edit.
@@ -219,7 +220,8 @@ export const setCommunityRequirements = Effect.fn("Community.setRequirements")(
 		// count when a row addition changes that implicit default.
 		if (
 			change.needed !== bundle.needed ||
-			(!parts[4] && change.needed !== change.requirements.length)
+			(!(parts[4] != null && parts[4] !== "") &&
+				change.needed !== change.requirements.length)
 		)
 			parts[4] = String(change.needed);
 		// Price labels are generated only when the imported label exactly follows the

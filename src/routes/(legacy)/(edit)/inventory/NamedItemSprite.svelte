@@ -1,8 +1,10 @@
 <script lang="ts">
 	import { untrack } from "svelte";
+
 	import { Dispose } from "$lib/proxies";
 	import { Item } from "$lib/proxies/Item.svelte";
 	import type { ItemProxy } from "$lib/proxies/items";
+
 	import ItemSprite from "./ItemSprite.svelte";
 
 	interface Props {

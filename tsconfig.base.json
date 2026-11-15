@@ -10,7 +10,20 @@
 				"includeSuggestionsInTsc": false,
 				"ignoreEffectWarningsInTscExitCode": true,
 				// Atom APIs are an explicitly adopted foundation; other diagnostics stay active.
-				"diagnosticSeverity": { "unstableApiUsage": "off" }
+				"diagnosticSeverity": { "unstableApiUsage": "off" },
+				// Mirror the deliberate XML API adoption in native/editor diagnostics.
+				"overrides": [
+					{
+						"include": [
+							"src/lib/xmlObject.ts",
+							"src/lib/save-format/events.ts",
+							"src/lib/save-format/xml.ts"
+						],
+						"options": {
+							"diagnosticSeverity": { "experimentalApiUsage": "off" }
+						}
+					}
+				]
 			}
 		],
 		"allowJs": true,
@@ -21,6 +34,14 @@
 		"skipLibCheck": true,
 		"sourceMap": true,
 		"strict": true,
-		"noUncheckedIndexedAccess": true
+		"noUncheckedIndexedAccess": true,
+		// Subclass intent and switch control flow must remain explicit as APIs evolve.
+		"noImplicitOverride": true,
+		"noImplicitReturns": true,
+		// Optional fields distinguish omission from an explicit undefined value;
+		// bracket access distinguishes extension dictionaries from declared fields.
+		"exactOptionalPropertyTypes": true,
+		"noPropertyAccessFromIndexSignature": true,
+		"noFallthroughCasesInSwitch": true
 	}
 }

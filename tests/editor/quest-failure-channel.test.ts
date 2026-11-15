@@ -1,6 +1,7 @@
-import { Effect, Result } from "effect";
 import { it } from "@effect/vitest";
+import { Effect, Result } from "effect";
 import { expect } from "vitest";
+
 import { makeHistorySession } from "../../src/lib/editor/history.ts";
 import {
 	QuestInvalid,

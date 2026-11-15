@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { weatherIconUrl } from "./weatherIcons";
+
 	let { weather, season }: { weather: string; season: string } = $props();
 	const url = $derived(weatherIconUrl(weather, season));
 </script>

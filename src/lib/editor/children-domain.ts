@@ -1,8 +1,9 @@
 import { Effect, Result, Schema } from "effect";
 import { derived } from "svelte/store";
-import type { EditorModel } from "./editor-model.ts";
-import { FieldValidationError, type Field } from "./field.ts";
+
 import { editChild } from "./children-operations.ts";
+import type { EditorModel } from "./editor-model.ts";
+import { type Field, FieldValidationError } from "./field.ts";
 
 // Strings retain incomplete number input and unknown imported appearance until
 // Apply. Keep is a hat action, never a reconstructed copy of the original item.

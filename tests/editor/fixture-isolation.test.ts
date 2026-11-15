@@ -1,4 +1,5 @@
 import { expect, it } from "vitest";
+
 import { fixtureXml, parser } from "./fixtures.ts";
 
 it("keeps nested edits private while preserving bigint fixture identities", () => {

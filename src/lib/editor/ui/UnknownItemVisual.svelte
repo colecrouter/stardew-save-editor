@@ -14,7 +14,16 @@
 	shape-rendering="crispEdges"
 >
 	<title>Unknown or unreadable item. Saved data is preserved.</title>
-	<path d="M3 1h10v1h1v12h-1v1H3v-1H2V2h1Z" fill="#694621" />
-	<path d="M3 2h10v12H3Z" fill="#fff2d3" />
-	<path d="M5 4h5v1h1v3h-1v1H9v2H7V8h2V6H7v1H5Zm2 8h2v1H7Z" fill="#694621" />
+	<path
+		d="M3 1h10v1h1v12h-1v1H3v-1H2V2h1Z"
+		fill="#694621"
+	/>
+	<path
+		d="M3 2h10v12H3Z"
+		fill="#fff2d3"
+	/>
+	<path
+		d="M5 4h5v1h1v3h-1v1H9v2H7V8h2V6H7v1H5Zm2 8h2v1H7Z"
+		fill="#694621"
+	/>
 </svg>

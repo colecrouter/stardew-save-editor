@@ -1,17 +1,18 @@
-import { malformedFixture } from "../helpers/editor-document.ts";
 import { it } from "@effect/vitest";
-import { describe, expect } from "vitest";
 import { Effect, Result } from "effect";
+import { describe, expect } from "vitest";
+
+import type { SaveDocument } from "../../src/lib/editor/domain.ts";
 import { makeHistorySession } from "../../src/lib/editor/history";
 import {
-	setInventoryItem,
 	decodeInventoryItemChange,
 	type InventoryItemChange,
+	setInventoryItem,
 } from "../../src/lib/editor/inventory-operations";
 import { readBackpacks } from "../../src/lib/editor/inventory-views";
 import { TransactionDraft } from "../../src/lib/editor/transaction-draft";
-import { tinyFixture } from "../helpers/editor-document.ts";
-import type { SaveDocument } from "../../src/lib/editor/domain.ts";
+import { requireRecord } from "../helpers/assertions.ts";
+import { malformedFixture, tinyFixture } from "../helpers/editor-document.ts";
 
 // Small documents exercise capability boundaries independently of XML/catalog
 // size. Opaque sibling data must remain exact through field edits and history.
@@ -71,8 +72,7 @@ describe("bounded backpack edits", () => {
 					}),
 				);
 				const expected = structuredClone(original);
-				(expected.SaveGame.player.items[0] as Record<string, unknown>).stack =
-					9999;
+				requireRecord(expected.SaveGame.player.items[0])["stack"] = 9999;
 				expect(after.document).toEqual(expected);
 				expect(after.identities).toEqual(before.identities);
 				expect(after.entries).toHaveLength(1);
@@ -82,9 +82,13 @@ describe("bounded backpack edits", () => {
 				expect(required(after.entries[0]).intent.label).toBe(
 					"Host: Parsnip quantity",
 				);
+				// Vitest types asymmetric matchers as any. Keep expected matcher values
+				// unknown so they cannot weaken the surrounding saved-data assertions.
 				expect(
 					required(required(after.entries[0]).annotations[0]).tags,
-				).toEqual(expect.arrayContaining(["farmer:1", `entity:${entityId}`]));
+				).toEqual(
+					expect.arrayContaining(["farmer:1", `entity:${entityId}`]) as unknown,
+				);
 				const quality = yield* session.transact(
 					setInventoryItem({
 						ownerId: "1",
@@ -94,8 +98,7 @@ describe("bounded backpack edits", () => {
 					}),
 				);
 				expect(
-					(quality.document.SaveGame.player.items[0] as Record<string, unknown>)
-						.quality,
+					requireRecord(quality.document.SaveGame.player.items[0])["quality"],
 				).toBe(4);
 				expect((yield* session.undo).document).toEqual(after.document);
 				expect((yield* session.redo).document).toEqual(quality.document);
@@ -122,8 +125,7 @@ describe("bounded backpack edits", () => {
 					}),
 				);
 				expect(
-					(edited.document.SaveGame.player.items[2] as Record<string, unknown>)
-						.stack,
+					requireRecord(edited.document.SaveGame.player.items[2])["stack"],
 				).toBe(12);
 				yield* session.undo;
 				yield* session.undo;
@@ -146,8 +148,7 @@ describe("bounded backpack edits", () => {
 					}),
 				);
 				expect(
-					(moved.document.SaveGame.player.items[1] as Record<string, unknown>)
-						.quality,
+					requireRecord(moved.document.SaveGame.player.items[1])["quality"],
 				).toBe(2);
 			}),
 	);
@@ -226,7 +227,7 @@ describe("bounded backpack edits", () => {
 				// The second case starts as an unsupported tool; the first starts as Wood,
 				// whose serialized category excludes quality despite a numeric quality field.
 				if (slot === 0)
-					Object.assign(document.SaveGame.player.items[0] as object, {
+					Object.assign(requireRecord(document.SaveGame.player.items[0]), {
 						$type: "StardewValley.Tools.Axe",
 						bigCraftable: true,
 						itemId: "unknown-tool",
@@ -236,9 +237,9 @@ describe("bounded backpack edits", () => {
 				const attempt = Effect.gen(function* () {
 					const draft = yield* TransactionDraft;
 					const edited = yield* draft.read;
-					const item = edited.state.document.SaveGame.player.items[
-						slot
-					] as Record<string, unknown>;
+					const item = requireRecord(
+						edited.state.document.SaveGame.player.items[slot],
+					);
 					const original = structuredClone(item);
 					Object.assign(item, temporary);
 					yield* draft.replace(edited);
@@ -250,9 +251,9 @@ describe("bounded backpack edits", () => {
 							: { property, value }),
 					});
 					const restored = yield* draft.read;
-					const target = restored.state.document.SaveGame.player.items[
-						slot
-					] as Record<string, unknown>;
+					const target = requireRecord(
+						restored.state.document.SaveGame.player.items[slot],
+					);
 					// A final-state-only guard would miss the temporary unsupported fields after
 					// these originals are restored, leaving only the unauthorized value change.
 					for (const key of Object.keys(temporary)) target[key] = original[key];
@@ -318,12 +319,9 @@ describe("bounded backpack edits", () => {
 					});
 					const draft = yield* TransactionDraft;
 					const snapshot = yield* draft.read;
-					(
-						snapshot.state.document.SaveGame.player.items[0] as Record<
-							string,
-							unknown
-						>
-					).customModData = { opaque: "tampered" };
+					requireRecord(snapshot.state.document.SaveGame.player.items[0])[
+						"customModData"
+					] = { opaque: "tampered" };
 					yield* draft.replace(snapshot);
 				});
 				expect(
@@ -379,7 +377,9 @@ describe("bounded backpack edits", () => {
 							// schema validation must still reject callers that bypass TypeScript.
 							yield* Effect.result(
 								session.transact(
-									setInventoryItem(change as InventoryItemChange),
+									setInventoryItem(
+										malformedFixture<InventoryItemChange>(change),
+									),
 								),
 							),
 						),
@@ -407,8 +407,7 @@ describe("bounded backpack edits", () => {
 				if (!Array.isArray(document.SaveGame.farmhands))
 					throw Error("Expected guest");
 				required(document.SaveGame.farmhands[0]).UniqueMultiplayerID = 1n;
-				(document.SaveGame.player as unknown as Record<string, unknown>).items =
-					"ModdedInventory";
+				requireRecord(document.SaveGame.player)["items"] = "ModdedInventory";
 				const session = yield* makeHistorySession(document);
 				const before = yield* session.snapshot;
 				expect(before.identities).toEqual({});
@@ -418,10 +417,9 @@ describe("bounded backpack edits", () => {
 				const after = yield* session.execute([
 					{ type: "farm-name", value: "New farm" },
 				]);
-				expect(
-					(after.document.SaveGame.player as unknown as Record<string, unknown>)
-						.items,
-				).toBe("ModdedInventory");
+				expect(requireRecord(after.document.SaveGame.player)["items"]).toBe(
+					"ModdedInventory",
+				);
 			}),
 	);
 
@@ -486,7 +484,7 @@ describe("bounded backpack edits", () => {
 				const modded = yield* session.transact(
 					setInventoryItem({
 						ownerId: "1",
-						entityId: required(before.identities["1"])[3] as string,
+						entityId: required(required(before.identities["1"])[3]),
 						property: "stack",
 						value: 2,
 					}),

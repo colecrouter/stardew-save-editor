@@ -1,13 +1,16 @@
 import { describe, expect, it } from "vitest";
+
 import { chestColor, chestGroup } from "$lib/chestGroups";
 import { Raw } from "$lib/proxies";
 import type { ChestMetadata, ChestProxy } from "$lib/proxies/Chest.svelte";
+
+import { partialFixture } from "./helpers/assertions.ts";
 
 const chest = (
 	metadata: Partial<ChestMetadata>,
 	raw: Record<string, unknown> = {},
 ) =>
-	({
+	partialFixture<ChestProxy>({
 		[Raw]: { name: "Chest", ...raw },
 		metadata: {
 			id: "x",
@@ -16,7 +19,7 @@ const chest = (
 			location: "Farm",
 			...metadata,
 		},
-	}) as unknown as ChestProxy;
+	});
 
 describe("chest groups", () => {
 	it("sorts chests, fridges and the island apart", () => {

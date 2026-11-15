@@ -1,6 +1,8 @@
 <script lang="ts">
-	import { tick, type Snippet } from "svelte";
+	import { type Snippet, tick } from "svelte";
+
 	import StudyButton from "../../ui/kit/StudyButton.svelte";
+
 	interface Notice {
 		readonly key: string;
 		readonly title: string;
@@ -66,8 +68,17 @@
 	}
 </script>
 
-<div class="notice-board" class:qi={tone === "qi"} data-detail={detailOpen}>
-	<nav class="notice-list" aria-label={label} bind:this={list} tabindex="-1">
+<div
+	class="notice-board"
+	class:qi={tone === "qi"}
+	data-detail={detailOpen}
+>
+	<nav
+		class="notice-list"
+		aria-label={label}
+		bind:this={list}
+		tabindex="-1"
+	>
 		{#each items as item (item.key)}
 			<button
 				type="button"

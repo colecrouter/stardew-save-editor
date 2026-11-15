@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { type DragDropState, draggable, droppable } from "@thisux/sveltednd";
+
 	import { sortSlots } from "$lib/chestMoves";
 	import type { ParentIndex } from "$lib/ItemParentIndex";
 	import { Dispose } from "$lib/proxies";
@@ -9,6 +10,7 @@
 	import { getToastManager, Toast } from "$lib/ToastManager.svelte";
 	import SortButton from "$lib/ui/SortButton.svelte";
 	import UiContainer from "$lib/ui/UIContainer.svelte";
+
 	import CharacterView from "./CharacterEquipment.svelte";
 	import ItemSlot from "./ItemSlot.svelte";
 	import ItemSprite from "./ItemSprite.svelte";

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Item } from "$lib/proxies/Item.svelte";
 	import UiCheckbox from "$lib/ui/UICheckbox.svelte";
+
 	import ItemSprite from "../inventory/ItemSprite.svelte";
 
 	interface Props {

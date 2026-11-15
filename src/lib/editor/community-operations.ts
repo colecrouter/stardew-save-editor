@@ -1,20 +1,21 @@
 import { Data, Effect, Result, Schema } from "effect";
-import { communityRooms } from "../communityCenterData.ts";
-import { progressionFarmers } from "./progression-farmers.ts";
-import type { Farmer } from "./domain.ts";
+
+import { CCRoom, communityRooms } from "../communityCenterData.ts";
 import {
-	inspectCommunity,
-	readCommunity,
-	mailStrings,
-	submissionFlags,
-	progressId,
 	type CommunityView,
+	inspectCommunity,
+	mailStrings,
+	progressId,
+	readCommunity,
+	submissionFlags,
 } from "./community-data.ts";
-import { TransactionDraft } from "./transaction-draft.ts";
+import type { Farmer } from "./domain.ts";
+import { progressionFarmers } from "./progression-farmers.ts";
 import {
 	recordAnnotatedOperation,
 	withReviewMetadata,
 } from "./transaction-annotations.ts";
+import { TransactionDraft } from "./transaction-draft.ts";
 
 export class CommunityInvalid extends Data.TaggedError("CommunityInvalid")<{
 	readonly message: string;
@@ -115,7 +116,9 @@ const editThankYouLetter = Effect.fn("Community.thankYouLetter")(function* (
 		const mailbox = lists.find((row) => row.field === "mailbox");
 		farmer.mailbox = [...(mailbox?.entries ?? []), thankYou];
 	} else {
-		for (const row of lists.filter((row) => row.field !== "mailReceived")) {
+		for (const row of lists.filter(
+			(candidateRow) => candidateRow.field !== "mailReceived",
+		)) {
 			const remaining = row.entries.filter(
 				(value) => !isLetter(value, thankYou),
 			);
@@ -127,19 +130,22 @@ const editThankYouLetter = Effect.fn("Community.thankYouLetter")(function* (
 /** Unknown original rooms cannot be silently treated as complete by an empty every(). */
 function overall(view: CommunityView): boolean | undefined {
 	const required = view.rooms.filter(
-		(room) => room.id < 6 && (!view.membership || room.id !== 5),
+		(room) =>
+			room.id < CCRoom.AbandonedJojaMart.valueOf() &&
+			(!(view.membership === true) ||
+				room.id !== CCRoom.BulletinBoard.valueOf()),
 	);
-	if (required.length !== (view.membership ? 5 : 6)) return;
-	if (view.membership)
+	if (required.length !== (view.membership === true ? 5 : 6)) return;
+	if (view.membership === true)
 		return required.every((room) => room.restored || room.completed === true);
 	return required.some((room) => room.completed === undefined)
 		? undefined
-		: required.every((room) => room.completed);
+		: required.every((room) => room.completed === true);
 }
 export const setCommunityProgress = Effect.fn("Community.setProgress")(
-	function* (input: CommunityChange) {
+	function* (input: unknown) {
 		const decoded = decode(
-			input && typeof input === "object" ? { ...input } : input,
+			input !== null && typeof input === "object" ? { ...input } : input,
 		);
 		if (Result.isFailure(decoded))
 			return yield* invalid("Choose a valid Community Center change.");
@@ -165,7 +171,7 @@ export const setCommunityProgress = Effect.fn("Community.setProgress")(
 			roomId: number,
 			completed: boolean,
 		) {
-			const room = communityRooms.find((row) => row.id === roomId);
+			const room = communityRooms.find((row) => row.id.valueOf() === roomId);
 			if (!room)
 				return yield* invalid("This room's progression is unsupported.");
 			// Decoding establishes the boolean array; absence alone needs defaults.
@@ -186,12 +192,14 @@ export const setCommunityProgress = Effect.fn("Community.setProgress")(
 						completed
 							? [
 									room.flag,
-									...(variant && mail.includes("JojaMember") ? [variant] : []),
+									...(variant !== undefined && mail.includes("JojaMember")
+										? [variant]
+										: []),
 								]
 							: [],
 						!completed
-							? [room.flag, ...(variant ? [variant] : [])]
-							: variant && !mail.includes("JojaMember")
+							? [room.flag, ...(variant !== undefined ? [variant] : [])]
+							: variant !== undefined && !mail.includes("JojaMember")
 								? [variant]
 								: [],
 					);
@@ -208,7 +216,7 @@ export const setCommunityProgress = Effect.fn("Community.setProgress")(
 				(row) => row.key === bundleKey,
 			);
 			if (
-				!bundle?.supported ||
+				!(bundle?.supported === true) ||
 				bundle.id === undefined ||
 				!bundle.rewardSupported
 			)
@@ -217,10 +225,9 @@ export const setCommunityProgress = Effect.fn("Community.setProgress")(
 				return yield* invalid(
 					"This bundle has no safe reward to make available.",
 				);
-			const entries = data.rewards.entries.filter(
+			const entry = data.rewards.entries.find(
 				(row) => progressId(row) === bundle.id,
 			);
-			const entry = entries[0];
 			if (entry) entry.value = value;
 			else if (value)
 				center.bundleRewards = [
@@ -237,7 +244,7 @@ export const setCommunityProgress = Effect.fn("Community.setProgress")(
 			const after = readCommunity(document).bundles.find(
 				(row) => row.key === key,
 			);
-			if (!after?.supported || after.id === undefined)
+			if (!(after?.supported === true) || after.id === undefined)
 				return yield* invalid("This bundle no longer has supported progress.");
 			if (wasComplete === after.completed) return;
 			// Rewards are availability flags, never items inserted into a farmer's bag.
@@ -246,7 +253,8 @@ export const setCommunityProgress = Effect.fn("Community.setProgress")(
 			const entry = current.entries.find((row) => progressId(row) === after.id);
 			if (!after.rewardSupported)
 				return yield* invalid("This bundle's reward flags are unsupported.");
-			const pending = after.completed && after.id !== 36 && !!after.reward;
+			const pending =
+				after.completed && after.id !== 36 && Boolean(after.reward);
 			if (entry) entry.value = pending;
 			else if (pending)
 				center.bundleRewards = [
@@ -262,14 +270,14 @@ export const setCommunityProgress = Effect.fn("Community.setProgress")(
 			const bundle = readCommunity(document).bundles.find(
 				(row) => row.key === key,
 			);
-			if (!bundle?.supported || bundle.id === undefined)
+			if (!(bundle?.supported === true) || bundle.id === undefined)
 				return yield* invalid(
 					bundle?.reason ?? "This bundle is no longer available.",
 				);
-			const entries = data.progress.entries.filter(
+			const entry = data.progress.entries.find(
 					(row) => progressId(row) === bundle.id,
 				),
-				submitted = submissionFlags(entries[0]);
+				submitted = submissionFlags(entry);
 			if (!submitted)
 				return yield* invalid("This bundle's donation flags are unsupported.");
 			const indices =
@@ -302,7 +310,9 @@ export const setCommunityProgress = Effect.fn("Community.setProgress")(
 			if (
 				!room ||
 				room.completed === undefined ||
-				(change.type === "project" && (!before.membership || !room.project))
+				(change.type === "project" &&
+					(!(before.membership === true) ||
+						!(room.project != null && room.project !== "")))
 			)
 				return yield* invalid("Choose a supported room or Joja project.");
 			for (const bundle of before.bundles.filter(
@@ -318,10 +328,10 @@ export const setCommunityProgress = Effect.fn("Community.setProgress")(
 					: `${change.value ? "Complete" : "Reopen"} ${room.name} room`;
 		} else if (change.type === "theater") {
 			if (
-				!before.membership ||
+				!(before.membership === true) ||
 				(change.value &&
 					!before.rooms
-						.filter((room) => room.project)
+						.filter((room) => room.project !== undefined)
 						.every((room) => room.restored || room.completed === true))
 			)
 				return yield* invalid(
@@ -335,7 +345,7 @@ export const setCommunityProgress = Effect.fn("Community.setProgress")(
 				: "Reopen Joja Movie Theater project";
 		} else {
 			const bundle = before.bundles.find((row) => row.key === change.bundleKey);
-			if (!bundle?.supported)
+			if (!(bundle?.supported === true))
 				return yield* invalid(bundle?.reason ?? "Choose a supported bundle.");
 			if (change.type === "donation") {
 				const requirement = bundle.requirements.find(

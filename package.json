@@ -9,7 +9,7 @@
 		"check:watch": "svelte-kit sync && svelte-check --tsgo --tsconfig ./tsconfig.app.json --watch",
 		"dump": "dotnet run --project tools/xnbhack/AssetDump.csproj",
 		"test:asset-dump": "dotnet run --project tools/xnbhack/tests/WorkspaceTests.csproj",
-		"check": "npm run lint && npm run check:types && npm run check:tests && npm run check:tooling && svelte-check --tsgo --tsconfig ./tsconfig.app.json",
+		"check": "npm run lint && npm run check:types && npm run check:tests && npm run check:tooling && svelte-check --fail-on-warnings --tsgo --tsconfig ./tsconfig.app.json",
 		"format": "vp fmt --write .",
 		"format:check": "vp fmt --check .",
 		"test": "vp test run",
@@ -24,14 +24,19 @@
 		"check:asset-dump": "dotnet build tools/xnbhack/tests/WorkspaceTests.csproj",
 		"postinstall": "patch-package --error-on-fail",
 		"game-data:generate": "dotnet run --project tools/game-data -- generate",
-		"test:game-data": "node tools/game-data/tests/prepare.mjs && node node_modules/@typescript/native/bin/tsc --noEmit -p tools/game-data/tsconfig.json && node --test tools/game-data/tests/*.node.ts",
-		"check:game-data": "node tools/game-data/tests/prepare.mjs && node node_modules/@typescript/native/bin/tsc --noEmit -p tools/game-data/tsconfig.json",
+		"test:game-data": "npm run check:game-data && node --test tools/game-data/tests/runtime.node.ts tools/game-data/tests/values.node.ts tools/game-data/tests/codecs.node.ts",
+		"check:game-data": "node node_modules/@typescript/native/bin/tsc --noEmit -p tools/game-data/tsconfig.json",
 		"test:browser:save-processing": "node --import tsx tools/verify-save-processing-browser.mjs",
-		"lint": "vp lint",
-		"check:tests": "node node_modules/@typescript/native/bin/tsc --noEmit -p tsconfig.tests.json && svelte-check --tsgo --tsconfig ./tsconfig.tests.json",
-		"check:tooling": "node node_modules/@typescript/native/bin/tsc --noEmit -p tsconfig.node.json",
+		"lint": "npm run lint:oxlint && npm run lint:svelte",
+		"check:tests": "node node_modules/@typescript/native/bin/tsc --noEmit -p tsconfig.tests.json && svelte-check --fail-on-warnings --tsgo --tsconfig ./tsconfig.tests.json",
+		"check:tooling": "node node_modules/@typescript/native/bin/tsc --noEmit -p tsconfig.node.json && node node_modules/@typescript/native/bin/tsc --noEmit -p tsconfig.tools.json && npm run check:game-data",
 		"effect:diagnostics:tests": "effect-tsgo diagnostics --project tsconfig.tests.json",
-		"benchmark:toolchain": "node scripts/benchmark-toolchain.mjs"
+		"benchmark:toolchain": "node scripts/benchmark-toolchain.mjs",
+		"game-data:fixtures": "node tools/game-data/tests/regenerate-fixtures.mjs",
+		"check:game-data:fixtures": "node tools/game-data/tests/regenerate-fixtures.mjs --check",
+		"test:game-data:compiler": "dotnet build tools/game-data --nologo --verbosity quiet && node --test tools/game-data/tests/compiler.node.ts",
+		"lint:oxlint": "vp lint",
+		"lint:svelte": "eslint . --max-warnings 0"
 	},
 	"devDependencies": {
 		"@effect/language-service": "0.87.5",
@@ -68,10 +73,11 @@
 		"vite-plugin-sveltekit-legacy": "^0.1.1",
 		"vite-plus": "1.6.0",
 		"vitest": "5.1.0",
-		"vitest-browser-svelte": "^3.1.0"
-	},
-	"optionalDependencies": {
-		"playwright": "^1.65.0"
+		"vitest-browser-svelte": "^3.1.0",
+		"@typescript-eslint/parser": "8.72.2",
+		"eslint": "10.15.0",
+		"eslint-plugin-svelte": "3.24.1",
+		"playwright": "1.65.0"
 	},
 	"type": "module",
 	"engines": {

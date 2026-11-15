@@ -1,34 +1,37 @@
-import type { Item } from "./domain.ts";
-import {
-	isSavedItem,
-	isKnownItem,
-	isInventorySlot,
-	type InventoryValue,
-	type InventorySlot,
-} from "./inventory-values.ts";
-import { readEquipmentSlot, writeEquipmentSlot } from "./equipment.ts";
-import { compareInventoryItems, isInventoryTool } from "../inventory-order.ts";
-import { storageCapabilities, storageTypes } from "./storage-policy.ts";
 import { Result } from "effect";
-import type {
-	ResolvedMutation,
-	OperationChange,
-	SaveDocument,
-} from "./domain.ts";
-import { MutationError } from "./mutation-error.ts";
+
+import { compareInventoryItems, isInventoryTool } from "../inventory-order.ts";
+import { emptyChestSlot } from "./chest-storage.ts";
 import {
-	inventoryContainers,
-	type InventoryContainer,
-} from "./inventory-containers.ts";
+	type Item,
+	type OperationChange,
+	type ResolvedMutation,
+	type SaveDocument,
+} from "./domain.ts";
 import {
 	canEquipItem,
+	type EquipmentIdentities,
 	equipmentLabels,
 	equipmentSlots,
-	trinketAvailable,
-	type EquipmentIdentities,
 	type InventoryLocation,
+	readEquipmentSlot,
+	trinketAvailable,
+	writeEquipmentSlot,
 } from "./equipment.ts";
-import { emptyChestSlot } from "./chest-storage.ts";
+import {
+	type InventoryContainer,
+	inventoryContainers,
+} from "./inventory-containers.ts";
+import {
+	type InventorySlot,
+	type InventoryValue,
+	isInventorySlot,
+	isKnownItem,
+	isSavedItem,
+} from "./inventory-values.ts";
+import { MutationError } from "./mutation-error.ts";
+import { nonemptyText } from "./plain-data.ts";
+import { storageCapabilities, storageTypes } from "./storage-policy.ts";
 
 /** Session-only item lifetimes travel with records; this state is never exported to XML. */
 export interface InventoryIdentityState {
@@ -74,9 +77,9 @@ const invalid = (message: string) => Result.fail(new MutationError(message));
 type PreparedInventoryTransition = {
 	label: string;
 	review: OperationChange["review"];
-	inventory?: InventoryIdentityState;
+	inventory?: InventoryIdentityState | undefined;
 };
-type Pair = { value: InventoryValue; id?: string };
+type Pair = { value: InventoryValue; id?: string | undefined };
 
 /** Plan one record/handle transition together. History publishes this result, not
  * a second interpretation of the action. Pure comparison callers omit handles.
@@ -137,7 +140,7 @@ export function applyInventoryMutation(
 			? Number.isInteger(location) &&
 				location >= 0 &&
 				location < container.slots.length
-			: !!container.farmer && equipmentSlots.includes(location);
+			: Boolean(container.farmer) && equipmentSlots.includes(location);
 	const pairAt = (
 		container: InventoryContainer,
 		location: InventoryLocation,
@@ -292,7 +295,11 @@ export function applyInventoryMutation(
 		return finish(`Organize ${owner.name}`, "standalone");
 	}
 	if (action.type === "inventory-transfer") {
-		if (!inventory || !Array.isArray(action.sources) || !action.sources.length)
+		if (
+			!inventory ||
+			!Array.isArray(action.sources) ||
+			!(action.sources.length > 0)
+		)
 			return invalid("Choose the items to transfer");
 		const seen = new Set<string>();
 		const moving: {
@@ -302,7 +309,6 @@ export function applyInventoryMutation(
 		}[] = [];
 		for (const source of action.sources) {
 			if (
-				!source ||
 				typeof source.ownerId !== "string" ||
 				typeof source.entityId !== "string" ||
 				seen.has(source.entityId)
@@ -321,7 +327,7 @@ export function applyInventoryMutation(
 				return invalid("A selected item is no longer available");
 			if (container.id !== owner.id) moving.push({ container, slot, pair });
 		}
-		if (!moving.length)
+		if (!(moving.length > 0))
 			return Result.succeed({
 				label: "Items already belong to this inventory",
 				review: "compact",
@@ -360,12 +366,14 @@ export function applyInventoryMutation(
 			!chest ||
 			!target ||
 			!capability ||
-			(!capability.typeId && !capability.miniShippingBin)
+			(!(capability.typeId != null && capability.typeId !== "") &&
+				!capability.miniShippingBin)
 		)
 			return invalid("This container's type cannot be changed");
 		if (
 			capability.miniShippingBin &&
-			(target.itemId !== "130" || capability.expansionReason)
+			(target.itemId !== "130" ||
+				nonemptyText(capability.expansionReason) !== undefined)
 		)
 			return invalid(
 				capability.expansionReason ??
@@ -514,7 +522,7 @@ export function applyInventoryMutation(
 	return finish(
 		action.type === "equipment-swap"
 			? `${empty(destination.value) ? "Move" : "Swap"} item from ${owner.name}’s ${locationLabel(action.slot)} to ${destinationOwner.name}’s ${locationLabel(action.toSlot)}`
-			: `${empty(destination.value) ? "Move" : "Swap"} item from ${owner.name} (slot ${Number(action.slot) + 1}) to ${destinationOwner.name} (slot ${Number(action.toSlot) + 1})`,
+			: `${empty(destination.value) ? "Move" : "Swap"} item from ${owner.name} (slot ${action.slot + 1}) to ${destinationOwner.name} (slot ${action.toSlot + 1})`,
 		owner.id === destinationOwner.id && action.type !== "equipment-swap"
 			? "compact"
 			: "standalone",

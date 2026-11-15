@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import {
 	restoreOriginal,
 	serializeOriginal,
@@ -46,6 +47,6 @@ describe("original backup restoration", () => {
 				size: 1,
 				type: "",
 			}),
-		).toThrow();
+		).toThrow(/character/i);
 	});
 });

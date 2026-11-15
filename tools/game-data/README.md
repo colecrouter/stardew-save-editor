@@ -11,7 +11,7 @@ of the web application and never requires game files for normal app builds.
 - `Compilation/`: effective serialization contracts and TypeScript emission.
 - `Coverage/`: observed save coverage against those contracts.
 - `src/lib/save-format/` (repository root): browser-side codecs used by generated modules.
-- `tests/`: compiler/runtime tests, catalog fixtures, and the synthetic game assembly.
+- `tests/`: focused compiler/runtime tests, catalog inputs, and committed codec fixtures.
 - `scripts/`: maintenance generators such as the ordinal case table.
 
 ## Getting started
@@ -170,17 +170,37 @@ catalogs when these fields are missing; they are required to interpret those typ
 
 ## Verification
 
-The test commands build a synthetic game-shaped assembly and exercise inspection,
-generation, coverage and .NET XmlSerializer interoperability. No game is required:
+TODO: Add a CI integration check that runs the real generator against the pinned
+game binary and fails if its output differs from the committed production codec.
+Provisioning CI access to that binary is deferred; it is not required for this
+linting migration.
+
+Runtime tests and type checks use committed codec fixtures and need only Node:
 
 ```bash
 npm run test:game-data
 npm run check:game-data
+```
+
+Normal linting includes fixture consumers. Generated codec source is excluded from
+linting and formatting, but remains type checked. To update fixtures after a
+compiler or catalog change, use the .NET 10 SDK:
+
+```bash
+npm run game-data:fixtures
+npm run check:game-data:fixtures
+npm run test:game-data:compiler
 dotnet format tools/game-data --verify-no-changes --no-restore
 ```
 
-C# uses tabs (width 4), configured in `.editorconfig`. Build outputs and generated
-test modules are ignored. NuGet versions are pinned in the project and lockfile;
+The fixture check compares generated source with the committed codecs without
+overwriting them. Compiler tests cover catalog coverage and invalid-contract
+handling; runtime tests cover precision, nullability, polymorphism and streaming.
+These checks require no game installation and do not verify real-game inspection
+or .NET XmlSerializer interoperability. That integration coverage is deferred above.
+
+C# uses tabs (width 4), configured in `.editorconfig`. Build outputs are ignored.
+NuGet versions are pinned in the project and lockfile;
 CI can restore with `dotnet restore --locked-mode`.
 
 References:

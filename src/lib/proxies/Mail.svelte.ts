@@ -1,5 +1,7 @@
 import { SvelteSet } from "svelte/reactivity";
+
 import type { BroadcastedMail } from "$types/save";
+
 import { type DataProxy, Raw } from ".";
 
 /**
@@ -289,13 +291,13 @@ export enum MailFlag {
  * This collection manages saved flags without simulating mail delivery or opening.
  */
 export class MailBox
-	extends SvelteSet<MailFlag>
+	extends SvelteSet<string>
 	implements DataProxy<BroadcastedMail>
 {
 	public [Raw]: BroadcastedMail;
 
 	constructor(mail: BroadcastedMail) {
-		super(mail.string as MailFlag[]);
+		super(mail.string);
 		this[Raw] = mail;
 
 		$effect(() => {

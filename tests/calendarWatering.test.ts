@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
+
 import {
 	planRainWatering,
 	type WateringMark,
 	type WateringTarget,
 } from "$lib/calendarWatering";
+
+import { jsonRoundTrip } from "./helpers/assertions.ts";
 
 const soil = (
 	id: string,
@@ -62,9 +65,7 @@ describe("reversible rain preparation", () => {
 			bowl("bowl", false),
 			soil("missing-value", undefined),
 		]);
-		const restored = JSON.parse(
-			JSON.stringify(started.provenance),
-		) as WateringMark[];
+		const restored = jsonRoundTrip(started.provenance);
 		expect(Object.hasOwn(started.provenance[2] ?? {}, "before")).toBe(false);
 		const result = plan(
 			[bowl("bowl", true), soil("missing-value", 1), soil("soil", 1)],

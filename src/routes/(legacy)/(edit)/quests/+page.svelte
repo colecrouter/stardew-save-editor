@@ -4,6 +4,7 @@
 	import { getSaveManager } from "$lib/SaveManager.svelte";
 	import { getToastManager, Toast } from "$lib/ToastManager.svelte";
 	import UiContainer from "$lib/ui/UIContainer.svelte";
+
 	import QuestEntry from "./QuestEntry.svelte";
 
 	const save = getSaveManager().save;

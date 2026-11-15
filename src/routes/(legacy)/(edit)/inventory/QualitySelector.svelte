@@ -24,7 +24,7 @@
 <div class="container">
 	<!-- Create 4 buttons containing star emoji-->
 	{#if item.quality !== undefined}
-		{#each qualityLevels as [i]}
+		{#each qualityLevels as [i] (i)}
 			<label>
 				{#if i === 0}
 					☆

@@ -1,17 +1,16 @@
-import { openTestDocument } from "../helpers/open-editor.ts";
-import { describe, expect, it } from "vitest";
 import { Effect, Result } from "effect";
 import { get } from "svelte/store";
-import type { Value as GeneratedSave } from "../../generated/save-format/save.ts";
-type Save = GeneratedSave & { player: NonNullable<GeneratedSave["player"]> };
-import { openEditor } from "../helpers/open-editor.ts";
-import {
-	setFarmSettings,
-	readFarmSettings,
-} from "../../src/lib/editor/farm-operations";
+import { describe, expect, it } from "vitest";
+
 import { setCalendarDate } from "../../src/lib/editor/calendar-operations";
-import { fixtureXml, parser, exportDocument } from "./fixtures";
-import { tinyFixture } from "../helpers/editor-document.ts";
+import {
+	readFarmSettings,
+	setFarmSettings,
+} from "../../src/lib/editor/farm-operations";
+import { requireRecord } from "../helpers/assertions.ts";
+import { malformedFixture, tinyFixture } from "../helpers/editor-document.ts";
+import { openEditor, openTestDocument } from "../helpers/open-editor.ts";
+import { exportDocument, fixtureXml, parser } from "./fixtures";
 
 const bytes = (text: string) => new TextEncoder().encode(text);
 
@@ -57,7 +56,7 @@ it.each([
 describe("full-save farm operations", () => {
 	it("farm settings update multiplayer copies atomically and preserve opaque records through undo/export", async () => {
 		const document = parser.parse(fixtureXml);
-		const game = document.SaveGame as unknown as Save;
+		const game = document.SaveGame;
 		// Include an unclaimed cabin record: shared farm copies belong to serialized
 		// farmers even when the legacy presentation does not list that farmer by name.
 		const guest = {
@@ -81,10 +80,13 @@ describe("full-save farm operations", () => {
 			);
 			expect(result && Result.isSuccess(result)).toBe(true);
 			const after = await opened.model.snapshot();
-			const edited = after.document.SaveGame as unknown as Save;
+			const edited = after.document.SaveGame;
 			expect(edited.player.farmName).toBe("New Farm");
 			expect(edited.player.difficultyModifier).toBe(0.75);
-			if (!edited.farmhands) throw Error("Expected the edited farmhand copy");
+			expect.assert(
+				edited.farmhands.length > 0,
+				"Expected the edited farmhand copy",
+			);
 			expect(edited.farmhands[0]?.farmName).toBe("New Farm");
 			expect(edited.farmhands[0]?.difficultyModifier).toBe(0.75);
 			expect(edited.shouldSpawnMonsters).toBe(true);
@@ -93,7 +95,7 @@ describe("full-save farm operations", () => {
 			expect(after.entries).toHaveLength(1);
 			expect(after.entries[0]?.annotations[0]?.tags).toContain("farm");
 			const expected = structuredClone(before.document);
-			const expectedGame = expected.SaveGame as unknown as Save;
+			const expectedGame = expected.SaveGame;
 			expectedGame.player.farmName = "New Farm";
 			expectedGame.player.difficultyModifier = 0.75;
 			if (!Array.isArray(expectedGame.farmhands))
@@ -160,12 +162,12 @@ describe("full-save farm operations", () => {
 
 	it("display defaults and custom mine modes do not become writes when another farm field changes", async () => {
 		const document = parser.parse(fixtureXml);
-		const game = document.SaveGame as unknown as Record<string, unknown>;
-		const player = game.player as Record<string, unknown>;
-		delete player.difficultyModifier;
-		delete game.shouldSpawnMonsters;
-		game.shuffleMineChests = "ModdedRewardMode";
-		game.whichFarm = "ModdedMap";
+		const game = requireRecord(document.SaveGame);
+		const player = requireRecord(game["player"]);
+		delete player["difficultyModifier"];
+		delete game["shouldSpawnMonsters"];
+		game["shuffleMineChests"] = "ModdedRewardMode";
+		game["whichFarm"] = "ModdedMap";
 		// These deliberately unsupported known-field values cannot pass XML decoding.
 		// Exercise the defensive projection directly, retaining export coverage above.
 		const initial = readFarmSettings(document);
@@ -182,10 +184,9 @@ describe("full-save farm operations", () => {
 				false,
 			);
 			expect(Object.hasOwn(after.SaveGame, "shouldSpawnMonsters")).toBe(false);
-			expect(
-				(after.SaveGame as unknown as Record<string, unknown>)
-					.shuffleMineChests,
-			).toBe("ModdedRewardMode");
+			expect(requireRecord(after.SaveGame)["shuffleMineChests"]).toBe(
+				"ModdedRewardMode",
+			);
 			expect(readFarmSettings(after).creation).toEqual(initial.creation);
 		} finally {
 			await opened.close();
@@ -194,7 +195,7 @@ describe("full-save farm operations", () => {
 
 	it("an imported out-of-range multiplier survives edits to other fields", async () => {
 		const document = parser.parse(fixtureXml);
-		const game = document.SaveGame as unknown as Save;
+		const game = document.SaveGame;
 		// Request validation governs deliberate edits, not normalization of an
 		// imported modded baseline that the user has not chosen to replace.
 		game.player.difficultyModifier = 12.345;
@@ -208,12 +209,12 @@ describe("full-save farm operations", () => {
 			);
 			expect(result && Result.isSuccess(result)).toBe(true);
 			const after = await opened.model.snapshot();
-			expect(
-				(after.document.SaveGame as unknown as Save).player.difficultyModifier,
-			).toBe(Math.fround(12.345));
+			expect(after.document.SaveGame.player.difficultyModifier).toBe(
+				Math.fround(12.345),
+			);
 			const expected = structuredClone(before.document);
-			(expected.SaveGame as unknown as Save).shouldSpawnMonsters =
-				!readFarmSettings(before.document).monsters;
+			expected.SaveGame.shouldSpawnMonsters = !readFarmSettings(before.document)
+				.monsters;
 			expect(after.document).toEqual(expected);
 		} finally {
 			await opened.close();
@@ -252,25 +253,25 @@ describe("full-save farm operations", () => {
 		const document = parser.parse(fixtureXml);
 		// Force a baseline opposite the prototype value so a leaked inherited edit
 		// cannot pass simply because the fixture already had monsters enabled.
-		(document.SaveGame as unknown as Save).shouldSpawnMonsters = false;
+		document.SaveGame.shouldSpawnMonsters = false;
 		const opened = await openEditor(bytes(exportDocument(document)));
 		try {
 			const before = await opened.model.snapshot();
-			const request = Object.assign(
+			const request: unknown = Object.assign(
 				Object.create({ monsters: true, profitPercent: 0 }),
 				{ name: "Own" },
 			);
 			const result = await opened.model.commands.transact(
-				setFarmSettings(request),
+				setFarmSettings(
+					malformedFixture<Parameters<typeof setFarmSettings>[0]>(request),
+				),
 			);
 			expect(result && Result.isSuccess(result)).toBe(true);
 			const after = await opened.model.snapshot();
 			const expected = structuredClone(before.document);
 			expected.SaveGame.player.farmName = "Own";
 			expect(after.document).toEqual(expected);
-			expect(
-				(after.document.SaveGame as unknown as Save).shouldSpawnMonsters,
-			).toBe(false);
+			expect(after.document.SaveGame.shouldSpawnMonsters).toBe(false);
 			expect(after.entries).toHaveLength(1);
 		} finally {
 			await opened.close();
@@ -283,15 +284,23 @@ describe("full-save farm operations", () => {
 		{ profitPercent: 1001 },
 		{ profitPercent: Number.NaN },
 		{ mineRewards: "Unsupported" },
-		{ monsters: "yes" as never },
+		{ monsters: malformedFixture<never>("yes") },
 		// Runtime callers may bypass TypeScript; validation must reject the entire
 		// request before a valid sibling field can produce any staged writes.
-		{ name: "Must not publish", profitPercent: undefined } as never,
-		{ name: "Must not publish", unsupportedSetting: true } as never,
-		Object.assign(Object.create({ profitPercent: 75 }), {
+		malformedFixture<never>({
 			name: "Must not publish",
-			profitPercent: 0,
-		}) as never,
+			profitPercent: undefined,
+		}),
+		malformedFixture<never>({
+			name: "Must not publish",
+			unsupportedSetting: true,
+		}),
+		malformedFixture<never>(
+			Object.assign(Object.create({ profitPercent: 75 }), {
+				name: "Must not publish",
+				profitPercent: 0,
+			}),
+		),
 	])(
 		"invalid farm request %j preserves all committed state",
 		async (change) => {

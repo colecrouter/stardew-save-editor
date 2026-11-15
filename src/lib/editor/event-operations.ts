@@ -1,11 +1,12 @@
 import { Data, Effect, Result, Schema } from "effect";
-import { farmers, type Farmer, type SaveDocument } from "./domain.ts";
+
 import { toEventId } from "../eventId.ts";
-import { TransactionDraft } from "./transaction-draft.ts";
+import { type Farmer, farmers, type SaveDocument } from "./domain.ts";
 import {
 	recordAnnotatedOperation,
 	withReviewMetadata,
 } from "./transaction-annotations.ts";
+import { TransactionDraft } from "./transaction-draft.ts";
 
 /** Expected rejection of unsupported imported data or a stale event target. */
 export class EventInvalid extends Data.TaggedError("EventInvalid")<{
@@ -34,16 +35,18 @@ function container(owner: Farmer) {
 		entries: raw ?? [],
 	};
 }
+// Optional presentation members may be omitted or explicitly unavailable.
+// These transient projections do not encode presence of serialized save fields.
 export interface EventSeenView {
 	id: string;
 	supported: boolean;
-	reason?: string;
+	reason?: string | undefined;
 }
 export interface EventFarmerView {
 	farmerId: string;
 	name: string;
 	supported: boolean;
-	reason?: string;
+	reason?: string | undefined;
 	seen: EventSeenView[];
 	seenCount: number;
 	unsupportedCount: number;

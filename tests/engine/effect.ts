@@ -1,8 +1,9 @@
 import { Effect, Fiber, Stream, SubscriptionRef } from "effect";
+
 import {
-	type ResolvedMutation,
 	MutationError,
 	prepare,
+	type ResolvedMutation,
 	type SaveDocument,
 	type SessionState,
 } from "../../src/lib/editor/domain.ts";
@@ -10,7 +11,7 @@ import {
 export const makeEffectSession = (document: SaveDocument) =>
 	Effect.gen(function* () {
 		// UI callbacks run later; retain the session services at this boundary.
-		const services = yield* Effect.context<never>();
+		const services = yield* Effect.context();
 		const state = yield* SubscriptionRef.make<SessionState>({
 			document: structuredClone(document),
 			history: [],

@@ -1,7 +1,8 @@
+import * as BrowserWorker from "@effect/platform-browser/BrowserWorker";
 import { Effect, Layer } from "effect";
 import * as RpcClient from "effect/rpc/RpcClient";
-import * as BrowserWorker from "@effect/platform-browser/BrowserWorker";
 import * as WorkerPlatform from "effect/workers/Worker";
+
 import { SaveProcessingClient } from "./save-processing-rpc.ts";
 
 // A dedicated worker belongs to one open file. The platform adapter sends close
@@ -10,10 +11,10 @@ const platform = Layer.effect(WorkerPlatform.Spawner)(
 	Effect.gen(function* () {
 		const workers = yield* Effect.acquireRelease(
 			Effect.sync(() => new Set<Worker>()),
-			(workers) =>
+			(nestedWorkers) =>
 				Effect.sync(() => {
-					for (const worker of workers) worker.terminate();
-					workers.clear();
+					for (const worker of nestedWorkers) worker.terminate();
+					nestedWorkers.clear();
 				}),
 		);
 		// A pool restart needs a fresh endpoint, not the worker that just failed.

@@ -1,16 +1,17 @@
 import { it } from "@effect/vitest";
-import { expect } from "vitest";
 import { Effect, Result } from "effect";
-import { makeHistorySession } from "../../src/lib/editor/history";
-import {
-	upgradeBuilding,
-	adoptAnimal,
-} from "../../src/lib/editor/building-operations";
+import { expect } from "vitest";
+
 import { inspectBuildings } from "../../src/lib/editor/building-data";
 import {
-	withAnimalBuildings,
+	adoptAnimal,
+	upgradeBuilding,
+} from "../../src/lib/editor/building-operations";
+import { makeHistorySession } from "../../src/lib/editor/history";
+import {
 	COOP_ID,
 	PLAYER_ID,
+	withAnimalBuildings,
 } from "../helpers/animalBuildings";
 import { fixtureXml, parser } from "./fixtures";
 

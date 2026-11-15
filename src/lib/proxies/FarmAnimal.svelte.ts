@@ -1,9 +1,11 @@
-import { createFarmAnimal, newAnimalId } from "../farmAnimalData.ts";
-export { newAnimalId } from "../farmAnimalData.ts";
 import animals from "$generated/farmanimals.json";
 import type { Farmer } from "$lib/proxies/Farmer.svelte";
-import { type AnimalsKV, type Gender } from "$types/save";
+import type { AnimalsKV, Gender } from "$types/save";
+
 import { type DataProxy, Dispose, Raw } from ".";
+import { createFarmAnimal, newAnimalId } from "../farmAnimalData.ts";
+
+export { newAnimalId } from "../farmAnimalData.ts";
 
 const MAX_FRIENDSHIP = 1000;
 const FRIENDSHIP_PER_HEART = 200;
@@ -45,13 +47,14 @@ export class FarmAnimal implements DataProxy<AnimalsKV> {
 	/** Fullness level of the animal (0-255) */
 	public fullness: number;
 	/** `UniqueMultiplayerID` of the player who owns this animal */
-	public ownerID: number;
+	public ownerID: number | string;
 	/** Whether it may get pregnant: the toggle on its info menu, for animals that {@link canReproduce} */
 	public allowReproduction: boolean;
 	/** Whether it has eaten a Golden Animal Cracker, which doubles its produce */
 	public hasEatenAnimalCracker: boolean;
 
-	public readonly type: FarmAnimalType;
+	// Preserve mod-defined animal type names rather than claiming every imported name is vanilla.
+	public readonly type: string;
 
 	constructor(raw: AnimalsKV) {
 		this[Raw] = raw;
@@ -103,7 +106,7 @@ export class FarmAnimal implements DataProxy<AnimalsKV> {
 			animal.hasEatenAnimalCracker = this.hasEatenAnimalCracker;
 		});
 
-		this.type = $derived(animal.type as FarmAnimalType);
+		this.type = $derived(animal.type);
 	}
 
 	get daysOwned() {

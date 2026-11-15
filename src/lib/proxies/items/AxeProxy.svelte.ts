@@ -1,4 +1,5 @@
 import type { ToolItem } from "$types/save";
+
 import { Raw } from "./ItemProxy.svelte";
 import { ToolProxy } from "./ToolProxy.svelte";
 

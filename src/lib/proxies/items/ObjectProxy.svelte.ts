@@ -1,4 +1,5 @@
 import type { ObjectItem } from "$types/save";
+
 import { BaseItemProxy, Raw } from "./ItemProxy.svelte";
 
 export class ObjectProxy extends BaseItemProxy<ObjectItem> {

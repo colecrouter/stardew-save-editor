@@ -1,13 +1,15 @@
-import { Effect } from "effect";
 import { it } from "@effect/vitest";
+import { Effect } from "effect";
 import { expect } from "vitest";
+
 import { makeHistorySession } from "../../src/lib/editor/history.ts";
 import {
-	projectReview,
 	isReviewPathCovered,
+	projectReview,
 } from "../../src/lib/editor/review-projection.ts";
 import { TransactionDraft } from "../../src/lib/editor/transaction-draft.ts";
-import { parser, fixtureXml } from "./fixtures.ts";
+import { fixtureXml, parser } from "./fixtures.ts";
+
 const fixture = () => parser.parse(fixtureXml);
 
 it.effect(

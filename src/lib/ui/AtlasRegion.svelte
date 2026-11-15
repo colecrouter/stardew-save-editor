@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Atlas, SpriteRect } from "./uiAssets";
+
 	let { atlas, rect }: { atlas: Atlas; rect: SpriteRect } = $props();
 </script>
 

@@ -1,9 +1,11 @@
+import { expect, it, vi } from "vitest";
 import { render } from "vitest-browser-svelte";
 import { userEvent } from "vitest/browser";
-import { expect, it, vi } from "vitest";
-import { openTestDocument } from "../helpers/open-editor.ts";
-import { tinyEditorFixture } from "../helpers/editor-document.ts";
+
 import { readAppearances } from "../../src/lib/editor/appearance-operations.ts";
+import { requireInstance } from "../helpers/assertions.ts";
+import { tinyEditorFixture } from "../helpers/editor-document.ts";
+import { openTestDocument } from "../helpers/open-editor.ts";
 import StepperHarness from "./StepperHarness.svelte";
 
 // Skin field behavior depends on its descriptor and history, not a populated
@@ -15,21 +17,30 @@ it("makes browsing discrete while preserving native typing and bounded imported 
 	const opened = await openTestDocument(document);
 	const page = await render(StepperHarness, { model: opened.model });
 	try {
-		const input = page
-			.getByRole("spinbutton", {
-				name: "Skin",
-			})
-			.element() as HTMLInputElement;
-		const previous = page
-			.getByRole("button", {
-				name: "Previous Skin",
-			})
-			.element() as HTMLButtonElement;
-		const next = page
-			.getByRole("button", {
-				name: "Next Skin",
-			})
-			.element() as HTMLButtonElement;
+		const input = requireInstance(
+			page
+				.getByRole("spinbutton", {
+					name: "Skin",
+				})
+				.element(),
+			HTMLInputElement,
+		);
+		const previous = requireInstance(
+			page
+				.getByRole("button", {
+					name: "Previous Skin",
+				})
+				.element(),
+			HTMLButtonElement,
+		);
+		const next = requireInstance(
+			page
+				.getByRole("button", {
+					name: "Next Skin",
+				})
+				.element(),
+			HTMLButtonElement,
+		);
 		expect(previous.disabled).toBe(true);
 		await userEvent.click(next);
 		await expect.element(input).toHaveValue(1);
@@ -89,16 +100,22 @@ it("ignores repeated pending activation and disables browsing at the upper bound
 		);
 	const page = await render(StepperHarness, { model: opened.model });
 	try {
-		const input = page
-			.getByRole("spinbutton", {
-				name: "Skin",
-			})
-			.element() as HTMLInputElement;
-		const next = page
-			.getByRole("button", {
-				name: "Next Skin",
-			})
-			.element() as HTMLButtonElement;
+		const input = requireInstance(
+			page
+				.getByRole("spinbutton", {
+					name: "Skin",
+				})
+				.element(),
+			HTMLInputElement,
+		);
+		const next = requireInstance(
+			page
+				.getByRole("button", {
+					name: "Next Skin",
+				})
+				.element(),
+			HTMLButtonElement,
+		);
 		await userEvent.click(next);
 		expect(next.disabled).toBe(true);
 		// A disabled native button ignores activation. The browser driver would
@@ -123,17 +140,22 @@ it("keeps imported indices visible and editable without silently normalizing the
 	const opened = await openTestDocument(document);
 	const page = await render(StepperHarness, { model: opened.model });
 	try {
-		const input = page
-			.getByRole("spinbutton", {
-				name: "Skin",
-			})
-			.element() as HTMLInputElement;
+		const input = requireInstance(
+			page
+				.getByRole("spinbutton", {
+					name: "Skin",
+				})
+				.element(),
+			HTMLInputElement,
+		);
 		expect(input.value).toBe("99");
 		expect(input.disabled).toBe(false);
 		for (const name of ["Previous Skin", "Next Skin"])
 			expect(
-				(page.getByRole("button", { name }).element() as HTMLButtonElement)
-					.disabled,
+				requireInstance(
+					page.getByRole("button", { name }).element(),
+					HTMLButtonElement,
+				).disabled,
 			).toBe(true);
 		expect((await opened.model.snapshot()).entries).toHaveLength(0);
 	} finally {
@@ -167,11 +189,14 @@ it("applies an opposite arrow even when queued typing returns to the stale descr
 		holdPublication: true,
 	});
 	try {
-		const input = page
-			.getByRole("spinbutton", {
-				name: "Skin",
-			})
-			.element() as HTMLInputElement;
+		const input = requireInstance(
+			page
+				.getByRole("spinbutton", {
+					name: "Skin",
+				})
+				.element(),
+			HTMLInputElement,
+		);
 		input.focus();
 		await userEvent.fill(input, "11");
 		await expect.element(input).toHaveValue(11);

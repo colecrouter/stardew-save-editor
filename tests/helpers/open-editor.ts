@@ -1,17 +1,19 @@
 import { Effect, Exit, Scope } from "effect";
+
+import type { SaveDocument } from "../../src/lib/editor/domain.ts";
 import {
-	openEditor as openApplicationEditor,
 	makeEditorModel,
+	openEditor as openApplicationEditor,
+	type OpenEditorOptions,
 } from "../../src/lib/editor/editor-model.ts";
 import {
-	makeHistorySession,
 	type HistoryLimits,
+	makeHistorySession,
 } from "../../src/lib/editor/history.ts";
 import {
-	SaveProcessor,
 	SaveProcessingSync,
+	SaveProcessor,
 } from "../../src/lib/editor/save-processing.ts";
-import type { SaveDocument } from "../../src/lib/editor/domain.ts";
 import { parser } from "./editor-document.ts";
 
 /** UI tests own the production model and scope, without repeating an expensive
@@ -19,7 +21,7 @@ import { parser } from "./editor-document.ts";
 export async function openTestDocument(
 	document: SaveDocument,
 	limits: HistoryLimits = {},
-	options: { includeProofs?: boolean; validateExport?: boolean } = {},
+	options: Pick<OpenEditorOptions, "includeProofs" | "validateExport"> = {},
 ) {
 	const scope = Scope.makeUnsafe();
 	try {
@@ -27,7 +29,17 @@ export async function openTestDocument(
 			Effect.gen(function* () {
 				const processor = yield* SaveProcessor;
 				const session = yield* makeHistorySession(document, limits);
-				return yield* makeEditorModel(session, processor, options);
+				// Optional flags can arrive explicitly unavailable from an application callback.
+				// Forward only chosen values to the model's exact optional representation.
+				const modelOptions = {
+					...(options.includeProofs === undefined
+						? {}
+						: { includeProofs: options.includeProofs }),
+					...(options.validateExport === undefined
+						? {}
+						: { validateExport: options.validateExport }),
+				};
+				return yield* makeEditorModel(session, processor, modelOptions);
 			}).pipe(
 				Effect.provide(SaveProcessingSync),
 				Effect.provideService(Scope.Scope, scope),
@@ -47,7 +59,7 @@ export async function openTestDocument(
 export const openTestEditor = (
 	bytes: Uint8Array,
 	limits: HistoryLimits = {},
-	options: { includeProofs?: boolean; validateExport?: boolean } = {},
+	options: Pick<OpenEditorOptions, "includeProofs" | "validateExport"> = {},
 ) =>
 	openTestDocument(
 		parser.parse(new TextDecoder().decode(bytes)),
@@ -60,9 +72,5 @@ export const openTestEditor = (
 export const openEditor = (
 	bytes: Uint8Array,
 	limits: HistoryLimits = {},
-	options: {
-		includeProofs?: boolean;
-		validateExport?: boolean;
-		signal?: AbortSignal;
-	} = {},
+	options: OpenEditorOptions = {},
 ) => openApplicationEditor(SaveProcessingSync, bytes, limits, options);

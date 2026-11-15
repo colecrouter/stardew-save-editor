@@ -30,6 +30,9 @@
 			d="M4 1h2v2h1v1h2v1H7v2h1v2H6V8H4v1H2V7h1V5H1V4h2V3h1Z"
 			fill={colors.fill}
 		/>
-		<path d="M3 5h1v2H3Zm3 0h1v2H6ZM4 7h2v1H4Z" fill={colors.shade} />
+		<path
+			d="M3 5h1v2H3Zm3 0h1v2H6ZM4 7h2v1H4Z"
+			fill={colors.shade}
+		/>
 	</svg>
 {/if}

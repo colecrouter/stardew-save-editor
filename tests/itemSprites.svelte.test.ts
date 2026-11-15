@@ -1,6 +1,7 @@
 import { render } from "@testing-library/svelte";
 import { flushSync } from "svelte";
 import { describe, expect, it } from "vitest";
+
 import { ItemData, ResolveItemData } from "$lib/ItemData";
 import { getItemSprite } from "$lib/ItemSprite";
 import {
@@ -9,9 +10,11 @@ import {
 	createItemProxy,
 } from "$lib/proxies/items";
 import { Sprite } from "$lib/Sprite.svelte";
-import type { ItemInformation } from "$types/items";
 import type { Item } from "$types/save";
+
 import ItemSprite from "../src/routes/(legacy)/(edit)/inventory/ItemSprite.svelte";
+import { partialFixture } from "./helpers/assertions.ts";
+import { malformedFixture } from "./helpers/editor-document.ts";
 
 function metadata(name: string) {
 	const info = ItemData.get(name);
@@ -43,7 +46,7 @@ describe("game menu sprite rectangles", () => {
 			...metadata("Country Lamp"),
 			texture: "FreeCactuses.png",
 			spriteIndex: 9,
-		} as ItemInformation);
+		});
 		expect(sprite.sourceRect).toEqual({ x: 16, y: 16, width: 16, height: 48 });
 	});
 
@@ -52,18 +55,18 @@ describe("game menu sprite rectangles", () => {
 			...metadata("Shirt And Tie"),
 			texture: "furniture.png",
 			spriteIndex: 32,
-		} as ItemInformation);
+		});
 		expect(shirt.sourceRect).toEqual({ x: 0, y: 32, width: 8, height: 8 });
 		const hat = new Sprite({
 			...metadata("Cowboy Hat"),
 			texture: "FreeCactuses.png",
 			spriteIndex: 7,
-		} as ItemInformation);
+		});
 		expect(hat.sourceRect).toEqual({ x: 12, y: 80, width: 20, height: 20 });
 		const pants = new Sprite({
 			...metadata("Shorts"),
 			spriteIndex: 11,
-		} as ItemInformation);
+		});
 		expect(pants.sourceRect).toEqual({
 			x: 192,
 			y: 1360,
@@ -85,12 +88,12 @@ describe("game menu sprite rectangles", () => {
 
 describe("saved item drawing rules", () => {
 	it("matches smoked variants by ingredient instead of the first shared ID", () => {
-		const raw = {
+		const raw = partialFixture<Item>({
 			"@_xsi:type": "ColoredObject",
 			name: "Smoked Anchovy",
 			itemId: "SmokedFish",
 			preservedParentSheetIndex: "129",
-		} as Item;
+		});
 		expect(ResolveItemData(raw)?.name).toBe("Smoked Anchovy");
 		withItem(raw, (item) => {
 			const drawing = getItemSprite(item);
@@ -106,12 +109,12 @@ describe("saved item drawing rules", () => {
 
 	it("selects the smoked ingredient even when the saved name is different", () => {
 		withItem(
-			{
+			partialFixture<Item>({
 				"@_xsi:type": "ColoredObject",
 				name: "Localized fish name",
 				itemId: "SmokedFish",
 				preservedParentSheetIndex: "130",
-			} as Item,
+			}),
 			(item) => {
 				expect(getItemSprite(item)?.sprite.sourceRect).toEqual({
 					x: 160,
@@ -125,12 +128,12 @@ describe("saved item drawing rules", () => {
 
 	it("honors both colored-object modes without generated metadata colors", () => {
 		withItem(
-			{
+			partialFixture<Item>({
 				"@_xsi:type": "ColoredObject",
 				name: "Blueberry Wine",
 				itemId: "348",
 				color: { R: 46, G: 85, B: 183, A: 128, PackedValue: 0 },
-			} as Item,
+			}),
 			(item) => {
 				expect(item).toBeInstanceOf(ColoredObjectProxy);
 				expect(item.info?.color).toBeUndefined();
@@ -157,12 +160,12 @@ describe("saved item drawing rules", () => {
 
 	it("keeps shirt details untinted and updates its separate dye layer reactively", () => {
 		withItem(
-			{
+			partialFixture<Item>({
 				"@_xsi:type": "Clothing",
 				name: "Shirt And Tie",
 				itemId: "1123",
 				clothesColor: { R: 46, G: 85, B: 183, A: 255, PackedValue: 0 },
-			} as Item,
+			}),
 			(item) => {
 				if (!(item instanceof ClothingProxy) || !item.color)
 					throw new Error("Expected clothing color");
@@ -188,12 +191,12 @@ describe("saved item drawing rules", () => {
 
 	it("tints pants once, with no untinted base underneath translucent colors", () => {
 		withItem(
-			{
+			partialFixture<Item>({
 				"@_xsi:type": "Clothing",
 				name: "Shorts",
 				itemId: "1",
 				clothesColor: { R: 20, G: 30, B: 40, A: 128, PackedValue: 0 },
-			} as Item,
+			}),
 			(item) => {
 				expect(getItemSprite(item)?.layers).toEqual([
 					{
@@ -208,7 +211,7 @@ describe("saved item drawing rules", () => {
 
 	it("animates only the prismatic shirt mask and gives each instance unique filters", () => {
 		withItem(
-			{
+			malformedFixture<Item>({
 				"@_xsi:type": "Clothing",
 				name: "Prismatic Shirt",
 				itemId: "1223",
@@ -217,7 +220,7 @@ describe("saved item drawing rules", () => {
 				isRecipe: false,
 				quality: 0,
 				stack: 1,
-			} as Item,
+			}),
 			(item) => {
 				const first = render(ItemSprite, { item });
 				const second = render(ItemSprite, { item });
@@ -238,7 +241,7 @@ describe("saved item drawing rules", () => {
 
 	it("renders unknown items as a visible placeholder", () => {
 		withItem(
-			{ name: "Unknown custom item", itemId: "example" } as Item,
+			partialFixture<Item>({ name: "Unknown custom item", itemId: "example" }),
 			(item) => {
 				const view = render(ItemSprite, { item });
 				expect(view.container.textContent).toBe("??");

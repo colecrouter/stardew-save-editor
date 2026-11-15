@@ -1,5 +1,6 @@
 import { flushSync } from "svelte";
 import { describe, expect, it } from "vitest";
+
 import type { Item, Player, Save } from "../codegen/save";
 import {
 	moveItem,
@@ -11,12 +12,18 @@ import { Raw } from "../src/lib/proxies";
 import { discoverChests, type RawChest } from "../src/lib/proxies/Chest.svelte";
 import { Inventory } from "../src/lib/proxies/Inventory.svelte";
 import { Item as ItemFactory } from "../src/lib/proxies/Item.svelte";
+import {
+	partialFixture,
+	requireArray,
+	requireRecord,
+} from "./helpers/assertions.ts";
+import { malformedFixture } from "./helpers/editor-document.ts";
 
 const obj = (
 	name: string,
 	fields: Partial<Record<string, unknown>> = {},
 ): Item =>
-	({
+	partialFixture<Item>({
 		"@_xsi:type": "Object",
 		name,
 		itemId: "1",
@@ -26,11 +33,11 @@ const obj = (
 		stack: 1,
 		quality: 0,
 		...fields,
-	}) as unknown as Item;
+	});
 
 /** Clay as the game saves it (from tests/TestSave), parsed like a real save */
 const savedClay = (stack: number): Item =>
-	({
+	malformedFixture<Item>({
 		"@_xsi:type": "Object",
 		isLostItem: false,
 		category: -16,
@@ -66,21 +73,21 @@ const savedClay = (stack: number): Item =>
 			Size: { X: 0, Y: 0 },
 		},
 		uses: 0,
-	}) as unknown as Item;
+	});
 
 const rawChest = (items: Item[]): RawChest =>
-	({
+	partialFixture<RawChest>({
 		"@_xsi:type": "Chest",
 		name: "Chest",
 		itemId: 130,
 		playerChest: true,
 		specialChestType: "None",
-		items: items.length ? { Item: items } : "",
-	}) as unknown as RawChest;
+		items: items.length > 0 ? { Item: items } : "",
+	});
 
 /** Two chests on the farm */
 const twoChests = (a: Item[], b: Item[]) => {
-	const save = {
+	const save = malformedFixture<Save>({
 		locations: {
 			GameLocation: [
 				{
@@ -95,8 +102,8 @@ const twoChests = (a: Item[], b: Item[]) => {
 				},
 			],
 		},
-	} as unknown as Save;
-	let chests = [] as ReturnType<typeof discoverChests>;
+	});
+	let chests = partialFixture<ReturnType<typeof discoverChests>>([]);
 	const cleanup = $effect.root(() => {
 		chests = discoverChests(save);
 	});
@@ -182,7 +189,11 @@ describe("sorting a chest like the game's Organize button", () => {
 			[
 				obj("Parsnip", { category: -75, type: "Basic" }),
 				obj("Amethyst", { category: -2, type: "Minerals" }),
-				{ "@_xsi:type": "Pickaxe", name: "Pickaxe", itemId: "Pickaxe" } as Item,
+				partialFixture<Item>({
+					"@_xsi:type": "Pickaxe",
+					name: "Pickaxe",
+					itemId: "Pickaxe",
+				}),
 				obj("Kale", { category: -75, type: "Basic", quality: 1 }),
 				obj("Kale", { category: -75, type: "Basic", quality: 4 }),
 				obj("Wood", { category: -16, type: "Basic" }),
@@ -252,7 +263,7 @@ describe("sorting a chest like the game's Organize button", () => {
 
 	it("matches item ids with or without the (O) prefix", () => {
 		const { first, cleanup } = twoChests(
-			[savedClay(2), { ...savedClay(4), itemId: "(O)330" } as Item],
+			[savedClay(2), { ...savedClay(4), itemId: "(O)330" }],
 			[],
 		);
 		sortChest(first);
@@ -362,7 +373,7 @@ describe("sorting the backpack", () => {
 			category: 0,
 			type: "asdf",
 		});
-		const player = {
+		const player = malformedFixture<Player>({
 			items: {
 				Item: [
 					nil(),
@@ -379,7 +390,7 @@ describe("sorting the backpack", () => {
 					...Array.from({ length: 6 }, nil),
 				],
 			},
-		} as unknown as Player;
+		});
 
 		let inventory!: Inventory;
 		const cleanup = $effect.root(() => {
@@ -389,9 +400,9 @@ describe("sorting the backpack", () => {
 
 		sortSlots(inventory);
 		flushSync();
-		const saved = player.items.Item as unknown as { name?: string }[];
+		const saved = requireArray(player.items.Item).map(requireRecord);
 		expect(saved[3]).toBe(note);
-		expect(saved.map((entry) => entry.name ?? null)).toEqual([
+		expect(saved.map((entry) => entry["name"] ?? null)).toEqual([
 			"Amethyst",
 			"Parsnip",
 			null,

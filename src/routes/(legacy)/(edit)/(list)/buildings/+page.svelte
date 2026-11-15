@@ -2,13 +2,14 @@
 	import { Raw } from "$lib/proxies";
 	import type { FarmAnimal } from "$lib/proxies/FarmAnimal.svelte";
 	import { getSaveManager } from "$lib/SaveManager.svelte";
+	import BuildingSprite from "$lib/ui/BuildingSprite.svelte";
 	import EmojiRange from "$lib/ui/EmojiRange.svelte";
 	import UiCheckbox from "$lib/ui/UICheckbox.svelte";
 	import UiContainer from "$lib/ui/UIContainer.svelte";
 	import UiContainerSmall from "$lib/ui/UIContainerSmall.svelte";
 	import UiInput from "$lib/ui/UIInput.svelte";
 	import { Gender } from "$types/save";
-	import BuildingSprite from "$lib/ui/BuildingSprite.svelte";
+
 	import BuildingControls from "./BuildingControls.svelte";
 
 	let saveManager: ReturnType<typeof getSaveManager> | undefined;

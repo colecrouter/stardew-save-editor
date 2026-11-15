@@ -1,11 +1,14 @@
 import { flushSync } from "svelte";
 import { describe, expect, it } from "vitest";
+
 import type { Player } from "../codegen/save";
+import { Raw } from "../src/lib/proxies/index";
 import { Inventory } from "../src/lib/proxies/Inventory.svelte";
 import { Item } from "../src/lib/proxies/Item.svelte";
-import { Raw } from "../src/lib/proxies/index";
 import { RingProxy } from "../src/lib/proxies/items";
 import { XMLManager } from "../src/lib/workers/xml";
+import { jsonRoundTrip, partialFixture } from "./helpers/assertions.ts";
+import { malformedFixture } from "./helpers/editor-document.ts";
 
 function withRoot<T>(fn: () => T): T {
 	let result!: T;
@@ -19,7 +22,7 @@ function withRoot<T>(fn: () => T): T {
 
 function xmlFromSave(save: SaveFile): string {
 	const mgr = new XMLManager();
-	const bytes = mgr.stringify(JSON.parse(JSON.stringify(save)));
+	const bytes = mgr.stringify(jsonRoundTrip(save));
 	return new TextDecoder().decode(bytes);
 }
 
@@ -30,24 +33,21 @@ function getPlayerXml(xml: string): string {
 
 function minimalPlayer(): Player {
 	// minimal structure; tests only care about items/equipment fields
-	const player = {
+	const player = partialFixture<Player>({
 		items: { Item: [] },
-	} as unknown as Player;
+	});
 	return player;
 }
 
 function wrapSave(player: Player): SaveFile {
-	return { SaveGame: { player } } as unknown as SaveFile;
+	return partialFixture<SaveFile>({ SaveGame: { player } });
 }
 
 describe("Equipment omission (no xsi:nil for equipment) on Inventory serialization", () => {
 	it("omits all equipment nodes when unset", () => {
 		const player = minimalPlayer();
-		withRoot(() => {
-			// prime and keep Inventory authoritative
-			// eslint-disable-next-line no-new
-			new Inventory(player);
-		});
+		// Construct within the lifecycle root so Inventory synchronization owns serialization.
+		withRoot(() => new Inventory(player));
 		flushSync();
 
 		const xml = xmlFromSave(wrapSave(player));
@@ -90,15 +90,12 @@ describe("Equipment omission (no xsi:nil for equipment) on Inventory serializati
 	});
 
 	it("nil sentinel on equipment is normalized and removed from raw", () => {
-		const player = {
+		const player = malformedFixture<Player>({
 			items: { Item: [] },
 			leftRing: { "@_xsi:nil": "true" },
-		} as unknown as Player;
-
-		withRoot(() => {
-			// eslint-disable-next-line no-new
-			new Inventory(player);
 		});
+
+		withRoot(() => new Inventory(player));
 		flushSync();
 
 		const xml = xmlFromSave(wrapSave(player));

@@ -1,10 +1,12 @@
 import { fireEvent, waitFor, within } from "@testing-library/svelte";
 import { expect, it } from "vitest";
-import { readPets } from "../../src/lib/editor/pet-data.ts";
-import { renderTestWorkspace } from "./workspace.ts";
-import { fixtureXml, parser, exportDocument } from "./fixtures.ts";
-import { catId, dogId, withPets, fixturePet } from "./pet-fixtures.ts";
+
 import { petAppearanceKey } from "../../src/lib/editor/pet-appearance.ts";
+import { readPets } from "../../src/lib/editor/pet-data.ts";
+import { requireInstance } from "../helpers/assertions.ts";
+import { exportDocument, fixtureXml, parser } from "./fixtures.ts";
+import { catId, dogId, fixturePet, withPets } from "./pet-fixtures.ts";
+import { renderTestWorkspace } from "./workspace.ts";
 
 it("groups pet name typing, keeps same-name pets distinct, and round-trips friendship", async () => {
 	const opened = await renderTestWorkspace(
@@ -14,10 +16,13 @@ it("groups pet name typing, keeps same-name pets distinct, and round-trips frien
 	const { page, model } = opened;
 	try {
 		const original = await model.snapshot();
-		const name = page.getAllByRole("textbox", {
-			name: "Name",
-			hidden: false,
-		})[0] as HTMLInputElement;
+		const name = requireInstance(
+			page.getAllByRole("textbox", {
+				name: "Name",
+				hidden: false,
+			})[0],
+			HTMLInputElement,
+		);
 		name.focus();
 		await fireEvent.input(name, { target: { value: "Mo" } });
 		await fireEvent.input(name, { target: { value: "Mochi" } });
@@ -35,9 +40,12 @@ it("groups pet name typing, keeps same-name pets distinct, and round-trips frien
 		await waitFor(() => expect(name.value).toBe("Mochi"));
 
 		const dog = within(page.getByRole("region", { name: "Miso" }));
-		const friendship = dog.getByRole("spinbutton", {
-			name: "Friendship",
-		}) as HTMLInputElement;
+		const friendship = requireInstance(
+			dog.getByRole("spinbutton", {
+				name: "Friendship",
+			}),
+			HTMLInputElement,
+		);
 		friendship.focus();
 		await fireEvent.input(friendship, { target: { value: "1000" } });
 		await fireEvent.blur(friendship);
@@ -75,13 +83,14 @@ it("disables a missing name while keeping independent pet fields editable", asyn
 	try {
 		const before = await opened.model.snapshot();
 		const names = opened.page.getAllByRole("textbox", { name: "Name" });
-		expect((names[0] as HTMLInputElement).disabled).toBe(true);
-		expect((names[1] as HTMLInputElement).disabled).toBe(false);
+		expect(requireInstance(names[0], HTMLInputElement).disabled).toBe(true);
+		expect(requireInstance(names[1], HTMLInputElement).disabled).toBe(false);
 		expect(
-			(
+			requireInstance(
 				opened.page.getAllByRole("combobox", {
 					name: "Appearance",
-				})[0] as HTMLSelectElement
+				})[0],
+				HTMLSelectElement,
 			).disabled,
 		).toBe(false);
 		expect(
@@ -101,9 +110,11 @@ it("changes appearance for two same-name pets independently and restores a custo
 	const { page, model } = opened;
 	try {
 		const original = await model.snapshot();
-		const [cat, dog] = page.getAllByRole("combobox", {
-			name: "Appearance",
-		}) as HTMLSelectElement[];
+		const [cat, dog] = page
+			.getAllByRole("combobox", {
+				name: "Appearance",
+			})
+			.map((element) => requireInstance(element, HTMLSelectElement));
 		if (!cat || !dog) throw new Error("Missing appearance selectors");
 		expect(cat.value).toBe(petAppearanceKey("Cat", "0"));
 		expect(dog.value).toBe(petAppearanceKey("Dog", "custom-breed"));
@@ -152,18 +163,22 @@ it("shows a missing appearance without implying the first vanilla choice is sele
 	delete fixturePet(document).whichBreed;
 	const opened = await renderTestWorkspace(document, "Pets");
 	try {
-		const selector = opened.page.getAllByRole("combobox", {
-			name: "Appearance",
-		})[0] as HTMLSelectElement;
+		const selector = requireInstance(
+			opened.page.getAllByRole("combobox", {
+				name: "Appearance",
+			})[0],
+			HTMLSelectElement,
+		);
 		expect(selector.disabled).toBe(true);
 		expect(selector.selectedOptions[0]?.textContent).toBe(
 			"Unreadable saved appearance",
 		);
 		expect(
-			(
+			requireInstance(
 				opened.page.getAllByRole("textbox", {
 					name: "Name",
-				})[0] as HTMLInputElement
+				})[0],
+				HTMLInputElement,
 			).disabled,
 		).toBe(false);
 	} finally {

@@ -5,6 +5,7 @@
 	import UiContainer from "$lib/ui/UIContainer.svelte";
 	import UiInput from "$lib/ui/UIInput.svelte";
 	import { Gender } from "$types/save";
+
 	import Preview from "./CharacterPreview.svelte";
 
 	const textFields = [
@@ -56,7 +57,7 @@
 				</label>
 			</div>
 			<div class="appearance">
-				{#each numberFields as [label, key, min, max]}
+				{#each numberFields as [label, key, min, max] (key)}
 					<label>
 						{label}
 						<UiInput
@@ -71,7 +72,7 @@
 			</div>
 		</div>
 		<div class="editor2">
-			{#each textFields as [label, key]}
+			{#each textFields as [label, key] (key)}
 				<div>
 					<label>
 						<small>{label}</small>
@@ -84,7 +85,7 @@
 					</label>
 				</div>
 			{/each}
-			{#each colorFields as [label, key]}
+			{#each colorFields as [label, key] (key)}
 				<div>
 					<label>
 						<small>{label}</small>

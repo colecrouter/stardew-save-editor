@@ -1,13 +1,14 @@
-import { describe, expect } from "vitest";
 import { it } from "@effect/vitest";
 import { Effect, Result } from "effect";
+import { describe, expect } from "vitest";
+
 import { makeHistorySession } from "../../src/lib/editor/history.ts";
 import { readPets } from "../../src/lib/editor/pet-data.ts";
-import { setPet, type PetChange } from "../../src/lib/editor/pet-operations.ts";
+import { type PetChange, setPet } from "../../src/lib/editor/pet-operations.ts";
 import { projectReview } from "../../src/lib/editor/review-projection.ts";
 import { TransactionDraft } from "../../src/lib/editor/transaction-draft.ts";
-import { catId, dogId, withPets, fixturePet } from "./pet-fixtures.ts";
 import { exportDocument, fixtureXml, parser } from "./fixtures.ts";
+import { catId, dogId, fixturePet, withPets } from "./pet-fixtures.ts";
 
 const appearance = (petType: string, breedId: string): PetChange => ({
 	petId: catId,
@@ -70,6 +71,8 @@ describe("pet appearance operations", () => {
 				yield* session.transact(setPet(appearance("Dog", "4")));
 				const after = yield* session.snapshot;
 				expect(after.entries).toHaveLength(1);
+				// Vitest types asymmetric matchers as any. Keep expected matcher values
+				// unknown so they cannot weaken the surrounding saved-data assertions.
 				expect(
 					projectReview(after).groups.find((group) => group.feature === "pets")
 						?.changes,
@@ -79,13 +82,13 @@ describe("pet appearance operations", () => {
 							label: "Miso · Type",
 							before: "Cat",
 							after: "Dog",
-						}),
+						}) as unknown,
 						expect.objectContaining({
 							label: "Miso · Breed",
 							before: "0",
 							after: "4",
-						}),
-					]),
+						}) as unknown,
+					]) as unknown,
 				);
 				expect(projectReview(after).otherChanges).toEqual([]);
 				yield* session.undo;

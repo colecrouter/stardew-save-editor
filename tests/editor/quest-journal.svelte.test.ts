@@ -1,8 +1,11 @@
 import { fireEvent, waitFor, within } from "@testing-library/svelte";
 import { expect, it } from "vitest";
-import { renderTestWorkspace } from "./workspace.ts";
+
 import { readQuestJournals } from "../../src/lib/editor/quest-operations.ts";
-import { parser, fixtureXml } from "./fixtures.ts";
+import { requireInstance } from "../helpers/assertions.ts";
+import { fixtureXml, parser } from "./fixtures.ts";
+import { renderTestWorkspace } from "./workspace.ts";
+
 const quest = (extra: Record<string, unknown> = {}) => ({
 	$type: "StardewValley.Quests.Quest" as const,
 	_questTitle: "Delivery",
@@ -55,10 +58,11 @@ it("groups journal reward typing and never retargets queued edits to another far
 		).toBe(500);
 		await waitFor(() =>
 			expect(
-				(
+				requireInstance(
 					page.getByRole("spinbutton", {
 						name: "Delivery gold reward",
-					}) as HTMLInputElement
+					}),
+					HTMLInputElement,
 				).value,
 			).toBe("700"),
 		);
@@ -69,10 +73,11 @@ it("groups journal reward typing and never retargets queued edits to another far
 		await model.snapshot();
 		await waitFor(() =>
 			expect(
-				(
+				requireInstance(
 					page.getByRole("spinbutton", {
 						name: "Delivery gold reward",
-					}) as HTMLInputElement
+					}),
+					HTMLInputElement,
 				).value,
 			).toBe("100"),
 		);
@@ -207,7 +212,9 @@ it("browses notices without history and closes a reward gesture before selecting
 		);
 		await fireEvent.input(
 			page.getByRole("searchbox", { name: "Search quests" }),
-			{ target: { value: "no matching quest" } },
+			{
+				target: { value: "no matching quest" },
+			},
 		);
 		expect(page.getByText("No quests match your search.")).toBeTruthy();
 		expect(page.queryByRole("group", { name: "Selected notice" })).toBeNull();

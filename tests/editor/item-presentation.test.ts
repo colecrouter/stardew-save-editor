@@ -1,9 +1,10 @@
 import { expect, it, vi } from "vitest";
-import * as catalog from "../../src/lib/ItemData";
+
 import {
 	readItemPresentation,
 	readItemVisual,
 } from "../../src/lib/editor/item-presentation";
+import * as catalog from "../../src/lib/ItemData";
 
 const metadata = (name: string) => {
 	const value = catalog.ItemData.get(name);

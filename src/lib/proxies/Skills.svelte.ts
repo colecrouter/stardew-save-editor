@@ -1,5 +1,7 @@
 import { SvelteSet } from "svelte/reactivity";
+
 import type { Achievements, Player } from "$types/save";
+
 import { type DataProxy, Raw } from ".";
 
 const xpForLevel = [
@@ -63,16 +65,21 @@ export class Skills implements DataProxy<Player> {
 	constructor(player: Player) {
 		this[Raw] = player;
 
-		// @ts-expect-error
-		this.experience = $state({});
+		// Initialize the complete skill record before effects observe individual values.
+		this.experience = $state({
+			[Skill.Farming]: 0,
+			[Skill.Fishing]: 0,
+			[Skill.Foraging]: 0,
+			[Skill.Mining]: 0,
+			[Skill.Combat]: 0,
+		});
 
 		// Initialize reactive states for each skill and sync back
 		for (const [, skill] of Object.entries(Skill)) {
 			this.experience[skill] =
 				this[Raw].experiencePoints.int?.[indices.get(skill) ?? 0] ?? 0;
 			$effect(() => {
-				if (!this[Raw].experiencePoints.int)
-					this[Raw].experiencePoints.int = [];
+				this[Raw].experiencePoints.int ??= [];
 
 				// Update experience points
 				this[Raw].experiencePoints.int[indices.get(skill) ?? 0] =
@@ -84,14 +91,13 @@ export class Skills implements DataProxy<Player> {
 		}
 
 		// I thought about doing two-way reactivity, with it's too much work for now
-		this.levels = $derived(
-			Object.fromEntries(
-				Object.entries(this.experience).map(([skill, xp]) => [
-					skill,
-					xpToLevel(xp),
-				]),
-			) as Record<Skill, number>,
-		);
+		this.levels = $derived({
+			[Skill.Farming]: xpToLevel(this.experience[Skill.Farming]),
+			[Skill.Fishing]: xpToLevel(this.experience[Skill.Fishing]),
+			[Skill.Foraging]: xpToLevel(this.experience[Skill.Foraging]),
+			[Skill.Mining]: xpToLevel(this.experience[Skill.Mining]),
+			[Skill.Combat]: xpToLevel(this.experience[Skill.Combat]),
+		});
 	}
 }
 
@@ -207,7 +213,7 @@ export class Professions
 
 	constructor(raw: Achievements) {
 		// Initialize with existing profession ints (cast to enum)
-		super(raw.int?.map((p) => p as Profession) ?? []);
+		super(raw.int?.map((p) => p) ?? []);
 		this[Raw] = raw;
 		$effect(() => {
 			this[Raw].int = Array.from(this);
@@ -221,7 +227,7 @@ export class Professions
 	private secondariesFor(p: Profession): Profession[] {
 		for (const g of skillGroups) {
 			const secs = g.secondary[p];
-			if (secs?.length) return secs;
+			if (secs !== undefined && secs.length !== 0) return secs;
 		}
 		return [];
 	}
@@ -241,7 +247,7 @@ export class Professions
 	 * Standard Set add semantics with parent enforcement: if adding a secondary
 	 * profession whose primary is not present, the primary is added first.
 	 */
-	add(p: Profession): this {
+	override add(p: Profession): this {
 		const parent = this.parentFor(p);
 		if (parent !== undefined && !this.has(parent)) {
 			super.add(parent);
@@ -251,7 +257,7 @@ export class Professions
 	}
 
 	/** Delete a profession; if it's a primary also delete its secondaries. */
-	delete(p: Profession): boolean {
+	override delete(p: Profession): boolean {
 		const wasPrimary = this.isPrimary(p);
 		const existed = super.delete(p);
 		if (existed && wasPrimary) {

@@ -1,5 +1,6 @@
 import { Result } from "effect";
 import { describe, expect, it } from "vitest";
+
 import { decodeFarmSettingsChange } from "../../src/lib/editor/farm-settings";
 
 // These request-only tests avoid loading a save: imported values are preserved
@@ -96,7 +97,7 @@ describe("farm settings request schema", () => {
 	it("ignores inherited fields and decodes only deliberate own values", () => {
 		// Prototype values are not requested edits, whether valid or invalid.
 		// The decoded result must not carry them into operation property reads.
-		const input = Object.assign(
+		const input: unknown = Object.assign(
 			Object.create({ profitPercent: 0, monsters: true }),
 			{
 				name: "Own",
@@ -104,14 +105,19 @@ describe("farm settings request schema", () => {
 		);
 		const result = decodeFarmSettingsChange(input);
 		expect(Result.isSuccess(result) && result.success).toEqual({ name: "Own" });
-		if (Result.isSuccess(result)) {
+		// Require the expected scenario state so this test cannot silently skip its assertions.
+		expect.assert(
+			Result.isSuccess(result),
+			"Expected the scenario fixture to be available",
+		);
+		{
 			expect(result.success.monsters).toBeUndefined();
 			expect(result.success.profitPercent).toBeUndefined();
 		}
 	});
 
 	it("still rejects invalid own values when the prototype supplies valid alternatives", () => {
-		const input = Object.assign(Object.create({ profitPercent: 75 }), {
+		const input: unknown = Object.assign(Object.create({ profitPercent: 75 }), {
 			name: "Own",
 			profitPercent: 0,
 		});

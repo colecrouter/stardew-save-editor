@@ -1,9 +1,11 @@
 <script lang="ts">
-	import { completeSpringForaging } from "../bundle-operations.ts";
 	import { useAtomValue } from "effect-atom-svelte";
 	import { tick } from "svelte";
+
+	import { completeSpringForaging } from "../bundle-operations.ts";
 	import type { EditorModel } from "../editor-model.ts";
 	import ConfirmAction from "./ConfirmAction.svelte";
+
 	let { model }: { model: EditorModel } = $props();
 
 	// Hooks subscribe through the nearest file provider. Keep the accessor object:
@@ -24,7 +26,11 @@
 	{#if !view.current?.bundle.supported}
 		<p role="status">{view.current?.bundle.reason}</p>
 	{:else if view.current.bundle.completed}
-		<p role="status" tabindex="-1" bind:this={result}>
+		<p
+			role="status"
+			tabindex="-1"
+			bind:this={result}
+		>
 			Complete. {view.current.bundle.rewardAvailable
 				? "30 Spring Seeds are available to collect in game."
 				: "The reward has already been collected."}

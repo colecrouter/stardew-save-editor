@@ -1,6 +1,8 @@
 import { expect, it } from "@effect/vitest";
 import { Effect } from "effect";
 import { get, type Readable } from "svelte/store";
+
+import { requireRecord } from "../helpers/assertions.ts";
 import { exportDocument, loadFixture, parser } from "./fixture.ts";
 import { makeAtomInventory } from "./inventory-atoms.ts";
 import { type InventoryModel, openInventory } from "./inventory-model.ts";
@@ -57,11 +59,10 @@ for (const [name, factory] of [
 				yield* Effect.promise(() => until(() => get(opened.model.count) === 1));
 				const state = yield* opened.session.snapshot;
 				const expected = structuredClone(baseline);
-				const item = expected.SaveGame.player.items[selected.slot] as Record<
-					string,
-					unknown
-				>;
-				item.stack = value;
+				const item = requireRecord(
+					expected.SaveGame.player.items[selected.slot],
+				);
+				item["stack"] = value;
 				expect(state.document).toEqual(expected);
 				expect(parser.parse(exportDocument(state.document))).toEqual(expected);
 			}),

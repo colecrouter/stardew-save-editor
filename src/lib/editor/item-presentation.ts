@@ -1,17 +1,18 @@
-import { isSavedItem, type InventoryValue } from "./inventory-values.ts";
-import { readCatalogItem } from "../ItemData.ts";
-import type { ImmutableView } from "./immutable-view.ts";
+import { type ItemInformation } from "$types/items";
+
+import { readRgba } from "../color.ts";
 import {
 	ItemDescription,
 	ItemNameHelper,
 	ObjectData,
+	readCatalogItem,
 	ResolveItemData,
 } from "../ItemData.ts";
 import { Sprite } from "../Sprite.svelte.ts";
-import { readRgba } from "../color.ts";
-import type { ItemInformation } from "$types/items";
-import type { TrinketRollContext } from "../TrinketStats.ts";
+import { type TrinketRollContext } from "../TrinketStats.ts";
 import { canEquipItem, equipmentSlots } from "./equipment.ts";
+import { type ImmutableView } from "./immutable-view.ts";
+import { type InventoryValue, isSavedItem } from "./inventory-values.ts";
 import { getItemPropertyFields } from "./item-properties.ts";
 
 /** Plain drawing instructions: renderers need no saved record, catalog or Sprite instance. */
@@ -26,9 +27,9 @@ export interface ItemVisual {
 	};
 	readonly layers: readonly {
 		readonly rect: ItemVisual["sourceRect"];
-		readonly tint?: readonly number[];
+		readonly tint?: readonly number[] | undefined;
 	}[];
-	readonly quality?: number;
+	readonly quality?: number | undefined;
 }
 
 /** Catalog matches are display hints, including for opaque mod subclasses.
@@ -74,8 +75,10 @@ function projectItemVisual(
 	const sprite = new Sprite(parent ?? info);
 	if (sprite.sourceRect.width <= 0 || sprite.sourceRect.height <= 0)
 		return undefined;
-	const layers: { rect: ItemVisual["sourceRect"]; tint?: readonly number[] }[] =
-		[{ rect: { ...sprite.sourceRect } }];
+	const layers: {
+		rect: ItemVisual["sourceRect"];
+		tint?: readonly number[] | undefined;
+	}[] = [{ rect: { ...sprite.sourceRect } }];
 	if (smoked) {
 		layers.push({ rect: { ...sprite.sourceRect }, tint: [80, 30, 10, 153] });
 	} else if (

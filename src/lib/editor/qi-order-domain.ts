@@ -1,6 +1,6 @@
-import type { ImmutableView } from "./immutable-view.ts";
 import { bindImmediateField, type DomainEditPort } from "./field-binding.ts";
-import { setQiOrder, type QiOrdersView } from "./qi-order-operations.ts";
+import type { ImmutableView } from "./immutable-view.ts";
+import { type QiOrdersView, setQiOrder } from "./qi-order-operations.ts";
 
 /** Shared board identities are file-bound rather than tied to the selected farmer. */
 export function createQiOrderDomain(

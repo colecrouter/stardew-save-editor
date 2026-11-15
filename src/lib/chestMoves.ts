@@ -1,7 +1,8 @@
-import { compareInventoryItems, isInventoryTool } from "./inventory-order.ts";
 import { Dispose, Raw } from "$lib/proxies";
 import type { ChestProxy } from "$lib/proxies/Chest.svelte";
 import type { ItemProxy } from "$lib/proxies/items";
+
+import { compareInventoryItems, isInventoryTool } from "./inventory-order.ts";
 
 /** One slot in one chest */
 export interface SlotRef {
@@ -35,7 +36,8 @@ export type MoveResult =
  */
 export function moveItems(from: SlotRef[], target: ChestProxy): MoveResult {
 	const moving = from.filter(
-		(ref) => ref.chest !== target && ref.chest.inventory.get(ref.index),
+		(ref) =>
+			ref.chest !== target && ref.chest.inventory.get(ref.index) !== undefined,
 	);
 	const free: number[] = [];
 	for (let index = 0; index < target.inventory.slotCount; index++)
@@ -47,7 +49,9 @@ export function moveItems(from: SlotRef[], target: ChestProxy): MoveResult {
 	const moved: SlotRef[] = [];
 	for (const [i, ref] of moving.entries()) {
 		const item = ref.chest.inventory.take(ref.index);
-		const index = free[i] as number;
+		const index = free[i];
+		// Capacity was checked before moving any item; this is an internal invariant.
+		if (index === undefined) throw new Error("Reserved chest slot is missing");
 		if (!item) continue;
 		target.inventory.place(index, item);
 		moved.push({ chest: target, index });
@@ -62,7 +66,14 @@ const MAX_STACK = 999;
 const SINGLE_OBJECTS = new Set(["(O)79", "(O)842", "(O)911"]);
 const TACKLE_CATEGORY = -22;
 
-type RawColor = { R?: number; G?: number; B?: number; A?: number };
+// Legacy/custom XML scalar fields can still be text; compare their numeric
+// values without changing the saved representation.
+type RawColor = {
+	R?: number | string;
+	G?: number | string;
+	B?: number | string;
+	A?: number | string;
+};
 
 // Values read back from a save can be strings, numbers or booleans
 type RawFields = {
@@ -75,11 +86,14 @@ type RawFields = {
 	name?: string;
 	orderData?: string;
 	parentSheetIndex?: number;
-	quality?: number;
+	quality?: number | string;
 	stack?: number;
 	type?: string;
 };
 
+// Legacy proxy declarations expose family fields through a shared base item.
+// This adapter describes only the optional compatibility fields used below.
+// oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Family-specific raw fields are part of the legacy proxy contract.
 const raw = (item: ItemProxy) => item[Raw] as unknown as RawFields;
 
 /** Use the same ordering as domain operations while retaining the proxy's mirrored count. */
@@ -161,7 +175,7 @@ export function sortSlots(slots: SortableSlots) {
 		if (item) items.push(item);
 	}
 	// Leave empty containers exactly as they were saved
-	if (!items.length) return;
+	if (items.length === 0) return;
 
 	// Tools (including weapons) go first in their current order.
 	const tools = items.filter((item) => isInventoryTool(raw(item)));

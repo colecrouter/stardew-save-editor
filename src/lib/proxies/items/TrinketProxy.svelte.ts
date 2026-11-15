@@ -13,6 +13,7 @@ import {
 } from "$lib/TrinketStats";
 import type { Trinket as TrinketInfo } from "$types/items";
 import type { TrinketItem } from "$types/save";
+
 import { BaseItemProxy, Raw } from "./ItemProxy.svelte";
 
 const TRINKET_SLOT: ParentIndex = "trinketItem";
@@ -30,7 +31,7 @@ export class TrinketProxy extends BaseItemProxy<TrinketItem> {
 	constructor(raw: TrinketItem) {
 		super(raw);
 		this.ensureTrinket();
-		this.trinketInfo = this.info as TrinketInfo;
+		this.trinketInfo = this.info;
 
 		this.displayNameOverrideTemplate = $state(
 			this[Raw].displayNameOverrideTemplate,
@@ -60,9 +61,7 @@ export class TrinketProxy extends BaseItemProxy<TrinketItem> {
 
 	private computeGenerationSeed(): number {
 		this.ensureTrinket();
-		if (this[Raw].generationSeed === undefined) {
-			this[Raw].generationSeed = Math.floor(Math.random() * 9999999);
-		}
+		this[Raw].generationSeed ??= Math.floor(Math.random() * 9999999);
 		return this[Raw].generationSeed;
 	}
 
@@ -81,7 +80,7 @@ export class TrinketProxy extends BaseItemProxy<TrinketItem> {
 	/** The stats the game will roll from this trinket's seed. */
 	getStats(ctx: TrinketRollContext): TrinketStats | undefined {
 		const kind = this.statKind;
-		if (!kind) return undefined;
+		if (kind == null) return undefined;
 		return rollTrinket(
 			kind,
 			createRandom(this.generationSeed ?? 0, ctx.useLegacyRandom),
@@ -132,7 +131,9 @@ export class TrinketProxy extends BaseItemProxy<TrinketItem> {
 		return slot === TRINKET_SLOT;
 	}
 
-	private ensureTrinket(): asserts this is TrinketProxy {
+	private ensureTrinket(): asserts this is TrinketProxy & {
+		readonly info: TrinketInfo;
+	} {
 		if (this.info?._type !== "Trinket") {
 			throw new TypeError(`Item "${this.name}" is not a Trinket`);
 		}

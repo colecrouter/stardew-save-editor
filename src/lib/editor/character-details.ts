@@ -1,11 +1,12 @@
-import { Data, Effect, Schema, Result } from "effect";
-import { farmers, type Farmer, type SaveDocument } from "./domain.ts";
+import { Data, Effect, Result, Schema } from "effect";
+
+import { type Farmer, farmers, type SaveDocument } from "./domain.ts";
 import { InventoryEdits } from "./inventory-operations.ts";
-import { TransactionDraft } from "./transaction-draft.ts";
 import {
 	recordAnnotatedOperation,
 	withReviewMetadata,
 } from "./transaction-annotations.ts";
+import { TransactionDraft } from "./transaction-draft.ts";
 
 // Decoding establishes numeric types; projections still distinguish absence and
 // nonfinite game values from editable counters.
@@ -71,9 +72,9 @@ export class CharacterDetailsInvalid extends Data.TaggedError(
 export interface CharacterDetailNumber {
 	key: string;
 	label: string;
-	value?: number;
+	value?: number | undefined;
 	available: boolean;
-	reason?: string;
+	reason?: string | undefined;
 	min: number;
 	max: number;
 }
@@ -84,11 +85,11 @@ export interface CharacterDetailsView {
 		label: string;
 		value: boolean;
 		available: boolean;
-		reason?: string;
+		reason?: string | undefined;
 	}[];
-	backpackSize?: number;
+	backpackSize?: number | undefined;
 	backpackAvailable: boolean;
-	houseLevel?: number;
+	houseLevel?: number | undefined;
 	houseUpgrading: boolean;
 }
 function owner(document: SaveDocument, farmerId: string) {
@@ -211,7 +212,8 @@ export function readCharacterDetails(
 			if (
 				definition.key === "trash" &&
 				tool != null &&
-				(tool.$type === "$unknown" || tool.itemId?.endsWith("TrashCan"))
+				(tool.$type === "$unknown" ||
+					tool.itemId?.endsWith("TrashCan") === true)
 			) {
 				available = false;
 				reason = "Collect the trash can from Clint before changing its level.";
@@ -235,9 +237,10 @@ export function readCharacterDetails(
 			label,
 			value: mail?.list.includes(key) ?? false,
 			available: mail?.supported ?? false,
-			reason: mail?.supported
-				? undefined
-				: "This farmer's saved mail flags are unsupported.",
+			reason:
+				mail?.supported === true
+					? undefined
+					: "This farmer's saved mail flags are unsupported.",
 		})),
 	};
 }
@@ -302,7 +305,7 @@ export const setCharacterDetails = Effect.fn("CharacterDetails.set")(function* (
 		if (
 			cancelling
 				? !view.houseUpgrading || request.value !== true
-				: !number?.available ||
+				: !(number?.available === true) ||
 					typeof request.value !== "number" ||
 					!Number.isInteger(request.value) ||
 					request.value < number.min ||

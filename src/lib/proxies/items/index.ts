@@ -7,7 +7,6 @@ import type {
 	FurnitureItem,
 	HatItem,
 	Item,
-	KnownItemTypes,
 	ObjectItem,
 	RingItem,
 	ToolItem,
@@ -77,8 +76,12 @@ export function createItemProxy(base: Item): ItemProxy {
 	}
 }
 
+// The legacy Item model does not express its XML discriminator as a union.
+// Each branch below uses the imported xsi:type to select its matching raw model;
+// constructors validate metadata, and the public factory retains its fallback.
+/* oxlint-disable typescript/no-unsafe-type-assertion, typescript/no-unsafe-enum-assignment */
 function createTypedItemProxy(base: Item): ItemProxy {
-	switch (base["@_xsi:type"] as KnownItemTypes | "Wand" | "Mannequin") {
+	switch (base["@_xsi:type"]) {
 		case "MeleeWeapon":
 			return new WeaponProxy(base as WeaponItem);
 		case "Tool":
@@ -133,6 +136,8 @@ function createTypedItemProxy(base: Item): ItemProxy {
 			return new BaseItemProxy(base);
 	}
 }
+
+/* oxlint-enable typescript/no-unsafe-type-assertion, typescript/no-unsafe-enum-assignment */
 
 export {
 	AxeProxy,

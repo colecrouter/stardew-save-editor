@@ -1,11 +1,13 @@
 <script lang="ts">
 	import type { HTMLSelectAttributes } from "svelte/elements";
-	import type { ImmediateField } from "../../immediate-field.ts";
+
 	import { createImmediateFieldController } from "../../immediate-field.svelte.ts";
+	import type { ImmediateField } from "../../immediate-field.ts";
 
 	interface Props extends Omit<HTMLSelectAttributes, "value" | "children"> {
 		field: ImmediateField<string>;
-		description?: string;
+		// An absent domain explanation is passed through as cleared feedback.
+		description?: string | undefined;
 		inline?: boolean;
 	}
 	const generatedId = $props.id();
@@ -37,7 +39,10 @@
 	);
 </script>
 
-<div class="editor-field" class:inline>
+<div
+	class="editor-field"
+	class:inline
+>
 	<label for={id}>{field.label}</label>
 
 	<select

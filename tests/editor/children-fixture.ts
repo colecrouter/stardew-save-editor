@@ -1,9 +1,9 @@
+import { readChildren } from "../../src/lib/editor/children-data.ts";
 import {
-	tinyEditorFixture,
 	exportDocument,
 	parser,
+	tinyEditorFixture,
 } from "../helpers/editor-document.ts";
-import { readChildren } from "../../src/lib/editor/children-data.ts";
 
 /** Two homes exercise host and offline-farmhand references without a full save.
  * Normalize through the production codec so equality checks include XML reality. */
@@ -65,7 +65,8 @@ export function childrenFixture() {
 
 export function renameRequest(document = childrenFixture(), newName = "Hazel") {
 	const child = readChildren(document)[0];
-	if (!child?.parentId) throw Error("Missing child fixture");
+	if (child?.parentId == null || child.parentId.length === 0)
+		throw Error("Missing child fixture");
 	return {
 		key: child.key,
 		name: child.name,

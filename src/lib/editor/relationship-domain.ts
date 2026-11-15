@@ -1,11 +1,11 @@
-import { createPregnancyDomain } from "./pregnancy-domain.ts";
-import type { ImmutableView } from "./immutable-view.ts";
 import { bindImmediateField, type DomainEditPort } from "./field-binding.ts";
 import type { ImmediateField } from "./immediate-field.ts";
+import type { ImmutableView } from "./immutable-view.ts";
+import { createPregnancyDomain } from "./pregnancy-domain.ts";
 import {
-	setRelationship,
 	POINTS_PER_HEART,
 	type RelationshipFarmerView,
+	setRelationship,
 } from "./relationship-operations.ts";
 
 /** Capture the farmer and villager keys before queued edits can outlive selection. */

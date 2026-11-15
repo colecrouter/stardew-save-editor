@@ -1,7 +1,7 @@
 import { bindImmediateField, type ImmediateEditPort } from "./field-binding.ts";
+import { petAppearances } from "./pet-appearance.ts";
 import type { PetView } from "./pet-data.ts";
 import { setPet } from "./pet-operations.ts";
-import { petAppearances } from "./pet-appearance.ts";
 
 /** Each control captures the pet GUID, so renaming or navigating cannot retarget
  * queued input. Shared field controllers own blur grouping and error feedback. */
@@ -9,12 +9,16 @@ export function createPetFields(view: PetView, model: ImmediateEditPort) {
 	const options = petAppearances.map(({ value, label }) => ({ value, label }));
 	// A custom pair is a retained current value, not a supported destination.
 	// Selecting one of the vanilla pairs is the explicit intent to replace it.
-	if (view.appearance.value && !view.appearance.known)
+	if (
+		view.appearance.value != null &&
+		view.appearance.value !== "" &&
+		!view.appearance.known
+	)
 		options.unshift({
 			value: view.appearance.value,
 			label: `Custom (${view.type} — breed ${view.breed})`,
 		});
-	if (!view.appearance.value)
+	if (!(view.appearance.value != null && view.appearance.value !== ""))
 		options.unshift({ value: "", label: "Unreadable saved appearance" });
 	return {
 		appearance: bindImmediateField(

@@ -1,10 +1,11 @@
 <script lang="ts">
-	import StudyIcon from "$lib/ui/StudyIcon.svelte";
 	import { getSaveManager } from "$lib/SaveManager.svelte";
+	import StudyIcon from "$lib/ui/StudyIcon.svelte";
 	import UiCheckbox from "$lib/ui/UICheckbox.svelte";
 	import UiContainer from "$lib/ui/UIContainer.svelte";
 	import UiInput from "$lib/ui/UIInput.svelte";
 	import UiSelect from "$lib/ui/UISelect.svelte";
+
 	import CalendarSettings from "./CalendarSettings.svelte";
 
 	const save = getSaveManager().save;

@@ -1,4 +1,5 @@
 import type { ToolItem } from "$types/save";
+
 import { ToolProxy } from "./ToolProxy.svelte";
 
 export class PanProxy extends ToolProxy {

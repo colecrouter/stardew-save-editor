@@ -1,4 +1,6 @@
 import { Data, Effect, Result } from "effect";
+
+import { writeOptionalField } from "../optional-field.ts";
 import { isHostFarmer, type SaveDocument } from "./domain.ts";
 import { inspectFarmerRoster } from "./farmer-roster-data.ts";
 import { InventoryEdits } from "./inventory-operations.ts";
@@ -44,19 +46,27 @@ export function applyFarmerSwap(
 	// Only active farmhand slots receive the new named-farmer ordering.
 	let next = 1;
 	const hands = roster.entries.map((farmer) =>
-		farmer?.name?.trim() ? (ordered[next++] ?? farmer) : farmer,
+		(farmer?.name?.trim() ?? "") !== "" ? (ordered[next++] ?? farmer) : farmer,
 	);
 	const host = ordered[0];
 	if (!host) return invalid("The roster needs a host.");
 	for (const [index, farmer] of ordered.entries()) {
 		const home = roster.homeBySlot[index];
-		if (!home) return invalid("A saved home assignment is unavailable.");
+		if (!(home != null && home !== ""))
+			return invalid("A saved home assignment is unavailable.");
 		Object.assign(farmer, { homeLocation: home });
 		if (index === 0) continue;
 		const cabin = roster.cabins.find(
-			(raw) => raw.uniqueName === home || raw.name === home,
+			(raw) => raw["uniqueName"] === home || raw["name"] === home,
 		);
-		if (cabin) cabin.farmhandReference = farmer.UniqueMultiplayerID;
+		// An absent farmer ID clears the optional serialized reference rather than
+		// leaving an own undefined property on the cabin record.
+		if (cabin)
+			writeOptionalField(
+				cabin,
+				"farmhandReference",
+				farmer.UniqueMultiplayerID,
+			);
 	}
 	// Promotion must retain the same playable host envelope enforced on import.
 	// Named cabin records may still lack money or inventory data.

@@ -1,7 +1,9 @@
 import { fireEvent, render, waitFor } from "@testing-library/svelte";
 import { expect, it } from "vitest";
+
+import { requireInstance } from "../helpers/assertions.ts";
 import { openTestDocument } from "../helpers/open-editor.ts";
-import { parser, fixtureXml } from "./fixtures";
+import { fixtureXml, parser } from "./fixtures";
 import WorkspaceHarness from "./WorkspaceHarness.svelte";
 
 // Reassignment must publish through the workspace's queue and preserve the
@@ -38,10 +40,11 @@ it("reassigns farmers with keyboard buttons and native dragging while preserving
 			),
 		).toBe("123456789");
 		expect(
-			(
+			requireInstance(
 				page.getByRole("button", {
 					name: "Move Guest up",
-				}) as HTMLButtonElement
+				}),
+				HTMLButtonElement,
 			).disabled,
 		).toBe(true);
 		const source = page

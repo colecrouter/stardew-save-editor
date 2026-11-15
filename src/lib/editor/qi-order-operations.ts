@@ -1,17 +1,22 @@
+import { Data, Effect, Random, Result, Schema } from "effect";
+
+import templates from "../../../generated/qiquests.json";
 import {
-	type T_StardewValley_SpecialOrders_SpecialOrder as SpecialOrder,
 	type T_StardewValley_SpecialOrders_Objectives_OrderObjective as OrderObjective,
+	type T_StardewValley_SpecialOrders_SpecialOrder as SpecialOrder,
 	TypeIds,
 } from "../../../generated/save-format/save.ts";
-import { Data, Effect, Random, Result, Schema } from "effect";
-import templates from "../../../generated/qiquests.json";
 import { MAX_YEAR, SEASONS, totalDays } from "../calendar.ts";
-import type { EditorGame, KnownFields, SaveDocument } from "./domain.ts";
-import { TransactionDraft } from "./transaction-draft.ts";
+import {
+	type EditorGame,
+	type KnownFields,
+	type SaveDocument,
+} from "./domain.ts";
 import {
 	recordAnnotatedOperation,
 	withReviewMetadata,
 } from "./transaction-annotations.ts";
+import { TransactionDraft } from "./transaction-draft.ts";
 
 export const MAX_QI_OFFERS = 2;
 export class QiOrderInvalid extends Data.TaggedError("QiOrderInvalid")<{
@@ -141,29 +146,29 @@ function cancellationSafe(
 function deadlineLabel(value: number | undefined) {
 	if (!integer(value) || value < 0) return undefined;
 	const season = SEASONS[Math.floor(value / 28) % 4];
-	return `${season ? season.charAt(0).toUpperCase() + season.slice(1) : "Unknown season"} ${(value % 28) + 1}, Year ${Math.floor(value / 112) + 1}`;
+	return `${season !== undefined ? season.charAt(0).toUpperCase() + season.slice(1) : "Unknown season"} ${(value % 28) + 1}, Year ${Math.floor(value / 112) + 1}`;
 }
 export interface QiOrderRow {
 	key: string;
 	name: string;
 	description: string;
-	rewardGems?: number;
-	duration?: string;
+	rewardGems?: number | undefined;
+	duration?: string | undefined;
 	offered: boolean;
-	state?: string;
-	dueDate?: number;
-	deadline?: string;
+	state?: string | undefined;
+	dueDate?: number | undefined;
+	deadline?: string | undefined;
 	known: boolean;
 	offerAvailable: boolean;
 	acceptAvailable: boolean;
 	cancelAvailable: boolean;
-	reason?: string;
+	reason?: string | undefined;
 	acceptDescription: string;
 	cancelDescription: string;
 }
 export interface QiOrdersView {
 	supported: boolean;
-	reason?: string;
+	reason?: string | undefined;
 	offeredCount: number;
 	rows: QiOrderRow[];
 }
@@ -204,14 +209,14 @@ export function readQiOrders(document: SaveDocument): QiOrdersView {
 		const state =
 			current != null && typeof current.questState === "string"
 				? current.questState
-				: accepted.length
+				: accepted.length > 0
 					? "Unsupported"
 					: undefined;
 		const known = template !== undefined;
 		const unique =
 			offered.length <= 1 &&
 			accepted.length <= 1 &&
-			!(offered.length && accepted.length);
+			!(offered.length > 0 && accepted.length > 0);
 		const qiShape = [...offered, ...accepted].every(
 			(entry) => entry != null && entry.orderType === "Qi",
 		);
@@ -230,7 +235,7 @@ export function readQiOrders(document: SaveDocument): QiOrdersView {
 			date(document) !== undefined &&
 			!unknownBoard;
 		const evict =
-			offeredCount >= MAX_QI_OFFERS && !offered.length
+			offeredCount >= MAX_QI_OFFERS && !(offered.length > 0)
 				? evictionCandidate(board, active)
 				: undefined;
 		const canEvict =
@@ -244,15 +249,15 @@ export function readQiOrders(document: SaveDocument): QiOrdersView {
 				? "The shared order containers are unsupported."
 				: !unique || !qiShape
 					? "This order has ambiguous or unsupported saved records."
-					: !constructible && state === undefined && !offered.length
+					: !constructible && state === undefined && !(offered.length > 0)
 						? "This challenge cannot be created by this editor."
-						: state && state !== "InProgress"
+						: state != null && state !== "" && state !== "InProgress"
 							? "Claim or dismiss this order in the in-game journal."
 							: state === "InProgress" && !difficultySafe
 								? "This order's rule state cannot be cancelled safely."
 								: !date(document)
 									? "A valid world date is required to create an order."
-									: !offered.length &&
+									: !(offered.length > 0) &&
 										  (unknownBoard || offeredCount >= MAX_QI_OFFERS)
 										? "The board has no safely available offer slot."
 										: undefined;
@@ -394,7 +399,7 @@ export const setQiOrder = Effect.fn("QiOrders.set")(function* (
 	const snapshot = yield* transaction.read;
 	const game = snapshot.state.document.SaveGame;
 	const row = readQiOrders(snapshot.state.document).rows.find(
-		(row) => row.key === request.key,
+		(rowCandidate) => rowCandidate.key === request.key,
 	);
 	if (!row)
 		return yield* new QiOrderInvalid({

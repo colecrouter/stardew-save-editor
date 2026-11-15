@@ -1,29 +1,29 @@
-import type { Farmer } from "./domain.ts";
+import {
+	PrimaryBootColors,
+	PrimarySkinColors,
+	QuaternaryBootColors,
+	SecondaryBootColors,
+	SecondarySkinColors,
+	TertiaryBootColors,
+	TertiarySkinColors,
+} from "../CharacterColors.ts";
+import { readRgba } from "../color.ts";
 import { ItemData, ResolveItemData } from "../ItemData.ts";
 import { Sprite } from "../Sprite.svelte.ts";
-import { readRgba } from "../color.ts";
-import {
-	PrimarySkinColors,
-	SecondarySkinColors,
-	TertiarySkinColors,
-	PrimaryBootColors,
-	SecondaryBootColors,
-	TertiaryBootColors,
-	QuaternaryBootColors,
-} from "../CharacterColors.ts";
+import { type Farmer } from "./domain.ts";
 
 export interface AppearanceLayer {
 	readonly part: string;
 	readonly sheet: string;
 	readonly x: number;
 	readonly y: number;
-	readonly tint?: readonly number[];
+	readonly tint?: readonly number[] | undefined;
 }
 /** Ready-to-render composition; consumers need no saved farmer or equipment fields. */
 export interface AppearancePreviewView {
 	readonly layers: readonly AppearanceLayer[];
 	readonly gender: "male" | "female";
-	readonly notice?: string;
+	readonly notice?: string | undefined;
 }
 // Concrete equipment fields already have generated contracts. Resolve their
 // catalog identity directly without revalidating decoded object shapes.
@@ -91,9 +91,7 @@ export function appearanceLayers(
 			? Number(farmer.shoes)
 			: 2;
 	const requestedBootIndex = boots
-		? farmer.boots?.indexInColorSheet !== undefined
-			? farmer.boots.indexInColorSheet
-			: 0
+		? (farmer.boots?.indexInColorSheet ?? 0)
 		: savedShoes;
 	const bootIndex =
 		Number.isInteger(requestedBootIndex) &&
@@ -138,7 +136,7 @@ export function appearanceLayers(
 		const sprite = new Sprite(info),
 			pos = sprite.dimensions;
 		const tint =
-			info.canBeDyed && saved != null
+			info.canBeDyed === true && saved != null
 				? readRgba(saved.clothesColor)
 				: undefined;
 		add(
@@ -149,7 +147,9 @@ export function appearanceLayers(
 			// frames sit 96px to the right within the same pants block.
 			pos.x -
 				(part === "pants" && gender === "female" ? 96 : 0) -
-				(part === "shirt" && info.canBeDyed ? sprite.sheetSize.width / 2 : 0),
+				(part === "shirt" && info.canBeDyed === true
+					? sprite.sheetSize.width / 2
+					: 0),
 			pos.y + (part === "pants" ? 672 : 0),
 			tint,
 		);

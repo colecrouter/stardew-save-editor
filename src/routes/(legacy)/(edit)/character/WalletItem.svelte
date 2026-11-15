@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from "svelte";
+
 	import type { MailBox, MailFlag } from "$lib/proxies/Mail.svelte";
 	import Tooltip from "$lib/ui/Tooltip.svelte";
 

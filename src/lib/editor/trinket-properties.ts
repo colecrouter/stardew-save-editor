@@ -1,15 +1,6 @@
-import { isKnownItem, type InventoryValue } from "./inventory-values.ts";
-import type { T_StardewValley_Objects_Trinket as Trinket } from "../../../generated/save-format/save.ts";
-import type { KnownFields } from "./domain.ts";
-export type TrinketPatch = Partial<
-	Pick<
-		KnownFields<Trinket>,
-		| "generationSeed"
-		| "descriptionSubstitutionTemplates"
-		| "displayNameOverrideTemplate"
-	>
->;
 import { Data, Effect, Result, Schema, SchemaIssue } from "effect";
+
+import { type T_StardewValley_Objects_Trinket as Trinket } from "../../../generated/save-format/save.ts";
 import {
 	clampStats,
 	createRandom,
@@ -23,6 +14,17 @@ import {
 	type TrinketRollContext,
 	type TrinketStats,
 } from "../TrinketStats.ts";
+import { type KnownFields } from "./domain.ts";
+import { type InventoryValue, isKnownItem } from "./inventory-values.ts";
+
+export type TrinketPatch = Partial<
+	Pick<
+		KnownFields<Trinket>,
+		| "generationSeed"
+		| "descriptionSubstitutionTemplates"
+		| "displayNameOverrideTemplate"
+	>
+>;
 
 const owner = { ownerId: Schema.String, entityId: Schema.String };
 const integer = (minimum: number, maximum: number) =>
@@ -144,7 +146,7 @@ const numberField = (
 	min,
 	max,
 	step,
-	...(hint ? { hint } : {}),
+	...(hint != null && hint !== "" ? { hint } : {}),
 });
 
 /** Derive controls only from an existing seed and the current owner's game context. */
@@ -264,9 +266,7 @@ export const prepareTrinketPropertyChange = Effect.fn(
 	input: TrinketPropertyChange,
 	ctx: TrinketRollContext,
 ) {
-	const decoded = decode(
-		input && typeof input === "object" ? { ...input } : input,
-	);
+	const decoded = decode({ ...input });
 	if (Result.isFailure(decoded))
 		return yield* invalid(
 			formatIssues(decoded.failure.issue).issues[0]?.message ??
@@ -284,7 +284,7 @@ export const prepareTrinketPropertyChange = Effect.fn(
 			"This trinket's saved seed or context is not supported.",
 		);
 	const field = readTrinketProperties(item, ctx).find(
-		(field) => field.property === change.property,
+		(fieldCandidate) => fieldCandidate.property === change.property,
 	);
 	if (!field)
 		return yield* invalid("This trinket does not support that property.");

@@ -1,9 +1,10 @@
 import { fireEvent, render, waitFor } from "@testing-library/svelte";
 import { expect, it } from "vitest";
-import { openTestDocument } from "../helpers/open-editor.ts";
+
 import { readPregnancy } from "../../src/lib/editor/pregnancy-data.ts";
+import { openTestDocument } from "../helpers/open-editor.ts";
+import { fixtureXml, parser } from "./fixtures.ts";
 import WorkspaceHarness from "./WorkspaceHarness.svelte";
-import { parser, fixtureXml } from "./fixtures.ts";
 
 // Exercise the real field controllers and transaction queue, not a callback mock.
 // The selected couple owns both the discrete toggle and grouped due-date typing.

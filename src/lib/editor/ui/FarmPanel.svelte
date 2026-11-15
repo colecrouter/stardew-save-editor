@@ -1,14 +1,15 @@
 <script lang="ts">
 	import { useAtomValue } from "effect-atom-svelte";
+
+	import StudyAside from "../../ui/kit/StudyAside.svelte";
+	import StudyPanel from "../../ui/kit/StudyPanel.svelte";
+	import StudyIcon from "../../ui/StudyIcon.svelte";
 	import type { EditorModel } from "../editor-model.ts";
 	import { createFarmFields } from "../farm-domain.ts";
-	import TextField from "./fields/TextField.svelte";
-	import NumberField from "./fields/NumberField.svelte";
 	import CheckboxField from "./fields/CheckboxField.svelte";
+	import NumberField from "./fields/NumberField.svelte";
 	import SelectField from "./fields/SelectField.svelte";
-	import StudyPanel from "../../ui/kit/StudyPanel.svelte";
-	import StudyAside from "../../ui/kit/StudyAside.svelte";
-	import StudyIcon from "../../ui/StudyIcon.svelte";
+	import TextField from "./fields/TextField.svelte";
 
 	interface Props {
 		model: EditorModel;
@@ -23,7 +24,10 @@
 
 {#if view.current && fields}
 	<header class="farm-heading">
-		<StudyIcon name="farm" size={40} />
+		<StudyIcon
+			name="farm"
+			size={40}
+		/>
 		<div>
 			<h1>Farm settings</h1>
 			<p>Your farm’s name, rules and saved records.</p>
@@ -33,7 +37,10 @@
 		<div class="rules">
 			<StudyPanel title="Farm rules">
 				<div class="fields">
-					<TextField field={fields.name} sensitive />
+					<TextField
+						field={fields.name}
+						sensitive
+					/>
 
 					<NumberField
 						field={fields.profitPercent}
@@ -63,7 +70,10 @@
 			</StudyAside>
 		</div>
 		<div class="creation">
-			<StudyPanel title="Farm creation settings" surface="inset">
+			<StudyPanel
+				title="Farm creation settings"
+				surface="inset"
+			>
 				<p class="reference-note">Reference records from this save.</p>
 				<dl>
 					{#each view.current.farm.creation as setting (setting.label)}

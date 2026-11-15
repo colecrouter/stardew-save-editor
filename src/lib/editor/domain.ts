@@ -1,17 +1,24 @@
-import { samePlainData } from "./plain-data.ts";
 import { Effect, Result } from "effect";
-import { MutationError } from "./mutation-error.ts";
-export { MutationError } from "./mutation-error.ts";
-import type { InventoryLocation } from "./equipment.ts";
+
+import {
+	type Value as SavedGame,
+	type T_StardewValley_Farmer,
+} from "../../../generated/save-format/save.ts";
+import { type CalendarEdit } from "./calendar-document.ts";
+import { type InventoryLocation } from "./equipment.ts";
+import { type InventorySlotRequest } from "./inventory-lifecycle.ts";
+import { type InventoryMoveRequest } from "./inventory-movement.ts";
 import {
 	applyInventoryMutation,
-	isInventoryMutation,
 	type InventoryIdentityState,
+	isInventoryMutation,
 } from "./inventory-transition.ts";
-import type { InventoryMoveRequest } from "./inventory-movement.ts";
-import type { InventorySlotRequest } from "./inventory-lifecycle.ts";
-import type { CalendarEdit } from "./calendar-document.ts";
-import type { SavedItem } from "./inventory-values.ts";
+import { type SavedItem } from "./inventory-values.ts";
+import { MutationError } from "./mutation-error.ts";
+import { record, samePlainData } from "./plain-data.ts";
+import { farmers } from "./saved-farmers.ts";
+
+export { MutationError } from "./mutation-error.ts";
 
 // Authored records have no extension payload. Removing the generated extension
 // index here lets constructors catch misspelled fields without restricting imports.
@@ -27,10 +34,7 @@ export type {
 	T_StardewValley_Item as Item,
 	T_StardewValley_GameLocation as Location,
 } from "../../../generated/save-format/save.ts";
-import type {
-	Value as SavedGame,
-	T_StardewValley_Farmer,
-} from "../../../generated/save-format/save.ts";
+
 export type Farmer = T_StardewValley_Farmer;
 export type HostFarmer = Farmer & {
 	name: string;
@@ -77,12 +81,17 @@ export type ResolvedMutation =
 	| CalendarEdit
 	| { type: "bundle-complete"; bundleId: 13 }
 	| { type: "item-place"; ownerId: string; slot: number; item: SavedItem }
-	| { type: "item-remove"; ownerId: string; slot: number; entityId?: string }
+	| {
+			type: "item-remove";
+			ownerId: string;
+			slot: number;
+			entityId?: string | undefined;
+	  }
 	| {
 			type: "item-move";
 			ownerId: string;
 			slot: number;
-			entityId?: string;
+			entityId?: string | undefined;
 			toOwnerId: string;
 			toSlot: number;
 	  }
@@ -93,7 +102,7 @@ export type ResolvedMutation =
 			slot: number;
 			itemId: string;
 			/** Session-owned identity; resolved by the history session before applying. */
-			entityId?: string;
+			entityId?: string | undefined;
 			value: number;
 	  }
 	| { type: "inventory-organize"; ownerId: string }
@@ -127,9 +136,9 @@ export interface SessionState {
 	document: SaveDocument;
 	history: OperationChange[];
 	/** Operation-owned state, carried alongside XML and never exported into it. */
-	domainState?: DomainState;
+	domainState?: DomainState | undefined;
 	/** Paired inventory records/handles are staged by one transition owner. */
-	inventory?: InventoryIdentityState;
+	inventory?: InventoryIdentityState | undefined;
 }
 export type DomainValue =
 	| null
@@ -140,12 +149,7 @@ export type DomainValue =
 	| DomainValue[]
 	| { [key: string]: DomainValue };
 export type DomainState = Record<string, DomainValue>;
-export const farmers = (document: SaveDocument) =>
-	[document.SaveGame.player, ...document.SaveGame.farmhands].filter(
-		(farmer): farmer is Farmer => farmer !== null,
-	);
-
-export const emptySlot = (item: unknown) => item === null || item === undefined;
+export { farmers, emptySlot } from "./saved-farmers.ts";
 
 /** Prepare expected rejections as values; unexpected exceptions remain defects
  * when this planner is lifted into the Effect operation boundary. */
@@ -157,7 +161,7 @@ export function applyResult(
 	{
 		label: string;
 		review: OperationChange["review"];
-		inventory?: InventoryIdentityState;
+		inventory?: InventoryIdentityState | undefined;
 	},
 	MutationError
 > {
@@ -174,7 +178,7 @@ export function applyResult(
 			),
 		);
 	if (mutation.type === "farm-name") {
-		if (typeof mutation.value !== "string" || !mutation.value.trim())
+		if (typeof mutation.value !== "string" || !(mutation.value.trim() !== ""))
 			return Result.fail(new MutationError("Farm name is empty"));
 		for (const farmer of farmers(document)) farmer.farmName = mutation.value;
 		return Result.succeed({
@@ -184,7 +188,6 @@ export function applyResult(
 	}
 	// Owner identity is checked without coercing opaque imported identifiers.
 	const matches = farmers(document).filter((farmer) => {
-		if (!farmer || typeof farmer !== "object") return false;
 		const id = farmer.UniqueMultiplayerID;
 		return (
 			(typeof id === "string" ||
@@ -221,16 +224,9 @@ export function apply(document: SaveDocument, mutation: ResolvedMutation) {
 // recorded as complete values so a reorder never loses unknown or hidden entries.
 export function diff(before: unknown, after: unknown, path = ""): Change[] {
 	if (samePlainData(before, after)) return [];
-	if (
-		before &&
-		after &&
-		typeof before === "object" &&
-		typeof after === "object" &&
-		!Array.isArray(before) &&
-		!Array.isArray(after)
-	) {
-		const left = before as Record<string, unknown>;
-		const right = after as Record<string, unknown>;
+	if (record(before) && record(after)) {
+		const left = before;
+		const right = after;
 		return [...new Set([...Object.keys(left), ...Object.keys(right)])].flatMap(
 			(key) =>
 				diff(

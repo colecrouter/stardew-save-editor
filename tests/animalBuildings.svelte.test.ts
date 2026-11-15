@@ -1,6 +1,6 @@
-import publicSaveXml from "./TestSave?raw";
 import { flushSync } from "svelte";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+
 import {
 	animalOptions,
 	defaultAnimalName,
@@ -13,15 +13,15 @@ import type { Building } from "$lib/proxies/Building.svelte";
 import { type FarmAnimal, newAnimalId } from "$lib/proxies/FarmAnimal.svelte";
 import type { Farmer } from "$lib/proxies/Farmer.svelte";
 import { XMLManager } from "$lib/workers/xml";
-import type { GameLocation as Location } from "../codegen/save";
+
 import { SaveManager } from "../src/lib/SaveManager.svelte";
 import {
-	BARN_ID,
 	bambooMat,
+	BARN_ID,
 	barnXml,
+	candleLamp,
 	COOP_ANIMALS,
 	COOP_ID,
-	candleLamp,
 	coopXml,
 	feedHopper,
 	incubator,
@@ -30,9 +30,16 @@ import {
 	shedXml,
 	withAnimalBuildings,
 } from "./helpers/animalBuildings";
+import {
+	requireArray,
+	requireDefined,
+	requireRecord,
+} from "./helpers/assertions.ts";
+import { malformedFixture } from "./helpers/editor-document.ts";
+import publicSaveXml from "./TestSave?raw";
 
-// Raw parsed fixtures deliberately allow unrecognized save fields.
-type Parsed = any;
+// Export inspections retain the legacy XML container representation.
+type Parsed = { SaveGame: import("../codegen/save").Save };
 
 const tierNames = (type: string) => upgradeTiers(type).map((t) => t.name);
 
@@ -181,7 +188,7 @@ describe("coops and barns", () => {
 		if (!found) throw new Error(`No ${name}`);
 		return found;
 	};
-	const interior = (b: Building) => b[Raw].indoors as Location;
+	const interior = (b: Building) => requireDefined(b[Raw].indoors);
 	const furnitureOf = (b: Building) => {
 		const furniture = interior(b).furniture;
 		return typeof furniture === "object" ? furniture.Furniture : [];
@@ -193,18 +200,20 @@ describe("coops and barns", () => {
 	const exported = async () =>
 		xmlManager.parse<Parsed>(await (await saveManager.export()).text());
 	/** A building as it's written to the downloaded save */
-	const exportedBuilding = async (id: string) =>
-		(
-			await exported()
-		).SaveGame.locations.GameLocation[0].buildings.Building.find(
-			(b: { id: string }) => b.id === id,
+	const exportedBuilding = async (id: string) => {
+		const locations = (await exported()).SaveGame.locations.GameLocation;
+		const farm = requireDefined(
+			locations.find((location) => location.buildings !== undefined),
 		);
+		const buildings = requireDefined(requireDefined(farm.buildings).Building);
+		return requireDefined(buildings.find((candidate) => candidate.id === id));
+	};
 	/** A player's conversation topics, and how many days each has left */
 	const topics = (player: Farmer) => {
 		const events = player[Raw].activeDialogueEvents;
 		return new Map(
-			(events ? events.item : []).map((e) => [
-				String(e.key.string),
+			(typeof events === "object" ? events.item : []).map((e) => [
+				e.key.string,
 				e.value.int,
 			]),
 		);
@@ -339,19 +348,18 @@ describe("coops and barns", () => {
 			expect(topics(player).get("purchasedAnimal_Ostrich")).toBe(4);
 
 		// And it's in the downloaded save
-		const reloaded = await exported();
-		const barnAgain =
-			reloaded.SaveGame.locations.GameLocation[0].buildings.Building.find(
-				(b: { id: string }) => b.id === BARN_ID,
-			);
+		const barnAgain = await exportedBuilding(BARN_ID);
+		const reloadedIndoors = requireDefined(barnAgain.indoors);
 		expect(
-			barnAgain.indoors.animals.item.map(
-				(a: Parsed) => a.value.FarmAnimal.name,
+			requireDefined(requireDefined(reloadedIndoors.animals).item).map(
+				(a) => a.value.FarmAnimal.name,
 			),
 		).toEqual(["Daisy", "Bessie", "Big Bird"]);
-		expect(barnAgain.indoors.animalsThatLiveHere.long.map(String)).toContain(
-			id,
-		);
+		expect(
+			requireArray(
+				requireRecord(reloadedIndoors.animalsThatLiveHere)["long"],
+			).map(String),
+		).toContain(id);
 	});
 
 	it("only adds animals that can live there, while there's room", () => {
@@ -391,18 +399,27 @@ describe("coops and barns", () => {
 		expect(topics(player).has("purchasedAnimal_Brown Chicken")).toBe(false);
 
 		// Not again while it's going on...
-		const events = player[Raw].activeDialogueEvents as Parsed;
-		const chicken = events.item.find(
-			(e: Parsed) => e.key.string === "purchasedAnimal_Chicken",
+		const events = player[Raw].activeDialogueEvents;
+		expect.assert(
+			typeof events === "object",
+			"Adoption must create dialogue events",
 		);
-		chicken.value.int = 1;
+		const chicken = events.item.find(
+			(e) => e.key.string === "purchasedAnimal_Chicken",
+		);
+		requireDefined(chicken).value.int = 1;
 		coop.adoptAnimal("White Chicken", "Peep", player);
 		expect(topics(player).get("purchasedAnimal_Chicken")).toBe(1);
 		// ...or after
 		coop.adoptAnimal("Duck", "Daffy", player);
 		expect(topics(player).get("purchasedAnimal_Duck")).toBe(4);
-		events.item = events.item.filter((e: Parsed) => e !== chicken);
-		(player[Raw].previousActiveDialogueEvents as Parsed).item.push({
+		events.item = events.item.filter((e) => e !== chicken);
+		const previous = player[Raw].previousActiveDialogueEvents;
+		expect.assert(
+			typeof previous === "object",
+			"The fixture retains previous dialogue events",
+		);
+		previous.item.push({
 			key: { string: "purchasedAnimal_Chicken" },
 			value: { int: 3 },
 		});
@@ -465,7 +482,9 @@ describe("coops and barns", () => {
 		});
 
 		// Robin's letter about the incubator
-		expect(save().player.mailbox.has("incubator" as never)).toBe(true);
+		expect(
+			save().player.mailbox.has(malformedFixture<never>("incubator")),
+		).toBe(true);
 		expect(save()[Raw].SaveGame.broadcastedMail.string).toContain(
 			"%&SM&%incubator",
 		);
@@ -547,8 +566,10 @@ describe("coops and barns", () => {
 	it("keeps an incubator that has an egg in it", () => {
 		const coop = building(COOP_ID);
 		coop.changeType(tier(coop, "Big Coop"));
-		const incubator = objectAt(coop, 2, 3) as Parsed;
-		incubator.heldObject = { name: "Egg", itemId: "176" };
+		const candidateIncubator = requireRecord(
+			requireDefined(objectAt(coop, 2, 3)),
+		);
+		candidateIncubator["heldObject"] = { name: "Egg", itemId: "176" };
 
 		const problems = coop.changeType(tier(coop, "Coop"));
 		expect(problems.map(describeUnplaced)).toEqual([
@@ -557,7 +578,7 @@ describe("coops and barns", () => {
 			"Stone Junimo at 14, 8: its old spot is taken",
 		]);
 		expect(problems.map((p) => p.itemId)).toEqual(["(BC)101", "(BC)55"]);
-		expect(objectAt(coop, 2, 3)).toBe(incubator);
+		expect(objectAt(coop, 2, 3)).toBe(candidateIncubator);
 		expect(objectAt(coop, 14, 8)?.name).toBe("Stone Junimo");
 		expect(objectAt(coop, 1, 3)?.name).toBe("Hay");
 	});
@@ -715,7 +736,7 @@ describe("coops and barns", () => {
 		/** Adopt an animal, the way the add form does (outside any effect), watching its Dispose */
 		const adopt = (b: Building, type: string, name: string) => {
 			const animal = b.adoptAnimal(type, name, save().player);
-			const dispose = vi.fn(animal[Dispose]);
+			const dispose = vi.fn<() => void>(animal[Dispose]);
 			animal[Dispose] = dispose;
 			return { animal, dispose };
 		};

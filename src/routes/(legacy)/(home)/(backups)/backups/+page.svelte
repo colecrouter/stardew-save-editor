@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { getSaveManager } from "$lib/SaveManager.svelte";
 	import UiContainer from "$lib/ui/UIContainer.svelte";
+
 	import Backup from "./Backup.svelte";
 
 	const saveManager = getSaveManager();
@@ -13,7 +14,7 @@
 			{#if backups === undefined}
 				<h2>Loading...</h2>
 			{:else if backups.length > 0}
-				{#each backups as backup, i}
+				{#each backups as backup, i (backup)}
 					<div class="line">
 						<Backup
 							{backup}

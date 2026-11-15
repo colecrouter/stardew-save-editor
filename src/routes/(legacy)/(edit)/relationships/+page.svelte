@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { untrack } from "svelte";
+
 	import {
 		babyQuestionStatus,
 		playerBabyQuestionStatus,
@@ -15,6 +16,7 @@
 	import UiButton from "$lib/ui/UIButton.svelte";
 	import UiContainer from "$lib/ui/UIContainer.svelte";
 	import UiInput from "$lib/ui/UIInput.svelte";
+
 	import BabyQuestion from "./BabyQuestion.svelte";
 	import HeartBar from "./HeartBar.svelte";
 

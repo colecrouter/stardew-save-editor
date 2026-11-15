@@ -1,5 +1,7 @@
 import { SvelteSet } from "svelte/reactivity";
+
 import type { EventIdList } from "$types/save";
+
 import { type DataProxy, Raw } from ".";
 
 /**

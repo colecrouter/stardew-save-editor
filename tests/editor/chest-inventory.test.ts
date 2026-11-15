@@ -1,10 +1,10 @@
-import type { SaveDocument } from "../../src/lib/editor/domain.ts";
-import { malformedFixture } from "../helpers/editor-document.ts";
 import { it } from "@effect/vitest";
-import { describe, expect } from "vitest";
 import { Effect, Result } from "effect";
-import { makeHistorySession } from "../../src/lib/editor/history";
+import { describe, expect } from "vitest";
+
 import { discoverPlacedChests } from "../../src/lib/editor/chest-storage";
+import type { SaveDocument } from "../../src/lib/editor/domain.ts";
+import { makeHistorySession } from "../../src/lib/editor/history";
 import {
 	setInventoryItem,
 	setInventoryItemProperty,
@@ -12,10 +12,12 @@ import {
 import { readChests } from "../../src/lib/editor/inventory-views";
 import { createCatalogItem } from "../../src/lib/editor/item-catalog";
 import { TransactionDraft } from "../../src/lib/editor/transaction-draft";
+import { requireDefined, requireRecord } from "../helpers/assertions.ts";
 import {
-	tinyFixture,
-	parser,
 	exportDocument,
+	malformedFixture,
+	parser,
+	tinyFixture,
 } from "../helpers/editor-document.ts";
 
 const required = <A>(value: A | undefined): A => {
@@ -152,7 +154,7 @@ describe("placed chest inventory boundary", () => {
 				]);
 				expect(after.identities["1"]?.[1]).toBe(request.entityId);
 				expect(after.identities[id]?.[0]).toBe(before.identities[id]?.[1]);
-				expect(chest(after.document).container.customModData).toEqual({
+				expect(chest(after.document).container["customModData"]).toEqual({
 					owner: "007",
 				});
 				yield* session.undo;
@@ -236,7 +238,9 @@ describe("placed chest inventory boundary", () => {
 					expect(
 						chest(added.document).slots.filter(
 							(value) =>
-								value && typeof value === "object" && !("@_xsi:nil" in value),
+								value !== null &&
+								typeof value === "object" &&
+								!("@_xsi:nil" in value),
 						),
 					).toHaveLength(contents.length === 0 ? 1 : 2);
 					yield* session.execute([
@@ -268,12 +272,9 @@ describe("placed chest inventory boundary", () => {
 				);
 				const after = yield* session.snapshot,
 					expected = structuredClone(original);
-				Object.assign(
-					required(
-						(chest(expected).container.items as Record<string, unknown>[])[0],
-					),
-					{ defenseBonus: 8 },
-				);
+				Object.assign(requireDefined(chest(expected).container.items?.[0]), {
+					defenseBonus: 8,
+				});
 				expect(after.document).toEqual(expected);
 				expect(after.identities).toEqual(before.identities);
 				const bad = yield* Effect.result(
@@ -314,12 +315,9 @@ describe("placed chest inventory boundary", () => {
 					}),
 				);
 				expect(
-					(
-						chest((yield* session.snapshot).document).slots[0] as Record<
-							string,
-							unknown
-						>
-					).stack,
+					requireRecord(chest((yield* session.snapshot).document).slots[0])[
+						"stack"
+					],
 				).toBe(17);
 				const bad = yield* Effect.result(
 					session.transact(
@@ -479,7 +477,7 @@ describe("placed chest inventory boundary", () => {
 							});
 							const draft = yield* TransactionDraft,
 								snapshot = yield* draft.read;
-							chest(snapshot.state.document).container.customModData = {
+							chest(snapshot.state.document).container["customModData"] = {
 								forged: true,
 							};
 							yield* draft.replace(snapshot);

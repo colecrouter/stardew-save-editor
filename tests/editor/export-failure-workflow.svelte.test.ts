@@ -1,20 +1,21 @@
+import * as Sentry from "@sentry/sveltekit";
 import { fireEvent, render, waitFor } from "@testing-library/svelte";
 import { expect, it, vi } from "vitest";
+
 import { editorResources } from "../../src/lib/editor/editor-model";
+import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
 import EditorApp from "../../src/lib/editor/ui/EditorApp.svelte";
 import {
 	exportDocument,
 	parser,
 	tinyEditorFixture,
 } from "../helpers/editor-document.ts";
-import { SaveProcessingSync } from "../../src/lib/editor/save-processing.ts";
-import * as Sentry from "@sentry/sveltekit";
 
 // Keep real scope isolation while replacing the ESM logger namespace's sink.
 // No test needs a configured client or a network connection to inspect outcomes.
 vi.mock("@sentry/sveltekit", async (original) => {
 	const sentry = await original<typeof Sentry>();
-	return { ...sentry, logger: { ...sentry.logger, info: vi.fn() } };
+	return { ...sentry, logger: { ...sentry.logger, info: vi.fn<() => void>() } };
 });
 
 // A small valid farm still passes through the real import/export codec and
@@ -52,7 +53,7 @@ it.each([
 		});
 		const outcomes = vi.mocked(Sentry.logger.info);
 		outcomes.mockClear();
-		const abort = vi.fn(async () => {});
+		const abort = vi.fn<() => Promise<void>>(() => Promise.resolve());
 		const writes: Blob[] = [];
 		const create = vi
 			.spyOn(URL, "createObjectURL")
@@ -71,30 +72,42 @@ it.each([
 				expect(this.isConnected).toBe(true);
 			});
 		let attempt = 0;
-		const picker = vi.fn(async () => ({
-			createWritable: async () => {
-				const first = ++attempt === 1;
-				if (acquisitionFailure) throw failure;
-				return {
-					write: async (blob: Blob) => {
-						writes.push(blob);
-						if (first && stage === "write") throw failure;
-					},
-					close: async () => {
-						if (first && stage === "close") throw failure;
-					},
-					abort,
-				};
-			},
-		}));
+		// Each attempt owns a fresh stream; the first attempt fails at the selected stage.
+		type TestWritable = {
+			write: (blob: Blob) => Promise<void>;
+			close: () => Promise<void>;
+			abort: typeof abort;
+		};
+		const createWritable = (): Promise<TestWritable> => {
+			const first = ++attempt === 1;
+			if (acquisitionFailure) return Promise.reject(failure);
+			return Promise.resolve({
+				write: (blob: Blob) => {
+					writes.push(blob);
+					return first && stage === "write"
+						? Promise.reject(failure)
+						: Promise.resolve();
+				},
+				close: () =>
+					first && stage === "close"
+						? Promise.reject(failure)
+						: Promise.resolve(),
+				abort,
+			});
+		};
+		const picker = vi.fn<
+			() => Promise<{ createWritable: typeof createWritable }>
+		>(() => Promise.resolve({ createWritable }));
 		Object.defineProperty(window, "showSaveFilePicker", {
 			configurable: true,
 			value: picker,
 		});
 		const page = render(EditorApp, {
 			processingLayer: SaveProcessingSync,
-			backupOriginal: async () => {
-				throw new DOMException("Archive unavailable", "QuotaExceededError");
+			backupOriginal: () => {
+				return Promise.reject(
+					new DOMException("Archive unavailable", "QuotaExceededError"),
+				);
 			},
 		});
 		try {
@@ -111,8 +124,7 @@ it.each([
 				"The save could not be downloaded. Please try again.",
 				{},
 			);
-			if (acquisitionFailure) expect(abort).not.toHaveBeenCalled();
-			else expect(abort).toHaveBeenCalledExactlyOnceWith(failure);
+			expect(abort.mock.calls).toEqual(acquisitionFailure ? [] : [[failure]]);
 			await fireEvent.click(page.getByRole("link", { name: "Farm settings" }));
 			await fireEvent.input(page.getByRole("textbox", { name: "Farm name" }), {
 				target: { value: "Retry Farm" },
@@ -134,8 +146,10 @@ it.each([
 			expect(parser.parse(await last.text()).SaveGame.player.farmName).toBe(
 				"Retry Farm",
 			);
+			// Vitest types asymmetric matchers as any. Keep expected matcher values
+			// unknown so they cannot weaken the surrounding saved-data assertions.
 			expect(picker).toHaveBeenLastCalledWith(
-				expect.objectContaining({ suggestedName: "Farm_123" }),
+				expect.objectContaining({ suggestedName: "Farm_123" }) as unknown,
 			);
 			expect(picker).toHaveBeenCalledTimes(acquisitionFailure ? 1 : 2);
 			expect(
@@ -154,10 +168,10 @@ it.each([
 				"save_download.mode": "picker",
 				"save_download.error_name": failure.name,
 			});
-			expect(captured[0]?.contexts.save_download).toEqual({
+			expect(captured[0]?.contexts["save_download"]).toEqual({
 				stage: acquisitionFailure ? "create_writable" : stage,
 				mode: "picker",
-				duration_ms: expect.any(Number),
+				duration_ms: expect.any(Number) as unknown,
 			});
 			expect(
 				Sentry.getCurrentScope().getScopeData().tags["save_download.stage"],
@@ -165,15 +179,16 @@ it.each([
 			expect(outcomes).toHaveBeenLastCalledWith("Save download outcome", {
 				mode: acquisitionFailure ? "download" : "picker",
 				stage: acquisitionFailure ? "download" : "close",
-				duration_ms: expect.any(Number),
+				duration_ms: expect.any(Number) as unknown,
 				outcome: acquisitionFailure ? "download_started" : "written",
 			});
 		} finally {
 			page.unmount();
 			// Standard downloads retain their URL briefly for WebKit. Let their
 			// owned cleanup finish before restoring browser methods for other tests.
-			if (create.mock.calls.length > 0)
-				await waitForIO(() => expect(revoke).toHaveBeenCalled());
+			await waitForIO(() =>
+				expect(revoke).toHaveBeenCalledTimes(create.mock.calls.length),
+			);
 			create.mockRestore();
 			revoke.mockRestore();
 			click.mockRestore();

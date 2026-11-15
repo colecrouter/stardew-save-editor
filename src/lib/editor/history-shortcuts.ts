@@ -31,7 +31,7 @@ export function historyShortcut(
 			: !apple && key === "y" && !event.shiftKey
 				? "redo"
 				: undefined;
-	if (!action) return;
+	if (!(action !== undefined)) return;
 
 	// Use the composed path for shadow-hosted controls and also inspect focus when
 	// a shortcut is dispatched at the window. Any editable ancestor owns native Undo.

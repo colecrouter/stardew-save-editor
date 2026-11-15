@@ -1,11 +1,13 @@
 <script lang="ts">
 	import { dynamicAsset } from "$lib/ui/dynamicAsset.ts";
+
 	import type { ItemVisual } from "../item-presentation.ts";
-	import UnknownItemVisual from "./UnknownItemVisual.svelte";
 	import QualityBadge from "./QualityBadge.svelte";
+	import UnknownItemVisual from "./UnknownItemVisual.svelte";
 
 	interface Props {
-		visual?: ItemVisual;
+		// An unavailable drawing is an explicit renderer state, including reactive resets.
+		visual?: ItemVisual | undefined;
 		/** Maximum drawing dimension; preserve the sprite's aspect ratio. */
 		size?: number;
 	}
@@ -51,7 +53,10 @@
 								id={`${id}-tint-${index}`}
 								color-interpolation-filters="sRGB"
 							>
-								<feColorMatrix type="matrix" values={tintMatrix(layer.tint)} />
+								<feColorMatrix
+									type="matrix"
+									values={tintMatrix(layer.tint)}
+								/>
 							</filter>
 						</defs>
 					{/if}
@@ -65,7 +70,11 @@
 			{/each}
 		{:else}
 			<!-- Keep known quality visible even when the catalog sheet is absent. -->
-			<span class="fallback" style:width="100%" style:height="100%">
+			<span
+				class="fallback"
+				style:width="100%"
+				style:height="100%"
+			>
 				<UnknownItemVisual />
 			</span>
 		{/if}
@@ -76,7 +85,11 @@
 		</span>
 	</div>
 {:else}
-	<span class="fallback" style:width={`${size}px`} style:height={`${size}px`}>
+	<span
+		class="fallback"
+		style:width={`${size}px`}
+		style:height={`${size}px`}
+	>
 		<UnknownItemVisual />
 	</span>
 {/if}

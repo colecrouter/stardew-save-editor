@@ -1,19 +1,22 @@
 <script lang="ts">
-	import BuildingSprite from "../../ui/BuildingSprite.svelte";
-	import StudyTooltip from "../../ui/kit/StudyTooltip.svelte";
-	import BackpackItemVisual from "./BackpackItemVisual.svelte";
 	import { Result } from "effect";
-	import StudyButton from "../../ui/kit/StudyButton.svelte";
+
+	import { defaultAnimalName } from "../../animalBuildingData.ts";
+	import { describeUnplaced } from "../../animalBuildings.ts";
+	import BuildingSprite from "../../ui/BuildingSprite.svelte";
 	import StudyAlert from "../../ui/kit/StudyAlert.svelte";
 	import StudyAside from "../../ui/kit/StudyAside.svelte";
+	import StudyButton from "../../ui/kit/StudyButton.svelte";
+
 	import "../../ui/kit/styles.css";
-	import { describeUnplaced } from "../../animalBuildings.ts";
-	import { defaultAnimalName } from "../../animalBuildingData.ts";
+	import StudyTooltip from "../../ui/kit/StudyTooltip.svelte";
 	import type { BuildingDomain } from "../building-domain.ts";
 	import type { ImmediateField } from "../immediate-field.ts";
 	import AnimalCard from "./AnimalCard.svelte";
+	import BackpackItemVisual from "./BackpackItemVisual.svelte";
 	import CheckboxField from "./fields/CheckboxField.svelte";
 	import FarmerSelector from "./fields/FarmerSelector.svelte";
+
 	let {
 		building,
 		ownerField,
@@ -22,7 +25,8 @@
 	}: {
 		building: BuildingDomain;
 		ownerField: ImmediateField<string>;
-		ownerId?: string;
+		// Selection may be cleared while this keyed building remains mounted.
+		ownerId?: string | undefined;
 		takenNames: readonly string[];
 	} = $props();
 	// These drafts coordinate consequences rather than delaying ordinary field edits.
@@ -80,7 +84,10 @@
 <section aria-label={`${building.name} details`}>
 	<header>
 		<div class="identity">
-			<BuildingSprite {building} size={96} />
+			<BuildingSprite
+				{building}
+				size={96}
+			/>
 			<div>
 				<h2>{building.name}</h2>
 				<p class="location">{building.location}</p>
@@ -110,7 +117,10 @@
 	{/if}
 
 	{#if building.constructionCost && (building.constructionCost.gold || building.constructionCost.materials.length)}
-		<aside class="construction-cost" aria-label="In-game construction cost">
+		<aside
+			class="construction-cost"
+			aria-label="In-game construction cost"
+		>
 			<p>In-game construction cost</p>
 
 			<div class="materials">
@@ -137,7 +147,10 @@
 		</aside>
 	{/if}
 	{#if building.reason}
-		<StudyAlert title="Read-only building" tone="warning">
+		<StudyAlert
+			title="Read-only building"
+			tone="warning"
+		>
 			<p>{building.reason}</p>
 		</StudyAlert>
 	{/if}
@@ -151,11 +164,16 @@
 		</StudyAlert>
 	{/if}
 	{#if error}
-		<StudyAlert title="Change unavailable" tone="danger" live="assertive">
+		<StudyAlert
+			title="Change unavailable"
+			tone="danger"
+			live="assertive"
+		>
 			<p>{error}</p>
 		</StudyAlert>
 	{/if}
-	{#each notices as notice}
+	<!-- Report positions identify occurrences: separate failures may have identical text. -->
+	{#each notices as notice, index (index)}
 		<StudyAlert
 			title="Interior change needs attention"
 			tone="warning"
@@ -168,7 +186,10 @@
 		<CheckboxField field={building.repair} />
 	{/if}
 	{#if building.tiers.length > 1}
-		<form onsubmit={upgrade} class="tier study-theme">
+		<form
+			onsubmit={upgrade}
+			class="tier study-theme"
+		>
 			<label>
 				Building tier
 				<select
@@ -180,7 +201,11 @@
 					disabled={busy}
 				>
 					{#each building.tiers as row (row.name)}
-						<option value={row.name} disabled={!!row.reason} title={row.reason}>
+						<option
+							value={row.name}
+							disabled={!!row.reason}
+							title={row.reason}
+						>
 							{row.name}
 						</option>
 					{/each}
@@ -222,7 +247,11 @@
 		<details class="adoption">
 			<summary>Adopt an animal</summary>
 
-			<form class="study-theme" onsubmit={adopt} aria-label="Adopt an animal">
+			<form
+				class="study-theme"
+				onsubmit={adopt}
+				aria-label="Adopt an animal"
+			>
 				<p>
 					Choose a resident to move into this home. New animals start inside,
 					happy and fed; no gold is deducted.
@@ -243,7 +272,10 @@
 							disabled={busy || !!building.adoptionReason}
 						>
 							{#each building.animalOptions as row (row.type)}
-								<option value={row.type} disabled={!row.allowed}>
+								<option
+									value={row.type}
+									disabled={!row.allowed}
+								>
 									{row.type}{row.reason ? ` · ${row.reason}` : ""}
 								</option>
 							{/each}

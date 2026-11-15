@@ -1,10 +1,15 @@
 import { fireEvent, render, screen } from "@testing-library/svelte";
 import { tick } from "svelte";
 import { describe, expect, test, vi } from "vitest";
+
+import { requireInstance } from "../../../../../tests/helpers/assertions.ts";
 import ItemSelect from "./ItemSelect.svelte";
 
 const search = async (value: string) => {
-	const input = screen.getByTestId("item-name") as HTMLInputElement;
+	const input = requireInstance(
+		screen.getByTestId("item-name"),
+		HTMLInputElement,
+	);
 	await fireEvent.input(input, { target: { value } });
 	await tick();
 };
@@ -77,7 +82,7 @@ describe("Item select", () => {
 	});
 
 	test("submits the clicked item", async () => {
-		const onsubmit = vi.fn();
+		const onsubmit = vi.fn<() => void>();
 		render(ItemSelect, { onsubmit });
 
 		await search("Leek");
@@ -106,7 +111,9 @@ describe("Item select", () => {
 		// Check declared row geometry independently of viewport clipping.
 		const maxHeight = Number.parseFloat(listStyle.maxHeight);
 		const rowHeight = Number.parseFloat(rowStyle.minHeight);
-		const gap = Number.parseFloat(listStyle.rowGap || listStyle.gap);
+		const gap = Number.parseFloat(
+			listStyle.rowGap.length > 0 ? listStyle.rowGap : listStyle.gap,
+		);
 		const contentHeight = rows.length * rowHeight + (rows.length - 1) * gap;
 		expect(maxHeight).toBeGreaterThan(0);
 		expect(contentHeight).toBeGreaterThan(maxHeight);

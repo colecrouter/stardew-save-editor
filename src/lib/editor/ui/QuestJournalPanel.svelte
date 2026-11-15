@@ -1,16 +1,18 @@
 <script lang="ts">
 	import { Result } from "effect";
 	import { useAtomValue } from "effect-atom-svelte";
-	import type { EditorModel } from "../editor-model.ts";
-	import { createQuestDomain } from "../quest-domain.ts";
-	import { createFarmerSelectionField } from "../farmer-selection.ts";
-	import FarmerSelector from "./fields/FarmerSelector.svelte";
-	import NumberField from "./fields/NumberField.svelte";
-	import QuestNoticeBoard from "./QuestNoticeBoard.svelte";
+
 	import StudyAlert from "../../ui/kit/StudyAlert.svelte";
 	import StudyAside from "../../ui/kit/StudyAside.svelte";
 	import StudyIcon from "../../ui/StudyIcon.svelte";
+	import type { EditorModel } from "../editor-model.ts";
+	import { createFarmerSelectionField } from "../farmer-selection.ts";
+	import { createQuestDomain } from "../quest-domain.ts";
 	import ConfirmAction from "./ConfirmAction.svelte";
+	import FarmerSelector from "./fields/FarmerSelector.svelte";
+	import NumberField from "./fields/NumberField.svelte";
+	import QuestNoticeBoard from "./QuestNoticeBoard.svelte";
+
 	interface Props {
 		model: EditorModel;
 	}
@@ -109,7 +111,11 @@
 </details>
 
 {#if feedback && feedback.farmerId === domain?.farmerId && feedback.scope === model.edits.scope}
-	<StudyAlert title="Journal updated" tone="success" live="polite">
+	<StudyAlert
+		title="Journal updated"
+		tone="success"
+		live="polite"
+	>
 		<p>{feedback.message}</p>
 	</StudyAlert>
 {/if}
@@ -201,7 +207,10 @@
 
 						{#if !quest.completed && quest.skippedFollowUps.length}
 							<p class="warning">
-								<StudyIcon name="warning" size={18} />
+								<StudyIcon
+									name="warning"
+									size={18}
+								/>
 								Finish this quest in-game to start {quest.skippedFollowUps.join(
 									", ",
 								)}. The editor cannot create those follow-ups.
@@ -211,7 +220,10 @@
 						{#if quest.ticketDue}
 							{#if quest.ticketRoom === false}
 								<p class="warning">
-									<StudyIcon name="warning" size={18} />
+									<StudyIcon
+										name="warning"
+										size={18}
+									/>
 									This completion earns a Prize Ticket, but the backpack has no safe
 									destination. Free a slot first, or complete it and add the lost
 									ticket manually from Inventory.
@@ -226,12 +238,18 @@
 
 						{#if quest.completed}
 							<p class="warning">
-								<StudyIcon name="warning" size={18} />
+								<StudyIcon
+									name="warning"
+									size={18}
+								/>
 								Removing this quest forfeits its uncollected reward.
 							</p>
 						{:else if !quest.canBeCancelled}
 							<p class="warning">
-								<StudyIcon name="warning" size={18} />
+								<StudyIcon
+									name="warning"
+									size={18}
+								/>
 								The game does not allow this quest to be cancelled. Removing it may
 								prevent further progress.
 							</p>

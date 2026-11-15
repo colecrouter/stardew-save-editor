@@ -1,8 +1,10 @@
 import { fireEvent, render, waitFor } from "@testing-library/svelte";
 import { expect, it } from "vitest";
+
+import { requireInstance } from "../helpers/assertions.ts";
 import { openTestDocument } from "../helpers/open-editor.ts";
+import { fixtureXml, parser } from "./fixtures";
 import WorkspaceHarness from "./WorkspaceHarness.svelte";
-import { parser, fixtureXml } from "./fixtures";
 
 // Exercise real full-save projections, the shared farmer selector, and grouped
 // field edits together: pending work must never migrate to the next farmer.
@@ -33,15 +35,24 @@ it("groups relationship typing and shares selection with Character without retar
 	const page = render(WorkspaceHarness, { model: opened.model });
 	try {
 		await fireEvent.click(page.getByRole("link", { name: "Relationships" }));
-		const points = page.getByRole("spinbutton", {
-			name: "Abigail points",
-		}) as HTMLInputElement;
+		const points = requireInstance(
+			page.getByRole("spinbutton", {
+				name: "Abigail points",
+			}),
+			HTMLInputElement,
+		);
 		points.focus();
 		await fireEvent.input(points, { target: { value: "200" } });
 		await fireEvent.input(points, { target: { value: "500" } });
-		await fireEvent.change(page.getByRole("combobox", { name: "Farmer" }), {
-			target: { value: "2" },
-		});
+		await fireEvent.change(
+			requireInstance(
+				page.getByRole("combobox", { name: "Farmer" }),
+				HTMLSelectElement,
+			),
+			{
+				target: { value: "2" },
+			},
+		);
 		// Submit the farmer switch while both keystrokes may still be queued.
 		// A queued snapshot is our completion barrier, so this assertion checks
 		// targeting/order rather than timing full-save projections under suite load.
@@ -53,10 +64,11 @@ it("groups relationship typing and shares selection with Character without retar
 		).toBe("2");
 		await waitFor(() =>
 			expect(
-				(
+				requireInstance(
 					page.getByRole("spinbutton", {
 						name: "Abigail points",
-					}) as HTMLInputElement
+					}),
+					HTMLInputElement,
 				).value,
 			).toBe("700"),
 		);
@@ -70,21 +82,30 @@ it("groups relationship typing and shares selection with Character without retar
 		).toBe(500);
 		await fireEvent.click(page.getByRole("link", { name: "Character" }));
 		expect(
-			(page.getByRole("combobox", { name: "Farmer" }) as HTMLSelectElement)
-				.value,
+			requireInstance(
+				page.getByRole("combobox", { name: "Farmer" }),
+				HTMLSelectElement,
+			).value,
 		).toBe("2");
 		await opened.model.commands.undo();
 		await fireEvent.click(page.getByRole("link", { name: "Relationships" }));
-		await fireEvent.change(page.getByRole("combobox", { name: "Farmer" }), {
-			target: { value: String(host.UniqueMultiplayerID) },
-		});
+		await fireEvent.change(
+			requireInstance(
+				page.getByRole("combobox", { name: "Farmer" }),
+				HTMLSelectElement,
+			),
+			{
+				target: { value: String(host.UniqueMultiplayerID) },
+			},
+		);
 		await opened.model.snapshot();
 		await waitFor(() =>
 			expect(
-				(
+				requireInstance(
 					page.getByRole("spinbutton", {
 						name: "Abigail points",
-					}) as HTMLInputElement
+					}),
+					HTMLInputElement,
 				).value,
 			).toBe("100"),
 		);
@@ -103,9 +124,12 @@ it("keeps absent villagers disabled until added and confirms individual removal"
 	try {
 		await fireEvent.click(page.getByRole("link", { name: "Relationships" }));
 		const points = () =>
-			page.getByRole("spinbutton", {
-				name: "Alex points",
-			}) as HTMLInputElement;
+			requireInstance(
+				page.getByRole("spinbutton", {
+					name: "Alex points",
+				}),
+				HTMLInputElement,
+			);
 		expect(points().disabled).toBe(true);
 		expect((await opened.model.snapshot()).entries).toHaveLength(0);
 		await fireEvent.click(page.getByRole("button", { name: /^Add Alex$/ }));
@@ -115,10 +139,11 @@ it("keeps absent villagers disabled until added and confirms individual removal"
 		// membership action to release its pending guard before opening removal.
 		await waitFor(() =>
 			expect(
-				(
+				requireInstance(
 					page.getByRole("button", {
 						name: /^Remove Alex$/,
-					}) as HTMLButtonElement
+					}),
+					HTMLButtonElement,
 				).disabled,
 			).toBe(false),
 		);

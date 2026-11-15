@@ -1,12 +1,13 @@
-import { stringifySavedData } from "../../src/lib/editor/saved-data.ts";
 import { it } from "@effect/vitest";
-import { describe, expect } from "vitest";
 import { Effect, Result } from "effect";
+import { describe, expect } from "vitest";
+
+import { makeHistorySession } from "../../src/lib/editor/history.ts";
 import {
 	readRelationships,
 	setRelationship,
 } from "../../src/lib/editor/relationship-operations.ts";
-import { makeHistorySession } from "../../src/lib/editor/history.ts";
+import { stringifySavedData } from "../../src/lib/editor/saved-data.ts";
 import { tinyFixture } from "../helpers/editor-document.ts";
 
 function fixture() {
@@ -90,10 +91,8 @@ describe("relationship domain operations", () => {
 				);
 				const after = yield* session.snapshot;
 				const expected = fixture();
-				const raw = expected.SaveGame.player as unknown as {
-					friendshipData: { value?: Record<string, unknown> }[];
-				};
-				const friendship = raw.friendshipData[0]?.value;
+				const raw = expected.SaveGame.player;
+				const friendship = raw.friendshipData?.[0]?.value;
 				if (!friendship) throw Error("Missing fixture relationship");
 				friendship.GiftsThisWeek = 3;
 				expect(after.document).toEqual(expected);

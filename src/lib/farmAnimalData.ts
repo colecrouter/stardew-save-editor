@@ -22,7 +22,7 @@ export function newAnimalId(
 		taken = new Set(),
 		now = Date.now(),
 	}: {
-		latestId?: number | string;
+		latestId?: number | string | undefined;
 		taken?: ReadonlySet<string>;
 		now?: number;
 	} = {},
@@ -64,7 +64,7 @@ export function createFarmAnimal(
 	if (!data) throw new Error(`No animal found with name ${type}`);
 
 	const raw: AnimalsKV = {
-		key: { long: id as unknown as number },
+		key: { long: id },
 		value: {
 			FarmAnimal: {
 				name,
@@ -105,8 +105,8 @@ export function createFarmAnimal(
 				allowReproduction: true,
 				type: data.name,
 				buildingTypeILiveIn: data.house,
-				myID: id as unknown as number,
-				ownerID: ownerId as unknown as number,
+				myID: id,
+				ownerID: ownerId,
 				parentId: -1,
 				hasEatenAnimalCracker: false,
 				moodMessage: 0,

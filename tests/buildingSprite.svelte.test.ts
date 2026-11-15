@@ -1,5 +1,6 @@
 import { render } from "@testing-library/svelte";
 import { describe, expect, it, vi } from "vitest";
+
 import BuildingSprite from "../src/lib/ui/BuildingSprite.svelte";
 
 vi.mock("$app/paths", () => ({

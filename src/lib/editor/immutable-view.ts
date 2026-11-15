@@ -14,5 +14,6 @@ export function immutableView<T>(value: T): ImmutableView<T> {
 		Object.freeze(value);
 	}
 	// Recursive freezing establishes the readonly contract without changing its shape.
+	// oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Recursive freezing above establishes the readonly shape without copying or altering saved data.
 	return value as ImmutableView<T>;
 }

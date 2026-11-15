@@ -1,9 +1,10 @@
 <script lang="ts">
-	import type { ImmediateField } from "../../immediate-field.ts";
-	import { onDestroy, untrack } from "svelte";
 	import { Result } from "effect";
-	import NumberField from "./NumberField.svelte";
+	import { onDestroy, untrack } from "svelte";
+
 	import StudyButton from "../../../ui/kit/StudyButton.svelte";
+	import type { ImmediateField } from "../../immediate-field.ts";
+	import NumberField from "./NumberField.svelte";
 
 	let {
 		field,
@@ -82,7 +83,10 @@
 	}
 </script>
 
-<div class="stepper" bind:this={row}>
+<div
+	class="stepper"
+	bind:this={row}
+>
 	<StudyButton
 		iconOnly
 		aria-label={`Previous ${field.label}`}
@@ -114,7 +118,13 @@
 </div>
 
 {#if error}
-	<p id={feedbackId} class="error" role="status">{error}</p>
+	<p
+		id={feedbackId}
+		class="error"
+		role="status"
+	>
+		{error}
+	</p>
 {/if}
 
 <style>

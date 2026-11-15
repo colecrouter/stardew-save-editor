@@ -1,6 +1,7 @@
-import { isSavedItem, type InventoryValue } from "./inventory-values.ts";
-import type { ItemPresentation } from "./item-presentation.ts";
-import { emptySlot, type Farmer } from "./domain.ts";
+import { type Farmer } from "./domain.ts";
+import { type InventoryValue, isSavedItem } from "./inventory-values.ts";
+import { type ItemPresentation } from "./item-presentation.ts";
+import { emptySlot } from "./saved-farmers.ts";
 
 /** Serialized farmer fields, kept separate from positional backpack capacity. */
 export const equipmentSlots = [
@@ -33,6 +34,13 @@ export function writeEquipmentSlot(
 	slot: EquipmentSlot,
 	value: InventoryValue,
 ): void {
+	// Undefined clears serialized presence; null remains the explicit vacant slot.
+	// Trinkets use an empty list for vacancy, matching their generated representation.
+	if (value === undefined) {
+		if (slot === "trinketItem") farmer.trinketItem = [];
+		else delete farmer[slot];
+		return;
+	}
 	if (value != null && !isSavedItem(value))
 		throw new Error("Unsupported equipment bundle");
 	switch (slot) {

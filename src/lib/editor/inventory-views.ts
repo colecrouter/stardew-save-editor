@@ -1,35 +1,35 @@
+import { CategoriesWithQuality } from "../ItemData.ts";
+import { type TrinketRollContext } from "../TrinketStats.ts";
+import { discoverPlacedChests } from "./chest-storage.ts";
+import {
+	type EquipmentIdentities,
+	equipmentLabels,
+	equipmentSlots,
+	type EquipmentSlotView,
+	readEquipmentSlot,
+	trinketAvailable,
+} from "./equipment.ts";
+import { type HistoryState } from "./history.ts";
+import { immutableView, type ImmutableView } from "./immutable-view.ts";
+import { inventoryContainers } from "./inventory-containers.ts";
+import {
+	backpackFarmers,
+	getInventoryItemCapabilities,
+	hasBackpackFarmerId,
+	objectMetadataAllowsEdits,
+} from "./inventory-operations.ts";
 import { isSavedItem, type SavedItem } from "./inventory-values.ts";
-import { readEquipmentSlot } from "./equipment.ts";
+import {
+	type ItemPresentation,
+	readItemPresentation,
+	resolveItemMetadata,
+} from "./item-presentation.ts";
+import { readItemPropertyContext } from "./item-properties.ts";
+import { emptySlot } from "./saved-farmers.ts";
 import {
 	storageCapabilities,
 	type StorageCapabilities,
 } from "./storage-policy.ts";
-import { CategoriesWithQuality } from "../ItemData.ts";
-import {
-	readItemPresentation,
-	resolveItemMetadata,
-	type ItemPresentation,
-} from "./item-presentation.ts";
-import type { TrinketRollContext } from "../TrinketStats.ts";
-import {
-	getInventoryItemCapabilities,
-	objectMetadataAllowsEdits,
-	backpackFarmers,
-	hasBackpackFarmerId,
-} from "./inventory-operations.ts";
-import { inventoryContainers } from "./inventory-containers.ts";
-import { discoverPlacedChests } from "./chest-storage.ts";
-import { readItemPropertyContext } from "./item-properties.ts";
-import {
-	equipmentSlots,
-	equipmentLabels,
-	trinketAvailable,
-	type EquipmentIdentities,
-	type EquipmentSlotView,
-} from "./equipment.ts";
-import { emptySlot } from "./domain.ts";
-import { immutableView, type ImmutableView } from "./immutable-view.ts";
-import type { HistoryState } from "./history.ts";
 
 // Keep presentation/catalog imports out of the mutation/history runtime graph.
 // Projectors interpret save data for the application, while the engine remains
@@ -65,8 +65,8 @@ export interface InventorySlotView extends ItemPresentation {
 	readonly name: string;
 	readonly itemId: string;
 	readonly empty: boolean;
-	readonly quantity?: number;
-	readonly quality?: number;
+	readonly quantity?: number | undefined;
+	readonly quality?: number | undefined;
 	readonly canStack: boolean;
 	readonly canQuality: boolean;
 }
@@ -76,12 +76,12 @@ export interface InventoryView {
 	readonly ownerId: string;
 	readonly name: string;
 	/** Chest IDs share the request owner namespace; they never denote a farmer. */
-	readonly kind?: "chest";
-	readonly location?: string;
-	readonly capacity?: number;
-	readonly storage?: StorageCapabilities;
+	readonly kind?: "chest" | undefined;
+	readonly location?: string | undefined;
+	readonly capacity?: number | undefined;
+	readonly storage?: StorageCapabilities | undefined;
 	readonly supported: boolean;
-	readonly reason?: string;
+	readonly reason?: string | undefined;
 	readonly slots: readonly InventorySlotView[];
 	readonly equipment: readonly EquipmentSlotView[];
 }
@@ -140,7 +140,7 @@ export function readBackpacks(
 			ownerId,
 			equipment: equipmentSlots.flatMap((key) => {
 				const entityId = state.equipmentIdentities?.[ownerId]?.[key];
-				if (!entityId) return [];
+				if (!(entityId != null && entityId !== "")) return [];
 				const value = readEquipmentSlot(farmer, key);
 				const raw = isSavedItem(value) ? value : undefined;
 				return [
@@ -161,7 +161,10 @@ export function readBackpacks(
 					},
 				];
 			}),
-			name: farmer.name ? farmer.name : "Unnamed farmer",
+			name:
+				farmer.name != null && farmer.name !== ""
+					? farmer.name
+					: "Unnamed farmer",
 			supported,
 			...(!supported
 				? {
@@ -171,7 +174,7 @@ export function readBackpacks(
 					}
 				: {}),
 			slots:
-				supported && items !== undefined && ids
+				supported && items !== undefined
 					? items.map((item, slot) => {
 							const raw = isSavedItem(item) ? item : undefined;
 							const empty = emptySlot(item);
@@ -328,7 +331,8 @@ export function projectChests(
 					cached.slots.every(
 						(slot, position) => slot.entityId === (ids[position] ?? ""),
 					)));
-		const view = reusable ? cached : immutableView(projectChestView(input));
+		const view =
+			reusable === true ? cached : immutableView(projectChestView(input));
 		// A shared raw chest can appear at multiple placed paths. Give every
 		// current owner its own entry, with fresh buckets even on a cache hit.
 		let bucket = index.get(chest.container);

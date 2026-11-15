@@ -17,7 +17,7 @@ export const setStatValue = (player: Player, key: string, value: number) => {
 			`The ${key} stat must be a whole number from 0 to ${UINT_MAX}`,
 		);
 	// An empty <Values /> parses as ""
-	if (typeof player.stats.Values !== "object" || !player.stats.Values)
+	if (typeof player.stats.Values !== "object" || player.stats.Values === null)
 		player.stats.Values = { item: [] };
 	player.stats.Values.item ??= [];
 	const stats = player.stats.Values.item;

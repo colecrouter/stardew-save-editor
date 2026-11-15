@@ -4,10 +4,11 @@ import { CommunityBundles } from "$lib/proxies/CommunityBundles.svelte";
 import type { FarmAnimal } from "$lib/proxies/FarmAnimal.svelte";
 import { Farmer } from "$lib/proxies/Farmer.svelte";
 import { GameLocation } from "$lib/proxies/GameLocation.svelte";
-import type { MailFlag } from "$lib/proxies/Mail.svelte";
 import { QiQuests } from "$lib/proxies/QiQuests.svelte";
 import type { GameLocation as GameLocationRaw } from "$types/save";
+
 import { type DataProxy, Dispose, Raw } from ".";
+import { nonemptyText } from "../editor/plain-data.ts";
 
 export class SaveProxy implements DataProxy<SaveFile> {
 	/** Release independent roots of items added after the save's root was made. */
@@ -49,7 +50,7 @@ export class SaveProxy implements DataProxy<SaveFile> {
 
 	constructor(data: SaveFile) {
 		const gameVersion = data.SaveGame.gameVersion as string | undefined;
-		if (!["1.6"].some((v) => gameVersion?.startsWith(v)))
+		if (!["1.6"].some((v) => gameVersion?.startsWith(v) === true))
 			throw new Error(`Unsupported game version: ${gameVersion}`);
 		this[Raw] = data;
 
@@ -85,15 +86,13 @@ export class SaveProxy implements DataProxy<SaveFile> {
 			this[Raw].SaveGame.goldenWalnuts = this.goldenWalnuts;
 		});
 
-		this.shouldSpawnMonsters = $state(
-			this[Raw].SaveGame.shouldSpawnMonsters === true,
-		);
+		this.shouldSpawnMonsters = $state(this[Raw].SaveGame.shouldSpawnMonsters);
 		$effect(() => {
 			this[Raw].SaveGame.shouldSpawnMonsters = this.shouldSpawnMonsters;
 		});
 
 		this.shuffleMineChests = $state(
-			this[Raw].SaveGame.shuffleMineChests || "Default",
+			nonemptyText(this[Raw].SaveGame.shuffleMineChests) ?? "Default",
 		);
 		$effect(() => {
 			this[Raw].SaveGame.shuffleMineChests = this.shuffleMineChests;
@@ -122,7 +121,9 @@ export class SaveProxy implements DataProxy<SaveFile> {
 		this.playerIndexMap.clear();
 
 		unfiltered.forEach((f, origIndex) => {
-			if (f !== undefined && f.name?.trim() !== "") {
+			// Empty cabin placeholders have no usable name and must not allocate
+			// player facades or shift the original-slot mapping.
+			if (f !== undefined && (f.name?.trim() ?? "") !== "") {
 				this.playerIndexMap.set(origIndex, players.length);
 				players.push(new Farmer(f));
 			}
@@ -140,7 +141,8 @@ export class SaveProxy implements DataProxy<SaveFile> {
 				? []
 				: this[Raw].SaveGame.farmhands.Farmer;
 		const newFarmhands = orig.map((origRaw, origIndex) => {
-			if (!origRaw.name?.trim()) return origRaw; // preserve ghost
+			// Missing and blank names both identify an untouched cabin placeholder.
+			if ((origRaw.name?.trim() ?? "") === "") return origRaw;
 			// Use the index map to find the correct player proxy
 			const playerIndex = this.playerIndexMap.get(origIndex);
 			if (playerIndex !== undefined) {
@@ -167,7 +169,9 @@ export class SaveProxy implements DataProxy<SaveFile> {
 		const farmhands =
 			this[Raw].SaveGame.farmhands === ""
 				? []
-				: this[Raw].SaveGame.farmhands.Farmer.filter((f) => f.name?.trim());
+				: this[Raw].SaveGame.farmhands.Farmer.filter(
+						(f) => (f.name?.trim() ?? "") !== "",
+					);
 		return [this[Raw].SaveGame.player, ...farmhands];
 	}
 
@@ -175,7 +179,8 @@ export class SaveProxy implements DataProxy<SaveFile> {
 		const players = this.rawPlayers;
 		const homes = players.map((player) => player.homeLocation);
 		const cellarAssignments = this[Raw].SaveGame.cellarAssignments;
-		if (!cellarAssignments) return homes;
+		if (cellarAssignments === null || cellarAssignments === undefined)
+			return homes;
 
 		for (const player of players) {
 			const assignment = cellarAssignments.item.find(
@@ -191,7 +196,8 @@ export class SaveProxy implements DataProxy<SaveFile> {
 	private syncHomeLocations(homeLocations: string[]) {
 		for (const [index, player] of this.players.entries()) {
 			const homeLocation = homeLocations[index];
-			if (homeLocation) player[Raw].homeLocation = homeLocation;
+			if (homeLocation != null && homeLocation !== "")
+				player[Raw].homeLocation = homeLocation;
 		}
 
 		for (const [index, player] of this.players.entries()) {
@@ -207,7 +213,8 @@ export class SaveProxy implements DataProxy<SaveFile> {
 	/** A player's home as the save has it: the farmhouse, or the inside of their cabin */
 	homeOf(player: Farmer): GameLocationRaw | undefined {
 		const home = player[Raw].homeLocation;
-		if (!home || home === "FarmHouse") {
+		// Older saves may omit the host's home name; retain the FarmHouse fallback.
+		if (home == null || home === "" || home === "FarmHouse") {
 			return this[Raw].SaveGame.locations.GameLocation.find(
 				(l) => l.name === "FarmHouse",
 			);
@@ -227,11 +234,12 @@ export class SaveProxy implements DataProxy<SaveFile> {
 				}
 			}
 		}
+		return undefined;
 	}
 
 	private syncCellarAssignments() {
 		const cellarAssignments = this[Raw].SaveGame.cellarAssignments;
-		if (!cellarAssignments) return;
+		if (cellarAssignments === null || cellarAssignments === undefined) return;
 
 		const assignmentByCellar = new Map(
 			cellarAssignments.item.map((item) => [item.key.int, item]),
@@ -339,10 +347,10 @@ export class SaveProxy implements DataProxy<SaveFile> {
 					: [];
 			// Farmer.hasOrWillReceiveMail
 			const has =
-				player.mailReceived.has(key as MailFlag) ||
-				player.mailbox.has(key as MailFlag) ||
+				player.mailReceived.has(key) ||
+				player.mailbox.has(key) ||
 				forTomorrow.some((m) => m === key || m === `${key}%&NL&%`);
-			if (!has) player.mailbox.add(key as MailFlag);
+			if (!has) player.mailbox.add(key);
 		}
 	}
 
@@ -354,7 +362,7 @@ export class SaveProxy implements DataProxy<SaveFile> {
 
 	// To mutate farm location externally, provide a helper
 	public setFarm(f: GameLocation) {
-		if (!f) throw new Error("Farm is required");
+		if (f === null || f === undefined) throw new Error("Farm is required");
 		const idx = this.locations.findIndex((l) => l[Raw].name === "Farm");
 		if (idx === -1) throw new Error("Farm not found");
 		this.locations[idx] = f;

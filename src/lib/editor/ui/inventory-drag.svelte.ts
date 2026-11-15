@@ -2,8 +2,8 @@ import type { EquipmentSlot } from "../equipment.ts";
 import type { InventoryView } from "../inventory-views.ts";
 import {
 	allInventorySlots as allSlots,
-	isEquipmentSlot as isEquipment,
 	type InventorySlot,
+	isEquipmentSlot as isEquipment,
 } from "./inventory-slot.ts";
 
 /** Captured instance handles, never saved item data or mutable slot positions. */
@@ -52,7 +52,7 @@ export function createInventoryDrag(input: DragInput) {
 	function startDragScroll() {
 		if (dragScrollFrame !== undefined) return;
 		const scroll = () => {
-			if (!pointerGesture?.dragging || !pointerPosition) {
+			if (!(pointerGesture?.dragging === true) || !pointerPosition) {
 				stopDragScroll();
 				return;
 			}
@@ -80,7 +80,7 @@ export function createInventoryDrag(input: DragInput) {
 						Math.max(0, rect.top),
 						Math.min(window.innerHeight, rect.bottom),
 					);
-					if (delta) {
+					if (delta !== 0) {
 						const before = container.scrollTop;
 						container.scrollTop += delta;
 						if (container.scrollTop !== before) {
@@ -92,8 +92,8 @@ export function createInventoryDrag(input: DragInput) {
 				container = container.parentElement;
 			}
 			const pageDelta = scrolled ? 0 : deltaAt(0, window.innerHeight);
-			if (pageDelta) window.scrollBy(0, pageDelta);
-			if (scrolled || pageDelta) {
+			if (pageDelta !== 0) window.scrollBy(0, pageDelta);
+			if (scrolled || pageDelta !== 0) {
 				// Capture still delivers events to the source: refresh the destination
 				// under the stationary finger as the content moves underneath it.
 				const target = pointerTarget(pointerPosition);
@@ -133,7 +133,7 @@ export function createInventoryDrag(input: DragInput) {
 	function acceptsDrop(item: InventorySlot) {
 		const owner = input
 			.owners()
-			.find((owner) => owner.ownerId === dragSource?.ownerId);
+			.find((nestedOwner) => nestedOwner.ownerId === dragSource?.ownerId);
 		const source =
 			owner &&
 			allSlots(owner).find((entry) => entry.entityId === dragSource?.entityId);
@@ -155,7 +155,7 @@ export function createInventoryDrag(input: DragInput) {
 		if (
 			!dragSource ||
 			input.movePending() ||
-			!event.dataTransfer?.types.includes(dragType)
+			!(event.dataTransfer?.types.includes(dragType) === true)
 		)
 			return;
 		event.preventDefault();
@@ -205,11 +205,11 @@ export function createInventoryDrag(input: DragInput) {
 		const control = document
 			.elementFromPoint(event.clientX, event.clientY)
 			?.closest<HTMLElement>("[data-inventory-entity]");
-		if (!control || !input.root()?.contains(control)) return undefined;
+		if (!control || !(input.root()?.contains(control) === true)) return;
 		return input
 			.visibleOwners()
 			.flatMap((owner) => (owner ? allSlots(owner) : []))
-			.find((item) => item.entityId === control.dataset.inventoryEntity);
+			.find((item) => item.entityId === control.dataset["inventoryEntity"]);
 	}
 	function pointerMove(event: PointerEvent) {
 		const gesture = pointerGesture;

@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { dynamicAsset } from "$lib/ui/dynamicAsset.ts";
 	import {
 		type EventInfo,
 		VanillaEvents,
@@ -8,6 +7,7 @@
 	import { characters } from "$lib/NPCs";
 	import { type EventsSeen, toEventId } from "$lib/proxies/EventsSeen.svelte";
 	import { getSaveManager } from "$lib/SaveManager.svelte";
+	import { dynamicAsset } from "$lib/ui/dynamicAsset.ts";
 	import UiCheckbox from "$lib/ui/UICheckbox.svelte";
 	import UiContainer from "$lib/ui/UIContainer.svelte";
 	import UiInput from "$lib/ui/UIInput.svelte";
@@ -27,6 +27,8 @@
 
 	// Every event under each of its characters (or "Other"), or under its location
 	const groups = $derived.by(() => {
+		// This derived evaluation builds a fresh lookup; mutations never outlive it.
+		// eslint-disable-next-line svelte/prefer-svelte-reactivity -- This Map is consumed within one derived evaluation.
 		const byName = new Map<string, EventInfo[]>();
 		for (const event of VanillaEvents) {
 			const names =

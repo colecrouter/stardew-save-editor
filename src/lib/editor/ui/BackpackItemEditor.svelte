@@ -1,22 +1,22 @@
 <script lang="ts">
-	import { inventoryQualities } from "../inventory-policy.ts";
+	import type { EditorModel } from "../editor-model.ts";
+	import type { EquipmentSlotView } from "../equipment.ts";
 	import { createImmediateFieldController } from "../immediate-field.svelte.ts";
 	import { createInventoryQuantityFields } from "../inventory-domain.ts";
-	import NumberField from "./fields/NumberField.svelte";
-	import ItemPropertyControls from "./ItemPropertyControls.svelte";
-	import type { EquipmentSlotView } from "../equipment.ts";
-	import type { EditorModel } from "../editor-model.ts";
+	import { inventoryQualities } from "../inventory-policy.ts";
 	import type { InventorySlotView } from "../inventory-views.ts";
 	import BackpackItemVisual from "./BackpackItemVisual.svelte";
+	import NumberField from "./fields/NumberField.svelte";
+	import ItemPropertyControls from "./ItemPropertyControls.svelte";
 	import QualityBadge from "./QualityBadge.svelte";
 
 	interface Props {
 		model: EditorModel;
 		ownerId: string;
 		item: InventorySlotView | EquipmentSlotView;
-		locationLabel?: string;
+		locationLabel?: string | undefined;
 		inventoryKind?: "backpack" | "chest";
-		onremove?: () => Promise<void>;
+		onremove?: (() => Promise<void>) | undefined;
 		removing?: boolean;
 	}
 	let {
@@ -83,7 +83,10 @@
 			{#if item.canQuality}
 				<!-- Native radio grouping preserves focus and arrow-key selection while
 			     each discrete choice enters the serialized command queue. -->
-				<fieldset aria-busy={qualityEditing.pending} class="quality-picker">
+				<fieldset
+					aria-busy={qualityEditing.pending}
+					class="quality-picker"
+				>
 					<legend>Quality</legend>
 
 					{#if !qualities.some((quality) => quality.value === item.quality)}
@@ -101,9 +104,16 @@
 									onchange={() => qualityEditing.input(quality.value)}
 								/>
 
-								<span class="quality-symbol" aria-hidden="true">
+								<span
+									class="quality-symbol"
+									aria-hidden="true"
+								>
 									{#if quality.value === 0}
-										<svg viewBox="0 0 10 10" width="20" height="20">
+										<svg
+											viewBox="0 0 10 10"
+											width="20"
+											height="20"
+										>
 											<path
 												d="M4 1h2v2h1v1h2v2H7v1h1v2H6V8H4v1H2V7h1V6H1V4h2V3h1Z"
 												fill="none"

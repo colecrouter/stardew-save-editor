@@ -76,7 +76,9 @@ export function decodeFarmSettingsChange(
 	if (Result.isFailure(result)) {
 		return Result.fail(
 			new FarmSettingsInvalid({
-				message: formatIssues(result.failure.issue).issues[0]!.message,
+				message:
+					formatIssues(result.failure.issue).issues[0]?.message ??
+					"Choose valid farm settings.",
 			}),
 		);
 	}

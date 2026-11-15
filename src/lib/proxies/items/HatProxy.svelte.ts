@@ -1,6 +1,8 @@
 import type { ParentIndex } from "$lib/ItemParentIndex";
 import type { Hat as HatInfo } from "$types/items";
 import type { HatItem } from "$types/save";
+
+import { writeOptionalField } from "../../optional-field.ts";
 import { BaseItemProxy, Raw } from "./ItemProxy.svelte";
 
 const HAT_SLOT: ParentIndex = "hat";
@@ -16,26 +18,30 @@ export class HatProxy extends BaseItemProxy<HatItem> {
 	constructor(raw: HatItem) {
 		super(raw);
 		this.ensureHat();
-		this.hatInfo = this.info as HatInfo;
+		this.hatInfo = this.info;
 
 		this.skipHairDraw = $state(this[Raw].skipHairDraw);
 		$effect(() => {
-			this[Raw].skipHairDraw = this.skipHairDraw;
+			writeOptionalField(this[Raw], "skipHairDraw", this.skipHairDraw);
 		});
 
 		this.ignoreHairstyleOffset = $state(this[Raw].ignoreHairstyleOffset);
 		$effect(() => {
-			this[Raw].ignoreHairstyleOffset = this.ignoreHairstyleOffset;
+			writeOptionalField(
+				this[Raw],
+				"ignoreHairstyleOffset",
+				this.ignoreHairstyleOffset,
+			);
 		});
 
 		this.hairDrawType = $state(this[Raw].hairDrawType);
 		$effect(() => {
-			this[Raw].hairDrawType = this.hairDrawType;
+			writeOptionalField(this[Raw], "hairDrawType", this.hairDrawType);
 		});
 
 		this.isPrismatic = $state(this[Raw].isPrismatic);
 		$effect(() => {
-			this[Raw].isPrismatic = this.isPrismatic;
+			writeOptionalField(this[Raw], "isPrismatic", this.isPrismatic);
 		});
 	}
 
@@ -51,7 +57,7 @@ export class HatProxy extends BaseItemProxy<HatItem> {
 		return HatProxy.isHat(slot);
 	}
 
-	private ensureHat(): asserts this is HatProxy {
+	private ensureHat(): asserts this is HatProxy & { readonly info: HatInfo } {
 		if (this.info?._type !== "Hat") {
 			throw new TypeError(`Item "${this.name}" is not a Hat`);
 		}

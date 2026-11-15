@@ -1,29 +1,47 @@
 import { expect, it } from "@effect/vitest";
 import { Effect, Exit } from "effect";
-import type { FixtureSave as Save } from "../helpers/editor-document.ts";
-import {
-	type CalendarDocumentState,
-	valleyWeather,
-	initializeCalendarDocument,
-} from "../../src/lib/editor/calendar-document.ts";
+
 import { CalendarSeason } from "../../src/lib/calendarSeason.ts";
-import { getStatValue } from "../../src/lib/editor/player-stats.ts";
-import { loadFixture, parser, exportDocument, tinyFixture } from "./fixture.ts";
+import {
+	initializeCalendarDocument,
+	valleyWeather,
+} from "../../src/lib/editor/calendar-document.ts";
+import type {
+	DomainState,
+	DomainValue,
+	SaveDocument,
+} from "../../src/lib/editor/domain.ts";
 import { makeHistorySession } from "../../src/lib/editor/history.ts";
 import {
 	coreOperations,
 	EditorOperations,
 	type Operations,
 } from "../../src/lib/editor/operations.ts";
-import type {
-	DomainState,
-	DomainValue,
-	SaveDocument,
-} from "../../src/lib/editor/domain.ts";
+import { getStatValue } from "../../src/lib/editor/player-stats.ts";
+import {
+	requireArray,
+	requireDefined,
+	requireRecord,
+} from "../helpers/assertions.ts";
+import { malformedFixture } from "../helpers/editor-document.ts";
+import {
+	exportDocument,
+	fixtureGame,
+	loadFixture,
+	parser,
+	tinyFixture,
+} from "./fixture.ts";
 
-const gameOf = (document: SaveDocument) => document.SaveGame as unknown as Save;
-const calendarOf = (domain: DomainState) =>
-	domain.calendar as unknown as CalendarDocumentState;
+const gameOf = fixtureGame;
+// Read only the serialized fields used by these assertions, checking their raw container.
+const calendarOf = (domain: DomainState) => {
+	const calendar = requireRecord(domain["calendar"]);
+	return {
+		today: calendar["today"],
+		tomorrow: calendar["tomorrow"],
+		watering: requireArray(calendar["watering"]),
+	};
+};
 const today = (value: string) =>
 	({ type: "calendar-weather", day: "today", value }) as const;
 const day = (value: number) =>
@@ -57,6 +75,7 @@ it.effect(
 				result.player,
 				...(!Array.isArray(result.farmhands) ? [] : result.farmhands),
 			]) {
+				expect.assert(player != null, "Expected a populated fixture farmer");
 				expect(player.yearForSaveGame).toBe(2);
 				expect(player.dayOfMonthForSaveGame).toBe(8);
 				expect(player.seasonForSaveGame).toBe(0);
@@ -117,7 +136,7 @@ it.effect(
 			wet.value.state = 1;
 			for (const name of ["Forest", "IslandWest"]) {
 				const location = gameOf(original).locations.find(
-					(location) => location?.name === name,
+					(candidateLocation) => candidateLocation?.name === name,
 				);
 				if (!location) throw new Error(`Missing ${name}`);
 				location.terrainFeatures = [structuredClone(dry)];
@@ -193,8 +212,9 @@ it.effect(
 								(location) => location?.name === "Farm",
 							);
 							const entry = farm?.terrainFeatures?.find(
-								(entry) =>
-									entry.value.$type === "StardewValley.TerrainFeatures.HoeDirt",
+								(candidateEntry) =>
+									candidateEntry.value.$type ===
+									"StardewValley.TerrainFeatures.HoeDirt",
 							);
 							if (!entry) throw new Error("Missing soil fixture");
 							entry.value = {
@@ -269,7 +289,7 @@ it.effect(
 			const malformed = structuredClone(fixture);
 			// Empty arrays are valid dictionaries in the plain model; use an object
 			// to retain this regression test's deliberately malformed container.
-			Object.assign(gameOf(malformed).player.stats!, {
+			Object.assign(requireDefined(gameOf(malformed).player.stats), {
 				Values: { unsupported: true },
 			});
 			const badStats = yield* makeHistorySession(malformed);
@@ -349,7 +369,7 @@ it.effect(
 				const session = yield* makeHistorySession(
 					fixture,
 					{},
-					{ calendar: invalid as unknown as DomainValue },
+					{ calendar: malformedFixture<DomainValue>(invalid) },
 				);
 				const before = yield* session.snapshot;
 				expect(
@@ -383,7 +403,9 @@ it.effect(
 			expect(after.entries[0]?.actions).toHaveLength(3);
 			expect(after.document.SaveGame.player.money).toBe(1234);
 			expect(calendarOf(after.domainState).tomorrow).toBe("Wind");
-			expect(after.domainState.otherFeature).toEqual(initial.otherFeature);
+			expect(after.domainState["otherFeature"]).toEqual(
+				initial["otherFeature"],
+			);
 			const undone = yield* session.undo;
 			expect(undone.document).toEqual(fixture);
 			expect(undone.domainState).toEqual(initial);

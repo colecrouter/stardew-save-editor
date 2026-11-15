@@ -1,8 +1,10 @@
 <script lang="ts">
 	import { RegistryProvider } from "effect-atom-svelte";
-	import type { EditorModel } from "../../../src/lib/editor/editor-model.ts";
+
+	import type { AdapterModel } from "./adapter-model.ts";
 	import AdapterReadProbe from "./AdapterReadProbe.svelte";
-	let { model }: { model: Pick<EditorModel, "atomBindings"> } = $props();
+
+	let { model }: { model: AdapterModel } = $props();
 </script>
 
 <!-- Borrow the same registry as the real workspace. This harness is imported

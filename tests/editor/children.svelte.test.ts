@@ -1,8 +1,9 @@
 import { expect, it } from "vitest";
-import { renderBrowserWorkspace } from "./workspace-browser.ts";
-import { childrenFixture } from "./children-fixture.ts";
+
 import { readChildren } from "../../src/lib/editor/children-data.ts";
 import { tinyEditorFixture } from "../helpers/editor-document.ts";
+import { childrenFixture } from "./children-fixture.ts";
+import { renderBrowserWorkspace } from "./workspace-browser.ts";
 
 it("searches catalog hats, previews a replacement privately and restores focus on Cancel", async () => {
 	const opened = await renderBrowserWorkspace(

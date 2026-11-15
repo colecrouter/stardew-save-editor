@@ -10,10 +10,12 @@ import { Sprite } from "$lib/Sprite.svelte";
 import type { Coordinates, Size } from "$types/items";
 
 export type SpriteTint = readonly [number, number, number, number];
+// Optional presentation members may be omitted or explicitly unavailable.
+// These transient projections do not encode presence of serialized save fields.
 export type SpriteLayer = {
 	sourceRect: Coordinates & Size;
-	tint?: SpriteTint;
-	prismatic?: boolean;
+	tint?: SpriteTint | undefined;
+	prismatic?: boolean | undefined;
 };
 
 export const prismaticColors: readonly SpriteTint[] = [
@@ -92,7 +94,7 @@ export function getItemSprite(item?: ItemProxy) {
 		layers = item.colorSameIndexAsParentSheetIndex
 			? [{ sourceRect, tint }]
 			: [{ sourceRect }, { sourceRect: sprite.getSourceRect(1), tint }];
-	} else if (item instanceof HatProxy && item.isPrismatic) {
+	} else if (item instanceof HatProxy && item.isPrismatic === true) {
 		layers = [{ sourceRect, prismatic: true }];
 	}
 	return { sprite, layers, smoked };

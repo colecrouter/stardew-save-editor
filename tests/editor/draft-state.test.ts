@@ -1,6 +1,8 @@
 import { expect, it } from "vitest";
-import { freezeDraftState } from "../../src/lib/editor/draft-state";
+
 import type { SessionState } from "../../src/lib/editor/domain";
+import { freezeDraftState } from "../../src/lib/editor/draft-state";
+import { requireRecord } from "../helpers/assertions.ts";
 import { tinyFixture } from "../helpers/editor-document.ts";
 
 const state = (): SessionState => ({ document: tinyFixture(), history: [] });
@@ -17,9 +19,14 @@ it("deeply freezes owned branches without changing scalars or missing fields", (
 	expect(Object.isFrozen(initial.document.SaveGame.player.items)).toBe(true);
 	// Reflection bypasses a producer proxy, so the underlying descendants must
 	// themselves reject writes instead of relying on proxy traps for isolation.
-	const document = Object.getOwnPropertyDescriptor(initial, "document")?.value;
+	const document: unknown = Object.getOwnPropertyDescriptor(
+		initial,
+		"document",
+	)?.value;
 	expect(() => {
-		document.SaveGame.player.name = "Leaked";
+		requireRecord(requireRecord(requireRecord(document)["SaveGame"])["player"])[
+			"name"
+		] = "Leaked";
 	}).toThrow(TypeError);
 	expect(() => {
 		initial.document.SaveGame.player.items.length = 0;

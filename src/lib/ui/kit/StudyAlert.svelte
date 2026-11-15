@@ -1,7 +1,9 @@
 <script lang="ts">
 	import "./styles.css";
 	import type { Snippet } from "svelte";
+
 	import StudyIcon from "../StudyIcon.svelte";
+
 	let {
 		title,
 		tone = "info",
@@ -31,7 +33,10 @@
 			? "status"
 			: undefined}
 >
-	<StudyIcon name={icons[tone]} size={28} />
+	<StudyIcon
+		name={icons[tone]}
+		size={28}
+	/>
 
 	<div>
 		<h3 class="study-notice-title">{title}</h3>

@@ -1,14 +1,16 @@
-import publicSaveXml from "./TestSave?raw";
 import { flushSync } from "svelte";
 import { expect, it } from "vitest";
-import type { Save } from "$types/save";
+
 import {
+	type CalendarEdit,
 	initializeCalendarDocument,
 	prepareCalendarDocument,
-	type CalendarEdit,
 } from "$lib/calendarDocument";
 import { CalendarSeason } from "$lib/calendarSeason";
 import { SaveManager } from "$lib/SaveManager.svelte";
+import type { Save } from "$types/save";
+
+import publicSaveXml from "./TestSave?raw";
 
 // Compare both adapters on the complete save, including worker import time.
 it("the pure adapter and production calendar agree through date, weather and festival edits", async () => {

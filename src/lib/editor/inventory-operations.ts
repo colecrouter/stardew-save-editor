@@ -1,62 +1,67 @@
-import type { replayFarmerSwap } from "./farmer-roster-operations.ts";
-import type { replayBuildingUpgrade } from "./building-operations.ts";
-import type * as ItemCatalog from "../ItemData.ts";
-import {
-	isKnownItem,
-	type InventoryValue,
-	type KnownItem,
-} from "./inventory-values.ts";
-import { readEquipmentSlot } from "./equipment.ts";
+import { Context, Data, Effect, Result, Schema, SchemaIssue } from "effect";
 import { create as createCopyOnWrite } from "mutative";
-import { freezeDraftState } from "./draft-state.ts";
-import { samePlainData } from "./plain-data.ts";
-import { inventoryQuantity, inventoryQualities } from "./inventory-policy.ts";
+
+import type * as ItemCatalog from "../ItemData.ts";
+import { type UnplacedItem } from "./animal-buildings.ts";
 import {
+	type BuildingInvalid,
+	type replayBuildingUpgrade,
+} from "./building-operations.ts";
+import { discoverPlacedChests } from "./chest-storage.ts";
+import {
+	emptySlot,
+	type Farmer,
+	farmers,
+	type Item,
+	type MutationError,
+	type SaveDocument,
+} from "./domain.ts";
+import { freezeDraftState } from "./draft-state.ts";
+import {
+	type EquipmentIdentities,
+	equipmentSlots,
+	type InventoryLocation,
+	readEquipmentSlot,
+} from "./equipment.ts";
+import {
+	type FarmerRosterInvalid,
+	type replayFarmerSwap,
+} from "./farmer-roster-operations.ts";
+import {
+	inventoryContainers,
+	resolveInventoryContainer,
+} from "./inventory-containers.ts";
+import { inventoryQualities, inventoryQuantity } from "./inventory-policy.ts";
+import {
+	type InventoryIdentityState,
 	replaceInventorySlot,
 	resizeInventorySlots,
-	type InventoryIdentityState,
 } from "./inventory-transition.ts";
-import { prizeTicketDestination } from "./quest-ticket.ts";
 import {
-	resolveInventoryContainer,
-	inventoryContainers,
-} from "./inventory-containers.ts";
-import { discoverPlacedChests } from "./chest-storage.ts";
+	type InventoryValue,
+	isKnownItem,
+	type KnownItem,
+} from "./inventory-values.ts";
 import {
 	decodeItemPropertyChange,
 	getItemPropertyFields,
 	itemColorPatch,
-	readItemPropertyContext,
-	ItemPropertyInvalid,
-	type ItemPropertyChange,
 	type ItemPatch,
+	type ItemPropertyChange,
+	ItemPropertyInvalid,
+	readItemPropertyContext,
 } from "./item-properties.ts";
-import {
-	prepareTrinketPropertyChange,
-	TrinketPropertyChangeSchema,
-} from "./trinket-properties.ts";
-import {
-	equipmentSlots,
-	type EquipmentIdentities,
-	type InventoryLocation,
-} from "./equipment.ts";
-import { Context, Data, Effect, Result, Schema, SchemaIssue } from "effect";
-import {
-	emptySlot,
-	farmers,
-	type Farmer,
-	type Item,
-	type SaveDocument,
-} from "./domain.ts";
-import type { makeTransactionDraftFromCommitted } from "./transaction-draft.ts";
+import { samePlainData } from "./plain-data.ts";
+import { prizeTicketDestination } from "./quest-ticket.ts";
 import {
 	recordAnnotatedOperation,
 	withReviewMetadata,
 } from "./transaction-annotations.ts";
-import type { MutationError } from "./domain.ts";
-import type { UnplacedItem } from "./animal-buildings.ts";
-import type { BuildingInvalid } from "./building-operations.ts";
-import type { FarmerRosterInvalid } from "./farmer-roster-operations.ts";
+import { type makeTransactionDraftFromCommitted } from "./transaction-draft.ts";
+import {
+	prepareTrinketPropertyChange,
+	TrinketPropertyChangeSchema,
+} from "./trinket-properties.ts";
 
 /** Expected unsupported, invalid or stale backpack request. */
 export class BackpackItemInvalid extends Data.TaggedError(
@@ -134,8 +139,10 @@ export function decodeInventoryQualityBatch(
 		input !== null && typeof input === "object" && !Array.isArray(input)
 			? { ...input }
 			: input;
-	if (record(own) && Array.isArray(own.items))
-		own.items = own.items.map((item) => (record(item) ? { ...item } : item));
+	if (record(own) && Array.isArray(own["items"]))
+		own["items"] = own["items"].map((item) =>
+			record(item) ? { ...item } : item,
+		);
 	const result = decodeQualityBatch(own);
 	return Result.isFailure(result)
 		? Result.fail(
@@ -184,9 +191,9 @@ export function objectMetadataAllowsEdits(
 		value == null || typeof value === "string" || typeof value === "number";
 	return (
 		record(raw) &&
-		scalarKey(raw.itemId) &&
-		scalarKey(raw.preservedParentSheetIndex) &&
-		(raw.name == null || typeof raw.name === "string")
+		scalarKey(raw["itemId"]) &&
+		scalarKey(raw["preservedParentSheetIndex"]) &&
+		(raw["name"] == null || typeof raw["name"] === "string")
 	);
 }
 
@@ -463,8 +470,10 @@ export function makeInventoryEdits(
 			// Avoid expanding the raw DTO's recursive unions in Mutative's mapped
 			// types. The producer preserves this SaveDocument root representation.
 			const base: object = document;
+			// oxlint-disable-next-line typescript/no-unsafe-type-assertion -- This producer changes approved inventory fields on a SaveDocument root and never replaces its envelope.
 			return createCopyOnWrite(
 				base,
+				// oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Mutative exposes an object writer for the supplied SaveDocument; the recipe preserves that root shape.
 				(writer) => applyApproved(writer as SaveDocument),
 				{
 					enableAutoFreeze: false,
@@ -490,7 +499,7 @@ export function makeInventoryEdits(
 		return true;
 	};
 	const authorityMatches = (document: SaveDocument) =>
-		!!authority &&
+		authority !== undefined &&
 		samePlainData(
 			inventorySnapshot(document),
 			inventorySnapshot(replay(authority)),
@@ -509,12 +518,12 @@ export function makeInventoryEdits(
 	) => {
 		// New slot handles are published only with the enclosing history commit.
 		if (
-			resizes.length ||
+			resizes.length > 0 ||
 			(blocked
 				? blocked.has(entityId)
 				: writes.some(
 						(write) =>
-							write.replacement &&
+							write.replacement !== undefined &&
 							write.ownerId === ownerId &&
 							identities[ownerId]?.[Number(write.location)] === entityId,
 					))
@@ -670,7 +679,7 @@ export function makeInventoryEdits(
 		label: string,
 		property: string,
 	) => ({
-		label: `${typeof ownerName === "string" && ownerName ? ownerName : ownerId}: ${typeof item.name === "string" && item.name ? item.name : "Item"} ${label}`,
+		label: `${typeof ownerName === "string" && ownerName !== "" ? ownerName : ownerId}: ${typeof item.name === "string" && item.name !== "" ? item.name : "Item"} ${label}`,
 		tags: [
 			"inventory",
 			`inventory:${property}`,
@@ -747,7 +756,7 @@ export function makeInventoryEdits(
 
 		upgradeBuilding: Effect.fn("Inventory.upgradeBuilding")(function* (
 			buildingId: string,
-			target: string,
+			targetCandidate: string,
 		) {
 			const operations = yield* Effect.promise(
 				() => import("./building-operations.ts"),
@@ -784,7 +793,7 @@ export function makeInventoryEdits(
 			const warnings = yield* operations.prepareBuildingUpgrade(
 				snapshot.state.document,
 				buildingId,
-				target,
+				targetCandidate,
 			);
 			const after = discoverPlacedChests(snapshot.state.document);
 			const nextIds = { ...preparedInventory.identities };
@@ -800,7 +809,7 @@ export function makeInventoryEdits(
 				after.some((chest) => !handles.has(chest.container)) ||
 				after.some(
 					(chest) =>
-						handles.get(chest.container) &&
+						handles.has(chest.container) &&
 						!inventoryContainers(snapshot.state.document).some(
 							(owner) => owner.id === chest.id,
 						),
@@ -815,7 +824,7 @@ export function makeInventoryEdits(
 			replaySteps.push({
 				kind: "upgrade",
 				buildingId,
-				target,
+				target: targetCandidate,
 				apply: operations.replayBuildingUpgrade,
 			});
 			return warnings;
@@ -830,7 +839,7 @@ export function makeInventoryEdits(
 			// draft edits cannot manufacture a stack/slot eligible for replacement.
 			if (
 				!authority ||
-				resizes.length ||
+				resizes.length > 0 ||
 				!owner?.farmer ||
 				!identities[farmerId] ||
 				identities[farmerId].length !== owner.slots.length ||
@@ -881,13 +890,13 @@ export function makeInventoryEdits(
 		) {
 			const snapshot = yield* draft.read;
 			const owner = ownerIn(snapshot.state.document, farmerId);
-			const valid = [12, 24, 36];
+			const valid = new Set([12, 24, 36]);
 			if (
 				!authority ||
 				writes.some((write) => write.replacement) ||
 				!owner?.farmer ||
-				!valid.includes(size) ||
-				!valid.includes(owner.slots.length) ||
+				!valid.has(size) ||
+				!valid.has(owner.slots.length) ||
 				owner.farmer.maxItems !== owner.slots.length ||
 				!samePlainData(
 					inventorySnapshot(snapshot.state.document),
@@ -921,7 +930,7 @@ export function makeInventoryEdits(
 				decodeInventoryQualityBatch(input),
 			);
 			if (
-				!request.items.length ||
+				!(request.items.length > 0) ||
 				new Set(request.items.map((item) => item.entityId)).size !==
 					request.items.length
 			)
@@ -963,7 +972,7 @@ export function makeInventoryEdits(
 			// Validate the checkout version even for a no-op; stale metadata must never
 			// silently succeed after another program changed the same transaction draft.
 			yield* draft.mutate((state) => {
-				if (!approved.length) return;
+				if (!(approved.length > 0)) return;
 				const owners = new Map(
 					inventoryContainers(state.document).map((owner) => [owner.id, owner]),
 				);
@@ -977,7 +986,7 @@ export function makeInventoryEdits(
 					Object.assign(item, write.patch);
 				}
 			}, checkout.version);
-			if (approved.length) {
+			if (approved.length > 0) {
 				for (const write of approved) writes.push(write);
 				replaySteps.push({ kind: "quality-batch", writes: approved });
 			}
@@ -1049,7 +1058,7 @@ export function makeInventoryEdits(
 			const { item, ownerName, context } = resolved;
 			const { info } = yield* metadataFor(item);
 			const field = getItemPropertyFields(item, info, context).find(
-				(field) => field.property === change.property,
+				(fieldCandidate) => fieldCandidate.property === change.property,
 			);
 			if (!field)
 				return yield* new ItemPropertyInvalid({

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SaveGame xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <Money>7</Money>
+  <FarmerId>9007199254740993</FarmerId>
+  <Name>007</Name>
+  <Day xsi:nil="true" />
+  <Items>
+    <Item xsi:type="Tool">
+      <Name>Axe</Name>
+      <Level>2</Level>
+    </Item>
+    <Item xsi:nil="true" />
+  </Items>
+  <Status>Ready</Status>
+  <Equipped>
+    <Name>Boots</Name>
+    <Level>1</Level>
+  </Equipped>
+</SaveGame>

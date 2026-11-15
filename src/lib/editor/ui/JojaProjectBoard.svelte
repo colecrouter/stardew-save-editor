@@ -1,9 +1,11 @@
 <script lang="ts">
 	import { Result } from "effect";
+
 	import { CCRoom } from "../../communityCenterData.ts";
-	import type { CommunityDomain } from "../community-domain.ts";
-	import type { CommandResult } from "../command-result.ts";
 	import StudyAlert from "../../ui/kit/StudyAlert.svelte";
+	import type { CommandResult } from "../command-result.ts";
+	import type { CommunityDomain } from "../community-domain.ts";
+
 	let { community }: { community: CommunityDomain } = $props();
 	// Keep the game's form order, including the signature in the sixth cell.
 	// Room identities still come from the domain rather than a second price table.
@@ -83,16 +85,27 @@
 
 {#if projects.some((project) => project.completed === undefined)}
 	<div class="project-notice">
-		<StudyAlert title="Some project progress is unavailable" tone="warning">
+		<StudyAlert
+			title="Some project progress is unavailable"
+			tone="warning"
+		>
 			<p>Projects with unsupported saved donation progress cannot be edited.</p>
 		</StudyAlert>
 	</div>
 {/if}
 
 <div class="joja-layout">
-	<section class="joja-page" aria-label="Joja development plan">
+	<section
+		class="joja-page"
+		aria-label="Joja development plan"
+	>
 		<header>
-			<div class="logo" aria-hidden="true">Joja *</div>
+			<div
+				class="logo"
+				aria-hidden="true"
+			>
+				Joja *
+			</div>
 
 			<div class="heading">
 				<h2>Community Development Projects</h2>
@@ -127,7 +140,10 @@
 						{/if}
 					</span>
 
-					<span class="dots" aria-hidden="true"></span>
+					<span
+						class="dots"
+						aria-hidden="true"
+					></span>
 
 					<span class="price">{project.price?.toLocaleString()} g</span>
 				</label>
@@ -147,7 +163,10 @@
 
 	<!-- The theater is deliberately separate from the original five-project form;
 	     completing the development plan must never buy it implicitly. -->
-	<section class="theater" aria-label="Joja Movie Theater">
+	<section
+		class="theater"
+		aria-label="Joja Movie Theater"
+	>
 		<label class="project-row">
 			<input
 				type="checkbox"
@@ -161,7 +180,10 @@
 
 			<span class="project-name">Movie Theater</span>
 
-			<span class="dots" aria-hidden="true"></span>
+			<span
+				class="dots"
+				aria-hidden="true"
+			></span>
 
 			<span class="price">1,000,000 g</span>
 		</label>

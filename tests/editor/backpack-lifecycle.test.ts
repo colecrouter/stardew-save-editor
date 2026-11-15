@@ -1,20 +1,23 @@
 import { it } from "@effect/vitest";
-import { describe, expect } from "vitest";
 import { Effect, Result, Schema } from "effect";
+import { describe, expect } from "vitest";
+
 import { makeHistorySession } from "../../src/lib/editor/history";
+import type { InventorySlotRequest } from "../../src/lib/editor/inventory-lifecycle.ts";
 import {
 	catalogEntries,
 	createCatalogItem,
 	searchCatalog,
 } from "../../src/lib/editor/item-catalog";
-import { openTestDocument } from "../helpers/open-editor.ts";
-import type { InventorySlotRequest } from "../../src/lib/editor/inventory-lifecycle.ts";
+import { requireRecord } from "../helpers/assertions.ts";
 import {
-	tinyFixture,
-	tinyEditorFixture,
-	parser,
 	exportDocument,
+	malformedFixture,
+	parser,
+	tinyEditorFixture,
+	tinyFixture,
 } from "../helpers/editor-document.ts";
+import { openTestDocument } from "../helpers/open-editor.ts";
 
 function required<A>(value: A | undefined): A {
 	if (value === undefined) throw Error("Missing fixture handle");
@@ -91,11 +94,13 @@ describe("proxy-free item catalog", () => {
 				(entry) => entry.raw.$type === "StardewValley.Objects.ColoredObject",
 			),
 		);
+		// Vitest types asymmetric matchers as any. Keep expected matcher values
+		// unknown so they cannot weaken the surrounding saved-data assertions.
 		expect(createCatalogItem(colored.id)).toMatchObject({
 			color: {
-				R: expect.any(Number),
-				G: expect.any(Number),
-				B: expect.any(Number),
+				R: expect.any(Number) as unknown,
+				G: expect.any(Number) as unknown,
+				B: expect.any(Number) as unknown,
 				A: 255,
 			},
 		});
@@ -311,10 +316,10 @@ describe("backpack creation and removal", () => {
 			Effect.gen(function* () {
 				const document = tinyFixture();
 				document.SaveGame.farmhands = [
-					[
+					malformedFixture<never>([
 						null,
 						{ UniqueMultiplayerID: { toString: 0 }, items: "opaque" },
-					] as never,
+					]),
 				];
 				const session = yield* makeHistorySession(document);
 				const before = yield* session.snapshot;
@@ -356,12 +361,14 @@ describe("backpack creation and removal", () => {
 				const session = yield* makeHistorySession(tinyFixture());
 				const before = yield* session.snapshot;
 				const empty = required(before.identities["1"]?.[1]);
-				const inherited = Object.create({
-					ownerId: "1",
-					entityId: empty,
-					catalogId: "Wood",
-				});
-				inherited.type = "backpack-add";
+				const inherited = requireRecord(
+					Object.create({
+						ownerId: "1",
+						entityId: empty,
+						catalogId: "Wood",
+					}),
+				);
+				inherited["type"] = "backpack-add";
 				const failed = yield* Effect.result(
 					session.execute([
 						{
@@ -381,7 +388,15 @@ describe("backpack creation and removal", () => {
 				expect(Result.isFailure(failed)).toBe(true);
 				expect(yield* session.snapshot).toEqual(before);
 				expect(
-					Result.isFailure(yield* Effect.result(session.execute([inherited]))),
+					Result.isFailure(
+						yield* Effect.result(
+							session.execute([
+								malformedFixture<Parameters<typeof session.execute>[0][number]>(
+									inherited,
+								),
+							]),
+						),
+					),
 				).toBe(true);
 				expect(yield* session.snapshot).toEqual(before);
 			}),

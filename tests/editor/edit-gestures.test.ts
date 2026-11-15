@@ -1,14 +1,15 @@
 import { it } from "@effect/vitest";
-import { describe, expect } from "vitest";
 import { Deferred, Effect, Fiber, Result } from "effect";
-import { makeHistorySession } from "../../src/lib/editor/history.ts";
-import { TransactionDraft } from "../../src/lib/editor/transaction-draft.ts";
+import { describe, expect } from "vitest";
+
 import { MutationError } from "../../src/lib/editor/domain.ts";
-import { tinyFixture } from "../helpers/editor-document.ts";
+import { makeHistorySession } from "../../src/lib/editor/history.ts";
 import {
 	coreOperations,
 	EditorOperations,
 } from "../../src/lib/editor/operations.ts";
+import { TransactionDraft } from "../../src/lib/editor/transaction-draft.ts";
+import { tinyFixture } from "../helpers/editor-document.ts";
 
 const money = (value: number) =>
 	Effect.gen(function* () {

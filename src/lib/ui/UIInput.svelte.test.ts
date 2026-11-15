@@ -1,6 +1,8 @@
 import { fireEvent, render, screen } from "@testing-library/svelte";
 import { tick } from "svelte";
 import { describe, expect, test } from "vitest";
+
+import { requireInstance } from "../../../tests/helpers/assertions.ts";
 import UiInput from "./UIInput.svelte";
 
 const type = async (input: HTMLInputElement, value: string) => {
@@ -17,7 +19,10 @@ describe("UI input", () => {
 			value: 30,
 			"data-testid": "input",
 		});
-		const input = screen.getByTestId("input") as HTMLInputElement;
+		const input = requireInstance(
+			screen.getByTestId("input"),
+			HTMLInputElement,
+		);
 
 		// "2" is below the minimum, but it's on the way to "25"
 		await type(input, "2");
@@ -35,7 +40,10 @@ describe("UI input", () => {
 			value: 21,
 			"data-testid": "input",
 		});
-		const input = screen.getByTestId("input") as HTMLInputElement;
+		const input = requireInstance(
+			screen.getByTestId("input"),
+			HTMLInputElement,
+		);
 
 		// Backspace "21" -> "2" -> ""
 		await type(input, "2");
@@ -56,7 +64,10 @@ describe("UI input", () => {
 			value: 21,
 			"data-testid": "input",
 		});
-		const input = screen.getByTestId("input") as HTMLInputElement;
+		const input = requireInstance(
+			screen.getByTestId("input"),
+			HTMLInputElement,
+		);
 
 		await type(input, "5");
 		await type(input, "");
@@ -77,7 +88,10 @@ describe("UI input", () => {
 			value: 30,
 			"data-testid": "input",
 		});
-		const input = screen.getByTestId("input") as HTMLInputElement;
+		const input = requireInstance(
+			screen.getByTestId("input"),
+			HTMLInputElement,
+		);
 
 		await type(input, "5");
 		expect(input.value).toBe("5");

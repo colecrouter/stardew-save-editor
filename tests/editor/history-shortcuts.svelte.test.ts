@@ -1,6 +1,8 @@
 import { expect, it, vi } from "vitest";
-import { renderBrowserWorkspace } from "./workspace-browser.ts";
+
+import { requireInstance } from "../helpers/assertions.ts";
 import { tinyEditorFixture } from "../helpers/editor-document.ts";
+import { renderBrowserWorkspace } from "./workspace-browser.ts";
 
 // Exercise real fields and commands: shortcuts must restore the actual save,
 // preserve the typing gesture and disappear when the file workspace unmounts.
@@ -24,7 +26,7 @@ it.each([false, true])(
 		try {
 			const { page, model } = opened;
 			const field = page.getByRole("textbox", { name: "Farm name" });
-			const original = (field.element() as HTMLInputElement).value;
+			const original = requireInstance(field.element(), HTMLInputElement).value;
 			// Inspect cancelable events directly to distinguish browser-owned shortcuts
 			// from workspace-owned ones; filling and focus changes still use real input.
 			const unavailable = new KeyboardEvent("keydown", chord);

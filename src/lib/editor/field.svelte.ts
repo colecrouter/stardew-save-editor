@@ -1,6 +1,7 @@
 import { untrack } from "svelte";
 import { get } from "svelte/store";
-import { submitDraftValue, type Field, type FieldValue } from "./field.ts";
+
+import { type Field, type FieldValue, submitDraftValue } from "./field.ts";
 
 /**
  * Create a component-owned editing draft; typing does not mutate the save.

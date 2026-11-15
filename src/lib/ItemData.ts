@@ -3,49 +3,55 @@ import {
 	FurnitureType,
 	type ItemInformation,
 	ObjectCategory,
+	type RegularObject,
 	type Shirt,
 } from "$types/items";
 
+import { isRecord } from "./unknown.ts";
+
 // Catalog lookups need only semantic item identity, not an entire saved record.
 // The legacy discriminator remains accepted for the older preview path.
+// Catalog inputs are transient checked projections; unavailable identity fields
+// can be explicitly undefined without changing the source save record.
 export interface CatalogItem {
-	name?: string;
-	itemId?: string | number | null;
-	preservedParentSheetIndex?: string | number | null;
-	preserve?: string | null;
-	upgradeLevel?: number;
-	bigCraftable?: boolean;
-	$type?: string;
-	"@_xsi:type"?: string;
+	name?: string | undefined;
+	itemId?: string | number | null | undefined;
+	preservedParentSheetIndex?: string | number | null | undefined;
+	preserve?: string | null | undefined;
+	upgradeLevel?: number | undefined;
+	bigCraftable?: boolean | undefined;
+	$type?: string | undefined;
+	"@_xsi:type"?: string | undefined;
 }
 
 /** Project opaque saved metadata into the small catalog input contract. Unknown
  * extension fields stay on the save; only checked identity/display fields cross
  * into catalog string operations. This boundary also serves the legacy preview. */
 export function readCatalogItem(value: unknown): CatalogItem | undefined {
-	if (value === null || typeof value !== "object" || Array.isArray(value))
-		return undefined;
-	const raw = value as Record<string, unknown>;
+	if (!isRecord(value)) return undefined;
+	const raw = value;
 	const scalar = (
 		input: unknown,
 	): input is string | number | null | undefined =>
 		input == null || typeof input === "string" || typeof input === "number";
 	if (
-		!scalar(raw.itemId) ||
-		!scalar(raw.preservedParentSheetIndex) ||
-		(raw.name != null && typeof raw.name !== "string")
+		!scalar(raw["itemId"]) ||
+		!scalar(raw["preservedParentSheetIndex"]) ||
+		(raw["name"] != null && typeof raw["name"] !== "string")
 	)
 		return undefined;
 	return {
-		name: typeof raw.name === "string" ? raw.name : undefined,
-		itemId: raw.itemId,
-		preservedParentSheetIndex: raw.preservedParentSheetIndex,
-		preserve: typeof raw.preserve === "string" ? raw.preserve : undefined,
+		name: typeof raw["name"] === "string" ? raw["name"] : undefined,
+		itemId: raw["itemId"],
+		preservedParentSheetIndex: raw["preservedParentSheetIndex"],
+		preserve: typeof raw["preserve"] === "string" ? raw["preserve"] : undefined,
 		upgradeLevel:
-			typeof raw.upgradeLevel === "number" ? raw.upgradeLevel : undefined,
+			typeof raw["upgradeLevel"] === "number" ? raw["upgradeLevel"] : undefined,
 		bigCraftable:
-			typeof raw.bigCraftable === "boolean" ? raw.bigCraftable : undefined,
-		$type: typeof raw.$type === "string" ? raw.$type : undefined,
+			typeof raw["bigCraftable"] === "boolean"
+				? raw["bigCraftable"]
+				: undefined,
+		$type: typeof raw["$type"] === "string" ? raw["$type"] : undefined,
 		"@_xsi:type":
 			typeof raw["@_xsi:type"] === "string" ? raw["@_xsi:type"] : undefined,
 	};
@@ -256,7 +262,15 @@ export const ItemData = new Map<string, ItemInformation>(jsondata);
 /** Stable object IDs, excluding generated flavored variants which share those IDs. */
 export const ObjectData = new Map(
 	jsondata
-		.filter(([, item]) => item._type === "Object" && !item.unpreservedItemId)
+		// Narrow the entire entry so downstream ingredient views retain object fields.
+		.filter(
+			(entry): entry is [string, RegularObject] =>
+				entry[1]._type === "Object" &&
+				!(
+					entry[1].unpreservedItemId != null &&
+					entry[1].unpreservedItemId !== ""
+				),
+		)
 		.map(([, item]) => [item._key, item] as const),
 );
 
@@ -277,7 +291,11 @@ export const KeyToName = (key: string, type: string) => {
  */
 export const ItemDescription = (info: ItemInformation | undefined) => {
 	const description = info?.description;
-	if (!description || description.startsWith("[LocalizedText ")) return;
+	if (
+		!(description != null && description !== "") ||
+		description.startsWith("[LocalizedText ")
+	)
+		return;
 	if (/\{\d+\}/.test(description)) return;
 	return description;
 };
@@ -339,7 +357,7 @@ function getExpectedMetadataTypes(
 ): ItemInformation["_type"][] {
 	// Big craftables are saved as Objects (or Chests, Casks...) with a flag, and
 	// their IDs overlap with objects' (Chest 130 is also Tuna), so check it first
-	if (item.bigCraftable) return ["BigCraftable"];
+	if (item.bigCraftable === true) return ["BigCraftable"];
 
 	// The catalog is shared by the plain-value editor and legacy previews. Only
 	// type identity differs; metadata resolution does not transform saved records.
@@ -381,6 +399,7 @@ function getExpectedMetadataTypes(
 		case "Shears":
 		case "Wand":
 			return ["Tool"];
+		case undefined:
 		default:
 			return [];
 	}
@@ -388,7 +407,7 @@ function getExpectedMetadataTypes(
 
 function getDirectMetadataMatch(item: CatalogItem) {
 	const lookupKey = normalizeItemKey(item.itemId);
-	if (!lookupKey) return undefined;
+	if (!(lookupKey != null && lookupKey !== "")) return undefined;
 
 	for (const expectedType of getExpectedMetadataTypes(item)) {
 		let preservedMatch: ItemInformation | undefined;
@@ -396,7 +415,13 @@ function getDirectMetadataMatch(item: CatalogItem) {
 			if (metadata._key === lookupKey && metadata._type === expectedType) {
 				// Generated flavored items share a product ID. Prefer the stable base;
 				// if it was omitted from codegen (e.g. smoked fish), match the ingredient.
-				if (!("unpreservedItemId" in metadata) || !metadata.unpreservedItemId)
+				if (
+					!("unpreservedItemId" in metadata) ||
+					!(
+						metadata.unpreservedItemId != null &&
+						metadata.unpreservedItemId !== ""
+					)
+				)
 					return metadata;
 				if (
 					metadata.unpreservedItemId ===
@@ -413,7 +438,11 @@ function getDirectMetadataMatch(item: CatalogItem) {
 
 function getPreservedMetadata(item: CatalogItem) {
 	const lookupKey = normalizeItemKey(item.itemId);
-	if (!lookupKey || item.preserve === undefined || item.preserve === null) {
+	if (
+		!(lookupKey != null && lookupKey !== "") ||
+		item.preserve === undefined ||
+		item.preserve === null
+	) {
 		return undefined;
 	}
 
@@ -426,12 +455,13 @@ function getPreservedMetadata(item: CatalogItem) {
 		...item,
 		$type: "StardewValley.Object",
 		"@_xsi:type": "Object",
-	} as CatalogItem);
+	});
 }
 
 export const Shirts = new Map<string, Shirt>(
 	jsondata
-		.filter(([, item]) => item._type === "Shirt")
+		// The discriminator proves the tuple's value is a shirt, not any item family.
+		.filter((entry): entry is [string, Shirt] => entry[1]._type === "Shirt")
 		.map(([, item]) => [item._key, item]),
 );
 
@@ -444,7 +474,10 @@ export const ResolveItemData = (item: CatalogItem) => {
 	if (directMetadataMatch) return directMetadataMatch;
 
 	const helperName = ItemNameHelper(item);
-	const directMatch = helperName ? ItemData.get(helperName) : undefined;
+	const directMatch =
+		helperName != null && helperName !== ""
+			? ItemData.get(helperName)
+			: undefined;
 	if (directMatch) return directMatch;
 
 	return getPreservedMetadata(item);

@@ -1,5 +1,6 @@
 import { flushSync } from "svelte";
 import { describe, expect, it } from "vitest";
+
 import { type FriendshipData, Season, Status } from "../codegen/save";
 import { characters } from "../src/lib/NPCs";
 import { Raw } from "../src/lib/proxies";

@@ -10,6 +10,7 @@
     or weather.
 */
 import type { Season } from "$types/save";
+
 import { CalendarSeason } from "./calendarSeason.ts";
 import { createGameRandom } from "./game-random.ts";
 
@@ -115,7 +116,7 @@ export interface Festival {
     Desert Festival is in OTHER_FESTIVALS, since the desert has its own
     weather.
 */
-export const FESTIVALS: readonly Festival[] = [
+export const FESTIVALS = [
 	{ name: "Egg Festival", season: CalendarSeason.Spring, start: 13, end: 13 },
 	{ name: "Flower Dance", season: CalendarSeason.Spring, start: 24, end: 24 },
 	{ name: "Luau", season: CalendarSeason.Summer, start: 11, end: 11 },
@@ -160,10 +161,10 @@ export const FESTIVALS: readonly Festival[] = [
 		start: 25,
 		end: 25,
 	},
-];
+] as const satisfies Festival[];
 
 /** Festivals on the calendar that don't change the valley's weather */
-export const OTHER_FESTIVALS: readonly Festival[] = [
+export const OTHER_FESTIVALS = [
 	{
 		name: "Desert Festival",
 		season: CalendarSeason.Spring,
@@ -171,7 +172,7 @@ export const OTHER_FESTIVALS: readonly Festival[] = [
 		end: 17,
 		passive: true,
 	},
-];
+] as const satisfies Festival[];
 
 type DayOfYear = Pick<GameDate, "season" | "day">;
 
@@ -251,11 +252,11 @@ export const WEATHER_FLAGS: Record<WeatherId, WeatherFlags> = {
 
 /** The weather a set of flags means, as LocationWeather.CopyFrom works it out */
 export function weatherFromFlags(f: Partial<WeatherFlags>): WeatherId {
-	if (f.isGreenRain) return "GreenRain";
-	if (f.isLightning) return "Storm";
-	if (f.isRaining) return "Rain";
-	if (f.isSnowing) return "Snow";
-	if (f.isDebrisWeather) return "Wind";
+	if (f.isGreenRain === true) return "GreenRain";
+	if (f.isLightning === true) return "Storm";
+	if (f.isRaining === true) return "Rain";
+	if (f.isSnowing === true) return "Snow";
+	if (f.isDebrisWeather === true) return "Wind";
 	return "Sun";
 }
 
@@ -270,6 +271,8 @@ export function seasonWeathers(season: Season): WeatherId[] {
 			return ["Sun", "Rain", "Storm", "GreenRain"];
 		case CalendarSeason.Winter:
 			return ["Sun", "Rain", "Snow"];
+		case CalendarSeason.Spring:
+		case CalendarSeason.Fall:
 		default:
 			return ["Sun", "Rain", "Storm", "Wind"];
 	}
@@ -285,15 +288,15 @@ export interface ForcedWeather {
     (Game1.getWeatherModificationsForDate, where later rules win).
 
     @param daysPlayed The host's days played on that day (Stats.DaysPlayed)
-    @param greenRainDay The day of summer green rain falls on that year
+    @param yearGreenRainDay The day of summer green rain falls on that year
 */
 export function forcedWeather(
 	date: GameDate,
 	daysPlayed: number,
-	greenRainDay?: number,
+	yearGreenRainDay?: number,
 ): ForcedWeather | undefined {
 	const festival = festivalOn(date);
-	if (festival?.passive)
+	if (festival && "passive" in festival && festival.passive)
 		return {
 			weather: "Sun",
 			reason: `It's always sunny for the ${festival.name}`,
@@ -308,7 +311,7 @@ export function forcedWeather(
 			weather: "Storm",
 			reason: "There's always a storm on Summer 13 and 26",
 		};
-	if (date.season === CalendarSeason.Summer && date.day === greenRainDay)
+	if (date.season === CalendarSeason.Summer && date.day === yearGreenRainDay)
 		return {
 			weather: "GreenRain",
 			reason: `Green rain falls on Summer ${date.day} in Year ${date.year}`,
@@ -377,8 +380,8 @@ export function planCalendarWeather({
 // Existing consumers retain these names; the generator and seed policy now have
 // one implementation shared with trinket rolls and calendar event predictions.
 export {
-	DotNetRandom as CSharpRandom,
 	createRandomSeed,
+	DotNetRandom as CSharpRandom,
 } from "./game-random.ts";
 
 const GREEN_RAIN_DAYS = [5, 6, 7, 14, 15, 16, 18, 23];

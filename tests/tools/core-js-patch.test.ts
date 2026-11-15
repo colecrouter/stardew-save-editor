@@ -1,7 +1,10 @@
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { runInNewContext } from "node:vm";
+
 import { describe, expect, it } from "vitest";
+
+import { requireRecord } from "../helpers/assertions.ts";
 
 const require = createRequire(import.meta.url);
 const pluginRequire = createRequire(require.resolve("@vitejs/plugin-legacy"));
@@ -26,7 +29,9 @@ for (const path of paths) {
 
 		// Execute the installed detection and decision together, rather than restating
 		// their implementation. Proposed AggregateError support deliberately fails here.
-		const forced = (clone?: (value: { a: Error; b: Error }) => unknown) =>
+		const forced = (
+			clone?: (value: { a: Error; b: Error }) => unknown,
+		): unknown =>
 			runInNewContext(
 				`var checkErrorsCloning = ${detector[1]}; (${policy[1]})`,
 				{
@@ -47,13 +52,14 @@ for (const path of paths) {
 		const clone =
 			(preserveErrorStack = true, preserveType = true, preserveAlias = true) =>
 			({ a }: { a: Error; b: Error }) => {
-				const copy = Object.create(
-					preserveType ? Object.getPrototypeOf(a) : Object.prototype,
-				);
+				const prototype: unknown = preserveType
+					? Object.getPrototypeOf(a)
+					: Object.prototype;
+				const copy = requireRecord(Object.create(requireRecord(prototype)));
 				// Model the observed browser: ordinary Error stacks survive; the stack added
 				// by core-js to DOMException does not. These are separate policy decisions.
 				if (preserveErrorStack && !(a instanceof DOMException))
-					copy.stack = a.stack;
+					copy["stack"] = a.stack;
 				return { a: copy, b: preserveAlias ? copy : {} };
 			};
 

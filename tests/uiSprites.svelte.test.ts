@@ -1,13 +1,20 @@
 import { fireEvent, render, screen } from "@testing-library/svelte";
 import { imageDimensionsFromData } from "image-dimensions";
 import { expect, it } from "vitest";
+
 import {
 	dialogueFrame,
 	uiAtlases,
-	uiIcons,
 	uiIconAtlases,
+	uiIcons,
 } from "$lib/ui/uiAssets";
+
+import { requireInstance } from "./helpers/assertions.ts";
 import Harness from "./helpers/PixelFrameHarness.svelte";
+
+// Enumerated atlas keys are still checked before indexing the correlated icon table.
+const isUiIcon = (name: string): name is keyof typeof uiIcons =>
+	Object.hasOwn(uiIcons, name);
 
 it("sprite definitions match the shipped atlas dimensions and stay in bounds", async () => {
 	for (const spec of Object.values(uiAtlases)) {
@@ -21,13 +28,10 @@ it("sprite definitions match the shipped atlas dimensions and stay in bounds", a
 	}
 	for (const [rectangles, atlas] of [
 		[dialogueFrame, uiAtlases.menu],
-		...Object.entries(uiIcons).map(
-			([name, rect]) =>
-				[
-					[rect],
-					uiAtlases[uiIconAtlases[name as keyof typeof uiIcons]],
-				] as const,
-		),
+		...Object.entries(uiIcons).map(([name, rect]) => {
+			expect.assert(isUiIcon(name), "Expected an enumerated UI icon key");
+			return [[rect], uiAtlases[uiIconAtlases[name]]] as const;
+		}),
 	] as const) {
 		for (const rect of rectangles) {
 			expect(rect.x).toBeGreaterThanOrEqual(0);
@@ -42,9 +46,12 @@ it("sprite definitions match the shipped atlas dimensions and stay in bounds", a
 
 it("changing decoration preserves a partially typed input and meaningful icon names", async () => {
 	render(Harness);
-	const input = screen.getByRole("spinbutton", {
-		name: "Quantity",
-	}) as HTMLInputElement;
+	const input = requireInstance(
+		screen.getByRole("spinbutton", {
+			name: "Quantity",
+		}),
+		HTMLInputElement,
+	);
 	await fireEvent.input(input, { target: { value: "2" } });
 	await fireEvent.click(screen.getByRole("button", { name: "Toggle frame" }));
 	const retained = screen.getByRole("spinbutton", { name: "Quantity" });

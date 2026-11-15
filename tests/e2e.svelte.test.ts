@@ -1,7 +1,20 @@
-import publicSaveXml from "./TestSave?raw";
-import { fireEvent, render, within } from "@testing-library/svelte";
+import {
+	fireEvent,
+	type Queries,
+	type queries,
+	render,
+	type RenderOptions,
+	type RenderResult,
+	within,
+} from "@testing-library/svelte";
+import type {
+	Component,
+	ComponentImport,
+	ComponentOptions,
+} from "@testing-library/svelte-core/types";
 import { flushSync, tick } from "svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
 import { CCRoom } from "$lib/bundleSideEffects";
 import { characters } from "$lib/NPCs";
 import { Raw } from "$lib/proxies";
@@ -16,7 +29,8 @@ import { getStatValue } from "$lib/proxies/Farmer.svelte";
 import { Friendship } from "$lib/proxies/Friendship.svelte";
 import { Item as ItemFactory } from "$lib/proxies/Item.svelte";
 import { MailFlag } from "$lib/proxies/Mail.svelte";
-import { Gender, type Player, type Color as RawColor } from "../codegen/save";
+
+import { Gender, type Color as RawColor } from "../codegen/save";
 import {
 	SaveManager,
 	setSaveManagerContext,
@@ -25,6 +39,7 @@ import {
 	setToastManagerContext,
 	ToastManager,
 } from "../src/lib/ToastManager.svelte";
+import BuildingSprite from "../src/lib/ui/BuildingSprite.svelte";
 import buildingsPage from "../src/routes/(legacy)/(edit)/(list)/buildings/+page.svelte";
 import cookingPage from "../src/routes/(legacy)/(edit)/(list)/cooking/+page.svelte";
 import craftingPage from "../src/routes/(legacy)/(edit)/(list)/crafting/+page.svelte";
@@ -32,11 +47,9 @@ import appearancePage from "../src/routes/(legacy)/(edit)/appearance/+page.svelt
 import bundlesPage from "../src/routes/(legacy)/(edit)/bundles/+page.svelte";
 import characterPage from "../src/routes/(legacy)/(edit)/character/+page.svelte";
 import chestsPage from "../src/routes/(legacy)/(edit)/chests/+page.svelte";
-
 import eventsPage from "../src/routes/(legacy)/(edit)/events/+page.svelte";
 import farmPage from "../src/routes/(legacy)/(edit)/farm/+page.svelte";
 import editorPage from "../src/routes/(legacy)/(edit)/inventory/+page.svelte";
-import BuildingSprite from "../src/lib/ui/BuildingSprite.svelte";
 import questsPage from "../src/routes/(legacy)/(edit)/quests/+page.svelte";
 import relationshipsPage from "../src/routes/(legacy)/(edit)/relationships/+page.svelte";
 import {
@@ -48,7 +61,14 @@ import {
 	shedXml,
 	withAnimalBuildings,
 } from "./helpers/animalBuildings";
+import {
+	jsonRoundTrip,
+	requireDefined,
+	requireInstance,
+	requireRecord,
+} from "./helpers/assertions.ts";
 import { withHouse, withToolAtClint } from "./helpers/upgrades";
+import publicSaveXml from "./TestSave?raw";
 
 interface PageHarness {
 	saveManager: SaveManager;
@@ -97,18 +117,27 @@ const createPageHarness = async (
 	const baseContext = setSaveManagerContext(saveManager);
 	const renderCleanups: Array<() => void> = [];
 
-	const renderWithContext = ((component, options, renderOptions) => {
-		const opts = {
-			...options,
-		} as Record<string, unknown> & {
-			context?: Map<unknown, unknown>;
-		};
-		const context = mergeContexts(baseContext, opts.context);
-		const finalOptions = { ...opts, context };
+	// Keep the component/query generic parameters so context injection preserves the render API.
+	function renderWithContext<
+		C extends Component,
+		Q extends Queries = typeof queries,
+		W extends Component = never,
+	>(
+		component: ComponentImport<C>,
+		options?: ComponentOptions<C>,
+		renderOptions?: RenderOptions<Q, W>,
+	): RenderResult<C, Q, W> {
+		const opts = options ?? {};
+		const customContext = "context" in opts ? opts.context : undefined;
+		const context = mergeContexts(
+			baseContext,
+			customContext instanceof Map ? customContext : undefined,
+		);
+		// The helper preserves every caller-supplied prop and only adds Svelte's documented mount context.
+		const finalOptions = Object.assign({}, options, { context });
 
-		let rendered!: ReturnType<typeof render>;
+		let rendered!: RenderResult<C, Q, W>;
 		const renderCleanup = $effect.root(() => {
-			// @ts-expect-error Testing helpers allow passing a context map even though the types omit it.
 			rendered = render(component, finalOptions, renderOptions);
 		});
 
@@ -122,7 +151,7 @@ const createPageHarness = async (
 		};
 
 		return rendered;
-	}) as typeof render;
+	}
 
 	const cleanup = once(() => {
 		while (renderCleanups.length > 0) {
@@ -137,7 +166,7 @@ const createPageHarness = async (
 
 // Select a <select> option the way a user would, then notify Svelte's binding
 const choose = async (element: HTMLElement, value: string) => {
-	const select = element as HTMLSelectElement;
+	const select = requireInstance(element, HTMLSelectElement);
 	for (const option of select.options) {
 		option.selected = option.value === value;
 	}
@@ -165,17 +194,16 @@ describe("Save Manager Integration Tests", () => {
 			const page = harness.render(bundlesPage);
 			flushSync();
 			// Ensure we are in community bundles mode (not Joja)
-			const membership = page.getByTestId(
-				"joja-membership-checkbox",
-			) as HTMLInputElement;
-			if (membership.checked) {
-				await fireEvent.click(membership); // disable
-			}
+			const membership = requireInstance(
+				page.getByTestId("joja-membership-checkbox"),
+				HTMLInputElement,
+			);
+			if (membership.checked) await fireEvent.click(membership); // disable
 
 			const bundleCards = page.getAllByTestId("bundle-card");
 			expect(bundleCards.length).toBeGreaterThan(0);
 			// Expand first bundle
-			const firstCard = bundleCards[0] as HTMLElement;
+			const firstCard = requireInstance(bundleCards[0], HTMLElement);
 			const firstDetails = firstCard.querySelector("details");
 			if (firstDetails) firstDetails.open = true;
 			await tick();
@@ -187,9 +215,11 @@ describe("Save Manager Integration Tests", () => {
 			if (!requiredContainer) return;
 			const firstItem = requiredContainer.querySelector(
 				'[data-testid="bundle-required-item"] input[type="checkbox"]',
-			) as HTMLInputElement | null;
-			if (firstItem) {
-				const prev = firstItem.checked;
+			);
+			// Require the expected scenario state so this test cannot silently skip its assertions.
+			expect.assert(firstItem, "Expected the scenario fixture to be available");
+			{
+				const prev = requireInstance(firstItem, HTMLInputElement).checked;
 
 				// Determine the raw bundle entry and the first submitted flag before toggling
 				const bundleName =
@@ -198,15 +228,30 @@ describe("Save Manager Integration Tests", () => {
 				const cc = save?.locations.find(
 					(l) => l[Raw].name === "CommunityCenter",
 				);
-				expect(bundleName && save && cc).toBeTruthy();
+				expect(
+					bundleName != null &&
+						bundleName.length > 0 &&
+						save != null &&
+						cc != null,
+				).toBeTruthy();
 
-				if (bundleName && save && cc) {
+				// Require the expected scenario state so this test cannot silently skip its assertions.
+				expect.assert(
+					bundleName != null &&
+						bundleName.length > 0 &&
+						save != null &&
+						cc != null,
+					"Expected the scenario fixture to be available",
+				);
+				{
 					const bd = save[Raw].SaveGame.bundleData.item.find((d) => {
 						const parsed = parseBundleValue(d.value.string);
 						return parsed.name === bundleName;
 					});
 					expect(bd).toBeTruthy();
-					if (bd) {
+					// Require the expected scenario state so this test cannot silently skip its assertions.
+					expect.assert(bd, "Expected the scenario fixture to be available");
+					{
 						const spriteIndex = parseBundleKey(bd.key.string).spriteIndex;
 						const rawBundle = cc?.[Raw]?.bundles?.item.find(
 							(b) => b.key.int === spriteIndex,
@@ -216,7 +261,9 @@ describe("Save Manager Integration Tests", () => {
 						const before = Boolean(rawBundle?.value.ArrayOfBoolean.boolean[0]);
 
 						await fireEvent.click(firstItem);
-						expect(firstItem.checked).not.toBe(prev);
+						expect(
+							requireInstance(firstItem, HTMLInputElement).checked,
+						).not.toBe(prev);
 
 						const after = Boolean(rawBundle?.value.ArrayOfBoolean.boolean[0]);
 						expect(after).toBe(!before);
@@ -228,12 +275,11 @@ describe("Save Manager Integration Tests", () => {
 		it("should group bundles by room, in game order, with each room's reward", async () => {
 			const page = harness.render(bundlesPage);
 			flushSync();
-			const membership = page.getByTestId(
-				"joja-membership-checkbox",
-			) as HTMLInputElement;
-			if (membership.checked) {
-				await fireEvent.click(membership); // disable
-			}
+			const membership = requireInstance(
+				page.getByTestId("joja-membership-checkbox"),
+				HTMLInputElement,
+			);
+			if (membership.checked) await fireEvent.click(membership); // disable
 
 			const rooms = page.getAllByTestId("bundle-room");
 			expect(rooms.map((r) => r.getAttribute("data-room"))).toEqual([
@@ -263,7 +309,7 @@ describe("Save Manager Integration Tests", () => {
 			expect(rewards[6]).toContain("Movie Theater");
 
 			// Finishing every bundle in a room marks it as restored
-			const pantry = rooms[1] as HTMLElement;
+			const pantry = requireInstance(rooms[1], HTMLElement);
 			const progress = within(pantry).getByTestId("bundle-room-progress");
 			expect(pantry.classList.contains("done")).toBe(false);
 			expect(progress.textContent).not.toContain("Restored");
@@ -279,9 +325,10 @@ describe("Save Manager Integration Tests", () => {
 
 		it("should toggle Joja membership and set a project", async () => {
 			const page = harness.render(bundlesPage);
-			const membership = page.getByTestId(
-				"joja-membership-checkbox",
-			) as HTMLInputElement;
+			const membership = requireInstance(
+				page.getByTestId("joja-membership-checkbox"),
+				HTMLInputElement,
+			);
 			const initial = membership.checked;
 
 			// Raw membership state before toggle (mail flags)
@@ -300,16 +347,24 @@ describe("Save Manager Integration Tests", () => {
 			);
 			expect(hasMembershipRawAfter).toBe(!hadMembershipRawBefore);
 
-			if (membership.checked) {
+			// Enter Joja mode explicitly so its project controls are always exercised.
+			if (!membership.checked) await fireEvent.click(membership);
+			expect(membership.checked).toBe(true);
+			{
 				// now in Joja mode
 				const projectRows = page.getAllByTestId("joja-project-row");
 				expect(projectRows.length).toBeGreaterThan(0);
-				const firstRow = projectRows[0] as HTMLElement;
+				const firstRow = requireInstance(projectRows[0], HTMLElement);
 				const firstCheckbox = firstRow.querySelector(
 					'[data-testid="joja-project-checkbox"]',
-				) as HTMLInputElement | null;
-				if (firstCheckbox) {
-					const prev = firstCheckbox.checked;
+				);
+				// Require the expected scenario state so this test cannot silently skip its assertions.
+				expect.assert(
+					firstCheckbox,
+					"Expected the scenario fixture to be available",
+				);
+				{
+					const prev = requireInstance(firstCheckbox, HTMLInputElement).checked;
 
 					// Specifically for first project "Bus" (CCRoom.Vault), check jojaVault mail flag toggles
 					const hadJojaVaultBefore = (saveManager.save?.players ?? []).some(
@@ -317,7 +372,9 @@ describe("Save Manager Integration Tests", () => {
 					);
 
 					await fireEvent.click(firstCheckbox);
-					expect(firstCheckbox.checked).not.toBe(prev);
+					expect(
+						requireInstance(firstCheckbox, HTMLInputElement).checked,
+					).not.toBe(prev);
 
 					const hasJojaVaultAfter = (saveManager.save?.players ?? []).some(
 						(p) => p[Raw].mailReceived.string.includes(MailFlag.jojaVault),
@@ -335,7 +392,10 @@ describe("Save Manager Integration Tests", () => {
 			await fireEvent.click(slot);
 			await tick();
 
-			const input = page.getByTestId("item-name") as HTMLInputElement;
+			const input = requireInstance(
+				page.getByTestId("item-name"),
+				HTMLInputElement,
+			);
 			// New UI: type to filter then select from dropdown suggestions
 			await fireEvent.input(input, { target: { value: "Leek" } });
 			await tick(); // wait for derived values to update
@@ -351,7 +411,10 @@ describe("Save Manager Integration Tests", () => {
 			await fireEvent.click(page.getByTestId("item-9"));
 			await tick();
 
-			const input = page.getByTestId("item-name") as HTMLInputElement;
+			const input = requireInstance(
+				page.getByTestId("item-name"),
+				HTMLInputElement,
+			);
 			await fireEvent.input(input, { target: { value: "Cowboy Hat" } });
 			await tick();
 			await fireEvent.click(page.getByText("Cowboy Hat"));
@@ -386,7 +449,10 @@ describe("Save Manager Integration Tests", () => {
 			await fireEvent.click(page.getByTestId("item-hat"));
 			await tick();
 
-			const input = page.getByTestId("item-name") as HTMLInputElement;
+			const input = requireInstance(
+				page.getByTestId("item-name"),
+				HTMLInputElement,
+			);
 			await fireEvent.input(input, {
 				target: { value: "Leather Boots" },
 			});
@@ -466,19 +532,24 @@ describe("Save Manager Integration Tests", () => {
 			const page = harness.render(editorPage);
 			await fireEvent.click(page.getByTestId("item-9"));
 			await tick();
-			const input = page.getByTestId("item-name") as HTMLInputElement;
+			const input = requireInstance(
+				page.getByTestId("item-name"),
+				HTMLInputElement,
+			);
 			await fireEvent.input(input, { target: { value: "Sneakers" } });
 			await tick();
 			await fireEvent.click(page.getByText("Sneakers"));
 			await tick();
 
 			// New boots start with the game's stats for them
-			const defense = page.getByTestId(
-				"property-defenseBonus",
-			) as HTMLInputElement;
-			const immunity = page.getByTestId(
-				"property-immunityBonus",
-			) as HTMLInputElement;
+			const defense = requireInstance(
+				page.getByTestId("property-defenseBonus"),
+				HTMLInputElement,
+			);
+			const immunity = requireInstance(
+				page.getByTestId("property-immunityBonus"),
+				HTMLInputElement,
+			);
 			expect(defense.value).toBe("1");
 			expect(immunity.value).toBe("0");
 
@@ -494,48 +565,29 @@ describe("Save Manager Integration Tests", () => {
 		it("should modify character appearance", async () => {
 			const page = harness.render(appearancePage);
 			const changes = [
-				["name", "Test2"],
-				["farmName", "Test2"],
-				["favoriteThing", "Integration Tests"],
-				["skin", 1],
-				["hairstyle", 68],
-				["accessory", 26],
+				["name", "Test2", "name", "Test2"],
+				["farmName", "Test2", "farmName", "Test2"],
+				[
+					"favoriteThing",
+					"Integration Tests",
+					"favoriteThing",
+					"Integration Tests",
+				],
+				["skin", 1, "skin", 1],
+				["hairstyle", 68, "hair", 112],
+				["accessory", 26, "accessory", 26],
 			] as const;
 
-			for (const [name, value] of changes) {
-				const input = page.getByTestId(
-					`appearance-${name}`,
-				) as HTMLInputElement;
+			// Each input has an explicit saved-field oracle; hairstyle uses its encoded saved index.
+			for (const [name, value, savedField, expectedValue] of changes) {
+				const input = requireInstance(
+					page.getByTestId(`appearance-${name}`),
+					HTMLInputElement,
+				);
 				await fireEvent.input(input, { target: { value } });
 
-				const raw: Player | undefined = saveManager.save?.player[Raw];
-				if (!raw) continue;
-
-				switch (name) {
-					case "hairstyle": {
-						const v = value as number;
-						const expectedHair = v >= 56 ? v + 100 - 56 : v;
-						expect(raw.hair).toBe(expectedHair);
-						break;
-					}
-					case "name":
-						expect(raw.name).toBe(value);
-						break;
-					case "farmName":
-						expect(raw.farmName).toBe(value);
-						break;
-					case "favoriteThing":
-						expect(raw.favoriteThing).toBe(value);
-						break;
-					case "skin":
-						expect(raw.skin).toBe(value);
-						break;
-					case "accessory":
-						expect(raw.accessory).toBe(value);
-						break;
-					default:
-						throw new Error("Unhandled appearance field");
-				}
+				const raw = requireDefined(saveManager.save?.player[Raw]);
+				expect(raw[savedField]).toBe(expectedValue);
 			}
 		});
 
@@ -544,17 +596,21 @@ describe("Save Manager Integration Tests", () => {
 			// Select slot 9 (empty or existing) then create an item first
 			await fireEvent.click(page.getByTestId("item-9"));
 			await tick();
-			const input = page.getByTestId("item-name") as HTMLInputElement;
+			const input = requireInstance(
+				page.getByTestId("item-name"),
+				HTMLInputElement,
+			);
 			await fireEvent.input(input, { target: { value: "Leek" } });
 			await tick();
 			await fireEvent.click(page.getByText("Leek"));
 			await tick();
 
-			// Change the amount property if present
-			const amountInput = page.queryByTestId(
-				"property-amount",
-			) as HTMLInputElement | null;
-			if (amountInput) {
+			// The created item must expose its amount control.
+			const amountInput = requireInstance(
+				page.getByTestId("property-amount"),
+				HTMLInputElement,
+			);
+			{
 				await fireEvent.input(amountInput, { target: { value: "5" } });
 				expect(saveManager.save?.player.inventory.get(9)?.[Raw]?.stack).toBe(5);
 			}
@@ -582,17 +638,17 @@ describe("Save Manager Integration Tests", () => {
 			await fireEvent.click(page.getByRole("button", { name: "Remove item…" }));
 			await fireEvent.click(page.getByRole("button", { name: "Remove item" }));
 			await tick();
-			expect(document.activeElement).toBe(page.getByTestId("item-name"));
+			expect(document.activeElement).toBe(
+				requireInstance(page.getByTestId("item-name"), HTMLInputElement),
+			);
 			expect(saveManager.save?.player.inventory.get(9)).toBeUndefined();
 
 			// Validate raw slot is xsi:nil sentinel
-			const slot9Unknown = saveManager.save?.player[Raw].items
-				.Item[9] as unknown;
-			const isNilSentinel = !!(
-				slot9Unknown &&
+			const slot9Unknown: unknown = saveManager.save?.player[Raw].items.Item[9];
+			const isNilSentinel =
+				slot9Unknown !== null &&
 				typeof slot9Unknown === "object" &&
-				(slot9Unknown as Record<string, unknown>)["@_xsi:nil"] === "true"
-			);
+				requireRecord(slot9Unknown)["@_xsi:nil"] === "true";
 			expect(isNilSentinel).toBe(true);
 		});
 
@@ -601,9 +657,17 @@ describe("Save Manager Integration Tests", () => {
 			// Toggle gender (click opposite of current)
 			const currentGender = saveManager.save?.player.gender;
 			const target = currentGender === Gender.Male ? "female" : "male";
-			const radio = page.getByDisplayValue(target) as HTMLInputElement;
+			const radio = requireInstance(
+				page.getByDisplayValue(target),
+				HTMLInputElement,
+			);
 			await fireEvent.click(radio);
-			if (saveManager.save) {
+			// Require the expected scenario state so this test cannot silently skip its assertions.
+			expect.assert(
+				saveManager.save != null,
+				"Expected the scenario fixture to be available",
+			);
+			{
 				const targetGender =
 					currentGender === Gender.Male ? Gender.Female : Gender.Male;
 				const raw = saveManager.save.player[Raw];
@@ -612,17 +676,28 @@ describe("Save Manager Integration Tests", () => {
 			}
 
 			// Change hair color
-			const hairColor = page.getByTestId(
-				"appearance-hairColor",
-			) as HTMLInputElement;
+			const hairColor = requireInstance(
+				page.getByTestId("appearance-hairColor"),
+				HTMLInputElement,
+			);
 			await fireEvent.change(hairColor, { target: { value: "#123456" } });
 			// Reinforce the change through the reactive setter to avoid flakiness and ensure Raw sync
-			if (saveManager.save) {
+			// Require the expected scenario state so this test cannot silently skip its assertions.
+			expect.assert(
+				saveManager.save != null,
+				"Expected the scenario fixture to be available",
+			);
+			{
 				saveManager.save.player.hairColor = new ColorProxy("#123456");
 			}
 			flushSync();
 			await tick();
-			if (saveManager.save) {
+			// Require the expected scenario state so this test cannot silently skip its assertions.
+			expect.assert(
+				saveManager.save != null,
+				"Expected the scenario fixture to be available",
+			);
+			{
 				// Assert Raw matches the proxy's current color values (verify Raw sync, not a specific hex)
 				const proxy = saveManager.save.player.hairColor;
 				const hc: RawColor = saveManager.save.player[Raw].hairstyleColor;
@@ -634,16 +709,27 @@ describe("Save Manager Integration Tests", () => {
 			}
 
 			// Change eye color
-			const eyeColor = page.getByTestId(
-				"appearance-eyeColor",
-			) as HTMLInputElement;
+			const eyeColor = requireInstance(
+				page.getByTestId("appearance-eyeColor"),
+				HTMLInputElement,
+			);
 			await fireEvent.change(eyeColor, { target: { value: "#abcdef" } });
-			if (saveManager.save) {
+			// Require the expected scenario state so this test cannot silently skip its assertions.
+			expect.assert(
+				saveManager.save != null,
+				"Expected the scenario fixture to be available",
+			);
+			{
 				saveManager.save.player.eyeColor = new ColorProxy("#abcdef");
 			}
 			flushSync();
 			await tick();
-			if (saveManager.save) {
+			// Require the expected scenario state so this test cannot silently skip its assertions.
+			expect.assert(
+				saveManager.save != null,
+				"Expected the scenario fixture to be available",
+			);
+			{
 				const proxy = saveManager.save.player.eyeColor;
 				const ec: RawColor = saveManager.save.player[Raw].newEyeColor;
 				expect({ R: ec.R, G: ec.G, B: ec.B }).toEqual({
@@ -657,14 +743,18 @@ describe("Save Manager Integration Tests", () => {
 	describe("Gifts this week", () => {
 		it("edits the gifts given to a villager this week", async () => {
 			const page = harness.render(relationshipsPage);
-			const firstRow = page.getAllByTestId("friendship-row")[0] as HTMLElement;
+			const firstRow = requireInstance(
+				page.getAllByTestId("friendship-row")[0],
+				HTMLElement,
+			);
 			const name = within(firstRow).getByTestId("friendship-name").textContent;
 			const friendship = saveManager.save?.player.friendships.get(name ?? "");
 			if (!friendship) throw new Error(`No friendship with ${name}`);
 
-			const gifts = within(firstRow).getByTestId(
-				"friendship-gifts-week",
-			) as HTMLInputElement;
+			const gifts = requireInstance(
+				within(firstRow).getByTestId("friendship-gifts-week"),
+				HTMLInputElement,
+			);
 			expect(gifts.value).toBe(String(friendship.giftsThisWeek));
 
 			await fireEvent.input(gifts, { target: { value: "2" } });
@@ -697,7 +787,10 @@ describe("Save Manager Integration Tests", () => {
 				fishing: 1,
 			} as const;
 			for (const [name, value] of skills) {
-				const input = page.getByTestId(`skills-${name}`) as HTMLInputElement;
+				const input = requireInstance(
+					page.getByTestId(`skills-${name}`),
+					HTMLInputElement,
+				);
 				await fireEvent.input(input, { target: { value } });
 				const i = idx[name];
 				expect(saveManager.save?.player[Raw].experiencePoints.int?.[i]).toBe(
@@ -723,15 +816,16 @@ describe("Save Manager Integration Tests", () => {
 
 		it("shows each recipe's item description", () => {
 			const page = harness.render(craftingPage);
-			const keg = page
-				.getByTestId("recipe-keg")
-				.closest("label") as HTMLElement;
+			const keg = requireInstance(
+				page.getByTestId("recipe-keg").closest("label"),
+				HTMLElement,
+			);
 			expect(within(keg).getByTestId("recipe-description").textContent).toBe(
 				"Place a fruit or vegetable in here. Eventually it will turn into a beverage.",
 			);
 		});
 
-		it("titles the crafting and cooking lists", async () => {
+		it("titles the crafting and cooking lists", () => {
 			const crafting = harness.render(craftingPage);
 			expect(crafting.getByRole("heading", { level: 3 }).textContent).toBe(
 				"Crafting Recipes",
@@ -773,7 +867,10 @@ describe("Save Manager Integration Tests", () => {
 				getter: () => number,
 				rawGetter: () => number,
 			) => {
-				const input = page.getByLabelText(labelRegex) as HTMLInputElement;
+				const input = requireInstance(
+					page.getByLabelText(labelRegex),
+					HTMLInputElement,
+				);
 				await fireEvent.input(input, { target: { value: String(value) } });
 				setter(value); // ensure reactivity sync in case
 				expect(getter()).toBe(value);
@@ -829,7 +926,10 @@ describe("Save Manager Integration Tests", () => {
 		it("should modify money", async () => {
 			// Drive the UI to change current funds and assert raw persistence
 			const page = harness.render(editorPage);
-			const input = page.getByLabelText(/Current Funds/i) as HTMLInputElement;
+			const input = requireInstance(
+				page.getByLabelText(/Current Funds/i),
+				HTMLInputElement,
+			);
 			await fireEvent.input(input, { target: { value: "12345" } });
 			await tick();
 			expect(saveManager.save?.player[Raw].money).toBe(12345);
@@ -882,7 +982,10 @@ describe("Save Manager Integration Tests", () => {
 				if (!saveManager.save) throw new Error("No save");
 				return saveManager.save.player;
 			};
-			const select = page.getByTestId("backpack-size") as HTMLSelectElement;
+			const select = requireInstance(
+				page.getByTestId("backpack-size"),
+				HTMLSelectElement,
+			);
 			expect(select.value).toBe("12");
 
 			await choose(select, "24");
@@ -904,7 +1007,10 @@ describe("Save Manager Integration Tests", () => {
 		it("starts a house upgrade the game finishes overnight", async () => {
 			const page = harness.render(characterPage);
 			const raw = () => saveManager.save?.player[Raw];
-			const days = page.getByTestId("house-upgrade-days") as HTMLInputElement;
+			const days = requireInstance(
+				page.getByTestId("house-upgrade-days"),
+				HTMLInputElement,
+			);
 			expect(days.value).toBe("0");
 			expect(page.getByTestId("house-upgrade-hint").textContent).toMatch(
 				/Now: Starting house\. Days until Robin adds\s+the kitchen/,
@@ -925,7 +1031,10 @@ describe("Save Manager Integration Tests", () => {
 
 		it("sets the trash can's level", async () => {
 			const page = harness.render(characterPage);
-			await choose(page.getByTestId("trash-can-level"), "2");
+			await choose(
+				requireInstance(page.getByTestId("trash-can-level"), HTMLSelectElement),
+				"2",
+			);
 			expect(saveManager.save?.player[Raw].trashCanLevel).toBe(2);
 			// Nothing at Clint's in the test save
 			expect(page.queryByTestId("tool-upgrade-days")).toBeNull();
@@ -933,7 +1042,10 @@ describe("Save Manager Integration Tests", () => {
 
 		it("edits Mastery XP", async () => {
 			const page = harness.render(characterPage);
-			const input = page.getByTestId("skills-mastery") as HTMLInputElement;
+			const input = requireInstance(
+				page.getByTestId("skills-mastery"),
+				HTMLInputElement,
+			);
 			await fireEvent.input(input, { target: { value: "30000" } });
 			flushSync();
 			const player = saveManager.save?.player;
@@ -943,12 +1055,16 @@ describe("Save Manager Integration Tests", () => {
 
 			// Cleared, it waits for a number rather than calling it invalid
 			await fireEvent.input(input, { target: { value: "" } });
-			expect(input.checkValidity()).toBe(true);
+			expect(requireInstance(input, HTMLInputElement).checkValidity()).toBe(
+				true,
+			);
 			expect(getStatValue(player[Raw], "MasteryExp")).toBe(30000);
 			// Left empty, it goes back to the minimum
 			await fireEvent.blur(input);
-			expect(input.value).toBe("0");
-			expect(input.checkValidity()).toBe(true);
+			expect(requireInstance(input, HTMLInputElement).value).toBe("0");
+			expect(requireInstance(input, HTMLInputElement).checkValidity()).toBe(
+				true,
+			);
 			expect(getStatValue(player[Raw], "MasteryExp")).toBe(0);
 		});
 
@@ -970,7 +1086,10 @@ describe("Save Manager Integration Tests", () => {
 			saveManager = harness.saveManager;
 			const page = harness.render(characterPage);
 			const raw = () => saveManager.save?.player[Raw];
-			const days = page.getByTestId("house-upgrade-days") as HTMLInputElement;
+			const days = requireInstance(
+				page.getByTestId("house-upgrade-days"),
+				HTMLInputElement,
+			);
 			expect(days.value).toBe("2");
 			expect(page.getByTestId("house-upgrade-hint").textContent).toMatch(
 				/Now: Kitchen\. Days until Robin\s+finishes the nursery/,
@@ -994,7 +1113,10 @@ describe("Save Manager Integration Tests", () => {
 			harness = await createPageHarness((xml) => withHouse(xml, 3));
 			saveManager = harness.saveManager;
 			const page = harness.render(characterPage);
-			const days = page.getByTestId("house-upgrade-days") as HTMLInputElement;
+			const days = requireInstance(
+				page.getByTestId("house-upgrade-days"),
+				HTMLInputElement,
+			);
 			expect(days.disabled).toBe(true);
 			expect(page.getByTestId("house-upgrade-hint").textContent?.trim()).toBe(
 				"Fully upgraded (Cellar).",
@@ -1015,7 +1137,10 @@ describe("Save Manager Integration Tests", () => {
 		it("finishes the tool Clint is upgrading", async () => {
 			const page = await renderAtClint();
 			expect(page.getByText(/Clint: Copper Pickaxe/)).toBeTruthy();
-			const days = page.getByTestId("tool-upgrade-days") as HTMLInputElement;
+			const days = requireInstance(
+				page.getByTestId("tool-upgrade-days"),
+				HTMLInputElement,
+			);
 			expect(days.value).toBe("2");
 			await fireEvent.input(days, { target: { value: "0" } });
 			expect(saveManager.save?.player[Raw].daysLeftForToolUpgrade).toBe(0);
@@ -1023,7 +1148,10 @@ describe("Save Manager Integration Tests", () => {
 
 		it("waits for a number when Clint's days are cleared", async () => {
 			const page = await renderAtClint();
-			const days = page.getByTestId("tool-upgrade-days") as HTMLInputElement;
+			const days = requireInstance(
+				page.getByTestId("tool-upgrade-days"),
+				HTMLInputElement,
+			);
 			await fireEvent.input(days, { target: { value: "" } });
 			expect(days.checkValidity()).toBe(true);
 			expect(saveManager.save?.player[Raw].daysLeftForToolUpgrade).toBe(2);
@@ -1036,7 +1164,10 @@ describe("Save Manager Integration Tests", () => {
 
 		it("locks the trash can while Clint has it", async () => {
 			const page = await renderAtClint("CopperTrashCan");
-			const select = page.getByTestId("trash-can-level") as HTMLSelectElement;
+			const select = requireInstance(
+				page.getByTestId("trash-can-level"),
+				HTMLSelectElement,
+			);
 			expect(select.disabled).toBe(true);
 			expect(
 				page.getByText("Clint is upgrading it; collect it from him first."),
@@ -1049,9 +1180,7 @@ describe("Save Manager Integration Tests", () => {
 			const save = saveManager.save;
 			if (!save) throw new Error("No save loaded");
 			save.player.friendships.delete("Leo");
-			const before = JSON.parse(
-				JSON.stringify(save.player[Raw].friendshipData),
-			) as typeof save.player.raw.friendshipData;
+			const before = jsonRoundTrip(save.player[Raw].friendshipData);
 			const page = harness.render(relationshipsPage);
 			await tick();
 
@@ -1082,15 +1211,14 @@ describe("Save Manager Integration Tests", () => {
 			save.player.friendships.delete("Leo");
 
 			const before = save.player.friendships.size;
-			const existing = JSON.parse(
-				JSON.stringify(save.player[Raw].friendshipData.item),
-			) as typeof save.player.raw.friendshipData.item;
+			const existing = jsonRoundTrip(save.player[Raw].friendshipData.item);
 			const page = harness.render(relationshipsPage);
 			await tick();
 			expect(save.player.friendships.size).toBe(before);
-			const button = page.getByTestId(
-				"add-missing-friendships",
-			) as HTMLButtonElement;
+			const button = requireInstance(
+				page.getByTestId("add-missing-friendships"),
+				HTMLButtonElement,
+			);
 			expect(button.disabled).toBe(false);
 			await fireEvent.click(button);
 			await tick();
@@ -1109,9 +1237,10 @@ describe("Save Manager Integration Tests", () => {
 					item,
 				);
 			}
-			const disabledButton = page.getByTestId(
-				"add-missing-friendships",
-			) as HTMLButtonElement;
+			const disabledButton = requireInstance(
+				page.getByTestId("add-missing-friendships"),
+				HTMLButtonElement,
+			);
 			expect(disabledButton.disabled).toBe(true);
 			await fireEvent.click(disabledButton);
 			await tick();
@@ -1140,11 +1269,11 @@ describe("Save Manager Integration Tests", () => {
 			if (!saveManager.save) return;
 			const rows = page.getAllByTestId("friendship-row");
 			expect(rows.length).toBeGreaterThan(0);
-			const firstRow = rows[0] as HTMLElement;
+			const firstRow = requireInstance(rows[0], HTMLElement);
 			const nameEl = within(firstRow).getByTestId("friendship-name");
 			const name = nameEl.textContent?.trim();
 			expect(name).toBeTruthy();
-			if (!name) return;
+			if (name.length === 0) return;
 			const friendship = saveManager.save.player.friendships.get(name);
 			expect(friendship).toBeTruthy();
 			if (!friendship) return;
@@ -1155,7 +1284,12 @@ describe("Save Manager Integration Tests", () => {
 			if (initialHearts === 1) targetHearts = 2;
 			else if (initialHearts > 2) targetHearts = 1;
 			const targetIndex = targetHearts - 1;
-			if (buttons[targetIndex]) {
+			// Require the expected scenario state so this test cannot silently skip its assertions.
+			expect.assert(
+				buttons[targetIndex],
+				"Expected the scenario fixture to be available",
+			);
+			{
 				await fireEvent.click(buttons[targetIndex]);
 				expect(friendship.hearts).toBe(targetHearts);
 				expect(friendship.points).toBe(friendship.hearts * 250);
@@ -1188,7 +1322,7 @@ describe("Save Manager Integration Tests", () => {
 			expect(page.getByText('No villagers match "zzzz".')).toBeTruthy();
 
 			await fireEvent.click(page.getByTestId("relationships-search-clear"));
-			expect((search as HTMLInputElement).value).toBe("");
+			expect(requireInstance(search, HTMLInputElement).value).toBe("");
 			expect(names()).toEqual(all);
 			expect(page.queryByText(/No villagers match/)).toBeNull();
 			expect(page.queryByTestId("relationships-search-clear")).toBeNull();
@@ -1234,11 +1368,15 @@ describe("Save Manager Integration Tests", () => {
 				return within(row).getByTestId("friendship-name").textContent ?? "";
 			};
 			const top = nameAt(0);
-			const first = page.getAllByTestId("friendship-row")[0] as HTMLElement;
-			const input = within(first).getByTestId(
-				"friendship-points",
-			) as HTMLInputElement;
-			input.focus();
+			const first = requireInstance(
+				page.getAllByTestId("friendship-row")[0],
+				HTMLElement,
+			);
+			const input = requireInstance(
+				within(first).getByTestId("friendship-points"),
+				HTMLInputElement,
+			);
+			requireInstance(input, HTMLInputElement).focus();
 
 			// The first digit of "2000" leaves the top villager with the fewest points
 			await fireEvent.input(input, { target: { value: "2" } });
@@ -1248,7 +1386,7 @@ describe("Save Manager Integration Tests", () => {
 			expect(document.activeElement).toBe(input);
 		});
 
-		it("re-sorts when a villager is replaced, not only when the count changes", async () => {
+		it("re-sorts when a villager is replaced, not only when the count changes", () => {
 			const save = saveManager.save;
 			if (!save) throw new Error("No save loaded");
 			const page = harness.render(relationshipsPage);
@@ -1260,7 +1398,8 @@ describe("Save Manager Integration Tests", () => {
 			const before = names();
 			const top = save.player.friendships.get(before[0] ?? "");
 			const last = before.at(-1);
-			if (!top || !last) throw new Error("Expected villagers");
+			if (top == null || last == null || last.length === 0)
+				throw new Error("Expected villagers");
 
 			// Same villagers, but the last one now has the most points
 			const replacement = Friendship.fromName(last);
@@ -1270,10 +1409,12 @@ describe("Save Manager Integration Tests", () => {
 
 			expect(names()).toHaveLength(before.length);
 			expect(names()[0]).toBe(last);
-			const points = within(rows()[0] as HTMLElement).getByTestId(
-				"friendship-points",
-			) as HTMLInputElement;
-			expect(points.value).toBe(String(top.points + 1));
+			const points = within(
+				requireInstance(rows()[0], HTMLElement),
+			).getByTestId("friendship-points");
+			expect(requireInstance(points, HTMLInputElement).value).toBe(
+				String(top.points + 1),
+			);
 		});
 	});
 
@@ -1332,9 +1473,12 @@ describe("Save Manager Integration Tests", () => {
 			await fireEvent.input(page.getByTestId("farm-name"), {
 				target: { value: "Moonlight" },
 			});
-			await fireEvent.input(page.getByTestId("profit-margin"), {
-				target: { value: "50" },
-			});
+			await fireEvent.input(
+				requireInstance(page.getByTestId("profit-margin"), HTMLInputElement),
+				{
+					target: { value: "50" },
+				},
+			);
 			flushSync();
 
 			for (const player of save.players) {
@@ -1347,8 +1491,11 @@ describe("Save Manager Integration Tests", () => {
 			const page = harness.render(farmPage);
 			const save = saveManager.save;
 			if (!save) return;
-			const input = page.getByTestId("profit-margin") as HTMLInputElement;
-			expect(input.value).toBe("100");
+			const input = requireInstance(
+				page.getByTestId("profit-margin"),
+				HTMLInputElement,
+			);
+			expect(requireInstance(input, HTMLInputElement).value).toBe("100");
 
 			await fireEvent.input(input, { target: { value: "130" } });
 			flushSync();
@@ -1362,7 +1509,10 @@ describe("Save Manager Integration Tests", () => {
 			const page = harness.render(farmPage);
 			const save = saveManager.save;
 			if (!save) return;
-			const input = page.getByTestId("profit-margin") as HTMLInputElement;
+			const input = requireInstance(
+				page.getByTestId("profit-margin"),
+				HTMLInputElement,
+			);
 
 			await fireEvent.input(input, { target: { value: "50" } });
 			await fireEvent.input(input, { target: { value: "" } });
@@ -1458,7 +1608,10 @@ describe("Save Manager Integration Tests", () => {
 			await fireEvent.click(page.getByTestId("calendar-day-10"));
 			await choose(page.getByTestId("calendar-season"), "summer");
 			// The year applies on change, not while it's being typed
-			const year = page.getByTestId("calendar-year");
+			const year = requireInstance(
+				page.getByTestId("calendar-year"),
+				HTMLInputElement,
+			);
 			await fireEvent.input(year, { target: { value: "2" } });
 			flushSync();
 			expect(game.year).toBe(1);
@@ -1485,7 +1638,10 @@ describe("Save Manager Integration Tests", () => {
 			const page = harness.render(farmPage);
 			const game = saveManager.save?.raw.SaveGame;
 			if (!game) return;
-			const year = page.getByTestId("calendar-year") as HTMLInputElement;
+			const year = requireInstance(
+				page.getByTestId("calendar-year"),
+				HTMLInputElement,
+			);
 			await fireEvent.input(year, { target: { value: "3" } });
 			await fireEvent.change(year);
 			flushSync();
@@ -1519,7 +1675,10 @@ describe("Save Manager Integration Tests", () => {
 		it("offers only the weather the season can have", async () => {
 			const page = harness.render(farmPage);
 			const options = (testId: string) =>
-				[...(page.getByTestId(testId) as HTMLSelectElement).options]
+				[
+					...requireInstance(page.getByTestId(testId), HTMLSelectElement)
+						.options,
+				]
 					.filter((o) => !o.disabled)
 					.map((o) => o.value);
 			expect(options("weather-today")).toEqual([
@@ -1542,10 +1701,14 @@ describe("Save Manager Integration Tests", () => {
 			const game = saveManager.save?.raw.SaveGame;
 			if (!game) return;
 			expect(
-				(page.getByTestId("weather-today") as HTMLSelectElement).value,
+				requireInstance(page.getByTestId("weather-today"), HTMLSelectElement)
+					.value,
 			).toBe("Rain");
 
-			await choose(page.getByTestId("weather-today"), "Sun");
+			await choose(
+				requireInstance(page.getByTestId("weather-today"), HTMLSelectElement),
+				"Sun",
+			);
 			await choose(page.getByTestId("weather-tomorrow"), "Rain");
 			flushSync();
 
@@ -1563,9 +1726,10 @@ describe("Save Manager Integration Tests", () => {
 			await fireEvent.click(page.getByTestId("calendar-day-12"));
 			flushSync();
 
-			const tomorrow = page.getByTestId(
-				"weather-tomorrow",
-			) as HTMLSelectElement;
+			const tomorrow = requireInstance(
+				page.getByTestId("weather-tomorrow"),
+				HTMLSelectElement,
+			);
 			expect(tomorrow.disabled).toBe(true);
 			expect(tomorrow.value).toBe("Festival");
 			expect(page.getByTestId("weather-tomorrow-forced").textContent).toContain(
@@ -1638,14 +1802,14 @@ describe("Save Manager Integration Tests", () => {
 
 			const page = harness.render(buildingsPage);
 			const summary = page.getByText("Peep");
-			const card = summary.closest("section") as HTMLElement | null;
+			const card = summary.closest("section");
 			expect(card).toBeTruthy();
 			if (!card) return;
 
 			const buttons = within(card).getAllByTestId("animal-friendship");
 			expect(buttons).toHaveLength(5);
 
-			await fireEvent.click(buttons[1] as HTMLElement);
+			await fireEvent.click(requireInstance(buttons[1], HTMLElement));
 			expect(animal.friendshipTowardFarmer).toBe(400);
 			expect(
 				building.indoorLocation[Raw].animals?.item?.[0]?.value.FarmAnimal
@@ -1705,19 +1869,22 @@ describe("Save Manager Integration Tests", () => {
 
 			const page = harness.render(buildingsPage);
 			const summary = page.getByText("Peep");
-			const card = summary.closest("section") as HTMLElement | null;
+			const card = summary.closest("section");
 			expect(card).toBeTruthy();
 			if (!card) return;
 
-			const friendshipInput = within(card).getByTestId(
-				"animal-friendship-input",
-			) as HTMLInputElement;
-			const happinessInput = within(card).getByTestId(
-				"animal-happiness-input",
-			) as HTMLInputElement;
-			const fullnessInput = within(card).getByTestId(
-				"animal-fullness-input",
-			) as HTMLInputElement;
+			const friendshipInput = requireInstance(
+				within(card).getByTestId("animal-friendship-input"),
+				HTMLInputElement,
+			);
+			const happinessInput = requireInstance(
+				within(card).getByTestId("animal-happiness-input"),
+				HTMLInputElement,
+			);
+			const fullnessInput = requireInstance(
+				within(card).getByTestId("animal-fullness-input"),
+				HTMLInputElement,
+			);
 
 			await fireEvent.input(friendshipInput, { target: { value: "875" } });
 			await fireEvent.input(happinessInput, { target: { value: "200" } });
@@ -1763,16 +1930,18 @@ describe("Save Manager Integration Tests", () => {
 
 			const page = harness.render(buildingsPage);
 			const summary = page.getByText("Peep");
-			const card = summary.closest("section") as HTMLElement | null;
+			const card = summary.closest("section");
 			expect(card).toBeTruthy();
 			if (!card) return;
 
-			const nameInput = within(card).getByTestId(
-				"animal-name-input",
-			) as HTMLInputElement;
-			const daysOwnedInput = within(card).getByTestId(
-				"animal-days-owned-input",
-			) as HTMLInputElement;
+			const nameInput = requireInstance(
+				within(card).getByTestId("animal-name-input"),
+				HTMLInputElement,
+			);
+			const daysOwnedInput = requireInstance(
+				within(card).getByTestId("animal-days-owned-input"),
+				HTMLInputElement,
+			);
 			const maleButton = within(card).getByTestId("animal-gender-male");
 
 			await fireEvent.input(nameInput, { target: { value: "Nugget" } });
@@ -1840,14 +2009,16 @@ describe("Save Manager Integration Tests", () => {
 
 				const page = harness.render(buildingsPage);
 				const card = (name: string) => {
-					const card = page
+					const candidateCard = page
 						.getByText(name, { selector: "h4" })
 						.closest("section");
-					if (!card) throw new Error(`No card for ${name}`);
-					return within(card as HTMLElement);
+					if (!candidateCard) throw new Error(`No card for ${name}`);
+					return within(candidateCard);
 				};
 				const raw = (name: string) => {
-					const animal = animals.find((animal) => animal.name === name);
+					const animal = animals.find(
+						(candidateAnimal) => candidateAnimal.name === name,
+					);
 					if (!animal) throw new Error(`No animal called ${name}`);
 					return animal[Raw].value.FarmAnimal;
 				};
@@ -1862,9 +2033,10 @@ describe("Save Manager Integration Tests", () => {
 					card("Truffles").getByTestId("animal-allow-pregnancy"),
 				).toBeTruthy();
 
-				const pregnancy = card("Daisy").getByTestId(
-					"animal-allow-pregnancy",
-				) as HTMLInputElement;
+				const pregnancy = requireInstance(
+					card("Daisy").getByTestId("animal-allow-pregnancy"),
+					HTMLInputElement,
+				);
 				expect(pregnancy.checked).toBe(true);
 				await fireEvent.click(pregnancy);
 				flushSync();
@@ -1880,9 +2052,10 @@ describe("Save Manager Integration Tests", () => {
 				).toBeNull();
 				expect(card("Daisy").getByTestId("animal-golden-cracker")).toBeTruthy();
 
-				const cracker = card("Peep").getByTestId(
-					"animal-golden-cracker",
-				) as HTMLInputElement;
+				const cracker = requireInstance(
+					card("Peep").getByTestId("animal-golden-cracker"),
+					HTMLInputElement,
+				);
 				expect(cracker.checked).toBe(false);
 				await fireEvent.click(cracker);
 				flushSync();
@@ -1933,7 +2106,8 @@ describe("Save Manager Integration Tests", () => {
 		it("lists every chest in a group at once, each in its own section", async () => {
 			const page = renderChests();
 			const options = [
-				...(page.getByTestId("chest-group") as HTMLSelectElement).options,
+				...requireInstance(page.getByTestId("chest-group"), HTMLSelectElement)
+					.options,
 			].map((o) => o.textContent?.trim());
 			expect(options).toEqual([
 				"Chests (1)",
@@ -1945,9 +2119,12 @@ describe("Save Manager Integration Tests", () => {
 			expect(page.getAllByTestId("chest-section")).toHaveLength(1);
 			expect(page.getByText("Farm - Chest (60, 15)")).toBeTruthy();
 
-			await fireEvent.change(page.getByTestId("chest-group"), {
-				target: { value: "island-fridges" },
-			});
+			await fireEvent.change(
+				requireInstance(page.getByTestId("chest-group"), HTMLSelectElement),
+				{
+					target: { value: "island-fridges" },
+				},
+			);
 			const sections = page.getAllByTestId("chest-section");
 			expect(sections).toHaveLength(1);
 			expect(sections[0]?.textContent).toContain("IslandFarmHouse - Fridge");
@@ -2083,8 +2260,11 @@ describe("Save Manager Integration Tests", () => {
 			const listed = () =>
 				page
 					.getAllByTestId("chest-section")
-					.map((section) => Number(section.dataset.chestIndex));
-			const group = page.getByTestId("chest-group") as HTMLSelectElement;
+					.map((section) => Number(section.dataset["chestIndex"]));
+			const group = requireInstance(
+				page.getByTestId("chest-group"),
+				HTMLSelectElement,
+			);
 			const unfiltered = listed();
 			expect(unfiltered).not.toContain(index);
 
@@ -2150,7 +2330,10 @@ describe("Save Manager Integration Tests", () => {
 			const { page } = renderChests();
 			const chest = saveManager.save?.chests[0];
 			if (!chest) throw new Error("No chest");
-			const select = page.getByTestId("chest-0-type") as HTMLSelectElement;
+			const select = requireInstance(
+				page.getByTestId("chest-0-type"),
+				HTMLSelectElement,
+			);
 			expect(select.value).toBe("130");
 
 			await choose(select, "BigChest");
@@ -2171,7 +2354,10 @@ describe("Save Manager Integration Tests", () => {
 			const { page, toastManager } = renderChests();
 			const chest = saveManager.save?.chests[0];
 			if (!chest) throw new Error("No chest");
-			const select = page.getByTestId("chest-0-type") as HTMLSelectElement;
+			const select = requireInstance(
+				page.getByTestId("chest-0-type"),
+				HTMLSelectElement,
+			);
 			await choose(select, "BigStoneChest");
 			// 18 items already, plus 24 more is too many for 36 slots
 			for (let slot = 36; slot < 60; slot++)
@@ -2179,7 +2365,9 @@ describe("Save Manager Integration Tests", () => {
 			flushSync();
 
 			const option = (value: string) =>
-				[...select.options].find((option) => option.value === value);
+				[...select.options].find(
+					(candidateOption) => candidateOption.value === value,
+				);
 			expect(option("232")?.disabled).toBe(true);
 			expect(option("BigChest")?.disabled).toBe(false);
 
@@ -2207,7 +2395,8 @@ describe("Save Manager Integration Tests", () => {
 				});
 				expect(page.queryByTestId("chest-0-expand")).toBeNull();
 				expect(
-					(page.getByTestId("chest-0-type") as HTMLSelectElement).value,
+					requireInstance(page.getByTestId("chest-0-type"), HTMLSelectElement)
+						.value,
 				).toBe("130");
 				expect(page.getByText("Farm - Chest (60, 15)")).toBeTruthy();
 			} finally {
@@ -2217,7 +2406,10 @@ describe("Save Manager Integration Tests", () => {
 
 		it("offers no type for fridges", async () => {
 			const { page } = renderChests();
-			await choose(page.getByTestId("chest-group"), "farmhouse-fridges");
+			await choose(
+				requireInstance(page.getByTestId("chest-group"), HTMLSelectElement),
+				"farmhouse-fridges",
+			);
 			expect(page.getAllByTestId("chest-section")).toHaveLength(1);
 			expect(page.queryByLabelText("Chest type")).toBeNull();
 		});
@@ -2311,7 +2503,10 @@ describe("Save Manager Integration Tests", () => {
 
 		it("says so when nothing listed can have a quality", async () => {
 			const { page, toastManager } = renderChests();
-			await choose(page.getByTestId("chest-group"), "farm-fridges");
+			await choose(
+				requireInstance(page.getByTestId("chest-group"), HTMLSelectElement),
+				"farm-fridges",
+			);
 			await fireEvent.click(page.getByTestId("chest-quality-4"));
 			expect(toastManager.toasts.at(-1)?.message).toBe(
 				"No items in farm / cabin fridges can have a quality",
@@ -2328,7 +2523,10 @@ describe("Save Manager Integration Tests", () => {
 		const checkbox = (
 			page: { queryAllByTestId: (id: string) => HTMLElement[] },
 			id: string,
-		) => page.queryAllByTestId(`event-${id}`) as HTMLInputElement[];
+		) =>
+			page
+				.queryAllByTestId(`event-${id}`)
+				.map((element) => requireInstance(element, HTMLInputElement));
 		const names = (page: { queryAllByTestId: (id: string) => HTMLElement[] }) =>
 			page.queryAllByTestId("event-name").map((n) => n.textContent);
 
@@ -2395,7 +2593,9 @@ describe("Save Manager Integration Tests", () => {
 			await choose(page.getByTestId("events-show"), "seen");
 			const shown = page
 				.getAllByTestId("event-row")
-				.map((row) => row.querySelector("input") as HTMLInputElement);
+				.map((row) =>
+					requireInstance(row.querySelector("input"), HTMLInputElement),
+				);
 			expect(shown).toHaveLength(3);
 			expect(shown.every((box) => box.checked)).toBe(true);
 
@@ -2407,7 +2607,10 @@ describe("Save Manager Integration Tests", () => {
 		it("adds and removes an unlisted event ID", async () => {
 			const page = harness.render(eventsPage);
 			const input = page.getByTestId("event-id-input");
-			const add = page.getByTestId("add-event") as HTMLButtonElement;
+			const add = requireInstance(
+				page.getByTestId("add-event"),
+				HTMLButtonElement,
+			);
 			expect(add.disabled).toBe(true);
 			await fireEvent.input(input, { target: { value: "Bad Id" } });
 			expect(add.disabled).toBe(true);
@@ -2435,7 +2638,7 @@ describe("Save Manager Integration Tests", () => {
 			expect(page.getByTestId("event-added").textContent).toBe(
 				"Marked #Example.ModId_Event as seen.",
 			);
-			expect((input as HTMLInputElement).value).toBe("");
+			expect(requireInstance(input, HTMLInputElement).value).toBe("");
 
 			await fireEvent.click(
 				page.getByTestId("remove-event-Example.ModId_Event"),
@@ -2455,7 +2658,9 @@ describe("Save Manager Integration Tests", () => {
 			expect(page.getByTestId("event-id-hint").textContent).toBe(
 				"Saved as 1, without the leading zeros.",
 			);
-			await fireEvent.click(page.getByTestId("add-event"));
+			await fireEvent.click(
+				requireInstance(page.getByTestId("add-event"), HTMLButtonElement),
+			);
 			flushSync();
 			const [abigail] = checkbox(page, "1");
 			expect(abigail?.checked).toBe(true);
@@ -2494,7 +2699,9 @@ describe("Save Manager Integration Tests", () => {
 			await fireEvent.input(page.getByTestId("event-id-input"), {
 				target: { value: "1" },
 			});
-			await fireEvent.click(page.getByTestId("add-event"));
+			await fireEvent.click(
+				requireInstance(page.getByTestId("add-event"), HTMLButtonElement),
+			);
 			flushSync();
 			expect(page.getByTestId("event-added")).toBeTruthy();
 
@@ -2667,10 +2874,11 @@ describe("Save Manager Integration Tests", () => {
 
 		it("edits a quest's gold reward", async () => {
 			const { page } = renderQuests();
-			const input = entry(page, "Raising Animals").getByTestId(
-				"quest-reward",
-			) as HTMLInputElement;
-			expect(input.value).toBe("100");
+			const input = requireInstance(
+				entry(page, "Raising Animals").getByTestId("quest-reward"),
+				HTMLInputElement,
+			);
+			expect(requireInstance(input, HTMLInputElement).value).toBe("100");
 			await fireEvent.input(input, { target: { value: "750" } });
 			flushSync();
 			expect(rawQuest("Raising Animals")?.moneyReward).toBe(750);
@@ -2680,8 +2888,11 @@ describe("Save Manager Integration Tests", () => {
 			await reload(helpWanted);
 			const { page } = renderQuests();
 			expect(page.getByTestId("quest-help-wanted")).toBeTruthy();
-			const input = page.getByTestId("quest-days-left") as HTMLInputElement;
-			expect(input.value).toBe("2");
+			const input = requireInstance(
+				page.getByTestId("quest-days-left"),
+				HTMLInputElement,
+			);
+			expect(requireInstance(input, HTMLInputElement).value).toBe("2");
 			await fireEvent.input(input, { target: { value: "5" } });
 			flushSync();
 			expect(rawQuest("Abigail's Request")?.daysLeft).toBe(5);
@@ -2690,16 +2901,20 @@ describe("Save Manager Integration Tests", () => {
 		it("refuses days left and rewards out of range", async () => {
 			await reload(helpWanted);
 			const { page } = renderQuests();
-			const days = page.getByTestId("quest-days-left") as HTMLInputElement;
+			const days = requireInstance(
+				page.getByTestId("quest-days-left"),
+				HTMLInputElement,
+			);
 			for (const value of ["0", "100", "2.5"]) {
 				await fireEvent.input(days, { target: { value } });
 				flushSync();
 				expect(days.checkValidity()).toBe(false);
 				expect(rawQuest("Abigail's Request")?.daysLeft).toBe(2);
 			}
-			const reward = entry(page, "Abigail's Request").getByTestId(
-				"quest-reward",
-			) as HTMLInputElement;
+			const reward = requireInstance(
+				entry(page, "Abigail's Request").getByTestId("quest-reward"),
+				HTMLInputElement,
+			);
 			for (const value of ["-5", "100000", "12.5"]) {
 				await fireEvent.input(reward, { target: { value } });
 				flushSync();
@@ -2827,7 +3042,10 @@ describe("Animal buildings", () => {
 		});
 		const row = heading.closest(".building-row");
 		if (!(row instanceof HTMLElement)) throw new Error(`No ${name} section`);
-		return { row, header: heading.closest(".building-header") as HTMLElement };
+		return {
+			row,
+			header: requireInstance(heading.closest(".building-header"), HTMLElement),
+		};
 	};
 
 	it("shows the controls under each coop and barn's heading", () => {
@@ -2844,9 +3062,10 @@ describe("Animal buildings", () => {
 		// Other buildings don't get them
 		expect(page.getAllByTestId("building-upgrade")).toHaveLength(2);
 
-		const types = within(section(page, "Barn").header).getByTestId(
-			"add-animal-type",
-		) as HTMLSelectElement;
+		const types = requireInstance(
+			within(section(page, "Barn").header).getByTestId("add-animal-type"),
+			HTMLSelectElement,
+		);
 		const options = [...types.options].map((o) => [o.value, o.disabled]);
 		expect(options).toEqual([
 			["White Cow", false],
@@ -2862,19 +3081,23 @@ describe("Animal buildings", () => {
 	it("adds an animal from the form", async () => {
 		const page = harness.render(buildingsPage);
 		const { row, header } = section(page, "Barn");
-		const name = within(header).getByTestId(
-			"add-animal-name",
-		) as HTMLInputElement;
+		const name = requireInstance(
+			within(header).getByTestId("add-animal-name"),
+			HTMLInputElement,
+		);
 		expect(name.value).toBe("White Cow");
 
 		await choose(within(header).getByTestId("add-animal-type"), "Ostrich");
 		expect(name.value).toBe("Ostrich");
 		await fireEvent.input(name, { target: { value: "Big Bird" } });
-		const submit = within(header).getByTestId(
-			"add-animal-submit",
-		) as HTMLButtonElement;
+		const submit = requireInstance(
+			within(header).getByTestId("add-animal-submit"),
+			HTMLButtonElement,
+		);
 		expect(submit.disabled).toBe(false);
-		await fireEvent.submit(submit.closest("form") as HTMLFormElement);
+		await fireEvent.submit(
+			requireInstance(submit.closest("form"), HTMLFormElement),
+		);
 		flushSync();
 
 		expect(within(row).getByText("Big Bird")).toBeTruthy();
@@ -2892,8 +3115,10 @@ describe("Animal buildings", () => {
 		const name = within(header).getByTestId("add-animal-name");
 		await fireEvent.input(name, { target: { value: "Clucky" } });
 		expect(
-			(within(header).getByTestId("add-animal-submit") as HTMLButtonElement)
-				.disabled,
+			requireInstance(
+				within(header).getByTestId("add-animal-submit"),
+				HTMLButtonElement,
+			).disabled,
 		).toBe(true);
 		expect(
 			within(header).getByTestId("add-animal-name-error").textContent,
@@ -2904,8 +3129,10 @@ describe("Animal buildings", () => {
 		const page = harness.render(buildingsPage);
 		const { header } = section(page, "Coop");
 		expect(
-			(within(header).getByTestId("add-animal-submit") as HTMLButtonElement)
-				.disabled,
+			requireInstance(
+				within(header).getByTestId("add-animal-submit"),
+				HTMLButtonElement,
+			).disabled,
 		).toBe(true);
 		expect(within(header).getByTestId("add-animal-full").textContent).toBe(
 			"Full: 4/4 animals live here. Upgrade it for more room.",
@@ -2914,9 +3141,10 @@ describe("Animal buildings", () => {
 
 	it("upgrades a coop from the dropdown", async () => {
 		const page = harness.render(buildingsPage);
-		const select = within(section(page, "Coop").header).getByTestId(
-			"building-upgrade",
-		) as HTMLSelectElement;
+		const select = requireInstance(
+			within(section(page, "Coop").header).getByTestId("building-upgrade"),
+			HTMLSelectElement,
+		);
 		expect([...select.options].map((o) => o.textContent)).toEqual([
 			"Coop (4 animals)",
 			"Big Coop (8 animals)",
@@ -2932,9 +3160,10 @@ describe("Animal buildings", () => {
 			within(header).getByTestId("building-residents").textContent,
 		).toMatch(/4\/8 animals\s+live here/);
 		expect(within(header).queryByTestId("add-animal-full")).toBeNull();
-		const types = within(header).getByTestId(
-			"add-animal-type",
-		) as HTMLSelectElement;
+		const types = requireInstance(
+			within(header).getByTestId("add-animal-type"),
+			HTMLSelectElement,
+		);
 		expect([...types.options].find((o) => o.value === "Duck")?.disabled).toBe(
 			false,
 		);
@@ -2953,9 +3182,10 @@ describe("Animal buildings", () => {
 
 		const page = harness.render(buildingsPage);
 		const { header } = section(page, "Big Coop");
-		const select = within(header).getByTestId(
-			"building-upgrade",
-		) as HTMLSelectElement;
+		const select = requireInstance(
+			within(header).getByTestId("building-upgrade"),
+			HTMLSelectElement,
+		);
 		expect(select.value).toBe("Big Coop");
 		expect(select.options[0]?.disabled).toBe(true);
 		expect(select.options[2]?.disabled).toBe(false);
@@ -2977,9 +3207,9 @@ describe("Animal buildings", () => {
 		// An egg in the incubator keeps it there, so the junimo can't go back
 		const incubator = coop.indoorLocation?.[Raw].objects?.item.find(
 			(o) => o.value.Object.name === "Incubator",
-		)?.value.Object as { heldObject?: unknown } | undefined;
+		)?.value.Object;
 		if (!incubator) throw new Error("No incubator");
-		incubator.heldObject = { name: "Egg", itemId: "176" };
+		requireRecord(incubator)["heldObject"] = { name: "Egg", itemId: "176" };
 		flushSync();
 
 		const toastManager = new ToastManager();
@@ -3023,12 +3253,15 @@ describe("Animal buildings", () => {
 			within(header).getByTestId("add-animal-under-construction").textContent,
 		).toBe("Animals can move in once it's built.");
 		expect(
-			(within(header).getByTestId("add-animal-submit") as HTMLButtonElement)
-				.disabled,
+			requireInstance(
+				within(header).getByTestId("add-animal-submit"),
+				HTMLButtonElement,
+			).disabled,
 		).toBe(true);
-		const select = within(header).getByTestId(
-			"building-upgrade",
-		) as HTMLSelectElement;
+		const select = requireInstance(
+			within(header).getByTestId("building-upgrade"),
+			HTMLSelectElement,
+		);
 		expect([...select.options].map((o) => [o.value, o.disabled])).toEqual([
 			["Barn", false],
 			["Big Barn", true],
@@ -3046,9 +3279,10 @@ describe("Animal buildings", () => {
 		);
 		const page = harness.render(buildingsPage);
 		const { header } = section(page, "Shed");
-		const select = within(header).getByTestId(
-			"building-upgrade",
-		) as HTMLSelectElement;
+		const select = requireInstance(
+			within(header).getByTestId("building-upgrade"),
+			HTMLSelectElement,
+		);
 		expect([...select.options].map((o) => o.textContent)).toEqual([
 			"Shed",
 			"Big Shed",

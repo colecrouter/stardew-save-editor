@@ -1,17 +1,17 @@
-import { isKnownLocation, type KnownLocation } from "./saved-types.ts";
 import {
 	formatDate,
+	type GameDate,
 	MAX_YEAR,
 	SEASONS,
 	totalDays,
-	type GameDate,
 } from "../calendar.ts";
 import {
-	farmers,
 	type Farmer,
+	farmers,
 	type Location,
 	type SaveDocument,
 } from "./domain.ts";
+import { isKnownLocation, type KnownLocation } from "./saved-types.ts";
 
 /** Saved eligibility facts, adapted from PR #241's baby-question presentation.
  * Game references: NPC.canGetPregnant, Utility.playersCanGetPregnantHere and
@@ -24,14 +24,14 @@ export interface PregnancyRequirement {
 }
 export interface PregnancyView {
 	readonly farmerId: string;
-	readonly targetKey?: string;
-	readonly spouse?: string;
+	readonly targetKey?: string | undefined;
+	readonly spouse?: string | undefined;
 	readonly kind: "none" | "villager" | "player";
 	readonly supported: boolean;
-	readonly reason?: string;
+	readonly reason?: string | undefined;
 	readonly expecting: boolean;
-	readonly daysUntilBirth?: number;
-	readonly dueDate?: string;
+	readonly daysUntilBirth?: number | undefined;
+	readonly dueDate?: string | undefined;
 	readonly eligible: boolean;
 	readonly requirements: readonly PregnancyRequirement[];
 }
@@ -51,7 +51,7 @@ export function pregnancyDate(
 	return whole(year) &&
 		year >= 1 &&
 		year <= MAX_YEAR &&
-		checkedSeason &&
+		checkedSeason !== undefined &&
 		whole(day) &&
 		day >= 1 &&
 		day <= 28
@@ -66,10 +66,10 @@ export function todayForPregnancy(
 }
 
 interface HomeFacts {
-	readonly level?: number;
-	readonly crib?: number;
-	readonly children?: number;
-	readonly toddlers?: number;
+	readonly level?: number | undefined;
+	readonly crib?: number | undefined;
+	readonly children?: number | undefined;
+	readonly toddlers?: number | undefined;
 }
 function homeFacts(document: SaveDocument, owner: Farmer): HomeFacts {
 	const locations: KnownLocation[] = [];
@@ -100,7 +100,10 @@ function homeFacts(document: SaveDocument, owner: Farmer): HomeFacts {
 		(location) =>
 			location.name === homeName || location.uniqueName === homeName,
 	);
-	const home = homeName && homes.length === 1 ? homes[0] : undefined;
+	const home =
+		homeName != null && homeName !== "" && homes.length === 1
+			? homes[0]
+			: undefined;
 	const level = whole(owner.houseUpgradeLevel)
 		? owner.houseUpgradeLevel
 		: undefined;
@@ -215,7 +218,7 @@ export function inspectPregnancy(document: SaveDocument, farmerId: string) {
 			second = identity(pair.Farmer2);
 		const partner =
 			first === farmerId ? second : second === farmerId ? first : undefined;
-		return partner && partner !== farmerId
+		return partner != null && partner !== "" && partner !== farmerId
 			? [{ partner, saved: entry.value }]
 			: [];
 	});
@@ -291,7 +294,7 @@ export function inspectPregnancy(document: SaveDocument, farmerId: string) {
 				met:
 					saved.RoommateMarriage === undefined
 						? undefined
-						: saved.RoommateMarriage === false &&
+						: !saved.RoommateMarriage &&
 							owner.divorceTonight !== true &&
 							npc.name !== "Krobus",
 				detail:

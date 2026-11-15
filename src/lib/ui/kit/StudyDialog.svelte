@@ -2,6 +2,7 @@
 	import "./styles.css";
 	import { Dialog } from "bits-ui";
 	import type { Snippet } from "svelte";
+
 	interface Props {
 		trigger: string;
 		title: string;
@@ -33,7 +34,10 @@
 </script>
 
 <Dialog.Root bind:open>
-	<Dialog.Trigger class="study-kit study-button" {disabled}>
+	<Dialog.Trigger
+		class="study-kit study-button"
+		{disabled}
+	>
 		{trigger}
 	</Dialog.Trigger>
 
@@ -50,7 +54,10 @@
 			}}
 		>
 			<div class="study-dialog-heading">
-				<Dialog.Title level={2} class="study-dialog-title">
+				<Dialog.Title
+					level={2}
+					class="study-dialog-title"
+				>
 					{title}
 				</Dialog.Title>
 
@@ -59,7 +66,12 @@
 					aria-label="Close dialog"
 					disabled={!dismissible}
 				>
-					<svg aria-hidden="true" width="20" height="20" viewBox="0 0 20 20">
+					<svg
+						aria-hidden="true"
+						width="20"
+						height="20"
+						viewBox="0 0 20 20"
+					>
 						<path
 							d="m5 5 10 10M15 5 5 15"
 							fill="none"

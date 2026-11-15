@@ -1,43 +1,44 @@
-import { isSavedData, savedBytes, patchValue } from "./saved-data.ts";
-import { isInventoryMutation } from "./inventory-transition.ts";
-import { inventoryContainers } from "./inventory-containers.ts";
-import { equipmentSlots, type EquipmentIdentities } from "./equipment.ts";
-import { resolveInventoryMove } from "./inventory-movement.ts";
-import { resolveInventorySlotChange } from "./inventory-lifecycle.ts";
-import {
-	InventoryEdits,
-	makeInventoryEdits,
-	sameChestProjectionInputs,
-	backpackFarmers,
-	hasBackpackFarmerId,
-} from "./inventory-operations.ts";
 import {
 	Effect,
 	JsonPatch,
-	Stream,
-	TxSubscriptionRef,
 	Option,
 	Result,
+	Stream,
+	TxSubscriptionRef,
 } from "effect";
+
 import {
-	collectTransactionMetadata,
-	type ReviewMetadata,
-	type ReviewJournal,
-} from "./transaction-annotations.ts";
-import {
-	TransactionDraft,
-	makeTransactionDraftFromCommitted,
-} from "./transaction-draft.ts";
-import { coreOperations, EditorOperations } from "./operations.ts";
-import {
+	type DomainState,
+	MutationError,
 	type MutationRequest,
 	type ResolvedMutation,
-	MutationError,
-	type OperationChange,
 	type SaveDocument,
-	type DomainState,
 	type SessionState,
 } from "./domain.ts";
+import { type EquipmentIdentities } from "./equipment.ts";
+import { inventoryContainers } from "./inventory-containers.ts";
+import { resolveInventorySlotChange } from "./inventory-lifecycle.ts";
+import { resolveInventoryMove } from "./inventory-movement.ts";
+import {
+	backpackFarmers,
+	hasBackpackFarmerId,
+	InventoryEdits,
+	makeInventoryEdits,
+	sameChestProjectionInputs,
+} from "./inventory-operations.ts";
+import { isInventoryMutation } from "./inventory-transition.ts";
+import { coreOperations, EditorOperations } from "./operations.ts";
+import { nonemptyText } from "./plain-data.ts";
+import { isSavedData, patchValue, savedBytes } from "./saved-data.ts";
+import {
+	collectTransactionMetadata,
+	type ReviewJournal,
+	type ReviewMetadata,
+} from "./transaction-annotations.ts";
+import {
+	makeTransactionDraftFromCommitted,
+	TransactionDraft,
+} from "./transaction-draft.ts";
 
 interface Entry {
 	equipmentBefore: EquipmentIdentities;
@@ -60,10 +61,12 @@ interface Entry {
 	forward: JsonPatch.JsonPatch;
 	backward: JsonPatch.JsonPatch;
 }
+// Optional session metadata can be explicitly unavailable or reset; generated
+// saved records retain their separate absent-field contract.
 interface History {
 	// The baseline is retained only while one field gesture is open. Each write is
 	// still atomic; this state describes Undo grouping, never an open transaction.
-	editGroup?: { key: string; before: Omit<History, "editGroup"> };
+	editGroup?: { key: string; before: Omit<History, "editGroup"> } | undefined;
 
 	equipmentIdentities: EquipmentIdentities;
 	domainState: DomainState;
@@ -99,7 +102,10 @@ const json = patchValue;
 const applyDocumentPatch = (
 	patch: JsonPatch.JsonPatch,
 	document: SaveDocument,
-) => JsonPatch.apply(patch, json(document)) as unknown as SaveDocument;
+): SaveDocument => {
+	// oxlint-disable-next-line typescript/no-unsafe-type-assertion -- The patch is derived from SaveDocument roots and preserves their envelope; the library forgets the root type.
+	return JsonPatch.apply(patch, json(document)) as unknown as SaveDocument;
+};
 const isDomainState = (value: unknown): value is DomainState =>
 	value !== null &&
 	typeof value === "object" &&
@@ -108,8 +114,8 @@ const isDomainState = (value: unknown): value is DomainState =>
 
 /** Bounds retained undo entries and serialized payload bytes, not total heap use. */
 export interface HistoryLimits {
-	entries?: number;
-	bytes?: number;
+	entries?: number | undefined;
+	bytes?: number | undefined;
 }
 
 // Bound serialized entry payloads (including identities and intent), not JS heap
@@ -166,8 +172,15 @@ export const makeHistorySession = (
 		// Item IDs describe types, not instances. Allocate session-only handles,
 		// including opaque/empty slots, without adding fields to the exported save.
 		let nextIdentity = 0;
-		const identities: Record<string, string[]> = Object.create(null);
-		const equipmentIdentities: EquipmentIdentities = Object.create(null);
+		const identities: Record<string, string[]> = {};
+		const equipmentIdentities: EquipmentIdentities = {};
+		// Imported owner IDs may equal prototype property names. Retain dictionary
+		// semantics without assigning the untyped result of Object.create.
+		Object.setPrototypeOf(identities, null);
+		Object.setPrototypeOf(equipmentIdentities, null);
+		// Synchronous slot maps share one allocator so owner boundaries never reset
+		// the session's identity sequence.
+		const allocateIdentity = () => `item:${++nextIdentity}`;
 		// Allocate handles only when ownership and slot order can be resolved safely.
 		// Unsupported inventories and duplicate farmer IDs stay in the document,
 		// but cannot prevent calendar/Farm edits or gain editable item handles.
@@ -176,28 +189,35 @@ export const makeHistorySession = (
 			// Opaque identifiers can contain non-callable conversion properties.
 			// Validate their scalar shape before attempting string conversion.
 			if (!hasBackpackFarmerId(farmer)) continue;
-			const id = String(farmer.UniqueMultiplayerID);
+			const id = String(farmer["UniqueMultiplayerID"]);
 			if (
 				inventoryFarmers.filter(
 					(other) =>
 						hasBackpackFarmerId(other) &&
-						String(other.UniqueMultiplayerID) === id,
+						String(other["UniqueMultiplayerID"]) === id,
 				).length !== 1 ||
-				!farmer.items ||
-				!Array.isArray(farmer.items)
+				farmer["items"] === null ||
+				farmer["items"] === undefined ||
+				!Array.isArray(farmer["items"])
 			)
 				continue;
-			identities[id] = farmer.items.map(() => `item:${++nextIdentity}`);
+			identities[id] = farmer["items"].map(allocateIdentity);
 			// Equipment has stable field locations, including absent fields. Its handles
 			// remain session-only; allocating them must not materialize empty XML nodes.
-			equipmentIdentities[id] = Object.fromEntries(
-				equipmentSlots.map((key) => [key, `item:${++nextIdentity}`]),
-			) as Record<(typeof equipmentSlots)[number], string>;
+			equipmentIdentities[id] = {
+				hat: allocateIdentity(),
+				leftRing: allocateIdentity(),
+				rightRing: allocateIdentity(),
+				boots: allocateIdentity(),
+				shirtItem: allocateIdentity(),
+				pantsItem: allocateIdentity(),
+				trinketItem: allocateIdentity(),
+			};
 		}
 		// Virtual empty chest slots receive handles without materializing them in XML.
 		for (const owner of inventoryContainers(baseline)) {
 			if (owner.kind === "chest")
-				identities[owner.id] = owner.slots.map(() => `item:${++nextIdentity}`);
+				identities[owner.id] = owner.slots.map(allocateIdentity);
 		}
 		const ref = yield* TxSubscriptionRef.make<History>({
 			domainState: structuredClone(initialDomainState),
@@ -238,12 +258,12 @@ export const makeHistorySession = (
 		const finish = (
 			state: History,
 			input: SessionState,
-			identities: History["identities"],
-			nextIdentity: number,
+			nextIdentities: History["identities"],
+			updatedIdentity: number,
 			resolved: readonly ResolvedMutation[],
 			label?: string,
 			annotations: readonly ReviewMetadata[] = [],
-			equipmentIdentities: EquipmentIdentities = state.equipmentIdentities,
+			nextEquipmentIdentities: EquipmentIdentities = state.equipmentIdentities,
 		): Result.Result<History, MutationError> => {
 			let prepared = input;
 			// Quiet children remain in annotations, but a standalone child should
@@ -251,8 +271,8 @@ export const makeHistorySession = (
 			const emphasized = annotations.filter(
 				(value) => value.emphasis !== "compact",
 			);
-			const annotationLabel = (emphasized.length ? emphasized : annotations)
-				.map((value) => value.label || "Unlabelled changes")
+			const annotationLabel = (emphasized.length > 0 ? emphasized : annotations)
+				.map((value) => nonemptyText(value.label) ?? "Unlabelled changes")
 				.join("; ");
 			// Adapters may retain their mutable drafts. Detach every changed value,
 			// then replay onto our immutable document: unchanged branches remain
@@ -272,8 +292,8 @@ export const makeHistorySession = (
 				forward.length === 0 &&
 				JsonPatch.get(json(state.domainState), json(prepared.domainState ?? {}))
 					.length === 0 &&
-				JSON.stringify(identities) === JSON.stringify(state.identities) &&
-				JSON.stringify(equipmentIdentities) ===
+				JSON.stringify(nextIdentities) === JSON.stringify(state.identities) &&
+				JSON.stringify(nextEquipmentIdentities) ===
 					JSON.stringify(state.equipmentIdentities)
 			)
 				return Result.succeed(state);
@@ -290,9 +310,9 @@ export const makeHistorySession = (
 				domainBefore: state.domainState,
 				domainAfter: prepared.domainState ?? {},
 				equipmentBefore: state.equipmentIdentities,
-				equipmentAfter: equipmentIdentities,
+				equipmentAfter: nextEquipmentIdentities,
 				identitiesBefore: state.identities,
-				identitiesAfter: identities,
+				identitiesAfter: nextIdentities,
 				id: state.nextId,
 				actions: structuredClone(resolved),
 				annotations: structuredClone(annotations),
@@ -300,10 +320,13 @@ export const makeHistorySession = (
 					intent: structuredClone(first.intent),
 					label:
 						label ??
-						(annotations.length ? annotationLabel : undefined) ??
+						(annotations.length > 0 ? annotationLabel : undefined) ??
 						(receipts.length > 1
 							? receipts
-									.map((receipt) => receipt.label || "Unlabelled changes")
+									.map(
+										(receipt) =>
+											nonemptyText(receipt.label) ?? "Unlabelled changes",
+									)
 									.join("; ")
 							: first.label),
 					review: (
@@ -327,7 +350,7 @@ export const makeHistorySession = (
 				);
 			const entries = [...state.entries.slice(0, state.cursor), entry];
 			let retainedBytes = entries.reduce(
-				(total, entry) => total + entry.bytes,
+				(total, operationEntry) => total + operationEntry.bytes,
 				0,
 			);
 			let evict = 0;
@@ -342,9 +365,9 @@ export const makeHistorySession = (
 				...state,
 				retainedBytes,
 				domainState: prepared.domainState ?? {},
-				identities,
-				equipmentIdentities,
-				nextIdentity,
+				identities: nextIdentities,
+				equipmentIdentities: nextEquipmentIdentities,
+				nextIdentity: updatedIdentity,
 				document: prepared.document,
 				entries: entries.slice(evict),
 				cursor: entries.length - evict,
@@ -358,8 +381,8 @@ export const makeHistorySession = (
 			prepared: SessionState,
 			annotations: readonly ReviewMetadata[],
 			editKey?: string,
-			identities = state.identities,
-			nextIdentity = state.nextIdentity,
+			nextIdentities = state.identities,
+			updatedIdentity = state.nextIdentity,
 		): Result.Result<History, MutationError> => {
 			// Compare against the latest commit once, then recover immutable sharing
 			// before comparing with the gesture baseline. Otherwise each keystroke
@@ -386,8 +409,8 @@ export const makeHistorySession = (
 			const checked = finish(
 				before,
 				prepared,
-				identities,
-				nextIdentity,
+				nextIdentities,
+				updatedIdentity,
 				[],
 				undefined,
 				annotations,
@@ -555,16 +578,16 @@ export const makeHistorySession = (
 								let prepared: SessionState = {
 									document: structuredClone(state.document),
 									domainState: structuredClone(state.domainState),
-									history: [] as OperationChange[],
+									history: [],
 									inventory: structuredClone({
 										identities: state.identities,
 										equipmentIdentities: state.equipmentIdentities,
 										nextIdentity: state.nextIdentity,
 									}),
 								};
-								let identities = state.identities;
-								let equipmentIdentities = state.equipmentIdentities;
-								let nextIdentity = state.nextIdentity;
+								let nextIdentities = state.identities;
+								let nextEquipmentIdentities = state.equipmentIdentities;
+								let updatedIdentity = state.nextIdentity;
 								const resolved: ResolvedMutation[] = [];
 								for (const requested of structuredClone(actions)) {
 									let action: ResolvedMutation;
@@ -576,7 +599,7 @@ export const makeHistorySession = (
 									) {
 										action = yield* resolveInventorySlotChange(
 											prepared.document,
-											identities,
+											nextIdentities,
 											requested,
 										);
 									} else if (requested.type === "backpack-move") {
@@ -584,9 +607,9 @@ export const makeHistorySession = (
 										// an atomic record/identity swap in this same queue turn.
 										action = yield* resolveInventoryMove(
 											prepared.document,
-											identities,
+											nextIdentities,
 											requested,
-											equipmentIdentities,
+											nextEquipmentIdentities,
 										);
 									} else {
 										action = requested;
@@ -599,7 +622,7 @@ export const makeHistorySession = (
 										requested.entityId !== undefined
 									) {
 										const slot =
-											identities[requested.ownerId]?.indexOf(
+											nextIdentities[requested.ownerId]?.indexOf(
 												requested.entityId,
 											) ?? -1;
 										if (slot < 0)
@@ -635,10 +658,10 @@ export const makeHistorySession = (
 											"Prepared document and domain state require plain JSON data",
 										);
 									if (prepared.inventory) {
-										identities = prepared.inventory.identities;
-										equipmentIdentities =
+										nextIdentities = prepared.inventory.identities;
+										nextEquipmentIdentities =
 											prepared.inventory.equipmentIdentities;
-										nextIdentity = prepared.inventory.nextIdentity;
+										updatedIdentity = prepared.inventory.nextIdentity;
 									}
 									resolved.push(action);
 								}
@@ -646,12 +669,12 @@ export const makeHistorySession = (
 									finish(
 										state,
 										prepared,
-										identities,
-										nextIdentity,
+										nextIdentities,
+										updatedIdentity,
 										resolved,
 										label,
 										[],
-										equipmentIdentities,
+										nextEquipmentIdentities,
 									),
 								);
 							}),
@@ -691,15 +714,15 @@ export const makeHistorySession = (
 										Effect.provideService(InventoryEdits, itemEdits.service),
 										// Take the result before close clears retained service state.
 										// Escaped capability handles must not retain an abandoned save.
-										Effect.flatMap((collected) =>
-											Effect.map(draft.prepared, (prepared) => ({
-												collected,
+										Effect.flatMap((collectedChanges) =>
+											Effect.map(draft.prepared, (preparedCommand) => ({
+												collected: collectedChanges,
 												inventory: itemEdits.inventory(),
-												prepared,
+												prepared: preparedCommand,
 												// Validate while the attempt still owns its patch/read authority;
 												// close then clears those retained values before publication.
 												authorized: itemEdits.validate(
-													prepared.document,
+													preparedCommand.document,
 													state.document,
 												),
 											})),

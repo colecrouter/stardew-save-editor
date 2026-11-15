@@ -13,7 +13,10 @@
      disclosure; player marriages use the same summary above the villager list.
      Opening it only reveals controls and never edits the save or implies RNG. -->
 {#if pregnancy.kind !== "none"}
-	<details class="pregnancy" aria-label="Family planning">
+	<details
+		class="pregnancy"
+		aria-label="Family planning"
+	>
 		<summary>
 			<span>
 				{pregnancy.kind === "player" ? `${pregnancy.spouse} · ` : ""}Family

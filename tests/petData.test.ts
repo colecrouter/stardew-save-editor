@@ -1,7 +1,9 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { describe, expect, it } from "vitest";
+
 import { imageDimensionsFromData } from "image-dimensions";
+import { describe, expect, it } from "vitest";
+
 import appearances from "../generated/pets.json";
 
 describe("committed pet appearance assets", () => {

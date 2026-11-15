@@ -1,5 +1,12 @@
 import { XMLCodec } from "../src/lib/xmlCodec.ts";
-import type { SaveDocument } from "../src/lib/editor/domain.ts";
+// Only the legacy XML fields this deterministic fixture builder edits are needed.
+interface ProfileFixture {
+	SaveGame: {
+		locations: {
+			GameLocation: Array<{ name: string; objects?: { item: unknown[] } }>;
+		};
+	};
+}
 
 // Keep Node and browser qualification on one deterministic public-derived
 // fixture. Existing hashes are a guard against accidentally changing the workload.
@@ -8,7 +15,9 @@ export function makeLargeProfileFixture(
 	extraChests = 250,
 ) {
 	const codec = new XMLCodec();
-	const document = codec.parse<SaveDocument>(fixtureBytes);
+	const document = codec.parse<ProfileFixture>(
+		new TextDecoder().decode(fixtureBytes),
+	);
 	const farm = document.SaveGame.locations.GameLocation.find(
 		(location) => location.name === "Farm",
 	);
@@ -16,7 +25,7 @@ export function makeLargeProfileFixture(
 	// Objects are a dictionary list in the production fixture. The generated
 	// coordinates are unique and fixed; every chest has 36 ordinary item records.
 	const items =
-		typeof farm.objects === "object" && farm.objects
+		typeof farm.objects === "object" && farm.objects !== null
 			? farm.objects.item
 			: undefined;
 	if (!Array.isArray(items))

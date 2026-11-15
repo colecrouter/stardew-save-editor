@@ -1,11 +1,12 @@
-import { resolveInventoryContainer } from "./inventory-containers.ts";
 import { Effect, Result, Schema, SchemaIssue } from "effect";
+
 import {
 	emptySlot,
 	MutationError,
 	type ResolvedMutation,
 	type SaveDocument,
 } from "./domain.ts";
+import { resolveInventoryContainer } from "./inventory-containers.ts";
 
 /** UI requests name a session instance, never a position or an arbitrary item record.
  * ownerId is an opaque inventory owner key for a farmer or a placed chest.
@@ -36,10 +37,10 @@ export const resolveInventorySlotChange = Effect.fn(
 )(function* (
 	document: SaveDocument,
 	identities: Record<string, string[]>,
-	input: InventorySlotRequest,
+	input: unknown,
 ) {
 	const decoded = decode(
-		input && typeof input === "object" ? { ...input } : input,
+		input !== null && typeof input === "object" ? { ...input } : input,
 	);
 	if (Result.isFailure(decoded))
 		return yield* invalid(

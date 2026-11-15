@@ -1,9 +1,11 @@
 import * as Sentry from "@sentry/sveltekit";
 import {
+	browserSessionIntegration,
 	captureConsoleIntegration,
 	handleErrorWithSentry,
 	replayIntegration,
 } from "@sentry/sveltekit";
+
 import { dev } from "$app/env";
 
 // Production reports errors; local development stays within its own console.
@@ -29,7 +31,7 @@ if (!dev) {
 				blockAllMedia: false,
 			}),
 			captureConsoleIntegration({ levels: ["error"] }),
-			Sentry.browserSessionIntegration({
+			browserSessionIntegration({
 				lifecycle: "page",
 			}),
 		],

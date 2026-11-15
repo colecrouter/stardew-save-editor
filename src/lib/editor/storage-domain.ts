@@ -1,5 +1,5 @@
 import type { EditorModel } from "./editor-model.ts";
-import type { InventoryView, InventorySlotView } from "./inventory-views.ts";
+import type { InventorySlotView, InventoryView } from "./inventory-views.ts";
 import {
 	setStorageQuality,
 	type StorageItemHandle,
@@ -24,7 +24,7 @@ export function searchStorage(
 			.filter(
 				(item) =>
 					!item.empty &&
-					(!needle ||
+					(!(needle !== "") ||
 						`${item.name} ${item.itemId}`.toLocaleLowerCase().includes(needle)),
 			)
 			.map((item) => ({ owner, item })),

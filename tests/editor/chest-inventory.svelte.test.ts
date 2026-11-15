@@ -1,8 +1,10 @@
-import { installSyntheticPointerCapture } from "../helpers/synthetic-pointer-capture.ts";
 import { fireEvent, render, waitFor } from "@testing-library/svelte";
 import { describe, expect, it, vi } from "vitest";
-import { openTestEditor } from "../helpers/open-editor.ts";
+
 import { createCatalogItem } from "../../src/lib/editor/item-catalog";
+import { requireInstance, requireRecord } from "../helpers/assertions.ts";
+import { openTestEditor } from "../helpers/open-editor.ts";
+import { installSyntheticPointerCapture } from "../helpers/synthetic-pointer-capture.ts";
 import BackpackHarness from "./BackpackHarness.svelte";
 import { exportDocument, fixtureXml, parser } from "./fixtures";
 
@@ -10,8 +12,8 @@ import { exportDocument, fixtureXml, parser } from "./fixtures";
 // over compact lists, so assertions exercise publication rather than local grids.
 function chestFixture() {
 	const document = parser.parse(fixtureXml);
-	const game = document.SaveGame as unknown as Record<string, unknown>;
-	game.locations = [
+	const game = requireRecord(document.SaveGame);
+	game["locations"] = [
 		{
 			$type: "StardewValley.GameLocation",
 			name: "Farm",
@@ -98,7 +100,10 @@ describe("placed chest inventory controls", () => {
 			await fireEvent.click(
 				page.getByRole("button", { name: "Chest slot 1: Wood" }),
 			);
-			const quantity = page.getByRole("spinbutton", { name: "Quantity" });
+			const quantity = requireInstance(
+				page.getByRole("spinbutton", { name: "Quantity" }),
+				HTMLInputElement,
+			);
 			await fireEvent.focus(quantity);
 			await fireEvent.input(quantity, { target: { value: "2" } });
 			await fireEvent.input(quantity, { target: { value: "9" } });
@@ -107,10 +112,11 @@ describe("placed chest inventory controls", () => {
 			expect((await opened.model.snapshot()).entries).toHaveLength(1);
 			await waitFor(() =>
 				expect(
-					(
+					requireInstance(
 						page.getByRole("spinbutton", {
 							name: "Quantity",
-						}) as HTMLInputElement
+						}),
+						HTMLInputElement,
 					).value,
 				).toBe("9"),
 			);
@@ -126,8 +132,10 @@ describe("placed chest inventory controls", () => {
 				).toBe("true"),
 			);
 			expect(
-				(page.getByRole("spinbutton", { name: "Quantity" }) as HTMLInputElement)
-					.value,
+				requireInstance(
+					page.getByRole("spinbutton", { name: "Quantity" }),
+					HTMLInputElement,
+				).value,
 			).toBe("9");
 			await opened.model.commands.undo();
 			await waitFor(() =>
@@ -140,20 +148,22 @@ describe("placed chest inventory controls", () => {
 			await opened.model.commands.undo();
 			await waitFor(() =>
 				expect(
-					(
+					requireInstance(
 						page.getByRole("spinbutton", {
 							name: "Quantity",
-						}) as HTMLInputElement
+						}),
+						HTMLInputElement,
 					).value,
 				).toBe("1"),
 			);
 			await opened.model.commands.redo();
 			await waitFor(() =>
 				expect(
-					(
+					requireInstance(
 						page.getByRole("spinbutton", {
 							name: "Quantity",
-						}) as HTMLInputElement
+						}),
+						HTMLInputElement,
 					).value,
 				).toBe("9"),
 			);
@@ -264,7 +274,9 @@ describe("placed chest inventory controls", () => {
 			});
 			expect(schedule).toHaveBeenCalled();
 			frame?.(0);
-			expect(scroll).toHaveBeenCalledWith(0, expect.any(Number));
+			// Vitest types asymmetric matchers as any. Keep expected matcher values
+			// unknown so they cannot weaken the surrounding saved-data assertions.
+			expect(scroll).toHaveBeenCalledWith(0, expect.any(Number) as unknown);
 			expect(scroll.mock.calls[0]?.[1]).toBeLessThan(0);
 			await fireEvent.pointerCancel(source, {
 				pointerId: 12,

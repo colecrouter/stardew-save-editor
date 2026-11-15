@@ -1,8 +1,11 @@
-import type { Location, SaveDocument } from "./domain.ts";
 import type { T_StardewValley_Characters_Pet } from "../../../generated/save-format/save.ts";
-
-import { petAppearanceKey, petAppearances } from "./pet-appearance.ts";
-import type { PetAppearanceData } from "./pet-appearance.ts";
+import type { Location, SaveDocument } from "./domain.ts";
+import {
+	type PetAppearanceData,
+	petAppearanceKey,
+	petAppearances,
+} from "./pet-appearance.ts";
+import { nonemptyText } from "./plain-data.ts";
 
 // Known pet subclasses share generated fields. The editor currently writes only
 // the concrete Pet class; opaque subclasses remain outside this representation.
@@ -31,31 +34,33 @@ const petId = (value: string | undefined) =>
 export const supportsPetRecord = (raw: KnownPet): raw is SavedPet =>
 	raw.$type === "StardewValley.Characters.Pet";
 
+// Optional presentation members may be omitted or explicitly unavailable.
+// These transient projections do not encode presence of serialized save fields.
 export interface PetView {
 	readonly key: string;
-	readonly id?: string;
+	readonly id?: string | undefined;
 	readonly name: string;
 	readonly nameEditable: boolean;
 	readonly type: string;
 	readonly breed: string;
 	readonly location: string;
-	readonly friendship?: number;
+	readonly friendship?: number | undefined;
 	readonly appearance: {
-		readonly value?: string;
+		readonly value?: string | undefined;
 		readonly available: boolean;
 		readonly known: boolean;
-		readonly reason?: string;
-		readonly icon?: PetAppearanceData["icon"];
+		readonly reason?: string | undefined;
+		readonly icon?: PetAppearanceData["icon"] | undefined;
 	};
 	readonly supported: boolean;
-	readonly reason?: string;
+	readonly reason?: string | undefined;
 }
 
 interface LocatedPet {
 	raw: KnownPet;
 	path: string;
 	location: string;
-	id?: string;
+	id?: string | undefined;
 }
 
 /** Snapshot-local raw references are private to inspection and mutation. The UI
@@ -115,7 +120,8 @@ export function inspectPets(document: SaveDocument) {
 	// GUIDs compare without letter case. A duplicate is ambiguous even when the
 	// two records are byte-identical, so neither receives a writable identity.
 	for (const pet of pets)
-		if (pet.id) counts.set(pet.id, (counts.get(pet.id) ?? 0) + 1);
+		if (pet.id != null && pet.id !== "")
+			counts.set(pet.id, (counts.get(pet.id) ?? 0) + 1);
 	return { pets, supported, counts };
 }
 
@@ -126,22 +132,24 @@ export function readPets(document: SaveDocument): PetView[] {
 	return graph.pets.map(({ raw, id, path, location }) => {
 		const reason = !graph.supported
 			? "A saved location or character collection is unreadable."
-			: !id || graph.counts.get(id) !== 1
+			: !(id != null && id !== "") || graph.counts.get(id) !== 1
 				? "This pet has a missing or duplicated saved identity."
 				: !supportsPetRecord(raw)
 					? "This pet class is read-only."
 					: undefined;
 		// A readable custom pair stays selected until the user deliberately
 		// replaces it. Missing components cannot be filled in implicitly.
-		const breed = raw.whichBreed || undefined;
-		const type = raw.petType || undefined;
+		const breed = nonemptyText(raw.whichBreed);
+		const type = nonemptyText(raw.petType);
 		const appearanceValue =
-			type && breed ? petAppearanceKey(type, breed) : undefined;
+			type != null && type !== "" && breed != null && breed !== ""
+				? petAppearanceKey(type, breed)
+				: undefined;
 		const appearance = petAppearances.find(
 			(choice) => choice.value === appearanceValue,
 		);
 		return {
-			key: id && graph.counts.get(id) === 1 ? id : path,
+			key: id != null && id !== "" && graph.counts.get(id) === 1 ? id : path,
 			id,
 			name: raw.name ?? "Unnamed pet",
 			nameEditable: raw.name !== undefined,

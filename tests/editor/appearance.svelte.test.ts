@@ -1,9 +1,11 @@
-import { readAppearances } from "../../src/lib/editor/appearance-operations.ts";
 import { fireEvent, render, waitFor } from "@testing-library/svelte";
 import { expect, it, vi } from "vitest";
-import { openTestEditor, openTestDocument } from "../helpers/open-editor.ts";
+
+import { readAppearances } from "../../src/lib/editor/appearance-operations.ts";
+import { requireInstance } from "../helpers/assertions.ts";
+import { openTestDocument, openTestEditor } from "../helpers/open-editor.ts";
+import { fixtureXml, parser } from "./fixtures.ts";
 import WorkspaceHarness from "./WorkspaceHarness.svelte";
-import { parser, fixtureXml } from "./fixtures.ts";
 
 it("groups appearance input and preserves the captured farmer when selection changes", async () => {
 	const document = parser.parse(fixtureXml),
@@ -29,9 +31,12 @@ it("groups appearance input and preserves the captured farmer when selection cha
 		).toBeNull();
 		expect(page.queryByLabelText("Search villagers")).toBeNull();
 		await fireEvent.click(page.getByRole("link", { name: "Character" }));
-		const firstFavorite = page.getByRole("textbox", {
-			name: "Favorite thing",
-		});
+		const firstFavorite = requireInstance(
+			page.getByRole("textbox", {
+				name: "Favorite thing",
+			}),
+			HTMLInputElement,
+		);
 		await fireEvent.click(page.getByRole("link", { name: "Farm settings" }));
 		await fireEvent.click(page.getByRole("link", { name: "Character" }));
 		expect(page.getByRole("textbox", { name: "Favorite thing" })).toBe(
@@ -42,13 +47,15 @@ it("groups appearance input and preserves the captured farmer when selection cha
 		await fireEvent.input(name, { target: { value: "A" } });
 		await fireEvent.input(name, { target: { value: "Alex" } });
 		await fireEvent.blur(name);
-		await waitFor(() => expect((name as HTMLInputElement).value).toBe("Alex"));
+		await waitFor(() =>
+			expect(requireInstance(name, HTMLInputElement).value).toBe("Alex"),
+		);
 		// A queued history read waits for every submitted keystroke before inspecting.
 		await opened.model.edits.endActive();
 		expect((await opened.model.snapshot()).entries).toHaveLength(1);
 		await opened.model.commands.undo();
 		await waitFor(() =>
-			expect((name as HTMLInputElement).value).toBe(host.name),
+			expect(requireInstance(name, HTMLInputElement).value).toBe(host.name),
 		);
 		const color = page.getByLabelText("Hair color");
 		await fireEvent.focus(color);
@@ -59,11 +66,14 @@ it("groups appearance input and preserves the captured farmer when selection cha
 		expect((await opened.model.snapshot()).entries).toHaveLength(1);
 		await opened.model.commands.undo();
 		await waitFor(() =>
-			expect((color as HTMLInputElement).value).toBe("#0a141e"),
+			expect(requireInstance(color, HTMLInputElement).value).toBe("#0a141e"),
 		);
-		const favorite = page.getByRole("textbox", {
-			name: "Favorite thing",
-		});
+		const favorite = requireInstance(
+			page.getByRole("textbox", {
+				name: "Favorite thing",
+			}),
+			HTMLInputElement,
+		);
 		await fireEvent.focus(favorite);
 		await fireEvent.input(favorite, { target: { value: "Moon" } });
 		const selectors = page.getAllByRole("combobox", {
@@ -77,10 +87,11 @@ it("groups appearance input and preserves the captured farmer when selection cha
 		await opened.model.snapshot();
 		await waitFor(() =>
 			expect(
-				(
+				requireInstance(
 					page.getByRole("textbox", {
 						name: "Favorite thing",
-					}) as HTMLInputElement
+					}),
+					HTMLInputElement,
 				).value,
 			).toBe("Guest favorite"),
 		);
@@ -106,9 +117,12 @@ it("keeps profile edits across internal tabs and links clothing to Inventory", a
 		expect(page.queryByRole("link", { name: "Appearance" })).toBeNull();
 		expect(page.queryByRole("textbox", { name: "Farm name" })).toBeNull();
 		expect(page.queryByRole("spinbutton", { name: "Farming XP" })).toBeNull();
-		const favorite = page.getByRole("textbox", {
-			name: "Favorite thing",
-		}) as HTMLInputElement;
+		const favorite = requireInstance(
+			page.getByRole("textbox", {
+				name: "Favorite thing",
+			}),
+			HTMLInputElement,
+		);
 		favorite.focus();
 		await fireEvent.input(favorite, { target: { value: "Moonflowers" } });
 		// Tab changes must finish a focused edit even without a synthetic blur.

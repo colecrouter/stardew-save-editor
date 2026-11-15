@@ -1,11 +1,13 @@
-import publicSaveXml from "./TestSave?raw";
 import { flushSync, tick } from "svelte";
 import { beforeEach, describe, expect, it } from "vitest";
+
 import { CCRoom } from "$lib/bundleSideEffects";
 import { Raw } from "$lib/proxies";
 import { MailFlag } from "$lib/proxies/Mail.svelte";
 import type { SaveProxy } from "$lib/proxies/SaveFile.svelte";
+
 import { SaveManager } from "../src/lib/SaveManager.svelte";
+import publicSaveXml from "./TestSave?raw";
 
 describe("bundle side effects - Abandoned JojaMart access", () => {
 	let saveManager: SaveManager;
@@ -336,15 +338,15 @@ describe("bundle side effects - flags the game set without bundles", () => {
 		);
 
 		// Finish the five rooms the Joja route needs (not the Bulletin Board)
-		const jojaRooms = [
+		const jojaRooms = new Set([
 			CCRoom.Pantry,
 			CCRoom.CraftsRoom,
 			CCRoom.FishTank,
 			CCRoom.BoilerRoom,
 			CCRoom.Vault,
-		];
+		]);
 		for (const bundle of bundles.values()) {
-			if (!jojaRooms.includes(bundle.room)) continue;
+			if (!jojaRooms.has(bundle.room)) continue;
 			for (const item of bundle.requiredItems) item.submitted = true;
 		}
 		flushSync();

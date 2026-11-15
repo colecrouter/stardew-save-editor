@@ -1,7 +1,8 @@
 import { Data, Effect, Result } from "effect";
-import { runEntryCommand } from "./entry-operations.ts";
+import { get, type Readable, writable } from "svelte/store";
+
 import type { CommandResult } from "./command-result.ts";
-import { get, writable, type Readable } from "svelte/store";
+import { runEntryCommand } from "./entry-operations.ts";
 
 // A snapshot is an operation handle bound to its original target and revision.
 // The session still validates the operation atomically when it is submitted.

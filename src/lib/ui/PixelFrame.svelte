@@ -1,7 +1,9 @@
 <script lang="ts">
-	import { untrack, type Snippet } from "svelte";
+	import { type Snippet, untrack } from "svelte";
+
 	import AtlasRegion from "./AtlasRegion.svelte";
 	import { dialogueFrame, getUiAssets } from "./uiAssets";
+
 	let { children, enabled = true }: { children: Snippet; enabled?: boolean } =
 		$props();
 	const assets = untrack(getUiAssets);

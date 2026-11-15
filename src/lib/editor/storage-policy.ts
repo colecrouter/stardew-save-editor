@@ -1,11 +1,12 @@
-import type { T_StardewValley_Objects_Chest as Chest } from "../../../generated/save-format/save.ts";
+import { type T_StardewValley_Objects_Chest as Chest } from "../../../generated/save-format/save.ts";
 import { storageTypes } from "../storageTypes.ts";
+
 export { storageTypes } from "../storageTypes.ts";
 export interface StorageCapabilities {
 	readonly source: "chest" | "fridge" | "machine" | "building";
-	readonly typeId?: string;
+	readonly typeId?: string | undefined;
 	readonly miniShippingBin: boolean;
-	readonly expansionReason?: string;
+	readonly expansionReason?: string | undefined;
 }
 export function storageCapabilities(
 	chest: Chest,

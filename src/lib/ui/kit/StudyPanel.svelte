@@ -1,6 +1,7 @@
 <script lang="ts">
 	import "./styles.css";
 	import type { Snippet } from "svelte";
+
 	let {
 		title,
 		surface = "paper",
@@ -20,7 +21,12 @@
 	aria-labelledby={title ? id : undefined}
 >
 	{#if title}
-		<h2 class="study-panel-heading" {id}>{title}</h2>
+		<h2
+			class="study-panel-heading"
+			{id}
+		>
+			{title}
+		</h2>
 	{/if}
 
 	{@render children()}

@@ -1,16 +1,18 @@
 <script lang="ts">
 	import { useAtomValue } from "effect-atom-svelte";
-	import type { EditorModel } from "../editor-model.ts";
-	import {
-		createBuildingDomain,
-		createAnimalDomain,
-	} from "../building-domain.ts";
-	import { createFarmerSelectionField } from "../farmer-selection.ts";
-	import BuildingDetails from "./BuildingDetails.svelte";
-	import AnimalCard from "./AnimalCard.svelte";
+
 	import BuildingSprite from "../../ui/BuildingSprite.svelte";
 	import StudyAlert from "../../ui/kit/StudyAlert.svelte";
 	import StudyField from "../../ui/kit/StudyField.svelte";
+	import {
+		createAnimalDomain,
+		createBuildingDomain,
+	} from "../building-domain.ts";
+	import type { EditorModel } from "../editor-model.ts";
+	import { createFarmerSelectionField } from "../farmer-selection.ts";
+	import AnimalCard from "./AnimalCard.svelte";
+	import BuildingDetails from "./BuildingDetails.svelte";
+
 	let { model }: { model: EditorModel } = $props();
 	const view = useAtomValue(() => model.atomBindings.view);
 	const farmer = useAtomValue(() => model.atomBindings.selectedFarmerId);
@@ -84,7 +86,10 @@
 							buildingId = row.id;
 						}}
 					>
-						<BuildingSprite building={row} size={48} />
+						<BuildingSprite
+							building={row}
+							size={48}
+						/>
 
 						<span class="building-label">
 							<strong>{row.name}</strong>
@@ -127,8 +132,14 @@
 {/if}
 
 {#if buildings?.unhoused.length}
-	<section class="unhoused" aria-label="Animals without a listed home">
-		<StudyAlert title="Animals without a listed home" tone="warning">
+	<section
+		class="unhoused"
+		aria-label="Animals without a listed home"
+	>
+		<StudyAlert
+			title="Animals without a listed home"
+			tone="warning"
+		>
 			<p>
 				These animals are not listed as residents of a discovered building.
 				Editing their fields does not reassign a home.

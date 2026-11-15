@@ -1,12 +1,13 @@
-import publicSaveXml from "./TestSave?raw";
 import { flushSync } from "svelte";
 import { describe, expect, it } from "vitest";
+
 import type { EventIdList } from "../codegen/save";
 import { VanillaEvents, VanillaEventsById } from "../src/lib/Events";
 import { Raw } from "../src/lib/proxies";
 import { EventsSeen, toEventId } from "../src/lib/proxies/EventsSeen.svelte";
 import { SaveManager } from "../src/lib/SaveManager.svelte";
 import { XMLManager } from "../src/lib/workers/xml";
+import publicSaveXml from "./TestSave?raw";
 
 /** The test save, as if the player hadn't seen any events */
 const importWithoutEvents = async () => {

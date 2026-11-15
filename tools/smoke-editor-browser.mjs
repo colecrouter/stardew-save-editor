@@ -1,21 +1,26 @@
-import { readFileSync, writeFileSync } from "node:fs";
 import assert from "node:assert/strict";
+import { readFileSync, writeFileSync } from "node:fs";
+
+import { Schema } from "effect";
 import { chromium } from "playwright";
-import { XMLCodec } from "../src/lib/xmlCodec.ts";
+
+import { XmlSchema } from "../generated/save-format/save.ts";
 
 // Drive an already-built production preview. Keep browser installation/server
 // ownership with the caller; this script never starts a server or reads private saves.
+/** @template {string | undefined} T @param {string} name @param {T} fallback @returns {string | T} */
 const argument = (name, fallback) => {
 	const index = process.argv.indexOf(name);
-	return index < 0 ? fallback : process.argv[index + 1];
+	return index < 0 ? fallback : (process.argv[index + 1] ?? fallback);
 };
 const url = argument("--url", "http://127.0.0.1:4269/stardew-save-editor/");
 const output = argument("--output", "/tmp/v2-browser-smoke.json");
+const executablePath = argument("--chromium", undefined);
 const browser = await chromium.launch({
 	headless: true,
-	executablePath: argument("--chromium", undefined),
+	...(executablePath === undefined ? {} : { executablePath }),
 });
-const codec = new XMLCodec();
+const decodeSave = Schema.decodeUnknownSync(XmlSchema);
 const bytes = readFileSync(new URL("../tests/TestSave", import.meta.url));
 const results = [];
 try {
@@ -31,7 +36,7 @@ try {
 		});
 		try {
 			const page = await context.newPage(),
-				errors = [];
+				errors = /** @type {string[]} */ ([]);
 			// Fail a stalled UI assertion instead of leaving browser validation
 			// running indefinitely when an expected state never arrives.
 			page.setDefaultTimeout(30_000);
@@ -45,6 +50,7 @@ try {
 				Reflect.deleteProperty(window, "showSaveFilePicker"),
 			);
 			await page.goto(url);
+			/** @param {Buffer} buffer */
 			const load = async (buffer) => {
 				await page.getByLabel("Save file", { exact: true }).setInputFiles({
 					name: "SmokeFarm_123",
@@ -57,6 +63,7 @@ try {
 				await page.evaluate(() => document.fonts.ready);
 			};
 			await load(bytes);
+			/** @param {string} id */
 			const navigate = async (id) => {
 				if (viewport.width <= 900)
 					await page.getByLabel("Section", { exact: true }).selectOption(id);
@@ -65,7 +72,11 @@ try {
 			const sections = await page
 				.getByLabel("Section", { exact: true })
 				.locator("option")
-				.evaluateAll((options) => options.map((option) => option.value));
+				.evaluateAll((options) =>
+					options
+						.filter((option) => option instanceof HTMLOptionElement)
+						.map((option) => option.value),
+				);
 			assert(sections.length > 0, "No workspace sections");
 			for (const id of sections) {
 				await navigate(id);
@@ -76,7 +87,11 @@ try {
 					scrollHeight: document.documentElement.scrollHeight,
 					missingHints: [
 						...document.querySelectorAll('input[type="search"]'),
-					].filter((input) => !input.placeholder).length,
+					].filter(
+						(input) =>
+							input instanceof HTMLInputElement &&
+							input.placeholder.length === 0,
+					).length,
 				}));
 				assert.equal(
 					geometry.scrollWidth,
@@ -101,12 +116,14 @@ try {
 			await name.blur();
 			await page.getByRole("button", { name: "Undo", exact: true }).click();
 			await page.waitForFunction(
-				({ element, value }) => element.value === value,
+				({ element, value }) =>
+					element instanceof HTMLInputElement && element.value === value,
 				{ element: await name.elementHandle(), value: originalName },
 			);
 			await page.getByRole("button", { name: "Redo", exact: true }).click();
 			await page.waitForFunction(
-				({ element, value }) => element.value === value,
+				({ element, value }) =>
+					element instanceof HTMLInputElement && element.value === value,
 				{ element: await name.elementHandle(), value: changedName },
 			);
 			// Native desktop dragging has different behavior from simulated DOM events.
@@ -133,21 +150,22 @@ try {
 			const download = await downloadPending;
 			assert.equal(download.suggestedFilename(), "SmokeFarm_123");
 			const exportedBytes = readFileSync(await download.path());
-			const expected = codec.parse(bytes);
-			expected.SaveGame.player.farmName = changedName;
-			const farmers = expected.SaveGame.farmhands?.Farmer;
-			for (const farmer of Array.isArray(farmers)
-				? farmers
-				: farmers
-					? [farmers]
-					: [])
-				farmer.farmName = changedName;
-			assert.deepEqual(codec.parse(exportedBytes), expected);
+			const expected = decodeSave(new TextDecoder().decode(bytes));
+			assert(expected.player, "Fixture has no player");
+			expected.player.farmName = changedName;
+			// Every farmhand shares the farm name; null imported slots remain untouched.
+			for (const farmer of expected.farmhands ?? [])
+				if (farmer) farmer.farmName = changedName;
+			assert.deepEqual(
+				decodeSave(new TextDecoder().decode(exportedBytes)),
+				expected,
+			);
 			await page.getByRole("button", { name: "Exit", exact: true }).click();
 			await load(exportedBytes);
 			await navigate("farm");
 			await page.waitForFunction(
-				({ element, value }) => element.value === value,
+				({ element, value }) =>
+					element instanceof HTMLInputElement && element.value === value,
 				{ element: await name.elementHandle(), value: changedName },
 			);
 			assert.deepEqual(errors, []);

@@ -1,13 +1,14 @@
-import type { KnownFields } from "./domain.ts";
-import type { T_StardewValley_WorldDate as WorldDate } from "../../../generated/save-format/save.ts";
 import { Data, Effect, Result, Schema } from "effect";
+
+import type { T_StardewValley_WorldDate as WorldDate } from "../../../generated/save-format/save.ts";
 import { MAX_YEAR, SEASONS, totalDays } from "../calendar.ts";
+import type { KnownFields } from "./domain.ts";
 import { inspectPregnancy } from "./pregnancy-data.ts";
-import { TransactionDraft } from "./transaction-draft.ts";
 import {
 	recordAnnotatedOperation,
 	withReviewMetadata,
 } from "./transaction-annotations.ts";
+import { TransactionDraft } from "./transaction-draft.ts";
 
 /** An unsupported marriage or malformed date is an expected edit rejection. */
 export class PregnancyInvalid extends Data.TaggedError("PregnancyInvalid")<{
@@ -32,10 +33,10 @@ const decode = Schema.decodeUnknownResult(changeSchema, {
 /** Directly set a saved due date; this deliberately bypasses the random question.
  * Eligibility is explanatory, not an implicit requirement to simulate gameplay. */
 export const setPregnancy = Effect.fn("Relationships.setPregnancy")(function* (
-	input: PregnancyChange,
+	input: unknown,
 ) {
 	const decoded = decode(
-		input && typeof input === "object" ? { ...input } : input,
+		input !== null && typeof input === "object" ? { ...input } : input,
 	);
 	if (Result.isFailure(decoded))
 		return yield* new PregnancyInvalid({
@@ -70,7 +71,7 @@ export const setPregnancy = Effect.fn("Relationships.setPregnancy")(function* (
 		const absolute = totalDays(today) + days;
 		const year = Math.floor(absolute / 112) + 1;
 		const season = SEASONS[Math.floor((absolute % 112) / 28)];
-		if (year > MAX_YEAR || !season)
+		if (year > MAX_YEAR || !(season !== undefined))
 			return yield* new PregnancyInvalid({
 				message: `The due date must remain within year ${MAX_YEAR}.`,
 			});

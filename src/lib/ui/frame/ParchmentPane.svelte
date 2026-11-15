@@ -1,6 +1,10 @@
 <script lang="ts">
 	import type { Snippet } from "svelte";
-	let { children, footer }: { children: Snippet; footer?: Snippet } = $props();
+
+	let {
+		children,
+		footer,
+	}: { children: Snippet; footer?: Snippet | undefined } = $props();
 </script>
 
 <div class="parchment-pane">

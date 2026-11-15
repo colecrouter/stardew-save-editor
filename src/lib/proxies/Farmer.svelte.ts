@@ -8,6 +8,7 @@ import {
 	Skills,
 } from "$lib/proxies/Skills.svelte";
 import type { Gender, Player, ToolItem } from "$types/save";
+
 import { type DataProxy, Raw } from ".";
 import { getStatValue, setStatValue } from "../playerStats.ts";
 import { EventsSeen } from "./EventsSeen.svelte";
@@ -45,25 +46,23 @@ export const MAX_TRASH_CAN_LEVEL = 4;
 const isNilMarker = (value: unknown): boolean =>
 	typeof value === "object" &&
 	value !== null &&
-	NIL_ATTR in (value as Record<string, unknown>) &&
-	(value as Record<string, unknown>)[NIL_ATTR] === "true";
+	NIL_ATTR in value &&
+	value[NIL_ATTR] === "true";
 
 const migrateLegacyWalletFlags = (player: Player) => {
-	if (!player.mailReceived) {
-		player.mailReceived = { string: [] };
-	}
+	player.mailReceived ??= { string: [] };
 	let mail = player.mailReceived.string;
 	if (!Array.isArray(mail)) {
 		mail = [];
 		player.mailReceived.string = mail;
 	}
-	const record = player as unknown as Record<string, unknown>;
+	// Legacy wallet fields are opaque extension keys, read as unknown before migration.
 	for (const [field, flag] of walletFlagMap) {
-		const current = record[field];
+		const current: unknown = Reflect.get(player, field);
 		if (current === "" || (current != null && !isNilMarker(current))) {
 			if (!mail.includes(flag)) mail.push(flag);
 		}
-		if (field in record) delete record[field];
+		if (field in player) Reflect.deleteProperty(player, field);
 	}
 };
 
@@ -203,6 +202,8 @@ export class Farmer implements DataProxy<Player> {
 		for (let i = size; i < slots; i++)
 			if (!this.inventory.isEmpty(i))
 				return `Empty slots ${size + 1} to ${slots} of the backpack first`;
+		// No rejected size or occupied trailing slot means resizing is permitted.
+		return undefined;
 	}
 
 	/** Whether the backpack can be made `size` slots without losing anything */
@@ -217,7 +218,7 @@ export class Farmer implements DataProxy<Player> {
 	*/
 	setBackpackSize(size: number) {
 		const problem = this.#backpackProblem(size);
-		if (problem) throw new Error(problem);
+		if (problem != null && problem !== "") throw new Error(problem);
 		this.inventory.adjustSlots(size);
 		this.#maxItems = size;
 		this[Raw].maxItems = size;
@@ -465,7 +466,7 @@ export class Farmer implements DataProxy<Player> {
 
 		// Mail received reactive set
 		this.mailReceived = new MailBox(this[Raw].mailReceived);
-		if (typeof this[Raw].mailbox !== "object" || !this[Raw].mailbox)
+		if (typeof this[Raw].mailbox !== "object" || this[Raw].mailbox === null)
 			this[Raw].mailbox = { string: [] };
 		this[Raw].mailbox.string ??= [];
 		this.mailbox = new MailBox(this[Raw].mailbox);
@@ -474,7 +475,10 @@ export class Farmer implements DataProxy<Player> {
 		this.friendships = new Friendships(this[Raw].friendshipData);
 
 		// An empty <eventsSeen /> parses as "" rather than a list
-		if (typeof this[Raw].eventsSeen !== "object" || !this[Raw].eventsSeen)
+		if (
+			typeof this[Raw].eventsSeen !== "object" ||
+			this[Raw].eventsSeen === null
+		)
 			this[Raw].eventsSeen = {};
 		this.eventsSeen = new EventsSeen(this[Raw].eventsSeen);
 
@@ -502,12 +506,14 @@ export class Farmer implements DataProxy<Player> {
 		const raw = this[Raw];
 		// Farmer.hasSeenActiveDialogueEvent
 		const seen = [raw.activeDialogueEvents, raw.previousActiveDialogueEvents]
-			.flatMap((events) => (events ? (events.item ?? []) : []))
-			.some((event) => String(event.key.string) === id);
+			.flatMap((events) =>
+				events !== undefined && events !== "" ? (events.item ?? []) : [],
+			)
+			.some((event) => event.key.string === id);
 		if (seen) return false;
 		if (
 			typeof raw.activeDialogueEvents !== "object" ||
-			!raw.activeDialogueEvents
+			raw.activeDialogueEvents === null
 		)
 			raw.activeDialogueEvents = { item: [] };
 		raw.activeDialogueEvents.item ??= [];
@@ -526,8 +532,8 @@ export class Farmer implements DataProxy<Player> {
 		// so inventory slots need explicit nil sentinels to preserve their positions.
 
 		// @ts-expect-error - Need to widen type to assign nil sentinels
-		this.raw.items.Item = this.raw.items.Item.map((item) =>
-			item === undefined ? { "@_xsi:nil": "true" } : item,
+		this.raw.items.Item = this.raw.items.Item.map(
+			(item) => item ?? { "@_xsi:nil": "true" },
 		);
 		this.raw.items.Item = this.raw.items.Item.map((item) =>
 			item && "which" in item

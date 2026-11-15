@@ -8,7 +8,7 @@ import {
 
 const defaultSize = { width: 16, height: 16 } satisfies Size;
 
-const spritesheetSizes = new Map<string, Size>(dimensions as [string, Size][]);
+const spritesheetSizes = new Map<string, Size>(dimensions);
 
 const spritesheetDefaults = new Map<ItemInformation["_type"], string>([
 	["Object", "springobjects.png"],
@@ -99,8 +99,10 @@ export class Sprite {
 	}
 
 	private getSpritesheet() {
-		if ("texture" in this.info && this.info.texture) {
-			return this.info.texture;
+		// Empty texture paths select the family default, as missing paths do.
+		const texture = this.info.texture;
+		if (texture !== undefined && texture.length > 0) {
+			return texture;
 		}
 
 		return spritesheetDefaults.get(this.info._type) ?? "springobjects.png";
@@ -157,6 +159,13 @@ export class Sprite {
 				// Furniture indexes 16px cells, independently of the sprite's draw size.
 				position = Sprite.sourcePosition(index, 16, 16, sheetWidth);
 				break;
+			case "BigCraftable":
+			case "Boots":
+			case "Mannequin":
+			case "Object":
+			case "Tool":
+			case "Trinket":
+			case "Weapon":
 			default:
 				if (!spritesheetSizes.has(this.sheet))
 					throw new Error(`Invalid spritesheet ${this.sheet}`);

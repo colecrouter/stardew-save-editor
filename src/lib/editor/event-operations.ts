@@ -20,21 +20,11 @@ export type EventChange = typeof changeSchema.Type;
 const decode = Schema.decodeUnknownResult(changeSchema, {
 	onExcessProperty: "error",
 });
-const record = (v: unknown): v is Record<string, unknown> =>
-	v !== null && typeof v === "object" && !Array.isArray(v);
 // Saved farmer IDs are Int64s; string conversion belongs to the UI boundary.
 const farmerId = (value: Farmer["UniqueMultiplayerID"]) => value?.toString();
-function eventId(v: unknown) {
-	// Imported scalar spelling remains authoritative. Never normalize an imported
-	// string or accept an unsafe parsed integer as a reliable target identity.
-	return typeof v === "string"
-		? v
-		: typeof v === "number" &&
-			  Number.isFinite(v) &&
-			  (!Number.isInteger(v) || Number.isSafeInteger(v))
-			? String(v)
-			: undefined;
-}
+// Event IDs are decoded strings, including exact custom spellings. Nil slots
+// remain unreadable membership entries and cannot become an editable identity.
+const eventId = (value: string | null) => value ?? undefined;
 // Decoded membership collections are arrays even when XML contains one entry.
 function container(owner: Farmer) {
 	const raw = owner.eventsSeen;
@@ -69,7 +59,7 @@ function project(owner: Farmer, unique: boolean): EventFarmerView {
 	const supported = unique && data.supported;
 	return {
 		farmerId: farmerId(owner.UniqueMultiplayerID) ?? "",
-		name: typeof owner.name === "string" ? owner.name : "Unnamed farmer",
+		name: owner.name ?? "Unnamed farmer",
 		supported,
 		reason: !unique
 			? "Choose a farmer with an unambiguous saved identifier."
@@ -112,7 +102,7 @@ export const setEventSeen = Effect.fn("Events.setSeen")(function* (
 ) {
 	// Only own request fields authorize writes; unexpected properties reject the
 	// whole operation before it can obtain and publish a transaction draft.
-	const decoded = decode(record(input) ? { ...input } : input);
+	const decoded = decode({ ...input });
 	if (Result.isFailure(decoded))
 		return yield* new EventInvalid({ message: "Choose a valid event edit." });
 	const request = decoded.success;

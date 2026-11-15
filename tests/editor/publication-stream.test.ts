@@ -122,28 +122,26 @@ it.effect(
 							),
 						);
 						await first.edits.end(gesture);
-						await vi.waitFor(() =>
-							expect(get(second.view)?.farm.name).toBe("Three"),
-						);
+						await expect.poll(() => get(second.view)?.farm.name).toBe("Three");
 						expect(seen).toEqual([0, 1, 2, 3]);
 					});
 					// Mutations outside either model's command queue still have to be observed.
 					yield* session.execute([{ type: "farm-name", value: "Lower level" }]);
 					yield* Effect.promise(() =>
-						vi.waitFor(() => {
-							expect(get(first.view)?.farm.name).toBe("Lower level");
-							expect(get(second.view)?.farm.name).toBe("Lower level");
-						}),
+						expect
+							.poll(() => [
+								get(first.view)?.farm.name,
+								get(second.view)?.farm.name,
+							])
+							.toEqual(["Lower level", "Lower level"]),
 					);
 					yield* session.undo;
 					yield* Effect.promise(() =>
-						vi.waitFor(() => expect(get(first.view)?.farm.name).toBe("Three")),
+						expect.poll(() => get(first.view)?.farm.name).toBe("Three"),
 					);
 					yield* session.redo;
 					yield* Effect.promise(() =>
-						vi.waitFor(() =>
-							expect(get(second.view)?.farm.name).toBe("Lower level"),
-						),
+						expect.poll(() => get(second.view)?.farm.name).toBe("Lower level"),
 					);
 				} finally {
 					stop();
@@ -181,11 +179,11 @@ it.effect(
 								{ type: "farm-name", value: "Lower level" },
 							]);
 							yield* Effect.promise(() =>
-								vi.waitFor(() =>
-									expect(registry.get(model.atomBindings.notice)?.message).toBe(
+								expect
+									.poll(() => registry.get(model.atomBindings.notice)?.message)
+									.toBe(
 										"The save view couldn’t be refreshed. Please reopen the save.",
 									),
-								),
 							);
 							expect(log).toHaveBeenCalledOnce();
 						} finally {

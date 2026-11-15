@@ -1,13 +1,8 @@
-import { savedType, isKnownLocation } from "./saved-types.ts";
+import { isKnownLocation } from "./saved-types.ts";
 import type { Location, SaveDocument } from "./domain.ts";
 import type { T_StardewValley_Objects_Chest as Chest } from "../../../generated/save-format/save.ts";
 
-const record = (value: unknown): value is Record<string, unknown> =>
-	value !== null && typeof value === "object" && !Array.isArray(value);
-const text = (value: unknown): string | undefined =>
-	typeof value === "string" || typeof value === "number"
-		? String(value)
-		: undefined;
+import type { InventorySlot, InventoryValue } from "./inventory-values.ts";
 
 /** A reachable local storage inventory; raw references belong only to the supplied document. */
 export interface PlacedChest {
@@ -18,36 +13,31 @@ export interface PlacedChest {
 	label: string;
 	location: string;
 	capacity: number;
-	raw: Chest;
+	container: Chest;
 	supported: boolean;
 	reason?: string;
-	slots: unknown[];
+	slots: InventorySlot[];
 	serializedLength: number;
 }
 
 /** Null slots are vacant; placed chests compact them only on an explicit edit. */
-export function emptyChestSlot(value: unknown): boolean {
-	return value === null || value === undefined;
+export function emptyChestSlot(item: InventoryValue): boolean {
+	return item === null || item === undefined;
 }
-// A nonempty ID addresses shared storage rather than this chest's local inventory.
-function emptyGlobalInventoryId(value: unknown): boolean {
-	return value === undefined || value === null || value === "";
-}
-
 function describe(
-	raw: Chest,
+	container: Chest,
 	id: string,
 	location: string,
 	tile: string,
 	source: PlacedChest["source"],
 	labelName?: string,
 ): PlacedChest {
-	const name = text(raw.name) || "Chest";
-	const special = raw.specialChestType;
+	const name = container.name || "Chest";
+	const special = container.specialChestType;
 	const capacity =
 		special === "BigChest" ||
-		raw.itemId === "BigChest" ||
-		raw.itemId === "BigStoneChest" ||
+		container.itemId === "BigChest" ||
+		container.itemId === "BigStoneChest" ||
 		name === "Big Chest" ||
 		name === "Big Stone Chest"
 			? 70
@@ -68,16 +58,12 @@ function describe(
 		special !== "MiniShippingBin"
 	)
 		reason = "This special chest inventory is not supported.";
-	if (!emptyGlobalInventoryId(raw.globalInventoryId))
+	// A nonempty ID addresses shared storage rather than this local inventory.
+	if (container.globalInventoryId)
 		reason = "This chest uses a shared or unsupported global inventory.";
 
-	const container = raw.items;
-	const entries = Array.isArray(container) ? container : [];
-	if (
-		(container !== undefined && !Array.isArray(container)) ||
-		entries.some((value) => !record(value) && value !== null)
-	)
-		reason ??= "This chest's saved item list cannot be edited safely.";
+	// The codec already supplies nullable Item slots at every cardinality.
+	const entries = container.items ?? [];
 	const supported = reason === undefined;
 	const slotCount = Math.max(capacity, entries.length);
 	return {
@@ -87,21 +73,19 @@ function describe(
 		source,
 		location,
 		capacity: slotCount,
-		raw,
+		container,
 		supported,
 		...(reason ? { reason } : {}),
 		serializedLength: entries.length,
 		// Virtual nils give every empty display target an identity without writing
 		// capacity-sized arrays into a compact chest just because it was inspected.
 		slots: supported
-			? Array.from({ length: slotCount }, (_, index) =>
-					index < entries.length ? entries[index] : null,
-				)
+			? Array.from({ length: slotCount }, (_, index) => entries[index] ?? null)
 			: [],
 	};
 }
 
-/** Discover local chest storage at the same explicit roots as v1, without proxy allocation.
+/** Discover decoded local storage roots without proxy allocation.
  * Existing object chest IDs are unchanged. Additional roots use distinct suffixes;
  * arbitrary nested bags and shared/global inventories are not guessed as local storage. */
 export function discoverPlacedChests(
@@ -111,86 +95,89 @@ export function discoverPlacedChests(
 	const game = document.SaveGame;
 	const locations = game.locations;
 	const result: PlacedChest[] = [];
-	const isChest = (raw: unknown): raw is Chest =>
-		record(raw) &&
-		raw.$type !== "$unknown" &&
-		(savedType(raw) === "Chest" ||
-			(Object.hasOwn(raw, "items") &&
-				["playerChest", "fridge", "specialChestType"].some((key) =>
-					Object.hasOwn(raw, key),
-				)));
 	const add = (
-		raw: unknown,
+		container: Chest | null | undefined,
 		path: string,
 		location: string,
 		source: PlacedChest["source"],
 		tile = "",
 		labelName?: string,
 	) => {
-		if (!isChest(raw)) return;
+		if (container == null) return;
 		const id = `chest:${path}`;
-		// Targeted resolution still traverses identity roots but interprets item lists
-		// only for the requested owner, keeping item property edits bounded.
+		// Targeted resolution still visits identity roots but reads item lists only
+		// for the selected owner, keeping item property edits bounded.
 		if (ownerId === undefined || ownerId === id)
-			result.push(describe(raw, id, location, tile, source, labelName));
+			result.push(describe(container, id, location, tile, source, labelName));
 	};
 	const visit = (
-		value: Location | null | undefined,
+		knownLocation: Location | null | undefined,
 		path: string,
 		parent?: string,
 	) => {
-		if (!isKnownLocation(value)) return;
+		if (!isKnownLocation(knownLocation)) return;
 		const ownName =
-			text(value.uniqueName) || text(value.name) || "Unknown location";
+			knownLocation.uniqueName || knownLocation.name || "Unknown location";
 		const location = parent ? `${parent} / ${ownName}` : ownName;
-		add(value.fridge, `${path}.fridge`, location, "fridge", "", "Fridge");
-		const objects = value.objects ?? [];
+		// Only generated house contracts define a fridge. Similarly named extension
+		// data on other locations is retained without granting storage authority.
+		if (
+			knownLocation.$type === "StardewValley.Locations.FarmHouse" ||
+			knownLocation.$type === "StardewValley.Locations.Cabin" ||
+			knownLocation.$type === "StardewValley.Locations.IslandFarmHouse"
+		)
+			add(
+				knownLocation.fridge,
+				`${path}.fridge`,
+				location,
+				"fridge",
+				"",
+				"Fridge",
+			);
+		const objects = knownLocation.objects ?? [];
 		objects.forEach((entry, index) => {
-			if (!record(entry) || !record(entry.value)) return;
 			const raw = entry.value;
-			const vector = record(entry.key) ? entry.key : undefined;
-			const x = vector && text(vector.X),
-				y = vector && text(vector.Y);
+			const { X: x, Y: y } = entry.key;
 			const tile = x !== undefined && y !== undefined ? ` (${x}, ${y})` : "";
 			const objectPath = `${path}.objects.${index}`;
-			add(raw, objectPath, location, "chest", tile);
-			// These are named machine storage roots, not a recursive walk through item
-			// contents. A held produce Object cannot accidentally become a container.
-			const machine = text(raw.name) || "Machine";
-			add(raw.Chest, `${objectPath}.Chest`, location, "machine", tile, machine);
-			add(
-				raw.heldObject,
-				`${objectPath}.heldObject`,
-				location,
-				"machine",
-				tile,
-				machine,
-			);
+			if (raw.$type === "StardewValley.Objects.Chest")
+				add(raw, objectPath, location, "chest", tile);
+			// Auto-grabbers and similar machines keep storage in heldObject. The old
+			// XML-wrapper field `Chest` is extension data, not a decoded storage root.
+			if (
+				raw.$type !== "$unknown" &&
+				raw.heldObject?.$type === "StardewValley.Objects.Chest"
+			)
+				add(
+					raw.heldObject,
+					`${objectPath}.heldObject`,
+					location,
+					"machine",
+					tile,
+					raw.name || "Machine",
+				);
 		});
-		const buildings = value.buildings ?? [];
-		buildings.forEach((building, index) => {
-			if (!building || building.$type === "$unknown") return;
-			const label = text(building.buildingType) || `Building ${index + 1}`;
+		const buildings = knownLocation.buildings ?? [];
+		for (const [index, building] of (buildings ?? []).entries()) {
+			if (!building || building.$type === "$unknown") continue;
+			const label = building.buildingType || `Building ${index + 1}`;
 			const buildingPath = `${path}.buildings.${index}`;
 			const chests = building.buildingChests ?? [];
-			chests.forEach((chest, chestIndex) => {
+			for (const [chestIndex, chest] of chests.entries())
 				add(
 					chest,
 					`${buildingPath}.buildingChests.${chestIndex}`,
 					`${location} / ${label}`,
 					"building",
 					"",
-					record(chest)
-						? text(chest.name) || `Chest ${chestIndex + 1}`
-						: undefined,
+					chest?.name || `Chest ${chestIndex + 1}`,
 				);
-			});
 			visit(
 				building.indoors,
 				`${buildingPath}.indoors`,
 				`${location} / ${label}`,
 			);
-		});
+		}
 	};
 	(locations ?? []).forEach((location, index) => {
 		visit(location, `locations.${index}`);
@@ -201,20 +188,10 @@ export function discoverPlacedChests(
 /** Replace only a supported chest's compact item list after an explicit structural edit. */
 export function writeChestSlots(
 	chest: PlacedChest,
-	slots: readonly unknown[],
+	slots: readonly InventorySlot[],
 ): void {
-	if (
-		!chest.supported ||
-		slots.some((value) => !emptyChestSlot(value) && !record(value))
-	)
-		throw new Error("Unsupported chest inventory");
-	// Generic inventory commands carry opaque values until this storage boundary.
-	// A supported chest only receives decoded item records; this predicate retains
-	// their generated item type while removing the view's virtual empty slots.
-	const entries = slots.filter(
-		(value): value is NonNullable<Chest["items"]>[number] =>
-			!emptyChestSlot(value),
-	);
-	// Storage stays compact; the view supplies virtual empty slots up to capacity.
-	chest.raw.items = entries;
+	if (!chest.supported) throw new Error("Unsupported chest inventory");
+	// Storage stays compact; only the virtual nil slots are removed. Every
+	// occupied record, including opaque subclasses, retains its exact payload.
+	chest.container.items = slots.filter((value) => value !== null);
 }

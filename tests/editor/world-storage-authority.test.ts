@@ -46,7 +46,6 @@ it.effect(
 			).toBe(true);
 			expect(yield* session.snapshot).toEqual(before);
 		}),
-	30_000,
 );
 it.effect(
 	"leaves unnamed farmhand records untouched by building and adoption progression",

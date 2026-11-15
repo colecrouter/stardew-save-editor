@@ -6,7 +6,7 @@ import {
 import { tinyFixture } from "../helpers/editor-document.ts";
 
 const item = (name = "Parsnip") => ({
-	$type: "StardewValley.Object",
+	$type: "StardewValley.Object" as const,
 	name,
 	itemId: "24",
 	stack: 2,
@@ -75,6 +75,7 @@ describe("placed chest storage", () => {
 	it("discovers interiors, fridges, machine-held and building storage while retaining placed owner paths", () => {
 		const document = fixture([
 			{
+				$type: "StardewValley.Locations.FarmHouse",
 				name: "Farm",
 				fridge: chest(),
 				buildings: [
@@ -88,7 +89,7 @@ describe("placed chest storage", () => {
 									chest({ itemId: "BigStoneChest", name: "Big Stone Chest" }),
 								),
 								placed({
-									$type: "StardewValley.Object",
+									$type: "StardewValley.Object" as const,
 									heldObject: chest(),
 									Chest: chest(),
 								}),
@@ -98,13 +99,17 @@ describe("placed chest storage", () => {
 				],
 			},
 		]);
+		const before = structuredClone(document);
 		const found = discoverPlacedChests(document);
-		expect(found).toHaveLength(5);
+		// The old Chest wrapper remains untouched extension data, not a second
+		// editable machine inventory alongside the generated heldObject field.
+		expect(found.some((entry) => entry.id.endsWith(".Chest"))).toBe(false);
+		expect(document).toEqual(before);
+		expect(found).toHaveLength(4);
 		expect(found.map((chest) => chest.source).sort()).toEqual([
 			"building",
 			"chest",
 			"fridge",
-			"machine",
 			"machine",
 		]);
 		expect(found.find((chest) => chest.capacity === 70)).toMatchObject({
@@ -127,8 +132,6 @@ describe("placed chest storage", () => {
 			globalInventoryId: [null],
 		},
 		{ specialChestType: "mod.unknown" },
-		{ items: ["opaque"] },
-		{ items: [false] },
 	])("keeps unsupported storage visible and read-only: %j", (fields) => {
 		const document = fixture({
 			name: "Farm",
@@ -163,11 +166,13 @@ describe("placed chest storage", () => {
 		const slots = [...found.slots];
 		slots[0] = item("Potato");
 		writeChestSlots(found, slots);
-		expect(found.raw.items).toEqual([item("Potato")]);
-		expect(found.raw.testMetadataitems).toEqual({ opaque: { flag: "007" } });
+		expect(found.container.items).toEqual([item("Potato")]);
+		expect(found.container.testMetadataitems).toEqual({
+			opaque: { flag: "007" },
+		});
 		slots[0] = null;
 		writeChestSlots(found, slots);
-		expect(found.raw.items).toEqual([]);
+		expect(found.container.items).toEqual([]);
 	});
 
 	it("compacts plain nils on structural writes, retaining every whole nonempty record", () => {
@@ -184,11 +189,21 @@ describe("placed chest storage", () => {
 		const found = required(discoverPlacedChests(document)[0]);
 		const slots = [...found.slots];
 		slots[0] = null;
-		slots[12] = { opaque: [false, "007"], name: "Modded" };
+		slots[12] = {
+			$type: "$unknown",
+			$xmlType: { name: "ModItem", namespace: "" },
+			opaque: [false, "007"],
+			name: "Modded",
+		};
 		writeChestSlots(found, slots);
-		expect(found.raw.items).toEqual([
+		expect(found.container.items).toEqual([
 			item("Potato"),
-			{ opaque: [false, "007"], name: "Modded" },
+			{
+				$type: "$unknown",
+				$xmlType: { name: "ModItem", namespace: "" },
+				opaque: [false, "007"],
+				name: "Modded",
+			},
 		]);
 	});
 

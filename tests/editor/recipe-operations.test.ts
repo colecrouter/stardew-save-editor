@@ -14,7 +14,7 @@ import {
 } from "../../src/lib/editor/recipe-operations.ts";
 import { recipeDefinitions } from "../../src/lib/editor/recipe-data.ts";
 
-const entry = (name: string | number, count: number) => ({
+const entry = (name: string, count: number) => ({
 	key: name,
 	value: count,
 });
@@ -43,7 +43,7 @@ describe("recipe save operations", () => {
 	it("reads real cooked counts independently of knowledge without modifying input", () => {
 		const doc = fixture();
 		Object.assign(doc.SaveGame.player, {
-			recipesCooked: [entry(Number(cookedId), 9)],
+			recipesCooked: [entry(cookedId, 9)],
 		});
 		const before = structuredClone(doc);
 		const view = readRecipes(doc)[0];
@@ -188,12 +188,12 @@ describe("recipe save operations", () => {
 			}),
 	);
 	it.effect(
-		"rejects ambiguous numeric/string cooked IDs while unrelated knowledge remains editable",
+		"rejects duplicate cooked IDs while unrelated knowledge remains editable",
 		() =>
 			Effect.gen(function* () {
 				const doc = fixture();
 				Object.assign(doc.SaveGame.player, {
-					recipesCooked: [entry(cookedId, 4), entry(Number(cookedId), 7)],
+					recipesCooked: [entry(cookedId, 4), entry(cookedId, 7)],
 				});
 				const session = yield* makeHistorySession(doc);
 				const before = yield* session.snapshot;
@@ -217,7 +217,7 @@ describe("recipe save operations", () => {
 				expect(
 					(yield* session.snapshot).document.SaveGame.player,
 				).toMatchObject({
-					recipesCooked: [entry(cookedId, 4), entry(Number(cookedId), 7)],
+					recipesCooked: [entry(cookedId, 4), entry(cookedId, 7)],
 				});
 			}),
 	);
@@ -385,4 +385,4 @@ it("reads production counters after the real XML codec roundtrip", () => {
 	expect(
 		readRecipes(parsed)[0]?.cooking.find((row) => row.name === "Fried Egg"),
 	).toMatchObject({ count: 5, countSupported: true, hasCookedEntry: true });
-}, 30_000);
+});

@@ -1,6 +1,10 @@
 import animalData from "$generated/farmanimals.json";
 import type {
 	T_StardewValley_FarmAnimal as FarmAnimal,
+	T_StardewValley_Object as SavedObject,
+	T_StardewValley_Objects_Furniture as SavedFurniture,
+	T_Microsoft_Xna_Framework_Vector2 as Vector,
+	T_Microsoft_Xna_Framework_Rectangle as Rectangle,
 	T_StardewValley_Buildings_Building as SavedBuilding,
 } from "../../../generated/save-format/save.ts";
 import {
@@ -19,36 +23,21 @@ import {
 
 export { isKnownLocation, type KnownLocation } from "./saved-types.ts";
 
-import { record, samePlainData } from "./plain-data.ts";
+import { samePlainData } from "./plain-data.ts";
 
-export { record } from "./plain-data.ts";
-
-const empty = (value: unknown) =>
-	value === undefined || value === null || value === "";
-export const long = (value: unknown): string | undefined =>
-	typeof value === "string" && /^-?\d+$/.test(value)
-		? value
-		: typeof value === "bigint" ||
-			  (typeof value === "number" && Number.isSafeInteger(value))
-			? String(value)
-			: undefined;
-export const integer = (value: unknown): value is number =>
-	typeof value === "number" && Number.isSafeInteger(value);
+// Saved IDs are decoded Int64 values. Only absence needs handling before
+// converting them into display/selection keys.
+export const long = (value: bigint | undefined) => value?.toString();
 
 export function residents(interior: KnownLocation | undefined) {
-	const raw = interior?.animalsThatLiveHere;
-	// Other known location classes can carry this animal-house field only as
-	// extension data, so its array shape still needs checking at this boundary.
-	const values = Array.isArray(raw) ? raw : [];
-	const ids = values.flatMap((value) =>
-		long(value) === undefined ? [] : [String(value)],
+	// Resident semantics belong to AnimalHouse, not a similarly named extension
+	// on another location class. Preserve unsupported extension data without edits.
+	if (interior && interior.$type !== "StardewValley.AnimalHouse")
+		return { ids: [], supported: interior.animalsThatLiveHere == null };
+	const ids = (interior?.animalsThatLiveHere ?? []).map((value) =>
+		value.toString(),
 	);
-	return {
-		ids,
-		supported:
-			(empty(raw) || (Array.isArray(raw) && values.length === ids.length)) &&
-			new Set(ids).size === ids.length,
-	};
+	return { ids, supported: new Set(ids).size === ids.length };
 }
 /** Keep the mirror as a second serialization of the same dictionary, never a second animal. */
 export function animalDictionary(location: KnownLocation) {
@@ -97,7 +86,7 @@ export function inspectBuildings(document: SaveDocument) {
 			return;
 		}
 		seen.add(value);
-		const location = typeof value.name === "string" ? value.name : label;
+		const location = value.name ?? label;
 		// Mirror equality was checked before pairing by index; a conflicting copy
 		// keeps the whole local dictionary read-only instead of choosing a winner.
 		const dictionary = animalDictionary(value);
@@ -125,24 +114,33 @@ export function inspectBuildings(document: SaveDocument) {
 				supported = false;
 				continue;
 			}
-			const id = typeof raw.id === "string" && raw.id ? raw.id : undefined;
-			const interior =
-				raw.$type !== "$unknown" && isKnownLocation(raw.indoors)
-					? raw.indoors
-					: undefined;
+			// Opaque buildings have no trusted interior or identity. Retain a disabled
+			// row instead of interpreting extension fields as generated building data.
+			if (raw.$type === "$unknown") {
+				supported = false;
+				buildings.push({
+					id: `building-path:${path}:${index}`,
+					raw,
+					location,
+					supported: false,
+				});
+				continue;
+			}
+			const id = raw.id || undefined;
+			const interior = isKnownLocation(raw.indoors) ? raw.indoors : undefined;
 			buildings.push({
 				id: id ?? `building-path:${path}:${index}`,
 				raw,
 				location,
 				interior,
-				supported: !!id && (empty(raw.indoors) || !!interior),
+				supported: !!id && (raw.indoors == null || !!interior),
 			});
 			if (interior) visit(interior, `${path}/building:${index}`, location);
 		}
 	}
-	locations.forEach((value, index) => {
+	for (const [index, value] of locations.entries()) {
 		visit(value, `location:${index}`, "Unknown location");
-	});
+	}
 	// Real serialized IDs survive list reordering. Ambiguity is visible but never writable.
 	for (const building of buildings)
 		building.supported &&=
@@ -206,50 +204,38 @@ function projectAnimal(
 	// The game treats negative daysOwned as an uninitialized counter and reads
 	// age instead. Omitted booleans likewise expose game defaults without writes.
 	const days =
-		raw && integer(raw.daysOwned)
+		raw?.daysOwned !== undefined
 			? raw.daysOwned < 0
 				? raw.age
 				: raw.daysOwned
 			: undefined;
 	return {
 		id,
-		nameEditable: typeof raw?.name === "string",
+		nameEditable: raw?.name !== undefined,
 		name:
-			typeof raw?.name === "string"
+			raw?.name !== undefined
 				? raw.name
 				: raw
 					? "Unnamed animal"
 					: "Missing animal",
-		type: typeof raw?.type === "string" ? raw.type : "Unknown type",
+		type: raw?.type ?? "Unknown type",
 		location: animal?.location ?? "Not found in the save",
 		outside,
 		supported: !!animal?.supported,
 		reason: animal?.supported
 			? undefined
 			: "This animal is missing or has ambiguous saved records.",
-		daysOwned: integer(days) && days >= 0 ? days : undefined,
-		friendship: integer(raw?.friendshipTowardFarmer)
-			? raw.friendshipTowardFarmer
-			: undefined,
-		happiness: integer(raw?.happiness) ? raw.happiness : undefined,
-		fullness: integer(raw?.fullness) ? raw.fullness : undefined,
+		daysOwned: days !== undefined && days >= 0 ? days : undefined,
+		friendship: raw?.friendshipTowardFarmer,
+		happiness: raw?.happiness,
+		fullness: raw?.fullness,
 		gender:
-			typeof raw?.Gender === "string" &&
+			raw?.Gender !== undefined &&
 			["Male", "Female", "Undefined"].includes(raw.Gender)
 				? raw.Gender
 				: undefined,
-		reproduction:
-			raw?.allowReproduction === undefined
-				? true
-				: typeof raw.allowReproduction === "boolean"
-					? raw.allowReproduction
-					: undefined,
-		cracker:
-			raw?.hasEatenAnimalCracker === undefined
-				? false
-				: typeof raw.hasEatenAnimalCracker === "boolean"
-					? raw.hasEatenAnimalCracker
-					: undefined,
+		reproduction: raw?.allowReproduction ?? true,
+		cracker: raw?.hasEatenAnimalCracker ?? false,
 		canReproduce: data?.canReproduce ?? false,
 		canEatCracker: data?.canEatGoldenCrackers ?? false,
 	};
@@ -257,31 +243,41 @@ function projectAnimal(
 /** Helpers move only checked object/furniture collections; opaque shapes must not be silently erased. */
 export function safeInterior(raw: KnownLocation | null | undefined): boolean {
 	if (!raw) return true;
-	const vector = (
-		value: unknown,
-	): value is { X: number; Y: number } & Record<string, unknown> =>
-		record(value) &&
-		typeof value.X === "number" &&
+	const vector = (value: Vector | null | undefined) =>
+		value != null &&
+		value.X !== undefined &&
+		value.Y !== undefined &&
 		Number.isFinite(value.X) &&
-		typeof value.Y === "number" &&
 		Number.isFinite(value.Y);
-	const item = (value: unknown) =>
-		record(value) &&
+	const rectangle = (box: Rectangle | null | undefined) =>
+		box === undefined ||
+		(box !== null &&
+			vector(box) &&
+			box.Width !== undefined &&
+			box.Height !== undefined);
+	const item = (value: SavedObject | SavedFurniture | null) =>
+		value !== null &&
+		value.$type !== "$unknown" &&
 		(value.tileLocation === undefined || vector(value.tileLocation)) &&
-		[value.boundingBox, value.defaultBoundingBox].every(
-			(box) =>
-				box === undefined ||
-				(vector(box) &&
-					typeof box.Width === "number" &&
-					typeof box.Height === "number"),
-		);
+		rectangle(value.boundingBox);
 	const objects = raw.objects ?? [],
 		furniture = raw.furniture ?? [];
 	// Collection shapes are decoded already. Placement still needs complete
 	// coordinates on every object and furniture record before it can move them.
 	return (
-		objects.every((entry) => vector(entry.key) && item(entry.value)) &&
-		furniture.every(item)
+		objects.every(
+			(entry) =>
+				vector(entry.key) &&
+				item(entry.value) &&
+				entry.value.defaultBoundingBox === undefined,
+		) &&
+		furniture.every(
+			(piece) =>
+				item(piece) &&
+				piece !== null &&
+				piece.$type !== "$unknown" &&
+				rectangle(piece.defaultBoundingBox),
+		)
 	);
 }
 /** The placement helper needs complete coordinates, not merely decoded optional members.
@@ -289,7 +285,7 @@ export function safeInterior(raw: KnownLocation | null | undefined): boolean {
 function safeTierRecord(raw: SavedBuilding): raw is SavedBuilding & Building {
 	return (
 		raw.$type !== "$unknown" &&
-		typeof raw.buildingType === "string" &&
+		raw.buildingType !== undefined &&
 		(raw.indoors == null ||
 			(isKnownLocation(raw.indoors) && safeInterior(raw.indoors)))
 	);
@@ -300,9 +296,9 @@ export function tierRecord(building: LocatedBuilding): Building | undefined {
 	if (
 		!building.supported ||
 		!safeTierRecord(raw) ||
-		typeof raw.buildingType !== "string" ||
-		!integer(raw.daysOfConstructionLeft) ||
-		!integer(raw.daysUntilUpgrade)
+		raw.buildingType === undefined ||
+		raw.daysOfConstructionLeft === undefined ||
+		raw.daysUntilUpgrade === undefined
 	)
 		return;
 	return raw;
@@ -312,29 +308,51 @@ export function readBuildings(document: SaveDocument): BuildingsView {
 	const housed = new Set<string>();
 	// Ambiguous IDs remain one explicit read-only row; duplicate keys must never
 	// prevent the rest of the editor from rendering. The raw graph retains all copies.
-	const buildings = graph.buildings
+	const locatedBuildings = graph.buildings
 		.filter(
 			(row, index, all) =>
 				all.findIndex((candidate) => candidate.id === row.id) === index,
 		)
-		.map((building) => {
-			const raw = building.raw,
-				interior = building.interior,
+		.map((locatedBuilding) => {
+			const building = locatedBuilding.raw;
+			if (building.$type === "$unknown")
+				return {
+					id: locatedBuilding.id,
+					name: "Unknown building",
+					location: locatedBuilding.location,
+					supported: false,
+					reason: "This building uses an unsupported saved class.",
+					residents: 0,
+					outside: 0,
+					animalHouse: false,
+					construction: false,
+					upgrading: false,
+					tiers: [],
+					animalOptions: [],
+					animals: [],
+					adoptionReason:
+						"Animals cannot be assigned to an unsupported building.",
+				};
+			const interior = locatedBuilding.interior,
 				home = residents(interior),
-				checked = tierRecord(building);
+				checked = tierRecord(locatedBuilding);
 			const animalHouse = savedType(interior) === "AnimalHouse";
 			// Prefer the saved animal-house limit; older saves may rely on the
 			// generated building default, as the legacy editor does.
 			const capacity =
-				interior?.animalLimit ??
+				(interior?.$type === "StardewValley.AnimalHouse"
+					? interior.animalLimit
+					: undefined) ??
 				upgradeTiers(
-					typeof raw.buildingType === "string" ? raw.buildingType : undefined,
-				).find((tier) => tier.name === raw.buildingType)?.maxOccupants ??
-				raw.maxOccupants;
+					building.buildingType !== undefined
+						? building.buildingType
+						: undefined,
+				).find((tier) => tier.name === building.buildingType)?.maxOccupants ??
+				building.maxOccupants;
 			const tiers = upgradeTiers(
-				typeof raw.buildingType === "string" ? raw.buildingType : undefined,
+				building.buildingType !== undefined ? building.buildingType : undefined,
 			);
-			const supported = building.supported && home.supported;
+			const supported = locatedBuilding.supported && home.supported;
 			const animals = [...new Set(home.ids)].map((id) => {
 				housed.add(id);
 				const animal = graph.animals.find((row) => row.id === id);
@@ -347,42 +365,43 @@ export function readBuildings(document: SaveDocument): BuildingsView {
 					? "The saved animal or resident lists are unsupported."
 					: !animalHouse
 						? "Animals cannot live in this building."
-						: !integer(capacity) || capacity < 0
+						: capacity === undefined || capacity < 0
 							? "The saved capacity is unsupported."
-							: raw.daysOfConstructionLeft !== 0
+							: building.daysOfConstructionLeft !== 0
 								? "This building is still under construction."
 								: home.ids.length >= capacity
 									? "This building is full, including residents outside."
 									: undefined;
 			return {
-				id: building.id,
+				id: locatedBuilding.id,
 				name:
-					typeof raw.buildingType === "string"
-						? raw.buildingType
+					building.buildingType !== undefined
+						? building.buildingType
 						: "Unknown building",
 				// Descriptive game metadata belongs in the domain view alongside prices,
 				// without exposing the generated building DTO to the component.
-				description: tiers.find((tier) => tier.name === raw.buildingType)
+				description: tiers.find((tier) => tier.name === building.buildingType)
 					?.description,
 				constructionCost: buildingConstructionCost(
-					typeof raw.buildingType === "string" ? raw.buildingType : "",
+					building.buildingType !== undefined ? building.buildingType : "",
 				),
-				location: building.location,
+				location: locatedBuilding.location,
 				supported,
 				reason: supported
 					? undefined
 					: "This building has missing/ambiguous IDs or unsupported residents.",
-				capacity: integer(capacity) ? capacity : undefined,
+				capacity,
 				residents: home.ids.length,
 				outside: animals.filter((row) => row.outside).length,
 				animalHouse,
 				construction:
-					typeof raw.daysOfConstructionLeft === "number" &&
-					raw.daysOfConstructionLeft > 0,
+					building.daysOfConstructionLeft !== undefined &&
+					building.daysOfConstructionLeft > 0,
 				upgrading:
-					typeof raw.daysUntilUpgrade === "number" && raw.daysUntilUpgrade > 0,
+					building.daysUntilUpgrade !== undefined &&
+					building.daysUntilUpgrade > 0,
 				repaired:
-					raw.buildingType === "Greenhouse"
+					building.buildingType === "Greenhouse"
 						? greenhouseFlag(document)
 						: undefined,
 				tiers: tiers.map((tier) => ({
@@ -395,8 +414,8 @@ export function readBuildings(document: SaveDocument): BuildingsView {
 				animalOptions: animalHouse
 					? animalOptions(
 							tiers,
-							typeof raw.buildingType === "string"
-								? raw.buildingType
+							building.buildingType !== undefined
+								? building.buildingType
 								: undefined,
 						)
 					: [],
@@ -405,7 +424,7 @@ export function readBuildings(document: SaveDocument): BuildingsView {
 			};
 		});
 	return {
-		buildings,
+		buildings: locatedBuildings,
 		unhoused: graph.animals
 			.filter((row) => !row.id || !housed.has(row.id))
 			.filter(
@@ -424,9 +443,8 @@ export function greenhouseFlag(document: SaveDocument): boolean | undefined {
 		(row) => row?.name === "Farm",
 	);
 	const farm = farms.length === 1 ? farms[0] : undefined;
-	// Unknown location subclasses can expose an opaque flag, so its scalar
-	// type still needs checking before the view treats it as a boolean.
-	return typeof farm?.greenhouseUnlocked === "boolean"
+	// Only the generated Farm class owns greenhouse unlock semantics.
+	return farm?.$type === "StardewValley.Farm"
 		? farm.greenhouseUnlocked
 		: undefined;
 }

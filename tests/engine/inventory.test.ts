@@ -1,4 +1,3 @@
-import { vi } from "vitest";
 import { expect, it } from "@effect/vitest";
 import { Effect } from "effect";
 import { get, type Readable } from "svelte/store";
@@ -7,15 +6,10 @@ import { makeAtomInventory } from "./inventory-atoms.ts";
 import { type InventoryModel, openInventory } from "./inventory-model.ts";
 import { makeStoreInventory } from "./inventory-stores.ts";
 
-// Retain the engine suite's budget for full-save codecs and worker round trips.
-vi.setConfig({ testTimeout: 15_000 });
-
 async function until(check: () => boolean) {
-	for (let attempt = 0; attempt < 100; attempt++) {
-		if (check()) return;
-		await new Promise((resolve) => setTimeout(resolve, 2));
-	}
-	throw new Error("Inventory observation did not settle");
+	// Observe publication instead of assuming the stream settles within a fixed
+	// number of timer ticks. The runner owns the common assertion deadline.
+	await expect.poll(check).toBe(true);
 }
 function mount(model: InventoryModel) {
 	// Widen only the observation value: heterogeneous stores still keep their
@@ -71,7 +65,6 @@ for (const [name, factory] of [
 				expect(state.document).toEqual(expected);
 				expect(parser.parse(exportDocument(state.document))).toEqual(expected);
 			}),
-		60_000,
 	);
 	it.effect(
 		`${name}: field writes, undo, redo and compact reorder preserve history`,

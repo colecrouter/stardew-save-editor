@@ -19,7 +19,7 @@ const clothingFixture = (() => {
 
 // Exercise the app-owned lazy panel with real full-save commands and export.
 // The complete fixture needs the same bounded CI budget as other workflow suites.
-describe("full-save backpack workflow", { timeout: 45_000 }, () => {
+describe("full-save backpack workflow", () => {
 	it("initial and explicit selections follow their entity through reorder and undo", async () => {
 		const opened = await openTestEditor(new TextEncoder().encode(fixtureXml));
 		const page = render(BackpackHarness, { model: opened.model });
@@ -97,7 +97,7 @@ describe("full-save backpack workflow", { timeout: 45_000 }, () => {
 		const load = openTestEditor;
 		let loaded: Awaited<ReturnType<typeof load>> | undefined;
 		const opening = vi
-			.spyOn(editorModel, "openEditorBlob")
+			.mocked(editorModel.openEditorBlob)
 			.mockImplementation(async (_processing, blob, ...args) => {
 				// Keep fixture decoding cheap while observing the app's Blob entry point.
 				loaded = await load(new Uint8Array(await blob.arrayBuffer()), ...args);
@@ -108,18 +108,12 @@ describe("full-save backpack workflow", { timeout: 45_000 }, () => {
 			await fireEvent.change(page.getByLabelText("Save file"), {
 				target: { files: [new File([xml], "Farm_123")] },
 			});
-			await waitFor(
-				() =>
-					expect(page.getByRole("link", { name: "Inventory" })).toBeTruthy(),
-				{ timeout: 5000 },
+			await waitFor(() =>
+				expect(page.getByRole("link", { name: "Inventory" })).toBeTruthy(),
 			);
 			await fireEvent.click(page.getByRole("link", { name: "Inventory" }));
-			await waitFor(
-				() =>
-					expect(
-						page.getByRole("heading", { name: /^Inventory$/ }),
-					).toBeTruthy(),
-				{ timeout: 5000 },
+			await waitFor(() =>
+				expect(page.getByRole("heading", { name: /^Inventory$/ })).toBeTruthy(),
 			);
 			if (!loaded) throw new Error("Missing imported editor model");
 			return Object.assign(page, { model: loaded.model });
@@ -202,7 +196,7 @@ describe("full-save backpack workflow", { timeout: 45_000 }, () => {
 			await fireEvent.click(page.getByRole("button", { name: "Redo" }));
 			await waitFor(() => expect(quality("Iridium").checked).toBe(true));
 			await fireEvent.click(page.getByRole("button", { name: "Export save" }));
-			await waitFor(() => expect(written).toBeTruthy(), { timeout: 30_000 });
+			await waitFor(() => expect(written).toBeTruthy());
 			if (!written)
 				throw Error("Expected the browser writer to receive the save");
 			const expected = parser.parse(fixtureXml);
@@ -248,14 +242,10 @@ describe("full-save backpack workflow", { timeout: 45_000 }, () => {
 			await fireEvent.input(quantity, { target: { value: "2" } });
 			await fireEvent.input(quantity, { target: { value: "25" } });
 			await fireEvent.input(quantity, { target: { value: "250" } });
-			await waitFor(
-				async () =>
-					expect(
-						(await opened.model.snapshot()).document.SaveGame.player.items[4],
-					).toMatchObject({ stack: 250 }),
-				// Three serialized full-save copies can exceed Testing Library’s default
-				// one-second wait on CI; still require the final committed document.
-				{ timeout: 5000 },
+			await waitFor(async () =>
+				expect(
+					(await opened.model.snapshot()).document.SaveGame.player.items[4],
+				).toMatchObject({ stack: 250 }),
 			);
 			expect(quantity.value).toBe("250");
 			expect(document.activeElement).toBe(quantity);
@@ -314,7 +304,7 @@ describe("full-save backpack workflow", { timeout: 45_000 }, () => {
 		} finally {
 			page.unmount();
 		}
-	}, 30_000);
+	});
 
 	it("invalid quantity restores the committed value, selection survives navigation, and tools/unknown items stay read-only", async () => {
 		const document = parser.parse(fixtureXml);
@@ -375,7 +365,7 @@ describe("full-save backpack workflow", { timeout: 45_000 }, () => {
 		} finally {
 			page.unmount();
 		}
-	}, 30_000);
+	});
 });
 
 it("projected backpack visuals resolve missing display names without adding or normalizing saved fields", () => {
@@ -455,3 +445,7 @@ it.each(["shirtItem", "pantsItem"] as const)(
 		}
 	},
 );
+
+// Browser module boundaries use hoisted spies; their default implementations
+// remain real until an individual test replaces them.
+vi.mock("../../src/lib/editor/editor-model", { spy: true });

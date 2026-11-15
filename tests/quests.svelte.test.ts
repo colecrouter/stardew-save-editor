@@ -1,7 +1,6 @@
-import { readFile } from "node:fs/promises";
+import publicSaveXml from "./TestSave?raw";
 import { flushSync } from "svelte";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
-import { setup as mockIDB } from "vitest-indexeddb";
 import { Raw } from "$lib/proxies";
 import { getStatValue } from "$lib/proxies/Farmer.svelte";
 import { Item } from "$lib/proxies/Item.svelte";
@@ -15,7 +14,6 @@ import { XMLManager } from "../src/lib/workers/xml";
 type Parsed = any;
 
 // For tests that write out and read back the whole save
-const slow = { timeout: 30_000 };
 
 const questFields = ({
 	title,
@@ -232,15 +230,14 @@ const setBillboardQuestsDone = (xml: string, n: number) =>
 		`$1${n}`,
 	);
 
-// This group opens the full preservation fixture, so use its codec integration budget.
-describe("Quest log", slow, () => {
-	mockIDB();
+// This group opens the full preservation fixture under the shared runner deadline.
+describe("Quest log", () => {
 	let fixture: string;
 	let saveManager: SaveManager;
 	let dispose: (() => void) | undefined;
 
 	beforeAll(async () => {
-		fixture = await readFile("tests/TestSave", "utf-8");
+		fixture = publicSaveXml;
 	});
 
 	// The proxies write some edits (mail, item stacks) back through effects, so keep their root alive
@@ -340,7 +337,7 @@ describe("Quest log", slow, () => {
 		expect(quest("Raising Animals").completionString).toBe("Coop");
 	});
 
-	it("removes a quest", slow, async () => {
+	it("removes a quest", async () => {
 		await load();
 		log().remove(quest("Deeper In The Mine"));
 		expect(log().journal).toHaveLength(4);
@@ -378,69 +375,61 @@ describe("Quest log", slow, () => {
 		});
 	});
 
-	it(
-		"drops a completed quest without a reward, and starts its follow-up",
-		slow,
-		async () => {
-			await load();
-			const result = complete(quest("Introductions"));
-			expect(result.removed).toBe(true);
-			expect(result.skippedFollowUps).toEqual([]);
-			expect(result.started.map((q) => q.title)).toEqual([
-				"How To Win Friends",
-			]);
-			expect(rawTitles()).not.toContain("Introductions");
-			expect(dialogueEvent("questComplete_9")).toBe(4);
+	it("drops a completed quest without a reward, and starts its follow-up", async () => {
+		await load();
+		const result = complete(quest("Introductions"));
+		expect(result.removed).toBe(true);
+		expect(result.skippedFollowUps).toEqual([]);
+		expect(result.started.map((q) => q.title)).toEqual(["How To Win Friends"]);
+		expect(rawTitles()).not.toContain("Introductions");
+		expect(dialogueEvent("questComplete_9")).toBe(4);
 
-			// Farmer.addQuest puts it at the end, so the journal shows it first
-			const friends = quest("How To Win Friends");
-			expect(log().journal[0]).toBe(friends);
-			expect(friends.type).toBe("Quest");
-			expect(friends.id).toBe("25");
-			expect(friends.completed).toBe(false);
-			expect(friends.goldReward).toBe(100);
-			expect(friends.canBeCancelled).toBe(true);
-			expect(friends.objective).toBe("Give someone a gift.");
+		// Farmer.addQuest puts it at the end, so the journal shows it first
+		const friends = quest("How To Win Friends");
+		expect(log().journal[0]).toBe(friends);
+		expect(friends.type).toBe("Quest");
+		expect(friends.id).toBe("25");
+		expect(friends.completed).toBe(false);
+		expect(friends.goldReward).toBe(100);
+		expect(friends.canBeCancelled).toBe(true);
+		expect(friends.objective).toBe("Give someone a gift.");
 
-			const deeper = quest("Deeper In The Mine");
-			const gameMade = Object.keys(deeper[Raw]);
-			expect(complete(deeper)).toEqual({
-				removed: true,
-				started: [quest("To The Bottom?")],
-				skippedFollowUps: [],
-			});
+		const deeper = quest("Deeper In The Mine");
+		const gameMade = Object.keys(deeper[Raw]);
+		expect(complete(deeper)).toEqual({
+			removed: true,
+			started: [quest("To The Bottom?")],
+			skippedFollowUps: [],
+		});
 
-			// Saved as Quest.getQuestFromId makes them
-			const out = (await exported()).SaveGame.player.questLog.Quest;
-			expect(out.map((q: Parsed) => q.id)).toEqual([6, 7, 8, 25, 18]);
-			const saved = out.find((q: Parsed) => q.id === 25);
-			expect(saved).toEqual({
-				_currentObjective: "Give someone a gift.",
-				_questDescription:
-					"Giving gifts is a great way to build friendships. Learn each person's individual tastes and you'll be popular in no time.",
-				_questTitle: "How To Win Friends",
-				rewardDescription: -1,
-				accepted: false,
-				completed: false,
-				dailyQuest: false,
-				showNew: true,
-				canBeCancelled: true,
-				destroy: false,
-				id: 25,
-				moneyReward: 100,
-				questType: 1,
-				daysLeft: 0,
-				dayQuestAccepted: -1,
-				nextQuests: { int: -1 },
-				questTitle: "How To Win Friends",
-			});
-			// The same fields, in the same order, as a basic quest the game made
-			expect(Object.keys(saved)).toEqual(gameMade);
-			expect(Object.keys(out.find((q: Parsed) => q.id === 18))).toEqual(
-				gameMade,
-			);
-		},
-	);
+		// Saved as Quest.getQuestFromId makes them
+		const out = (await exported()).SaveGame.player.questLog.Quest;
+		expect(out.map((q: Parsed) => q.id)).toEqual([6, 7, 8, 25, 18]);
+		const saved = out.find((q: Parsed) => q.id === 25);
+		expect(saved).toEqual({
+			_currentObjective: "Give someone a gift.",
+			_questDescription:
+				"Giving gifts is a great way to build friendships. Learn each person's individual tastes and you'll be popular in no time.",
+			_questTitle: "How To Win Friends",
+			rewardDescription: -1,
+			accepted: false,
+			completed: false,
+			dailyQuest: false,
+			showNew: true,
+			canBeCancelled: true,
+			destroy: false,
+			id: 25,
+			moneyReward: 100,
+			questType: 1,
+			daysLeft: 0,
+			dayQuestAccepted: -1,
+			nextQuests: { int: -1 },
+			questTitle: "How To Win Friends",
+		});
+		// The same fields, in the same order, as a basic quest the game made
+		expect(Object.keys(saved)).toEqual(gameMade);
+		expect(Object.keys(out.find((q: Parsed) => q.id === 18))).toEqual(gameMade);
+	});
 
 	it("doesn't start a topic the player has already had", async () => {
 		const xml = fixture.replace(
@@ -575,7 +564,7 @@ describe("Quest log", slow, () => {
 		expect(dialogueEvent("questComplete_15")).toBe(4);
 	});
 
-	it("edits days left and rewards", slow, async () => {
+	it("edits days left and rewards", async () => {
 		await load(insertQuests(fixture, DELIVERY, SLAY, STORY_SLAY));
 		const delivery = quest("Abigail's Request");
 		delivery.daysLeft = 3;
@@ -621,7 +610,7 @@ describe("Quest log", slow, () => {
 		expect(outStory.parts.DescriptionElement.param["#text"]).toBe(180);
 	});
 
-	it("handles an empty journal", slow, async () => {
+	it("handles an empty journal", async () => {
 		const quests = await load(
 			fixture.replace(/<questLog>[\s\S]*<\/questLog>/, "<questLog />"),
 		);
@@ -667,54 +656,50 @@ describe("Quest log", slow, () => {
 		expect(log().journal).toHaveLength(5);
 	});
 
-	it(
-		"starts the next story quests, finishing a building quest that's already built",
-		slow,
-		async () => {
-			const original = new XMLManager().parse<Parsed>(fixture).SaveGame.player
-				.questLog.Quest;
-			await load(
-				beforeGettingStarted(fixture).replace(
-					"<constructedBuildings />",
-					"<constructedBuildings><string>Coop</string></constructedBuildings>",
-				),
-			);
-			expect(rawTitles()).toEqual([
-				"Introductions",
-				"Getting Started",
-				"Deeper In The Mine",
-			]);
-			const result = complete(quest("Getting Started"));
-			expect(result.removed).toBe(false);
-			expect(result.started.map((q) => q.title)).toEqual([
-				"Raising Animals",
-				"Advancement",
-			]);
-			// A coop has been built, so Raising Animals is done already, with its reward to collect
-			const coop = quest("Raising Animals");
-			expect(coop.completed).toBe(true);
-			expect(coop.goldReward).toBe(100);
-			expect(dialogueEvent("questComplete_7")).toBe(4);
-			expect(quest("Advancement").completed).toBe(false);
-			expect(quest("Advancement").type).toBe("CraftingQuest");
-			// Neither is a Help Wanted or fishing quest
-			expect(getStatValue(player(), "questsCompleted")).toBe(1);
+	it("starts the next story quests, finishing a building quest that's already built", async () => {
+		const original = new XMLManager().parse<Parsed>(fixture).SaveGame.player
+			.questLog.Quest;
+		await load(
+			beforeGettingStarted(fixture).replace(
+				"<constructedBuildings />",
+				"<constructedBuildings><string>Coop</string></constructedBuildings>",
+			),
+		);
+		expect(rawTitles()).toEqual([
+			"Introductions",
+			"Getting Started",
+			"Deeper In The Mine",
+		]);
+		const result = complete(quest("Getting Started"));
+		expect(result.removed).toBe(false);
+		expect(result.started.map((q) => q.title)).toEqual([
+			"Raising Animals",
+			"Advancement",
+		]);
+		// A coop has been built, so Raising Animals is done already, with its reward to collect
+		const coop = quest("Raising Animals");
+		expect(coop.completed).toBe(true);
+		expect(coop.goldReward).toBe(100);
+		expect(dialogueEvent("questComplete_7")).toBe(4);
+		expect(quest("Advancement").completed).toBe(false);
+		expect(quest("Advancement").type).toBe("CraftingQuest");
+		// Neither is a Help Wanted or fishing quest
+		expect(getStatValue(player(), "questsCompleted")).toBe(1);
 
-			// Just as the game saved them in the test save (whose text was wrapped onto several lines)
-			const unwrap = (q: Parsed) => ({
-				...q,
-				_questDescription: q._questDescription.replace(/\s+/g, " "),
-			});
-			const out = (await exported()).SaveGame.player.questLog.Quest;
-			const made = (id: number) => unwrap(out.find((q: Parsed) => q.id === id));
-			const saved = (id: number) =>
-				unwrap(original.find((q: Parsed) => q.id === id));
-			expect(made(8)).toEqual(saved(8));
-			expect(made(7)).toEqual({ ...saved(7), completed: true });
-			expect(Object.keys(made(7))).toEqual(Object.keys(saved(7)));
-			expect(Object.keys(made(8))).toEqual(Object.keys(saved(8)));
-		},
-	);
+		// Just as the game saved them in the test save (whose text was wrapped onto several lines)
+		const unwrap = (q: Parsed) => ({
+			...q,
+			_questDescription: q._questDescription.replace(/\s+/g, " "),
+		});
+		const out = (await exported()).SaveGame.player.questLog.Quest;
+		const made = (id: number) => unwrap(out.find((q: Parsed) => q.id === id));
+		const saved = (id: number) =>
+			unwrap(original.find((q: Parsed) => q.id === id));
+		expect(made(8)).toEqual(saved(8));
+		expect(made(7)).toEqual({ ...saved(7), completed: true });
+		expect(Object.keys(made(7))).toEqual(Object.keys(saved(7)));
+		expect(Object.keys(made(8))).toEqual(Object.keys(saved(8)));
+	});
 
 	it("doesn't start Raising Animals on the Meadowlands Farm", async () => {
 		// A custom farm type is saved by its ID
@@ -736,7 +721,7 @@ describe("Quest log", slow, () => {
 		expect(rawTitles()).not.toContain("Raising Animals");
 	});
 
-	it("starts location and harvest quests", slow, async () => {
+	it("starts location and harvest quests", async () => {
 		await load(
 			insertQuests(
 				fixture,
@@ -777,7 +762,7 @@ describe("Quest log", slow, () => {
 		expect(location.showNew).toBe(true);
 	});
 
-	it("only gives the host follow-ups marked for them", slow, async () => {
+	it("only gives the host follow-ups marked for them", async () => {
 		// Getting Started starts h7 (the host only) and 8
 		const xml = withFarmhand(
 			insertQuests(dropQuest(fixture, "Getting Started"), leadingTo(990, "6")),
@@ -818,7 +803,7 @@ describe("Quest log", slow, () => {
 		expect(result.skippedFollowUps).toEqual(["9999", "15"]);
 	});
 
-	it("edits and completes Willy's fishing quest", slow, async () => {
+	it("edits and completes Willy's fishing quest", async () => {
 		await load(insertQuests(fixture, FISHING));
 		const fishing = quest("Fishing");
 		expect(fishing.helpWanted).toBe(true);

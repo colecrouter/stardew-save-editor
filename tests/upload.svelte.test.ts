@@ -1,6 +1,5 @@
 import { fireEvent, render, waitFor } from "@testing-library/svelte";
 import { describe, expect, it, vi } from "vitest";
-import { setup as mockIDB } from "vitest-indexeddb";
 import {
 	SaveManager,
 	setSaveManagerContext,
@@ -26,8 +25,6 @@ const renderUploadPage = () => {
 };
 
 describe("Upload page", () => {
-	mockIDB();
-
 	it("says how to choose a save in the drop zone", () => {
 		const { page, cleanup } = renderUploadPage();
 		expect(page.getByLabelText("Save file").getAttribute("type")).toBe("file");

@@ -342,7 +342,7 @@ describe("quest journal operations", () => {
 				);
 				expect(result?.started).toEqual([]);
 				for (const extra of [
-					{ mailReceived: null },
+					{ mailReceived: [null] },
 					{
 						stats: {
 							Values: [
@@ -357,7 +357,11 @@ describe("quest journal operations", () => {
 							],
 						},
 					},
-					{ questLog: [baseQuest({ dailyQuest: "true" })] },
+					{
+						stats: {
+							Values: [{ key: "BillboardQuestsDone", value: 4294967295 }],
+						},
+					},
 				]) {
 					const invalid = fixture([
 						baseQuest({ id: undefined, dailyQuest: true }),
@@ -421,7 +425,7 @@ describe("quest journal operations", () => {
 			}),
 	);
 	it.effect(
-		"keeps malformed/singleton journals visible without opening writes and roundtrips supported fields",
+		"keeps omitted and nil-slot journals visible without opening writes and roundtrips supported fields",
 		() =>
 			Effect.gen(function* () {
 				const document = fixture();
@@ -438,13 +442,16 @@ describe("quest journal operations", () => {
 					readQuestJournals(parser.parse(exportDocument(after)))[0]?.quests[0]
 						?.reward,
 				).toBe(123);
-				for (const log of [null, false, { opaque: "invalid container" }]) {
-					const invalid = fixture();
-					Object.assign(invalid.SaveGame.player, { questLog: log });
-					expect(readQuestJournals(invalid)[0]?.supported).toBe(false);
-				}
+				const omitted = fixture();
+				delete omitted.SaveGame.player.questLog;
+				expect(readQuestJournals(omitted)[0]?.supported).toBe(false);
+				const nilSlots = fixture([null]);
+				expect(readQuestJournals(nilSlots)[0]).toMatchObject({
+					supported: true,
+					quests: [],
+					unsupportedCount: 1,
+				});
 			}),
-		30_000,
 	);
 });
 

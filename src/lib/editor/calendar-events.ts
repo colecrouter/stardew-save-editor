@@ -8,7 +8,6 @@ import {
 import { createGameRandom } from "../game-random.ts";
 import { characters } from "../NPCs.ts";
 import type { SaveDocument } from "./domain.ts";
-import { record } from "./plain-data.ts";
 
 export interface CalendarEvent {
 	readonly day: number;
@@ -35,13 +34,9 @@ export interface CalendarEventContext {
 // Source metadata: https://github.com/kronosta/stardew-data/blob/main/Data/Characters.json
 const hiddenUntilMet = new Set(["Dwarf", "Sandy", "Krobus"]);
 const vanilla = new Set<string>(characters);
-const safeInteger = (value: unknown): number | undefined => {
-	if (
-		typeof value !== "number" &&
-		typeof value !== "bigint" &&
-		!(typeof value === "string" && /^\d+$/.test(value))
-	)
-		return undefined;
+const safeInteger = (
+	value: number | bigint | undefined,
+): number | undefined => {
 	// RNG helpers use numbers; only exactly representable saved IDs may cross.
 	const number = Number(value);
 	return Number.isSafeInteger(number) ? number : undefined;
@@ -56,7 +51,7 @@ export function readCalendarEventContext(
 	const notes: string[] = [];
 	const seed = safeInteger(game.uniqueIDForThisGame);
 	const random =
-		seed !== undefined && typeof game.useLegacyRandom === "boolean"
+		seed !== undefined && game.useLegacyRandom !== undefined
 			? { seed, legacy: game.useLegacyRandom }
 			: undefined;
 	if (!random)
@@ -64,31 +59,28 @@ export function readCalendarEventContext(
 			"Bookseller dates are unavailable because the saved random seed or randomization mode is unsupported.",
 		);
 	const mail = host.mailReceived ?? [];
-	const mailSupported =
-		host.mailReceived == null ||
-		(Array.isArray(host.mailReceived) &&
-			mail.every((entry) => typeof entry === "string"));
+	const mailSupported = mail.every((entry) => entry !== null);
 	if (!mailSupported)
 		notes.push(
 			"Desert Festival availability is unknown because saved mail is unsupported.",
 		);
 	const met = new Set((host.friendshipData ?? []).map((row) => row.key));
-	// Known locations already have decoded arrays. Opaque mod locations can
-	// expose resident extension data, so retain the explicit boundary check there.
-	const residents = (game.locations ?? []).flatMap((location) => {
-		if (!location) return [];
-		if (location.$type === "$unknown")
-			return Array.isArray(location.characters) ? location.characters : [];
-		return location.characters ?? [];
-	});
+	// Only generated residents carry trusted birthday fields. Opaque location
+	// payloads cannot establish vanilla NPC semantics from similarly named keys.
+	const residents = (game.locations ?? []).flatMap((location) =>
+		location != null && location.$type !== "$unknown"
+			? (location.characters ?? [])
+			: [],
+	);
 	const candidates = new Map<
 		string,
 		{ season: GameDate["season"]; day: number }[]
 	>();
 	for (const resident of residents) {
 		if (
-			!record(resident) ||
-			typeof resident.name !== "string" ||
+			resident === null ||
+			resident.$type === "$unknown" ||
+			resident.name === undefined ||
 			!vanilla.has(resident.name)
 		)
 			continue;

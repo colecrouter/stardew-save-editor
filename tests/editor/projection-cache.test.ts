@@ -47,65 +47,61 @@ const required = <T>(value: T | undefined): T => {
 	return value;
 };
 
-it(
-	"shares immutable chest views across unrelated edits and invalidates item edits and Undo/Redo",
-	{ timeout: 15000 },
-	async () => {
-		// Cache identity depends on relevant edits, not the size of the imported save.
-		const document = tinyEditorFixture();
-		Object.assign(document.SaveGame, { locations: locations() });
-		const opened = await openTestDocument(document);
-		try {
-			const model = opened.model;
-			const original = required(get(model.view));
-			const chest = required(original.chests[0]);
-			const item = required(chest.slots[0]);
-			expect(item).not.toHaveProperty("raw");
-			expect(item.quantity).toBe(20);
-			// Immutable presentation objects may be shared; neither shallow nor nested
-			// mutation can poison the next cache hit. Snapshots remain mutable copies.
-			expect(() => Object.assign(item, { quantity: 90 })).toThrow(TypeError);
-			expect(() =>
-				Object.assign(required(item.visual).sourceRect, { x: 900 }),
-			).toThrow(TypeError);
-			const snapshot = await model.snapshot();
-			snapshot.document.SaveGame.player.farmName = "Only the detached copy";
-			const edit = await model.commands.transact(
-				setFarmSettings({ name: "Cache test" }),
-			);
-			expect(edit && Result.isSuccess(edit)).toBe(true);
-			const renamed = required(get(model.view));
-			expect(renamed.chests).toBe(original.chests);
-			expect(renamed.farm.name).toBe("Cache test");
-			await model.commands.undo();
-			expect(required(get(model.view)).chests).toBe(original.chests);
-			await model.commands.redo();
-			expect(required(get(model.view)).chests).toBe(original.chests);
-			const changed = await model.commands.transact(
-				setInventoryItem({
-					ownerId: chest.ownerId,
-					entityId: item.entityId,
-					property: "stack",
-					value: 25,
-				}),
-			);
-			expect(changed && Result.isSuccess(changed)).toBe(true);
-			const updated = required(get(model.view)).chests;
-			expect(updated).not.toBe(original.chests);
-			expect(updated[0]?.slots[0]?.quantity).toBe(25);
-			await model.commands.undo();
-			expect(required(get(model.view)).chests[0]?.slots[0]?.quantity).toBe(20);
-			await model.commands.redo();
-			expect(required(get(model.view)).chests[0]?.slots[0]?.quantity).toBe(25);
-			// Views never carry mod fields, but exports/snapshots still preserve them.
-			expect(stringifySavedData((await model.snapshot()).document)).toContain(
-				'"opaque":"preserved"',
-			);
-		} finally {
-			await opened.close();
-		}
-	},
-);
+it("shares immutable chest views across unrelated edits and invalidates item edits and Undo/Redo", async () => {
+	// Cache identity depends on relevant edits, not the size of the imported save.
+	const document = tinyEditorFixture();
+	Object.assign(document.SaveGame, { locations: locations() });
+	const opened = await openTestDocument(document);
+	try {
+		const model = opened.model;
+		const original = required(get(model.view));
+		const chest = required(original.chests[0]);
+		const item = required(chest.slots[0]);
+		expect(item).not.toHaveProperty("raw");
+		expect(item.quantity).toBe(20);
+		// Immutable presentation objects may be shared; neither shallow nor nested
+		// mutation can poison the next cache hit. Snapshots remain mutable copies.
+		expect(() => Object.assign(item, { quantity: 90 })).toThrow(TypeError);
+		expect(() =>
+			Object.assign(required(item.visual).sourceRect, { x: 900 }),
+		).toThrow(TypeError);
+		const snapshot = await model.snapshot();
+		snapshot.document.SaveGame.player.farmName = "Only the detached copy";
+		const edit = await model.commands.transact(
+			setFarmSettings({ name: "Cache test" }),
+		);
+		expect(edit && Result.isSuccess(edit)).toBe(true);
+		const renamed = required(get(model.view));
+		expect(renamed.chests).toBe(original.chests);
+		expect(renamed.farm.name).toBe("Cache test");
+		await model.commands.undo();
+		expect(required(get(model.view)).chests).toBe(original.chests);
+		await model.commands.redo();
+		expect(required(get(model.view)).chests).toBe(original.chests);
+		const changed = await model.commands.transact(
+			setInventoryItem({
+				ownerId: chest.ownerId,
+				entityId: item.entityId,
+				property: "stack",
+				value: 25,
+			}),
+		);
+		expect(changed && Result.isSuccess(changed)).toBe(true);
+		const updated = required(get(model.view)).chests;
+		expect(updated).not.toBe(original.chests);
+		expect(updated[0]?.slots[0]?.quantity).toBe(25);
+		await model.commands.undo();
+		expect(required(get(model.view)).chests[0]?.slots[0]?.quantity).toBe(20);
+		await model.commands.redo();
+		expect(required(get(model.view)).chests[0]?.slots[0]?.quantity).toBe(25);
+		// Views never carry mod fields, but exports/snapshots still preserve them.
+		expect(stringifySavedData((await model.snapshot()).document)).toContain(
+			'"opaque":"preserved"',
+		);
+	} finally {
+		await opened.close();
+	}
+});
 
 it.effect(
 	"versions actual committed inputs for custom writes, ID collisions and Undo",

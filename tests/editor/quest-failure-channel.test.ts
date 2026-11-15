@@ -17,11 +17,12 @@ it.effect(
 		Effect.gen(function* () {
 			const document = tinyFixture();
 			Object.assign(document.SaveGame, {
-				constructedBuildings: ["Coop"],
+				constructedBuildings: ["Coop", null],
 			});
 			Object.assign(document.SaveGame.player, {
 				questLog: [
 					{
+						$type: "StardewValley.Quests.Quest",
 						id: "parent",
 						_questTitle: "Parent quest",
 						questType: 1,
@@ -43,7 +44,7 @@ it.effect(
 					],
 				},
 				mailReceived: [],
-				activeDialogueEvents: [{ key: 5, value: 4 }],
+				activeDialogueEvents: [{ key: "5", value: 4 }],
 				previousActiveDialogueEvents: [],
 			});
 			const session = yield* makeHistorySession(document);
@@ -62,7 +63,7 @@ it.effect(
 			if (Result.isFailure(result)) {
 				expect(result.failure).toBeInstanceOf(QuestInvalid);
 				expect(result.failure.message).toBe(
-					"This farmer's dialogue topic keys are unsupported.",
+					"The team's constructed-building history is unsupported.",
 				);
 			}
 			const after = yield* session.snapshot;

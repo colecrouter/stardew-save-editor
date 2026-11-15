@@ -12,8 +12,12 @@ import {
 	setQiOrder,
 } from "../../src/lib/editor/qi-order-operations.ts";
 import templates from "../../generated/qiquests.json";
+import type { EditorGame } from "$lib/editor/domain.ts";
 
-function fixture(board: unknown = [], active: unknown = []) {
+function fixture(
+	board: EditorGame["availableSpecialOrders"] = [],
+	active: EditorGame["specialOrders"] = [],
+) {
 	const document = tinyFixture();
 	Object.assign(document.SaveGame, {
 		year: 2,
@@ -27,31 +31,38 @@ function fixture(board: unknown = [], active: unknown = []) {
 	});
 	return document;
 }
-const offered = (key: string) => ({
+type Order = NonNullable<NonNullable<EditorGame["specialOrders"]>[number]>;
+const offered = (key: string): Order => ({
 	questKey: key,
 	orderType: "Qi",
 	questState: "InProgress",
 	opaque: "007",
 });
-const inProgress = (key: string, rule: string, applied = true) => ({
+const inProgress = (key: string, rule: string, applied = true): Order => ({
 	...offered(key),
 	specialRule: rule,
 	appliedSpecialRules: applied,
 	dueDate: 155,
-	participantsIDs: [44n],
-	objectives: [{ currentCount: 3, opaque: "keep" }],
+	participantsIDs: [{ key: 44n, value: true }],
+	objectives: [
+		{
+			$type: "StardewValley.SpecialOrders.Objectives.CollectObjective",
+			currentCount: 3,
+			opaque: "keep",
+		},
+	],
 });
 describe("Qi order transactions", () => {
-	it("preserves opaque order keys without coercing them during projection", () => {
+	it("preserves absent order keys and opaque metadata during projection", () => {
 		const document = fixture([
-			{ orderType: "Town", questKey: { toString: "opaque" } },
+			{ orderType: "Town", modQuestKey: { toString: "opaque" } },
 		]);
 		const before = structuredClone(document);
 		expect(readQiOrders(document).offeredCount).toBe(0);
 		expect(document).toEqual(before);
 	});
-	it("does not normalize empty, singleton or malformed lists while viewing", () => {
-		for (const board of ["", {}, [offered("QiChallenge3")]]) {
+	it("does not normalize empty, singleton or nil-slot lists while viewing", () => {
+		for (const board of [[], [null], [offered("QiChallenge3")]]) {
 			const document = fixture(board);
 			const before = structuredClone(document);
 			readQiOrders(document);
@@ -169,7 +180,6 @@ describe("Qi order transactions", () => {
 					).toBe("InProgress");
 				}
 			}),
-		30_000,
 	);
 	it.effect(
 		"cancels difficulty contributions once and retains other rule/shrine sources with exact Undo",
@@ -204,9 +214,13 @@ describe("Qi order transactions", () => {
 			}),
 	);
 	it.effect(
-		"retains terminal, duplicate, unknown, nil and malformed targets unchanged",
+		"retains terminal, duplicate, unknown, nil and incomplete targets unchanged",
 		() =>
 			Effect.gen(function* () {
+				// Absence is decoded optional state; an explicit undefined property is
+				// not a saved value and must not bypass the history ownership boundary.
+				const incomplete = inProgress("QiChallenge3", "MINE_HARD");
+				delete incomplete.appliedSpecialRules;
 				for (const document of [
 					fixture(
 						[],
@@ -222,16 +236,8 @@ describe("Qi order transactions", () => {
 						[inProgress("QiChallenge3", ""), inProgress("QiChallenge3", "")],
 					),
 					fixture([], [inProgress("UnknownMod", "")]),
-					fixture(null, []),
-					fixture(
-						[],
-						[
-							{
-								...inProgress("QiChallenge3", "MINE_HARD"),
-								appliedSpecialRules: "true",
-							},
-						],
-					),
+					fixture([null], []),
+					fixture([], [incomplete]),
 				]) {
 					const session = yield* makeHistorySession(document);
 					const key =

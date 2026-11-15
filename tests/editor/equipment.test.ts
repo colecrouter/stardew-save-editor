@@ -1,3 +1,5 @@
+import type { Item } from "../../src/lib/editor/domain.ts";
+import type { SaveDocument } from "../../src/lib/editor/domain.ts";
 import { malformedFixture } from "../helpers/editor-document.ts";
 import { Effect, Result } from "effect";
 import { it } from "@effect/vitest";
@@ -15,13 +17,13 @@ import { tinyFixture } from "../helpers/editor-document.ts";
 import type { InventoryMoveRequest } from "../../src/lib/editor/inventory-movement.ts";
 
 const raw = (type: string, extra: Record<string, unknown> = {}) =>
-	malformedFixture<import("../../src/lib/editor/domain.ts").Item>({
+	malformedFixture<Item>({
 		$type: savedTypeId(type),
 		name: type,
 		stack: 1,
 		...extra,
 	});
-const owner = (doc: import("../../src/lib/editor/domain.ts").SaveDocument) =>
+const owner = (doc: SaveDocument) =>
 	doc.SaveGame.player as unknown as Record<string, unknown>;
 const request = (
 	entityId: string,

@@ -1,23 +1,20 @@
-import { readFile } from "node:fs/promises";
+import publicSaveXml from "./TestSave?raw";
 import { beforeEach, describe, expect, it } from "vitest";
-import { setup as mockIDB } from "vitest-indexeddb";
 import { SaveManager } from "../src/lib/SaveManager.svelte";
 import { assertXmlEqual } from "./helpers/xmlDiff";
-import { fullSaveTimeout } from "./helpers/full-save-budget";
 
 // helpers moved to tests/helpers/xmlDiff.ts
 
-// Full public-save fixtures verify codec correctness rather than latency. Allow
-// their integration work at default concurrency without changing unit-suite budgets.
-describe("Import/Export roundtrip", { timeout: 45_000 }, () => {
-	mockIDB();
+// Full public-save fixtures verify codec correctness rather than latency. The
+// shared runner deadline covers this work under normal test concurrency.
+describe("Import/Export roundtrip", () => {
 	let saveManager: SaveManager;
 	let originalXml: string;
 
-	// Full-file setup has its own deadline, independent of test-body options.
+	// Setup uses the shared hook deadline independently of the test-body deadline.
 	beforeEach(async () => {
-		const fileBlob = await readFile("tests/TestSave");
-		originalXml = fileBlob.toString("utf-8");
+		const fileBlob = publicSaveXml;
+		originalXml = fileBlob;
 		let promise: Promise<void | boolean> = Promise.resolve();
 		const cleanup = $effect.root(() => {
 			saveManager = new SaveManager();
@@ -25,7 +22,7 @@ describe("Import/Export roundtrip", { timeout: 45_000 }, () => {
 		});
 		await promise;
 		cleanup();
-	}, fullSaveTimeout);
+	});
 
 	it("exports identical XML after immediate re-export", async () => {
 		const blob = await saveManager.export(true);
@@ -37,13 +34,11 @@ describe("Import/Export roundtrip", { timeout: 45_000 }, () => {
 	});
 });
 
-// Full public-save fixtures verify codec correctness rather than latency. Allow
-// their integration work at default concurrency without changing unit-suite budgets.
-describe("Number-like text roundtrip", { timeout: 45_000 }, () => {
-	mockIDB();
-
+// Full public-save fixtures verify codec correctness rather than latency. The
+// shared runner deadline covers this work under normal test concurrency.
+describe("Number-like text roundtrip", () => {
 	it("keeps text such as a farm called 007 as written", async () => {
-		const xml = (await readFile("tests/TestSave", "utf-8"))
+		const xml = publicSaveXml
 			.replace("<farmName>Test</farmName>", "<farmName>007</farmName>")
 			.replace(
 				"<favoriteThing>Unit Tests</favoriteThing>",

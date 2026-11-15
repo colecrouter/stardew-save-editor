@@ -42,11 +42,20 @@ internal sealed class ContentWorkspace : IDisposable
         // delete sibling artifacts such as generated/save-format/save.ts.
         string source = Path.Combine(projectRoot, "generated");
         Directory.CreateDirectory(GeneratedDirectory);
+        CopyExistingTree(source, GeneratedDirectory);
+        // Steam achievement images are maintained separately from game extraction.
+        // Preserve only that owned folder; stale extracted assets must still expire.
+        CopyExistingTree(Path.Combine(projectRoot, "static", "assets", "achievements"), Path.Combine(AssetsDirectory, "achievements"));
+    }
+
+    private static void CopyExistingTree(string source, string destination)
+    {
         if (!Directory.Exists(source)) return;
+        Directory.CreateDirectory(destination);
         foreach (string directory in Directory.EnumerateDirectories(source, "*", SearchOption.AllDirectories))
-            Directory.CreateDirectory(Path.Combine(GeneratedDirectory, Path.GetRelativePath(source, directory)));
+            Directory.CreateDirectory(Path.Combine(destination, Path.GetRelativePath(source, directory)));
         foreach (string file in Directory.EnumerateFiles(source, "*", SearchOption.AllDirectories))
-            File.Copy(file, Path.Combine(GeneratedDirectory, Path.GetRelativePath(source, file)));
+            File.Copy(file, Path.Combine(destination, Path.GetRelativePath(source, file)));
     }
 
     public void Publish()

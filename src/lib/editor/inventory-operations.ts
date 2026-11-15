@@ -1,5 +1,12 @@
+import type { replayFarmerSwap } from "./farmer-roster-operations.ts";
+import type { replayBuildingUpgrade } from "./building-operations.ts";
+import type * as ItemCatalog from "../ItemData.ts";
+import {
+	isKnownItem,
+	type InventoryValue,
+	type KnownItem,
+} from "./inventory-values.ts";
 import { readEquipmentSlot } from "./equipment.ts";
-import { savedType } from "./saved-types.ts";
 import { create as createCopyOnWrite } from "mutative";
 import { freezeDraftState } from "./draft-state.ts";
 import { samePlainData } from "./plain-data.ts";
@@ -22,6 +29,7 @@ import {
 	readItemPropertyContext,
 	ItemPropertyInvalid,
 	type ItemPropertyChange,
+	type ItemPatch,
 } from "./item-properties.ts";
 import {
 	prepareTrinketPropertyChange,
@@ -33,12 +41,22 @@ import {
 	type InventoryLocation,
 } from "./equipment.ts";
 import { Context, Data, Effect, Result, Schema, SchemaIssue } from "effect";
-import { emptySlot, farmers, type SaveDocument } from "./domain.ts";
+import {
+	emptySlot,
+	farmers,
+	type Farmer,
+	type Item,
+	type SaveDocument,
+} from "./domain.ts";
 import type { makeTransactionDraftFromCommitted } from "./transaction-draft.ts";
 import {
 	recordAnnotatedOperation,
 	withReviewMetadata,
 } from "./transaction-annotations.ts";
+import type { MutationError } from "./domain.ts";
+import type { UnplacedItem } from "./animal-buildings.ts";
+import type { BuildingInvalid } from "./building-operations.ts";
+import type { FarmerRosterInvalid } from "./farmer-roster-operations.ts";
 
 /** Expected unsupported, invalid or stale backpack request. */
 export class BackpackItemInvalid extends Data.TaggedError(
@@ -132,16 +150,23 @@ const record = (value: unknown): value is Record<string, unknown> =>
 	value !== null && typeof value === "object" && !Array.isArray(value);
 // Field presence and serialized type determine editability; catalog guesses must
 // never turn opaque modded records, tools or big craftables into ordinary objects.
-function editable(item: unknown) {
+function editable(item: InventoryValue): item is Extract<
+	KnownItem,
+	{
+		readonly $type:
+			| "StardewValley.Object"
+			| "StardewValley.Objects.ColoredObject";
+	}
+> {
 	return (
-		record(item) &&
-		!emptySlot(item) &&
-		(savedType(item) === "Object" || savedType(item) === "ColoredObject") &&
+		isKnownItem(item) &&
+		(item.$type === "StardewValley.Object" ||
+			item.$type === "StardewValley.Objects.ColoredObject") &&
 		item.bigCraftable === false
 	);
 }
-const numeric = (value: unknown): value is number =>
-	typeof value === "number" && Number.isFinite(value);
+const numeric = (value: number | undefined): value is number =>
+	value !== undefined && Number.isFinite(value);
 
 /** Whether catalog metadata permits ordinary-object edits. A catalog entry must say Object, but an
  * item the catalog has never heard of (modded content) stays editable as long as its saved
@@ -170,29 +195,25 @@ export function objectMetadataAllowsEdits(
  * CategoriesWithQuality; this keeps the shared policy free of eager catalog data.
  */
 export function getInventoryItemCapabilities(
-	raw: unknown,
+	item: InventoryValue,
 	metadataResolved: boolean,
 	qualityCategory: boolean,
 ) {
-	const supported = metadataResolved && editable(raw);
-	const item = record(raw) ? raw : undefined;
+	const supported = metadataResolved && editable(item);
+	const newItem = editable(item) ? item : undefined;
 	return {
-		canStack: supported && numeric(item?.stack),
-		canQuality: supported && qualityCategory && numeric(item?.quality),
+		canStack: supported && numeric(newItem?.stack),
+		canQuality: supported && qualityCategory && numeric(newItem?.quality),
 	};
 }
 
-/** Inspect only record-shaped farmers; malformed opaque entries stay in the save. */
+/** The generated farmer collection already excludes nil slots. */
 export function backpackFarmers(document: SaveDocument) {
-	return farmers(document).filter(record);
+	return farmers(document);
 }
 /** A session handle requires a real serialized farmer identifier, not 'undefined'. */
-export function hasBackpackFarmerId(farmer: unknown): boolean {
-	if (!record(farmer)) return false;
-	const id = farmer.UniqueMultiplayerID;
-	return typeof id === "string"
-		? id.length > 0
-		: typeof id === "bigint" || (typeof id === "number" && Number.isFinite(id));
+export function hasBackpackFarmerId(farmer: Farmer): boolean {
+	return farmer.UniqueMultiplayerID !== undefined;
 }
 
 /** Domain-owned cache dependencies. Compare committed immutable branches before
@@ -228,55 +249,41 @@ export class InventoryEdits extends Context.Service<
 		swapFarmers: (
 			sourceId: string,
 			targetId: string,
-		) => Effect.Effect<
-			void,
-			| import("./farmer-roster-operations.ts").FarmerRosterInvalid
-			| import("./domain.ts").MutationError
-		>;
+		) => Effect.Effect<void, FarmerRosterInvalid | MutationError>;
 
 		/** Building transitions can relocate placed storage; this capability owns those paired handles. */
 		upgradeBuilding: (
 			buildingId: string,
 			target: string,
-		) => Effect.Effect<
-			import("./animal-buildings.ts").UnplacedItem[],
-			| import("./building-operations.ts").BuildingInvalid
-			| import("./domain.ts").MutationError
-		>;
+		) => Effect.Effect<UnplacedItem[], BuildingInvalid | MutationError>;
 
 		/** Award the fixed quest reward without accepting caller-supplied item data. */
 		grantPrizeTicket: (
 			farmerId: string,
-		) => Effect.Effect<
-			"added" | "noRoom",
-			BackpackItemInvalid | import("./domain.ts").MutationError
-		>;
+		) => Effect.Effect<"added" | "noRoom", BackpackItemInvalid | MutationError>;
 		resize: (
 			farmerId: string,
 			size: number,
-		) => Effect.Effect<
-			boolean,
-			BackpackItemInvalid | import("./domain.ts").MutationError
-		>;
+		) => Effect.Effect<boolean, BackpackItemInvalid | MutationError>;
 		/** Resolve and authorize one captured quality batch before a single staging write. */
 		setQualityBatch: (
 			request: InventoryQualityBatch,
 		) => Effect.Effect<
 			{ readonly changed: number },
-			BackpackItemInvalid | import("./domain.ts").MutationError
+			BackpackItemInvalid | MutationError
 		>;
 
 		set: (
 			change: InventoryItemChange,
 		) => Effect.Effect<
 			{ changed: boolean; label: string; tags: readonly string[] },
-			BackpackItemInvalid | import("./domain.ts").MutationError
+			BackpackItemInvalid | MutationError
 		>;
 		setProperty: (
 			change: ItemPropertyChange,
 		) => Effect.Effect<
 			{ changed: boolean; label: string; tags: readonly string[] },
-			ItemPropertyInvalid | import("./domain.ts").MutationError
+			ItemPropertyInvalid | MutationError
 		>;
 	}
 >()("v2/InventoryEdits") {}
@@ -315,30 +322,25 @@ export const setInventoryItemProperty = Effect.fn("Inventory.setProperty")(
 	},
 );
 
-/** Inventory authority includes opaque farmer entries and complete item records. */
+/** Inventory authority retains complete farmer equipment and item records, including opaque item subclasses. */
 export function inventorySnapshot(document: SaveDocument) {
 	return [
-		...farmers(document).map((farmer) =>
-			record(farmer)
-				? {
-						id: farmer.UniqueMultiplayerID,
-						items: farmer.items,
-						maxItems: farmer.maxItems,
-						// Field presence matters too: a raw draft cannot eagerly add empty
-						// equipment to a save whose corresponding field was absent.
-						equipment: Object.fromEntries(
-							equipmentSlots
-								.filter((key) => Object.hasOwn(farmer, key))
-								.map((key) => [key, farmer[key]]),
-						),
-					}
-				: farmer,
-		),
+		...farmers(document).map((farmer) => ({
+			id: farmer.UniqueMultiplayerID,
+			items: farmer.items,
+			maxItems: farmer.maxItems,
+			// Field presence matters: unauthorized drafts cannot materialize equipment.
+			equipment: Object.fromEntries(
+				equipmentSlots
+					.filter((key) => Object.hasOwn(farmer, key))
+					.map((key) => [key, farmer[key]]),
+			),
+		})),
 		...discoverPlacedChests(document).map((chest) => ({
 			chest: chest.id,
 			location: chest.location,
 			label: chest.label,
-			raw: chest.raw,
+			container: chest.container,
 		})),
 	];
 }
@@ -361,16 +363,16 @@ export function makeInventoryEdits(
 	// inventory writes. Retain the
 	// baseline only while this draft is open; replay retains no published save object.
 	let authority: SaveDocument | undefined = originalDocument;
-	let preparedInventory: InventoryIdentityState = {
+	let preparedInventory = {
 		identities,
 		equipmentIdentities,
 		nextIdentity,
-	};
+	} satisfies InventoryIdentityState;
 	const writes: {
 		ownerId: string;
 		location: InventoryLocation;
-		patch: Record<string, unknown>;
-		replacement?: Record<string, unknown>;
+		patch: ItemPatch;
+		replacement?: Item;
 	}[] = [];
 	const contexts = new Map<string, string>();
 	const resizes: { farmerId: string; size: number }[] = [];
@@ -381,7 +383,7 @@ export function makeInventoryEdits(
 				kind: "farmer-swap";
 				sourceId: string;
 				targetId: string;
-				apply: typeof import("./farmer-roster-operations.ts").replayFarmerSwap;
+				apply: typeof replayFarmerSwap;
 		  }
 		| { kind: "write"; write: (typeof writes)[number] }
 		| { kind: "quality-batch"; writes: readonly (typeof writes)[number][] }
@@ -390,7 +392,7 @@ export function makeInventoryEdits(
 				kind: "upgrade";
 				buildingId: string;
 				target: string;
-				apply: typeof import("./building-operations.ts").replayBuildingUpgrade;
+				apply: typeof replayBuildingUpgrade;
 		  }
 	)[] = [];
 	const recordWrite = (write: (typeof writes)[number]) => {
@@ -426,7 +428,7 @@ export function makeInventoryEdits(
 							typeof write.location === "number"
 								? owner?.slots[write.location]
 								: readEquipmentSlot(owner?.farmer, write.location);
-						if (!record(item))
+						if (!isKnownItem(item))
 							throw new Error(
 								"Approved quality batch item disappeared during replay",
 							);
@@ -441,13 +443,13 @@ export function makeInventoryEdits(
 							: readEquipmentSlot(owner?.farmer, write.location);
 					if (write.replacement && owner && typeof write.location === "number")
 						owner.slots[write.location] = structuredClone(write.replacement);
-					else if (record(item))
+					else if (isKnownItem(item))
 						Object.assign(item, structuredClone(write.patch));
 				} else {
 					const resize = step.resize,
 						owner = ownerIn(expected, resize.farmerId);
 					// Capacity replay follows its original place in the transaction journal.
-					if (owner?.farmer && record(owner.farmer)) {
+					if (owner?.farmer) {
 						owner.slots.length = Math.min(owner.slots.length, resize.size);
 						while (owner.slots.length < resize.size) owner.slots.push(null);
 						owner.farmer.maxItems = resize.size;
@@ -527,7 +529,7 @@ export function makeInventoryEdits(
 			? identities[ownerId]
 			: undefined;
 		const items = owner?.slots;
-		if (!owner || !ids || !Array.isArray(items) || ids.length !== items.length)
+		if (!owner || !ids || items === undefined || ids.length !== items.length)
 			return Result.fail(
 				new ItemPropertyInvalid({
 					message: "This item is no longer editable in this inventory.",
@@ -549,7 +551,7 @@ export function makeInventoryEdits(
 				: typeof location === "number"
 					? items[location]
 					: readEquipmentSlot(owner.farmer, location);
-		if (location === undefined || !record(item) || emptySlot(item))
+		if (location === undefined || !isKnownItem(item) || emptySlot(item))
 			return Result.fail(
 				new ItemPropertyInvalid({
 					message: "This item is no longer editable in this inventory.",
@@ -558,7 +560,7 @@ export function makeInventoryEdits(
 		return Result.succeed({
 			location,
 			item,
-			ownerName: typeof owner.name === "string" ? owner.name : undefined,
+			ownerName: owner.name,
 			context: owner.farmer
 				? readItemPropertyContext(document, owner.farmer)
 				: undefined,
@@ -647,26 +649,13 @@ export function makeInventoryEdits(
 		},
 	);
 
-	const metadataFrom = (
-		catalog: typeof import("../ItemData.ts"),
-		item: Record<string, unknown>,
-	) => {
-		// Imported XML may contain non-scalar identifiers or a non-text name.
-		// Those records have no safe catalog lookup; unexpected catalog exceptions
-		// remain defects instead of masquerading as missing metadata.
-		const scalarKey = (value: unknown) =>
-			value == null || typeof value === "string" || typeof value === "number";
-		const supported =
-			scalarKey(item.itemId) &&
-			scalarKey(item.preservedParentSheetIndex) &&
-			(item.name == null || typeof item.name === "string");
-		const info = supported
-			? catalog.ResolveItemData(catalog.readCatalogItem(item) ?? {})
-			: undefined;
-		return { catalog, info };
+	const metadataFrom = (catalog: typeof ItemCatalog, item: KnownItem) => {
+		// A checked target retains its generated fields. Catalog resolution is lazy,
+		// but does not need to revalidate the decoded item's scalar representation.
+		return { catalog, info: catalog.ResolveItemData(item) };
 	};
 	const metadataFor = Effect.fn("Inventory.metadata")(function* (
-		item: Record<string, unknown>,
+		item: KnownItem,
 	) {
 		// Catalog data remains lazy; calendar/Farm startup only projects raw records.
 		const catalog = yield* Effect.promise(() => import("../ItemData.ts"));
@@ -676,8 +665,8 @@ export function makeInventoryEdits(
 	const reviewFor = (
 		ownerId: string,
 		entityId: string,
-		ownerName: unknown,
-		item: Record<string, unknown>,
+		ownerName: string | undefined,
+		item: KnownItem,
 		label: string,
 		property: string,
 	) => ({
@@ -693,7 +682,7 @@ export function makeInventoryEdits(
 	const apply = Effect.fn("Inventory.authorizePatch")(function* (
 		resolved: Effect.Success<ReturnType<typeof target>>,
 		ownerId: string,
-		patch: Record<string, unknown>,
+		patch: ItemPatch,
 	) {
 		// A no-op still validates its checkout version, but produces no patch or
 		// history entry. A concurrent edit must never be hidden by the no-op path.
@@ -710,7 +699,7 @@ export function makeInventoryEdits(
 				typeof resolved.location === "number"
 					? currentOwner?.slots[resolved.location]
 					: readEquipmentSlot(currentOwner?.farmer, resolved.location);
-			if (!record(item))
+			if (!isKnownItem(item))
 				throw new Error("Authorized inventory item disappeared");
 			Object.assign(item, patch);
 		}, resolved.version);
@@ -722,7 +711,7 @@ export function makeInventoryEdits(
 		});
 		return true;
 	});
-	const service: typeof InventoryEdits.Service = {
+	const service = {
 		swapFarmers: Effect.fn("Inventory.swapFarmers")(function* (
 			sourceId: string,
 			targetId: string,
@@ -780,7 +769,7 @@ export function makeInventoryEdits(
 			const before = discoverPlacedChests(snapshot.state.document);
 			const handles = new Map(
 				before.map((chest) => [
-					chest.raw,
+					chest.container,
 					preparedInventory.identities[chest.id],
 				]),
 			);
@@ -801,17 +790,17 @@ export function makeInventoryEdits(
 			const nextIds = { ...preparedInventory.identities };
 			for (const chest of before) delete nextIds[chest.id];
 			for (const chest of after) {
-				const ids = handles.get(chest.raw);
+				const ids = handles.get(chest.container);
 				if (ids) nextIds[chest.id] = [...ids];
 			}
 			// No new/removed storage records are expected from a supported tier change.
 			// Reject a collision or lost record rather than reallocating live item identities.
 			if (
 				after.length !== before.length ||
-				after.some((chest) => !handles.has(chest.raw)) ||
+				after.some((chest) => !handles.has(chest.container)) ||
 				after.some(
 					(chest) =>
-						handles.get(chest.raw) &&
+						handles.get(chest.container) &&
 						!inventoryContainers(snapshot.state.document).some(
 							(owner) => owner.id === chest.id,
 						),
@@ -858,7 +847,7 @@ export function makeInventoryEdits(
 			const stackSlot = destination.slot;
 			if (destination.kind === "stack") {
 				const item = owner.slots[stackSlot];
-				if (!record(item) || typeof item.stack !== "number")
+				if (!isKnownItem(item) || typeof item.stack !== "number")
 					throw new Error("Validated ticket stack disappeared");
 				const patch = { stack: item.stack + 1 };
 				Object.assign(item, patch);
@@ -897,7 +886,6 @@ export function makeInventoryEdits(
 				!authority ||
 				writes.some((write) => write.replacement) ||
 				!owner?.farmer ||
-				!record(owner.farmer) ||
 				!valid.includes(size) ||
 				!valid.includes(owner.slots.length) ||
 				owner.farmer.maxItems !== owner.slots.length ||
@@ -984,7 +972,7 @@ export function makeInventoryEdits(
 						typeof write.location === "number"
 							? owners.get(write.ownerId)?.slots[write.location]
 							: undefined;
-					if (!record(item))
+					if (!isKnownItem(item))
 						throw new Error("Authorized quality batch item disappeared");
 					Object.assign(item, write.patch);
 				}
@@ -1067,7 +1055,7 @@ export function makeInventoryEdits(
 				return yield* new ItemPropertyInvalid({
 					message: "This item does not support that property edit.",
 				});
-			let patch: Record<string, unknown>;
+			let patch: ItemPatch;
 			if (Schema.is(TrinketPropertyChangeSchema)(change)) {
 				const originalOwner = authority && ownerIn(authority, change.ownerId);
 				const originalContext =
@@ -1097,7 +1085,15 @@ export function makeInventoryEdits(
 				change.property === "color" ||
 				change.property === "clothesColor"
 			) {
-				const color = itemColorPatch(item[change.property], change.value);
+				const savedColor =
+					change.property === "color" &&
+					item.$type === "StardewValley.Objects.ColoredObject"
+						? item.color
+						: change.property === "clothesColor" &&
+							  item.$type === "StardewValley.Objects.Clothing"
+							? item.clothesColor
+							: undefined;
+				const color = itemColorPatch(savedColor, change.value);
 				if (!color)
 					return yield* new ItemPropertyInvalid({
 						message: "This saved color cannot be edited safely.",
@@ -1128,7 +1124,7 @@ export function makeInventoryEdits(
 				...review,
 			};
 		}),
-	};
+	} satisfies typeof InventoryEdits.Service;
 	return {
 		service,
 		inventory: () => preparedInventory,

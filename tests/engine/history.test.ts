@@ -1,12 +1,8 @@
-import { vi } from "vitest";
 import { expect, it } from "@effect/vitest";
 import { Effect, Exit } from "effect";
 import type { MutationRequest } from "../../src/lib/editor/domain.ts";
 import { loadFixture, tinyFixture } from "./fixture.ts";
 import { makeHistorySession } from "../../src/lib/editor/history.ts";
-
-// Retain the engine suite's budget for full-save codecs and worker round trips.
-vi.setConfig({ testTimeout: 15_000 });
 
 const money = (value: number): MutationRequest => ({
 	type: "money",
@@ -149,22 +145,19 @@ it.effect(
 		}),
 );
 
-it.effect(
-	"full parsed save can be undone and redone without lost fields",
-	() =>
-		Effect.gen(function* () {
-			const baseline = yield* Effect.promise(loadFixture);
-			const session = yield* makeHistorySession(baseline);
-			const action: MutationRequest = {
-				type: "money",
-				farmerId: String(baseline.SaveGame.player.UniqueMultiplayerID),
-				value: 999,
-			};
-			const edited = yield* session.execute([action]);
-			expect((yield* session.undo).document).toEqual(baseline);
-			expect((yield* session.redo).document).toEqual(edited.document);
-		}),
-	60_000,
+it.effect("full parsed save can be undone and redone without lost fields", () =>
+	Effect.gen(function* () {
+		const baseline = yield* Effect.promise(loadFixture);
+		const session = yield* makeHistorySession(baseline);
+		const action: MutationRequest = {
+			type: "money",
+			farmerId: String(baseline.SaveGame.player.UniqueMultiplayerID),
+			value: 999,
+		};
+		const edited = yield* session.execute([action]);
+		expect((yield* session.undo).document).toEqual(baseline);
+		expect((yield* session.redo).document).toEqual(edited.document);
+	}),
 );
 
 it.effect(

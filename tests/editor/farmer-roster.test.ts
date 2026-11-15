@@ -1,3 +1,4 @@
+import type { SaveDocument } from "../../src/lib/editor/domain.ts";
 import { stringifySavedData } from "../../src/lib/editor/saved-data.ts";
 import { it } from "@effect/vitest";
 import { describe, expect } from "vitest";
@@ -75,9 +76,8 @@ function fixture() {
 	];
 	return document;
 }
-const rawGame = (
-	document: import("../../src/lib/editor/domain.ts").SaveDocument,
-): Record<string, unknown> => document.SaveGame;
+const rawGame = (document: SaveDocument): Record<string, unknown> =>
+	document.SaveGame;
 
 describe("farmer slot reassignment", () => {
 	it("projects named slots without changing ghosts or imported metadata", () => {
@@ -230,51 +230,47 @@ describe("farmer slot reassignment", () => {
 				expect(yield* session.snapshot).toEqual(before);
 			}),
 	);
-	it(
-		"preserves the selected farmer identity and exports a promoted host on a full save",
-		{ timeout: 60_000 },
-		async () => {
-			const document = parser.parse(fixtureXml),
-				host = document.SaveGame.player,
-				guest = structuredClone(host);
-			const hostId = String(host.UniqueMultiplayerID);
-			Object.assign(host, { homeLocation: "FarmHouse" });
-			Object.assign(guest, {
-				UniqueMultiplayerID: 123456789n,
-				name: "Guest",
-				homeLocation: "CabinGuest",
-			});
-			document.SaveGame.farmhands = [guest];
-			const opened = await openEditor(
-				SaveProcessingSync,
-				new TextEncoder().encode(exportDocument(document)),
+	it("preserves the selected farmer identity and exports a promoted host on a full save", async () => {
+		const document = parser.parse(fixtureXml),
+			host = document.SaveGame.player,
+			guest = structuredClone(host);
+		const hostId = String(host.UniqueMultiplayerID);
+		Object.assign(host, { homeLocation: "FarmHouse" });
+		Object.assign(guest, {
+			UniqueMultiplayerID: 123456789n,
+			name: "Guest",
+			homeLocation: "CabinGuest",
+		});
+		document.SaveGame.farmhands = [guest];
+		const opened = await openEditor(
+			SaveProcessingSync,
+			new TextEncoder().encode(exportDocument(document)),
+		);
+		try {
+			await opened.model.commands.selectFarmer("123456789");
+			const outcome = await opened.model.commands.transact(
+				swapFarmers(hostId, "123456789"),
 			);
-			try {
-				await opened.model.commands.selectFarmer("123456789");
-				const outcome = await opened.model.commands.transact(
-					swapFarmers(hostId, "123456789"),
-				);
-				expect(outcome && Result.isSuccess(outcome)).toBe(true);
-				expect(
-					opened.model.atomBindings.registry.get(
-						opened.model.atomBindings.selectedFarmerId,
-					),
-				).toBe("123456789");
-				const exported = await opened.model.commands.export();
-				if (!exported || Result.isFailure(exported))
-					throw new Error("Export failed");
-				expect(
-					parser.parse(new TextDecoder().decode(exported.success)).SaveGame
-						.player.UniqueMultiplayerID,
-				).toBe(123456789n);
-			} finally {
-				await opened.close();
-			}
-		},
-	);
+			expect(outcome && Result.isSuccess(outcome)).toBe(true);
+			expect(
+				opened.model.atomBindings.registry.get(
+					opened.model.atomBindings.selectedFarmerId,
+				),
+			).toBe("123456789");
+			const exported = await opened.model.commands.export();
+			if (!exported || Result.isFailure(exported))
+				throw new Error("Export failed");
+			expect(
+				parser.parse(new TextDecoder().decode(exported.success)).SaveGame.player
+					.UniqueMultiplayerID,
+			).toBe(123456789n);
+		} finally {
+			await opened.close();
+		}
+	});
 });
 
-it.effect.each(["duplicate-home", "opaque-reference"] as const)(
+it.effect.each(["duplicate-home", "opaque-location"] as const)(
 	"rejects %s without changing records or paired identities",
 	(mode) =>
 		Effect.gen(function* () {
@@ -286,8 +282,13 @@ it.effect.each(["duplicate-home", "opaque-reference"] as const)(
 			if (mode === "duplicate-home")
 				Object.assign(required(guest), { homeLocation: "FarmHouse" });
 			else {
-				const cabin = required(inspectFarmerRoster(document).cabins[0]);
-				cabin.farmhandReference = { opaque: "retain" };
+				// Opaque subclasses use the codec representation; malformed known fields
+				// are rejected at import rather than reaching roster inspection.
+				document.SaveGame.locations?.push({
+					$type: "$unknown",
+					$xmlType: { name: "ModHome", namespace: "" },
+					name: "CabinGuest",
+				});
 			}
 			const session = yield* makeHistorySession(document),
 				before = yield* session.snapshot;
@@ -331,3 +332,11 @@ it.effect(
 			expect((yield* session.snapshot).document).toEqual(after.document);
 		}),
 );
+
+it("formats decoded UInt64 play time without losing whole-minute precision", () => {
+	const document = fixture();
+	// Include a remainder and exceed Number's exact integer range to exercise
+	// the saved representation rather than a small numeric fixture.
+	document.SaveGame.player.millisecondsPlayed = 9007199254740999n;
+	expect(readFarmerRoster(document).players[0]?.played).toBe("2501999792h 59m");
+});

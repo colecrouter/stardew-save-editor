@@ -1,7 +1,6 @@
-import { readFile } from "node:fs/promises";
+import publicSaveXml from "./TestSave?raw";
 import { flushSync } from "svelte";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { setup as mockIDB } from "vitest-indexeddb";
 import {
 	animalOptions,
 	defaultAnimalName,
@@ -31,7 +30,6 @@ import {
 	shedXml,
 	withAnimalBuildings,
 } from "./helpers/animalBuildings";
-import { fullSaveTimeout } from "./helpers/full-save-budget";
 
 // Raw parsed fixtures deliberately allow unrecognized save fields.
 type Parsed = any;
@@ -149,17 +147,13 @@ describe("building tiers", () => {
 });
 
 describe("coops and barns", () => {
-	mockIDB();
 	let saveManager: SaveManager;
 	let xml: string;
 	const xmlManager = new XMLManager();
 
 	/** Load the test save with these buildings on the farm */
 	const load = async (buildings?: string[]) => {
-		xml = withAnimalBuildings(
-			await readFile("tests/TestSave", "utf-8"),
-			buildings,
-		);
+		xml = withAnimalBuildings(publicSaveXml, buildings);
 		let promise: Promise<void | boolean> = Promise.resolve();
 		const cleanup = $effect.root(() => {
 			saveManager = new SaveManager();
@@ -170,8 +164,8 @@ describe("coops and barns", () => {
 		cleanup();
 	};
 
-	// Full-file setup has its own deadline, independent of test-body options.
-	beforeEach(() => load(), fullSaveTimeout);
+	// Setup uses the shared hook deadline independently of the test-body deadline.
+	beforeEach(() => load());
 
 	const save = () => {
 		if (!saveManager.save) throw new Error("No save");
@@ -216,7 +210,6 @@ describe("coops and barns", () => {
 		);
 	};
 	// For tests that write out and read back the whole save
-	const slow = { timeout: 30_000 };
 
 	it("loads who lives where", () => {
 		const coop = building(COOP_ID);
@@ -239,7 +232,7 @@ describe("coops and barns", () => {
 		).toEqual(["Bessie", "Clucky", "Daisy", "Nugget", "Sunny", "Wanderer"]);
 	});
 
-	it("changes nothing just by loading", slow, async () => {
+	it("changes nothing just by loading", async () => {
 		expect(await exported()).toEqual(xmlManager.parse(xml));
 
 		// An uncounted daysOwned shows the age instead, and the age is kept
@@ -251,7 +244,7 @@ describe("coops and barns", () => {
 		expect(clucky?.[Raw].value.FarmAnimal.age).toBe(12);
 	});
 
-	it("adds an animal the way buying one does", slow, async () => {
+	it("adds an animal the way buying one does", async () => {
 		const barn = building(BARN_ID);
 		const before = String(save()[Raw].SaveGame.latestID);
 		const animal = barn.adoptAnimal("Ostrich", " Big Bird ", save().player);
@@ -428,7 +421,7 @@ describe("coops and barns", () => {
 		expect(new Set(ids).size).toBe(2);
 	});
 
-	it("upgrades a Coop to a Big Coop like Robin does", slow, async () => {
+	it("upgrades a Coop to a Big Coop like Robin does", async () => {
 		const coop = building(COOP_ID);
 		const hopper = objectAt(coop, 3, 3);
 		const junimo = objectAt(coop, 2, 3);
@@ -569,84 +562,72 @@ describe("coops and barns", () => {
 		expect(objectAt(coop, 1, 3)?.name).toBe("Hay");
 	});
 
-	it(
-		"moves furniture along when it's upgraded, and back",
-		async () => {
-			// A rug over the incubator's spot, two tiles wide
-			await load([
-				coopXml({ objects: [feedHopper(3, 3)], furniture: [bambooMat(1, 3)] }),
-				barnXml(),
-			]);
-			const coop = building(COOP_ID);
-			const before = structuredClone(interior(coop).furniture);
-			const rug = () => furnitureOf(coop)[0];
+	it("moves furniture along when it's upgraded, and back", async () => {
+		// A rug over the incubator's spot, two tiles wide
+		await load([
+			coopXml({ objects: [feedHopper(3, 3)], furniture: [bambooMat(1, 3)] }),
+			barnXml(),
+		]);
+		const coop = building(COOP_ID);
+		const before = structuredClone(interior(coop).furniture);
+		const rug = () => furnitureOf(coop)[0];
 
-			expect(coop.changeType(tier(coop, "Big Coop"))).toEqual([]);
-			// The first move out of the way, (2, 3) to (14, 8), takes it; it's still a tile to the left
-			const box = { X: 13 * 64, Y: 8 * 64, Width: 128, Height: 64 };
-			expect(rug()).toMatchObject({
-				tileLocation: { X: 13, Y: 8 },
-				boundingBox: { ...box, Location: { X: box.X, Y: box.Y } },
-				defaultBoundingBox: { ...box, Location: { X: box.X, Y: box.Y } },
-			});
-			// So the incubator fits
-			expect(objectAt(coop, 2, 3)?.name).toBe("Incubator");
+		expect(coop.changeType(tier(coop, "Big Coop"))).toEqual([]);
+		// The first move out of the way, (2, 3) to (14, 8), takes it; it's still a tile to the left
+		const box = { X: 13 * 64, Y: 8 * 64, Width: 128, Height: 64 };
+		expect(rug()).toMatchObject({
+			tileLocation: { X: 13, Y: 8 },
+			boundingBox: { ...box, Location: { X: box.X, Y: box.Y } },
+			defaultBoundingBox: { ...box, Location: { X: box.X, Y: box.Y } },
+		});
+		// So the incubator fits
+		expect(objectAt(coop, 2, 3)?.name).toBe("Incubator");
 
-			expect(coop.changeType(tier(coop, "Coop"))).toEqual([]);
-			expect(interior(coop).furniture).toEqual(before);
-			expect(objectAt(coop, 2, 3)).toBeUndefined();
-		},
-		fullSaveTimeout,
-	);
+		expect(coop.changeType(tier(coop, "Coop"))).toEqual([]);
+		expect(interior(coop).furniture).toEqual(before);
+		expect(objectAt(coop, 2, 3)).toBeUndefined();
+	});
 
-	it(
-		"won't put the incubator under furniture",
-		async () => {
-			// The lamp at 14, 8 was left there by a downgrade
-			await load([
-				coopXml({
-					objects: [feedHopper(3, 3)],
-					furniture: [candleLamp(2, 3), candleLamp(14, 8)],
-				}),
-				barnXml(),
-			]);
-			const coop = building(COOP_ID);
-			const problems = coop.changeType(tier(coop, "Big Coop"));
-			expect(problems.map(describeUnplaced)).toEqual([
-				"Incubator at 2, 3: something else is in the way",
-			]);
-			expect(objectAt(coop, 2, 3)).toBeUndefined();
-			expect(furnitureOf(coop).map((f) => f.tileLocation)).toEqual([
-				{ X: 2, Y: 3 },
-				{ X: 14, Y: 8 },
-			]);
-		},
-		fullSaveTimeout,
-	);
+	it("won't put the incubator under furniture", async () => {
+		// The lamp at 14, 8 was left there by a downgrade
+		await load([
+			coopXml({
+				objects: [feedHopper(3, 3)],
+				furniture: [candleLamp(2, 3), candleLamp(14, 8)],
+			}),
+			barnXml(),
+		]);
+		const coop = building(COOP_ID);
+		const problems = coop.changeType(tier(coop, "Big Coop"));
+		expect(problems.map(describeUnplaced)).toEqual([
+			"Incubator at 2, 3: something else is in the way",
+		]);
+		expect(objectAt(coop, 2, 3)).toBeUndefined();
+		expect(furnitureOf(coop).map((f) => f.tileLocation)).toEqual([
+			{ X: 2, Y: 3 },
+			{ X: 14, Y: 8 },
+		]);
+	});
 
-	it(
-		"says what furniture it couldn't move back",
-		async () => {
-			await load([
-				coopXml({
-					type: "Big Coop",
-					limit: 8,
-					objects: [feedHopper(3, 3), incubator(2, 3)],
-					// One in the extra space, and one where it would go back to
-					furniture: [candleLamp(14, 7), candleLamp(1, 3)],
-				}),
-				barnXml(),
-			]);
-			const coop = building(COOP_ID);
-			const problems = coop.changeType(tier(coop, "Coop"));
-			expect(problems.map(describeUnplaced)).toEqual([
-				"Candle Lamp at 14, 7: its old spot is taken",
-			]);
-			expect(problems[0]?.itemId).toBe("(F)1751");
-			expect(objectAt(coop, 2, 3)).toBeUndefined();
-		},
-		fullSaveTimeout,
-	);
+	it("says what furniture it couldn't move back", async () => {
+		await load([
+			coopXml({
+				type: "Big Coop",
+				limit: 8,
+				objects: [feedHopper(3, 3), incubator(2, 3)],
+				// One in the extra space, and one where it would go back to
+				furniture: [candleLamp(14, 7), candleLamp(1, 3)],
+			}),
+			barnXml(),
+		]);
+		const coop = building(COOP_ID);
+		const problems = coop.changeType(tier(coop, "Coop"));
+		expect(problems.map(describeUnplaced)).toEqual([
+			"Candle Lamp at 14, 7: its old spot is taken",
+		]);
+		expect(problems[0]?.itemId).toBe("(F)1751");
+		expect(objectAt(coop, 2, 3)).toBeUndefined();
+	});
 
 	it("only downgrades when the animals fit", () => {
 		const coop = building(COOP_ID);
@@ -664,7 +645,7 @@ describe("coops and barns", () => {
 		expect(coop.tierChangeBlocker(tier(coop, "Deluxe Coop"))).toBeUndefined();
 	});
 
-	it("upgrades a Shed to a Big Shed, and back", slow, async () => {
+	it("upgrades a Shed to a Big Shed, and back", async () => {
 		await load([
 			coopXml(),
 			barnXml(),
@@ -704,22 +685,18 @@ describe("coops and barns", () => {
 		expect(interior(shed).name).toBe("Shed");
 	});
 
-	it(
-		"doesn't know what can live in a modded coop",
-		async () => {
-			await load([coopXml({ type: "Fancy Coop" }), barnXml()]);
-			const coop = building(COOP_ID);
-			expect(coop.isAnimalHouse).toBe(true);
-			expect(coop.tiers).toEqual([]);
-			expect(coop.animalOptions).toEqual([]);
-			// Its own animal limit still counts
-			expect(coop.capacity).toBe(4);
-			expect(() =>
-				coop.adoptAnimal("White Chicken", "Pip", save().player),
-			).toThrow("A White Chicken can't live in a Fancy Coop");
-		},
-		fullSaveTimeout,
-	);
+	it("doesn't know what can live in a modded coop", async () => {
+		await load([coopXml({ type: "Fancy Coop" }), barnXml()]);
+		const coop = building(COOP_ID);
+		expect(coop.isAnimalHouse).toBe(true);
+		expect(coop.tiers).toEqual([]);
+		expect(coop.animalOptions).toEqual([]);
+		// Its own animal limit still counts
+		expect(coop.capacity).toBe(4);
+		expect(() =>
+			coop.adoptAnimal("White Chicken", "Pip", save().player),
+		).toThrow("A White Chicken can't live in a Fancy Coop");
+	});
 
 	it("waits for Robin", () => {
 		const coop = building(COOP_ID);
@@ -766,27 +743,19 @@ describe("coops and barns", () => {
 			expect(isLive(clucky)).toBe(false);
 		});
 
-		it(
-			"end when another save is opened",
-			async () => {
-				const { animal, dispose } = adopt(
-					building(BARN_ID),
-					"White Cow",
-					"Moo",
-				);
-				await saveManager.import(new File([xml], "TestSave"));
-				expect(dispose).toHaveBeenCalledOnce();
-				expect(isLive(animal)).toBe(false);
+		it("end when another save is opened", async () => {
+			const { animal, dispose } = adopt(building(BARN_ID), "White Cow", "Moo");
+			await saveManager.import(new File([xml], "TestSave"));
+			expect(dispose).toHaveBeenCalledOnce();
+			expect(isLive(animal)).toBe(false);
 
-				// The new save's animals are fine, and closing it doesn't end the old ones again
-				const next = adopt(building(BARN_ID), "White Cow", "Moo");
-				expect(isLive(next.animal)).toBe(true);
-				saveManager.reset();
-				expect(next.dispose).toHaveBeenCalledOnce();
-				expect(dispose).toHaveBeenCalledOnce();
-			},
-			fullSaveTimeout,
-		);
+			// The new save's animals are fine, and closing it doesn't end the old ones again
+			const next = adopt(building(BARN_ID), "White Cow", "Moo");
+			expect(isLive(next.animal)).toBe(true);
+			saveManager.reset();
+			expect(next.dispose).toHaveBeenCalledOnce();
+			expect(dispose).toHaveBeenCalledOnce();
+		});
 
 		it("carry on through upgrades and downgrades", () => {
 			const barn = building(BARN_ID);

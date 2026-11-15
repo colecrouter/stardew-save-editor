@@ -232,7 +232,7 @@ it("groups field commands while shared farmer selection and export create explic
 	// Teardown is normal even if a mounted field outlives its file provider briefly.
 	expect(await model.edits.end(gesture)).toBeNull();
 	expect(get(model.selectedFarmerId)).toBeUndefined();
-}, 60_000);
+});
 
 it.effect(
 	"closes a concurrently restored gesture when a lower-level standalone transaction retries",

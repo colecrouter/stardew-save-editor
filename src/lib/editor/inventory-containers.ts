@@ -1,3 +1,4 @@
+import type { InventorySlot } from "./inventory-values.ts";
 import {
 	farmers as savedFarmers,
 	type Farmer,
@@ -14,11 +15,11 @@ export interface InventoryContainer {
 	id: string;
 	name: string;
 	kind: "farmer" | "chest";
-	slots: unknown[];
+	slots: InventorySlot[];
 	farmer?: Farmer;
 	/** Private storage lens, retained only while this adapter resolves a transition. */
 	storage?: PlacedChest;
-	write: (slots: unknown[]) => void;
+	write: (slots: InventorySlot[]) => void;
 }
 /** Resolve owner IDs without coercing opaque imported identifiers or choosing between collisions. */
 export function inventoryContainers(
@@ -42,7 +43,7 @@ export function inventoryContainers(
 	const result: InventoryContainer[] = farmers.flatMap((farmer) => {
 		const key = farmer.UniqueMultiplayerID;
 		const slots = farmer.items;
-		if (key === undefined || !Array.isArray(slots)) return [];
+		if (key === undefined || slots === undefined) return [];
 		return [
 			{
 				id: String(key),
@@ -50,11 +51,9 @@ export function inventoryContainers(
 				kind: "farmer" as const,
 				slots,
 				farmer,
-				write: (slots: unknown[]) => {
-					// The generic transition layer permutes decoded slots or inserts
-					// codec-backed catalog items. Rejoin that typed representation
-					// without decoding unrelated slots again or changing references.
-					farmer.items = slots as NonNullable<Farmer["items"]>;
+				write: (slots: InventorySlot[]) => {
+					// Transitions preserve decoded slots or insert typed catalog items.
+					farmer.items = slots;
 				},
 			},
 		];

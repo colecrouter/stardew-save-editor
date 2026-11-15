@@ -1,20 +1,17 @@
-import { readFile } from "node:fs/promises";
+import publicSaveXml from "./TestSave?raw";
 import { flushSync } from "svelte";
 import { beforeEach, describe, expect, it } from "vitest";
-import { setup as mockIDB } from "vitest-indexeddb";
 import type { Bundle } from "../src/lib/proxies/CommunityBundles.svelte";
 import { SaveManager } from "../src/lib/SaveManager.svelte";
-import { fullSaveTimeout } from "./helpers/full-save-budget";
 
 // Verify River Fish bundle reward is Deluxe Bait x30 (not gold)
 
 describe("River Fish bundle reward", () => {
-	mockIDB();
 	let saveManager: SaveManager;
 
-	// Full-file setup has its own deadline, independent of test-body options.
+	// Setup uses the shared hook deadline independently of the test-body deadline.
 	beforeEach(async () => {
-		const file = await readFile("tests/TestSave");
+		const file = publicSaveXml;
 		let promise: Promise<void | boolean> = Promise.resolve();
 		const cleanup = $effect.root(() => {
 			saveManager = new SaveManager();
@@ -23,7 +20,7 @@ describe("River Fish bundle reward", () => {
 		await promise;
 		flushSync();
 		cleanup();
-	}, fullSaveTimeout);
+	});
 
 	it("parses reward as DeluxeBait x30", async () => {
 		const save = saveManager.save;

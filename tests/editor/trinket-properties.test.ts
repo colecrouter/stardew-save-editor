@@ -1,3 +1,4 @@
+import type { InventoryValue } from "../../src/lib/editor/inventory-values.ts";
 import { Effect, Exit, Fiber, Result } from "effect";
 import { it } from "@effect/vitest";
 import { describe, expect } from "vitest";
@@ -14,12 +15,12 @@ import {
 	type TrinketRollContext,
 } from "../../src/lib/TrinketStats";
 
-const ctx: TrinketRollContext = {
+const ctx = {
 	useLegacyRandom: false,
 	totalMoneyEarned: 3000000,
-};
+} satisfies TrinketRollContext;
 const rawItem = (kind: TrinketKind, generationSeed = 0) => ({
-	$type: "StardewValley.Objects.Trinket",
+	$type: "StardewValley.Objects.Trinket" as const,
 	itemId: kind,
 	generationSeed,
 	customModData: { opaque: "007" },
@@ -32,8 +33,11 @@ const request = <P extends TrinketPropertyChange["property"]>(
 		TrinketPropertyChange,
 		{ property: P }
 	>;
-const prepare = (raw: unknown, change: TrinketPropertyChange, context = ctx) =>
-	prepareTrinketPropertyChange(raw, change, context);
+const prepare = (
+	raw: InventoryValue,
+	change: TrinketPropertyChange,
+	context: TrinketRollContext = ctx,
+) => prepareTrinketPropertyChange(raw, change, context);
 
 describe("proxy-free trinket property policy", () => {
 	it("derives each supported family's controls from its existing seed without modifying saved data", () => {
@@ -52,8 +56,8 @@ describe("proxy-free trinket property policy", () => {
 		}
 		for (const raw of [
 			undefined,
-			{ $type: "StardewValley.Objects.Trinket", itemId: "FairyBox" },
-			{ ...rawItem("FairyBox"), generationSeed: "4" },
+			{ $type: "StardewValley.Objects.Trinket" as const, itemId: "FairyBox" },
+			{ ...rawItem("FairyBox"), generationSeed: -1 },
 			{ ...rawItem("FairyBox"), itemId: "ModdedTrinket" },
 		]) {
 			expect(readTrinketProperties(raw, ctx)).toEqual([]);
@@ -86,7 +90,7 @@ describe("proxy-free trinket property policy", () => {
 						context,
 					),
 				).toMatchObject({ level });
-				expect(patch.descriptionSubstitutionTemplates).toEqual([level]);
+				expect(patch.descriptionSubstitutionTemplates).toEqual([String(level)]);
 				expect(Object.keys(patch).sort()).toEqual([
 					"descriptionSubstitutionTemplates",
 					"generationSeed",
@@ -99,7 +103,7 @@ describe("proxy-free trinket property policy", () => {
 		Effect.gen(function* () {
 			const raw = {
 				...rawItem("FairyBox"),
-				descriptionSubstitutionTemplates: { custom: "retain" },
+				descriptionSubstitutionTemplates: ["custom template"],
 			};
 			const field = readTrinketProperties(raw, ctx)[0];
 			if (!field || typeof field.value !== "number")
@@ -107,9 +111,7 @@ describe("proxy-free trinket property policy", () => {
 			expect(
 				yield* prepare(raw, request("trinket:level", field.value)),
 			).toEqual({});
-			expect(raw.descriptionSubstitutionTemplates).toEqual({
-				custom: "retain",
-			});
+			expect(raw.descriptionSubstitutionTemplates).toEqual(["custom template"]);
 			const quiver = rawItem("MagicQuiver", 1);
 			const type = readTrinketProperties(quiver, ctx).find(
 				(field) => field.property === "trinket:type",
@@ -169,10 +171,10 @@ describe("proxy-free trinket property policy", () => {
 					delay: 0.9,
 				});
 				const fields = statSaveFields(rolled);
-				expect(patch.descriptionSubstitutionTemplates).toEqual([
-					fields.templates,
-				]);
-				expect(patch.displayNameOverrideTemplate).toEqual([fields.displayName]);
+				expect(patch.descriptionSubstitutionTemplates).toEqual(
+					fields.templates?.map(String),
+				);
+				expect(patch.displayNameOverrideTemplate).toEqual(fields.displayName);
 			}),
 	);
 
@@ -208,7 +210,7 @@ describe("proxy-free trinket property policy", () => {
 					ctx,
 				);
 				expect(rolled).toMatchObject({ interval: 3.3, perfect: false });
-				expect(patch.displayNameOverrideTemplate).toEqual([null]);
+				expect(patch.displayNameOverrideTemplate).toEqual(null);
 			}),
 	);
 
@@ -262,3 +264,49 @@ describe("proxy-free trinket property policy", () => {
 			}),
 	);
 });
+
+it.effect(
+	"roundtrips approved quiver templates and name mirrors through the production codec",
+	() =>
+		Effect.gen(function* () {
+			const { tinyFixture, exportDocument, parser } = yield* Effect.promise(
+				() => import("../helpers/editor-document.ts"),
+			);
+			const { makeHistorySession } = yield* Effect.promise(
+				() => import("../../src/lib/editor/history.ts"),
+			);
+			const { setInventoryItemProperty } = yield* Effect.promise(
+				() => import("../../src/lib/editor/inventory-operations.ts"),
+			);
+			const document = tinyFixture();
+			document.SaveGame.player.items = [rawItem("MagicQuiver", 1)];
+			const session = yield* makeHistorySession(
+				parser.parse(exportDocument(document)),
+			);
+			const before = yield* session.snapshot;
+			const entityId = before.identities["1"]?.[0];
+			if (!entityId) throw Error("Missing fixture item handle");
+			yield* session.transact(
+				setInventoryItemProperty({
+					...request("trinket:type", "perfect"),
+					entityId,
+				}),
+			);
+			const after = yield* session.snapshot;
+			const item = after.document.SaveGame.player.items[0];
+			if (item?.$type !== "StardewValley.Objects.Trinket")
+				throw Error("Missing edited trinket");
+			// Flat string templates and a scalar display mirror must remain loadable;
+			// nested legacy wrappers previously looked correct in helper-only tests.
+			expect(item.descriptionSubstitutionTemplates).toEqual([
+				"0.9",
+				"30",
+				"35",
+			]);
+			const imported = parser.parse(exportDocument(after.document)).SaveGame
+				.player.items[0];
+			expect(imported).toEqual(item);
+			yield* session.undo;
+			expect((yield* session.snapshot).document).toEqual(before.document);
+		}),
+);

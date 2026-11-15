@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test, vi } from "vitest";
+import { test } from "vitest";
 import { Effect } from "effect";
 import { makeHistorySession } from "../../src/lib/editor/history.ts";
 import type { FixtureSave as Save } from "../helpers/editor-document.ts";
@@ -10,9 +10,6 @@ import {
 import { CalendarSeason } from "../../src/lib/calendarSeason.ts";
 import { getStatValue } from "../../src/lib/editor/player-stats.ts";
 import { loadFixture } from "./fixture.ts";
-
-// Retain the engine suite's budget for full-save codecs and worker round trips.
-vi.setConfig({ testTimeout: 15_000 });
 
 test("the complete Effect calendar history graph supports editing and undo", async () => {
 	const original = await loadFixture();

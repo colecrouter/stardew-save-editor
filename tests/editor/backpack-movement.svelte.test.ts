@@ -1,3 +1,4 @@
+import { installSyntheticPointerCapture } from "../helpers/synthetic-pointer-capture.ts";
 import { fireEvent, render, waitFor } from "@testing-library/svelte";
 import { describe, expect, it, vi } from "vitest";
 import { openTestEditor, openTestDocument } from "../helpers/open-editor.ts";
@@ -5,29 +6,46 @@ import { createCatalogItem } from "../../src/lib/editor/item-catalog";
 import BackpackHarness from "./BackpackHarness.svelte";
 import { fixtureXml, parser } from "./fixtures";
 
+// Native DragEvent requires a real transfer object. Dispatch DragEvent directly:
+// Testing Library's convenience factory clones it and loses its MIME payload.
 function dragData() {
-	const values = new Map<string, string>();
-	return {
-		types: ["application/x-stardew-backpack-item"],
-		setData: (type: string, value: string) => values.set(type, value),
-		getData: (type: string) => values.get(type) ?? "",
-		effectAllowed: "",
-		dropEffect: "",
-	};
+	return new DataTransfer();
 }
+
 async function drag(source: HTMLElement, target: HTMLElement) {
 	const dataTransfer = dragData();
-	await fireEvent.dragStart(source, { dataTransfer });
+	await fireEvent(
+		source,
+		new DragEvent("dragstart", {
+			bubbles: true,
+			cancelable: true,
+			dataTransfer,
+		}),
+	);
 	// Native HTML dragging cancels the preceding mouse pointer stream. That event
 	// must not clear the drag state owned by DragEvent rather than touch/pen.
 	await fireEvent.pointerCancel(source, { pointerType: "mouse" });
-	await fireEvent.dragOver(target, { dataTransfer });
-	await fireEvent.drop(target, { dataTransfer });
+	await fireEvent(
+		target,
+		new DragEvent("dragover", {
+			bubbles: true,
+			cancelable: true,
+			dataTransfer,
+		}),
+	);
+	await fireEvent(
+		target,
+		new DragEvent("drop", {
+			bubbles: true,
+			cancelable: true,
+			dataTransfer,
+		}),
+	);
 }
 
 // Exercise the same native drag path for positional and named equipment slots.
 // Full-save copies and export projections need a bounded CI integration budget.
-describe("inventory drag and equipment controls", { timeout: 25_000 }, () => {
+describe("inventory drag and equipment controls", () => {
 	it("shows equipment beside the backpack and moves/swaps through dragging without Move mode", async () => {
 		const opened = await openTestEditor(new TextEncoder().encode(fixtureXml));
 		const page = render(BackpackHarness, { model: opened.model });
@@ -57,14 +75,12 @@ describe("inventory drag and equipment controls", { timeout: 25_000 }, () => {
 				page.getByRole("button", { name: "Slot 5: Parsnip" }),
 				page.getByRole("button", { name: "Slot 4: Empty" }),
 			);
-			await waitFor(
-				() =>
-					expect(
-						page
-							.getByRole("button", { name: "Slot 4: Parsnip" })
-							.getAttribute("aria-pressed"),
-					).toBe("true"),
-				{ timeout: 5000 },
+			await waitFor(() =>
+				expect(
+					page
+						.getByRole("button", { name: "Slot 4: Parsnip" })
+						.getAttribute("aria-pressed"),
+				).toBe("true"),
 			);
 			await waitFor(() =>
 				expect(document.activeElement).toBe(
@@ -76,12 +92,10 @@ describe("inventory drag and equipment controls", { timeout: 25_000 }, () => {
 				page.getByRole("button", { name: "Slot 5: Parsnip" }),
 				page.getByRole("button", { name: "Slot 2: Pickaxe" }),
 			);
-			await waitFor(
-				() =>
-					expect(
-						page.getByRole("button", { name: "Slot 2: Parsnip" }),
-					).toBeTruthy(),
-				{ timeout: 5000 },
+			await waitFor(() =>
+				expect(
+					page.getByRole("button", { name: "Slot 2: Parsnip" }),
+				).toBeTruthy(),
 			);
 			expect(
 				(await opened.model.snapshot()).document.SaveGame.player.items[4],
@@ -106,14 +120,12 @@ describe("inventory drag and equipment controls", { timeout: 25_000 }, () => {
 				page.getByRole("button", { name: "Slot 4: Sneakers" }),
 				page.getByRole("button", { name: "Boots: Empty" }),
 			);
-			await waitFor(
-				() =>
-					expect(
-						page
-							.getByRole("button", { name: "Boots: Sneakers" })
-							.getAttribute("aria-pressed"),
-					).toBe("true"),
-				{ timeout: 5000 },
+			await waitFor(() =>
+				expect(
+					page
+						.getByRole("button", { name: "Boots: Sneakers" })
+						.getAttribute("aria-pressed"),
+				).toBe("true"),
 			);
 			expect(
 				page.getByRole("region", { name: "Selected equipment item" }),
@@ -139,14 +151,12 @@ describe("inventory drag and equipment controls", { timeout: 25_000 }, () => {
 				page.getByRole("button", { name: "Slot 5: Parsnip" }),
 				page.getByRole("button", { name: "Hat: Empty" }),
 			);
-			await waitFor(
-				() =>
-					expect(
-						page.getByText(/cannot|compatible|hat/i, {
-							selector: ".operation-error",
-						}),
-					).toBeTruthy(),
-				{ timeout: 5000 },
+			await waitFor(() =>
+				expect(
+					page.getByText(/cannot|compatible|hat/i, {
+						selector: ".operation-error",
+					}),
+				).toBeTruthy(),
 			);
 			expect((await opened.model.snapshot()).document).toEqual(
 				equipped.document,
@@ -155,14 +165,12 @@ describe("inventory drag and equipment controls", { timeout: 25_000 }, () => {
 				page.getByRole("button", { name: "Shirt: Shirt" }),
 				page.getByRole("button", { name: "Pants: Farmer Pants" }),
 			);
-			await waitFor(
-				() =>
-					expect(
-						page.getByText(/cannot|compatible|pants/i, {
-							selector: ".operation-error",
-						}),
-					).toBeTruthy(),
-				{ timeout: 5000 },
+			await waitFor(() =>
+				expect(
+					page.getByText(/cannot|compatible|pants/i, {
+						selector: ".operation-error",
+					}),
+				).toBeTruthy(),
 			);
 			expect((await opened.model.snapshot()).document).toEqual(
 				equipped.document,
@@ -171,7 +179,7 @@ describe("inventory drag and equipment controls", { timeout: 25_000 }, () => {
 			page.unmount();
 			await opened.close();
 		}
-	}, 30_000);
+	});
 	it("uses touch pointer dragging without Move mode and cancels interrupted gestures without writes", async () => {
 		const opened = await openTestEditor(new TextEncoder().encode(fixtureXml));
 		const page = render(BackpackHarness, { model: opened.model });
@@ -199,14 +207,12 @@ describe("inventory drag and equipment controls", { timeout: 25_000 }, () => {
 				clientY: 10,
 			});
 			await fireEvent.click(source, { detail: 1 });
-			await waitFor(
-				() =>
-					expect(
-						page
-							.getByRole("button", { name: "Slot 4: Parsnip" })
-							.getAttribute("aria-pressed"),
-					).toBe("true"),
-				{ timeout: 5000 },
+			await waitFor(() =>
+				expect(
+					page
+						.getByRole("button", { name: "Slot 4: Parsnip" })
+						.getAttribute("aria-pressed"),
+				).toBe("true"),
 			);
 			const moved = await opened.model.snapshot();
 			expect(moved.entries).toHaveLength(1);
@@ -248,9 +254,13 @@ describe("inventory drag and equipment controls", { timeout: 25_000 }, () => {
 		const page = render(BackpackHarness, { model: opened.model });
 		try {
 			const before = (await opened.model.snapshot()).document;
-			await fireEvent.drop(
+			await fireEvent(
 				page.getByRole("button", { name: "Slot 4: Empty" }),
-				{ dataTransfer: dragData() },
+				new DragEvent("drop", {
+					bubbles: true,
+					cancelable: true,
+					dataTransfer: dragData(),
+				}),
 			);
 			expect((await opened.model.snapshot()).entries).toHaveLength(0);
 			await fireEvent.click(
@@ -263,27 +273,23 @@ describe("inventory drag and equipment controls", { timeout: 25_000 }, () => {
 			await fireEvent.click(
 				page.getByRole("button", { name: "Add to slot 4" }),
 			);
-			await waitFor(
-				() =>
-					expect(
-						page
-							.getByRole("button", { name: "Slot 4: Wood" })
-							.getAttribute("aria-pressed"),
-					).toBe("true"),
-				{ timeout: 5000 },
+			await waitFor(() =>
+				expect(
+					page
+						.getByRole("button", { name: "Slot 4: Wood" })
+						.getAttribute("aria-pressed"),
+				).toBe("true"),
 			);
 			await drag(
 				page.getByRole("button", { name: "Slot 4: Wood" }),
 				page.getByRole("button", { name: "Slot 7: Empty" }),
 			);
-			await waitFor(
-				() =>
-					expect(
-						page
-							.getByRole("button", { name: "Slot 7: Wood" })
-							.getAttribute("aria-pressed"),
-					).toBe("true"),
-				{ timeout: 5000 },
+			await waitFor(() =>
+				expect(
+					page
+						.getByRole("button", { name: "Slot 7: Wood" })
+						.getAttribute("aria-pressed"),
+				).toBe("true"),
 			);
 			await opened.model.commands.undo();
 			await opened.model.commands.undo();
@@ -304,3 +310,5 @@ describe("inventory drag and equipment controls", { timeout: 25_000 }, () => {
 		}
 	});
 });
+
+installSyntheticPointerCapture();

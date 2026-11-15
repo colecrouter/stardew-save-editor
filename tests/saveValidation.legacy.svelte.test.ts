@@ -1,8 +1,7 @@
-import { readFile } from "node:fs/promises";
+import publicSaveXml from "./TestSave?raw";
 import { fireEvent, render } from "@testing-library/svelte";
 import { createRawSnippet, flushSync } from "svelte";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { setup as mockIDB } from "vitest-indexeddb";
 import { Raw } from "$lib/proxies";
 import {
 	SaveManager,
@@ -15,10 +14,19 @@ import {
 } from "../src/lib/ToastManager.svelte";
 import editLayout from "../src/routes/(legacy)/(edit)/+layout.svelte";
 import uploadPage from "../src/routes/(legacy)/(home)/(upload)/legacy/+page.svelte";
-import { fullSaveTimeout } from "./helpers/full-save-budget";
 
 // Legacy routes navigate after upload; exercise their UI without starting Kit navigation.
 vi.mock("$app/navigation", () => ({ goto: vi.fn() }));
+
+beforeEach(() => {
+	// These cases assert validation and anchor downloads. Picker acquisition has
+	// separate coverage; synthetic events must not launch a native save dialog.
+	const picker = Object.getOwnPropertyDescriptor(window, "showSaveFilePicker");
+	Reflect.deleteProperty(window, "showSaveFilePicker");
+	return () => {
+		if (picker) Object.defineProperty(window, "showSaveFilePicker", picker);
+	};
+});
 
 async function importSave(xml: string): Promise<SaveManager> {
 	let saveManager!: SaveManager;
@@ -34,14 +42,13 @@ async function importSave(xml: string): Promise<SaveManager> {
 }
 
 // Full-file worker import/export needs an integration budget under parallel load.
-describe("SaveManager validation", { timeout: 30_000 }, () => {
-	mockIDB();
+describe("SaveManager validation", () => {
 	let saveManager: SaveManager;
 
-	// Full-file setup has its own deadline, independent of test-body options.
+	// Setup uses the shared hook deadline independently of the test-body deadline.
 	beforeEach(async () => {
-		saveManager = await importSave(await readFile("tests/TestSave", "utf-8"));
-	}, fullSaveTimeout);
+		saveManager = await importSave(publicSaveXml);
+	});
 
 	it("validates a save when it's uploaded", () => {
 		expect(saveManager.loadValidation).toEqual({
@@ -85,13 +92,9 @@ describe("SaveManager validation", { timeout: 30_000 }, () => {
 	});
 });
 
-describe("Validation toasts", { timeout: 30_000 }, () => {
-	mockIDB();
+describe("Validation toasts", () => {
 	const negativeMoneySave = async () =>
-		(await readFile("tests/TestSave", "utf-8")).replace(
-			"<money>1285</money>",
-			"<money>-5</money>",
-		);
+		publicSaveXml.replace("<money>1285</money>", "<money>-5</money>");
 
 	// Contexts for the pages, with a spy on the toasts they add
 	const contexts = (saveManager: SaveManager) => {
@@ -115,15 +118,14 @@ describe("Validation toasts", { timeout: 30_000 }, () => {
 		const input =
 			page.container.querySelector<HTMLInputElement>('input[type="file"]');
 		if (!input) throw new Error("No file input");
-		// happy-dom's FileList is an array
-		const files = new FileList();
-		(files as unknown as File[]).push(
-			new File([await negativeMoneySave()], "TestSave"),
-		);
-		input.files = files;
+		// FileList has no public constructor. Populate the real input through a
+		// browser transfer so the upload still receives native File objects.
+		const transfer = new DataTransfer();
+		transfer.items.add(new File([await negativeMoneySave()], "TestSave"));
+		input.files = transfer.files;
 		await fireEvent.change(input);
 
-		await vi.waitFor(() => expect(add).toHaveBeenCalled(), { timeout: 30000 });
+		await expect.poll(() => add).toHaveBeenCalled();
 		const [toast, duration] = add.mock.calls[0] ?? [];
 		expect(toast?.message).toBe(
 			"Save file uploaded, with a warning: Test's money (-5) is negative",
@@ -144,7 +146,7 @@ describe("Validation toasts", { timeout: 30_000 }, () => {
 
 		await fireEvent.click(page.getByTestId("save-button"));
 
-		await vi.waitFor(() => expect(add).toHaveBeenCalled(), { timeout: 30000 });
+		await expect.poll(() => add).toHaveBeenCalled();
 		expect(click).toHaveBeenCalledOnce();
 		const [toast] = add.mock.calls[0] ?? [];
 		expect(toast?.message).toBe(
@@ -156,17 +158,16 @@ describe("Validation toasts", { timeout: 30_000 }, () => {
 });
 
 describe("SaveManager validation of an invalid upload", () => {
-	mockIDB();
 	let saveManager: SaveManager;
 
-	// Full-file setup has its own deadline, independent of test-body options.
+	// Setup uses the shared hook deadline independently of the test-body deadline.
 	beforeEach(async () => {
-		const xml = (await readFile("tests/TestSave", "utf-8")).replace(
+		const xml = publicSaveXml.replace(
 			"<money>1285</money>",
 			"<money>99999999999</money>",
 		);
 		saveManager = await importSave(xml);
-	}, fullSaveTimeout);
+	});
 
 	it("still opens the save, so it can be fixed", () => {
 		expect(saveManager.save).toBeDefined();

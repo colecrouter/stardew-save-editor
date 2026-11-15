@@ -1,3 +1,4 @@
+import { installSyntheticPointerCapture } from "../helpers/synthetic-pointer-capture.ts";
 import { fireEvent, render, waitFor } from "@testing-library/svelte";
 import { describe, expect, it, vi } from "vitest";
 import { openTestEditor } from "../helpers/open-editor.ts";
@@ -47,24 +48,41 @@ function chestFixture() {
 	];
 	return exportDocument(document);
 }
+// Native DragEvent requires a real transfer object. Dispatch DragEvent directly:
+// Testing Library's convenience factory clones it and loses its MIME payload.
 function dragData() {
-	const values = new Map<string, string>();
-	return {
-		types: ["application/x-stardew-backpack-item"],
-		setData: (key: string, value: string) => values.set(key, value),
-		getData: (key: string) => values.get(key) ?? "",
-		effectAllowed: "",
-		dropEffect: "",
-	};
-}
-async function drag(source: HTMLElement, target: HTMLElement) {
-	const dataTransfer = dragData();
-	await fireEvent.dragStart(source, { dataTransfer });
-	await fireEvent.dragOver(target, { dataTransfer });
-	await fireEvent.drop(target, { dataTransfer });
+	return new DataTransfer();
 }
 
-describe("placed chest inventory controls", { timeout: 25_000 }, () => {
+async function drag(source: HTMLElement, target: HTMLElement) {
+	const dataTransfer = dragData();
+	await fireEvent(
+		source,
+		new DragEvent("dragstart", {
+			bubbles: true,
+			cancelable: true,
+			dataTransfer,
+		}),
+	);
+	await fireEvent(
+		target,
+		new DragEvent("dragover", {
+			bubbles: true,
+			cancelable: true,
+			dataTransfer,
+		}),
+	);
+	await fireEvent(
+		target,
+		new DragEvent("drop", {
+			bubbles: true,
+			cancelable: true,
+			dataTransfer,
+		}),
+	);
+}
+
+describe("placed chest inventory controls", () => {
 	it("edits and drags between a chest and backpack while selection follows Undo", async () => {
 		const opened = await openTestEditor(
 			new TextEncoder().encode(chestFixture()),
@@ -280,3 +298,5 @@ describe("placed chest inventory controls", { timeout: 25_000 }, () => {
 		}
 	});
 });
+
+installSyntheticPointerCapture();

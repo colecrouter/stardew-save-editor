@@ -1,3 +1,4 @@
+import { installSyntheticPointerCapture } from "../helpers/synthetic-pointer-capture.ts";
 import { fireEvent, render, waitFor, within } from "@testing-library/svelte";
 import { tick } from "svelte";
 import { expect, it, vi } from "vitest";
@@ -23,7 +24,6 @@ async function startAdd(container: HTMLElement) {
 
 it.each(["success", "failure"] as const)(
 	"a late add %s cannot replace a newer choice or its focus/error",
-	{ timeout: 20_000 },
 	async (outcome) => {
 		const opened = await openTestEditor(new TextEncoder().encode(fixtureXml));
 		const ready = Promise.withResolvers<void>();
@@ -69,7 +69,6 @@ it.each(["success", "failure"] as const)(
 
 it.each(["hidden", "unmounted"] as const)(
 	"a pending add does not restore focus into a %s panel",
-	{ timeout: 20_000 },
 	async (state) => {
 		const opened = await openTestEditor(new TextEncoder().encode(fixtureXml));
 		const ready = Promise.withResolvers<void>();
@@ -207,3 +206,5 @@ it("releases a held touch drag's animation loop on unmount", async () => {
 		await opened.close();
 	}
 });
+
+installSyntheticPointerCapture();

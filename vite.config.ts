@@ -2,7 +2,8 @@ import { recommended as effectRules } from "@effect/tsgo/oxlint-presets";
 import { sentrySvelteKit } from "@sentry/sveltekit/vite";
 import adapter from "@sveltejs/adapter-static";
 import { sveltekit } from "@sveltejs/kit/vite";
-import { svelteTesting } from "@testing-library/svelte/vite";
+import { playwright } from "@vitest/browser-playwright";
+import { testTimeouts } from "./tests/helpers/timeouts.ts";
 import { defineConfig } from "vite-plus";
 import { configDefaults } from "vitest/config";
 import legacy from "vite-plugin-sveltekit-legacy";
@@ -53,6 +54,12 @@ const legacyTests = [
 ];
 
 export default defineConfig(({ mode }) => ({
+	// Parallel browser runs must not replace each other's optimized dependency
+	// URLs. Keep test caches with their process-owned Kit output; app caching stays
+	// conventional for development and builds.
+	cacheDir: process.env.VITEST
+		? `.svelte-kit/vitest/${process.pid}/cache`
+		: "node_modules/.vite",
 	// Share formatting and linting with the same versioned toolchain as builds/tests.
 	fmt: {
 		// Svelte formatting is opt-in in Oxfmt; preserve the existing component policy.
@@ -129,6 +136,14 @@ export default defineConfig(({ mode }) => ({
 				})
 			: undefined,
 		sveltekit({
+			// Kit briefly writes an empty asset manifest while resolving config.
+			// Give each test process its own generated modules so concurrent tests,
+			// checks or dev servers cannot make a browser cache that empty manifest.
+			// Kit resolves its runtime aliases from this directory; normal tooling
+			// keeps the conventional output and generated type locations.
+			outDir: process.env.VITEST
+				? `.svelte-kit/vitest/${process.pid}`
+				: ".svelte-kit",
 			// Preserve the static GitHub Pages deployment while Kit owns its Vite configuration.
 			adapter: adapter(),
 			alias: {
@@ -155,9 +170,10 @@ export default defineConfig(({ mode }) => ({
 					"img-src": ["self", "data:", "blob:"],
 				},
 			},
-			// Tests inspect computed styles, so inject CSS rather than extracting it.
-			compilerOptions: process.env.VITEST ? { css: "injected" } : {},
-			inspector: true,
+			// Rendering tests use the normal CSS pipeline, including asset URLs.
+			// The inspector injects an application mount, which is unrelated to test
+			// rendering and must not enter isolated Browser Mode module graphs.
+			inspector: !process.env.VITEST,
 		}),
 		legacy({
 			// Native structuredClone is part of the supported browser baseline.
@@ -169,8 +185,6 @@ export default defineConfig(({ mode }) => ({
 				"ios >= 15.4",
 			],
 		}),
-		// Install cleanup in the rendering project so Node tests avoid DOM setup.
-		svelteTesting({ autoCleanup: false }),
 	],
 	server: {
 		fs: {
@@ -183,6 +197,11 @@ export default defineConfig(({ mode }) => ({
 		include: ["idb", "@thisux/sveltednd", "comlink", "@sentry/sveltekit"],
 	},
 	test: {
+		// All projects share stuck-test guards; assertions have their own retry
+		// budget so a missing UI state fails before the enclosing test expires.
+		testTimeout: testTimeouts.test,
+		hookTimeout: testTimeouts.hook,
+		expect: { poll: { timeout: testTimeouts.assertion } },
 		// A dedicated mode keeps the opt-in command portable across shells. Both
 		// selections retain Vitest's built-in exclusions and the same runtime setup.
 		exclude: [
@@ -201,30 +220,47 @@ export default defineConfig(({ mode }) => ({
 						mode === "legacy-test" ? legacyTests : configDefaults.include,
 					// Keep rendering tests in the Svelte project and preserve runner exclusions.
 					exclude: [...configDefaults.exclude, "**/*.svelte.test.ts"],
+					setupFiles: ["./tests/helpers/fixture-setup.ts"],
 				},
 			},
 			{
 				extends: true,
+				// Rendering always uses Svelte's browser runtime. Filename ownership
+				// stays the same for modern and opt-in legacy component suites.
+				resolve: { conditions: ["browser"] },
 				test: {
-					name: "svelte",
-					environment: "happy-dom",
-					// Keep discovery in each project: inherited include arrays merge,
-					// which would otherwise collect Node tests in happy-dom as well.
+					name: "browser",
 					include:
 						mode === "legacy-test"
-							? legacyTests.filter((file) => file.endsWith(".svelte.test.ts"))
+							? legacyTests
+									// Intersect broad legacy route globs with the component suffix;
+									// colocated route tests must run in the same browser project.
+									.map((file) =>
+										file.replace("**/*.test.ts", "**/*.svelte.test.ts"),
+									)
+									.filter((file) => file.endsWith(".svelte.test.ts"))
 							: ["**/*.svelte.test.ts"],
-					// DOM cleanup and simulated browser workers belong only to rendering tests.
 					setupFiles: [
-						"@vitest/web-worker",
+						"./tests/helpers/fixture-browser-setup.ts",
 						"@testing-library/svelte/vitest",
+						"./tests/helpers/setup-dom.ts",
 						"./tests/helpers/setup.ts",
 					],
+					browser: {
+						enabled: true,
+						headless: true,
+						// Match the desktop navigation used by workspace tests. Responsive
+						// tests resize explicitly when exercising the phone section picker.
+						viewport: { width: 1280, height: 900 },
+						provider: playwright({ actionTimeout: testTimeouts.assertion }),
+						instances: [{ browser: "chromium" }],
+					},
 				},
 			},
 		],
+		// Preparation stays in Node; each runtime loads a private decoded baseline
+		// through its own filesystem adapter while preserving bigint values.
 		globalSetup: ["./tests/helpers/global-setup.ts"],
-		setupFiles: ["./tests/helpers/fixture-setup.ts"],
 		// Required for SvelteKit with Vite 7+
 		// Ensures that SvelteKit's virtual modules ($app, __sveltekit) are properly resolved
 		server: {

@@ -155,7 +155,7 @@ it.effect(
 					// Let the independent stream display the competing revision before
 					// releasing the retry; later publication may otherwise supersede it.
 					yield* Effect.promise(() =>
-						vi.waitFor(() => expect(get(model.view)?.revision).toBe(1)),
+						expect.poll(() => get(model.view)?.revision).toBe(1),
 					);
 					yield* Deferred.succeed(release, undefined);
 					const result = yield* Effect.promise(() => pending);

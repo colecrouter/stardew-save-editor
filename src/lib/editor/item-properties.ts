@@ -1,4 +1,4 @@
-import { savedType } from "./saved-types.ts";
+import { isKnownItem, type InventoryValue } from "./inventory-values.ts";
 import { colorHex } from "../color.ts";
 export { colorHex, itemColorPatch } from "../color.ts";
 import { Data, Result, Schema, SchemaIssue } from "effect";
@@ -9,6 +9,8 @@ import {
 	TrinketPropertyChangeSchema,
 	readTrinketProperties,
 } from "./trinket-properties.ts";
+import type { TrinketPatch } from "./trinket-properties.ts";
+import type { T_Microsoft_Xna_Framework_Color } from "../../../generated/save-format/save.ts";
 
 /** Expected invalid input, unsupported saved property, or stale item ownership. */
 export class ItemPropertyInvalid extends Data.TaggedError(
@@ -86,6 +88,21 @@ export const ItemPropertyChangeSchema = Schema.Union([
 ]);
 export type ItemPropertyChange = typeof ItemPropertyChangeSchema.Type;
 export type BaseItemPropertyChange = typeof BaseItemPropertyChangeSchema.Type;
+// Approved patches contain only command-owned fields. Their scalar/color types
+// stay explicit through staging and replay instead of reverting to a generic record.
+type NumericProperty = Extract<
+	BaseItemPropertyChange,
+	{ value: number }
+>["property"];
+export type ItemPatch = Partial<
+	Record<NumericProperty | "stack" | "quality", number> & {
+		isBottomless: boolean;
+		IsBottomless: boolean;
+		color: T_Microsoft_Xna_Framework_Color;
+		clothesColor: T_Microsoft_Xna_Framework_Color;
+	}
+> &
+	TrinketPatch;
 const decode = Schema.decodeUnknownResult(ItemPropertyChangeSchema, {
 	onExcessProperty: "error",
 });
@@ -126,94 +143,98 @@ export interface ItemPropertyField {
 		readonly label: string;
 	}[];
 }
-const record = (value: unknown): value is Record<string, unknown> =>
-	value !== null && typeof value === "object" && !Array.isArray(value);
-const finite = (value: unknown): value is number =>
-	typeof value === "number" && Number.isFinite(value);
+const finite = (value: number | undefined): value is number =>
+	value !== undefined && Number.isFinite(value);
 /** Resolve only usable game context; missing normal defaults do not write into the save. */
 export function readItemPropertyContext(
 	document: SaveDocument,
 	farmer: Farmer,
-): TrinketRollContext | undefined {
+): TrinketRollContext {
 	const legacy = document.SaveGame.useLegacyRandom;
 	const earned = farmer.totalMoneyEarned;
-	if (
-		(legacy !== undefined && typeof legacy !== "boolean") ||
-		(earned !== undefined &&
-			(!finite(earned) || !Number.isSafeInteger(earned) || earned < 0))
-	)
-		return undefined;
-	return {
-		useLegacyRandom: legacy === true,
-		totalMoneyEarned: earned === undefined ? 0 : Number(earned),
-	};
+	// Both values have generated scalar types. Omission uses the game's defaults;
+	// no inspection-time write is needed to materialize them in the save.
+	return { useLegacyRandom: legacy ?? false, totalMoneyEarned: earned ?? 0 };
 }
 
 /** Describe supported fields without repairing absent, opaque, or unrecognized items. */
 export function getItemPropertyFields(
-	raw: unknown,
+	raw: InventoryValue,
 	metadata?: Pick<ItemInformation, "_type">,
 	context?: TrinketRollContext,
 ): ItemPropertyField[] {
-	if (!record(raw) || !metadata) return [];
-	const type = savedType(raw);
+	if (!isKnownItem(raw) || !metadata) return [];
+	const type = raw.$type;
 	const fields: ItemPropertyField[] = [];
 	const number = (
 		property: BaseItemPropertyChange["property"],
 		label: string,
+		value: number | undefined,
 		min: number,
 		max: number,
 		step = 1,
 	) => {
-		if (finite(raw[property]))
+		if (finite(value))
 			fields.push({
 				property,
 				label,
 				kind: "number",
-				value: raw[property],
+				value,
 				min,
 				max,
 				step,
 			});
 	};
-	if (type === "Boots" && metadata._type === "Boots") {
-		number("defenseBonus", "Defense", 0, 99);
-		number("immunityBonus", "Immunity", 0, 99);
-	}
-	if (type === "MeleeWeapon" && metadata._type === "Weapon") {
-		number("minDamage", "Minimum damage", 0, 999);
-		number("maxDamage", "Maximum damage", 0, 999);
-		number("knockback", "Knockback", 0, 999, 0.1);
-		number("speed", "Speed", -999, 999);
-		number("addedPrecision", "Precision", 0, 999);
-		number("addedDefense", "Defense", 0, 999);
-		number("addedAreaOfEffect", "Area of effect", 0, 999);
-		number("critChance", "Critical chance", 0, 1, 0.01);
-		number("critMultiplier", "Critical multiplier", 0, 999, 0.1);
+	if (type === "StardewValley.Objects.Boots" && metadata._type === "Boots") {
+		number("defenseBonus", "Defense", raw.defenseBonus, 0, 99);
+		number("immunityBonus", "Immunity", raw.immunityBonus, 0, 99);
 	}
 	if (
-		(type === "Object" || type === "ColoredObject") &&
+		type === "StardewValley.Tools.MeleeWeapon" &&
+		metadata._type === "Weapon"
+	) {
+		number("minDamage", "Minimum damage", raw.minDamage, 0, 999);
+		number("maxDamage", "Maximum damage", raw.maxDamage, 0, 999);
+		number("knockback", "Knockback", raw.knockback, 0, 999, 0.1);
+		number("speed", "Speed", raw.speed, -999, 999);
+		number("addedPrecision", "Precision", raw.addedPrecision, 0, 999);
+		number("addedDefense", "Defense", raw.addedDefense, 0, 999);
+		number(
+			"addedAreaOfEffect",
+			"Area of effect",
+			raw.addedAreaOfEffect,
+			0,
+			999,
+		);
+		number("critChance", "Critical chance", raw.critChance, 0, 1, 0.01);
+		number(
+			"critMultiplier",
+			"Critical multiplier",
+			raw.critMultiplier,
+			0,
+			999,
+			0.1,
+		);
+	}
+	if (
+		(type === "StardewValley.Object" ||
+			type === "StardewValley.Objects.ColoredObject") &&
 		raw.bigCraftable === false &&
 		metadata._type === "Object"
 	) {
-		number("price", "Base price", 0, 2147483647);
-		number("edibility", "Edibility", -999, 999);
+		number("price", "Base price", raw.price, 0, 2147483647);
+		number("edibility", "Edibility", raw.edibility, -999, 999);
 	}
-	if (type === "WateringCan" && metadata._type === "Tool") {
-		const aliases = ["isBottomless", "IsBottomless"].filter((key) =>
+	if (type === "StardewValley.Tools.WateringCan" && metadata._type === "Tool") {
+		const aliases = (["isBottomless", "IsBottomless"] as const).filter((key) =>
 			Object.hasOwn(raw, key),
 		);
 		// The game reads the uppercase property after the lowercase field. Show its
 		// effective value without silently synchronizing a mismatched imported pair.
-		if (
-			aliases.length &&
-			aliases.every((key) => typeof raw[key] === "boolean")
-		) {
+		if (aliases.length && aliases.every((key) => raw[key] !== undefined)) {
 			const value =
-				typeof raw.IsBottomless === "boolean"
-					? raw.IsBottomless
-					: raw.isBottomless;
-			if (typeof value === "boolean")
+				raw.IsBottomless !== undefined ? raw.IsBottomless : raw.isBottomless;
+			if (value !== undefined)
 				fields.push({
 					property: "isBottomless",
 					label: "Bottomless",
@@ -222,25 +243,34 @@ export function getItemPropertyFields(
 				});
 		}
 	}
-	const colorProperty =
-		type === "ColoredObject" && metadata._type === "Object"
-			? "color"
-			: type === "Clothing" &&
-				  (metadata._type === "Shirt" || metadata._type === "Pants") &&
-				  raw.isPrismatic !== true
-				? "clothesColor"
-				: undefined;
-	if (colorProperty) {
-		const value = colorHex(raw[colorProperty]);
+	// Color payloads belong to these concrete generated variants. Never read a
+	// similarly named extension field on another item class as editable color.
+	if (
+		type === "StardewValley.Objects.ColoredObject" &&
+		metadata._type === "Object"
+	) {
+		const value = colorHex(raw.color);
+		if (value)
+			fields.push({ property: "color", label: "Color", kind: "color", value });
+	} else if (
+		type === "StardewValley.Objects.Clothing" &&
+		(metadata._type === "Shirt" || metadata._type === "Pants") &&
+		raw.isPrismatic !== true
+	) {
+		const value = colorHex(raw.clothesColor);
 		if (value)
 			fields.push({
-				property: colorProperty,
+				property: "clothesColor",
 				label: "Color",
 				kind: "color",
 				value,
 			});
 	}
-	if (type === "Trinket" && metadata._type === "Trinket" && context)
+	if (
+		type === "StardewValley.Objects.Trinket" &&
+		metadata._type === "Trinket" &&
+		context
+	)
 		fields.push(...readTrinketProperties(raw, context));
 	return fields;
 }

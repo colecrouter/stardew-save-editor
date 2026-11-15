@@ -14,8 +14,7 @@ import {
 const fixtureXml = exportDocument(tinyEditorFixture());
 
 // These assertions wait on full-save import/export as well as browser promises.
-const waitForIO = <T>(assertion: () => T) =>
-	waitFor(assertion, { timeout: 30_000 });
+const waitForIO = <T>(assertion: () => T) => waitFor(assertion);
 
 const released = () =>
 	expect(editorResources()).toEqual({ models: 0, registries: 0, streams: 0 });
@@ -73,7 +72,6 @@ it("ignores a stream read that finishes after application teardown", async () =>
 // A late resolution must not write the abandoned session or affect its successor.
 it.each(["picker", "stream"] as const)(
 	"suppresses a late %s acquisition after Exit while the next save stays usable",
-	{ timeout: 60_000 },
 	async (stage) => {
 		const acquisition = Promise.withResolvers<void>();
 		const write = vi.fn(async () => {}),
@@ -138,39 +136,47 @@ it.each(["picker", "stream"] as const)(
 
 // Acquisition may already have succeeded when teardown invalidates its delivery.
 // The generation guard must close that real session instead of installing it.
-it(
-	"closes an acquired session delivered after application teardown",
-	{ timeout: 60_000 },
-	async () => {
-		const acquire = editor.openEditorBlob;
-		const acquired =
-			Promise.withResolvers<Awaited<ReturnType<typeof acquire>>>();
-		const delivery = Promise.withResolvers<void>();
-		const open = vi
-			.spyOn(editor, "openEditorBlob")
-			.mockImplementation(async (...args) => {
-				const session = await acquire(...args);
-				acquired.resolve(session);
-				await delivery.promise;
-				return session;
-			});
-		const page = render(EditorApp, { processingLayer: SaveProcessingSync });
-		let session: Awaited<ReturnType<typeof acquire>> | undefined;
-		try {
-			await fireEvent.change(page.getByLabelText("Save file"), {
-				target: { files: [new File([fixtureXml], "LateSession")] },
-			});
-			session = await acquired.promise;
-			expect(editorResources().models).toBe(1);
-			page.unmount();
-			delivery.resolve();
-			await waitForIO(released);
-			await expect(session.model.snapshot()).rejects.toThrow("closed");
-		} finally {
-			delivery.resolve();
-			page.unmount();
-			open.mockRestore();
-			await session?.close();
-		}
-	},
-);
+it("closes an acquired session delivered after application teardown", async () => {
+	// Capture the real export before replacing the hoisted module spy. Saving
+	// the spy itself would recurse when its implementation calls acquisition.
+	const acquire = vi.mocked(editor.openEditorBlob).getMockImplementation();
+	if (!acquire)
+		throw new Error("Missing real editor acquisition implementation");
+	const acquired = Promise.withResolvers<Awaited<ReturnType<typeof acquire>>>();
+	const delivery = Promise.withResolvers<void>();
+	const open = vi
+		.mocked(editor.openEditorBlob)
+		.mockImplementation(async (...args) => {
+			const session = await acquire(...args);
+			acquired.resolve(session);
+			await delivery.promise;
+			return session;
+		});
+	const page = render(EditorApp, { processingLayer: SaveProcessingSync });
+	let session: Awaited<ReturnType<typeof acquire>> | undefined;
+	try {
+		await fireEvent.change(page.getByLabelText("Save file"), {
+			target: { files: [new File([fixtureXml], "LateSession")] },
+		});
+		session = await acquired.promise;
+		expect(editorResources().models).toBe(1);
+		page.unmount();
+		delivery.resolve();
+		await waitForIO(released);
+		await expect(session.model.snapshot()).rejects.toThrow("closed");
+	} finally {
+		delivery.resolve();
+		page.unmount();
+		open.mockRestore();
+		await session?.close();
+	}
+});
+
+// Keep acquisition and resource counters in the same real module instance.
+// A replaceable wrapper exposes its original implementation to the late-delivery
+// test without re-importing a second instance with separate resource counters.
+vi.mock("../../src/lib/editor/editor-model", async (importOriginal) => {
+	const original =
+		await importOriginal<typeof import("../../src/lib/editor/editor-model")>();
+	return { ...original, openEditorBlob: vi.fn(original.openEditorBlob) };
+});

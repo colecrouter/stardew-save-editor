@@ -1,0 +1,709 @@
+{
+	"appId": 413150,
+	"source": "https://steamcommunity.com/achievements/413150?l=english",
+	"retrievedAt": "2026-11-14T02:12:11.344992+00:00",
+	"achievements": {
+		"0": {
+			"name": "Greenhorn",
+			"steamApiName": "a0",
+			"unlocked": {
+				"file": "0.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/dac82a85ceb1493bb2155d41890b4a6099f5eaa5.jpg",
+				"sha256": "06d1031926db8daec58ba2b8d29de214f37af5d698487ff1e40b64d3baf85ed1",
+				"width": 64,
+				"height": 64
+			},
+			"locked": {
+				"file": "0-locked.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/6177e17de19eea95ad1af0503f32d6ef74ceacee.jpg",
+				"sha256": "27fa146d85f977345ffdc034de98364713de874c9b6cbcf1df2c6ff79f3b6ce7",
+				"width": 64,
+				"height": 64
+			}
+		},
+		"1": {
+			"name": "Cowpoke",
+			"steamApiName": "1",
+			"unlocked": {
+				"file": "1.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/2a5c84271214a05435ea1c7a60bacc1cbbc5fa5a.jpg",
+				"sha256": "3d66f78084b581ed45614035d41fadd4aae027844974f6274a963bdebe5254ea",
+				"width": 64,
+				"height": 64
+			},
+			"locked": {
+				"file": "1-locked.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/07bdd379cb15b8732e156a38b1207bc72c6e9212.jpg",
+				"sha256": "0c512a01739d4611e4a913e642547d6c7fb5508e25bc7c15c7e008150b0751bf",
+				"width": 64,
+				"height": 64
+			}
+		},
+		"2": {
+			"name": "Homesteader",
+			"steamApiName": "2",
+			"unlocked": {
+				"file": "2.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/b81de530e1de874a4add0b690d372df3ffc44ea2.jpg",
+				"sha256": "545ae7b19df8facf7e76b49f152859d62fc7a936ad19cccbd932b5a935c694bb",
+				"width": 64,
+				"height": 64
+			},
+			"locked": {
+				"file": "2-locked.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/54b8d609ae49a3bfc55ba518622f7eeb155863df.jpg",
+				"sha256": "c767b8913e8d0c54b5b85a2222d084794c44e1c23c2d7c1ed50f022989d07fd2",
+				"width": 64,
+				"height": 64
+			}
+		},
+		"3": {
+			"name": "Millionaire",
+			"steamApiName": "3",
+			"unlocked": {
+				"file": "3.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/f96dbf78eebf05e027d1ca2fb25296a7db8f2036.jpg",
+				"sha256": "834414b3ebe6ade8db0a766b71dbb6f7d4f0a8b4d78d8ae5bad52faa3f452126",
+				"width": 64,
+				"height": 64
+			},
+			"locked": {
+				"file": "3-locked.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/836d9237fd8fea1556e1697a6186a50c5be26d02.jpg",
+				"sha256": "51deba9ca07e8f52aae7ec9ef790b8ffe5863600d4e0d9e220e5240f7840bbf0",
+				"width": 64,
+				"height": 64
+			}
+		},
+		"4": {
+			"name": "Legend",
+			"steamApiName": "4",
+			"unlocked": {
+				"file": "4.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/0db49d4d468db3597bdbbd5c42296de05b02dc5d.jpg",
+				"sha256": "a0bef1665a06c909a1905e2b0e9c2e81489dfcb3d6142a76be33ab1429b8b579",
+				"width": 64,
+				"height": 64
+			},
+			"locked": {
+				"file": "4-locked.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/ec152654126dba4a9d308c6e6716049af7885d49.jpg",
+				"sha256": "6cbe91b361953a4a9eaf9ee23587c778546c6c228223fd47bd5c4471fbce7942",
+				"width": 64,
+				"height": 64
+			}
+		},
+		"5": {
+			"name": "A Complete Collection",
+			"steamApiName": "5",
+			"unlocked": {
+				"file": "5.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/2ea2e98c122084b05cc8a0b60bf8c08050a10cfb.jpg",
+				"sha256": "6ed522a938fd7f943965fbd0f97c5f769c3a96b1f4591b9491a0b06c6a32b3ac",
+				"width": 64,
+				"height": 64
+			},
+			"locked": {
+				"file": "5-locked.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/59e0b9052132493c32726fd1ec8c2bb197289080.jpg",
+				"sha256": "8cc198c946e2b133020a4bea182bf842e6926964460d4279f7c171eeeecaae49",
+				"width": 64,
+				"height": 64
+			}
+		},
+		"6": {
+			"name": "A New Friend",
+			"steamApiName": "6",
+			"unlocked": {
+				"file": "6.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/73b81a2c4c59bfdf3d87bab03cb2932b4953fe18.jpg",
+				"sha256": "0b676a81e423d4791bcb67d25ccf1495281ed93a211e4d187f5459ecf7abf7e5",
+				"width": 64,
+				"height": 64
+			},
+			"locked": {
+				"file": "6-locked.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/e6a1ebbf79099f54f0abd7f36f45c639e7a70238.jpg",
+				"sha256": "1f3225bc42b44278fed43de71a5c9476a834cd94716a81691d0a0e05f0a8f9d7",
+				"width": 64,
+				"height": 64
+			}
+		},
+		"7": {
+			"name": "Best Friends",
+			"steamApiName": "7",
+			"unlocked": {
+				"file": "7.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/da975460e6ca17e1cf397d598d4eb9c65502f786.jpg",
+				"sha256": "4006407c2a0d71349c23929330c0a7da16430c696f3944c8931c92a0b3c6bc2a",
+				"width": 64,
+				"height": 64
+			},
+			"locked": {
+				"file": "7-locked.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/ecc68d32d9c812da5bc43676d4c3315113682f95.jpg",
+				"sha256": "9bc40e333e8c32304b6d815f602e13bdfa44b0653381a88a34bf7d663f93f8a3",
+				"width": 64,
+				"height": 64
+			}
+		},
+		"9": {
+			"name": "The Beloved Farmer",
+			"steamApiName": "9",
+			"unlocked": {
+				"file": "9.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/c0330b9f16d6491c4ac9569270d9edce2ce3cd7a.jpg",
+				"sha256": "95336443da64e69173c1a0c988d10ad07c4afcbaf67685a2bb29887f2fe16976",
+				"width": 64,
+				"height": 64
+			},
+			"locked": {
+				"file": "9-locked.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/818e6e4bda95a1882ec7f3f6bb9564f0da375468.jpg",
+				"sha256": "94d1f375a3702d74b0c4e5dc98cadb27e4b75b143dfece557792a5481a3662c8",
+				"width": 64,
+				"height": 64
+			}
+		},
+		"11": {
+			"name": "Cliques",
+			"steamApiName": "11",
+			"unlocked": {
+				"file": "11.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/dafe0ceff688bebb1c8554cbfa478e9826eb7074.jpg",
+				"sha256": "2f60b2d820857740462a763a2278d1c444ebab2576fc9051a39c5c5b1ee990a0",
+				"width": 64,
+				"height": 64
+			},
+			"locked": {
+				"file": "11-locked.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/c0e16fe2b61793bfd49d7e2af4b7d1b0593b1b31.jpg",
+				"sha256": "50c215ccc24f3ffa64dce9c0fdd834ba997f9a0c296cfaf55c2a75b76c017bd7",
+				"width": 64,
+				"height": 64
+			}
+		},
+		"12": {
+			"name": "Networking",
+			"steamApiName": "12",
+			"unlocked": {
+				"file": "12.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/8d54a60fa7642a6f48eeccc39821bce1cfc0a55d.jpg",
+				"sha256": "6be875fe0fbdce24bf6f011aeeb74dd9dcfec77659d1c0b695c18c87a68d5db5",
+				"width": 64,
+				"height": 64
+			},
+			"locked": {
+				"file": "12-locked.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/cc4fe12baec1205c2ca85cf72b34c1dae156ac4b.jpg",
+				"sha256": "36d41c499f25b78f80454e87da7665206adb1f4f7c4e47bc9b008ee988482f72",
+				"width": 64,
+				"height": 64
+			}
+		},
+		"13": {
+			"name": "Popular",
+			"steamApiName": "13",
+			"unlocked": {
+				"file": "13.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/e594c58534bf0d583e853db55bbef754c6ce80d4.jpg",
+				"sha256": "bf2d251521b90165cce8b00545e2b4d7acff8bee0e7c5bf6920c71a963334b03",
+				"width": 64,
+				"height": 64
+			},
+			"locked": {
+				"file": "13-locked.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/c7d3735930b02f361f1392fb036bd5bc6c54deca.jpg",
+				"sha256": "59e2216d3d186f3c9c07795d87e37b9489ed8b591831c092e7002b0ca0d6498c",
+				"width": 64,
+				"height": 64
+			}
+		},
+		"15": {
+			"name": "Cook",
+			"steamApiName": "15",
+			"unlocked": {
+				"file": "15.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/a3409b4511b671ee8ecaedd6dfcd5c80f99d7432.jpg",
+				"sha256": "003bf2174d33b22dba52986fb9b220b303b4c797b24836098d77bf8b274a8335",
+				"width": 64,
+				"height": 64
+			},
+			"locked": {
+				"file": "15-locked.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/056273b88ab3972cd1f1f9e9f4512c70269c955a.jpg",
+				"sha256": "0140a822cdfb5278cb0b2a31b4255dd6216a8bdf5ef5117c49395da803f049f8",
+				"width": 64,
+				"height": 64
+			}
+		},
+		"16": {
+			"name": "Sous Chef",
+			"steamApiName": "16",
+			"unlocked": {
+				"file": "16.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/2666e6c58519e6ed2ca512c09f12bbb315c7fb47.jpg",
+				"sha256": "42ed43af01720cbbe025136363be74afffdfa21e43c6c6929073e4404e8a109b",
+				"width": 64,
+				"height": 64
+			},
+			"locked": {
+				"file": "16-locked.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/beffe8417c2eda8ed5a4cfe64243a00bef082cac.jpg",
+				"sha256": "75c5e14322484c91c828180cc4d658a0b1fb7daeeae9c5473991d8c960bfcd30",
+				"width": 64,
+				"height": 64
+			}
+		},
+		"17": {
+			"name": "Gourmet Chef",
+			"steamApiName": "17",
+			"unlocked": {
+				"file": "17.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/47390740c5c22acfb653d69df43cec2d6805a0fc.jpg",
+				"sha256": "2aaecb27f70c613d3b04865b32219abc3ff7541503cf72f34257e3160dcac6e8",
+				"width": 64,
+				"height": 64
+			},
+			"locked": {
+				"file": "17-locked.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/fc380e777532344a0d4e2bb50fe96cebf1a7ee2e.jpg",
+				"sha256": "63dce6fc61bd06959e87fac121900dad2805b166e8aca4d71408ba09d0a11ea3",
+				"width": 64,
+				"height": 64
+			}
+		},
+		"18": {
+			"name": "Moving Up",
+			"steamApiName": "18",
+			"unlocked": {
+				"file": "18.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/67f2c064873468b80c57218f0992c15f7d2fe83e.jpg",
+				"sha256": "d09beba8fbd803d05183c356945f4b3b3737447b49f302d70c048304803ca10e",
+				"width": 64,
+				"height": 64
+			},
+			"locked": {
+				"file": "18-locked.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/7c1023f2d0451e46774d3fe48061add05595739c.jpg",
+				"sha256": "ca5518829105e0bf52f383699997a57844093684a7753fb7c02331cd7256e749",
+				"width": 64,
+				"height": 64
+			}
+		},
+		"19": {
+			"name": "Living Large",
+			"steamApiName": "19",
+			"unlocked": {
+				"file": "19.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/62714a3e361e1def16aac1dcd1e482dcf2fc3ce0.jpg",
+				"sha256": "e92feeddf38e35a1a7e93a11c0f67cd47329beccf832fa2ff3f49ce02fb073da",
+				"width": 64,
+				"height": 64
+			},
+			"locked": {
+				"file": "19-locked.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/68b279f8824f4dd6ef2b757e166fd182fecd8766.jpg",
+				"sha256": "7ddbd8d3b5350d4fa98fc79c31ba41618f4b1d84c7f2825ff12edd091fdb646d",
+				"width": 64,
+				"height": 64
+			}
+		},
+		"20": {
+			"name": "D.I.Y.",
+			"steamApiName": "20",
+			"unlocked": {
+				"file": "20.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/354c8650487d1359012892dd35ac23c7d83f4266.jpg",
+				"sha256": "864adae551db0644d651bb8a5a97b3d1496beefbfb4f84be8b18659bd3761df5",
+				"width": 64,
+				"height": 64
+			},
+			"locked": {
+				"file": "20-locked.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/a5d807e92ba144baf132f396e7b147971c3a450f.jpg",
+				"sha256": "cda937d000931bdec97c86d0274c67897ea0ef5955556ab5b0f6aacf4fa72363",
+				"width": 64,
+				"height": 64
+			}
+		},
+		"21": {
+			"name": "Artisan",
+			"steamApiName": "21",
+			"unlocked": {
+				"file": "21.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/b20a49e94c49ef54d009da987d56b0f9b74447ae.jpg",
+				"sha256": "8489abe11d8e16bb25bc76712418f55e60bf0b64a998ccbe55e663baf4e9826c",
+				"width": 64,
+				"height": 64
+			},
+			"locked": {
+				"file": "21-locked.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/7f64b911651503b56dab7043f6c080d1a2039a4a.jpg",
+				"sha256": "e7287f1d77123370c5ad4167f36643aa0d9bdee67d87fb6d9dd84ef72e2b02b2",
+				"width": 64,
+				"height": 64
+			}
+		},
+		"22": {
+			"name": "Craft Master",
+			"steamApiName": "22",
+			"unlocked": {
+				"file": "22.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/dbdadb45ca89cb24ce68025395b9642a84d9efbd.jpg",
+				"sha256": "84534f696c330dfac15f9f266a410f8510ae2304a5124f48593f31b95b8d4144",
+				"width": 64,
+				"height": 64
+			},
+			"locked": {
+				"file": "22-locked.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/cfc894dec25b40607593ce445d352f2017907343.jpg",
+				"sha256": "806726aab7be77bc159ebaf71592bbeee0395dc6d633eb8ede5486c25c6dfb5d",
+				"width": 64,
+				"height": 64
+			}
+		},
+		"24": {
+			"name": "Fisherman",
+			"steamApiName": "24",
+			"unlocked": {
+				"file": "24.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/e3c6269d906e909415d31d5b7962166c0951509d.jpg",
+				"sha256": "8bc625e3add11b9c2075110b53c3c93ca65d07cbff66bc7d929594cd950bd8de",
+				"width": 64,
+				"height": 64
+			},
+			"locked": {
+				"file": "24-locked.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/0c09af367d44d9ab2959568dd64be4e4778aa358.jpg",
+				"sha256": "aa541df694de9c1646224c2d033ee8bdc36c34327bc08c41cf1b472b7dd357dc",
+				"width": 64,
+				"height": 64
+			}
+		},
+		"25": {
+			"name": "Ol' Mariner",
+			"steamApiName": "25",
+			"unlocked": {
+				"file": "25.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/2400541f7661159b571cf767db7af4bd1125341a.jpg",
+				"sha256": "9c062349bca55254f934a26234facc315646b1ac47fb517e4fb4c8737a9b36bc",
+				"width": 64,
+				"height": 64
+			},
+			"locked": {
+				"file": "25-locked.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/f7dadfcf2c688a119d43243db3e2dfa21dd28b76.jpg",
+				"sha256": "aff9c473339bf89bc40ed0f59e89536a0e65cd0294263535d61fa8e4949b42a2",
+				"width": 64,
+				"height": 64
+			}
+		},
+		"26": {
+			"name": "Master Angler",
+			"steamApiName": "26",
+			"unlocked": {
+				"file": "26.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/398b5f107e5c81252d168cb5807ece5b147f1cd4.jpg",
+				"sha256": "56c49582606ac0bbee6bdbc0226212534247efa2a95bfeb338eaeb3db7ac0de6",
+				"width": 64,
+				"height": 64
+			},
+			"locked": {
+				"file": "26-locked.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/cb64333b373a2c66f68694ca7ba06681ae484f5d.jpg",
+				"sha256": "7d7750ee6933ad3aa38b656564e610552a1149d3fad9f8c0a3e6467d7097edbc",
+				"width": 64,
+				"height": 64
+			}
+		},
+		"27": {
+			"name": "Mother Catch",
+			"steamApiName": "27",
+			"unlocked": {
+				"file": "27.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/cdc37596680321cfc1f5aef5f6c02e8384d07d62.jpg",
+				"sha256": "8eb713557343ea0a343ad200c18a42d8fc50f87624f123dfd67bdb9fe6dd195b",
+				"width": 64,
+				"height": 64
+			},
+			"locked": {
+				"file": "27-locked.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/776e36d4bf17ce2e2c2ccda48ced77f47a1b5e20.jpg",
+				"sha256": "bf64cd7a49e52caf55024c31d94f90b0185aa0a9cdc98f4ba9de4319db55ab93",
+				"width": 64,
+				"height": 64
+			}
+		},
+		"28": {
+			"name": "Treasure Trove",
+			"steamApiName": "28",
+			"unlocked": {
+				"file": "28.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/2c8433424f9e87d55b64b1ddbdcef1ea75d36d4c.jpg",
+				"sha256": "383584c815ab0d5b57e21200500b8f9167ac647ea649ccc630afd1caaad6289e",
+				"width": 64,
+				"height": 64
+			},
+			"locked": {
+				"file": "28-locked.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/199dcfdec8d8225fec5b81a1427449ed340ee7e0.jpg",
+				"sha256": "0349f8620cceef8ff82fb38a87305a9a777df9e579fc85d2b3fc1d54f03db887",
+				"width": 64,
+				"height": 64
+			}
+		},
+		"29": {
+			"name": "Gofer",
+			"steamApiName": "29",
+			"unlocked": {
+				"file": "29.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/ac76efc80def3d8a94b0deb8afa50acd635acb0d.jpg",
+				"sha256": "648e83b608bb8f281e470449dce04c1f093f3c3bde5a2a65a6cac705d62ca5da",
+				"width": 64,
+				"height": 64
+			},
+			"locked": {
+				"file": "29-locked.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/22972e08a13cc9b0314b10fd1342dbd8dd35560f.jpg",
+				"sha256": "6550b3d71b47168dd4ea3d16f76ef751d71a3544d310681c745c19ad7cf58ff3",
+				"width": 64,
+				"height": 64
+			}
+		},
+		"30": {
+			"name": "A Big Help",
+			"steamApiName": "30",
+			"unlocked": {
+				"file": "30.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/8d54bc99fbb7cdcd3039509fc09439ad60f6907a.jpg",
+				"sha256": "bdf66a16de64ef3673e8bb66bca62e367a8689d88bfaa85dfb5f572f8e1184b5",
+				"width": 64,
+				"height": 64
+			},
+			"locked": {
+				"file": "30-locked.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/a3e42867d1c81be9401ac76f90f3059934133919.jpg",
+				"sha256": "dda3e90cc43bf0132c7ef7ba03898af76d844a4d4417d1afafe579abd86c2454",
+				"width": 64,
+				"height": 64
+			}
+		},
+		"31": {
+			"name": "Polyculture",
+			"steamApiName": "31",
+			"unlocked": {
+				"file": "31.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/b64a25c56092e41337b442b3dc70a38d5c81108a.jpg",
+				"sha256": "d963dbae6158a93d46af756f1a7d397d75f20b9ae2ffca35e5e7c5e61e5ef978",
+				"width": 64,
+				"height": 64
+			},
+			"locked": {
+				"file": "31-locked.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/b651efe332d9deaa81d19473a10770c15d08f1f8.jpg",
+				"sha256": "aa01a97161ec9ab492c66c697a4a10ce62b16ed47b68338ae3a5a72012a78a13",
+				"width": 64,
+				"height": 64
+			}
+		},
+		"32": {
+			"name": "Monoculture",
+			"steamApiName": "32",
+			"unlocked": {
+				"file": "32.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/204eb62019fa81c54d4dafa83c05c8e16fe7fde1.jpg",
+				"sha256": "81c62b0ec8ea26477b5de5211aed8c0e8d1c591d8bdf852c90a23d47bc56fb39",
+				"width": 64,
+				"height": 64
+			},
+			"locked": {
+				"file": "32-locked.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/b56991cd861dca1a1258e95fe2f6d64d09f07406.jpg",
+				"sha256": "394b06f748166e799c91c29ea5c8be68b443077c16be9135d920be97ebb149cd",
+				"width": 64,
+				"height": 64
+			}
+		},
+		"34": {
+			"name": "Full Shipment",
+			"steamApiName": "34",
+			"unlocked": {
+				"file": "34.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/8f8570bf331dbf36612c6148531d640a30fd4f0f.jpg",
+				"sha256": "9705b911102ff1e3ca3f14571767c28ad3e7ccfff50841b18a58b5d0fc53b532",
+				"width": 64,
+				"height": 64
+			},
+			"locked": {
+				"file": "34-locked.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/1c2f8b918a502b6805244a01912aa9915bd733af.jpg",
+				"sha256": "ad2ef3eea0e07325e991aeb72f36112ff64c7d82aef6276b0f0fb9fb2a80cea5",
+				"width": 64,
+				"height": 64
+			}
+		},
+		"40": {
+			"name": "A Distant Shore",
+			"steamApiName": "40",
+			"unlocked": {
+				"file": "40.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/c27841b3907d4cb18d12509f473964760a30b702.jpg",
+				"sha256": "7b7489892cf8c9a0ebbe9863e33c680ed97b3b2cb418dd6b4a5680d47ee5c8eb",
+				"width": 128,
+				"height": 128
+			},
+			"locked": {
+				"file": "40-locked.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/000073da0abf4060659523641c1a6422fffec4ab.jpg",
+				"sha256": "ac094986a1074f443e0986b94e12b2f598a0967e56c62bdee2217fb77faddd82",
+				"width": 128,
+				"height": 128
+			}
+		},
+		"35": {
+			"name": "Well-read",
+			"steamApiName": "35",
+			"unlocked": {
+				"file": "35.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/aa688a9a6e544d1f56bfc81870eeadbcbf77f6e3.jpg",
+				"sha256": "64df93a2e6f63b83d71abbddb9feeadf5e70e09093f35ad9aa991420f21b2512",
+				"width": 128,
+				"height": 128
+			},
+			"locked": {
+				"file": "35-locked.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/8b861985f668dceef4bfb6b1214d14d74cf7b42f.jpg",
+				"sha256": "770aab162ba00b8b2d62f4b607d6ee7c4f0c5676244b94065338a9518bbf66ea",
+				"width": 128,
+				"height": 128
+			}
+		},
+		"36": {
+			"name": "Two Thumbs Up",
+			"steamApiName": "36",
+			"unlocked": {
+				"file": "36.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/c4e52cbeaed5567f23837b9555a26c68f6054a39.jpg",
+				"sha256": "68b2ff1b4d67ffb4f74423861d2aed99cc39e64f9e396c4df208bebf90d9d754",
+				"width": 128,
+				"height": 128
+			},
+			"locked": {
+				"file": "36-locked.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/3b9aae19f5db70dfa7cbb62abde536aef99bc292.jpg",
+				"sha256": "e5d44cbaa3e6c8d989de22c77ead54fb2280f763a3879dbdb8e02df610a216b6",
+				"width": 128,
+				"height": 128
+			}
+		},
+		"37": {
+			"name": "Blue Ribbon",
+			"steamApiName": "37",
+			"unlocked": {
+				"file": "37.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/250df742936beb7f08190873ff251edcc7ce5cfd.jpg",
+				"sha256": "312c6bf66cb734008222b9d724e29a963648c5a699e5848d378eca2874c3ec70",
+				"width": 128,
+				"height": 128
+			},
+			"locked": {
+				"file": "37-locked.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/c45129de14398f237e563d5046c6a073b98c6703.jpg",
+				"sha256": "4b5d76375c4e9256011ec6913544b1d6835d1b22562feacfa41a7eb4f0ec0a2b",
+				"width": 128,
+				"height": 128
+			}
+		},
+		"38": {
+			"name": "An Unforgettable Soup",
+			"steamApiName": "38",
+			"unlocked": {
+				"file": "38.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/544ed7db7ee3328cd09404329cb25926794e4830.jpg",
+				"sha256": "576a38e7c56d02b8ef1c6c636cef4d2762563a49bc55f7c2d3fa10820b0d3286",
+				"width": 128,
+				"height": 128
+			},
+			"locked": {
+				"file": "38-locked.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/03b5c5c7b37d4cda4fcb5baf7b00fcab75704981.jpg",
+				"sha256": "32a78ea9bb6943319f0e1d30b33877c8b8c0013b99b1a77a1ad5521e9eeb82a5",
+				"width": 128,
+				"height": 128
+			}
+		},
+		"39": {
+			"name": "Good Neighbors",
+			"steamApiName": "39",
+			"unlocked": {
+				"file": "39.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/eb08a0d235fbc862f7d01fbe8b20bc88c42e4225.jpg",
+				"sha256": "49e1578bd416f767c01c511e97f3e17759ff1428245bbc97146932f1f8d86d25",
+				"width": 128,
+				"height": 128
+			},
+			"locked": {
+				"file": "39-locked.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/14ec8f609d2bbd9c93270969930e78acb244c0e3.jpg",
+				"sha256": "bb826f2f1944d9fd8d0c23ec1bcff066c18b3952a70a40449a924b3accb7fdde",
+				"width": 128,
+				"height": 128
+			}
+		},
+		"41": {
+			"name": "Danger In The Deep",
+			"steamApiName": "41",
+			"unlocked": {
+				"file": "41.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/845aff6e771d5a67a82d110f4da22917608eed70.jpg",
+				"sha256": "d766a7d4f6401cbb14df4b1aed36522237f69d92e4de5a60698cf23d74b31570",
+				"width": 128,
+				"height": 128
+			},
+			"locked": {
+				"file": "41-locked.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/ffeb16fcedc14c3f02c2d684a29ddbceda9456dd.jpg",
+				"sha256": "008f04a0a58badd5435161583ca5b7569afe01c2d0799549b6391467f2bcfd3e",
+				"width": 128,
+				"height": 128
+			}
+		},
+		"42": {
+			"name": "Infinite Power",
+			"steamApiName": "42",
+			"unlocked": {
+				"file": "42.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/324468db74bf9d9c6eb566ea8575e9717cc56cf8.jpg",
+				"sha256": "1cacb8e8ddf5e9e1fd339189db071d7cbfc2b410aa5186c23ad2beede8f12179",
+				"width": 128,
+				"height": 128
+			},
+			"locked": {
+				"file": "42-locked.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/922119740c6eea944a13b0ba1a0f07cea866bebf.jpg",
+				"sha256": "5eb648abe2688c8c9bdeb3656f8c8d90e6650554e1bfa2e108ccf023cb67512a",
+				"width": 128,
+				"height": 128
+			}
+		},
+		"44": {
+			"name": "Perfection",
+			"steamApiName": "44",
+			"unlocked": {
+				"file": "44.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/841758389f584b7abc1c83c3e6688ebecdd5ac22.jpg",
+				"sha256": "d991f066920e6841b14d70b53994ea439cf82fa35d9761532f16ca70dbe937ab",
+				"width": 128,
+				"height": 128
+			},
+			"locked": {
+				"file": "44-locked.jpg",
+				"url": "https://shared.fastly.steamstatic.com/community_assets/images/apps/413150/304d11535329eed609aa65016db98c4cc0e33873.jpg",
+				"sha256": "28c5461caab14fd5468bc757fa19e4e466d2147a77c76cf9b7421cee0ead12aa",
+				"width": 128,
+				"height": 128
+			}
+		}
+	}
+}

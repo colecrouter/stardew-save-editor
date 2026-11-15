@@ -1,4 +1,3 @@
-import { readFileSync } from "node:fs";
 import { fireEvent, render, screen } from "@testing-library/svelte";
 import { imageDimensionsFromData } from "image-dimensions";
 import { expect, it } from "vitest";
@@ -10,11 +9,14 @@ import {
 } from "$lib/ui/uiAssets";
 import Harness from "./helpers/PixelFrameHarness.svelte";
 
-it("sprite definitions match the shipped atlas dimensions and stay in bounds", () => {
+it("sprite definitions match the shipped atlas dimensions and stay in bounds", async () => {
 	for (const spec of Object.values(uiAtlases)) {
-		// The image reader also reports its format; this contract checks atlas dimensions.
+		// Read the shipped image through the browser rather than a Node filesystem
+		// API. The decoder also reports format; this contract checks dimensions.
 		expect(
-			imageDimensionsFromData(readFileSync(`static/${spec.path}`)),
+			imageDimensionsFromData(
+				new Uint8Array(await (await fetch(`/${spec.path}`)).arrayBuffer()),
+			),
 		).toMatchObject({ width: spec.width, height: spec.height });
 	}
 	for (const [rectangles, atlas] of [

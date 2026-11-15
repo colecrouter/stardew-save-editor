@@ -3,7 +3,7 @@ import {
 	tinyEditorFixture,
 	exportDocument,
 } from "../helpers/editor-document.ts";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { fireEvent, render, waitFor } from "@testing-library/svelte";
 import { Result } from "effect";
 import { openTestDocument } from "../helpers/open-editor.ts";
@@ -42,11 +42,11 @@ async function open(mutate: (document: SaveDocument) => void) {
 	};
 }
 const waitCommitted = async (assertion: () => Promise<void>) =>
-	waitFor(assertion, { timeout: 5000 });
+	waitFor(assertion);
 
 // Real commands and exports protect opaque inventory fields. World data is not
 // needed to verify these controls and their queued edits.
-describe("item property controls", { timeout: 25_000 }, () => {
+describe("item property controls", () => {
 	it.each(["equipment", "backpack"] as const)(
 		"edits %s boots immediately, retains focus through rapid input, and exports only the intended fields",
 		async (location) => {
@@ -341,21 +341,8 @@ describe("item property controls", { timeout: 25_000 }, () => {
 				(option) => option.value !== color.value,
 			)?.value;
 			if (target === undefined) throw Error("Expected another frog color");
-			// Happy DOM's :checked selector currently excludes selected OPTIONs.
-			// Restore native select semantics only inside this test, without a product shim.
-			const originalQuery = color.querySelector.bind(color);
-			const query = vi
-				.spyOn(color, "querySelector")
-				.mockImplementation((selector) =>
-					selector === ":checked"
-						? ([...color.options].find((option) => option.selected) ?? null)
-						: originalQuery(selector),
-				);
-			try {
-				await fireEvent.change(color, { target: { value: target } });
-			} finally {
-				query.mockRestore();
-			}
+			// Use the browser's actual selected-option semantics.
+			await fireEvent.change(color, { target: { value: target } });
 			await waitCommitted(async () => {
 				const document = (await opened.model.snapshot()).document;
 				const item = document.SaveGame.player.trinketItem?.[0] as Record<

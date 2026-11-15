@@ -1,21 +1,16 @@
-import { readFile } from "node:fs/promises";
+import publicSaveXml from "./TestSave?raw";
 import { flushSync } from "svelte";
 import { expect, it } from "vitest";
-import { setup as mockIDB } from "vitest-indexeddb";
 import { Raw } from "$lib/proxies";
 import { Item } from "$lib/proxies/Item.svelte";
 import { SaveManager } from "$lib/SaveManager.svelte";
-
-mockIDB();
 it("reset releases factory-created backpack and chest item roots", async () => {
 	let manager!: SaveManager;
 	const stop = $effect.root(() => {
 		manager = new SaveManager();
 	});
 	try {
-		await manager.import(
-			new File([await readFile("tests/TestSave", "utf8")], "TestSave"),
-		);
+		await manager.import(new File([publicSaveXml], "TestSave"));
 		const save = manager.save;
 		if (!save || !save.chests[0])
 			throw new Error("Fixture needs a save and chest");
@@ -41,4 +36,4 @@ it("reset releases factory-created backpack and chest item roots", async () => {
 		manager.reset();
 		stop();
 	}
-}, 30_000);
+});

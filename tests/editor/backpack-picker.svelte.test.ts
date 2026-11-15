@@ -161,9 +161,22 @@ it("starts a new preview's reading areas at the top while retaining the result l
 			maxHeight: "40px",
 			overflowY: "auto",
 		});
+		// Short fixture text normally fits in the preview. Force both reading
+		// areas to overflow so zero after selection proves a reset from real scroll.
+		for (const surface of [firstDescription, firstTitle]) {
+			Object.assign(surface.style, {
+				height: "1px",
+				minHeight: "0",
+				maxHeight: "1px",
+				padding: "0",
+				overflowY: "auto",
+			});
+		}
 		firstDescription.scrollTop = 90;
 		firstTitle.scrollTop = 20;
 		list.scrollTop = 100;
+		expect(firstDescription.scrollTop).toBeGreaterThan(0);
+		expect(firstTitle.scrollTop).toBeGreaterThan(0);
 		await fireEvent.click(
 			page.getByRole("button", { name: "Preview Wood ((O)388)" }),
 		);

@@ -21,7 +21,11 @@ it("searches catalog hats, previews a replacement privately and restores focus o
 		const hats = card.getByRole("combobox", { name: "Hat" });
 		await fireEvent.click(hats);
 		await fireEvent.input(hats, { target: { value: "no matching hats" } });
-		await waitFor(() => expect(page.getByText("No hats found.")).toBeTruthy());
+		// The picker loads the item catalog lazily; a parallel run can take longer
+		// than the default one second to finish that import.
+		await waitFor(() => expect(page.getByText("No hats found.")).toBeTruthy(), {
+			timeout: 10_000,
+		});
 		expect(page.queryByRole("option", { name: /Straw Hat/ })).toBeNull();
 		await fireEvent.input(hats, { target: { value: "Straw" } });
 		await fireEvent.pointerUp(

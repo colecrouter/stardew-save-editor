@@ -2511,7 +2511,8 @@
 				}
 			},
 			{
-				"0": "Greenhorn (15k)^Earn 15,000g^true^-1^18"
+				"0": "Greenhorn (15k)^Earn 15,000g^true^-1^18",
+				"40": "A Distant Shore^Reach Ginger Island.^false^-1^9"
 			}
 		],
 		"expected": {
@@ -2548,7 +2549,14 @@
 				{
 					"id": 0,
 					"name": "Greenhorn",
-					"description": "Earn 15,000g"
+					"description": "Earn 15,000g",
+					"hidden": false
+				},
+				{
+					"id": 40,
+					"name": "A Distant Shore",
+					"description": "Reach Ginger Island.",
+					"hidden": true
 				}
 			]
 		}

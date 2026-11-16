@@ -129,3 +129,74 @@ it("explains historical-only festival evidence instead of showing an invented sc
 		await opened.dispose();
 	}
 });
+
+it("hides secret names, artwork and search matches, retaining totals and the preference", async () => {
+	localStorage.removeItem("stardew-editor:hide-progress-spoilers");
+	const document = tinyEditorFixture();
+	document.SaveGame.player.achievements = [36];
+	const opened = await renderTestWorkspace(document, "Progress");
+	try {
+		const { page, model } = opened;
+		await fireEvent.click(page.getByRole("tab", { name: "Achievements" }));
+		expect(page.getByRole("heading", { name: "A Distant Shore" })).toBeTruthy();
+		await fireEvent.click(
+			page.getByRole("checkbox", { name: "Hide spoilers" }),
+		);
+		await waitFor(() =>
+			expect(
+				page.queryByRole("heading", { name: "A Distant Shore" }),
+			).toBeNull(),
+		);
+		expect(page.getByRole("heading", { name: "Two Thumbs Up" })).toBeTruthy();
+		expect(
+			page
+				.getByRole("progressbar", { name: "Recorded achievements" })
+				.getAttribute("aria-valuenow"),
+		).toBe("1");
+		expect(localStorage.getItem("stardew-editor:hide-progress-spoilers")).toBe(
+			"true",
+		);
+		await fireEvent.input(
+			page.getByRole("searchbox", { name: "Search achievements" }),
+			{ target: { value: "Ginger Island" } },
+		);
+		expect(
+			page.getByRole("heading", {
+				name: "No achievements match these filters.",
+			}),
+		).toBeTruthy();
+		await fireEvent.click(
+			page.getByRole("checkbox", { name: "Hide spoilers" }),
+		);
+		expect(page.getByRole("heading", { name: "A Distant Shore" })).toBeTruthy();
+		expect((await model.snapshot()).entries).toHaveLength(0);
+	} finally {
+		await opened.dispose();
+		localStorage.removeItem("stardew-editor:hide-progress-spoilers");
+	}
+});
+
+it("restores the spoiler preference for a new editor session", async () => {
+	localStorage.setItem("stardew-editor:hide-progress-spoilers", "true");
+	const document = tinyEditorFixture();
+	document.SaveGame.player.achievements = [];
+	const opened = await renderTestWorkspace(document, "Progress");
+	try {
+		const { page } = opened;
+		expect(
+			page.getByRole("checkbox", { name: "Hide spoilers" }),
+		).toHaveProperty("checked", true);
+		expect(page.queryByRole("heading", { name: "Golden Clock" })).toBeNull();
+		expect(
+			page.getByRole("heading", { name: "Cooking recipes made" }),
+		).toBeTruthy();
+		await fireEvent.click(page.getByRole("tab", { name: "Achievements" }));
+		expect(page.queryByRole("heading", { name: "A Distant Shore" })).toBeNull();
+		expect(
+			page.getAllByRole("heading", { name: "Hidden achievement" }).length,
+		).toBeGreaterThan(0);
+	} finally {
+		await opened.dispose();
+		localStorage.removeItem("stardew-editor:hide-progress-spoilers");
+	}
+});

@@ -116,6 +116,19 @@ ownership. Each historical fallback explains that evidence in the view instead o
 inventing counters or treating platform unlocks as known. Tests belong in
 `tests/editor/progress*.test.ts` and `achievement-diagnostics.test.ts`.
 
+Progress opens with spoilers visible unless the browser remembers **Hide spoilers**.
+This preference affects only Progress and never changes the save or history. Hidden
+awards use Data/Achievements' visibility flag and reveal only when the selected
+farmer has a recorded award; unknown award membership stays concealed. Searches
+match only the displayed placeholder for concealed awards, and evidence
+and requirement meters are omitted. Concealed artwork is sampled into a 6×6
+canvas and enlarged as a pixel mosaic. Ordinary collection and recipe checklists,
+counts and score bounds remain visible. Obelisks, Golden Clock and Golden Walnuts
+use neutral milestone names until positive saved progress exists in that category;
+Stardrop source names reveal individually when their requirement is complete.
+Other editor sections can still expose spoilers. Browser storage failures retain a
+working session-only toggle.
+
 ### Child editing
 
 The Children tab under Relationships includes existing children from saved FarmHouse/Cabin character

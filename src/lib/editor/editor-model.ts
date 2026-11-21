@@ -249,7 +249,8 @@ function project(
 		farmerChoices: readFarmerChoices(state.document),
 		recipes,
 		progress: readProgress(state.document, recipes),
-		locations: readLocations(state.document),
+		// Only the comparison workspace exposes the unfinished inspector.
+		locations: includeProofs ? readLocations(state.document) : [],
 		events: readEvents(state.document),
 		questJournals: readQuestJournals(state.document),
 		qiOrders: readQiOrders(state.document),

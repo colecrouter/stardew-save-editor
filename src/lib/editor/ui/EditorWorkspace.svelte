@@ -91,7 +91,6 @@
 		{ id: "progress", label: "Progress", icon: "progress" },
 		{ id: "farm", label: "Farm settings", icon: "farm" },
 		{ id: "calendar", label: "Date and weather", icon: "calendar" },
-		{ id: "locations", label: "Locations", icon: "locations" },
 		{ id: "reconstruct", label: "Rebuild lost progress", icon: "rebuild" },
 		{ id: "review", label: "Review changes", icon: "review" },
 	] satisfies {
@@ -103,6 +102,7 @@
 		includeProofs
 			? [
 					...sections,
+					{ id: "locations", label: "Locations", icon: "locations" as const },
 					{ id: "bundles", label: "Bundles", icon: "community" as const },
 				]
 			: sections,
@@ -458,7 +458,7 @@
 			/>
 		</div>
 
-		{#if tab === "locations"}
+		{#if includeProofs && tab === "locations"}
 			<LocationInspector {model} />
 		{/if}
 

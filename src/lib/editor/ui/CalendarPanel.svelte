@@ -256,9 +256,17 @@
 	{/if}
 	<StudyAside title="Changing the date">
 		<p>
-			Choose a date, then Apply date to commit its coordinated changes. This
-			does not simulate an overnight transition. Weather edits apply separately
-			to the current saved date.
+			Apply date to update the farm and player date records and the host’s
+			days-played statistic, whether moving forward or backward. The new date
+			determines festival and forecast rules, including the next season’s rules
+			on its first day.
+		</p>
+
+		<p>
+			If today’s weather changes to rain, the editor updates watering in
+			recognized outdoor locations for that weather context. Crops retain their
+			growth stage, and quest, animal, and construction timers keep their saved
+			values. Tomorrow’s weather changes the forecast.
 		</p>
 	</StudyAside>
 {/if}

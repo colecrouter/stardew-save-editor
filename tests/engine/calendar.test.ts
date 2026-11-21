@@ -23,7 +23,10 @@ import {
 	requireDefined,
 	requireRecord,
 } from "../helpers/assertions.ts";
-import { malformedFixture } from "../helpers/editor-document.ts";
+import {
+	malformedFixture,
+	tinyEditorFixture,
+} from "../helpers/editor-document.ts";
 import {
 	exportDocument,
 	fixtureGame,
@@ -46,6 +49,60 @@ const today = (value: string) =>
 	({ type: "calendar-weather", day: "today", value }) as const;
 const day = (value: number) =>
 	({ type: "calendar-date", change: { day: value } }) as const;
+
+it.effect(
+	"moves backward across a year boundary while preserving farm and farmhand records",
+	() =>
+		Effect.gen(function* () {
+			const document = tinyEditorFixture();
+			const game = document.SaveGame;
+			// Start on Spring 1 of year two with an independently tracked farmhand.
+			game.year = 2;
+			game.currentSeason = CalendarSeason.Spring;
+			game.dayOfMonth = 1;
+			game.player.stats = { Values: [{ key: "daysPlayed", value: 113 }] };
+			game.weatherForTomorrow = "Rain";
+			game.farmhands = [
+				{
+					...structuredClone(game.player),
+					name: "Guest",
+					UniqueMultiplayerID: 2n,
+					stats: { Values: [{ key: "daysPlayed", value: 7 }] },
+				},
+			];
+			// Import first so nullable defaults match a real editing session.
+			const session = yield* makeHistorySession(
+				parser.parse(exportDocument(document)),
+			);
+			const before = yield* session.snapshot;
+			const after = yield* session.execute([
+				{
+					type: "calendar-date",
+					change: { year: 1, season: CalendarSeason.Winter, day: 28 },
+				},
+			]);
+			const result = after.document.SaveGame;
+
+			// Year one ends on the 112th played day. The farmhand date copy
+			// follows the host's date, while their independent statistic stays put.
+			expect(getStatValue(result.player, "daysPlayed")).toBe(112);
+			expect(result.farmhands[0]).toMatchObject({
+				yearForSaveGame: 1,
+				seasonForSaveGame: 3,
+				dayOfMonthForSaveGame: 28,
+				stats: { Values: [{ key: "daysPlayed", value: 7 }] },
+			});
+			expect(result.locations).toEqual(before.document.SaveGame.locations);
+			expect(result.player.questLog).toEqual(
+				before.document.SaveGame.player.questLog,
+			);
+			expect(calendarOf(after.domainState).tomorrow).toBe("Sun");
+			expect(parser.parse(exportDocument(after.document))).toEqual(
+				after.document,
+			);
+			expect((yield* session.undo).document).toEqual(before.document);
+		}),
+);
 
 it.effect(
 	"a real-save date transaction updates all farmers, exports unknown data and restores domain state with undo/redo",

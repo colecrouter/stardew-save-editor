@@ -2,7 +2,7 @@ import { Data, Effect, Result, Schema } from "effect";
 
 import requirements from "../../../generated/achievement-requirements.json";
 import catalog from "../../../generated/progress.json";
-import { farmers } from "./domain.ts";
+import { type Farmer, farmers } from "./domain.ts";
 import {
 	recordAnnotatedOperation,
 	withReviewMetadata,
@@ -33,6 +33,23 @@ const cropIds = new Set([
 	...requirements.polyculture,
 	...requirements.monoculture,
 ]);
+
+// Project the same eligible crops the command accepts. Missing keys are valid
+// starting points, while duplicate entries cannot identify a single target.
+export function readCropShipments(farmer: Farmer) {
+	const shipments = farmer.basicShipped;
+	if (shipments === undefined) return [];
+	return catalog.shipping
+		.filter((crop) => cropIds.has(crop.id))
+		.map((crop) => {
+			const entries = shipments.filter((entry) => entry.key === crop.id);
+			return {
+				...crop,
+				count: entries[0]?.value ?? 0,
+				ambiguous: entries.length > 1,
+			};
+		});
+}
 
 export const setCropShipment = Effect.fn("Shipments.setCropCount")(function* (
 	input: typeof shipmentSchema.Type,

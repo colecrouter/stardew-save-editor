@@ -116,18 +116,22 @@ ownership. Each historical fallback explains that evidence in the view instead o
 inventing counters or treating platform unlocks as known. Tests belong in
 `tests/editor/progress*.test.ts` and `achievement-diagnostics.test.ts`.
 
-Progress opens with spoilers visible unless the browser remembers **Hide spoilers**.
-This preference affects only Progress and never changes the save or history. Hidden
-awards use Data/Achievements' visibility flag and reveal only when the selected
-farmer has a recorded award; unknown award membership stays concealed. Searches
-match only the displayed placeholder for concealed awards, and evidence
+Progress hides spoilers by default; only a stored explicit opt-out reveals them.
+The preference is read synchronously before creating Progress markup. Missing,
+unrecognised or inaccessible storage keeps spoilers hidden, and storage failures
+still allow a session-only toggle. This preference affects only Progress and never
+changes the save or history. Hidden awards use Data/Achievements' visibility flag
+and reveal only when the selected farmer has a recorded award; unknown award membership stays concealed. Missing
+or unrecognised catalog visibility flags are treated as hidden, and boolean
+spellings are compared without case sensitivity. Searches intentionally match the
+displayed placeholder for concealed awards: the policy hides identities and
+requirements, not award existence or counts. Evidence
 and requirement meters are omitted. Concealed artwork is sampled into a 6×6
 canvas and enlarged as a pixel mosaic. Ordinary collection and recipe checklists,
 counts and score bounds remain visible. Obelisks, Golden Clock and Golden Walnuts
 use neutral milestone names until positive saved progress exists in that category;
 Stardrop source names reveal individually when their requirement is complete.
-Other editor sections can still expose spoilers. Browser storage failures retain a
-working session-only toggle.
+Other editor sections can still expose spoilers.
 
 ### Child editing
 

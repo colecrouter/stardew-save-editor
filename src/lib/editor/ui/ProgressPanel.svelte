@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { useAtomValue } from "effect-atom-svelte";
-	import { onMount } from "svelte";
 
 	import StudyButton from "../../ui/kit/StudyButton.svelte";
 	import StudyCheckbox from "../../ui/kit/StudyCheckbox.svelte";
@@ -8,6 +7,7 @@
 	import StudyTabs from "../../ui/kit/StudyTabs.svelte";
 	import StudyIcon from "../../ui/StudyIcon.svelte";
 	import type { StudyIconName } from "../../ui/studyIcons.ts";
+	import { hasOwnKey } from "../../unknown.ts";
 	import type { EditorModel } from "../editor-model.ts";
 	import { createFarmerSelectionField } from "../farmer-selection.ts";
 	import type { ImmutableView } from "../immutable-view.ts";
@@ -27,6 +27,7 @@
 		onsection,
 	}: { model: EditorModel; onsection: (section: ProgressSection) => void } =
 		$props();
+
 	const view = useAtomValue(() => model.atomBindings.view);
 	const selection = useAtomValue(() => model.atomBindings.selectedFarmerId);
 	const farmerField = $derived(
@@ -44,27 +45,30 @@
 		...(selected?.categories ?? []),
 		...(progress?.shared ?? []),
 	]);
-	// This is a browser preference, independent of the imported file and history.
-	// Storage may be blocked; the live toggle must still work for this session.
-	let hideSpoilers = $state(false);
-	const spoilerPreference = "stardew-editor:hide-progress-spoilers";
-	onMount(() => {
+
+	const spoilerPreferenceKey = "stardew-editor:hide-progress-spoilers";
+	// Only an explicit opt-out reveals spoilers. Read before creating markup;
+	// absent, unrecognised or inaccessible storage keeps the safe default.
+	let hideSpoilers = $state(true);
+	try {
+		hideSpoilers = localStorage.getItem(spoilerPreferenceKey) !== "false";
+	} catch {
+		// The session can still use its toggle when the preference cannot be read.
+	}
+	$effect(() => {
 		try {
-			hideSpoilers = localStorage.getItem(spoilerPreference) === "true";
-		} catch {
-			// Keep the default when browser storage is unavailable.
+			localStorage.setItem(spoilerPreferenceKey, String(hideSpoilers));
+		} catch (e) {
+			// Persistence is optional; never interrupt inspection of the save.
+			console.warn("Failed to persist spoiler preference.", e);
 		}
 	});
-	function rememberSpoilers() {
-		try {
-			localStorage.setItem(spoilerPreference, String(hideSpoilers));
-		} catch {
-			// Persistence is optional; never interrupt inspection of the save.
-		}
-	}
+
 	let tab = $state("perfection");
 	let search = $state("");
 	let filter = $state("all");
+	// Conceal identities and requirements, not the existence of awards. Placeholder
+	// searches and counts intentionally stay available under the Progress policy.
 	const awards = $derived(
 		(selected?.achievements ?? []).filter(
 			(award) =>
@@ -80,12 +84,14 @@
 						: award.recorded !== true)),
 		),
 	);
+
 	const recordedCount = $derived(
 		selected?.achievements.every((award) => award.recorded !== undefined)
 			? selected.achievements.filter((award) => award.recorded).length
 			: undefined,
 	);
-	const categoryIcons: Record<string, StudyIconName> = {
+
+	const categoryIcons = {
 		shipping: "chests",
 		fishing: "farm",
 		friends: "relationships",
@@ -97,12 +103,11 @@
 		obelisks: "buildings",
 		clock: "buildings",
 		walnuts: "tree",
-	};
+	} satisfies Record<string, StudyIconName>;
+
 	// Reuse the game's catalog-backed sprites for categories without a matching
 	// section icon. These are drawing instructions, never saved item records.
-	const categoryVisuals: Partial<
-		Record<string, ReturnType<typeof readItemVisual>>
-	> = {
+	const categoryVisuals = {
 		fishing: readItemVisual({ $type: "StardewValley.Object", itemId: "145" }),
 		monsters: readItemVisual({
 			$type: "StardewValley.Tools.MeleeWeapon",
@@ -110,7 +115,8 @@
 		}),
 		stardrops: readItemVisual({ $type: "StardewValley.Object", itemId: "434" }),
 		walnuts: readItemVisual({ $type: "StardewValley.Object", itemId: "73" }),
-	};
+	} satisfies Partial<Record<string, ReturnType<typeof readItemVisual>>>;
+
 	function categoryMeasure(category: ImmutableView<ProgressCategory>) {
 		// Keep the checklist's measure honest: skills use Farmer.Level, walnuts
 		// use the found counter, and historical Stardrop completion is not seven
@@ -172,7 +178,6 @@
 	<StudyCheckbox
 		label="Hide spoilers"
 		bind:checked={hideSpoilers}
-		onchange={rememberSpoilers}
 	/>
 {/snippet}
 
@@ -269,7 +274,16 @@
 			{@const measure = categoryMeasure(category)}
 			{@const complete = category.lower === 1 && category.upper === 1}
 			{@const concealed = category.label === "Undiscovered milestone"}
-			{@const visual = concealed ? undefined : categoryVisuals[category.id]}
+			<!-- These maps intentionally cover different subsets of category IDs.
+			     Guard each lookup so unknown IDs and concealed milestones use fallbacks. -->
+			{@const visual =
+				!concealed && hasOwnKey(categoryVisuals, category.id)
+					? categoryVisuals[category.id]
+					: undefined}
+			{@const icon =
+				!concealed && hasOwnKey(categoryIcons, category.id)
+					? categoryIcons[category.id]
+					: "review"}
 			<section
 				aria-label={`${category.label} requirements`}
 				class="category"
@@ -285,9 +299,7 @@
 								/>
 							{:else}
 								<StudyIcon
-									name={concealed
-										? "review"
-										: (categoryIcons[category.id] ?? "review")}
+									name={icon}
 									size={30}
 								/>
 							{/if}

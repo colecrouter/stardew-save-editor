@@ -2608,5 +2608,52 @@
 			"polyculture": ["24"],
 			"monoculture": ["24", "300"]
 		}
+	},
+	{
+		"name": "Achievement visibility is case insensitive and conceals missing or unrecognised flags",
+		"op": "progress",
+		"args": [
+			{},
+			{},
+			{},
+			{
+				"1": "Visible^Visible requirement^TrUe",
+				"2": "Secret^Secret requirement^False",
+				"3": "Short^Short requirement",
+				"4": "Unknown^Unknown requirement^invalid"
+			}
+		],
+		"expected": {
+			"shipping": [],
+			"fish": [],
+			"friends": [],
+			"monsters": [],
+			"achievements": [
+				{
+					"id": 1,
+					"name": "Visible",
+					"description": "Visible requirement",
+					"hidden": false
+				},
+				{
+					"id": 2,
+					"name": "Secret",
+					"description": "Secret requirement",
+					"hidden": true
+				},
+				{
+					"id": 3,
+					"name": "Short",
+					"description": "Short requirement",
+					"hidden": true
+				},
+				{
+					"id": 4,
+					"name": "Unknown",
+					"description": "Unknown requirement",
+					"hidden": true
+				}
+			]
+		}
 	}
 ]

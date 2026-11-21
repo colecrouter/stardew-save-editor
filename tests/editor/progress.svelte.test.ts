@@ -1,8 +1,17 @@
 import { fireEvent, waitFor, within } from "@testing-library/svelte";
-import { expect, it } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import { tinyEditorFixture } from "../helpers/editor-document.ts";
 import { renderTestWorkspace } from "./workspace.ts";
+
+// Each workspace may persist its default on mount. Keep that browser preference
+// from becoming an implicit input to the next scenario.
+beforeEach(() =>
+	localStorage.removeItem("stardew-editor:hide-progress-spoilers"),
+);
+afterEach(() =>
+	localStorage.removeItem("stardew-editor:hide-progress-spoilers"),
+);
 
 it("opens both progress views and navigates to recipe editing without changing the save", async () => {
 	const document = tinyEditorFixture();
@@ -130,7 +139,7 @@ it("explains historical-only festival evidence instead of showing an invented sc
 	}
 });
 
-it("hides secret names, artwork and search matches, retaining totals and the preference", async () => {
+it("hides spoilers by default while retaining totals and allowing an explicit opt-out", async () => {
 	localStorage.removeItem("stardew-editor:hide-progress-spoilers");
 	const document = tinyEditorFixture();
 	document.SaveGame.player.achievements = [36];
@@ -138,15 +147,10 @@ it("hides secret names, artwork and search matches, retaining totals and the pre
 	try {
 		const { page, model } = opened;
 		await fireEvent.click(page.getByRole("tab", { name: "Achievements" }));
-		expect(page.getByRole("heading", { name: "A Distant Shore" })).toBeTruthy();
-		await fireEvent.click(
+		expect(page.queryByRole("heading", { name: "A Distant Shore" })).toBeNull();
+		expect(
 			page.getByRole("checkbox", { name: "Hide spoilers" }),
-		);
-		await waitFor(() =>
-			expect(
-				page.queryByRole("heading", { name: "A Distant Shore" }),
-			).toBeNull(),
-		);
+		).toHaveProperty("checked", true);
 		expect(page.getByRole("heading", { name: "Two Thumbs Up" })).toBeTruthy();
 		expect(
 			page
@@ -176,27 +180,103 @@ it("hides secret names, artwork and search matches, retaining totals and the pre
 	}
 });
 
-it("restores the spoiler preference for a new editor session", async () => {
+it.each(["true", "false", "invalid"])(
+	"restores spoiler preference %s for a new editor session",
+	async (preference) => {
+		localStorage.setItem("stardew-editor:hide-progress-spoilers", preference);
+		const document = tinyEditorFixture();
+		document.SaveGame.player.achievements = [];
+		const opened = await renderTestWorkspace(document, "Progress");
+		try {
+			const { page } = opened;
+			const hidden = preference !== "false";
+			expect(
+				page.getByRole("checkbox", { name: "Hide spoilers" }),
+			).toHaveProperty("checked", hidden);
+			expect(
+				page.getByRole("heading", { name: "Cooking recipes made" }),
+			).toBeTruthy();
+			await fireEvent.click(page.getByRole("tab", { name: "Achievements" }));
+			expect(
+				page.queryAllByRole("heading", { name: "A Distant Shore" }),
+			).toHaveLength(hidden ? 0 : 1);
+			expect(
+				page.queryAllByRole("heading", { name: "Hidden achievement" }),
+			).toHaveLength(hidden ? 5 : 0);
+		} finally {
+			await opened.dispose();
+		}
+	},
+);
+
+it("reads the saved spoiler preference before inserting any Progress markup", async () => {
 	localStorage.setItem("stardew-editor:hide-progress-spoilers", "true");
-	const document = tinyEditorFixture();
-	document.SaveGame.player.achievements = [];
-	const opened = await renderTestWorkspace(document, "Progress");
+	// oxlint-disable-next-line typescript/unbound-method -- The spy preserves the native Storage receiver with .call below.
+	const originalGetItem = Storage.prototype.getItem;
+	const markupAtRead: boolean[] = [];
+	const readPreference = vi
+		.spyOn(Storage.prototype, "getItem")
+		.mockImplementation(function (this: Storage, key: string) {
+			if (key === "stardew-editor:hide-progress-spoilers") {
+				// Observing only the settled UI would miss an onMount reveal-and-hide.
+				// Capture whether Progress already exists at the instant storage is read.
+				markupAtRead.push(
+					window.document.querySelector('[aria-label="Progress views"]') !==
+						null,
+				);
+			}
+			return originalGetItem.call(this, key);
+		});
+	let opened: Awaited<ReturnType<typeof renderTestWorkspace>> | undefined;
 	try {
-		const { page } = opened;
+		opened = await renderTestWorkspace(tinyEditorFixture(), "Progress");
+		expect(markupAtRead.length).toBeGreaterThan(0);
+		expect(markupAtRead).not.toContain(true);
+		expect(
+			opened.page.getByRole("checkbox", { name: "Hide spoilers" }),
+		).toHaveProperty("checked", true);
+	} finally {
+		await opened?.dispose();
+		readPreference.mockRestore();
+		localStorage.removeItem("stardew-editor:hide-progress-spoilers");
+	}
+});
+
+it("keeps spoilers hidden and the session usable when browser storage is blocked", async () => {
+	// Denial must cover reads as well as writes. A failed initial read must not
+	// prevent Progress from mounting, and a failed write must not lock its toggle.
+	const denied = () => {
+		throw new DOMException("Storage denied", "SecurityError");
+	};
+	const read = vi
+		.spyOn(Storage.prototype, "getItem")
+		.mockImplementation(denied);
+	const write = vi
+		.spyOn(Storage.prototype, "setItem")
+		.mockImplementation(denied);
+	const warning = vi.spyOn(console, "warn").mockImplementation(() => {});
+	let opened: Awaited<ReturnType<typeof renderTestWorkspace>> | undefined;
+	try {
+		opened = await renderTestWorkspace(tinyEditorFixture(), "Progress");
+		const { page, model } = opened;
+		await fireEvent.click(page.getByRole("tab", { name: "Achievements" }));
 		expect(
 			page.getByRole("checkbox", { name: "Hide spoilers" }),
 		).toHaveProperty("checked", true);
-		expect(page.queryByRole("heading", { name: "Golden Clock" })).toBeNull();
-		expect(
-			page.getByRole("heading", { name: "Cooking recipes made" }),
-		).toBeTruthy();
-		await fireEvent.click(page.getByRole("tab", { name: "Achievements" }));
 		expect(page.queryByRole("heading", { name: "A Distant Shore" })).toBeNull();
-		expect(
-			page.getAllByRole("heading", { name: "Hidden achievement" }).length,
-		).toBeGreaterThan(0);
+		await fireEvent.click(
+			page.getByRole("checkbox", { name: "Hide spoilers" }),
+		);
+		expect(page.getByRole("heading", { name: "A Distant Shore" })).toBeTruthy();
+		expect((await model.snapshot()).entries).toHaveLength(0);
+		expect(warning).toHaveBeenCalledWith(
+			"Failed to persist spoiler preference.",
+			expect.any(DOMException),
+		);
 	} finally {
-		await opened.dispose();
-		localStorage.removeItem("stardew-editor:hide-progress-spoilers");
+		await opened?.dispose();
+		read.mockRestore();
+		write.mockRestore();
+		warning.mockRestore();
 	}
 });

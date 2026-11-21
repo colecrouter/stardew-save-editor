@@ -77,7 +77,7 @@
 	// Proof-only sections remain available only in the comparison workspace.
 	const sections = [
 		{ id: "inventory", label: "Inventory", icon: "inventory" },
-		{ id: "pets", label: "Pets", icon: "relationships" },
+		{ id: "pets", label: "Pets", icon: "pets" },
 		{ id: "buildings", label: "Buildings & animals", icon: "buildings" },
 		{ id: "community", label: "Community Center & Joja", icon: "community" },
 		{ id: "farmers", label: "Farmhands", icon: "farmhands" },
@@ -91,8 +91,8 @@
 		{ id: "progress", label: "Progress", icon: "progress" },
 		{ id: "farm", label: "Farm settings", icon: "farm" },
 		{ id: "calendar", label: "Date and weather", icon: "calendar" },
-		{ id: "locations", label: "Locations", icon: "farm" },
-		{ id: "reconstruct", label: "Rebuild lost progress", icon: "buildings" },
+		{ id: "locations", label: "Locations", icon: "locations" },
+		{ id: "reconstruct", label: "Rebuild lost progress", icon: "rebuild" },
 		{ id: "review", label: "Review changes", icon: "review" },
 	] satisfies {
 		id: string;

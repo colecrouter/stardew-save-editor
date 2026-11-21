@@ -61,11 +61,16 @@ internal static class ProgressCatalog
                 ["count"] = entry.Value["Count"]?.DeepClone() ?? 0
             })),
             // Retain game IDs and descriptions so recorded awards can be shown
-            // even before a diagnostic for their underlying requirement exists.
+            // even before a diagnostic for their underlying requirement exists. The
+            // visibility field distinguishes secret awards for Progress spoiler masking.
             ["achievements"] = new JArray(achievements.Properties().Select(entry =>
             {
                 string[] fields = entry.Value.Value<string>()!.Split('^');
-                return new JObject { ["id"] = int.Parse(entry.Name), ["name"] = fields[0].Split(" (")[0], ["description"] = fields[1] };
+                // Short or unrecognised visibility metadata must not expose a secret.
+                // Only an explicit visible flag reveals an unrecorded award;
+                // ordinal comparison also accepts mixed-case boolean spellings.
+                bool hidden = fields.Length <= 2 || !fields[2].Equals("true", StringComparison.OrdinalIgnoreCase);
+                return new JObject { ["id"] = int.Parse(entry.Name), ["name"] = fields[0].Split(" (")[0], ["description"] = fields[1], ["hidden"] = hidden };
             }))
         };
     }

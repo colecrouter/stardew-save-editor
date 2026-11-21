@@ -52,6 +52,8 @@ export interface ProgressCategory {
 	upper: number;
 }
 export interface ProgressAchievement {
+	// Vanilla collections metadata marks awards whose requirements are secret.
+	hidden: boolean;
 	id: number;
 	name: string;
 	description: string;

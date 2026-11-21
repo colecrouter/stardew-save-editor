@@ -2511,7 +2511,8 @@
 				}
 			},
 			{
-				"0": "Greenhorn (15k)^Earn 15,000g^true^-1^18"
+				"0": "Greenhorn (15k)^Earn 15,000g^true^-1^18",
+				"40": "A Distant Shore^Reach Ginger Island.^false^-1^9"
 			}
 		],
 		"expected": {
@@ -2548,7 +2549,14 @@
 				{
 					"id": 0,
 					"name": "Greenhorn",
-					"description": "Earn 15,000g"
+					"description": "Earn 15,000g",
+					"hidden": false
+				},
+				{
+					"id": 40,
+					"name": "A Distant Shore",
+					"description": "Reach Ginger Island.",
+					"hidden": true
 				}
 			]
 		}
@@ -2599,6 +2607,53 @@
 			"museumCount": 3,
 			"polyculture": ["24"],
 			"monoculture": ["24", "300"]
+		}
+	},
+	{
+		"name": "Achievement visibility is case insensitive and conceals missing or unrecognised flags",
+		"op": "progress",
+		"args": [
+			{},
+			{},
+			{},
+			{
+				"1": "Visible^Visible requirement^TrUe",
+				"2": "Secret^Secret requirement^False",
+				"3": "Short^Short requirement",
+				"4": "Unknown^Unknown requirement^invalid"
+			}
+		],
+		"expected": {
+			"shipping": [],
+			"fish": [],
+			"friends": [],
+			"monsters": [],
+			"achievements": [
+				{
+					"id": 1,
+					"name": "Visible",
+					"description": "Visible requirement",
+					"hidden": false
+				},
+				{
+					"id": 2,
+					"name": "Secret",
+					"description": "Secret requirement",
+					"hidden": true
+				},
+				{
+					"id": 3,
+					"name": "Short",
+					"description": "Short requirement",
+					"hidden": true
+				},
+				{
+					"id": 4,
+					"name": "Unknown",
+					"description": "Unknown requirement",
+					"hidden": true
+				}
+			]
 		}
 	}
 ]

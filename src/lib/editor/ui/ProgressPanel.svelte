@@ -2,15 +2,21 @@
 	import { useAtomValue } from "effect-atom-svelte";
 
 	import StudyButton from "../../ui/kit/StudyButton.svelte";
+	import StudyCheckbox from "../../ui/kit/StudyCheckbox.svelte";
 	import StudyField from "../../ui/kit/StudyField.svelte";
 	import StudyTabs from "../../ui/kit/StudyTabs.svelte";
 	import StudyIcon from "../../ui/StudyIcon.svelte";
 	import type { StudyIconName } from "../../ui/studyIcons.ts";
+	import { hasOwnKey } from "../../unknown.ts";
 	import type { EditorModel } from "../editor-model.ts";
 	import { createFarmerSelectionField } from "../farmer-selection.ts";
 	import type { ImmutableView } from "../immutable-view.ts";
 	import { readItemVisual } from "../item-presentation.ts";
 	import type { ProgressCategory, ProgressSection } from "../progress-data.ts";
+	import {
+		concealedAchievement,
+		presentProgressCategory,
+	} from "../progress-spoilers.ts";
 	import AchievementIcon from "./AchievementIcon.svelte";
 	import BackpackItemVisual from "./BackpackItemVisual.svelte";
 	import FarmerSelector from "./fields/FarmerSelector.svelte";
@@ -21,6 +27,7 @@
 		onsection,
 	}: { model: EditorModel; onsection: (section: ProgressSection) => void } =
 		$props();
+
 	const view = useAtomValue(() => model.atomBindings.view);
 	const selection = useAtomValue(() => model.atomBindings.selectedFarmerId);
 	const farmerField = $derived(
@@ -38,13 +45,37 @@
 		...(selected?.categories ?? []),
 		...(progress?.shared ?? []),
 	]);
+
+	const spoilerPreferenceKey = "stardew-editor:hide-progress-spoilers";
+	// Only an explicit opt-out reveals spoilers. Read before creating markup;
+	// absent, unrecognised or inaccessible storage keeps the safe default.
+	let hideSpoilers = $state(true);
+	try {
+		hideSpoilers = localStorage.getItem(spoilerPreferenceKey) !== "false";
+	} catch {
+		// The session can still use its toggle when the preference cannot be read.
+	}
+	$effect(() => {
+		try {
+			localStorage.setItem(spoilerPreferenceKey, String(hideSpoilers));
+		} catch (e) {
+			// Persistence is optional; never interrupt inspection of the save.
+			console.warn("Failed to persist spoiler preference.", e);
+		}
+	});
+
 	let tab = $state("perfection");
 	let search = $state("");
 	let filter = $state("all");
+	// Conceal identities and requirements, not the existence of awards. Placeholder
+	// searches and counts intentionally stay available under the Progress policy.
 	const awards = $derived(
 		(selected?.achievements ?? []).filter(
 			(award) =>
-				`${award.name} ${award.description}`
+				(concealedAchievement(award, hideSpoilers)
+					? "Hidden achievement"
+					: `${award.name} ${award.description}`
+				)
 					.toLowerCase()
 					.includes(search.trim().toLowerCase()) &&
 				(filter === "all" ||
@@ -53,12 +84,14 @@
 						: award.recorded !== true)),
 		),
 	);
+
 	const recordedCount = $derived(
 		selected?.achievements.every((award) => award.recorded !== undefined)
 			? selected.achievements.filter((award) => award.recorded).length
 			: undefined,
 	);
-	const categoryIcons: Record<string, StudyIconName> = {
+
+	const categoryIcons = {
 		shipping: "chests",
 		fishing: "farm",
 		friends: "relationships",
@@ -70,12 +103,11 @@
 		obelisks: "buildings",
 		clock: "buildings",
 		walnuts: "tree",
-	};
+	} satisfies Record<string, StudyIconName>;
+
 	// Reuse the game's catalog-backed sprites for categories without a matching
 	// section icon. These are drawing instructions, never saved item records.
-	const categoryVisuals: Partial<
-		Record<string, ReturnType<typeof readItemVisual>>
-	> = {
+	const categoryVisuals = {
 		fishing: readItemVisual({ $type: "StardewValley.Object", itemId: "145" }),
 		monsters: readItemVisual({
 			$type: "StardewValley.Tools.MeleeWeapon",
@@ -83,7 +115,8 @@
 		}),
 		stardrops: readItemVisual({ $type: "StardewValley.Object", itemId: "434" }),
 		walnuts: readItemVisual({ $type: "StardewValley.Object", itemId: "73" }),
-	};
+	} satisfies Partial<Record<string, ReturnType<typeof readItemVisual>>>;
+
 	function categoryMeasure(category: ImmutableView<ProgressCategory>) {
 		// Keep the checklist's measure honest: skills use Farmer.Level, walnuts
 		// use the found counter, and historical Stardrop completion is not seven
@@ -141,7 +174,18 @@
 	/>
 </div>
 
+{#snippet spoilerToggle()}
+	<StudyCheckbox
+		label="Hide spoilers"
+		bind:checked={hideSpoilers}
+	/>
+{/snippet}
+
 {#snippet perfection()}
+	<div class="perfection-toolbar">
+		{@render spoilerToggle()}
+	</div>
+
 	{#if progress}
 		<section
 			aria-label="Farm Perfection score"
@@ -171,7 +215,8 @@
 
 			<div class="score-footer">
 				<span>
-					Perfection waivers: {progress.waivers ?? "Unable to determine"}
+					{hideSpoilers ? "Additional score credit" : "Perfection waivers"}: {progress.waivers ??
+						"Unable to determine"}
 				</span>
 
 				<span>
@@ -186,14 +231,17 @@
 
 				<p>
 					Each category uses the best result from one customized farmer. Partial
-					lists are not combined across players. Buildings and Golden Walnuts
-					found are shared. Each waiver adds one percentage point, up to 100%.
+					lists are not combined across players. Some categories are shared.
+					Additional score credit contributes percentage points, up to 100%.
 				</p>
 
 				<ul class="contributions">
 					{#each progress.leaders as leader (leader.category.id)}
 						<li>
-							<span>{leader.category.label} · {leader.farmer}</span>
+							<span>
+								{presentProgressCategory(leader.category, hideSpoilers).label} · {leader.farmer ??
+									"Shared"}
+							</span>
 
 							<span>
 								{percent(leader.category.lower * leader.category.weight)} / {leader
@@ -218,10 +266,24 @@
 	<!-- Native disclosures retain their open state across edits and tab changes.
 	     Counts stay in the summary, so the whole checklist can be scanned closed. -->
 	<div class="categories">
-		{#each categories as category (category.id)}
+		{#each categories as originalCategory (originalCategory.id)}
+			{@const category = presentProgressCategory(
+				originalCategory,
+				hideSpoilers,
+			)}
 			{@const measure = categoryMeasure(category)}
 			{@const complete = category.lower === 1 && category.upper === 1}
-			{@const visual = categoryVisuals[category.id]}
+			{@const concealed = category.label === "Undiscovered milestone"}
+			<!-- These maps intentionally cover different subsets of category IDs.
+			     Guard each lookup so unknown IDs and concealed milestones use fallbacks. -->
+			{@const visual =
+				!concealed && hasOwnKey(categoryVisuals, category.id)
+					? categoryVisuals[category.id]
+					: undefined}
+			{@const icon =
+				!concealed && hasOwnKey(categoryIcons, category.id)
+					? categoryIcons[category.id]
+					: "review"}
 			<section
 				aria-label={`${category.label} requirements`}
 				class="category"
@@ -237,7 +299,7 @@
 								/>
 							{:else}
 								<StudyIcon
-									name={categoryIcons[category.id] ?? "review"}
+									name={icon}
 									size={30}
 								/>
 							{/if}
@@ -410,6 +472,10 @@
 				</select>
 			{/snippet}
 		</StudyField>
+
+		<div class="spoiler-toggle">
+			{@render spoilerToggle()}
+		</div>
 	</div>
 
 	<p
@@ -422,6 +488,7 @@
 
 	<ul class="awards">
 		{#each awards as award (award.id)}
+			{@const concealed = concealedAchievement(award, hideSpoilers)}
 			<li class:earned={award.recorded === true}>
 				<span
 					class="award-mark"
@@ -431,12 +498,13 @@
 					<AchievementIcon
 						id={award.id}
 						recorded={award.recorded}
+						{concealed}
 					/>
 				</span>
 
 				<div class="award-content">
 					<div class="award-heading">
-						<h3>{award.name}</h3>
+						<h3>{concealed ? "Hidden achievement" : award.name}</h3>
 
 						<p class="award-record">
 							{award.recorded === undefined
@@ -447,33 +515,40 @@
 						</p>
 					</div>
 
-					<p class="award-description">{award.description}</p>
+					{#if concealed}
+						<p class="award-description">
+							Record this award in the save, or turn off Hide spoilers to reveal
+							its details.
+						</p>
+					{:else}
+						<p class="award-description">{award.description}</p>
 
-					<!-- Unknown requirements have no fabricated filled bar. The explicit
+						<!-- Unknown requirements have no fabricated filled bar. The explicit
 					     status remains distinct from the saved award shown above. -->
-					{#if award.value !== undefined && award.target !== undefined && award.status !== "Unable to determine"}
-						<ProgressMeter
-							label={`${award.name} requirements`}
-							value={award.value}
-							max={award.target}
-						/>
-					{/if}
+						{#if award.value !== undefined && award.target !== undefined && award.status !== "Unable to determine"}
+							<ProgressMeter
+								label={`${award.name} requirements`}
+								value={award.value}
+								max={award.target}
+							/>
+						{/if}
 
-					<p
-						class="award-progress"
-						class:uncertain={award.status === "Unable to determine"}
-					>
-						{award.value !== undefined && award.target !== undefined
-							? `${Math.min(award.value, award.target).toLocaleString()} / ${award.target.toLocaleString()} — `
-							: ""}{award.status}
-					</p>
+						<p
+							class="award-progress"
+							class:uncertain={award.status === "Unable to determine"}
+						>
+							{award.value !== undefined && award.target !== undefined
+								? `${Math.min(award.value, award.target).toLocaleString()} / ${award.target.toLocaleString()} — `
+								: ""}{award.status}
+						</p>
 
-					{#if award.evidence}
-						<details class="guide evidence">
-							<summary>How this is checked</summary>
+						{#if award.evidence}
+							<details class="guide evidence">
+								<summary>How this is checked</summary>
 
-							<p>{award.evidence}</p>
-						</details>
+								<p>{award.evidence}</p>
+							</details>
+						{/if}
 					{/if}
 				</div>
 			</li>
@@ -507,6 +582,18 @@
 </div>
 
 <style>
+	/* Perfection has no search filters; keep the same preference reachable in
+	   a compact toolbar rather than reserving a page-wide explanatory block. */
+	.perfection-toolbar {
+		display: flex;
+		justify-content: flex-end;
+		margin-top: 1rem;
+	}
+	.spoiler-toggle {
+		display: flex;
+		align-items: center;
+		min-height: 44px;
+	}
 	.heading,
 	.score-heading,
 	.score-footer,
@@ -706,7 +793,7 @@
 	}
 	.filters {
 		display: grid;
-		grid-template-columns: minmax(0, 1fr) minmax(12rem, 18rem);
+		grid-template-columns: minmax(0, 1fr) minmax(12rem, 16rem) auto;
 		gap: 1rem;
 		align-items: end;
 	}
@@ -768,6 +855,15 @@
 		margin-top: 1.5rem;
 		padding-top: 1rem;
 		font-size: 18px;
+	}
+	@media (min-width: 651px) and (max-width: 1100px) {
+		/* Let search retain useful width between the mobile and wide layouts. */
+		.filters {
+			grid-template-columns: minmax(0, 1fr) minmax(12rem, 16rem);
+		}
+		.spoiler-toggle {
+			grid-column: 1 / -1;
+		}
 	}
 	@media (max-width: 650px) {
 		.score {

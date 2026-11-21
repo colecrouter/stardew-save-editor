@@ -151,6 +151,18 @@
 							{error}
 						</StudyAlert>
 					{/if}
+					<details>
+						<summary>Lost your save?</summary>
+
+						<p>
+							Check Original save backups below for a copy of your old farm. If
+							you can’t find one, start a new farm in Stardew Valley and save
+							your game. Open that save here, then choose <strong>
+								Rebuild lost progress
+							</strong>
+							 in the editor menu.
+						</p>
+					</details>
 				</section>
 
 				<aside

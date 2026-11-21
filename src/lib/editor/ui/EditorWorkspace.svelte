@@ -92,7 +92,7 @@
 		{ id: "farm", label: "Farm settings", icon: "farm" },
 		{ id: "calendar", label: "Date and weather", icon: "calendar" },
 		{ id: "locations", label: "Locations", icon: "farm" },
-		{ id: "reconstruct", label: "Reconstruct a farm", icon: "buildings" },
+		{ id: "reconstruct", label: "Rebuild lost progress", icon: "buildings" },
 		{ id: "review", label: "Review changes", icon: "review" },
 	] satisfies {
 		id: string;

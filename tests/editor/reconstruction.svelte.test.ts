@@ -26,7 +26,7 @@ it("follows the reconstruction guide to edit a crop shipment and inspect saved o
 		},
 		{ $type: "StardewValley.Locations.FarmHouse", name: "FarmHouse" },
 	];
-	const opened = await renderTestWorkspace(document, "Reconstruct a farm");
+	const opened = await renderTestWorkspace(document, "Rebuild lost progress");
 	try {
 		const { model, page } = opened;
 		const calendarDone = () =>
@@ -37,9 +37,9 @@ it("follows the reconstruction guide to edit a crop shipment and inspect saved o
 		await fireEvent.click(
 			page.getByRole("button", { name: "Date and weather" }),
 		);
-		expect(page.getByText(/host’s days-played statistic/)).toBeTruthy();
+		expect(page.getByText(/days-played statistic/)).toBeTruthy();
 		await fireEvent.click(
-			page.getByRole("link", { name: "Reconstruct a farm" }),
+			page.getByRole("link", { name: "Rebuild lost progress" }),
 		);
 		expect(
 			page.getByRole("checkbox", {

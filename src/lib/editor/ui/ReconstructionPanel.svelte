@@ -54,18 +54,20 @@
 	];
 </script>
 
-<h1>Reconstruct a farm</h1>
+<h1>Rebuild lost progress</h1>
 
-<StudyAside title="Start with a valid save">
+<StudyAside title="Lost your farm and starting over?">
 	<p>
-		Create a new farm in Stardew Valley, save it, and keep a separate copy of
-		its save folder. Open the new farm’s main save in the editor and use the
-		details you remember to rebuild progress.
+		If you’ve lost your old save and opened a new farm here, this guide helps
+		you get back to where you left off. Start with what matters most to you,
+		like the tools you used, the friends you made, or the bundles you finished.
 	</p>
 
 	<p>
-		The guide uses your current open save. Old layouts, quest history, and
-		platform awards require their own records.
+		Keep a copy of your new farm’s save folder before editing. Each step opens
+		the place to make those changes to the farm you have open. Mark steps done
+		as you go, skip anything you don’t remember, and review your changes before
+		exporting.
 	</p>
 </StudyAside>
 

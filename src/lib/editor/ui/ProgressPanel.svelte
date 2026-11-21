@@ -19,6 +19,7 @@
 	} from "../progress-spoilers.ts";
 	import AchievementIcon from "./AchievementIcon.svelte";
 	import BackpackItemVisual from "./BackpackItemVisual.svelte";
+	import CropShipmentsPanel from "./CropShipmentsPanel.svelte";
 	import FarmerSelector from "./fields/FarmerSelector.svelte";
 	import ProgressMeter from "./ProgressMeter.svelte";
 
@@ -170,9 +171,17 @@
 		items={[
 			{ value: "perfection", label: "Perfection", content: perfection },
 			{ value: "achievements", label: "Achievements", content: achievements },
+			{ value: "shipments", label: "Crop shipments", content: shipments },
 		]}
 	/>
 </div>
+
+{#snippet shipments()}
+	<CropShipmentsPanel
+		{model}
+		farmer={selected}
+	/>
+{/snippet}
 
 {#snippet spoilerToggle()}
 	<StudyCheckbox
@@ -904,14 +913,15 @@
 		}
 	}
 	@media (max-width: 380px) {
-		/* These two short tabs fit together on the smallest supported viewport.
-		   Keep the kit's touch height while avoiding a hidden primary tab label. */
+		/* Wrap whole tabs on narrow phones so their names and touch targets
+		   remain intact when the three labels outgrow one row. */
 		.progress-tabs :global(.study-tabs-list) {
+			flex-wrap: wrap;
 			gap: 2px;
 			padding-inline: 0;
 		}
 		.progress-tabs :global(.study-tab) {
-			flex: 1;
+			flex: 1 1 auto;
 			min-width: 0;
 			padding-inline: 4px;
 			font-size: 20px;

@@ -23,6 +23,37 @@ export const studyIcons = {
 	],
 	// Pixel-grid glyphs fill section gaps in the existing illustrated kit.
 	// Distinct silhouettes matter at navigation size; colours use the shell palette.
+	// A paw identifies animals kept as pets, alongside the heart for relationships.
+	pets: [
+		[
+			"#643b25",
+			"M2 6h5v7H2zM7 2h5v8H7zM13 2h5v8h-5zM18 6h4v7h-4zM8 11h8v3h3v7h-3v1H8v-1H5v-7h3z",
+		],
+		[
+			"#dc9d63",
+			"M3 7h3v5H3zM8 3h3v6H8zM14 3h3v6h-3zM19 7h2v5h-2zM9 12h6v3h3v5h-4v-1h-4v1H6v-5h3z",
+		],
+		["#ffe5a0", "M9 4h1v3H9zM10 13h4v2h-4z"],
+	],
+	// A pin marks a place in the save, with a clear point at navigation size.
+	locations: [
+		["#643b25", "M7 2h10v2h3v3h2v6h-2v3h-3v3h-3v3h-4v-3H7v-3H4v-3H2V7h2V4h3z"],
+		["#c56343", "M8 4h8v2h3v2h1v4h-2v3h-3v3h-2v2h-2v-2H9v-3H6v-3H4V8h1V6h3z"],
+		["#fff0c6", "M9 7h6v2h2v4h-2v2H9v-2H7V9h2z"],
+	],
+	// A sprout emerging from soil represents rebuilding progress on a new farm.
+	rebuild: [
+		[
+			"#643b25",
+			"M2 18h20v5H2zM10 12H7v-2H4V8H2V3h7v2h3v3h2V6h3V4h5v6h-2v3h-3v2h-3v4h-4z",
+		],
+		[
+			"#6b9a4e",
+			"M4 5h4v2h3v3h2v3h2v-2h3V9h2V6h-2v2h-3v2h-3v8h-1v-7H8V9H6V7H4z",
+		],
+		["#a96c39", "M4 20h16v2H4z"],
+		["#d49959", "M5 20h5v1H5zM15 20h4v1h-4z"],
+	],
 	// A gold trophy identifies long-term milestones separately from review's checklist.
 	progress: [
 		["#643b25", "M6 2h12v2h5v7h-2v3h-5v2h-2v3h4v3H6v-3h4v-3H8v-2H3v-3H1V4h5z"],

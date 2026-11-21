@@ -7,7 +7,7 @@ A browser-based editor for Stardew Valley saves. [Open the hosted editor](https:
 - Character details, money, skills, professions, mastery and appearance preview.
 - Relationships, events, cooking/crafting recipes, quest journals and Qi orders.
 - Vanilla Perfection diagnostics, multiplayer category contributions and saved
-  achievements with supported requirement checks.
+  achievements with supported requirement checks, plus crop shipment count editing.
 - Existing-child names, appearance, hats and age/development stage, with linked
   friendship and gift-history preservation.
 - Inventory/equipment editing, item selection, actual backpack sizes and transfers.
@@ -18,6 +18,7 @@ A browser-based editor for Stardew Valley saves. [Open the hosted editor](https:
 - Community Center/remixed bundles, Joja projects and explicit theater progression.
 - Farmhand reassignment, change review, grouped Undo/Redo, import/export and original
   save backups.
+- A guided walkthrough for rebuilding remembered progress in a new farm save.
 
 ## Using the editor
 

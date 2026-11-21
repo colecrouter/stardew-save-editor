@@ -71,6 +71,7 @@ import {
 	readBackpacks,
 	readChests,
 } from "./inventory-views.ts";
+import { readLocations } from "./location-inspection.ts";
 import { type PetView, readPets } from "./pet-data.ts";
 import { nonemptyText, record } from "./plain-data.ts";
 import { type ProgressView, readProgress } from "./progress-data.ts";
@@ -125,6 +126,7 @@ interface EditorViewData {
 	readonly farmerChoices: ReturnType<typeof readFarmerChoices>;
 	readonly recipes: RecipeFarmerView[];
 	readonly progress: ProgressView;
+	readonly locations: ReturnType<typeof readLocations>;
 	readonly events: EventFarmerView[];
 	readonly questJournals: QuestFarmerView[];
 	readonly qiOrders: QiOrdersView;
@@ -247,6 +249,8 @@ function project(
 		farmerChoices: readFarmerChoices(state.document),
 		recipes,
 		progress: readProgress(state.document, recipes),
+		// Only the comparison workspace exposes the unfinished inspector.
+		locations: includeProofs ? readLocations(state.document) : [],
 		events: readEvents(state.document),
 		questJournals: readQuestJournals(state.document),
 		qiOrders: readQiOrders(state.document),

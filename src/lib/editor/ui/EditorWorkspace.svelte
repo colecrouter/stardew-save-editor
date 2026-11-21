@@ -24,11 +24,13 @@
 	import EventsPanel from "./EventsPanel.svelte";
 	import FarmerRosterPanel from "./FarmerRosterPanel.svelte";
 	import FarmPanel from "./FarmPanel.svelte";
+	import LocationInspector from "./LocationInspector.svelte";
 	import PetsPanel from "./PetsPanel.svelte";
 	import ProgressPanel from "./ProgressPanel.svelte";
 	import QiOrdersPanel from "./QiOrdersPanel.svelte";
 	import QuestJournalPanel from "./QuestJournalPanel.svelte";
 	import RecipesPanel from "./RecipesPanel.svelte";
+	import ReconstructionPanel from "./ReconstructionPanel.svelte";
 	import RelationshipPanel from "./RelationshipPanel.svelte";
 	import ReviewPanel from "./ReviewPanel.svelte";
 
@@ -75,7 +77,7 @@
 	// Proof-only sections remain available only in the comparison workspace.
 	const sections = [
 		{ id: "inventory", label: "Inventory", icon: "inventory" },
-		{ id: "pets", label: "Pets", icon: "relationships" },
+		{ id: "pets", label: "Pets", icon: "pets" },
 		{ id: "buildings", label: "Buildings & animals", icon: "buildings" },
 		{ id: "community", label: "Community Center & Joja", icon: "community" },
 		{ id: "farmers", label: "Farmhands", icon: "farmhands" },
@@ -89,6 +91,7 @@
 		{ id: "progress", label: "Progress", icon: "progress" },
 		{ id: "farm", label: "Farm settings", icon: "farm" },
 		{ id: "calendar", label: "Date and weather", icon: "calendar" },
+		{ id: "reconstruct", label: "Rebuild lost progress", icon: "rebuild" },
 		{ id: "review", label: "Review changes", icon: "review" },
 	] satisfies {
 		id: string;
@@ -99,6 +102,7 @@
 		includeProofs
 			? [
 					...sections,
+					{ id: "locations", label: "Locations", icon: "locations" as const },
 					{ id: "bundles", label: "Bundles", icon: "community" as const },
 				]
 			: sections,
@@ -120,6 +124,7 @@
 	let rosterOpened = $state(false);
 	let communityOpened = $state(false);
 	let storageOpened = $state(false);
+	let reconstructionOpened = $state(false);
 	function chooseSection(section: string) {
 		// Hidden panels retain their local state, so navigation explicitly finishes
 		// any field gesture even when no native blur event accompanies the change.
@@ -137,6 +142,7 @@
 		if (section === "farmers") rosterOpened = true;
 		if (section === "community") communityOpened = true;
 		if (section === "storage") storageOpened = true;
+		if (section === "reconstruct") reconstructionOpened = true;
 		tab = section;
 	}
 	let error = $state("");
@@ -451,6 +457,16 @@
 				draft={dateDraft}
 			/>
 		</div>
+
+		{#if includeProofs && tab === "locations"}
+			<LocationInspector {model} />
+		{/if}
+
+		{#if reconstructionOpened}
+			<div hidden={tab !== "reconstruct"}>
+				<ReconstructionPanel onsection={chooseSection} />
+			</div>
+		{/if}
 		{#if includeProofs}
 			<div hidden={tab !== "bundles"}>
 				<BundlePanel {model} />

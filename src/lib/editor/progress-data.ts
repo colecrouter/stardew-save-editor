@@ -11,6 +11,7 @@ import { nonemptyText } from "./plain-data.ts";
 import { recipeProgress } from "./progress.ts";
 import { readRecipes, type RecipeFarmerView } from "./recipe-operations.ts";
 import { isKnownLocation } from "./saved-types.ts";
+import { readCropShipments } from "./shipment-operations.ts";
 
 export type ProgressSection =
 	| "recipes"
@@ -66,6 +67,7 @@ export interface ProgressAchievement {
 export interface ProgressFarmer {
 	farmerId: string;
 	name: string;
+	shipments: ReturnType<typeof readCropShipments>;
 	eligible?: boolean | undefined;
 	categories: ProgressCategory[];
 	achievements: ProgressAchievement[];
@@ -544,6 +546,10 @@ export function readProgress(
 		return {
 			farmerId,
 			name: nonemptyText(farmer.name) ?? "Unnamed farmer",
+			shipments:
+				recipe.supported && nonemptyText(farmer.name) !== undefined
+					? readCropShipments(farmer)
+					: [],
 			eligible: index === 0 ? true : farmer.isCustomized,
 			categories,
 			achievements: achievements(document, farmer, categories),

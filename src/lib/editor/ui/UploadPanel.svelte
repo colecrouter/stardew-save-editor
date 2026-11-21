@@ -151,6 +151,18 @@
 							{error}
 						</StudyAlert>
 					{/if}
+					<details class="lost-save">
+						<summary>Lost your save?</summary>
+
+						<p>
+							Check Original save backups below for a copy of your old farm. If
+							you can’t find one, start a new farm in Stardew Valley and save
+							your game. Open that save here, then choose <strong>
+								Rebuild lost progress
+							</strong>
+							in the editor menu.
+						</p>
+					</details>
 				</section>
 
 				<aside
@@ -275,6 +287,11 @@
 		.loading-mark {
 			animation: none;
 		}
+	}
+	/* Match the space above the other disclosures without adding a divider
+	   inside the file picker section. */
+	.lost-save {
+		margin-block-start: 20px;
 	}
 	.locations {
 		border-top: 2px solid #c5a16d;

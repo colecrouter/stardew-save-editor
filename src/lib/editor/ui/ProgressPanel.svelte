@@ -913,17 +913,18 @@
 		}
 	}
 	@media (max-width: 380px) {
-		/* Let longer tab labels wrap on phones while retaining their touch targets. */
+		/* Wrap whole tabs on narrow phones so their names and touch targets
+		   remain intact when the three labels outgrow one row. */
 		.progress-tabs :global(.study-tabs-list) {
+			flex-wrap: wrap;
 			gap: 2px;
 			padding-inline: 0;
 		}
 		.progress-tabs :global(.study-tab) {
-			flex: 1;
+			flex: 1 1 auto;
 			min-width: 0;
 			padding-inline: 4px;
 			font-size: 20px;
-			white-space: normal;
 		}
 	}
 </style>

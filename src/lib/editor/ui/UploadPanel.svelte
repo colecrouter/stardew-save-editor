@@ -151,7 +151,7 @@
 							{error}
 						</StudyAlert>
 					{/if}
-					<details>
+					<details class="lost-save">
 						<summary>Lost your save?</summary>
 
 						<p>
@@ -160,7 +160,7 @@
 							your game. Open that save here, then choose <strong>
 								Rebuild lost progress
 							</strong>
-							 in the editor menu.
+							in the editor menu.
 						</p>
 					</details>
 				</section>
@@ -287,6 +287,11 @@
 		.loading-mark {
 			animation: none;
 		}
+	}
+	/* Match the space above the other disclosures without adding a divider
+	   inside the file picker section. */
+	.lost-save {
+		margin-block-start: 20px;
 	}
 	.locations {
 		border-top: 2px solid #c5a16d;

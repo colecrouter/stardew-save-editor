@@ -7,11 +7,12 @@ import {
 	type Location,
 	type SaveDocument,
 } from "./domain.ts";
+import { readFishing } from "./fishing-operations.ts";
 import { nonemptyText } from "./plain-data.ts";
 import { recipeProgress } from "./progress.ts";
 import { readRecipes, type RecipeFarmerView } from "./recipe-operations.ts";
 import { isKnownLocation } from "./saved-types.ts";
-import { readCropShipments } from "./shipment-operations.ts";
+import { readOtherShipments, readShipments } from "./shipment-operations.ts";
 
 export type ProgressSection =
 	| "recipes"
@@ -67,7 +68,9 @@ export interface ProgressAchievement {
 export interface ProgressFarmer {
 	farmerId: string;
 	name: string;
-	shipments: ReturnType<typeof readCropShipments>;
+	shipments: ReturnType<typeof readShipments>;
+	otherShipments: ReturnType<typeof readOtherShipments>;
+	fishing: ReturnType<typeof readFishing>;
 	eligible?: boolean | undefined;
 	categories: ProgressCategory[];
 	achievements: ProgressAchievement[];
@@ -543,13 +546,15 @@ export function readProgress(
 					status: "unknown",
 				}));
 			}
+		// All collection views need a supported farmer with a displayable name.
+		const name = nonemptyText(farmer.name);
+		const collectionsReadable = recipe.supported && name !== undefined;
 		return {
 			farmerId,
-			name: nonemptyText(farmer.name) ?? "Unnamed farmer",
-			shipments:
-				recipe.supported && nonemptyText(farmer.name) !== undefined
-					? readCropShipments(farmer)
-					: [],
+			name: name ?? "Unnamed farmer",
+			shipments: collectionsReadable ? readShipments(farmer) : [],
+			otherShipments: collectionsReadable ? readOtherShipments(farmer) : [],
+			fishing: collectionsReadable ? readFishing(farmer) : [],
 			eligible: index === 0 ? true : farmer.isCustomized,
 			categories,
 			achievements: achievements(document, farmer, categories),

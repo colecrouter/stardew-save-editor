@@ -19,7 +19,7 @@
 	} from "../progress-spoilers.ts";
 	import AchievementIcon from "./AchievementIcon.svelte";
 	import BackpackItemVisual from "./BackpackItemVisual.svelte";
-	import CropShipmentsPanel from "./CropShipmentsPanel.svelte";
+	import CollectionPanel from "./CollectionPanel.svelte";
 	import FarmerSelector from "./fields/FarmerSelector.svelte";
 	import ProgressMeter from "./ProgressMeter.svelte";
 
@@ -171,15 +171,25 @@
 		items={[
 			{ value: "perfection", label: "Perfection", content: perfection },
 			{ value: "achievements", label: "Achievements", content: achievements },
-			{ value: "shipments", label: "Crop shipments", content: shipments },
+			{ value: "shipments", label: "Shipping collection", content: shipments },
+			{ value: "fishing", label: "Fishing", content: fishing },
 		]}
 	/>
 </div>
 
 {#snippet shipments()}
-	<CropShipmentsPanel
+	<CollectionPanel
 		{model}
 		farmer={selected}
+		kind="shipping"
+	/>
+{/snippet}
+
+{#snippet fishing()}
+	<CollectionPanel
+		{model}
+		farmer={selected}
+		kind="fishing"
 	/>
 {/snippet}
 

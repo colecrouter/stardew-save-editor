@@ -1,6 +1,5 @@
 import { Data, Effect, Result, Schema } from "effect";
 
-import requirements from "../../../generated/achievement-requirements.json";
 import catalog from "../../../generated/progress.json";
 import { type Farmer, farmers } from "./domain.ts";
 import {
@@ -13,57 +12,58 @@ export class ShipmentInvalid extends Data.TaggedError("ShipmentInvalid")<{
 	readonly message: string;
 }> {}
 
-// A positive count can add collection credit. Clearing credit requires removing
-// the saved key, so zero is outside this operation's contract.
+// Collection credit follows key membership. Zero explicitly removes the key;
+// writing a zero-valued entry would incorrectly retain completion credit.
 const shipmentSchema = Schema.Struct({
 	farmerId: Schema.String,
 	itemId: Schema.String,
 	count: Schema.Number.check(
 		Schema.isInt(),
-		Schema.isBetween({ minimum: 1, maximum: 2147483647 }),
+		Schema.isBetween({ minimum: 0, maximum: 2147483647 }),
 	),
 });
 const decode = Schema.decodeUnknownResult(shipmentSchema, {
 	onExcessProperty: "error",
 });
 
-// Limit edits to the vanilla crop shipment achievement lists. Other shipping
-// collection entries can still be shown by the existing progress diagnostics.
-const cropIds = new Set([
-	...requirements.polyculture,
-	...requirements.monoculture,
-]);
-
-// Project the same eligible crops the command accepts. Missing keys are valid
+// Project the same vanilla collection items the command accepts. Missing keys are valid
 // starting points, while duplicate entries cannot identify a single target.
-export function readCropShipments(farmer: Farmer) {
+export function readShipments(farmer: Farmer) {
 	const shipments = farmer.basicShipped;
 	if (shipments === undefined) return [];
-	return catalog.shipping
-		.filter((crop) => cropIds.has(crop.id))
-		.map((crop) => {
-			const entries = shipments.filter((entry) => entry.key === crop.id);
-			return {
-				...crop,
-				count: entries[0]?.value ?? 0,
-				ambiguous: entries.length > 1,
-			};
-		});
+	return catalog.shipping.map((item) => {
+		const entries = shipments.filter((entry) => entry.key === item.id);
+		return {
+			...item,
+			count: entries[0]?.value ?? 0,
+			recorded: entries.length > 0,
+			ambiguous: entries.length > 1,
+		};
+	});
 }
 
-export const setCropShipment = Effect.fn("Shipments.setCropCount")(function* (
+/** Keep every non-collection record visible without widening the command's
+ * supported catalog. Preserve order and duplicates: this is inspection only. */
+export function readOtherShipments(farmer: Farmer) {
+	const collectionIds = new Set(catalog.shipping.map((item) => item.id));
+	return (farmer.basicShipped ?? [])
+		.filter((entry) => !collectionIds.has(entry.key))
+		.map((entry) => ({ id: entry.key, count: entry.value }));
+}
+
+export const setShipment = Effect.fn("Shipments.setCount")(function* (
 	input: typeof shipmentSchema.Type,
 ) {
 	const decoded = decode({ ...input });
 	if (Result.isFailure(decoded))
 		return yield* new ShipmentInvalid({
-			message: "Choose a valid crop shipment count.",
+			message: "Choose a valid shipment count.",
 		});
 	const { farmerId, itemId, count } = decoded.success;
-	const crop = catalog.shipping.find((item) => item.id === itemId);
-	if (!crop || !cropIds.has(itemId))
+	const item = catalog.shipping.find((candidate) => candidate.id === itemId);
+	if (!item)
 		return yield* new ShipmentInvalid({
-			message: "Choose a supported crop.",
+			message: "Choose a supported shipping item.",
 		});
 
 	// Resolve the captured farmer against the queued document so a different
@@ -86,21 +86,27 @@ export const setCropShipment = Effect.fn("Shipments.setCropCount")(function* (
 	const entries = shipments.filter((entry) => entry.key === itemId);
 	if (entries.length > 1)
 		return yield* new ShipmentInvalid({
-			message: "This crop has duplicate shipment records.",
+			message: "This item has duplicate shipment records.",
 		});
 
 	// Preserve existing entry metadata and ordering by changing the count in
-	// place. New crop records go at the end of the same saved dictionary.
+	// place. New item records go at the end of the same saved dictionary.
 	const entry = entries[0];
-	if (entry?.value === count) return;
-	if (entry) entry.value = count;
-	else shipments.push({ key: itemId, value: count });
+	if (count === 0) {
+		// Removal affects only this exact vanilla key, preserving unrelated entries.
+		if (!entry) return;
+		shipments.splice(shipments.indexOf(entry), 1);
+	} else {
+		if (entry?.value === count) return;
+		if (entry) entry.value = count;
+		else shipments.push({ key: itemId, value: count });
+	}
 
 	// Review and history receive one operation for the count. Awards and rewards
 	// have their own save records and are outside this edit.
 	yield* recordAnnotatedOperation(transaction.replace(snapshot)).pipe(
 		withReviewMetadata({
-			label: `Update ${crop.name} shipped count`,
+			label: `Update ${item.name} shipped count`,
 			emphasis: "standalone",
 			tags: ["progress", "progress:shipping", `farmer:${farmerId}`],
 		}),

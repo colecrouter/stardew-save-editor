@@ -33,9 +33,11 @@ it("follows the reconstruction guide to edit a crop shipment in the public edito
 		).toBeTruthy();
 		expect((await model.snapshot()).entries).toHaveLength(0);
 		await fireEvent.click(page.getByRole("button", { name: "Progress" }));
-		await fireEvent.click(page.getByRole("tab", { name: "Crop shipments" }));
+		await fireEvent.click(
+			page.getByRole("tab", { name: "Shipping collection" }),
+		);
 		await fireEvent.input(
-			page.getByRole("searchbox", { name: "Find a crop" }),
+			page.getByRole("searchbox", { name: "Find a shipping item" }),
 			{
 				target: { value: "Parsnip" },
 			},

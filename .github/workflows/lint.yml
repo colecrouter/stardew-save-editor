@@ -1,8 +1,15 @@
 name: Code quality
 
 on:
+  # PR updates run through pull_request; reserve push checks for main itself.
   push:
+    branches: ["main"]
   pull_request:
+
+# Replace outdated checks for the same PR or branch without cancelling other workflows.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read

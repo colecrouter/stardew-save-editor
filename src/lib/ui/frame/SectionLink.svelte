@@ -27,7 +27,10 @@
 	aria-current={active ? "page" : undefined}
 	{onclick}
 >
-	<span class="glyph"><StudyIcon name={icon} size={28} /></span>
+	<!-- Match the final sprite grid so navigation does not resample its pixels. -->
+	<span class="glyph">
+		<StudyIcon name={icon} size={32} />
+	</span>
 
 	<span class="label" class:has-short={shortLabel !== undefined}>{label}</span>
 
@@ -64,8 +67,8 @@
 	.glyph {
 		display: grid;
 		place-items: center;
-		width: 30px;
-		height: 30px;
+		width: 32px;
+		height: 32px;
 		flex: none;
 	}
 	a:focus-visible {

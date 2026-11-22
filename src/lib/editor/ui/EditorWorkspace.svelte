@@ -1,4 +1,5 @@
 <script lang="ts">
+	import AppMark from "../../ui/AppMark.svelte";
 	import type { StudyIconName } from "../../ui/studyIcons";
 	// Native action controls need their base styles even when no legacy UI
 	// component has been loaded in this session. Theme rules refine these tokens.
@@ -186,7 +187,11 @@
 		{#snippet header()}
 			<header class="toolbar">
 				<div class="save-heading">
-					<strong>Stardew Save Editor</strong>
+					<div class="app-identity">
+						<AppMark />
+
+						<strong>Stardew Save Editor</strong>
+					</div>
 
 					<!-- Wrap identity parts independently on phones; retain the source
 					     filename as secondary text rather than another toolbar control. -->
@@ -521,6 +526,13 @@
 	.save-heading {
 		flex: 1 1 340px;
 		min-width: 0;
+	}
+	.app-identity {
+		/* Keep the compact mark beside the name while allowing the name itself
+		   to wrap on phones; the save identity remains on its own line below. */
+		display: flex;
+		align-items: center;
+		gap: 10px;
 	}
 	.save-identity {
 		display: flex;

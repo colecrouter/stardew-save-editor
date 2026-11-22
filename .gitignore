@@ -5,6 +5,8 @@ openspec
 node_modules
 .playwright-cli
 /output/playwright
+# Local artwork studies are preserved for reference, outside production assets.
+/output/iconography/
 /.vitest/
 /build
 /.svelte-kit

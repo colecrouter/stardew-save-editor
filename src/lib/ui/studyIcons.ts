@@ -1,5 +1,27 @@
 import type atlas from "./art/icon-regions.json";
 
+// Page names mirror static filenames so the renderer can call Kit's asset()
+// directly. Keep the union separate from action/season glyphs and atlas crops.
+export const pageIconNames = [
+	"inventory",
+	"pets",
+	"buildings",
+	"community",
+	"farmhands",
+	"chests",
+	"character",
+	"relationships",
+	"quests",
+	"qi",
+	"events",
+	"cooking",
+	"progress",
+	"farm",
+	"calendar",
+	"review",
+] as const;
+export type PageIconName = (typeof pageIconNames)[number];
+
 // Code-native action and season glyphs outside the illustrated raster kit.
 export const studyIcons = {
 	// Notice glyphs share a 24px pixel grid. Text, not colour alone, names severity.
@@ -21,20 +43,6 @@ export const studyIcons = {
 			"M7 6h3v3h4V6h3v4h-3v4h3v4h-3v-3h-4v3H7v-4h3v-4H7z",
 		],
 	],
-	// Pixel-grid glyphs fill section gaps in the existing illustrated kit.
-	// Distinct silhouettes matter at navigation size; colours use the shell palette.
-	// A paw identifies animals kept as pets, alongside the heart for relationships.
-	pets: [
-		[
-			"#643b25",
-			"M2 6h5v7H2zM7 2h5v8H7zM13 2h5v8h-5zM18 6h4v7h-4zM8 11h8v3h3v7h-3v1H8v-1H5v-7h3z",
-		],
-		[
-			"#dc9d63",
-			"M3 7h3v5H3zM8 3h3v6H8zM14 3h3v6h-3zM19 7h2v5h-2zM9 12h6v3h3v5h-4v-1h-4v1H6v-5h3z",
-		],
-		["#ffe5a0", "M9 4h1v3H9zM10 13h4v2h-4z"],
-	],
 	// A pin marks a place in the save, with a clear point at navigation size.
 	locations: [
 		["#643b25", "M7 2h10v2h3v3h2v6h-2v3h-3v3h-3v3h-4v-3H7v-3H4v-3H2V7h2V4h3z"],
@@ -53,27 +61,6 @@ export const studyIcons = {
 		],
 		["#a96c39", "M4 20h16v2H4z"],
 		["#d49959", "M5 20h5v1H5zM15 20h4v1h-4z"],
-	],
-	// A gold trophy identifies long-term milestones separately from review's checklist.
-	progress: [
-		["#643b25", "M6 2h12v2h5v7h-2v3h-5v2h-2v3h4v3H6v-3h4v-3H8v-2H3v-3H1V4h5z"],
-		[
-			"#e4a62e",
-			"M3 6h3v6H4v-2H3zM18 6h3v4h-1v2h-2zM8 4h8v9h-2v2h-4v-2H8zM11 15h2v5h-2zM8 20h8v1H8z",
-		],
-		["#ffe5a0", "M9 5h2v6H9zM11 5h4v2h-4z"],
-	],
-	calendar: [
-		["#643b25", "M4 4h16v18H4zM6 1h3v6H6zM15 1h3v6h-3z"],
-		["#b74b3d", "M6 6h12v5H6z"],
-		["#fff0c6", "M6 11h12v9H6z"],
-		["#80582c", "M8 13h3v2H8zM13 13h3v2h-3zM8 17h3v2H8zM13 17h3v2h-3z"],
-	],
-	review: [
-		["#643b25", "M4 2h13v3h3v17H4z"],
-		["#fff0c6", "M6 4h10v3h2v13H6z"],
-		["#448044", "M7 8h2v2h2V7h2v5H9v-1H7zM7 15h2v2h2v-3h2v5H9v-1H7z"],
-		["#aa7a42", "M14 8h3v2h-3zM14 15h3v2h-3z"],
 	],
 	undo: [["#643b25", "M9 4v4h6v2h3v3h2v7h-3v-6h-2v-3H9v4L2 9z"]],
 	redo: [["#643b25", "M15 4v4H9v2H6v3H4v7h3v-6h2v-3h6v4l7-6z"]],
@@ -118,5 +105,6 @@ export const studyIcons = {
 	],
 } as const satisfies Record<string, readonly (readonly [string, string])[]>;
 export type StudyIconName =
+	| PageIconName
 	| keyof typeof studyIcons
 	| keyof typeof atlas.regions;

@@ -15,7 +15,7 @@ internal sealed partial class CatalogGenerator
         "Characters/Baby.png", "Characters/Baby_dark.png", "Characters/Toddler.png", "Characters/Toddler_dark.png",
         "Characters/Toddler_girl.png", "Characters/Toddler_girl_dark.png",
         "Maps/springobjects.png", "TileSheets/Objects_2.png", "LooseSprites/daybg.png", "LooseSprites/JunimoNote.png",
-        "LooseSprites/font_colored.png", "LooseSprites/Cursors.png", "LooseSprites/Cursors_1_6.png", "Maps/MenuTiles.png"];
+        "LooseSprites/font_colored.png", "LooseSprites/Cursors.png", "LooseSprites/Cursors_1_6.png", "LooseSprites/Billboard.png", "Maps/MenuTiles.png"];
 
     private static (int Width, int Height) PngSize(string path)
     {

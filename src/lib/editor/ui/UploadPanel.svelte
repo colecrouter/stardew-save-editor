@@ -2,6 +2,7 @@
 	import { Result } from "effect";
 	import { onDestroy } from "svelte";
 
+	import AppMark from "../../ui/AppMark.svelte";
 	import ParchmentPane from "../../ui/frame/ParchmentPane.svelte";
 	import StudyAlert from "../../ui/kit/StudyAlert.svelte";
 	import StudyButton from "../../ui/kit/StudyButton.svelte";
@@ -84,6 +85,8 @@
      to own import cancellation, validation, backup writes and session disposal. -->
 <div class="entry study-theme">
 	<header class="brand">
+		<AppMark size={144} />
+
 		<h1>Stardew Save Editor</h1>
 	</header>
 
@@ -361,12 +364,16 @@
 		margin: 36px auto 24px;
 	}
 	.brand {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
 		text-align: center;
 		margin: 0 24px 24px;
 		color: #fff1d0;
 		text-shadow: 2px 3px #362811;
 	}
 	.brand h1 {
+		margin: 8px 0 0;
 		font-size: clamp(32px, 5vw, 48px);
 	}
 	.welcome {

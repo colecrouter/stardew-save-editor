@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { asset } from "$app/paths";
+	import AtlasRegion from "$lib/ui/AtlasRegion.svelte";
 	import { dynamicAsset } from "$lib/ui/dynamicAsset.ts";
 
 	import { type GameDate, seasonName } from "../../calendar.ts";
@@ -79,40 +81,46 @@
 								style:background-image={`url('${portrait}')`}
 							></span>
 						{:else}
-							<svg
+							<span
+								class="event-marker"
 								class:locked={occasion.locked}
-								viewBox="0 0 24 24"
-								width="24"
-								height="24"
 							>
 								{#if occasion.kind === "bookseller"}
-									<path
-										d="M3 4h8l1 2 1-2h8v15h-8l-1 2-1-2H3z"
-										fill="#b66a43"
-										stroke="#623b2c"
-										stroke-width="2"
-									/>
-									<path
-										d="M12 6v13M5 7h4M15 7h4"
-										stroke="#fff2ce"
-										stroke-width="2"
+									<!-- Stardew Valley Almanac: Objects_2 index 90, eight 16px columns. -->
+									<AtlasRegion
+										atlas={{
+											url: asset("assets/Objects_2.png"),
+											width: 128,
+											height: 320,
+										}}
+										rect={{ x: 32, y: 176, width: 16, height: 16 }}
 									/>
 								{:else if occasion.kind === "derby"}
-									<path
-										d="M3 12q8-11 15 0-7 11-15 0m15 0 5-5v10z"
-										fill="#459bbb"
-										stroke="#2e5365"
-										stroke-width="2"
+									<!-- Rainbow Trout: springobjects index 138, twenty-four 16px columns.
+									     One fish marks both derbies without implying a specific required catch. -->
+									<AtlasRegion
+										atlas={{
+											url: asset("assets/springobjects.png"),
+											width: 384,
+											height: 624,
+										}}
+										rect={{ x: 288, y: 80, width: 16, height: 16 }}
 									/>
 								{:else}
-									<path
-										d="M5 22V2m0 2h16l-5 5 5 5H5"
-										fill="#a967b6"
-										stroke="#684471"
-										stroke-width="2"
-									/>
+									<!-- Billboard.draw's first 14×12 festival flag frame stays still here.
+									     It also marks birthdays without a portrait; text names the occasion. -->
+									<span class="festival-marker">
+										<AtlasRegion
+											atlas={{
+												url: asset("assets/Billboard.png"),
+												width: 338,
+												height: 512,
+											}}
+											rect={{ x: 1, y: 398, width: 14, height: 12 }}
+										/>
+									</span>
 								{/if}
-							</svg>
+							</span>
 						{/if}
 					{/each}
 				</span>
@@ -241,9 +249,17 @@
 		background-size: 200% auto;
 		image-rendering: pixelated;
 	}
-	svg {
+	.event-marker {
+		display: grid;
+		place-items: center;
+		width: 32px;
+		height: 32px;
 		flex: none;
-		image-rendering: pixelated;
+	}
+	.festival-marker {
+		/* Match the book/fish's 2× source scale without stretching the flag's aspect. */
+		width: 28px;
+		height: 24px;
 	}
 	.locked {
 		opacity: 0.45;
@@ -301,9 +317,13 @@
 		.markers {
 			min-height: 24px;
 		}
-		.markers svg {
-			width: 20px;
-			height: 20px;
+		.event-marker {
+			width: 24px;
+			height: 24px;
+		}
+		.festival-marker {
+			width: 21px;
+			height: 18px;
 		}
 		.weekdays span {
 			font-size: 21px;

@@ -189,7 +189,41 @@ export default defineConfig(({ mode }) => ({
 		},
 	},
 	optimizeDeps: {
-		include: ["idb", "@thisux/sveltednd", "comlink", "@sentry/sveltekit"],
+		// Scan browser workers before opening a save starts them. Preserve Kit's
+		// route scan and server exclusions so server-only imports stay out.
+		entries: [
+			"src/routes/**/+*.{svelte,js,ts}",
+			"!src/routes/**/+*server.*",
+			"src/**/*.worker.ts",
+		],
+		// Prebundle known browser dependencies together on cold starts, including
+		// the worker-only runner, rather than discovering them during page use.
+		// Keep discovery enabled for new imports; list only used Effect subpaths
+		// to avoid eagerly optimizing its entire export surface.
+		include: [
+			"idb",
+			"@thisux/sveltednd",
+			"comlink",
+			"@sentry/sveltekit",
+			"@effect/platform-browser/BrowserWorker",
+			"@effect/platform-browser/BrowserWorkerRunner",
+			"bits-ui",
+			"effect-atom-svelte",
+			"effect",
+			"effect/Schema",
+			"effect/SchemaTransformation",
+			"effect/encoding",
+			"effect/reactivity/Atom",
+			"effect/reactivity/AtomRegistry",
+			"effect/rpc/Rpc",
+			"effect/rpc/RpcClient",
+			"effect/rpc/RpcGroup",
+			"effect/rpc/RpcServer",
+			"effect/workers/Transferable",
+			"effect/workers/Worker",
+			"mutative",
+			"pako",
+		],
 	},
 	test: {
 		// All projects share stuck-test guards; assertions have their own retry

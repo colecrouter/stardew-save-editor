@@ -298,7 +298,14 @@ export default defineConfig(({ mode }) => ({
 		// Ensures that SvelteKit's virtual modules ($app, __sveltekit) are properly resolved
 		server: {
 			deps: {
-				inline: [/@sveltejs\/kit/, /@thisux\/sveltednd/, /@sentry\/sveltekit/],
+				inline: [
+					/@sveltejs\/kit/,
+					/@thisux\/sveltednd/,
+					/@sentry\/sveltekit/,
+					// Load the Effect adapter through the test runner so its test
+					// declarations use the same Vitest suite state as direct imports.
+					/@effect\/vitest/,
+				],
 			},
 		},
 	},

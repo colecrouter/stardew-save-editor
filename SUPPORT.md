@@ -76,6 +76,22 @@ compression or byte-for-byte formatting. A successful import can archive the exa
 original bytes, including compressed data. Changing a filename alone does not
 convert a console save or change its format.
 
+## Date and weather
+
+Use **Apply date** to move your farm forward or backward, even across seasons
+and years. Everyone on a multiplayer farm gets the new date, and the host's
+days played changes to match. Crops stay at the same stage, and quests, animals,
+and buildings under construction keep the same time remaining.
+
+Festivals follow the date you pick. If you move to a day when a cutscene can
+happen, it can still play if you meet the game's other requirements. One-time
+cutscenes you've already seen stay skipped.
+
+Changing today's weather to rain waters crops in supported outdoor areas that
+share the Valley's weather. Ginger Island has its own weather. Changing
+tomorrow's weather sets the forecast for the next day, even if it starts a new
+season.
+
 ## Existing pets
 
 The **Pets** section lists pets found in saved locations, including building

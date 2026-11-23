@@ -39,21 +39,27 @@
 		includeProofs?: boolean;
 		downloading?: boolean;
 		downloadStatus?: string;
+		downloadError?: string;
+		offerDownloadCopy?: boolean;
 		model: EditorModel;
 		filename: string;
 		onclose: () => void;
-		ondownload: () => Promise<
-			undefined | CommandResult<unknown, { message: string }>
-		>;
+		ondismissdownloaderror?: () => void;
+		ondownload: (
+			mode?: "picker" | "download",
+		) => Promise<undefined | CommandResult<unknown, { message: string }>>;
 	}
 	let {
 		model,
 		filename,
 		onclose,
+		ondismissdownloaderror,
 		ondownload,
 		includeProofs = false,
 		downloading = false,
 		downloadStatus = "Preparing save…",
+		downloadError = "",
+		offerDownloadCopy = false,
 	}: Props = $props();
 
 	// Hooks subscribe through the nearest file provider. Keep the accessor object:
@@ -485,6 +491,51 @@
 			/>
 		</div>
 	</EditorShell>
+
+	{#if downloadError}
+		<!-- Keep recovery in the workspace so it follows the active save. The
+		     fixed toast leaves the toolbar and editor layout in place. -->
+		<section
+			class="export-recovery"
+			aria-label="Export recovery"
+		>
+			<p role="alert">
+				{downloadError} Your edits are still open.
+			</p>
+
+			<div class="export-recovery-actions">
+				<button
+					type="button"
+					class="study-button"
+					disabled={downloading || dateDraft.current.dirty}
+					onclick={() => void perform(ondownload)}
+				>
+					Try exporting again
+				</button>
+
+				{#if offerDownloadCopy}
+					<button
+						type="button"
+						class="study-button study-button--constructive study-button--filled"
+						disabled={downloading || dateDraft.current.dirty}
+						onclick={() => void ondownload("download")}
+					>
+						Download a copy
+					</button>
+				{/if}
+				{#if ondismissdownloaderror}
+					<!-- Let users uncover editor controls while they correct the save. -->
+					<button
+						type="button"
+						class="study-button"
+						onclick={ondismissdownloaderror}
+					>
+						Dismiss
+					</button>
+				{/if}
+			</div>
+		</section>
+	{/if}
 </div>
 
 <style>
@@ -554,6 +605,30 @@
 	.export {
 		flex: none;
 		min-width: 144px;
+	}
+	.export-recovery {
+		/* Reserve a gutter on narrow screens and float over the editor content. */
+		position: fixed;
+		z-index: 20;
+		inset-inline-end: 16px;
+		bottom: max(16px, env(safe-area-inset-bottom));
+		inline-size: min(380px, calc(100% - 32px));
+		padding: 12px;
+		border: 2px solid #a36a35;
+		border-radius: 8px;
+		background: #fff0ce;
+		box-shadow: 0 4px 16px #54271055;
+		font-size: 16px;
+	}
+	.export-recovery-actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 6px;
+		margin-top: 8px;
+	}
+	.export-recovery p {
+		margin: 0;
+		color: #8a1c19;
 	}
 	.navigation-content {
 		display: flex;

@@ -30,6 +30,7 @@ const waitForIO = <T>(assertion: () => T) => waitFor(assertion);
 it.each([
 	"write",
 	"close",
+	"picker",
 	"NotFoundError",
 	"NotAllowedError",
 	"InvalidStateError",
@@ -41,7 +42,11 @@ it.each([
 		const acquisitionFailure = stage !== "write" && stage !== "close";
 		const failure = new DOMException(
 			"Destination unavailable",
-			acquisitionFailure ? stage : "AbortError",
+			stage === "picker"
+				? "NotFoundError"
+				: acquisitionFailure
+					? stage
+					: "AbortError",
 		);
 		// Observe metadata at capture time: it must describe this attempt only,
 		// without retaining the selected filename, bytes or browser handle.
@@ -95,9 +100,20 @@ it.each([
 				abort,
 			});
 		};
+		let pickerAttempts = 0;
 		const picker = vi.fn<
 			() => Promise<{ createWritable: typeof createWritable }>
-		>(() => Promise.resolve({ createWritable }));
+		>(() => {
+			pickerAttempts++;
+			if (stage !== "picker") return Promise.resolve({ createWritable });
+			// The second picker opening is dismissed before the user chooses
+			// the fallback. Cancellation must keep the original recovery visible.
+			return Promise.reject(
+				pickerAttempts === 1
+					? failure
+					: new DOMException("Dismissed", "AbortError"),
+			);
+		});
 		Object.defineProperty(window, "showSaveFilePicker", {
 			configurable: true,
 			value: picker,
@@ -120,11 +136,37 @@ it.each([
 				name: "Export save",
 			});
 			await fireEvent.click(exportButton);
-			await page.findByText(
-				"The save could not be downloaded. Please try again.",
-				{},
+			// The toast offers both actions independently of the main toolbar.
+			const toast = await page.findByRole("region", {
+				name: "Export recovery",
+			});
+			const retryButton = page.getByRole("button", {
+				name: "Try exporting again",
+			});
+			const message =
+				stage === "picker"
+					? "The save picker couldn't open."
+					: "The edited save couldn't be written to the selected file.";
+			const feedback = await page.findByText(
+				`${message} Your edits are still open.`,
 			);
+			expect(toast.contains(feedback)).toBe(true);
+			expect(
+				toast.contains(page.getByRole("button", { name: "Download a copy" })),
+			).toBe(true);
+			expect(toast.contains(retryButton)).toBe(true);
 			expect(abort.mock.calls).toEqual(acquisitionFailure ? [] : [[failure]]);
+			// Dismiss the retry in the picker case. Recovery must still be
+			// available after the attempted action has settled.
+			if (stage === "picker") await fireEvent.click(retryButton);
+			await waitForIO(() => {
+				expect(picker).toHaveBeenCalledTimes(stage === "picker" ? 2 : 1);
+				expect(exportButton.hasAttribute("disabled")).toBe(false);
+			});
+			expect(toast.contains(feedback)).toBe(true);
+			expect(
+				page.getByRole("button", { name: "Download a copy" }),
+			).toBeTruthy();
 			await fireEvent.click(page.getByRole("link", { name: "Farm settings" }));
 			await fireEvent.input(page.getByRole("textbox", { name: "Farm name" }), {
 				target: { value: "Retry Farm" },
@@ -134,10 +176,12 @@ it.each([
 			await fireEvent.click(
 				acquisitionFailure
 					? page.getByRole("button", { name: "Download a copy" })
-					: exportButton,
+					: retryButton,
 			);
 			await waitForIO(() => {
-				expect(attempt).toBe(acquisitionFailure ? 1 : 2);
+				expect(attempt).toBe(
+					stage === "picker" ? 0 : acquisitionFailure ? 1 : 2,
+				);
 				expect(writes.length).toBeGreaterThan(0);
 				expect(exportButton.hasAttribute("disabled")).toBe(false);
 			});
@@ -151,9 +195,11 @@ it.each([
 			expect(picker).toHaveBeenLastCalledWith(
 				expect.objectContaining({ suggestedName: "Farm_123" }) as unknown,
 			);
-			expect(picker).toHaveBeenCalledTimes(acquisitionFailure ? 1 : 2);
+			expect(picker).toHaveBeenCalledTimes(
+				acquisitionFailure && stage !== "picker" ? 1 : 2,
+			);
 			expect(
-				page.queryByText("The save could not be downloaded. Please try again."),
+				page.queryByText(`${message} Your edits are still open.`),
 			).toBeNull();
 			expect(
 				page.getByText(/The original file could not be backed up/),
@@ -164,12 +210,22 @@ it.each([
 				failure,
 			);
 			expect(captured[0]?.tags).toMatchObject({
-				"save_download.stage": acquisitionFailure ? "create_writable" : stage,
+				"save_download.stage":
+					stage === "picker"
+						? "picker"
+						: acquisitionFailure
+							? "create_writable"
+							: stage,
 				"save_download.mode": "picker",
 				"save_download.error_name": failure.name,
 			});
 			expect(captured[0]?.contexts["save_download"]).toEqual({
-				stage: acquisitionFailure ? "create_writable" : stage,
+				stage:
+					stage === "picker"
+						? "picker"
+						: acquisitionFailure
+							? "create_writable"
+							: stage,
 				mode: "picker",
 				duration_ms: expect.any(Number) as unknown,
 			});

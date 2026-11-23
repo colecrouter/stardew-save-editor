@@ -4,7 +4,6 @@ import { expect, it, vi } from "vitest";
 import {
 	chooseSaveDestination,
 	downloadSave,
-	type SaveDownloadStage,
 } from "../../src/lib/downloadSave";
 import {
 	restoreOriginal,
@@ -109,7 +108,6 @@ it("save-picker cancellation returns noncompletion without writing bytes", async
 it.each(["write", "close"] as const)(
 	"aborts an acquired stream after %s fails and preserves the original failure",
 	async (stage) => {
-		const stages: SaveDownloadStage[] = [];
 		const failure = new DOMException(
 			"Destination became unavailable",
 			"AbortError",
@@ -132,31 +130,31 @@ it.each(["write", "close"] as const)(
 						return Promise.reject(new TypeError("Already closed"));
 					})
 				: vi.fn<() => Promise<void>>(() => Promise.resolve());
+		const stream = { write, close, abort };
+		const createWritable = vi.fn<() => Promise<typeof stream>>(() =>
+			Promise.resolve(stream),
+		);
+		const picker = vi.fn<
+			() => Promise<{ createWritable: typeof createWritable }>
+		>(() => Promise.resolve({ createWritable }));
 		Object.defineProperty(window, "showSaveFilePicker", {
 			configurable: true,
-			value: () =>
-				Promise.resolve({
-					createWritable: () => Promise.resolve({ write, close, abort }),
-				}),
+			value: picker,
 		});
 		try {
-			const destination = await chooseSaveDestination(
-				"Farm_123",
-				undefined,
-				"picker",
-				(next) => stages.push(next),
+			const destination = requireDefined(
+				await chooseSaveDestination("Farm_123"),
 			);
-			await expect(
-				requireDefined(destination).write(new Blob(["save"])),
-			).rejects.toBe(failure);
-			// Failed cleanup must preserve the original stage as well as its error.
-			expect(stages).toEqual(
-				stage === "write"
-					? ["picker", "create_writable", "write"]
-					: ["picker", "create_writable", "write", "close"],
-			);
+			// Destination selection must leave acquisition until bytes are ready.
+			expect(createWritable).not.toHaveBeenCalled();
+			await expect(destination.write(new Blob(["save"]))).rejects.toBe(failure);
+			expect(picker).toHaveBeenCalledBefore(createWritable);
+			expect(createWritable).toHaveBeenCalledBefore(write);
+			// Abort must follow the operation that failed, even when abort also rejects.
+			expect(stage === "close" ? close : write).toHaveBeenCalledBefore(abort);
 			expect(abort).toHaveBeenCalledExactlyOnceWith(failure);
 			expect(close).toHaveBeenCalledTimes(stage === "close" ? 1 : 0);
+			expect(write).toHaveBeenCalledBefore(stage === "close" ? close : abort);
 		} finally {
 			Reflect.deleteProperty(window, "showSaveFilePicker");
 		}

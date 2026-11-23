@@ -1,18 +1,14 @@
 <script lang="ts">
-	import * as Sentry from "@sentry/sveltekit";
-	import { type Layer, Result } from "effect";
+	import { Effect, type Layer, Result } from "effect";
 	import { RegistryProvider } from "effect-atom-svelte";
 	import { onDestroy, tick } from "svelte";
 
-	import {
-		chooseSaveDestination,
-		type SaveDownloadStage,
-	} from "../../downloadSave.ts";
 	import {
 		runBackupCommand,
 		writeOriginalBackup,
 	} from "../backup-operations.ts";
 	import { openEditorBlob } from "../editor-model.ts";
+	import { startEditorExport } from "../export-workflow.ts";
 	import type { SaveProcessor } from "../save-processing.ts";
 	import { describeImportError, SaveReadError } from "../save-service.ts";
 	import EditorWorkspace from "./EditorWorkspace.svelte";
@@ -40,6 +36,7 @@
 	let importController: AbortController | undefined;
 	let error = $state("");
 	let downloadError = $state("");
+	let offerDownloadCopy = $state(false);
 	let downloading = $state(false);
 	let downloadStatus = $state("");
 	// File reads cannot be canceled reliably. A generation token prevents an older
@@ -68,6 +65,7 @@
 		downloading = false;
 		error = "";
 		downloadError = "";
+		offerDownloadCopy = false;
 		await detach();
 	}
 	// Replacement releases the previous file before acquiring the next one.
@@ -78,6 +76,7 @@
 		openingStatus = "Reading save…";
 		error = "";
 		downloadError = "";
+		offerDownloadCopy = false;
 		await detach();
 		if (token !== generation) return;
 		const controller = new AbortController();
@@ -124,104 +123,66 @@
 			if (token === generation) opening = false;
 		}
 	}
-	// Export is queued with edits by the model. A file closed/replaced while that
-	// work runs must not trigger a download for the wrong active workspace.
+	// Keep feedback owned by the same session, even if a browser operation
+	// settles after the user closes or replaces the save.
 	async function download(mode: "picker" | "download" = "picker") {
 		const current = active;
-		if (!current || downloading) return undefined;
-		// Per-attempt context never includes the filename or document. Keep it local
-		// so overlapping teardown/replacement cannot attach another save's context.
-		const started = performance.now();
-		let stage: SaveDownloadStage | "export" = "picker";
-		const diagnostics = () => ({
-			mode,
-			stage,
-			duration_ms: Math.round(performance.now() - started),
-		});
-		// A standard download only proves handoff to the browser, not a disk write.
-		// Outcome logs let us measure recovery use without claiming disk success.
-		const outcome = (value: string) =>
-			Sentry.logger.info("Save download outcome", {
-				...diagnostics(),
-				outcome: value,
-			});
+		if (!current || downloading) return;
 		downloading = true;
 		downloadStatus =
 			mode === "picker" ? "Choose where to save…" : "Preparing save…";
-		// A retry clears only download feedback, leaving backup warnings intact.
-		downloadError = "";
 		try {
-			// Reserve the destination while the click still grants user activation.
-			// No file is opened for writing until export and validation succeed.
-			// Recovery explicitly bypasses the picker, but still exports the latest
-			// session through validation before starting a standard browser download.
-			const signal = downloadController.signal;
-			const destination = await chooseSaveDestination(
-				filename,
-				signal,
-				mode,
-				(next) => {
-					stage = next;
-				},
+			const result = await Effect.runPromise(
+				startEditorExport(
+					filename,
+					mode,
+					downloadController.signal,
+					current.model.commands.export,
+					(status) => {
+						if (active === current) downloadStatus = status;
+					},
+				),
 			);
-			if (active !== current) return undefined;
-			if (!destination) {
-				outcome("cancelled");
-				return undefined;
+			if (active !== current) return;
+			switch (result.outcome) {
+				case "export_rejected":
+					// The workspace renders command failures. Copy runs outside
+					// its action handler, so publish its validation failure here.
+					if (mode === "download")
+						downloadError = result.result.failure.message;
+					return result.result;
+				case "written":
+				case "download_started":
+					downloadError = "";
+					offerDownloadCopy = false;
+					return;
+				case "failed":
+					// A browser download is an alternate route for native file failures.
+					offerDownloadCopy =
+						result.stage !== "export" && result.stage !== "download";
+					switch (result.stage) {
+						case "picker":
+							downloadError = "The save picker couldn't open.";
+							break;
+						case "export":
+							downloadError = "The edited save couldn't be prepared.";
+							break;
+						case "download":
+							downloadError = "The browser couldn't start the download.";
+							break;
+						default:
+							downloadError =
+								"The edited save couldn't be written to the selected file.";
+					}
+					return;
+				// Leave existing recovery visible if the user cancels a retry.
+				case "cancelled":
+				case "abandoned":
+					return;
 			}
-			downloadStatus = "Preparing save…";
-			stage = "export";
-			const result = await current.model.commands.export();
-			if (!result || active !== current) return undefined;
-			if (Result.isFailure(result)) {
-				outcome("export_rejected");
-				// The workspace displays returned failures itself. Recovery runs
-				// outside that action, so publish its validation feedback here too.
-				if (mode === "download") downloadError = result.failure.message;
-				return result;
-			}
-			downloadStatus = "Writing save…";
-			// The exporter returns ArrayBuffer-backed bytes. Pass them directly to
-			// Blob rather than allocating another Uint8Array on the main thread.
-			const completed = await destination.write(
-				new Blob([result.success], {
-					type: "application/octet-stream",
-				}),
-				signal,
-			);
-			outcome(
-				completed
-					? diagnostics().stage === "download"
-						? "download_started"
-						: "written"
-					: "cancelled",
-			);
-		} catch (cause) {
-			// Browser file writes live at the application boundary. A failure
-			// leaves the session/draft intact and permits an explicit retry.
-			outcome("failed");
-			// Console capture already creates the error event. Scope its metadata
-			// synchronously to avoid duplicate events or tags leaking to other work.
-			Sentry.withScope((scope) => {
-				scope.setTag("save_download.stage", stage);
-				scope.setTag("save_download.mode", mode);
-				scope.setTag(
-					"save_download.error_name",
-					cause instanceof Error || cause instanceof DOMException
-						? cause.name
-						: "Unknown",
-				);
-				scope.setContext("save_download", diagnostics());
-				console.error("Save download failed", cause);
-			});
-			if (active === current)
-				downloadError = "The save could not be downloaded. Please try again.";
 		} finally {
-			// A previous session must not clear a replacement's pending state.
 			if (active === current) downloading = false;
 		}
-		// Feedback is published in state; only rejected commands return a failure.
-		return undefined;
 	}
 
 	onDestroy(() => {
@@ -240,23 +201,6 @@
 		{/if}
 		{#if error}
 			<p role="alert">{error}</p>
-		{/if}
-		{#if downloadError}
-			<p role="alert">{downloadError}</p>
-
-			<p>
-				Your edits are still open. Download a copy using your browser, or try
-				Export save again.
-			</p>
-
-			<button
-				type="button"
-				class="study-button study-button--constructive study-button--filled"
-				disabled={downloading}
-				onclick={() => void download("download")}
-			>
-				Download a copy
-			</button>
 		{/if}
 		{#if active.model.loadValidation.errors.length || active.model.loadValidation.warnings.length}
 			<details class="validation">
@@ -284,9 +228,16 @@
 					{includeProofs}
 					{downloading}
 					{downloadStatus}
+					{downloadError}
+					{offerDownloadCopy}
 					{filename}
 					onclose={() => void close()}
 					ondownload={download}
+					ondismissdownloaderror={() => {
+						// Dismiss only the feedback so the user can keep editing.
+						downloadError = "";
+						offerDownloadCopy = false;
+					}}
 				/>
 			</RegistryProvider>
 		{/key}

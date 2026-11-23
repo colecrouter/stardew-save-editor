@@ -133,6 +133,56 @@ use neutral milestone names until positive saved progress exists in that categor
 Stardrop source names reveal individually when their requirement is complete.
 Other editor sections can still expose spoilers.
 
+### Collection editing
+
+Progress's Shipping collection and Fishing tabs edit the selected farmer's vanilla collection
+records. The committed `generated/progress.json` catalog bounds both projections
+and commands. Shipping covers the complete vanilla shipping collection, including
+forage and animal products as well as the crop achievement lists. Unknown entries
+and unrelated saved data remain intact. Missing dictionaries and ambiguous farmer
+identifiers are read-only; duplicate target keys are rejected atomically.
+
+Both commands accept whole counts from 0 through signed-Int32 maximum. A positive
+count adds or updates the exact collection key; zero removes that key, including
+an imported zero-valued record. Collection completion checks membership, so saving
+a zero value would not clear credit. Removal also removes that entry's metadata;
+Undo restores the full entry. Existing positive edits retain entry order and opaque
+members. Fishing keys are qualified object IDs; shipping keys are unqualified.
+
+`Farmer.caughtFish` saves `[count, largest size]`. Fishing count edits preserve the
+existing size; a new record explicitly starts with size 0 rather than an inferred
+historical size. Unknown array layouts or negative saved values remain read-only.
+Removing a fish clears its size record too. These are collection evidence edits:
+they do not sell inventory, add income, replay quests/dialogue/festivals, grant
+awards, deliver mail, or synchronize the separate lifetime `fishCaught` stat.
+The local vanilla `Stats.checkForFishingAchievements` recalculates that stat and
+checks awards/reward mail when gameplay invokes it; the editor does not promise
+immediate game-side rewards or platform unlocks. These semantics were checked
+against `Farmer.caughtFish` and `Stats.checkForFishingAchievements` in the local
+decompiled game source. Runtime game validation remains separate from save tests.
+
+Commands publish through the existing history queue; controls use captured
+farmer/item identities and immediate-field gesture grouping. Domain tests cover
+preservation, rejection, multiplayer ownership, Undo/Redo and XML export/reimport;
+Chromium component tests cover editing, read-only feedback and tab state.
+
+Collection lists follow Recipes' catalog order, with icons, recorded/missing totals,
+search by name or ID, All/Missing/Recorded filters, and 24-card incremental rendering.
+The focused card stays mounted when an edit changes its filter membership until
+blur, preserving multi-digit entry and Undo grouping. Summary counts describe saved
+key membership, including imported zero-count entries; they are not a substitute
+for the diagnostics' requirement checks. Read-only record counts remain explicit.
+Other recorded shipments are shown separately, in saved order with duplicates,
+without changing the vanilla collection denominator. Search covers those entries
+too; known object IDs get catalog names/icons and unknown IDs retain a fallback.
+These additional records are read-only and preserved through export/reimport.
+
+This slice does not make arbitrary Progress diagnostics writable. Existing recipe,
+skill, friendship and building editors retain their own domain contracts. Museum
+donation placement, walnut source flags, Stardrop sources, monster kills, power-book
+effects, waivers and historical award/event reconstruction need separate scoped
+operations before any direct editing support is claimed.
+
 ### Child editing
 
 The Children tab under Relationships includes existing children from saved FarmHouse/Cabin character

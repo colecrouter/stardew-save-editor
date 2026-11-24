@@ -10,6 +10,7 @@
 	} from "../children-domain.ts";
 	import type { EditorModel } from "../editor-model.ts";
 	import { createRuneDraft } from "../field.svelte.ts";
+	import { trackPanelDraft } from "../panel-context.ts";
 	import ChildHatPicker from "./ChildHatPicker.svelte";
 	import ChildPortrait from "./ChildPortrait.svelte";
 
@@ -24,6 +25,7 @@
 	// Clean values refresh; dirty values conflict instead of retargeting on Undo.
 	const field = untrack(() => createChildEditField(child.key, model));
 	const draft = createRuneDraft(() => field);
+	trackPanelDraft(() => draft.current.dirty);
 	let editing = $state(false);
 	// Couple catalog preview metadata to its draft value so Cancel, Undo and
 	// later publications cannot accidentally reuse a previous replacement hat.

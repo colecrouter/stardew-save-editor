@@ -8,8 +8,10 @@
 	import CharacterProgression from "./CharacterProgression.svelte";
 	import FarmerSelector from "./fields/FarmerSelector.svelte";
 
-	let { model, oninventory }: { model: EditorModel; oninventory: () => void } =
-		$props();
+	let {
+		model,
+		oninventory,
+	}: { model: EditorModel; oninventory?: (() => void) | undefined } = $props();
 	const view = useAtomValue(() => model.atomBindings.view);
 	const selection = useAtomValue(() => model.atomBindings.selectedFarmerId);
 	const farmerField = $derived(

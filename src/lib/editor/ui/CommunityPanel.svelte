@@ -10,6 +10,7 @@
 	import StudyIcon from "../../ui/StudyIcon.svelte";
 	import { createCommunityDomain } from "../community-domain.ts";
 	import type { EditorModel } from "../editor-model.ts";
+	import { trackPanelDraft } from "../panel-context.ts";
 	import CommunityBundleCard from "./CommunityBundleCard.svelte";
 	import JojaProjectBoard from "./JojaProjectBoard.svelte";
 
@@ -44,6 +45,13 @@
 	let membershipOpen = $state(false);
 	let desiredMembership = $state(false);
 	let membershipAtOpen = $state<boolean | undefined>();
+	// Opening the membership dialog alone does not change its draft.
+	trackPanelDraft(
+		() =>
+			membershipOpen &&
+			membershipAtOpen !== undefined &&
+			desiredMembership !== membershipAtOpen,
+	);
 	const routeChoiceId = $props.id();
 	let membershipRevision: number | undefined;
 	let membershipBusy = $state(false);

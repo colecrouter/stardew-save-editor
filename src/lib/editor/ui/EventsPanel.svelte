@@ -15,6 +15,7 @@
 	import type { EditorModel } from "../editor-model.ts";
 	import { createEventDomain } from "../event-domain.ts";
 	import { createFarmerSelectionField } from "../farmer-selection.ts";
+	import { trackPanelDraft } from "../panel-context.ts";
 	import CheckboxField from "./fields/CheckboxField.svelte";
 	import FarmerSelector from "./fields/FarmerSelector.svelte";
 
@@ -44,6 +45,8 @@
 	let filter = $state("all");
 	let limit = $state(24);
 	let newId = $state("");
+	// Typed or selected changes are local until the form is submitted.
+	trackPanelDraft(() => newId.trim() !== "");
 	let pending = $state(false);
 	let feedback = $state<{
 		scope: symbol;

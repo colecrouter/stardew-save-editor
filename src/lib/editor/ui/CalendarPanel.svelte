@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Result } from "effect";
 	import { useAtomValue } from "effect-atom-svelte";
+	import { untrack } from "svelte";
 
 	import {
 		formatDate,
@@ -16,14 +17,20 @@
 	import { calendarEventsForMonth } from "../calendar-events.ts";
 	import { setCalendarWeather } from "../calendar-operations.ts";
 	import type { EditorModel } from "../editor-model.ts";
-	import type { createRuneDraft } from "../field.svelte.ts";
+	import { createRuneDraft } from "../field.svelte.ts";
+	import { trackPanelDraft } from "../panel-context.ts";
 	import CalendarMonth from "./CalendarMonth.svelte";
 
 	interface Props {
 		model: EditorModel;
-		draft: ReturnType<typeof createRuneDraft<GameDate>>;
+		draft?: ReturnType<typeof createRuneDraft<GameDate>>;
 	}
-	let { model, draft }: Props = $props();
+	let { model, draft: workspaceDraft }: Props = $props();
+	// Routed Calendar owns its unapplied form. Standalone workspaces can supply
+	// their existing controller to coordinate the export toolbar.
+	const draft =
+		untrack(() => workspaceDraft) ?? createRuneDraft(() => model.dateField);
+	trackPanelDraft(() => draft.current.dirty, true);
 
 	// Hooks subscribe through the nearest file provider. Keep the accessor object:
 	// destructuring .current would capture a stale non-reactive value.

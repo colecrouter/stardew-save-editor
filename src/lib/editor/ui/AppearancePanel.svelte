@@ -2,10 +2,10 @@
 	import { useAtomValue } from "effect-atom-svelte";
 
 	import StudyAlert from "../../ui/kit/StudyAlert.svelte";
-	import StudyButton from "../../ui/kit/StudyButton.svelte";
 	import { createAppearanceDomain } from "../appearance-domain.ts";
 	import type { EditorModel } from "../editor-model.ts";
 	import AppearancePreview from "./AppearancePreview.svelte";
+	import EditorPanelLink from "./EditorPanelLink.svelte";
 	import ColorField from "./fields/ColorField.svelte";
 	import SelectField from "./fields/SelectField.svelte";
 	import StepperField from "./fields/StepperField.svelte";
@@ -13,7 +13,7 @@
 
 	interface Props {
 		model: EditorModel;
-		oninventory: () => void;
+		oninventory?: (() => void) | undefined;
 	}
 	let { model, oninventory }: Props = $props();
 	const view = useAtomValue(() => model.atomBindings.view);
@@ -39,9 +39,12 @@
 				<AppearancePreview preview={domain.preview} />
 
 				<div class="preview-note">
-					<StudyButton onclick={oninventory}>
+					<EditorPanelLink
+						section="inventory"
+						onselect={oninventory}
+					>
 						Edit clothing in Inventory
-					</StudyButton>
+					</EditorPanelLink>
 				</div>
 			</aside>
 

@@ -7,6 +7,7 @@ import { defineConfig } from "vite-plus";
 import { configDefaults } from "vitest/config";
 
 import { lintPolicy } from "./lint-policy.ts";
+import { checkEditorRouting } from "./tests/helpers/editor-routing-command.ts";
 import { testTimeouts } from "./tests/helpers/timeouts.ts";
 
 // Legacy editor regressions are opt-in for local development and CI alike.
@@ -286,6 +287,7 @@ export default defineConfig(({ mode }) => ({
 						// tests resize explicitly when exercising the phone section picker.
 						viewport: { width: 1280, height: 900 },
 						provider: playwright({ actionTimeout: testTimeouts.assertion }),
+						commands: { checkEditorRouting },
 						instances: [{ browser: "chromium" }],
 					},
 				},

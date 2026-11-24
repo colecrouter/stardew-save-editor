@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Effect, type Layer, Result } from "effect";
 	import { RegistryProvider } from "effect-atom-svelte";
-	import { onDestroy, tick } from "svelte";
+	import { type ComponentProps, onDestroy, type Snippet, tick } from "svelte";
 
 	import {
 		runBackupCommand,
@@ -19,6 +19,9 @@
 
 	interface Props {
 		includeProofs?: boolean;
+		children?: Snippet<
+			[Omit<ComponentProps<typeof EditorWorkspace>, "children">]
+		>;
 		legacyHref?: string;
 		backupOriginal?: (file: File) => Promise<void>;
 		processingLayer: Layer.Layer<SaveProcessor>;
@@ -28,6 +31,7 @@
 		legacyHref,
 		backupOriginal,
 		processingLayer,
+		children,
 	}: Props = $props();
 	let active = $state.raw<Awaited<ReturnType<typeof openEditorBlob>>>();
 	let filename = $state("");
@@ -224,22 +228,29 @@
 		     Clearing active must not invalidate the old workspace's props. -->
 		{#each [active] as session (session)}
 			<RegistryProvider registry={session.model.atomBindings.registry}>
-				<EditorWorkspace
-					model={session.model}
-					{includeProofs}
-					{downloading}
-					{downloadStatus}
-					{downloadError}
-					{offerDownloadCopy}
-					{filename}
-					onclose={() => void close()}
-					ondownload={download}
-					ondismissdownloaderror={() => {
+				{@const workspace = {
+					model: session.model,
+					includeProofs,
+					downloading,
+					downloadStatus,
+					downloadError,
+					offerDownloadCopy,
+					filename,
+					onclose: () => void close(),
+					ondownload: download,
+					ondismissdownloaderror: () => {
 						// Dismiss only the feedback so the user can keep editing.
 						downloadError = "";
 						offerDownloadCopy = false;
-					}}
-				/>
+					},
+				}}
+				<!-- The route supplies the shell and outlet inside this save's registry.
+				     Standalone callers use the workspace's local panel controls. -->
+				{#if children}
+					{@render children(workspace)}
+				{:else}
+					<EditorWorkspace {...workspace} />
+				{/if}
 			</RegistryProvider>
 		{/each}
 	{:else}

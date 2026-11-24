@@ -8,6 +8,7 @@
 		shortLabel,
 		icon,
 		active = false,
+		showCurrentMarker = false,
 		onclick,
 	}: {
 		href: string;
@@ -15,6 +16,7 @@
 		shortLabel?: string;
 		icon: StudyIconName;
 		active?: boolean;
+		showCurrentMarker?: boolean;
 		onclick?: () => void;
 	} = $props();
 </script>
@@ -37,11 +39,18 @@
 	{#if shortLabel}
 		<span class="short-label" aria-hidden="true">{shortLabel}</span>
 	{/if}
+	{#if active && showCurrentMarker}
+		<span class="current-marker" aria-hidden="true">✓</span>
+	{/if}
 </a>
 
 <!-- eslint-enable svelte/no-navigation-without-resolve -->
 
 <style>
+	.current-marker {
+		margin-inline-start: auto;
+		padding-inline-end: 8px;
+	}
 	.short-label {
 		display: none;
 	}

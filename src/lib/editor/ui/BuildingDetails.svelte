@@ -7,11 +7,12 @@
 	import StudyAlert from "../../ui/kit/StudyAlert.svelte";
 	import StudyAside from "../../ui/kit/StudyAside.svelte";
 	import StudyButton from "../../ui/kit/StudyButton.svelte";
+	import StudyTooltip from "../../ui/kit/StudyTooltip.svelte";
 
 	import "../../ui/kit/styles.css";
-	import StudyTooltip from "../../ui/kit/StudyTooltip.svelte";
 	import type { BuildingDomain } from "../building-domain.ts";
 	import type { ImmediateField } from "../immediate-field.ts";
+	import { trackPanelDraft } from "../panel-context.ts";
 	import AnimalCard from "./AnimalCard.svelte";
 	import BackpackItemVisual from "./BackpackItemVisual.svelte";
 	import CheckboxField from "./fields/CheckboxField.svelte";
@@ -33,8 +34,16 @@
 	// Parent keys this component by building ID, so its pending targets never drift.
 	let target = $state("");
 	let animalType = $state("");
+	let appliedAnimalType = $state("");
 	let name = $state<string | undefined>();
 	let busy = $state(false);
+	// Typed or selected changes are local until the form is submitted.
+	trackPanelDraft(
+		() =>
+			(target !== "" && target !== building.name) ||
+			animalType !== appliedAnimalType ||
+			name !== undefined,
+	);
 	let error = $state("");
 	let notices = $state<string[]>([]);
 	const tier = $derived(target || building.name);
@@ -74,7 +83,12 @@
 		try {
 			const result = await building.adopt(option.type, proposedName, ownerId);
 			if (result && Result.isFailure(result)) error = result.failure.message;
-			if (result && Result.isSuccess(result)) name = undefined;
+			if (result && Result.isSuccess(result)) {
+				// Keep the chosen species available for another adoption, with
+				// no unapplied changes until the user changes the form again.
+				appliedAnimalType = animalType;
+				name = undefined;
+			}
 		} finally {
 			busy = false;
 		}

@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { useAtomValue } from "effect-atom-svelte";
 
-	import StudyButton from "../../ui/kit/StudyButton.svelte";
 	import StudyCheckbox from "../../ui/kit/StudyCheckbox.svelte";
 	import StudyField from "../../ui/kit/StudyField.svelte";
 	import StudyTabs from "../../ui/kit/StudyTabs.svelte";
@@ -12,7 +11,7 @@
 	import { createFarmerSelectionField } from "../farmer-selection.ts";
 	import type { ImmutableView } from "../immutable-view.ts";
 	import { readItemVisual } from "../item-presentation.ts";
-	import type { ProgressCategory, ProgressSection } from "../progress-data.ts";
+	import type { ProgressCategory } from "../progress-data.ts";
 	import {
 		concealedAchievement,
 		presentProgressCategory,
@@ -20,14 +19,14 @@
 	import AchievementIcon from "./AchievementIcon.svelte";
 	import BackpackItemVisual from "./BackpackItemVisual.svelte";
 	import CollectionPanel from "./CollectionPanel.svelte";
+	import EditorPanelLink from "./EditorPanelLink.svelte";
 	import FarmerSelector from "./fields/FarmerSelector.svelte";
 	import ProgressMeter from "./ProgressMeter.svelte";
 
 	let {
 		model,
 		onsection,
-	}: { model: EditorModel; onsection: (section: ProgressSection) => void } =
-		$props();
+	}: { model: EditorModel; onsection?: (section: string) => void } = $props();
 
 	const view = useAtomValue(() => model.atomBindings.view);
 	const selection = useAtomValue(() => model.atomBindings.selectedFarmerId);
@@ -403,11 +402,12 @@
 						</ul>
 
 						{#if category.section}
-							<StudyButton
-								onclick={() => category.section && onsection(category.section)}
+							<EditorPanelLink
+								section={category.section}
+								onselect={onsection}
 							>
 								Open {category.section}
-							</StudyButton>
+							</EditorPanelLink>
 						{/if}
 					</div>
 				</details>
@@ -597,7 +597,12 @@
 		Cooking and crafting progress can be changed in Recipes.
 	</span>
 
-	<StudyButton onclick={() => onsection("recipes")}>Edit recipes</StudyButton>
+	<EditorPanelLink
+		section="recipes"
+		onselect={onsection}
+	>
+		Edit recipes
+	</EditorPanelLink>
 </div>
 
 <style>

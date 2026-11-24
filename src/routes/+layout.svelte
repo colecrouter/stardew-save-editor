@@ -8,6 +8,8 @@
 	import Toasts from "$lib/ui/Toasts.svelte";
 
 	let { children } = $props();
+	// The editor's section routes share the root workspace layout and styling.
+	const isV2 = $derived(page.route.id?.startsWith("/editor/") ?? false);
 
 	setToastManager();
 
@@ -32,7 +34,7 @@
 	     existing zoom while their wider layouts are still in use. -->
 	<meta
 		name="viewport"
-		content={page.route.id === "/"
+		content={isV2
 			? "width=device-width, initial-scale=1"
 			: "width=device-width, initial-scale=0.58"}
 	/>
@@ -43,7 +45,7 @@
 
 <!-- GITHUB LOGO -->
 <a
-	class:v2-repository={page.route.id === "/"}
+	class:v2-repository={isV2}
 	href="https://github.com/colecrouter/stardew-save-editor"
 	aria-label="GitHub repository link"
 	target="_blank"
@@ -52,14 +54,14 @@
 	<img src={asset("img/github.svg")} alt="GitHub Logo" />
 </a>
 
-<main class:calendar-workspace={page.route.id === "/"}>
+<main class:calendar-workspace={isV2}>
 	{@render children?.()}
 </main>
 
 <Toasts />
 
 <!-- FOOTER -->
-<small class:v2-credits={page.route.id === "/"}>
+<small class:v2-credits={isV2}>
 	Some assets utilized belong to ConcernedApe. Used under Fair Use and not
 	affiliated with ConcernedApe or Stardew Valley
 </small>

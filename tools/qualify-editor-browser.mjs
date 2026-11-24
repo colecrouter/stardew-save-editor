@@ -209,7 +209,10 @@ async function navigate(page, id) {
 					reject,
 				) => {
 					const content = document.querySelector("#editor-content");
-					const link = document.querySelector(`a[href="#${targetId}"]`);
+					// Qualify older builds with hash links as well as panel paths.
+					const link = document.querySelector(
+						`nav a[href$="/editor/${targetId}"], nav a[href="#${targetId}"]`,
+					);
 					if (!content || !(link instanceof HTMLAnchorElement))
 						throw new Error(`Missing navigation target: ${targetId}`);
 					const started = performance.now();

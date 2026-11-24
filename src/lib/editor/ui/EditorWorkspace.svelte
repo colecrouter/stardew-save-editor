@@ -1,6 +1,11 @@
 <script lang="ts">
+	import { SvelteSet } from "svelte/reactivity";
+
+	import { afterNavigate, onNavigate } from "$app/navigation";
+	import { resolve } from "$app/paths";
+	import { page } from "$app/state";
+
 	import AppMark from "../../ui/AppMark.svelte";
-	import type { StudyIconName } from "../../ui/studyIcons";
 	// Native action controls need their base styles even when no legacy UI
 	// component has been loaded in this session. Theme rules refine these tokens.
 	import "../../ui/controls.css";
@@ -8,7 +13,7 @@
 	// after loading this workspace. This partition preserves stylesheet registration.
 	import { Result } from "effect";
 	import { useAtomValue } from "effect-atom-svelte";
-	import { onMount, untrack } from "svelte";
+	import { onMount, type Snippet, untrack } from "svelte";
 
 	import { formatDate } from "../../calendar.ts";
 	import EditorShell from "../../ui/frame/EditorShell.svelte";
@@ -18,6 +23,11 @@
 	import type { EditorModel } from "../editor-model.ts";
 	import { createRuneDraft } from "../field.svelte.ts";
 	import { historyShortcut, usesAppleShortcuts } from "../history-shortcuts.ts";
+	import {
+		type EditorPanelPath,
+		getPanelDrafts,
+		setEditorPanel,
+	} from "../panel-context.ts";
 	import BundlePanel from "./BundlePanel.svelte";
 	import CalendarPanel from "./CalendarPanel.svelte";
 	import CharacterPanel from "./CharacterPanel.svelte";
@@ -37,6 +47,7 @@
 
 	interface Props {
 		includeProofs?: boolean;
+		children?: Snippet;
 		downloading?: boolean;
 		downloadStatus?: string;
 		downloadError?: string;
@@ -56,6 +67,7 @@
 		ondismissdownloaderror,
 		ondownload,
 		includeProofs = false,
+		children,
 		downloading = false,
 		downloadStatus = "Preparing save…",
 		downloadError = "",
@@ -77,81 +89,75 @@
 			date: formatDate(initial.calendar.date),
 		};
 	});
-	// The workspace owns the draft across section navigation. Keeping its panels
-	// mounted preserves input and lets external revisions mark conflicts visibly.
-	const dateDraft = createRuneDraft(() => model.dateField);
-	// Desktop links and the compact phone picker share one section inventory.
-	// Proof-only sections remain available only in the comparison workspace.
-	const sections = [
-		{ id: "inventory", label: "Inventory", icon: "inventory" },
-		{ id: "pets", label: "Pets", icon: "pets" },
-		{ id: "buildings", label: "Buildings & animals", icon: "buildings" },
-		{ id: "community", label: "Community Center & Joja", icon: "community" },
-		{ id: "farmers", label: "Farmhands", icon: "farmhands" },
-		{ id: "storage", label: "Storage", icon: "chests" },
-		{ id: "character", label: "Character", icon: "character" },
-		{ id: "relationships", label: "Relationships", icon: "relationships" },
-		{ id: "quests", label: "Quest journal", icon: "quests" },
-		{ id: "qi", label: "Qi orders", icon: "qi" },
-		{ id: "events", label: "Events", icon: "events" },
-		{ id: "recipes", label: "Recipes", icon: "cooking" },
-		{ id: "progress", label: "Progress", icon: "progress" },
-		{ id: "farm", label: "Farm settings", icon: "farm" },
-		{ id: "calendar", label: "Date and weather", icon: "calendar" },
-		{ id: "reconstruct", label: "Rebuild lost progress", icon: "rebuild" },
-		{ id: "review", label: "Review changes", icon: "review" },
-	] satisfies {
-		id: string;
-		label: string;
-		icon: StudyIconName;
-	}[];
-	const navigationSections = $derived(
-		includeProofs
-			? [
-					...sections,
-					{ id: "locations", label: "Locations", icon: "locations" as const },
-					{ id: "bundles", label: "Bundles", icon: "community" as const },
-				]
-			: sections,
+	// Routed panels follow Kit's active route. Standalone callers keep their
+	// own selection and supply an explicit date draft to the Calendar panel.
+	const routed = untrack(() => children !== undefined);
+	const drafts = getPanelDrafts();
+	let localSection = $state("calendar");
+	const tab = $derived(
+		routed ? (page.route.id?.slice("/editor/".length) ?? "") : localSection,
 	);
 	const sectionPickerId = $props.id();
-	let tab = $state("calendar");
-	let inventoryOpened = $state(false);
-	// Large editors subscribe only after their first visit. Once opened, retain
-	// them so navigating away preserves local input and selection state.
-	let characterOpened = $state(false);
-	let relationshipsOpened = $state(false);
-	let recipesOpened = $state(false);
-	let progressOpened = $state(false);
-	let eventsOpened = $state(false);
-	let questsOpened = $state(false);
-	let qiOpened = $state(false);
-	let buildingsOpened = $state(false);
-	let petsOpened = $state(false);
-	let rosterOpened = $state(false);
-	let communityOpened = $state(false);
-	let storageOpened = $state(false);
-	let reconstructionOpened = $state(false);
-	function chooseSection(section: string) {
-		// Hidden panels retain their local state, so navigation explicitly finishes
-		// any field gesture even when no native blur event accompanies the change.
-		void model.edits.endActive();
-		if (section === "inventory") inventoryOpened = true;
-		if (section === "character") characterOpened = true;
-		if (section === "relationships") relationshipsOpened = true;
-		if (section === "recipes") recipesOpened = true;
-		if (section === "progress") progressOpened = true;
-		if (section === "events") eventsOpened = true;
-		if (section === "quests") questsOpened = true;
-		if (section === "qi") qiOpened = true;
-		if (section === "buildings") buildingsOpened = true;
-		if (section === "pets") petsOpened = true;
-		if (section === "farmers") rosterOpened = true;
-		if (section === "community") communityOpened = true;
-		if (section === "storage") storageOpened = true;
-		if (section === "reconstruct") reconstructionOpened = true;
-		tab = section;
+	const dateDraft = routed ? undefined : createRuneDraft(() => model.dateField);
+	const exportBlocked = $derived(
+		drafts?.exportBlocked ?? dateDraft?.current.dirty ?? false,
+	);
+	// The guide links take the user away from its panel. Keep checkmarks with
+	// this save so returning to the guide shows the steps already completed.
+	setEditorPanel({
+		reconstructionSteps: new SvelteSet<string>(),
+		get model() {
+			return model;
+		},
+	});
+
+	let sectionsOpen = $state(false);
+	let sectionsMenu = $state<HTMLDetailsElement>();
+	let sectionsTrigger = $state<HTMLElement>();
+
+	function revealCurrentSection(menu: HTMLDetailsElement) {
+		if (!menu.open) return;
+		const list = menu.querySelector(".section-menu-links");
+		const current = list?.querySelector('[aria-current="page"]');
+		if (!list || !current) return;
+		const item = current.getBoundingClientRect();
+		const viewport = list.getBoundingClientRect();
+		// Scroll only the menu, so opening it never moves the editor viewport.
+		if (item.top < viewport.top) list.scrollTop += item.top - viewport.top;
+		else if (item.bottom > viewport.bottom)
+			list.scrollTop += item.bottom - viewport.bottom;
 	}
+
+	function closeSections() {
+		if (!sectionsOpen) return;
+		// A focused link would disappear when the disclosure closes.
+		if (sectionsMenu?.contains(document.activeElement))
+			sectionsTrigger?.focus();
+		sectionsOpen = false;
+	}
+
+	if (routed) {
+		onNavigate(({ to, from }) => {
+			// Navigation has passed the draft guard. Finish a field gesture
+			// before Kit replaces the panel, even if it never receives blur.
+			if (to?.route.id !== from?.route.id) void model.edits.endActive();
+		});
+		afterNavigate(closeSections);
+	}
+
+	function requestClose() {
+		if (
+			!drafts?.dirty ||
+			window.confirm("Close the save and discard its unapplied changes?")
+		)
+			onclose();
+	}
+
+	function chooseSection(section: string) {
+		void model.edits.endActive();
+		localSection = section;
+	}
+
 	let error = $state("");
 	async function perform(
 		action: () => Promise<
@@ -185,11 +191,73 @@
 	}
 </script>
 
-<svelte:window onkeydown={onHistoryKey} />
+<svelte:window
+	onkeydown={(event) => {
+		if (
+			event.key === "Escape" &&
+			sectionsOpen &&
+			sectionsMenu?.contains(document.activeElement)
+		) {
+			event.preventDefault();
+			closeSections();
+		} else onHistoryKey(event);
+	}}
+/>
 
 <div class="editor study-theme">
 	<CommandToasts {model} />
-	<EditorShell {onclose}>
+	{#snippet sectionLinks(mode: "links" | "mobile" | "label" | "icon")}
+		{#snippet sectionLink(
+			id: string,
+			label: string,
+			icon: import("../../ui/studyIcons").StudyIconName,
+		)}
+			{#if mode === "label"}
+				{#if tab === id}{label}{/if}
+			{:else if mode === "icon"}
+				{#if tab === id}
+					<StudyIcon
+						name={icon}
+						size={24}
+					/>
+				{/if}
+			{:else}
+				<SectionLink
+					href={routed ? resolve(`/editor/${id}` as EditorPanelPath) : `#${id}`}
+					{label}
+					{icon}
+					active={tab === id}
+					showCurrentMarker={mode === "mobile"}
+					onclick={() => {
+						if (!routed) chooseSection(id);
+					}}
+				/>
+			{/if}
+		{/snippet}
+
+		{@render sectionLink("inventory", "Inventory", "inventory")}
+		{@render sectionLink("pets", "Pets", "pets")}
+		{@render sectionLink("buildings", "Buildings & animals", "buildings")}
+		{@render sectionLink("community", "Community Center & Joja", "community")}
+		{@render sectionLink("farmers", "Farmhands", "farmhands")}
+		{@render sectionLink("storage", "Storage", "chests")}
+		{@render sectionLink("character", "Character", "character")}
+		{@render sectionLink("relationships", "Relationships", "relationships")}
+		{@render sectionLink("quests", "Quest journal", "quests")}
+		{@render sectionLink("qi", "Qi orders", "qi")}
+		{@render sectionLink("events", "Events", "events")}
+		{@render sectionLink("recipes", "Recipes", "cooking")}
+		{@render sectionLink("progress", "Progress", "progress")}
+		{@render sectionLink("farm", "Farm settings", "farm")}
+		{@render sectionLink("calendar", "Date and weather", "calendar")}
+		{@render sectionLink("reconstruct", "Rebuild lost progress", "rebuild")}
+		{@render sectionLink("review", "Review changes", "review")}
+		{#if includeProofs}
+			{@render sectionLink("locations", "Locations", "locations")}
+			{@render sectionLink("bundles", "Bundles", "community")}
+		{/if}
+	{/snippet}
+	<EditorShell onclose={requestClose}>
 		{#snippet header()}
 			<header class="toolbar">
 				<div class="save-heading">
@@ -227,7 +295,7 @@
 				<button
 					type="button"
 					class="study-button study-button--constructive study-button--filled export"
-					disabled={downloading || dateDraft.current.dirty}
+					disabled={downloading || exportBlocked}
 					aria-busy={downloading}
 					aria-label="Export save"
 					onclick={() => void perform(ondownload)}
@@ -251,42 +319,74 @@
 				<nav
 					aria-label="Editor sections"
 					class="section-links"
+					data-sveltekit-reset={routed ? "false" : undefined}
 				>
-					{#each navigationSections as section (section.id)}
-						<SectionLink
-							href={`#${section.id}`}
-							label={section.label}
-							icon={section.icon}
-							active={tab === section.id}
-							onclick={() => chooseSection(section.id)}
-						/>
-					{/each}
+					{@render sectionLinks("links")}
 				</nav>
 
-				<div class="section-picker">
-					<label for={sectionPickerId}>
-						<StudyIcon
-							name={navigationSections.find((section) => section.id === tab)
-								?.icon ?? "inventory"}
-							size={24}
-						/>
-
-						Section
-					</label>
-
-					<select
-						id={sectionPickerId}
-						class="ui-control"
-						value={tab}
-						onchange={(event) => chooseSection(event.currentTarget.value)}
+				{#if routed}
+					<!-- A disclosure keeps the section list out of the way until
+					     opened. Only a completed navigation closes it. -->
+					<details
+						class="section-menu"
+						bind:open={sectionsOpen}
+						bind:this={sectionsMenu}
+						ontoggle={(event) => revealCurrentSection(event.currentTarget)}
 					>
-						{#each navigationSections as section (section.id)}
-							<option value={section.id}>
-								{section.label}
-							</option>
-						{/each}
-					</select>
-				</div>
+						<summary bind:this={sectionsTrigger}>
+							<span class="section-menu-label">Sections</span>
+
+							<span class="section-menu-current">
+								{@render sectionLinks("label")}
+							</span>
+						</summary>
+
+						<nav
+							class="section-menu-links"
+							aria-label="Editor sections"
+							data-sveltekit-reset="false"
+						>
+							{@render sectionLinks("mobile")}
+						</nav>
+					</details>
+				{:else}
+					<div class="section-picker">
+						<label for={sectionPickerId}>
+							{@render sectionLinks("icon")}
+
+							Section
+						</label>
+
+						<select
+							id={sectionPickerId}
+							class="ui-control"
+							value={tab}
+							onchange={(event) => chooseSection(event.currentTarget.value)}
+						>
+							<option value="inventory">Inventory</option>
+							<option value="pets">Pets</option>
+							<option value="buildings">Buildings &amp; animals</option>
+							<option value="community">Community Center &amp; Joja</option>
+							<option value="farmers">Farmhands</option>
+							<option value="storage">Storage</option>
+							<option value="character">Character</option>
+							<option value="relationships">Relationships</option>
+							<option value="quests">Quest journal</option>
+							<option value="qi">Qi orders</option>
+							<option value="events">Events</option>
+							<option value="recipes">Recipes</option>
+							<option value="progress">Progress</option>
+							<option value="farm">Farm settings</option>
+							<option value="calendar">Date and weather</option>
+							<option value="reconstruct">Rebuild lost progress</option>
+							<option value="review">Review changes</option>
+							{#if includeProofs}
+								<option value="locations">Locations</option>
+								<option value="bundles">Bundles</option>
+							{/if}
+						</select>
+					</div>
+				{/if}
 
 				<!-- History belongs to editing, away from file export. Keep these targets
 			     enabled through blur commits so the same click queues after the edit. -->
@@ -338,158 +438,158 @@
 		{#if error}
 			<p role="alert">{error}</p>
 		{/if}
-		{#if dateDraft.current.dirty}
+		{#if exportBlocked}
 			<p role="status">Apply or reload your date draft before exporting.</p>
 		{/if}
-		<!-- Load inventory code/catalog only when this section first opens; visible
-		     sprites then request their sheets. This boundary can also load locale data
-		     in future. Keep the consumer mounted so selection survives navigation. -->
-		{#if inventoryOpened}
-			<div
-				class="inventory-section"
-				hidden={tab !== "inventory"}
-			>
-				{#await import("./BackpackPanel.svelte")}
-					<p role="status">Loading inventory…</p>
-				{:then panel}
-					<panel.default {model} />
-				{:catch}
-					<p role="alert">
-						The inventory view could not be loaded. Reopen the editor to try
-						again.
-					</p>
-				{/await}
+		{#if children}
+			<div class:inventory-section={tab === "inventory"}>
+				{@render children()}
 			</div>
-		{/if}
-		{#if buildingsOpened}
-			<div hidden={tab !== "buildings"}>
-				{#await import("./BuildingsPanel.svelte")}
-					<p role="status">Loading buildings…</p>
-				{:then panel}
-					<panel.default {model} />
-				{:catch}
-					<p role="alert">
-						The buildings view could not be loaded. Reopen the editor to try
-						again.
-					</p>
-				{/await}
-			</div>
-		{/if}
+		{:else}
+			{#if tab === "inventory"}
+				<div class="inventory-section">
+					{#await import("./BackpackPanel.svelte")}
+						<p role="status">Loading inventory…</p>
+					{:then panel}
+						<panel.default {model} />
+					{:catch}
+						<p role="alert">
+							The inventory view could not be loaded. Reopen the editor to try
+							again.
+						</p>
+					{/await}
+				</div>
+			{/if}
+			{#if tab === "buildings"}
+				<div>
+					{#await import("./BuildingsPanel.svelte")}
+						<p role="status">Loading buildings…</p>
+					{:then panel}
+						<panel.default {model} />
+					{:catch}
+						<p role="alert">
+							The buildings view could not be loaded. Reopen the editor to try
+							again.
+						</p>
+					{/await}
+				</div>
+			{/if}
 
-		{#if rosterOpened && view.current}
-			<div hidden={tab !== "farmers"}>
-				<FarmerRosterPanel
-					{model}
-					roster={view.current.farmerRoster}
-					appearances={view.current.appearances}
-				/>
-			</div>
-		{/if}
-		{#if communityOpened}
-			<div hidden={tab !== "community"}>
-				{#await import("./CommunityPanel.svelte")}
-					<p role="status">Loading Community Center…</p>
-				{:then panel}
-					<panel.default {model} />
-				{:catch}
-					<p role="alert">
-						The Community Center view could not be loaded. Reopen the editor to
-						try again.
-					</p>
-				{/await}
-			</div>
-		{/if}
+			{#if tab === "farmers" && view.current}
+				<div>
+					<FarmerRosterPanel
+						{model}
+						roster={view.current.farmerRoster}
+						appearances={view.current.appearances}
+					/>
+				</div>
+			{/if}
+			{#if tab === "community"}
+				<div>
+					{#await import("./CommunityPanel.svelte")}
+						<p role="status">Loading Community Center…</p>
+					{:then panel}
+						<panel.default {model} />
+					{:catch}
+						<p role="alert">
+							The Community Center view could not be loaded. Reopen the editor
+							to try again.
+						</p>
+					{/await}
+				</div>
+			{/if}
 
-		{#if storageOpened}
-			<div hidden={tab !== "storage"}>
-				{#await import("./StoragePanel.svelte")}
-					<p role="status">Loading storage…</p>
-				{:then panel}
-					<panel.default {model} />
-				{:catch}
-					<p role="alert">
-						The storage view could not be loaded. Reopen the editor to try
-						again.
-					</p>
-				{/await}
-			</div>
-		{/if}
+			{#if tab === "storage"}
+				<div>
+					{#await import("./StoragePanel.svelte")}
+						<p role="status">Loading storage…</p>
+					{:then panel}
+						<panel.default {model} />
+					{:catch}
+						<p role="alert">
+							The storage view could not be loaded. Reopen the editor to try
+							again.
+						</p>
+					{/await}
+				</div>
+			{/if}
 
-		{#if characterOpened}
-			<div hidden={tab !== "character"}>
-				<CharacterPanel
-					{model}
-					oninventory={() => chooseSection("inventory")}
-				/>
-			</div>
-		{/if}
-		{#if relationshipsOpened}
-			<div hidden={tab !== "relationships"}>
-				<RelationshipPanel {model} />
-			</div>
-		{/if}
-		{#if progressOpened}
-			<div hidden={tab !== "progress"}>
-				<ProgressPanel
-					{model}
-					onsection={chooseSection}
-				/>
-			</div>
-		{/if}
-		{#if recipesOpened}
-			<div hidden={tab !== "recipes"}>
-				<RecipesPanel {model} />
-			</div>
-		{/if}
-		{#if eventsOpened}
-			<div hidden={tab !== "events"}>
-				<EventsPanel {model} />
-			</div>
-		{/if}
-		{#if questsOpened}
-			<div hidden={tab !== "quests"}>
-				<QuestJournalPanel {model} />
-			</div>
-		{/if}
-		{#if qiOpened}
-			<div hidden={tab !== "qi"}>
-				<QiOrdersPanel {model} />
-			</div>
-		{/if}
-		{#if petsOpened}
-			<div hidden={tab !== "pets"}>
-				<PetsPanel {model} />
-			</div>
-		{/if}
-		<div hidden={tab !== "farm"}><FarmPanel {model} /></div>
-		<div hidden={tab !== "calendar"}>
-			<CalendarPanel
-				{model}
-				draft={dateDraft}
-			/>
-		</div>
+			{#if tab === "character"}
+				<div>
+					<CharacterPanel
+						{model}
+						oninventory={() => chooseSection("inventory")}
+					/>
+				</div>
+			{/if}
+			{#if tab === "relationships"}
+				<div>
+					<RelationshipPanel {model} />
+				</div>
+			{/if}
+			{#if tab === "progress"}
+				<div>
+					<ProgressPanel
+						{model}
+						onsection={chooseSection}
+					/>
+				</div>
+			{/if}
+			{#if tab === "recipes"}
+				<div>
+					<RecipesPanel {model} />
+				</div>
+			{/if}
+			{#if tab === "events"}
+				<div>
+					<EventsPanel {model} />
+				</div>
+			{/if}
+			{#if tab === "quests"}
+				<div>
+					<QuestJournalPanel {model} />
+				</div>
+			{/if}
+			{#if tab === "qi"}
+				<div>
+					<QiOrdersPanel {model} />
+				</div>
+			{/if}
+			{#if tab === "pets"}
+				<div>
+					<PetsPanel {model} />
+				</div>
+			{/if}
+			{#if tab === "farm"}<div><FarmPanel {model} /></div>{/if}
+			{#if tab === "calendar" && dateDraft}<div>
+					<CalendarPanel
+						{model}
+						draft={dateDraft}
+					/>
+				</div>{/if}
 
-		{#if includeProofs && tab === "locations"}
-			<LocationInspector {model} />
-		{/if}
+			{#if includeProofs && tab === "locations"}
+				<LocationInspector {model} />
+			{/if}
 
-		{#if reconstructionOpened}
-			<div hidden={tab !== "reconstruct"}>
-				<ReconstructionPanel onsection={chooseSection} />
-			</div>
+			{#if tab === "reconstruct"}
+				<div>
+					<ReconstructionPanel onsection={chooseSection} />
+				</div>
+			{/if}
+			{#if includeProofs && tab === "bundles"}
+				<div>
+					<BundlePanel {model} />
+				</div>
+			{/if}
+			{#if tab === "review"}<div>
+					<ReviewPanel
+						{model}
+						{includeProofs}
+						active={tab === "review"}
+					/>
+				</div>{/if}
 		{/if}
-		{#if includeProofs}
-			<div hidden={tab !== "bundles"}>
-				<BundlePanel {model} />
-			</div>
-		{/if}
-		<div hidden={tab !== "review"}>
-			<ReviewPanel
-				{model}
-				{includeProofs}
-				active={tab === "review"}
-			/>
-		</div>
 	</EditorShell>
 
 	{#if downloadError}
@@ -507,7 +607,7 @@
 				<button
 					type="button"
 					class="study-button"
-					disabled={downloading || dateDraft.current.dirty}
+					disabled={downloading || exportBlocked}
 					onclick={() => void perform(ondownload)}
 				>
 					Try exporting again
@@ -517,7 +617,7 @@
 					<button
 						type="button"
 						class="study-button study-button--constructive study-button--filled"
-						disabled={downloading || dateDraft.current.dirty}
+						disabled={downloading || exportBlocked}
 						onclick={() => void ondownload("download")}
 					>
 						Download a copy
@@ -547,6 +647,7 @@
 			min-height: 0;
 		}
 	}
+	.section-menu,
 	.section-picker {
 		display: none;
 	}
@@ -681,6 +782,35 @@
 			/* Fifteen wrapping tabs displaced the actual editor on phones. The
 			   native picker keeps every full section name in one keyboard/touch control. */
 			display: none;
+		}
+		.section-menu {
+			display: block;
+			color: #ffedc9;
+			padding: 6px 12px;
+		}
+		.section-menu summary {
+			cursor: pointer;
+			min-height: 44px;
+			padding: 9px 10px;
+			border: 1px solid #a36a35;
+			border-radius: 4px;
+			background: #663616;
+		}
+		.section-menu summary:focus-visible {
+			outline: 2px solid #ffedc9;
+			outline-offset: 2px;
+		}
+		.section-menu-current {
+			margin-inline-start: 8px;
+			font-weight: bold;
+		}
+		.section-menu-links {
+			/* Keep the menu usable in landscape and leave editor content below. */
+			max-height: min(40vh, 320px);
+			overflow-y: auto;
+			overscroll-behavior: contain;
+			margin-top: 4px;
+			border: 1px solid #a36a35;
 		}
 		.section-picker {
 			display: grid;

@@ -65,17 +65,29 @@ try {
 			await load(bytes);
 			/** @param {string} id */
 			const navigate = async (id) => {
-				if (viewport.width <= 900)
-					await page.getByLabel("Section", { exact: true }).selectOption(id);
-				else await page.locator(`a[href="#${id}"]`).click();
+				const sidebarLink = page.locator(
+					`.section-links a[href$="/editor/${id}"]`,
+				);
+				if ((await sidebarLink.getAttribute("aria-current")) === "page") return;
+				if (viewport.width <= 900) {
+					await page.locator(".section-menu summary").click();
+					await page
+						.locator(`.section-menu-links a[href$="/editor/${id}"]`)
+						.click();
+				} else await sidebarLink.click();
+				// The current marker changes after Kit completes navigation.
+				await page
+					.locator(
+						`.section-links a[href$="/editor/${id}"][aria-current="page"]`,
+					)
+					.waitFor({ state: "attached" });
 			};
 			const sections = await page
-				.getByLabel("Section", { exact: true })
-				.locator("option")
-				.evaluateAll((options) =>
-					options
-						.filter((option) => option instanceof HTMLOptionElement)
-						.map((option) => option.value),
+				.locator(".section-links a")
+				.evaluateAll((links) =>
+					links
+						.map((link) => link.getAttribute("href")?.split("/").at(-1))
+						.filter((id) => id !== undefined),
 				);
 			assert(sections.length > 0, "No workspace sections");
 			for (const id of sections) {

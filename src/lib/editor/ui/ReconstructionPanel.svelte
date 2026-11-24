@@ -1,12 +1,11 @@
 <script lang="ts">
 	import StudyAside from "../../ui/kit/StudyAside.svelte";
-	import StudyButton from "../../ui/kit/StudyButton.svelte";
 	import StudyCheckbox from "../../ui/kit/StudyCheckbox.svelte";
+	import { getEditorPanel } from "../panel-context.ts";
+	import EditorPanelLink from "./EditorPanelLink.svelte";
 
-	let { onsection }: { onsection: (section: string) => void } = $props();
-	// The user decides when a step matches their remembered progress. Keep
-	// checkmarks local to this workspace because they are guide state.
-	let completed = $state<Record<string, boolean>>({});
+	let { onsection }: { onsection?: (section: string) => void } = $props();
+	const { reconstructionSteps } = getEditorPanel();
 
 	// Each step hands off to the normal editor section so it uses the same
 	// validation, farmer selection, and history as an ordinary edit.
@@ -77,16 +76,21 @@
 			<p>{step.detail}</p>
 
 			<div class="step-actions">
-				<StudyButton onclick={() => onsection(step.section)}>
+				<EditorPanelLink
+					section={step.section}
+					onselect={onsection}
+				>
 					{step.label}
-				</StudyButton>
+				</EditorPanelLink>
 
 				<StudyCheckbox
 					label="Done"
 					aria-label={`Mark ${step.label} done`}
-					checked={completed[step.section] ?? false}
+					checked={reconstructionSteps.has(step.section)}
 					onchange={(event) => {
-						completed[step.section] = event.currentTarget.checked;
+						if (event.currentTarget.checked)
+							reconstructionSteps.add(step.section);
+						else reconstructionSteps.delete(step.section);
 					}}
 				/>
 			</div>

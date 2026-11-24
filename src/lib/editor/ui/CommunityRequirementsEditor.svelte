@@ -17,6 +17,7 @@
 		MAX_INGREDIENT_STACK,
 	} from "../community-ingredients.ts";
 	import { guidanceItem } from "../item-guidance.ts";
+	import { trackPanelDraft } from "../panel-context.ts";
 	import BackpackItemVisual from "./BackpackItemVisual.svelte";
 
 	interface Props {
@@ -36,6 +37,20 @@
 	let error = $state("");
 	let rows = $state<DraftRow[]>([]);
 	let needed = $state(1);
+	let baseline = "";
+	// Compare with the snapshot taken when the editor opened. Live projection
+	// changes should not turn untouched form inputs into a dirty draft.
+	const draftValue = () =>
+		JSON.stringify([
+			needed,
+			rows.map(({ sourceIndex, itemId, quantity, quality }) => [
+				sourceIndex,
+				itemId,
+				quantity,
+				quality,
+			]),
+		]);
+	trackPanelDraft(() => open && draftValue() !== baseline);
 	let adding = $state(false);
 	let dragging = $state<number>();
 	let dragBlocked = $state(false);
@@ -68,6 +83,7 @@
 			}));
 			nextId = rows.length;
 			needed = bundle.needed;
+			baseline = draftValue();
 			apply = bundle.editRequirements;
 			error = "";
 			adding = false;

@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { onMount } from "svelte";
+
 	import { beforeNavigate } from "$app/navigation";
 	import { asset, resolve } from "$app/paths";
 	import { page, updated } from "$app/state";
@@ -8,6 +10,12 @@
 	let { children } = $props();
 
 	setToastManager();
+
+	// Signal that the initial page mounted so the static startup fallback
+	// can stop watching for errors and let the app handle later failures.
+	onMount(() => {
+		window.dispatchEvent(new Event("stardew-editor-mounted"));
+	});
 
 	// A newer deployment can remove chunks referenced by this tab. Reload before
 	// client-side navigation so its route manifest and modules come from one version.
@@ -96,6 +104,14 @@
 		line-height: 1.3;
 		padding: 4px 8px;
 	}
+	@media (max-width: 900px) {
+		/* The compatibility notice is outside the app. Keep it below the
+		   corner ribbon once the app mounts on a narrow screen. */
+		:global(#editor-startup-notice[data-editor-mounted]) {
+			--editor-notice-top: 3.5rem;
+		}
+	}
+
 	/* The original ribbon remains visible in the opposite corner from Close. */
 	.v2-repository {
 		left: 0;

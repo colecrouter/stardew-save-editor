@@ -33,6 +33,122 @@
 	</head>
 
 	<body data-sveltekit-preload-data="hover">
+		<!-- This message lives outside Svelte's hydration target so startup errors
+		     can be shown even when the browser cannot evaluate the editor bundle. -->
+		<div
+			id="editor-startup-notice"
+			role="status"
+			hidden
+			style="
+				box-sizing: border-box;
+				width: calc(100% - 2rem);
+				max-width: 40rem;
+				margin: var(--editor-notice-top, 0.75rem) auto 0.75rem;
+				flex: none;
+				padding: 1rem;
+				color: #32200e;
+				background: #fff0ce;
+				border: 1px solid #a36a35;
+				border-radius: 6px;
+				font:
+					1rem/1.5 system-ui,
+					sans-serif;
+			"
+		>
+			<strong></strong>
+
+			<div></div>
+		</div>
+
+		<noscript>
+			<p>Enable JavaScript and reload the page to open the save editor.</p>
+		</noscript>
+
+		<script>
+			(function () {
+				var notice = document.getElementById("editor-startup-notice");
+				var heading = notice.firstElementChild;
+				var detail = notice.lastElementChild;
+
+				function showNotice(title, message) {
+					heading.textContent = title;
+					detail.textContent = message;
+					notice.hidden = false;
+				}
+
+				function isBelowSupportFloor(userAgent) {
+					// Match the version floors in vite.config.ts. On iOS use the
+					// OS version for WebKit user agents, since Chrome and Firefox
+					// brand versions there describe the app rather than WebKit.
+					var ios = /(?:iPhone|iPad|iPod).*OS (\d+)_(\d+)/.exec(userAgent);
+					if (ios && /AppleWebKit\//.test(userAgent)) {
+						return +ios[1] < 15 || (+ios[1] === 15 && +ios[2] < 4);
+					}
+
+					// The Chrome token is also the Chromium version advertised
+					// by Android WebViews and many Chromium-based browsers.
+					var desktopEngine = /(?:EdgA?|Chrome|Firefox)\/(\d+)/.exec(userAgent);
+					if (desktopEngine) return +desktopEngine[1] < 100;
+
+					// Safari advertises its version separately from its build.
+					var safari = /Version\/(\d+)\.(\d+).*Safari\//.exec(userAgent);
+					return (
+						!!safari &&
+						(+safari[1] < 15 || (+safari[1] === 15 && +safari[2] < 4))
+					);
+				}
+
+				var showAdvisory = isBelowSupportFloor(navigator.userAgent);
+
+				function showCompatibilityAdvisory() {
+					showNotice(
+						"This browser is older than the editor supports.",
+						"You can still use the editor. If a feature fails, update your browser or try another one.",
+					);
+				}
+
+				if (showAdvisory) showCompatibilityAdvisory();
+
+				function showFailure() {
+					showNotice(
+						"The editor couldn't start.",
+						"Reload the page. If it still won't start, update your browser or try another one.",
+					);
+				}
+
+				function onError(event) {
+					// Ignore optional resources such as images. Script load failures
+					// and uncaught exceptions may prevent the editor from mounting.
+					if (
+						event.target === window ||
+						(event.target && event.target.tagName === "SCRIPT")
+					) {
+						showFailure();
+					}
+				}
+
+				// Keep this script understandable to older browsers and install
+				// listeners before Kit runs its generated module imports.
+				window.addEventListener("error", onError, true);
+				window.addEventListener("unhandledrejection", showFailure);
+				// Browsers without module support can skip startup without an error.
+				// A slow startup can still finish and remove the notice afterwards.
+				var timeout = window.setTimeout(showFailure, 45000);
+				window.addEventListener("stardew-editor-mounted", function onMounted() {
+					window.clearTimeout(timeout);
+					window.removeEventListener("error", onError, true);
+					window.removeEventListener("unhandledrejection", showFailure);
+					window.removeEventListener("stardew-editor-mounted", onMounted);
+					// A slow startup can recover. Restore the advisory for the
+					// rest of the session if the browser is below our floor.
+					if (showAdvisory) {
+						notice.setAttribute("data-editor-mounted", "");
+						showCompatibilityAdvisory();
+					} else notice.parentNode.removeChild(notice);
+				});
+			})();
+		</script>
+
 		<div style="display: contents">%sveltekit.body%</div>
 	</body>
 </html>

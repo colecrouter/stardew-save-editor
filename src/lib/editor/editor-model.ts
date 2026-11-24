@@ -343,6 +343,7 @@ export const makeEditorModel = (
 		// reference; rejecting later commands alone would still retain the save.
 		let engine: HistorySession | undefined = session;
 		let closed = false;
+		let acceptingCommands = true;
 		// One current chest-view generation belongs to this file. Replacement
 		// releases removed/rebuilt descriptors, and session closure clears it.
 		let chestCache:
@@ -587,7 +588,7 @@ export const makeEditorModel = (
 			work: () => Effect.Effect<A, E>,
 			preserveEdit = false,
 		): Promise<CommandResult<A, E | MutationError>> => {
-			if (closed) return Promise.resolve(null);
+			if (closed || !acceptingCommands) return Promise.resolve(null);
 			return command(async () => {
 				if (closed) return null;
 				const exit = await runExitWithContext(
@@ -824,6 +825,11 @@ export const makeEditorModel = (
 		};
 
 		return {
+			// Exit stops new UI commands immediately. The scope still owns the
+			// registry until the workspace has unmounted and releases it.
+			stopAcceptingCommands: () => {
+				acceptingCommands = false;
+			},
 			// The UI provider borrows this registry; the Effect file scope remains
 			// its sole owner. Expose read-only atom types so bindings cannot bypass
 			// explicit commands by assigning a new feature projection.

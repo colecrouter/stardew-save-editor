@@ -53,6 +53,7 @@
 		importController?.abort();
 		importController = undefined;
 		const previous = active;
+		previous?.model.stopAcceptingCommands();
 		active = undefined;
 		downloadController.abort();
 		downloadController = new AbortController();
@@ -219,12 +220,12 @@
 				</p>
 			</details>
 		{/if}
-		{#key active}
-			<!-- A file replacement remounts the provider: it reads its registry
-                 once. Passing our registry leaves disposal with the file scope. -->
-			<RegistryProvider registry={active.model.atomBindings.registry}>
+		<!-- Each keyed mount retains its own session until Svelte removes it.
+		     Clearing active must not invalidate the old workspace's props. -->
+		{#each [active] as session (session)}
+			<RegistryProvider registry={session.model.atomBindings.registry}>
 				<EditorWorkspace
-					model={active.model}
+					model={session.model}
 					{includeProofs}
 					{downloading}
 					{downloadStatus}
@@ -240,7 +241,7 @@
 					}}
 				/>
 			</RegistryProvider>
-		{/key}
+		{/each}
 	{:else}
 		<UploadPanel
 			{opening}

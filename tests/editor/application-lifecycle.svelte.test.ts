@@ -207,3 +207,60 @@ vi.mock("../../src/lib/editor/editor-model", async (importOriginal) => {
 		),
 	};
 });
+
+it("ignores Undo and Organize backpack clicks dispatched during Exit", async () => {
+	// Observe the same registry the workspace borrows to detect queued work.
+	const open = vi.mocked(editor.openEditorBlob);
+	const acquire = open.getMockImplementation();
+	if (!acquire)
+		throw new Error("Missing real editor acquisition implementation");
+	const mounted = Promise.withResolvers<Awaited<ReturnType<typeof acquire>>>();
+	open.mockImplementationOnce(async (...args) => {
+		const session = await acquire(...args);
+		mounted.resolve(session);
+		return session;
+	});
+	const page = render(EditorApp, { processingLayer: SaveProcessingSync });
+	const errors: string[] = [];
+	const onError = (event: ErrorEvent) => {
+		event.preventDefault();
+		errors.push(event.message);
+	};
+	window.addEventListener("error", onError);
+	try {
+		await fireEvent.change(page.getByLabelText("Save file"), {
+			target: {
+				files: [new File([fixtureXml], "ProbeFarm")],
+			},
+		});
+		await fireEvent.click(
+			await page.findByRole("link", { name: "Farm settings" }),
+		);
+		await fireEvent.input(
+			await page.findByRole("textbox", { name: "Farm name" }),
+			{
+				target: { value: "Probe edit" },
+			},
+		);
+		await fireEvent.click(page.getByRole("link", { name: "Inventory" }));
+		const organize = await page.findByRole("button", {
+			name: "Organize backpack",
+		});
+		const undo = page.getByRole("button", { name: "Undo" });
+		await waitFor(() => expect(undo.hasAttribute("disabled")).toBe(false));
+		const session = await mounted.promise;
+		const { registry, pending } = session.model.atomBindings;
+		await waitForIO(() => expect(registry.get(pending)).toBe(0));
+		const exit = page.getByRole("button", { name: "Exit" });
+		// Retain references and dispatch in one task, matching the trace's scripted caller.
+		[exit, undo, organize].forEach((element) => element.click());
+		// The registry remains live before tick, but neither click may queue work.
+		expect(registry.get(pending)).toBe(0);
+		await tick();
+		await waitForIO(released);
+		expect(errors).toEqual([]);
+	} finally {
+		window.removeEventListener("error", onError);
+		page.unmount();
+	}
+});

@@ -14,6 +14,7 @@
 		zoomAt,
 	} from "../location-interaction.ts";
 	import type { LocationMap } from "../location-map.ts";
+	import type { RemovalTarget, TileArea } from "../location-removal.ts";
 	import BackpackItemVisual from "./BackpackItemVisual.svelte";
 
 	let {
@@ -24,6 +25,11 @@
 		placement,
 		placementProblem,
 		dropOutside,
+		area,
+		areaPrompt,
+		pickingArea,
+		pickAreaTile,
+		removalTargets,
 		movable,
 		beginMove,
 		pickDestination,
@@ -37,6 +43,11 @@
 		placement: PlacementDraft | null;
 		placementProblem: string | undefined;
 		dropOutside: boolean;
+		area: TileArea | undefined;
+		areaPrompt: string;
+		pickingArea: boolean;
+		pickAreaTile: (tile: MapTile) => void;
+		removalTargets: readonly RemovalTarget[];
 		movable: boolean;
 		beginMove: () => void;
 		pickDestination: (tile: MapTile | null) => void;
@@ -49,6 +60,10 @@
 	let camera = $state<MapCamera>({ origin: { x: 0, y: 0 }, pixelsPerTile: 12 });
 	const pointers = new SvelteMap<number, ViewportPoint>();
 	let tapOrigin: ViewportPoint | undefined;
+	let areaCursor = $state.raw<MapTile>();
+	$effect(() => {
+		if (!pickingArea) areaCursor = undefined;
+	});
 	let drag = $state<{
 		pointerId: number;
 		start: ViewportPoint;
@@ -72,6 +87,19 @@
 				: [];
 		}),
 	);
+	// The map raster contains the layout, not saved terrain. Render current
+	// footprints separately so removal and Undo visibly update those records.
+	const terrainMarkers = $derived(
+		(location.removalTargets ?? []).filter(
+			({ collection, area: footprint }) =>
+				collection !== "objects" &&
+				footprint.left >= 0 &&
+				footprint.top >= 0 &&
+				footprint.right < map.width &&
+				footprint.bottom < map.height,
+		),
+	);
+
 	const selectedMarker = $derived(
 		selection?.kind === "object"
 			? markers.find(({ object }) => object.index === selection.objectIndex)
@@ -263,6 +291,10 @@
 		if (Math.hypot(point.x - start.x, point.y - start.y) >= 6) return;
 		const tile = pointerTile(event);
 		if (!tile) return;
+		if (pickingArea) {
+			pickAreaTile(tile);
+			return;
+		}
 		if (placement) {
 			pickDestination(tile);
 			return;
@@ -302,10 +334,27 @@
 		zoom({ x: viewport.clientWidth / 2, y: viewport.clientHeight / 2 }, factor);
 		pan(0, 0);
 	}
+	function areaStartTile() {
+		const center = viewportToTile(camera, {
+			x: viewport.clientWidth / 2,
+			y: viewport.clientHeight / 2,
+		});
+		return {
+			x: Math.min(map.width - 1, Math.max(0, center.x)),
+			y: Math.min(map.height - 1, Math.max(0, center.y)),
+		};
+	}
+
 	function keydown(event: KeyboardEvent) {
 		if (placement && event.key === "Escape") {
 			event.preventDefault();
 			cancelMove();
+			return;
+		}
+		if (pickingArea && event.key === "Enter") {
+			event.preventDefault();
+			const cursor = areaCursor ?? areaStartTile();
+			pickAreaTile(cursor);
 			return;
 		}
 		// Keep map navigation available without pointer gestures. The object
@@ -320,6 +369,31 @@
 		const delta = deltas[event.key];
 		if (!delta || !Object.hasOwn(deltas, event.key)) return;
 		event.preventDefault();
+		if (pickingArea && !event.shiftKey) {
+			// Keyboard corners go through the same picker as taps. Reveal the
+			// cursor if it crosses the visible edge; Shift+Arrow only pans.
+			const current = areaCursor ?? areaStartTile();
+			const tile = {
+				x: Math.min(map.width - 1, Math.max(0, current.x - Math.sign(delta.x))),
+				y: Math.min(
+					map.height - 1,
+					Math.max(0, current.y - Math.sign(delta.y)),
+				),
+			};
+			areaCursor = tile;
+			const point = tileToViewport(camera, tile);
+			if (
+				point.x < 0 ||
+				point.y < 0 ||
+				point.x + camera.pixelsPerTile > viewport.clientWidth ||
+				point.y + camera.pixelsPerTile > viewport.clientHeight
+			)
+				pan(
+					viewport.clientWidth / 2 - point.x,
+					viewport.clientHeight / 2 - point.y,
+				);
+			return;
+		}
 		if (placement && !event.shiftKey) {
 			// Arrow keys pick in one-tile increments during placement. Holding
 			// Shift retains the map's ordinary camera navigation.
@@ -372,6 +446,37 @@
 
 		<div class="grid"></div>
 
+		{#if area}
+			<div
+				class="area-outline"
+				style:left={`${area.left * map.tileSize}px`}
+				style:top={`${area.top * map.tileSize}px`}
+				style:width={`${(area.right - area.left + 1) * map.tileSize}px`}
+				style:height={`${(area.bottom - area.top + 1) * map.tileSize}px`}
+			></div>
+		{/if}
+		{#each terrainMarkers as target (`${target.collection}:${target.index}`)}
+			<div
+				class="terrain-marker"
+				class:grass={target.group === "grass"}
+				class:tree={target.group === "trees"}
+				style:left={`${target.area.left * map.tileSize}px`}
+				style:top={`${target.area.top * map.tileSize}px`}
+				style:width={`${(target.area.right - target.area.left + 1) * map.tileSize}px`}
+				style:height={`${(target.area.bottom - target.area.top + 1) * map.tileSize}px`}
+			></div>
+		{/each}
+
+		{#each removalTargets as target (`${target.collection}:${target.index}`)}
+			<div
+				class="removal-target"
+				style:left={`${target.area.left * map.tileSize}px`}
+				style:top={`${target.area.top * map.tileSize}px`}
+				style:width={`${(target.area.right - target.area.left + 1) * map.tileSize}px`}
+				style:height={`${(target.area.bottom - target.area.top + 1) * map.tileSize}px`}
+			></div>
+		{/each}
+
 		{#each markers as { object, x, y } (object.index)}
 			<div
 				class="marker"
@@ -404,6 +509,14 @@
 			</div>
 		{/if}
 
+		{#if pickingArea && areaCursor}
+			<div
+				class="selected"
+				style:left={`${areaCursor.x * map.tileSize}px`}
+				style:top={`${areaCursor.y * map.tileSize}px`}
+			></div>
+		{/if}
+
 		{#if selectedTile}
 			<div
 				class="selected"
@@ -412,6 +525,15 @@
 			></div>
 		{/if}
 	</div>
+	{#if areaPrompt}
+		<div
+			class="placement-status"
+			role="status"
+		>
+			{areaPrompt}
+		</div>
+	{/if}
+
 	{#if placement}
 		<!-- Keep feedback in the viewport while a finger covers the candidate.
 		     The status never captures a gesture or changes the map's dimensions. -->
@@ -543,6 +665,51 @@
 		box-sizing: border-box;
 		border: 2px solid #fff2a9;
 		box-shadow: 0 0 0 1px #30271e;
+	}
+
+	.area-outline,
+	/* Use different silhouettes for saved terrain so the preview tint can
+	   remain a separate overlay with a single meaning. */
+	.terrain-marker {
+		position: absolute;
+		--marker-shape: 18%;
+		--marker-fill: #877461;
+	}
+
+	.terrain-marker::after {
+		content: "";
+		position: absolute;
+		inset: 12%;
+		border: 1px solid #33271c;
+		border-radius: var(--marker-shape);
+		background: var(--marker-fill);
+	}
+
+	.terrain-marker.grass {
+		--marker-shape: 70% 18%;
+		--marker-fill: #8bbf4a;
+	}
+
+	.terrain-marker.tree {
+		--marker-shape: 50%;
+		--marker-fill: #39783d;
+	}
+
+	.removal-target {
+		position: absolute;
+		box-sizing: border-box;
+		border: 1px solid;
+	}
+
+	.area-outline {
+		border-color: #97d8ff;
+		background: #3799c52e;
+	}
+
+	.removal-target {
+		z-index: 1;
+		border-color: #ffb9a5;
+		background: #972d2370;
 	}
 
 	.candidate {

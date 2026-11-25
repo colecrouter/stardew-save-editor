@@ -6,6 +6,7 @@ import {
 	isMovableChest,
 	readFarmOccupancy,
 } from "./location-placement.ts";
+import { readRemovalTargets, type RemovalTarget } from "./location-removal.ts";
 import { isKnownLocation, savedType } from "./saved-types.ts";
 
 // Match the vanilla farm IDs to their exported map names. Meadowlands uses
@@ -33,6 +34,7 @@ export interface LocationInspection {
 	readable: boolean;
 	farmMap?: FarmMap | undefined;
 	farmLayout?: string | undefined;
+	removalTargets?: readonly RemovalTarget[] | undefined;
 	farmOccupancy?: FarmOccupancy | undefined;
 	objects: readonly {
 		index: number;
@@ -87,6 +89,10 @@ export function readLocations(document: SaveDocument): LocationInspection[] {
 			name: label,
 			farmMap,
 			farmLayout,
+			removalTargets:
+				isFarm && farmMap !== undefined
+					? readRemovalTargets(location)
+					: undefined,
 			farmOccupancy:
 				isFarm && farmMap !== undefined
 					? readFarmOccupancy(location)

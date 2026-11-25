@@ -12,6 +12,13 @@
 	} from "../location-interaction.ts";
 	import type { LocationMap } from "../location-map.ts";
 	import { farmOccupancyProblem } from "../location-placement.ts";
+	import {
+		areaBetween,
+		planFarmRemoval,
+		type RemovalGroup,
+		removalGroups,
+		type TileArea,
+	} from "../location-removal.ts";
 	import LocationMapViewport from "./LocationMapViewport.svelte";
 	import StoragePanel from "./StoragePanel.svelte";
 
@@ -32,6 +39,15 @@
 	let contentsButton = $state<HTMLButtonElement>();
 	let backButton = $state<HTMLButtonElement>();
 
+	// The rectangle belongs to the map, so applying or closing Remove leaves
+	// it available for the next tool. The first corner is only a picking draft.
+	let area = $state.raw<TileArea | "farm">();
+	let firstCorner = $state.raw<MapTile>();
+	let pickingArea = $state(false);
+	let groups = $state<RemovalGroup[]>([]);
+	let applyingRemoval = $state(false);
+	let removalFeedback = $state("");
+
 	let selected = $state.raw<{
 		location: NonNullable<typeof location>;
 		target: MapSelection;
@@ -46,6 +62,38 @@
 			locations[0],
 	);
 	const farmMap = $derived(location?.farmMap);
+	const removalTargets = $derived(
+		!pickingArea && area !== undefined
+			? planFarmRemoval(location?.removalTargets ?? [], area, groups)
+			: [],
+	);
+	const targetCounts = $derived(
+		removalGroups.map((group) => ({
+			...group,
+			count: removalTargets.filter((target) => target.group === group.id)
+				.length,
+		})),
+	);
+	const areaOverlay = $derived(
+		pickingArea
+			? firstCorner && areaBetween(firstCorner, firstCorner)
+			: area === "farm"
+				? map && {
+						left: 0,
+						top: 0,
+						right: map.width - 1,
+						bottom: map.height - 1,
+					}
+				: area,
+	);
+	const areaPrompt = $derived(
+		pickingArea
+			? firstCorner
+				? "Tap the opposite corner."
+				: "Tap the first corner."
+			: "",
+	);
+
 	$effect(() => {
 		const name = farmMap;
 		map = undefined;
@@ -230,6 +278,67 @@
 		dropOutside = false;
 	}
 
+	function beginArea() {
+		// Every swipe still belongs to the camera. Only deliberate tile taps
+		// advance the two-corner picker.
+		firstCorner = undefined;
+		pickingArea = true;
+		removalFeedback = "";
+		selected = undefined;
+		viewport?.focusMap();
+	}
+
+	function pickAreaTile(tile: MapTile) {
+		if (!pickingArea) return;
+		if (!firstCorner) {
+			firstCorner = tile;
+			return;
+		}
+		area = areaBetween(firstCorner, tile);
+		firstCorner = undefined;
+		pickingArea = false;
+	}
+
+	function cancelAreaPick() {
+		firstCorner = undefined;
+		pickingArea = false;
+	}
+
+	async function applyRemoval() {
+		const revision = view.current?.revision;
+		const scope = area;
+		const count = removalTargets.length;
+		if (
+			!location ||
+			scope === undefined ||
+			revision === undefined ||
+			count === 0 ||
+			applyingRemoval
+		)
+			return;
+		// Reject a changed revision so Apply always matches the visible preview.
+		applyingRemoval = true;
+		removalFeedback = "";
+		try {
+			const result = await model.commands.execute(
+				[
+					{
+						type: "farm-obstacles-remove",
+						locationIndex: Number(location.id),
+						scope,
+						groups: [...groups],
+					},
+				],
+				revision,
+			);
+			if (result && Result.isSuccess(result)) {
+				removalFeedback = `Removed ${count} ${count === 1 ? "obstacle" : "obstacles"}.`;
+			} else if (result) removalFeedback = result.failure.message;
+		} finally {
+			applyingRemoval = false;
+		}
+	}
+
 	async function showContents() {
 		if (selection?.kind !== "object" || !chest?.supported) return;
 		panel = { kind: "contents", container: selection };
@@ -246,6 +355,10 @@
 	}
 
 	function select(target: MapSelection) {
+		// An object or tile becomes the active context when picked outside
+		// the area tool. Cancelling or applying Remove never calls this path.
+		area = undefined;
+		removalFeedback = "";
 		if (location) selected = { location, target };
 		cancelMove();
 		panel = { kind: "inspector" };
@@ -274,11 +387,15 @@
 			<select
 				class="study-input"
 				value={location.id}
-				disabled={moving}
+				disabled={moving || applyingRemoval}
 				onchange={(event) => {
 					selectedId = event.currentTarget.value;
 					selected = undefined;
 					cancelMove();
+					area = undefined;
+					groups = [];
+					removalFeedback = "";
+					cancelAreaPick();
 				}}
 			>
 				{#each locations as row (row.id)}
@@ -289,16 +406,82 @@
 
 		{#if farmMap !== undefined}
 			{#if map}
+				{#if !placement && location.removalTargets !== undefined}
+					<div
+						class="selection"
+						role="group"
+						aria-label="Area tools"
+					>
+						{#if !pickingArea}
+							<button
+								class="study-kit study-button"
+								type="button"
+								disabled={applyingRemoval}
+								onclick={beginArea}
+							>
+								{area && area !== "farm" ? "Adjust area" : "Select area"}
+							</button>
+							{#if area !== "farm"}
+								<button
+									class="study-kit study-button"
+									type="button"
+									disabled={applyingRemoval}
+									onclick={() => {
+										area = "farm";
+										selected = undefined;
+										removalFeedback = "";
+									}}
+								>
+									Select entire farm
+								</button>
+							{/if}
+						{/if}
+						{#if area && !pickingArea}
+							<strong>
+								{area === "farm"
+									? "Entire farm selected"
+									: `${area.right - area.left + 1} × ${area.bottom - area.top + 1} tiles selected`}
+							</strong>
+							<button
+								class="study-kit study-button"
+								type="button"
+								disabled={applyingRemoval}
+								onclick={() => {
+									area = undefined;
+									removalFeedback = "";
+								}}
+							>
+								Clear selection
+							</button>
+						{/if}
+						{#if pickingArea}
+							<button
+								class="study-kit study-button"
+								type="button"
+								onclick={cancelAreaPick}
+							>
+								Cancel selection
+							</button>
+						{/if}
+					</div>
+				{/if}
 				<LocationMapViewport
 					bind:this={viewport}
 					{map}
 					{location}
 					{selection}
-					{select}
+					select={(target) => {
+						if (!applyingRemoval && !pickingArea) select(target);
+					}}
+					area={areaOverlay}
+					{areaPrompt}
+					{pickingArea}
+					{pickAreaTile}
+					{removalTargets}
 					{placement}
 					{placementProblem}
 					{dropOutside}
-					{movable}
+					movable={movable && !pickingArea}
 					{beginMove}
 					{pickDestination}
 					{dropDestination}
@@ -314,6 +497,50 @@
 			</p>
 		{:else}
 			<p>This location has no map preview.</p>
+		{/if}
+
+		{#if map && location.removalTargets !== undefined && !placement}
+			<section
+				class="selection"
+				aria-label="Remove obstacles"
+			>
+				<fieldset
+					disabled={area === undefined || pickingArea || applyingRemoval}
+				>
+					<legend>Remove obstacles</legend>
+					{#each targetCounts as group (group.id)}
+						<label>
+							<input
+								type="checkbox"
+								value={group.id}
+								bind:group={groups}
+								onchange={() => {
+									removalFeedback = "";
+								}}
+							/>
+							{group.label}{groups.includes(group.id)
+								? ` (${group.count})`
+								: ""}
+						</label>
+					{/each}
+				</fieldset>
+				<p role="status">
+					{#if pickingArea || area === undefined}
+						Select an area or the entire farm to preview removals.
+					{:else}
+						{removalFeedback ||
+							`${removalTargets.length} selected for removal.`}
+					{/if}
+				</p>
+				<button
+					class="study-kit study-button"
+					type="button"
+					disabled={applyingRemoval || removalTargets.length === 0}
+					onclick={() => void applyRemoval()}
+				>
+					{applyingRemoval ? "Reclaiming…" : "Reclaim"}
+				</button>
+			</section>
 		{/if}
 
 		{#if placement}
@@ -391,7 +618,7 @@
 
 		{#if moveError}<p role="alert">{moveError}</p>{/if}
 
-		{#if location.readable && !placement}
+		{#if location.readable && !placement && !pickingArea && area === undefined}
 			<label>
 				Find a placed object
 				<input
@@ -443,7 +670,7 @@
 						: "No objects match the search."}
 				</p>
 			{/if}
-		{:else if !placement}
+		{:else if !placement && !pickingArea && area === undefined}
 			<p>This location has no readable placed-object list.</p>
 		{/if}
 	{:else}

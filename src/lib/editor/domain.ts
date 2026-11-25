@@ -18,6 +18,10 @@ import {
 	applyFarmChestMove,
 	type MoveFarmChest,
 } from "./location-placement.ts";
+import {
+	applyFarmRemoval,
+	type RemoveFarmObstacles,
+} from "./location-removal.ts";
 import { MutationError } from "./mutation-error.ts";
 import { record, samePlainData } from "./plain-data.ts";
 import { farmers } from "./saved-farmers.ts";
@@ -84,6 +88,7 @@ export type ResolvedMutation =
 	  }
 	| CalendarEdit
 	| MoveFarmChest
+	| RemoveFarmObstacles
 	| { type: "bundle-complete"; bundleId: 13 }
 	| { type: "item-place"; ownerId: string; slot: number; item: SavedItem }
 	| {
@@ -174,6 +179,8 @@ export function applyResult(
 	// narrow command checks the move without granting draft writes to slots.
 	if (mutation.type === "farm-chest-move")
 		return applyFarmChestMove(document, mutation);
+	if (mutation.type === "farm-obstacles-remove")
+		return applyFarmRemoval(document, mutation, inventory);
 	if (isInventoryMutation(mutation))
 		return applyInventoryMutation(document, mutation, inventory);
 	if (mutation.type === "bundle-complete")

@@ -1,5 +1,7 @@
 <script lang="ts">
+	import { asset } from "$app/paths";
 	import { dynamicAsset } from "$lib/ui/dynamicAsset.ts";
+	import { uiAtlases } from "$lib/ui/uiAssets.ts";
 
 	import type { ItemVisual } from "../item-presentation.ts";
 	import QualityBadge from "./QualityBadge.svelte";
@@ -13,10 +15,18 @@
 	}
 	let { visual: drawing, size = 32 }: Props = $props();
 	const id = $props.id();
-	// Missing sheets use the same unknown-item visual as unsupported catalog entries.
-	const sheetUrl = $derived(
-		drawing ? dynamicAsset(`assets/${drawing.sheet}`) : undefined,
-	);
+	// The core atlases have typed paths even when the dev manifest omits assets.
+	// Catalog-specific sheets still go through the checked dynamic lookup.
+	const sheetUrl = $derived.by(() => {
+		switch (drawing?.sheet) {
+			case "springobjects.png":
+				return asset(uiAtlases.objects.path);
+			case "Craftables.png":
+				return asset(uiAtlases.craftables.path);
+			default:
+				return drawing ? dynamicAsset(`assets/${drawing.sheet}`) : undefined;
+		}
+	});
 	// Domain drawing instructions already include instance-specific colors and
 	// quality. Rendering only scales the projected rectangle and applies layers.
 	const zoom = $derived(

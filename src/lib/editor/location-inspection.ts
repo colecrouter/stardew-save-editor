@@ -1,22 +1,59 @@
+import { chestOwnerId, placedObjectPath } from "./chest-storage.ts";
 import type { Location, SaveDocument } from "./domain.ts";
+import { type ItemVisual, readItemVisual } from "./item-presentation.ts";
+import {
+	type FarmOccupancy,
+	isMovableChest,
+	readFarmOccupancy,
+} from "./location-placement.ts";
 import { isKnownLocation, savedType } from "./saved-types.ts";
 
-interface LocationInspection {
+// Match the vanilla farm IDs to their exported map names. Meadowlands uses
+// the named additional-farm ID in the save, alongside the older numeric IDs.
+const vanillaFarmMaps = {
+	"0": "Farm",
+	"1": "Farm_Fishing",
+	"2": "Farm_Foraging",
+	"3": "Farm_Mining",
+	"4": "Farm_Combat",
+	"5": "Farm_FourCorners",
+	"6": "Farm_Island",
+	MeadowlandsFarm: "Farm_Ranching",
+} as const;
+
+/** Workspace map exports supported by the read-only viewport. */
+export type FarmMap = (typeof vanillaFarmMaps)[keyof typeof vanillaFarmMaps];
+const farmMapsByLayout: ReadonlyMap<string, FarmMap> = new Map(
+	Object.entries(vanillaFarmMaps),
+);
+
+export interface LocationInspection {
 	id: string;
 	name: string;
 	readable: boolean;
-	objects: {
+	farmMap?: FarmMap | undefined;
+	farmLayout?: string | undefined;
+	farmOccupancy?: FarmOccupancy | undefined;
+	objects: readonly {
 		index: number;
 		x?: number | undefined;
 		y?: number | undefined;
 		name: string;
 		type: string;
+		chestOwnerId?: string | undefined;
+		movable?: boolean | undefined;
+		visual?: ItemVisual | undefined;
 	}[];
 }
 
 export function readLocations(document: SaveDocument): LocationInspection[] {
 	const locations: LocationInspection[] = [];
-	function visit(location: Location | null, id: string, parent?: string) {
+	function visit(
+		location: Location | null,
+		id: string,
+		path: string,
+		parent?: string,
+	) {
 		// The path identifies one saved record even when interiors share map names.
 		// Keep opaque locations in the list without attempting to decode their data.
 		if (!isKnownLocation(location)) {
@@ -33,14 +70,40 @@ export function readLocations(document: SaveDocument): LocationInspection[] {
 		}
 		const name = location.uniqueName ?? location.name ?? "Unnamed location";
 		const label = parent === undefined ? name : `${parent} / ${name}`;
+		// Farm records share their saved name across layouts. Use the save's
+		// layout ID to select the export whose grid matches the saved tiles.
+		const isFarm =
+			parent === undefined &&
+			location.$type === "StardewValley.Farm" &&
+			location.name === "Farm";
+		// Stardew defaults older saves without whichFarm to the Standard layout.
+		const farmLayout = isFarm
+			? (document.SaveGame.whichFarm ?? "0").trim()
+			: undefined;
+		const farmMap =
+			farmLayout === undefined ? undefined : farmMapsByLayout.get(farmLayout);
 		locations.push({
 			id,
 			name: label,
+			farmMap,
+			farmLayout,
+			farmOccupancy:
+				isFarm && farmMap !== undefined
+					? readFarmOccupancy(location)
+					: undefined,
 			readable: location.objects !== undefined,
 			// The dictionary key supplies the saved tile coordinate. Keep missing
 			// values visible as unknown rather than guessing from the object payload.
 			objects: (location.objects ?? []).map(({ key, value }, index) => ({
 				index,
+				movable: farmMap !== undefined && isMovableChest(value),
+				// A direct chest shares Storage's exact owner path. Labels and tiles
+				// can be duplicated, so neither is suitable for opening an inventory.
+				chestOwnerId:
+					value.$type === "StardewValley.Objects.Chest"
+						? chestOwnerId(placedObjectPath(path, index))
+						: undefined,
+				visual: farmMap === undefined ? undefined : readItemVisual(value),
 				x: key.X,
 				y: key.Y,
 				name:
@@ -55,10 +118,15 @@ export function readLocations(document: SaveDocument): LocationInspection[] {
 		});
 		for (const [index, building] of (location.buildings ?? []).entries()) {
 			if (building && building.$type !== "$unknown" && building.indoors)
-				visit(building.indoors, `${id}/${index}`, label);
+				visit(
+					building.indoors,
+					`${id}/${index}`,
+					`${path}.buildings.${index}.indoors`,
+					label,
+				);
 		}
 	}
 	for (const [index, location] of (document.SaveGame.locations ?? []).entries())
-		visit(location, String(index));
+		visit(location, String(index), `locations.${index}`);
 	return locations;
 }

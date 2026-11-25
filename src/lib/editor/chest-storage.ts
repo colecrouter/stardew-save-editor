@@ -85,6 +85,16 @@ function describe(
 	};
 }
 
+/** Build the Storage owner key from its path in the save. */
+export function chestOwnerId(path: string): string {
+	return `chest:${path}`;
+}
+
+/** Locate a placed object in the same save path namespace as Storage. */
+export function placedObjectPath(locationPath: string, index: number): string {
+	return `${locationPath}.objects.${index}`;
+}
+
 /** Discover decoded local storage roots without proxy allocation.
  * Existing object chest IDs are unchanged. Additional roots use distinct suffixes;
  * arbitrary nested bags and shared/global inventories are not guessed as local storage. */
@@ -104,7 +114,7 @@ export function discoverPlacedChests(
 		labelName?: string,
 	) => {
 		if (container == null) return;
-		const id = `chest:${path}`;
+		const id = chestOwnerId(path);
 		// Targeted resolution still visits identity roots but reads item lists only
 		// for the selected owner, keeping item property edits bounded.
 		if (ownerId === undefined || ownerId === id)
@@ -142,7 +152,7 @@ export function discoverPlacedChests(
 			const raw = entry.value;
 			const { X: x, Y: y } = entry.key;
 			const tile = x !== undefined && y !== undefined ? ` (${x}, ${y})` : "";
-			const objectPath = `${path}.objects.${index}`;
+			const objectPath = placedObjectPath(path, index);
 			if (raw.$type === "StardewValley.Objects.Chest")
 				add(raw, objectPath, location, "chest", tile);
 			// Auto-grabbers and similar machines keep storage in heldObject. The old

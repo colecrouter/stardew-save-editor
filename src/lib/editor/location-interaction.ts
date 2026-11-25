@@ -19,7 +19,7 @@ export interface MapCamera {
 
 /**
  * The existing inspection path and object index identify records within one
- * projection. Invalidate them when their source projection changes.
+ * projection. Revalidate the saved identity before carrying them across projections.
  */
 export type MapSelection =
 	| {

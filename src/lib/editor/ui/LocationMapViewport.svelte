@@ -1,0 +1,599 @@
+<script lang="ts">
+	import { onMount, untrack } from "svelte";
+	import { SvelteMap } from "svelte/reactivity";
+
+	import type { LocationInspection } from "../location-inspection.ts";
+	import {
+		type MapCamera,
+		type MapSelection,
+		type MapTile,
+		type PlacementDraft,
+		tileToViewport,
+		type ViewportPoint,
+		viewportToTile,
+		zoomAt,
+	} from "../location-interaction.ts";
+	import type { LocationMap } from "../location-map.ts";
+	import BackpackItemVisual from "./BackpackItemVisual.svelte";
+
+	let {
+		map,
+		location,
+		selection,
+		select,
+		placement,
+		placementProblem,
+		dropOutside,
+		movable,
+		beginMove,
+		pickDestination,
+		dropDestination,
+		cancelMove,
+	}: {
+		map: LocationMap;
+		location: LocationInspection;
+		selection: MapSelection | null;
+		select: (target: MapSelection) => void;
+		placement: PlacementDraft | null;
+		placementProblem: string | undefined;
+		dropOutside: boolean;
+		movable: boolean;
+		beginMove: () => void;
+		pickDestination: (tile: MapTile | null) => void;
+		dropDestination: (tile: MapTile | null) => void;
+		cancelMove: () => void;
+	} = $props();
+
+	let viewport: HTMLDivElement;
+	let background: HTMLCanvasElement;
+	let camera = $state<MapCamera>({ origin: { x: 0, y: 0 }, pixelsPerTile: 12 });
+	const pointers = new SvelteMap<number, ViewportPoint>();
+	let tapOrigin: ViewportPoint | undefined;
+	let drag = $state<{
+		pointerId: number;
+		start: ViewportPoint;
+		started: boolean;
+	}>();
+	const scale = $derived(camera.pixelsPerTile / map.tileSize);
+	// Keep only records with usable tile keys on the map. Every record remains
+	// available in the list, including duplicates and incomplete coordinates.
+	const markers = $derived(
+		location.objects.flatMap((object) => {
+			const { x, y } = object;
+			return x !== undefined &&
+				y !== undefined &&
+				Number.isInteger(x) &&
+				Number.isInteger(y) &&
+				x >= 0 &&
+				y >= 0 &&
+				x < map.width &&
+				y < map.height
+				? [{ object, x, y }]
+				: [];
+		}),
+	);
+	const selectedMarker = $derived(
+		selection?.kind === "object"
+			? markers.find(({ object }) => object.index === selection.objectIndex)
+			: undefined,
+	);
+	const selectedTile = $derived(
+		selection?.kind === "tile" ? selection.tile : selectedMarker,
+	);
+
+	$effect(() => {
+		background.getContext("2d")?.drawImage(map.canvas, 0, 0);
+	});
+
+	onMount(() => fit());
+
+	$effect(() => {
+		// Selecting a distant object from the list reveals it at the current
+		// zoom. Panning later must remain free to leave that selection offscreen.
+		// Read the selection itself so choosing the same list row again can
+		// reveal its tile after the user has panned away.
+		if (!selection) return;
+		untrack(() => {
+			// Content edits republish marker rows while this viewport is hidden.
+			// Only a fresh selection can reveal a tile, and only when visible.
+			const tile = selectedTile;
+			if (!tile || viewport.clientWidth === 0) return;
+			const point = tileToViewport(camera, tile);
+			const half = camera.pixelsPerTile / 2;
+			const x = point.x + half;
+			const y = point.y + half;
+			if (
+				x < 0 ||
+				y < 0 ||
+				x >= viewport.clientWidth ||
+				y >= viewport.clientHeight
+			)
+				pan(viewport.clientWidth / 2 - x, viewport.clientHeight / 2 - y);
+		});
+	});
+
+	/** Focus the map after an inspector action starts keyboard picking. */
+	export function focusMap() {
+		viewport.focus({ preventScroll: true });
+	}
+
+	function localPoint(event: PointerEvent): ViewportPoint {
+		const rect = viewport.getBoundingClientRect();
+		return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+	}
+
+	function pointerTile(event: PointerEvent): MapTile | null {
+		const point = localPoint(event);
+		if (
+			point.x < 0 ||
+			point.y < 0 ||
+			point.x >= viewport.clientWidth ||
+			point.y >= viewport.clientHeight
+		)
+			return null;
+		const tile = viewportToTile(camera, point);
+		return tile.x >= 0 &&
+			tile.y >= 0 &&
+			tile.x < map.width &&
+			tile.y < map.height
+			? tile
+			: null;
+	}
+
+	function startHandle(event: PointerEvent) {
+		// Only the explicit handle claims an object drag. Swipes starting
+		// over the map or its sprites continue to pan on touch screens.
+		event.stopPropagation();
+		if (event.button !== 0 || drag || pointers.size !== 0) return;
+		if (event.currentTarget instanceof Element)
+			event.currentTarget.setPointerCapture(event.pointerId);
+		drag = {
+			pointerId: event.pointerId,
+			start: localPoint(event),
+			started: false,
+		};
+	}
+
+	function moveHandle(event: PointerEvent) {
+		event.stopPropagation();
+		if (drag?.pointerId !== event.pointerId) return;
+		if (!drag.started) {
+			const point = localPoint(event);
+			if (Math.hypot(point.x - drag.start.x, point.y - drag.start.y) < 6)
+				return;
+			drag.started = true;
+			beginMove();
+		}
+		pickDestination(pointerTile(event));
+	}
+
+	function endHandle(event: PointerEvent) {
+		event.stopPropagation();
+		if (drag?.pointerId !== event.pointerId) return;
+		const started = drag.started;
+		drag = undefined;
+		if (!started) {
+			if (event.type === "pointerup" && !placement) {
+				beginMove();
+				focusMap();
+			}
+			return;
+		}
+		// A cancelled pointer releases the draft without committing. A drop
+		// submits the same candidate and validation path as Move here.
+		if (event.type === "pointerup") dropDestination(pointerTile(event));
+		else cancelMove();
+	}
+
+	function zoom(anchor: ViewportPoint, factor: number) {
+		// Cap zoom so the viewport remains usable with both small and large maps.
+		camera = zoomAt(
+			camera,
+			anchor,
+			Math.min(
+				64,
+				Math.max(Math.min(3, fitScale()), camera.pixelsPerTile * factor),
+			),
+		);
+	}
+
+	function pan(dx: number, dy: number) {
+		// Leave part of the map in view even after a long drag.
+		const edge = 32;
+		camera = {
+			...camera,
+			origin: {
+				x: Math.max(
+					edge - map.width * camera.pixelsPerTile,
+					Math.min(viewport.clientWidth - edge, camera.origin.x + dx),
+				),
+				y: Math.max(
+					edge - map.height * camera.pixelsPerTile,
+					Math.min(viewport.clientHeight - edge, camera.origin.y + dy),
+				),
+			},
+		};
+	}
+
+	function down(event: PointerEvent) {
+		if (event.button !== 0 || pointers.size >= 2 || drag) return;
+		const point = localPoint(event);
+		// Any second pointer turns the gesture into navigation for its full lifetime.
+		tapOrigin = pointers.size === 0 ? point : undefined;
+		pointers.set(event.pointerId, point);
+		viewport.focus({ preventScroll: true });
+		viewport.setPointerCapture(event.pointerId);
+	}
+
+	function move(event: PointerEvent) {
+		const previous = pointers.get(event.pointerId);
+		if (!previous) return;
+		const point = localPoint(event);
+		pointers.set(event.pointerId, point);
+		const other = [...pointers].find(([id]) => id !== event.pointerId)?.[1];
+		if (other) {
+			// Zoom about the old midpoint, then follow the moving midpoint.
+			const distance = Math.hypot(previous.x - other.x, previous.y - other.y);
+			if (distance > 0)
+				zoom(
+					{ x: (previous.x + other.x) / 2, y: (previous.y + other.y) / 2 },
+					Math.hypot(point.x - other.x, point.y - other.y) / distance,
+				);
+			pan((point.x - previous.x) / 2, (point.y - previous.y) / 2);
+			return;
+		}
+		// A little finger drift still counts as selection. Apply the whole
+		// initial delta only when the gesture first crosses the pan threshold.
+		if (
+			tapOrigin &&
+			Math.hypot(point.x - tapOrigin.x, point.y - tapOrigin.y) < 6
+		)
+			return;
+		const start = tapOrigin ?? previous;
+		tapOrigin = undefined;
+		pan(point.x - start.x, point.y - start.y);
+	}
+
+	function end(event: PointerEvent) {
+		if (!pointers.delete(event.pointerId)) return;
+		const start = tapOrigin;
+		tapOrigin = undefined;
+		if (event.type !== "pointerup" || !start) return;
+		const point = localPoint(event);
+		if (Math.hypot(point.x - start.x, point.y - start.y) >= 6) return;
+		const tile = pointerTile(event);
+		if (!tile) return;
+		if (placement) {
+			pickDestination(tile);
+			return;
+		}
+		const matches = markers.filter(({ x, y }) => x === tile.x && y === tile.y);
+		// Ambiguous tiles stay selected as tiles. The inspector lists all matching records.
+		const object = matches.length === 1 ? matches[0]?.object : undefined;
+		select(
+			object
+				? { kind: "object", locationId: location.id, objectIndex: object.index }
+				: { kind: "tile", locationId: location.id, tile },
+		);
+	}
+
+	function fitScale() {
+		// Use the same lower bound for zoom so a narrow viewport never jumps
+		// above its fitted scale when the user tries to zoom out.
+		return Math.min(
+			viewport.clientWidth / map.width,
+			viewport.clientHeight / map.height,
+		);
+	}
+
+	function fit() {
+		// Center the complete map after a reset, including on narrow phones.
+		const pixelsPerTile = fitScale();
+		camera = {
+			pixelsPerTile,
+			origin: {
+				x: (viewport.clientWidth - map.width * pixelsPerTile) / 2,
+				y: (viewport.clientHeight - map.height * pixelsPerTile) / 2,
+			},
+		};
+	}
+
+	function zoomFromCenter(factor: number) {
+		zoom({ x: viewport.clientWidth / 2, y: viewport.clientHeight / 2 }, factor);
+		pan(0, 0);
+	}
+	function keydown(event: KeyboardEvent) {
+		if (placement && event.key === "Escape") {
+			event.preventDefault();
+			cancelMove();
+			return;
+		}
+		// Keep map navigation available without pointer gestures. The object
+		// list is the keyboard and screen-reader entry point for object selection.
+		const step = 48;
+		const deltas: Record<string, ViewportPoint> = {
+			ArrowLeft: { x: step, y: 0 },
+			ArrowRight: { x: -step, y: 0 },
+			ArrowUp: { x: 0, y: step },
+			ArrowDown: { x: 0, y: -step },
+		};
+		const delta = deltas[event.key];
+		if (!delta || !Object.hasOwn(deltas, event.key)) return;
+		event.preventDefault();
+		if (placement && !event.shiftKey) {
+			// Arrow keys pick in one-tile increments during placement. Holding
+			// Shift retains the map's ordinary camera navigation.
+			const source = placement.candidate ?? selectedTile;
+			if (!source) return;
+			const tile = {
+				x: source.x - Math.sign(delta.x),
+				y: source.y - Math.sign(delta.y),
+			};
+			if (
+				tile.x >= 0 &&
+				tile.y >= 0 &&
+				tile.x < map.width &&
+				tile.y < map.height
+			)
+				pickDestination(tile);
+			return;
+		}
+		pan(delta.x, delta.y);
+	}
+</script>
+
+<!-- The map owns custom pointer and arrow-key navigation. Named object
+     controls remain available in the inspector outside the application region. -->
+<!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
+<div
+	class="viewport"
+	role="application"
+	aria-label="Farm map"
+	tabindex="0"
+	onkeydown={keydown}
+	bind:this={viewport}
+	onpointerdown={down}
+	onpointermove={move}
+	onpointerup={end}
+	onpointercancel={end}
+	onlostpointercapture={end}
+>
+	<div
+		class="world"
+		style:--tile-size={`${map.tileSize}px`}
+		aria-hidden="true"
+		style:transform={`translate(${camera.origin.x}px, ${camera.origin.y}px) scale(${scale})`}
+	>
+		<canvas
+			bind:this={background}
+			width={map.canvas.width}
+			height={map.canvas.height}
+		></canvas>
+
+		<div class="grid"></div>
+
+		{#each markers as { object, x, y } (object.index)}
+			<div
+				class="marker"
+				style:left={`${x * map.tileSize}px`}
+				style:top={`${y * map.tileSize}px`}
+			>
+				{#if object.visual}
+					<BackpackItemVisual
+						visual={object.visual}
+						size={map.tileSize}
+					/>
+				{:else}
+					<!-- Keep unsprited records pickable without hiding the map under icons. -->
+					<span class="unknown-marker"></span>
+				{/if}
+			</div>
+		{/each}
+
+		{#if placement?.candidate}
+			<div
+				class="candidate"
+				class:blocked={placementProblem !== undefined}
+				style:left={`${placement.candidate.x * map.tileSize}px`}
+				style:top={`${placement.candidate.y * map.tileSize}px`}
+			>
+				<BackpackItemVisual
+					visual={selectedMarker?.object.visual}
+					size={map.tileSize}
+				/>
+			</div>
+		{/if}
+
+		{#if selectedTile}
+			<div
+				class="selected"
+				style:left={`${selectedTile.x * map.tileSize}px`}
+				style:top={`${selectedTile.y * map.tileSize}px`}
+			></div>
+		{/if}
+	</div>
+	{#if placement}
+		<!-- Keep feedback in the viewport while a finger covers the candidate.
+		     The status never captures a gesture or changes the map's dimensions. -->
+		<div
+			class="placement-status"
+			role="status"
+		>
+			<strong>Move {selectedMarker?.object.name ?? "chest"}</strong>
+			{#if placement.candidate}
+				<span>Tile {placement.candidate.x}, {placement.candidate.y}</span>
+				{#if placementProblem}<span>
+						{placementProblem} Choose another tile.
+					</span>{/if}
+			{:else if dropOutside}
+				<span>Drop landed outside the farm. Choose a tile on the map.</span>
+			{:else}
+				<span>Choose a destination tile.</span>
+			{/if}
+		</div>
+	{/if}
+
+	{#if movable && selectedTile}
+		{@const anchor = tileToViewport(camera, selectedTile)}
+		<button
+			class="study-kit study-button move-handle"
+			type="button"
+			aria-label="Drag chest"
+			style:left={`${anchor.x + camera.pixelsPerTile / 2}px`}
+			style:top={`${anchor.y + camera.pixelsPerTile}px`}
+			hidden={placement !== null && !drag?.started}
+			onpointerdown={startHandle}
+			onpointermove={moveHandle}
+			onpointerup={endHandle}
+			onpointercancel={endHandle}
+			onlostpointercapture={endHandle}
+			onclick={(event) => {
+				if (event.detail === 0 && !placement) {
+					beginMove();
+					focusMap();
+				}
+			}}
+		>
+			Move
+		</button>
+	{/if}
+</div>
+
+<div
+	class="controls"
+	aria-label="Map zoom controls"
+	role="group"
+>
+	<button
+		class="study-kit study-button"
+		type="button"
+		onclick={() => zoomFromCenter(0.8)}
+	>
+		Zoom out
+	</button>
+	<button
+		class="study-kit study-button"
+		type="button"
+		onclick={fit}
+	>
+		Fit map
+	</button>
+	<button
+		class="study-kit study-button"
+		type="button"
+		onclick={() => zoomFromCenter(1.25)}
+	>
+		Zoom in
+	</button>
+</div>
+
+<style>
+	.viewport {
+		position: relative;
+		overflow: hidden;
+		height: clamp(240px, 48dvh, 540px);
+		background: #30271e;
+		touch-action: none;
+		cursor: grab;
+	}
+
+	.viewport:active {
+		cursor: grabbing;
+	}
+
+	.world {
+		position: absolute;
+		transform-origin: top left;
+		pointer-events: none;
+	}
+
+	canvas {
+		display: block;
+		max-width: none;
+		image-rendering: pixelated;
+	}
+
+	.grid {
+		position: absolute;
+		inset: 0;
+		background-image:
+			linear-gradient(to right, #211b183d 1px, transparent 1px),
+			linear-gradient(to bottom, #211b183d 1px, transparent 1px);
+		background-size: var(--tile-size) var(--tile-size);
+	}
+
+	.marker,
+	.candidate,
+	.selected {
+		position: absolute;
+		width: var(--tile-size);
+		height: var(--tile-size);
+	}
+
+	.unknown-marker {
+		position: absolute;
+		inset: 25%;
+		background: #fff2a9;
+		border: 1px solid #30271e;
+		border-radius: 50%;
+		box-sizing: border-box;
+	}
+
+	.selected {
+		box-sizing: border-box;
+		border: 2px solid #fff2a9;
+		box-shadow: 0 0 0 1px #30271e;
+	}
+
+	.candidate {
+		box-sizing: border-box;
+		border: 2px solid #e7ffc2;
+		background: #44752c88;
+	}
+
+	.candidate.blocked {
+		border-color: #ffb9a5;
+		background: #972d2388;
+	}
+
+	.placement-status {
+		position: absolute;
+		inset: 8px 8px auto;
+		width: fit-content;
+		max-width: calc(100% - 16px);
+		box-sizing: border-box;
+		padding: 6px 8px;
+		border: 1px solid #ba8c52;
+		background: #fff0ce;
+		color: #311304;
+		pointer-events: none;
+	}
+
+	.placement-status span {
+		display: block;
+	}
+
+	.move-handle {
+		position: absolute;
+		width: 44px;
+		padding-inline: 0;
+		transform: translateX(-50%);
+		touch-action: none;
+		cursor: grab;
+	}
+
+	.move-handle[hidden] {
+		display: none;
+	}
+
+	.controls {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 6px;
+		margin-block: 6px;
+	}
+
+	button {
+		min-height: 44px;
+	}
+</style>

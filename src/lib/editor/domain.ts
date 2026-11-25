@@ -14,6 +14,10 @@ import {
 	isInventoryMutation,
 } from "./inventory-transition.ts";
 import type { SavedItem } from "./inventory-values.ts";
+import {
+	applyFarmChestMove,
+	type MoveFarmChest,
+} from "./location-placement.ts";
 import { MutationError } from "./mutation-error.ts";
 import { record, samePlainData } from "./plain-data.ts";
 import { farmers } from "./saved-farmers.ts";
@@ -79,6 +83,7 @@ export type ResolvedMutation =
 			toSlot: number;
 	  }
 	| CalendarEdit
+	| MoveFarmChest
 	| { type: "bundle-complete"; bundleId: 13 }
 	| { type: "item-place"; ownerId: string; slot: number; item: SavedItem }
 	| {
@@ -165,6 +170,10 @@ export function applyResult(
 	},
 	MutationError
 > {
+	// Chest geometry is part of Storage's protected container record. This
+	// narrow command checks the move without granting draft writes to slots.
+	if (mutation.type === "farm-chest-move")
+		return applyFarmChestMove(document, mutation);
 	if (isInventoryMutation(mutation))
 		return applyInventoryMutation(document, mutation, inventory);
 	if (mutation.type === "bundle-complete")

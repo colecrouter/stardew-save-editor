@@ -254,7 +254,9 @@
 		{@render sectionLink("review", "Review changes", "review")}
 		{#if includeProofs}
 			{@render sectionLink("locations", "Locations", "locations")}
-			{@render sectionLink("bundles", "Bundles", "community")}
+			{#if !routed}
+				{@render sectionLink("bundles", "Bundles", "community")}
+			{/if}
 		{/if}
 	{/snippet}
 	<EditorShell onclose={requestClose}>

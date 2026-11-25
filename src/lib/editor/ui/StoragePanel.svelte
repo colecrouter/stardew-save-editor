@@ -25,11 +25,18 @@
 
 	interface Props {
 		model: EditorModel;
+		onlyOwnerId?: string;
 	}
-	let { model }: Props = $props();
+	let { model, onlyOwnerId }: Props = $props();
 	const view = useAtomValue(() => model.atomBindings.view);
 	const domain = $derived(createStorageDomain(model));
-	const owners = $derived(view.current?.chests ?? []);
+	// Scope both the controls and drag targets to the same owner when opened
+	// from the map. Writes still use Storage's normal commands and history.
+	const owners = $derived(
+		(view.current?.chests ?? []).filter(
+			(owner) => onlyOwnerId === undefined || owner.ownerId === onlyOwnerId,
+		),
+	);
 	let search = $state("");
 	let location = $state("");
 	let selectedId = $state<string>();
@@ -124,7 +131,11 @@
 		// The shared controller rejects the compatibility click following a touch
 		// drag before any multiselect state can toggle.
 		if (!drag.click(event, item)) return;
-		if (!item.empty && (selectMany || event.ctrlKey || event.metaKey)) {
+		if (
+			onlyOwnerId === undefined &&
+			!item.empty &&
+			(selectMany || event.ctrlKey || event.metaKey)
+		) {
 			picked = previous.includes(item.entityId)
 				? previous.filter((id) => id !== item.entityId)
 				: [
@@ -186,8 +197,12 @@
 <div class="storage">
 	<header class="heading">
 		<div>
-			<h1>Storage</h1>
-			<p>Find your supplies, wherever you put them.</p>
+			{#if onlyOwnerId === undefined}
+				<h1>Storage</h1>
+				<p>Find your supplies, wherever you put them.</p>
+			{:else}
+				<h2>Chest contents</h2>
+			{/if}
 		</div>
 		<div class="heading-actions">
 			<a
@@ -196,20 +211,22 @@
 			>
 				Selected item
 			</a>
-			<StudyButton
-				type="button"
-				disabled={busy || !owners.some((owner) => owner.supported)}
-				onclick={() =>
-					void perform(() =>
-						domain.organizeAll(
-							owners
-								.filter((owner) => owner.supported)
-								.map((owner) => owner.ownerId),
-						),
-					)}
-			>
-				Organize all storage
-			</StudyButton>
+			{#if onlyOwnerId === undefined}
+				<StudyButton
+					type="button"
+					disabled={busy || !owners.some((owner) => owner.supported)}
+					onclick={() =>
+						void perform(() =>
+							domain.organizeAll(
+								owners
+									.filter((owner) => owner.supported)
+									.map((owner) => owner.ownerId),
+							),
+						)}
+				>
+					Organize all storage
+				</StudyButton>
+			{/if}
 		</div>
 	</header>
 	<div class="toolbar">
@@ -227,85 +244,93 @@
 				/>
 			{/snippet}
 		</StudyField>
-		<StudyField
-			label="Location"
-			description="Item search covers all locations."
-		>
-			{#snippet children(attributes)}
-				<select
-					{...attributes}
-					class="study-input"
-					bind:value={location}
-					disabled={!!search.trim()}
-				>
-					<option value="">All locations</option>
-					{#each locations as name (name)}
-						<option value={name}>{name}</option>
-					{/each}
-				</select>
-			{/snippet}
-		</StudyField>
-		<div class="multi">
-			<StudyCheckbox
-				label="Select multiple items"
-				bind:checked={selectMany}
-			/>
-		</div>
-	</div>
-	<div
-		class="bulk"
-		aria-label="Bulk storage actions"
-	>
-		<!-- Group the count with its action so both align with the quality buttons,
-             independently of the fieldset legend above that button row. -->
-		<div class="selection-summary">
-			<span>
-				{pickedItems.length
-					? `${pickedItems.length} selected`
-					: `${visibleItems.length} visible items`}
-			</span>
-			<StudyButton
-				disabled={!picked.length}
-				type="button"
-				onclick={() => {
-					picked = [];
-				}}
+		{#if onlyOwnerId === undefined}
+			<StudyField
+				label="Location"
+				description="Item search covers all locations."
 			>
-				Clear selection
-			</StudyButton>
-		</div>
-		<fieldset class="quality-actions">
-			<legend>
-				Quality of {pickedItems.length ? "selected" : "visible"} eligible items
-			</legend>
-			<div class="quality-buttons">
-				{#each inventoryQualities as quality (quality.value)}
-					<StudyButton
-						type="button"
-						aria-label={quality.label}
-						title={quality.label}
-						disabled={busy || !qualityItems.length}
-						onclick={() => {
-							const captured = qualityItems.map((row) => ({
-								ownerId: row.owner.ownerId,
-								entityId: row.item.entityId,
-							}));
-							void perform(() => domain.quality(captured, quality.value));
-						}}
+				{#snippet children(attributes)}
+					<select
+						{...attributes}
+						class="study-input"
+						bind:value={location}
+						disabled={!!search.trim()}
 					>
-						<span
-							class="quality-symbol"
-							aria-hidden="true"
-						>
-							<QualityBadge quality={quality.value} />
-							{#if quality.value === 0}—{/if}
-						</span>
-						<span class="quality-name">{quality.label}</span>
-					</StudyButton>
-				{/each}
+						<option value="">All locations</option>
+						{#each locations as name (name)}
+							<option value={name}>{name}</option>
+						{/each}
+					</select>
+				{/snippet}
+			</StudyField>
+		{/if}
+		{#if onlyOwnerId === undefined}
+			<div class="multi">
+				<StudyCheckbox
+					label="Select multiple items"
+					bind:checked={selectMany}
+				/>
 			</div>
-		</fieldset>
+		{/if}
 	</div>
+	<!-- A single chest uses the same slots and item editor without the bulk
+	     workflow designed for selecting items across Storage containers. -->
+	{#if onlyOwnerId === undefined}
+		<div
+			class="bulk"
+			aria-label="Bulk storage actions"
+		>
+			<!-- Group the count with its action so both align with the quality buttons,
+             independently of the fieldset legend above that button row. -->
+			<div class="selection-summary">
+				<span>
+					{pickedItems.length
+						? `${pickedItems.length} selected`
+						: `${visibleItems.length} visible items`}
+				</span>
+				<StudyButton
+					disabled={!picked.length}
+					type="button"
+					onclick={() => {
+						picked = [];
+					}}
+				>
+					Clear selection
+				</StudyButton>
+			</div>
+			<fieldset class="quality-actions">
+				<legend>
+					Quality of {pickedItems.length ? "selected" : "visible"} eligible items
+				</legend>
+				<div class="quality-buttons">
+					{#each inventoryQualities as quality (quality.value)}
+						<StudyButton
+							type="button"
+							aria-label={quality.label}
+							title={quality.label}
+							disabled={busy || !qualityItems.length}
+							onclick={() => {
+								const captured = qualityItems.map((row) => ({
+									ownerId: row.owner.ownerId,
+									entityId: row.item.entityId,
+								}));
+								void perform(() => domain.quality(captured, quality.value));
+							}}
+						>
+							<span
+								class="quality-symbol"
+								aria-hidden="true"
+							>
+								<QualityBadge quality={quality.value} />
+								{#if quality.value === 0}—{/if}
+							</span>
+							<span class="quality-name">{quality.label}</span>
+						</StudyButton>
+					{/each}
+				</div>
+			</fieldset>
+		</div>
+	{/if}
 	{#if error}
 		<StudyAlert
 			title="Storage change unavailable"
@@ -317,8 +342,12 @@
 	{/if}
 	<!-- Stable guidance keeps the chest grids in place as selection grows. -->
 	<p class="hint">
-		Drag between containers; selected groups move together. Organize keeps
-		stacks separate.
+		{#if onlyOwnerId === undefined}
+			Drag between containers; selected groups move together. Organize keeps
+			stacks separate.
+		{:else}
+			Organize keeps stacks separate.
+		{/if}
 	</p>
 	<div class="workspace">
 		<!-- The drag root is the scrollable chest pane, so held touch drags can
@@ -355,7 +384,7 @@
 							Organize
 						</StudyButton>
 					</header>
-					{#if owner.storage?.typeId}
+					{#if onlyOwnerId === undefined && owner.storage?.typeId}
 						<label class="type">
 							Container type
 							<select
@@ -376,7 +405,7 @@
 							</select>
 						</label>
 					{/if}
-					{#if owner.storage?.miniShippingBin}
+					{#if onlyOwnerId === undefined && owner.storage?.miniShippingBin}
 						<StudyButton
 							type="button"
 							disabled={busy ||
@@ -480,9 +509,10 @@
 				{/key}
 			{:else}
 				<p class="inspector-hint">
-					Select an item in any container to inspect its quantity, quality and
-					properties. Select multiple items to apply a quality or move them
-					together.
+					Select an item to inspect its quantity, quality and properties.
+					{#if onlyOwnerId === undefined}
+						Select multiple items to apply a quality or move them together.
+					{/if}
 				</p>
 			{/if}
 		</aside>

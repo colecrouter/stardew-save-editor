@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { dev } from "$app/env";
 	import { beforeNavigate } from "$app/navigation";
 	import { resolve } from "$app/paths";
 	import {
@@ -36,6 +37,7 @@
 	legacyHref={resolve("legacy")}
 	backupOriginal={saveOriginalBackup}
 	processingLayer={SaveProcessingBrowser}
+	includeProofs={dev}
 >
 	{#snippet children(workspace)}
 		<EditorWorkspace {...workspace}>

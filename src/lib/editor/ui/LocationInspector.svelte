@@ -5,6 +5,7 @@
 
 	import type { EditorModel } from "../editor-model.ts";
 	import { buildingDestinationTiles } from "../location-building-move.ts";
+	import { furnitureAtTile } from "../location-inspection.ts";
 	import type {
 		LocationPanel,
 		MapSelection,
@@ -162,14 +163,6 @@
 			: undefined,
 	);
 
-	const tileObjects = $derived(
-		selection?.kind === "tile"
-			? (location?.objects.filter(
-					({ x, y }) => x === selection.tile.x && y === selection.tile.y,
-				) ?? [])
-			: [],
-	);
-
 	// A building roof tap can hit outside its footprint. Use the actual tap
 	// for tile inspection while Move continues to use the saved anchor.
 	const inspectionTile = $derived.by(() => {
@@ -179,14 +172,26 @@
 		const { x, y } = selectedObject ?? {};
 		return x === undefined || y === undefined ? undefined : { x, y };
 	});
+	// Offer every other saved object on the inspected tile from the same panel.
+	const tileObjects = $derived(
+		inspectionTile
+			? (location?.objects.filter(
+					({ index, x, y }) =>
+						index !== selectedObject?.index &&
+						x === inspectionTile.x &&
+						y === inspectionTile.y,
+				) ?? [])
+			: [],
+	);
 	const tileBuildings = $derived(
-		selection?.kind === "tile"
+		inspectionTile
 			? (location?.buildings ?? []).filter(
 					(building) =>
-						selection.tile.x >= building.x &&
-						selection.tile.x < building.x + building.width &&
-						selection.tile.y >= building.y &&
-						selection.tile.y < building.y + building.height,
+						building.index !== selectedBuilding?.index &&
+						inspectionTile.x >= building.x &&
+						inspectionTile.x < building.x + building.width &&
+						inspectionTile.y >= building.y &&
+						inspectionTile.y < building.y + building.height,
 				)
 			: [],
 	);
@@ -201,15 +206,10 @@
 				)
 			: [],
 	);
+	// Match the viewport's furniture hit region, including overhanging art.
 	const tileFurniture = $derived(
 		inspectionTile
-			? (location?.furniture ?? []).filter(
-					(item) =>
-						inspectionTile.x >= item.x &&
-						inspectionTile.x < item.x + item.width &&
-						inspectionTile.y >= item.y &&
-						inspectionTile.y < item.y + item.height,
-				)
+			? furnitureAtTile(location?.furniture ?? [], inspectionTile)
 			: [],
 	);
 
@@ -677,6 +677,25 @@
 					{/if}
 				{:else if selection?.kind === "tile"}
 					<strong>Tile {selection.tile.x}, {selection.tile.y}</strong>
+				{/if}
+
+				{#each tileObjects as object (object.index)}
+					<button
+						class="study-kit study-button"
+						type="button"
+						onclick={() =>
+							select({
+								kind: "object",
+								locationId: location.id,
+								objectIndex: object.index,
+							})}
+					>
+						{object.name}
+					</button>
+				{/each}
+				<!-- A placed-object selection can jump to a building on the same
+				     tile without opening the tile inspector first. -->
+				{#if inspectionTile}
 					{#each tileBuildings as building (building.index)}
 						<button
 							class="study-kit study-button"
@@ -686,48 +705,19 @@
 									kind: "building",
 									locationId: location.id,
 									buildingIndex: building.index,
-									tile: selection.tile,
+									tile: inspectionTile,
 								})}
 						>
 							{building.name}
 						</button>
 					{/each}
+				{/if}
 
-					{#each tileObjects as object (object.index)}
-						<button
-							class="study-kit study-button"
-							type="button"
-							onclick={() =>
-								select({
-									kind: "object",
-									locationId: location.id,
-									objectIndex: object.index,
-								})}
-						>
-							{object.name}
-						</button>
-					{/each}
-				{/if}
-				{#if selection?.kind === "tile"}
-					{#each tileFurniture as item (item.index)}
-						<span>{item.name} · {item.width} × {item.height} tiles</span>
-					{/each}
-				{:else if inspectionTile && (selectedTerrain.length > 0 || tileFurniture.length > 0)}
-					<button
-						class="study-kit study-button"
-						type="button"
-						onclick={() => {
-							if (inspectionTile)
-								select({
-									kind: "tile",
-									locationId: location.id,
-									tile: inspectionTile,
-								});
-						}}
-					>
-						Inspect tile
-					</button>
-				{/if}
+				<!-- Keep the shared tile details in the current selection so
+				     inspecting an object never adds a second navigation step. -->
+				{#each tileFurniture as item (item.index)}
+					<span>{item.name} · {item.width} × {item.height} tiles</span>
+				{/each}
 
 				{#each selectedTerrain as marker (marker.id)}
 					<span>

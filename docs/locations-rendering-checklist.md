@@ -59,14 +59,15 @@ References · [Generated save contracts](../generated/save-format/save.ts) ·
 - [x] **Building entrances.** Show the footprint and relevant door approaches
       when inspecting or moving a supported building (currently vanilla coops).
 - [x] **Outdoor furniture.** Project readable saved bounds into the grid and
-      draw a sprite or named footprint. Respect rotation where it changes the
-      occupied tiles.
+      draw the saved frame when it fits the shipped vanilla furniture sheet.
+      Use a named footprint otherwise. Mirror flipped frames and keep art
+      overhang separate from the occupied tiles.
 - [ ] **Placed object art.** Use representative world sprites for common objects
       where inventory art is misleading. Keep a named tile marker for unresolved
       art. Fences and gates need visible tile positions before exact connectivity.
 - [ ] **Overlap and hit testing.** Show ground under objects and make overlapping
-      records individually reachable. Object and building selections can open
-      the tapped tile to inspect underlying flooring or furniture. Use saved footprints for location and
+      records individually reachable. Object and building selections show
+      underlying flooring and furniture directly. Use saved footprints for location and
       placement, even where sprite art extends beyond them.
 
 References · [Item visuals](../src/lib/editor/item-presentation.ts) ·

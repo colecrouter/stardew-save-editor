@@ -2,9 +2,13 @@
 	import { onMount, untrack } from "svelte";
 	import { SvelteMap } from "svelte/reactivity";
 
+	import { asset } from "$app/paths";
 	import { readBuildingSprite } from "$lib/ui/building-sprite.ts";
 
-	import type { LocationInspection } from "../location-inspection.ts";
+	import {
+		furnitureAtTile,
+		type LocationInspection,
+	} from "../location-inspection.ts";
 	import {
 		type MapCamera,
 		type MapSelection,
@@ -72,6 +76,7 @@
 		start: ViewportPoint;
 		started: boolean;
 	}>();
+	const furnitureSheet = `url("${asset("assets/furniture.png")}")`;
 	const scale = $derived(camera.pixelsPerTile / map.tileSize);
 	// Keep only records with usable tile keys on the map. Every record remains
 	// available in the list, including duplicates and incomplete coordinates.
@@ -339,8 +344,11 @@
 			return;
 		}
 		const matches = markers.filter(({ x, y }) => x === tile.x && y === tile.y);
-		// Objects keep hit priority at shared tiles (for example a chest on a
-		// porch). A lone building footprint otherwise selects the building.
+		// Placed objects draw last and keep priority. Furniture in front of
+		// a building opens the tile inspector so both records stay reachable.
+		const furnitureHit =
+			furnitureAtTile(location.furniture ?? [], tile).length > 0;
+		// A lone building footprint otherwise selects the building.
 		const buildingMatches = buildings.filter(
 			(building) =>
 				tile.x >= building.x &&
@@ -363,7 +371,7 @@
 		const buildingsHit =
 			buildingMatches.length > 0 ? buildingMatches : roofMatches;
 		const building =
-			matches.length === 0 && buildingsHit.length === 1
+			matches.length === 0 && !furnitureHit && buildingsHit.length === 1
 				? buildingsHit[0]
 				: undefined;
 		if (building) {
@@ -591,16 +599,32 @@
 		{/each}
 
 		{#each location.furniture ?? [] as item (item.index)}
-			<div
-				class="furniture-footprint"
-				data-furniture={item.name}
-				style:left={`${item.x * map.tileSize}px`}
-				style:top={`${item.y * map.tileSize}px`}
-				style:width={`${item.width * map.tileSize}px`}
-				style:height={`${item.height * map.tileSize}px`}
-			>
-				<span class="footprint-label">{item.name}</span>
-			</div>
+			{#if item.sprite}
+				{@const sprite = item.sprite}
+				<div
+					class="furniture-art"
+					data-furniture={item.name}
+					class:flipped={sprite.flipped}
+					style:left={`${sprite.x * map.tileSize}px`}
+					style:top={`${sprite.y * map.tileSize}px`}
+					style:width={`${sprite.width}px`}
+					style:height={`${sprite.height}px`}
+					style:--sprite={furnitureSheet}
+					style:--sprite-position={`${-sprite.sourceX}px ${-sprite.sourceY}px`}
+					style:--sprite-scale={spriteScale}
+				></div>
+			{:else}
+				<div
+					class="furniture-footprint"
+					data-furniture={item.name}
+					style:left={`${item.x * map.tileSize}px`}
+					style:top={`${item.y * map.tileSize}px`}
+					style:width={`${item.width * map.tileSize}px`}
+					style:height={`${item.height * map.tileSize}px`}
+				>
+					<span class="footprint-label">{item.name}</span>
+				</div>
+			{/if}
 		{/each}
 
 		{#each markers as { object, x, y } (object.index)}
@@ -861,12 +885,14 @@
 		image-rendering: pixelated;
 	}
 
-	.terrain-marker[data-terrain="flooring"] {
+	/* Keep a visible fallback for missing swatches, and let mapped paths
+	   blend with the ground through transparent pixels in the atlas. */
+	.terrain-marker[data-terrain="flooring"]:not(.swatch) {
 		background-color: #a7967d;
 	}
 
 	.terrain-marker[data-terrain="flooring"].swatch {
-		background: #a7967d var(--floor-image) no-repeat var(--floor-position);
+		background: var(--floor-image) no-repeat var(--floor-position);
 	}
 
 	.terrain-marker[data-terrain="soil"]:not(.hidden-soil) {
@@ -910,7 +936,8 @@
 		background: #a87d4444;
 	}
 
-	.building-art {
+	.building-art,
+	.furniture-art {
 		position: absolute;
 		background-image: var(--sprite);
 		background-position: var(--sprite-position);
@@ -918,6 +945,11 @@
 		image-rendering: pixelated;
 		transform: scale(var(--sprite-scale));
 		transform-origin: top left;
+	}
+
+	.furniture-art.flipped {
+		transform: translateX(calc(100% * var(--sprite-scale)))
+			scale(calc(-1 * var(--sprite-scale)), var(--sprite-scale));
 	}
 
 	.furniture-footprint {

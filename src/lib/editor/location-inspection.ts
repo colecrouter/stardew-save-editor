@@ -51,6 +51,17 @@ export interface LocationInspection {
 				y: number;
 				width: number;
 				height: number;
+				sprite?:
+					| {
+							sourceX: number;
+							sourceY: number;
+							width: number;
+							height: number;
+							x: number;
+							y: number;
+							flipped: boolean;
+					  }
+					| undefined;
 		  }[]
 		| undefined;
 	buildings?: readonly FarmBuildingMarker[] | undefined;
@@ -124,6 +135,7 @@ export function readLocations(document: SaveDocument): LocationInspection[] {
 											...bounds,
 											index,
 											name: item.name ?? item.itemId ?? "Furniture",
+											sprite: readFurnitureSprite(item),
 										},
 									]
 								: [];
@@ -181,4 +193,68 @@ export function readLocations(document: SaveDocument): LocationInspection[] {
 	for (const [index, location] of (document.SaveGame.locations ?? []).entries())
 		visit(location, String(index), `locations.${index}`);
 	return locations;
+}
+
+type Farm = Extract<
+	NonNullable<NonNullable<SaveDocument["SaveGame"]["locations"]>[number]>,
+	{ $type: "StardewValley.Farm" }
+>;
+type Furniture = Exclude<
+	NonNullable<NonNullable<Farm["furniture"]>[number]>,
+	{ $type: "$unknown" }
+>;
+
+/** Project the saved world frame only when it matches the shipped vanilla sheet. */
+function readFurnitureSprite(item: Furniture) {
+	const visual = readItemVisual(item);
+	const box = item.boundingBox;
+	const { X, Y, Width, Height } = item.sourceRect ?? {};
+	if (
+		visual?.sheet !== "furniture.png" ||
+		box?.X === undefined ||
+		box.Y === undefined ||
+		box.Height === undefined ||
+		X === undefined ||
+		Y === undefined ||
+		Width === undefined ||
+		Height === undefined ||
+		X < 0 ||
+		Y < 0 ||
+		Width <= 0 ||
+		Height <= 0 ||
+		X + Width > visual.sheetSize.width ||
+		Y + Height > visual.sheetSize.height
+	)
+		return undefined;
+
+	// World tiles are 64 game pixels, four times the source art scale.
+	// The game aligns the bottom of the frame with the saved collision box.
+	return {
+		sourceX: X,
+		sourceY: Y,
+		width: Width,
+		height: Height,
+		x: box.X / 64,
+		y: (box.Y + box.Height) / 64 - Height / 16,
+		flipped: item.flipped === true,
+	};
+}
+
+/** Pick furniture from either its saved footprint or its visible drawing rectangle. */
+export function furnitureAtTile(
+	furniture: NonNullable<LocationInspection["furniture"]>,
+	tile: { x: number; y: number },
+) {
+	return furniture.filter(
+		({ x, y, width, height, sprite }) =>
+			(tile.x >= x &&
+				tile.x < x + width &&
+				tile.y >= y &&
+				tile.y < y + height) ||
+			(sprite !== undefined &&
+				tile.x + 1 > sprite.x &&
+				tile.x < sprite.x + sprite.width / 16 &&
+				tile.y + 1 > sprite.y &&
+				tile.y < sprite.y + sprite.height / 16),
+	);
 }

@@ -161,6 +161,23 @@
 		grid-template-columns: repeat(2, minmax(0, 1fr));
 		gap: 20px 16px;
 	}
+	@media (width > 900px) and (pointer: fine) {
+		/* Fit more appearance controls beside the farmer preview. Keep
+		   the preview column and arrow targets large enough for their art. */
+		.appearance-layout,
+		.dresser {
+			gap: 14px;
+		}
+		section {
+			padding: 14px;
+		}
+		h2 {
+			margin-bottom: 12px;
+		}
+		.field-grid {
+			gap: 12px 10px;
+		}
+	}
 	@media (max-width: 1000px) {
 		section[aria-label="Identity"] .field-grid {
 			grid-template-columns: repeat(2, minmax(0, 1fr));

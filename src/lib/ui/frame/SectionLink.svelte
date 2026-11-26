@@ -116,6 +116,16 @@
 		border-image: url("./art/chrome/selected-tab.png") 7 7 7 5 fill / 21px 21px
 			21px 15px / 0 repeat;
 	}
+	@media (width > 900px) and (pointer: fine) {
+		:global(.editor) a {
+			/* Two label lines still fit, and the 42px row accommodates both
+			   21px slices of the selected artwork at their original scale. */
+			height: 42px;
+			min-height: 42px;
+			font-size: var(--editor-text-size, 17px);
+			line-height: 1;
+		}
+	}
 	@media (max-width: 600px) {
 		/* Compact names fit the inventory's phone tab row; accessible names retain
 		   the complete section labels for navigation and voice control. */

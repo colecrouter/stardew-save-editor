@@ -87,6 +87,12 @@
 		flex: none;
 		padding: 0 20px 8px;
 	}
+	@media (width > 900px) and (pointer: fine) {
+		.content {
+			/* Start just below the 24px rim and keep the scroll lane clear. */
+			padding-block: 27px 16px;
+		}
+	}
 	@media (max-width: 900px) {
 		.parchment-pane {
 			margin-left: 0;

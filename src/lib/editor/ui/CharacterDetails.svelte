@@ -201,6 +201,31 @@
 		border: 1px solid #d5b782;
 		min-width: 0;
 	}
+	@media (width > 900px) and (pointer: fine) {
+		/* Shorten each record's header and form rows so more fields fit
+		   before scrolling. Keep the label and value typography intact. */
+		.records {
+			gap: 16px;
+		}
+		.record {
+			padding: 16px;
+			margin-bottom: 16px;
+		}
+		header {
+			padding-bottom: 10px;
+			margin-bottom: 12px;
+		}
+		.backpack {
+			margin-bottom: 16px;
+		}
+		.details-grid {
+			gap: 12px;
+		}
+		.house-action,
+		details {
+			margin-top: 16px;
+		}
+	}
 	@media (max-width: 1100px) {
 		.records {
 			grid-template-columns: minmax(0, 1fr);

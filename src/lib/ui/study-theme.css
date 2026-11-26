@@ -33,7 +33,7 @@
 	--ui-panel-width: 100%;
 	--ui-panel-inset: 0px;
 	font-family: "VT323", "Trebuchet MS", sans-serif;
-	font-size: 21px;
+	font-size: var(--editor-text-size, 21px);
 	line-height: 1.25;
 	color: #311304;
 	text-shadow: none;
@@ -54,10 +54,10 @@
 	font-size: 25px;
 }
 .study-theme h3 {
-	font-size: 21px;
+	font-size: var(--editor-text-size, 21px);
 }
 .study-theme small {
-	font-size: 19px;
+	font-size: var(--editor-small-text-size, 19px);
 	line-height: 1.25;
 }
 .study-theme .ui-control {
@@ -69,7 +69,7 @@
 	box-shadow:
 		inset 1px 2px var(--ui-control-inset, #d8c3a1),
 		0 1px var(--ui-control-highlight, #fff4d9);
-	font-size: 21px;
+	font-size: var(--editor-text-size, 21px);
 	min-height: 38px;
 }
 .study-theme .ui-control[type="number"] {

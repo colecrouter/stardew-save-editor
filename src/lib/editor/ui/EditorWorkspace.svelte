@@ -768,6 +768,58 @@
 	[role="alert"] {
 		color: #8a1c19;
 	}
+	@media (width > 900px) and (pointer: fine) {
+		:global(:root:has(.editor.study-theme)) {
+			/* Set the scale while the editor is open so dialogs and tooltips
+			   mounted in the document body inherit it alongside the workspace. */
+			--editor-text-size: 17px;
+			--editor-small-text-size: 15px;
+			--editor-kit-heading-size: 20px;
+		}
+
+		/* Return vertical space to the document while keeping wrapped save
+		   metadata and the reserved space beside the exit button. */
+		.toolbar {
+			gap: 8px 18px;
+			min-height: 78px;
+			padding-block: 6px;
+		}
+		.toolbar strong {
+			font-size: 20px;
+		}
+		.save-identity {
+			margin-top: 4px;
+			font-size: 15px;
+		}
+		.history {
+			padding-block: 6px;
+		}
+		.history-label {
+			margin-bottom: 4px;
+		}
+		.history-buttons button {
+			font-size: var(--editor-text-size);
+		}
+
+		/* Give the smaller text less surrounding space. Multiline controls
+		   can grow past their minimum and icon buttons keep their art box. */
+		.editor :global(h1) {
+			font-size: 27px;
+		}
+		.editor :global(h2) {
+			font-size: 20px;
+		}
+		.editor :global(.study-button:not(.study-button--icon)),
+		.editor :global(.study-input),
+		.editor :global(.study-tab),
+		.editor :global(.ui-control) {
+			min-height: 32px;
+			padding-block: 4px;
+		}
+		.editor :global(.study-panel:not(.study-panel--plain)) {
+			padding: 14px;
+		}
+	}
 	@media (max-width: 900px) {
 		.editor {
 			--study-frame-height: auto;

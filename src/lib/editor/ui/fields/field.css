@@ -17,6 +17,15 @@
 	background: #fff2d3;
 	border: 2px solid #b98b52;
 }
+@media (width > 900px) and (pointer: fine) {
+	/* Shorter native fields make repeated desktop form rows denser.
+	   Color swatches and steppers retain their component sizing. */
+	.editor-field input:where(:not([type="color"])),
+	.editor-field select {
+		min-height: 32px;
+		padding-block: 4px;
+	}
+}
 .editor-field input:focus-visible,
 .editor-field select:focus-visible {
 	outline: 2px solid #311304;

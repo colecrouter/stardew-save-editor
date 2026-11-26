@@ -747,6 +747,38 @@
 	.empty-detail p {
 		color: #694621;
 	}
+	@media (width > 900px) and (pointer: fine) {
+		/* Bring the backpack and chest grids higher in the workbench
+		   while preserving the slot targets and room for item sprites. */
+		.inventory-heading {
+			gap: 12px;
+			margin-bottom: 12px;
+		}
+		/* Match the fields around the grid to the shared desktop controls.
+		   The item slots keep their own dimensions for the sprites. */
+		select,
+		input[type="search"] {
+			min-height: 32px;
+			padding-block: 3px;
+		}
+		.inventory-layout {
+			gap: 18px;
+		}
+		.equipment {
+			margin-bottom: 14px;
+		}
+		.chest {
+			margin-top: 20px;
+			padding-top: 16px;
+		}
+		.inspector {
+			padding: 12px;
+		}
+		.inspector-heading {
+			padding-bottom: 8px;
+			margin-bottom: 12px;
+		}
+	}
 	@media (max-width: 1150px) {
 		/* Narrow layouts retain the grids in place; reveal details deliberately
 		   rather than moving keyboard focus to an offscreen search field. */

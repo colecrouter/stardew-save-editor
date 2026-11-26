@@ -5,7 +5,7 @@
 .study-kit {
 	box-sizing: border-box;
 	font-family: "VT323", "Trebuchet MS", sans-serif;
-	font-size: 21px;
+	font-size: var(--editor-text-size, 21px);
 	line-height: 1.3;
 	color: var(--study-ink);
 	text-shadow: none;
@@ -24,10 +24,10 @@
 	border: 0;
 }
 .study-kit h2 {
-	font-size: 26px;
+	font-size: var(--editor-kit-heading-size, 26px);
 }
 .study-kit h3 {
-	font-size: 21px;
+	font-size: var(--editor-text-size, 21px);
 }
 .study-kit :is(p, li) {
 	overflow-wrap: anywhere;
@@ -105,11 +105,11 @@
 }
 .study-field-note {
 	color: var(--study-muted);
-	font-size: 18px;
+	font-size: var(--editor-small-text-size, 18px);
 }
 .study-field-error {
 	color: var(--study-danger);
-	font-size: 18px;
+	font-size: var(--editor-small-text-size, 18px);
 }
 .study-checkbox-label {
 	display: flex;
@@ -285,7 +285,7 @@
 	border: 2px solid #e0b76e;
 	background: #542710;
 	color: #fff2d3;
-	font-size: 18px;
+	font-size: var(--editor-small-text-size, 18px);
 	overflow-wrap: anywhere;
 	box-shadow: 0 4px 12px #20150d33;
 }
@@ -335,7 +335,7 @@
 	min-width: 0;
 	overflow-wrap: anywhere;
 	font:
-		26px/1.15 "Pixelify Sans",
+		var(--editor-kit-heading-size, 26px) / 1.15 "Pixelify Sans",
 		sans-serif;
 }
 @media (max-width: 480px) {

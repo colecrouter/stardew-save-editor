@@ -100,3 +100,56 @@ it.effect(
 			expect(undone.identities).toEqual(before.identities);
 		}),
 );
+
+it.effect(
+	"removes flooring under a chest without touching the chest or adjacent paths",
+	() =>
+		Effect.gen(function* () {
+			const document = tinyFixture();
+			const tile = { X: 2, Y: 3 };
+			const floor = {
+				$type: "StardewValley.TerrainFeatures.Flooring",
+				whichFloor: "8",
+			} as const;
+			const farm = {
+				$type: "StardewValley.Farm",
+				name: "Farm",
+				objects: [
+					{
+						key: tile,
+						value: {
+							$type: "StardewValley.Objects.Chest",
+							name: "Chest",
+							items: [],
+						},
+					},
+				],
+				terrainFeatures: [
+					{ key: tile, value: floor },
+					{ key: { X: 3, Y: 3 }, value: { ...floor, whichFloor: "9" } },
+				],
+			} satisfies NonNullable<typeof document.SaveGame.locations>[number];
+			document.SaveGame.locations = [farm];
+			const session = yield* makeHistorySession(document);
+			const before = yield* session.snapshot;
+
+			// The path and chest share a coordinate but live in separate dictionaries.
+			yield* session.execute([
+				{
+					type: "farm-obstacles-remove",
+					locationIndex: 0,
+					scope: { left: 2, right: 3, top: 3, bottom: 3 },
+					groups: ["flooring"],
+					materials: ["8"],
+				},
+			]);
+			const after = yield* session.snapshot;
+			expect(after.document.SaveGame.locations?.[0]).toEqual({
+				...farm,
+				terrainFeatures: farm.terrainFeatures.slice(1),
+			});
+			expect(after.identities).toEqual(before.identities);
+			yield* session.undo;
+			expect((yield* session.snapshot).document).toEqual(before.document);
+		}),
+);

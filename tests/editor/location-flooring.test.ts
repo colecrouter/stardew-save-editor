@@ -44,7 +44,7 @@ it.effect(
 						readFarmTerrain(farm),
 						{ left: 6, top: 14, right: 8, bottom: 14 },
 						"12",
-						{ kind: "replace", from: "8" },
+						{ kind: "replace", from: ["8"] },
 					).tiles,
 				},
 			]);

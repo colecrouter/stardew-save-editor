@@ -3,6 +3,7 @@ import { Result } from "effect";
 import { chestOwnerId, placedObjectPath } from "./chest-storage.ts";
 import type { SaveDocument } from "./domain.ts";
 import type { InventoryIdentityState } from "./inventory-transition.ts";
+import { flooringMaterialName } from "./location-flooring.ts";
 import type { MapTile } from "./location-interaction.ts";
 import type { readFarmOccupancy } from "./location-placement.ts";
 import { MutationError } from "./mutation-error.ts";
@@ -28,6 +29,7 @@ export const removalGroups = [
 	{ id: "debris", label: "Debris and large obstacles" },
 	{ id: "grass", label: "Grass" },
 	{ id: "trees", label: "Untapped wild trees" },
+	{ id: "flooring", label: "Flooring" },
 ] as const;
 
 export type RemovalGroup = (typeof removalGroups)[number]["id"];
@@ -54,6 +56,7 @@ export interface RemovalTarget {
 	readonly collection: Collection;
 	readonly index: number;
 	readonly group: RemovalGroup;
+	readonly material?: string;
 	readonly area: TileArea;
 }
 
@@ -68,6 +71,7 @@ export function readRemovalTargets(farm: Farm): RemovalTarget[] {
 		y?: number,
 		width = 1,
 		height = 1,
+		material?: string,
 	) {
 		if (
 			x === undefined ||
@@ -81,6 +85,7 @@ export function readRemovalTargets(farm: Farm): RemovalTarget[] {
 			collection,
 			index,
 			group,
+			...(material === undefined ? {} : { material }),
 			area: { left: x, top: y, right: x + width - 1, bottom: y + height - 1 },
 		});
 	}
@@ -108,6 +113,22 @@ export function readRemovalTargets(farm: Farm): RemovalTarget[] {
 			continue;
 		if (value.$type === "StardewValley.TerrainFeatures.Grass")
 			add("terrainFeatures", index, "grass", key.X, key.Y);
+		// Flooring has its own saved entry, so removing it can leave an object
+		// on the same tile intact. Keep materials outside the vanilla catalog.
+		if (
+			value.$type === "StardewValley.TerrainFeatures.Flooring" &&
+			flooringMaterialName(value.whichFloor) !== undefined
+		)
+			add(
+				"terrainFeatures",
+				index,
+				"flooring",
+				key.X,
+				key.Y,
+				1,
+				1,
+				value.whichFloor,
+			);
 		// Keep fruit trees, tapped trees and any tree sharing its tile with an object.
 		if (
 			value.$type === "StardewValley.TerrainFeatures.Tree" &&
@@ -147,10 +168,14 @@ export function planFarmRemoval(
 	targets: readonly RemovalTarget[],
 	scope: TileArea | "farm",
 	groups: readonly RemovalGroup[],
+	materials?: readonly string[],
 ) {
 	return targets.filter(
-		({ area, group }) =>
+		({ area, group, material }) =>
 			groups.includes(group) &&
+			(group !== "flooring" ||
+				materials === undefined ||
+				(material !== undefined && materials.includes(material))) &&
 			(scope === "farm" ||
 				(area.left >= scope.left &&
 					area.top >= scope.top &&
@@ -164,6 +189,7 @@ export interface RemoveFarmObstacles {
 	readonly locationIndex: number;
 	readonly scope: TileArea | "farm";
 	readonly groups: readonly RemovalGroup[];
+	readonly materials?: readonly string[];
 }
 
 export function applyFarmRemoval(
@@ -181,10 +207,11 @@ export function applyFarmRemoval(
 		readRemovalTargets(farm),
 		action.scope,
 		action.groups,
+		action.materials,
 	);
 	if (targets.length === 0)
 		return Result.fail(
-			new MutationError("No supported obstacles match this selection."),
+			new MutationError("Nothing removable matches this selection."),
 		);
 	const indices = (collection: Collection) =>
 		new Set(
@@ -235,7 +262,11 @@ export function applyFarmRemoval(
 		);
 
 	return Result.succeed({
-		label: `Remove ${targets.length} farm obstacles`,
+		label: targets.every(({ group }) => group === "flooring")
+			? `Remove ${targets.length} flooring ${targets.length === 1 ? "tile" : "tiles"}`
+			: targets.some(({ group }) => group === "flooring")
+				? "Remove farm obstacles and flooring"
+				: `Remove ${targets.length} farm obstacles`,
 		review: "standalone" as const,
 		inventory,
 	});

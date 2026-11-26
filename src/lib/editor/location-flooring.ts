@@ -37,7 +37,7 @@ export type FlooringFillMode = "area" | "perimeter";
 export type FlooringPlacementMode =
 	| { readonly kind: "empty" }
 	| { readonly kind: "overwrite" }
-	| { readonly kind: "replace"; readonly from: string };
+	| { readonly kind: "replace"; readonly from: readonly string[] };
 
 export interface FlooringPlacementTile extends MapTile {
 	/** The expected material on a replacement tile. Additions omit it. */
@@ -96,8 +96,17 @@ export function flooringSourceChoices(
 	scope: TileArea | "farm",
 	pattern: FlooringFillMode,
 ) {
+	return flooringMaterialChoices(
+		flooringInScope(terrain, scope, pattern).map(({ material }) => material),
+	);
+}
+
+/** Turn saved material IDs into a stable palette with counts. */
+export function flooringMaterialChoices(
+	materials: readonly (string | undefined)[],
+) {
 	const counts = new Map<string, number>();
-	for (const { material } of flooringInScope(terrain, scope, pattern)) {
+	for (const material of materials) {
 		if (material !== undefined)
 			counts.set(material, (counts.get(material) ?? 0) + 1);
 	}
@@ -123,8 +132,7 @@ export function planFlooringPlacement(
 	if (
 		!names.has(material) ||
 		occupancy.incomplete ||
-		(mode.kind === "replace" &&
-			(!names.has(mode.from) || mode.from === material))
+		(mode.kind === "replace" && mode.from.length === 0)
 	)
 		return { tiles, blocked };
 
@@ -155,7 +163,8 @@ export function planFlooringPlacement(
 			// A source filter limits Replace only to matching floors. The
 			// destination material already in place needs no edit in any mode.
 			if (
-				(mode.kind === "replace" && previous !== mode.from) ||
+				(mode.kind === "replace" &&
+					(previous === undefined || !mode.from.includes(previous))) ||
 				previous === material
 			)
 				continue;

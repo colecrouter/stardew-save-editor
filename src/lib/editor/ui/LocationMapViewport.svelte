@@ -2,7 +2,7 @@
 	import { onMount, untrack } from "svelte";
 	import { SvelteMap } from "svelte/reactivity";
 
-	import { asset } from "$app/paths";
+	import { readBuildingSprite } from "$lib/ui/building-sprite.ts";
 
 	import type { LocationInspection } from "../location-inspection.ts";
 	import {
@@ -17,6 +17,7 @@
 	} from "../location-interaction.ts";
 	import type { LocationMap } from "../location-map.ts";
 	import type { RemovalTarget, TileArea } from "../location-removal.ts";
+	import { loadFloorSwatches } from "../location-terrain.ts";
 	import BackpackItemVisual from "./BackpackItemVisual.svelte";
 
 	let {
@@ -89,25 +90,53 @@
 				: [];
 		}),
 	);
-	// The map raster contains the layout, not saved terrain. Render current
-	// footprints separately so removal and Undo visibly update those records.
+	// Saved terrain is separate from both the base raster and Reclaim targets.
 	const terrainMarkers = $derived(
-		(location.removalTargets ?? []).filter(
-			({ collection, area: footprint }) =>
-				collection !== "objects" &&
-				footprint.left >= 0 &&
-				footprint.top >= 0 &&
-				footprint.right < map.width &&
-				footprint.bottom < map.height,
+		(location.terrain ?? []).filter(
+			({ x, y, width, height }) =>
+				x >= 0 && y >= 0 && x + width <= map.width && y + height <= map.height,
 		),
 	);
+	let floorSwatches =
+		$state.raw<Awaited<ReturnType<typeof loadFloorSwatches>>>();
+	onMount(() => {
+		const request = new AbortController();
+		// Floor art is optional for map navigation. Unavailable swatches keep
+		// the fallback tile visible and do not delay the base map.
+		void loadFloorSwatches(request.signal)
+			.then((swatches) => {
+				if (!request.signal.aborted) floorSwatches = swatches;
+			})
+			.catch(() => {});
+		return () => request.abort();
+	});
 
 	const selectedMarker = $derived(
 		selection?.kind === "object"
 			? markers.find(({ object }) => object.index === selection.objectIndex)
 			: undefined,
 	);
-	const buildings = $derived(location.buildings ?? []);
+	// World sprites use 16 source pixels per tile and can overhang the
+	// footprint. Keep both rectangles so roof hits never affect placement.
+	const spriteScale = $derived(map.tileSize / 16);
+	const buildings = $derived(
+		(location.buildings ?? []).map((building) => {
+			const sprite = readBuildingSprite(
+				building.name,
+				location.greenhouseRepaired,
+			);
+			const artWidth = (sprite?.width ?? 0) / 16;
+			const artHeight = (sprite?.height ?? 0) / 16;
+			return {
+				...building,
+				sprite,
+				artWidth,
+				artHeight,
+				artX: building.x + (building.width - artWidth) / 2,
+				artY: building.y + building.height - artHeight,
+			};
+		}),
+	);
 	const selectedBuilding = $derived(
 		selection?.kind === "building"
 			? buildings.find((building) => building.index === selection.buildingIndex)
@@ -118,13 +147,6 @@
 			? selection.tile
 			: (selectedBuilding ?? selectedMarker),
 	);
-	// These shipped sheets depict the same vanilla tiers the move supports.
-	// Saved footprints remain authoritative even when the sprite extends above.
-	const coopSprites: ReadonlyMap<string, string> = new Map([
-		["Coop", asset("assets/buildings/Coop.png")],
-		["Big Coop", asset("assets/buildings/Big Coop.png")],
-		["Deluxe Coop", asset("assets/buildings/Deluxe Coop.png")],
-	]);
 
 	$effect(() => {
 		background.getContext("2d")?.drawImage(map.canvas, 0, 0);
@@ -326,16 +348,15 @@
 				tile.y >= building.y &&
 				tile.y < building.y + building.height,
 		);
-		// A coop roof rises four tiles above the footprint. Match it only
-		// when the tap did not already hit an object or building footprint.
+		// Only check the art overhang when no object or footprint was hit.
 		const roofMatches =
 			matches.length === 0 && buildingMatches.length === 0
 				? buildings.filter(
 						(row) =>
-							coopSprites.has(row.name) &&
-							tile.x >= row.x &&
-							tile.x < row.x + row.width &&
-							tile.y >= row.y - 4 &&
+							row.sprite !== undefined &&
+							tile.x + 1 > row.artX &&
+							tile.x < row.artX + row.artWidth &&
+							tile.y + 1 > row.artY &&
 							tile.y < row.y,
 					)
 				: [];
@@ -350,6 +371,7 @@
 				kind: "building",
 				locationId: location.id,
 				buildingIndex: building.index,
+				tile,
 			});
 			return;
 		}
@@ -488,6 +510,8 @@
 	<div
 		class="world"
 		style:--tile-size={`${map.tileSize}px`}
+		style:--floor-image="url(/content/TerrainFeatures/Flooring.png)"
+		style:--soil-image="url(/content/TerrainFeatures/hoeDirt.png)"
 		aria-hidden="true"
 		style:transform={`translate(${camera.origin.x}px, ${camera.origin.y}px) scale(${scale})`}
 	>
@@ -496,6 +520,27 @@
 			width={map.canvas.width}
 			height={map.canvas.height}
 		></canvas>
+
+		{#each terrainMarkers as marker (marker.id)}
+			{@const swatch =
+				marker.material === undefined
+					? undefined
+					: floorSwatches?.get(marker.material)}
+			<div
+				class="terrain-marker"
+				data-terrain={marker.kind}
+				class:planted={marker.planted === true}
+				class:hidden-soil={marker.hiddenSoil === true}
+				class:swatch={swatch !== undefined}
+				style:--floor-position={swatch
+					? `${-swatch.x}px ${-swatch.y}px`
+					: undefined}
+				style:left={`${marker.x * map.tileSize}px`}
+				style:top={`${marker.y * map.tileSize}px`}
+				style:width={`${marker.width * map.tileSize}px`}
+				style:height={`${marker.height * map.tileSize}px`}
+			></div>
+		{/each}
 
 		<div class="grid"></div>
 
@@ -508,18 +553,6 @@
 				style:height={`${(area.bottom - area.top + 1) * map.tileSize}px`}
 			></div>
 		{/if}
-		{#each terrainMarkers as target (`${target.collection}:${target.index}`)}
-			<div
-				class="terrain-marker"
-				class:grass={target.group === "grass"}
-				class:tree={target.group === "trees"}
-				style:left={`${target.area.left * map.tileSize}px`}
-				style:top={`${target.area.top * map.tileSize}px`}
-				style:width={`${(target.area.right - target.area.left + 1) * map.tileSize}px`}
-				style:height={`${(target.area.bottom - target.area.top + 1) * map.tileSize}px`}
-			></div>
-		{/each}
-
 		{#each removalTargets as target (`${target.collection}:${target.index}`)}
 			<div
 				class="removal-target"
@@ -531,7 +564,6 @@
 		{/each}
 
 		{#each buildings as building (building.index)}
-			{@const sprite = coopSprites.get(building.name)}
 			<div
 				class="building-footprint"
 				style:left={`${building.x * map.tileSize}px`}
@@ -539,17 +571,35 @@
 				style:width={`${building.width * map.tileSize}px`}
 				style:height={`${building.height * map.tileSize}px`}
 			>
-				{#if sprite}
-					<!-- The static coop frame occupies seven source tiles vertically.
-					     Keep the sprite strip below the frame out of the map viewport. -->
-					<span class="coop-art">
-						<img
-							src={sprite}
-							alt=""
-							draggable="false"
-						/>
-					</span>
-				{/if}
+				<span class="footprint-label">{building.name}</span>
+			</div>
+
+			{#if building.sprite}
+				{@const sprite = building.sprite}
+				<div
+					class="building-art"
+					data-building-art={building.name}
+					style:left={`${building.artX * map.tileSize}px`}
+					style:top={`${building.artY * map.tileSize}px`}
+					style:width={`${sprite.width}px`}
+					style:height={`${sprite.height}px`}
+					style:--sprite={`url("${sprite.url}")`}
+					style:--sprite-position={`${-sprite.x}px ${-sprite.y}px`}
+					style:--sprite-scale={spriteScale}
+				></div>
+			{/if}
+		{/each}
+
+		{#each location.furniture ?? [] as item (item.index)}
+			<div
+				class="furniture-footprint"
+				data-furniture={item.name}
+				style:left={`${item.x * map.tileSize}px`}
+				style:top={`${item.y * map.tileSize}px`}
+				style:width={`${item.width * map.tileSize}px`}
+				style:height={`${item.height * map.tileSize}px`}
+			>
+				<span class="footprint-label">{item.name}</span>
 			</div>
 		{/each}
 
@@ -619,6 +669,13 @@
 					? `${selectedBuilding.height * map.tileSize}px`
 					: undefined}
 			></div>
+			{#each selectedBuilding?.doors ?? [] as door (`${door.x},${door.y}`)}
+				<div
+					class="selected door-approach"
+					style:left={`${(selectedTile.x + door.x) * map.tileSize}px`}
+					style:top={`${(selectedTile.y + door.y) * map.tileSize}px`}
+				></div>
+			{/each}
 		{/if}
 	</div>
 	{#if areaPrompt}
@@ -765,7 +822,6 @@
 		box-shadow: 0 0 0 1px #30271e;
 	}
 
-	.area-outline,
 	/* Use different silhouettes for saved terrain so the preview tint can
 	   remain a separate overlay with a single meaning. */
 	.terrain-marker {
@@ -783,16 +839,53 @@
 		background: var(--marker-fill);
 	}
 
-	.terrain-marker.grass {
+	.terrain-marker[data-terrain="grass"] {
 		--marker-shape: 70% 18%;
 		--marker-fill: #8bbf4a;
 	}
 
-	.terrain-marker.tree {
+	.terrain-marker[data-terrain="tree"],
+	.terrain-marker[data-terrain="bush"] {
 		--marker-shape: 50%;
 		--marker-fill: #39783d;
 	}
 
+	.terrain-marker[data-terrain="fruit-tree"],
+	.terrain-marker[data-terrain="giant-crop"] {
+		--marker-shape: 50%;
+		--marker-fill: #74629f;
+	}
+
+	.terrain-marker[data-terrain="flooring"],
+	.terrain-marker[data-terrain="soil"]:not(.hidden-soil) {
+		image-rendering: pixelated;
+	}
+
+	.terrain-marker[data-terrain="flooring"] {
+		background-color: #a7967d;
+	}
+
+	.terrain-marker[data-terrain="flooring"].swatch {
+		background: #a7967d var(--floor-image) no-repeat var(--floor-position);
+	}
+
+	.terrain-marker[data-terrain="soil"]:not(.hidden-soil) {
+		background: #9b5d2f var(--soil-image) no-repeat;
+	}
+
+	.terrain-marker[data-terrain="flooring"]::after,
+	.terrain-marker[data-terrain="soil"]::after {
+		content: none;
+	}
+
+	.terrain-marker.planted::after {
+		content: "";
+		inset: 22% 30%;
+		border-radius: 8% 68%;
+		background: #71b942;
+	}
+
+	.area-outline,
 	.removal-target {
 		position: absolute;
 		box-sizing: border-box;
@@ -817,18 +910,31 @@
 		background: #a87d4444;
 	}
 
-	.coop-art {
+	.building-art {
 		position: absolute;
-		bottom: 0;
-		width: 100%;
-		aspect-ratio: 6 / 7;
-		overflow: hidden;
+		background-image: var(--sprite);
+		background-position: var(--sprite-position);
+		background-repeat: no-repeat;
+		image-rendering: pixelated;
+		transform: scale(var(--sprite-scale));
+		transform-origin: top left;
 	}
 
-	.coop-art img {
+	.furniture-footprint {
+		position: absolute;
+		box-sizing: border-box;
+		border: 1px solid #fff1bd;
+		background: #68456cbf;
+	}
+
+	.footprint-label {
 		display: block;
-		width: 100%;
-		image-rendering: pixelated;
+		overflow: hidden;
+		color: #fff7df;
+		background: #33241ad9;
+		font: 8px/1.4 sans-serif;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 
 	.door-approach {

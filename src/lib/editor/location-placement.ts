@@ -146,32 +146,37 @@ export function readFarmOccupancy(
 	}
 	for (const furniture of farm.furniture ?? []) {
 		if (furniture === null) continue;
-		if (furniture.$type === "$unknown") {
-			incomplete = true;
-			continue;
-		}
-		const box = furniture.boundingBox;
-		// Furniture bounds are in game pixels. Round outward to touched tiles.
-		if (
-			box?.X === undefined ||
-			box.Y === undefined ||
-			box.Width === undefined ||
-			box.Height === undefined
-		) {
-			incomplete = true;
-			continue;
-		}
-		const x = Math.floor(box.X / 64);
-		const y = Math.floor(box.Y / 64);
-		reserve(
-			"furniture",
-			x,
-			y,
-			Math.ceil((box.X + box.Width) / 64) - x,
-			Math.ceil((box.Y + box.Height) / 64) - y,
-		);
+		const bounds = farmFurnitureBounds(furniture);
+		if (bounds === undefined) incomplete = true;
+		else reserve("furniture", bounds.x, bounds.y, bounds.width, bounds.height);
 	}
 	return { blocked, incomplete };
+}
+
+/** Round the saved, rotation-adjusted game-pixel bounds out to touched tiles. */
+export function farmFurnitureBounds(
+	furniture: NonNullable<NonNullable<Farm["furniture"]>[number]>,
+) {
+	if (furniture.$type === "$unknown") return undefined;
+	const box = furniture.boundingBox;
+	if (
+		box?.X === undefined ||
+		box.Y === undefined ||
+		box.Width === undefined ||
+		box.Height === undefined ||
+		box.Width <= 0 ||
+		box.Height <= 0
+	)
+		return undefined;
+
+	const x = Math.floor(box.X / 64);
+	const y = Math.floor(box.Y / 64);
+	return {
+		x,
+		y,
+		width: Math.ceil((box.X + box.Width) / 64) - x,
+		height: Math.ceil((box.Y + box.Height) / 64) - y,
+	};
 }
 
 export function farmOccupancyProblem(

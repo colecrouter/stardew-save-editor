@@ -170,6 +170,49 @@
 			: [],
 	);
 
+	// A building roof tap can hit outside its footprint. Use the actual tap
+	// for tile inspection while Move continues to use the saved anchor.
+	const inspectionTile = $derived.by(() => {
+		if (selection?.kind === "tile") return selection.tile;
+		if (selection?.kind === "building")
+			return selection.tile ?? selectedBuilding;
+		const { x, y } = selectedObject ?? {};
+		return x === undefined || y === undefined ? undefined : { x, y };
+	});
+	const tileBuildings = $derived(
+		selection?.kind === "tile"
+			? (location?.buildings ?? []).filter(
+					(building) =>
+						selection.tile.x >= building.x &&
+						selection.tile.x < building.x + building.width &&
+						selection.tile.y >= building.y &&
+						selection.tile.y < building.y + building.height,
+				)
+			: [],
+	);
+	const selectedTerrain = $derived(
+		inspectionTile
+			? (location?.terrain ?? []).filter(
+					(marker) =>
+						inspectionTile.x >= marker.x &&
+						inspectionTile.x < marker.x + marker.width &&
+						inspectionTile.y >= marker.y &&
+						inspectionTile.y < marker.y + marker.height,
+				)
+			: [],
+	);
+	const tileFurniture = $derived(
+		inspectionTile
+			? (location?.furniture ?? []).filter(
+					(item) =>
+						inspectionTile.x >= item.x &&
+						inspectionTile.x < item.x + item.width &&
+						inspectionTile.y >= item.y &&
+						inspectionTile.y < item.y + item.height,
+				)
+			: [],
+	);
+
 	// Let Storage decide whether the exact selected owner has editable slots.
 	const chest = $derived(
 		view.current?.chests.find(
@@ -634,6 +677,22 @@
 					{/if}
 				{:else if selection?.kind === "tile"}
 					<strong>Tile {selection.tile.x}, {selection.tile.y}</strong>
+					{#each tileBuildings as building (building.index)}
+						<button
+							class="study-kit study-button"
+							type="button"
+							onclick={() =>
+								select({
+									kind: "building",
+									locationId: location.id,
+									buildingIndex: building.index,
+									tile: selection.tile,
+								})}
+						>
+							{building.name}
+						</button>
+					{/each}
+
 					{#each tileObjects as object (object.index)}
 						<button
 							class="study-kit study-button"
@@ -649,6 +708,34 @@
 						</button>
 					{/each}
 				{/if}
+				{#if selection?.kind === "tile"}
+					{#each tileFurniture as item (item.index)}
+						<span>{item.name} · {item.width} × {item.height} tiles</span>
+					{/each}
+				{:else if inspectionTile && (selectedTerrain.length > 0 || tileFurniture.length > 0)}
+					<button
+						class="study-kit study-button"
+						type="button"
+						onclick={() => {
+							if (inspectionTile)
+								select({
+									kind: "tile",
+									locationId: location.id,
+									tile: inspectionTile,
+								});
+						}}
+					>
+						Inspect tile
+					</button>
+				{/if}
+
+				{#each selectedTerrain as marker (marker.id)}
+					<span>
+						{marker.label}{marker.material === undefined
+							? ""
+							: ` (material ${marker.material})`}
+					</span>
+				{/each}
 				{#if movable || selectedBuilding}
 					<button
 						disabled={!movable}

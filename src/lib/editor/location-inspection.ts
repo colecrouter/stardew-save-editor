@@ -6,11 +6,13 @@ import {
 	type FarmBuildingMarker,
 } from "./location-building-move.ts";
 import {
+	farmFurnitureBounds,
 	type FarmOccupancy,
 	isMovableChest,
 	readFarmOccupancy,
 } from "./location-placement.ts";
 import { readRemovalTargets, type RemovalTarget } from "./location-removal.ts";
+import { readFarmTerrain, type TerrainMarker } from "./location-terrain.ts";
 import { isKnownLocation, savedType } from "./saved-types.ts";
 
 // Match the vanilla farm IDs to their exported map names. Meadowlands uses
@@ -38,7 +40,19 @@ export interface LocationInspection {
 	readable: boolean;
 	farmMap?: FarmMap | undefined;
 	farmLayout?: string | undefined;
+	terrain?: readonly TerrainMarker[] | undefined;
 	removalTargets?: readonly RemovalTarget[] | undefined;
+	greenhouseRepaired?: boolean | undefined;
+	furniture?:
+		| readonly {
+				index: number;
+				name: string;
+				x: number;
+				y: number;
+				width: number;
+				height: number;
+		  }[]
+		| undefined;
 	buildings?: readonly FarmBuildingMarker[] | undefined;
 	farmOccupancy?: FarmOccupancy | undefined;
 	objects: readonly {
@@ -94,6 +108,27 @@ export function readLocations(document: SaveDocument): LocationInspection[] {
 			name: label,
 			farmMap,
 			farmLayout,
+			terrain:
+				isFarm && farmMap !== undefined ? readFarmTerrain(location) : undefined,
+			greenhouseRepaired: isFarm ? location.greenhouseUnlocked : undefined,
+			// Use the same saved bounds as placement so furniture covers exactly
+			// the tiles it reserves, including any change from rotation.
+			furniture:
+				isFarm && farmMap !== undefined
+					? (location.furniture ?? []).flatMap((item, index) => {
+							if (!item || item.$type === "$unknown") return [];
+							const bounds = farmFurnitureBounds(item);
+							return bounds
+								? [
+										{
+											...bounds,
+											index,
+											name: item.name ?? item.itemId ?? "Furniture",
+										},
+									]
+								: [];
+						})
+					: undefined,
 			buildings:
 				isFarm && farmMap !== undefined
 					? (location.buildings ?? []).flatMap(

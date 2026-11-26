@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { asset } from "$app/paths";
-	import buildings from "$generated/buildings.json";
-	import { dynamicAsset } from "$lib/ui/dynamicAsset.ts";
+
+	import { readBuildingSprite } from "./building-sprite.ts";
 
 	interface Props {
 		/** Domain views and legacy proxies share this small presentation contract. */
@@ -13,60 +13,17 @@
 		size?: number;
 	}
 
-	interface SourceRect {
-		X: number;
-		Y: number;
-		Width: number;
-		Height: number;
-	}
-	interface BuildingSpriteData {
-		name: string;
-		texture?: string;
-		textureSize?: { X: number; Y: number };
-		sourceRect?: SourceRect;
-	}
-	const catalog: readonly BuildingSpriteData[] = buildings;
-	// Game menu crops select one recognizable frame from a larger sheet.
-	// Other buildings use the generated pixel rectangle rather than tile footprints.
-	const menuRects: Readonly<Record<string, SourceRect>> = {
-		"Fish Pond": { X: 0, Y: 0, Width: 80, Height: 80 },
-		"Junimo Hut": { X: 0, Y: 0, Width: 48, Height: 64 },
-		// The first frame already combines the wooden platform and bowl. The
-		// catalog's X32 bowl-only draw layer floats without its separate platform.
-		"Pet Bowl": { X: 0, Y: 0, Width: 32, Height: 32 },
-	};
 	let { building, size = 64 }: Props = $props();
 	const frameSize = $derived(Number.isFinite(size) && size > 0 ? size : 64);
-	const buildingData = $derived(
-		catalog.find((row) => row.name === building?.name),
+	const sprite = $derived(
+		readBuildingSprite(building?.name, building?.repaired),
 	);
-	const sourceRect = $derived.by(() => {
-		const rect = menuRects[building?.name ?? ""] ?? buildingData?.sourceRect;
-		// The catalog contains the repaired greenhouse. The game selects the ruins
-		// one frame above it only when the farm's unlock flag is explicitly false.
-		if (rect && building?.name === "Greenhouse" && building.repaired === false)
-			return { ...rect, Y: rect.Y - rect.Height };
-		return rect;
-	});
-	const width = $derived(sourceRect?.Width ?? buildingData?.textureSize?.X);
-	const height = $derived(sourceRect?.Height ?? buildingData?.textureSize?.Y);
-	// Catalog texture names must identify an installed sheet before a sprite is drawn.
-	const textureUrl = $derived(
-		buildingData?.texture
-			? dynamicAsset(`assets/buildings/${buildingData.texture}`)
-			: undefined,
-	);
-	const known = $derived(
-		textureUrl !== undefined &&
-			width !== undefined &&
-			width > 0 &&
-			height !== undefined &&
-			height > 0,
-	);
+	const width = $derived(sprite?.width);
+	const height = $derived(sprite?.height);
 	const scale = $derived(frameSize / Math.max(width ?? 1, height ?? 1));
 	// Negative offsets move the chosen source pixels into the crop. Sprite and
 	// scenery URLs both include the deployment base, including GitHub Pages paths.
-	const spriteUrl = $derived(textureUrl ? `url("${textureUrl}")` : "none");
+	const spriteUrl = $derived(sprite ? `url("${sprite.url}")` : "none");
 	const sceneryUrl = `url("${asset("assets/daybg.png")}")`;
 </script>
 
@@ -80,7 +37,7 @@
 		style:--scenery={sceneryUrl}
 	>
 		<div class="clip">
-			{#if known}
+			{#if sprite}
 				<div
 					class="item"
 					style:width={`${width}px`}
@@ -88,8 +45,8 @@
 					style:left={`${(frameSize - (width ?? 1) * scale) / 2}px`}
 					style:top={`${(frameSize - (height ?? 1) * scale) / 2}px`}
 					style:--scale={scale}
-					style:--x={`${-(sourceRect?.X ?? 0)}px`}
-					style:--y={`${-(sourceRect?.Y ?? 0)}px`}
+					style:--x={`${-sprite.x}px`}
+					style:--y={`${-sprite.y}px`}
 					style:--sprite={spriteUrl}
 				></div>
 			{:else}

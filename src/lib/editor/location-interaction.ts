@@ -36,6 +36,8 @@ export type MapSelection =
 			readonly kind: "building";
 			readonly locationId: string;
 			readonly buildingIndex: number;
+			/** The tapped tile may differ from the footprint anchor used by Move. */
+			readonly tile?: MapTile;
 	  };
 
 /**

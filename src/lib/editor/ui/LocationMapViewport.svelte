@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount, untrack } from "svelte";
+	import { on } from "svelte/events";
 	import { SvelteMap } from "svelte/reactivity";
 
 	import { asset } from "$app/paths";
@@ -22,7 +23,10 @@
 	} from "../location-interaction.ts";
 	import type { LocationMap } from "../location-map.ts";
 	import type { RemovalTarget, TileArea } from "../location-removal.ts";
-	import { loadFloorSwatches } from "../location-terrain.ts";
+	import {
+		loadFloorSwatches,
+		type TerrainMarker,
+	} from "../location-terrain.ts";
 	import type { WorldFrame } from "../location-world-art.ts";
 	import BackpackItemVisual from "./BackpackItemVisual.svelte";
 
@@ -39,6 +43,8 @@
 		pickingArea,
 		pickAreaTile,
 		removalTargets,
+		flooringTargets,
+		floorSwatches,
 		movable,
 		beginMove,
 		pickDestination,
@@ -57,6 +63,8 @@
 		pickingArea: boolean;
 		pickAreaTile: (tile: MapTile) => void;
 		removalTargets: readonly RemovalTarget[];
+		flooringTargets: readonly TerrainMarker[];
+		floorSwatches: ReadonlyMap<string, { x: number; y: number }> | undefined;
 		movable: boolean;
 		beginMove: () => void;
 		pickDestination: (tile: MapTile | null) => void;
@@ -172,19 +180,6 @@
 			),
 	);
 	const foliageIds = $derived(new Set(foliage.map(({ id }) => id)));
-	let floorSwatches =
-		$state.raw<Awaited<ReturnType<typeof loadFloorSwatches>>>();
-	onMount(() => {
-		const request = new AbortController();
-		// Floor art is optional for map navigation. Unavailable swatches keep
-		// the fallback tile visible and do not delay the base map.
-		void loadFloorSwatches(request.signal)
-			.then((swatches) => {
-				if (!request.signal.aborted) floorSwatches = swatches;
-			})
-			.catch(() => {});
-		return () => request.abort();
-	});
 
 	const selectedMarker = $derived(
 		selection?.kind === "object"
@@ -266,7 +261,14 @@
 		background.getContext("2d")?.drawImage(map.canvas, 0, 0);
 	});
 
-	onMount(() => fit());
+	onMount(() => {
+		fit();
+		// Pointer events already handle map taps. Suppress the separate touch
+		// click, which can hit a newly revealed toolbar button after a pick.
+		return on(viewport, "touchend", (event) => event.preventDefault(), {
+			passive: false,
+		});
+	});
 
 	$effect(() => {
 		// Selecting a distant object from the list reveals it at the current
@@ -826,6 +828,16 @@
 			{/each}
 		</div>
 
+		<!-- Mark the matching tiles above scenery so previews stay readable
+		     wherever a placed object or canopy overlaps a path. -->
+		{#each flooringTargets as tile (tile.id)}
+			<div
+				class="flooring-target"
+				style:left={`${tile.x * map.tileSize}px`}
+				style:top={`${tile.y * map.tileSize}px`}
+			></div>
+		{/each}
+
 		{#if placement?.candidate}
 			<div
 				class="candidate"
@@ -1115,6 +1127,17 @@
 		box-sizing: border-box;
 		border: 1px dashed #664621;
 		background: #a87d4444;
+	}
+
+	.flooring-target {
+		position: absolute;
+		z-index: 1;
+		width: var(--tile-size);
+		height: var(--tile-size);
+		box-sizing: border-box;
+		border: 1px solid #b0fcff;
+		background: #35bdc266;
+		pointer-events: none;
 	}
 
 	.canopy-layer {

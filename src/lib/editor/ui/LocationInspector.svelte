@@ -3,8 +3,17 @@
 	import { useAtomValue } from "effect-atom-svelte";
 	import { tick } from "svelte";
 
+	import { asset } from "$app/paths";
+	import { uiAtlases } from "$lib/ui/uiAssets.ts";
+
 	import type { EditorModel } from "../editor-model.ts";
 	import { buildingDestinationTiles } from "../location-building-move.ts";
+	import {
+		flooringMaterialName,
+		flooringMaterials,
+		flooringSourceChoices,
+		planFlooringReplacement,
+	} from "../location-flooring.ts";
 	import { furnitureAtTile } from "../location-inspection.ts";
 	import type {
 		LocationPanel,
@@ -21,7 +30,9 @@
 		removalGroups,
 		type TileArea,
 	} from "../location-removal.ts";
+	import { loadFloorSwatches } from "../location-terrain.ts";
 	import LocationMapViewport from "./LocationMapViewport.svelte";
+	import LocationSpriteButton from "./LocationSpriteButton.svelte";
 	import StoragePanel from "./StoragePanel.svelte";
 
 	let { model }: { model: EditorModel } = $props();
@@ -42,14 +53,24 @@
 	let contentsButton = $state<HTMLButtonElement>();
 	let backButton = $state<HTMLButtonElement>();
 
-	// The rectangle belongs to the map, so applying or closing Remove leaves
-	// it available for the next tool. The first corner is only a picking draft.
+	// An explicit area and a normal tile tap both feed the same area commands.
+	// Keep the tapped tile through revisions even if its inspected object is removed.
 	let area = $state.raw<TileArea | "farm">();
+	let singleTile = $state.raw<MapTile>();
+	const areaScope = $derived(
+		area ?? (singleTile && areaBetween(singleTile, singleTile)),
+	);
 	let firstCorner = $state.raw<MapTile>();
 	let pickingArea = $state(false);
 	let groups = $state<RemovalGroup[]>([]);
 	let applyingRemoval = $state(false);
 	let removalFeedback = $state("");
+	let areaTool = $state<"reclaim" | "flooring">("reclaim");
+	let chosenFromFloor = $state("");
+	let toFloor = $state("");
+	let applyingFlooring = $state(false);
+	let flooringFeedback = $state("");
+	const applyingAreaEdit = $derived(applyingRemoval || applyingFlooring);
 
 	let selected = $state.raw<{
 		location: NonNullable<typeof location>;
@@ -65,15 +86,68 @@
 			locations[0],
 	);
 	const farmMap = $derived(location?.farmMap);
+	// Count only flooring inside the current selection, auto-selecting the
+	// source when the player has exactly one supported material to choose from.
+	const sourceChoices = $derived(
+		areaScope === undefined
+			? []
+			: flooringSourceChoices(location?.terrain ?? [], areaScope),
+	);
+	const fromFloor = $derived(
+		chosenFromFloor ||
+			(sourceChoices.length === 1 ? (sourceChoices[0]?.id ?? "") : ""),
+	);
+	// Count every category for the palette, but highlight only active toggles.
+	const availableRemoval = $derived(
+		areaTool === "reclaim" && !pickingArea && areaScope !== undefined
+			? planFarmRemoval(
+					location?.removalTargets ?? [],
+					areaScope,
+					removalGroups.map(({ id }) => id),
+				)
+			: [],
+	);
 	const removalTargets = $derived(
-		!pickingArea && area !== undefined
-			? planFarmRemoval(location?.removalTargets ?? [], area, groups)
+		availableRemoval.filter(({ group }) => groups.includes(group)),
+	);
+	const removalSprites = {
+		debris: {
+			url: asset(uiAtlases.objects.path),
+			x: 96,
+			y: 256,
+			width: 16,
+			height: 16,
+		},
+		grass: {
+			url: "/content/TerrainFeatures/grass.png",
+			x: 0,
+			y: 0,
+			width: 15,
+			height: 20,
+		},
+		trees: {
+			url: "/content/TerrainFeatures/tree1_spring.png",
+			x: 0,
+			y: 0,
+			width: 48,
+			height: 96,
+		},
+	};
+	// Preview only the active tool against the shared selection.
+	const flooringTargets = $derived(
+		areaTool === "flooring" && !pickingArea && areaScope !== undefined
+			? planFlooringReplacement(
+					location?.terrain ?? [],
+					areaScope,
+					fromFloor,
+					toFloor,
+				)
 			: [],
 	);
 	const targetCounts = $derived(
 		removalGroups.map((group) => ({
 			...group,
-			count: removalTargets.filter((target) => target.group === group.id)
+			count: availableRemoval.filter((target) => target.group === group.id)
 				.length,
 		})),
 	);
@@ -87,7 +161,10 @@
 						right: map.width - 1,
 						bottom: map.height - 1,
 					}
-				: area,
+				: (area ??
+					(!selected && singleTile
+						? areaBetween(singleTile, singleTile)
+						: undefined)),
 	);
 	const areaPrompt = $derived(
 		pickingArea
@@ -96,6 +173,20 @@
 				: "Tap the first corner."
 			: "",
 	);
+
+	let floorSwatches =
+		$state.raw<Awaited<ReturnType<typeof loadFloorSwatches>>>();
+	$effect(() => {
+		if (farmMap === undefined) return;
+		const request = new AbortController();
+		// Missing workspace art leaves both the map and named controls usable.
+		void loadFloorSwatches(request.signal)
+			.then((swatches) => {
+				if (!request.signal.aborted) floorSwatches = swatches;
+			})
+			.catch(() => {});
+		return () => request.abort();
+	});
 
 	$effect(() => {
 		const name = farmMap;
@@ -131,11 +222,14 @@
 	const selection = $derived.by(() => {
 		if (!selected || !location) return null;
 		if (selected.location === location) return selected.target;
-		if (
-			selected.target.kind !== "object" ||
-			selected.location.id !== location.id
-		)
-			return null;
+		if (selected.location.id !== location.id) return null;
+		// Tile coordinates survive material changes and Undo. If the inspected
+		// record vanished, keep the selection on the tile the player picked.
+		if (selected.target.kind === "tile") return selected.target;
+		const tappedTile = singleTile
+			? { kind: "tile" as const, locationId: location.id, tile: singleTile }
+			: null;
+		if (selected.target.kind !== "object") return tappedTile;
 		const index = selected.target.objectIndex;
 		const source = selected.location.objects.find(
 			(object) => object.index === index,
@@ -146,7 +240,7 @@
 			source.x === current.x &&
 			source.y === current.y
 			? selected.target
-			: null;
+			: tappedTile;
 	});
 	const selectedObject = $derived(
 		selection?.kind === "object"
@@ -365,6 +459,7 @@
 	}
 
 	function beginArea() {
+		flooringFeedback = "";
 		// Every swipe still belongs to the camera. Only deliberate tile taps
 		// advance the two-corner picker.
 		firstCorner = undefined;
@@ -381,6 +476,8 @@
 			return;
 		}
 		area = areaBetween(firstCorner, tile);
+		singleTile = undefined;
+		chosenFromFloor = "";
 		firstCorner = undefined;
 		pickingArea = false;
 	}
@@ -392,7 +489,7 @@
 
 	async function applyRemoval() {
 		const revision = view.current?.revision;
-		const scope = area;
+		const scope = areaScope;
 		const count = removalTargets.length;
 		if (
 			!location ||
@@ -425,6 +522,45 @@
 		}
 	}
 
+	async function applyFlooring() {
+		const revision = view.current?.revision;
+		const scope = areaScope;
+		const count = flooringTargets.length;
+		if (
+			!location ||
+			scope === undefined ||
+			revision === undefined ||
+			count === 0 ||
+			applyingAreaEdit
+		)
+			return;
+
+		// Capture the same revision and materials as the preview before queuing
+		// a single history operation for every matching tile.
+		applyingFlooring = true;
+		chosenFromFloor = fromFloor;
+		flooringFeedback = "";
+		try {
+			const result = await model.commands.execute(
+				[
+					{
+						type: "farm-flooring-replace",
+						locationIndex: Number(location.id),
+						scope,
+						from: fromFloor,
+						to: toFloor,
+					},
+				],
+				revision,
+			);
+			if (result && Result.isSuccess(result))
+				flooringFeedback = `Replaced ${count} flooring ${count === 1 ? "tile" : "tiles"}.`;
+			else if (result) flooringFeedback = result.failure.message;
+		} finally {
+			applyingFlooring = false;
+		}
+	}
+
 	async function showContents() {
 		if (selection?.kind !== "object" || !chest?.supported) return;
 		panel = { kind: "contents", container: selection };
@@ -441,9 +577,34 @@
 	}
 
 	function select(target: MapSelection) {
-		// An object or tile becomes the active context when picked outside
-		// the area tool. Cancelling or applying Remove never calls this path.
+		flooringFeedback = "";
+		// A tap changes the inspected record and supplies one tile to both
+		// area actions. Keep explicit rectangles reserved for the area picker.
 		area = undefined;
+		chosenFromFloor = "";
+		const point =
+			target.kind === "tile"
+				? target.tile
+				: target.kind === "building"
+					? (target.tile ??
+						location?.buildings?.find(
+							(building) => building.index === target.buildingIndex,
+						))
+					: location?.objects.find(
+							(object) => object.index === target.objectIndex,
+						);
+		const { x, y } = point ?? {};
+		singleTile =
+			map &&
+			x !== undefined &&
+			y !== undefined &&
+			[x, y].every(Number.isInteger) &&
+			x >= 0 &&
+			y >= 0 &&
+			x < map.width &&
+			y < map.height
+				? { x, y }
+				: undefined;
 		removalFeedback = "";
 		if (location) selected = { location, target };
 		cancelMove();
@@ -459,6 +620,29 @@
 	);
 </script>
 
+{#snippet materialButton(
+	material: { id: string; name: string },
+	pressed: boolean,
+	disabled: boolean,
+	choose: () => void,
+	count?: number,
+)}
+	{@const swatch = floorSwatches?.get(material.id)}
+	<LocationSpriteButton
+		name={count === undefined ? material.name : `${material.name} (${count})`}
+		{pressed}
+		{disabled}
+		{choose}
+		sprite={swatch && {
+			...swatch,
+			url: "/content/TerrainFeatures/Flooring.png",
+			width: 16,
+			height: 16,
+		}}
+		fallback={material.id}
+	/>
+{/snippet}
+
 <h1>Locations</h1>
 
 <!-- Keep the viewport mounted while Contents replaces the inspector so its
@@ -473,14 +657,17 @@
 			<select
 				class="study-input"
 				value={location.id}
-				disabled={moving || applyingRemoval}
+				disabled={moving || applyingAreaEdit}
 				onchange={(event) => {
 					selectedId = event.currentTarget.value;
 					selected = undefined;
 					cancelMove();
 					area = undefined;
+					singleTile = undefined;
+					chosenFromFloor = "";
 					groups = [];
 					removalFeedback = "";
+					flooringFeedback = "";
 					cancelAreaPick();
 				}}
 			>
@@ -499,7 +686,7 @@
 							aria-labelledby={buildingLabelId}
 							class="study-input"
 							value={selectedBuilding?.index ?? ""}
-							disabled={placement !== null || pickingArea || applyingRemoval}
+							disabled={placement !== null || pickingArea || applyingAreaEdit}
 							onchange={(event) => {
 								const { value } = event.currentTarget;
 								if (value !== "")
@@ -536,7 +723,7 @@
 							<button
 								class="study-kit study-button"
 								type="button"
-								disabled={applyingRemoval || placement !== null}
+								disabled={applyingAreaEdit || placement !== null}
 								onclick={beginArea}
 							>
 								{area && area !== "farm" ? "Adjust area" : "Select area"}
@@ -545,30 +732,39 @@
 								<button
 									class="study-kit study-button"
 									type="button"
-									disabled={applyingRemoval || placement !== null}
+									disabled={applyingAreaEdit || placement !== null}
 									onclick={() => {
 										area = "farm";
+										singleTile = undefined;
+										chosenFromFloor = "";
 										selected = undefined;
 										removalFeedback = "";
+										flooringFeedback = "";
 									}}
 								>
 									Select entire farm
 								</button>
 							{/if}
 						{/if}
-						{#if area && !pickingArea}
+						{#if areaScope && !pickingArea}
 							<strong>
-								{area === "farm"
+								{areaScope === "farm"
 									? "Entire farm selected"
-									: `${area.right - area.left + 1} × ${area.bottom - area.top + 1} tiles selected`}
+									: singleTile
+										? `Tile ${singleTile.x}, ${singleTile.y} selected`
+										: `${areaScope.right - areaScope.left + 1} × ${areaScope.bottom - areaScope.top + 1} tiles selected`}
 							</strong>
 							<button
 								class="study-kit study-button"
 								type="button"
-								disabled={applyingRemoval || placement !== null}
+								disabled={applyingAreaEdit || placement !== null}
 								onclick={() => {
 									area = undefined;
+									singleTile = undefined;
+									selected = undefined;
+									chosenFromFloor = "";
 									removalFeedback = "";
+									flooringFeedback = "";
 								}}
 							>
 								Clear selection
@@ -591,13 +787,15 @@
 					{location}
 					{selection}
 					select={(target) => {
-						if (!applyingRemoval && !pickingArea) select(target);
+						if (!applyingAreaEdit && !pickingArea) select(target);
 					}}
 					area={areaOverlay}
 					{areaPrompt}
 					{pickingArea}
 					{pickAreaTile}
 					{removalTargets}
+					{flooringTargets}
+					{floorSwatches}
 					{placement}
 					{placementProblem}
 					{dropOutside}
@@ -721,9 +919,10 @@
 
 				{#each selectedTerrain as marker (marker.id)}
 					<span>
-						{marker.label}{marker.material === undefined
-							? ""
-							: ` (material ${marker.material})`}
+						{flooringMaterialName(marker.material) ??
+							(marker.material === undefined
+								? marker.label
+								: `Flooring (material ${marker.material})`)}
 					</span>
 				{/each}
 				{#if movable || selectedBuilding}
@@ -745,47 +944,178 @@
 		{#if moveError}<p role="alert">{moveError}</p>{/if}
 
 		{#if map && location.removalTargets !== undefined && !placement}
-			<section
+			<div
 				class="selection"
-				aria-label="Remove obstacles"
+				role="group"
+				aria-label="Area action"
 			>
-				<fieldset
-					disabled={area === undefined || pickingArea || applyingRemoval}
-				>
-					<legend>Remove obstacles</legend>
-					{#each targetCounts as group (group.id)}
-						<label>
-							<input
-								type="checkbox"
-								value={group.id}
-								bind:group={groups}
-								onchange={() => {
-									removalFeedback = "";
-								}}
-							/>
-							{group.label}{groups.includes(group.id)
-								? ` (${group.count})`
-								: ""}
-						</label>
-					{/each}
-				</fieldset>
-				<p role="status">
-					{#if pickingArea || area === undefined}
-						Select an area or the entire farm to preview removals.
-					{:else}
-						{removalFeedback ||
-							`${removalTargets.length} selected for removal.`}
-					{/if}
-				</p>
 				<button
 					class="study-kit study-button"
 					type="button"
-					disabled={applyingRemoval || removalTargets.length === 0}
-					onclick={() => void applyRemoval()}
+					aria-pressed={areaTool === "reclaim"}
+					disabled={applyingAreaEdit}
+					onclick={() => (areaTool = "reclaim")}
 				>
-					{applyingRemoval ? "Reclaiming…" : "Reclaim"}
+					Remove obstacles
 				</button>
-			</section>
+
+				<button
+					class="study-kit study-button"
+					type="button"
+					aria-pressed={areaTool === "flooring"}
+					disabled={applyingAreaEdit}
+					onclick={() => (areaTool = "flooring")}
+				>
+					Replace flooring
+				</button>
+			</div>
+
+			{#if areaTool === "reclaim"}
+				<section
+					class="selection"
+					aria-label="Remove obstacles"
+				>
+					<fieldset
+						disabled={areaScope === undefined ||
+							pickingArea ||
+							applyingAreaEdit}
+					>
+						<legend>Remove obstacles</legend>
+						<div class="sprite-palette">
+							{#each targetCounts as group (group.id)}
+								<LocationSpriteButton
+									name={`${group.label} (${group.count})`}
+									pressed={groups.includes(group.id)}
+									sprite={removalSprites[group.id]}
+									fallback={group.label.slice(0, 1)}
+									choose={() => {
+										groups = groups.includes(group.id)
+											? groups.filter((id) => id !== group.id)
+											: [...groups, group.id];
+										removalFeedback = "";
+									}}
+								/>
+							{/each}
+						</div>
+
+						{#if groups.length > 0}
+							<p class="palette-summary">
+								{targetCounts
+									.filter(({ id }) => groups.includes(id))
+									.map(({ label, count }) => `${label} (${count})`)
+									.join(" · ")}
+							</p>
+						{/if}
+					</fieldset>
+					<p role="status">
+						{#if pickingArea || areaScope === undefined}
+							Select a tile or area to preview removals.
+						{:else}
+							{removalFeedback ||
+								`${removalTargets.length} selected for removal.`}
+						{/if}
+					</p>
+					<button
+						class="study-kit study-button"
+						type="button"
+						disabled={applyingRemoval || removalTargets.length === 0}
+						onclick={() => void applyRemoval()}
+					>
+						{applyingRemoval ? "Reclaiming…" : "Reclaim"}
+					</button>
+				</section>
+			{:else}
+				<section
+					class="selection"
+					aria-label="Replace flooring"
+				>
+					<fieldset
+						class="flooring-palette"
+						disabled={areaScope === undefined ||
+							pickingArea ||
+							applyingAreaEdit}
+					>
+						<legend>Replace flooring</legend>
+
+						{#if sourceChoices.length > 0}
+							<fieldset class="material-group">
+								<legend>Replace material</legend>
+
+								<div class="sprite-palette">
+									{#each sourceChoices as material (material.id)}
+										{@render materialButton(
+											material,
+											fromFloor === material.id,
+											false,
+											() => {
+												chosenFromFloor = material.id;
+												if (toFloor === material.id) toFloor = "";
+												flooringFeedback = "";
+											},
+											material.count,
+										)}
+									{/each}
+								</div>
+							</fieldset>
+
+							<fieldset class="material-group">
+								<legend>With material</legend>
+
+								<div class="sprite-palette">
+									{#each flooringMaterials as material (material.id)}
+										{@render materialButton(
+											material,
+											toFloor === material.id,
+											fromFloor === material.id,
+											() => {
+												toFloor = material.id;
+												flooringFeedback = "";
+											},
+										)}
+									{/each}
+								</div>
+							</fieldset>
+						{/if}
+						{#if fromFloor !== "" || toFloor !== ""}
+							{@const source = sourceChoices.find(({ id }) => id === fromFloor)}
+							<p class="palette-summary">
+								{flooringMaterialName(fromFloor) ?? "Choose source"}
+								{#if toFloor !== ""}
+									→ {flooringMaterialName(toFloor)}
+								{:else if source}
+									({source.count})
+								{/if}
+							</p>
+						{/if}
+					</fieldset>
+
+					<p role="status">
+						{#if pickingArea || areaScope === undefined}
+							Select a tile or area to preview flooring replacement.
+						{:else if sourceChoices.length === 0}
+							No supported flooring in the selection.
+						{:else if fromFloor === "" || toFloor === ""}
+							Choose both materials to preview the replacement.
+						{:else if fromFloor === toFloor}
+							Choose a different replacement material.
+						{:else}
+							{flooringFeedback}
+							{flooringTargets.length} flooring {flooringTargets.length === 1
+								? "tile"
+								: "tiles"} to replace.
+						{/if}
+					</p>
+
+					<button
+						class="study-kit study-button"
+						type="button"
+						disabled={applyingAreaEdit || flooringTargets.length === 0}
+						onclick={() => void applyFlooring()}
+					>
+						{applyingFlooring ? "Replacing…" : "Replace"}
+					</button>
+				</section>
+			{/if}
 		{/if}
 
 		{#if location.readable && !placement && !pickingArea && area === undefined}
@@ -880,6 +1210,30 @@
 
 	button {
 		min-height: 44px;
+	}
+
+	.flooring-palette {
+		flex: 1 1 100%;
+		min-inline-size: 0;
+		max-inline-size: 40rem;
+	}
+
+	.material-group {
+		border: 0;
+		margin: 0 0 8px;
+		padding: 0;
+		min-inline-size: 0;
+	}
+
+	.sprite-palette {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 4px;
+	}
+
+	.palette-summary {
+		margin: 6px 0 0;
+		font-size: 0.85rem;
 	}
 
 	label {

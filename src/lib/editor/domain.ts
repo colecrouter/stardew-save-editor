@@ -19,6 +19,10 @@ import {
 	type MoveFarmCoop,
 } from "./location-building-move.ts";
 import {
+	applyFarmFlooringReplacement,
+	type ReplaceFarmFlooring,
+} from "./location-flooring.ts";
+import {
 	applyFarmChestMove,
 	type MoveFarmChest,
 } from "./location-placement.ts";
@@ -94,6 +98,7 @@ export type ResolvedMutation =
 	| MoveFarmChest
 	| MoveFarmCoop
 	| RemoveFarmObstacles
+	| ReplaceFarmFlooring
 	| { type: "bundle-complete"; bundleId: 13 }
 	| { type: "item-place"; ownerId: string; slot: number; item: SavedItem }
 	| {
@@ -188,6 +193,8 @@ export function applyResult(
 		return applyFarmCoopMove(document, mutation);
 	if (mutation.type === "farm-obstacles-remove")
 		return applyFarmRemoval(document, mutation, inventory);
+	if (mutation.type === "farm-flooring-replace")
+		return applyFarmFlooringReplacement(document, mutation);
 	if (isInventoryMutation(mutation))
 		return applyInventoryMutation(document, mutation, inventory);
 	if (mutation.type === "bundle-complete")

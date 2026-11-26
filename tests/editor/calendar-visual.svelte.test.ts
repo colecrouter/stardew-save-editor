@@ -20,6 +20,13 @@ it("previews calendar events without writing until Apply and restores the saved 
 			name: /^13:.*Egg Festival/,
 		});
 		await fireEvent.click(egg);
+		// Keep draft feedback in the calendar while export waits for Apply or Reload.
+		const exportButton = page.getByRole("button", { name: "Export save" });
+		expect(exportButton.hasAttribute("disabled")).toBe(true);
+		expect(page.getByText("Unapplied date draft.")).toBeTruthy();
+		expect(
+			page.queryByText("Apply or reload your date draft before exporting."),
+		).toBeNull();
 		expect(egg.getAttribute("aria-pressed")).toBe("true");
 		expect(
 			within(days)

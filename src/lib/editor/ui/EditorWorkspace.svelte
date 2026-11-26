@@ -438,9 +438,6 @@
 		{#if error}
 			<p role="alert">{error}</p>
 		{/if}
-		{#if exportBlocked}
-			<p role="status">Apply or reload your date draft before exporting.</p>
-		{/if}
 		{#if children}
 			<div class:inventory-section={tab === "inventory"}>
 				{@render children()}

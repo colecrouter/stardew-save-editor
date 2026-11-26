@@ -31,6 +31,11 @@ export type MapSelection =
 			readonly kind: "object";
 			readonly locationId: string;
 			readonly objectIndex: number;
+	  }
+	| {
+			readonly kind: "building";
+			readonly locationId: string;
+			readonly buildingIndex: number;
 	  };
 
 /**
@@ -49,7 +54,7 @@ export type LocationPanel =
  * supply the same candidate, and a missing tile means picking is in progress.
  */
 export interface PlacementDraft {
-	readonly source: Extract<MapSelection, { kind: "object" }>;
+	readonly source: Exclude<MapSelection, { kind: "tile" }>;
 	readonly candidate: MapTile | null;
 }
 

@@ -3,6 +3,7 @@ import { Result } from "effect";
 import type { SaveDocument } from "./domain.ts";
 import type { MapTile } from "./location-interaction.ts";
 import { MutationError } from "./mutation-error.ts";
+import { nonemptyText } from "./plain-data.ts";
 
 type Farm = Extract<
 	NonNullable<NonNullable<SaveDocument["SaveGame"]["locations"]>[number]>,
@@ -34,16 +35,30 @@ export interface FarmOccupancy {
 		y: number;
 		width: number;
 		height: number;
+		label: string;
+		flooring?: boolean;
+		buildingIndex?: number;
 	}[];
 	readonly incomplete: boolean;
 }
 
-export function readFarmOccupancy(farm: Farm): FarmOccupancy {
-	const blocked: { x: number; y: number; width: number; height: number }[] = [];
+export function readFarmOccupancy(
+	farm: Farm,
+	exceptBuilding?: number,
+): FarmOccupancy {
+	const blocked: FarmOccupancy["blocked"][number][] = [];
 	let incomplete = false;
 
 	// Reserve saved footprints even where the base map shows bare ground.
-	function reserve(x?: number, y?: number, width = 1, height = 1) {
+	function reserve(
+		label: string,
+		x?: number,
+		y?: number,
+		width = 1,
+		height = 1,
+		buildingIndex?: number,
+		flooring = false,
+	) {
 		if (
 			x === undefined ||
 			y === undefined ||
@@ -54,13 +69,41 @@ export function readFarmOccupancy(farm: Farm): FarmOccupancy {
 			incomplete = true;
 			return;
 		}
-		blocked.push({ x, y, width, height });
+		blocked.push({
+			x,
+			y,
+			width,
+			height,
+			label,
+			...(flooring ? { flooring } : {}),
+			...(buildingIndex === undefined ? {} : { buildingIndex }),
+		});
 	}
 
-	for (const { key } of farm.objects ?? []) reserve(key.X, key.Y);
-	for (const { key } of farm.terrainFeatures ?? []) reserve(key.X, key.Y);
-	for (const building of farm.buildings ?? []) {
-		if (building === null) continue;
+	for (const { key, value } of farm.objects ?? [])
+		reserve(
+			value.$type === "$unknown"
+				? "an unknown object"
+				: (nonemptyText(value.name) ?? "a placed object"),
+			key.X,
+			key.Y,
+		);
+	for (const { key, value } of farm.terrainFeatures ?? []) {
+		// Keep flooring beneath the footprint intact. The two door approaches
+		// may use saved flooring as a walkable path.
+		const flooring = value.$type === "StardewValley.TerrainFeatures.Flooring";
+		const label = flooring
+			? "flooring"
+			: value.$type === "StardewValley.TerrainFeatures.Tree"
+				? "a tree"
+				: value.$type === "StardewValley.TerrainFeatures.Grass"
+					? "grass"
+					: "a terrain feature";
+		reserve(label, key.X, key.Y, 1, 1, undefined, flooring);
+	}
+	for (const [index, building] of (farm.buildings ?? []).entries()) {
+		// A building may slide partly over its original footprint.
+		if (building === null || index === exceptBuilding) continue;
 		if (
 			building.$type === "$unknown" ||
 			building.tilesWide === undefined ||
@@ -69,10 +112,12 @@ export function readFarmOccupancy(farm: Farm): FarmOccupancy {
 			incomplete = true;
 		else
 			reserve(
+				nonemptyText(building.buildingType) ?? "a building",
 				building.tileX,
 				building.tileY,
 				building.tilesWide,
 				building.tilesHigh,
+				index,
 			);
 	}
 	for (const clump of farm.resourceClumps ?? []) {
@@ -83,14 +128,21 @@ export function readFarmOccupancy(farm: Farm): FarmOccupancy {
 			clump.height === undefined
 		)
 			incomplete = true;
-		else reserve(clump.tile?.X, clump.tile?.Y, clump.width, clump.height);
+		else
+			reserve(
+				"a large obstacle",
+				clump.tile?.X,
+				clump.tile?.Y,
+				clump.width,
+				clump.height,
+			);
 	}
 	for (const bush of farm.largeTerrainFeatures ?? []) {
 		if (bush === null) continue;
 		if (bush.$type === "$unknown") incomplete = true;
 		// Reserve the maximum vanilla bush width so a placement cannot overlap
 		// its footprint even where seasonal and size rules change the collision.
-		else reserve(bush.tilePosition?.X, bush.tilePosition?.Y, 4);
+		else reserve("a bush", bush.tilePosition?.X, bush.tilePosition?.Y, 4);
 	}
 	for (const furniture of farm.furniture ?? []) {
 		if (furniture === null) continue;
@@ -112,6 +164,7 @@ export function readFarmOccupancy(farm: Farm): FarmOccupancy {
 		const x = Math.floor(box.X / 64);
 		const y = Math.floor(box.Y / 64);
 		reserve(
+			"furniture",
 			x,
 			y,
 			Math.ceil((box.X + box.Width) / 64) - x,
@@ -121,17 +174,26 @@ export function readFarmOccupancy(farm: Farm): FarmOccupancy {
 	return { blocked, incomplete };
 }
 
-export function farmOccupancyProblem(occupancy: FarmOccupancy, tile: MapTile) {
+export function farmOccupancyProblem(
+	occupancy: FarmOccupancy,
+	tile: MapTile,
+	exceptBuilding?: number,
+	allowFlooring = false,
+) {
 	if (occupancy.incomplete)
 		return "Some saved objects have unknown footprints.";
-	if (
-		occupancy.blocked.some(
-			({ x, y, width, height }) =>
-				tile.x >= x && tile.y >= y && tile.x < x + width && tile.y < y + height,
-		)
-	)
-		return "That tile is occupied.";
-	return undefined;
+	const blocker = occupancy.blocked.find(
+		({ x, y, width, height, buildingIndex, flooring }) =>
+			(exceptBuilding === undefined || exceptBuilding !== buildingIndex) &&
+			(!allowFlooring || flooring !== true) &&
+			tile.x >= x &&
+			tile.y >= y &&
+			tile.x < x + width &&
+			tile.y < y + height,
+	);
+	return blocker
+		? `Tile (${tile.x}, ${tile.y}) is occupied by ${blocker.label}.`
+		: undefined;
 }
 
 export interface MoveFarmChest {

@@ -2,6 +2,10 @@ import { chestOwnerId, placedObjectPath } from "./chest-storage.ts";
 import type { Location, SaveDocument } from "./domain.ts";
 import { type ItemVisual, readItemVisual } from "./item-presentation.ts";
 import {
+	describeFarmBuilding,
+	type FarmBuildingMarker,
+} from "./location-building-move.ts";
+import {
 	type FarmOccupancy,
 	isMovableChest,
 	readFarmOccupancy,
@@ -35,6 +39,7 @@ export interface LocationInspection {
 	farmMap?: FarmMap | undefined;
 	farmLayout?: string | undefined;
 	removalTargets?: readonly RemovalTarget[] | undefined;
+	buildings?: readonly FarmBuildingMarker[] | undefined;
 	farmOccupancy?: FarmOccupancy | undefined;
 	objects: readonly {
 		index: number;
@@ -89,6 +94,12 @@ export function readLocations(document: SaveDocument): LocationInspection[] {
 			name: label,
 			farmMap,
 			farmLayout,
+			buildings:
+				isFarm && farmMap !== undefined
+					? (location.buildings ?? []).flatMap(
+							(building, index) => describeFarmBuilding(building, index) ?? [],
+						)
+					: undefined,
 			removalTargets:
 				isFarm && farmMap !== undefined
 					? readRemovalTargets(location)

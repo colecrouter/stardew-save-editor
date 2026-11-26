@@ -4,6 +4,7 @@
 	import { tick } from "svelte";
 
 	import type { EditorModel } from "../editor-model.ts";
+	import { buildingDestinationTiles } from "../location-building-move.ts";
 	import type {
 		LocationPanel,
 		MapSelection,
@@ -24,6 +25,7 @@
 
 	let { model }: { model: EditorModel } = $props();
 	const view = useAtomValue(() => model.atomBindings.view);
+	const buildingLabelId = $props.id();
 	let selectedId = $state("");
 	let search = $state("");
 	let map = $state.raw<LocationMap>();
@@ -152,6 +154,14 @@
 				)
 			: undefined,
 	);
+	const selectedBuilding = $derived(
+		selection?.kind === "building"
+			? location?.buildings?.find(
+					(building) => building.index === selection.buildingIndex,
+				)
+			: undefined,
+	);
+
 	const tileObjects = $derived(
 		selection?.kind === "tile"
 			? (location?.objects.filter(
@@ -179,34 +189,59 @@
 	);
 	const movable = $derived(
 		map !== undefined &&
-			selectedObject?.movable === true &&
-			selectedObject.x !== undefined &&
-			selectedObject.y !== undefined &&
-			location?.farmOccupancy?.incomplete === false,
+			location?.farmOccupancy?.incomplete === false &&
+			(selectedBuilding?.doors !== undefined ||
+				(selectedObject?.movable === true &&
+					selectedObject.x !== undefined &&
+					selectedObject.y !== undefined)),
 	);
 	const placementProblem = $derived(
 		placement?.candidate ? destinationProblem(placement.candidate) : undefined,
 	);
 
 	function destinationProblem(tile: MapTile) {
-		if (
-			!map ||
-			!location?.farmOccupancy ||
-			tile.x < 0 ||
-			tile.y < 0 ||
-			tile.x >= map.width ||
-			tile.y >= map.height
-		)
+		if (!map || !location?.farmOccupancy)
 			return "Choose a tile inside the farm.";
-		if (!map.placement.has(tile.y * map.width + tile.x))
-			return "The farm map blocks that tile.";
-		return farmOccupancyProblem(location.farmOccupancy, tile);
+
+		// Both shapes use the same picking interaction. Buildings need buildable
+		// ground under their whole footprint and clear approaches at both doors.
+		const footprint = selectedBuilding
+			? buildingDestinationTiles(selectedBuilding, tile)
+			: [{ ...tile, door: false }];
+		for (const cell of footprint) {
+			if (
+				cell.x < 0 ||
+				cell.y < 0 ||
+				cell.x >= map.width ||
+				cell.y >= map.height
+			)
+				return "The destination must fit on the farm.";
+			const allowed =
+				selectedBuilding && !cell.door ? map.buildable : map.placement;
+			if (!allowed.has(cell.y * map.width + cell.x))
+				return cell.door
+					? `Door approach (${cell.x}, ${cell.y}) is blocked by the map.`
+					: `Tile (${cell.x}, ${cell.y}) is blocked by the farm map.`;
+			const occupied = farmOccupancyProblem(
+				location.farmOccupancy,
+				cell,
+				selectedBuilding?.index,
+				cell.door,
+			);
+			if (occupied !== undefined) return occupied;
+		}
+		return undefined;
 	}
 
 	function beginMove() {
 		// Both gestures bind the current object and revision before picking tiles.
 		const revision = view.current?.revision;
-		if (!movable || selection?.kind !== "object" || revision === undefined)
+		if (
+			!movable ||
+			!selection ||
+			selection.kind === "tile" ||
+			revision === undefined
+		)
 			return;
 		moveError = "";
 		dropOutside = false;
@@ -223,7 +258,7 @@
 	async function confirmMove() {
 		const active = placement;
 		const destination = active?.candidate;
-		const { x, y } = selectedObject ?? {};
+		const { x, y } = selectedBuilding ?? selectedObject ?? {};
 		if (
 			!active ||
 			!destination ||
@@ -240,20 +275,28 @@
 		try {
 			const result = await model.commands.execute(
 				[
-					{
-						type: "farm-chest-move",
-						locationIndex: Number(active.source.locationId),
-						objectIndex: active.source.objectIndex,
-						source: { x, y },
-						destination,
-					},
+					active.source.kind === "building"
+						? {
+								type: "farm-coop-move",
+								locationIndex: Number(active.source.locationId),
+								buildingIndex: active.source.buildingIndex,
+								source: { x, y },
+								destination,
+							}
+						: {
+								type: "farm-chest-move",
+								locationIndex: Number(active.source.locationId),
+								objectIndex: active.source.objectIndex,
+								source: { x, y },
+								destination,
+							},
 				],
 				active.revision,
 			);
 			if (!result || Result.isFailure(result)) {
 				moveError = result
 					? result.failure.message
-					: "The chest could not be moved.";
+					: "The move could not be applied.";
 				return;
 			}
 			draft = null;
@@ -406,7 +449,41 @@
 
 		{#if farmMap !== undefined}
 			{#if map}
-				{#if !placement && location.removalTargets !== undefined}
+				{#if location.buildings?.length}
+					<label>
+						<span id={buildingLabelId}>Find a farm building</span>
+						<select
+							aria-labelledby={buildingLabelId}
+							class="study-input"
+							value={selectedBuilding?.index ?? ""}
+							disabled={placement !== null || pickingArea || applyingRemoval}
+							onchange={(event) => {
+								const { value } = event.currentTarget;
+								if (value !== "")
+									select({
+										kind: "building",
+										locationId: location.id,
+										buildingIndex: Number(value),
+									});
+							}}
+						>
+							<option
+								value=""
+								disabled
+							>
+								Choose a building
+							</option>
+							{#each location.buildings as building (building.index)}
+								<option value={building.index}>
+									{building.name} ({building.x}, {building.y})
+								</option>
+							{/each}
+						</select>
+					</label>
+				{/if}
+				{#if location.removalTargets !== undefined}
+					<!-- Keep toolbar height stable during a captured chest drag so
+					     the viewport does not move under the pointer. -->
 					<div
 						class="selection"
 						role="group"
@@ -416,7 +493,7 @@
 							<button
 								class="study-kit study-button"
 								type="button"
-								disabled={applyingRemoval}
+								disabled={applyingRemoval || placement !== null}
 								onclick={beginArea}
 							>
 								{area && area !== "farm" ? "Adjust area" : "Select area"}
@@ -425,7 +502,7 @@
 								<button
 									class="study-kit study-button"
 									type="button"
-									disabled={applyingRemoval}
+									disabled={applyingRemoval || placement !== null}
 									onclick={() => {
 										area = "farm";
 										selected = undefined;
@@ -445,7 +522,7 @@
 							<button
 								class="study-kit study-button"
 								type="button"
-								disabled={applyingRemoval}
+								disabled={applyingRemoval || placement !== null}
 								onclick={() => {
 									area = undefined;
 									removalFeedback = "";
@@ -499,6 +576,97 @@
 			<p>This location has no map preview.</p>
 		{/if}
 
+		{#if placement}
+			<div class="selection">
+				<button
+					class="study-kit study-button"
+					type="button"
+					disabled={moving ||
+						!placement.candidate ||
+						placementProblem !== undefined}
+					onclick={() => void confirmMove()}
+				>
+					Move here
+				</button>
+				<button
+					class="study-kit study-button"
+					type="button"
+					disabled={moving}
+					onclick={cancelMove}
+				>
+					Cancel
+				</button>
+			</div>
+		{:else if selectedObject || selectedBuilding || selection?.kind === "tile"}
+			<div
+				class="selection"
+				role="status"
+			>
+				{#if selectedObject}
+					<strong>{selectedObject.name}</strong>
+					<span>Tile {selectedObject.x ?? "?"}, {selectedObject.y ?? "?"}</span>
+
+					{#if chest?.supported}
+						<button
+							bind:this={contentsButton}
+							class="study-kit study-button"
+							type="button"
+							onclick={() => void showContents()}
+						>
+							Contents
+						</button>
+					{:else if chest?.reason}
+						<span>{chest.reason}</span>
+					{/if}
+				{:else if selectedBuilding}
+					<strong>{selectedBuilding.name}</strong>
+					<span>Tile {selectedBuilding.x}, {selectedBuilding.y}</span>
+					<span>
+						{selectedBuilding.width} × {selectedBuilding.height} tiles
+					</span>
+					{#if movable}
+						<span>Keep both door approaches clear.</span>
+					{:else}
+						<span>
+							{selectedBuilding.moveReason ??
+								"Some saved obstacles have unknown footprints."}
+						</span>
+					{/if}
+				{:else if selection?.kind === "tile"}
+					<strong>Tile {selection.tile.x}, {selection.tile.y}</strong>
+					{#each tileObjects as object (object.index)}
+						<button
+							class="study-kit study-button"
+							type="button"
+							onclick={() =>
+								select({
+									kind: "object",
+									locationId: location.id,
+									objectIndex: object.index,
+								})}
+						>
+							{object.name}
+						</button>
+					{/each}
+				{/if}
+				{#if movable || selectedBuilding}
+					<button
+						disabled={!movable}
+						class="study-kit study-button"
+						type="button"
+						onclick={() => {
+							beginMove();
+							viewport?.focusMap();
+						}}
+					>
+						Move
+					</button>
+				{/if}
+			</div>
+		{/if}
+
+		{#if moveError}<p role="alert">{moveError}</p>{/if}
+
 		{#if map && location.removalTargets !== undefined && !placement}
 			<section
 				class="selection"
@@ -542,81 +710,6 @@
 				</button>
 			</section>
 		{/if}
-
-		{#if placement}
-			<div class="selection">
-				<button
-					class="study-kit study-button"
-					type="button"
-					disabled={moving ||
-						!placement.candidate ||
-						placementProblem !== undefined}
-					onclick={() => void confirmMove()}
-				>
-					Move here
-				</button>
-				<button
-					class="study-kit study-button"
-					type="button"
-					disabled={moving}
-					onclick={cancelMove}
-				>
-					Cancel
-				</button>
-			</div>
-		{:else if selectedObject || selection?.kind === "tile"}
-			<div
-				class="selection"
-				role="status"
-			>
-				{#if selectedObject}
-					<strong>{selectedObject.name}</strong>
-					<span>Tile {selectedObject.x ?? "?"}, {selectedObject.y ?? "?"}</span>
-					{#if movable}
-						<button
-							class="study-kit study-button"
-							type="button"
-							onclick={() => {
-								beginMove();
-								viewport?.focusMap();
-							}}
-						>
-							Move
-						</button>
-					{/if}
-					{#if chest?.supported}
-						<button
-							bind:this={contentsButton}
-							class="study-kit study-button"
-							type="button"
-							onclick={() => void showContents()}
-						>
-							Contents
-						</button>
-					{:else if chest?.reason}
-						<span>{chest.reason}</span>
-					{/if}
-				{:else if selection?.kind === "tile"}
-					<strong>Tile {selection.tile.x}, {selection.tile.y}</strong>
-					{#each tileObjects as object (object.index)}
-						<button
-							class="study-kit study-button"
-							type="button"
-							onclick={() =>
-								select({
-									kind: "object",
-									locationId: location.id,
-									objectIndex: object.index,
-								})}
-						>
-							{object.name}
-						</button>
-					{/each}
-				{/if}
-			</div>
-		{/if}
-
-		{#if moveError}<p role="alert">{moveError}</p>{/if}
 
 		{#if location.readable && !placement && !pickingArea && area === undefined}
 			<label>

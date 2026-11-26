@@ -8,6 +8,7 @@ export interface LocationMap {
 	readonly tileSize: number;
 	/** Tiles cleared by the base map. Saved records are checked separately. */
 	readonly placement: ReadonlySet<number>;
+	readonly buildable: ReadonlySet<number>;
 }
 
 /** Load a supported farm and its tilesheets from the dev server's workspace export. */
@@ -54,10 +55,13 @@ export async function loadFarmMap(
 	const context = canvas.getContext("2d");
 	if (!context) throw new Error("Map drawing is unavailable.");
 
-	// Start from visible, non-water ground and exclude every overlay cell.
-	// Paths marks game-side features, so it can block placement without drawing.
-	const layers = [...map.querySelectorAll(":scope > layer")];
+	// Paths stores spawn hints. Actual spawned objects and terrain are checked
+	// against the save, so an empty spawn tile stays eligible after Reclaim.
+	const layers = [...map.querySelectorAll(":scope > layer")].filter(
+		(layer) => layer.getAttribute("name") !== "Paths",
+	);
 	const ground = new Set<number>();
+	const buildable = new Set<number>();
 	const overlays = new Set<number>();
 	const sheets = [...map.querySelectorAll(":scope > tileset")];
 	const images: ImageBitmap[] = [];
@@ -94,7 +98,26 @@ export async function loadFarmMap(
 					)
 					.map((tile) => Number(tile.getAttribute("id"))),
 			);
-			tilesets.push({ first, count, columns, image, restricted });
+			// Stardew accepts explicitly buildable ground or diggable ground
+			// unless the tileset explicitly marks it unbuildable.
+			const buildableIds = new Set(
+				[...sheet.querySelectorAll("tile")]
+					.filter((tile) => {
+						const property = tile
+							.querySelector('property[name="Buildable"]')
+							?.getAttribute("value")
+							?.toLowerCase();
+						return (
+							property === "t" ||
+							property === "true" ||
+							(property !== "f" &&
+								property !== "false" &&
+								tile.querySelector('property[name="Diggable"]') !== null)
+						);
+					})
+					.map((tile) => Number(tile.getAttribute("id"))),
+			);
+			tilesets.push({ first, count, columns, image, restricted, buildableIds });
 		}
 		if (layers.length === 0) throw new Error("The map has no scenery layers.");
 		for (const layer of layers) {
@@ -115,10 +138,11 @@ export async function loadFarmMap(
 				if (!set || !Number.isInteger(gid))
 					throw new Error("The map contains an unsupported tile.");
 				const tile = gid - set.first;
-				if (layerName === "Back" && !set.restricted.has(tile))
+				if (layerName === "Back" && !set.restricted.has(tile)) {
 					ground.add(index);
+					if (set.buildableIds.has(tile)) buildable.add(index);
+				}
 				if (layerName !== "Back") overlays.add(index);
-				if (layerName === "Paths") continue;
 				context.drawImage(
 					set.image,
 					(tile % set.columns) * tileSize,
@@ -149,6 +173,9 @@ export async function loadFarmMap(
 		if (x >= 0 && x < width && y >= 0 && y < height)
 			overlays.add(y * width + x);
 	}
-	for (const index of overlays) ground.delete(index);
-	return { canvas, width, height, tileSize, placement: ground };
+	for (const index of overlays) {
+		ground.delete(index);
+		buildable.delete(index);
+	}
+	return { canvas, width, height, tileSize, placement: ground, buildable };
 }

@@ -2,6 +2,8 @@
 	import { onMount, untrack } from "svelte";
 	import { SvelteMap } from "svelte/reactivity";
 
+	import { asset } from "$app/paths";
+
 	import type { LocationInspection } from "../location-inspection.ts";
 	import {
 		type MapCamera,
@@ -105,9 +107,24 @@
 			? markers.find(({ object }) => object.index === selection.objectIndex)
 			: undefined,
 	);
-	const selectedTile = $derived(
-		selection?.kind === "tile" ? selection.tile : selectedMarker,
+	const buildings = $derived(location.buildings ?? []);
+	const selectedBuilding = $derived(
+		selection?.kind === "building"
+			? buildings.find((building) => building.index === selection.buildingIndex)
+			: undefined,
 	);
+	const selectedTile = $derived(
+		selection?.kind === "tile"
+			? selection.tile
+			: (selectedBuilding ?? selectedMarker),
+	);
+	// These shipped sheets depict the same vanilla tiers the move supports.
+	// Saved footprints remain authoritative even when the sprite extends above.
+	const coopSprites: ReadonlyMap<string, string> = new Map([
+		["Coop", asset("assets/buildings/Coop.png")],
+		["Big Coop", asset("assets/buildings/Big Coop.png")],
+		["Deluxe Coop", asset("assets/buildings/Deluxe Coop.png")],
+	]);
 
 	$effect(() => {
 		background.getContext("2d")?.drawImage(map.canvas, 0, 0);
@@ -300,6 +317,42 @@
 			return;
 		}
 		const matches = markers.filter(({ x, y }) => x === tile.x && y === tile.y);
+		// Objects keep hit priority at shared tiles (for example a chest on a
+		// porch). A lone building footprint otherwise selects the building.
+		const buildingMatches = buildings.filter(
+			(building) =>
+				tile.x >= building.x &&
+				tile.x < building.x + building.width &&
+				tile.y >= building.y &&
+				tile.y < building.y + building.height,
+		);
+		// A coop roof rises four tiles above the footprint. Match it only
+		// when the tap did not already hit an object or building footprint.
+		const roofMatches =
+			matches.length === 0 && buildingMatches.length === 0
+				? buildings.filter(
+						(row) =>
+							coopSprites.has(row.name) &&
+							tile.x >= row.x &&
+							tile.x < row.x + row.width &&
+							tile.y >= row.y - 4 &&
+							tile.y < row.y,
+					)
+				: [];
+		const buildingsHit =
+			buildingMatches.length > 0 ? buildingMatches : roofMatches;
+		const building =
+			matches.length === 0 && buildingsHit.length === 1
+				? buildingsHit[0]
+				: undefined;
+		if (building) {
+			select({
+				kind: "building",
+				locationId: location.id,
+				buildingIndex: building.index,
+			});
+			return;
+		}
 		// Ambiguous tiles stay selected as tiles. The inspector lists all matching records.
 		const object = matches.length === 1 ? matches[0]?.object : undefined;
 		select(
@@ -477,6 +530,29 @@
 			></div>
 		{/each}
 
+		{#each buildings as building (building.index)}
+			{@const sprite = coopSprites.get(building.name)}
+			<div
+				class="building-footprint"
+				style:left={`${building.x * map.tileSize}px`}
+				style:top={`${building.y * map.tileSize}px`}
+				style:width={`${building.width * map.tileSize}px`}
+				style:height={`${building.height * map.tileSize}px`}
+			>
+				{#if sprite}
+					<!-- The static coop frame occupies seven source tiles vertically.
+					     Keep the sprite strip below the frame out of the map viewport. -->
+					<span class="coop-art">
+						<img
+							src={sprite}
+							alt=""
+							draggable="false"
+						/>
+					</span>
+				{/if}
+			</div>
+		{/each}
+
 		{#each markers as { object, x, y } (object.index)}
 			<div
 				class="marker"
@@ -501,12 +577,26 @@
 				class:blocked={placementProblem !== undefined}
 				style:left={`${placement.candidate.x * map.tileSize}px`}
 				style:top={`${placement.candidate.y * map.tileSize}px`}
+				style:width={selectedBuilding
+					? `${selectedBuilding.width * map.tileSize}px`
+					: undefined}
+				style:height={selectedBuilding
+					? `${selectedBuilding.height * map.tileSize}px`
+					: undefined}
 			>
-				<BackpackItemVisual
-					visual={selectedMarker?.object.visual}
-					size={map.tileSize}
-				/>
+				{#if !selectedBuilding}<BackpackItemVisual
+						visual={selectedMarker?.object.visual}
+						size={map.tileSize}
+					/>{/if}
 			</div>
+			{#each selectedBuilding?.doors ?? [] as door (`${door.x},${door.y}`)}
+				<div
+					class="candidate door-approach"
+					class:blocked={placementProblem !== undefined}
+					style:left={`${(placement.candidate.x + door.x) * map.tileSize}px`}
+					style:top={`${(placement.candidate.y + door.y) * map.tileSize}px`}
+				></div>
+			{/each}
 		{/if}
 
 		{#if pickingArea && areaCursor}
@@ -522,6 +612,12 @@
 				class="selected"
 				style:left={`${selectedTile.x * map.tileSize}px`}
 				style:top={`${selectedTile.y * map.tileSize}px`}
+				style:width={selectedBuilding
+					? `${selectedBuilding.width * map.tileSize}px`
+					: undefined}
+				style:height={selectedBuilding
+					? `${selectedBuilding.height * map.tileSize}px`
+					: undefined}
 			></div>
 		{/if}
 	</div>
@@ -541,7 +637,9 @@
 			class="placement-status"
 			role="status"
 		>
-			<strong>Move {selectedMarker?.object.name ?? "chest"}</strong>
+			<strong>
+				Move {selectedBuilding?.name ?? selectedMarker?.object.name ?? "chest"}
+			</strong>
 			{#if placement.candidate}
 				<span>Tile {placement.candidate.x}, {placement.candidate.y}</span>
 				{#if placementProblem}<span>
@@ -555,7 +653,7 @@
 		</div>
 	{/if}
 
-	{#if movable && selectedTile}
+	{#if movable && selectedTile && !selectedBuilding}
 		{@const anchor = tileToViewport(camera, selectedTile)}
 		<button
 			class="study-kit study-button move-handle"
@@ -710,6 +808,31 @@
 		z-index: 1;
 		border-color: #ffb9a5;
 		background: #972d2370;
+	}
+
+	.building-footprint {
+		position: absolute;
+		box-sizing: border-box;
+		border: 1px dashed #664621;
+		background: #a87d4444;
+	}
+
+	.coop-art {
+		position: absolute;
+		bottom: 0;
+		width: 100%;
+		aspect-ratio: 6 / 7;
+		overflow: hidden;
+	}
+
+	.coop-art img {
+		display: block;
+		width: 100%;
+		image-rendering: pixelated;
+	}
+
+	.door-approach {
+		border-style: dashed;
 	}
 
 	.candidate {

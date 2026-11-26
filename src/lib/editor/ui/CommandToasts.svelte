@@ -5,7 +5,7 @@
 
 	let { model }: { model: EditorModel } = $props();
 	const notice = useAtomValue(() => model.atomBindings.notice);
-	// One session-level presenter handles defects from every command. A newer
+	// One session-level presenter handles notices from every command. A newer
 	// message resets the timeout, and unmount releases it without retaining a save.
 	$effect(() => {
 		const message = notice.current;
@@ -22,7 +22,10 @@
 	aria-live="polite"
 >
 	{#if notice.current}
-		<div class="toast">
+		<div
+			class="toast"
+			class:success={notice.current.successRevision !== undefined}
+		>
 			<p>{notice.current.message}</p>
 			<button
 				type="button"
@@ -50,6 +53,9 @@
 		color: #351b0e;
 		border: 3px solid #8a1c19;
 		box-shadow: 0 4px 12px #0005;
+	}
+	.toast.success {
+		border-color: #42724a;
 	}
 	p {
 		margin: 0 0 8px;

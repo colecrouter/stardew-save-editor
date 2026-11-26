@@ -390,9 +390,10 @@ export const makeEditorModel = (
 		const pendingAtom = Atom.make(0).pipe(Atom.keepAlive);
 		// Notifications belong to the session boundary, not individual features.
 		// Store only a generic message; no document or operation payload is logged.
-		const noticeAtom = Atom.make<{ id: number; message: string } | undefined>(
-			undefined,
-		).pipe(Atom.keepAlive);
+		const noticeAtom = Atom.make<
+			| { id: number; message: string; successRevision?: number | undefined }
+			| undefined
+		>(undefined).pipe(Atom.keepAlive);
 		let noticeId = 0;
 		// Commands and the file-owned observer share one defect reporter. A failed
 		// observer cannot safely retry arbitrary projection code; tell the owner to
@@ -476,6 +477,14 @@ export const makeEditorModel = (
 					revision: publication.chestRevision,
 					projection: chests,
 				};
+				// A success message describes the revision that produced it.
+				// Undo and subsequent edits dismiss it before publishing newer data.
+				const notice = registry.get(noticeAtom);
+				if (
+					notice?.successRevision !== undefined &&
+					notice.successRevision < next.revision
+				)
+					registry.set(noticeAtom, undefined);
 				registry.set(viewAtom, next);
 				// Selection belongs to the file, not a page index. Preserve its
 				// stable ID through revisions; only unavailable/ambiguous owners
@@ -854,6 +863,15 @@ export const makeEditorModel = (
 					});
 				},
 			} satisfies Readable<string | undefined>,
+			showNotice: (message: string, kind: "success" | "error") => {
+				if (!closed && registry)
+					registry.set(noticeAtom, {
+						id: ++noticeId,
+						message,
+						successRevision:
+							kind === "success" ? registry.get(viewAtom)?.revision : undefined,
+					});
+			},
 			dismissNotice: () => registry?.set(noticeAtom, undefined),
 			// Promise/rejection adapters remain for the original comparator tests.
 			// Rendered editing flows use commands and never inspect defect causes.

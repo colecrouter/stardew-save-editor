@@ -9,10 +9,11 @@
 	import type { EditorModel } from "../editor-model.ts";
 	import { buildingDestinationTiles } from "../location-building-move.ts";
 	import {
+		type FlooringFillMode,
 		flooringMaterialName,
 		flooringMaterials,
 		flooringSourceChoices,
-		planFlooringReplacement,
+		planFlooringPlacement,
 	} from "../location-flooring.ts";
 	import { furnitureAtTile } from "../location-inspection.ts";
 	import type {
@@ -64,12 +65,21 @@
 	let pickingArea = $state(false);
 	let groups = $state<RemovalGroup[]>([]);
 	let applyingRemoval = $state(false);
-	let removalFeedback = $state("");
-	let areaTool = $state<"reclaim" | "flooring">("reclaim");
+	let areaTool = $state<"reclaim" | "place">("reclaim");
 	let chosenFromFloor = $state("");
 	let toFloor = $state("");
+	let placeMode = $state<"empty" | "overwrite" | "replace">("empty");
+	const placeModes = [
+		{ id: "empty", label: "Empty tiles" },
+		{ id: "overwrite", label: "Overwrite flooring" },
+		{ id: "replace", label: "Replace only" },
+	] as const;
+	let fillMode = $state<FlooringFillMode>("area");
+	const fillModes = [
+		{ id: "area", label: "Whole selection" },
+		{ id: "perimeter", label: "Perimeter" },
+	] as const;
 	let applyingFlooring = $state(false);
-	let flooringFeedback = $state("");
 	const applyingAreaEdit = $derived(applyingRemoval || applyingFlooring);
 
 	let selected = $state.raw<{
@@ -89,9 +99,15 @@
 	// Count only flooring inside the current selection, auto-selecting the
 	// source when the player has exactly one supported material to choose from.
 	const sourceChoices = $derived(
-		areaScope === undefined
+		areaScope === undefined || placeMode !== "replace" || !map
 			? []
-			: flooringSourceChoices(location?.terrain ?? [], areaScope),
+			: flooringSourceChoices(
+					location?.terrain ?? [],
+					areaScope === "farm"
+						? { left: 0, top: 0, right: map.width - 1, bottom: map.height - 1 }
+						: areaScope,
+					fillMode,
+				),
 	);
 	const fromFloor = $derived(
 		chosenFromFloor ||
@@ -133,17 +149,31 @@
 			height: 96,
 		},
 	};
-	// Preview only the active tool against the shared selection.
-	const flooringTargets = $derived(
-		areaTool === "flooring" && !pickingArea && areaScope !== undefined
-			? planFlooringReplacement(
-					location?.terrain ?? [],
+	// All modes preview the exact tiles that the same command will apply.
+	const flooringPreview = $derived(
+		areaTool === "place" &&
+			!pickingArea &&
+			areaScope !== undefined &&
+			map &&
+			location?.farmOccupancy
+			? planFlooringPlacement(
+					map,
+					location.farmOccupancy,
+					location.terrain ?? [],
 					areaScope,
-					fromFloor,
 					toFloor,
+					placeMode === "replace"
+						? { kind: "replace", from: fromFloor }
+						: { kind: placeMode },
+					fillMode,
 				)
-			: [],
+			: { tiles: [], blocked: 0 },
 	);
+	const replacements = $derived(
+		flooringPreview.tiles.filter(({ previous }) => previous !== undefined)
+			.length,
+	);
+	const additions = $derived(flooringPreview.tiles.length - replacements);
 	const targetCounts = $derived(
 		removalGroups.map((group) => ({
 			...group,
@@ -459,12 +489,10 @@
 	}
 
 	function beginArea() {
-		flooringFeedback = "";
 		// Every swipe still belongs to the camera. Only deliberate tile taps
 		// advance the two-corner picker.
 		firstCorner = undefined;
 		pickingArea = true;
-		removalFeedback = "";
 		selected = undefined;
 		viewport?.focusMap();
 	}
@@ -501,7 +529,6 @@
 			return;
 		// Reject a changed revision so Apply always matches the visible preview.
 		applyingRemoval = true;
-		removalFeedback = "";
 		try {
 			const result = await model.commands.execute(
 				[
@@ -515,47 +542,48 @@
 				revision,
 			);
 			if (result && Result.isSuccess(result)) {
-				removalFeedback = `Removed ${count} ${count === 1 ? "obstacle" : "obstacles"}.`;
-			} else if (result) removalFeedback = result.failure.message;
+				model.showNotice(
+					`Removed ${count} ${count === 1 ? "obstacle" : "obstacles"}.`,
+					"success",
+				);
+			} else if (result) model.showNotice(result.failure.message, "error");
 		} finally {
 			applyingRemoval = false;
 		}
 	}
 
-	async function applyFlooring() {
+	async function placeFlooring() {
 		const revision = view.current?.revision;
-		const scope = areaScope;
-		const count = flooringTargets.length;
+		const { tiles } = flooringPreview;
 		if (
 			!location ||
-			scope === undefined ||
 			revision === undefined ||
-			count === 0 ||
+			tiles.length === 0 ||
 			applyingAreaEdit
 		)
 			return;
 
-		// Capture the same revision and materials as the preview before queuing
-		// a single history operation for every matching tile.
+		// Bind additions and replacements to the same revision and Undo entry.
 		applyingFlooring = true;
-		chosenFromFloor = fromFloor;
-		flooringFeedback = "";
+		if (placeMode === "replace") chosenFromFloor = fromFloor;
 		try {
 			const result = await model.commands.execute(
 				[
 					{
-						type: "farm-flooring-replace",
+						type: "farm-flooring-place",
 						locationIndex: Number(location.id),
-						scope,
-						from: fromFloor,
-						to: toFloor,
+						material: toFloor,
+						tiles,
 					},
 				],
 				revision,
 			);
 			if (result && Result.isSuccess(result))
-				flooringFeedback = `Replaced ${count} flooring ${count === 1 ? "tile" : "tiles"}.`;
-			else if (result) flooringFeedback = result.failure.message;
+				model.showNotice(
+					`Placed flooring on ${tiles.length} ${tiles.length === 1 ? "tile" : "tiles"}.`,
+					"success",
+				);
+			else if (result) model.showNotice(result.failure.message, "error");
 		} finally {
 			applyingFlooring = false;
 		}
@@ -577,7 +605,6 @@
 	}
 
 	function select(target: MapSelection) {
-		flooringFeedback = "";
 		// A tap changes the inspected record and supplies one tile to both
 		// area actions. Keep explicit rectangles reserved for the area picker.
 		area = undefined;
@@ -605,7 +632,6 @@
 			y < map.height
 				? { x, y }
 				: undefined;
-		removalFeedback = "";
 		if (location) selected = { location, target };
 		cancelMove();
 		panel = { kind: "inspector" };
@@ -643,6 +669,23 @@
 	/>
 {/snippet}
 
+{#snippet destinationPalette(
+	value: string,
+	excluded: string,
+	choose: (id: string) => void,
+)}
+	<div class="sprite-palette">
+		{#each flooringMaterials as material (material.id)}
+			{@render materialButton(
+				material,
+				value === material.id,
+				material.id === excluded,
+				() => choose(material.id),
+			)}
+		{/each}
+	</div>
+{/snippet}
+
 <h1>Locations</h1>
 
 <!-- Keep the viewport mounted while Contents replaces the inspector so its
@@ -666,8 +709,6 @@
 					singleTile = undefined;
 					chosenFromFloor = "";
 					groups = [];
-					removalFeedback = "";
-					flooringFeedback = "";
 					cancelAreaPick();
 				}}
 			>
@@ -738,8 +779,6 @@
 										singleTile = undefined;
 										chosenFromFloor = "";
 										selected = undefined;
-										removalFeedback = "";
-										flooringFeedback = "";
 									}}
 								>
 									Select entire farm
@@ -763,8 +802,6 @@
 									singleTile = undefined;
 									selected = undefined;
 									chosenFromFloor = "";
-									removalFeedback = "";
-									flooringFeedback = "";
 								}}
 							>
 								Clear selection
@@ -794,7 +831,7 @@
 					{pickingArea}
 					{pickAreaTile}
 					{removalTargets}
-					{flooringTargets}
+					flooringTargets={flooringPreview.tiles}
 					{floorSwatches}
 					{placement}
 					{placementProblem}
@@ -950,7 +987,7 @@
 				aria-label="Area action"
 			>
 				<button
-					class="study-kit study-button"
+					class="study-kit study-button area-mode-button"
 					type="button"
 					aria-pressed={areaTool === "reclaim"}
 					disabled={applyingAreaEdit}
@@ -960,22 +997,23 @@
 				</button>
 
 				<button
-					class="study-kit study-button"
+					class="study-kit study-button area-mode-button"
 					type="button"
-					aria-pressed={areaTool === "flooring"}
+					aria-pressed={areaTool === "place"}
 					disabled={applyingAreaEdit}
-					onclick={() => (areaTool = "flooring")}
+					onclick={() => (areaTool = "place")}
 				>
-					Replace flooring
+					Place
 				</button>
 			</div>
 
 			{#if areaTool === "reclaim"}
 				<section
-					class="selection"
+					class="selection area-action-panel"
 					aria-label="Remove obstacles"
 				>
 					<fieldset
+						class="area-action-palette"
 						disabled={areaScope === undefined ||
 							pickingArea ||
 							applyingAreaEdit}
@@ -992,7 +1030,6 @@
 										groups = groups.includes(group.id)
 											? groups.filter((id) => id !== group.id)
 											: [...groups, group.id];
-										removalFeedback = "";
 									}}
 								/>
 							{/each}
@@ -1007,37 +1044,84 @@
 							</p>
 						{/if}
 					</fieldset>
-					<p role="status">
-						{#if pickingArea || areaScope === undefined}
-							Select a tile or area to preview removals.
-						{:else}
-							{removalFeedback ||
-								`${removalTargets.length} selected for removal.`}
-						{/if}
-					</p>
-					<button
-						class="study-kit study-button"
-						type="button"
-						disabled={applyingRemoval || removalTargets.length === 0}
-						onclick={() => void applyRemoval()}
-					>
-						{applyingRemoval ? "Reclaiming…" : "Reclaim"}
-					</button>
+					<div class="area-action-footer">
+						<p
+							class="area-action-status"
+							role="status"
+						>
+							{#if pickingArea || areaScope === undefined}
+								Select a tile or area to preview removals.
+							{:else if groups.length === 0}
+								Choose obstacles to remove.
+							{:else if removalTargets.length === 0}
+								No matching obstacles in this selection.
+							{:else}
+								{removalTargets.length} selected for removal.
+							{/if}
+						</p>
+
+						<button
+							class="study-kit study-button area-action-apply"
+							type="button"
+							disabled={applyingRemoval || removalTargets.length === 0}
+							onclick={() => void applyRemoval()}
+						>
+							{applyingRemoval ? "Reclaiming…" : "Reclaim"}
+						</button>
+					</div>
 				</section>
 			{:else}
 				<section
-					class="selection"
-					aria-label="Replace flooring"
+					class="selection area-action-panel"
+					aria-label="Place flooring"
 				>
 					<fieldset
-						class="flooring-palette"
+						class="area-action-palette"
 						disabled={areaScope === undefined ||
 							pickingArea ||
 							applyingAreaEdit}
 					>
-						<legend>Replace flooring</legend>
+						<legend>Place flooring</legend>
 
-						{#if sourceChoices.length > 0}
+						<fieldset class="material-group">
+							<legend>Placement behavior</legend>
+
+							<div class="sprite-palette">
+								{#each placeModes as mode (mode.id)}
+									<button
+										class="study-kit study-button area-mode-button"
+										type="button"
+										aria-pressed={placeMode === mode.id}
+										onclick={() => (placeMode = mode.id)}
+									>
+										{mode.label}
+									</button>
+								{/each}
+							</div>
+						</fieldset>
+
+						<fieldset class="material-group">
+							<legend>Pattern</legend>
+
+							<div class="sprite-palette">
+								{#each fillModes as mode (mode.id)}
+									<button
+										class="study-kit study-button area-mode-button"
+										type="button"
+										aria-pressed={fillMode === mode.id}
+										onclick={() => {
+											fillMode = mode.id;
+											chosenFromFloor = "";
+										}}
+									>
+										{mode.label}
+									</button>
+								{/each}
+							</div>
+						</fieldset>
+
+						{#if placeMode === "replace" && sourceChoices.length > 0}
+							{@const source = sourceChoices.find(({ id }) => id === fromFloor)}
 							<fieldset class="material-group">
 								<legend>Replace material</legend>
 
@@ -1050,70 +1134,78 @@
 											() => {
 												chosenFromFloor = material.id;
 												if (toFloor === material.id) toFloor = "";
-												flooringFeedback = "";
 											},
 											material.count,
 										)}
 									{/each}
 								</div>
-							</fieldset>
 
-							<fieldset class="material-group">
-								<legend>With material</legend>
-
-								<div class="sprite-palette">
-									{#each flooringMaterials as material (material.id)}
-										{@render materialButton(
-											material,
-											toFloor === material.id,
-											fromFloor === material.id,
-											() => {
-												toFloor = material.id;
-												flooringFeedback = "";
-											},
-										)}
-									{/each}
-								</div>
-							</fieldset>
-						{/if}
-						{#if fromFloor !== "" || toFloor !== ""}
-							{@const source = sourceChoices.find(({ id }) => id === fromFloor)}
-							<p class="palette-summary">
-								{flooringMaterialName(fromFloor) ?? "Choose source"}
-								{#if toFloor !== ""}
-									→ {flooringMaterialName(toFloor)}
-								{:else if source}
-									({source.count})
+								{#if source}
+									<p class="palette-summary">{source.name} ({source.count})</p>
 								{/if}
-							</p>
+							</fieldset>
 						{/if}
+
+						<fieldset class="material-group">
+							<legend>Material to place</legend>
+
+							{@render destinationPalette(
+								toFloor,
+								placeMode === "replace" ? fromFloor : "",
+								(id) => {
+									toFloor = id;
+								},
+							)}
+
+							{#if toFloor !== ""}
+								<p class="palette-summary">{flooringMaterialName(toFloor)}</p>
+							{/if}
+						</fieldset>
 					</fieldset>
 
-					<p role="status">
-						{#if pickingArea || areaScope === undefined}
-							Select a tile or area to preview flooring replacement.
-						{:else if sourceChoices.length === 0}
-							No supported flooring in the selection.
-						{:else if fromFloor === "" || toFloor === ""}
-							Choose both materials to preview the replacement.
-						{:else if fromFloor === toFloor}
-							Choose a different replacement material.
-						{:else}
-							{flooringFeedback}
-							{flooringTargets.length} flooring {flooringTargets.length === 1
-								? "tile"
-								: "tiles"} to replace.
-						{/if}
-					</p>
+					<!-- Keep the preview in the footer so it never wraps alongside the palette. -->
+					<div class="area-action-footer">
+						<p
+							class="area-action-status"
+							role="status"
+						>
+							{#if pickingArea || areaScope === undefined}
+								Select a tile or area to preview flooring placement.
+							{:else if location.farmOccupancy?.incomplete}
+								Some saved objects have unknown footprints.
+							{:else if placeMode === "replace" && sourceChoices.length === 0}
+								No supported flooring matches the selection pattern.
+							{:else if placeMode === "replace" && fromFloor === ""}
+								Choose the material to replace.
+							{:else if toFloor === ""}
+								Choose a material to place.
+							{:else if placeMode === "replace" && fromFloor === toFloor}
+								Choose a different replacement material.
+							{:else}
+								{#if additions > 0}
+									<span class="preview-add">{additions} to add</span>
+								{/if}
+								{#if replacements > 0}
+									<span class="preview-replace">{replacements} to replace</span>
+								{/if}
+								{#if flooringPreview.blocked > 0}
+									<span>{flooringPreview.blocked} blocked</span>
+								{/if}
+								{#if flooringPreview.tiles.length === 0 && flooringPreview.blocked === 0}
+									No flooring changes in this selection.
+								{/if}
+							{/if}
+						</p>
 
-					<button
-						class="study-kit study-button"
-						type="button"
-						disabled={applyingAreaEdit || flooringTargets.length === 0}
-						onclick={() => void applyFlooring()}
-					>
-						{applyingFlooring ? "Replacing…" : "Replace"}
-					</button>
+						<button
+							class="study-kit study-button area-action-apply"
+							type="button"
+							disabled={applyingAreaEdit || flooringPreview.tiles.length === 0}
+							onclick={() => void placeFlooring()}
+						>
+							{applyingFlooring ? "Placing…" : "Place flooring"}
+						</button>
+					</div>
 				</section>
 			{/if}
 		{/if}
@@ -1212,10 +1304,45 @@
 		min-height: 44px;
 	}
 
-	.flooring-palette {
-		flex: 1 1 100%;
+	.area-action-panel {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr);
+		container-type: inline-size;
+	}
+
+	.area-action-footer {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) auto;
+		align-items: center;
+		gap: 8px 12px;
+		padding-top: 8px;
+		border-top: 1px solid #ba8c52;
+	}
+
+	.area-action-status {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 4px 12px;
+		margin: 0;
+		font-size: 0.85rem;
+	}
+
+	.area-action-status span,
+	.area-action-apply {
+		white-space: nowrap;
+	}
+
+	/* A narrow panel gives the summary its own row and keeps the action
+	   full width. Preview counts can change without squeezing the button. */
+	@container (max-width: 28rem) {
+		.area-action-footer {
+			grid-template-columns: minmax(0, 1fr);
+		}
+	}
+
+	.area-action-palette {
 		min-inline-size: 0;
-		max-inline-size: 40rem;
 	}
 
 	.material-group {
@@ -1229,6 +1356,26 @@
 		display: flex;
 		flex-wrap: wrap;
 		gap: 4px;
+	}
+
+	/* Change the pressed surface within the existing button bounds so mode
+	   changes keep the palette and preview controls in place. */
+	.area-mode-button[aria-pressed="true"] {
+		--button-ink: #183e3a;
+		--button-border: #37797c;
+		--button-surface: #d4e9df;
+		--button-hover: #e2f2e9;
+		--button-top: #b5d2c8;
+		--button-bottom: #92bab0;
+	}
+
+	/* Match the preview colors while keeping the text readable on the panel. */
+	.preview-add {
+		border-bottom: 3px solid #35bdc2;
+	}
+
+	.preview-replace {
+		border-bottom: 3px solid #ba67d2;
 	}
 
 	.palette-summary {

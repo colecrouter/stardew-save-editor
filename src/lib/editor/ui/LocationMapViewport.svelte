@@ -7,6 +7,7 @@
 	import { readBuildingSprite } from "$lib/ui/building-sprite.ts";
 	import { uiAtlases } from "$lib/ui/uiAssets.ts";
 
+	import type { FlooringPlacementTile } from "../location-flooring.ts";
 	import {
 		furnitureAtTile,
 		type LocationInspection,
@@ -63,7 +64,7 @@
 		pickingArea: boolean;
 		pickAreaTile: (tile: MapTile) => void;
 		removalTargets: readonly RemovalTarget[];
-		flooringTargets: readonly TerrainMarker[];
+		flooringTargets: readonly FlooringPlacementTile[];
 		floorSwatches: ReadonlyMap<string, { x: number; y: number }> | undefined;
 		movable: boolean;
 		beginMove: () => void;
@@ -830,9 +831,10 @@
 
 		<!-- Mark the matching tiles above scenery so previews stay readable
 		     wherever a placed object or canopy overlaps a path. -->
-		{#each flooringTargets as tile (tile.id)}
+		{#each flooringTargets as tile (`${tile.x},${tile.y}`)}
 			<div
 				class="flooring-target"
+				class:replace={tile.previous !== undefined}
 				style:left={`${tile.x * map.tileSize}px`}
 				style:top={`${tile.y * map.tileSize}px`}
 			></div>
@@ -1138,6 +1140,11 @@
 		border: 1px solid #b0fcff;
 		background: #35bdc266;
 		pointer-events: none;
+	}
+
+	.flooring-target.replace {
+		border-color: #f1c6ff;
+		background: #ba67d288;
 	}
 
 	.canopy-layer {

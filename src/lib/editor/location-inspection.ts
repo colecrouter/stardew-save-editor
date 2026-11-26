@@ -13,6 +13,7 @@ import {
 } from "./location-placement.ts";
 import { readRemovalTargets, type RemovalTarget } from "./location-removal.ts";
 import { readFarmTerrain, type TerrainMarker } from "./location-terrain.ts";
+import { fenceFrame, type WorldFrame } from "./location-world-art.ts";
 import { isKnownLocation, savedType } from "./saved-types.ts";
 
 // Match the vanilla farm IDs to their exported map names. Meadowlands uses
@@ -75,6 +76,7 @@ export interface LocationInspection {
 		chestOwnerId?: string | undefined;
 		movable?: boolean | undefined;
 		visual?: ItemVisual | undefined;
+		worldFrame?: WorldFrame | undefined;
 	}[];
 }
 
@@ -168,6 +170,10 @@ export function readLocations(document: SaveDocument): LocationInspection[] {
 						? chestOwnerId(placedObjectPath(path, index))
 						: undefined,
 				visual: farmMap === undefined ? undefined : readItemVisual(value),
+				worldFrame:
+					farmMap !== undefined && value.$type === "StardewValley.Fence"
+						? fenceFrame(value.itemId, value.whichType, value.isGate === true)
+						: undefined,
 				x: key.X,
 				y: key.Y,
 				name:

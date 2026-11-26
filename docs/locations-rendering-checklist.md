@@ -37,8 +37,9 @@ References · [Map loader](../src/lib/editor/location-map.ts) ·
       tilled soil from planted soil. A simple plant marker can cover every crop
       until crop-specific art is available.
 - [x] **Grass, wild trees, fruit trees and bushes.** Project them from the save
-      independently of Reclaim. Show tapped trees and protected or unsupported
-      terrain wherever the saved location is readable.
+      independently of Reclaim. Use representative spring art for known trees,
+      grass and common bushes. Keep the saved footprint separate from canopy
+      overhang and retain markers for unavailable art.
 - [x] **Large obstacles and giant crops.** Use the full saved footprint for both
       eligible obstacles and records outside Reclaim's scope. A recognizable
       footprint can stand in for the exact sprite.
@@ -63,8 +64,9 @@ References · [Generated save contracts](../generated/save-format/save.ts) ·
       Use a named footprint otherwise. Mirror flipped frames and keep art
       overhang separate from the occupied tiles.
 - [ ] **Placed object art.** Use representative world sprites for common objects
-      where inventory art is misleading. Keep a named tile marker for unresolved
-      art. Fences and gates need visible tile positions before exact connectivity.
+      where inventory art is misleading. Idle craftables, isolated fence posts
+      and closed gates have world frames. Exact connectivity and active states
+      are still pending.
 - [ ] **Overlap and hit testing.** Show ground under objects and make overlapping
       records individually reachable. Object and building selections show
       underlying flooring and furniture directly. Use saved footprints for location and

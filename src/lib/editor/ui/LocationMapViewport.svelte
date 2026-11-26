@@ -4,6 +4,7 @@
 
 	import { asset } from "$app/paths";
 	import { readBuildingSprite } from "$lib/ui/building-sprite.ts";
+	import { uiAtlases } from "$lib/ui/uiAssets.ts";
 
 	import {
 		furnitureAtTile,
@@ -22,6 +23,7 @@
 	import type { LocationMap } from "../location-map.ts";
 	import type { RemovalTarget, TileArea } from "../location-removal.ts";
 	import { loadFloorSwatches } from "../location-terrain.ts";
+	import type { WorldFrame } from "../location-world-art.ts";
 	import BackpackItemVisual from "./BackpackItemVisual.svelte";
 
 	let {
@@ -76,7 +78,8 @@
 		start: ViewportPoint;
 		started: boolean;
 	}>();
-	const furnitureSheet = `url("${asset("assets/furniture.png")}")`;
+	const furnitureSheet = asset("assets/furniture.png");
+	const craftableSheet = asset(uiAtlases.craftables.path);
 	const scale = $derived(camera.pixelsPerTile / map.tileSize);
 	// Keep only records with usable tile keys on the map. Every record remains
 	// available in the list, including duplicates and incomplete coordinates.
@@ -91,10 +94,35 @@
 				y >= 0 &&
 				x < map.width &&
 				y < map.height
-				? [{ object, x, y }]
+				? [{ object, x, y, frame: objectFrame(object) }]
 				: [];
 		}),
 	);
+	/** The inventory atlas carries the idle world frame for simple craftables. */
+	function objectFrame(
+		object: LocationInspection["objects"][number],
+	): WorldFrame | undefined {
+		if (object.worldFrame) return object.worldFrame;
+		const visual = object.visual;
+		if (
+			visual?.sheet !== "Craftables.png" ||
+			visual.layers.length !== 1 ||
+			visual.layers[0]?.tint !== undefined ||
+			visual.sourceRect.width !== 16 ||
+			visual.sourceRect.height !== 32
+		)
+			return undefined;
+		const { x, y, width, height } = visual.sourceRect;
+		return {
+			url: craftableSheet,
+			sourceX: x,
+			sourceY: y,
+			width,
+			height,
+			offsetX: 0,
+			offsetY: -1,
+		};
+	}
 	// Saved terrain is separate from both the base raster and Reclaim targets.
 	const terrainMarkers = $derived(
 		(location.terrain ?? []).filter(
@@ -102,6 +130,48 @@
 				x >= 0 && y >= 0 && x + width <= map.width && y + height <= map.height,
 		),
 	);
+	// Workspace sheets can be missing from a partial export. Keep the
+	// existing marker or icon until its world sheet has loaded.
+	const loadedWorldSheets = new SvelteMap<string, boolean>();
+	$effect(() => {
+		const urls = new Set([
+			...terrainMarkers.flatMap(
+				({ frames }) => frames?.map(({ url }) => url) ?? [],
+			),
+			...markers.flatMap(({ object }) =>
+				object.worldFrame ? [object.worldFrame.url] : [],
+			),
+		]);
+		const listeners = new AbortController();
+		for (const url of urls) {
+			if (untrack(() => loadedWorldSheets.has(url))) continue;
+			const image = new Image();
+			image.addEventListener("load", () => loadedWorldSheets.set(url, true), {
+				once: true,
+				signal: listeners.signal,
+			});
+			image.addEventListener("error", () => loadedWorldSheets.set(url, false), {
+				once: true,
+				signal: listeners.signal,
+			});
+			image.src = url;
+		}
+		return () => listeners.abort();
+	});
+
+	const foliage = $derived(
+		terrainMarkers
+			.filter(
+				({ frames }) =>
+					frames?.some(({ url }) => loadedWorldSheets.get(url) === true) ===
+					true,
+			)
+			.sort(
+				(a, b) =>
+					Number(a.kind !== "grass") - Number(b.kind !== "grass") || a.y - b.y,
+			),
+	);
+	const foliageIds = $derived(new Set(foliage.map(({ id }) => id)));
 	let floorSwatches =
 		$state.raw<Awaited<ReturnType<typeof loadFloorSwatches>>>();
 	onMount(() => {
@@ -142,6 +212,45 @@
 			};
 		}),
 	);
+	// Sort by the front row of each saved footprint, including multi-tile
+	// buildings and furniture. Sprite overhang does not change depth.
+	const foreground = $derived(
+		[
+			...buildings.map((building) => ({
+				kind: "building" as const,
+				key: `building:${building.index}`,
+				y: building.y + building.height - 1,
+				building,
+			})),
+			...(location.furniture ?? []).map((item) => ({
+				kind: "furniture" as const,
+				key: `furniture:${item.index}`,
+				y: item.y + item.height - 1,
+				item,
+			})),
+			...foliage.flatMap((marker) =>
+				(marker.frames ?? []).flatMap((frame, index) =>
+					frame.tallSapling === true
+						? [
+								{
+									kind: "sapling" as const,
+									key: `${marker.id}:${index}`,
+									marker,
+									frame,
+									y: marker.y,
+								},
+							]
+						: [],
+				),
+			),
+			...markers.map((marker) => ({
+				...marker,
+				kind: "object" as const,
+				key: `object:${marker.object.index}`,
+			})),
+		].sort((a, b) => a.y - b.y),
+	);
+
 	const selectedBuilding = $derived(
 		selection?.kind === "building"
 			? buildings.find((building) => building.index === selection.buildingIndex)
@@ -344,7 +453,7 @@
 			return;
 		}
 		const matches = markers.filter(({ x, y }) => x === tile.x && y === tile.y);
-		// Placed objects draw last and keep priority. Furniture in front of
+		// Placed objects keep hit priority on their own tile. Furniture overlapping
 		// a building opens the tile inspector so both records stay reachable.
 		const furnitureHit =
 			furnitureAtTile(location.furniture ?? [], tile).length > 0;
@@ -499,6 +608,28 @@
 	}
 </script>
 
+{#snippet worldArt(
+	x: number,
+	y: number,
+	frame: WorldFrame,
+	kind: string,
+	name: string,
+)}
+	<div
+		class="world-art"
+		class:flipped={frame.flipped === true}
+		data-world-art={kind}
+		data-world-name={name}
+		style:left={`${(x + frame.offsetX) * map.tileSize}px`}
+		style:top={`${(y + frame.offsetY) * map.tileSize}px`}
+		style:width={`${frame.width}px`}
+		style:height={`${frame.height}px`}
+		style:--sprite={`url("${frame.url}")`}
+		style:--sprite-position={`${-frame.sourceX}px ${-frame.sourceY}px`}
+		style:--sprite-scale={spriteScale}
+	></div>
+{/snippet}
+
 <!-- The map owns custom pointer and arrow-key navigation. Named object
      controls remain available in the inspector outside the application region. -->
 <!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
@@ -529,7 +660,7 @@
 			height={map.canvas.height}
 		></canvas>
 
-		{#each terrainMarkers as marker (marker.id)}
+		{#each terrainMarkers.filter(({ id }) => !foliageIds.has(id)) as marker (marker.id)}
 			{@const swatch =
 				marker.material === undefined
 					? undefined
@@ -548,6 +679,21 @@
 				style:width={`${marker.width * map.tileSize}px`}
 				style:height={`${marker.height * map.tileSize}px`}
 			></div>
+		{/each}
+
+		<!-- Keep trunks and low foliage opaque below the placed objects. -->
+		{#each foliage as marker (marker.id)}
+			{#each marker.frames ?? [] as frame, index (index)}
+				{#if !frame.canopy && !frame.tallSapling}
+					{@render worldArt(
+						marker.x,
+						marker.y,
+						frame,
+						marker.kind,
+						marker.label,
+					)}
+				{/if}
+			{/each}
 		{/each}
 
 		<div class="grid"></div>
@@ -571,79 +717,114 @@
 			></div>
 		{/each}
 
-		{#each buildings as building (building.index)}
-			<div
-				class="building-footprint"
-				style:left={`${building.x * map.tileSize}px`}
-				style:top={`${building.y * map.tileSize}px`}
-				style:width={`${building.width * map.tileSize}px`}
-				style:height={`${building.height * map.tileSize}px`}
-			>
-				<span class="footprint-label">{building.name}</span>
-			</div>
-
-			{#if building.sprite}
-				{@const sprite = building.sprite}
+		{#each foreground as entry (entry.key)}
+			{#if entry.kind === "building"}
+				{@const { building } = entry}
 				<div
-					class="building-art"
-					data-building-art={building.name}
-					style:left={`${building.artX * map.tileSize}px`}
-					style:top={`${building.artY * map.tileSize}px`}
-					style:width={`${sprite.width}px`}
-					style:height={`${sprite.height}px`}
-					style:--sprite={`url("${sprite.url}")`}
-					style:--sprite-position={`${-sprite.x}px ${-sprite.y}px`}
-					style:--sprite-scale={spriteScale}
-				></div>
-			{/if}
-		{/each}
-
-		{#each location.furniture ?? [] as item (item.index)}
-			{#if item.sprite}
-				{@const sprite = item.sprite}
-				<div
-					class="furniture-art"
-					data-furniture={item.name}
-					class:flipped={sprite.flipped}
-					style:left={`${sprite.x * map.tileSize}px`}
-					style:top={`${sprite.y * map.tileSize}px`}
-					style:width={`${sprite.width}px`}
-					style:height={`${sprite.height}px`}
-					style:--sprite={furnitureSheet}
-					style:--sprite-position={`${-sprite.sourceX}px ${-sprite.sourceY}px`}
-					style:--sprite-scale={spriteScale}
-				></div>
-			{:else}
-				<div
-					class="furniture-footprint"
-					data-furniture={item.name}
-					style:left={`${item.x * map.tileSize}px`}
-					style:top={`${item.y * map.tileSize}px`}
-					style:width={`${item.width * map.tileSize}px`}
-					style:height={`${item.height * map.tileSize}px`}
+					class="building-footprint"
+					style:left={`${building.x * map.tileSize}px`}
+					style:top={`${building.y * map.tileSize}px`}
+					style:width={`${building.width * map.tileSize}px`}
+					style:height={`${building.height * map.tileSize}px`}
 				>
-					<span class="footprint-label">{item.name}</span>
+					<span class="footprint-label">{building.name}</span>
 				</div>
+
+				{#if building.sprite}
+					{@const sprite = building.sprite}
+					{@render worldArt(
+						building.x,
+						building.y,
+						{
+							url: sprite.url,
+							sourceX: sprite.x,
+							sourceY: sprite.y,
+							width: sprite.width,
+							height: sprite.height,
+							offsetX: building.artX - building.x,
+							offsetY: building.artY - building.y,
+						},
+						"building",
+						building.name,
+					)}
+				{/if}
+			{:else if entry.kind === "furniture"}
+				{@const { item } = entry}
+				{#if item.sprite}
+					{@const sprite = item.sprite}
+					{@render worldArt(
+						item.x,
+						item.y,
+						{
+							...sprite,
+							url: furnitureSheet,
+							offsetX: sprite.x - item.x,
+							offsetY: sprite.y - item.y,
+						},
+						"furniture",
+						item.name,
+					)}
+				{:else}
+					<div
+						class="furniture-footprint"
+						data-furniture={item.name}
+						style:left={`${item.x * map.tileSize}px`}
+						style:top={`${item.y * map.tileSize}px`}
+						style:width={`${item.width * map.tileSize}px`}
+						style:height={`${item.height * map.tileSize}px`}
+					>
+						<span class="footprint-label">{item.name}</span>
+					</div>
+				{/if}
+			{:else if entry.kind === "sapling"}
+				{@render worldArt(
+					entry.marker.x,
+					entry.y,
+					entry.frame,
+					entry.marker.kind,
+					entry.marker.label,
+				)}
+			{:else}
+				{@const { object, x, y, frame } = entry}
+				{#if frame && (!object.worldFrame || loadedWorldSheets.get(frame.url))}
+					{@render worldArt(x, y, frame, "object", object.name)}
+				{:else}
+					<div
+						class="marker"
+						style:left={`${x * map.tileSize}px`}
+						style:top={`${y * map.tileSize}px`}
+					>
+						{#if object.visual}
+							<BackpackItemVisual
+								visual={object.visual}
+								size={map.tileSize}
+							/>
+						{:else}
+							<!-- Keep unsprited records pickable without hiding the map under icons. -->
+							<span class="unknown-marker"></span>
+						{/if}
+					</div>
+				{/if}
 			{/if}
 		{/each}
 
-		{#each markers as { object, x, y } (object.index)}
-			<div
-				class="marker"
-				style:left={`${x * map.tileSize}px`}
-				style:top={`${y * map.tileSize}px`}
-			>
-				{#if object.visual}
-					<BackpackItemVisual
-						visual={object.visual}
-						size={map.tileSize}
-					/>
-				{:else}
-					<!-- Keep unsprited records pickable without hiding the map under icons. -->
-					<span class="unknown-marker"></span>
-				{/if}
-			</div>
-		{/each}
+		<!-- Composite crowns together before applying opacity so overlapping
+		     trees cannot build up opacity. Selection and edit overlays stay above. -->
+		<div class="canopy-layer">
+			{#each foliage as marker (marker.id)}
+				{#each marker.frames ?? [] as frame, index (index)}
+					{#if frame.canopy}
+						{@render worldArt(
+							marker.x,
+							marker.y,
+							frame,
+							marker.kind,
+							marker.label,
+						)}
+					{/if}
+				{/each}
+			{/each}
+		</div>
 
 		{#if placement?.candidate}
 			<div
@@ -936,8 +1117,14 @@
 		background: #a87d4444;
 	}
 
-	.building-art,
-	.furniture-art {
+	.canopy-layer {
+		position: absolute;
+		inset: 0;
+		opacity: 0.38;
+		pointer-events: none;
+	}
+
+	.world-art {
 		position: absolute;
 		background-image: var(--sprite);
 		background-position: var(--sprite-position);
@@ -947,7 +1134,7 @@
 		transform-origin: top left;
 	}
 
-	.furniture-art.flipped {
+	.world-art.flipped {
 		transform: translateX(calc(100% * var(--sprite-scale)))
 			scale(calc(-1 * var(--sprite-scale)), var(--sprite-scale));
 	}

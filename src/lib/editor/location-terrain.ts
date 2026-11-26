@@ -1,4 +1,11 @@
 import type { readFarmOccupancy } from "./location-placement.ts";
+import {
+	bushFrames,
+	fruitTreeFrames,
+	springGrassFrames,
+	wildTreeFrames,
+	type WorldFrame,
+} from "./location-world-art.ts";
 import { record } from "./plain-data.ts";
 
 type Farm = Parameters<typeof readFarmOccupancy>[0];
@@ -20,6 +27,7 @@ export interface TerrainMarker {
 		| "unknown";
 	readonly label: string;
 	readonly material?: string;
+	readonly frames?: readonly WorldFrame[];
 	readonly planted?: boolean;
 	readonly hiddenSoil?: boolean;
 }
@@ -98,6 +106,10 @@ export function readFarmTerrain(farm: Farm): TerrainMarker[] {
 						id,
 						kind: "grass",
 						label: value.$type.endsWith(".Grass") ? "Grass" : "Cosmetic plant",
+						...(value.$type === "StardewValley.TerrainFeatures.Grass" &&
+						(value.grassType ?? 1) === 1
+							? { frames: springGrassFrames }
+							: {}),
 					},
 					key.X,
 					key.Y,
@@ -109,17 +121,38 @@ export function readFarmTerrain(farm: Farm): TerrainMarker[] {
 						id,
 						kind: "tree",
 						label: value.tapped === true ? "Tapped tree" : "Wild tree",
+						frames: wildTreeFrames(
+							value.treeType,
+							value.growthStage,
+							value.stump === true,
+							value.flipped === true,
+						),
 					},
 					key.X,
 					key.Y,
 				);
 				break;
 			case "StardewValley.TerrainFeatures.FruitTree":
-				add({ id, kind: "fruit-tree", label: "Fruit tree" }, key.X, key.Y);
+				add(
+					{
+						id,
+						kind: "fruit-tree",
+						label: "Fruit tree",
+						frames: fruitTreeFrames(
+							value.treeId,
+							value.treeType,
+							value.growthStage,
+							value.stump === true,
+							value.flipped === true,
+						),
+					},
+					key.X,
+					key.Y,
+				);
 				break;
 			case "StardewValley.TerrainFeatures.Bush":
 				add(
-					{ id, kind: "bush", label: "Bush" },
+					{ id, kind: "bush", label: "Bush", frames: bushFrames(value.size) },
 					key.X,
 					key.Y,
 					bushWidth(value.size),
@@ -163,7 +196,12 @@ export function readFarmTerrain(farm: Farm): TerrainMarker[] {
 	for (const [index, bush] of (farm.largeTerrainFeatures ?? []).entries()) {
 		if (!bush || bush.$type === "$unknown") continue;
 		add(
-			{ id: `bush:${index}`, kind: "bush", label: "Bush" },
+			{
+				id: `bush:${index}`,
+				kind: "bush",
+				label: "Bush",
+				frames: bushFrames(bush.size),
+			},
 			bush.tilePosition?.X,
 			bush.tilePosition?.Y,
 			bushWidth(bush.size),

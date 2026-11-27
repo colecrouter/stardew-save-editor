@@ -106,6 +106,8 @@ export function dictionary(
 			// Structured keys (Vector2, FarmerPair) are equal when every identity
 			// field is strictly equal. NaN never equals itself under ===, so a key
 			// containing it cannot duplicate anything and is left out of the index.
+			// The filter runs after the key codec's object schema has accepted the
+			// key, so record() sees an object here even for a single-entry dictionary.
 			const fields = record(keyValue);
 			const parts = identityFields.map((field) => fields[field]);
 			return parts.some((part) => Number.isNaN(part)) ? undefined : parts;

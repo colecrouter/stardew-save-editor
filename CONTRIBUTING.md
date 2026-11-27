@@ -331,10 +331,11 @@ validation of arbitrary user input. Family-specific consumers still narrow the
 item discriminator before accessing subtype fields.
 
 `npm run check` runs linting, native TypeScript checks for the app, tests, and
-tooling, and native Svelte checks for application and test components. Use
-`npm run check:types`, `npm run check:tests`, or `npm run check:tooling` for the
-individual scopes. `check:tooling` also checks `tsconfig.tools.json`, which owns
-Node browser-automation scripts and their explicitly typed page callbacks.
+tooling, and native Svelte checks for application and test components. Run
+`npm test` to execute the test suite. Use `npm run check:types` or
+`npm run check:tooling` for the individual app and tooling scopes.
+`check:tooling` also checks `tsconfig.tools.json`, which owns Node
+browser-automation scripts and their explicitly typed page callbacks.
 The separate TypeScript configurations keep browser globals
 from silently acquiring Node declarations from test or build code. The root
 `tsconfig.json` is an empty solution that lets editors discover the app, tests
@@ -364,7 +365,7 @@ Effect code, also inspect the complete diagnostic stream:
 
 ```bash
 npm run effect:diagnostics:tests
-npm run check:tests
+npm run check
 npm test -- tests/engine
 ```
 

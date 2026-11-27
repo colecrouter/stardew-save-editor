@@ -39,9 +39,12 @@ it("groups appearance input and preserves the captured farmer when selection cha
 		);
 		await fireEvent.click(page.getByRole("link", { name: "Farm settings" }));
 		await fireEvent.click(page.getByRole("link", { name: "Character" }));
-		expect(page.getByRole("textbox", { name: "Favorite thing" })).toBe(
-			firstFavorite,
-		);
+		// Returning to the route mounts fresh controls backed by the same save.
+		const remountedFavorite = page.getByRole("textbox", {
+			name: "Favorite thing",
+		});
+		expect(remountedFavorite).not.toBe(firstFavorite);
+		expect(remountedFavorite).toHaveProperty("value", "Host favorite");
 		const name = page.getByRole("textbox", { name: "Name" });
 		await fireEvent.focus(name);
 		await fireEvent.input(name, { target: { value: "A" } });
@@ -143,6 +146,7 @@ it("keeps profile edits across internal tabs and links clothing to Inventory", a
 		expect(favorite.value).toBe("Moonflowers");
 		await opened.model.commands.undo();
 		await waitFor(() => expect(favorite.value).not.toBe("Moonflowers"));
+		const restoredFavorite = favorite.value;
 		await fireEvent.click(
 			page.getByRole("button", { name: "Edit clothing in Inventory" }),
 		);
@@ -155,9 +159,10 @@ it("keeps profile edits across internal tabs and links clothing to Inventory", a
 				.getByRole("tab", { name: "Profile & appearance" })
 				.getAttribute("aria-selected"),
 		).toBe("true");
-		expect(page.getByRole("textbox", { name: "Favorite thing" })).toBe(
-			favorite,
-		);
+		// Returning from Inventory restores the saved value in a fresh profile.
+		expect(
+			page.getByRole("textbox", { name: "Favorite thing" }),
+		).toHaveProperty("value", restoredFavorite);
 	} finally {
 		page.unmount();
 		await opened.close();

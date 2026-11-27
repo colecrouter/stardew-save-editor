@@ -20,7 +20,7 @@ import { tinyFixture } from "../helpers/editor-document.ts";
 // These assertions are checked by the application compiler, independently of
 // runtime examples. Weakening field/value correlation makes this tuple invalid.
 type Assert<Truth extends true> = Truth;
-// check:tests owns this compile-time proof; each Assert entry must remain true.
+// npm run check owns this compile-time proof; each Assert entry must remain true.
 // Runtime cases below verify presentation behavior independently.
 export type InventoryReviewTypeChecks = [
 	Assert<

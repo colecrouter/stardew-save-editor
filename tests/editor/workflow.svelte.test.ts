@@ -118,15 +118,25 @@ describe("full-save application workflow", () => {
 					createWritable: () => Promise<{
 						write: () => Promise<void>;
 						close: () => Promise<void>;
+						abort: () => Promise<void>;
 					}>;
 				}>
 			>()
-			.mockRejectedValueOnce(new Error("Browser write failed"))
+			// Let the first picker succeed so the failure happens at the write step.
+			.mockResolvedValueOnce({
+				createWritable: () =>
+					Promise.resolve({
+						write: () => Promise.reject(new Error("Browser write failed")),
+						close: () => Promise.resolve(),
+						abort: () => Promise.resolve(),
+					}),
+			})
 			.mockResolvedValue({
 				createWritable: () =>
 					Promise.resolve({
 						write: () => Promise.resolve(),
 						close: () => Promise.resolve(),
+						abort: () => Promise.resolve(),
 					}),
 			});
 		Object.defineProperty(window, "showSaveFilePicker", {
@@ -158,12 +168,16 @@ describe("full-save application workflow", () => {
 				expect(page.getByRole("button", { name: "Export save" })).toBeTruthy(),
 			);
 			await fireEvent.click(page.getByRole("button", { name: "Export save" }));
-			await waitFor(() =>
-				expect(
-					page.getByText("The save could not be downloaded. Please try again."),
-				).toBeTruthy(),
+			// The recovery toast exposes the write failure and owns the retry action.
+			const recovery = await page.findByRole("region", {
+				name: "Export recovery",
+			});
+			expect(recovery.textContent).toContain(
+				"The edited save couldn't be written to the selected file. Your edits are still open.",
 			);
-			await fireEvent.click(page.getByRole("button", { name: "Export save" }));
+			await fireEvent.click(
+				page.getByRole("button", { name: "Try exporting again" }),
+			);
 			await waitFor(() => expect(picker).toHaveBeenCalledTimes(2));
 			await waitFor(() =>
 				expect(
@@ -173,7 +187,7 @@ describe("full-save application workflow", () => {
 				).toBe(false),
 			);
 			expect(
-				page.queryByText("The save could not be downloaded. Please try again."),
+				page.queryByRole("region", { name: "Export recovery" }),
 			).toBeNull();
 			expect(
 				page.getByText(/The original file could not be backed up/),

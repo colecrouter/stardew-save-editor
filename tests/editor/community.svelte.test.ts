@@ -7,7 +7,7 @@ import { openTestEditor } from "../helpers/open-editor.ts";
 import { fixtureXml } from "./fixtures";
 import WorkspaceHarness from "./WorkspaceHarness.svelte";
 
-it("edits donations, changes membership and projects with complete Undo and preserved room selection", async () => {
+it("edits donations, changes membership and projects with Undo and a saved route that survives navigation", async () => {
 	const opened = await openTestEditor(new TextEncoder().encode(fixtureXml));
 	const page = render(WorkspaceHarness, { model: opened.model });
 	try {
@@ -68,9 +68,8 @@ it("edits donations, changes membership and projects with complete Undo and pres
 		await fireEvent.click(
 			page.getByRole("link", { name: "Community Center & Joja" }),
 		);
-		expect(
-			page.getByRole("region", { name: "Joja development plan" }),
-		).toBeTruthy();
+		// Wait for the lazy panel to remount and render the committed Joja route.
+		await page.findByRole("region", { name: "Joja development plan" });
 	} finally {
 		page.unmount();
 		await opened.close();

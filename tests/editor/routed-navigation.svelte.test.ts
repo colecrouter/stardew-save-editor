@@ -1,8 +1,17 @@
 import { expect, it } from "vitest";
 import { commands } from "vitest/browser";
 
+import {
+	exportDocument,
+	tinyEditorFixture,
+} from "../helpers/editor-document.ts";
+
 it("guards local drafts and preserves applied edits through panel history", async () => {
-	const result = await commands.checkEditorRouting();
+	// Calendar and farm fields are enough for history coverage. The full-save
+	// codec tests own large-file processing.
+	const result = await commands.checkEditorRouting(
+		exportDocument(tinyEditorFixture()),
+	);
 	expect(result.warning).toMatch(/discard its unapplied changes/);
 	expect(result.reloadWarning).toBe(result.warning);
 	expect(result.canceled).toEqual({

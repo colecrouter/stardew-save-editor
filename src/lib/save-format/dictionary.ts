@@ -98,6 +98,12 @@ export function dictionary(
 		comparison != null && comparison !== "ordinalIgnoreCase"
 			? Object.keys(keyIdentities[comparison].fields)
 			: undefined;
+	// An empty identity would give every key an empty path, which the index walk
+	// never records, so all keys would pass as unique. The pairwise check this
+	// replaced treated such keys as all equal. No layout is empty today; fail
+	// when the codec is built rather than silently accept duplicates later.
+	if (identityFields?.length === 0)
+		throw new Error(`Key identity for ${comparison} has no fields`);
 	const identityParts = (keyValue: unknown): readonly unknown[] | undefined => {
 		// Case-insensitive string keys compare by their ordinal uppercase form.
 		if (comparison === "ordinalIgnoreCase")

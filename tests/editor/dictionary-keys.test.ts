@@ -43,6 +43,15 @@ describe("Vector2 keys", () => {
 		]);
 	});
 
+	it("accepts keys that share only the second field", () => {
+		// (1,2) and (3,2) take different first-level branches, so a matching Y
+		// leaf under another X must not count as a duplicate.
+		accepts(codec, [
+			{ X: 1, Y: 2 },
+			{ X: 3, Y: 2 },
+		]);
+	});
+
 	it("rejects a repeated key", () => {
 		rejects(codec, [
 			{ X: 1, Y: 2 },

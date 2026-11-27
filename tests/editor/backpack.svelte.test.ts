@@ -329,7 +329,7 @@ describe("full-save backpack workflow", () => {
 		}
 	});
 
-	it("invalid quantity restores the committed value, selection survives navigation, and tools/unknown items stay read-only", async () => {
+	it("invalid quantity restores the committed value and tools/unknown items stay read-only after reopening Inventory", async () => {
 		const document = parser.parse(fixtureXml);
 		// Keep an unresolved mod item in a real slot to check the fallback without
 		// requiring catalog metadata or constructing a legacy item proxy.
@@ -366,11 +366,14 @@ describe("full-save backpack workflow", () => {
 			expect(actions(page)).toBe(0);
 			await fireEvent.click(page.getByRole("link", { name: "Farm settings" }));
 			await fireEvent.click(page.getByRole("link", { name: "Inventory" }));
+			// Inventory remounts on return. Reopen the slot to verify that the
+			// rejected edit left the saved quantity intact.
+			await fireEvent.click(
+				await page.findByRole("button", { name: "Slot 5: Parsnip" }),
+			);
 			expect(
-				page
-					.getByRole("button", { name: "Slot 5: Parsnip" })
-					.getAttribute("aria-pressed"),
-			).toBe("true");
+				inspector(page).getByRole("spinbutton", { name: "Quantity" }),
+			).toHaveProperty("value", "1");
 			await fireEvent.click(
 				page.getByRole("button", { name: /Slot 2: .*Pickaxe/ }),
 			);

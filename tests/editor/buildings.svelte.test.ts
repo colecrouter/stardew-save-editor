@@ -110,10 +110,16 @@ it("groups animal typing, edits outside residents and applies upgrade/adoption w
 		);
 		await opened.model.commands.redo();
 		await page.findByRole("article", { name: "Puddles animal" });
-		// Navigation retains the selected building while ending any active field gesture.
+		// Reopen the edited building after navigation remounts the roster.
 		await fireEvent.click(page.getByRole("link", { name: "Farm settings" }));
 		await fireEvent.click(
 			page.getByRole("link", { name: "Buildings & animals" }),
+		);
+		const reopenedNav = await page.findByRole("navigation", {
+			name: "Buildings",
+		});
+		await fireEvent.click(
+			within(reopenedNav).getByRole("button", { name: /^Big Coop / }),
 		);
 		expect(page.getByRole("heading", { name: "Big Coop" })).toBeTruthy();
 	} finally {

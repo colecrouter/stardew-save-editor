@@ -10,7 +10,7 @@ interface IndexedSave {
 	requiredMaybe: number | undefined;
 }
 
-// Compile-only ownership proof, checked by check:tests rather than invoked by
+// Compile-only ownership proof, checked by npm run check rather than invoked by
 // Vitest: malformed calls must be rejected before they can mutate saved state.
 export function optionalFieldTypeContract(saved: IndexedSave): void {
 	// @ts-expect-error -- Required named fields cannot be cleared through an optional-field writer.

@@ -255,6 +255,11 @@ describe("character progression controls", () => {
 			await fireEvent.click(
 				opened.page.getByRole("link", { name: "Character" }),
 			);
+			// The remounted Character panel opens on Profile; reopen Skills to
+			// verify that the queued XP edit still belongs to the host.
+			await fireEvent.click(
+				opened.page.getByRole("tab", { name: "Skills & progression" }),
+			);
 			await waitFor(() =>
 				expect(
 					requireInstance(

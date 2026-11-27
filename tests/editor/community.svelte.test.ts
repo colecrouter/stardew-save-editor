@@ -69,7 +69,7 @@ it("edits donations, changes membership and projects with complete Undo and pres
 			page.getByRole("link", { name: "Community Center & Joja" }),
 		);
 		expect(
-			page.getByRole("region", { name: "Joja development plan" }),
+			await page.findByRole("region", { name: "Joja development plan" }),
 		).toBeTruthy();
 	} finally {
 		page.unmount();

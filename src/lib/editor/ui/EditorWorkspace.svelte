@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { SvelteSet } from "svelte/reactivity";
+	import { SvelteMap, SvelteSet } from "svelte/reactivity";
 
 	import { afterNavigate, onNavigate } from "$app/navigation";
 	import { resolve } from "$app/paths";
@@ -104,8 +104,10 @@
 	);
 	// The guide links take the user away from its panel. Keep checkmarks with
 	// this save so returning to the guide shows the steps already completed.
+	// Other panels keep their selections the same way, through panel memory.
 	setEditorPanel({
 		reconstructionSteps: new SvelteSet<string>(),
+		panelMemory: new SvelteMap<string, unknown>(),
 		get model() {
 			return model;
 		},

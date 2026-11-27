@@ -4,6 +4,7 @@
 	import StudyTabs from "../../ui/kit/StudyTabs.svelte";
 	import type { EditorModel } from "../editor-model.ts";
 	import { createFarmerSelectionField } from "../farmer-selection.ts";
+	import { rememberPanelState } from "../panel-context.ts";
 	import AppearancePanel from "./AppearancePanel.svelte";
 	import CharacterProgression from "./CharacterProgression.svelte";
 	import FarmerSelector from "./fields/FarmerSelector.svelte";
@@ -21,13 +22,15 @@
 			model,
 		),
 	);
-	let tab = $state("profile");
-	let progressionOpened = $state(false);
+	// Returning to Character reopens the inner view the user left it on.
+	const tab = rememberPanelState("character.tab", "profile");
+	// A remembered progression view counts as already visited in this mount.
+	let progressionOpened = $state(tab.current === "progression");
 	function selectTab(value: string) {
 		// Retained tab panels do not unmount their inputs. Finish the old gesture
 		// explicitly before hiding it, including programmatic/keyboard tab changes.
 		void model.edits.endActive();
-		tab = value;
+		tab.current = value;
 		if (value === "progression") progressionOpened = true;
 	}
 </script>
@@ -57,7 +60,7 @@
 <div class="character-views">
 	<StudyTabs
 		label="Character views"
-		bind:value={() => tab, selectTab}
+		bind:value={() => tab.current, selectTab}
 		items={[
 			{ value: "profile", label: "Profile & appearance", content: profile },
 			{

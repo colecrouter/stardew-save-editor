@@ -115,7 +115,7 @@ it("groups animal typing, edits outside residents and applies upgrade/adoption w
 		await fireEvent.click(
 			page.getByRole("link", { name: "Buildings & animals" }),
 		);
-		expect(page.getByRole("heading", { name: "Big Coop" })).toBeTruthy();
+		expect(await page.findByRole("heading", { name: "Big Coop" })).toBeTruthy();
 	} finally {
 		page.unmount();
 		await opened.close();

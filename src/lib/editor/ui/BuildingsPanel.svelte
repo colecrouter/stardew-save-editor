@@ -10,16 +10,22 @@
 	} from "../building-domain.ts";
 	import type { EditorModel } from "../editor-model.ts";
 	import { createFarmerSelectionField } from "../farmer-selection.ts";
+	import { rememberPanelState } from "../panel-context.ts";
 	import AnimalCard from "./AnimalCard.svelte";
 	import BuildingDetails from "./BuildingDetails.svelte";
 
 	let { model }: { model: EditorModel } = $props();
 	const view = useAtomValue(() => model.atomBindings.view);
 	const farmer = useAtomValue(() => model.atomBindings.selectedFarmerId);
-	let buildingId = $state<string>();
+	// Returning to Buildings reopens the building the user last chose. A
+	// building that no longer exists falls back to the first one below.
+	const buildingId = rememberPanelState<string | undefined>(
+		"buildings.selected",
+		undefined,
+	);
 	const buildings = $derived(view.current?.buildings);
 	const selected = $derived(
-		buildings?.buildings.find((row) => row.id === buildingId) ??
+		buildings?.buildings.find((row) => row.id === buildingId.current) ??
 			buildings?.buildings[0],
 	);
 	const domain = $derived(
@@ -63,7 +69,7 @@
 							value={selected?.id}
 							onchange={(event) => {
 								void model.edits.endActive();
-								buildingId = event.currentTarget.value;
+								buildingId.current = event.currentTarget.value;
 							}}
 						>
 							{#each buildings.buildings as row, index (row.id)}
@@ -83,7 +89,7 @@
 						aria-pressed={selected?.id === row.id}
 						onclick={() => {
 							void model.edits.endActive();
-							buildingId = row.id;
+							buildingId.current = row.id;
 						}}
 					>
 						<BuildingSprite

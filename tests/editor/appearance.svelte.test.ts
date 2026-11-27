@@ -36,12 +36,17 @@ it("groups appearance input and preserves the captured farmer when selection cha
 				name: "Favorite thing",
 			}),
 			HTMLInputElement,
-		);
+		).value;
 		await fireEvent.click(page.getByRole("link", { name: "Farm settings" }));
 		await fireEvent.click(page.getByRole("link", { name: "Character" }));
-		expect(page.getByRole("textbox", { name: "Favorite thing" })).toBe(
-			firstFavorite,
-		);
+		// Only the active panel is mounted, so returning builds a new input. It
+		// must still open on the profile view and show the same saved value.
+		expect(
+			requireInstance(
+				await page.findByRole("textbox", { name: "Favorite thing" }),
+				HTMLInputElement,
+			).value,
+		).toBe(firstFavorite);
 		const name = page.getByRole("textbox", { name: "Name" });
 		await fireEvent.focus(name);
 		await fireEvent.input(name, { target: { value: "A" } });
@@ -149,15 +154,21 @@ it("keeps profile edits across internal tabs and links clothing to Inventory", a
 		// Navigation loads this panel lazily; await module preparation separately.
 		await vi.dynamicImportSettled();
 		await page.findByRole("heading", { name: "Inventory" });
+		const restoredFavorite = favorite.value;
 		await fireEvent.click(page.getByRole("link", { name: "Character" }));
 		expect(
-			page
-				.getByRole("tab", { name: "Profile & appearance" })
-				.getAttribute("aria-selected"),
+			(
+				await page.findByRole("tab", { name: "Profile & appearance" })
+			).getAttribute("aria-selected"),
 		).toBe("true");
-		expect(page.getByRole("textbox", { name: "Favorite thing" })).toBe(
-			favorite,
-		);
+		// The remounted profile shows the value restored by Undo, not the
+		// discarded edit, even though it is a new input element.
+		expect(
+			requireInstance(
+				page.getByRole("textbox", { name: "Favorite thing" }),
+				HTMLInputElement,
+			).value,
+		).toBe(restoredFavorite);
 	} finally {
 		page.unmount();
 		await opened.close();

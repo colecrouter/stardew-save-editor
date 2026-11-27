@@ -367,9 +367,9 @@ describe("full-save backpack workflow", () => {
 			await fireEvent.click(page.getByRole("link", { name: "Farm settings" }));
 			await fireEvent.click(page.getByRole("link", { name: "Inventory" }));
 			expect(
-				page
-					.getByRole("button", { name: "Slot 5: Parsnip" })
-					.getAttribute("aria-pressed"),
+				(
+					await page.findByRole("button", { name: "Slot 5: Parsnip" })
+				).getAttribute("aria-pressed"),
 			).toBe("true");
 			await fireEvent.click(
 				page.getByRole("button", { name: /Slot 2: .*Pickaxe/ }),

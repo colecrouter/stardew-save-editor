@@ -158,10 +158,10 @@ describe("full-save application workflow", () => {
 				expect(page.getByRole("button", { name: "Export save" })).toBeTruthy(),
 			);
 			await fireEvent.click(page.getByRole("button", { name: "Export save" }));
+			// A rejected picker is reported as a picker failure, with the
+			// reassurance that the open edits were kept.
 			await waitFor(() =>
-				expect(
-					page.getByText("The save could not be downloaded. Please try again."),
-				).toBeTruthy(),
+				expect(page.getByText(/The save picker couldn't open\./)).toBeTruthy(),
 			);
 			await fireEvent.click(page.getByRole("button", { name: "Export save" }));
 			await waitFor(() => expect(picker).toHaveBeenCalledTimes(2));
@@ -172,9 +172,7 @@ describe("full-save application workflow", () => {
 						.hasAttribute("disabled"),
 				).toBe(false),
 			);
-			expect(
-				page.queryByText("The save could not be downloaded. Please try again."),
-			).toBeNull();
+			expect(page.queryByText(/The save picker couldn't open\./)).toBeNull();
 			expect(
 				page.getByText(/The original file could not be backed up/),
 			).toBeTruthy();

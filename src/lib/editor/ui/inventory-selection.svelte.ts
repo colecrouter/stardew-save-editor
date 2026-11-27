@@ -1,6 +1,7 @@
 import { tick } from "svelte";
 
 import type { InventoryView } from "../inventory-views.ts";
+import { rememberPanelState } from "../panel-context.ts";
 import {
 	allInventorySlots as allSlots,
 	type InventorySlot,
@@ -18,27 +19,39 @@ interface SelectionInput {
 	readonly onChoose: () => void;
 }
 
-/** Component-owned instance selection and owner navigation. Command handlers
+/** Session-remembered instance selection and owner navigation. Command handlers
  * capture version before awaiting, then follow their exact committed receipt.
  * Later explicit selection always wins over those asynchronous completions. */
 export function createInventorySelection(input: SelectionInput) {
 	const owners = $derived(input.owners());
 	const backpack = $derived(input.backpack());
 	const chests = $derived(input.chests());
-	let selectedEntity = $state<string>();
-	let selectionFamily = $state<string[]>([]);
+	// Selection and the open chest live in panel memory, so returning to
+	// Inventory reopens the same item instead of the first slot. The version
+	// counter stays local: it only orders commands started by this mount.
+	const selectedEntity = rememberPanelState<string | undefined>(
+		"inventory.selectedEntity",
+		undefined,
+	);
+	const selectionFamily = rememberPanelState<string[]>(
+		"inventory.selectionFamily",
+		[],
+	);
 	let selectionVersion = 0;
-	let chestQuery = $state("");
-	let chestId = $state<string>();
+	const chestQuery = rememberPanelState("inventory.chestQuery", "");
+	const chestId = rememberPanelState<string | undefined>(
+		"inventory.chestId",
+		undefined,
+	);
 	const matchingChests = $derived(
 		chests.filter((owner) =>
 			`${owner.name} ${owner.location ?? ""}`
 				.toLocaleLowerCase()
-				.includes(chestQuery.trim().toLocaleLowerCase()),
+				.includes(chestQuery.current.trim().toLocaleLowerCase()),
 		),
 	);
 	const chest = $derived(
-		matchingChests.find((owner) => owner.ownerId === chestId) ??
+		matchingChests.find((owner) => owner.ownerId === chestId.current) ??
 			matchingChests[0],
 	);
 	// Explicit selection starts a new lineage. Only our own add/remove replacements
@@ -46,35 +59,36 @@ export function createInventorySelection(input: SelectionInput) {
 	function choose(entityId: string | undefined) {
 		selectionVersion++;
 		input.onChoose();
-		selectedEntity = entityId;
-		selectionFamily = entityId != null && entityId !== "" ? [entityId] : [];
+		selectedEntity.current = entityId;
+		selectionFamily.current =
+			entityId != null && entityId !== "" ? [entityId] : [];
 	}
 	// Selection belongs to an item instance, not whichever grid happens to be open.
 	// Both visible inventories share this lookup, including replacement Undo lineage.
 	const selectedOwner = $derived(
-		selectedEntity === undefined
+		selectedEntity.current === undefined
 			? backpack?.supported === true
 				? backpack
 				: chest
 			: owners.find((owner) =>
 					allSlots(owner).some(
 						(item) =>
-							item.entityId === selectedEntity ||
-							selectionFamily.includes(item.entityId),
+							item.entityId === selectedEntity.current ||
+							selectionFamily.current.includes(item.entityId),
 					),
 				),
 	);
 	const selected = $derived(
 		!selectedOwner
 			? undefined
-			: selectedEntity === undefined
+			: selectedEntity.current === undefined
 				? (allSlots(selectedOwner).find((item) => !item.empty) ??
 					selectedOwner.slots[0])
 				: (allSlots(selectedOwner).find(
-						(item) => item.entityId === selectedEntity,
+						(item) => item.entityId === selectedEntity.current,
 					) ??
 					allSlots(selectedOwner).find((item) =>
-						selectionFamily.includes(item.entityId),
+						selectionFamily.current.includes(item.entityId),
 					)),
 	);
 	function ownerOf(item: InventorySlot) {
@@ -83,7 +97,7 @@ export function createInventorySelection(input: SelectionInput) {
 		);
 	}
 	function selectChest(owner: InventoryView | undefined) {
-		chestId = owner?.ownerId;
+		chestId.current = owner?.ownerId;
 		choose(
 			owner?.slots.find((item) => !item.empty)?.entityId ??
 				owner?.slots[0]?.entityId,
@@ -92,9 +106,9 @@ export function createInventorySelection(input: SelectionInput) {
 	$effect(() => {
 		// Pin the initial instance too; later reorders must not retarget an implicit
 		// first-slot selection. Equipment and backpack records share this identity path.
-		if (selectedEntity === undefined && selected) {
-			selectedEntity = selected.entityId;
-			selectionFamily = [selected.entityId];
+		if (selectedEntity.current === undefined && selected) {
+			selectedEntity.current = selected.entityId;
+			selectionFamily.current = [selected.entityId];
 		}
 	});
 	let previousFarmerId = input.farmerId();
@@ -118,8 +132,8 @@ export function createInventorySelection(input: SelectionInput) {
 		if (
 			!input.dragging() &&
 			selectedOwner &&
-			selectedEntity != null &&
-			selectedEntity !== ""
+			selectedEntity.current != null &&
+			selectedEntity.current !== ""
 		) {
 			if (
 				selectedOwner.kind !== "chest" &&
@@ -130,8 +144,8 @@ export function createInventorySelection(input: SelectionInput) {
 				selectedOwner.kind === "chest" &&
 				chest?.ownerId !== selectedOwner.ownerId
 			) {
-				chestQuery = "";
-				chestId = selectedOwner.ownerId;
+				chestQuery.current = "";
+				chestId.current = selectedOwner.ownerId;
 			}
 		}
 	});
@@ -145,7 +159,7 @@ export function createInventorySelection(input: SelectionInput) {
 	}
 	return {
 		get entityId() {
-			return selectedEntity;
+			return selectedEntity.current;
 		},
 		get version() {
 			return selectionVersion;
@@ -157,7 +171,7 @@ export function createInventorySelection(input: SelectionInput) {
 			return selected;
 		},
 		get query() {
-			return chestQuery;
+			return chestQuery.current;
 		},
 		get matchingChests() {
 			return matchingChests;
@@ -171,8 +185,8 @@ export function createInventorySelection(input: SelectionInput) {
 		focus: focusSelected,
 		search(value: string) {
 			// Explicit search starts fresh selection; Undo cannot reopen another filter.
-			chestQuery = value;
-			chestId = undefined;
+			chestQuery.current = value;
+			chestId.current = undefined;
 			choose(undefined);
 		},
 		selectChest: (ownerId: string | undefined) =>
@@ -180,15 +194,17 @@ export function createInventorySelection(input: SelectionInput) {
 		// Only an accepted replacement extends this explicit selection's Undo lineage.
 		followReplacement(entityId: string, version: number) {
 			if (version !== selectionVersion) return false;
-			selectionFamily = [...selectionFamily, entityId];
-			selectedEntity = entityId;
+			selectionFamily.current = [...selectionFamily.current, entityId];
+			selectedEntity.current = entityId;
 			return true;
 		},
 		// Movement keeps instance identity and preserves earlier replacement lineage.
 		followMove(entityId: string, version: number) {
 			if (version !== selectionVersion) return false;
-			selectedEntity = entityId;
-			selectionFamily = [...new Set([...selectionFamily, entityId])];
+			selectedEntity.current = entityId;
+			selectionFamily.current = [
+				...new Set([...selectionFamily.current, entityId]),
+			];
 			return true;
 		},
 	};

@@ -89,36 +89,54 @@ export function dictionary(
 	const entries = wrapped(entry, "item");
 	// Keep ordered entries and compare decoded key values using the game's
 	// equality policy, independently of their canonical XML representation.
-	const equal = (left: unknown, right: unknown): boolean => {
+	//
+	// Each key reduces to a path of identity parts so seen keys can be indexed
+	// rather than compared pairwise. Large saves hold location dictionaries with
+	// thousands of entries, and a pairwise scan ran millions of comparisons on
+	// every decode, encode and export readback.
+	const identityFields =
+		comparison != null && comparison !== "ordinalIgnoreCase"
+			? Object.keys(keyIdentities[comparison].fields)
+			: undefined;
+	const identityParts = (keyValue: unknown): readonly unknown[] | undefined => {
+		// Case-insensitive string keys compare by their ordinal uppercase form.
 		if (comparison === "ordinalIgnoreCase")
-			return (
-				ordinalIgnoreCaseKey(String(left)) ===
-				ordinalIgnoreCaseKey(String(right))
-			);
-		if (comparison != null) {
-			const a = record(left),
-				b = record(right);
-			return Object.keys(keyIdentities[comparison].fields).every(
-				(field) => a[field] === b[field],
-			);
+			return [ordinalIgnoreCaseKey(String(keyValue))];
+		if (identityFields) {
+			// Structured keys (Vector2, FarmerPair) are equal when every identity
+			// field is strictly equal. NaN never equals itself under ===, so a key
+			// containing it cannot duplicate anything and is left out of the index.
+			const fields = record(keyValue);
+			const parts = identityFields.map((field) => fields[field]);
+			return parts.some((part) => Number.isNaN(part)) ? undefined : parts;
 		}
-		return (
-			left === right ||
-			(typeof left === "number" &&
-				typeof right === "number" &&
-				Number.isNaN(left) &&
-				Number.isNaN(right))
-		);
+		// Plain keys use === except that NaN matches NaN. Map lookup already uses
+		// exactly that rule (SameValueZero), so the key is its own identity.
+		return [keyValue];
 	};
 	const target = Schema.toType(entries).check(
 		Schema.makeFilter((values) => {
-			for (const [index, nestedEntry] of values.entries())
-				if (
-					values
-						.slice(0, index)
-						.some((previous) => equal(previous["key"], nestedEntry["key"]))
-				)
-					return "Duplicate dictionary key";
+			// Nested maps hold one level per identity part. Map lookup agrees with
+			// === for every part value that reaches it, including bigint Int64s.
+			const seen = new Map();
+			for (const nestedEntry of values) {
+				const parts = identityParts(nestedEntry["key"]);
+				if (!parts) continue;
+				let level = seen;
+				for (const [index, part] of parts.entries()) {
+					const last = index === parts.length - 1;
+					const next = level.get(part);
+					// A complete path that already exists is an earlier equal key.
+					if (last && next !== undefined) return "Duplicate dictionary key";
+					if (last) level.set(part, true);
+					else if (next instanceof Map) level = next;
+					else {
+						const created = new Map();
+						level.set(part, created);
+						level = created;
+					}
+				}
+			}
 			return undefined;
 		}),
 	);

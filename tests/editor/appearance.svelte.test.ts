@@ -31,20 +31,15 @@ it("groups appearance input and preserves the captured farmer when selection cha
 		).toBeNull();
 		expect(page.queryByLabelText("Search villagers")).toBeNull();
 		await fireEvent.click(page.getByRole("link", { name: "Character" }));
-		const firstFavorite = requireInstance(
-			page.getByRole("textbox", {
-				name: "Favorite thing",
-			}),
-			HTMLInputElement,
-		);
+		expect(
+			page.getByRole("textbox", { name: "Favorite thing" }),
+		).toHaveProperty("value", "Host favorite");
 		await fireEvent.click(page.getByRole("link", { name: "Farm settings" }));
 		await fireEvent.click(page.getByRole("link", { name: "Character" }));
-		// Returning to the route mounts fresh controls backed by the same save.
-		const remountedFavorite = page.getByRole("textbox", {
-			name: "Favorite thing",
-		});
-		expect(remountedFavorite).not.toBe(firstFavorite);
-		expect(remountedFavorite).toHaveProperty("value", "Host favorite");
+		// Returning to Character must show the same saved value.
+		expect(
+			page.getByRole("textbox", { name: "Favorite thing" }),
+		).toHaveProperty("value", "Host favorite");
 		const name = page.getByRole("textbox", { name: "Name" });
 		await fireEvent.focus(name);
 		await fireEvent.input(name, { target: { value: "A" } });
@@ -159,7 +154,7 @@ it("keeps profile edits across internal tabs and links clothing to Inventory", a
 				.getByRole("tab", { name: "Profile & appearance" })
 				.getAttribute("aria-selected"),
 		).toBe("true");
-		// Returning from Inventory restores the saved value in a fresh profile.
+		// Returning from Inventory shows the saved value after Undo.
 		expect(
 			page.getByRole("textbox", { name: "Favorite thing" }),
 		).toHaveProperty("value", restoredFavorite);

@@ -19,7 +19,7 @@
 - `npm test -- tests/engine`: engine contracts, codec preservation, and worker checks
   in the root Vitest Node project, using the shared Effect dependency installation.
 - `npm run effect:diagnostics:tests`: Effect diagnostics for all application and
-  engine tests; `npm run check` checks their shared TypeScript scope.
+  engine tests.
 
 Legacy test ownership is listed explicitly in `vite.config.ts`. Add new legacy-only
 files there so they stay opt-in; keep shared regression coverage outside that list.

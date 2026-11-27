@@ -1,10 +1,10 @@
 import { spawn } from "node:child_process";
 import { once } from "node:events";
-import { fileURLToPath } from "node:url";
 
 import { defineBrowserCommand } from "@vitest/browser-playwright";
 import type { BrowserContext } from "playwright";
 
+import { exportDocument, tinyEditorFixture } from "./editor-document.ts";
 import { testTimeouts } from "./timeouts.ts";
 
 declare module "vitest/browser" {
@@ -65,9 +65,13 @@ async function verifyRouting(context: BrowserContext, origin: string) {
 		await page.route(/sentry\.io/, (route) => route.abort());
 		page.on("pageerror", (error) => errors.push(error.message));
 		await page.goto(new URL("/editor/calendar", origin).href);
-		await page
-			.getByLabel("Save file", { exact: true })
-			.setInputFiles(fileURLToPath(new URL("../TestSave", import.meta.url)));
+		// Import through the real browser worker while keeping the fixture focused
+		// on calendar and farm fields. Full-save codec coverage runs separately.
+		await page.getByLabel("Save file", { exact: true }).setInputFiles({
+			name: "RouteTest_1",
+			mimeType: "application/octet-stream",
+			buffer: Buffer.from(exportDocument(tinyEditorFixture())),
+		});
 
 		const menu = page.locator(".section-menu");
 		const summary = menu.locator("summary");

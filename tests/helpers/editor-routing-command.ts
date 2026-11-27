@@ -4,12 +4,11 @@ import { once } from "node:events";
 import { defineBrowserCommand } from "@vitest/browser-playwright";
 import type { BrowserContext } from "playwright";
 
-import { exportDocument, tinyEditorFixture } from "./editor-document.ts";
 import { testTimeouts } from "./timeouts.ts";
 
 declare module "vitest/browser" {
 	interface BrowserCommands {
-		checkEditorRouting(): ReturnType<typeof verifyRouting>;
+		checkEditorRouting(saveXml: string): ReturnType<typeof verifyRouting>;
 	}
 }
 
@@ -26,36 +25,42 @@ const devServerScript = `
 	process.send("http://127.0.0.1:" + server.httpServer.address().port);
 `;
 
-export const checkEditorRouting = defineBrowserCommand(async ({ context }) => {
-	const server = spawn(
-		process.execPath,
-		["--input-type=module", "--eval", devServerScript],
-		{
-			env: { ...process.env, NODE_ENV: "development", VITEST: "true" },
-			stdio: ["ignore", "ignore", "inherit", "ipc"],
-		},
-	);
-	const stopped = once(server, "exit");
-	try {
-		const message: unknown[] = await Promise.race([
-			once(server, "message", {
-				signal: AbortSignal.timeout(testTimeouts.assertion),
-			}),
-			stopped.then(() => {
-				throw new Error("Kit exited before serving the editor.");
-			}),
-		]);
-		const origin = message[0];
-		if (typeof origin !== "string")
-			throw new Error("Kit did not report its local URL.");
-		return await verifyRouting(context, origin);
-	} finally {
-		server.kill();
-		await stopped;
-	}
-});
+export const checkEditorRouting = defineBrowserCommand(
+	async ({ context }, saveXml: string) => {
+		const server = spawn(
+			process.execPath,
+			["--input-type=module", "--eval", devServerScript],
+			{
+				env: { ...process.env, NODE_ENV: "development", VITEST: "true" },
+				stdio: ["ignore", "ignore", "inherit", "ipc"],
+			},
+		);
+		const stopped = once(server, "exit");
+		try {
+			const message: unknown[] = await Promise.race([
+				once(server, "message", {
+					signal: AbortSignal.timeout(testTimeouts.assertion),
+				}),
+				stopped.then(() => {
+					throw new Error("Kit exited before serving the editor.");
+				}),
+			]);
+			const origin = message[0];
+			if (typeof origin !== "string")
+				throw new Error("Kit did not report its local URL.");
+			return await verifyRouting(context, origin, saveXml);
+		} finally {
+			server.kill();
+			await stopped;
+		}
+	},
+);
 
-async function verifyRouting(context: BrowserContext, origin: string) {
+async function verifyRouting(
+	context: BrowserContext,
+	origin: string,
+	saveXml: string,
+) {
 	// Keep real document and history navigation outside the runner iframe.
 	const page = await context.newPage();
 	const errors: string[] = [];
@@ -65,12 +70,12 @@ async function verifyRouting(context: BrowserContext, origin: string) {
 		await page.route(/sentry\.io/, (route) => route.abort());
 		page.on("pageerror", (error) => errors.push(error.message));
 		await page.goto(new URL("/editor/calendar", origin).href);
-		// Import through the real browser worker while keeping the fixture focused
-		// on calendar and farm fields. Full-save codec coverage runs separately.
+		// The caller supplies XML so Vite's Node configuration never imports
+		// the app's fixture dependency graph. The page still uses its real worker.
 		await page.getByLabel("Save file", { exact: true }).setInputFiles({
 			name: "RouteTest_1",
 			mimeType: "application/octet-stream",
-			buffer: Buffer.from(exportDocument(tinyEditorFixture())),
+			buffer: Buffer.from(saveXml),
 		});
 
 		const menu = page.locator(".section-menu");

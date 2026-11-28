@@ -6,5 +6,5 @@
 /workspace/
 
 # Only transient fixture verification output is disposable; codec fixtures are committed.
-/tests/generated/*.verify.ts
+/tests/.verify/
 /tests/generated/game/

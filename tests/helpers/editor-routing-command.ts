@@ -104,17 +104,29 @@ async function verifyRouting(
 			action: () => Promise<void>,
 		): Promise<string> => {
 			const answered = Promise.withResolvers<string>();
+			// Mark the rejection as handled right away: an answer can fail before
+			// `action()` returns, and the await below still reports it.
+			answered.promise.catch(() => {});
 			expectedDialogs.push({ accept, answered });
-			await action();
-			// Fail the step if the dialog never opens. The timer is cleared once the
-			// answer arrives, so a passing step leaves no rejection behind.
-			const timer = setTimeout(() => {
-				answered.reject(new Error("The expected dialog never opened."));
-			}, testTimeouts.assertion);
 			try {
-				return await answered.promise;
+				await action();
+				// Fail the step if the dialog never opens. The timer is cleared once
+				// the answer arrives, so a passing step leaves no rejection behind.
+				const timer = setTimeout(() => {
+					answered.reject(new Error("The expected dialog never opened."));
+				}, testTimeouts.assertion);
+				try {
+					return await answered.promise;
+				} finally {
+					clearTimeout(timer);
+				}
 			} finally {
-				clearTimeout(timer);
+				// Drop this step's answer if no dialog claimed it, so a later dialog
+				// can't be answered with it.
+				const index = expectedDialogs.findIndex(
+					(entry) => entry.answered === answered,
+				);
+				if (index !== -1) expectedDialogs.splice(index, 1);
 			}
 		};
 		await page.goto(new URL("/editor/calendar", origin).href);

@@ -173,7 +173,9 @@ ordinary builds and save loading do not run the extractor.
 
 Inspection records generic definitions and arguments for reviewed serializers:
 SerializableDictionary, its case-insensitive string-key subclass, Inventory, and
-NetNullableEnum. NetField descendants record their one-item bound. Refresh older
+NetNullableEnum. NetField descendants record their one-item bound. Catalog format 4
+records each type's members in XmlSerializer's order; format 3 catalogs listed them
+alphabetically, so they are rejected and must be re-extracted. Refresh older
 catalogs when these fields are missing; they are required to interpret those types.
 
 ## Verification

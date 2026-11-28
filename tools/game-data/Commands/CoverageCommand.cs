@@ -19,7 +19,7 @@ public sealed class CoverageCommand : Command
 		{
 			var data = JsonSerializer.Deserialize<Catalog>(File.ReadAllText(result.GetValue(catalog)!), Cli.Json)
 				?? throw new InvalidDataException("Empty catalog.");
-			if (data.FormatVersion != 3) throw new InvalidDataException("Unsupported catalog format version.");
+			if (data.FormatVersion != Catalog.CurrentFormatVersion) throw new InvalidDataException("Unsupported catalog format version.");
 			var report = SaveCoverage.Compare(data, result.GetValue(saves)!);
 			Cli.Write(report, result.GetValue(output));
 			// Unsupported mappings remain visible as 'unchecked'. A catalog gap,

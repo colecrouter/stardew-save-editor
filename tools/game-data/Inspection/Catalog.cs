@@ -23,4 +23,11 @@ public sealed record TypeRecord(string Id, string Assembly, string Kind, string?
 	public TypeRecord() : this("", "", "", null, null, null, false, false, null, [], [], [], []) { }
 }
 public sealed record AssemblyRecord(string Name, string Version, string File, string Sha256);
-public sealed record Catalog(int FormatVersion, string ToolVersion, string? GameVersion, string AssemblyVersion, string? Framework, List<string> Roots, List<AssemblyRecord> Assemblies, List<TypeRecord> Types, List<string> Diagnostics);
+public sealed record Catalog(int FormatVersion, string ToolVersion, string? GameVersion, string AssemblyVersion, string? Framework, List<string> Roots, List<AssemblyRecord> Assemblies, List<TypeRecord> Types, List<string> Diagnostics)
+{
+	// Version 4 records each type's members in XmlSerializer's order, which game
+	// setters depend on (Farmer.money reads useSeparateWallets). Version 3 catalogs
+	// listed members alphabetically and look otherwise identical, so they are
+	// rejected rather than silently generating a codec that writes the wrong order.
+	public const int CurrentFormatVersion = 4;
+}

@@ -151,7 +151,7 @@ not preserve whitespace, comments, numeric spelling, or attribute order. Known
 elements are written in XmlSerializer's member order (base class first, then
 fields before properties in declaration order), because some game setters read
 earlier siblings: `Farmer.money` is stored in the wallet chosen by
-`useSeparateWallets`. The catalog records that order; generation must not sort it. Unknown
+`useSeparateWallets`. The catalog records that order; generation must not sort it. Fields the codec does not know (such as a ring's `uniqueID` in a pre-1.6.15 save) are written after the known ones, so they can move within their element on export. Unknown
 object fields retain their generic XML representation. Unsupported known values
 fail decoding instead of entering a partially typed editor model.
 

@@ -58,14 +58,15 @@ void test("generation reports invalid contracts without replacing an existing mo
 		const input = join(directory, "catalog.json"),
 			output = join(directory, "generated.ts");
 		const base = {
-			formatVersion: 3,
+			formatVersion: 4,
 			diagnostics: [],
 			types: [{ id: "Example.Root", kind: "object", members: [] }],
 		};
 		// Each corruption would otherwise silently narrow or ambiguously interpret
 		// the codec. The CLI must fail before publishing output in every case.
 		for (const catalog of [
-			{ ...base, formatVersion: 2 },
+			// Version 3 catalogs listed members alphabetically, not in save order.
+			{ ...base, formatVersion: 3 },
 			{ ...base, diagnostics: ["loader failure"] },
 			{ ...base, types: [...base.types, ...base.types] },
 			{
@@ -112,7 +113,7 @@ void test("generation writes namespace modules that work together", async () => 
 			constructorArguments: [{ type: "System.Type", value: type }],
 		});
 		const catalog = {
-			formatVersion: 3,
+			formatVersion: 4,
 			diagnostics: [],
 			types: [
 				{

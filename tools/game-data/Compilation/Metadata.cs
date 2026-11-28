@@ -23,7 +23,7 @@ internal sealed class Metadata
 	};
 	public Metadata(Catalog catalog)
 	{
-		if (catalog.FormatVersion != 3)
+		if (catalog.FormatVersion != Catalog.CurrentFormatVersion)
 			throw new InvalidDataException("Unsupported catalog format version.");
 		if (catalog.Diagnostics is null || catalog.Types is null)
 			throw new InvalidDataException("Missing catalog types or diagnostics.");

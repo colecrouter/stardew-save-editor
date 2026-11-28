@@ -47,12 +47,15 @@ internal sealed class GenerateCommand : Command
 			var emitter = new TypeScriptEmitter(contract);
 
 			// save.ts gets its modules in a sibling save/ directory. Every module is
-			// emitted before anything is written, so an unsupported contract still
-			// leaves the existing output untouched.
+			// emitted before anything is written, so an unsupported contract leaves the
+			// existing output untouched. A failed write partway through can still leave
+			// a mix of old and new modules; rerun generation to repair it.
 			var directoryName = Path.GetFileNameWithoutExtension(target);
 			var directory = Path.Combine(Path.GetDirectoryName(target)!, directoryName);
 			var (entry, modules) = emitter.Emit(directoryName, import, RelativeImport(directory, runtimeFile));
-			var written = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+			// Compare paths the way the filesystem does: on case-sensitive Linux, a module
+			// whose namespace only changed capitalisation is stale and must be deleted.
+			var written = new HashSet<string>(OperatingSystem.IsLinux() ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase);
 			foreach (var module in modules)
 			{
 				var path = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(target)!, module.Path));

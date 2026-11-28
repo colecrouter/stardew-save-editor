@@ -122,7 +122,7 @@ internal static class CatalogExtractor
 			.FirstOrDefault(a => a.AttributeType.FullName == "System.Reflection." + name)?.ConstructorArguments[0].Value?.ToString();
 		var framework = assembly.GetCustomAttributesData().FirstOrDefault(a =>
 			a.AttributeType.FullName == "System.Runtime.Versioning.TargetFrameworkAttribute")?.ConstructorArguments[0].Value?.ToString();
-		return new(3, typeof(CatalogExtractor).Assembly.GetName().Version!.ToString(),
+		return new(Catalog.CurrentFormatVersion, typeof(CatalogExtractor).Assembly.GetName().Version!.ToString(),
 			AssemblyAttribute("AssemblyInformationalVersionAttribute")?.Split(",")[0], assembly.GetName().Version!.ToString(), framework,
 			roots.Distinct().Order(StringComparer.Ordinal).ToList(), assemblies,
 			records.OrderBy(t => t.Id, StringComparer.Ordinal).ToList(), diagnostics.Order(StringComparer.Ordinal).ToList());

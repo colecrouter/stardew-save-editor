@@ -580,3 +580,13 @@ it("keeps unknown namespaced item classes opaque", () => {
 		canQuality: false,
 	});
 });
+
+// Before 1.6.9 the game keyed ring light sources on uniqueID. 1.6.15 no longer
+// saves it, but older 1.6 saves still need distinct IDs, so new rings keep them.
+it("gives new rings their legacy uniqueID", () => {
+	const glow = requireRecord(item("Glow Ring"));
+	const small = requireRecord(item("Small Glow Ring"));
+	expect(glow["$type"]).toBe("StardewValley.Objects.Ring");
+	expect(glow["uniqueID"]).toBe("1238");
+	expect(small["uniqueID"]).toBe("1267");
+});

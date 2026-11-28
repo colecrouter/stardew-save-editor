@@ -11,6 +11,7 @@ import {
 	FurnitureTypeToNumber,
 	ItemData,
 	ItemDescription,
+	RingsUniqueID,
 } from "../ItemData.ts";
 import { writeOptionalField } from "../optional-field.ts";
 import { Sprite } from "../Sprite.svelte.ts";
@@ -41,6 +42,9 @@ type ItemDraft = {
 	// generated serializer does not declare them as persisted Furniture members.
 	sourceIndexOffset?: number;
 	drawPosition?: { X: number; Y: number };
+	// 1.6.15 no longer saves a ring's uniqueID, so it is an extension field. It
+	// is a string because that is how decoding represents unknown elements.
+	uniqueID?: string;
 };
 
 /** One catalog choice. Its ID distinguishes flavored variants sharing a game ID. */
@@ -289,10 +293,15 @@ function construct(name: string, data: ItemInformation): Item | undefined {
 	// Preview seeds are deterministic. The committed fresh trinket receives a seed
 	// only at creation, so browsing does not generate or mutate an item instance.
 	if (data._type === "Trinket") item.generationSeed = 0;
-	// Rings are their own saved class. Since 1.6.15 they no longer save a
-	// uniqueID, so the class identity is the only extra field a new ring needs.
-	if (data._type === "Object" && data.type === TypeEnum.Ring)
+	// Rings are their own saved class. 1.6.15 stopped saving uniqueID, but before
+	// 1.6.9 the game keyed ring light sources on it, and the editor still accepts
+	// those saves: two glow rings sharing uniqueID 0 would share one light. New
+	// rings therefore keep writing the legacy ID; newer games skip the element.
+	if (data._type === "Object" && data.type === TypeEnum.Ring) {
 		item.$type = savedTypeId("Ring");
+		const uniqueID = RingsUniqueID.get(name);
+		if (uniqueID !== undefined) item.uniqueID = String(uniqueID);
+	}
 	// Preserve the legacy new-hat representation and its hair-rendering flags;
 	// none of these defaults are applied to existing imported hats.
 	if (data._type === "Hat")

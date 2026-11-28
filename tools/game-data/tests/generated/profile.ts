@@ -3,23 +3,23 @@ import { Schema } from "effect";
 import * as Xml from "../../../../src/lib/save-format/index.ts";
 
 type T_Example_ProfilePayload = {
+	"Version"?: string;
+	"Name"?: string;
 	"Count"?: number;
 	"Enabled"?: boolean;
-	"Name"?: string;
 	"Season"?: "spring" | "winter";
 	"Tags"?: Array<(string) | null>;
-	"Version"?: string;
 	[extra: string]: unknown;
 };
 export type T_Example_Profile = T_Example_ProfilePayload;
 
 const T_Example_ProfilePayloadSchema = Xml.object({
+	["Version"]: { xmlName: "@_version", codec: Xml.scalar("System.String"), optional: true },
+	["Name"]: { xmlName: "Name", codec: Xml.scalar("System.String"), optional: true },
 	["Count"]: { xmlName: "Count", codec: Xml.scalar("System.Int32"), optional: true },
 	["Enabled"]: { xmlName: "Enabled", codec: Xml.scalar("System.Boolean"), optional: true },
-	["Name"]: { xmlName: "Name", codec: Xml.scalar("System.String"), optional: true },
 	["Season"]: { xmlName: "Season", codec: Xml.text(Schema.Literals(["spring", "winter"])), optional: true },
 	["Tags"]: { xmlName: "Tags", codec: Xml.wrapped(Xml.nullable(Xml.scalar("System.String")), "tag", undefined), optional: true },
-	["Version"]: { xmlName: "@_version", codec: Xml.scalar("System.String"), optional: true },
 });
 const T_Example_ProfileSchema: Xml.Codec<T_Example_Profile> = Xml.lazy(() => Xml.polymorphic("Example.Profile", [{ id: "Example.Profile", name: "Profile", namespace: "", codec: T_Example_ProfilePayloadSchema }])) as Xml.Codec<T_Example_Profile>;
 

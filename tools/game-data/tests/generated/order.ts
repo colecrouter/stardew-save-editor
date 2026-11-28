@@ -16,34 +16,34 @@ const T_Example_AddressPayloadSchema = Xml.object({
 const T_Example_AddressSchema: Xml.Codec<T_Example_Address> = Xml.lazy(() => Xml.polymorphic("Example.Address", [{ id: "Example.Address", name: "Address", namespace: "", codec: T_Example_AddressPayloadSchema }])) as Xml.Codec<T_Example_Address>;
 
 type T_Example_LinePayload = {
-	"Destination"?: T_Example_Address;
-	"Quantity"?: number;
 	"Sku"?: string;
+	"Quantity"?: number;
+	"Destination"?: T_Example_Address;
 	[extra: string]: unknown;
 };
 export type T_Example_Line = T_Example_LinePayload;
 
 const T_Example_LinePayloadSchema = Xml.object({
-	["Destination"]: { xmlName: "Destination", codec: Xml.lazy(() => T_Example_AddressSchema), optional: true },
-	["Quantity"]: { xmlName: "Quantity", codec: Xml.scalar("System.Int32"), optional: true },
 	["Sku"]: { xmlName: "@_sku", codec: Xml.scalar("System.String"), optional: true },
+	["Quantity"]: { xmlName: "Quantity", codec: Xml.scalar("System.Int32"), optional: true },
+	["Destination"]: { xmlName: "Destination", codec: Xml.lazy(() => T_Example_AddressSchema), optional: true },
 });
 const T_Example_LineSchema: Xml.Codec<T_Example_Line> = Xml.lazy(() => Xml.polymorphic("Example.Line", [{ id: "Example.Line", name: "entry", namespace: "", codec: T_Example_LinePayloadSchema }])) as Xml.Codec<T_Example_Line>;
 
 type T_Example_OrderPayload = {
+	"Shipping"?: T_Example_Address;
 	"Billing"?: T_Example_Address;
 	"Lines"?: Array<(T_Example_Line) | null>;
 	"OrderId"?: bigint;
-	"Shipping"?: T_Example_Address;
 	[extra: string]: unknown;
 };
 export type T_Example_Order = T_Example_OrderPayload;
 
 const T_Example_OrderPayloadSchema = Xml.object({
+	["Shipping"]: { xmlName: "Shipping", codec: Xml.lazy(() => T_Example_AddressSchema), optional: true },
 	["Billing"]: { xmlName: "Billing", codec: Xml.lazy(() => T_Example_AddressSchema), optional: true },
 	["Lines"]: { xmlName: "Lines", codec: Xml.wrapped(Xml.nullable(Xml.lazy(() => T_Example_LineSchema)), "entry", undefined), optional: true },
 	["OrderId"]: { xmlName: "OrderId", codec: Xml.scalar("System.Int64"), optional: true },
-	["Shipping"]: { xmlName: "Shipping", codec: Xml.lazy(() => T_Example_AddressSchema), optional: true },
 });
 const T_Example_OrderSchema: Xml.Codec<T_Example_Order> = Xml.lazy(() => Xml.polymorphic("Example.Order", [{ id: "Example.Order", name: "Order", namespace: "", codec: T_Example_OrderPayloadSchema }])) as Xml.Codec<T_Example_Order>;
 

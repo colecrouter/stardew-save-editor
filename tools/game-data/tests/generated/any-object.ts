@@ -3,15 +3,15 @@ import { Schema } from "effect";
 import * as Xml from "../../../../src/lib/save-format/index.ts";
 
 type T_Example_DescriptionElementPayload = {
-	"param"?: Array<T_System_Object>;
 	"xmlKey"?: string;
+	"param"?: Array<T_System_Object>;
 	[extra: string]: unknown;
 };
 export type T_Example_DescriptionElement = T_Example_DescriptionElementPayload;
 
 const T_Example_DescriptionElementPayloadSchema = Xml.object({
-	["param"]: { xmlName: "param", codec: Xml.sequence(Xml.lazy(() => T_System_ObjectSchema), undefined), repeated: true, optional: true },
 	["xmlKey"]: { xmlName: "xmlKey", codec: Xml.scalar("System.String"), optional: true },
+	["param"]: { xmlName: "param", codec: Xml.sequence(Xml.lazy(() => T_System_ObjectSchema), undefined), repeated: true, optional: true },
 });
 const T_Example_DescriptionElementSchema: Xml.Codec<T_Example_DescriptionElement> = Xml.lazy(() => Xml.polymorphic("Example.DescriptionElement", [{ id: "Example.DescriptionElement", name: "DescriptionElement", namespace: "", codec: T_Example_DescriptionElementPayloadSchema }])) as Xml.Codec<T_Example_DescriptionElement>;
 

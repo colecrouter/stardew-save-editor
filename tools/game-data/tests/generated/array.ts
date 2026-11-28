@@ -3,17 +3,17 @@ import { Schema } from "effect";
 import * as Xml from "../../../../src/lib/save-format/index.ts";
 
 type T_Example_ArraysPayload = {
+	"stats"?: Array<{ key: string; value: Array<number>; [extra: string]: unknown }>;
 	"matrix"?: Array<{ key: string; value: Array<(Array<number>) | null>; [extra: string]: unknown }>;
 	"nodes"?: Array<{ key: string; value: Array<(T_Example_Node) | null>; [extra: string]: unknown }>;
-	"stats"?: Array<{ key: string; value: Array<number>; [extra: string]: unknown }>;
 	[extra: string]: unknown;
 };
 export type T_Example_Arrays = T_Example_ArraysPayload;
 
 const T_Example_ArraysPayloadSchema = Xml.object({
+	["stats"]: { xmlName: "stats", codec: Xml.dictionary(Xml.scalar("System.String"), "string", Xml.wrapped(Xml.scalar("System.Int32"), "int"), "ArrayOfInt"), optional: true },
 	["matrix"]: { xmlName: "matrix", codec: Xml.dictionary(Xml.scalar("System.String"), "string", Xml.wrapped(Xml.nullable(Xml.wrapped(Xml.scalar("System.Int32"), "int")), "ArrayOfInt"), "ArrayOfArrayOfInt"), optional: true },
 	["nodes"]: { xmlName: "nodes", codec: Xml.dictionary(Xml.scalar("System.String"), "string", Xml.wrapped(Xml.nullable(Xml.lazy(() => T_Example_NodeSchema)), "Node"), "ArrayOfNode"), optional: true },
-	["stats"]: { xmlName: "stats", codec: Xml.dictionary(Xml.scalar("System.String"), "string", Xml.wrapped(Xml.scalar("System.Int32"), "int"), "ArrayOfInt"), optional: true },
 });
 const T_Example_ArraysSchema: Xml.Codec<T_Example_Arrays> = Xml.lazy(() => Xml.polymorphic("Example.Arrays", [{ id: "Example.Arrays", name: "Arrays", namespace: "", codec: T_Example_ArraysPayloadSchema }])) as Xml.Codec<T_Example_Arrays>;
 

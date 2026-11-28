@@ -1,6 +1,6 @@
 import { Data, Effect, Result, Schema, SchemaIssue } from "effect";
 
-import type { T_StardewValley_Objects_Trinket as Trinket } from "../../../generated/save-format/save.ts";
+import type { T_StardewValley_Objects_Trinkets_Trinket as Trinket } from "../../../generated/save-format/save.ts";
 import {
 	clampStats,
 	createRandom,
@@ -112,7 +112,7 @@ function currentStats(
 ): TrinketStats | undefined {
 	if (
 		!isKnownItem(raw) ||
-		raw.$type !== "StardewValley.Objects.Trinket" ||
+		raw.$type !== "StardewValley.Objects.Trinkets.Trinket" ||
 		raw.itemId === undefined ||
 		raw.generationSeed === undefined ||
 		raw.generationSeed < 0 ||
@@ -277,7 +277,7 @@ export const prepareTrinketPropertyChange = Effect.fn(
 	if (
 		!current ||
 		!isKnownItem(item) ||
-		item.$type !== "StardewValley.Objects.Trinket" ||
+		item.$type !== "StardewValley.Objects.Trinkets.Trinket" ||
 		item.generationSeed === undefined
 	)
 		return yield* invalid(

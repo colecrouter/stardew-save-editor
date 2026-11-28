@@ -16,42 +16,42 @@ const T_Example_BranchPayloadSchema = Xml.object({
 const T_Example_BranchSchema: Xml.Codec<T_Example_Branch> = Xml.lazy(() => Xml.polymorphic("Example.Branch", [{ id: "Example.Branch", name: "Branch", namespace: "", codec: T_Example_BranchPayloadSchema }])) as Xml.Codec<T_Example_Branch>;
 
 type T_Example_DerivedPayload = {
-	"Branches"?: Array<(T_Example_Branch) | null>;
-	"Children"?: Array<(T_Example_Node) | null>;
-	"Depth"?: number;
-	"Links"?: Array<{ key: string; value: T_Example_Node; [extra: string]: unknown }>;
 	"Name"?: string;
 	"heldObject"?: T_Example_Node | null;
+	"Children"?: Array<(T_Example_Node) | null>;
+	"Links"?: Array<{ key: string; value: T_Example_Node; [extra: string]: unknown }>;
+	"Branches"?: Array<(T_Example_Branch) | null>;
+	"Depth"?: number;
 	[extra: string]: unknown;
 };
 export type T_Example_Derived = T_Example_DerivedPayload & { readonly $type?: "Example.Derived" };
 
 const T_Example_DerivedPayloadSchema = Xml.object({
-	["Branches"]: { xmlName: "Branches", codec: Xml.wrapped(Xml.nullable(Xml.lazy(() => T_Example_BranchSchema)), "Branch", undefined), optional: true },
-	["Children"]: { xmlName: "Children", codec: Xml.wrapped(Xml.nullable(Xml.lazy(() => T_Example_NodeSchema)), "Node", undefined), optional: true },
-	["Depth"]: { xmlName: "Depth", codec: Xml.scalar("System.Int32"), optional: true },
-	["Links"]: { xmlName: "Links", codec: Xml.dictionary(Xml.scalar("System.String"), "string", Xml.lazy(() => T_Example_NodeSchema), "Node"), optional: true },
 	["Name"]: { xmlName: "Name", codec: Xml.scalar("System.String"), optional: true },
 	["heldObject"]: { xmlName: "heldObject", codec: Xml.optionalReference(Xml.lazy(() => T_Example_NodeSchema)), optional: true },
+	["Children"]: { xmlName: "Children", codec: Xml.wrapped(Xml.nullable(Xml.lazy(() => T_Example_NodeSchema)), "Node", undefined), optional: true },
+	["Links"]: { xmlName: "Links", codec: Xml.dictionary(Xml.scalar("System.String"), "string", Xml.lazy(() => T_Example_NodeSchema), "Node"), optional: true },
+	["Branches"]: { xmlName: "Branches", codec: Xml.wrapped(Xml.nullable(Xml.lazy(() => T_Example_BranchSchema)), "Branch", undefined), optional: true },
+	["Depth"]: { xmlName: "Depth", codec: Xml.scalar("System.Int32"), optional: true },
 });
 const T_Example_DerivedSchema: Xml.Codec<T_Example_Derived> = Xml.lazy(() => Xml.polymorphic("Example.Derived", [{ id: "Example.Derived", name: "Derived", namespace: "", codec: T_Example_DerivedPayloadSchema }], true)) as Xml.Codec<T_Example_Derived>;
 
 type T_Example_NodePayload = {
-	"Branches"?: Array<(T_Example_Branch) | null>;
-	"Children"?: Array<(T_Example_Node) | null>;
-	"Links"?: Array<{ key: string; value: T_Example_Node; [extra: string]: unknown }>;
 	"Name"?: string;
 	"heldObject"?: T_Example_Node | null;
+	"Children"?: Array<(T_Example_Node) | null>;
+	"Links"?: Array<{ key: string; value: T_Example_Node; [extra: string]: unknown }>;
+	"Branches"?: Array<(T_Example_Branch) | null>;
 	[extra: string]: unknown;
 };
 export type T_Example_Node = (T_Example_DerivedPayload & { readonly $type: "Example.Derived" }) | (T_Example_NodePayload & { readonly $type: "Example.Node" }) | Xml.UnknownObject;
 
 const T_Example_NodePayloadSchema = Xml.object({
-	["Branches"]: { xmlName: "Branches", codec: Xml.wrapped(Xml.nullable(Xml.lazy(() => T_Example_BranchSchema)), "Branch", undefined), optional: true },
-	["Children"]: { xmlName: "Children", codec: Xml.wrapped(Xml.nullable(Xml.lazy(() => T_Example_NodeSchema)), "Node", undefined), optional: true },
-	["Links"]: { xmlName: "Links", codec: Xml.dictionary(Xml.scalar("System.String"), "string", Xml.lazy(() => T_Example_NodeSchema), "Node"), optional: true },
 	["Name"]: { xmlName: "Name", codec: Xml.scalar("System.String"), optional: true },
 	["heldObject"]: { xmlName: "heldObject", codec: Xml.optionalReference(Xml.lazy(() => T_Example_NodeSchema)), optional: true },
+	["Children"]: { xmlName: "Children", codec: Xml.wrapped(Xml.nullable(Xml.lazy(() => T_Example_NodeSchema)), "Node", undefined), optional: true },
+	["Links"]: { xmlName: "Links", codec: Xml.dictionary(Xml.scalar("System.String"), "string", Xml.lazy(() => T_Example_NodeSchema), "Node"), optional: true },
+	["Branches"]: { xmlName: "Branches", codec: Xml.wrapped(Xml.nullable(Xml.lazy(() => T_Example_BranchSchema)), "Branch", undefined), optional: true },
 });
 const T_Example_NodeSchema: Xml.Codec<T_Example_Node> = Xml.lazy(() => Xml.polymorphic("Example.Node", [{ id: "Example.Derived", name: "Derived", namespace: "", codec: T_Example_DerivedPayloadSchema }, { id: "Example.Node", name: "Node", namespace: "", codec: T_Example_NodePayloadSchema }], true)) as Xml.Codec<T_Example_Node>;
 

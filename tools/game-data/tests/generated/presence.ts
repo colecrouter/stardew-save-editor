@@ -3,38 +3,38 @@ import { Schema } from "effect";
 import * as Xml from "../../../../src/lib/save-format/index.ts";
 
 type T_Example_NodePayload = {
-	"Child"?: T_Example_Node;
 	"Name"?: string;
+	"Child"?: T_Example_Node;
 	[extra: string]: unknown;
 };
 export type T_Example_Node = T_Example_NodePayload;
 
 const T_Example_NodePayloadSchema = Xml.object({
-	["Child"]: { xmlName: "Child", codec: Xml.lazy(() => T_Example_NodeSchema), optional: true },
 	["Name"]: { xmlName: "Name", codec: Xml.scalar("System.String"), optional: true },
+	["Child"]: { xmlName: "Child", codec: Xml.lazy(() => T_Example_NodeSchema), optional: true },
 });
 const T_Example_NodeSchema: Xml.Codec<T_Example_Node> = Xml.lazy(() => Xml.polymorphic("Example.Node", [{ id: "Example.Node", name: "Node", namespace: "", codec: T_Example_NodePayloadSchema }])) as Xml.Codec<T_Example_Node>;
 
 type T_Example_SavePayload = {
-	"Child"?: T_Example_Node;
+	"gameVersionLabel"?: string;
 	"Number"?: number;
 	"count"?: (number) | null;
-	"gameVersionLabel"?: string;
-	"tag"?: Array<string>;
+	"Child"?: T_Example_Node;
 	"values"?: Array<number>;
 	"version"?: number;
+	"tag"?: Array<string>;
 	[extra: string]: unknown;
 };
 export type T_Example_Save = T_Example_SavePayload;
 
 const T_Example_SavePayloadSchema = Xml.object({
-	["Child"]: { xmlName: "Child", codec: Xml.lazy(() => T_Example_NodeSchema), optional: true },
+	["gameVersionLabel"]: { xmlName: "gameVersionLabel", codec: Xml.scalar("System.String"), optional: true },
 	["Number"]: { xmlName: "Number", codec: Xml.scalar("System.Int32"), optional: true },
 	["count"]: { xmlName: "count", codec: Xml.nullable(Xml.scalar("System.Int32")), optional: true },
-	["gameVersionLabel"]: { xmlName: "gameVersionLabel", codec: Xml.scalar("System.String"), optional: true },
-	["tag"]: { xmlName: "tag", codec: Xml.sequence(Xml.scalar("System.String"), undefined), repeated: true, optional: true },
+	["Child"]: { xmlName: "Child", codec: Xml.lazy(() => T_Example_NodeSchema), optional: true },
 	["values"]: { xmlName: "values", codec: Xml.wrapped(Xml.scalar("System.Int32"), "int", undefined), optional: true },
 	["version"]: { xmlName: "@_version", codec: Xml.scalar("System.Int32"), optional: true },
+	["tag"]: { xmlName: "tag", codec: Xml.sequence(Xml.scalar("System.String"), undefined), repeated: true, optional: true },
 });
 const T_Example_SaveSchema: Xml.Codec<T_Example_Save> = Xml.lazy(() => Xml.polymorphic("Example.Save", [{ id: "Example.Save", name: "Save", namespace: "", codec: T_Example_SavePayloadSchema }])) as Xml.Codec<T_Example_Save>;
 

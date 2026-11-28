@@ -14,45 +14,45 @@ const T_Example_AnimalPayloadSchema = Xml.object({
 const T_Example_AnimalSchema: Xml.Codec<T_Example_Animal> = Xml.lazy(() => Xml.polymorphic("Example.Animal", [{ id: "Example.Animal", name: "Animal", namespace: "", codec: T_Example_AnimalPayloadSchema }, { id: "Example.Cat", name: "Kitten", namespace: "", codec: T_Example_CatPayloadSchema }, { id: "Example.Dog", name: "Hound", namespace: "urn:pets", codec: T_Example_DogPayloadSchema }], true)) as Xml.Codec<T_Example_Animal>;
 
 type T_Example_CatPayload = {
-	"Lives"?: number;
 	"Name"?: string;
+	"Lives"?: number;
 	[extra: string]: unknown;
 };
 export type T_Example_Cat = T_Example_CatPayload & { readonly $type?: "Example.Cat" };
 
 const T_Example_CatPayloadSchema = Xml.object({
-	["Lives"]: { xmlName: "Lives", codec: Xml.scalar("System.Int32"), optional: true },
 	["Name"]: { xmlName: "Name", codec: Xml.scalar("System.String"), optional: true },
+	["Lives"]: { xmlName: "Lives", codec: Xml.scalar("System.Int32"), optional: true },
 });
 const T_Example_CatSchema: Xml.Codec<T_Example_Cat> = Xml.lazy(() => Xml.polymorphic("Example.Cat", [{ id: "Example.Cat", name: "Kitten", namespace: "", codec: T_Example_CatPayloadSchema }], true)) as Xml.Codec<T_Example_Cat>;
 
 type T_Example_ContainerPayload = {
-	"Holder"?: T_Example_Holder;
 	"Pet"?: T_Example_Animal;
 	"animal"?: Array<T_Example_Animal>;
+	"Holder"?: T_Example_Holder;
 	"score"?: Array<number>;
 	[extra: string]: unknown;
 };
 export type T_Example_Container = T_Example_ContainerPayload;
 
 const T_Example_ContainerPayloadSchema = Xml.object({
-	["Holder"]: { xmlName: "Holder", codec: Xml.lazy(() => T_Example_HolderSchema), optional: true },
 	["Pet"]: { xmlName: "Pet", codec: Xml.lazy(() => T_Example_AnimalSchema), optional: true },
 	["animal"]: { xmlName: "animal", codec: Xml.sequence(Xml.lazy(() => T_Example_AnimalSchema), undefined), repeated: true, optional: true },
+	["Holder"]: { xmlName: "Holder", codec: Xml.lazy(() => T_Example_HolderSchema), optional: true },
 	["score"]: { xmlName: "score", codec: Xml.sequence(Xml.scalar("System.Int32"), undefined), repeated: true, optional: true },
 });
 const T_Example_ContainerSchema: Xml.Codec<T_Example_Container> = Xml.lazy(() => Xml.polymorphic("Example.Container", [{ id: "Example.Container", name: "Container", namespace: "", codec: T_Example_ContainerPayloadSchema }])) as Xml.Codec<T_Example_Container>;
 
 type T_Example_DogPayload = {
-	"BarkCount"?: number;
 	"Name"?: string;
+	"BarkCount"?: number;
 	[extra: string]: unknown;
 };
 export type T_Example_Dog = T_Example_DogPayload & { readonly $type?: "Example.Dog" };
 
 const T_Example_DogPayloadSchema = Xml.object({
-	["BarkCount"]: { xmlName: "BarkCount", codec: Xml.scalar("System.Int32"), optional: true },
 	["Name"]: { xmlName: "Name", codec: Xml.scalar("System.String"), optional: true },
+	["BarkCount"]: { xmlName: "BarkCount", codec: Xml.scalar("System.Int32"), optional: true },
 });
 const T_Example_DogSchema: Xml.Codec<T_Example_Dog> = Xml.lazy(() => Xml.polymorphic("Example.Dog", [{ id: "Example.Dog", name: "Hound", namespace: "urn:pets", codec: T_Example_DogPayloadSchema }], true)) as Xml.Codec<T_Example_Dog>;
 

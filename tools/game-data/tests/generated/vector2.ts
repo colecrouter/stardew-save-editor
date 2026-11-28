@@ -14,15 +14,15 @@ const T_Example_EntryPayloadSchema = Xml.object({
 const T_Example_EntrySchema: Xml.Codec<T_Example_Entry> = Xml.lazy(() => Xml.polymorphic("Example.Entry", [{ id: "Example.Entry", name: "Entry", namespace: "", codec: T_Example_EntryPayloadSchema }])) as Xml.Codec<T_Example_Entry>;
 
 type T_Example_MapPayload = {
-	"Position"?: T_Microsoft_Xna_Framework_Vector2;
 	"objects"?: Array<{ key: T_Microsoft_Xna_Framework_Vector2; value: T_Example_Entry; [extra: string]: unknown }>;
+	"Position"?: T_Microsoft_Xna_Framework_Vector2;
 	[extra: string]: unknown;
 };
 export type T_Example_Map = T_Example_MapPayload;
 
 const T_Example_MapPayloadSchema = Xml.object({
-	["Position"]: { xmlName: "Position", codec: Xml.lazy(() => T_Microsoft_Xna_Framework_Vector2Schema), optional: true },
 	["objects"]: { xmlName: "objects", codec: Xml.dictionary(Xml.lazy(() => T_Microsoft_Xna_Framework_Vector2Schema), "Vector2", Xml.lazy(() => T_Example_EntrySchema), "Entry", "Microsoft.Xna.Framework.Vector2"), optional: true },
+	["Position"]: { xmlName: "Position", codec: Xml.lazy(() => T_Microsoft_Xna_Framework_Vector2Schema), optional: true },
 });
 const T_Example_MapSchema: Xml.Codec<T_Example_Map> = Xml.lazy(() => Xml.polymorphic("Example.Map", [{ id: "Example.Map", name: "Map", namespace: "", codec: T_Example_MapPayloadSchema }])) as Xml.Codec<T_Example_Map>;
 

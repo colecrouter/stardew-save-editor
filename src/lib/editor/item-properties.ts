@@ -269,7 +269,7 @@ export function getItemPropertyFields(
 			});
 	}
 	if (
-		type === "StardewValley.Objects.Trinket" &&
+		type === "StardewValley.Objects.Trinkets.Trinket" &&
 		metadata._type === "Trinket" &&
 		context
 	)

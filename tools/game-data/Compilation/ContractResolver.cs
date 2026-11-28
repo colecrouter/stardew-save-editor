@@ -50,7 +50,10 @@ internal sealed class ContractResolver(Catalog catalog)
 		var members = new HashSet<string>();
 		var slots = new HashSet<string>();
 		var fields = new List<FieldContract>();
-		foreach (var member in type.Members.OrderBy(m => m.Name, StringComparer.Ordinal))
+		// Keep the catalog's member order: it is XmlSerializer's element order, and
+		// the encoder writes fields in this sequence. The game's setters can depend on
+		// earlier siblings, so sorting here would change what the game loads.
+		foreach (var member in type.Members)
 		{
 			if (!members.Add(member.Name))
 				throw new InvalidDataException($"{id}.{member.Name}: duplicate member");
@@ -121,6 +124,14 @@ internal sealed class ContractResolver(Catalog catalog)
 			// Network dictionaries enumerate their one serializable dictionary snapshot,
 			// not individual entries. Likewise NetFarmerRef exposes one nullable ID.
 			// Keep that XML wrapper in the codec without exposing an extra editor array.
+			// Since 1.6.9 SaveGame stores several dictionaries as SaveablePair<K,V>[]
+			// with [XmlArrayItem("item")]. Each pair holds one-element key/value arrays,
+			// so the XML is exactly SerializableDictionary's <item><key>…</key><value>…
+			// layout. Reuse the dictionary codec so editors keep { key, value } entries.
+			if (mapping?.Type != Metadata.Xml + "XmlElementAttribute"
+				&& Metadata.Name(items.FirstOrDefault(), "ElementName", "") == "item"
+				&& SaveablePair(record.ElementType, path) is { } pair)
+				return new(member.Name, name, "element", Dictionary(pair.Key, pair.Value, false, path));
 			var maxItems = MaximumItems(record);
 			ValueContract value;
 			if (record.GenericDefinition == "Netcode.NetNullableEnum`1")
@@ -152,6 +163,43 @@ internal sealed class ContractResolver(Catalog catalog)
 		if (attribute && result.Kind is not ("scalar" or "enum"))
 			throw new InvalidDataException($"{path}: element values cannot be XML attributes");
 		return new(member.Name, name, attribute ? "attribute" : "element", result);
+	}
+	// Dictionary entries use <item><key><K/></key><value><V/></value></item>, whether
+	// written by SerializableDictionary or by a SaveablePair array.
+	private ValueContract Dictionary(string keyId, string valueId, bool insensitive, string path)
+	{
+		var key = Value(keyId, path + ".key");
+		string? identity = insensitive ? "ordinalIgnoreCase" : null;
+		if (key.Kind == "object")
+		{
+			// Equality is implemented by the runtime's reviewed comparer, not by
+			// arbitrary XML/object equality. Ensure its expected fields still exist.
+			var fields = keyId switch
+			{
+				"StardewValley.FarmerPair" => new[] { ("Farmer1", "System.Int64"), ("Farmer2", "System.Int64") },
+				"Microsoft.Xna.Framework.Vector2" => [("X", "System.Single"), ("Y", "System.Single")],
+				_ => throw new InvalidDataException($"{path}: dictionary object key requires a registered identity: {keyId}")
+			};
+			var keyType = metadata.Require(keyId);
+			if (keyType.BaseType != "System.ValueType" || keyType.IsAbstract || keyType.Members.Count != fields.Length || fields.Any(f => !keyType.Members.Any(m => m.Name == f.Item1 && m.Type == f.Item2)))
+				throw new InvalidDataException($"{path}: registered key identity no longer matches {keyId}");
+			identity = keyId;
+		}
+		else if (key.Kind is not ("scalar" or "enum")) throw new InvalidDataException($"{path}: unsupported dictionary key");
+		return new("dictionary", Key: key, Value: Value(valueId, path + ".value"), KeyName: metadata.ItemName(keyId, true), ValueName: metadata.ItemName(valueId, true), KeyIdentity: identity);
+	}
+	// Recognize a SaveablePair<K,V> entry type and return its key and value types.
+	// Its XML equals a dictionary entry only while it holds exactly the one-element
+	// key/value arrays reviewed here; any other shape is not treated as a dictionary.
+	private (string Key, string Value)? SaveablePair(string id, string path)
+	{
+		var type = metadata.Types.GetValueOrDefault(id);
+		if (type?.GenericDefinition != "StardewValley.Util.SaveablePair`2") return null;
+		if (type.GenericArguments is not [var keyId, var valueId] || type.Members.Count != 2
+			|| !type.Members.Any(m => m.Name == "key" && m.Type == keyId + "[]" && m.Attributes.Count == 0)
+			|| !type.Members.Any(m => m.Name == "value" && m.Type == valueId + "[]" && m.Attributes.Count == 0))
+			throw new InvalidDataException($"{path}: SaveablePair no longer matches the reviewed key/value layout");
+		return (keyId, valueId);
 	}
 	private int? MaximumItems(TypeRecord type)
 	{
@@ -209,32 +257,15 @@ internal sealed class ContractResolver(Catalog catalog)
 					throw new InvalidDataException($"{path}: invalid inventory payload");
 				return new("inventory", Item: Value(type.ElementType, path + ".slots"));
 			}
-			var insensitive = type.GenericDefinition == "StardewValley.SerializableDictionaryWithCaseInsensitiveKeys`1";
+			// StatsDictionary (1.6.15) only changes how duplicate keys merge while
+			// loading; its XML and string-key comparer are its base class's.
+			var insensitive = type.GenericDefinition is "StardewValley.SerializableDictionaryWithCaseInsensitiveKeys`1" or "StardewValley.StatsDictionary`1";
 			if (insensitive || type.GenericDefinition == "StardewValley.SerializableDictionary`2")
 			{
 				if (type.GenericArguments.Count != (insensitive ? 1 : 2))
 					throw new InvalidDataException($"{path}: invalid dictionary generic metadata");
 				var keyId = insensitive ? "System.String" : type.GenericArguments[0];
-				var valueId = type.GenericArguments[^1];
-				var key = Value(keyId, path + ".key");
-				string? identity = insensitive ? "ordinalIgnoreCase" : null;
-				if (key.Kind == "object")
-				{
-					// Equality is implemented by the runtime's reviewed comparer, not by
-					// arbitrary XML/object equality. Ensure its expected fields still exist.
-					var fields = keyId switch
-					{
-						"StardewValley.FarmerPair" => new[] { ("Farmer1", "System.Int64"), ("Farmer2", "System.Int64") },
-						"Microsoft.Xna.Framework.Vector2" => [("X", "System.Single"), ("Y", "System.Single")],
-						_ => throw new InvalidDataException($"{path}: dictionary object key requires a registered identity: {keyId}")
-					};
-					var keyType = metadata.Require(keyId);
-					if (keyType.BaseType != "System.ValueType" || keyType.IsAbstract || keyType.Members.Count != fields.Length || fields.Any(f => !keyType.Members.Any(m => m.Name == f.Item1 && m.Type == f.Item2)))
-						throw new InvalidDataException($"{path}: registered key identity no longer matches {keyId}");
-					identity = keyId;
-				}
-				else if (key.Kind is not ("scalar" or "enum")) throw new InvalidDataException($"{path}: unsupported dictionary key");
-				return new("dictionary", Key: key, Value: Value(valueId, path + ".value"), KeyName: metadata.ItemName(keyId, true), ValueName: metadata.ItemName(valueId, true), KeyIdentity: identity);
+				return Dictionary(keyId, type.GenericArguments[^1], insensitive, path);
 			}
 			throw new InvalidDataException($"{path}: unsupported custom XML serializer {id}");
 		}

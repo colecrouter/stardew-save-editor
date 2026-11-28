@@ -3,20 +3,20 @@ import { Schema } from "effect";
 import * as Xml from "../../../../src/lib/save-format/index.ts";
 
 type T_Example_ListsPayload = {
-	"bytes"?: Array<{ key: string; value: Array<number>; [extra: string]: unknown }>;
+	"stats"?: Array<{ key: string; value: Array<number>; [extra: string]: unknown }>;
 	"matrix"?: Array<{ key: string; value: Array<(Array<number>) | null>; [extra: string]: unknown }>;
 	"nodes"?: Array<{ key: string; value: Array<(T_Example_Node) | null>; [extra: string]: unknown }>;
-	"stats"?: Array<{ key: string; value: Array<number>; [extra: string]: unknown }>;
+	"bytes"?: Array<{ key: string; value: Array<number>; [extra: string]: unknown }>;
 	"words"?: Array<{ key: string; value: Array<(string) | null>; [extra: string]: unknown }>;
 	[extra: string]: unknown;
 };
 export type T_Example_Lists = T_Example_ListsPayload;
 
 const T_Example_ListsPayloadSchema = Xml.object({
-	["bytes"]: { xmlName: "bytes", codec: Xml.dictionary(Xml.scalar("System.String"), "string", Xml.wrapped(Xml.scalar("System.Byte"), "unsignedByte"), "ArrayOfUnsignedByte"), optional: true },
+	["stats"]: { xmlName: "stats", codec: Xml.dictionary(Xml.scalar("System.String"), "string", Xml.wrapped(Xml.scalar("System.Int32"), "int"), "ArrayOfInt"), optional: true },
 	["matrix"]: { xmlName: "matrix", codec: Xml.dictionary(Xml.scalar("System.String"), "string", Xml.wrapped(Xml.nullable(Xml.wrapped(Xml.scalar("System.Int32"), "int")), "ArrayOfInt"), "ArrayOfArrayOfInt"), optional: true },
 	["nodes"]: { xmlName: "nodes", codec: Xml.dictionary(Xml.scalar("System.String"), "string", Xml.wrapped(Xml.nullable(Xml.lazy(() => T_Example_NodeSchema)), "Node"), "ArrayOfNode"), optional: true },
-	["stats"]: { xmlName: "stats", codec: Xml.dictionary(Xml.scalar("System.String"), "string", Xml.wrapped(Xml.scalar("System.Int32"), "int"), "ArrayOfInt"), optional: true },
+	["bytes"]: { xmlName: "bytes", codec: Xml.dictionary(Xml.scalar("System.String"), "string", Xml.wrapped(Xml.scalar("System.Byte"), "unsignedByte"), "ArrayOfUnsignedByte"), optional: true },
 	["words"]: { xmlName: "words", codec: Xml.dictionary(Xml.scalar("System.String"), "string", Xml.wrapped(Xml.nullable(Xml.scalar("System.String")), "string"), "ArrayOfString"), optional: true },
 });
 const T_Example_ListsSchema: Xml.Codec<T_Example_Lists> = Xml.lazy(() => Xml.polymorphic("Example.Lists", [{ id: "Example.Lists", name: "Lists", namespace: "", codec: T_Example_ListsPayloadSchema }])) as Xml.Codec<T_Example_Lists>;
@@ -35,17 +35,17 @@ const T_Example_NodePayloadSchema = Xml.object({
 const T_Example_NodeSchema: Xml.Codec<T_Example_Node> = Xml.lazy(() => Xml.polymorphic("Example.Node", [{ id: "Example.Node", name: "Node", namespace: "", codec: T_Example_NodePayloadSchema }, { id: "Example.SpecialNode", name: "SpecialNode", namespace: "", codec: T_Example_SpecialNodePayloadSchema }], true)) as Xml.Codec<T_Example_Node>;
 
 type T_Example_SpecialNodePayload = {
-	"Count"?: number;
 	"Name"?: string;
 	"Nodes"?: Array<{ key: string; value: Array<(T_Example_Node) | null>; [extra: string]: unknown }>;
+	"Count"?: number;
 	[extra: string]: unknown;
 };
 export type T_Example_SpecialNode = T_Example_SpecialNodePayload & { readonly $type?: "Example.SpecialNode" };
 
 const T_Example_SpecialNodePayloadSchema = Xml.object({
-	["Count"]: { xmlName: "Count", codec: Xml.scalar("System.Int32"), optional: true },
 	["Name"]: { xmlName: "Name", codec: Xml.scalar("System.String"), optional: true },
 	["Nodes"]: { xmlName: "Nodes", codec: Xml.dictionary(Xml.scalar("System.String"), "string", Xml.wrapped(Xml.nullable(Xml.lazy(() => T_Example_NodeSchema)), "Node"), "ArrayOfNode"), optional: true },
+	["Count"]: { xmlName: "Count", codec: Xml.scalar("System.Int32"), optional: true },
 });
 const T_Example_SpecialNodeSchema: Xml.Codec<T_Example_SpecialNode> = Xml.lazy(() => Xml.polymorphic("Example.SpecialNode", [{ id: "Example.SpecialNode", name: "SpecialNode", namespace: "", codec: T_Example_SpecialNodePayloadSchema }], true)) as Xml.Codec<T_Example_SpecialNode>;
 

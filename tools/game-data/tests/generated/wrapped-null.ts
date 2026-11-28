@@ -17,9 +17,9 @@ type T_Example_PaintPayload = {
 	"ColorName"?: (string) | null | null;
 	"name"?: string;
 	"NonNullableName"?: string | null;
+	"Targets"?: Array<(T_Example_Node) | null>;
 	"Numbers"?: Array<number>;
 	"Points"?: Array<T_Example_Point>;
-	"Targets"?: Array<(T_Example_Node) | null>;
 	[extra: string]: unknown;
 };
 export type T_Example_Paint = T_Example_PaintPayload;
@@ -28,9 +28,9 @@ const T_Example_PaintPayloadSchema = Xml.object({
 	["ColorName"]: { xmlName: "ColorName", codec: Xml.single(Xml.nullable(Xml.scalar("System.String")), "string"), optional: true },
 	["name"]: { xmlName: "name", codec: Xml.scalar("System.String"), optional: true },
 	["NonNullableName"]: { xmlName: "NonNullableName", codec: Xml.single(Xml.scalar("System.String"), "string"), optional: true },
+	["Targets"]: { xmlName: "Targets", codec: Xml.wrapped(Xml.nullable(Xml.lazy(() => T_Example_NodeSchema)), "Node", undefined), optional: true },
 	["Numbers"]: { xmlName: "Numbers", codec: Xml.wrapped(Xml.scalar("System.Int32"), "int", undefined), optional: true },
 	["Points"]: { xmlName: "Points", codec: Xml.wrapped(Xml.lazy(() => T_Example_PointSchema), "Point", undefined), optional: true },
-	["Targets"]: { xmlName: "Targets", codec: Xml.wrapped(Xml.nullable(Xml.lazy(() => T_Example_NodeSchema)), "Node", undefined), optional: true },
 });
 const T_Example_PaintSchema: Xml.Codec<T_Example_Paint> = Xml.lazy(() => Xml.polymorphic("Example.Paint", [{ id: "Example.Paint", name: "Paint", namespace: "", codec: T_Example_PaintPayloadSchema }])) as Xml.Codec<T_Example_Paint>;
 

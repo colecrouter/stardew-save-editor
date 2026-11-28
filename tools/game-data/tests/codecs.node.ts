@@ -7,6 +7,7 @@ import { Effect, Schema } from "effect";
 
 import { decodeChunks } from "../../../src/lib/save-format/index.ts";
 import { ValueSchema, XmlSchema } from "./generated/fixture.ts";
+import { XmlSchema as OrderXmlSchema } from "./generated/order.ts";
 
 const fixtures = resolve("tools/game-data/tests/fixtures");
 
@@ -29,6 +30,19 @@ void test("event codecs consume arbitrarily split text without collecting a sour
 			decodeChunks("SaveGame", ValueSchema, ["<SaveGame><Money>1"]),
 		),
 	);
+});
+
+void test("encoders write members in catalog order, not alphabetically", () => {
+	// The catalog records XmlSerializer's member order, and game setters can
+	// depend on earlier siblings. Supply the value's keys alphabetically to show
+	// that the encoder follows the catalog rather than either sorted order.
+	const xml = Schema.encodeSync(OrderXmlSchema)({
+		Billing: { City: "B" },
+		OrderId: 1n,
+		Shipping: { City: "S" },
+	});
+	assert.ok(xml.indexOf("<Shipping>") < xml.indexOf("<Billing>"), xml);
+	assert.ok(xml.indexOf("<Billing>") < xml.indexOf("<OrderId>"), xml);
 });
 
 void test("committed codecs preserve values after creation and reordering", async () => {

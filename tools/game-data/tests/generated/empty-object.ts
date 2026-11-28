@@ -3,15 +3,15 @@ import { Schema } from "effect";
 import * as Xml from "../../../../src/lib/save-format/index.ts";
 
 type T_Example_MinePayload = {
-	"level"?: number;
 	"mineRandom"?: T_System_Random;
+	"level"?: number;
 	[extra: string]: unknown;
 };
 export type T_Example_Mine = T_Example_MinePayload;
 
 const T_Example_MinePayloadSchema = Xml.object({
-	["level"]: { xmlName: "level", codec: Xml.scalar("System.Int32"), optional: true },
 	["mineRandom"]: { xmlName: "mineRandom", codec: Xml.lazy(() => T_System_RandomSchema), optional: true },
+	["level"]: { xmlName: "level", codec: Xml.scalar("System.Int32"), optional: true },
 });
 const T_Example_MineSchema: Xml.Codec<T_Example_Mine> = Xml.lazy(() => Xml.polymorphic("Example.Mine", [{ id: "Example.Mine", name: "Mine", namespace: "", codec: T_Example_MinePayloadSchema }])) as Xml.Codec<T_Example_Mine>;
 

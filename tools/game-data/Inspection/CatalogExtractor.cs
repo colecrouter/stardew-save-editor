@@ -57,6 +57,7 @@ internal static class CatalogExtractor
 				var genericArguments = type.IsGenericType ? type.GetGenericArguments() : [];
 				if (genericDefinition is "StardewValley.SerializableDictionary`2"
 					or "StardewValley.SerializableDictionaryWithCaseInsensitiveKeys`1"
+					or "StardewValley.StatsDictionary`1"
 					or "Netcode.NetNullableEnum`1")
 					foreach (var argument in genericArguments) queue.Enqueue(argument);
 
@@ -78,30 +79,20 @@ internal static class CatalogExtractor
 					// fields remain available without exploring runtime machinery.
 					if (kind is "object" or "enum")
 					{
-						var flags = BindingFlags.Public | (kind == "enum" ? BindingFlags.Static : BindingFlags.Instance);
-						foreach (var member in type.GetMembers(flags)
-							.Where(m => m is FieldInfo || m is PropertyInfo p && p.GetIndexParameters().Length == 0)
-							.OrderBy(m => m.Name, StringComparer.Ordinal))
+						// Record object members as XmlSerializer maps them, in its element
+						// order. The game's setters can depend on earlier siblings (Farmer's
+						// money goes to the wallet chosen by useSeparateWallets), so the
+						// catalog order becomes the encoder's element order. Enum names have
+						// no XML order and stay sorted for stable output.
+						IEnumerable<MemberInfo> saved = kind == "enum"
+							? type.GetMembers(BindingFlags.Public | BindingFlags.Static)
+								.Where(m => m is FieldInfo && Saved(m, kind))
+								.OrderBy(m => m.Name, StringComparer.Ordinal)
+							: SerializerMembers(type);
+						foreach (var member in saved)
 						{
-							var field = member as FieldInfo;
-							var property = member as PropertyInfo;
-							var memberType = field?.FieldType ?? property!.PropertyType;
-							var memberAttributes = Attributes(member);
-							if (memberAttributes.Any(a => a.Type == XmlNamespace + "XmlIgnoreAttribute")) continue;
-
-							// Unannotated readonly scalars aren't ordinary serializer
-							// members. Preserve explicit XML declarations regardless:
-							// the game serializes annotated readonly Netcode fields.
-							// Readonly collection fields and getter-only collections
-							// can also be populated in place; keep both forms.
-							var readable = field is not null || property!.GetMethod?.IsPublic == true;
-							var writable = field is not null ? !field.IsInitOnly && !field.IsLiteral : property!.SetMethod?.IsPublic == true;
-							var explicitXml = memberAttributes.Any(a => a.Type.StartsWith(XmlNamespace, StringComparison.Ordinal));
-							if (kind != "enum" && !explicitXml && (!readable || !writable && Element(memberType) is null)) continue;
-							// Accessor details are inspection inputs, not catalog fields.
-							// Only readable members enter the saved-value contract.
-							if (!readable) continue;
-							members.Add(new(member.Name, Id(memberType), memberAttributes));
+							var memberType = (member as FieldInfo)?.FieldType ?? ((PropertyInfo)member).PropertyType;
+							members.Add(new(member.Name, Id(memberType), Attributes(member)));
 							if (kind != "enum") queue.Enqueue(memberType);
 							EnqueueAttributeTypes(member.GetCustomAttributesData(), queue);
 						}
@@ -135,6 +126,65 @@ internal static class CatalogExtractor
 			AssemblyAttribute("AssemblyInformationalVersionAttribute")?.Split(",")[0], assembly.GetName().Version!.ToString(), framework,
 			roots.Distinct().Order(StringComparer.Ordinal).ToList(), assemblies,
 			records.OrderBy(t => t.Id, StringComparer.Ordinal).ToList(), diagnostics.Order(StringComparer.Ordinal).ToList());
+	}
+
+	// Whether XmlSerializer treats this member, as seen from one class, as saved data.
+	private static bool Saved(MemberInfo member, string kind)
+	{
+		var field = member as FieldInfo;
+		var property = member as PropertyInfo;
+		if (field is null && (property is null || property.GetIndexParameters().Length != 0)) return false;
+		var memberType = field?.FieldType ?? property!.PropertyType;
+		var memberAttributes = Attributes(member);
+		if (memberAttributes.Any(a => a.Type == XmlNamespace + "XmlIgnoreAttribute")) return false;
+
+		// Unannotated readonly scalars aren't ordinary serializer
+		// members. Preserve explicit XML declarations regardless:
+		// the game serializes annotated readonly Netcode fields.
+		// Readonly collection fields and getter-only collections
+		// can also be populated in place; keep both forms.
+		var readable = field is not null || property!.GetMethod?.IsPublic == true;
+		var writable = field is not null ? !field.IsInitOnly && !field.IsLiteral : property!.SetMethod?.IsPublic == true;
+		var explicitXml = memberAttributes.Any(a => a.Type.StartsWith(XmlNamespace, StringComparison.Ordinal));
+		if (kind != "enum" && !explicitXml && (!readable || !writable && Element(memberType) is null)) return false;
+		// Accessor details are inspection inputs, not catalog fields.
+		// Only readable members enter the saved-value contract.
+		return readable;
+	}
+
+	// XmlSerializer maps each class from the root base down and writes base-class
+	// mappings first. Each class contributes the members it sees as saved, minus
+	// names an earlier class already maps, with public fields before properties,
+	// each in declaration (metadata) order. A member therefore keeps the slot and
+	// annotations of the first class that saves it: Character.Gender stays saved
+	// for NPC despite NPC's [XmlIgnore] override, while HoeDirt saves the Tile
+	// override that TerrainFeature ignores, after HoeDirt's own fields.
+	private static List<MemberInfo> SerializerMembers(Type type)
+	{
+		var chain = new List<Type>();
+		for (Type? current = type; current is not null && current.FullName is not ("System.Object" or "System.ValueType"); current = current.BaseType)
+			chain.Insert(0, current);
+		var mapped = new HashSet<string>(StringComparer.Ordinal);
+		var result = new List<MemberInfo>();
+		foreach (var level in chain)
+		{
+			// GetMembers returns each name as this class sees it, so an override
+			// carries this class's annotations rather than its base declaration's.
+			var added = level.GetMembers(BindingFlags.Public | BindingFlags.Instance)
+				.Where(m => !mapped.Contains(m.Name) && Saved(m, "object"))
+				.OrderBy(m => m is FieldInfo ? 0 : 1)
+				.ThenBy(m => m.MetadataToken)
+				.ToList();
+			// Within one class, the member's own declaration order is metadata order.
+			// Inherited members never reach here unmapped unless their declaring base
+			// ignored them, which also makes this class's view of them ignored.
+			foreach (var member in added)
+			{
+				mapped.Add(member.Name);
+				result.Add(member);
+			}
+		}
+		return result;
 	}
 
 	private static int? MaxItems(Type type)

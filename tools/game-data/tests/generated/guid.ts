@@ -4,18 +4,18 @@ import * as Xml from "../../../../src/lib/save-format/index.ts";
 
 type T_Example_BuildingPayload = {
 	"id"?: string;
+	"owner"?: string;
 	"ids"?: Array<string>;
 	"optional"?: (string) | null;
-	"owner"?: string;
 	[extra: string]: unknown;
 };
 export type T_Example_Building = T_Example_BuildingPayload;
 
 const T_Example_BuildingPayloadSchema = Xml.object({
 	["id"]: { xmlName: "id", codec: Xml.scalar("System.Guid"), optional: true },
+	["owner"]: { xmlName: "@_owner", codec: Xml.scalar("System.Guid"), optional: true },
 	["ids"]: { xmlName: "ids", codec: Xml.wrapped(Xml.scalar("System.Guid"), "guid", undefined), optional: true },
 	["optional"]: { xmlName: "optional", codec: Xml.nullable(Xml.scalar("System.Guid")), optional: true },
-	["owner"]: { xmlName: "@_owner", codec: Xml.scalar("System.Guid"), optional: true },
 });
 const T_Example_BuildingSchema: Xml.Codec<T_Example_Building> = Xml.lazy(() => Xml.polymorphic("Example.Building", [{ id: "Example.Building", name: "Building", namespace: "", codec: T_Example_BuildingPayloadSchema }])) as Xml.Codec<T_Example_Building>;
 

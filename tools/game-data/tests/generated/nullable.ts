@@ -3,21 +3,21 @@ import { Schema } from "effect";
 import * as Xml from "../../../../src/lib/save-format/index.ts";
 
 type T_Example_NullablePayload = {
-	"count"?: (number) | null;
-	"history"?: Array<(number) | null>;
-	"state"?: ("Ready" | "saved-old") | null;
-	"version"?: number;
 	"which"?: (number) | null;
+	"count"?: (number) | null;
+	"state"?: ("Ready" | "saved-old") | null;
+	"history"?: Array<(number) | null>;
+	"version"?: number;
 	[extra: string]: unknown;
 };
 export type T_Example_Nullable = T_Example_NullablePayload;
 
 const T_Example_NullablePayloadSchema = Xml.object({
-	["count"]: { xmlName: "count", codec: Xml.nullable(Xml.scalar("System.UInt32")), optional: true },
-	["history"]: { xmlName: "history", codec: Xml.wrapped(Xml.nullable(Xml.scalar("System.Int32")), "int", undefined), optional: true },
-	["state"]: { xmlName: "state", codec: Xml.nullable(Xml.text(Schema.Literals(["Ready", "saved-old"]))), optional: true },
-	["version"]: { xmlName: "@_version", codec: Xml.scalar("System.UInt32"), optional: true },
 	["which"]: { xmlName: "which", codec: Xml.nullable(Xml.scalar("System.Int32")), optional: true },
+	["count"]: { xmlName: "count", codec: Xml.nullable(Xml.scalar("System.UInt32")), optional: true },
+	["state"]: { xmlName: "state", codec: Xml.nullable(Xml.text(Schema.Literals(["Ready", "saved-old"]))), optional: true },
+	["history"]: { xmlName: "history", codec: Xml.wrapped(Xml.nullable(Xml.scalar("System.Int32")), "int", undefined), optional: true },
+	["version"]: { xmlName: "@_version", codec: Xml.scalar("System.UInt32"), optional: true },
 });
 const T_Example_NullableSchema: Xml.Codec<T_Example_Nullable> = Xml.lazy(() => Xml.polymorphic("Example.Nullable", [{ id: "Example.Nullable", name: "Nullable", namespace: "", codec: T_Example_NullablePayloadSchema }])) as Xml.Codec<T_Example_Nullable>;
 

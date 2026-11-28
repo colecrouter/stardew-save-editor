@@ -75,7 +75,10 @@ export function writeEquipmentSlot(
 			}
 			break;
 		case "trinketItem":
-			if (value == null || value.$type === "StardewValley.Objects.Trinket") {
+			if (
+				value == null ||
+				value.$type === "StardewValley.Objects.Trinkets.Trinket"
+			) {
 				farmer.trinketItem = value == null ? [] : [value];
 				return;
 			}
@@ -125,7 +128,7 @@ export function canEquipItem(raw: InventoryValue, key: EquipmentSlot): boolean {
 				type === "StardewValley.Objects.CombinedRing"
 			);
 		case "trinketItem":
-			return type === "StardewValley.Objects.Trinket";
+			return type === "StardewValley.Objects.Trinkets.Trinket";
 		// Clothing uses the saved variant, not the ambiguous numeric item ID: shirts
 		// and pants can share catalog IDs and must never be accepted interchangeably.
 		case "shirtItem":

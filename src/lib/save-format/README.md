@@ -143,7 +143,11 @@ wrappers are handled by the codec; they do not appear as one-element arrays in t
 editor. Concrete equipment references expose the same `$type` as inventory items.
 
 The codec writes canonical XML, including necessary nil/type attributes. It does
-not preserve whitespace, comments, numeric spelling, or attribute order. Unknown
+not preserve whitespace, comments, numeric spelling, or attribute order. Known
+elements are written in XmlSerializer's member order (base class first, then
+fields before properties in declaration order), because some game setters read
+earlier siblings: `Farmer.money` is stored in the wallet chosen by
+`useSeparateWallets`. The catalog records that order; generation must not sort it. Unknown
 object fields retain their generic XML representation. Unsupported known values
 fail decoding instead of entering a partially typed editor model.
 

@@ -3,100 +3,100 @@ import { Schema } from "effect";
 import * as Xml from "../../../../src/lib/save-format/index.ts";
 
 type T_Example_BasePayload = {
-	"Mode"?: "Quiet" | "Loud";
 	"Name"?: string;
+	"Mode"?: "Quiet" | "Loud";
 	[extra: string]: unknown;
 };
 export type T_Example_Base = (T_Example_ChangedPayload & { readonly $type: "Example.Changed" }) | (T_Example_DerivedPayload & { readonly $type: "Example.Derived" }) | (T_Example_GrandchildPayload & { readonly $type: "Example.Grandchild" }) | (T_Example_MarkerPayload & { readonly $type: "Example.Marker" }) | (T_Example_RemovedPayload & { readonly $type: "Example.Removed" }) | Xml.UnknownObject;
 
 const T_Example_BasePayloadSchema = Xml.object({
-	["Mode"]: { xmlName: "Mode", codec: Xml.text(Schema.Literals(["Quiet", "Loud"])), optional: true },
 	["Name"]: { xmlName: "Name", codec: Xml.scalar("System.String"), optional: true },
+	["Mode"]: { xmlName: "Mode", codec: Xml.text(Schema.Literals(["Quiet", "Loud"])), optional: true },
 });
 const T_Example_BaseSchema: Xml.Codec<T_Example_Base> = Xml.lazy(() => Xml.polymorphic("Example.Base", [{ id: "Example.Changed", name: "Changed", namespace: "", codec: T_Example_ChangedPayloadSchema }, { id: "Example.Derived", name: "Derived", namespace: "", codec: T_Example_DerivedPayloadSchema }, { id: "Example.Grandchild", name: "Grandchild", namespace: "", codec: T_Example_GrandchildPayloadSchema }, { id: "Example.Marker", name: "Marker", namespace: "", codec: T_Example_MarkerPayloadSchema }, { id: "Example.Removed", name: "Removed", namespace: "", codec: T_Example_RemovedPayloadSchema }])) as Xml.Codec<T_Example_Base>;
 
 type T_Example_ChangedPayload = {
-	"Mode"?: "Quiet" | "Loud";
 	"caption"?: number;
+	"Mode"?: "Quiet" | "Loud";
 	"Next"?: T_Example_Changed;
 	[extra: string]: unknown;
 };
 export type T_Example_Changed = T_Example_ChangedPayload & { readonly $type?: "Example.Changed" };
 
 const T_Example_ChangedPayloadSchema = Xml.object({
-	["Mode"]: { xmlName: "Mode", codec: Xml.text(Schema.Literals(["Quiet", "Loud"])), optional: true },
 	["caption"]: { xmlName: "caption", codec: Xml.scalar("System.Int32"), optional: true },
+	["Mode"]: { xmlName: "Mode", codec: Xml.text(Schema.Literals(["Quiet", "Loud"])), optional: true },
 	["Next"]: { xmlName: "Next", codec: Xml.lazy(() => T_Example_ChangedSchema), optional: true },
 });
 const T_Example_ChangedSchema: Xml.Codec<T_Example_Changed> = Xml.lazy(() => Xml.polymorphic("Example.Changed", [{ id: "Example.Changed", name: "Changed", namespace: "", codec: T_Example_ChangedPayloadSchema }], true)) as Xml.Codec<T_Example_Changed>;
 
 type T_Example_DerivedPayload = {
-	"Count"?: number;
-	"Mode"?: "Quiet" | "Loud";
 	"Name"?: string;
+	"Mode"?: "Quiet" | "Loud";
+	"Count"?: number;
 	"Next"?: T_Example_Derived;
 	[extra: string]: unknown;
 };
 export type T_Example_Derived = (T_Example_DerivedPayload & { readonly $type: "Example.Derived" }) | (T_Example_GrandchildPayload & { readonly $type: "Example.Grandchild" }) | (T_Example_MarkerPayload & { readonly $type: "Example.Marker" }) | Xml.UnknownObject;
 
 const T_Example_DerivedPayloadSchema = Xml.object({
-	["Count"]: { xmlName: "Count", codec: Xml.scalar("System.Int32"), optional: true },
-	["Mode"]: { xmlName: "Mode", codec: Xml.text(Schema.Literals(["Quiet", "Loud"])), optional: true },
 	["Name"]: { xmlName: "Name", codec: Xml.scalar("System.String"), optional: true },
+	["Mode"]: { xmlName: "Mode", codec: Xml.text(Schema.Literals(["Quiet", "Loud"])), optional: true },
+	["Count"]: { xmlName: "Count", codec: Xml.scalar("System.Int32"), optional: true },
 	["Next"]: { xmlName: "Next", codec: Xml.lazy(() => T_Example_DerivedSchema), optional: true },
 });
 const T_Example_DerivedSchema: Xml.Codec<T_Example_Derived> = Xml.lazy(() => Xml.polymorphic("Example.Derived", [{ id: "Example.Derived", name: "Derived", namespace: "", codec: T_Example_DerivedPayloadSchema }, { id: "Example.Grandchild", name: "Grandchild", namespace: "", codec: T_Example_GrandchildPayloadSchema }, { id: "Example.Marker", name: "Marker", namespace: "", codec: T_Example_MarkerPayloadSchema }], true)) as Xml.Codec<T_Example_Derived>;
 
 type T_Example_GrandchildPayload = {
-	"Count"?: number;
-	"Extra"?: boolean;
-	"Mode"?: "Quiet" | "Loud";
 	"Name"?: string;
+	"Mode"?: "Quiet" | "Loud";
+	"Count"?: number;
 	"Next"?: T_Example_Derived;
+	"Extra"?: boolean;
 	[extra: string]: unknown;
 };
 export type T_Example_Grandchild = T_Example_GrandchildPayload & { readonly $type?: "Example.Grandchild" };
 
 const T_Example_GrandchildPayloadSchema = Xml.object({
-	["Count"]: { xmlName: "Count", codec: Xml.scalar("System.Int32"), optional: true },
-	["Extra"]: { xmlName: "Extra", codec: Xml.scalar("System.Boolean"), optional: true },
-	["Mode"]: { xmlName: "Mode", codec: Xml.text(Schema.Literals(["Quiet", "Loud"])), optional: true },
 	["Name"]: { xmlName: "Name", codec: Xml.scalar("System.String"), optional: true },
+	["Mode"]: { xmlName: "Mode", codec: Xml.text(Schema.Literals(["Quiet", "Loud"])), optional: true },
+	["Count"]: { xmlName: "Count", codec: Xml.scalar("System.Int32"), optional: true },
 	["Next"]: { xmlName: "Next", codec: Xml.lazy(() => T_Example_DerivedSchema), optional: true },
+	["Extra"]: { xmlName: "Extra", codec: Xml.scalar("System.Boolean"), optional: true },
 });
 const T_Example_GrandchildSchema: Xml.Codec<T_Example_Grandchild> = Xml.lazy(() => Xml.polymorphic("Example.Grandchild", [{ id: "Example.Grandchild", name: "Grandchild", namespace: "", codec: T_Example_GrandchildPayloadSchema }], true)) as Xml.Codec<T_Example_Grandchild>;
 
 type T_Example_MarkerPayload = {
-	"Count"?: number;
-	"Mode"?: "Quiet" | "Loud";
 	"Name"?: string;
+	"Mode"?: "Quiet" | "Loud";
+	"Count"?: number;
 	"Next"?: T_Example_Derived;
 	[extra: string]: unknown;
 };
 export type T_Example_Marker = T_Example_MarkerPayload & { readonly $type?: "Example.Marker" };
 
 const T_Example_MarkerPayloadSchema = Xml.object({
-	["Count"]: { xmlName: "Count", codec: Xml.scalar("System.Int32"), optional: true },
-	["Mode"]: { xmlName: "Mode", codec: Xml.text(Schema.Literals(["Quiet", "Loud"])), optional: true },
 	["Name"]: { xmlName: "Name", codec: Xml.scalar("System.String"), optional: true },
+	["Mode"]: { xmlName: "Mode", codec: Xml.text(Schema.Literals(["Quiet", "Loud"])), optional: true },
+	["Count"]: { xmlName: "Count", codec: Xml.scalar("System.Int32"), optional: true },
 	["Next"]: { xmlName: "Next", codec: Xml.lazy(() => T_Example_DerivedSchema), optional: true },
 });
 const T_Example_MarkerSchema: Xml.Codec<T_Example_Marker> = Xml.lazy(() => Xml.polymorphic("Example.Marker", [{ id: "Example.Marker", name: "Marker", namespace: "", codec: T_Example_MarkerPayloadSchema }], true)) as Xml.Codec<T_Example_Marker>;
 
 type T_Example_NodePayload = {
-	"Children"?: Array<(T_Example_Node) | null>;
-	"Mode"?: "Quiet" | "Loud";
 	"Name"?: string;
+	"Mode"?: "Quiet" | "Loud";
 	"Next"?: T_Example_Node;
+	"Children"?: Array<(T_Example_Node) | null>;
 	[extra: string]: unknown;
 };
 export type T_Example_Node = T_Example_NodePayload;
 
 const T_Example_NodePayloadSchema = Xml.object({
-	["Children"]: { xmlName: "Children", codec: Xml.wrapped(Xml.nullable(Xml.lazy(() => T_Example_NodeSchema)), "Node", undefined), optional: true },
-	["Mode"]: { xmlName: "Mode", codec: Xml.text(Schema.Literals(["Quiet", "Loud"])), optional: true },
 	["Name"]: { xmlName: "Name", codec: Xml.scalar("System.String"), optional: true },
+	["Mode"]: { xmlName: "Mode", codec: Xml.text(Schema.Literals(["Quiet", "Loud"])), optional: true },
 	["Next"]: { xmlName: "Next", codec: Xml.lazy(() => T_Example_NodeSchema), optional: true },
+	["Children"]: { xmlName: "Children", codec: Xml.wrapped(Xml.nullable(Xml.lazy(() => T_Example_NodeSchema)), "Node", undefined), optional: true },
 });
 const T_Example_NodeSchema: Xml.Codec<T_Example_Node> = Xml.lazy(() => Xml.polymorphic("Example.Node", [{ id: "Example.Node", name: "Node", namespace: "", codec: T_Example_NodePayloadSchema }])) as Xml.Codec<T_Example_Node>;
 
@@ -126,38 +126,38 @@ const T_Example_RemovedSchema: Xml.Codec<T_Example_Removed> = Xml.lazy(() => Xml
 
 type T_Example_RootPayload = {
 	"Animal"?: T_Example_Base;
-	"CaseLabels"?: Array<{ key: string; value: string; [extra: string]: unknown }>;
 	"Changed"?: T_Example_Changed;
-	"Children"?: Array<(T_Example_Node) | null>;
-	"Labels"?: Array<{ key: string; value: string; [extra: string]: unknown }>;
-	"Last"?: T_Example_Grandchild;
-	"Left"?: T_Example_Node;
-	"Marker"?: T_Example_Marker;
-	"Other"?: T_Example_Derived;
-	"OtherCaseLabels"?: Array<{ key: string; value: string; [extra: string]: unknown }>;
-	"OtherLabels"?: Array<{ key: string; value: string; [extra: string]: unknown }>;
-	"Position"?: T_Example_Point;
 	"Removed"?: T_Example_Removed;
+	"Left"?: T_Example_Node;
 	"Right"?: T_Other_Node;
+	"Position"?: T_Example_Point;
+	"Labels"?: Array<{ key: string; value: string; [extra: string]: unknown }>;
+	"OtherLabels"?: Array<{ key: string; value: string; [extra: string]: unknown }>;
+	"Children"?: Array<(T_Example_Node) | null>;
+	"Other"?: T_Example_Derived;
+	"Last"?: T_Example_Grandchild;
+	"Marker"?: T_Example_Marker;
+	"CaseLabels"?: Array<{ key: string; value: string; [extra: string]: unknown }>;
+	"OtherCaseLabels"?: Array<{ key: string; value: string; [extra: string]: unknown }>;
 	[extra: string]: unknown;
 };
 export type T_Example_Root = T_Example_RootPayload;
 
 const T_Example_RootPayloadSchema = Xml.object({
 	["Animal"]: { xmlName: "Animal", codec: Xml.lazy(() => T_Example_BaseSchema), optional: true },
-	["CaseLabels"]: { xmlName: "CaseLabels", codec: Xml.dictionary(Xml.scalar("System.String"), "string", Xml.scalar("System.String"), "string", "ordinalIgnoreCase"), optional: true },
 	["Changed"]: { xmlName: "Changed", codec: Xml.lazy(() => T_Example_ChangedSchema), optional: true },
-	["Children"]: { xmlName: "Children", codec: Xml.wrapped(Xml.nullable(Xml.lazy(() => T_Example_NodeSchema)), "Node", undefined), optional: true },
-	["Labels"]: { xmlName: "Labels", codec: Xml.dictionary(Xml.scalar("System.String"), "string", Xml.scalar("System.String"), "string"), optional: true },
-	["Last"]: { xmlName: "Last", codec: Xml.lazy(() => T_Example_GrandchildSchema), optional: true },
-	["Left"]: { xmlName: "Left", codec: Xml.lazy(() => T_Example_NodeSchema), optional: true },
-	["Marker"]: { xmlName: "Marker", codec: Xml.lazy(() => T_Example_MarkerSchema), optional: true },
-	["Other"]: { xmlName: "Other", codec: Xml.lazy(() => T_Example_DerivedSchema), optional: true },
-	["OtherCaseLabels"]: { xmlName: "OtherCaseLabels", codec: Xml.dictionary(Xml.scalar("System.String"), "string", Xml.scalar("System.String"), "string", "ordinalIgnoreCase"), optional: true },
-	["OtherLabels"]: { xmlName: "OtherLabels", codec: Xml.dictionary(Xml.scalar("System.String"), "string", Xml.scalar("System.String"), "string"), optional: true },
-	["Position"]: { xmlName: "Position", codec: Xml.lazy(() => T_Example_PointSchema), optional: true },
 	["Removed"]: { xmlName: "Removed", codec: Xml.lazy(() => T_Example_RemovedSchema), optional: true },
+	["Left"]: { xmlName: "Left", codec: Xml.lazy(() => T_Example_NodeSchema), optional: true },
 	["Right"]: { xmlName: "Right", codec: Xml.lazy(() => T_Other_NodeSchema), optional: true },
+	["Position"]: { xmlName: "Position", codec: Xml.lazy(() => T_Example_PointSchema), optional: true },
+	["Labels"]: { xmlName: "Labels", codec: Xml.dictionary(Xml.scalar("System.String"), "string", Xml.scalar("System.String"), "string"), optional: true },
+	["OtherLabels"]: { xmlName: "OtherLabels", codec: Xml.dictionary(Xml.scalar("System.String"), "string", Xml.scalar("System.String"), "string"), optional: true },
+	["Children"]: { xmlName: "Children", codec: Xml.wrapped(Xml.nullable(Xml.lazy(() => T_Example_NodeSchema)), "Node", undefined), optional: true },
+	["Other"]: { xmlName: "Other", codec: Xml.lazy(() => T_Example_DerivedSchema), optional: true },
+	["Last"]: { xmlName: "Last", codec: Xml.lazy(() => T_Example_GrandchildSchema), optional: true },
+	["Marker"]: { xmlName: "Marker", codec: Xml.lazy(() => T_Example_MarkerSchema), optional: true },
+	["CaseLabels"]: { xmlName: "CaseLabels", codec: Xml.dictionary(Xml.scalar("System.String"), "string", Xml.scalar("System.String"), "string", "ordinalIgnoreCase"), optional: true },
+	["OtherCaseLabels"]: { xmlName: "OtherCaseLabels", codec: Xml.dictionary(Xml.scalar("System.String"), "string", Xml.scalar("System.String"), "string", "ordinalIgnoreCase"), optional: true },
 });
 const T_Example_RootSchema: Xml.Codec<T_Example_Root> = Xml.lazy(() => Xml.polymorphic("Example.Root", [{ id: "Example.Root", name: "Root", namespace: "", codec: T_Example_RootPayloadSchema }])) as Xml.Codec<T_Example_Root>;
 

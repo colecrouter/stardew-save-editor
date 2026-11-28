@@ -346,7 +346,7 @@ describe("bounded inventory property edits", () => {
 					{
 						...catalogFixture(
 							item("FairyBox"),
-							"StardewValley.Objects.Trinket",
+							"StardewValley.Objects.Trinkets.Trinket",
 						),
 						generationSeed: 1,
 					},
@@ -467,7 +467,10 @@ it.effect(
 			const original = fixture();
 			original.SaveGame.player.trinketItem = [
 				{
-					...catalogFixture(item("ParrotEgg"), "StardewValley.Objects.Trinket"),
+					...catalogFixture(
+						item("ParrotEgg"),
+						"StardewValley.Objects.Trinkets.Trinket",
+					),
 					generationSeed: 1,
 				},
 			];

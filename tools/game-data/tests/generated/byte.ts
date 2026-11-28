@@ -4,20 +4,20 @@ import * as Xml from "../../../../src/lib/save-format/index.ts";
 
 type T_Example_ColorPayload = {
 	"A"?: number;
-	"B"?: number;
-	"G"?: number;
-	"Palette"?: Array<number>;
 	"R"?: number;
+	"G"?: number;
+	"B"?: number;
+	"Palette"?: Array<number>;
 	[extra: string]: unknown;
 };
 export type T_Example_Color = T_Example_ColorPayload;
 
 const T_Example_ColorPayloadSchema = Xml.object({
 	["A"]: { xmlName: "A", codec: Xml.scalar("System.Byte"), optional: true },
-	["B"]: { xmlName: "@_B", codec: Xml.scalar("System.Byte"), optional: true },
-	["G"]: { xmlName: "G", codec: Xml.scalar("System.Byte"), optional: true },
-	["Palette"]: { xmlName: "Palette", codec: Xml.wrapped(Xml.scalar("System.Byte"), "unsignedByte", undefined), optional: true },
 	["R"]: { xmlName: "R", codec: Xml.scalar("System.Byte"), optional: true },
+	["G"]: { xmlName: "G", codec: Xml.scalar("System.Byte"), optional: true },
+	["B"]: { xmlName: "@_B", codec: Xml.scalar("System.Byte"), optional: true },
+	["Palette"]: { xmlName: "Palette", codec: Xml.wrapped(Xml.scalar("System.Byte"), "unsignedByte", undefined), optional: true },
 });
 const T_Example_ColorSchema: Xml.Codec<T_Example_Color> = Xml.lazy(() => Xml.polymorphic("Example.Color", [{ id: "Example.Color", name: "Color", namespace: "", codec: T_Example_ColorPayloadSchema }])) as Xml.Codec<T_Example_Color>;
 

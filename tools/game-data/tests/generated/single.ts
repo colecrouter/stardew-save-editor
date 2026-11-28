@@ -3,17 +3,17 @@ import { Schema } from "effect";
 import * as Xml from "../../../../src/lib/save-format/index.ts";
 
 type T_Example_FencePayload = {
-	"Bias"?: number;
 	"Health"?: number;
 	"History"?: Array<number>;
+	"Bias"?: number;
 	[extra: string]: unknown;
 };
 export type T_Example_Fence = T_Example_FencePayload;
 
 const T_Example_FencePayloadSchema = Xml.object({
-	["Bias"]: { xmlName: "@_Bias", codec: Xml.scalar("System.Single"), optional: true },
 	["Health"]: { xmlName: "Health", codec: Xml.scalar("System.Single"), optional: true },
 	["History"]: { xmlName: "History", codec: Xml.wrapped(Xml.scalar("System.Single"), "float", undefined), optional: true },
+	["Bias"]: { xmlName: "@_Bias", codec: Xml.scalar("System.Single"), optional: true },
 });
 const T_Example_FenceSchema: Xml.Codec<T_Example_Fence> = Xml.lazy(() => Xml.polymorphic("Example.Fence", [{ id: "Example.Fence", name: "Fence", namespace: "", codec: T_Example_FencePayloadSchema }])) as Xml.Codec<T_Example_Fence>;
 

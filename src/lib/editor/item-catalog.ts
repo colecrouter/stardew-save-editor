@@ -11,7 +11,6 @@ import {
 	FurnitureTypeToNumber,
 	ItemData,
 	ItemDescription,
-	RingsUniqueID,
 } from "../ItemData.ts";
 import { writeOptionalField } from "../optional-field.ts";
 import { Sprite } from "../Sprite.svelte.ts";
@@ -290,10 +289,10 @@ function construct(name: string, data: ItemInformation): Item | undefined {
 	// Preview seeds are deterministic. The committed fresh trinket receives a seed
 	// only at creation, so browsing does not generate or mutate an item instance.
 	if (data._type === "Trinket") item.generationSeed = 0;
-	if (data._type === "Object" && data.type === TypeEnum.Ring) {
+	// Rings are their own saved class. Since 1.6.15 they no longer save a
+	// uniqueID, so the class identity is the only extra field a new ring needs.
+	if (data._type === "Object" && data.type === TypeEnum.Ring)
 		item.$type = savedTypeId("Ring");
-		item.uniqueID = RingsUniqueID.get(name);
-	}
 	// Preserve the legacy new-hat representation and its hair-rendering flags;
 	// none of these defaults are applied to existing imported hats.
 	if (data._type === "Hat")
@@ -423,7 +422,7 @@ export function createCatalogItem(id: string): Item | undefined {
 	const data = ItemData.get(id);
 	if (!data) return;
 	const raw = construct(id, data);
-	if (raw?.$type === "StardewValley.Objects.Trinket")
+	if (raw?.$type === "StardewValley.Objects.Trinkets.Trinket")
 		raw.generationSeed = Math.floor(Math.random() * 9999999);
 	return raw;
 }

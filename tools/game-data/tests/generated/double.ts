@@ -3,19 +3,19 @@ import { Schema } from "effect";
 import * as Xml from "../../../../src/lib/save-format/index.ts";
 
 type T_Example_LuckPayload = {
-	"bias"?: number;
 	"dailyLuck"?: number;
 	"history"?: Array<number>;
 	"optional"?: (number) | null;
+	"bias"?: number;
 	[extra: string]: unknown;
 };
 export type T_Example_Luck = T_Example_LuckPayload;
 
 const T_Example_LuckPayloadSchema = Xml.object({
-	["bias"]: { xmlName: "@_bias", codec: Xml.scalar("System.Double"), optional: true },
 	["dailyLuck"]: { xmlName: "dailyLuck", codec: Xml.scalar("System.Double"), optional: true },
 	["history"]: { xmlName: "history", codec: Xml.wrapped(Xml.scalar("System.Double"), "double", undefined), optional: true },
 	["optional"]: { xmlName: "optional", codec: Xml.nullable(Xml.scalar("System.Double")), optional: true },
+	["bias"]: { xmlName: "@_bias", codec: Xml.scalar("System.Double"), optional: true },
 });
 const T_Example_LuckSchema: Xml.Codec<T_Example_Luck> = Xml.lazy(() => Xml.polymorphic("Example.Luck", [{ id: "Example.Luck", name: "Luck", namespace: "", codec: T_Example_LuckPayloadSchema }])) as Xml.Codec<T_Example_Luck>;
 

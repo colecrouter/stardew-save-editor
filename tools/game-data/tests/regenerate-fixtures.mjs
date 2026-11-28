@@ -1,6 +1,12 @@
 import { spawnSync } from "node:child_process";
-import { mkdirSync, readdirSync, readFileSync, rmSync } from "node:fs";
-import { resolve } from "node:path";
+import {
+	existsSync,
+	mkdirSync,
+	readdirSync,
+	readFileSync,
+	rmSync,
+} from "node:fs";
+import { join, relative, resolve } from "node:path";
 
 import { Schema } from "effect";
 
@@ -15,6 +21,26 @@ function run(command, args) {
 }
 const destination = resolve("tools/game-data/tests/generated");
 mkdirSync(destination, { recursive: true });
+// Verification generates into a sibling directory at the same depth, so the
+// emitted runtime imports match the committed fixtures, and it never overwrites
+// a committed fixture, including when generation fails.
+const verify = resolve("tools/game-data/tests/.verify");
+/**
+ * Every file of one generated fixture: its entry module plus the namespace
+ * modules in the directory named after it, as paths relative to `root`.
+ * @param {string} root @param {string} name
+ */
+function fixtureFiles(root, name) {
+	const directory = join(root, name);
+	const modules = existsSync(directory)
+		? readdirSync(directory).map((file) =>
+				relative(root, join(directory, file)),
+			)
+		: [];
+	return [`${name}.ts`, ...modules].sort();
+}
+// Git may check out CRLF on Windows; only source content is significant.
+const normalize = (/** @type {string} */ text) => text.replaceAll("\r\n", "\n");
 run("dotnet", ["build", "tools/game-data", "--nologo", "--verbosity", "quiet"]);
 const cli = resolve("tools/game-data/bin/Debug/net10.0/GameData.dll");
 const fixtures = resolve("tools/game-data/tests/fixtures");
@@ -45,10 +71,6 @@ for (const filename of readdirSync(fixtures).filter((name) =>
 	if (root === undefined || root.length === 0)
 		throw new Error(`No fixture root in ${filename}`);
 	const name = filename.replace(".catalog.json", "");
-	const committed = resolve(destination, `${name}.ts`);
-	// A sibling output keeps the emitted runtime import identical to the snapshot.
-	// Verification never overwrites a committed fixture, including when generation fails.
-	const output = check ? resolve(destination, `${name}.verify.ts`) : committed;
 	try {
 		run("dotnet", [
 			cli,
@@ -58,21 +80,24 @@ for (const filename of readdirSync(fixtures).filter((name) =>
 			"--type",
 			root,
 			"--output",
-			output,
+			resolve(check ? verify : destination, `${name}.ts`),
 		]);
 		if (check) {
-			// Git may check out CRLF on Windows; only source content is significant.
-			const normalize = (/** @type {string} */ text) =>
-				text.replaceAll("\r\n", "\n");
-			if (
-				normalize(readFileSync(output, "utf8")) !==
-				normalize(readFileSync(committed, "utf8"))
-			)
+			// The fixture is stale if any module was added, removed or changed.
+			const generated = fixtureFiles(verify, name);
+			const stale =
+				generated.join() !== fixtureFiles(destination, name).join() ||
+				generated.some(
+					(file) =>
+						normalize(readFileSync(join(verify, file), "utf8")) !==
+						normalize(readFileSync(join(destination, file), "utf8")),
+				);
+			if (stale)
 				throw new Error(
-					`Stale codec fixture: ${committed}. Run npm run game-data:fixtures.`,
+					`Stale codec fixture: ${name}. Run npm run game-data:fixtures.`,
 				);
 		}
 	} finally {
-		if (check) rmSync(output, { force: true });
+		if (check) rmSync(verify, { recursive: true, force: true });
 	}
 }

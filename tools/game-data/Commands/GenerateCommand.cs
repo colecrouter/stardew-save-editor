@@ -8,15 +8,13 @@ internal sealed class GenerateCommand : Command
 		var game = new GamePathOption();
 		var catalog = new Option<string?>("--catalog") { Description = "Use a saved inspection catalog instead of inspecting the installed game." };
 		var root = new Option<string>("--type") { DefaultValueFactory = _ => "StardewValley.SaveGame", Description = "Root CLR type to compile." };
-		var output = new Option<string>("--output", "-o") { Required = true, Description = "Destination TypeScript module." };
+		var output = new Option<string>("--output", "-o") { Required = true, Description = "Destination entry module; namespace modules go in a directory named after it." };
 		var runtime = new Option<string?>("--runtime") { Description = "Runtime TypeScript file; defaults to src/lib/save-format/index.ts from the repository root." };
-		var split = new Option<bool>("--split") { Description = "Write one module per CLR namespace into a directory named after the output, which becomes an entry module re-exporting them." };
 		Options.Add(game);
 		Options.Add(catalog);
 		Options.Add(root);
 		Options.Add(output);
 		Options.Add(runtime);
-		Options.Add(split);
 		SetAction(result => Cli.Run(result.GetValue(verbose), () =>
 		{
 			var target = Path.GetFullPath(result.GetValue(output)!);
@@ -48,19 +46,12 @@ internal sealed class GenerateCommand : Command
 			var import = RelativeImport(Path.GetDirectoryName(target)!, runtimeFile);
 			var emitter = new TypeScriptEmitter(contract);
 
-			if (!result.GetValue(split))
-			{
-				Cli.WriteText(emitter.Emit(import), target);
-				Console.Error.WriteLine($"Generated {target} ({contract.Objects.Count} object contracts).");
-				return 0;
-			}
-
 			// save.ts gets its modules in a sibling save/ directory. Every module is
 			// emitted before anything is written, so an unsupported contract still
 			// leaves the existing output untouched.
 			var directoryName = Path.GetFileNameWithoutExtension(target);
 			var directory = Path.Combine(Path.GetDirectoryName(target)!, directoryName);
-			var (entry, modules) = emitter.EmitSplit(directoryName, import, RelativeImport(directory, runtimeFile));
+			var (entry, modules) = emitter.Emit(directoryName, import, RelativeImport(directory, runtimeFile));
 			var written = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 			foreach (var module in modules)
 			{

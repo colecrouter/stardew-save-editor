@@ -155,13 +155,13 @@ npm run game-data:generate -- --catalog tools/game-data/workspace/catalog.json \
   --output tools/game-data/workspace/save.generated.ts
 ```
 
-Add `--split` to write one module per CLR namespace into a directory named after
-the output (`save.ts` gets `save/StardewValley.Locations.ts` and so on). The output
-file becomes an entry module that re-exports the same public types and schemas, so
-importers don't depend on the layout. Modules may import each other in cycles
-because every cross-type reference is deferred. A rerun deletes modules for
-namespaces that no longer appear, but only files that carry the generator's header.
-The production codec is generated with `--split`; test fixtures are single modules.
+Generation writes one module per CLR namespace into a directory named after the
+output (`save.ts` gets `save/StardewValley.Locations.ts` and so on), so no single
+generated file holds the whole contract. The output file is an entry module that
+re-exports the public types and builds the document schema; importers use only it.
+Modules may import each other in cycles because every cross-type reference is
+deferred. A rerun deletes modules for namespaces that no longer appear, but only
+files that carry the generator's header.
 
 The compiler resolves effective serialization rules once; both generation and save
 coverage use that contract. Generated TypeScript targets a small browser runtime

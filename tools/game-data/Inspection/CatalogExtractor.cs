@@ -168,6 +168,16 @@ internal static class CatalogExtractor
 		var result = new List<MemberInfo>();
 		foreach (var level in chain)
 		{
+			// A member this class redeclares with `new` hides the base member rather
+			// than overriding it, so it can have a different type and annotations.
+			// The name-based merge below would keep the base declaration and record
+			// the wrong shape without warning. No saved game type does this today;
+			// fail generation if one starts to, instead of guessing which one wins.
+			// Overrides are fine: they share the base member's slot by design.
+			var hiding = level.GetMembers(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
+				.FirstOrDefault(m => mapped.Contains(m.Name) && !Overrides(m) && Saved(m, "object"));
+			if (hiding is not null)
+				throw new InvalidDataException($"{level.FullName}.{hiding.Name} hides a saved base member with 'new'; the catalog cannot tell which declaration XmlSerializer writes.");
 			// GetMembers returns each name as this class sees it, so an override
 			// carries this class's annotations rather than its base declaration's.
 			var added = level.GetMembers(BindingFlags.Public | BindingFlags.Instance)
@@ -185,6 +195,18 @@ internal static class CatalogExtractor
 			}
 		}
 		return result;
+	}
+
+	// Whether a property overrides a base declaration (fields never can). The
+	// compiler marks an `override` accessor virtual without NewSlot; a `new` or
+	// first `virtual` declaration gets NewSlot, and a non-virtual one is neither.
+	// Read the flags rather than GetBaseDefinition, which MetadataLoadContext
+	// does not support.
+	private static bool Overrides(MemberInfo member)
+	{
+		if (member is not PropertyInfo property) return false;
+		var accessor = property.GetMethod ?? property.SetMethod;
+		return accessor is not null && accessor.IsVirtual && !accessor.Attributes.HasFlag(MethodAttributes.NewSlot);
 	}
 
 	private static int? MaxItems(Type type)

@@ -59,6 +59,19 @@ internal sealed class GenerateCommand : Command
 			foreach (var module in modules)
 			{
 				var path = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(target)!, module.Path));
+				// On case-insensitive filesystems (Windows, macOS), overwriting a module
+				// whose namespace only changed capitalisation keeps the old spelling on
+				// disk, while the entry imports the new one; Linux CI then fails to
+				// resolve it. Delete such a generated file first so it is recreated with
+				// the emitted name. On Linux the old spelling is a separate file, which
+				// the stale-module sweep below removes.
+				var existing = Directory.Exists(Path.GetDirectoryName(path)!)
+					? Directory.EnumerateFiles(Path.GetDirectoryName(path)!).FirstOrDefault(file =>
+						string.Equals(file, path, StringComparison.OrdinalIgnoreCase)
+						&& !string.Equals(Path.GetFileName(file), Path.GetFileName(path), StringComparison.Ordinal))
+					: null;
+				if (existing is not null && File.ReadLines(existing).FirstOrDefault() == TypeScriptEmitter.Header)
+					File.Delete(existing);
 				Cli.WriteText(module.Source, path);
 				written.Add(path);
 			}

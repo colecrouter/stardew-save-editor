@@ -11,12 +11,12 @@ From the repository root:
 ```bash
 # One step: inspect the selected installation and generate a root codec.
 npm run game-data:generate -- --game-path "/path/to/Stardew Valley" \
-  --output generated/save-format/save.ts
+  --output generated/save-format/save.ts --split
 
 # Or compile a reproducible catalog snapshot.
 npm run game-data:generate -- --catalog tools/game-data/workspace/catalog.json \
   --type StardewValley.SaveGame \
-  --output generated/save-format/save.ts
+  --output generated/save-format/save.ts --split
 ```
 
 The default root is `StardewValley.SaveGame`. `--runtime` selects the runtime file
@@ -136,7 +136,11 @@ so recursive references use `Xml.lazy`, which defers both schema and event handl
 ## Production editor
 
 `generated/save-format/save.ts` is committed output used by the editor's save
-service. Normal application builds need neither game files nor .NET. The editor
+service. It is generated with `--split`: the file is an entry module that
+re-exports the public types from one module per CLR namespace under
+`generated/save-format/save/`, so no single generated file is unmanageably large.
+The editor imports only the entry module.
+Normal application builds need neither game files nor .NET. The editor
 uses arrays for collections, `{ key, value }` dictionary entries, `null` for empty
 inventory slots, and exact `bigint` values for CLR 64-bit integers. Network field
 wrappers are handled by the codec; they do not appear as one-element arrays in the

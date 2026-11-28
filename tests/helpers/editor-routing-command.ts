@@ -69,6 +69,54 @@ async function verifyRouting(
 		await page.setViewportSize({ width: 390, height: 900 });
 		await page.route(/sentry\.io/, (route) => route.abort());
 		page.on("pageerror", (error) => errors.push(error.message));
+		// One listener answers every dialog for the page's whole life. Per-step
+		// `once` listeners raced Playwright: a click can return before its dialog
+		// arrives, and toggling listeners around it let the same dialog be answered
+		// twice. The rejected answer was never awaited, so it aborted the whole
+		// test run. Each step now queues the answer it expects and waits until that
+		// dialog has actually been answered. Unexpected dialogs and failed answers
+		// are recorded as errors, which the test asserts are empty.
+		const expectedDialogs: {
+			accept: boolean;
+			answered: PromiseWithResolvers<string>;
+		}[] = [];
+		page.on("dialog", (dialog) => {
+			const expected = expectedDialogs.shift();
+			if (expected === undefined) {
+				errors.push(`Unexpected ${dialog.type()} dialog: ${dialog.message()}`);
+				// Dismissing keeps a regression from following a link unasked.
+				dialog.dismiss().catch((error: unknown) => {
+					errors.push(
+						`Dismissing an unexpected dialog failed: ${String(error)}`,
+					);
+				});
+				return;
+			}
+			(expected.accept ? dialog.accept() : dialog.dismiss()).then(
+				() => expected.answered.resolve(dialog.message()),
+				(error: unknown) => expected.answered.reject(error),
+			);
+		});
+		// Runs `action`, which must open exactly one dialog, answers it as asked
+		// and returns its message once the browser has received the answer.
+		const answerDialog = async (
+			accept: boolean,
+			action: () => Promise<void>,
+		): Promise<string> => {
+			const answered = Promise.withResolvers<string>();
+			expectedDialogs.push({ accept, answered });
+			await action();
+			// Fail the step if the dialog never opens. The timer is cleared once the
+			// answer arrives, so a passing step leaves no rejection behind.
+			const timer = setTimeout(() => {
+				answered.reject(new Error("The expected dialog never opened."));
+			}, testTimeouts.assertion);
+			try {
+				return await answered.promise;
+			} finally {
+				clearTimeout(timer);
+			}
+		};
 		await page.goto(new URL("/editor/calendar", origin).href);
 		// The caller supplies XML so Vite's Node configuration never imports
 		// the app's fixture dependency graph. The page still uses its real worker.
@@ -91,12 +139,7 @@ async function verifyRouting(
 		});
 
 		// Canceling must leave both the unapplied value and the open disclosure.
-		let warning = "";
-		page.once("dialog", (dialog) => {
-			warning = dialog.message();
-			return dialog.dismiss();
-		});
-		await farmLink.click();
+		const warning = await answerDialog(false, () => farmLink.click());
 		const canceled = {
 			path: new URL(page.url()).pathname,
 			year: await year.inputValue(),
@@ -108,21 +151,13 @@ async function verifyRouting(
 		await farmLink.evaluate((link) =>
 			link.setAttribute("data-sveltekit-reload", "true"),
 		);
-		let reloadWarning = "";
-		page.once("dialog", (dialog) => {
-			reloadWarning = dialog.message();
-			return dialog.dismiss();
-		});
-		await farmLink.click();
-		// Remove any unused listener so a regression cannot dismiss the next step.
-		page.removeAllListeners("dialog");
+		const reloadWarning = await answerDialog(false, () => farmLink.click());
 		await farmLink.evaluate((link) =>
 			link.removeAttribute("data-sveltekit-reload"),
 		);
 
 		// Accepting discards the draft and follows the real link.
-		page.once("dialog", (dialog) => dialog.accept());
-		await farmLink.click();
+		await answerDialog(true, () => farmLink.click());
 		await page.waitForURL("**/editor/farm");
 		await page.locator(".section-menu:not([open])").waitFor();
 		const farmName = page.getByRole("textbox", {

@@ -136,14 +136,22 @@ so recursive references use `Xml.lazy`, which defers both schema and event handl
 ## Production editor
 
 `generated/save-format/save.ts` is committed output used by the editor's save
-service. Normal application builds need neither game files nor .NET. The editor
+service. It is an entry module that re-exports the public types from one
+generated module per CLR namespace under
+`generated/save-format/save/`, so no single generated file is unmanageably large.
+The editor imports only the entry module.
+Normal application builds need neither game files nor .NET. The editor
 uses arrays for collections, `{ key, value }` dictionary entries, `null` for empty
 inventory slots, and exact `bigint` values for CLR 64-bit integers. Network field
 wrappers are handled by the codec; they do not appear as one-element arrays in the
 editor. Concrete equipment references expose the same `$type` as inventory items.
 
 The codec writes canonical XML, including necessary nil/type attributes. It does
-not preserve whitespace, comments, numeric spelling, or attribute order. Unknown
+not preserve whitespace, comments, numeric spelling, or attribute order. Known
+elements are written in XmlSerializer's member order (base class first, then
+fields before properties in declaration order), because some game setters read
+earlier siblings: `Farmer.money` is stored in the wallet chosen by
+`useSeparateWallets`. The catalog records that order; generation must not sort it. Fields the codec does not know (such as a ring's `uniqueID` in a pre-1.6.15 save) are written after the known ones, so they can move within their element on export. Unknown
 object fields retain their generic XML representation. Unsupported known values
 fail decoding instead of entering a partially typed editor model.
 

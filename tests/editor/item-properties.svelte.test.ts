@@ -287,7 +287,7 @@ describe("item property controls", () => {
 				{
 					...catalogFixture(
 						catalog("FairyBox"),
-						"StardewValley.Objects.Trinket",
+						"StardewValley.Objects.Trinkets.Trinket",
 					),
 					generationSeed: 0,
 					customModData: { opaque: "keep" },
@@ -335,14 +335,14 @@ describe("item property controls", () => {
 				{
 					...catalogFixture(
 						catalog("FrogEgg"),
-						"StardewValley.Objects.Trinket",
+						"StardewValley.Objects.Trinkets.Trinket",
 					),
 					generationSeed: 0,
 				},
 			];
 			const seedless = catalogFixture(
 				catalog("FairyBox"),
-				"StardewValley.Objects.Trinket",
+				"StardewValley.Objects.Trinkets.Trinket",
 			);
 			delete seedless.generationSeed;
 			document.SaveGame.player.items[3] = seedless;

@@ -11,6 +11,8 @@ import {
 	SaveCodecLive,
 	SaveReadError,
 } from "../../src/lib/editor/save-service.ts";
+import { isRecord } from "../../src/lib/unknown.ts";
+import { parseXmlObject } from "../../src/lib/xmlObject.ts";
 import { makeEffectSession } from "./effect.ts";
 import { scenarios } from "./fixture.ts";
 import { editFile } from "./platform.ts";
@@ -40,6 +42,63 @@ it.effect(
 			).toBe(true);
 			// Encoding strips synthetic equipment attributes on a copy, not on the session.
 			expect(yield* session.snapshot).toEqual(state);
+		}).pipe(Effect.provide(Layer.merge(SaveCodecLive, NodeServices.layer))),
+);
+
+// Parsed XML elements with children are records; anything else is a test failure.
+const element = (value: unknown): Record<string, unknown> => {
+	if (!isRecord(value))
+		throw new Error("Expected an XML element with children");
+	return value;
+};
+// The child element names of one parsed XML record, in first-occurrence order.
+// Attributes and text are not elements, so they do not take part in ordering.
+const childOrder = (value: unknown): string[] =>
+	Object.keys(element(value)).filter(
+		(key) => !key.startsWith("@_") && key !== "#text",
+	);
+
+it.effect(
+	"export keeps the game's element order so order-dependent setters load correctly",
+	() =>
+		Effect.gen(function* () {
+			const fs = yield* FileSystem.FileSystem;
+			const codec = yield* SaveCodec;
+			const bytes = yield* fs.readFile(fixturePath);
+			const original = yield* codec.decode(bytes);
+			// Farmer._money writes into the wallet that useSeparateWallets selects.
+			// With separate wallets on, the game must read the flag before money, or
+			// the gold lands in the shared wallet and the farmer gets a new 500g one.
+			original.SaveGame.player.useSeparateWallets = true;
+			original.SaveGame.player.money = 123_456;
+			const encoded = yield* codec.encode(original);
+			const decoder = new TextDecoder();
+			const game = element(parseXmlObject(decoder.decode(bytes))["SaveGame"]);
+			const exported = element(
+				parseXmlObject(decoder.decode(encoded))["SaveGame"],
+			);
+			const player = childOrder(exported["player"]);
+			const walletFlag = player.indexOf("useSeparateWallets");
+			const money = player.indexOf("money");
+			// Both elements must be written. indexOf returns -1 for a missing one,
+			// which would satisfy the order check below without proving anything.
+			expect(walletFlag).toBeGreaterThanOrEqual(0);
+			expect(money).toBeGreaterThanOrEqual(0);
+			expect(walletFlag).toBeLessThan(money);
+			// The fixture was written by the game itself, so its order is the
+			// reference. Compare only names both files contain: the codec follows a
+			// newer game version, which may add or remove members.
+			for (const [label, gameRecord, exportedRecord] of [
+				["SaveGame", game, exported],
+				["player", game["player"], exported["player"]],
+			] as const) {
+				const expected = childOrder(gameRecord);
+				const actual = childOrder(exportedRecord);
+				expect(
+					actual.filter((name) => expected.includes(name)),
+					label,
+				).toEqual(expected.filter((name) => actual.includes(name)));
+			}
 		}).pipe(Effect.provide(Layer.merge(SaveCodecLive, NodeServices.layer))),
 );
 

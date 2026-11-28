@@ -8,7 +8,7 @@ internal sealed class GenerateCommand : Command
 		var game = new GamePathOption();
 		var catalog = new Option<string?>("--catalog") { Description = "Use a saved inspection catalog instead of inspecting the installed game." };
 		var root = new Option<string>("--type") { DefaultValueFactory = _ => "StardewValley.SaveGame", Description = "Root CLR type to compile." };
-		var output = new Option<string>("--output", "-o") { Required = true, Description = "Destination TypeScript module." };
+		var output = new Option<string>("--output", "-o") { Required = true, Description = "Destination entry module; namespace modules go in a directory named after it." };
 		var runtime = new Option<string?>("--runtime") { Description = "Runtime TypeScript file; defaults to src/lib/save-format/index.ts from the repository root." };
 		Options.Add(game);
 		Options.Add(catalog);
@@ -37,13 +37,53 @@ internal sealed class GenerateCommand : Command
 			var runtimeFile = Path.GetFullPath(result.GetValue(runtime) ?? "src/lib/save-format/index.ts");
 			if (!File.Exists(runtimeFile)) throw new FileNotFoundException("Runtime not found; run from the repository root or supply --runtime.", runtimeFile);
 
-			var import = Path.GetRelativePath(Path.GetDirectoryName(target)!, runtimeFile).Replace('\\', '/');
-			if (!import.StartsWith('.')) import = "./" + import;
+			// Generated modules import the runtime by a path relative to themselves.
+			static string RelativeImport(string from, string file)
+			{
+				var path = Path.GetRelativePath(from, file).Replace('\\', '/');
+				return path.StartsWith('.') ? path : "./" + path;
+			}
+			var import = RelativeImport(Path.GetDirectoryName(target)!, runtimeFile);
+			var emitter = new TypeScriptEmitter(contract);
 
-			var source = new TypeScriptEmitter(contract).Emit(import);
-
-			Cli.WriteText(source, target);
-			Console.Error.WriteLine($"Generated {target} ({contract.Objects.Count} object contracts).");
+			// save.ts gets its modules in a sibling save/ directory. Every module is
+			// emitted before anything is written, so an unsupported contract leaves the
+			// existing output untouched. A failed write partway through can still leave
+			// a mix of old and new modules; rerun generation to repair it.
+			var directoryName = Path.GetFileNameWithoutExtension(target);
+			var directory = Path.Combine(Path.GetDirectoryName(target)!, directoryName);
+			var (entry, modules) = emitter.Emit(directoryName, import, RelativeImport(directory, runtimeFile));
+			// Compare paths the way the filesystem does: on case-sensitive Linux, a module
+			// whose namespace only changed capitalisation is stale and must be deleted.
+			var written = new HashSet<string>(OperatingSystem.IsLinux() ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase);
+			foreach (var module in modules)
+			{
+				var path = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(target)!, module.Path));
+				// On case-insensitive filesystems (Windows, macOS), overwriting a module
+				// whose namespace only changed capitalisation keeps the old spelling on
+				// disk, while the entry imports the new one; Linux CI then fails to
+				// resolve it. Delete such a generated file first so it is recreated with
+				// the emitted name. On Linux the old spelling is a separate file, which
+				// the stale-module sweep below removes.
+				var existing = Directory.Exists(Path.GetDirectoryName(path)!)
+					? Directory.EnumerateFiles(Path.GetDirectoryName(path)!).FirstOrDefault(file =>
+						string.Equals(file, path, StringComparison.OrdinalIgnoreCase)
+						&& !string.Equals(Path.GetFileName(file), Path.GetFileName(path), StringComparison.Ordinal))
+					: null;
+				if (existing is not null && File.ReadLines(existing).FirstOrDefault() == TypeScriptEmitter.Header)
+					File.Delete(existing);
+				Cli.WriteText(module.Source, path);
+				written.Add(path);
+			}
+			// Write the entry last, so it never imports a module that is not there yet.
+			Cli.WriteText(entry, target);
+			// A namespace that disappeared from the contract leaves a stale module behind.
+			// Delete only files this generator wrote (they start with its header), so
+			// anything else someone put in the directory is left alone.
+			foreach (var file in Directory.EnumerateFiles(directory, "*.ts"))
+				if (!written.Contains(Path.GetFullPath(file)) && File.ReadLines(file).FirstOrDefault() == TypeScriptEmitter.Header)
+					File.Delete(file);
+			Console.Error.WriteLine($"Generated {target} and {modules.Count} namespace modules in {directory} ({contract.Objects.Count} object contracts).");
 			return 0;
 		}));
 	}

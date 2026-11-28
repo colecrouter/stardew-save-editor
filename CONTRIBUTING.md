@@ -258,7 +258,8 @@ See [game data tooling](tools/game-data/README.md) for setup, commands, input st
 and validation limits. Asset extraction and catalog generation use `tools/xnbhack`
 as described above.
 
-The production editor imports the committed codec in `generated/save-format/save.ts`.
+The production editor imports the committed codec in `generated/save-format/save.ts`,
+an entry module over one module per CLR namespace in `generated/save-format/save/`.
 Regenerate it with `npm run game-data:generate -- --output generated/save-format/save.ts`.
 Its browser runtime lives in `src/lib/save-format`; game assemblies are needed only
 for regeneration, not ordinary builds. Editor models use plain arrays, dictionary

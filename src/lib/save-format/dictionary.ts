@@ -90,7 +90,7 @@ export function dictionary(
 	// Keep ordered entries and compare decoded key values using the game's
 	// equality policy, independently of their canonical XML representation.
 	const equal = (left: unknown, right: unknown): boolean => {
-		if (comparison === "ordinalIgnoreCase")
+		if (comparison === "ordinalIgnoreCase" || comparison === "statsDictionary")
 			return (
 				ordinalIgnoreCaseKey(String(left)) ===
 				ordinalIgnoreCaseKey(String(right))
@@ -122,7 +122,60 @@ export function dictionary(
 			return undefined;
 		}),
 	);
-	return attach(target, entries.open, (name, nestedValue, attributes) =>
+	// Stats dictionaries load duplicates the way the game does, so a save the
+	// game opens also opens here. Other dictionaries keep rejecting them.
+	const open: Codec["open"] =
+		comparison === "statsDictionary"
+			? (header) =>
+					Effect.map(entries.open(header), (frame) => ({
+						...frame,
+						// Merge after every entry is read. The document still validates the
+						// merged value, so a sum outside the value type's range fails to
+						// load, as the game's own conversion does.
+						finish: () =>
+							Effect.map(frame.finish(), (values) => mergeStats(values, equal)),
+					}))
+			: entries.open;
+	return attach(target, open, (name, nestedValue, attributes) =>
 		entries.write(name, nestedValue, attributes),
 	);
 }
+
+// Mirrors StatsDictionary.AddDuringDeserialization (Stardew 1.6.15). A key that
+// matches an earlier one, ignoring case, folds into that entry, which keeps its
+// spelling and any extra fields. Values add up, except averageBedtime, where
+// the first non-zero value wins. Writing the result back gives the save the
+// game itself would write next.
+function mergeStats(
+	values: unknown,
+	equal: (left: unknown, right: unknown) => boolean,
+): unknown {
+	if (!Array.isArray(values)) return values;
+	const merged: Record<string, unknown>[] = [];
+	for (const entry of values) {
+		const current = record(entry);
+		const index = merged.findIndex((previous) =>
+			equal(previous["key"], current["key"]),
+		);
+		const previous = merged[index];
+		if (previous === undefined) {
+			merged.push(current);
+			continue;
+		}
+		const [sum, incoming] = [previous["value"], current["value"]];
+		// The game tests the incoming spelling, ignoring case.
+		const bedtime = equal(current["key"], "averageBedtime");
+		let value: unknown;
+		if (bedtime) value = isZero(sum) ? incoming : sum;
+		// Int32 and UInt32 stats decode as numbers, Int64 as bigint.
+		else if (typeof sum === "number" && typeof incoming === "number")
+			value = sum + incoming;
+		else if (typeof sum === "bigint" && typeof incoming === "bigint")
+			value = sum + incoming;
+		else return values; // Unexpected shape: leave the duplicate to be rejected.
+		merged[index] = { ...previous, value };
+	}
+	return merged;
+}
+
+const isZero = (value: unknown) => value === 0 || value === 0n;

@@ -23,7 +23,7 @@ const ctx = {
 	totalMoneyEarned: 3000000,
 } satisfies TrinketRollContext;
 const rawItem = (kind: TrinketKind, generationSeed = 0) => ({
-	$type: "StardewValley.Objects.Trinket" as const,
+	$type: "StardewValley.Objects.Trinkets.Trinket" as const,
 	itemId: kind,
 	generationSeed,
 	customModData: { opaque: "007" },
@@ -61,7 +61,10 @@ describe("proxy-free trinket property policy", () => {
 		}
 		for (const raw of [
 			undefined,
-			{ $type: "StardewValley.Objects.Trinket" as const, itemId: "FairyBox" },
+			{
+				$type: "StardewValley.Objects.Trinkets.Trinket" as const,
+				itemId: "FairyBox",
+			},
 			{ ...rawItem("FairyBox"), generationSeed: -1 },
 			{ ...rawItem("FairyBox"), itemId: "ModdedTrinket" },
 		]) {
@@ -259,7 +262,10 @@ describe("proxy-free trinket property policy", () => {
 					[rawItem("MagicQuiver", 1), request("trinket:delay", 0.65)],
 					// A missing seed is an absent serialized field.
 					[
-						{ $type: "StardewValley.Objects.Trinket", itemId: "FairyBox" },
+						{
+							$type: "StardewValley.Objects.Trinkets.Trinket",
+							itemId: "FairyBox",
+						},
 						request("trinket:level", 2),
 					],
 				] as const) {
@@ -304,7 +310,7 @@ it.effect(
 			);
 			const after = yield* session.snapshot;
 			const item = after.document.SaveGame.player.items[0];
-			if (item?.$type !== "StardewValley.Objects.Trinket")
+			if (item?.$type !== "StardewValley.Objects.Trinkets.Trinket")
 				throw Error("Missing edited trinket");
 			// Flat string templates and a scalar display mirror must remain loadable;
 			// nested legacy wrappers previously looked correct in helper-only tests.

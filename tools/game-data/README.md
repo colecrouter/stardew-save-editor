@@ -155,6 +155,14 @@ npm run game-data:generate -- --catalog tools/game-data/workspace/catalog.json \
   --output tools/game-data/workspace/save.generated.ts
 ```
 
+Generation writes one module per CLR namespace into a directory named after the
+output (`save.ts` gets `save/StardewValley.Locations.ts` and so on), so no single
+generated file holds the whole contract. The output file is an entry module that
+re-exports the public types and builds the document schema; importers use only it.
+Modules may import each other in cycles because every cross-type reference is
+deferred. A rerun deletes modules for namespaces that no longer appear, but only
+files that carry the generator's header.
+
 The compiler resolves effective serialization rules once; both generation and save
 coverage use that contract. Generated TypeScript targets a small browser runtime
 with ordinary typed objects/arrays, automatic null/type serialization, and unknown
@@ -165,7 +173,9 @@ ordinary builds and save loading do not run the extractor.
 
 Inspection records generic definitions and arguments for reviewed serializers:
 SerializableDictionary, its case-insensitive string-key subclass, Inventory, and
-NetNullableEnum. NetField descendants record their one-item bound. Refresh older
+NetNullableEnum. NetField descendants record their one-item bound. Catalog format 4
+records each type's members in XmlSerializer's order; format 3 catalogs listed them
+alphabetically, so they are rejected and must be re-extracted. Refresh older
 catalogs when these fields are missing; they are required to interpret those types.
 
 ## Verification

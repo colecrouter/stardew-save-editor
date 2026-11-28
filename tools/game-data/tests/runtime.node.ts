@@ -309,6 +309,60 @@ void test("plain dictionary entries support creation and enforce reviewed key eq
 	assert.throws(() => write([...value, { key: "KEY", value: 6 }]), /Duplicate/);
 });
 
+void test("stats dictionaries merge duplicate keys on load the way the game does", () => {
+	const schema = (value: Xml.Codec, valueName: string) =>
+		Xml.document(
+			"Values",
+			Xml.dictionary(
+				Xml.scalar("System.String"),
+				"string",
+				value,
+				valueName,
+				"statsDictionary",
+			),
+		);
+	const item = (key: string, value: string, name = "unsignedInt") =>
+		`<item><key><string>${key}</string></key><value><${name}>${value}</${name}></value></item>`;
+	const read = Schema.decodeUnknownSync(
+		schema(Xml.scalar("System.UInt32"), "unsignedInt"),
+	);
+	// A case-insensitive repeat adds into the first entry, keeping its spelling.
+	// averageBedtime keeps the first non-zero value instead of adding.
+	assert.deepEqual(
+		read(
+			`<Values>${item("stepsTaken", "5")}${item("averageBedtime", "0")}${item("STEPSTAKEN", "7")}${item("AverageBedtime", "2400")}${item("averageBEDTIME", "2600")}</Values>`,
+		),
+		[
+			{ key: "stepsTaken", value: 12 },
+			{ key: "averageBedtime", value: 2400 },
+		],
+	);
+	// The game's conversion back to the value type overflows, so it can't load
+	// the save either.
+	assert.throws(() =>
+		read(`<Values>${item("a", "4294967295")}${item("A", "1")}</Values>`),
+	);
+	// Int64 stats decode as bigint and add the same way.
+	const readLong = Schema.decodeUnknownSync(
+		schema(Xml.scalar("System.Int64"), "long"),
+	);
+	assert.deepEqual(
+		readLong(
+			`<Values>${item("a", "1", "long")}${item("A", "2", "long")}</Values>`,
+		),
+		[{ key: "a", value: 3n }],
+	);
+	// The editor itself must not write duplicates.
+	assert.throws(
+		() =>
+			Schema.encodeSync(schema(Xml.scalar("System.UInt32"), "unsignedInt"))([
+				{ key: "a", value: 1 },
+				{ key: "A", value: 2 },
+			]),
+		/Duplicate/,
+	);
+});
+
 void test("generated recursive contracts initialize and round-trip without envelopes", async () => {
 	const { XmlSchema: RecursiveXmlSchema } =
 		await import("./generated/recursive.ts");

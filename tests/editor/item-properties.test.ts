@@ -10,7 +10,10 @@ import {
 	setInventoryItem,
 	setInventoryItemProperty,
 } from "../../src/lib/editor/inventory-operations";
-import { createCatalogItem } from "../../src/lib/editor/item-catalog";
+import {
+	catalogEntries,
+	createCatalogItem,
+} from "../../src/lib/editor/item-catalog";
 import {
 	decodeItemPropertyChange,
 	getItemPropertyFields,
@@ -346,7 +349,7 @@ describe("bounded inventory property edits", () => {
 					{
 						...catalogFixture(
 							item("FairyBox"),
-							"StardewValley.Objects.Trinket",
+							"StardewValley.Objects.Trinkets.Trinket",
 						),
 						generationSeed: 1,
 					},
@@ -467,7 +470,10 @@ it.effect(
 			const original = fixture();
 			original.SaveGame.player.trinketItem = [
 				{
-					...catalogFixture(item("ParrotEgg"), "StardewValley.Objects.Trinket"),
+					...catalogFixture(
+						item("ParrotEgg"),
+						"StardewValley.Objects.Trinkets.Trinket",
+					),
 					generationSeed: 1,
 				},
 			];
@@ -576,4 +582,25 @@ it("keeps unknown namespaced item classes opaque", () => {
 		canStack: false,
 		canQuality: false,
 	});
+});
+
+// Before 1.6.9 the game keyed ring light sources on uniqueID. 1.6.15 no longer
+// saves it, but older 1.6 saves still need distinct IDs, so each new ring gets
+// its own, even when it is the same kind as another.
+it("gives each new ring its own legacy uniqueID", () => {
+	const glow = requireRecord(item("Glow Ring"));
+	expect(glow["$type"]).toBe("StardewValley.Objects.Ring");
+	expect(glow["uniqueID"]).toMatch(/^\d+$/);
+	// Two rings of one kind can still draw the same random ID, so sample a few
+	// and require that they are not all identical.
+	const ids = new Set(
+		Array.from(
+			{ length: 5 },
+			() => requireRecord(item("Glow Ring"))["uniqueID"],
+		),
+	);
+	expect(ids.size).toBeGreaterThan(1);
+	// Catalog previews are never saved, so they carry no generated ID.
+	const preview = catalogEntries.find((entry) => entry.id === "Glow Ring");
+	expect(requireRecord(preview?.raw)["uniqueID"]).toBeUndefined();
 });

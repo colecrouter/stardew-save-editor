@@ -11,7 +11,6 @@ import {
 	FurnitureTypeToNumber,
 	ItemData,
 	ItemDescription,
-	RingsUniqueID,
 } from "../ItemData.ts";
 import { writeOptionalField } from "../optional-field.ts";
 import { Sprite } from "../Sprite.svelte.ts";
@@ -42,6 +41,9 @@ type ItemDraft = {
 	// generated serializer does not declare them as persisted Furniture members.
 	sourceIndexOffset?: number;
 	drawPosition?: { X: number; Y: number };
+	// 1.6.15 no longer saves a ring's uniqueID, so it is an extension field. It
+	// is a string because that is how decoding represents unknown elements.
+	uniqueID?: string;
 };
 
 /** One catalog choice. Its ID distinguishes flavored variants sharing a game ID. */
@@ -208,7 +210,13 @@ function supportsConstruction(data: ItemInformation) {
 	return true;
 }
 
-function construct(name: string, data: ItemInformation): Item | undefined {
+// `fresh` marks an item that will actually be placed, as opposed to a catalog
+// preview, so per-instance values are only generated when they will be saved.
+function construct(
+	name: string,
+	data: ItemInformation,
+	fresh = false,
+): Item | undefined {
 	if (!supportsConstruction(data)) return;
 	const type = saveTypes[data._type];
 	const item: ItemDraft = {
@@ -290,9 +298,15 @@ function construct(name: string, data: ItemInformation): Item | undefined {
 	// Preview seeds are deterministic. The committed fresh trinket receives a seed
 	// only at creation, so browsing does not generate or mutate an item instance.
 	if (data._type === "Trinket") item.generationSeed = 0;
+	// Rings are their own saved class. 1.6.15 stopped saving uniqueID, but before
+	// 1.6.9 the game keyed ring light sources on it, and the editor still accepts
+	// those saves: two glow rings sharing one ID would share one light. The old
+	// game varied the ID per ring, so each placed ring gets its own random ID
+	// rather than one fixed number per kind. Newer games skip the element.
 	if (data._type === "Object" && data.type === TypeEnum.Ring) {
 		item.$type = savedTypeId("Ring");
-		item.uniqueID = RingsUniqueID.get(name);
+		// Any non-negative Int32 is valid; the game only adds it to a player ID.
+		if (fresh) item.uniqueID = String(Math.floor(Math.random() * 2 ** 31));
 	}
 	// Preserve the legacy new-hat representation and its hair-rendering flags;
 	// none of these defaults are applied to existing imported hats.
@@ -422,8 +436,8 @@ export function createCatalogItem(id: string): Item | undefined {
 	// mutating a preview cannot introduce arbitrary fields into a newly placed item.
 	const data = ItemData.get(id);
 	if (!data) return;
-	const raw = construct(id, data);
-	if (raw?.$type === "StardewValley.Objects.Trinket")
+	const raw = construct(id, data, true);
+	if (raw?.$type === "StardewValley.Objects.Trinkets.Trinket")
 		raw.generationSeed = Math.floor(Math.random() * 9999999);
 	return raw;
 }

@@ -1777,8 +1777,8 @@ export type T_StardewValley_StatsPayload = {
 export type T_StardewValley_Stats = T_StardewValley_StatsPayload;
 
 export const T_StardewValley_StatsPayloadSchema = Xml.object({
-	["specificMonstersKilled"]: { xmlName: "specificMonstersKilled", codec: Xml.dictionary(Xml.scalar("System.String"), "string", Xml.scalar("System.Int32"), "int", "ordinalIgnoreCase"), optional: true },
-	["Values"]: { xmlName: "Values", codec: Xml.dictionary(Xml.scalar("System.String"), "string", Xml.scalar("System.UInt32"), "unsignedInt", "ordinalIgnoreCase"), optional: true },
+	["specificMonstersKilled"]: { xmlName: "specificMonstersKilled", codec: Xml.dictionary(Xml.scalar("System.String"), "string", Xml.scalar("System.Int32"), "int", "statsDictionary"), optional: true },
+	["Values"]: { xmlName: "Values", codec: Xml.dictionary(Xml.scalar("System.String"), "string", Xml.scalar("System.UInt32"), "unsignedInt", "statsDictionary"), optional: true },
 	["stat_dictionary"]: { xmlName: "stat_dictionary", codec: Xml.dictionary(Xml.scalar("System.String"), "string", Xml.scalar("System.UInt32"), "unsignedInt"), optional: true },
 	["averageBedtime"]: { xmlName: "averageBedtime", codec: Xml.nullable(Xml.scalar("System.UInt32")), optional: true },
 	["beveragesMade"]: { xmlName: "beveragesMade", codec: Xml.nullable(Xml.scalar("System.UInt32")), optional: true },

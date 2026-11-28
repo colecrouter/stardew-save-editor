@@ -8,6 +8,9 @@ export const keyIdentities = {
 		fields: { X: "System.Single", Y: "System.Single" },
 	},
 } as const;
+// "statsDictionary" compares keys like "ordinalIgnoreCase", but the game merges
+// a loaded duplicate into the earlier entry instead of rejecting it.
 export type DictionaryKeyComparison =
 	| keyof typeof keyIdentities
-	| "ordinalIgnoreCase";
+	| "ordinalIgnoreCase"
+	| "statsDictionary";

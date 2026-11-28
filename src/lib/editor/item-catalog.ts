@@ -11,7 +11,6 @@ import {
 	FurnitureTypeToNumber,
 	ItemData,
 	ItemDescription,
-	RingsUniqueID,
 } from "../ItemData.ts";
 import { writeOptionalField } from "../optional-field.ts";
 import { Sprite } from "../Sprite.svelte.ts";
@@ -211,7 +210,13 @@ function supportsConstruction(data: ItemInformation) {
 	return true;
 }
 
-function construct(name: string, data: ItemInformation): Item | undefined {
+// `fresh` marks an item that will actually be placed, as opposed to a catalog
+// preview, so per-instance values are only generated when they will be saved.
+function construct(
+	name: string,
+	data: ItemInformation,
+	fresh = false,
+): Item | undefined {
 	if (!supportsConstruction(data)) return;
 	const type = saveTypes[data._type];
 	const item: ItemDraft = {
@@ -295,12 +300,13 @@ function construct(name: string, data: ItemInformation): Item | undefined {
 	if (data._type === "Trinket") item.generationSeed = 0;
 	// Rings are their own saved class. 1.6.15 stopped saving uniqueID, but before
 	// 1.6.9 the game keyed ring light sources on it, and the editor still accepts
-	// those saves: two glow rings sharing uniqueID 0 would share one light. New
-	// rings therefore keep writing the legacy ID; newer games skip the element.
+	// those saves: two glow rings sharing one ID would share one light. The old
+	// game varied the ID per ring, so each placed ring gets its own random ID
+	// rather than one fixed number per kind. Newer games skip the element.
 	if (data._type === "Object" && data.type === TypeEnum.Ring) {
 		item.$type = savedTypeId("Ring");
-		const uniqueID = RingsUniqueID.get(name);
-		if (uniqueID !== undefined) item.uniqueID = String(uniqueID);
+		// Any non-negative Int32 is valid; the game only adds it to a player ID.
+		if (fresh) item.uniqueID = String(Math.floor(Math.random() * 2 ** 31));
 	}
 	// Preserve the legacy new-hat representation and its hair-rendering flags;
 	// none of these defaults are applied to existing imported hats.
@@ -430,7 +436,7 @@ export function createCatalogItem(id: string): Item | undefined {
 	// mutating a preview cannot introduce arbitrary fields into a newly placed item.
 	const data = ItemData.get(id);
 	if (!data) return;
-	const raw = construct(id, data);
+	const raw = construct(id, data, true);
 	if (raw?.$type === "StardewValley.Objects.Trinkets.Trinket")
 		raw.generationSeed = Math.floor(Math.random() * 9999999);
 	return raw;

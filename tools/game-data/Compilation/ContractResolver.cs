@@ -131,7 +131,7 @@ internal sealed class ContractResolver(Catalog catalog)
 			if (mapping?.Type != Metadata.Xml + "XmlElementAttribute"
 				&& Metadata.Name(items.FirstOrDefault(), "ElementName", "") == "item"
 				&& SaveablePair(record.ElementType, path) is { } pair)
-				return new(member.Name, name, "element", Dictionary(pair.Key, pair.Value, false, path));
+				return new(member.Name, name, "element", Dictionary(pair.Key, pair.Value, null, path));
 			var maxItems = MaximumItems(record);
 			ValueContract value;
 			if (record.GenericDefinition == "Netcode.NetNullableEnum`1")
@@ -165,11 +165,12 @@ internal sealed class ContractResolver(Catalog catalog)
 		return new(member.Name, name, attribute ? "attribute" : "element", result);
 	}
 	// Dictionary entries use <item><key><K/></key><value><V/></value></item>, whether
-	// written by SerializableDictionary or by a SaveablePair array.
-	private ValueContract Dictionary(string keyId, string valueId, bool insensitive, string path)
+	// written by SerializableDictionary or by a SaveablePair array. `comparison`
+	// names the runtime's string-key policy; null means plain value equality.
+	private ValueContract Dictionary(string keyId, string valueId, string? comparison, string path)
 	{
 		var key = Value(keyId, path + ".key");
-		string? identity = insensitive ? "ordinalIgnoreCase" : null;
+		string? identity = comparison;
 		if (key.Kind == "object")
 		{
 			// Equality is implemented by the runtime's reviewed comparer, not by
@@ -257,15 +258,21 @@ internal sealed class ContractResolver(Catalog catalog)
 					throw new InvalidDataException($"{path}: invalid inventory payload");
 				return new("inventory", Item: Value(type.ElementType, path + ".slots"));
 			}
-			// StatsDictionary (1.6.15) only changes how duplicate keys merge while
-			// loading; its XML and string-key comparer are its base class's.
-			var insensitive = type.GenericDefinition is "StardewValley.SerializableDictionaryWithCaseInsensitiveKeys`1" or "StardewValley.StatsDictionary`1";
+			// StatsDictionary (1.6.15) keeps its base class's XML and string-key
+			// comparer, but merges duplicate keys while loading instead of failing.
+			// The runtime's "statsDictionary" policy reproduces that merge, which
+			// only knows how to add the numeric value types the game allows.
+			var stats = type.GenericDefinition == "StardewValley.StatsDictionary`1";
+			var insensitive = stats || type.GenericDefinition == "StardewValley.SerializableDictionaryWithCaseInsensitiveKeys`1";
 			if (insensitive || type.GenericDefinition == "StardewValley.SerializableDictionary`2")
 			{
 				if (type.GenericArguments.Count != (insensitive ? 1 : 2))
 					throw new InvalidDataException($"{path}: invalid dictionary generic metadata");
+				if (stats && type.GenericArguments[0] is not ("System.Int32" or "System.UInt32" or "System.Int64"))
+					throw new InvalidDataException($"{path}: StatsDictionary value type {type.GenericArguments[0]} has no reviewed merge");
 				var keyId = insensitive ? "System.String" : type.GenericArguments[0];
-				return Dictionary(keyId, type.GenericArguments[^1], insensitive, path);
+				var comparison = stats ? "statsDictionary" : insensitive ? "ordinalIgnoreCase" : null;
+				return Dictionary(keyId, type.GenericArguments[^1], comparison, path);
 			}
 			throw new InvalidDataException($"{path}: unsupported custom XML serializer {id}");
 		}
